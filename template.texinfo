@@ -1,0 +1,94 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename screamer.info
+@settitle Screamer
+@c %**end of header
+
+@c Replace:
+@c   ProjectName
+@c   ProjectDescription
+
+@c for install-info
+@dircategory Software development
+@direntry
+* ProjectName:           ProjectDescription
+@end direntry
+
+@titlepage
+
+@title ProjectName
+@subtitle ProjectDescription
+
+@c The following two commands start the copyright page.
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+
+@end titlepage
+
+@include include/sb-texinfo.texinfo
+
+@node Top
+@top Introduction
+
+@c Short description of what's what.
+
+@c Creator and maintainer information.
+
+@c Mailing lists
+The mailing list
+@example
+@url{http://...}
+@end example
+exists for ProjectName-related discussions.
+
+@c Version control
+ProjectName is maintained in Git:
+@example
+git clone git://github.com/...
+@end example
+will get you a local copy.
+@example
+@url{http://github.com/nikodemus/screamer}
+@end example
+is the GitHub project page.
+
+@contents
+
+@menu
+* Overview::                    
+* Examples::                    
+* Dictionary::                  
+* Concept Index::               
+* Function Index::              
+* Variable Index::              
+* Type Index::                  
+* Colophon::                    
+@end menu
+
+@node Overview
+@comment  node-name,  next,  previous,  up
+@chapter Overview
+
+@c Just how does this thing work?
+
+@node Examples
+@comment  node-name,  next,  previous,  up
+@chapter Examples
+
+@c Surely you have some?
+
+@node Dictionary
+@comment  node-name,  next,  previous,  up
+@chapter Dictionary
+
+@c All the exported symbols...
+@c
+@c @include include/macro-package-macroname.texinfo
+@c @include include/fun-package-funname.texinfo
+@c
+@c etc.
+
+@include include/backmatter.texinfo
+
+@bye
