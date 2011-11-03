@@ -130,6 +130,7 @@ and further processed using the @file{Makefile} linked above:
 @chapter Dictionary
 
 @include include/fun-sb-texinfo-document-package.texinfo
+@include include/fun-sb-texinfo-document-package-pathname.texinfo
 @include include/fun-sb-texinfo-generate-includes.texinfo
 
 @include include/short-backmatter.texinfo
