@@ -123,9 +123,7 @@ An alternate version of this manual, produced using
 @end lisp
 
 and further processed using the @file{Makefile} linked above:
-
-[ @url{document-package-sample.html, HTML} ]
-[ @url{document-package-sample.pdf, PDF} ]
+@url{document-package-sample.html}.
 
 @node Dictionary
 @comment  node-name,  next,  previous,  up
