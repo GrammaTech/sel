@@ -38,7 +38,7 @@
 (defpackage :sb-texinfo
   (:use :cl :sb-mop)
   (:shadow #:documentation)
-  (:export #:generate-includes #:document-package)
+  (:export #:generate-includes #:document-package #:document-package-pathname)
   (:documentation
    "Tools to generate TexInfo documentation from docstrings."))
 
@@ -87,7 +87,7 @@ you deserve to lose.")
 (defparameter *symbol-delimiters* " ,.!?;[]")
 
 (defparameter *ordered-documentation-kinds*
-  '(package type structure condition class macro))
+  '(package type structure condition class variable macro function))
 
 ;;;; utilities
 
@@ -301,6 +301,16 @@ symbols or lists of symbols."))
    (children :initarg :children :initform nil :reader get-children)
    (package :initform *documentation-package* :reader get-package)))
 
+(defun function-documentation-p (doc)
+  (member (get-kind doc) '(special-operator macro generic-function function method
+                           compiler-macro method-combination setf)))
+
+(defun variable-documentation-p (doc)
+  (member (get-kind doc) '(variable constant)))
+
+(defun type-documentation-p (doc)
+  (member (get-kind doc) '(structure class condition type)))
+
 (defmethod print-object ((documentation documentation) stream)
   (print-unreadable-object (documentation stream :type t)
     (princ (list (get-kind documentation) (get-name documentation)) stream)))
@@ -310,7 +320,8 @@ symbols or lists of symbols."))
 (defmethod make-documentation ((x package) doc-type string)
   (declare (ignore doc-type))
   (make-instance 'documentation
-                 :name (name x)
+                 :name (let ((*base-package* nil))
+                         (name x))
                  :kind 'package
                  :string string))
 
@@ -548,7 +559,7 @@ semicolon, and the previous line is empty"
   (let ((offset (indentation line)))
     (and offset
          (plusp offset)
-         (find (find-if-not #'whitespacep line) "(;")
+         (find (find-if-not #'whitespacep line) "(;<") ; < is a KLUDGE
          (empty-p (1- line-number) lines))))
 
 (defun collect-lisp-section (lines line-number)
@@ -858,7 +869,7 @@ values of doc-type."
   (nconc (collect-name-documentation symbol)
          (collect-name-documentation (list 'setf symbol))))
 
-(defun collect-documentation (package)
+(defun collect-documentation (package &key no-package)
   "Collects all documentation for all external symbols of the given
 package, as well as for the package itself."
   (let* ((*documentation-package* (find-package package))
@@ -866,10 +877,11 @@ package, as well as for the package itself."
     (check-type package package)
     (do-external-symbols (symbol package)
       (setf docs (nconc (collect-symbol-documentation symbol) docs)))
-    (let ((doc (maybe-documentation *documentation-package* t)))
+    (let ((doc (unless no-package
+                 (maybe-documentation *documentation-package* t))))
       (when doc
-        (push doc docs)))
-    docs))
+        (push doc docs))
+      (sort docs #'documentation<))))
 
 (defmacro with-texinfo-file (pathname &body forms)
   `(with-open-file (*texinfo-output* ,pathname
@@ -997,32 +1009,49 @@ package, as well as for the package itself."
 @end ifnottex~%"
           macro-name package-name))
 
-(defun write-backmatter ()
-  (write-line "
+(defun write-backmatter (&key (concept-index t)
+                              (function-index t)
+                              (variable-index t)
+                              (type-index t)
+                              (colophon t))
+  (when concept-index
+    (write-line "
 @node Concept Index
 @comment  node-name,  next,  previous,  up
 @appendix Concept Index
 
 @printindex cp
-
+"
+                *texinfo-output*))
+  (when function-index
+    (write-line "
 @node Function Index
 @comment  node-name,  next,  previous,  up
 @appendix Function Index
 
 @printindex fn
-
+"
+                *texinfo-output*))
+  (when variable-index
+    (write-line "
 @node Variable Index
 @comment  node-name,  next,  previous,  up
 @appendix Variable Index
 
 @printindex vr
-
+"
+                *texinfo-output*))
+  (when type-index
+    (write-line "
 @node Type Index
 @comment  node-name,  next,  previous,  up
 @appendix Type Index
 
 @printindex tp
-
+"
+                *texinfo-output*))
+  (when colophon
+    (write-line "
 @node Colophon
 @comment  node-name,  next,  previous,  up
 @unnumbered Colophon
@@ -1033,23 +1062,116 @@ manual in one of these non-Texinfo translated forms, that's fine, but
 if you want to @emph{modify} this manual, you are strongly advised to
 seek out a Texinfo version and modify that instead of modifying a
 translated version."
-              *texinfo-output*))
+                *texinfo-output*)))
+
+(defun write-texinfo-header (title filename description long-description)
+  (format *texinfo-output* "
+\\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename ~A.info
+@settitle ~A
+@c %**end of header
+
+@c for install-info
+@dircategory Software development
+@direntry
+* ~A:~@[           ~A~]
+@end direntry
+
+@titlepage
+@title ~A
+~@[@subtitle ~A~]
+
+@c The following two commands start the copyright page.
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+
+@end titlepage
+
+@node Top
+@top Introduction
+
+This is an @sc{sb-texinfo} autogenerated manual for ~A.
+
+@c DO NOT EDIT BY HAND
+@c
+@c ...unless you're just using this as a template for a manually maintained
+@c versiom, which is obviously OK.
+
+~@[~A~]
+
+@contents
+"
+          filename
+          title
+          filename
+          description
+          title
+          description
+          title
+          long-description))
+
+(defun write-menu (maybe-package-name docs)
+  (write-line "@menu" *texinfo-output*)
+  (when maybe-package-name
+    (format *texinfo-output* "* Package ~A::~%" maybe-package-name))
+  (write-line "* Dictionary::" *texinfo-output*)
+  (when (find-if #'function-documentation-p docs)
+    (write-line "* Function Index::" *texinfo-output*))
+  (when (find-if #'variable-documentation-p docs)
+    (write-line "* Variable Index::" *texinfo-output*))
+  (when (find-if #'type-documentation-p docs)
+    (write-line "* Type Index::" *texinfo-output*))
+  (write-line "@end menu" *texinfo-output*))
+
+(defun write-chapter/package (package doc)
+  (format *texinfo-output* "
+@node Package ~A~:*
+@comment  node-name,  next,  previous,  up
+@chapter Package ~A~%"
+          (package-shortest-name package))
+  (texinfo-body doc))
+
+(defun write-chapter/dictionary (docs)
+  (write-line "
+@node Dictionary
+@comment  node-name,  next,  previous,  up
+@chapter Dictionary
+"
+              *texinfo-output*)
+  (dolist (doc docs)
+    (format *texinfo-output* "@include include/~A~%" (include-pathname doc))))
 
 (defun generate-includes (directory packages &key base-package)
-  "Create files in `directory' containing Texinfo markup of all
-docstrings of each exported symbol in `packages'. `directory' is
-created if necessary. If you supply a namestring that doesn't end in a
-slash, you lose. The generated files are of the form
-\"<doc-type>_<packagename>_<symbol-name>.texinfo\" and can be included
-via @include statements. Texinfo syntax-significant characters are
-escaped in symbol names, but if a docstring contains invalid Texinfo
-markup, you lose."
+  "Create files in DIRECTORY containing Texinfo markup of all docstrings of
+each exported symbol in PACKAGES. The DIRECTORY is created if it does not
+exist yet. Trailing slash is required.
+
+The names of the generated files are of the form
+
+    <doc-type>-<packagename>-<symbol-name>.texinfo
+
+and can be included in Texinfo source via @include statements. Texinfo
+syntax-significant characters are escaped in symbol names, but if a docstring
+contains invalid Texinfo markup, you lose."
   (handler-bind ((warning #'muffle-warning))
     (let ((directory (merge-pathnames (pathname directory)))
-          (*base-package* (when base-package (find-package base-package))))
+          (*base-package* (when base-package (find-package base-package)))
+          (funsp nil)
+          (varsp nil)
+          (typesp nil))
+      (when (or (pathname-type directory) (pathname-name directory))
+        (error "Not a directory pathname: ~S" directory))
       (ensure-directories-exist directory)
       (dolist (package packages)
         (dolist (doc (collect-documentation (find-package package)))
+          (cond ((function-documentation-p doc)
+                 (setf funsp t))
+                ((variable-documentation-p doc)
+                 (setf varsp t))
+                ((type-documentation-p doc)
+                 (setf typesp t)))
           (with-texinfo-file (merge-pathnames (include-pathname doc) directory)
             (write-texinfo doc))))
       (with-texinfo-file (merge-pathnames "sb-texinfo.texinfo" directory)
@@ -1057,26 +1179,68 @@ markup, you lose."
         (dolist (package packages)
           (write-package-macro package))
         (write-packageish-macro nil "nopkg"))
+      (with-texinfo-file (merge-pathnames "short-backmatter.texinfo" directory)
+        (write-backmatter :concept-index nil
+                          :function-index funsp
+                          :variable-index varsp
+                          :type-index typesp
+                          :colophon nil))
       (with-texinfo-file (merge-pathnames "backmatter.texinfo" directory)
         (write-backmatter))
       directory)))
 
-(defun document-package (package &optional filename)
-  "Create a file containing all available documentation for the
-exported symbols of `package' in Texinfo format. If `filename' is not
-supplied, a file \"<packagename>.texinfo\" is generated.
+(defun document-package-pathname (package &key output-file &allow-other-keys)
+  "Returns the pathname used for OUTPUT-FILE by DOCUMENT-PACKAGE when called
+with the same arguments."
+  (let ((*base-package* nil))
+    (merge-pathnames
+     (or (when output-file
+           (merge-pathnames output-file (make-pathname :type "texinfo")))
+         (make-pathname
+          :name (string-downcase (package-shortest-name package))
+          :type "texinfo")))))
 
-The definitions can be referenced using Texinfo statements like
-@ref{<doc-type>_<packagename>_<symbol-name>.texinfo}. Texinfo
-syntax-significant characters are escaped in symbol names, but if a
-docstring contains invalid Texinfo markup, you lose."
+(defun document-package (package &key output-file (standalone t) title)
+  "Creates Texinfo documentation for PACKAGE in OUTPUT-FILE, which defaults to
+the <shortest-package-name>.texinfo. Returns the pathname of the created file
+as the primary value. An \"include/\" directory is created in the same
+location as the Texinfo file, which contains parts included in the Texinfo
+file.
+
+If STANDALONE is true (the default), a standalone Texinfo file is created.
+Otherwise a file suitable for including in other Texinfo files is created.
+
+The TITLE is used for the documentation, defaulting to capitalized shortest
+package name.
+
+The generated Texinfo uses include files generated by GENERATE-INCLUDES,
+making this function a convenient way to generate an initial template
+for a manually maintained Texinfo manual."
+  (generate-includes "include/" (list package) :base-package package)
   (handler-bind ((warning #'muffle-warning))
-    (let* ((package (find-package package))
-           (filename (or filename (make-pathname
-                                   :name (string-downcase (package-shortest-name package))
-                                   :type "texinfo")))
-           (docs (sort (collect-documentation package) #'documentation<)))
+    (let* ((filename (document-package-pathname package :output-file output-file))
+           (*base-package* (find-package package))
+           (system (asdf:find-system package nil))
+           (desc (when system
+                   (ignore-errors (asdf:system-description system))))
+           (long-desc (when system
+                        (ignore-errors (asdf:system-description system))))
+           (package-doc (let ((*documentation-package* *base-package*))
+                          (maybe-documentation *base-package* t)))
+           (docs (collect-documentation *base-package* :no-package t)))
       (with-texinfo-file filename
-        (dolist (doc docs)
-          (write-texinfo doc)))
+        (when standalone
+          (write-texinfo-header (or title
+                                    (string-capitalize
+                                     (package-shortest-name package)))
+                                (pathname-name filename)
+                                desc
+                                long-desc))
+        (write-line "@include include/sb-texinfo.texinfo" *texinfo-output*)
+        (write-menu (when package-doc (package-shortest-name package)) docs)
+        (write-chapter/package package package-doc)
+        (write-chapter/dictionary docs)
+        (when standalone
+          (write-line "@include include/short-backmatter.texinfo" *texinfo-output*)
+          (write-line "@bye" *texinfo-output*)))
       filename)))
