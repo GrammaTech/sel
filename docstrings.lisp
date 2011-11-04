@@ -1078,14 +1078,12 @@ translated version."
 * ~A:~@[           ~A~]
 @end direntry
 
+@finalout
+@setcontentsaftertitlepage
+
 @titlepage
 @title ~A
 ~@[@subtitle ~A~]
-
-@c The following two commands start the copyright page.
-@page
-@vskip 0pt plus 1filll
-@insertcopying
 
 @end titlepage
 

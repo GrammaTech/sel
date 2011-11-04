@@ -10,26 +10,22 @@
 * sb-texinfo:           Docstring to Texinfo extractor
 @end direntry
 
+@finalout
+@setcontentsaftertitlepage
+
+@macro project
+@sc{sb-texinfo }
+@end macro
+
 @titlepage
-
-@title sb-texinfo
-@subtitle Docstrings to Texinfo
-
-@c The following two commands start the copyright page.
-@page
-@vskip 0pt plus 1filll
-@insertcopying
-
+@title @project
+@subtitle Documentation String to Texinfo Converter
 @end titlepage
 
 @include include/sb-texinfo.texinfo
 
 @node Top
 @top Introduction
-
-@macro project
-@sc{sb-texinfo}
-@end macro
 
 @project converts Common Lisp documentation strings for inclusion in
 a Texinfo manual---which can then be converted into eg. HTML and PDF.
