@@ -7,7 +7,7 @@
 @c for install-info
 @dircategory Software development
 @direntry
-* sb-texinfo:           Docstring to Texinfo extractor
+* sb-texinfo:           Documentation String to Texinfo Converter
 @end direntry
 
 @finalout
@@ -36,7 +36,8 @@ reason why support for other Common Lisps could not be added.
 @project was originally written for processing the SBCL docstrings
 by Rudi Sclatte in 2004, and has been maintained as part of SBCL since
 then. This version was split from the SBCL sources in 2011 in order to
-generalize it for documenting other software.
+generalize it for documenting other software. Like SBCL, this manual
+is in the Public Domain.
 
 @c Version control
 @project is maintained in Git:
@@ -73,7 +74,7 @@ The recommended way is to write a manual in Texinfo, and use the
 
 @item @strong{Quick and Dirty:} 
 Call @reffun{document-package} with the name of the package or
-packages to document. This will produce a texinfo file containing
+packages to document. This will produce a Texinfo file containing
 extracted documentation for the project.
 
 This can be a convenient way to produce a template for further
@@ -87,7 +88,7 @@ with docstrings but no manual.
 @comment  node-name,  next,  previous,  up
 @chapter Examples
 
-@section @project Documented Using @code{generate-includes}
+@section Using @code{generate-includes}
 
 This manual is produced using the @reffun{generate-includes} method.
 @file{sb-texinfo.texinfo} is the main Texinfo source file, where
@@ -109,17 +110,30 @@ Finally, @file{style.css} is used to prettify the HTML version.
 @url{https://raw.github.com/nikodemus/sb-texinfo/master/doc/style.css}
 @end example
 
-@section @project Documented Using @code{document-package}
+This produces the following HTML and PDF files:
+
+@example
+@url{http://nikodemus.github.com/sb-texinfo/sb-texinfo.html}
+@url{http://nikodemus.github.com/sb-texinfo/sb-texinfo.pdf}
+@end example
+
+and a GNU info file as well.
+
+@section Using @code{document-package}
 
 An alternate version of this manual, produced using
 
 @lisp
-(sb-texinfo:document-package :sb-texinfo
-                             :output-file "document-package-sample.texinfo-tmp")
+(sb-texinfo:document-package
+ :sb-texinfo
+ :output-file "document-package-sample.texinfo")
 @end lisp
 
 and further processed using the @file{Makefile} linked above:
-@url{document-package-sample.html}.
+@example
+@url{http://nikodemus.github.com/sb-texinfo/document-package-sample.html}
+@url{http://nikodemus.github.com/sb-texinfo/document-package-sample.pdf}
+@end example
 
 @node Dictionary
 @comment  node-name,  next,  previous,  up
