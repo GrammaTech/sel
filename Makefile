@@ -3,11 +3,11 @@
 web:
 	rm -rf web
 	mkdir web
-	make -C doc html
-	cp doc/*.html web/
-	mv web/sb-texinfo.html web/index.html
+	make -C doc html pdf
+	cp doc/*.html doc/*.pdf web/
+	cp web/sb-texinfo.html web/index.html
 
-gh-pages: web
+pages: web
 	git checkout gh-pages
 	cp web/* .
 	git commit -a -c master
