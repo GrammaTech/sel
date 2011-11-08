@@ -23,3 +23,23 @@
 
 ;;; Code:
 (in-package :soft-ev)
+
+(defclass soft-asm (soft) ())
+
+(defmethod from ((soft soft-asm) (in stream) &aux genome)
+  (loop for line = (read-line in nil)
+     while line do (push `((:line . ,line)) genome))
+  (setf (genome soft) (reverse genome))
+  soft)
+
+(defmethod to ((soft soft-asm) (to stream))
+  (dolist (line (genome soft))
+    (format to "~a~%" (cdr (assoc :line line)))))
+
+(defun asm-from-file (path)
+  (let ((new (make-instance :soft-asm)))
+    (with-open-file (in path) (from new in))))
+
+(defun asm-to-file (soft path)
+  (with-open-file (out path :direction :output :if-exists :supersede)
+    (to soft out)))

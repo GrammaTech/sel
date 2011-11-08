@@ -34,6 +34,12 @@
 (defgeneric copy (soft)
   (:documentation "Return a copy of the software."))
 
+(defgeneric from (soft stream)
+  (:documentation "Read a software object from a file."))
+
+(defgeneric to (soft stream)
+  (:documentation "Write a software object to a file."))
+
 (defgeneric executable (soft path)
   (:documentation "Generate an executable from a software object."))
 
@@ -48,6 +54,14 @@
 
 (defgeneric crossover (soft-a soft-b)
   (:documentation "Crossover between the genomes of SOFT-A and SOFT-B."))
+
+(defmethod copy ((soft soft))
+  (let ((new (make-instance (type-of soft))))
+    (with-slots (genome fitness history) new
+      (setf genome  (copy (genome soft))
+            fitness (fitness genome)
+            history (copy (history genome))))
+    new))
 
 ;; next three need history management
 (defmethod insert ((soft soft))
@@ -69,8 +83,9 @@
   (let ((new (make-instance (type-of a))))
     (setf (genome new) (crossover (genome a) (genome b)))))
 
-
-;;; Genome
+(defmethod copy ((list list))
+  (copy-seq list))
+
 (defvar *genome-averaging-keys* nil
   "Keys whose value should be averaged with neighbors after genome operations.")
 
@@ -84,7 +99,8 @@
       (setf (cdr (assoc key (nth place genome)))
             (/ (apply #'+ (mapcar (lambda (el) (cdr (assoc key el)))
                                   (list above below middle)))
-               3)))))
+               3)))
+    genome))
 
 (defmethod insert ((genome list))
   (let* ((size (length genome))
