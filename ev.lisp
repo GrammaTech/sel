@@ -25,12 +25,18 @@
 (in-package :soft-ev)
 
 
-;;; settings
+;;; Settings
 (defvar *population* nil
   "Holds the variant programs to be evolved.")
 
+(defvar *max-population-size* nil
+  "Maximum allowable population size.")
+
 (defvar *tournament-size* 2
   "Number of individuals to participate in tournament selection.")
+
+(defvar *fitness-predicate* #'<
+  "Whether to favor higher or lower fitness individuals by default.")
 
 (defvar *test-script* nil
   "The script to use to evaluate individuals.")
@@ -47,9 +53,14 @@
 (defvar *neg-test-mult* 1
   "Multiplier for negative test cases")
 
-(defvar *share-freq* )
-(defvar *mut-freq* )
-(defvar *cross-freq* )
+(defvar *keep-source* nil
+  "Keep intermediate source code files.")
+
+(defvar *cross-chance* 1/5
+  "Fraction of new individuals generated using crossover rather than mutation.")
+
+(defvar *fitness-evals* 0
+  "Track the total number of fitness evaluations.")
 
 
 ;;; functions
@@ -67,33 +78,72 @@
               (shell-command (format nil "~a ~a n~d" *test-script* exe i))
             (declare (ignorable output err-output))
             (when (= exit 0) (incf neg))))
+    (incf *fitness-evals*)
+    (when (probe-file exe) (delete-file exe))
     (+ (* pos *pos-test-mult*)
        (* neg *neg-test-mult*))))
 
 (defun incorporate (soft)
   "Incorporate SOFT into POPULATION, keeping the size of POPULATION constant."
-  (evict)
-  (push soft *population*))
+  (push soft *population*)
+  (when (and *max-population-size*
+             (> (length *population*) *max-population-size*))
+    (evict)))
 
 (defun evict ()
-  (let ((loser (tournament #'<)))
+  (let ((loser (tournament (complement *fitness-predicate*))))
     (setf *population* (remove loser *population* :count 1))
     loser))
 
-(defun tournament (predicate &aux competitors)
+(defun tournament (&optional (predicate *fitness-predicate*) &aux competitors)
   "Select an individual from *POPULATION* with a tournament of size NUMBER."
-  (sort (dotimes (_ *tournament-size* competitors)
-          (push (random-elt *population*) competitors))
-        predicate :key #'fitness))
+  (assert *population* (*population*) "Empty population.")
+  (car (sort (dotimes (_ *tournament-size* competitors)
+               (push (random-elt *population*) competitors))
+             predicate :key #'fitness)))
 
 (defun mutant ()
-  "Generate a new mutant from a population."
-  (apply (case (random 3)
-           (0 #'insert)
-           (1 #'cut)
-           (2 #'swap))
-         (tournament #'<)))
+  "Generate a new mutant from a *POPULATION*."
+  (let ((new (copy (tournament))))
+    (funcall (case (random 3)
+               (0 #'insert)
+               (1 #'cut)
+               (2 #'swap)) new)
+    new))
 
 (defun crossed ()
-  "Generate a new individual from a population using crossover."
-  (crossover (tournament #'<) (tournament #'<)))
+  "Generate a new individual from *POPULATION* using crossover."
+  (crossover (tournament) (tournament)))
+
+(defun new-individual ()
+  "Generate a new individual from *POPULATION*."
+  (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
+
+(defun evolve (&key max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
+  "Evolves population until an optional stopping criterion is met.
+
+Optional keys are as follows.
+  max-evals ------- quit after this many fitness evaluations
+  max-inds -------- quit after this many new individuals have been tried
+  max-time -------- quit after this many seconds
+  max-fit --------- quit when an individual achieves this fitness or higher
+  min-fit --------- quit when an individual achieves this fitness or lower
+  pop-fn ---------- quit when the population satisfies this function
+  ind-fn ---------- quit when an individual satisfies this function"
+  (let ((start-time (get-internal-real-time))
+        (inds 0)
+        (*fitness-evals* 0))
+    (loop until (or (and max-evals (> *fitness-evals* max-evals))
+                    (and max-inds (> inds max-inds))
+                    (and max-time (> (/ (- (get-internal-real-time) start-time)
+                                        internal-time-units-per-second)
+                                     max-time)))
+       do (let ((new (new-individual)))
+            (incf inds)
+            (incorporate new)
+            (when (or (and max-fit (> (fitness new) max-fit))
+                      (and min-fit (< (fitness new) min-fit))
+                      (and ind-fn (funcall ind-fn new)))
+              (return new))
+            (when (and pop-fn (funcall pop-fn *population*))
+              (return *population*))))))

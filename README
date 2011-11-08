@@ -6,6 +6,11 @@
 * Design
 * Usage
 * Notes
+** thread local global variables
+In case we want to run multiple populations in separate threads.
+
+This should be easy with =let= binding of global variables.
+
 ** remember the need to collect statistics
 - number of test suite evaluations
 - time spent in many different aspects of the program, e.g.,

@@ -52,4 +52,7 @@
 (defmethod executable ((soft soft-asm) (exe string))
   (let ((tmp (temp-file-name "s")))
     (asm-to-file soft tmp)
-    (link tmp exe)))
+    (multiple-value-bind (output err-output exit)
+        (link tmp exe)
+      (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
+      (values exit output err-output))))
