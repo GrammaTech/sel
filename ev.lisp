@@ -29,12 +29,42 @@
 (defvar *tournament-size* 2
   "Number of individuals to participate in tournament selection.")
 
+(defvar *test-script* nil
+  "The script to use to evaluate individuals.")
+
+(defvar *pos-test-num* 0
+  "Number of positive tests.")
+
+(defvar *neg-test-num* 0
+  "Number of negative tests.")
+
+(defvar *pos-test-mult* 1
+  "Multiplier for positive test cases")
+
+(defvar *neg-test-mult* 1
+  "Multiplier for negative test cases")
+
 (defvar *share-freq* )
 (defvar *mut-freq* )
 (defvar *cross-freq* )
 
 
 ;;; functions
+(defun evaluate (soft &aux (pos 0) (neg 0))
+  "Evaluate SOFT setting the fitness."
+  (let ((exe (temp-file-name)))
+    (executable soft exe)
+    (loop for i from 0 to *pos-test-num*
+       do (multiple-value-bind (_ _ exit)
+              (shell-command (format nil "~a ~a p~d" *test-script* exe i))
+            (when (= exit 0) incf pos)))
+    (loop for i from 0 to *neg-test-num*
+       do (multiple-value-bind (_ _ exit)
+              (shell-command (format nil "~a ~a n~d" *test-script* exe i))
+            (when (= exit 0) incf neg)))
+    (+ (* pos *pos-test-mult*)
+       (* neg *neg-test-mult*))))
+
 (defun incorporate (population soft)
   "Incorporate SOFT into POPULATION, keeping the size of POPULATION constant."
   (evict population)
@@ -51,9 +81,14 @@
           (push (random-elt *population*) competitors))
         predicate :key #'fitness))
 
-(defun variant (population)
-  "Generate a new variant from a population."
-  )
+(defun mutant ()
+  "Generate a new mutant from a population."
+  (apply (case (random 3)
+           (0 #'insert)
+           (1 #'cut)
+           (2 #'swap))
+         (tournament #'<)))
 
-(defun evaluate (soft)
-  "Evaluate SOFT setting the fitness.")
+(defun crossed ()
+  "Generate a new individual from a population using crossover."
+  (crossover (tournament #'<) (tournament #'<)))
