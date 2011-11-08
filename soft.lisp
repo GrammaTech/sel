@@ -49,19 +49,39 @@
 (defgeneric crossover (soft-a soft-b)
   (:documentation "Crossover between the genomes of SOFT-A and SOFT-B."))
 
+;; next three need history management
+(defmethod insert ((soft soft))
+  (multiple-value-bind (genome place)
+      (insert (genome soft))
+    (setf (genome soft) (genome-average-keys genome place))))
+
+(defmethod cut ((soft soft))
+  (setf (genome soft) (cut (genome soft))))
+
+(defmethod swap ((soft soft))
+  (multiple-value-bind (genome places)
+      (swap (genome soft))
+    (setf (genome soft)
+          (reduce (lambda (g p) (genome-average-keys g p))
+                  places :initial-value genome))))
+
+(defmethod crossover ((a soft) (b soft))
+  (let ((new (make-instance (type-of a))))
+    (setf (genome new) (crossover (genome a) (genome b)))))
+
 
 ;;; Genome
 (defvar *genome-averaging-keys* nil
   "Keys whose value should be averaged with neighbors after genome operations.")
 
 (defmethod genome-average-keys ((genome list) place)
-  (let ((above (unless (= ins-place (- size 1))
-                 (nth (+ ins-place 1) genome)))
-        (below (unless (= ins-place 0)
-                 (nth (- ins-place 1) genome)))
-        (middle (nth ins-place genome)))
+  (let ((above (unless (= place (- (length genome) 1))
+                 (nth (+ place 1) genome)))
+        (below (unless (= place 0)
+                 (nth (- place 1) genome)))
+        (middle (nth place genome)))
     (dolist (key *genome-averaging-keys*)
-      (setf (cdr (assoc key (nth ins-place result)))
+      (setf (cdr (assoc key (nth place genome)))
             (/ (apply #'+ (mapcar (lambda (el) (cdr (assoc key el)))
                                   (list above below middle)))
                3)))))
@@ -70,23 +90,25 @@
   (let* ((size (length genome))
          (dup-place (random size))
          (ins-place (random (+ 1 size))))
-    (cond
-      ((> dup-place ins-place)
-       (append (subseq genome 0 ins-place)
-               (list (nth dup-place genome))
-               (subseq genome ins-place dup-place)
-               (subseq genome dup-place)))
-      ((> ins-place dup-place)
-       (append (subseq genome 0 dup-place)
-               (subseq genome dup-place ins-place)
-               (list (nth dup-place genome))
-               (subseq genome ins-place)))
-      (:otherwise genome))))
+    (values (cond
+              ((> dup-place ins-place)
+               (append (subseq genome 0 ins-place)
+                       (list (nth dup-place genome))
+                       (subseq genome ins-place dup-place)
+                       (subseq genome dup-place)))
+              ((> ins-place dup-place)
+               (append (subseq genome 0 dup-place)
+                       (subseq genome dup-place ins-place)
+                       (list (nth dup-place genome))
+                       (subseq genome ins-place)))
+              (:otherwise genome))
+            ins-place)))
 
 (defmethod cut ((genome list))
   (let ((place (random (length genome))))
-    (append (subseq genome 0 place)
-            (subseq genome (+ 1 place)))))
+    (values (append (subseq genome 0 place)
+                    (subseq genome (+ 1 place)))
+            place)))
 
 (defmethod swap ((genome list))
   (let* ((size (length genome))
@@ -94,5 +116,9 @@
          (b (random size))
          (temp (nth a genome)))
     (setf (nth a genome) (nth b genome))
-    (setf (nth b genome) temp))
-  genome)
+    (setf (nth b genome) temp)
+    (values genome (list a b))))
+
+(defmethod crossover ((a list) (b list))
+  (let ((point (random (min (length a) (length b)))))
+    (append (subseq a 0 point) (subseq b point))))
