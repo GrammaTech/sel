@@ -27,12 +27,18 @@
 
 ;;; Software Object
 (defclass soft ()
-  ((genome  :initarg :genome  :accessor genome)
-   (fitness :initarg :fitness :accessor fitness)
-   (history :initarg :history :accessor history)))
+  ((genome  :initarg :genome  :accessor genome      :initform nil)
+   (fitness :initarg :fitness :accessor raw-fitness :initform nil)
+   (history :initarg :history :accessor history     :initform nil)))
 
 (defgeneric copy (soft)
   (:documentation "Return a copy of the software."))
+
+(defgeneric fitness (soft)
+  (:documentation "Return the fitness of the software."))
+
+(defmethod (setf fitness) (new (soft soft))
+  (setf (raw-fitness soft) new))
 
 (defgeneric from (soft stream)
   (:documentation "Read a software object from a file."))
@@ -57,34 +63,66 @@
 
 (defmethod copy ((soft soft))
   (let ((new (make-instance (type-of soft))))
-    (with-slots (genome fitness history) new
-      (setf genome  (copy (genome soft))
-            fitness (fitness genome)
-            history (copy (history genome))))
+    (setf (genome new) (genome soft))
+    (setf (history new) (history soft))
+    (setf (fitness new) (fitness soft))
     new))
 
-;; next three need history management
+(defmethod fitness ((soft soft))
+  (or (raw-fitness soft)
+      (setf (raw-fitness soft) (evaluate soft))))
+
 (defmethod insert ((soft soft))
   (multiple-value-bind (genome place)
       (insert (genome soft))
-    (setf (genome soft) (genome-average-keys genome place))))
+    (setf (genome soft) (genome-average-keys genome place))
+    place))
+
+(defmethod insert :around ((soft soft))
+  (let ((place (call-next-method)))
+    (push (cons :insert place) (history soft))
+    (setf (fitness soft) nil)
+    soft))
 
 (defmethod cut ((soft soft))
-  (setf (genome soft) (cut (genome soft))))
+  (multiple-value-bind (genome place)
+      (cut (genome soft))
+    (setf (genome soft) genome)
+    place))
+
+(defmethod cut :around ((soft soft))
+  (let ((place (call-next-method)))
+    (push (cons :cut place) (history soft))
+    (setf (fitness soft) nil)
+    soft))
 
 (defmethod swap ((soft soft))
   (multiple-value-bind (genome places)
       (swap (genome soft))
     (setf (genome soft)
           (reduce (lambda (g p) (genome-average-keys g p))
-                  places :initial-value genome))))
+                  places :initial-value genome))
+    places))
+
+(defmethod swap :around ((soft soft))
+  (let ((places (call-next-method)))
+    (push (cons :swap places) (history soft))
+    (setf (fitness soft) nil)
+    soft))
 
 (defmethod crossover ((a soft) (b soft))
   (let ((new (make-instance (type-of a))))
-    (setf (genome new) (crossover (genome a) (genome b)))))
+    (multiple-value-bind (genome place)
+        (crossover (genome a) (genome b))
+      (setf (genome new) genome)
+      (values new place))))
 
-(defmethod copy ((list list))
-  (copy-seq list))
+(defmethod crossover :around ((a soft) (b soft))
+  (multiple-value-bind (new place) (call-next-method)
+    (setf (fitness new) nil)
+    (setf (history new) (list (cons :crossover place)
+                              (cons (history a) (history b))))
+    new))
 
 (defvar *genome-averaging-keys* nil
   "Keys whose value should be averaged with neighbors after genome operations.")
