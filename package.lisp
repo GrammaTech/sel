@@ -5,7 +5,8 @@
    :alexandria
    :split-sequence
    :metabang-bind
-   :cl-store)
+   :cl-store
+   :trivial-shell)
   (:shadow :type)
   (:export
    ;; functions

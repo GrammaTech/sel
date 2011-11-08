@@ -43,3 +43,13 @@
 (defun asm-to-file (soft path)
   (with-open-file (out path :direction :output :if-exists :supersede)
     (to soft out)))
+
+(defun link (asm exe)
+  (multiple-value-bind (output error-output exit)
+      (shell-command (format nil "gcc -o ~a ~a" exe asm))
+    (values output error-output exit)))
+
+(defmethod executable ((soft soft-asm) (exe stream))
+  (let ((tmp (temp-file-name)))
+    (asm-to-file soft tmp)
+    (link tmp exe)))
