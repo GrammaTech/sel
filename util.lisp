@@ -24,14 +24,24 @@
 ;;; Code:
 (in-package :soft-ev)
 
-(defun temp-file-name ()
-  #+clisp
-  (let ((stream (gensym)))
-    (eval `(with-open-stream (,stream (ext:mkstemp nil))
-             (pathname ,stream))))
-  #+sbcl
-  (tempnam nil nil)
-  #+ccl
-  (ccl:temp-pathname)
-  #-(or sbcl clisp ccl)
-  (error "no temporary file backend for this lisp."))
+#+sbcl
+(locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+  (sb-alien:define-alien-routine (#-win32 "tempnam" #+win32 "_tempnam" tempnam)
+      sb-alien:c-string
+    (dir sb-alien:c-string)
+    (prefix sb-alien:c-string)))
+
+(defun temp-file-name (&optional ext)
+  (let ((base #+clisp
+          (let ((stream (gensym)))
+            (eval `(with-open-stream (,stream (ext:mkstemp nil))
+                     (pathname ,stream))))
+          #+sbcl
+          (tempnam nil nil)
+          #+ccl
+          (ccl:temp-pathname)
+          #-(or sbcl clisp ccl)
+          (error "no temporary file backend for this lisp.")))
+    (if ext
+        (concatenate 'string base "." ext)
+        base)))

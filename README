@@ -6,6 +6,14 @@
 * Design
 * Usage
 * Notes
+** remember the need to collect statistics
+- number of test suite evaluations
+- time spent in many different aspects of the program, e.g.,
+  - compilation
+  - test suite evaluation
+  - mutation and population maintenance
+  - total run time
+
 ** consider how weighted path information propagates with mutation operators
 Each individual should have its own weight, possibly expressed as a
 diff against some global weight.

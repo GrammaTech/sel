@@ -26,6 +26,9 @@
 
 
 ;;; settings
+(defvar *population* nil
+  "Holds the variant programs to be evolved.")
+
 (defvar *tournament-size* 2
   "Number of individuals to participate in tournament selection.")
 
@@ -54,21 +57,23 @@
   "Evaluate SOFT setting the fitness."
   (let ((exe (temp-file-name)))
     (executable soft exe)
-    (loop for i from 0 to *pos-test-num*
-       do (multiple-value-bind (_ _ exit)
+    (loop for i from 1 to *pos-test-num*
+       do (multiple-value-bind (output err-output exit)
               (shell-command (format nil "~a ~a p~d" *test-script* exe i))
-            (when (= exit 0) incf pos)))
+            (declare (ignorable output err-output))
+            (when (= exit 0) (incf pos))))
     (loop for i from 0 to *neg-test-num*
-       do (multiple-value-bind (_ _ exit)
+       do (multiple-value-bind (output err-output exit)
               (shell-command (format nil "~a ~a n~d" *test-script* exe i))
-            (when (= exit 0) incf neg)))
+            (declare (ignorable output err-output))
+            (when (= exit 0) (incf neg))))
     (+ (* pos *pos-test-mult*)
        (* neg *neg-test-mult*))))
 
-(defun incorporate (population soft)
+(defun incorporate (soft)
   "Incorporate SOFT into POPULATION, keeping the size of POPULATION constant."
-  (evict population)
-  (push soft population))
+  (evict)
+  (push soft *population*))
 
 (defun evict ()
   (let ((loser (tournament #'<)))

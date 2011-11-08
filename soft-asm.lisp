@@ -37,7 +37,7 @@
     (format to "~a~%" (cdr (assoc :line line)))))
 
 (defun asm-from-file (path)
-  (let ((new (make-instance :soft-asm)))
+  (let ((new (make-instance 'soft-asm)))
     (with-open-file (in path) (from new in))))
 
 (defun asm-to-file (soft path)
@@ -49,7 +49,7 @@
       (shell-command (format nil "gcc -o ~a ~a" exe asm))
     (values output error-output exit)))
 
-(defmethod executable ((soft soft-asm) (exe stream))
-  (let ((tmp (temp-file-name)))
+(defmethod executable ((soft soft-asm) (exe string))
+  (let ((tmp (temp-file-name "s")))
     (asm-to-file soft tmp)
     (link tmp exe)))
