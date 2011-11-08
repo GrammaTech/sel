@@ -1,0 +1,39 @@
+# -*- org -*-
+#+Title: Software Evolution
+#+Author: Eric Schulte
+#+email: schulte.eric@gmail.com
+
+* Design
+* Usage
+* Notes
+** consider how weighted path information propagates with mutation operators
+Each individual should have its own weight, possibly expressed as a
+diff against some global weight.
+
+Even better, we can just store each individuals weight as part of its
+genome.  If memory does become an issue then diff fanciness can be
+brought to bear later on.
+
+** possibly re-calculate the weighted path with each test case run
+Nope, this would involve instrumenting each individual at the AST
+level, and would require multiple runs for sampling at the ASM/ELF
+levels, better to just use a heuristic to update/maintain weights.
+
+e.g., weight of a recently transplanted piece of code is equal to the
+average of previous weight and weight of both new neighbors.
+
+See the =*genome-averaging-keys*= variable.
+
+** allow adding individuals on-the-fly
+Implement all operations as one-offs against a local =*population*=, a
+la [[http://cs.unm.edu/~treport/tr/11-04/paper-2011-01.pdf][PEC]].
+
+** as basis for distributed GP repair
+See above, shouldn't be too difficult.  Loosely follow the PEC
+algorithm.
+
+** timed EC operators at set frequencies
+One frequency options should be "fast as possible", but allowing
+frequencies could be good for known energy consumption (e.g., if
+running on someone's phone).
+

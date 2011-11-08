@@ -1,8 +1,12 @@
 (defsystem :soft-ev
-  :version "0.0.0"
-  :licence "GPL V3"
   :description "Soft-ev enables to evolution of existing software artifacts."
   :long-description ""
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               split-sequence
+               metabang-bind
+               cl-store)
   :components
   ((:static-file "COPYING")
    (:static-file "Makefile")

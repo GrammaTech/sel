@@ -24,20 +24,36 @@
 ;;; Code:
 (in-package :soft-ev)
 
-(defun tournament (population number)
-  "Select an individual from POPULATION with a tournament of size NUMBER.")
+
+;;; settings
+(defvar *tournament-size* 2
+  "Number of individuals to participate in tournament selection.")
+
+(defvar *share-freq* )
+(defvar *mut-freq* )
+(defvar *cross-freq* )
+
+
+;;; functions
+(defun incorporate (population soft)
+  "Incorporate SOFT into POPULATION, keeping the size of POPULATION constant."
+  (evict population)
+  (push soft population))
+
+(defun evict ()
+  (let ((loser (tournament #'<)))
+    (setf *population* (remove loser *population* :count 1))
+    loser))
+
+(defun tournament (predicate &aux competitors)
+  "Select an individual from *POPULATION* with a tournament of size NUMBER."
+  (sort (dotimes (_ *tournament-size* competitors)
+          (push (random-elt *population*) competitors))
+        predicate :key #'fitness))
+
+(defun variant (population)
+  "Generate a new variant from a population."
+  )
 
 (defun evaluate (soft)
   "Evaluate SOFT setting the fitness.")
-
-(defun insert (soft)
-  "Duplicate and insert an element of the genome of SOFT")
-
-(defun delete (soft)
-  "Delete an element of the genome of SOFT.")
-
-(defun swap (soft)
-  "Swap two elements of the genome of SOFT.")
-
-(defun crossover (soft-a soft-b)
-  "Crossover between the genomes of SOFT-A and SOFT-B.")
