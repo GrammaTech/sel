@@ -62,11 +62,10 @@
   (:documentation "Crossover between the genomes of SOFT-A and SOFT-B."))
 
 (defmethod copy ((soft soft))
-  (let ((new (make-instance (type-of soft))))
-    (setf (genome new) (genome soft))
-    (setf (history new) (history soft))
-    (setf (fitness new) (fitness soft))
-    new))
+  (make-instance (type-of soft)
+    :genome (genome soft)
+    :history (history soft)
+    :fitness (fitness soft)))
 
 (defmethod fitness ((soft soft))
   (or (raw-fitness soft)
