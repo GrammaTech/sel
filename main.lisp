@@ -23,8 +23,42 @@
 
 ;;; Code:
 (require :soft-ev)
+(require :cl-ppcre)
+(use-package :cl-ppcre)
+
+(defvar *options*
+  `(*max-population-size*
+    *tournament-size*
+    *test-script*
+    *pos-test-num*
+    *neg-test-num*
+    *pos-test-mult*
+    *neg-test-mult*
+    *cross-chance*
+    ,@(remove nil
+              (mapcar
+               (lambda (line)
+                 (cl-ppcre:register-groups-bind (name doc)
+                     ("^ *(.*)? -* (.*) *$" line)
+                   (let ((sym )))
+                   (cons name doc)
+                   (eval `(defvar ,(intern name) nil ,doc))
+                   (intern name)))
+               (cl-ppcre:split
+                "\\n" (documentation 'soft-ev:evolve 'function))))))
 
 (defun main (argv)
   "Command line driver of `soft-ev' software evolution."
-  (declare (ignore argv))
-  (write-line "Software Evolution"))
+  (when (member (second argv) '("-help" "--help" "help") :test #'equal)
+    (format t "~&USAGE: ./soft-ev [options]~%")
+    (format t "~&options:~%")
+    (format t "~:{~& ~22a ~77a ~a~}"
+            (mapcar (lambda (opt)
+                      (let* ((val (if (boundp opt)
+                                      opt
+                                      (intern (symbol-name opt) :soft-ev)))
+                             (doc (documentation val 'variable))
+                             (default (eval val)))
+                        (list opt doc default)))
+                    *options*)))
+  (format t "~&Software Evolution~%"))

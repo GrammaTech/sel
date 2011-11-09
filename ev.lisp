@@ -38,7 +38,7 @@
 (defvar *fitness-predicate* #'<
   "Whether to favor higher or lower fitness individuals by default.")
 
-(defvar *test-script* nil
+(defvar *test-script* "./test.sh"
   "The script to use to evaluate individuals.")
 
 (defvar *pos-test-num* 0
@@ -123,13 +123,13 @@
   "Evolves population until an optional stopping criterion is met.
 
 Optional keys are as follows.
-  max-evals ------- quit after this many fitness evaluations
-  max-inds -------- quit after this many new individuals have been tried
-  max-time -------- quit after this many seconds
-  max-fit --------- quit when an individual achieves this fitness or higher
-  min-fit --------- quit when an individual achieves this fitness or lower
-  pop-fn ---------- quit when the population satisfies this function
-  ind-fn ---------- quit when an individual satisfies this function"
+  MAX-EVALS ------- quit after this many fitness evaluations
+  MAX-INDS -------- quit after this many new individuals have been tried
+  MAX-TIME -------- quit after this many seconds
+  MAX-FIT --------- quit when an individual achieves this fitness or higher
+  MIN-FIT --------- quit when an individual achieves this fitness or lower
+  POP-FN ---------- quit when the population satisfies this function
+  IND-FN ---------- quit when an individual satisfies this function"
   (let ((start-time (get-internal-real-time))
         (inds 0)
         (*fitness-evals* 0))
