@@ -35,7 +35,7 @@
 (defvar *tournament-size* 2
   "Number of individuals to participate in tournament selection.")
 
-(defvar *fitness-predicate* #'<
+(defvar *fitness-predicate* #'>
   "Whether to favor higher or lower fitness individuals by default.")
 
 (defvar *test-script* "./test.sh"
@@ -62,6 +62,9 @@
 (defvar *fitness-evals* 0
   "Track the total number of fitness evaluations.")
 
+(defvar *running* nil
+  "True when evolving, set to nil to stop evolution.")
+
 
 ;;; functions
 (defun evaluate (soft &aux (pos 0) (neg 0))
@@ -73,7 +76,7 @@
               (shell-command (format nil "~a ~a p~d" *test-script* exe i))
             (declare (ignorable output err-output))
             (when (= exit 0) (incf pos))))
-    (loop for i from 0 to *neg-test-num*
+    (loop for i from 1 to *neg-test-num*
        do (multiple-value-bind (output err-output exit)
               (shell-command (format nil "~a ~a n~d" *test-script* exe i))
             (declare (ignorable output err-output))
@@ -102,14 +105,17 @@
                (push (random-elt *population*) competitors))
              predicate :key #'fitness)))
 
+(defun mutate (individual)
+  "Mutate the supplied INDIVIDUAL."
+  (funcall (case (random 3)
+             (0 #'insert)
+             (1 #'cut)
+             (2 #'swap)) individual)
+  individual)
+
 (defun mutant ()
   "Generate a new mutant from a *POPULATION*."
-  (let ((new (copy (tournament))))
-    (funcall (case (random 3)
-               (0 #'insert)
-               (1 #'cut)
-               (2 #'swap)) new)
-    new))
+  (mutate (copy (tournament))))
 
 (defun crossed ()
   "Generate a new individual from *POPULATION* using crossover."
@@ -131,9 +137,11 @@ Optional keys are as follows.
   POP-FN ---------- quit when the population satisfies this function
   IND-FN ---------- quit when an individual satisfies this function"
   (let ((start-time (get-internal-real-time))
-        (inds 0)
-        (*fitness-evals* 0))
-    (loop until (or (and max-evals (> *fitness-evals* max-evals))
+        (inds 0))
+    (setq *fitness-evals* 0)
+    (setq *running* t)
+    (loop until (or (not *running*)
+                    (and max-evals (> *fitness-evals* max-evals))
                     (and max-inds (> inds max-inds))
                     (and max-time (> (/ (- (get-internal-real-time) start-time)
                                         internal-time-units-per-second)
@@ -141,8 +149,8 @@ Optional keys are as follows.
        do (let ((new (new-individual)))
             (incf inds)
             (incorporate new)
-            (when (or (and max-fit (> (fitness new) max-fit))
-                      (and min-fit (< (fitness new) min-fit))
+            (when (or (and max-fit (>= (fitness new) max-fit))
+                      (and min-fit (<= (fitness new) min-fit))
                       (and ind-fn (funcall ind-fn new)))
               (return new))
             (when (and pop-fn (funcall pop-fn *population*))
