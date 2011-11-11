@@ -1,0 +1,281 @@
+/* 
+ * Command line: opannotate -a coverage.pos 
+ * 
+ * Interpretation of command line:
+ * Output annotated assembly listing with samples
+ * 
+ * CPU: Intel Architectural Perfmon, speed 1000 MHz (estimated)
+ * Counted CPU_CLK_UNHALTED events (Clock cycles when not halted) with a unit mask of 0x00 (No unit mask) count 100000
+ */
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+0000000000400544 <main>: /* main total:   2840 98.7826 */
+               :  400544:	push   %rbp
+               :  400545:	mov    %rsp,%rbp
+               :  400548:	sub    $0x20,%rsp
+               :  40054c:	mov    %edi,-0x14(%rbp)
+               :  40054f:	mov    %rsi,-0x20(%rbp)
+               :  400553:	mov    -0x20(%rbp),%rax
+     1  0.0348 :  400557:	add    $0x8,%rax
+               :  40055b:	mov    (%rax),%rax
+     1  0.0348 :  40055e:	mov    %rax,%rdi
+               :  400561:	mov    $0x0,%eax
+               :  400566:	callq  400448 <atoi@plt>
+               :  40056b:	cvtsi2sd %eax,%xmm0
+     1  0.0348 :  40056f:	movsd  %xmm0,-0x8(%rbp)
+               :  400574:	mov    -0x20(%rbp),%rax
+               :  400578:	add    $0x10,%rax
+               :  40057c:	mov    (%rax),%rax
+               :  40057f:	mov    %rax,%rdi
+               :  400582:	mov    $0x0,%eax
+               :  400587:	callq  400448 <atoi@plt>
+     1  0.0348 :  40058c:	cvtsi2sd %eax,%xmm0
+               :  400590:	movsd  %xmm0,-0x10(%rbp)
+               :  400595:	xorpd  %xmm0,%xmm0
+               :  400599:	ucomisd -0x8(%rbp),%xmm0
+               :  40059e:	jp     4005f2 <main+0xae>
+               :  4005a0:	xorpd  %xmm0,%xmm0
+               :  4005a4:	ucomisd -0x8(%rbp),%xmm0
+               :  4005a9:	jne    4005f2 <main+0xae>
+               :  4005ab:	movsd  -0x10(%rbp),%xmm0
+               :  4005b0:	mov    $0x40071c,%edi
+               :  4005b5:	mov    $0x1,%eax
+               :  4005ba:	callq  400428 <printf@plt>
+               :  4005bf:	jmp    4005f2 <main+0xae>
+   267  9.2870 :  4005c1:	movsd  -0x8(%rbp),%xmm0
+   271  9.4261 :  4005c6:	ucomisd -0x10(%rbp),%xmm0
+   759 26.4000 :  4005cb:	seta   %al
+   603 20.9739 :  4005ce:	test   %al,%al
+               :  4005d0:	je     4005e3 <main+0x9f>
+   278  9.6696 :  4005d2:	movsd  -0x8(%rbp),%xmm0
+     8  0.2783 :  4005d7:	subsd  -0x10(%rbp),%xmm0
+    11  0.3826 :  4005dc:	movsd  %xmm0,-0x8(%rbp)
+    12  0.4174 :  4005e1:	jmp    4005f2 <main+0xae>
+     3  0.1043 :  4005e3:	movsd  -0x10(%rbp),%xmm0
+     1  0.0348 :  4005e8:	subsd  -0x8(%rbp),%xmm0
+     1  0.0348 :  4005ed:	movsd  %xmm0,-0x10(%rbp)
+   275  9.5652 :  4005f2:	xorpd  %xmm0,%xmm0
+     3  0.1043 :  4005f6:	ucomisd -0x10(%rbp),%xmm0
+    31  1.0783 :  4005fb:	jp     4005c1 <main+0x7d>
+   284  9.8783 :  4005fd:	xorpd  %xmm0,%xmm0
+     4  0.1391 :  400601:	ucomisd -0x10(%rbp),%xmm0
+    20  0.6957 :  400606:	jne    4005c1 <main+0x7d>
+               :  400608:	movsd  -0x8(%rbp),%xmm0
+               :  40060d:	mov    $0x40071c,%edi
+               :  400612:	mov    $0x1,%eax
+               :  400617:	callq  400428 <printf@plt>
+     2  0.0696 :  40061c:	mov    $0x0,%eax
+     2  0.0696 :  400621:	leaveq 
+     1  0.0348 :  400622:	retq   
+               :  400623:	nop
+               :  400624:	nop
+               :  400625:	nop
+               :  400626:	nop
+               :  400627:	nop
+               :  400628:	nop
+               :  400629:	nop
+               :  40062a:	nop
+               :  40062b:	nop
+               :  40062c:	nop
+               :  40062d:	nop
+               :  40062e:	nop
+               :  40062f:	nop
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+00000000004006d0 <__do_global_ctors_aux>: /* __do_global_ctors_aux total:     11  0.3826 */
+     1  0.0348 :  4006d0:	push   %rbp
+     2  0.0696 :  4006d1:	mov    %rsp,%rbp
+               :  4006d4:	push   %rbx
+               :  4006d5:	sub    $0x8,%rsp
+               :  4006d9:	mov    0x200748(%rip),%rax        # 600e28 <__CTOR_LIST__>
+     2  0.0696 :  4006e0:	cmp    $0xffffffffffffffff,%rax
+               :  4006e4:	je     4006ff <__do_global_ctors_aux+0x2f>
+               :  4006e6:	mov    $0x600e28,%ebx
+               :  4006eb:	nopl   0x0(%rax,%rax,1)
+               :  4006f0:	sub    $0x8,%rbx
+               :  4006f4:	callq  *%rax
+               :  4006f6:	mov    (%rbx),%rax
+               :  4006f9:	cmp    $0xffffffffffffffff,%rax
+               :  4006fd:	jne    4006f0 <__do_global_ctors_aux+0x20>
+     1  0.0348 :  4006ff:	add    $0x8,%rsp
+               :  400703:	pop    %rbx
+     4  0.1391 :  400704:	leaveq 
+     1  0.0348 :  400705:	retq   
+               :  400706:	nop
+               :  400707:	nop
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+00000000004004b0 <__do_global_dtors_aux>: /* __do_global_dtors_aux total:      6  0.2087 */
+     1  0.0348 :  4004b0:	push   %rbp
+               :  4004b1:	mov    %rsp,%rbp
+               :  4004b4:	push   %rbx
+               :  4004b5:	sub    $0x8,%rsp
+               :  4004b9:	cmpb   $0x0,0x200b68(%rip)        # 601028 <__bss_start>
+     2  0.0696 :  4004c0:	jne    40050d <__do_global_dtors_aux+0x5d>
+     2  0.0696 :  4004c2:	mov    $0x600e40,%ebx
+     1  0.0348 :  4004c7:	mov    0x200b62(%rip),%rax        # 601030 <dtor_idx.6559>
+               :  4004ce:	sub    $0x600e38,%rbx
+               :  4004d5:	sar    $0x3,%rbx
+               :  4004d9:	sub    $0x1,%rbx
+               :  4004dd:	cmp    %rbx,%rax
+               :  4004e0:	jae    400506 <__do_global_dtors_aux+0x56>
+               :  4004e2:	nopw   0x0(%rax,%rax,1)
+               :  4004e8:	add    $0x1,%rax
+               :  4004ec:	mov    %rax,0x200b3d(%rip)        # 601030 <dtor_idx.6559>
+               :  4004f3:	callq  *0x600e38(,%rax,8)
+               :  4004fa:	mov    0x200b2f(%rip),%rax        # 601030 <dtor_idx.6559>
+               :  400501:	cmp    %rbx,%rax
+               :  400504:	jb     4004e8 <__do_global_dtors_aux+0x38>
+               :  400506:	movb   $0x1,0x200b1b(%rip)        # 601028 <__bss_start>
+               :  40050d:	add    $0x8,%rsp
+               :  400511:	pop    %rbx
+               :  400512:	leaveq 
+               :  400513:	retq   
+               :  400514:	data32 data32 nopw %cs:0x0(%rax,%rax,1)
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+0000000000400520 <frame_dummy>: /* frame_dummy total:      6  0.2087 */
+     2  0.0696 :  400520:	cmpq   $0x0,0x200920(%rip)        # 600e48 <__JCR_END__>
+     4  0.1391 :  400528:	push   %rbp
+               :  400529:	mov    %rsp,%rbp
+               :  40052c:	je     400540 <frame_dummy+0x20>
+               :  40052e:	mov    $0x0,%eax
+               :  400533:	test   %rax,%rax
+               :  400536:	je     400540 <frame_dummy+0x20>
+               :  400538:	mov    $0x600e48,%edi
+               :  40053d:	leaveq 
+               :  40053e:	jmpq   *%rax
+               :  400540:	leaveq 
+               :  400541:	retq   
+               :  400542:	nop
+               :  400543:	nop
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+000000000040048c <call_gmon_start>: /* call_gmon_start total:      4  0.1391 */
+               :  40048c:	sub    $0x8,%rsp
+     1  0.0348 :  400490:	mov    0x200b49(%rip),%rax        # 600fe0 <_DYNAMIC+0x190>
+     1  0.0348 :  400497:	test   %rax,%rax
+               :  40049a:	je     40049e <call_gmon_start+0x12>
+               :  40049c:	callq  *%rax
+               :  40049e:	add    $0x8,%rsp
+     2  0.0696 :  4004a2:	retq   
+               :  4004a3:	nop
+               :  4004a4:	nop
+               :  4004a5:	nop
+               :  4004a6:	nop
+               :  4004a7:	nop
+               :  4004a8:	nop
+               :  4004a9:	nop
+               :  4004aa:	nop
+               :  4004ab:	nop
+               :  4004ac:	nop
+               :  4004ad:	nop
+               :  4004ae:	nop
+               :  4004af:	nop
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+0000000000400630 <__libc_csu_init>: /* __libc_csu_init total:      3  0.1043 */
+     2  0.0696 :  400630:	mov    %rbp,-0x28(%rsp)
+               :  400635:	mov    %r12,-0x20(%rsp)
+     1  0.0348 :  40063a:	lea    0x2007e3(%rip),%rbp        # 600e24 <__init_array_end>
+               :  400641:	lea    0x2007dc(%rip),%r12        # 600e24 <__init_array_end>
+               :  400648:	mov    %r13,-0x18(%rsp)
+               :  40064d:	mov    %r14,-0x10(%rsp)
+               :  400652:	mov    %r15,-0x8(%rsp)
+               :  400657:	mov    %rbx,-0x30(%rsp)
+               :  40065c:	sub    $0x38,%rsp
+               :  400660:	sub    %r12,%rbp
+               :  400663:	mov    %edi,%r13d
+               :  400666:	mov    %rsi,%r14
+               :  400669:	sar    $0x3,%rbp
+               :  40066d:	mov    %rdx,%r15
+               :  400670:	callq  400400 <_init>
+               :  400675:	test   %rbp,%rbp
+               :  400678:	je     400696 <__libc_csu_init+0x66>
+               :  40067a:	xor    %ebx,%ebx
+               :  40067c:	nopl   0x0(%rax)
+               :  400680:	mov    %r15,%rdx
+               :  400683:	mov    %r14,%rsi
+               :  400686:	mov    %r13d,%edi
+               :  400689:	callq  *(%r12,%rbx,8)
+               :  40068d:	add    $0x1,%rbx
+               :  400691:	cmp    %rbp,%rbx
+               :  400694:	jb     400680 <__libc_csu_init+0x50>
+               :  400696:	mov    0x8(%rsp),%rbx
+               :  40069b:	mov    0x10(%rsp),%rbp
+               :  4006a0:	mov    0x18(%rsp),%r12
+               :  4006a5:	mov    0x20(%rsp),%r13
+               :  4006aa:	mov    0x28(%rsp),%r14
+               :  4006af:	mov    0x30(%rsp),%r15
+               :  4006b4:	add    $0x38,%rsp
+               :  4006b8:	retq   
+               :  4006b9:	nopl   0x0(%rax)
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .fini:
+               :
+0000000000400708 <_fini>: /* _fini total:      3  0.1043 */
+     1  0.0348 :  400708:	sub    $0x8,%rsp
+     1  0.0348 :  40070c:	callq  4004b0 <__do_global_dtors_aux>
+               :  400711:	add    $0x8,%rsp
+     1  0.0348 :  400715:	retq   
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .init:
+               :
+0000000000400400 <_init>: /* _init total:      1  0.0348 */
+               :  400400:	sub    $0x8,%rsp
+               :  400404:	callq  40048c <call_gmon_start>
+     1  0.0348 :  400409:	callq  400520 <frame_dummy>
+               :  40040e:	callq  4006d0 <__do_global_ctors_aux>
+               :  400413:	add    $0x8,%rsp
+               :  400417:	retq   
+               :
+               :/home/eschulte/research/epr/genprog-code/repair/gcd-test/coverage.pos:     file format elf64-x86-64
+               :
+               :
+               :Disassembly of section .text:
+               :
+0000000000400460 <_start>: /* _start total:      1  0.0348 */
+               :  400460:	xor    %ebp,%ebp
+               :  400462:	mov    %rdx,%r9
+               :  400465:	pop    %rsi
+               :  400466:	mov    %rsp,%rdx
+               :  400469:	and    $0xfffffffffffffff0,%rsp
+               :  40046d:	push   %rax
+     1  0.0348 :  40046e:	push   %rsp
+               :  40046f:	mov    $0x4006c0,%r8
+               :  400476:	mov    $0x400630,%rcx
+               :  40047d:	mov    $0x400544,%rdi
+               :  400484:	callq  400438 <__libc_start_main@plt>
+               :  400489:	hlt    
+               :  40048a:	nop
+               :  40048b:	nop
