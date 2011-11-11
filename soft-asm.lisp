@@ -24,6 +24,8 @@
 ;;; Code:
 (in-package :soft-ev)
 
+
+;;; the class of assembly software objects
 (defclass soft-asm (soft)
   ((addr-map :initarg :addr-map :accessor raw-addr-map :initform nil)))
 
@@ -96,31 +98,37 @@
 (defmethod addr-map ((asm soft-asm))
   (or (raw-addr-map asm)
       (setf (addr-map asm)
-            (let ((flines (function-lines asm)))
-              (mapcar (lambda (addrs lines)
-                        (mapcar #'cons addrs lines))
-                      (mapcar (lambda (func) (addrs asm func))
-                              (remove-if-not #'stringp flines))
-                      (cdr
-                       (mapcar (lambda (lines)
-                                 (remove-if (lambda (n)
-                                              (scan "^[\\s]*\\."
-                                                    (nth n (lines asm))))
-                                            lines))
-                               (split-sequence-if #'stringp flines))))))))
+            (apply
+             #'append
+             (let ((flines (function-lines asm)))
+               (mapcar (lambda (addrs lines)
+                         (mapcar #'cons addrs lines))
+                       (mapcar (lambda (func) (addrs asm func))
+                               (remove-if-not #'stringp flines))
+                       (cdr
+                        (mapcar (lambda (lines)
+                                  (remove-if (lambda (n)
+                                               (scan "^[\\s]*\\."
+                                                     (nth n (lines asm))))
+                                             lines))
+                                (split-sequence-if #'stringp flines)))))))))
 
 
 ;;; incorporation of oprofile samples
-(defun apply-samples (asm key addresses)
+(defun apply-samples (asm key addresses &aux applied)
   "Apply a list of sampled ADDRESSES to the ASM's genome behind KEY.
 If each element of ADDRESSES is a cons cell then assume the car is the
 address and the cdr is the value."
   (let ((map (addr-map asm)))
-    (dolist (el addresses)
-      (let* ((addr (if (consp el) (car el) el))
-             (val (if (consp el) (cdr el) t))
-             (loc (cdr (assoc addr map))))
-        (when loc (push (cons key val) (nth loc (genome asm))))))))
+    (loop for el in addresses as i from 0
+       do
+         (let* ((addr (if (consp el) (car el) el))
+                (val (if (consp el) (cdr el) t))
+                (loc (cdr (assoc addr map))))
+           (when loc
+             (push (cons key val) (nth loc (genome asm)))
+             (push (list i key val) applied)))))
+  (reverse applied))
 
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
