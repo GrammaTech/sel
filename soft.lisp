@@ -27,7 +27,8 @@
 
 ;;; Software Object
 (defclass soft ()
-  ((genome  :initarg :genome  :accessor genome      :initform nil)
+  ((bin     :initarg :bin     :accessor raw-bin     :initform nil)
+   (genome  :initarg :genome  :accessor genome      :initform nil)
    (fitness :initarg :fitness :accessor raw-fitness :initform nil)
    (history :initarg :history :accessor history     :initform nil)))
 
@@ -39,6 +40,15 @@
 
 (defmethod (setf fitness) (new (soft soft))
   (setf (raw-fitness soft) new))
+
+(defmethod bin ((soft soft))
+  (or (raw-bin soft)
+      (let ((tmp (temp-file-name)))
+        (executable soft tmp)
+        (setf (bin soft) tmp))))
+
+(defmethod (setf bin) (new (asm soft-asm))
+  (setf (raw-bin asm) new))
 
 (defgeneric from (soft stream)
   (:documentation "Read a software object from a file."))
