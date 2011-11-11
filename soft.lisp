@@ -53,15 +53,16 @@
 
 (defmethod exe :around ((soft soft) &optional place)
   (declare (ignorable place))
-  (or (raw-exe soft) (setf (exe soft) (call-next-method))))
+  (or (raw-exe soft) (setf (exe soft) (or (call-next-method) :failed))))
 
 (defgeneric delete-exe (soft)
   (:documentation
    "Delete any external executables associated with the software."))
 
 (defmethod delete-exe ((soft soft))
-  (when (and (raw-exe soft) (probe-file (exe soft)))
-    (delete-file (exe soft))
+  (when (raw-exe soft)
+    (when (and (not (eq :failed (raw-exe soft))) (probe-file (exe soft)))
+      (delete-file (exe soft)))
     (setf (exe soft) nil)))
 
 (defgeneric from (soft stream)

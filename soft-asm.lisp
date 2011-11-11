@@ -57,8 +57,7 @@
     (multiple-value-bind (output err-output exit) (link tmp exe)
       (declare (ignorable output err-output))
       (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
-      (unless (= exit 0) (error "ASM compilation failed (~a->~a)" tmp exe)))
-    exe))
+      (when (= exit 0) exe))))
 
 (defmethod lines ((asm soft-asm))
   (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
@@ -121,7 +120,7 @@ address and the cdr is the value."
       (let* ((addr (if (consp el) (car el) el))
              (val (if (consp el) (cdr el) t))
              (loc (cdr (assoc addr map))))
-        (when loc (push (nth loc (genome asm)) (cons key val)))))))
+        (when loc (push (cons key val) (nth loc (genome asm))))))))
 
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
@@ -130,4 +129,5 @@ address and the cdr is the value."
          until (eq line :eof)
          collect
            (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
+             (declare (string c) (string a))
              (cons (parse-integer a :radix 16) (parse-integer c)))))))
