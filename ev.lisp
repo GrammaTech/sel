@@ -73,12 +73,12 @@
     (executable soft exe)
     (loop for i from 1 to *pos-test-num*
        do (multiple-value-bind (output err-output exit)
-              (shell-command (format nil "~a ~a p~d" *test-script* exe i))
+              (shell "~a ~a p~d" *test-script* exe i)
             (declare (ignorable output err-output))
             (when (= exit 0) (incf pos))))
     (loop for i from 1 to *neg-test-num*
        do (multiple-value-bind (output err-output exit)
-              (shell-command (format nil "~a ~a n~d" *test-script* exe i))
+              (shell "~a ~a n~d" *test-script* exe i)
             (declare (ignorable output err-output))
             (when (= exit 0) (incf neg))))
     (incf *fitness-evals*)

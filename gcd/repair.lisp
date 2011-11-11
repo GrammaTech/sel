@@ -3,7 +3,7 @@
 (in-package :soft-ev)
 
 ;; compile gcd.c to assembly
-(shell-command "gcc -S gcd.c")
+(shell "gcc -S gcd.c")
 
 (let ((*pos-test-num* 5)
       (*neg-test-num* 1)

@@ -45,3 +45,8 @@
     (if ext
         (concatenate 'string base "." ext)
         base)))
+
+(defun shell (&rest rst)
+  (multiple-value-bind (output err-output exit)
+      (shell-command (apply #'format (cons nil rst)) :input nil)
+    (values output err-output exit)))

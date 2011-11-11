@@ -46,7 +46,7 @@
 
 (defun link (asm exe)
   (multiple-value-bind (output error-output exit)
-      (shell-command (format nil "gcc -o ~a ~a" exe asm))
+      (shell "gcc -o ~a ~a" exe asm)
     (values output error-output exit)))
 
 (defmethod executable ((soft soft-asm) (exe string))
@@ -56,3 +56,9 @@
         (link tmp exe)
       (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
       (values exit output err-output))))
+
+
+;;; memory mapping, address -> LOC
+(defun gdb-disassemble (function)
+  (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
+         function bin-path))
