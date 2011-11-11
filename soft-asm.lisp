@@ -109,3 +109,25 @@
                                                     (nth n (lines asm))))
                                             lines))
                                (split-sequence-if #'stringp flines))))))))
+
+
+;;; incorporation of oprofile samples
+(defun apply-samples (asm key addresses)
+  "Apply a list of sampled ADDRESSES to the ASM's genome behind KEY.
+If each element of ADDRESSES is a cons cell then assume the car is the
+address and the cdr is the value."
+  (let ((map (addr-map asm)))
+    (dolist (el addresses)
+      (let* ((addr (if (consp el) (car el) el))
+             (val (if (consp el) (cdr el) t))
+             (loc (cdr (assoc addr map))))
+        (when loc (push (nth loc (genome asm)) (cons key val)))))))
+
+(defun samples-from-oprofile-file (path)
+  (with-open-file (in path)
+    (remove nil
+      (loop for line = (read-line in nil :eof)
+         until (eq line :eof)
+         collect
+           (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
+             (cons (parse-integer a :radix 16) (parse-integer c)))))))
