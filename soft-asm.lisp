@@ -24,7 +24,8 @@
 ;;; Code:
 (in-package :soft-ev)
 
-(defclass soft-asm (soft) ())
+(defclass soft-asm (soft)
+  ((addr-map :initarg :addr-map :accessor raw-addr-map :initform nil)))
 
 (defmethod from ((soft soft-asm) (in stream) &aux genome)
   (loop for line = (read-line in nil)
@@ -57,8 +58,52 @@
       (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
       (values exit output err-output))))
 
+(defmethod lines ((asm soft-asm))
+  (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
+
 
 ;;; memory mapping, address -> LOC
-(defun gdb-disassemble (function)
+(defun gdb-disassemble (asm function)
   (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
-         function bin-path))
+         function (bin asm)))
+
+(defun addrs (asm function)
+  "Return the numerical addresses of the lines (in order) of FUNCTION."
+  (remove nil
+    (mapcar
+     (lambda (line)
+       (register-groups-bind  (addr offset)
+           ("[\\s]*0x([\\S]+)[\\s]*<([\\S]+)>:.*" line)
+         (declare (ignorable offset) (string addr))
+         (parse-integer addr :radix 16)))
+     (split-sequence #\Newline (gdb-disassemble asm function)))))
+
+(defun function-lines (asm &aux function)
+  "Return the line numbers of the lines (in order) of FUNCTION."
+  (loop for line in (mapcar (lambda (line) (cdr (assoc :line line)))
+                            (genome asm)) as counter from 0
+     do (setq function (register-groups-bind
+                           (line-function) ("^([^\\.][\\S]+):" line)
+                         line-function))
+     if function
+     collect function
+     else collect counter))
+
+(defmethod (setf addr-map) (new (asm soft-asm))
+  (setf (raw-addr-map asm) new))
+
+(defmethod addr-map ((asm soft-asm))
+  (or (raw-addr-map asm)
+      (setf (addr-map asm)
+            (let ((flines (function-lines asm)))
+              (mapcar (lambda (addrs lines)
+                        (mapcar #'cons addrs lines))
+                      (mapcar (lambda (func) (addrs asm func))
+                              (remove-if-not #'stringp flines))
+                      (cdr
+                       (mapcar (lambda (lines)
+                                 (remove-if (lambda (n)
+                                              (scan "^[\\s]*\\."
+                                                    (nth n (lines asm))))
+                                            lines))
+                               (split-sequence-if #'stringp flines))))))))
