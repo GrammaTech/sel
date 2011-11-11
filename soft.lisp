@@ -27,7 +27,7 @@
 
 ;;; Software Object
 (defclass soft ()
-  ((bin     :initarg :bin     :accessor raw-bin     :initform nil)
+  ((exe     :initarg :exe     :accessor raw-exe     :initform nil)
    (genome  :initarg :genome  :accessor genome      :initform nil)
    (fitness :initarg :fitness :accessor raw-fitness :initform nil)
    (history :initarg :history :accessor history     :initform nil)))
@@ -36,28 +36,39 @@
   (:documentation "Return a copy of the software."))
 
 (defgeneric fitness (soft)
-  (:documentation "Return the fitness of the software."))
+  (:documentation "Return the fitness of the software. (caching)"))
 
 (defmethod (setf fitness) (new (soft soft))
   (setf (raw-fitness soft) new))
 
-(defmethod bin ((soft soft))
-  (or (raw-bin soft)
-      (let ((tmp (temp-file-name)))
-        (executable soft tmp)
-        (setf (bin soft) tmp))))
+(defmethod fitness :around ((soft soft))
+  (or (raw-fitness soft) (setf (fitness soft) (call-next-method))))
 
-(defmethod (setf bin) (new (asm soft-asm))
-  (setf (raw-bin asm) new))
+(defgeneric exe (soft &optional place)
+  (:documentation
+   "Return the path to an executable of the software. (caching)"))
+
+(defmethod (setf exe) (new (soft soft))
+  (setf (raw-exe soft) new))
+
+(defmethod exe :around ((soft soft) &optional place)
+  (declare (ignorable place))
+  (or (raw-exe soft) (setf (exe soft) (call-next-method))))
+
+(defgeneric delete-exe (soft)
+  (:documentation
+   "Delete any external executables associated with the software."))
+
+(defmethod delete-exe ((soft soft))
+  (when (and (raw-exe soft) (probe-file (exe soft)))
+    (delete-file (exe soft))
+    (setf (exe soft) nil)))
 
 (defgeneric from (soft stream)
   (:documentation "Read a software object from a file."))
 
 (defgeneric to (soft stream)
   (:documentation "Write a software object to a file."))
-
-(defgeneric executable (soft path)
-  (:documentation "Generate an executable from a software object."))
 
 (defgeneric insert (soft)
   (:documentation "Duplicate and insert an element of the genome of SOFT"))
@@ -78,8 +89,7 @@
     :fitness (fitness soft)))
 
 (defmethod fitness ((soft soft))
-  (or (raw-fitness soft)
-      (setf (raw-fitness soft) (evaluate soft))))
+  (evaluate soft))
 
 (defmethod insert ((soft soft))
   (multiple-value-bind (genome place)

@@ -50,13 +50,15 @@
       (shell "gcc -o ~a ~a" exe asm)
     (values output error-output exit)))
 
-(defmethod executable ((soft soft-asm) (exe string))
-  (let ((tmp (temp-file-name "s")))
-    (asm-to-file soft tmp)
-    (multiple-value-bind (output err-output exit)
-        (link tmp exe)
+(defmethod exe ((asm soft-asm) &optional place)
+  (let ((exe (or place (temp-file-name)))
+        (tmp (temp-file-name "s")))
+    (asm-to-file asm tmp)
+    (multiple-value-bind (output err-output exit) (link tmp exe)
+      (declare (ignorable output err-output))
       (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
-      (values exit output err-output))))
+      (unless (= exit 0) (error "ASM compilation failed (~a->~a)" tmp exe)))
+    exe))
 
 (defmethod lines ((asm soft-asm))
   (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
@@ -65,7 +67,7 @@
 ;;; memory mapping, address -> LOC
 (defun gdb-disassemble (asm function)
   (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
-         function (bin asm)))
+         function (exe asm)))
 
 (defun addrs (asm function)
   "Return the numerical addresses of the lines (in order) of FUNCTION."

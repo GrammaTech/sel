@@ -69,22 +69,20 @@
 ;;; functions
 (defun evaluate (soft &aux (pos 0) (neg 0))
   "Evaluate SOFT setting the fitness."
-  (let ((exe (temp-file-name)))
-    (executable soft exe)
-    (loop for i from 1 to *pos-test-num*
-       do (multiple-value-bind (output err-output exit)
-              (shell "~a ~a p~d" *test-script* exe i)
-            (declare (ignorable output err-output))
-            (when (= exit 0) (incf pos))))
-    (loop for i from 1 to *neg-test-num*
-       do (multiple-value-bind (output err-output exit)
-              (shell "~a ~a n~d" *test-script* exe i)
-            (declare (ignorable output err-output))
-            (when (= exit 0) (incf neg))))
-    (incf *fitness-evals*)
-    (when (probe-file exe) (delete-file exe))
-    (+ (* pos *pos-test-mult*)
-       (* neg *neg-test-mult*))))
+  (loop for i from 1 to *pos-test-num*
+     do (multiple-value-bind (output err-output exit)
+            (shell "~a ~a p~d" *test-script* (exe soft) i)
+          (declare (ignorable output err-output))
+          (when (= exit 0) (incf pos))))
+  (loop for i from 1 to *neg-test-num*
+     do (multiple-value-bind (output err-output exit)
+            (shell "~a ~a n~d" *test-script* (exe soft) i)
+          (declare (ignorable output err-output))
+          (when (= exit 0) (incf neg))))
+  (incf *fitness-evals*)
+  (delete-exe soft)
+  (+ (* pos *pos-test-mult*)
+     (* neg *neg-test-mult*)))
 
 (defun incorporate (soft)
   "Incorporate SOFT into POPULATION, keeping the size of POPULATION constant."
