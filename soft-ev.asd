@@ -7,7 +7,8 @@
                split-sequence
                metabang-bind
                cl-store
-               trivial-shell)
+               trivial-shell
+               cl-ppcre)
   :components
   ((:static-file "COPYING")
    (:static-file "Makefile")

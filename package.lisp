@@ -6,7 +6,8 @@
    :split-sequence
    :metabang-bind
    :cl-store
-   :trivial-shell)
+   :trivial-shell
+   :cl-ppcre)
   (:shadow :type)
   (:export
    ;; functions
