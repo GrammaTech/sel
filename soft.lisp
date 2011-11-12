@@ -71,6 +71,20 @@
 (defgeneric to (soft stream)
   (:documentation "Write a software object to a file."))
 
+(defgeneric good-ind (soft)
+  (:documentation "Return a random \"good\" index in the genome."))
+
+(defgeneric bad-ind (soft)
+  (:documentation "Return a random \"bad\" index in the genome."))
+
+(defgeneric good-place (soft)
+  (:documentation
+   "Return a random \"good\" place (between indices) in the genome."))
+
+(defgeneric bad-place (soft)
+  (:documentation
+   "Return a random \"bad\" place (between indices) in the genome."))
+
 (defgeneric insert (soft)
   (:documentation "Duplicate and insert an element of the genome of SOFT"))
 
@@ -91,6 +105,18 @@
 
 (defmethod fitness ((soft soft))
   (evaluate soft))
+
+(defmethod good-ind ((soft soft))
+  (good-ind (genome soft)))
+
+(defmethod bad-ind ((soft soft))
+  (bad-ind (genome soft)))
+
+(defmethod good-place ((soft soft))
+  (good-place (genome soft)))
+
+(defmethod bad-place ((soft soft))
+  (bad-place (genome soft)))
 
 (defmethod insert ((soft soft))
   (multiple-value-bind (genome place)
@@ -160,10 +186,27 @@
                3)))
     genome))
 
+(defun random-ind (genome)
+  (random (length genome)))
+
+(defmethod good-ind ((genome list))
+  (random-ind genome))
+
+(defmethod bad-ind ((genome list))
+  (random-ind genome))
+
+(defun random-place (genome)
+  (random (+ 1 (length genome))))
+
+(defmethod good-place ((genome list))
+  (random-place genome))
+
+(defmethod bad-place ((genome list))
+  (random-place genome))
+
 (defmethod insert ((genome list))
-  (let* ((size (length genome))
-         (dup-place (random size))
-         (ins-place (random (+ 1 size))))
+  (let ((dup-place (good-ind genome))
+        (ins-place (bad-place genome)))
     (values (cond
               ((> dup-place ins-place)
                (append (subseq genome 0 ins-place)
@@ -179,15 +222,14 @@
             ins-place)))
 
 (defmethod cut ((genome list))
-  (let ((place (random (length genome))))
-    (values (append (subseq genome 0 place)
-                    (subseq genome (+ 1 place)))
-            place)))
+  (let ((ind (bad-ind genome)))
+    (values (append (subseq genome 0 ind)
+                    (subseq genome (+ 1 ind)))
+            ind)))
 
 (defmethod swap ((genome list))
-  (let* ((size (length genome))
-         (a (random size))
-         (b (random size))
+  (let* ((a (good-ind genome))
+         (b (good-ind genome))
          (temp (nth a genome)))
     (setf (nth a genome) (nth b genome))
     (setf (nth b genome) temp)
