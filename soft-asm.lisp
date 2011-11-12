@@ -143,10 +143,10 @@ address and the cdr is the value."
 
 ;;; weighted genome access
 (defun good-key (el)
-  (if (or (assoc :pos el) (assoc :neg el)) 1 0))
+  (if (or (assoc :pos el) (assoc :neg el)) 1 0.25))
 
 (defun bad-key (el)
-  (if (assoc :neg el) (if (assoc :pos el) 0.5 1) 0))
+  (if (assoc :neg el) (if (assoc :pos el) 0.5 1) 0.25))
 
 (defmethod good-ind ((asm soft-asm))
   (weighted-ind (genome asm) #'good-key))
