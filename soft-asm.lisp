@@ -139,3 +139,23 @@ address and the cdr is the value."
            (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
              (declare (string c) (string a))
              (cons (parse-integer a :radix 16) (parse-integer c)))))))
+
+
+;;; weighted genome access
+(defun good-key (el)
+  (if (or (assoc :pos el) (assoc :neg el)) 1 0))
+
+(defun bad-key (el)
+  (if (assoc :neg el) (if (assoc :pos el) 0.5 1) 0))
+
+(defmethod good-ind ((asm soft-asm))
+  (weighted-ind (genome asm) #'good-key))
+
+(defmethod bad-ind ((asm soft-asm))
+  (weighted-ind (genome asm) #'bad-key))
+
+(defmethod good-place ((asm soft-asm))
+  (weighted-place (genome asm) #'good-key))
+
+(defmethod bad-place ((asm soft-asm))
+  (weighted-place (genome asm) #'bad-key))

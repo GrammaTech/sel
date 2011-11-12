@@ -97,6 +97,8 @@
 (defgeneric crossover (soft-a soft-b)
   (:documentation "Crossover between the genomes of SOFT-A and SOFT-B."))
 
+
+;;; generic methods defined for software
 (defmethod copy ((soft soft))
   (make-instance (type-of soft)
     :genome (genome soft)
@@ -170,6 +172,8 @@
                               (cons (history a) (history b))))
     new))
 
+
+;;; generic methods defined for lists
 (defvar *genome-averaging-keys* nil
   "Keys whose value should be averaged with neighbors after genome operations.")
 
@@ -185,6 +189,23 @@
                                   (list above below middle)))
                3)))
     genome))
+
+(defun weighted-pick (weights &aux (counter 0))
+  (let* ((cumulative (reverse (reduce (lambda (acc el)
+                                        (incf counter el)
+                                        (cons counter acc))
+                                      weights :initial-value nil)))
+         (point (random (float counter))))
+    (loop for weight in cumulative as i from 0
+       if (> weight point) do (return i))))
+
+(defun weighted-ind (list key)
+  (weighted-pick (mapcar key list)))
+
+(defun weighted-place (list key &aux (last 0))
+  (weighted-pick
+   (mapcar (lambda (el) (prog1 (/ ( + el last) 2) (setf last el)))
+           (append (mapcar key list) (list 0)))))
 
 (defun random-ind (genome)
   (random (length genome)))
