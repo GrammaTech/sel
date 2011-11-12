@@ -149,6 +149,7 @@ Optional keys are as follows.
                                      max-time)))
        do (let ((new (new-individual)))
             (incf inds)
+            (fitness new) ;; so has fitness before population incorporation
             (incorporate new)
             (when (or (and max-fit (>= (fitness new) max-fit))
                       (and min-fit (<= (fitness new) min-fit))
