@@ -12,6 +12,10 @@
   (:export
    ;; functions
    :evolve
+   :incorporate
+   :asm-from-file
+   :asm-to-file
+   :main
    ;; slots
    ;; methods
    ;; constants and variables

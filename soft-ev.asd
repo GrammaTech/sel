@@ -21,5 +21,7 @@
    (:file "soft-elf" :depends-on ("package" "util" "soft"))
    (:file "ev"       :depends-on ("package" "util" "soft" "soft-elf"
                                   "soft-asm"))
+   (:file "main"     :depends-on ("ev" "package" "util" "soft" "soft-elf"
+                                       "soft-asm"))
    (:file "share"    :depends-on ("ev" "package" "util" "soft" "soft-elf"
                                    "soft-asm"))))
