@@ -115,7 +115,7 @@
 
 
 ;;; incorporation of oprofile samples
-(defun apply-samples (asm key addresses &aux applied)
+(defun apply-path (asm key addresses &aux applied)
   "Apply a list of sampled ADDRESSES to the ASM's genome behind KEY.
 If each element of ADDRESSES is a cons cell then assume the car is the
 address and the cdr is the value."

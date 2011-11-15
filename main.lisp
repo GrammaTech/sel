@@ -36,6 +36,9 @@
 (defvar *save-population* nil
   "Save the final population here.")
 
+(defvar *paths* nil
+  "List of pairs of the form '(keyword . \"sample-file\").")
+
 (defvar *options*
   `(*max-population-size*
     *tournament-size*
@@ -45,6 +48,7 @@
     *pos-test-mult*
     *neg-test-mult*
     *cross-chance*
+    *paths*
     *seed-soft*
     *incoming-population*
     *save-soft*
@@ -76,7 +80,8 @@
   (format t "~&)~%"))
 
 (defun print-options ()
-  (print (mapcar (lambda (option) `(,option . ,(eval option))) *options*)))
+  (print (mapcar (lambda (option) `(,option . ,(eval option)))
+                 (remove-if-not (lambda (option) (eval option)) *options*))))
 
 (defun main (argv &aux res)
   "Command line driver of `soft-ev' software evolution."
@@ -91,7 +96,13 @@
           (setq *population* (cl-store:restore *incoming-population*)))
         (when *seed-soft*
           (dotimes (_ 12)
-            (incorporate (asm-from-file *seed-soft*))))
+            (let ((asm (asm-from-file *seed-soft*)))
+              (dolist (spec *paths*)
+                (apply-path asm (car spec)
+                            (samples-from-oprofile-file (cdr spec))))
+              (incorporate asm))))
+        (when *paths*
+          (setq *genome-averaging-keys* (mapcar #'car *paths*)))
         ;; evolve
         (if *population*
             (progn

@@ -8,12 +8,13 @@
 (let ((*pos-test-num* 5)
       (*neg-test-num* 1)
       (*max-population-size* 100)
+      (*genome-averaging-keys* '(:pos :neg))
       (gcd (asm-from-file "gcd.s"))
       (fixed-program-path "fixed.s")
       repair)
   ;; add the good and bad path information to gcd
-  (apply-samples gcd :neg (samples-from-oprofile-file "sample.neg"))
-  (apply-samples gcd :pos (samples-from-oprofile-file "sample.pos"))
+  (apply-path gcd :neg (samples-from-oprofile-file "sample.neg"))
+  (apply-path gcd :pos (samples-from-oprofile-file "sample.pos"))
   ;; build up a starting population -- 8 copies of the original
   (dotimes (_ 8) (push gcd *population*))
   ;; evolve a repair
