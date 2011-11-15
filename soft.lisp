@@ -71,6 +71,12 @@
 (defgeneric to (soft stream)
   (:documentation "Write a software object to a file."))
 
+(defgeneric from-bytes (bytes)
+  (:documentation "Read a software object from a byte array."))
+
+(defgeneric to-bytes (soft)
+  (:documentation "Write a software object to a byte array."))
+
 (defgeneric good-ind (soft)
   (:documentation "Return a random \"good\" index in the genome."))
 
@@ -104,6 +110,26 @@
     :genome (genome soft)
     :history (history soft)
     :fitness (fitness soft)))
+
+(defmethod from-bytes ((bytes vector))
+  (let ((tmp (temp-file-name)))
+    (with-open-file (out tmp :direction :output :element-type '(unsigned-byte 8))
+      (dotimes (n (length bytes))
+        (write-byte (aref bytes n) out)))
+    (prog1 (restore tmp)
+      (delete-file tmp))))
+
+(defmethod to-bytes ((soft soft))
+  (let ((tmp (temp-file-name))
+        (bytes (make-array '(0)
+                           :element-type '(unsigned-byte 8)
+                           :fill-pointer 0 :adjustable t)))
+    (store soft tmp)
+    (with-open-file (in tmp :element-type '(unsigned-byte 8))
+      (loop for byte = (read-byte in  nil)
+         while byte do (vector-push-extend byte bytes)))
+    (delete-file tmp)
+    bytes))
 
 (defmethod fitness ((soft soft))
   (evaluate soft))
