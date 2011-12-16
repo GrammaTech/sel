@@ -105,3 +105,34 @@ Optional argument OUT specifies an output stream."
                        (my-class-slots (class-of obj1)))
                :initial-value t))
       (t (equal obj1 obj2)))))
+
+(defun different-it (obj1 obj2 &optional trace)
+  (let ((trace1 (concatenate 'list (list obj1 obj2) trace)))
+    (cond
+      ((or (member obj1 trace) (member obj2 trace)) t)
+      ((or (and (vectorp obj1) (vectorp obj2))
+           (and (proper-list-p obj1) (proper-list-p obj2)))
+       (and (or (equal (length obj1) (length obj2))
+                (format t "~&different lengths ~a!=~a"
+                        (length obj1) (length obj2)))
+            (reduce (lambda-bind (acc (i (a b)))
+                      (and acc (or (different-it a b trace1)
+                                   (format t "~& at ~d ~a!=~a" i a b))))
+                    (indexed
+                     (if (vectorp obj1)
+                         (mapcar #'list (coerce obj1 'list) (coerce obj2 'list))
+                         (mapcar #'list obj1 obj2)))
+                    :initial-value t)))
+      ((and (consp obj1) (consp obj2))
+       (and (different-it (car obj1) (car obj2))
+            (different-it (cdr obj1) (cdr obj2))))
+      ((my-class-slots (class-of obj1))
+       (reduce (lambda (acc slot)
+                 (and acc (or (different-it
+                               (slot-value obj1 slot) (slot-value obj2 slot)
+                               trace1)
+                              (format t "~&  ~a" slot))))
+               (mapcar #'my-slot-definition-name
+                       (my-class-slots (class-of obj1)))
+               :initial-value t))
+      (t (or (equal obj1 obj2) (format t "~&~a!=~a" obj1 obj2))))))
