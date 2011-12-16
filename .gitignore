@@ -1,3 +1,6 @@
 doc
 *.fasl
+*.html
+*.tex
+*.pdf
 soft-ev
