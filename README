@@ -41,10 +41,11 @@
    : sample.pos              # <- oprofile trace of positive test execution
    : test.sh*                # <- test script
 
-2. open up [[file:gcd/repair.lisp][repair.lisp]] and evaluate the forms in order
-   #+begin_src lisp
-#+INCLUDE: gcd/repair.lisp
-   #+end_src
+2. interactive execution from within [[file:gcd/repair.lisp][repair.lisp]]
+
+3. execution from the command line using the compiled executable
+
+4. sharing with ∅MQ
 
 * Notes
 ** thread local global variables
