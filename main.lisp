@@ -88,7 +88,7 @@
   ;; set options of load usage information
   (if (not (and (second argv) (probe-file (second argv))))
       (show-usage)
-      (progn
+      (let (max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
         (load (second argv))
         (print-options)
         ;; build initial population
