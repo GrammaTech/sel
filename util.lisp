@@ -50,3 +50,58 @@
   (multiple-value-bind (output err-output exit)
       (shell-command (apply #'format (cons nil rst)) :input nil)
     (values output err-output exit)))
+
+
+;;; generic forensic functions over arbitrary objects
+(defun my-slot-definition-name (el)
+  #+sbcl
+  (sb-mop::slot-definition-name el)
+  #+ccl
+  (ccl:slot-definition-name el)
+  #-(or sbcl ccl)
+  (clos::slot-definition-name el))
+
+(defun my-class-slots (el)
+  #+sbcl
+  (sb-mop::class-slots el)
+  #+ccl
+  (ccl:class-slots el)
+  #-(or sbcl ccl)
+  (clos::class-slots el))
+
+(defun show-it (hd &optional out)
+  "Print the fields of a elf, section or program header.
+Optional argument OUT specifies an output stream."
+  (format (or out t) "~&")
+  (mapcar
+   (lambda (slot)
+     (let ((val (slot-value hd slot)))
+       (format (or out t) "~s:~a " slot val)
+       (list slot val)))
+   (mapcar #'my-slot-definition-name (my-class-slots (class-of hd)))))
+
+(defun equal-it (obj1 obj2 &optional trace)
+  "Equal over objects and lists."
+  (let ((trace1 (concatenate 'list (list obj1 obj2) trace)))
+    (cond
+      ((or (member obj1 trace) (member obj2 trace)) t)
+      ((and (listp obj1) (not (listp (cdr obj1)))
+            (listp obj2) (not (listp (cdr obj2))))
+       (and (equal-it (car obj1) (car obj2))
+            (equal-it (cdr obj1) (cdr obj2))))
+      ((or (and (listp obj1) (listp obj2)) (and (vectorp obj1) (vectorp obj2)))
+       (and (equal (length obj1) (length obj2))
+            (reduce (lambda (acc pair)
+                      (and acc (equal-it (car pair) (cdr pair) trace1)))
+                    (if (vectorp obj1)
+                        (mapcar #'cons (coerce obj1 'list) (coerce obj2 'list))
+                        (mapcar #'cons obj1 obj2))
+                    :initial-value t)))
+      ((my-class-slots (class-of obj1))
+       (reduce (lambda (acc slot)
+                 (and acc (equal-it (slot-value obj1 slot) (slot-value obj2 slot)
+                                    trace1)))
+               (mapcar #'my-slot-definition-name
+                       (my-class-slots (class-of obj1)))
+               :initial-value t))
+      (t (equal obj1 obj2)))))
