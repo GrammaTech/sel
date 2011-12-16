@@ -4,6 +4,33 @@
 #+email: schulte.eric@gmail.com
 
 * Design
+:                                                             population functions
+:  global variables                                           --------------------
+:  ----------------            +--------------+               incorporate
+:  *population*                | *population* |               evict
+:  *max-population-size*       |--------------|               tournament
+:  *tournament-size*           | list of soft |               mutate
+:  *test-script*               |    objects   |               crossed
+:  *pos-test-num*              +--------------+               new-individual
+:  *neg-test-num*                      |                      evolve
+:  *pos-test-mult*                   +-+-+                  
+:  *neg-test-mult*                   | | |                    soft functions
+:  *keep-source*             +------------------+             --------------
+:  *cross-chance*            |       soft       |             copy
+:  *fitness-evals*           |------------------|             fitness
+:  *running*                 | exe              |             exe
+:                            | genome (path)    |             delete-exe
+:  evolve arguments          | fitness          |             from (from-bytes)
+:  ----------------          | history          |             to (to-bytes)
+:  max-evals                 +------------------+             good-ind
+:  max-time                    |              |               bad-ind
+:  max-inds                    |              |               good-place
+:  max-fit             +------------+      +-----------+      bad-place
+:  min-fit             |  soft-asm  |      | soft-ast  |      insert
+:  pop-fn              |------------|      |-----------|      cut
+:  ind-fn              | addr-map   |      | (pending) |      swap
+:                      +------------+      +-----------+ ...  crossover
+
 * Usage
 * Notes
 ** thread local global variables
