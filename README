@@ -32,6 +32,20 @@
 :                      +------------+      +-----------+ ...  crossover
 
 * Usage
+1. =cd= into the =gcd= directory and look around
+   : $ ls -1
+   : gcd.c                   # <- original program
+   : gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
+   : repair.lisp             # <- options to repair
+   : sample.neg              # <- oprofile trace of negative test execution
+   : sample.pos              # <- oprofile trace of positive test execution
+   : test.sh*                # <- test script
+
+2. open up [[file:gcd/repair.lisp][repair.lisp]] and evaluate the forms in order
+   #+begin_src lisp
+#+INCLUDE: gcd/repair.lisp
+   #+end_src
+
 * Notes
 ** thread local global variables
 In case we want to run multiple populations in separate threads.
