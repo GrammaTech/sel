@@ -9,8 +9,7 @@
                cl-store
                trivial-shell
                cl-ppcre
-               ;; zmsg
-               )
+               zmsg)
   :components
   ((:static-file "COPYING")
    (:static-file "Makefile")
@@ -24,6 +23,5 @@
                                   "soft-asm"))
    (:file "main"     :depends-on ("ev" "package" "util" "soft" "soft-elf"
                                        "soft-asm"))
-   ;; (:file "share"    :depends-on ("ev" "package" "util" "soft" "soft-elf"
-   ;;                                 "soft-asm"))
-   ))
+   (:file "share"    :depends-on ("ev" "package" "util" "soft" "soft-elf"
+                                   "soft-asm"))))

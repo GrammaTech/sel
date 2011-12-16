@@ -27,3 +27,9 @@
       (progn (format t "~&Repair found, saving to ~a~%" fixed-program-path)
              (asm-to-file *repair* fixed-program-path))
       (format t "~&No repair found.~%")))
+
+;;; monitoring of an active repair
+#+Example
+(identity *fitness-evals*)
+#+Example
+(mapcar #'fitness *population*)
