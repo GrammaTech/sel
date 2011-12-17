@@ -1,4 +1,4 @@
-;;; share.lisp --- sharing individuals between instances of software evolution
+;;; soft-ev-zmq.lisp --- sharing individuals between soft-ev instances
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :soft-ev-zmq)
 
 (defun accept (address)
   "Accept and `incorporate' any incoming individuals on ADDRESS.

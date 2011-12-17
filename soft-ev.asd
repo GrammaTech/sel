@@ -8,8 +8,7 @@
                metabang-bind
                cl-store
                trivial-shell
-               cl-ppcre
-               zmsg)
+               cl-ppcre)
   :components
   ((:static-file "COPYING")
    (:static-file "Makefile")
@@ -22,6 +21,4 @@
    (:file "ev"       :depends-on ("package" "util" "soft" "soft-elf"
                                   "soft-asm"))
    (:file "main"     :depends-on ("ev" "package" "util" "soft" "soft-elf"
-                                       "soft-asm"))
-   (:file "share"    :depends-on ("ev" "package" "util" "soft" "soft-elf"
-                                   "soft-asm"))))
+                                       "soft-asm"))))
