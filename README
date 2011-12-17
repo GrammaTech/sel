@@ -1,8 +1,12 @@
 # -*- org -*-
-#+Title: Software Evolution
+#+Title: (=soft-ev=) Software Evolution
 #+Author: Eric Schulte
 #+email: eschulte@cs.unm.edu
 #+Options: toc:1
+
+#+begin_center
+enabling the evolution of extant software projects
+#+end_center
 
 * Design
 :                                                             population functions
@@ -51,7 +55,9 @@ Parameterization of the EC algorithm is done through setting global
 variables and through arguments to the =evolve= function.
 
 * Usage
-1. To begin, =cd= into the =gcd= directory and look around.
+1. Available using git from =git://adaptive.cs.unm.edu/soft-ev.git=.
+
+2. To begin, =cd= into the =soft-ev/gcd= directory and look around.
    : $ ls -1
    : gcd.c                   # <- original program
    : gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
@@ -60,16 +66,16 @@ variables and through arguments to the =evolve= function.
    : sample.pos              # <- oprofile trace of positive test execution
    : test.sh*                # <- test script used to exercise gcd variants
 
-2. Repairs may be performed from an interactive lisp session, for
+3. Repairs may be performed from an interactive lisp session, for
    example, through evaluating the forms in [[file:gcd/repair.lisp][repair.lisp]].
 
-3. Running =make= in this directory will build a =soft-ev= command
+4. Running =make= in this directory will build a =soft-ev= command
    line utility allowing repair to be scripted from the command line
    using simple configuration files.  The help message of the
    =soft-ev= command line utility serves as a template configuration
    file.
 
-4. Distributed evolution between multiple lisp process on one or many
+5. Distributed evolution between multiple lisp process on one or many
    machines is enabled using the [[http://www.zeromq.org][∅MQ]] socket library.  Additionally,
    because population initialization is left to the user, distributed
    EC algorithms may also be implemented externally.  See
@@ -77,7 +83,7 @@ variables and through arguments to the =evolve= function.
    population.
 
 * Notes
-The following are a series of informal working development notes.
+The following are informal working and development notes.
 
 ** thread local global variables
 In case we want to run multiple populations in separate threads.
