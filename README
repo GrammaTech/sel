@@ -2,6 +2,7 @@
 #+Title: Software Evolution
 #+Author: Eric Schulte
 #+email: eschulte@cs.unm.edu
+#+Options: toc:1
 
 * Design
 :                                                             population functions
@@ -31,23 +32,53 @@
 :  ind-fn              | addr-map   |      | (pending) |      swap
 :                      +------------+      +-----------+ ...  crossover
 
+The =*population*= is a global variable holding a list of evolving
+software variants.  The evolutionary computation functions operate
+directly on the =*population*= through the "population functions".
+Exposure of the population through a global variable enables to user
+to initialize the population in any way, and allows external functions
+to monitor and interact with the population during evolution.  For
+example =soft-ev-zmq= enables sharing of individuals between multiple
+instances of evolution through two "sharing" functions which
+manipulate the population during evolution.
+
+Each software variant is an object whose class is a sub-class of the
+general =soft= class.  New representations are implemented through
+sub-classing =soft= and customizing the generic "soft functions" where
+necessary.
+
+Parameterization of the EC algorithm is done through setting global
+variables and through arguments to the =evolve= function.
+
 * Usage
-1. =cd= into the =gcd= directory and look around
+1. To begin, =cd= into the =gcd= directory and look around.
    : $ ls -1
    : gcd.c                   # <- original program
    : gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
    : repair.lisp             # <- options to repair
    : sample.neg              # <- oprofile trace of negative test execution
    : sample.pos              # <- oprofile trace of positive test execution
-   : test.sh*                # <- test script
+   : test.sh*                # <- test script used to exercise gcd variants
 
-2. interactive execution from within [[file:gcd/repair.lisp][repair.lisp]]
+2. Repairs may be performed from an interactive lisp session, for
+   example, through evaluating the forms in [[file:gcd/repair.lisp][repair.lisp]].
 
-3. execution from the command line using the compiled executable
+3. Running =make= in this directory will build a =soft-ev= command
+   line utility allowing repair to be scripted from the command line
+   using simple configuration files.  The help message of the
+   =soft-ev= command line utility serves as a template configuration
+   file.
 
-4. sharing with ∅MQ
+4. Distributed evolution between multiple lisp process on one or many
+   machines is enabled using the [[http://www.zeromq.org][∅MQ]] socket library.  Additionally,
+   because population initialization is left to the user, distributed
+   EC algorithms may also be implemented externally.  See
+   [[file:gcd/second-run.lisp][second-run.lisp]] for an example configuration file using an incoming
+   population.
 
 * Notes
+The following are a series of informal working development notes.
+
 ** thread local global variables
 In case we want to run multiple populations in separate threads.
 
