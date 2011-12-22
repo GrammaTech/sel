@@ -129,8 +129,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-
-* Tasks [1/6]
+* Tasks [1/7]
 ** DONE Flesh out the test suite [4/4]
 - [X] mutation operators
 - [X] copy returns a *new* and *equal* object
@@ -152,3 +151,16 @@ dimensions such as
 - power consumption
 - running time
 - communication overhead
+
+** TODO look at interactive evolution of individual CL functions
+The idea being to support an interactive development environment in
+which the developer starts by associating some conditions with a
+function, e.g.,
+#+begin_src lisp
+  (defun square (x)
+    (declare (output
+              (> output 0)
+              (> output x)
+              (= (sqrt output) x)))
+    )
+#+end_src
