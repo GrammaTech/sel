@@ -3,6 +3,7 @@
 #+Author: Eric Schulte
 #+email: eschulte@cs.unm.edu
 #+Options: toc:1
+#+properties: exports code
 
 #+begin_center
 enabling the evolution of extant software projects
@@ -18,7 +19,7 @@ enabling the evolution of extant software projects
 :  *test-script*               |    objects   |               crossed
 :  *pos-test-num*              +--------------+               new-individual
 :  *neg-test-num*                      |                      evolve
-:  *pos-test-mult*                   +-+-+                  
+:  *pos-test-mult*                   +-+-+
 :  *neg-test-mult*                   | | |                    soft functions
 :  *keep-source*             +------------------+             --------------
 :  *cross-chance*            |       soft       |             copy
