@@ -1,8 +1,12 @@
 (in-package :soft-ev)
 (require :stefil)
 (use-package :stefil)
-(defsuite soft-ev)
-(in-suite soft-ev)
+(defsuite soft-ev-test)
+(in-suite soft-ev-test)
+
+
+;;; Mutation operators
+
 
 
 ;;; ASM representation

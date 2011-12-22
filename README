@@ -129,3 +129,26 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
+
+* Tasks [0/6]
+** TODO Flesh out the test suite [0/4]
+- [ ] mutation operators
+- [ ] copy returns a *new* and *equal* object
+- [ ] fitness evaluation
+- [ ] population addition and subtraction
+
+** TODO add elf level representation
+** TODO implement general tree-base mutation operations
+** TODO add a lisp source-code level representation
+** TODO add an =optimize= method
+   :PROPERTIES:
+   :CUSTOM_ID: multi-objective-optimization
+   :END:
+multi-objective optimization for things like speed and size
+
+** TODO use optimization to evolve better FFT
+Use [[#multi-objective-optimization][the =optimize= method]] to evolve a better FFT function along
+dimensions such as
+- power consumption
+- running time
+- communication overhead
