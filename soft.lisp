@@ -291,3 +291,45 @@
 (defmethod crossover ((a list) (b list))
   (let ((point (random (min (length a) (length b)))))
     (append (subseq a 0 point) (subseq b point))))
+
+
+;;; generic methods for trees
+(defstruct (tree (:copier tree-copier))
+  (data nil)
+  (branches nil))
+
+(defun to-tree (item)
+  (if (consp item)
+      (make-tree
+       :data (car item)
+       :branches (mapcar #'to-tree (cdr item)))
+      (make-tree :data item)))
+
+(defun to-list (tree)
+  (if (tree-nodes tree)
+      (cons (tree-data tree)
+            (mapcar #'to-list (tree-nodes tree)))
+      (tree-data tree)))
+
+(defun map-tree (type fun tree)
+  (let ((first (funcall fun tree))
+        (rest (mapcar (lambda (branch) (map-tree type fun branch))
+                      (tree-branches tree))))
+    (if rest
+        (case type
+          (tree (make-tree :data first :branches rest))
+          (list (cons first rest)))
+        first)))
+
+(defun subtrees (tree &aux subtrees)
+  "Return a list of all subtrees of a tree."
+  (map-tree 'list #'identity tree))
+
+(defmethod insert ((genome tree))
+  )
+
+(defmethod cut ((genome tree))
+  )
+
+(defmethod swap ((genome tree))
+  )

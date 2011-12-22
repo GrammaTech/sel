@@ -5,6 +5,29 @@
 (in-suite soft-ev-test)
 
 
+;;; tree representation
+(deftest test-to-tree ()
+  (is
+   (equal-it
+    (to-tree '(1 2 3 (4 5) 6))
+    #S(TREE
+       :DATA 1
+       :BRANCHES (#S(TREE :DATA 2 :BRANCHES NIL)
+                  #S(TREE :DATA 3 :BRANCHES NIL)
+                  #S(TREE :DATA 4 :BRANCHES (#S(TREE :DATA 5 :BRANCHES NIL)))
+                  #S(TREE :DATA 6 :BRANCHES NIL))))))
+
+(deftest map-back-to-tree ()
+  (let ((list '(1 2 3 (4 5) 6)))
+    (is (equal-it (map-tree 'list #'tree-data (to-tree '(1 2 3 (4 5) 6)))
+                  list))))
+
+(deftest test-subtrees ()
+  (is (equal-it (mapcar (lambda (subtree) (length (tree-branches subtree)))
+                        (subtrees (to-tree '(1 2 3 4))))
+                '(3 0 0 0))))
+
+
 ;;; general soft operators
 (defixture list-genome
   (:setup (setf *genome* (loop for i from 0 to 9 collect i)))
