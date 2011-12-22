@@ -109,7 +109,7 @@
   (make-instance (type-of soft)
     :genome (genome soft)
     :history (history soft)
-    :fitness (fitness soft)))
+    :fitness (raw-fitness soft)))
 
 (defmethod from-bytes ((bytes vector))
   (let ((tmp (temp-file-name)))
@@ -267,7 +267,11 @@
                        (subseq genome dup-place ins-place)
                        (list (nth dup-place genome))
                        (subseq genome ins-place)))
-              (:otherwise genome))
+              (:otherwise
+               (append (subseq genome 0 dup-place)
+                       (list (nth dup-place genome))
+                       (list (nth dup-place genome))
+                       (subseq genome dup-place))))
             ins-place)))
 
 (defmethod cut ((genome list))

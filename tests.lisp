@@ -5,8 +5,36 @@
 (in-suite soft-ev-test)
 
 
-;;; Mutation operators
+;;; general soft operators
+(defixture list-genome
+  (:setup (setf *genome* (loop for i from 0 to 9 collect i)))
+  (:teardown))
 
+(defixture soft
+  (:setup (setf *soft* (make-instance 'soft
+                         :genome (loop for i from 0 to 9 collect i))))
+  (:teardown))
+
+(deftest cut-list ()
+  (with-fixture list-genome
+    (is (= 9 (length (cut *genome*))))))
+
+(deftest insert-list ()
+  (with-fixture list-genome
+    (is (= 11 (length (insert *genome*))))
+    (is (= 10 (length (remove-duplicates (insert *genome*)))))))
+
+(deftest swap-list ()
+  (with-fixture list-genome
+    (is (= 10 (length (swap *genome*))))))
+
+(deftest copy-soft ()
+  (with-fixture soft
+    (let ((new (copy *soft*)))
+      (is (equal-it (genome new) (genome *soft*)))
+      (cut new)
+      (is (< (length (genome new))
+             (length (genome *soft*)))))))
 
 
 ;;; ASM representation
@@ -47,3 +75,25 @@
     (with-fixture gcd-soft
       (is (= 5 (fitness *gcd*)))
       (is (= 5 (fitness (copy *gcd*)))))))
+
+
+;;; Population tests
+(defixture population
+  (:setup (setf *population* (loop for i from 1 to 9
+                                collect (make-instance 'soft
+                                          :genome (loop for j from 0 to i
+                                                     collect j)
+                                          :fitness i))))
+  (:teardown))
+
+(deftest evict-population ()
+  (with-fixture population
+    (let ((before (length *population*)))
+      (is (> before (length (progn (evict) *population*)))))))
+
+(deftest incorporate-population ()
+  (with-fixture population
+    (let* ((before (length *population*))
+           (*max-population-size* (+ 1 before)))
+      (is (< before (length (progn (incorporate (make-instance 'soft))
+                                   *population*)))))))
