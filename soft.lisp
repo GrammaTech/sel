@@ -219,6 +219,7 @@
     genome))
 
 (defun weighted-pick (weights &aux (counter 0))
+  "Weighted select of an index into a list of weights."
   (let* ((cumulative (reverse (reduce (lambda (acc el)
                                         (incf counter el)
                                         (cons counter acc))
@@ -306,24 +307,41 @@
       (make-tree :data item)))
 
 (defun to-list (tree)
-  (if (tree-nodes tree)
+  (if (tree-branches tree)
       (cons (tree-data tree)
-            (mapcar #'to-list (tree-nodes tree)))
+            (mapcar #'to-list (tree-branches tree)))
       (tree-data tree)))
 
 (defun map-tree (type fun tree)
   (let ((first (funcall fun tree))
         (rest (mapcar (lambda (branch) (map-tree type fun branch))
                       (tree-branches tree))))
-    (if rest
-        (case type
-          (tree (make-tree :data first :branches rest))
-          (list (cons first rest)))
-        first)))
+    (case type
+      (tree (make-tree :data first :branches rest))
+      (list (if rest (cons first rest) first)))))
 
 (defun subtrees (tree &aux subtrees)
   "Return a list of all subtrees of a tree."
   (map-tree 'list #'identity tree))
+
+(defun indexes (tree &aux (counter -1))
+  (map-tree 'list (lambda (subtree) (incf counter)) tree))
+
+(defun at-index (tree index &aux (counter -1) subtree)
+  (map-tree 'list (lambda (current)
+                    (when (= (incf counter) index)
+                      (setq subtree current))) tree)
+  subtree)
+
+(defvar *weighted-tree*
+  (make-tree :data '((:pos 2) (:val 'list))
+             :branches
+             (list
+              (make-tree :data '((:neg 1) (:val 1)))
+              (make-tree :data '((:neg 4) (:val 2)))
+              (make-tree :data '((:neg 4) (:pos 1) (:val 3))))))
+
+(map-tree 'list (lambda (sub) ()))
 
 (defmethod insert ((genome tree))
   )

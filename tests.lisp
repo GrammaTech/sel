@@ -5,6 +5,43 @@
 (in-suite soft-ev-test)
 
 
+;;; genome operators
+(deftest simple-inds-over-lists-test ()
+  (is (equal-it '(0 1 2 3) (inds '(a b c d)))))
+
+(deftest get-ind-of-a-list ()
+  (is (equal :bar (ind '(:foo :bar :baz) 1))))
+
+(deftest setf-inds-over-a-list ()
+  (let ((list '(a b c d)))
+    (setf (ind list 1) 'e)
+    (is (equal-it list '(a e c d)))))
+
+(defixture tree-genome
+  (:setup (setf *tree*
+                #S(TREE
+                   :DATA 1
+                   :BRANCHES (#S(TREE :DATA 2 :BRANCHES NIL)
+                              #S(TREE :DATA 3 :BRANCHES NIL)
+                              #S(TREE :DATA 4 :BRANCHES NIL)
+                              #S(TREE :DATA 5 :BRANCHES NIL)))))
+  (:teardown))
+
+(deftest inds-over-a-tree ()
+  (with-fixture tree-genome
+    (is (equal-it (inds *tree*) '(0 1 2 3 4)))))
+
+(deftest ind-of-a-tree ()
+  (with-fixture tree-genome
+    (is (equal-it (ind *tree* 0) *tree*))
+    (is (equal-it (ind *tree* 1) (make-tree :data 2)))))
+
+(deftest manipulating-a-tree-by-index ()
+  (with-fixture tree-genome
+    (is (equal-it (setf (ind *tree* 3) (make-tree :data :foo))
+                  (ind *tree* 3)))))
+
+
 ;;; tree representation
 (deftest test-to-tree ()
   (is
@@ -17,15 +54,27 @@
                   #S(TREE :DATA 4 :BRANCHES (#S(TREE :DATA 5 :BRANCHES NIL)))
                   #S(TREE :DATA 6 :BRANCHES NIL))))))
 
-(deftest map-back-to-tree ()
+(deftest test-to-list-conversion ()
   (let ((list '(1 2 3 (4 5) 6)))
-    (is (equal-it (map-tree 'list #'tree-data (to-tree '(1 2 3 (4 5) 6)))
-                  list))))
+    (is (equal-it (to-list (to-tree '(1 2 3 (4 5) 6))) list))))
 
 (deftest test-subtrees ()
   (is (equal-it (mapcar (lambda (subtree) (length (tree-branches subtree)))
                         (subtrees (to-tree '(1 2 3 4))))
                 '(3 0 0 0))))
+
+(deftest test-index-and-at-index ()
+  (let ((tree #S(TREE
+                 :DATA 1
+                 :BRANCHES (#S(TREE
+                               :DATA 2
+                               :BRANCHES (#S(TREE :DATA 4 :BRANCHES NIL)
+                                          #S(TREE :DATA 5 :BRANCHES NIL)))
+                              #S(TREE
+                                 :DATA 3
+                                 :BRANCHES (#S(TREE :DATA 6 :BRANCHES NIL)
+                                            #S(TREE :DATA 7 :BRANCHES NIL)))))))
+    (is (equal-it (at-index tree 0) tree))))
 
 
 ;;; general soft operators
