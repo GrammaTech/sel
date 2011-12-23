@@ -109,7 +109,7 @@
 (defvar *gcd* nil)
 
 (defixture gcd-soft
-  (:setup (setf *gcd* (asm-from-file "gcd.s")))
+  (:setup (setf *gcd* (asm-from-file "gcd/gcd.s")))
   (:teardown))
 
 (deftest simple-read ()
@@ -120,7 +120,7 @@
   (let ((a (temp-file-name)))
     (with-fixture gcd-soft
       (asm-to-file *gcd* a)
-      (multiple-value-bind (out err ret) (shell "diff gcd.s ~a" a)
+      (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
@@ -132,14 +132,14 @@
   (with-fixture gcd-soft
     (let ((a (temp-file-name)))
       (asm-to-file (copy *gcd*) a)
-      (multiple-value-bind (out err ret) (shell "diff gcd.s ~a" a)
+      (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
 (deftest simple-fitness ()
   (let ((*pos-test-num* 5)
         (*neg-test-num* 1)
-        (*test-script* "./test.sh"))
+        (*test-script* "./gcd/test.sh"))
     (with-fixture gcd-soft
       (is (= 5 (fitness *gcd*)))
       (is (= 5 (fitness (copy *gcd*)))))))
