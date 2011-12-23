@@ -1,8 +1,34 @@
+;;; tests.lisp --- tests for the `soft-ev' package
+
+;; Copyright (C) 2011  Eric Schulte
+
+;;; License:
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
+
+;;; Commentary:
+
+;;; Code:
 (in-package :soft-ev)
 (require :stefil)
 (use-package :stefil)
 (defsuite soft-ev-test)
 (in-suite soft-ev-test)
+(defvar *genome* nil "Genome used in tests.")
+(defvar *soft*   nil "Software used in tests.")
 
 
 ;;; list genome
@@ -24,9 +50,9 @@
     (is (equal-it (inds *genome*) *genome*))))
 
 (deftest setf-ind-list ()
-  (with-fixture lsit-genome
+  (with-fixture list-genome
     (setf (ind *genome* 1) :foo)
-    (is (equal-it *gnome* '(0 :FOO 2 3 4 5 6 7 8 9)))))
+    (is (equal-it *genome* '(0 :FOO 2 3 4 5 6 7 8 9)))))
 
 (deftest cut-list ()
   (with-fixture list-genome
@@ -50,16 +76,9 @@
              (length (genome *soft*)))))))
 
 
-;;; tree genomes
+;;; tree genome
 (defixture tree-genome
-  (:setup (setf *genome*
-                #S(TREE
-                   :DATA 1
-                   :BRANCHES (#S(TREE :DATA 2 :BRANCHES NIL)
-                              #S(TREE :DATA 3 :BRANCHES NIL)
-                              #S(TREE :DATA 4 :BRANCHES
-                                      (#S(TREE :DATA 5 :BRANCHES NIL)))
-                              #S(TREE :DATA 6 :BRANCHES NIL)))))
+  (:setup (setf *genome* (to-tree '(1 2 3 (4 5) 6))))
   (:teardown))
 
 (deftest list-to-tree ()
@@ -68,15 +87,13 @@
                   *genome*))))
 
 (deftest tree-to-list-conversion ()
-  (with-fixture *genome*
+  (with-fixture tree-genome
     (is (equal-it (to-list (to-tree *genome*))
                   *genome*))))
 
 (deftest ind-tree ()
   (with-fixture tree-genome
-    (is (equal-it (ind *genome* 3)
-                  #S(TREE :DATA 4
-                          :BRANCHES (#S(TREE :DATA 5 :BRANCHES NIL)))))))
+    (is (equal-it (ind *genome* 3) (to-tree '(4 5))))))
 
 (deftest inds-tree ()
   (with-fixture tree-genome
@@ -84,7 +101,7 @@
 
 (deftest setf-ind-tree ()
   (with-fixture tree-genome
-    (is (equal (setf (ind *genome* 2))
+    (is (equal (setf (ind *genome* 2) (make-tree :data :foo))
                (ind *genome* 2)))))
 
 
