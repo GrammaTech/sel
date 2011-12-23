@@ -130,7 +130,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [1/7]
+* Tasks [1/9]
 ** DONE Flesh out the test suite [4/4]
 - [X] mutation operators
 - [X] copy returns a *new* and *equal* object
@@ -165,3 +165,15 @@ function, e.g.,
               (= (sqrt output) x)))
     )
 #+end_src
+** TODO manipulate compiled lisp code
+   :PROPERTIES:
+   :CUSTOM_ID: lisp-asm
+   :END:
+Using the =disassemble= it is possible to access the compiled ASM of
+lisp functions.
+
+** TODO share assembly code between =soft-lisp= and =soft-asm=
+After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then be
+possible to share code between =soft-lisp= *and* =soft-asm= software
+objects.  Just another =defmethod= on the =crossover= generic
+function.
