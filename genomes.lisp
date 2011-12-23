@@ -32,13 +32,33 @@
 (defgeneric ind (genome ind)
   (:documentation "Return the element located at IND in GENOME."))
 
-(defgeneric (setf ind) (genome ind new)
+(defgeneric (setf ind) (new genome ind)
   (:documentation "Set the element located at IND in GENOME to NEW."))
 
+(defgeneric places (genome)
+  (:documentation "Returns a list of the places in GENOME.  Places can
+  be thought of as the slots /between/ the indices."))
+
+(defgeneric place (genome place)
+  (:documentation "Return a list of the neighbors of PLACE in GENOME."))
+
+(defgeneric (setf place) (new genome place)
+  (:documentation "Insert NEW into GENOME at PLACE."))
+
 
-;;; list genomes
+;;; vector genomes -- e.g., for use in soft-asm
+(defmethod inds ((genome vector))
+  (loop :for i :from 0 :to (1- (length genome)) collect i))
+
+(defmethod ind ((genome vector) ind)
+  (aref genome ind))
+
+(defmethod (setf ind) (new (genome vector) ind)
+  (setf (aref genome ind) new))
+
+;; TODO: delete these when soft-asm switches to vectors
 (defmethod inds ((genome list))
-  (loop for element in genome as i from 0 collect i))
+  (loop :for element :in genome :as i :from 0 collect i))
 
 (defmethod ind ((genome list) ind)
   (nth ind genome))
@@ -101,3 +121,6 @@
         (setf (tree-branches genome) (tree-branches new)))
       (let ((ac (nth ind (accessors genome))))
         (eval `((lambda (it) (setf ,ac ,new)) ,genome)))))
+
+
+;;; TODO: lisp genomes -- genomes of lisp source code

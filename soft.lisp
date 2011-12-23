@@ -26,7 +26,10 @@
 
 
 ;;; Software Object
-(defclass soft ()
+(defclass soft ()    ; TODO: REMOVE the `exe' member because it is not
+                     ; general enough and only really applies to
+                     ; compiled software objects.  The to and from
+                     ; file methods are support enough.
   ((exe     :initarg :exe     :accessor raw-exe     :initform nil)
    (genome  :initarg :genome  :accessor genome      :initform nil)
    (fitness :initarg :fitness :accessor raw-fitness :initform nil)
@@ -71,10 +74,10 @@
 (defgeneric to (soft stream)
   (:documentation "Write a software object to a file."))
 
-(defgeneric from-bytes (bytes)
+(defgeneric from-bytes (bytes) ;; TODO: REMOVE
   (:documentation "Read a software object from a byte array."))
 
-(defgeneric to-bytes (soft)
+(defgeneric to-bytes (soft) ;; TODO: REMOVE
   (:documentation "Write a software object to a byte array."))
 
 (defgeneric good-ind (soft)
