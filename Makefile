@@ -1,5 +1,17 @@
 all: soft-ev
 
+LISP_FILES = 		\
+	package.lisp	\
+	util.lisp	\
+	genomes.lisp	\
+	soft.lisp	\
+	soft-asm.lisp	\
+	soft-elf.lisp	\
+	ev.lisp		\
+	main.lisp
+
+compile: $(LISP_FILES:.lisp=.fasl)
+
 %.fasl: %.lisp
 	sbcl \
 		--noinform \
@@ -8,7 +20,7 @@ all: soft-ev
 		--eval "(compile-file \"$*.lisp\")" \
 		--eval '(sb-ext:quit)'
 
-soft-ev: ev.lisp soft.lisp soft-asm.lisp soft-elf.lisp
+soft-ev: $(LISP_FILES)
 	buildapp \
 		--output soft-ev \
 		--eval '(load "~/.quicklisp/setup.lisp")' \
