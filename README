@@ -56,6 +56,9 @@ Parameterization of the EC algorithm is done through setting global
 variables and through arguments to the =evolve= function.
 
 * Usage
+Licensed under the GPLV3, see the [[file:COPYING][COPYING]] file in this directory for
+more information.
+
 1. Available using git from =git://adaptive.cs.unm.edu/soft-ev.git=.
 
 2. To begin, =cd= into the =soft-ev/gcd= directory and look around.
@@ -180,3 +183,37 @@ After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then b
 possible to share code between =soft-lisp= *and* =soft-asm= software
 objects.  Just another =defmethod= on the =crossover= generic
 function.
+* COMMENT Publishing
+This code is used to publish this page to the =cs.unm.edu= webserver.
+#+begin_src emacs-lisp :results silent
+  (setq soft-ev-dir (file-name-directory (or load-file-name buffer-file-name)))
+  (unless (boundp 'org-publish-project-alist)
+    (setq org-publish-project-alist nil))
+  ;; the main html page
+  (add-to-list 'org-publish-project-alist
+               `("soft-ev-html"
+                  :base-directory ,soft-ev-dir
+                  :include ("README")
+                  :publishing-directory "/ssh:eschulte@moons.cs.unm.edu:~/public_html/code/soft-ev/"
+                  :publishing-function org-publish-org-to-html))
+  ;; the contents of the base directory
+  (add-to-list 'org-publish-project-alist
+               `("soft-ev-data"
+                 :base-directory ,soft-ev-dir
+                 :include ("COPYING" "Makefile" "README")
+                 :base-extension "lisp"
+                 :publishing-directory "/ssh:eschulte@moons.cs.unm.edu:~/public_html/code/soft-ev/"
+                 :publishing-function org-publish-attachment))
+  ;; the contents of the gcd directory
+  (add-to-list 'org-publish-project-alist
+               `("soft-ev-gcd"
+                 :base-directory ,(expand-file-name "gcd" soft-ev-dir)
+                 :include ("gcd.c" "test.sh")
+                 :base-extension "lisp"
+                 :publishing-directory "/ssh:eschulte@moons.cs.unm.edu:~/public_html/code/soft-ev/gcd/"
+                 :publishing-function org-publish-attachment))
+  ;; a single combined project to publish both html and supporting materials
+  (add-to-list 'org-publish-project-alist
+               '("soft-ev" :components
+                 ("soft-ev-html" "soft-ev-data" "soft-ev-gcd")))
+#+end_src
