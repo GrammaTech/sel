@@ -5,8 +5,8 @@ LISP_FILES = 		\
 	util.lisp	\
 	genomes.lisp	\
 	soft.lisp	\
-	soft-asm.lisp	\
-	soft-elf.lisp	\
+	softs/soft-asm.lisp	\
+	softs/soft-elf.lisp	\
 	ev.lisp		\
 	main.lisp
 
@@ -29,4 +29,4 @@ soft-ev: $(LISP_FILES)
 		--entry soft-ev:main
 
 clean:
-	rm -f *.fasl soft-ev
+	rm -f *.fasl softs/*.fasl soft-ev
