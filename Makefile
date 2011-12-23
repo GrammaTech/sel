@@ -1,13 +1,14 @@
 all: soft-ev
 
-LISP_FILES = 		\
-	package.lisp	\
-	util.lisp	\
-	genomes.lisp	\
-	soft.lisp	\
+LISP_FILES = 			\
+	package.lisp		\
+	util.lisp		\
+	genomes.lisp		\
+	soft.lisp		\
 	softs/soft-asm.lisp	\
 	softs/soft-elf.lisp	\
-	ev.lisp		\
+	softs/soft-lisp.lisp	\
+	ev.lisp			\
 	main.lisp
 
 compile: $(LISP_FILES:.lisp=.fasl)

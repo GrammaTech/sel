@@ -29,6 +29,7 @@
 (in-suite soft-ev-test)
 (defvar *genome* nil "Genome used in tests.")
 (defvar *soft*   nil "Software used in tests.")
+(defvar *gcd*    nil "Holds the gcd software object.")
 
 
 ;;; list genome
@@ -106,43 +107,66 @@
 
 
 ;;; ASM representation
-(defvar *gcd* nil)
-
-(defixture gcd-soft
+(defixture gcd-asm
   (:setup (setf *gcd* (asm-from-file "gcd/gcd.s")))
   (:teardown))
 
 (deftest simple-read ()
-  (with-fixture gcd-soft
+  (with-fixture gcd-asm
     (is (equal 'soft-asm (type-of *gcd*)))))
 
 (deftest idempotent-read-write ()
   (let ((a (temp-file-name)))
-    (with-fixture gcd-soft
-      (asm-to-file *gcd* a)
-      (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
-        (declare (ignorable out err))
-        (is (= 0 ret))))))
+    (unwind-protect
+         (with-fixture gcd-asm
+           (asm-to-file *gcd* a)
+           (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
+             (declare (ignorable out err))
+             (is (= 0 ret))))
+      (delete-file a))))
 
 (deftest idempotent-copy ()
-  (with-fixture gcd-soft
+  (with-fixture gcd-asm
    (is (equal-it *gcd* (copy *gcd*)))))
 
 (deftest idempotent-read-copy-write ()
-  (with-fixture gcd-soft
-    (let ((a (temp-file-name)))
-      (asm-to-file (copy *gcd*) a)
-      (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
-        (declare (ignorable out err))
-        (is (= 0 ret))))))
+  (let ((a (temp-file-name)))
+    (unwind-protect
+         (with-fixture gcd-asm
+           (asm-to-file (copy *gcd*) a)
+           (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
+             (declare (ignorable out err))
+             (is (= 0 ret))))
+      (delete-file a))))
 
 (deftest simple-fitness ()
   (let ((*pos-test-num* 5)
         (*neg-test-num* 1)
         (*test-script* "./gcd/test.sh"))
-    (with-fixture gcd-soft
+    (with-fixture gcd-asm
       (is (= 5 (fitness *gcd*)))
       (is (= 5 (fitness (copy *gcd*)))))))
+
+
+;;; Lisp representation
+(defixture gcd-lisp
+  (:setup (setf *gcd* (lisp-from-file "gcd/gcd.lisp")))
+  (:teardown))
+
+(deftest simple-read-lisp-from-file ()
+  (with-fixture gcd-lisp
+    (is (eq 'defun (caar (genome *gcd*))))))
+
+(deftest idempotent-read-write-lisp ()
+  (let ((a (temp-file-name)))
+    (unwind-protect
+         (with-fixture gcd-lisp
+           (lisp-to-file *gcd* a)
+           (multiple-value-bind (out err ret)
+               (shell "tail -8 gcd/gcd.lisp |diff -wB ~a -" a)
+             (declare (ignorable out err))
+             (is (= 0 ret))))
+      (delete-file a))))
 
 
 ;;; Population tests

@@ -26,21 +26,44 @@
 
 
 ;;; the class of lisp software objects
-(defclass soft-lisp (soft))
+(defclass soft-lisp (soft) ())
 
-(defmethod from ((soft soft-lisp) (in stream) &aux genome))
+(defmethod from ((soft soft-lisp) (in stream))
+  (setf (genome soft)
+        (loop :for form = (read in nil :eof)
+           :until (eq form :eof)
+           :collect form)))
 
-(defmethod to ((soft soft-lisp) (to stream)))
+(defmethod to ((soft soft-lisp) (to stream))
+  (dolist (form (genome soft))
+    (format to "~&~S" form)))
 
-(defun lisp-from-file (path))
+(defun lisp-from-file (path)
+  (let ((new (make-instance 'soft-lisp)))
+    (with-open-file (in path) (from new in))
+    new))
 
-(defun lisp-to-file (soft path))
+(defun lisp-to-file (soft path)
+  (with-open-file (out path :direction :output :if-exists :supersede)
+    (to soft out)))
 
 (defmethod exe ((lisp soft-lisp) &optional place)
+  (declare (ignorable lisp place))
   (error "Lisp software objects are interpreted not compiled."))
 
 
 ;;; manipulation of genomes composed of lisp source code 
+(defmethod insert ((soft soft-lisp))
+  )
+
+(defmethod cut ((soft soft-lisp))
+  )
+
+(defmethod swap ((soft soft-lisp))
+  )
+
+(defmethod crossover ((soft-a soft-lisp) (soft-b soft-lisp))
+  )
 
 
 ;;; execution tracing in lisp source code
