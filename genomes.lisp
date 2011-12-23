@@ -21,13 +21,11 @@
 
 ;;; Commentary:
 
-;; Each genome must have the following properties
-;; - every element of the genome must be either raw data or a
-;;   subgenome of the same type
-;; - it must be indexable
-;; - raw data consists of an alist
+;; Manipulate trees and lists by index.
 
 ;;; Code:
+(in-package :soft-ev)
+
 (defgeneric inds (genome)
   (:documentation "Return a list of the indexes of GENOME."))
 
@@ -54,6 +52,19 @@
   (data nil)
   (branches nil))
 
+(defun to-tree (item)
+  (if (consp item)
+      (make-tree
+       :data (car item)
+       :branches (mapcar #'to-tree (cdr item)))
+      (make-tree :data item)))
+
+(defun to-list (tree)
+  (if (tree-branches tree)
+      (cons (tree-data tree)
+            (mapcar #'to-list (tree-branches tree)))
+      (tree-data tree)))
+
 (defun map-tree (type fun tree)
   (let ((first (funcall fun tree))
         (rest (mapcar (lambda (branch) (map-tree type fun branch))
@@ -62,23 +73,26 @@
       (tree (make-tree :data first :branches rest))
       (list (if rest (cons first rest) first)))))
 
-(defmethod inds ((genome tree) &aux (counter -1))
-  (map-tree 'list (lambda (subtree) (incf counter)) genome))
+(defun accessors (tree &aux (ind -1))
+  "Return a list of accessors to subtrees in BFS order."
+  (cons 'it
+        (mapcan (lambda (branch)
+                  (incf ind)
+                  (mapcar (lambda (ac) `(nth ,ind (tree-branches ,ac)))
+                          (accessors branch)))
+                (tree-branches tree))))
+
+(defmethod inds ((genome tree) &aux (counter -1) inds)
+  (map-tree 'list (lambda (_) (declare (ignorable _))
+                     (push (incf counter) inds))
+            genome)
+  (reverse inds))
 
 (defmethod ind ((genome tree) index &aux (counter -1) result)
   (map-tree 'tree (lambda (current)
                     (when (= (incf counter) index)
                       (setq result current))) genome)
   result)
-
-(defun accessors (tree)
-  (cons 'it
-        (let ((ind -1))
-          (mapcan (lambda (branch)
-                    (incf ind)
-                    (mapcar (lambda (ac) `(nth ,ind (tree-branches ,ac)))
-                            (accessors branch)))
-                  (tree-branches tree)))))
 
 (defmethod (setf ind) (new (genome tree) ind)
   (if (= ind 0)
@@ -87,6 +101,3 @@
         (setf (tree-branches genome) (tree-branches new)))
       (let ((ac (nth ind (accessors genome))))
         (eval `((lambda (it) (setf ,ac ,new)) ,genome)))))
-
-(setf (ind *tree* 3) (make-tree :data 2))
-(identity *tree*)
