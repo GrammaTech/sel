@@ -32,40 +32,41 @@
 (defvar *gcd*    nil "Holds the gcd software object.")
 
 
-;;; list genome
-(defixture list-genome
-  (:setup (setf *genome* (loop for i from 0 to 9 collect i)))
+;;; vector genome
+(defixture vector-genome
+  (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
   (:teardown))
 
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
-                         :genome (loop for i from 0 to 9 collect i))))
+                         :genome (coerce (loop for i from 0 to 9 collect i)
+                                         'vector))))
   (:teardown))
 
-(deftest ind-list ()
-  (with-fixture list-genome
+(deftest ind-vector ()
+  (with-fixture vector-genome
     (is (= 1 (ind *genome* 1)))))
 
-(deftest inds-list ()
-  (with-fixture list-genome
-    (is (equal-it (inds *genome*) *genome*))))
+(deftest inds-vector ()
+  (with-fixture vector-genome
+    (is (equal-it (inds *genome*) (coerce *genome* 'list)))))
 
-(deftest setf-ind-list ()
-  (with-fixture list-genome
+(deftest setf-ind-vector ()
+  (with-fixture vector-genome
     (setf (ind *genome* 1) :foo)
-    (is (equal-it *genome* '(0 :FOO 2 3 4 5 6 7 8 9)))))
+    (is (equal-it *genome* #(0 :FOO 2 3 4 5 6 7 8 9)))))
 
-(deftest cut-list ()
-  (with-fixture list-genome
+(deftest cut-vector ()
+  (with-fixture vector-genome
     (is (= 9 (length (cut *genome*))))))
 
-(deftest insert-list ()
-  (with-fixture list-genome
+(deftest insert-vector ()
+  (with-fixture vector-genome
     (is (= 11 (length (insert *genome*))))
     (is (= 10 (length (remove-duplicates (insert *genome*)))))))
 
-(deftest swap-list ()
-  (with-fixture list-genome
+(deftest swap-vector ()
+  (with-fixture vector-genome
     (is (= 10 (length (swap *genome*))))))
 
 (deftest copy-soft ()

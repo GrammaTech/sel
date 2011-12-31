@@ -133,8 +133,8 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [1/10]
-** TODO switch soft-asm from lists to vectors
+* Tasks [2/10]
+** DONE switch soft-asm from lists to vectors
 This will free up lists for CL source code.
 
 ** DONE Flesh out the test suite [4/4]

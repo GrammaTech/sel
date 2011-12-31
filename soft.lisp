@@ -295,3 +295,17 @@
 (defmethod crossover ((a list) (b list))
   (let ((point (random (min (length a) (length b)))))
     (append (subseq a 0 point) (subseq b point))))
+
+
+;;; generic methods defined for vectors
+(defmethod insert ((genome vector))
+  (coerce (insert (coerce genome 'list)) 'vector))
+
+(defmethod cut ((genome vector))
+  (coerce (cut (coerce genome 'list)) 'vector))
+
+(defmethod swap ((genome vector))
+  (coerce (swap (coerce genome 'list)) 'vector))
+
+(defmethod crossover ((a vector) (b vector))
+  (coerce (crossover (coerce a 'list) (coerce b 'list)) 'vector))

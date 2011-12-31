@@ -36,8 +36,8 @@
   soft)
 
 (defmethod to ((soft soft-asm) (to stream))
-  (dolist (line (genome soft))
-    (format to "~a~%" (cdr (assoc :line line)))))
+  (dotimes (n (length (genome soft)))
+    (format to "~a~%" (cdr (assoc :line (aref (genome soft) n))))))
 
 (defun asm-from-file (path)
   (let ((new (make-instance 'soft-asm)))
@@ -60,9 +60,6 @@
       (declare (ignorable output err-output))
       (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
       (when (= exit 0) exe))))
-
-(defmethod lines ((asm soft-asm))
-  (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
 
 
 ;;; memory mapping, address -> LOC
@@ -109,9 +106,13 @@
                         (mapcar (lambda (lines)
                                   (remove-if (lambda (n)
                                                (scan "^[\\s]*\\."
-                                                     (nth n (lines asm))))
+                                                     (assoc :line
+                                                            (aref n (genome asm)))))
                                              lines))
                                 (split-sequence-if #'stringp flines)))))))))
+
+(defmethod lines ((asm soft-asm))
+  (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
 
 
 ;;; incorporation of oprofile samples

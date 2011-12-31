@@ -56,16 +56,6 @@
 (defmethod (setf ind) (new (genome vector) ind)
   (setf (aref genome ind) new))
 
-;; TODO: delete these when soft-asm switches to vectors
-(defmethod inds ((genome list))
-  (loop :for element :in genome :as i :from 0 collect i))
-
-(defmethod ind ((genome list) ind)
-  (nth ind genome))
-
-(defmethod (setf ind) (new (genome list) ind)
-  (setf (nth ind genome) new))
-
 
 ;;; tree genomes
 (defstruct (tree (:copier tree-copier))
