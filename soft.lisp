@@ -318,3 +318,25 @@
 ;;; generic methods defined for lists
 (defmethod random-place ((genome list))
   (random-ind genome))
+
+(defmethod insert ((genome list))
+  (let ((dup-ind (good-ind genome))
+        (ins-place (good-place genome)))
+    (let ((to-ins (if (equal-it dup-ind ins-place)
+                      (cons (ind genome dup-ind) (ind genome dup-ind))
+                      (ind genome dup-ind))))
+      (setf (ind genome ins-place) to-ins)
+      (values genome (list ins-place dup-ind)))))
+
+(defmethod cut ((genome list))
+  (let ((del-ind (bad-ind genome)))
+    (setf (ind genome del-ind) nil)
+    (values genome bad-ind)))
+
+(defmethod swap ((genome list))
+  (let* ((a (good-ind genome))
+         (b (good-ind genome))
+         (tmp (ind genome a)))
+    (setf (ind genome a) (ind genome b))
+    (setf (ind genome b) tmp)
+    (values genome (list a b))))

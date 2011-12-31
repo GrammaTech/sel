@@ -184,9 +184,9 @@ After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then b
 possible to share code between =soft-lisp= *and* =soft-asm= software
 objects.  Just another =defmethod= on the =crossover= generic
 function.
-** TODO think about eliminating the index/place distinction
-This could wipe out all random-place type functions.  A place is just
-the spot immediately following an index.
+** TODO fix bugs in list-based genome
+- setf doesn't seem to have any effect because it is called on the
+  constant data held in the variable rather than the variable itself
 
 * COMMENT Publishing
 This code is used to publish this page to the =cs.unm.edu= webserver.
