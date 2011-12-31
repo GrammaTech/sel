@@ -169,6 +169,19 @@
              (is (= 0 ret))))
       (delete-file a))))
 
+(deftest simple-inds-on-lisp-genome ()
+  (is (= 9 (length (inds '(1 2 3 4))))))
+
+(deftest setf-inds-on-list ()
+  (let ((genome '(1 2 3 4 5)))
+    (setf (ind genome '(:d :d :a)) 9)
+    (is (equal-it '(1 2 9 4 5) genome))))
+
+(deftest another-setf-inds-on-list ()
+  (let ((genome '(1 2 3 4 5)))
+    (setf (ind genome '(:d :d :a)) '(1 2 3))
+    (is (equal-it '(1 2 (1 2 3) 4 5) genome))))
+
 
 ;;; Population tests
 (defixture population

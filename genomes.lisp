@@ -104,13 +104,39 @@
                       (setq result current))) genome)
   result)
 
-(defmethod (setf ind) (new (genome tree) ind)
-  (if (= ind 0)
+(defmethod (setf ind) (new (genome tree) index)
+  (if (= index 0)
       (progn
         (setf (tree-data genome) (tree-data new))
         (setf (tree-branches genome) (tree-branches new)))
-      (let ((ac (nth ind (accessors genome))))
+      (let ((ac (nth index (accessors genome))))
         (eval `((lambda (it) (setf ,ac ,new)) ,genome)))))
 
 
-;;; TODO: lisp genomes -- genomes of lisp source code
+;;; lisp genomes -- genomes of lisp source code
+;;
+;; Indexes will be lists of :a's and :d's indicating which branch to
+;; follow at each cons cell down the cons tree.
+;;
+(defmethod inds ((genome cons))
+  (unless (null genome)
+    (flet ((follow (dir list)
+             (mapcar (lambda (el) (cons dir el))
+                     (if (consp list) (inds list) '(())))))
+      (append '(()) (follow :a (car genome)) (follow :d (cdr genome))))))
+
+(defmethod ind ((genome list) index)
+  (flet ((follow (list)
+           (if (consp list) (ind list (cdr index)) list)))
+    (case (car index)
+      (:a  (follow (car genome)))
+      (:d  (follow (cdr genome)))
+      ('() genome))))
+
+(defmethod (setf ind) (new (genome list) index)
+  (eval `((lambda (it) (setf ,(reduce (lambda (acc d)
+                                   (case d
+                                     (:a (list 'car acc))
+                                     (:d (list 'cdr acc))))
+                                 index :initial-value 'it)
+                        ',new)) ',genome)))
