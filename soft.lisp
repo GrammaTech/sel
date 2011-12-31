@@ -106,6 +106,12 @@
 (defgeneric crossover (soft-a soft-b)
   (:documentation "Crossover between the genomes of SOFT-A and SOFT-B."))
 
+(defvar *genome-averaging-keys* nil
+  "Keys whose value should be averaged with neighbors after genome operations.")
+
+(defgeneric genome-average-keys (genome place)
+  (:documentation "Average the keys in *GENOME-AVERAGING-KEYS* around PLACE."))
+
 
 ;;; generic methods defined for software
 (defmethod copy ((soft soft))
@@ -202,23 +208,20 @@
     new))
 
 
-;;; generic methods defined for lists
-(defvar *genome-averaging-keys* nil
-  "Keys whose value should be averaged with neighbors after genome operations.")
-
-(defmethod genome-average-keys ((genome list) place)
+;;; generic methods defined for vectors
+(defmethod genome-average-keys ((genome vector) place)
   (let ((above (unless (= place (- (length genome) 1))
-                 (nth (+ place 1) genome)))
+                 (aref genome (+ place 1))))
         (below (unless (= place 0)
-                 (nth (- place 1) genome)))
-        (middle (nth place genome)))
+                 (aref genome (- place 1))))
+        (middle (aref genome place)))
     (dolist (key *genome-averaging-keys*)
       (let ((new (/ (apply #'+ (mapcar (lambda (el) (or (cdr (assoc key el)) 0))
                                        (list above below middle)))
                     3)))
-        (if (assoc key (nth place genome))
-            (setf (cdr (assoc key (nth place genome))) new)
-            (push (cons key new) (nth place genome)))))
+        (if (assoc key (aref genome place))
+            (setf (cdr (assoc key (aref genome place))) new)
+            (push (cons key new) (aref genome place)))))
     genome))
 
 (defun weighted-pick (weights &aux (counter 0))
@@ -242,70 +245,60 @@
 (defun random-ind (genome)
   (random (length genome)))
 
-(defmethod good-ind ((genome list))
+(defmethod good-ind ((genome vector))
   (random-ind genome))
 
-(defmethod bad-ind ((genome list))
+(defmethod bad-ind ((genome vector))
   (random-ind genome))
 
 (defun random-place (genome)
   (random (+ 1 (length genome))))
 
-(defmethod good-place ((genome list))
+(defmethod good-place ((genome vector))
   (random-place genome))
 
-(defmethod bad-place ((genome list))
+(defmethod bad-place ((genome vector))
   (random-place genome))
 
-(defmethod insert ((genome list))
+(defmethod insert ((genome vector))
   (let ((dup-place (good-ind genome))
         (ins-place (bad-place genome)))
     (values (cond
               ((> dup-place ins-place)
-               (append (subseq genome 0 ins-place)
-                       (list (nth dup-place genome))
-                       (subseq genome ins-place dup-place)
-                       (subseq genome dup-place)))
+               (concatenate 'vector
+                 (subseq genome 0 ins-place)
+                 (vector (aref genome dup-place))
+                 (subseq genome ins-place dup-place)
+                 (subseq genome dup-place)))
               ((> ins-place dup-place)
-               (append (subseq genome 0 dup-place)
-                       (subseq genome dup-place ins-place)
-                       (list (nth dup-place genome))
-                       (subseq genome ins-place)))
+               (concatenate 'vector
+                 (subseq genome 0 dup-place)
+                 (subseq genome dup-place ins-place)
+                 (vector (aref genome dup-place))
+                 (subseq genome ins-place)))
               (:otherwise
-               (append (subseq genome 0 dup-place)
-                       (list (nth dup-place genome))
-                       (list (nth dup-place genome))
-                       (subseq genome dup-place))))
+               (concatenate 'vector
+                 (subseq genome 0 dup-place)
+                 (vector (aref genome dup-place))
+                 (vector (aref genome dup-place))
+                 (subseq genome dup-place))))
             ins-place)))
 
-(defmethod cut ((genome list))
+(defmethod cut ((genome vector))
   (let ((ind (bad-ind genome)))
-    (values (append (subseq genome 0 ind)
-                    (subseq genome (+ 1 ind)))
+    (values (concatenate 'vector
+              (subseq genome 0 ind)
+              (subseq genome (+ 1 ind)))
             ind)))
 
-(defmethod swap ((genome list))
+(defmethod swap ((genome vector))
   (let* ((a (good-ind genome))
          (b (good-ind genome))
-         (temp (nth a genome)))
-    (setf (nth a genome) (nth b genome))
-    (setf (nth b genome) temp)
+         (temp (aref genome a)))
+    (setf (aref genome a) (aref genome b))
+    (setf (aref genome b) temp)
     (values genome (list a b))))
 
 (defmethod crossover ((a list) (b list))
   (let ((point (random (min (length a) (length b)))))
-    (append (subseq a 0 point) (subseq b point))))
-
-
-;;; generic methods defined for vectors
-(defmethod insert ((genome vector))
-  (coerce (insert (coerce genome 'list)) 'vector))
-
-(defmethod cut ((genome vector))
-  (coerce (cut (coerce genome 'list)) 'vector))
-
-(defmethod swap ((genome vector))
-  (coerce (swap (coerce genome 'list)) 'vector))
-
-(defmethod crossover ((a vector) (b vector))
-  (coerce (crossover (coerce a 'list) (coerce b 'list)) 'vector))
+    (concatenate 'vector (subseq a 0 point) (subseq b point))))

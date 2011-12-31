@@ -32,7 +32,7 @@
 (defmethod from ((soft soft-asm) (in stream) &aux genome)
   (loop for line = (read-line in nil)
      while line do (push `((:line . ,line)) genome))
-  (setf (genome soft) (reverse genome))
+  (setf (genome soft) (reverse (coerce genome 'vector)))
   soft)
 
 (defmethod to ((soft soft-asm) (to stream))
