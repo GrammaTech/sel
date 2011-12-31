@@ -134,9 +134,9 @@
       ('() genome))))
 
 (defmethod (setf ind) (new (genome list) index)
-  (eval `((lambda (it) (setf ,(reduce (lambda (acc d)
-                                   (case d
-                                     (:a (list 'car acc))
-                                     (:d (list 'cdr acc))))
-                                 index :initial-value 'it)
-                        ',new)) ',genome)))
+  (let ((ac (reduce (lambda (acc d)
+                      (case d
+                        (:a (list 'car acc))
+                        (:d (list 'cdr acc))))
+                    index :initial-value 'it)))
+    (eval `((lambda (it) (setf ,ac ',new)) ',genome))))
