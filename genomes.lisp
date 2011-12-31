@@ -126,17 +126,28 @@
       (append '(()) (follow :a (car genome)) (follow :d (cdr genome))))))
 
 (defmethod ind ((genome list) index)
-  (flet ((follow (list)
-           (if (consp list) (ind list (cdr index)) list)))
-    (case (car index)
-      (:a  (follow (car genome)))
-      (:d  (follow (cdr genome)))
-      ('() genome))))
+  (ind genome index))
 
 (defmethod (setf ind) (new (genome list) index)
-  (let ((ac (reduce (lambda (acc d)
-                      (case d
-                        (:a (list 'car acc))
-                        (:d (list 'cdr acc))))
-                    index :initial-value 'it)))
-    (eval `((lambda (it) (setf ,ac ',new)) ',genome))))
+  (setf (ind-expander genome (quote (eval index))) new))
+
+;;; with reader macros
+#+with-readers
+(progn
+  (defmacro apply-follow (list path)
+    (reduce #'list (reverse path) :initial-value list :from-end t))
+
+  (defun cons-follow (stream subchar arg)
+    (let* ((sexp (read stream t))
+           (path (car sexp))
+           (arg (cadr sexp)))
+      `(apply-follow ,arg ,(reverse (mapcar (lambda (ch)
+                                              (case ch
+                                                (#\A 'car)
+                                                (#\D 'cdr)))
+                                            (coerce (symbol-name path)
+                                                    'list))))))
+  (set-dispatch-macro-character #\# #\C #'cons-follow)
+
+  #C(ddd '(1 2 3 4 5 5 5)) ;; => (4 5 5 5)
+  )
