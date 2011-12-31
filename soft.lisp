@@ -80,11 +80,17 @@
 (defgeneric to-bytes (soft) ;; TODO: REMOVE
   (:documentation "Write a software object to a byte array."))
 
+(defgeneric random-ind (soft)
+  (:documentation "Return a random index in the genome."))
+
 (defgeneric good-ind (soft)
   (:documentation "Return a random \"good\" index in the genome."))
 
 (defgeneric bad-ind (soft)
   (:documentation "Return a random \"bad\" index in the genome."))
+
+(defgeneric random-place (soft)
+  (:documentation "Return a random place in the genome."))
 
 (defgeneric good-place (soft)
   (:documentation
@@ -143,17 +149,38 @@
 (defmethod fitness ((soft soft))
   (evaluate soft))
 
+(defmethod random-ind (soft)
+  (random-elt (inds soft)))
+
+(defmethod random-ind ((soft soft))
+  (random-ind (genome soft)))
+
+(defmethod good-ind (soft)
+  (random-ind soft))
+
 (defmethod good-ind ((soft soft))
   (good-ind (genome soft)))
+
+(defmethod bad-ind (soft)
+  (random-ind soft))
 
 (defmethod bad-ind ((soft soft))
   (bad-ind (genome soft)))
 
+(defmethod random-place ((soft soft))
+  (random-place (genome soft)))
+
+(defmethod good-place (soft)
+  (random-place soft))
+
 (defmethod good-place ((soft soft))
-  (good-place (genome soft)))
+  (random-place (genome soft)))
+
+(defmethod bad-place (soft)
+  (random-place soft))
 
 (defmethod bad-place ((soft soft))
-  (bad-place (genome soft)))
+  (random-place (genome soft)))
 
 (defmethod insert ((soft soft))
   (multiple-value-bind (genome place)
@@ -242,23 +269,8 @@
    (mapcar (lambda (el) (prog1 (/ ( + el last) 2) (setf last el)))
            (append (mapcar key list) (list 0)))))
 
-(defun random-ind (genome)
-  (random (length genome)))
-
-(defmethod good-ind ((genome vector))
-  (random-ind genome))
-
-(defmethod bad-ind ((genome vector))
-  (random-ind genome))
-
-(defun random-place (genome)
+(defmethod random-place ((genome vector))
   (random (+ 1 (length genome))))
-
-(defmethod good-place ((genome vector))
-  (random-place genome))
-
-(defmethod bad-place ((genome vector))
-  (random-place genome))
 
 (defmethod insert ((genome vector))
   (let ((dup-place (good-ind genome))
@@ -279,7 +291,6 @@
               (:otherwise
                (concatenate 'vector
                  (subseq genome 0 dup-place)
-                 (vector (aref genome dup-place))
                  (vector (aref genome dup-place))
                  (subseq genome dup-place))))
             ins-place)))
@@ -302,3 +313,8 @@
 (defmethod crossover ((a list) (b list))
   (let ((point (random (min (length a) (length b)))))
     (concatenate 'vector (subseq a 0 point) (subseq b point))))
+
+
+;;; generic methods defined for lists
+(defmethod random-place ((genome list))
+  (random-ind genome))
