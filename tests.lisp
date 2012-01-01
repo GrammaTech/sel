@@ -172,6 +172,9 @@
 (deftest simple-inds-on-lisp-genome ()
   (is (= 9 (length (inds '(1 2 3 4))))))
 
+(deftest get-inds-on-list ()
+  (is (= 2 (ind '(1 2 3 4) '(:d :a)))))
+
 (deftest setf-inds-on-list ()
   (let ((genome '(1 2 3 4 5)))
     (setf (ind genome '(:d :d :a)) 9)

@@ -126,28 +126,16 @@
       (append '(()) (follow :a (car genome)) (follow :d (cdr genome))))))
 
 (defmethod ind ((genome list) index)
-  (ind genome index))
+  (flet ((get-at (list dir) (case dir (:a (car list)) (:d (cdr list)))))
+    (if (cdr index)
+        (ind (get-at genome (car index)) (cdr index))
+        (get-at genome (car index)))))
+
+(defun set-at-path (it path new)
+  (if (cdr path)
+      (set-at-path (case (car path) (:a (car it)) (:d (cdr it)))
+                   (cdr path) new)
+      (case (car path) (:a (rplaca it new)) (:d (rplacd it new)))))
 
 (defmethod (setf ind) (new (genome list) index)
-  (setf (ind-expander genome (quote (eval index))) new))
-
-;;; with reader macros
-#+with-readers
-(progn
-  (defmacro apply-follow (list path)
-    (reduce #'list (reverse path) :initial-value list :from-end t))
-
-  (defun cons-follow (stream subchar arg)
-    (let* ((sexp (read stream t))
-           (path (car sexp))
-           (arg (cadr sexp)))
-      `(apply-follow ,arg ,(reverse (mapcar (lambda (ch)
-                                              (case ch
-                                                (#\A 'car)
-                                                (#\D 'cdr)))
-                                            (coerce (symbol-name path)
-                                                    'list))))))
-  (set-dispatch-macro-character #\# #\C #'cons-follow)
-
-  #C(ddd '(1 2 3 4 5 5 5)) ;; => (4 5 5 5)
-  )
+  (set-at-path genome index new))
