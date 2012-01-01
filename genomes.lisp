@@ -131,11 +131,8 @@
         (ind (get-at genome (car index)) (cdr index))
         (get-at genome (car index)))))
 
-(defun set-at-path (it path new)
-  (if (cdr path)
-      (set-at-path (case (car path) (:a (car it)) (:d (cdr it)))
-                   (cdr path) new)
-      (case (car path) (:a (rplaca it new)) (:d (rplacd it new)))))
-
 (defmethod (setf ind) (new (genome list) index)
-  (set-at-path genome index new))
+  (if (cdr index)
+      (set-at-index (case (car index) (:a (car genome)) (:d (cdr genome)))
+                    (cdr index) new)
+      (case (car index) (:a (rplaca genome new)) (:d (rplacd genome new)))))
