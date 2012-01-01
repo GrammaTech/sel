@@ -133,6 +133,24 @@
 
 (defmethod (setf ind) (new (genome list) index)
   (if (cdr index)
-      (set-at-index (case (car index) (:a (car genome)) (:d (cdr genome)))
-                    (cdr index) new)
+      (setf
+       (ind (case (car index) (:a (car genome)) (:d (cdr genome))) (cdr index))
+       new)
       (case (car index) (:a (rplaca genome new)) (:d (rplacd genome new)))))
+
+(defun del-ind (genome index)
+  (if (cddr index)
+      (del-ind (case (car index) (:a (car genome)) (:d (cdr genome)))
+               (cdr index))
+      (case (car index)
+        (:a (if (cdr index)
+                (rplaca genome
+                        (case (cadr index)
+                          (:a (cdar genome))
+                          (:d (caar genome))))
+                (progn (rplaca genome (cadr genome))
+                       (rplacd genome (cddr genome)))))
+        (:d (rplacd genome
+                    (case (cadr index)
+                      (:a (cddr genome))
+                      (:d (cadr genome))))))))

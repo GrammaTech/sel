@@ -330,8 +330,8 @@
 
 (defmethod cut ((genome list))
   (let ((del-ind (bad-ind genome)))
-    (setf (ind genome del-ind) nil)
-    (values genome bad-ind)))
+    (del-ind genome del-ind)
+    (values genome del-ind)))
 
 (defmethod swap ((genome list))
   (let* ((a (good-ind genome))

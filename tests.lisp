@@ -185,6 +185,23 @@
     (setf (ind genome '(:d :d :a)) '(1 2 3))
     (is (equal-it '(1 2 (1 2 3) 4 5) genome))))
 
+(deftest del-ind-on-list ()
+  (is (equal-it '(1 2 4)
+                (let ((genome (list 1 2 3 4)))
+                  (del-ind genome '(:d :d :a))
+                  genome)))
+  (is (equal-it '(2 3 4)
+                (let ((genome (list 1 2 3 4)))
+                  (del-ind genome '(:a))
+                  genome))))
+
+(deftest cut-on-list ()
+  (with-fixture gcd-lisp
+    (is (> (length (inds (genome *gcd*)))
+           (length (inds (cut (genome *gcd*))))))))
+
+
+
 
 ;;; Population tests
 (defixture population
