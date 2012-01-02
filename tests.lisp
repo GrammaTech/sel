@@ -207,6 +207,12 @@
            (progn (insert *gcd*)
                   (length (inds (genome *gcd*))))))))
 
+(deftest swap-on-list ()
+  (with-fixture gcd-lisp
+    (is (not (equal-it (history *gcd*)
+                       (progn (swap *gcd*)
+                              (history *gcd*)))))))
+
 
 ;;; Population tests
 (defixture population
