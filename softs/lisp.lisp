@@ -51,8 +51,21 @@
   (declare (ignorable lisp place))
   (error "Lisp software objects are interpreted not compiled."))
 
+(defmethod evaluate ((soft soft-lisp))
+  (if (handler-case (progn (mapcar #'eval (genome soft)) t)
+        (error (_) (declare (ignorable _)) nil))
+      (apply #'+ (append (mapcar (lambda (test)
+                                   (* *pos-test-mult*
+                                      (funcall test)))
+                                 *pos-tests*)
+                         (mapcar (lambda (test)
+                                   (* *neg-test-mult*
+                                      (funcall test)))
+                                 *neg-tests*)))
+      0))
+
 
-;;; execution tracing in lisp source code
+;;; TODO: execution tracing in lisp source code
 
 
 ;;; weighted genome access

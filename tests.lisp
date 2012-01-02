@@ -213,6 +213,11 @@
                        (progn (swap *gcd*)
                               (history *gcd*)))))))
 
+(deftest evaluate-lisp-program ()
+  (with-fixture gcd-lisp
+    (load "gcd/test.lisp")
+    (is (= 10 (evaluate *gcd*)))))
+
 
 ;;; Population tests
 (defixture population

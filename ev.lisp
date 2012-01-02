@@ -44,8 +44,14 @@
 (defvar *pos-test-num* 0
   "Number of positive tests.")
 
+(defvar *pos-tests* 0
+  "List of positive tests")
+
 (defvar *neg-test-num* 0
   "Number of negative tests.")
+
+(defvar *neg-tests* 0
+  "List of negative tests")
 
 (defvar *pos-test-mult* 1
   "Multiplier for positive test cases")
@@ -67,8 +73,10 @@
 
 
 ;;; functions
-(defun evaluate (soft &aux (pos 0) (neg 0))
-  "Evaluate SOFT setting the fitness."
+(defgeneric evaluate (soft)
+  (:documentation "Evaluate SOFT setting the fitness."))
+
+(defmethod evaluate ((soft soft) &aux (pos 0) (neg 0))
   (if (eq (exe soft) :failed)
       0
       (progn

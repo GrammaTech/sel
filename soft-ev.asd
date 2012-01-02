@@ -8,6 +8,7 @@
                metabang-bind
                cl-store
                trivial-shell
+               trivial-timeout
                cl-ppcre)
   :components
   ((:static-file "COPYING")

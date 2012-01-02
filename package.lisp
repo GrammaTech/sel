@@ -7,6 +7,7 @@
    :metabang-bind
    :cl-store
    :trivial-shell
+   :trivial-timeout
    :cl-ppcre)
   (:shadow :type)
   (:export
