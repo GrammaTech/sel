@@ -52,20 +52,6 @@
   (error "Lisp software objects are interpreted not compiled."))
 
 
-;;; manipulation of genomes composed of lisp source code 
-(defmethod insert ((soft soft-lisp))
-  )
-
-(defmethod cut ((soft soft-lisp))
-  )
-
-(defmethod swap ((soft soft-lisp))
-  )
-
-(defmethod crossover ((soft-a soft-lisp) (soft-b soft-lisp))
-  )
-
-
 ;;; execution tracing in lisp source code
 
 

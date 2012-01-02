@@ -198,9 +198,14 @@
 (deftest cut-on-list ()
   (with-fixture gcd-lisp
     (is (> (length (inds (genome *gcd*)))
-           (length (inds (cut (genome *gcd*))))))))
+           (progn (cut *gcd*)
+                  (length (inds (genome *gcd*))))))))
 
-
+(deftest insert-on-list ()
+  (with-fixture gcd-lisp
+    (is (< (length (inds (genome *gcd*)))
+           (progn (insert *gcd*)
+                  (length (inds (genome *gcd*))))))))
 
 
 ;;; Population tests
