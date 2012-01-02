@@ -310,9 +310,10 @@
     (setf (aref genome b) temp)
     (values genome (list a b))))
 
-(defmethod crossover ((a list) (b list))
+(defmethod crossover ((a vector) (b vector))
   (let ((point (random (min (length a) (length b)))))
-    (concatenate 'vector (subseq a 0 point) (subseq b point))))
+    (values (concatenate 'vector (subseq a 0 point) (subseq b point))
+            point)))
 
 
 ;;; generic methods defined for lists
@@ -354,3 +355,12 @@
     (setf (ind genome (second ordered)) (ind genome (first ordered)))
     (setf (ind genome (first ordered)) tmp)
     (values genome ordered)))
+
+(defmethod crossover ((a list) (b list))
+  (let* ((inds-a (inds a))
+         (inds-b (inds b))
+         (points-in-common (remove-if-not (lambda (it) (member it inds-a)) inds-b))
+         (point (random-elt points-in-common))
+         (new (copy-seq a)))
+    (setf (ind new point) (ind b point))
+    (values new point)))

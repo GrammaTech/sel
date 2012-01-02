@@ -213,6 +213,11 @@
                        (progn (swap *gcd*)
                               (history *gcd*)))))))
 
+(deftest crossover-on-list ()
+  (with-fixture gcd-lisp
+    (is (equal-it (genome *gcd*)
+                  (genome (crossover *gcd* *gcd*))))))
+
 (deftest evaluate-lisp-program ()
   (with-fixture gcd-lisp
     (load "gcd/test.lisp")
