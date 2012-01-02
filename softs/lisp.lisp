@@ -52,19 +52,17 @@
   (error "Lisp software objects are interpreted not compiled."))
 
 (defmethod evaluate ((soft soft-lisp))
-  (let ((e (#| TODO: get a copy of the current environment |#)))
-    (if (handler-case (progn (sb-eval:eval-in-environment
-                              (mapcar #'eval (genome soft)) e) t)
-          (error (_) (declare (ignorable _)) nil))
-        (apply #'+ (append (mapcar (lambda (test)
-                                     (* *pos-test-mult*
-                                        (sb-eval:eval-in-environment test e)))
-                                   *pos-tests*)
-                           (mapcar (lambda (test)
-                                     (* *neg-test-mult*
-                                        (sb-eval:eval-in-environment test e)))
-                                   *neg-tests*)))
-        0)))
+  (if (handler-case (progn (mapcar #'eval (genome soft)) t)
+        (error (_) (declare (ignorable _)) nil))
+      (apply #'+ (append (mapcar (lambda (test)
+                                   (* *pos-test-mult*
+                                      (funcall test)))
+                                 *pos-tests*)
+                         (mapcar (lambda (test)
+                                   (* *neg-test-mult*
+                                      (funcall test)))
+                                 *neg-tests*)))
+      0))
 
 
 ;;; TODO: execution tracing in lisp source code
