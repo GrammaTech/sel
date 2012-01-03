@@ -10,17 +10,26 @@ enabling the evolution of extant software projects
 #+end_center
 
 * Design
-:                                                             population functions
-:  global variables                                           --------------------
+:    +-------------+    +-------------+    +--------+    +--------------+
+:    | interactive |    | distributed |    | repair |    | optimization |
+:    |-------------|    |-------------|    |--------|    |--------------|
+:    | live in the |    |  using ZMQ  |    | fixing |    | performance, |
+:    |   editor    |    |             |    |  bugs  |    | requirements |
+:    +-------------+    +-------------+    +--------+    +--------------+ ...
+:           |                  |                |                 |
+:           +------------------+------+---------+-----------------+
+:                                     |
+:                                   +-+-+                     population functions
+:  global variables                 | | |                     --------------------
 :  ----------------            +--------------+               incorporate
 :  *population*                | *population* |               evict
 :  *max-population-size*       |--------------|               tournament
 :  *tournament-size*           | list of soft |               mutate
 :  *test-script*               |    objects   |               crossed
 :  *pos-test-num*              +--------------+               new-individual
-:  *neg-test-num*                      |                      evolve
-:  *pos-test-mult*                   +-+-+
-:  *neg-test-mult*                   | | |                    soft functions
+:  *neg-test-num*                     |                       evolve
+:  *pos-test-mult*                  +-+-+
+:  *neg-test-mult*                  | | |                     soft functions
 :  *keep-source*             +------------------+             --------------
 :  *cross-chance*            |       soft       |             copy
 :  *fitness-evals*           |------------------|             fitness
@@ -32,9 +41,9 @@ enabling the evolution of extant software projects
 :  max-time                    |              |               bad-ind
 :  max-inds                    |              |               good-place
 :  max-fit             +------------+      +-----------+      bad-place
-:  min-fit             |  soft-asm  |      | soft-ast  |      insert
+:  min-fit             |  soft/asm  |      | soft/lisp |      insert
 :  pop-fn              |------------|      |-----------|      cut
-:  ind-fn              | addr-map   |      | (pending) |      swap
+:  ind-fn              | addr-map   |      | ...       |      swap
 :                      +------------+      +-----------+ ...  crossover
 
 The =*population*= is a global variable holding a list of evolving
@@ -89,6 +98,15 @@ more information.
 * Notes
 The following are informal working and development notes.
 
+** objects generalizations and interactions
+:             +--- evolution --- goals
+:             |
+:         populations
+:             |
+:   representations ----------- mutations
+:             |
+:         evaluation
+
 ** thread local global variables
 In case we want to run multiple populations in separate threads.
 
@@ -133,7 +151,13 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [5/12]
+* Tasks [5/13]
+** TODO cleanup files system [0/4]
+- [ ] combine soft.lisp and genome.lisp
+- [ ] rename ev.lisp to evolution.lisp
+- [ ] remove the zmq-specific packaging and asd file
+- [ ] directory for evolutionary strategies?
+
 ** DONE switch soft-asm from lists to vectors
 This will free up lists for CL source code.
 
