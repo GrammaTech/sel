@@ -52,8 +52,9 @@
   (error "Lisp software objects are interpreted not compiled."))
 
 (defmethod evaluate ((soft soft-lisp))
-  (if (handler-case (progn (mapcar #'eval (genome soft)) t)
-        (error (_) (declare (ignorable _)) nil))
+  (if (ignore-errors
+        (handler-case (progn (mapcar #'eval (genome soft)) t)
+          (error (_) (declare (ignorable _)) nil)))
       (apply #'+ (append (mapcar (lambda (test)
                                    (* *pos-test-mult*
                                       (funcall test)))

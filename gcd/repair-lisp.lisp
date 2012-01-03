@@ -2,14 +2,10 @@
 (require :soft-ev)
 (in-package :soft-ev)
 
-;; compile gcd.c to assembly
-(shell "gcc -S gcd.c")
-
 (setq *pos-test-num* 10)
 (setq *neg-test-num* 1)
 (setq *max-population-size* 100)
-(setq *genome-averaging-keys* '(:pos :neg))
-(setq original (asm-from-file "gcd.s"))
+(setq original (lisp-from-file "gcd.lisp"))
 
 ;; add the good and bad path information to gcd
 ;; (apply-path original :neg (samples-from-oprofile-file "sample.neg"))
@@ -19,13 +15,13 @@
 (dotimes (_ 8) (push original *population*))
 
 ;; evolve a repair
-(defvar *repair* (evolve :max-evals 1000 :max-fit 11))
+(defvar *repair* (evolve :max-evals 1000 :max-fit 10))
 
 ;; conditionally save the repair
-(let ((fixed-program-path "fixed.s"))
+(let ((fixed-program-path "fixed.lisp"))
   (if *repair*
       (progn (format t "~&Repair found, saving to ~a~%" fixed-program-path)
-             (asm-to-file *repair* fixed-program-path))
+             (lisp-to-file *repair* fixed-program-path))
       (format t "~&No repair found.~%")))
 
 ;;; monitoring of an active repair
