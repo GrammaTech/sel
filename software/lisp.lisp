@@ -50,3 +50,6 @@
   (let ((exe (or place (temp-file-name))))
     (lisp-to-file lisp exe)
     exe))
+
+(defmethod evaluate ((lisp lisp))
+  (evaluate-with-script lisp *test-script* *pos-test-num* *neg-test-num*))
