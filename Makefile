@@ -1,15 +1,14 @@
 all: soft-ev
 
-LISP_FILES = 		\
-	package.lisp	\
-	util.lisp	\
-	genomes.lisp	\
-	soft.lisp	\
-	softs/asm.lisp	\
-	softs/elf.lisp	\
-	softs/lisp.lisp	\
-	ev.lisp		\
-	main.lisp
+LISP_FILES = 			\
+	package.lisp		\
+	utility.lisp		\
+	software.lisp		\
+	software/asm.lisp	\
+	software/elf.lisp	\
+	software/lisp.lisp	\
+	evolution.lisp		\
+	executable.lisp
 
 compile: $(LISP_FILES:.lisp=.fasl)
 
@@ -33,7 +32,7 @@ check: $(LISP_FILES)
 	sbcl \
 		--noinform \
 		--eval '(require :soft-ev)' \
-		--eval '(load "tests.lisp")' \
+		--eval '(load "test/tests.lisp")' \
 		--eval '(in-package :soft-ev)' \
 		--eval '(format t "~&~S~%" (soft-ev-test))' \
 		--eval '(sb-ext:quit)'

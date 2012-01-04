@@ -27,9 +27,12 @@
 (use-package :stefil)
 (defsuite soft-ev-test)
 (in-suite soft-ev-test)
-(defvar *genome* nil "Genome used in tests.")
-(defvar *soft*   nil "Software used in tests.")
-(defvar *gcd*    nil "Holds the gcd software object.")
+(defvar *genome*  nil "Genome used in tests.")
+(defvar *soft*    nil "Software used in tests.")
+(defvar *gcd*     nil "Holds the gcd software object.")
+(defvar *gcd-dir* "test/gcd" "Location of the gcd example directory")
+(defun gcd-dir (filename)
+  (concatenate 'string *gcd-dir* "/" filename))
 
 
 ;;; vector genome
@@ -109,7 +112,7 @@
 
 ;;; ASM representation
 (defixture gcd-asm
-  (:setup (setf *gcd* (asm-from-file "gcd/gcd.s")))
+  (:setup (setf *gcd* (asm-from-file (gcd-dir "gcd.s"))))
   (:teardown))
 
 (deftest simple-read ()
@@ -121,7 +124,8 @@
     (unwind-protect
          (with-fixture gcd-asm
            (asm-to-file *gcd* a)
-           (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
+           (multiple-value-bind (out err ret)
+               (shell "diff ~s/gcd.s ~a" *gcd-dir* a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
@@ -135,7 +139,8 @@
     (unwind-protect
          (with-fixture gcd-asm
            (asm-to-file (copy *gcd*) a)
-           (multiple-value-bind (out err ret) (shell "diff gcd/gcd.s ~a" a)
+           (multiple-value-bind (out err ret)
+               (shell "diff ~s/gcd.s ~a" *gcd-dir* a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
@@ -143,7 +148,7 @@
 (deftest simple-fitness ()
   (let ((*pos-test-num* 5)
         (*neg-test-num* 1)
-        (*test-script* "./gcd/test.sh"))
+        (*test-script* (gcd-dir "test.sh")))
     (with-fixture gcd-asm
       (is (= 5 (fitness *gcd*)))
       (is (= 5 (fitness (copy *gcd*)))))))
@@ -151,7 +156,7 @@
 
 ;;; Lisp representation
 (defixture gcd-lisp
-  (:setup (setf *gcd* (lisp-from-file "gcd/gcd.lisp")))
+  (:setup (setf *gcd* (lisp-from-file (gcd-dir "gcd.lisp"))))
   (:teardown))
 
 (deftest simple-read-lisp-from-file ()
@@ -164,7 +169,7 @@
          (with-fixture gcd-lisp
            (lisp-to-file *gcd* a)
            (multiple-value-bind (out err ret)
-               (shell "tail -8 gcd/gcd.lisp |diff -wB ~a -" a)
+               (shell "tail -8 ~s/gcd.lisp |diff -wB ~a -" *gcd-dir* a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
@@ -220,7 +225,7 @@
 
 (deftest evaluate-lisp-program ()
   (with-fixture gcd-lisp
-    (load "gcd/test.lisp")
+    (load (gcd-dir "test.lisp"))
     (is (= 10 (evaluate *gcd*)))))
 
 

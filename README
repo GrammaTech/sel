@@ -99,13 +99,13 @@ more information.
 The following are informal working and development notes.
 
 ** objects generalizations and interactions
-:             +--- evolution --- goals
-:             |
-:         populations
-:             |
-:   representations ----------- mutations
-:             |
-:         evaluation
+:                       +--- evolution --- goals
+:                       |
+:                  population(s)
+: original              |
+: program --- representations----------- mutations ------ library/templates
+:                       |                                         |
+:                   evaluation                             version control
 
 ** thread local global variables
 In case we want to run multiple populations in separate threads.
@@ -152,11 +152,11 @@ frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
 * Tasks [5/13]
-** TODO cleanup files system [0/4]
-- [ ] combine soft.lisp and genome.lisp
-- [ ] rename ev.lisp to evolution.lisp
-- [ ] remove the zmq-specific packaging and asd file
-- [ ] directory for evolutionary strategies?
+** TODO cleanup files system [3/4]
+- [X] combine soft.lisp and genome.lisp
+- [ ] use full names
+- [X] remove the zmq-specific packaging and asd file
+- [X] directory for evolutionary strategies?
 
 ** DONE switch soft-asm from lists to vectors
 This will free up lists for CL source code.
