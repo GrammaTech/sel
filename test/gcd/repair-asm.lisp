@@ -7,6 +7,7 @@
 
 (setq *pos-test-num* 10)
 (setq *neg-test-num* 1)
+(setq *test-script* "test.sh")
 (setq *max-population-size* 100)
 (setq *genome-averaging-keys* '(:pos :neg))
 (setq original (asm-from-file "gcd.s"))

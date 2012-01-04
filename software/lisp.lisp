@@ -26,13 +26,11 @@
 
 
 ;;; the class of lisp software objects
-(defclass lisp (software) ())
+(defclass lisp (software-exe) ())
 
-(defvar *pos-tests* nil
-  "Tests of positive behavior for a lisp software object.")
-
-(defvar *neg-tests* nil
-  "Tests of negative behavior for a lisp software object.")
+(defvar *test-script*  nil "Script capable of running tests.")
+(defvar *pos-test-num* nil "Number of positive tests")
+(defvar *neg-test-num* nil "Number of negative tests")
 
 (defun lisp-from-file (path)
   (let ((new (make-instance 'lisp)))
@@ -48,12 +46,7 @@
     (dolist (form (genome software))
       (format out "~&~S" form))))
 
-(defun safe-eval (test)
-  (or (ignore-errors (funcall test)) 0))
-
-(defmethod evaluate ((software lisp))
-  (if (ignore-errors
-        (handler-case (progn (mapcar #'eval (genome software)) t)
-          (error (_) (declare (ignorable _)) nil)))
-      (apply #'+ (mapcar #'safe-eval (append *pos-tests* *neg-tests*)))
-      0))
+(defmethod exe ((lisp lisp) &optional place)
+  (let ((exe (or place (temp-file-name))))
+    (lisp-to-file lisp exe)
+    exe))

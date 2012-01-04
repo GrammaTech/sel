@@ -63,9 +63,6 @@
 (defmethod evaluate ((asm asm))
   (evaluate-with-script asm *test-script* *pos-test-num* *neg-test-num*))
 
-(defmethod locate ((asm asm) key)
-  )
-
 
 ;;; memory mapping, address -> LOC
 (defun gdb-disassemble (asm function)
