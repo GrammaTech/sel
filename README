@@ -69,7 +69,7 @@ variables and through arguments to the =evolve= function.
 Licensed under the GPLV3, see the [[file:COPYING][COPYING]] file in this directory for
 more information.
 
-1. Available using git from =git://adaptive.cs.unm.edu/soft-ev.git=.
+1. Available using git from [[http://gitweb.adaptive.cs.unm.edu/software-evolution.git][git://adaptive.cs.unm.edu/software-evolution.git]].
 
 2. To begin, =cd= into the =test/gcd= directory and look around.
    : $ ls -1
