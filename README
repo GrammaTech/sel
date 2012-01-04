@@ -235,8 +235,20 @@ This code is used to publish this page to the =cs.unm.edu= webserver.
                  :base-extension "lisp"
                  :publishing-directory "/ssh:eschulte@moons.cs.unm.edu:~/public_html/code/software-evolution/"
                  :publishing-function org-publish-attachment))
+  ;; the contents of the lisp subdirectories
+  (dolist (subdir '("software" "evolution"))
+    (add-to-list 'org-publish-project-alist
+                 `(,(concat "software-evolution-" subdir)
+                   :base-directory ,(expand-file-name subdir software-evolution-dir)
+                   :base-extension "lisp"
+                   :publishing-directory ,(concat "/ssh:eschulte@moons.cs.unm.edu:~/public_html/code/software-evolution/"
+                                                  subdir)
+                   :publishing-function org-publish-attachment)))
   ;; a single combined project to publish both html and supporting materials
   (add-to-list 'org-publish-project-alist
                '("software-evolution" :components
-                 ("software-evolution-html" "software-evolution-data")))
+                 ("software-evolution-html"
+                  "software-evolution-data"
+                  "software-evolution-software"
+                  "software-evolution-evolution")))
 #+end_src
