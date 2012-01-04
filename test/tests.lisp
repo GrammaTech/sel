@@ -34,8 +34,6 @@
 (defun gcd-dir (filename)
   (concatenate 'string *gcd-dir* "/" filename))
 
-
-;;; vector genome
 (defixture vector-genome
   (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
   (:teardown))
@@ -46,6 +44,28 @@
                                          'vector))))
   (:teardown))
 
+(defixture tree-genome
+  (:setup (setf *genome* (to-tree '(1 2 3 (4 5) 6))))
+  (:teardown))
+
+(defixture gcd-asm
+  (:setup (setf *gcd* (asm-from-file (gcd-dir "gcd.s"))))
+  (:teardown))
+
+(defixture gcd-lisp
+  (:setup (setf *gcd* (lisp-from-file (gcd-dir "gcd.lisp"))))
+  (:teardown))
+
+(defixture population
+  (:setup (setf *population* (loop for i from 1 to 9
+                                collect (make-instance 'software
+                                          :genome (loop for j from 0 to i
+                                                     collect j)
+                                          :fitness i))))
+  (:teardown (setf *population* nil)))
+
+
+;;; vector genome
 (deftest ind-vector ()
   (with-fixture vector-genome
     (is (= 1 (ind *genome* 1)))))
@@ -82,10 +102,6 @@
 
 
 ;;; tree genome
-(defixture tree-genome
-  (:setup (setf *genome* (to-tree '(1 2 3 (4 5) 6))))
-  (:teardown))
-
 (deftest list-to-tree ()
   (with-fixture tree-genome
     (is (equal-it (to-tree '(1 2 3 (4 5) 6))
@@ -111,10 +127,6 @@
 
 
 ;;; ASM representation
-(defixture gcd-asm
-  (:setup (setf *gcd* (asm-from-file (gcd-dir "gcd.s"))))
-  (:teardown))
-
 (deftest simple-read ()
   (with-fixture gcd-asm
     (is (equal 'asm (type-of *gcd*)))))
@@ -155,10 +167,6 @@
 
 
 ;;; Lisp representation
-(defixture gcd-lisp
-  (:setup (setf *gcd* (lisp-from-file (gcd-dir "gcd.lisp"))))
-  (:teardown))
-
 (deftest simple-read-lisp-from-file ()
   (with-fixture gcd-lisp
     (is (eq 'defun (caar (genome *gcd*))))))
@@ -230,14 +238,6 @@
 
 
 ;;; Population tests
-(defixture population
-  (:setup (setf *population* (loop for i from 1 to 9
-                                collect (make-instance 'software
-                                          :genome (loop for j from 0 to i
-                                                     collect j)
-                                          :fitness i))))
-  (:teardown))
-
 (deftest evict-population ()
   (with-fixture population
     (let ((before (length *population*)))

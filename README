@@ -168,10 +168,16 @@ This will free up lists for CL source code.
 - [X] fitness evaluation
 - [X] population addition and subtraction
 
-** TODO add elf level representation
 ** DONE implement general tree-base operations
 ** DONE implement general list-based operations
+** DONE fix bugs in list-based genome
+- setf doesn't seem to have any effect because it is called on the
+  constant data held in the variable rather than the variable itself
+
 ** TODO add a lisp source-code level representation
+Should be able to repair the gcd algorithm.
+file:test/gcd/repair-lisp.lisp
+
 ** TODO add an =optimize= evolutionary method
    :PROPERTIES:
    :CUSTOM_ID: multi-objective-optimization
@@ -210,10 +216,7 @@ After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then b
 possible to share code between =soft-lisp= *and* =soft-asm= software
 objects.  Just another =defmethod= on the =crossover= generic
 function.
-** DONE fix bugs in list-based genome
-- setf doesn't seem to have any effect because it is called on the
-  constant data held in the variable rather than the variable itself
-
+** TODO add elf level representation
 * COMMENT Publishing
 This code is used to publish this page to the =cs.unm.edu= webserver.
 #+begin_src emacs-lisp :results silent

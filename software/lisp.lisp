@@ -48,10 +48,12 @@
     (dolist (form (genome software))
       (format out "~&~S" form))))
 
+(defun safe-eval (test)
+  (or (ignore-errors (funcall test)) 0))
+
 (defmethod evaluate ((software lisp))
   (if (ignore-errors
         (handler-case (progn (mapcar #'eval (genome software)) t)
           (error (_) (declare (ignorable _)) nil)))
-      (apply #'+ (append (mapcar #'funcall *pos-tests*)
-                         (mapcar #'funcall *neg-tests*)))
+      (apply #'+ (mapcar #'safe-eval (append *pos-tests* *neg-tests*)))
       0))
