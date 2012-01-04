@@ -1,4 +1,4 @@
-;;; tests.lisp --- tests for the `soft-ev' package
+;;; tests.lisp --- tests for the `software-evolution' package
 
 ;; Copyright (C) 2011  Eric Schulte
 

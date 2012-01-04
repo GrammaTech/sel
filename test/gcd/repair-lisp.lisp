@@ -1,6 +1,6 @@
 ;; repair using software evolution
-(require :soft-ev)
-(in-package :soft-ev)
+(require :software-evolution)
+(in-package :software-evolution)
 
 (setq *pos-test-num* 10)
 (setq *neg-test-num* 1)

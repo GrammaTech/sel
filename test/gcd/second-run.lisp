@@ -1,4 +1,4 @@
-(in-package :soft-ev)
+(in-package :software-evolution)
 (setq
  *MAX-POPULATION-SIZE* 100         ;; Maximum allowable population size.
  *POS-TEST-NUM*        10          ;; Number of positive tests.
