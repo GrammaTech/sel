@@ -20,25 +20,25 @@ enabling the evolution of extant software projects
 :          +------------------+------+---------+-----------------+
 :                                    |
 :                                  +-+-+
-:                                  | | |                     population functions
-:  global variables           +--------------+               --------------------
-:  ----------------           | *population* |               incorporate
-:  *population*               |--------------|               evict
-:  *max-population-size*      | list of soft |               tournament
-:  *tournament-size*          |    objects   |               mutate
-:  *cross-chance*             +--------------+               crossed
-:  *fitness-evals*                   |                       new-individual
+:                                  | | |                   population functions
+:  global variables           +--------------+             --------------------
+:  ----------------           | *population* |             incorporate
+:  *population*               |--------------|             evict
+:  *max-population-size*      | list of soft |             tournament
+:  *tournament-size*          |    objects   |             mutate
+:  *cross-chance*             +--------------+             crossed
+:  *fitness-evals*                   |                     new-individual
 :  *running*                       +-+-+
 :                                  | | |
 :                           +------------------+
-:                           |     software     |             soft functions
-:                           |------------------|             --------------
-:                           | genome (& trace) |             copy
-:   repair arguments        | fitness          |             location
-:   ----------------        | history          |             insert
-:   max-evals               | ...              |             cut
-:   max-time                +------------------+             swap
-:   max-inds                          |                      crossover
+:                           |     software     |           software functions
+:                           |------------------|           --------------
+:                           | genome (& trace) |           copy
+:   repair arguments        | fitness          |           location
+:   ----------------        | history          |           insert
+:   max-evals               | ...              |           cut
+:   max-time                +------------------+           swap
+:   max-inds                          |                    crossover
 :   max-fit                 +---------+---------+
 :   min-fit                 |                   |
 :   pop-fn          +---------------+     +-------------+
@@ -50,17 +50,17 @@ enabling the evolution of extant software projects
 The =*population*= is a global variable holding a list of evolving
 software variants.  The evolutionary computation functions operate
 directly on the =*population*= through the "population functions".
-Exposure of the population through a global variable enables to user
+Exposure of the population through a global variable enables the user
 to initialize the population in any way, and allows external functions
 to monitor and interact with the population during evolution.  For
-example =soft-ev-zmq= enables sharing of individuals between multiple
-instances of evolution through two "sharing" functions which
-manipulate the population during evolution.
+example [[file:evolution/distributed.lisp][distributed.lisp]] enables sharing of individuals between
+multiple instances of evolution through two "sharing" functions which
+interact with the =*population*= variable directly.
 
 Each software variant is an object whose class is a sub-class of the
-general =soft= class.  New representations are implemented through
-sub-classing =soft= and customizing the generic "soft functions" where
-necessary.
+general =software= class.  New representations are implemented through
+sub-classing =software= and customizing the generic "software
+functions" where necessary.
 
 Parameterization of the EC algorithm is done through setting global
 variables and through arguments to the =evolve= function.
@@ -71,7 +71,7 @@ more information.
 
 1. Available using git from =git://adaptive.cs.unm.edu/soft-ev.git=.
 
-2. To begin, =cd= into the =soft-ev/gcd= directory and look around.
+2. To begin, =cd= into the =test/gcd= directory and look around.
    : $ ls -1
    : gcd.c                   # <- original program
    : gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
@@ -81,7 +81,7 @@ more information.
    : test.sh*                # <- test script used to exercise gcd variants
 
 3. Repairs may be performed from an interactive lisp session, for
-   example, through evaluating the forms in [[file:gcd/repair.lisp][repair.lisp]].
+   example, through evaluating the forms in [[file:test/gcd/repair.lisp][repair.lisp]]
 
 4. Running =make= in this directory will build a =soft-ev= command
    line utility allowing repair to be scripted from the command line
@@ -172,11 +172,12 @@ This will free up lists for CL source code.
 ** DONE implement general tree-base operations
 ** DONE implement general list-based operations
 ** TODO add a lisp source-code level representation
-** TODO add an =optimize= method
+** TODO add an =optimize= evolutionary method
    :PROPERTIES:
    :CUSTOM_ID: multi-objective-optimization
    :END:
-multi-objective optimization for things like speed and size
+- multi-objective optimization for things like speed and size
+- should live in file:evolution/optimize.lisp
 
 ** TODO use optimization to evolve better FFT
 Use [[#multi-objective-optimization][the =optimize= method]] to evolve a better FFT function along

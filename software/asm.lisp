@@ -26,26 +26,25 @@
 
 
 ;;; the class of assembly software objects
-(defclass asm (software)
+(defclass asm (software-exe)
   ((addr-map :initarg :addr-map :accessor raw-addr-map :initform nil)))
 
-(defmethod from ((software asm) (in stream) &aux genome)
-  (loop for line = (read-line in nil)
-     while line do (push `((:line . ,line)) genome))
-  (setf (genome software) (reverse (coerce genome 'vector)))
-  software)
+(defvar *test-script*  nil "Script capable of running tests.")
+(defvar *pos-test-num* nil "Number of positive tests")
+(defvar *neg-test-num* nil "Number of negative tests")
 
-(defmethod to ((software asm) (to stream))
-  (dotimes (n (length (genome software)))
-    (format to "~a~%" (cdr (assoc :line (aref (genome software) n))))))
-
-(defun asm-from-file (path)
+(defun asm-from-file (path &aux genome)
   (let ((new (make-instance 'asm)))
-    (with-open-file (in path) (from new in))))
+    (with-open-file (in path)
+      (loop for line = (read-line in nil)
+         while line do (push `((:line . ,line)) genome))
+      (setf (genome new) (reverse (coerce genome 'vector)))
+      new)))
 
 (defun asm-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)
-    (to software out)))
+    (dotimes (n (length (genome software)))
+      (format out "~a~%" (cdr (assoc :line (aref (genome software) n)))))))
 
 (defun link (asm exe)
   (multiple-value-bind (output error-output exit)
@@ -58,8 +57,11 @@
     (asm-to-file asm tmp)
     (multiple-value-bind (output err-output exit) (link tmp exe)
       (declare (ignorable output err-output))
-      (unless *keep-source* (when (probe-file tmp) (delete-file tmp)))
+      (when (probe-file tmp) (delete-file tmp))
       (when (= exit 0) exe))))
+
+(defmethod evaluate ((asm asm))
+  (evaluate-with-script asm *test-script* *pos-test-num* *neg-test-num*))
 
 
 ;;; memory mapping, address -> LOC

@@ -28,45 +28,33 @@
 ;;; the class of lisp software objects
 (defclass lisp (software) ())
 
-(defmethod from ((software lisp) (in stream))
-  (setf (genome software)
-        (loop :for form = (read in nil :eof)
-           :until (eq form :eof)
-           :collect form)))
+(defvar *pos-tests* nil
+  "Tests of positive behavior for a lisp software object.")
 
-(defmethod to ((software lisp) (to stream))
-  (dolist (form (genome software))
-    (format to "~&~S" form)))
+(defvar *neg-tests* nil
+  "Tests of negative behavior for a lisp software object.")
 
 (defun lisp-from-file (path)
   (let ((new (make-instance 'lisp)))
-    (with-open-file (in path) (from new in))
+    (with-open-file (in path)
+      (setf (genome new)
+            (loop :for form = (read in nil :eof)
+               :until (eq form :eof)
+               :collect form)))
     new))
 
 (defun lisp-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)
-    (to software out)))
-
-(defmethod exe ((lisp lisp) &optional place)
-  (declare (ignorable lisp place))
-  (error "Lisp software objects are interpreted not compiled."))
+    (dolist (form (genome software))
+      (format out "~&~S" form))))
 
 (defmethod evaluate ((software lisp))
   (if (ignore-errors
         (handler-case (progn (mapcar #'eval (genome software)) t)
           (error (_) (declare (ignorable _)) nil)))
-      (apply #'+ (append (mapcar (lambda (test)
-                                   (* *pos-test-mult*
-                                      (funcall test)))
-                                 *pos-tests*)
-                         (mapcar (lambda (test)
-                                   (* *neg-test-mult*
-                                      (funcall test)))
-                                 *neg-tests*)))
+      (apply #'+ (append (mapcar #'funcall *pos-tests*)
+                         (mapcar #'funcall *neg-tests*)))
       0))
-
-
-;;; TODO: execution tracing in lisp source code
 
 
 ;;; weighted genome access

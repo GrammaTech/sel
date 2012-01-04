@@ -38,30 +38,6 @@
 (defvar *fitness-predicate* #'>
   "Whether to favor higher or lower fitness individuals by default.")
 
-(defvar *test-script* "./test.sh"
-  "The script to use to evaluate individuals.")
-
-(defvar *pos-test-num* 0
-  "Number of positive tests.")
-
-(defvar *pos-tests* 0
-  "List of positive tests")
-
-(defvar *neg-test-num* 0
-  "Number of negative tests.")
-
-(defvar *neg-tests* 0
-  "List of negative tests")
-
-(defvar *pos-test-mult* 1
-  "Multiplier for positive test cases")
-
-(defvar *neg-test-mult* 1
-  "Multiplier for negative test cases")
-
-(defvar *keep-source* nil
-  "Keep intermediate source code files.")
-
 (defvar *cross-chance* 1/5
   "Fraction of new individuals generated using crossover rather than mutation.")
 
@@ -76,24 +52,33 @@
 (defgeneric evaluate (software)
   (:documentation "Evaluate SOFTWARE setting the fitness."))
 
-(defmethod evaluate ((software software) &aux (pos 0) (neg 0))
-  (if (eq (exe software) :failed)
-      0
-      (progn
-        (loop for i from 1 to *pos-test-num*
-           do (multiple-value-bind (output err-output exit)
-                  (shell "~a ~a p~d" *test-script* (exe software) i)
-                (declare (ignorable output err-output))
-                (when (= exit 0) (incf pos))))
-        (loop for i from 1 to *neg-test-num*
-           do (multiple-value-bind (output err-output exit)
-                  (shell "~a ~a n~d" *test-script* (exe software) i)
-                (declare (ignorable output err-output))
-                (when (= exit 0) (incf neg))))
-        (incf *fitness-evals*)
-        (delete-exe software)
-        (+ (* pos *pos-test-mult*)
-           (* neg *neg-test-mult*)))))
+(defun evaluate-with-script (software script pos-num neg-num)
+  "Evaluate SOFTWARE with SCRIPT.
+POS-NUM is the number of positive tests defined in SCRIPT NEG-NUM is
+the number of negative tests.  SCRIPT will be called with the
+following arguments.
+
+  $ SCRIPT SOFTWARE-EXECUTABLE pN ∀ N upto POS-NUM
+  $ SCRIPT SOFTWARE-EXECUTABLE nN ∀ N upto NEG-NUM
+
+SCRIPT should return 0 on success and 1 on failure."
+  (let ((pos 0) (neg 0))
+    (if (eq (exe software) :failed)
+        0
+        (progn
+          (loop for i from 1 to pos-num
+             do (multiple-value-bind (output err-output exit)
+                    (shell "~a ~a p~d" script (exe software) i)
+                  (declare (ignorable output err-output))
+                  (when (= exit 0) (incf pos))))
+          (loop for i from 1 to neg-num
+             do (multiple-value-bind (output err-output exit)
+                    (shell "~a ~a n~d" script (exe software) i)
+                  (declare (ignorable output err-output))
+                  (when (= exit 0) (incf neg))))
+          (incf *fitness-evals*)
+          (delete-exe software)
+          (+ pos neg)))))
 
 (defun incorporate (software)
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."

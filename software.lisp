@@ -153,12 +153,8 @@
 
 
 ;;; Software Object
-(defclass software ()    ; TODO: REMOVE the `exe' member because it is not
-                     ; general enough and only really applies to
-                     ; compiled software objects.  The to and from
-                     ; file methods are support enough.
-  ((exe     :initarg :exe     :accessor raw-exe     :initform nil)
-   (genome  :initarg :genome  :accessor genome      :initform nil)
+(defclass software ()
+  ((genome  :initarg :genome  :accessor genome      :initform nil)
    (fitness :initarg :fitness :accessor raw-fitness :initform nil)
    (history :initarg :history :accessor history     :initform nil)))
 
@@ -173,40 +169,6 @@
 
 (defmethod fitness :around ((software software))
   (or (raw-fitness software) (setf (fitness software) (call-next-method))))
-
-(defgeneric exe (software &optional place)
-  (:documentation
-   "Return the path to an executable of the software. (caching)"))
-
-(defmethod (setf exe) (new (software software))
-  (setf (raw-exe software) new))
-
-(defmethod exe :around ((software software) &optional place)
-  (declare (ignorable place))
-  (or (raw-exe software) (setf (exe software) (or (call-next-method) :failed))))
-
-(defgeneric delete-exe (software)
-  (:documentation
-   "Delete any external executables associated with the software."))
-
-(defmethod delete-exe ((software software))
-  (when (raw-exe software)
-    (when (and (not (eq :failed (raw-exe software)))
-               (probe-file (exe software)))
-      (delete-file (exe software)))
-    (setf (exe software) nil)))
-
-(defgeneric from (software stream)
-  (:documentation "Read a software object from a file."))
-
-(defgeneric to (software stream)
-  (:documentation "Write a software object to a file."))
-
-(defgeneric from-bytes (bytes) ;; TODO: REMOVE
-  (:documentation "Read a software object from a byte array."))
-
-(defgeneric to-bytes (software) ;; TODO: REMOVE
-  (:documentation "Write a software object to a byte array."))
 
 (defgeneric random-ind (software)
   (:documentation "Return a random index in the genome."))
@@ -245,6 +207,39 @@
 
 (defgeneric genome-average-keys (genome place)
   (:documentation "Average the keys in *GENOME-AVERAGING-KEYS* around PLACE."))
+
+
+;;; Software Object with an executable
+(defclass software-exe (software)
+  ((exe :initarg :exe :accessor raw-exe :initform nil)))
+
+(defgeneric exe (software &optional place)
+  (:documentation
+   "Return the path to an executable of the software. (caching)"))
+
+(defmethod (setf exe) (new (software software-exe))
+  (setf (raw-exe software) new))
+
+(defmethod exe :around ((software software-exe) &optional place)
+  (declare (ignorable place))
+  (or (raw-exe software) (setf (exe software) (or (call-next-method) :failed))))
+
+(defgeneric delete-exe (software)
+  (:documentation
+   "Delete any external executables associated with the software."))
+
+(defmethod delete-exe ((software software-exe))
+  (when (raw-exe software)
+    (when (and (not (eq :failed (raw-exe software)))
+               (probe-file (exe software)))
+      (delete-file (exe software)))
+    (setf (exe software) nil)))
+
+(defgeneric from-bytes (bytes)
+  (:documentation "Read a software object from a byte array."))
+
+(defgeneric to-bytes (software)
+  (:documentation "Write a software object to a byte array."))
 
 
 ;;; Software Methods
