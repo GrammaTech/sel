@@ -1,4 +1,4 @@
-;;; ev.lisp --- evolutionary operations over software objects
+;;; evolution.lisp --- evolutionary operations over software objects
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -115,35 +115,3 @@ SCRIPT should return 0 on success and 1 on failure."
 (defun new-individual ()
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
-
-(defun evolve (&key max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
-  "Evolves population until an optional stopping criterion is met.
-
-Optional keys are as follows.
-  MAX-EVALS ------- quit after this many fitness evaluations
-  MAX-INDS -------- quit after this many new individuals have been tried
-  MAX-TIME -------- quit after this many seconds
-  MAX-FIT --------- quit when an individual achieves this fitness or higher
-  MIN-FIT --------- quit when an individual achieves this fitness or lower
-  POP-FN ---------- quit when the population satisfies this function
-  IND-FN ---------- quit when an individual satisfies this function"
-  (let ((start-time (get-internal-real-time))
-        (inds 0))
-    (setq *fitness-evals* 0)
-    (setq *running* t)
-    (loop :until (or (not *running*)
-                     (and max-evals (> *fitness-evals* max-evals))
-                     (and max-inds (> inds max-inds))
-                     (and max-time (> (/ (- (get-internal-real-time) start-time)
-                                         internal-time-units-per-second)
-                                      max-time)))
-       :do (let ((new (new-individual)))
-             (incf inds)
-             (fitness new) ;; so has fitness before population incorporation
-             (incorporate new)
-             (when (or (and max-fit (>= (fitness new) max-fit))
-                       (and min-fit (<= (fitness new) min-fit))
-                       (and ind-fn (funcall ind-fn new)))
-               (return new))
-             (when (and pop-fn (funcall pop-fn *population*))
-               (return))))))

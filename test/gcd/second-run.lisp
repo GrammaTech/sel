@@ -13,7 +13,7 @@
  *INCOMING-POPULATION* "pop.store" ;; File holding a cl-store serialized
                                    ;;   incoming population.
  *SAVE-SOFT*           "fix.s"     ;; File to hold any potential individual
-                                   ;;   returned by `evolve'.
+                                   ;;   returned by `repair'.
  *SAVE-POPULATION*    "pop2.store" ;; Save the final population here.
  MAX-EVALS             100         ;; Quit after this many fitness evaluations
  MAX-FIT               11          ;; Quit when an individual achieves

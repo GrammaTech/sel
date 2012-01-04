@@ -21,5 +21,8 @@
    (:file "software/elf"  :depends-on ("package" "utility" "software"))
    (:file "software/lisp" :depends-on ("package" "utility" "software"))
    (:file "evolution"     :depends-on ("package" "utility" "software"))
-   (:file "executable"    :depends-on ("package" "utility" "software"
-                                       "evolution"))))
+   (:file "evolution/repair"
+    :depends-on ("package" "utility" "software" "evolution"))
+   (:file "executable"
+    :depends-on ("package" "utility" "software" "evolution" "evolution/repair"))
+   ))

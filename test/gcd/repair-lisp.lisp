@@ -15,7 +15,7 @@
 (dotimes (_ 8) (push original *population*))
 
 ;; evolve a repair
-(defvar *repair* (evolve :max-evals 1000 :max-fit 10))
+(defvar *repair* (repair :max-evals 1000 :max-fit 10))
 
 ;; conditionally save the repair
 (let ((fixed-program-path "fixed.lisp"))

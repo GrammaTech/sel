@@ -31,7 +31,7 @@
   "File holding a cl-store serialized incoming population.")
 
 (defvar *save-software* nil
-  "File to hold any potential individual returned by `evolve'.")
+  "File to hold any potential individual returned by `repair'.")
 
 (defvar *save-population* nil
   "Save the final population here.")
@@ -62,7 +62,7 @@
                    (eval `(defvar ,(intern name) nil ,doc))
                    (intern name)))
                (cl-ppcre:split
-                "\\n" (documentation 'evolve 'function))))))
+                "\\n" (documentation 'repair 'function))))))
 
 (defun show-usage ()
   (format t "~&USAGE: soft-ev options-file.lisp~%~%")
@@ -103,11 +103,11 @@
               (incorporate asm))))
         (when *paths*
           (setq *genome-averaging-keys* (mapcar #'car *paths*)))
-        ;; evolve
+        ;; evolve a repair
         (if *population*
             (progn
               (format t "~&;; evolving...~%")
-              (setq res (evolve :max-evals max-evals
+              (setq res (repair :max-evals max-evals
                                 :max-time max-time
                                 :max-inds max-inds
                                 :max-fit max-fit
@@ -119,4 +119,4 @@
                 (cl-store:store res *save-software*))
               (when *save-population*
                 (cl-store:store *population* *save-population*)))
-            (format t "~&Can't evolve without some initial population.~%")))))
+            (format t "~&Can't repair without some initial population.~%")))))
