@@ -1,4 +1,4 @@
-;;; soft-elf.lisp --- software representation of ELF files
+;;; elf.lisp --- software representation of ELF files
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,4 +22,4 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)

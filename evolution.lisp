@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 
 
 ;;; Settings
@@ -73,31 +73,31 @@
 
 
 ;;; functions
-(defgeneric evaluate (soft)
-  (:documentation "Evaluate SOFT setting the fitness."))
+(defgeneric evaluate (software)
+  (:documentation "Evaluate SOFTWARE setting the fitness."))
 
-(defmethod evaluate ((soft soft) &aux (pos 0) (neg 0))
-  (if (eq (exe soft) :failed)
+(defmethod evaluate ((software software) &aux (pos 0) (neg 0))
+  (if (eq (exe software) :failed)
       0
       (progn
         (loop for i from 1 to *pos-test-num*
            do (multiple-value-bind (output err-output exit)
-                  (shell "~a ~a p~d" *test-script* (exe soft) i)
+                  (shell "~a ~a p~d" *test-script* (exe software) i)
                 (declare (ignorable output err-output))
                 (when (= exit 0) (incf pos))))
         (loop for i from 1 to *neg-test-num*
            do (multiple-value-bind (output err-output exit)
-                  (shell "~a ~a n~d" *test-script* (exe soft) i)
+                  (shell "~a ~a n~d" *test-script* (exe software) i)
                 (declare (ignorable output err-output))
                 (when (= exit 0) (incf neg))))
         (incf *fitness-evals*)
-        (delete-exe soft)
+        (delete-exe software)
         (+ (* pos *pos-test-mult*)
            (* neg *neg-test-mult*)))))
 
-(defun incorporate (soft)
-  "Incorporate SOFT into POPULATION, keeping the size of POPULATION constant."
-  (push soft *population*)
+(defun incorporate (software)
+  "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
+  (push software *population*)
   (when (and *max-population-size*
              (> (length *population*) *max-population-size*))
     (evict)))

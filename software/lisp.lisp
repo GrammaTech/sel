@@ -1,4 +1,4 @@
-;;; soft-lisp.lisp --- software representation of Lisp source code
+;;; lisp.lisp --- software representation of Lisp source code
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,38 +22,38 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 
 
 ;;; the class of lisp software objects
-(defclass soft-lisp (soft) ())
+(defclass lisp (software) ())
 
-(defmethod from ((soft soft-lisp) (in stream))
-  (setf (genome soft)
+(defmethod from ((software lisp) (in stream))
+  (setf (genome software)
         (loop :for form = (read in nil :eof)
            :until (eq form :eof)
            :collect form)))
 
-(defmethod to ((soft soft-lisp) (to stream))
-  (dolist (form (genome soft))
+(defmethod to ((software lisp) (to stream))
+  (dolist (form (genome software))
     (format to "~&~S" form)))
 
 (defun lisp-from-file (path)
-  (let ((new (make-instance 'soft-lisp)))
+  (let ((new (make-instance 'lisp)))
     (with-open-file (in path) (from new in))
     new))
 
-(defun lisp-to-file (soft path)
+(defun lisp-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)
-    (to soft out)))
+    (to software out)))
 
-(defmethod exe ((lisp soft-lisp) &optional place)
+(defmethod exe ((lisp lisp) &optional place)
   (declare (ignorable lisp place))
   (error "Lisp software objects are interpreted not compiled."))
 
-(defmethod evaluate ((soft soft-lisp))
+(defmethod evaluate ((software lisp))
   (if (ignore-errors
-        (handler-case (progn (mapcar #'eval (genome soft)) t)
+        (handler-case (progn (mapcar #'eval (genome software)) t)
           (error (_) (declare (ignorable _)) nil)))
       (apply #'+ (append (mapcar (lambda (test)
                                    (* *pos-test-mult*
@@ -76,14 +76,14 @@
 (defun bad-key (el)
   (if (assoc :neg el) (if (assoc :pos el) 0.5 1) 0.25))
 
-(defmethod good-ind ((lisp soft-lisp))
+(defmethod good-ind ((lisp lisp))
   (weighted-ind (genome lisp) #'good-key))
 
-(defmethod bad-ind ((lisp soft-lisp))
+(defmethod bad-ind ((lisp lisp))
   (weighted-ind (genome lisp) #'bad-key))
 
-(defmethod good-place ((lisp soft-lisp))
+(defmethod good-place ((lisp lisp))
   (weighted-place (genome lisp) #'good-key))
 
-(defmethod bad-place ((lisp soft-lisp))
+(defmethod bad-place ((lisp lisp))
   (weighted-place (genome lisp) #'bad-key))

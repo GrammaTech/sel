@@ -1,5 +1,5 @@
-(defsystem :soft-ev
-  :description "Soft-ev enables to evolution of existing software artifacts."
+(defsystem :software-evolution
+  :description "software-evolution enables evolution of extant software."
   :long-description ""
   :version "0.0.0"
   :licence "GPL V3"

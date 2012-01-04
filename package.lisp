@@ -1,5 +1,5 @@
 ;; Copyright (C) 2011  Eric Schulte
-(defpackage #:soft-ev
+(defpackage #:software-evolution
   (:use
    :common-lisp
    :alexandria

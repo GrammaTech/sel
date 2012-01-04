@@ -1,6 +1,6 @@
 ;; repair using software evolution
-(require :soft-ev)
-(in-package :soft-ev)
+(require :software-evolution)
+(in-package :software-evolution)
 
 ;; compile gcd.c to assembly
 (shell "gcc -S gcd.c")

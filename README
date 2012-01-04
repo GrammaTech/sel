@@ -102,7 +102,7 @@ The following are informal working and development notes.
 :                       +--- evolution --- goals
 :                       |
 :                  population(s)
-: original              |
+:                       |
 : program --- representations----------- mutations ------ library/templates
 :                       |                                         |
 :                   evaluation                             version control
@@ -151,10 +151,10 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [5/13]
-** TODO cleanup files system [3/4]
+* Tasks [6/13]
+** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
-- [ ] use full names
+- [X] use full names
 - [X] remove the zmq-specific packaging and asd file
 - [X] directory for evolutionary strategies?
 

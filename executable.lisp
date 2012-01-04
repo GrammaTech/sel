@@ -1,4 +1,4 @@
-;;; main.lisp --- command line interface to soft-ev
+;;; executable.lisp --- command line interface to software-evolution
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,15 +22,15 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 
-(defvar *seed-soft* nil
+(defvar *seed-software* nil
   "File holding a seed individual")
 
 (defvar *incoming-population* nil
   "File holding a cl-store serialized incoming population.")
 
-(defvar *save-soft* nil
+(defvar *save-software* nil
   "File to hold any potential individual returned by `evolve'.")
 
 (defvar *save-population* nil
@@ -49,9 +49,9 @@
     *neg-test-mult*
     *cross-chance*
     *paths*
-    *seed-soft*
+    *seed-software*
     *incoming-population*
-    *save-soft*
+    *save-software*
     *save-population*
     ,@(remove nil
               (mapcar
@@ -65,14 +65,14 @@
                 "\\n" (documentation 'evolve 'function))))))
 
 (defun show-usage ()
-  (format t "~&USAGE: ./soft-ev options-file.lisp~%~%")
-  (format t "~&(in-package :soft-ev)~%")
+  (format t "~&USAGE: soft-ev options-file.lisp~%~%")
+  (format t "~&(in-package :software-evolution)~%")
   (format t "~&(setq~%")
   (format t "~:{~& ~21a ~11S ;; ~a~}~%"
           (mapcar (lambda (opt)
                     (let* ((val (if (boundp opt)
                                     opt
-                                    (intern (symbol-name opt) :soft-ev)))
+                                    (intern (symbol-name opt) :software-evolution)))
                            (doc (documentation val 'variable))
                            (default (eval val)))
                       (list opt default doc)))
@@ -84,7 +84,7 @@
                  (remove-if-not (lambda (option) (eval option)) *options*))))
 
 (defun main (argv &aux res)
-  "Command line driver of `soft-ev' software evolution."
+  "Command line driver of `software-evolution' software evolution."
   ;; set options of load usage information
   (if (not (and (second argv) (probe-file (second argv))))
       (show-usage)
@@ -94,9 +94,9 @@
         ;; build initial population
         (when *incoming-population*
           (setq *population* (cl-store:restore *incoming-population*)))
-        (when *seed-soft*
+        (when *seed-software*
           (dotimes (_ 12)
-            (let ((asm (asm-from-file *seed-soft*)))
+            (let ((asm (asm-from-file *seed-software*)))
               (dolist (spec *paths*)
                 (apply-path asm (car spec)
                             (samples-from-oprofile-file (cdr spec))))
@@ -115,8 +115,8 @@
                                 :pop-fn pop-fn
                                 :ind-fn ind-fn))
               ;; save results
-              (when (and res *save-soft*)
-                (cl-store:store res *save-soft*))
+              (when (and res *save-software*)
+                (cl-store:store res *save-software*))
               (when *save-population*
                 (cl-store:store *population* *save-population*)))
             (format t "~&Can't evolve without some initial population.~%")))))

@@ -22,11 +22,11 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 (require :stefil)
 (use-package :stefil)
-(defsuite soft-ev-test)
-(in-suite soft-ev-test)
+(defsuite software-evolution-test)
+(in-suite software-evolution-test)
 (defvar *genome*  nil "Genome used in tests.")
 (defvar *soft*    nil "Software used in tests.")
 (defvar *gcd*     nil "Holds the gcd software object.")
@@ -41,7 +41,7 @@
   (:teardown))
 
 (defixture soft
-  (:setup (setf *soft* (make-instance 'soft
+  (:setup (setf *soft* (make-instance 'software
                          :genome (coerce (loop for i from 0 to 9 collect i)
                                          'vector))))
   (:teardown))
@@ -117,7 +117,7 @@
 
 (deftest simple-read ()
   (with-fixture gcd-asm
-    (is (equal 'soft-asm (type-of *gcd*)))))
+    (is (equal 'asm (type-of *gcd*)))))
 
 (deftest idempotent-read-write ()
   (let ((a (temp-file-name)))
@@ -232,7 +232,7 @@
 ;;; Population tests
 (defixture population
   (:setup (setf *population* (loop for i from 1 to 9
-                                collect (make-instance 'soft
+                                collect (make-instance 'software
                                           :genome (loop for j from 0 to i
                                                      collect j)
                                           :fitness i))))
@@ -247,5 +247,5 @@
   (with-fixture population
     (let* ((before (length *population*))
            (*max-population-size* (+ 1 before)))
-      (is (< before (length (progn (incorporate (make-instance 'soft))
+      (is (< before (length (progn (incorporate (make-instance 'software))
                                    *population*)))))))

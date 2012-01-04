@@ -1,4 +1,4 @@
-;;; soft.lisp --- general representation of an instance of software
+;;; software.lisp --- general representation of an instance of software
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 
 
 ;;; Genome Object
@@ -153,7 +153,7 @@
 
 
 ;;; Software Object
-(defclass soft ()    ; TODO: REMOVE the `exe' member because it is not
+(defclass software ()    ; TODO: REMOVE the `exe' member because it is not
                      ; general enough and only really applies to
                      ; compiled software objects.  The to and from
                      ; file methods are support enough.
@@ -162,81 +162,82 @@
    (fitness :initarg :fitness :accessor raw-fitness :initform nil)
    (history :initarg :history :accessor history     :initform nil)))
 
-(defgeneric copy (soft)
+(defgeneric copy (software)
   (:documentation "Return a copy of the software."))
 
-(defgeneric fitness (soft)
+(defgeneric fitness (software)
   (:documentation "Return the fitness of the software. (caching)"))
 
-(defmethod (setf fitness) (new (soft soft))
-  (setf (raw-fitness soft) new))
+(defmethod (setf fitness) (new (software software))
+  (setf (raw-fitness software) new))
 
-(defmethod fitness :around ((soft soft))
-  (or (raw-fitness soft) (setf (fitness soft) (call-next-method))))
+(defmethod fitness :around ((software software))
+  (or (raw-fitness software) (setf (fitness software) (call-next-method))))
 
-(defgeneric exe (soft &optional place)
+(defgeneric exe (software &optional place)
   (:documentation
    "Return the path to an executable of the software. (caching)"))
 
-(defmethod (setf exe) (new (soft soft))
-  (setf (raw-exe soft) new))
+(defmethod (setf exe) (new (software software))
+  (setf (raw-exe software) new))
 
-(defmethod exe :around ((soft soft) &optional place)
+(defmethod exe :around ((software software) &optional place)
   (declare (ignorable place))
-  (or (raw-exe soft) (setf (exe soft) (or (call-next-method) :failed))))
+  (or (raw-exe software) (setf (exe software) (or (call-next-method) :failed))))
 
-(defgeneric delete-exe (soft)
+(defgeneric delete-exe (software)
   (:documentation
    "Delete any external executables associated with the software."))
 
-(defmethod delete-exe ((soft soft))
-  (when (raw-exe soft)
-    (when (and (not (eq :failed (raw-exe soft))) (probe-file (exe soft)))
-      (delete-file (exe soft)))
-    (setf (exe soft) nil)))
+(defmethod delete-exe ((software software))
+  (when (raw-exe software)
+    (when (and (not (eq :failed (raw-exe software)))
+               (probe-file (exe software)))
+      (delete-file (exe software)))
+    (setf (exe software) nil)))
 
-(defgeneric from (soft stream)
+(defgeneric from (software stream)
   (:documentation "Read a software object from a file."))
 
-(defgeneric to (soft stream)
+(defgeneric to (software stream)
   (:documentation "Write a software object to a file."))
 
 (defgeneric from-bytes (bytes) ;; TODO: REMOVE
   (:documentation "Read a software object from a byte array."))
 
-(defgeneric to-bytes (soft) ;; TODO: REMOVE
+(defgeneric to-bytes (software) ;; TODO: REMOVE
   (:documentation "Write a software object to a byte array."))
 
-(defgeneric random-ind (soft)
+(defgeneric random-ind (software)
   (:documentation "Return a random index in the genome."))
 
-(defgeneric good-ind (soft)
+(defgeneric good-ind (software)
   (:documentation "Return a random \"good\" index in the genome."))
 
-(defgeneric bad-ind (soft)
+(defgeneric bad-ind (software)
   (:documentation "Return a random \"bad\" index in the genome."))
 
-(defgeneric random-place (soft)
+(defgeneric random-place (software)
   (:documentation "Return a random place in the genome."))
 
-(defgeneric good-place (soft)
+(defgeneric good-place (software)
   (:documentation
    "Return a random \"good\" place (between indices) in the genome."))
 
-(defgeneric bad-place (soft)
+(defgeneric bad-place (software)
   (:documentation
    "Return a random \"bad\" place (between indices) in the genome."))
 
-(defgeneric insert (soft)
+(defgeneric insert (software)
   (:documentation "Duplicate and insert an element of the genome of SOFT"))
 
-(defgeneric cut (soft)
+(defgeneric cut (software)
   (:documentation "Delete an element of the genome of SOFT."))
 
-(defgeneric swap (soft)
+(defgeneric swap (software)
   (:documentation "Swap two elements of the genome of SOFT."))
 
-(defgeneric crossover (soft-a soft-b)
+(defgeneric crossover (software-a software-b)
   (:documentation "Crossover between the genomes of SOFT-A and SOFT-B."))
 
 (defvar *genome-averaging-keys* nil
@@ -247,11 +248,11 @@
 
 
 ;;; Software Methods
-(defmethod copy ((soft soft))
-  (make-instance (type-of soft)
-    :genome (genome soft)
-    :history (history soft)
-    :fitness (raw-fitness soft)))
+(defmethod copy ((software software))
+  (make-instance (type-of software)
+    :genome (genome software)
+    :history (history software)
+    :fitness (raw-fitness software)))
 
 (defmethod from-bytes ((bytes vector))
   (let ((tmp (temp-file-name)))
@@ -261,100 +262,100 @@
     (prog1 (restore tmp)
       (delete-file tmp))))
 
-(defmethod to-bytes ((soft soft))
+(defmethod to-bytes ((software software))
   (let ((tmp (temp-file-name))
         (bytes (make-array '(0)
                            :element-type '(unsigned-byte 8)
                            :fill-pointer 0 :adjustable t)))
-    (store soft tmp)
+    (store software tmp)
     (with-open-file (in tmp :element-type '(unsigned-byte 8))
       (loop for byte = (read-byte in  nil)
          while byte do (vector-push-extend byte bytes)))
     (delete-file tmp)
     bytes))
 
-(defmethod fitness ((soft soft))
-  (evaluate soft))
+(defmethod fitness ((software software))
+  (evaluate software))
 
-(defmethod random-ind (soft)
-  (random-elt (inds soft)))
+(defmethod random-ind (software)
+  (random-elt (inds software)))
 
-(defmethod random-ind ((soft soft))
-  (random-ind (genome soft)))
+(defmethod random-ind ((software software))
+  (random-ind (genome software)))
 
-(defmethod good-ind (soft)
-  (random-ind soft))
+(defmethod good-ind (software)
+  (random-ind software))
 
-(defmethod good-ind ((soft soft))
-  (good-ind (genome soft)))
+(defmethod good-ind ((software software))
+  (good-ind (genome software)))
 
-(defmethod bad-ind (soft)
-  (random-ind soft))
+(defmethod bad-ind (software)
+  (random-ind software))
 
-(defmethod bad-ind ((soft soft))
-  (bad-ind (genome soft)))
+(defmethod bad-ind ((software software))
+  (bad-ind (genome software)))
 
-(defmethod random-place ((soft soft))
-  (random-place (genome soft)))
+(defmethod random-place ((software software))
+  (random-place (genome software)))
 
-(defmethod good-place (soft)
-  (random-place soft))
+(defmethod good-place (software)
+  (random-place software))
 
-(defmethod good-place ((soft soft))
-  (random-place (genome soft)))
+(defmethod good-place ((software software))
+  (random-place (genome software)))
 
-(defmethod bad-place (soft)
-  (random-place soft))
+(defmethod bad-place (software)
+  (random-place software))
 
-(defmethod bad-place ((soft soft))
-  (random-place (genome soft)))
+(defmethod bad-place ((software software))
+  (random-place (genome software)))
 
-(defmethod insert ((soft soft))
+(defmethod insert ((software software))
   (multiple-value-bind (genome place)
-      (insert (genome soft))
-    (setf (genome soft) (genome-average-keys genome place))
+      (insert (genome software))
+    (setf (genome software) (genome-average-keys genome place))
     place))
 
-(defmethod insert :around ((soft soft))
+(defmethod insert :around ((software software))
   (let ((place (call-next-method)))
-    (push (cons :insert place) (history soft))
-    (setf (fitness soft) nil)
-    soft))
+    (push (cons :insert place) (history software))
+    (setf (fitness software) nil)
+    software))
 
-(defmethod cut ((soft soft))
+(defmethod cut ((software software))
   (multiple-value-bind (genome place)
-      (cut (genome soft))
-    (setf (genome soft) genome)
+      (cut (genome software))
+    (setf (genome software) genome)
     place))
 
-(defmethod cut :around ((soft soft))
+(defmethod cut :around ((software software))
   (let ((place (call-next-method)))
-    (push (cons :cut place) (history soft))
-    (setf (fitness soft) nil)
-    soft))
+    (push (cons :cut place) (history software))
+    (setf (fitness software) nil)
+    software))
 
-(defmethod swap ((soft soft))
+(defmethod swap ((software software))
   (multiple-value-bind (genome places)
-      (swap (genome soft))
-    (setf (genome soft)
+      (swap (genome software))
+    (setf (genome software)
           (reduce (lambda (g p) (genome-average-keys g p))
                   places :initial-value genome))
     places))
 
-(defmethod swap :around ((soft soft))
+(defmethod swap :around ((software software))
   (let ((places (call-next-method)))
-    (push (cons :swap places) (history soft))
-    (setf (fitness soft) nil)
-    soft))
+    (push (cons :swap places) (history software))
+    (setf (fitness software) nil)
+    software))
 
-(defmethod crossover ((a soft) (b soft))
+(defmethod crossover ((a software) (b software))
   (let ((new (make-instance (type-of a))))
     (multiple-value-bind (genome place)
         (crossover (genome a) (genome b))
       (setf (genome new) genome)
       (values new place))))
 
-(defmethod crossover :around ((a soft) (b soft))
+(defmethod crossover :around ((a software) (b software))
   (multiple-value-bind (new place) (call-next-method)
     (setf (fitness new) nil)
     (setf (history new) (list (cons :crossover place)

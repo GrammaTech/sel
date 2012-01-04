@@ -1,4 +1,4 @@
-;;; util.lisp --- utility functions
+;;; utility.lisp --- utility functions
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))

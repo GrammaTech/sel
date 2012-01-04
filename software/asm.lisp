@@ -1,4 +1,4 @@
-;;; soft-asm.lisp --- software representation of Assembly files
+;;; asm.lisp --- software representation of Assembly files
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -22,37 +22,37 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :soft-ev)
+(in-package :software-evolution)
 
 
 ;;; the class of assembly software objects
-(defclass soft-asm (soft)
+(defclass asm (software)
   ((addr-map :initarg :addr-map :accessor raw-addr-map :initform nil)))
 
-(defmethod from ((soft soft-asm) (in stream) &aux genome)
+(defmethod from ((software asm) (in stream) &aux genome)
   (loop for line = (read-line in nil)
      while line do (push `((:line . ,line)) genome))
-  (setf (genome soft) (reverse (coerce genome 'vector)))
-  soft)
+  (setf (genome software) (reverse (coerce genome 'vector)))
+  software)
 
-(defmethod to ((soft soft-asm) (to stream))
-  (dotimes (n (length (genome soft)))
-    (format to "~a~%" (cdr (assoc :line (aref (genome soft) n))))))
+(defmethod to ((software asm) (to stream))
+  (dotimes (n (length (genome software)))
+    (format to "~a~%" (cdr (assoc :line (aref (genome software) n))))))
 
 (defun asm-from-file (path)
-  (let ((new (make-instance 'soft-asm)))
+  (let ((new (make-instance 'asm)))
     (with-open-file (in path) (from new in))))
 
-(defun asm-to-file (soft path)
+(defun asm-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)
-    (to soft out)))
+    (to software out)))
 
 (defun link (asm exe)
   (multiple-value-bind (output error-output exit)
       (shell "gcc -o ~a ~a" exe asm)
     (values output error-output exit)))
 
-(defmethod exe ((asm soft-asm) &optional place)
+(defmethod exe ((asm asm) &optional place)
   (let ((exe (or place (temp-file-name)))
         (tmp (temp-file-name "s")))
     (asm-to-file asm tmp)
@@ -89,10 +89,10 @@
      collect function
      else collect counter))
 
-(defmethod (setf addr-map) (new (asm soft-asm))
+(defmethod (setf addr-map) (new (asm asm))
   (setf (raw-addr-map asm) new))
 
-(defmethod addr-map ((asm soft-asm))
+(defmethod addr-map ((asm asm))
   (or (raw-addr-map asm)
       (setf (addr-map asm)
             (apply
@@ -111,7 +111,7 @@
                                              lines))
                                 (split-sequence-if #'stringp flines)))))))))
 
-(defmethod lines ((asm soft-asm))
+(defmethod lines ((asm asm))
   (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
 
 
@@ -149,14 +149,14 @@ address and the cdr is the value."
 (defun bad-key (el)
   (if (assoc :neg el) (if (assoc :pos el) 0.5 1) 0.25))
 
-(defmethod good-ind ((asm soft-asm))
+(defmethod good-ind ((asm asm))
   (weighted-ind (genome asm) #'good-key))
 
-(defmethod bad-ind ((asm soft-asm))
+(defmethod bad-ind ((asm asm))
   (weighted-ind (genome asm) #'bad-key))
 
-(defmethod good-place ((asm soft-asm))
+(defmethod good-place ((asm asm))
   (weighted-place (genome asm) #'good-key))
 
-(defmethod bad-place ((asm soft-asm))
+(defmethod bad-place ((asm asm))
   (weighted-place (genome asm) #'bad-key))
