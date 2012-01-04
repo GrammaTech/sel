@@ -35,15 +35,27 @@
 (defgeneric (setf ind) (new genome ind)
   (:documentation "Set the element located at IND in GENOME to NEW."))
 
-(defgeneric places (genome)
-  (:documentation "Returns a list of the places in GENOME.  Places can
-  be thought of as the slots /between/ the indices."))
+(defgeneric location (software &optional key)
+  (:documentation
+   "Return a location in the genome of SOFTWARE optionally weighted by KEY."))
 
-(defgeneric place (genome place)
-  (:documentation "Return a list of the neighbors of PLACE in GENOME."))
+(defun weighted-ind (weights &aux (counter 0))
+  "Weighted select of an index into a list of weights."
+  (let* ((cumulative (reverse (reduce (lambda (acc el)
+                                        (incf counter el)
+                                        (cons counter acc))
+                                      weights :initial-value nil)))
+         (point (random (float counter))))
+    (loop for weight in cumulative as i from 0
+       if (> weight point) do (return i))))
 
-(defgeneric (setf place) (new genome place)
-  (:documentation "Insert NEW into GENOME at PLACE."))
+(defmethod location (genome &optional key)
+  (let ((inds (inds genome)))
+    (nth
+     (if key
+         (weighted-ind (mapcar (lambda (i) (cdr (assoc key (ind genome i)))) inds))
+         (random (length inds)))
+     inds)))
 
 
 ;;; Vector Genomes
@@ -161,6 +173,9 @@
 (defgeneric copy (software)
   (:documentation "Return a copy of the software."))
 
+(defgeneric evaluate (software)
+  (:documentation "Evaluate SOFTWARE setting the fitness."))
+
 (defgeneric fitness (software)
   (:documentation "Return the fitness of the software. (caching)"))
 
@@ -170,33 +185,13 @@
 (defmethod fitness :around ((software software))
   (or (raw-fitness software) (setf (fitness software) (call-next-method))))
 
-(defgeneric random-ind (software)
-  (:documentation "Return a random index in the genome."))
-
-(defgeneric good-ind (software)
-  (:documentation "Return a random \"good\" index in the genome."))
-
-(defgeneric bad-ind (software)
-  (:documentation "Return a random \"bad\" index in the genome."))
-
-(defgeneric random-place (software)
-  (:documentation "Return a random place in the genome."))
-
-(defgeneric good-place (software)
-  (:documentation
-   "Return a random \"good\" place (between indices) in the genome."))
-
-(defgeneric bad-place (software)
-  (:documentation
-   "Return a random \"bad\" place (between indices) in the genome."))
-
-(defgeneric insert (software)
+(defgeneric insert (software &key good-key bad-key)
   (:documentation "Duplicate and insert an element of the genome of SOFT"))
 
-(defgeneric cut (software)
+(defgeneric cut (software &key good-key bad-key)
   (:documentation "Delete an element of the genome of SOFT."))
 
-(defgeneric swap (software)
+(defgeneric swap (software &key good-key bad-key)
   (:documentation "Swap two elements of the genome of SOFT."))
 
 (defgeneric crossover (software-a software-b)
@@ -249,95 +244,46 @@
     :history (history software)
     :fitness (raw-fitness software)))
 
-(defmethod from-bytes ((bytes vector))
-  (let ((tmp (temp-file-name)))
-    (with-open-file (out tmp :direction :output :element-type '(unsigned-byte 8))
-      (dotimes (n (length bytes))
-        (write-byte (aref bytes n) out)))
-    (prog1 (restore tmp)
-      (delete-file tmp))))
-
-(defmethod to-bytes ((software software))
-  (let ((tmp (temp-file-name))
-        (bytes (make-array '(0)
-                           :element-type '(unsigned-byte 8)
-                           :fill-pointer 0 :adjustable t)))
-    (store software tmp)
-    (with-open-file (in tmp :element-type '(unsigned-byte 8))
-      (loop for byte = (read-byte in  nil)
-         while byte do (vector-push-extend byte bytes)))
-    (delete-file tmp)
-    bytes))
-
 (defmethod fitness ((software software))
   (evaluate software))
 
-(defmethod random-ind (software)
-  (random-elt (inds software)))
-
-(defmethod random-ind ((software software))
-  (random-ind (genome software)))
-
-(defmethod good-ind (software)
-  (random-ind software))
-
-(defmethod good-ind ((software software))
-  (good-ind (genome software)))
-
-(defmethod bad-ind (software)
-  (random-ind software))
-
-(defmethod bad-ind ((software software))
-  (bad-ind (genome software)))
-
-(defmethod random-place ((software software))
-  (random-place (genome software)))
-
-(defmethod good-place (software)
-  (random-place software))
-
-(defmethod good-place ((software software))
-  (random-place (genome software)))
-
-(defmethod bad-place (software)
-  (random-place software))
-
-(defmethod bad-place ((software software))
-  (random-place (genome software)))
-
-(defmethod insert ((software software))
+(defmethod insert ((software software) &key (good-key nil) (bad-key nil))
   (multiple-value-bind (genome place)
-      (insert (genome software))
+      (insert (genome software) :good-key good-key :bad-key bad-key)
     (setf (genome software) (genome-average-keys genome place))
     place))
 
-(defmethod insert :around ((software software))
+(defmethod insert :around ((software software)
+                           &key (good-key nil) (bad-key nil))
+  (declare (ignorable good-key bad-key))
   (let ((place (call-next-method)))
     (push (cons :insert place) (history software))
     (setf (fitness software) nil)
     software))
 
-(defmethod cut ((software software))
+(defmethod cut ((software software) &key (good-key nil) (bad-key nil))
   (multiple-value-bind (genome place)
-      (cut (genome software))
+      (cut (genome software) :good-key good-key :bad-key bad-key)
     (setf (genome software) genome)
     place))
 
-(defmethod cut :around ((software software))
+(defmethod cut :around ((software software) &key (good-key nil) (bad-key nil))
+  (declare (ignorable good-key bad-key))
   (let ((place (call-next-method)))
     (push (cons :cut place) (history software))
     (setf (fitness software) nil)
     software))
 
-(defmethod swap ((software software))
+(defmethod swap ((software software) &key (good-key nil) (bad-key nil))
   (multiple-value-bind (genome places)
-      (swap (genome software))
+      (swap (genome software) :good-key good-key :bad-key bad-key)
     (setf (genome software)
           (reduce (lambda (g p) (genome-average-keys g p))
                   places :initial-value genome))
     places))
 
-(defmethod swap :around ((software software))
+(defmethod swap :around ((software software) &key (good-key nil) (bad-key nil))
+  (declare (ignorable good-key bad-key))
   (let ((places (call-next-method)))
     (push (cons :swap places) (history software))
     (setf (fitness software) nil)
@@ -374,60 +320,40 @@
             (push (cons key new) (aref genome place)))))
     genome))
 
-(defun weighted-pick (weights &aux (counter 0))
-  "Weighted select of an index into a list of weights."
-  (let* ((cumulative (reverse (reduce (lambda (acc el)
-                                        (incf counter el)
-                                        (cons counter acc))
-                                      weights :initial-value nil)))
-         (point (random (float counter))))
-    (loop for weight in cumulative as i from 0
-       if (> weight point) do (return i))))
-
-(defun weighted-ind (list key)
-  (weighted-pick (mapcar key list)))
-
-(defun weighted-place (list key &aux (last 0))
-  (weighted-pick
-   (mapcar (lambda (el) (prog1 (/ ( + el last) 2) (setf last el)))
-           (append (mapcar key list) (list 0)))))
-
-(defmethod random-place ((genome vector))
-  (random (+ 1 (length genome))))
-
-(defmethod insert ((genome vector))
-  (let ((dup-place (good-ind genome))
-        (ins-place (bad-place genome)))
+(defmethod insert ((genome vector) &key (good-key nil) (bad-key nil))
+  (let ((dup (location genome good-key))
+        (ins (location genome bad-key)))
     (values (cond
-              ((> dup-place ins-place)
+              ((> dup ins)
                (concatenate 'vector
-                 (subseq genome 0 ins-place)
-                 (vector (aref genome dup-place))
-                 (subseq genome ins-place dup-place)
-                 (subseq genome dup-place)))
-              ((> ins-place dup-place)
+                 (subseq genome 0 ins)
+                 (vector (aref genome dup))
+                 (subseq genome ins dup)
+                 (subseq genome dup)))
+              ((> ins dup)
                (concatenate 'vector
-                 (subseq genome 0 dup-place)
-                 (subseq genome dup-place ins-place)
-                 (vector (aref genome dup-place))
-                 (subseq genome ins-place)))
+                 (subseq genome 0 dup)
+                 (subseq genome dup ins)
+                 (vector (aref genome dup))
+                 (subseq genome ins)))
               (:otherwise
                (concatenate 'vector
-                 (subseq genome 0 dup-place)
-                 (vector (aref genome dup-place))
-                 (subseq genome dup-place))))
-            ins-place)))
+                 (subseq genome 0 dup)
+                 (vector (aref genome dup))
+                 (subseq genome dup))))
+            (list dup ins))))
 
-(defmethod cut ((genome vector))
-  (let ((ind (bad-ind genome)))
+(defmethod cut ((genome vector) &key (good-key nil) (bad-key nil))
+  (declare (ignorable good-key))
+  (let ((ind (location genome bad-key)))
     (values (concatenate 'vector
               (subseq genome 0 ind)
               (subseq genome (+ 1 ind)))
             ind)))
 
-(defmethod swap ((genome vector))
-  (let* ((a (good-ind genome))
-         (b (good-ind genome))
+(defmethod swap ((genome vector) &key (good-key nil) (bad-key nil))
+  (let* ((a (location genome good-key))
+         (b (location genome bad-key))
          (temp (aref genome a)))
     (setf (aref genome a) (aref genome b))
     (setf (aref genome b) temp)
@@ -440,9 +366,6 @@
 
 
 ;;; Cons-cell Methods
-(defmethod random-place ((genome list))
-  (random-ind genome))
-
 (defmethod genome-average-keys ((genome list) place)
   (let ((inds (list (butlast place) place
                     (append place '(:a)) (append place '(:d)))))
@@ -457,22 +380,24 @@
             (push (cons key new) (ind genome place)))))
     genome))
 
-(defmethod insert ((genome list))
-  (let ((dup-ind (good-ind genome))
-        (ins-place (good-place genome)))
-    (setf (ind genome ins-place)
-          (cons (ind genome ins-place)
-                (ind genome dup-ind)))
-    (values genome (list ins-place dup-ind))))
+(defmethod insert ((genome list) &key (good-key nil) (bad-key nil))
+  (declare (ignorable bad-key))
+  (let ((dup (location genome good-key))
+        (ins (location genome good-key)))
+    (setf (ind genome ins)
+          (cons (ind genome ins)
+                (ind genome dup)))
+    (values genome (list ins dup))))
 
-(defmethod cut ((genome list))
-  (let ((del-ind (bad-ind genome)))
-    (del-ind genome del-ind)
-    (values genome del-ind)))
+(defmethod cut ((genome list) &key (good-key nil) (bad-key nil))
+  (declare (ignorable good-key))
+  (let ((del (location genome bad-key)))
+    (del-ind genome del)
+    (values genome del)))
 
-(defmethod swap ((genome list))
-  (let* ((a (good-ind genome))
-         (b (good-ind genome))
+(defmethod swap ((genome list) &key (good-key nil) (bad-key nil))
+  (let* ((a (location genome good-key))
+         (b (location genome bad-key))
          (ordered (sort (list a b) #'< :key #'length))
          (tmp (ind genome (second ordered))))
     (setf (ind genome (second ordered)) (ind genome (first ordered)))

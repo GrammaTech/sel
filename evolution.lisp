@@ -49,9 +49,6 @@
 
 
 ;;; functions
-(defgeneric evaluate (software)
-  (:documentation "Evaluate SOFTWARE setting the fitness."))
-
 (defun evaluate-with-script (software script pos-num neg-num)
   "Evaluate SOFTWARE with SCRIPT.
 POS-NUM is the number of positive tests defined in SCRIPT NEG-NUM is

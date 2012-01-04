@@ -34,7 +34,7 @@ enabling the evolution of extant software projects
 :                           |     software     |           software functions
 :                           |------------------|           --------------
 :                           | genome (& trace) |           copy
-:   repair arguments        | fitness          |           location
+:   repair arguments        | fitness          |           evaluate
 :   ----------------        | history          |           insert
 :   max-evals               | ...              |           cut
 :   max-time                +------------------+           swap

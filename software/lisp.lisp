@@ -55,23 +55,3 @@
       (apply #'+ (append (mapcar #'funcall *pos-tests*)
                          (mapcar #'funcall *neg-tests*)))
       0))
-
-
-;;; weighted genome access
-(defun good-key (el)
-  (if (or (assoc :pos el) (assoc :neg el)) 1 0.25))
-
-(defun bad-key (el)
-  (if (assoc :neg el) (if (assoc :pos el) 0.5 1) 0.25))
-
-(defmethod good-ind ((lisp lisp))
-  (weighted-ind (genome lisp) #'good-key))
-
-(defmethod bad-ind ((lisp lisp))
-  (weighted-ind (genome lisp) #'bad-key))
-
-(defmethod good-place ((lisp lisp))
-  (weighted-place (genome lisp) #'good-key))
-
-(defmethod bad-place ((lisp lisp))
-  (weighted-place (genome lisp) #'bad-key))
