@@ -233,8 +233,10 @@
 
 (deftest evaluate-lisp-program ()
   (with-fixture gcd-lisp
-    (load (gcd-dir "test.lisp"))
-    (is (= 10 (evaluate *gcd*)))))
+    (let ((*test-script* (gcd-dir "test-lisp.sh"))
+          (*pos-test-num* 10)
+          (*neg-test-num* 1))
+      (is (= 10 (evaluate *gcd*))))))
 
 
 ;;; Population tests

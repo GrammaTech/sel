@@ -73,13 +73,11 @@ more information.
    : $ ls -1
    : gcd.c                   # <- original program
    : gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
-   : repair.lisp             # <- options to repair
-   : sample.neg              # <- oprofile trace of negative test execution
-   : sample.pos              # <- oprofile trace of positive test execution
+   : repair-asm.lisp         # <- options to repair
    : test.sh*                # <- test script used to exercise gcd variants
 
 3. Repairs may be performed from an interactive lisp session, for
-   example, through evaluating the forms in [[file:test/gcd/repair.lisp][repair.lisp]]
+   example, through evaluating the forms in [[file:test/gcd/repair-asm.lisp][repair-asm.lisp]].
 
 4. Running =make= in this directory will build a =soft-ev= command
    line utility allowing repair to be scripted from the command line
@@ -91,7 +89,7 @@ more information.
    machines is enabled using the [[http://www.zeromq.org][∅MQ]] socket library.  Additionally,
    because population initialization is left to the user, distributed
    EC algorithms may also be implemented externally.  See
-   [[file:gcd/second-run.lisp][second-run.lisp]] for an example configuration file using an incoming
+   [[file:test/gcd/second-run.lisp][second-run.lisp]] for an example configuration file using an incoming
    population.
 
 * Notes
