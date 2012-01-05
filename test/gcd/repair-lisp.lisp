@@ -11,10 +11,10 @@
 (setq *neg-test-num* 1)
 (setq *test-script* "test-lisp.sh")
 (setq *max-population-size* 100)
-(setq original (lisp-from-file "gcd.lisp"))
+(defvar *gcd* (lisp-from-file "gcd.lisp"))
 
-;; build up a starting population -- 8 copies of the original
-(dotimes (_ 8) (push original *population*))
+;; build up a starting population
+(dotimes (_ 8) (push *gcd* *population*))
 
 ;; evolve a repair
 (defvar *repair* (repair :max-evals 1000 :max-fit 11))

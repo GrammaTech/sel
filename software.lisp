@@ -408,6 +408,10 @@ SCRIPT should return 0 on success and 1 on failure."
             (push (cons key new) (ind genome place)))))
     genome))
 
+(defun ensure-proper-list (lisp)
+  (unless (proper-list-p lisp) (setf (cdr lisp) (cons (cdr lisp) nil)))
+  lisp)
+
 (defmethod insert ((genome list) &key (good-key nil) (bad-key nil))
   (declare (ignorable bad-key))
   (let ((dup (location genome good-key))
@@ -416,14 +420,14 @@ SCRIPT should return 0 on success and 1 on failure."
     (setf (ind new ins)
           (cons (copy-tree (ind genome ins))
                 (copy-tree (ind genome dup))))
-    (values new (list ins dup))))
+    (values (ensure-proper-list new) (list ins dup))))
 
 (defmethod cut ((genome list) &key (good-key nil) (bad-key nil))
   (declare (ignorable good-key))
   (let ((del (location genome bad-key))
         (new (copy-tree genome)))
     (del-ind new del)
-    (values new del)))
+    (values (ensure-proper-list new) del)))
 
 (defmethod swap ((genome list) &key (good-key nil) (bad-key nil))
   (let* ((a (location genome good-key))
@@ -432,7 +436,7 @@ SCRIPT should return 0 on success and 1 on failure."
          (new (copy-tree genome)))
     (setf (ind new (second ordered)) (copy-tree (ind genome (first ordered))))
     (setf (ind new (first ordered))  (copy-tree (ind genome (second ordered))))
-    (values new ordered)))
+    (values (ensure-proper-list new) ordered)))
 
 (defmethod crossover ((a list) (b list))
   (let* ((inds-a (inds a))
@@ -441,4 +445,4 @@ SCRIPT should return 0 on success and 1 on failure."
          (point (random-elt points-in-common))
          (new (copy-tree a)))
     (setf (ind new point) (ind b point))
-    (values new point)))
+    (values (ensure-proper-list new) point)))

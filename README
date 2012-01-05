@@ -148,7 +148,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [7/15]
+* Tasks [8/15]
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names
@@ -173,6 +173,15 @@ This will free up lists for CL source code.
 ** DONE add a lisp source-code level representation
 Should be able to repair the gcd algorithm.
 file:test/gcd/repair-lisp.lisp
+
+** DONE fix more bugs in lisp repair
+it looks like evaluation and mutation and crossover are all throwing
+errors, many of which are caused by that which should be a list not
+being a list.
+
+many `handler-case' statements are sprinkled through the code, update
+these to write out offending genomes and functions to files for use in
+future test cases
 
 ** TODO add elf level representation
 ** TODO test external script repair at all three levels
