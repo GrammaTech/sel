@@ -148,7 +148,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [8/15]
+* Tasks [9/16]
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names
@@ -183,6 +183,7 @@ many `handler-case' statements are sprinkled through the code, update
 these to write out offending genomes and functions to files for use in
 future test cases
 
+** DONE ensure that all proper lists stay proper lists in list genome mutation
 ** TODO add elf level representation
 ** TODO test external script repair at all three levels
 ** TODO add an =optimize= evolutionary method

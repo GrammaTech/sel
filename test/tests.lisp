@@ -126,6 +126,45 @@
                (ind *genome* 2)))))
 
 
+;;; List genome
+
+(deftest simple-inds-on-lisp-genome ()
+  (is (= 9 (length (inds '(1 2 3 4))))))
+
+(deftest get-inds-on-list ()
+  (is (= 2 (ind '(1 2 3 4) '(:d :a)))))
+
+(deftest setf-inds-on-list ()
+  (let ((genome '(1 2 3 4 5)))
+    (setf (ind genome '(:d :d :a)) 9)
+    (is (equal-it '(1 2 9 4 5) genome))))
+
+(deftest another-setf-inds-on-list ()
+  (let ((genome '(1 2 3 4 5)))
+    (setf (ind genome '(:d :d :a)) '(1 2 3))
+    (is (equal-it '(1 2 (1 2 3) 4 5) genome))))
+
+(deftest del-ind-on-list ()
+  (is (equal-it '(1 2 4)
+                (let ((genome (list 1 2 3 4)))
+                  (del-ind genome '(:d :d :a))
+                  genome)))
+  (is (equal-it '(2 3 4)
+                (let ((genome (list 1 2 3 4)))
+                  (del-ind genome '(:a))
+                  genome))))
+
+(deftest maintain-proper-list-setf ()
+  (is (proper-list-p (let ((it '(1 2)))
+                       (setf (ind it '(:d)) :foo)
+                       it))))
+
+(deftest maintain-proper-list-del-ind ()
+  (is (proper-list-p (let ((it '(1 2)))
+                       (del-ind it '(:d))
+                       it))))
+
+
 ;;; ASM representation
 (deftest simple-read ()
   (with-fixture gcd-asm
@@ -181,32 +220,6 @@
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
-
-(deftest simple-inds-on-lisp-genome ()
-  (is (= 9 (length (inds '(1 2 3 4))))))
-
-(deftest get-inds-on-list ()
-  (is (= 2 (ind '(1 2 3 4) '(:d :a)))))
-
-(deftest setf-inds-on-list ()
-  (let ((genome '(1 2 3 4 5)))
-    (setf (ind genome '(:d :d :a)) 9)
-    (is (equal-it '(1 2 9 4 5) genome))))
-
-(deftest another-setf-inds-on-list ()
-  (let ((genome '(1 2 3 4 5)))
-    (setf (ind genome '(:d :d :a)) '(1 2 3))
-    (is (equal-it '(1 2 (1 2 3) 4 5) genome))))
-
-(deftest del-ind-on-list ()
-  (is (equal-it '(1 2 4)
-                (let ((genome (list 1 2 3 4)))
-                  (del-ind genome '(:d :d :a))
-                  genome)))
-  (is (equal-it '(2 3 4)
-                (let ((genome (list 1 2 3 4)))
-                  (del-ind genome '(:a))
-                  genome))))
 
 (deftest cut-on-list ()
   (with-fixture gcd-lisp
