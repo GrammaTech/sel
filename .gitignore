@@ -4,3 +4,4 @@ doc
 *.tex
 *.pdf
 soft-ev
+lisp-runner

@@ -28,13 +28,13 @@ soft-ev: $(LISP_FILES)
 		--load-system software-evolution \
 		--entry software-evolution:main
 
-test/gcd/lisp-runner: test/gcd/lisp-runner.lisp
+lisp-runner: test/lisp-runner.lisp
 	buildapp \
-		--output test/gcd/lisp-runner \
-		--load test/gcd/lisp-runner.lisp \
+		--output lisp-runner \
+		--load test/lisp-runner.lisp \
 		--entry main
 
-check: $(LISP_FILES) test/gcd/lisp-runner
+check: $(LISP_FILES) lisp-runner
 	sbcl \
 		--noinform \
 		--eval '(require :software-evolution)' \
@@ -44,4 +44,5 @@ check: $(LISP_FILES) test/gcd/lisp-runner
 		--eval '(sb-ext:quit)'
 
 clean:
-	rm -f *.fasl software/*.fasl evolution/*.fasl test/*.fasl test/gcd/*.fasl soft-ev test/gcd/lisp-runner
+	rm -f *.fasl software/*.fasl evolution/*.fasl test/*.fasl \
+		test/gcd/*.fasl soft-ev lisp-runner
