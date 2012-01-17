@@ -4,7 +4,6 @@
 #+email: eschulte@cs.unm.edu
 #+Options: toc:1
 #+properties: exports code
-
 #+HTML: <center>enabling the evolution of extant software projects</center>
 
 * Design
@@ -203,15 +202,26 @@ dimensions such as
 ** TODO look at interactive evolution of individual CL functions
 The idea being to support an interactive development environment in
 which the developer starts by associating some conditions with a
-function, e.g.,
+function, probably best to use a macro
 #+begin_src lisp
-  (defun square (x)
-    (declare (output
-              (> output 0)
-              (> output x)
-              (= (sqrt output) x)))
-    )
+  (defmacro defadapt (name args conditions &body body)
+    (let ((func-name (gensym "function"))
+          (condition (gensym "condition")))
+      `(let ((,func-name (defun ,name ,args ,@body)))
+         (dolist (,condition ,conditions)
+           (setf (get ,func-name (car ,condition)) (cdr ,condition)))
+         ,func-name)))
+  
+  (defadapt square (x)
+      '((tests output
+         (> output 0)
+         (> output x)
+         (< (- (sqrt output) x) 0.0001)))
+    x #| ...rest of body... |#)
+  
+  (get 'square 'tests)
 #+end_src
+
 ** TODO manipulate compiled lisp code
    :PROPERTIES:
    :CUSTOM_ID: lisp-asm
