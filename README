@@ -257,6 +257,8 @@ This code is used to publish this page to the =cs.unm.edu= webserver.
     p.verse { margin-left: 3% }
     p { text-align: justify }
     pre {
+      background: #232323;
+      color: #e6e1dc;
       border: 1pt solid #AEBDCC;
       padding: 5pt;
       overflow: auto;
@@ -295,4 +297,5 @@ This code is used to publish this page to the =cs.unm.edu= webserver.
                   "software-evolution-data"
                   "software-evolution-software"
                   "software-evolution-evolution")))
+  
 #+end_src
