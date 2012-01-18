@@ -40,7 +40,5 @@
 
 (defmethod evaluate ((lisp-fn lisp-fn))
   (externally
-   (reduce #'+ (mapcar
-                (lambda (test) ;; maybe use http://www.cliki.net/cl-quickcheck
-                  )
-                (get lisp-fn 'tests)))))
+   (mapcar #'test-flopped
+           (funcall #'collect-test-results `(lambda () ,(get lisp-fn 'tests))))))

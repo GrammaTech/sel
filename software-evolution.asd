@@ -9,7 +9,8 @@
                cl-store
                trivial-shell
                trivial-timeout
-               cl-ppcre)
+               cl-ppcre
+               cl-quickcheck)
   :components
   ((:static-file "COPYING")
    (:static-file "Makefile")

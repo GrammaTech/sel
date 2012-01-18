@@ -8,5 +8,6 @@
    :cl-store
    :trivial-shell
    :trivial-timeout
-   :cl-ppcre)
+   :cl-ppcre
+   :cl-quickcheck)
   (:shadow :type))

@@ -209,17 +209,32 @@ function, probably best to use a macro
           (condition (gensym "condition")))
       `(let ((,func-name (defun ,name ,args ,@body)))
          (dolist (,condition ,conditions)
-           (setf (get ,func-name (car ,condition)) (cdr ,condition)))
+           (setf (get ,func-name (first ,condition)) (second ,condition)))
          ,func-name)))
-  
-  (defadapt square (x)
-      '((tests output
-         (> output 0)
-         (> output x)
-         (< (- (sqrt output) x) 0.0001)))
-    x #| ...rest of body... |#)
-  
-  (get 'square 'tests)
+
+  (defadapt square-root (x)
+      '((test (for-all ((n #'an-integer)
+                        (r #'a-real))
+                (is numberp (square-root n))
+                (is numberp (square-root r))
+                (only-if (> n 0) (is > (expt (square-root n) 2) 0))
+                (only-if (> r 0) (is > (expt (square-root r) 2) 0))
+                (only-if (>= n 0) (is < (- n (expt (square-root n) 2)) 0.001))
+                (only-if (>= r 0) (is < (- r (expt (square-root r) 2)) 0.001)))))
+    (sqrt x) #| ...rest of body... |#)
+
+  (get 'square-root 'test)
+
+  #+QuickCheck
+  (quickcheck
+    (for-all ((n #'an-integer)
+              (r #'a-real))
+      (is numberp (square-root n))
+      (is numberp (square-root r))
+      (only-if (> n 0) (is > (expt (square-root n) 2) 0))
+      (only-if (> r 0) (is > (expt (square-root r) 2) 0))
+      (only-if (>= n 0) (is < (- n (expt (square-root n) 2)) 0.001))
+      (only-if (>= r 0) (is < (- r (expt (square-root r) 2)) 0.001))))
 #+end_src
 
 ** TODO manipulate compiled lisp code
@@ -297,5 +312,5 @@ This code is used to publish this page to the =cs.unm.edu= webserver.
                   "software-evolution-data"
                   "software-evolution-software"
                   "software-evolution-evolution")))
-  
+
 #+end_src
