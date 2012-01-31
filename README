@@ -94,6 +94,11 @@ more information.
 * Notes
 The following are informal working and development notes.
 
+** ensure mutation operations can be reapplied
+So if say we know that a program was crossed over at point x, we
+should be able to call crossover(x) separate form the whole evolution
+framework.
+
 ** objects generalizations and interactions
 :                       +--- evolution --- goals
 :                       |
