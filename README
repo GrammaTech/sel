@@ -261,6 +261,12 @@ see
 - https://github.com/sellout/CL-LLVM -- install with quicklisp and
   work through the lisp version of the LLVM tutorial
 
+Then look at [[http://llvm.org/docs/WritingAnLLVMPass.html][How to write a Pass]] for implementing this entire
+technique as a compiler pass -- should have AST/IR manipulation in
+there as well.
+
+For parsing and manipulating LLVM IR, see [[http://stackoverflow.com/questions/9160509/how-do-i-parse-llvm-ir][how-do-i-parse-llvm-ir]].
+
 * COMMENT Publishing
 This code is used to publish this page to the =cs.unm.edu= webserver.
 #+begin_src emacs-lisp :results silent
