@@ -2,7 +2,7 @@
 #+Title: Software Evolution
 #+Author: Eric Schulte
 #+email: eschulte@cs.unm.edu
-#+Options: toc:1
+#+Options: toc:1 ^:nil
 #+properties: exports code
 #+HTML: <center>enabling the evolution of extant software projects</center>
 
@@ -152,7 +152,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* Tasks [9/17]
+* COMMENT Tasks [10/18]
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names
@@ -254,7 +254,9 @@ After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then b
 possible to share code between =soft-lisp= *and* =soft-asm= software
 objects.  Just another =defmethod= on the =crossover= generic
 function.
-** TODO integrate with LLVM
+** CANCELED integrate with LLVM
+   - State "CANCELED"   from "TODO"       [2012-02-23 Thu 18:46] \\
+     better (for now) to integrate with CLANG
 see
 - http://llvm.org/
 - http://www.cliki.net/LLVM
@@ -266,6 +268,12 @@ technique as a compiler pass -- should have AST/IR manipulation in
 there as well.
 
 For parsing and manipulating LLVM IR, see [[http://stackoverflow.com/questions/9160509/how-do-i-parse-llvm-ir][how-do-i-parse-llvm-ir]].
+
+** TODO integrate with CLANG
+- [[http://stackoverflow.com/questions/5130695/how-to-make-use-of-clangs-ast][This StackOverflow]] page has good links
+- Go [[http://llvm.org/devmtg/2010-11/][here]] and read _libclang: Thinking Beyond the Compiler_.
+- see the [[http://clang.llvm.org/doxygen/group__CINDEX.html][clang C API]], especially [[http://clang.llvm.org/doxygen/group__CINDEX__HIGH.html][higher level API functions]]
+- See "[[http://llvm.org/docs/ProgrammersManual.html#simplechanges][Making simple changes]]" in the Programmers Manual
 
 * COMMENT Publishing
 This code is used to publish this page to the =cs.unm.edu= webserver.
