@@ -284,7 +284,7 @@ SCRIPT should return 0 on success and 1 on failure."
 (defmethod insert ((software software) &key (good-key nil) (bad-key nil))
   (multiple-value-bind (genome place)
       (insert (genome software) :good-key good-key :bad-key bad-key)
-    (setf (genome software) (genome-average-keys genome place))
+    (setf (genome software) (genome-average-keys genome (second place)))
     place))
 
 (defmethod insert :around ((software software)
