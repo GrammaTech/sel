@@ -248,8 +248,8 @@ POS-NUM is the number of positive tests defined in SCRIPT NEG-NUM is
 the number of negative tests.  SCRIPT will be called with the
 following arguments.
 
-  $ SCRIPT SOFTWARE-EXECUTABLE pN ∀ N upto POS-NUM
-  $ SCRIPT SOFTWARE-EXECUTABLE nN ∀ N upto NEG-NUM
+  $ SCRIPT SOFTWARE-EXECUTABLE pN for all N upto POS-NUM
+  $ SCRIPT SOFTWARE-EXECUTABLE nN for all N upto NEG-NUM
 
 SCRIPT should return 0 on success and 1 on failure."
   (let ((pos 0) (neg 0))
