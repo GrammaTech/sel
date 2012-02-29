@@ -83,7 +83,7 @@
 (defun function-lines (asm &aux function)
   "Return the line numbers of the lines (in order) of FUNCTION."
   (loop for line in (mapcar (lambda (line) (cdr (assoc :line line)))
-                            (genome asm)) as counter from 0
+                            (coerce (genome asm) 'list)) as counter from 0
      do (setq function (register-groups-bind
                            (line-function) ("^([^\\.][\\S]+):" line)
                          line-function))
@@ -106,15 +106,16 @@
                                (remove-if-not #'stringp flines))
                        (cdr
                         (mapcar (lambda (lines)
-                                  (remove-if (lambda (n)
-                                               (scan "^[\\s]*\\."
-                                                     (assoc :line
-                                                            (aref n (genome asm)))))
+                                  (remove-if
+                                   (lambda (n)
+                                     (scan "^[\\s]*\\."
+                                           (cdr (assoc :line
+                                                       (aref (genome asm) n)))))
                                              lines))
                                 (split-sequence-if #'stringp flines)))))))))
 
 (defmethod lines ((asm asm))
-  (mapcar (lambda (line) (cdr (assoc :line line))) (genome asm)))
+  (mapcar (lambda (line) (cdr (assoc :line line))) (coerce (genome asm) 'list)))
 
 
 ;;; incorporation of oprofile samples
@@ -123,22 +124,33 @@
 If each element of ADDRESSES is a cons cell then assume the car is the
 address and the cdr is the value."
   (let ((map (addr-map asm)))
-    (loop for el in addresses as i from 0
-       do
-         (let* ((addr (if (consp el) (car el) el))
-                (val (if (consp el) (cdr el) t))
-                (loc (cdr (assoc addr map))))
-           (when loc
-             (push (cons key val) (nth loc (genome asm)))
-             (push (list i key val) applied)))))
+    (loop :for el :in addresses :as i :from 0 :do
+       (let* ((addr (if (consp el) (car el) el))
+              (val (if (consp el) (cdr el) t))
+              (loc (cdr (assoc addr map))))
+         (when loc
+           (push (cons key val) (aref (genome asm) loc))
+           (push (list i key val) applied)))))
   (reverse applied))
 
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
     (remove nil
-      (loop for line = (read-line in nil :eof)
-         until (eq line :eof)
-         collect
-           (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
-             (declare (string c) (string a))
-             (cons (parse-integer a :radix 16) (parse-integer c)))))))
+      (loop :for line = (read-line in nil :eof)
+         :until (eq line :eof)
+         :collect
+         (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
+           (declare (string c) (string a))
+           (cons (parse-integer a :radix 16) (parse-integer c)))))))
+
+(defun samples-from-tracer-file (path &aux samples)
+  (with-open-file (in path)
+    (loop :for line = (read-line in nil :eof)
+       :until (eq line :eof)
+       :do
+       (let ((addr (parse-integer line)))
+         (if (assoc addr samples)
+             (setf (cdr (assoc addr samples))
+                   (1+ (cdr (assoc addr samples))))
+             (setf samples (cons (cons addr 0) samples)))))
+    samples))
