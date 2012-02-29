@@ -9,5 +9,6 @@
    :trivial-shell
    :trivial-timeout
    :cl-ppcre
-   :cl-quickcheck)
+   ;; :cl-quickcheck
+   )
   (:shadow :type))
