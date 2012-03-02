@@ -209,6 +209,10 @@
 (defgeneric genome-average-keys (genome place)
   (:documentation "Average the keys in *GENOME-AVERAGING-KEYS* around PLACE."))
 
+(defgeneric edit-distance (software-a software-b)
+  ;; TODO: needs implementations
+  (:docmentation "Return the edit distance between two software objects."))
+
 
 ;;; Software Object with an executable
 (defclass software-exe (software)
