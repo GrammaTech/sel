@@ -94,6 +94,9 @@ more information.
 * Notes
 The following are informal working and development notes.
 
+** when failing and running interactively, try to output errors from test.sh
+So often we start to debug the framework, when the bug is in test.sh.
+
 ** ensure mutation operations can be reapplied
 So if say we know that a program was crossed over at point x, we
 should be able to call crossover(x) separate form the whole evolution
