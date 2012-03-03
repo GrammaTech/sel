@@ -140,8 +140,7 @@ Optional argument OUT specifies an output stream."
 ;; adopted from a public domain lisp implementation copied from the
 ;; scheme implementation given at
 ;; http://en.wikipedia.org/wiki/Levenshtein_distance
-(defun levenshtein-distance (s1 s2 &key (test #'char=))
-  ;; TODO: add a :key key and extend to work on generic sequences
+(defun levenshtein-distance (s1 s2 &key (test #'char=) (key #'identity))
   (let* ((width (1+ (length s1)))
 	 (height (1+ (length s2)))
 	 (d (make-array (list height width))))
@@ -155,7 +154,9 @@ Optional argument OUT specifies an output stream."
 	      (min (1+ (aref d y (1+ x)))
 		   (1+ (aref d (1+ y) x))
 		   (+ (aref d y x)
-		      (if (test (aref s1 x) (aref s2 y))
+		      (if (funcall test
+                                   (funcall key (aref s1 x))
+                                   (funcall key (aref s2 y)))
 			  0
 			  1))))))
     (aref d (1- height) (1- width))))

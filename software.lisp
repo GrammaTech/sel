@@ -210,8 +210,7 @@
   (:documentation "Average the keys in *GENOME-AVERAGING-KEYS* around PLACE."))
 
 (defgeneric edit-distance (software-a software-b)
-  ;; TODO: needs implementations
-  (:docmentation "Return the edit distance between two software objects."))
+  (:documentation "Return the edit distance between two software objects."))
 
 
 ;;; Software Object with an executable
@@ -341,6 +340,9 @@ SCRIPT should return 0 on success and 1 on failure."
                               (cons (history a) (history b))))
     new))
 
+(defmethod edit-distance ((a software) (b software))
+  (edit-distance (genome a) (genome b)))
+
 
 ;;; Vector Methods
 (defmethod genome-average-keys ((genome vector) place)
@@ -357,6 +359,9 @@ SCRIPT should return 0 on success and 1 on failure."
             (setf (cdr (assoc key (aref genome place))) new)
             (push (cons key new) (aref genome place)))))
     genome))
+
+(defmethod edit-distance ((a vector) (b vector))
+  (levenshtein-distance a b :test #'equalp))
 
 (defmethod insert ((genome vector) &key (good-key nil) (bad-key nil))
   (let ((dup (location genome good-key))
@@ -417,6 +422,9 @@ SCRIPT should return 0 on success and 1 on failure."
             (setf (cdr (assoc key (ind genome place))) new)
             (push (cons key new) (ind genome place)))))
     genome))
+
+(defmethod edit-distance ((a list) (b list))
+  (error "No edit distance metric implemented for cons trees."))
 
 (defun ensure-proper-list (lisp)
   (unless (proper-list-p lisp) (setf (cdr lisp) (cons (cdr lisp) nil)))
