@@ -100,6 +100,10 @@
       (is (< (length (genome new))
              (length (genome *soft*)))))))
 
+(deftest edit-same-is-zero ()
+  (with-fixture soft
+    (is (zerop (edit-distance *soft* *soft*)))))
+
 
 ;;; tree genome
 (deftest list-to-tree ()
@@ -210,6 +214,12 @@
       (mutate ant)
       (is (not (equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
+
+(deftest edit-of-different-is-more-than-zero ()
+  (with-fixture gcd-asm
+    (let ((ant (copy *gcd*)))
+      (mutate ant)
+      (is (> (edit-distance ant *gcd*) 0)))))
 
 
 ;;; Lisp representation
