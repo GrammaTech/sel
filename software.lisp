@@ -191,6 +191,9 @@
 (defmethod fitness :around ((software software))
   (or (raw-fitness software) (setf (fitness software) (call-next-method))))
 
+(defgeneric size (software)
+  (:documentation "Return the size of the software individual."))
+
 (defgeneric insert (software &key good-key bad-key)
   (:documentation "Duplicate and insert an element of the genome of SOFT"))
 
@@ -284,6 +287,9 @@ SCRIPT should return 0 on success and 1 on failure."
 (defmethod fitness ((software software))
   (evaluate software))
 
+(defmethod size ((software software))
+  (size (genome software)))
+
 (defmethod insert ((software software) &key (good-key nil) (bad-key nil))
   (multiple-value-bind (genome place)
       (insert (genome software) :good-key good-key :bad-key bad-key)
@@ -347,6 +353,9 @@ SCRIPT should return 0 on success and 1 on failure."
 ;;; Vector Methods
 (defmethod copy ((genome vector))
   (copy-seq genome))
+
+(defmethod size ((genome vector))
+  (length genome))
 
 (defmethod genome-average-keys ((genome vector) place)
   (let ((above (unless (= place (- (length genome) 1))
@@ -414,6 +423,11 @@ SCRIPT should return 0 on success and 1 on failure."
 ;;; Cons-cell Methods
 (defmethod copy ((genome list))
   (copy-tree genome))
+
+(defmethod size ((genome list))
+  (if (consp genome)
+      (+ (size (car genome)) (size (cdr genome)))
+      1))
 
 (defmethod genome-average-keys ((genome list) place)
   (let ((inds (list (butlast place) place
