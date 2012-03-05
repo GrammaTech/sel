@@ -278,7 +278,7 @@ SCRIPT should return 0 on success and 1 on failure."
 (defmethod copy ((software software))
   (make-instance (type-of software)
     :genome  (copy (genome software))
-    :history (history software)
+    :history (copy-tree (history software))
     :fitness (raw-fitness software)))
 
 (defmethod fitness ((software software))
