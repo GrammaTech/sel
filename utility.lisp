@@ -137,6 +137,38 @@ Optional argument OUT specifies an output stream."
                :initial-value t))
       (t (or (equal obj1 obj2) (format t "~&~a!=~a" obj1 obj2))))))
 
+
+;;; Generic utility functions
+(defmacro comp (&rest funcs)
+  "Return a function equal to the composition of FUNCS."
+  (let ((arg-sym (gensym)))
+    `(lambda (,arg-sym)
+       ,(reduce (lambda (f a) `(funcall ,f ,a))
+                funcs :initial-value arg-sym :from-end t))))
+
+(defun pmapcar (f list)
+  "Parallel map (from http://marijnhaverbeke.nl/pcall/)."
+  (let ((result (mapcar (lambda (n) (pexec (funcall f n))) list)))
+    (map-into result #'yield result)))
+
+(defmacro repeatedly (n &body body)
+  "Return the result of running BODY N times in parallel."
+  (let ((result-sym (gensym)))
+    `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
+       (map-into ,result-sym #'yield ,result-sym))))
+
+(defun aget (key list)
+  "Get KEY from association list LIST."
+  (cdr (assoc key list)))
+
+(defun getter (key)
+  "Return a function which gets KEY from an association list."
+  (lambda (it) (aget key it)))
+
+(defun transpose (matrix)
+  "Simple matrix transposition."
+  (apply #'map 'list #'list matrix))
+
 ;; adopted from a public domain lisp implementation copied from the
 ;; scheme implementation given at
 ;; http://en.wikipedia.org/wiki/Levenshtein_distance
