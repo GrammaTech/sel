@@ -127,7 +127,6 @@
 
 
 ;;; List genome
-
 (deftest simple-inds-on-lisp-genome ()
   (is (= 9 (length (inds '(1 2 3 4))))))
 
@@ -203,6 +202,14 @@
     (with-fixture gcd-asm
       (is (= 5 (fitness *gcd*)))
       (is (= 5 (fitness (copy *gcd*)))))))
+
+(deftest edit-of-copy-does-not-change-original ()
+  (with-fixture gcd-asm
+    (let ((orig-hash (sxhash (genome *gcd*)))
+          (ant (copy *gcd*)))
+      (mutate ant)
+      (is (not (equal-it (genome ant) (genome *gcd*))))
+      (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 
 ;;; Lisp representation

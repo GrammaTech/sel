@@ -277,7 +277,7 @@ SCRIPT should return 0 on success and 1 on failure."
 ;;; Software Methods
 (defmethod copy ((software software))
   (make-instance (type-of software)
-    :genome (genome software)
+    :genome  (copy (genome software))
     :history (history software)
     :fitness (raw-fitness software)))
 
@@ -345,6 +345,9 @@ SCRIPT should return 0 on success and 1 on failure."
 
 
 ;;; Vector Methods
+(defmethod copy ((genome vector))
+  (copy-seq genome))
+
 (defmethod genome-average-keys ((genome vector) place)
   (let ((above (unless (= place (- (length genome) 1))
                  (aref genome (+ place 1))))
@@ -409,6 +412,9 @@ SCRIPT should return 0 on success and 1 on failure."
 
 
 ;;; Cons-cell Methods
+(defmethod copy ((genome list))
+  (copy-tree genome))
+
 (defmethod genome-average-keys ((genome list) place)
   (let ((inds (list (butlast place) place
                     (append place '(:a)) (append place '(:d)))))
