@@ -152,6 +152,9 @@ Optional argument OUT specifies an output stream."
     (map-into result #'yield result)))
 
 (defmacro repeatedly (n &body body)
+  `(loop :for _ :upto ,n :collect ,@body))
+
+(defmacro prepeatedly (n &body body)
   "Return the result of running BODY N times in parallel."
   (let ((result-sym (gensym)))
     `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
