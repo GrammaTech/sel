@@ -10,5 +10,6 @@
    ;; :trivial-timeout
    :cl-ppcre
    ;; :cl-quickcheck
+   :eager-future2
    )
   (:shadow :type))
