@@ -61,7 +61,8 @@
       (when (= exit 0) exe))))
 
 (defmethod evaluate ((asm asm))
-  (evaluate-with-script asm *test-script* *pos-test-num* *neg-test-num*))
+  (evaluate-with-script asm *test-script* *pos-test-num* *neg-test-num*)
+  asm)
 
 
 ;;; memory mapping, address -> LOC
