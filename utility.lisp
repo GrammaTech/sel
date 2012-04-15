@@ -193,7 +193,7 @@ Optional argument OUT specifies an output stream."
 
 (defun note (level &rest format-args)
   (when (>= *note-level* level)
-    (format *note-out* "~&~a: ~a"
+    (format *note-out* "~&~a: ~a~%"
             (print-time nil)
             (apply #'format nil format-args))))
 
