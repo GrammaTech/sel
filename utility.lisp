@@ -160,6 +160,12 @@ Optional argument OUT specifies an output stream."
     `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
        (map-into ,result-sym #'yield ,result-sym))))
 
+(defmacro prepeat-until (n &body body)
+  "Return the result of running BODY N times in parallel."
+  (let ((result-sym (gensym)))
+    `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
+       (map-into ,result-sym #'yield ,result-sym))))
+
 (defun aget (key list)
   "Get KEY from association list LIST."
   (cdr (assoc key list)))
@@ -171,6 +177,25 @@ Optional argument OUT specifies an output stream."
 (defun transpose (matrix)
   "Simple matrix transposition."
   (apply #'map 'list #'list matrix))
+
+
+;;; debugging helpers
+(defvar *note-level* 0 "Enables execution notes.")
+(defvar *note-out* t "Target of notation.")
+
+(defun print-time (&optional (out t))
+  (multiple-value-bind
+        (second minute hour date month year day-of-week dst-p tz)
+      (get-decoded-time)
+    (declare (ignorable day-of-week dst-p tz))
+    (format out "~d.~2,'0d.~2,'0d.~2,'0d.~2,'0d.~2,'0d"
+            year month date hour minute second)))
+
+(defun note (level &rest format-args)
+  (when (>= *note-level* level)
+    (format *note-out* "~&~a: ~a"
+            (print-time nil)
+            (apply #'format nil format-args))))
 
 ;; adopted from a public domain lisp implementation copied from the
 ;; scheme implementation given at
