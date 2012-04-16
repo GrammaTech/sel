@@ -8,7 +8,7 @@
                metabang-bind
                cl-store
                trivial-shell
-               ;; trivial-timeout
+               trivial-timeout
                cl-ppcre
                ;; cl-quickcheck
                eager-future2
