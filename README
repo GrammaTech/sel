@@ -155,7 +155,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* COMMENT Tasks [10/18]
+* COMMENT Tasks [10/19]
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names
@@ -272,7 +272,19 @@ there as well.
 
 For parsing and manipulating LLVM IR, see [[http://stackoverflow.com/questions/9160509/how-do-i-parse-llvm-ir][how-do-i-parse-llvm-ir]].
 
+** TODO parse C source code
+There is a lisp/YACC parser named =parcl= which uses yacc see
+http://common-lisp.net/~sionescu/misc/parcl.tar.gz.
+
+It works but isn't robust to stuff like comments or #include
+directives.
+
+Probably the most robust solution is to [[id:5291eb9c-6abd-4265-a7b5-f182cf317d6c][integrate with CLANG]].
+
 ** TODO integrate with CLANG
+   :PROPERTIES:
+   :ID:       5291eb9c-6abd-4265-a7b5-f182cf317d6c
+   :END:
 - [[http://stackoverflow.com/questions/5130695/how-to-make-use-of-clangs-ast][This StackOverflow]] page has good links
 - Go [[http://llvm.org/devmtg/2010-11/][here]] and read _libclang: Thinking Beyond the Compiler_.
 - see the [[http://clang.llvm.org/doxygen/group__CINDEX.html][clang C API]], especially [[http://clang.llvm.org/doxygen/group__CINDEX__HIGH.html][higher level API functions]]
