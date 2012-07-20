@@ -94,6 +94,8 @@ more information.
 * Notes
 The following are informal working and development notes.
 
+** an option for containing the execution of evolved variants
+http://lxc.sourceforge.net/
 ** when failing and running interactively, try to output errors from test.sh
 So often we start to debug the framework, when the bug is in test.sh.
 
@@ -155,7 +157,7 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-* COMMENT Tasks [10/19]
+* COMMENT Tasks [11/19]
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names
@@ -272,7 +274,9 @@ there as well.
 
 For parsing and manipulating LLVM IR, see [[http://stackoverflow.com/questions/9160509/how-do-i-parse-llvm-ir][how-do-i-parse-llvm-ir]].
 
-** TODO parse C source code
+** CANCELED parse C source code
+   - State "CANCELED"   from "TODO"       [2012-06-20 Wed 14:24] \\
+     nope, use an extant library
 There is a lisp/YACC parser named =parcl= which uses yacc see
 http://common-lisp.net/~sionescu/misc/parcl.tar.gz.
 
@@ -289,6 +293,13 @@ Probably the most robust solution is to [[id:5291eb9c-6abd-4265-a7b5-f182cf317d6
 - Go [[http://llvm.org/devmtg/2010-11/][here]] and read _libclang: Thinking Beyond the Compiler_.
 - see the [[http://clang.llvm.org/doxygen/group__CINDEX.html][clang C API]], especially [[http://clang.llvm.org/doxygen/group__CINDEX__HIGH.html][higher level API functions]]
 - See "[[http://llvm.org/docs/ProgrammersManual.html#simplechanges][Making simple changes]]" in the Programmers Manual
+- see file:/usr/local/src/llvm/tools/clang/examples/PrintFunctionNames/PrintFunctionNames.cpp
+- see file:/usr/local/src/llvm/tools/clang/tools/c-index-test/c-index-test.c
+
+Another option is [[http://gcc-melt.org/][gcc-melt]] with [[https://github.com/bstarynk/melt-examples][examples]].
+
+*** useful functions, how this will work
+- [[file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::*%20\brief%20Retrieve%20the%20replacement%20information%20for%20a%20given%20fix-it.][file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::* \brief Retrieve the replacement information for a given fix-it.]]
 
 * COMMENT Publishing
 This code is used to publish this page to the =cs.unm.edu= webserver.
