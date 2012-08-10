@@ -1,4 +1,4 @@
-;;; lisp.lisp --- software representation of Lisp source code
+;;; lisp-exe.lisp --- software rep of Lisp code (external eval)
 
 ;; Copyright (C) 2011  Eric Schulte
 
@@ -26,14 +26,14 @@
 
 
 ;;; the class of lisp software objects
-(defclass lisp (software-exe) ())
+(defclass lisp-exe (software-exe) ())
 
 (defvar *test-script*  nil "Script capable of running tests.")
 (defvar *pos-test-num* nil "Number of positive tests")
 (defvar *neg-test-num* nil "Number of negative tests")
 
-(defun lisp-from-file (path)
-  (let ((new (make-instance 'lisp)))
+(defun lisp-exe-from-file (path)
+  (let ((new (make-instance 'lisp-exe)))
     (with-open-file (in path)
       (setf (genome new)
             (loop :for form = (read in nil :eof)
@@ -41,15 +41,15 @@
                :collect form)))
     new))
 
-(defun lisp-to-file (software path)
+(defun lisp-exe-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)
     (dolist (form (genome software))
       (format out "~&~S" form))))
 
-(defmethod exe ((lisp lisp) &optional place)
+(defmethod exe ((lisp-exe lisp-exe) &optional place)
   (let ((exe (or place (temp-file-name))))
-    (lisp-to-file lisp exe)
+    (lisp-exe-to-file lisp-exe exe)
     exe))
 
-(defmethod evaluate ((lisp lisp))
-  (evaluate-with-script lisp *test-script* *pos-test-num* *neg-test-num*))
+(defmethod evaluate ((lisp-exe lisp-exe))
+  (evaluate-with-script lisp-exe *test-script* *pos-test-num* *neg-test-num*))
