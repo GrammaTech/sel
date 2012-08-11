@@ -47,11 +47,16 @@
       (format out "~&~S" form))))
 
 (defmacro with-lisp (lisp &rest body)
-  `(handler-case
-       (with-timeout (,*test-timeout*)
-         (mapcar #'eval (genome ,lisp)) ,@body)
-     (timeout-error (c) :timeout)
-     (error (e) :error)))
+  ;; TODO: protect against stack overflow
+  (let ((funsym (gensym)))
+    `(handler-case
+         (with-timeout (,*test-timeout*)
+           (let ((,funsym (eval (genome ,lisp))))
+             (count-if #'identity
+                       (mapcar (lambda (form) (run-test form ,funsym))
+                               *test-forms*))))
+       (timeout-error (c) :timeout)
+       (error (e) :error))))
 
 (defmethod evaluate ((lisp lisp))
   (count t (mapcar (lambda (form) (eval `(with-lisp ,lisp ,form))) *test-forms*)))

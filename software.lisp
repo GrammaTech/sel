@@ -172,24 +172,12 @@
 
 ;;; Software Object
 (defclass software ()
-  ((genome  :initarg :genome  :accessor genome      :initform nil)
-   (fitness :initarg :fitness :accessor raw-fitness :initform nil)
-   (history :initarg :history :accessor history     :initform nil)))
+  ((genome  :initarg :genome  :accessor genome  :initform nil)
+   (fitness :initarg :fitness :accessor fitness :initform nil)
+   (history :initarg :history :accessor history :initform nil)))
 
 (defgeneric copy (software)
   (:documentation "Return a copy of the software."))
-
-(defgeneric evaluate (software)
-  (:documentation "Evaluate SOFTWARE setting the fitness."))
-
-(defgeneric fitness (software)
-  (:documentation "Return the fitness of the software. (caching)"))
-
-(defmethod (setf fitness) (new (software software))
-  (setf (raw-fitness software) new))
-
-(defmethod fitness :around ((software software))
-  (or (raw-fitness software) (setf (fitness software) (call-next-method))))
 
 (defgeneric size (software)
   (:documentation "Return the size of the software individual."))
@@ -282,10 +270,7 @@ SCRIPT should return 0 on success and 1 on failure."
   (make-instance (type-of software)
     :genome  (copy (genome software))
     :history (copy-tree (history software))
-    :fitness (raw-fitness software)))
-
-(defmethod fitness ((software software))
-  (evaluate software))
+    :fitness (fitness software)))
 
 (defmethod size ((software software))
   (size (genome software)))

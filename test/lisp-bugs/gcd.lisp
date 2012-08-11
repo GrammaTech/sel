@@ -1,8 +1,16 @@
-;; playing with lisp software objects
 (require :software-evolution)
+(in-package :software-evolution)
 
-;; test this entirely within lisp (no external script)
-(setq *lsp* (lisp-from-file "test/gcd/gcd.lisp"))
+(setq *gcd*
+      (make-instance 'lisp
+        :genome '((DEFUN EUCLIDS-GCD (A B)
+                    (IF (= A 0)
+                        B)
+                    (DO ()
+                        ((= B 0) A)
+                      (IF (> A B)
+                          (SETF A (- A B))
+                          (SETF B (- B A))))))))
 
 (setq *test-forms*
       (mapcar (lambda-bind ((a b gcd)) `(= (euclids-gcd ,a ,b) ,gcd))
@@ -18,14 +26,6 @@
                 (310 55 5)
                 (0 55 55))))
 
-(setq *population* (list *lsp*))
+(assert (= 10 (evaluate *gcd*)))
 
-#+run
-(repair)
-
-#+diagnostics
-(progn
-  (mapcar #'fitness *population*)
-  (setq *running* nil)
-  (genome *lsp*)
-  )
+(setq *population* (list *gcd*))
