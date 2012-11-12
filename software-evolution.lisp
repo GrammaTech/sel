@@ -39,6 +39,9 @@
 (defgeneric evaluate (software)
   (:documentation "Evaluate a the software returning a numerical fitness."))
 
+(defgeneric copy (software)
+  (:documentation "Copy the software."))
+
 (defgeneric mutate (software)
   (:documentation "Mutate the software."))
 

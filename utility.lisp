@@ -33,7 +33,14 @@
 
 (defun file-to-string (path)
   (apply #'concatenate 'string
-         (loop :for line = (read-line in nil) :while line :collect line)))
+         (let (res)
+           (with-open-file (in path)
+             (do ((p (multiple-value-bind (a b) (read-line in nil) (cons a b))
+                     (multiple-value-bind (a b) (read-line in nil) (cons a b))))
+                 ((cdr p))
+               (push (car p) res)
+               (push (vector #\Newline) res)))
+           (reverse res))))
 
 (defun string-to-file (string path &key if-exists)
   (with-open-file (out path :direction :output :if-exists if-exists)
@@ -185,6 +192,14 @@ Optional argument OUT specifies an output stream."
 (defun transpose (matrix)
   "Simple matrix transposition."
   (apply #'map 'list #'list matrix))
+
+(defun interleave (list sep &optional rest)
+  (if (cdr list)
+      (interleave (cdr list) sep (cons sep (cons (car list) rest)))
+      (reverse (cons (car list) rest))))
+
+(defun mapconcat (func list sep)
+  (apply #'concatenate 'string (interleave (mapcar func list) sep)))
 
 
 ;;; debugging helpers

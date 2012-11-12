@@ -26,62 +26,89 @@
 
 
 ;;; clang software objects
-(defclass clang (software-exe)
+(defclass clang (software)
   ((c-flags :initarg :c-flags :accessor c-flags :initform nil)))
 
-(defun clang-from-file (path)
-  (let ((new (make-instance 'clang))
+(defmethod copy ((clang clang))
+  (make-instance 'clang
+    :c-flags (c-flags clang)
+    :fitness (fitness clang)
+    :edits   (edits clang)))
+
+(defun clang-from-file (path &key c-flags)
+  (assert (listp c-flags) (c-flags) "c-flags must be a list")
+  (let ((new (make-instance 'clang :c-flags c-flags))
         (orig (file-to-string path)))
-    (setf (edits new) (list (reverse orig)))
+    (setf (edits new) (list orig))
     new))
 
 (defun asm-to-file (software path)
   (string-to-file (genome software) path :if-exists :supersede))
 
-(defun clang-mutate (clang &rest ops)
+(def-memoized-function genome-helper (edits c-flags)
+  (if (> (length edits) 1)
+      (clang-mutate (genome-helper (cdr edits) c-flags) (car edits)
+                    :c-flags c-flags)
+      (car edits)))
+
+(defmethod genome ((clang clang))
+  (genome-helper (edits clang) (c-flags clang)))
+
+(defun clang-mutate (genome op &key c-flags)
+  "Returns the results of mutating GENOME with OP.
+Mutations are performed using the clang-mutate executable."
   (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
     (let ((src (temp-file-name "c")))
-      (string-to-file (genome clang) src)
+      (string-to-file genome src)
       (multiple-value-bind (output err-output exit)
-          (shell "clang-mutate"
-                 (append
-                  (case (car ops)
-                    (:ids     (list "-ids"))
-                    (:cut     (list "-delete"
-                                    (stmt 1 (second ops))))
-                    (:insert  (list "-insert"
-                                    (stmt 1 (second ops))
-                                    (stmt 2 (third ops))))
-                    (:swap    (list "-swap"
-                                    (stmt 1 (second ops))
-                                    (stmt 2 (third ops))))
-                    (:default (list (format nil "-~a" (car ops)))))
-                  `(,src "--" ,@(c-flags clang) "|tail -n +3")))
+          (shell "clang-mutate ~a"
+                 (mapconcat #'identity
+                            (append
+                             (case (car op)
+                               (:ids     (list "-ids"))
+                               (:cut     (list "-delete"
+                                               (stmt 1 (second op))))
+                               (:insert  (list "-insert"
+                                               (stmt 1 (second op))
+                                               (stmt 2 (third op))))
+                               (:swap    (list "-swap"
+                                               (stmt 1 (second op))
+                                               (stmt 2 (third op))))
+                               (:default (list (format nil "-~a" (car op)))))
+                             `(,src "--" ,@c-flags "|tail -n +3"))
+                            " "))
         (declare (ignorable err-output))
-        (when (zerop exit) output)))))
+        (values output exit)))))
+(memoize-function 'clang-mutate)
 
 (defun num-ids (clang) ;; TODO: memoize
-  (parse-integer (clang-mutate clang :ids)))
+  (parse-integer (clang-mutate (genome clang) (list :ids)
+                               :c-flags (c-flags clang))))
 
 (defmethod mutate ((clang clang))
   "Randomly mutate VARIANT with chance MUT-P."
   (let ((num-ids (num-ids clang)))
     (assert (and num-ids (> num-ids 0)) (num-ids) "No valid IDs")
+    (setf (fitness clang) nil)
     (flet ((place () (random num-ids)))
       (push (case (random-elt '(cut insert swap))
-              (cut    `(cut    ,(place)))
-              (insert `(insert ,(place) ,(place)))
-              (swap   `(swap   ,(place) ,(place))))
-            (edits clang)))))
+              (cut    `(:cut    ,(place)))
+              (insert `(:insert ,(place) ,(place)))
+              (swap   `(:swap   ,(place) ,(place))))
+            (edits clang)))
+    clang))
 
 (defmethod patch-subset ((a clang) (b clang))
   "Return a new clang composed of subsets of the edits from A and B."
-  (flet ((some-of (edits)
-           (remove-if (lambda (_) (declare (ignorable _)) (zerop (random 2)))
-                      (butlast edits 1))))
-    (setf (edits a)
-          (append (some-of (edits a)) (some-of (edits b))
-                  (last (edits a))))))
+  (let ((new (copy a)))
+    (flet ((some-of (edits)
+             (remove-if (lambda (_) (declare (ignorable _)) (zerop (random 2)))
+                        (butlast edits 1))))
+      (setf (edits new)
+            (append (some-of (edits a)) (some-of (edits b))
+                    (last (edits a))))
+      (setf (fitness new) nil)
+      new)))
 
 (defmethod crossover ((a clang) (b clang)) (patch-subset a b))
 
@@ -90,6 +117,7 @@
         (bin (temp-file-name)))
     (string-to-file (genome clang) src)
     (multiple-value-bind (output err-output exit)
-        (shell "clang" src "-o" bin (c-flags clang))
+        (shell "clang ~a -o ~a ~a"
+               src bin (mapconcat #'identity (c-flags clang) " "))
       (declare (ignorable output err-output))
-      (when (zerop exit) bin))))
+      (values (if (zerop exit) bin src) exit))))

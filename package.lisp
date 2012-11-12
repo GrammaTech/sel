@@ -11,5 +11,6 @@
    :cl-ppcre
    ;; :cl-quickcheck
    :eager-future2
+   :org.tfeb.hax.memoize
    )
   (:shadow :type))

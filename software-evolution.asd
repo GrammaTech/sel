@@ -12,6 +12,7 @@
                cl-ppcre
                ;; cl-quickcheck
                eager-future2
+               memoize
                )
   :components
   ((:static-file "COPYING")
@@ -20,5 +21,5 @@
    (:file "package")
    (:file "utility"            :depends-on ("package"))
    (:file "software-evolution" :depends-on ("package" "utility"))
-   ;; (:file "software/clang"     :depends-on ("package" "utility" "software-evolution"))
+   (:file "software/clang"     :depends-on ("package" "utility" "software-evolution"))
    ))
