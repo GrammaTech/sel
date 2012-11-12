@@ -34,10 +34,10 @@
 
 (defmethod copy ((clang clang))
   (make-instance 'clang
-    :c-flags (c-flags clang)
+    :c-flags (copy-tree (c-flags clang))
     :base    (base clang)
     :fitness (fitness clang)
-    :edits   (edits clang)))
+    :edits   (copy-tree (edits clang))))
 
 (defun clang-from-file (path &key c-flags)
   (assert (listp c-flags) (c-flags) "c-flags must be a list")
@@ -53,7 +53,7 @@
       (clang-mutate (genome-helper (cdr edits) base c-flags) (car edits)
                     :c-flags c-flags)
       base))
-(memoize-function 'genome-helper :key #'identity)
+;; (memoize-function 'genome-helper :key #'identity)
 ;; (unmemoize-function 'genome-helper)
 
 (defmethod genome ((clang clang))

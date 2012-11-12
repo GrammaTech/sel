@@ -69,7 +69,9 @@
 (defmacro with-temp-file-of (spec str &rest body)
   `(let ((,(car spec) (temp-file-name ,(second spec))))
      (unwind-protect
-          (progn (string-to-file ,str ,(car spec)) ,@body)
+          (progn ;; (format t "~&-->~a<--~%" ,(car spec))
+                 (string-to-file ,str ,(car spec))
+                 ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
 (defun shell (&rest rst)

@@ -12,6 +12,7 @@
           (write *random-state* :stream out)))))
 
 (defvar *test-script* "./test.sh")
+(defvar *base* (file-to-string "gcd.c"))
 (defvar *orig* (clang-from-file "gcd.c" :c-flags (list "2>/dev/null")))
 
 (defun run-test (phenome num)
@@ -36,11 +37,13 @@
     (store
      (block repair
        (flet ((mut (op)
-                (let ((new (copy *orig*)))
-                  (format t "~&testing ~S~%" op)
-                  (push op (edits new))
-                  (when (= 12 (test-suite new))
-                    (return-from repair new)))))
+                (let ((it (make-instance 'clang
+                            :base *base*
+                            :edits (list op)
+                            :c-flags (list "2>/dev/null"))))
+                  (when (= 12 (test-suite it))
+                    (format t "repair found!~%")
+                    (return-from repair it)))))
          ;; delete
          (loop :for id :below num :do
             (mut (list :cut id)))
