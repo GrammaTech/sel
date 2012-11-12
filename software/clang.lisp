@@ -84,7 +84,7 @@ Mutations are performed using the clang-mutate executable."
                             " "))
         (unless (zerop exit) (throw 'clang-mutate err-output))
         output))))
-(memoize-function 'clang-mutate :key #'identity)
+;; (memoize-function 'clang-mutate :key #'identity)
 ;; (unmemoize-function 'clang-mutate)
 
 (defun num-ids (clang)
