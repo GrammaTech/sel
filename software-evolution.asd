@@ -1,5 +1,5 @@
 (defsystem :software-evolution
-  :description "software-evolution enables evolution of extant software."
+  :description "evolution of extant software."
   :long-description ""
   :version "0.0.0"
   :licence "GPL V3"
@@ -18,14 +18,7 @@
    (:static-file "Makefile")
    (:static-file "test/tests.lisp")
    (:file "package")
-   (:file "utility"       :depends-on ("package"))
-   (:file "software"      :depends-on ("package" "utility"))
-   (:file "software/asm"  :depends-on ("package" "utility" "software"))
-   (:file "software/elf"  :depends-on ("package" "utility" "software"))
-   (:file "software/lisp" :depends-on ("package" "utility" "software"))
-   (:file "evolution"     :depends-on ("package" "utility" "software"))
-   (:file "evolution/repair"
-    :depends-on ("package" "utility" "software" "evolution"))
-   (:file "executable"
-    :depends-on ("package" "utility" "software" "evolution" "evolution/repair"))
+   (:file "utility"            :depends-on ("package"))
+   (:file "software-evolution" :depends-on ("package" "utility"))
+   ;; (:file "software/clang"     :depends-on ("package" "utility" "software-evolution"))
    ))
