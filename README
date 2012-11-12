@@ -4,7 +4,7 @@
 #+email: eschulte@cs.unm.edu
 #+Options: toc:1 ^:nil
 #+properties: exports code
-#+HTML: <center>enabling the evolution of extant software projects</center>
+#+HTML: <center>extant software evolution</center>
 
 * Design
 :   +-------------+    +-------------+    +--------+    +--------------+

@@ -1,6 +1,6 @@
-;;; evolution.lisp --- evolutionary operations over software objects
+;;; software-evolution.lisp --- Extant Software Evolution
 
-;; Copyright (C) 2011  Eric Schulte
+;; Copyright (C) 2011-2012  Eric Schulte
 
 ;;; License:
 
@@ -25,7 +25,24 @@
 (in-package :software-evolution)
 
 
-;;; Settings
+;;; Software Object
+(defclass software ()
+  ((edits :initarg :edits :accessor edits :initform nil)))
+
+(defgeneric evaluate (software)
+  (:documentation "Evaluate a the software returning a numerical fitness."))
+
+(defgeneric mutate (software)
+  (:documentation "Mutate the software."))
+
+(defgeneric crossover (software-a software-b)
+  (:documentation "Crossover two software objects."))
+
+(defgeneric edit-distance (software-a software-b)
+  (:documentation "Return the edit distance between two software objects."))
+
+
+;;; Evolution
 (defvar *population* nil
   "Holds the variant programs to be evolved.")
 
@@ -47,8 +64,6 @@
 (defvar *running* nil
   "True when evolving, set to nil to stop evolution.")
 
-
-;;; functions
 (defun incorporate (software)
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
   (push software *population*)
