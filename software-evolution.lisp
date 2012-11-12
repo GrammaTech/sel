@@ -90,14 +90,6 @@
                (push (random-elt *population*) competitors))
              predicate :key #'fitness)))
 
-(defun mutate (individual)
-  "Mutate the supplied INDIVIDUAL."
-  (funcall (case (random 3)
-             (0 #'insert)
-             (1 #'cut)
-             (2 #'swap)) individual)
-  individual)
-
 (defun mutant ()
   "Generate a new mutant from a *POPULATION*."
   (mutate (copy (tournament))))
