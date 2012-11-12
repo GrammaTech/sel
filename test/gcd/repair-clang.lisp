@@ -29,6 +29,6 @@
 (assert (= 11 (fitness *orig*)) (*orig*) "failed sanity check")
 
 ;; run repair
-(let ((*population* (list *orig*))
+(let ((*population* (repeatedly 100 (copy *orig*)))
       (*max-population-size* 100))
   (store (evolve #'test-suite) "results.store"))
