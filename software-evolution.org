@@ -1,4 +1,3 @@
-# -*- org -*-
 #+Title: Software Evolution
 #+Author: Eric Schulte
 #+email: eschulte@cs.unm.edu
@@ -66,7 +65,7 @@ variables and through arguments to the =evolve= function.
 Licensed under the GPLV3, see the [[file:COPYING][COPYING]] file in this directory for
 more information.
 
-1. Available using git from [[http://gitweb.adaptive.cs.unm.edu/software-evolution.git][git://adaptive.cs.unm.edu/software-evolution.git]].
+1. Available using git from [[https://github.com/eschulte/software-evolution][github]].
 
 2. To begin, =cd= into the =test/gcd= directory and look around.
    : $ ls -1
@@ -91,7 +90,7 @@ more information.
    [[file:test/gcd/second-run.lisp][second-run.lisp]] for an example configuration file using an incoming
    population.
 
-* Notes
+* COMMENT Notes
 The following are informal working and development notes.
 
 ** an option for containing the execution of evolved variants

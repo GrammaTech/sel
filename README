@@ -1,0 +1,115 @@
+                          Software Evolution
+                          ==================
+
+Author: Eric Schulte
+Date: 2012-11-12 16:02:41 MST
+
+
+Table of Contents
+=================
+1 Design
+2 Usage
+
+
+1 Design 
+=========
+  +-------------+    +-------------+    +--------+    +--------------+
+  | interactive |    | distributed |    | repair |    | optimization |
+  |-------------|    |-------------|    |--------|    |--------------|
+  | live in the |    |  using ZMQ  |    | fixing |    |   improve    |
+  |   editor    |    |             |    |  bugs  |    |  performance |
+  +-------------+    +-------------+    +--------+    +--------------+ ...
+         |                  |                |                 |
+         +------------------+------+---------+-----------------+
+                                   |
+                                 +-+-+
+                                 | | |                   population functions
+ global variables           +--------------+             --------------------
+ ----------------           | *population* |             incorporate
+ *population*               |--------------|             evict
+ *max-population-size*      | list of soft |             tournament
+ *tournament-size*          |    objects   |             mutate
+ *cross-chance*             +--------------+             crossed
+ *fitness-evals*                   |                     new-individual
+ *running*                       +-+-+
+                                 | | |
+                          +------------------+
+                          |     software     |           software functions
+                          |------------------|           --------------
+                          | genome (& trace) |           copy
+  repair arguments        | fitness          |           evaluate
+  ----------------        | history          |           insert
+  max-evals               | ...              |           cut
+  max-time                +------------------+           swap
+  max-inds                          |                    crossover
+  max-fit                 +---------+---------+
+  min-fit                 |                   |
+  pop-fn          +---------------+     +-------------+
+  ind-fn          |      asm      |     |    lisp     |
+                  |---------------|     |-------------|
+                  | assembly code |     | lisp source |
+                  +---------------+     +-------------+ ...
+
+The =*population*= is a global variable holding a list of evolving
+software variants.  The evolutionary computation functions operate
+directly on the =*population*= through the "population functions".
+Exposure of the population through a global variable enables the user
+to initialize the population in any way, and allows external functions
+to monitor and interact with the population during evolution.  For
+example [distributed.lisp] enables sharing of individuals between
+multiple instances of evolution through two "sharing" functions which
+interact with the =*population*= variable directly.
+
+Each software variant is an object whose class is a sub-class of the
+general =software= class.  New representations are implemented through
+sub-classing =software= and customizing the generic "software
+functions" where necessary.
+
+Parameterization of the EC algorithm is done through setting global
+variables and through arguments to the =evolve= function.
+
+
+[distributed.lisp]: file:evolution/distributed.lisp
+
+2 Usage 
+========
+Licensed under the GPLV3, see the [COPYING] file in this directory for
+more information.
+
+1. Available using git from [github].
+
+2. To begin, =cd= into the =test/gcd= directory and look around.
+   $ ls -1
+   gcd.c                   # <- original program
+   gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
+   repair-asm.lisp         # <- options to repair
+   test.sh*                # <- test script used to exercise gcd variants
+
+3. Repairs may be performed from an interactive lisp session, for
+   example, through evaluating the forms in [repair-asm.lisp].
+
+4. Running =make= in this directory will build a =soft-ev= command
+   line utility allowing repair to be scripted from the command line
+   using simple configuration files.  The help message of the
+   =soft-ev= command line utility serves as a template configuration
+   file.
+
+5. Distributed evolution between multiple lisp process on one or many
+   machines is enabled using the [∅MQ] socket library.  Additionally,
+   because population initialization is left to the user, distributed
+   EC algorithms may also be implemented externally.  See
+   [second-run.lisp] for an example configuration file using an incoming
+   population.
+
+
+
+
+
+
+
+   [COPYING]: file:COPYING
+   [github]: https://github.com/eschulte/software-evolution
+   [repair-asm.lisp]: file:test/gcd/repair-asm.lisp
+   [∅MQ]: http://www.zeromq.org
+   [second-run.lisp]: file:test/gcd/second-run.lisp
+
