@@ -176,6 +176,9 @@
    (fitness :initarg :fitness :accessor fitness :initform nil)
    (history :initarg :history :accessor history :initform nil)))
 
+(defgeneric evaluate (software)
+  (:documentation "Evaluate a the software returning a numerical fitness."))
+
 (defgeneric copy (software)
   (:documentation "Return a copy of the software."))
 

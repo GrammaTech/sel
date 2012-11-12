@@ -28,9 +28,10 @@
 ;;; the class of lisp software objects
 (defclass lisp (software) ())
 
-(defvar *test-forms* nil "Forms used to run tests.")
+(defmethod func ((lisp lisp)) (eval (genome lisp)))
 
-(defvar *test-timeout* 0.05 "Form used to run tests.")
+(defvar *test-forms* nil "Forms used to `evaluate' a `lisp' instance.")
+(defvar *test-timeout* 0.05 "Time limit used to `evaluate' a `lisp' instance.")
 
 (defun lisp-from-file (path)
   (let ((new (make-instance 'lisp)))
@@ -46,17 +47,20 @@
     (dolist (form (genome software))
       (format out "~&~S" form))))
 
-(defmacro with-lisp (lisp &rest body)
+(defmacro with-harness (&rest body)
   ;; TODO: protect against stack overflow
-  (let ((funsym (gensym)))
-    `(handler-case
-         (with-timeout (,*test-timeout*)
-           (let ((,funsym (eval (genome ,lisp))))
-             (count-if #'identity
-                       (mapcar (lambda (form) (run-test form ,funsym))
-                               *test-forms*))))
-       (timeout-error (c) :timeout)
-       (error (e) :error))))
+  `(locally
+       (declare
+        #+sbcl (sb-ext:muffle-conditions sb-kernel:redefinition-warning))
+     (handler-bind
+         (#+sbcl (sb-kernel:redefinition-warning #'muffle-warning))
+       (handler-case (with-timeout (*test-timeout*) ,@body)
+         (timeout-error (c) (declare (ignorable c)) :timeout)
+         (error (e) (declare (ignorable e)) :error)))))
 
 (defmethod evaluate ((lisp lisp))
-  (count t (mapcar (lambda (form) (eval `(with-lisp ,lisp ,form))) *test-forms*)))
+  (count-if (lambda (result)
+              (case result ((:timeout :error) nil) (t result)))
+            (mapcar (lambda (test)
+                      (with-harness (funcall test (func lisp))))
+                    *test-forms*)))
