@@ -27,7 +27,8 @@
 
 ;;; Software Object
 (defclass software ()
-  ((edits :initarg :edits :accessor edits :initform nil)))
+  ((edits   :initarg :edits   :accessor edits   :initform nil)
+   (fitness :initarg :fitness :accessor fitness :initform nil)))
 
 (defgeneric evaluate (software)
   (:documentation "Evaluate a the software returning a numerical fitness."))
@@ -102,3 +103,36 @@
 (defun new-individual ()
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
+
+(defun evolve (&key max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
+  "Evolves population until an optional stopping criterion is met.
+
+Optional keys are as follows.
+  MAX-EVALS ------- stop after this many fitness evaluations
+  MAX-INDS -------- stop after this many new individuals have been tried
+  MAX-TIME -------- stop after this many generations
+  MAX-FIT --------- stop when an individual achieves this fitness or higher
+  MIN-FIT --------- stop when an individual achieves this fitness or lower
+  POP-FN ---------- stop when the population satisfies this function
+  IND-FN ---------- stop when an individual satisfies this function"
+  (let ((start-time (get-internal-real-time))
+        (inds 0))
+    (setq *fitness-evals* 0)
+    (setq *running* t)
+    (loop :until (or (not *running*)
+                     (and max-evals (> *fitness-evals* max-evals))
+                     (and max-inds (> inds max-inds))
+                     (and max-time (> (/ (- (get-internal-real-time) start-time)
+                                         internal-time-units-per-second)
+                                      max-time)))
+       :do (let ((new (new-individual)))
+             (incf inds)
+             (setf (fitness new) (evaluate new))
+             (assert (numberp (fitness new)))
+             (incorporate new)
+             (when (or (and max-fit (>= (fitness new) max-fit))
+                       (and min-fit (<= (fitness new) min-fit))
+                       (and ind-fn (funcall ind-fn new)))
+               (return new))
+             (when (and pop-fn (funcall pop-fn *population*))
+               (return))))))
