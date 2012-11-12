@@ -61,6 +61,17 @@
         (concatenate 'string base "." ext)
         base)))
 
+(defmacro with-temp-file (spec &rest body)
+  `(let ((,(car spec) (temp-file-name ,(second spec))))
+     (unwind-protect (progn ,@body)
+       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+
+(defmacro with-temp-file-of (spec str &rest body)
+  `(let ((,(car spec) (temp-file-name ,(second spec))))
+     (unwind-protect
+          (progn (string-to-file ,str ,(car spec)) ,@body)
+       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+
 (defun shell (&rest rst)
   (multiple-value-bind (output err-output exit)
       (shell-command (apply #'format (cons nil rst)) :input nil)

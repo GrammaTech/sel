@@ -21,14 +21,40 @@
     (zerop exit)))
 
 (def-memoized-function test-suite (clang)
-  (let ((phenome (phenome clang)))
-    (count t (loop :for num :upto 11 :collect (run-test phenome num)))))
+  (with-temp-file (bin)
+    (if (phenome clang :bin bin)
+        (count t (loop :for num :upto 11 :collect (run-test bin num)))
+        0)))
 
 ;; sanity check
 (setf (fitness *orig*) (test-suite *orig*))
 (assert (= 11 (fitness *orig*)) (*orig*) "failed sanity check")
 
 ;; run repair
-(let ((*population* (repeatedly 100 (copy *orig*)))
-      (*max-population-size* 100))
-  (store (evolve #'test-suite) "results.store"))
+(defun brute-force ()
+  (let ((num (num-ids *orig*)))
+    (store
+     (block repair
+       (flet ((mut (op)
+                (let ((new (copy *orig*)))
+                  (format t "~&testing ~S~%" op)
+                  (push op (edits new))
+                  (when (= 12 (test-suite new))
+                    (return-from repair new)))))
+         ;; delete
+         (loop :for id :below num :do
+            (mut (list :cut id)))
+         ;; insert
+         (loop :for left :below num :do
+            (loop :for right :below num :do
+               (mut (list :insert left right))))
+         ;; swap
+         (loop :for left :below num :do
+            (loop :for right :below num :do
+               (mut (list :swap left right))))))
+     "results.store")))
+
+(defun ga ()
+  (let ((*population* (repeatedly 100 (copy *orig*)))
+        (*max-population-size* 100))
+    (store (evolve #'test-suite :max-fit 12) "results.store")))

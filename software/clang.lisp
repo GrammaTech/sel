@@ -54,6 +54,7 @@
                     :c-flags c-flags)
       base))
 (memoize-function 'genome-helper :key #'identity)
+;; (unmemoize-function 'genome-helper)
 
 (defmethod genome ((clang clang))
   (genome-helper (edits clang) (base clang) (c-flags clang)))
@@ -62,8 +63,7 @@
   "Returns the results of mutating GENOME with OP.
 Mutations are performed using the clang-mutate executable."
   (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
-    (let ((src (temp-file-name "c")))
-      (string-to-file genome src)
+    (with-temp-file-of (src "c") genome
       (multiple-value-bind (output err-output exit)
           (shell "clang-mutate ~a"
                  (mapconcat #'identity
@@ -78,12 +78,14 @@ Mutations are performed using the clang-mutate executable."
                                (:swap    (list "-swap"
                                                (stmt 1 (second op))
                                                (stmt 2 (third op))))
-                               (:default (list (format nil "-~a" (car op)))))
+                               (t (list (string-downcase
+                                         (format nil "-~a" (car op))))))
                              `(,src "--" ,@c-flags "|tail -n +3"))
                             " "))
         (unless (zerop exit) (throw 'clang-mutate err-output))
         output))))
 (memoize-function 'clang-mutate :key #'identity)
+;; (unmemoize-function 'clang-mutate)
 
 (defun num-ids (clang)
   (handler-case
@@ -118,12 +120,11 @@ Mutations are performed using the clang-mutate executable."
 
 (defmethod crossover ((a clang) (b clang)) (patch-subset a b))
 
-(defmethod phenome ((clang clang))
-  (let ((src (temp-file-name "c"))
-        (bin (temp-file-name)))
-    (string-to-file (genome clang) src)
-    (multiple-value-bind (output err-output exit)
-        (shell "clang ~a -o ~a ~a"
-               src bin (mapconcat #'identity (c-flags clang) " "))
-      (declare (ignorable output err-output))
-      (values (if (zerop exit) bin src) exit))))
+(defmethod phenome ((clang clang) &key bin)
+  (with-temp-file-of (src "c") (genome clang)
+    (let ((bin (or bin (temp-file-name))))
+      (multiple-value-bind (output err-output exit)
+          (shell "clang ~a -o ~a ~a"
+                 src bin (mapconcat #'identity (c-flags clang) " "))
+        (declare (ignorable output err-output))
+        (values (if (zerop exit) bin src) exit)))))

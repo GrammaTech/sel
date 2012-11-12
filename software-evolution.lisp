@@ -33,7 +33,7 @@
 (defgeneric genome (software)
   (:documentation "Genotype of the software."))
 
-(defgeneric phenome (software)
+(defgeneric phenome (software &key bin)
   (:documentation "Phenotype of the software."))
 
 (defgeneric evaluate (software)
