@@ -31,6 +31,14 @@
     (dir sb-alien:c-string)
     (prefix sb-alien:c-string)))
 
+(defun file-to-string (path)
+  (apply #'concatenate 'string
+         (loop :for line = (read-line in nil) :while line :collect line)))
+
+(defun string-to-file (string path &key if-exists)
+  (with-open-file (out path :direction :output :if-exists if-exists)
+    (format out string)))
+
 (defun temp-file-name (&optional ext)
   (let ((base #+clisp
           (let ((stream (gensym)))

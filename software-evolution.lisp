@@ -30,6 +30,12 @@
   ((edits   :initarg :edits   :accessor edits   :initform nil)
    (fitness :initarg :fitness :accessor fitness :initform nil)))
 
+(defgeneric genome (software)
+  (:documentation "Genotype of the software."))
+
+(defgeneric phenome (software)
+  (:documentation "Phenotype of the software."))
+
 (defgeneric evaluate (software)
   (:documentation "Evaluate a the software returning a numerical fitness."))
 
@@ -104,7 +110,8 @@
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
 
-(defun evolve (&key max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
+(defun evolve (test
+               &key max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
   "Evolves population until an optional stopping criterion is met.
 
 Optional keys are as follows.
@@ -127,7 +134,7 @@ Optional keys are as follows.
                                       max-time)))
        :do (let ((new (new-individual)))
              (incf inds)
-             (setf (fitness new) (evaluate new))
+             (setf (fitness new) (funcall #'test new))
              (assert (numberp (fitness new)))
              (incorporate new)
              (when (or (and max-fit (>= (fitness new) max-fit))
