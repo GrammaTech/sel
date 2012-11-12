@@ -20,16 +20,15 @@
     (declare (ignorable output err-output))
     (zerop exit)))
 
-(defun test-suite (clang)
+(def-memoized-function test-suite (clang)
   (let ((phenome (phenome clang)))
     (count t (loop :for num :upto 11 :collect (run-test phenome num)))))
-(memoize-function 'test-suite)
 
 ;; sanity check
-(setf (fitness *orig*) (evaluate *orig*))
+(setf (fitness *orig*) (test-suite *orig*))
 (assert (= 11 (fitness *orig*)) (*orig*) "failed sanity check")
 
 ;; run repair
-(let ((*population* (repeatedly 10 (mutate (copy *orig*))))
+(let ((*population* (list *orig*))
       (*max-population-size* 100))
   (store (evolve #'test-suite) "results.store"))

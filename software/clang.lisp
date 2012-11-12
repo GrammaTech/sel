@@ -46,11 +46,12 @@
 (defun asm-to-file (software path &key if-exists)
   (string-to-file (genome software) path :if-exists if-exists))
 
-(def-memoized-function genome-helper (edits base c-flags)
+(defun genome-helper (edits base c-flags)
   (if edits
       (clang-mutate (genome-helper (cdr edits) base c-flags) (car edits)
                     :c-flags c-flags)
       base))
+(memoize-function 'genome-helper :key #'identity)
 
 (defmethod genome ((clang clang))
   (genome-helper (edits clang) (base clang) (c-flags clang)))
@@ -78,13 +79,15 @@ Mutations are performed using the clang-mutate executable."
                                (:default (list (format nil "-~a" (car op)))))
                              `(,src "--" ,@c-flags "|tail -n +3"))
                             " "))
-        (declare (ignorable err-output))
-        (values output exit)))))
-(memoize-function 'clang-mutate)
+        (unless (zerop exit) (throw 'clang-mutate err-output))
+        output))))
+(memoize-function 'clang-mutate :key #'identity)
 
-(defun num-ids (clang) ;; TODO: memoize
-  (parse-integer (clang-mutate (genome clang) (list :ids)
-                               :c-flags (c-flags clang))))
+(defun num-ids (clang)
+  (handler-case
+      (read-from-string
+       (clang-mutate (genome clang) (list :ids) :c-flags (c-flags clang)))
+    (clang-mutate (err) (declare (ignorable err)) (format t "caught") 0)))
 
 (defmethod mutate ((clang clang))
   "Randomly mutate VARIANT with chance MUT-P."
