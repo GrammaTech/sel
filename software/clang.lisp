@@ -21,6 +21,8 @@
 
 ;;; Commentary:
 
+;; TODO: clean up temporary files
+
 ;;; Code:
 (in-package :software-evolution)
 
