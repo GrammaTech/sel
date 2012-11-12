@@ -47,7 +47,7 @@
          ;; delete
          (loop :for id :below num :do
             (mut (list :cut id)))
-         (error "should have found it by now")
+         (error 'brute-force "should have found it by now")
          ;; insert
          (loop :for left :below num :do
             (loop :for right :below num :do
@@ -61,4 +61,4 @@
 (defun ga ()
   (let ((*population* (repeatedly 100 (copy *orig*)))
         (*max-population-size* 100))
-    (store (evolve #'test-suite :max-fit 12) "results.store")))
+    (store (evolve #'test-suite :max-fit 12) "results-ga.store")))

@@ -96,7 +96,7 @@ Mutations are performed using the clang-mutate executable."
 (defmethod mutate ((clang clang))
   "Randomly mutate VARIANT with chance MUT-P."
   (let ((num-ids (num-ids clang)))
-    (assert (and num-ids (> num-ids 0)) (num-ids) "No valid IDs")
+    (unless (and num-ids (> num-ids 0)) (error 'mutate "No valid IDs"))
     (setf (fitness clang) nil)
     (flet ((place () (random num-ids)))
       (push (case (random-elt '(cut insert swap))
