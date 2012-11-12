@@ -27,32 +27,33 @@
 
 ;;; clang software objects
 (defclass clang (software)
-  ((c-flags :initarg :c-flags :accessor c-flags :initform nil)))
+  ((base    :initarg :base    :accessor base    :initform nil)
+   (c-flags :initarg :c-flags :accessor c-flags :initform nil)))
 
 (defmethod copy ((clang clang))
   (make-instance 'clang
     :c-flags (c-flags clang)
+    :base    (base clang)
     :fitness (fitness clang)
     :edits   (edits clang)))
 
 (defun clang-from-file (path &key c-flags)
   (assert (listp c-flags) (c-flags) "c-flags must be a list")
-  (let ((new (make-instance 'clang :c-flags c-flags))
-        (orig (file-to-string path)))
-    (setf (edits new) (list orig))
-    new))
+  (make-instance 'clang
+    :base    (file-to-string path)
+    :c-flags c-flags))
 
-(defun asm-to-file (software path)
-  (string-to-file (genome software) path :if-exists :supersede))
+(defun asm-to-file (software path &key if-exists)
+  (string-to-file (genome software) path :if-exists if-exists))
 
-(def-memoized-function genome-helper (edits c-flags)
-  (if (> (length edits) 1)
-      (clang-mutate (genome-helper (cdr edits) c-flags) (car edits)
+(def-memoized-function genome-helper (edits base c-flags)
+  (if edits
+      (clang-mutate (genome-helper (cdr edits) base c-flags) (car edits)
                     :c-flags c-flags)
-      (car edits)))
+      base))
 
 (defmethod genome ((clang clang))
-  (genome-helper (edits clang) (c-flags clang)))
+  (genome-helper (edits clang) (base clang) (c-flags clang)))
 
 (defun clang-mutate (genome op &key c-flags)
   "Returns the results of mutating GENOME with OP.
