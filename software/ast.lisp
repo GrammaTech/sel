@@ -59,7 +59,7 @@
 
 (defmethod genome ((ast ast)) (genome-helper ast))
 
-(defgeneric ast-mutate ((ast ast) op)
+(defgeneric ast-mutate (ast &optional op)
   (:documentation "Mutate AST with either clang-mutate or cil-mutate."))
 
 (defun num-ids (ast)
