@@ -22,4 +22,5 @@
    (:file "utility"            :depends-on ("package"))
    (:file "software-evolution" :depends-on ("package" "utility"))
    (:file "software/clang"     :depends-on ("package" "utility" "software-evolution"))
+   (:file "software/cil"       :depends-on ("package" "utility" "software-evolution"))
    ))

@@ -45,7 +45,7 @@
     :base    (file-to-string path)
     :c-flags c-flags))
 
-(defun asm-to-file (software path &key if-exists)
+(defun clang-to-file (software path &key if-exists)
   (string-to-file (genome software) path :if-exists if-exists))
 
 (defun genome-helper (edits base c-flags)
