@@ -1,6 +1,6 @@
-;;; cil.lisp --- cil software representation
+;;; ast.lisp --- clang software representation
 
-;; Copyright (C) 2012  Eric Schulte
+;; Copyright (C) 2012 Eric Schulte
 
 ;;; License:
 
@@ -11,33 +11,38 @@
 ;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; along with GNU Emacs; see the file COPYING. If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Code:
 (in-package :software-evolution)
 
-
-;;; cil software objects
-(defclass cil (ast) ())
+(defclass clang (ast)
+  ((compiler  :initarg :compiler :accessor compiler :initform "clang")
+   (ext       :initarg :ext      :accessor ext      :initform "c")))
 
-(defvar cil-file-extension "c")
+(defmethod copy ((clang clang))
+  (make-instance (type-of clang)
+    :c-flags  (copy-tree (c-flags clang))
+    :base     (base clang)
+    :fitness  (fitness clang)
+    :edits    (copy-tree (edits clang))
+    :compiler (compiler clang)
+    :ext      (ext clang)))
 
-(defvar cil-compiler "gcc")
-
-(defmethod ast-mutate ((cil cil) &optional op)
-  (flet ((stmt (num arg) (format nil "-stmt~d ~d" num arg)))
-    (with-temp-file-of (src cil-file-extension) (genome cil)
-      (multiple-value-bind (output err-output exit)
-          (shell "cil-mutate ~a"
-                 (mapconcat #'identity
-                            (append
-                             (if op
+(defmethod ast-mutate ((clang clang) &optional op)
+  (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
+    (if op
+        (with-temp-file-of (src (ext ast)) (genome clang)
+          (multiple-value-bind (output err-output exit)
+              (shell "clang-mutate ~a"
+                     (mapconcat #'identity
+                                (append
                                  (case (car op)
                                    (:ids     (list "-ids"))
                                    (:cut     (list "-delete"
@@ -50,17 +55,18 @@
                                                    (stmt 2 (third op))))
                                    (t (list (string-downcase
                                              (format nil "-~a" (car op))))))
-                                 nil)
-                             `(,src))
-                            " "))
-        (unless (zerop exit) (throw 'ast-mutate err-output))
-        output))))
+                                 `(,src "--" ,@c-flags "|tail -n +3"))
+                                " "))
+            (unless (zerop exit) (throw 'ast-mutate err-output))
+            output))
+        (values (genome clang) 0))))
 
-(defmethod phenome ((cil cil) &key bin)
-  (with-temp-file-of (src cil-file-extension) (genome ast)
+(defmethod phenome ((clang clang) &key bin)
+  (with-temp-file-of (src (ext ast)) (genome ast)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (output err-output exit)
           (shell "~a ~a -o ~a ~a"
-                 cil-compiler src bin (mapconcat #'identity (c-flags ast) " "))
+                 (compiler ast)
+                 src bin (mapconcat #'identity (c-flags ast) " "))
         (declare (ignorable output err-output))
         (values (if (zerop exit) bin src) exit)))))
