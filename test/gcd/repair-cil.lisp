@@ -46,11 +46,11 @@
          ;; delete
          (loop :for id :below num :do
             (mut (list :cut id)))
-         (error 'brute-force "should have found it by now")
          ;; insert
          (loop :for left :below num :do
             (loop :for right :below num :do
                (mut (list :insert left right))))
+         (error 'brute-force "should have found it by now (:INSERT 0 9)")
          ;; swap
          (loop :for left :below num :do
             (loop :for right :below num :do
