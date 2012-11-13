@@ -2,7 +2,7 @@
                           ==================
 
 Author: Eric Schulte
-Date: 2012-11-12 18:27:12 MST
+Date: 2012-11-12 18:34:03 MST
 
 
 Table of Contents
@@ -24,17 +24,17 @@ Table of Contents
                                    |
                                  +-+-+                   population functions
                                  | | |                   --------------------
- global variables           +--------------+             incorporate
- ----------------           | *population* |             evict
- *population*               |--------------|             tournament
- *max-population-size*      | list of soft |             mutate
- *tournament-size*          |    objects   |             crossed
- *fitness-predicate*        +--------------+             new-individual
+ global variables         +------------------+           incorporate
+ ----------------         |   *population*   |           evict
+ *population*             |------------------|           tournament
+ *max-population-size*    |      list of     |           mutate
+ *tournament-size*        | software objects |           crossed
+ *fitness-predicate*      +------------------+           new-individual
  *cross-chance*                    |                     evolve
  *fitness-evals*                 +-+-+
  *running*                       | | |                   software functions
                           +------------------+           --------------
-                          |     software     |           genome
+                          | software object  |           genome
  evolve arguments         |------------------|           phenome
  ----------------         | edits,           |           evaluate
  max-evals                | fitness          |           copy
@@ -70,7 +70,7 @@ Parameterization of the EC algorithm is done through setting global
 variables and through arguments to the =evolve= function.
 
 
-[distributed.lisp]: file:evolution/distributed.lisp
+[distributed.lisp]: https://github.com/eschulte/software-evolution/blob/master/evolution/distributed.lisp
 
 2 Usage 
 ========
@@ -87,7 +87,7 @@ more information.
    test.sh*                # <- test script used to exercise gcd variants
 
 3. Repairs may be performed from an interactive lisp session, for
-   example, through evaluating the forms in [repair-asm.lisp].
+   example, through evaluating the forms in [repair-clang.lisp]
 
 4. Running =make= in this directory will build a =soft-ev= command
    line utility allowing repair to be scripted from the command line
@@ -108,9 +108,9 @@ more information.
 
 
 
-   [COPYING]: file:COPYING
+   [COPYING]: https://github.com/eschulte/software-evolution/blob/master/COPYING
    [github]: https://github.com/eschulte/software-evolution
-   [repair-asm.lisp]: file:test/gcd/repair-asm.lisp
+   [repair-clang.lisp]: https://github.com/eschulte/software-evolution/blob/master/test/gcd/repair-clang.lisp
    [∅MQ]: http://www.zeromq.org
-   [second-run.lisp]: file:test/gcd/second-run.lisp
+   [second-run.lisp]: https://github.com/eschulte/software-evolution/blob/master/test/gcd/second-run.lisp
 
