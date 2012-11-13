@@ -2,7 +2,7 @@
                           ==================
 
 Author: Eric Schulte
-Date: 2012-11-12 16:02:41 MST
+Date: 2012-11-12 18:27:12 MST
 
 
 Table of Contents
@@ -15,40 +15,41 @@ Table of Contents
 =========
   +-------------+    +-------------+    +--------+    +--------------+
   | interactive |    | distributed |    | repair |    | optimization |
-  |-------------|    |-------------|    |--------|    |--------------|
-  | live in the |    |  using ZMQ  |    | fixing |    |   improve    |
-  |   editor    |    |             |    |  bugs  |    |  performance |
+  |-------------|    |  evolution  |    |--------|    |--------------|
+  | live in the |    |-------------|    | fixing |    |   improve    |
+  |   editor    |    |  using ZMQ  |    |  bugs  |    |  performance |
   +-------------+    +-------------+    +--------+    +--------------+ ...
          |                  |                |                 |
          +------------------+------+---------+-----------------+
                                    |
-                                 +-+-+
-                                 | | |                   population functions
- global variables           +--------------+             --------------------
- ----------------           | *population* |             incorporate
- *population*               |--------------|             evict
- *max-population-size*      | list of soft |             tournament
- *tournament-size*          |    objects   |             mutate
- *cross-chance*             +--------------+             crossed
- *fitness-evals*                   |                     new-individual
- *running*                       +-+-+
-                                 | | |
-                          +------------------+
-                          |     software     |           software functions
-                          |------------------|           --------------
-                          | genome (& trace) |           copy
-  repair arguments        | fitness          |           evaluate
-  ----------------        | history          |           insert
-  max-evals               | ...              |           cut
-  max-time                +------------------+           swap
-  max-inds                          |                    crossover
-  max-fit                 +---------+---------+
-  min-fit                 |                   |
-  pop-fn          +---------------+     +-------------+
-  ind-fn          |      asm      |     |    lisp     |
-                  |---------------|     |-------------|
-                  | assembly code |     | lisp source |
-                  +---------------+     +-------------+ ...
+                                 +-+-+                   population functions
+                                 | | |                   --------------------
+ global variables           +--------------+             incorporate
+ ----------------           | *population* |             evict
+ *population*               |--------------|             tournament
+ *max-population-size*      | list of soft |             mutate
+ *tournament-size*          |    objects   |             crossed
+ *fitness-predicate*        +--------------+             new-individual
+ *cross-chance*                    |                     evolve
+ *fitness-evals*                 +-+-+
+ *running*                       | | |                   software functions
+                          +------------------+           --------------
+                          |     software     |           genome
+ evolve arguments         |------------------|           phenome
+ ----------------         | edits,           |           evaluate
+ max-evals                | fitness          |           copy
+ max-time                 | ...              |           mutate
+ max-inds                 +------------------+           crossover
+ max-fit                            |                    edit-distance
+ min-fit                            |
+ pop-fn       +--------------+------+-------------+---------------+ ...
+ ind-fn       |              |                    |               |
+          +-------+  +---------------+  +-------------+  +----------------+
+          | clang |  |      asm      |  |    lisp     |  |       cil      |
+          +-------+  |---------------|  |-------------|  +----------------+
+          | C AST |  | assembly code |  | lisp source |  | C Intermediate |
+          +-------+  +---------------+  +-------------+  |    Language    |
+                                                         +----------------+
 
 The =*population*= is a global variable holding a list of evolving
 software variants.  The evolutionary computation functions operate
@@ -57,13 +58,13 @@ Exposure of the population through a global variable enables the user
 to initialize the population in any way, and allows external functions
 to monitor and interact with the population during evolution.  For
 example [distributed.lisp] enables sharing of individuals between
-multiple instances of evolution through two "sharing" functions which
-interact with the =*population*= variable directly.
+multiple instances of evolution through two functions which interact
+with the =*population*= variable directly.
 
 Each software variant is an object whose class is a sub-class of the
 general =software= class.  New representations are implemented through
-sub-classing =software= and customizing the generic "software
-functions" where necessary.
+sub-classing =software= and customizing the generic software functions
+where necessary.
 
 Parameterization of the EC algorithm is done through setting global
 variables and through arguments to the =evolve= function.
