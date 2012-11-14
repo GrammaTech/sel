@@ -19,13 +19,13 @@
 :                                  | | |                   --------------------
 :  global variables         +------------------+           incorporate
 :  ----------------         |   *population*   |           evict
-:  ,,*population*             |------------------|           tournament
-:  ,,*max-population-size*    |      list of     |           mutate
-:  ,,*tournament-size*        | software objects |           crossed
-:  ,,*fitness-predicate*      +------------------+           new-individual
-:  ,,*cross-chance*                    |                     evolve
-:  ,,*fitness-evals*                 +-+-+
-:  ,,*running*                       | | |                   software functions
+:  *population*             |------------------|           tournament
+:  *max-population-size*    |      list of     |           mutate
+:  *tournament-size*        | software objects |           crossed
+:  *fitness-predicate*      +------------------+           new-individual
+:  *cross-chance*                    |                     evolve
+:  *fitness-evals*                 +-+-+
+:  *running*                       | | |                   software functions
 :                           +------------------+           --------------
 :                           | software object  |           genome
 :  evolve arguments         |------------------|           phenome
@@ -42,7 +42,7 @@
 :         |---------------|  |------------|  |---------------|  |-------------|
 :         |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
 :         |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
-:         +---------------+  |   Format   |                           |
+:         +---------------+  |   Format   |                         |  
 :                 |          +------------+                  +----------+
 :       +--------------+                                     |          |
 :       |              |                           +------------+  +----------+
@@ -59,9 +59,9 @@ directly on the =*population*= through the "population functions".
 Exposure of the population through a global variable enables the user
 to initialize the population in any way, and allows external functions
 to monitor and interact with the population during evolution.  For
-example [[https://github.com/eschulte/software-evolution/blob/master/evolution/distributed.lisp][distributed.lisp]] enables sharing of individuals between
-multiple instances of evolution through two functions which interact
-with the =*population*= variable directly.
+example =evolution/distributed.lisp= enables sharing of individuals
+between multiple instances of evolution through two functions which
+interact with the =*population*= variable directly.
 
 Each software variant is an object whose class is a sub-class of the
 general =software= class.  New representations are implemented through

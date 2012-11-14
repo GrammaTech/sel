@@ -1,10 +1,6 @@
                           Software Evolution
                           ==================
 
-Author: Eric Schulte
-Date: 2012-11-13 19:22:24 MST
-
-
 Table of Contents
 =================
 1 Design
@@ -26,13 +22,13 @@ Table of Contents
                                  | | |                   --------------------
  global variables         +------------------+           incorporate
  ----------------         |   *population*   |           evict
- ,,*population*             |------------------|           tournament
- ,,*max-population-size*    |      list of     |           mutate
- ,,*tournament-size*        | software objects |           crossed
- ,,*fitness-predicate*      +------------------+           new-individual
- ,,*cross-chance*                    |                     evolve
- ,,*fitness-evals*                 +-+-+
- ,,*running*                       | | |                   software functions
+ *population*             |------------------|           tournament
+ *max-population-size*    |      list of     |           mutate
+ *tournament-size*        | software objects |           crossed
+ *fitness-predicate*      +------------------+           new-individual
+ *cross-chance*                    |                     evolve
+ *fitness-evals*                 +-+-+
+ *running*                       | | |                   software functions
                           +------------------+           --------------
                           | software object  |           genome
  evolve arguments         |------------------|           phenome
@@ -49,7 +45,7 @@ Table of Contents
         |---------------|  |------------|  |---------------|  |-------------|
         |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
         |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
-        +---------------+  |   Format   |                           |
+        +---------------+  |   Format   |                         |  
                 |          +------------+                  +----------+
       +--------------+                                     |          |
       |              |                           +------------+  +----------+
@@ -66,9 +62,9 @@ directly on the =*population*= through the "population functions".
 Exposure of the population through a global variable enables the user
 to initialize the population in any way, and allows external functions
 to monitor and interact with the population during evolution.  For
-example [distributed.lisp] enables sharing of individuals between
-multiple instances of evolution through two functions which interact
-with the =*population*= variable directly.
+example =evolution/distributed.lisp= enables sharing of individuals
+between multiple instances of evolution through two functions which
+interact with the =*population*= variable directly.
 
 Each software variant is an object whose class is a sub-class of the
 general =software= class.  New representations are implemented through
@@ -77,9 +73,6 @@ where necessary.
 
 Parameterization of the EC algorithm is done through setting global
 variables and through arguments to the =evolve= function.
-
-
-[distributed.lisp]: https://github.com/eschulte/software-evolution/blob/master/evolution/distributed.lisp
 
 2 Usage 
 ========
