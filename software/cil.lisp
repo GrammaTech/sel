@@ -57,10 +57,10 @@
         output))))
 
 (defmethod phenome ((cil cil) &key bin)
-  (with-temp-file-of (src cil-file-extension) (genome ast)
+  (with-temp-file-of (src cil-file-extension) (genome cil)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (output err-output exit)
           (shell "~a ~a -o ~a ~a"
-                 cil-compiler src bin (mapconcat #'identity (c-flags ast) " "))
+                 cil-compiler src bin (mapconcat #'identity (c-flags cil) " "))
         (declare (ignorable output err-output))
         (values (if (zerop exit) bin src) exit)))))

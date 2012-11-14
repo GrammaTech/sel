@@ -54,8 +54,10 @@
   (if (edits ast)
       (let ((parent (copy ast)))
         (pop (edits parent))
-        (ast-mutate (genome-helper parent) (car edits)))
-      base))
+        (ast-mutate (make-instance (type-of ast)
+                      :base (genome-helper parent))
+                    (car (edits ast))))
+      (base ast)))
 ;; (memoize-function 'genome-helper :key #'identity)
 ;; (unmemoize-function 'genome-helper)
 
