@@ -2,7 +2,7 @@
                           ==================
 
 Author: Eric Schulte
-Date: 2012-11-12 18:34:03 MST
+Date: 2012-11-13 19:14:57 MST
 
 
 Table of Contents
@@ -26,13 +26,13 @@ Table of Contents
                                  | | |                   --------------------
  global variables         +------------------+           incorporate
  ----------------         |   *population*   |           evict
- *population*             |------------------|           tournament
- *max-population-size*    |      list of     |           mutate
- *tournament-size*        | software objects |           crossed
- *fitness-predicate*      +------------------+           new-individual
- *cross-chance*                    |                     evolve
- *fitness-evals*                 +-+-+
- *running*                       | | |                   software functions
+ ,,*population*             |------------------|           tournament
+ ,,*max-population-size*    |      list of     |           mutate
+ ,,*tournament-size*        | software objects |           crossed
+ ,,*fitness-predicate*      +------------------+           new-individual
+ ,,*cross-chance*                    |                     evolve
+ ,,*fitness-evals*                 +-+-+
+ ,,*running*                       | | |                   software functions
                           +------------------+           --------------
                           | software object  |           genome
  evolve arguments         |------------------|           phenome
@@ -42,14 +42,23 @@ Table of Contents
  max-inds                 +------------------+           crossover
  max-fit                            |                    edit-distance
  min-fit                            |
- pop-fn       +--------------+------+-------------+---------------+ ...
- ind-fn       |              |                    |               |
-          +-------+  +----------------+  +---------------+  +-------------+
-          | clang |  |       cil      |  |      asm      |  |    lisp     |
-          |-------|  |----------------|  |---------------|  |-------------|
-          | C AST |  | C Intermediate |  | assembly code |  | lisp source |
-          +-------+  |    Language    |  +---------------+  +-------------+
-                     +----------------+                                    
+ pop-fn         +---------------+---+------------+------------------+ ...
+ ind-fn         |               |                |                  |
+        +---------------+  +------------+  +---------------+  +-------------+
+        |    C AST      |  |   ELF      |  |      asm      |  |    lisp     |
+        |---------------|  |------------|  |---------------|  |-------------|
+        |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
+        |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
+        +---------------+  |   Format   |                           |
+                |          +------------+                  +----------+
+      +--------------+                                     |          |
+      |              |                           +------------+  +----------+
+  +-------+  +----------------+                  |   lisp fn  |  | lisp ext |
+  | clang |  |       cil      |                  |------------|  |----------|
+  |-------|  |----------------|                  | individual |  | external |
+  | C AST |  | C Intermediate |                  |  functions |  |   eval   |
+  +-------+  |    Language    |                  +------------+  +----------+
+             +----------------+
 
 The =*population*= is a global variable holding a list of evolving
 software variants.  The evolutionary computation functions operate
