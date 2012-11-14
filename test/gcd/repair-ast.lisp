@@ -75,3 +75,12 @@
             (loop :for right :below num :do
                (mut (list :swap left right))))))
      "results.store")))
+
+(defun neutral (ast &key (many 100))
+  (let (variants)
+    (loop :for variant = (mutate (copy ast))
+       :until (= (length variants) many)
+       :do (unless (member variant variants :key #'edits :test #'tree-equal)
+             (setf (fitness variant) (test-suite variant))
+             (push variant variants)))
+    (store variants "neutral.store")))
