@@ -33,14 +33,16 @@
 (defvar *test-forms* nil "Forms used to `evaluate' a `lisp' instance.")
 (defvar *test-timeout* 0.05 "Time limit used to `evaluate' a `lisp' instance.")
 
+(defmethod from-file ((lisp lisp) file)
+  (with-open-file (in path)
+    (setf (genome lisp)
+          (loop :for form = (read in nil :eof)
+             :until (eq form :eof)
+             :collect form)))
+  lisp)
+
 (defun lisp-from-file (path)
-  (let ((new (make-instance 'lisp)))
-    (with-open-file (in path)
-      (setf (genome new)
-            (loop :for form = (read in nil :eof)
-               :until (eq form :eof)
-               :collect form)))
-    new))
+  (from-file (make-instance 'lisp) path))
 
 (defun lisp-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)

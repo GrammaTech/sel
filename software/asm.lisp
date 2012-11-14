@@ -33,13 +33,15 @@
 (defvar *pos-test-num* nil "Number of positive tests")
 (defvar *neg-test-num* nil "Number of negative tests")
 
+(defmethod from-file ((asm asm) file)
+  (with-open-file (in path)
+    (loop for line = (read-line in nil)
+       while line do (push `((:line . ,line)) genome))
+    (setf (genome asm) (reverse (coerce genome 'vector)))
+    asm))
+
 (defun asm-from-file (path &aux genome)
-  (let ((new (make-instance 'asm)))
-    (with-open-file (in path)
-      (loop for line = (read-line in nil)
-         while line do (push `((:line . ,line)) genome))
-      (setf (genome new) (reverse (coerce genome 'vector)))
-      new)))
+  (from-file (make-instance 'asm) path))
 
 (defun asm-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)

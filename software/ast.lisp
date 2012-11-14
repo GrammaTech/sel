@@ -39,11 +39,13 @@
     :fitness (fitness ast)
     :edits   (copy-tree (edits ast))))
 
+(defmethod from-file ((ast ast) path)
+  (setf (base ast) (file-to-string path))
+  ast)
+
 (defun ast-from-file (path &key c-flags)
   (assert (listp c-flags) (c-flags) "c-flags must be a list")
-  (make-instance 'ast
-    :base    (file-to-string path)
-    :c-flags c-flags))
+  (from-file (make-instance 'ast :c-flags c-flags) path))
 
 (defun ast-to-file (software path &key if-exists)
   (string-to-file (genome software) path :if-exists if-exists))

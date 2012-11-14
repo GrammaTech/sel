@@ -32,14 +32,16 @@
 (defvar *pos-test-num* nil "Number of positive tests")
 (defvar *neg-test-num* nil "Number of negative tests")
 
+(defmethod from-file ((lisp-exe lisp-exe) file)
+  (with-open-file (in path)
+    (setf (genome lisp-exe)
+          (loop :for form = (read in nil :eof)
+             :until (eq form :eof)
+             :collect form)))
+  lisp-exe)
+
 (defun lisp-exe-from-file (path)
-  (let ((new (make-instance 'lisp-exe)))
-    (with-open-file (in path)
-      (setf (genome new)
-            (loop :for form = (read in nil :eof)
-               :until (eq form :eof)
-               :collect form)))
-    new))
+  (from-file (make-instance 'lisp-exe) path))
 
 (defun lisp-exe-to-file (software path)
   (with-open-file (out path :direction :output :if-exists :supersede)

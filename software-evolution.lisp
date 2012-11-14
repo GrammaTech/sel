@@ -51,6 +51,15 @@
 (defgeneric edit-distance (software-a software-b)
   (:documentation "Return the edit distance between two software objects."))
 
+(defgeneric from-file (software file)
+  (:documentation "Initialize SOFTWARE with contents of FILE."))
+
+(defgeneric to-file (software file)
+  (:documentation "Write SOFTWARE to FILE"))
+
+(defmethod to-file ((software software) file)
+  (string-to-file (genome software) file))
+
 
 ;;; Evolution
 (defvar *population* nil

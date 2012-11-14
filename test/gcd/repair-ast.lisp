@@ -13,8 +13,8 @@
 
 (defvar *test*  "./test.sh")
 (defvar *base*  (file-to-string "gcd.c"))
-(defvar *clang* (clang-from-file "gcd.c"))
-(defvar *cil*   (cil-from-file "gcd.c"))
+(defvar *clang* (from-file (make-instance 'clang) "gcd.c"))
+(defvar *cil*   (from-file (make-instance 'cil) "gcd.c"))
 
 (defun run-test (phenome num)
   (multiple-value-bind (output err-output exit)
