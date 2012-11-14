@@ -6,7 +6,7 @@ ulimit -t 1
 basedir=$(dirname $0)
 prog=$1
 test_equal(){
-    result=$($basedir/lisp-runner $prog "(euclids-gcd $1 $2)")
+    result=$($basedir../../bin/lisp-runner $prog "(euclids-gcd $1 $2)")
     if [ "$result" == "$3" ];then exit 0;else exit 1;fi
 }
 case $2 in
