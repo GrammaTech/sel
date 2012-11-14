@@ -2,7 +2,7 @@
                           ==================
 
 Author: Eric Schulte
-Date: 2012-11-13 19:14:57 MST
+Date: 2012-11-13 19:22:24 MST
 
 
 Table of Contents
@@ -86,30 +86,19 @@ variables and through arguments to the =evolve= function.
 Licensed under the GPLV3, see the [COPYING] file in this directory for
 more information.
 
-1. Available using git from [github].
+1. Optional dependencies for the clang and cil backends respectively
+   are [clang-mutate] and [cil-mutate].
 
-2. To begin, =cd= into the =test/gcd= directory and look around.
+2. Available using git from [github].
+
+3. To begin, cd into the test/gcd directory and look around.
    $ ls -1
    gcd.c                   # <- original program
-   gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
-   repair-asm.lisp         # <- options to repair
+   repair-ast.lisp         # <- lisp code driving the repair process
    test.sh*                # <- test script used to exercise gcd variants
 
-3. Repairs may be performed from an interactive lisp session, for
-   example, through evaluating the forms in [repair-clang.lisp]
-
-4. Running =make= in this directory will build a =soft-ev= command
-   line utility allowing repair to be scripted from the command line
-   using simple configuration files.  The help message of the
-   =soft-ev= command line utility serves as a template configuration
-   file.
-
-5. Distributed evolution between multiple lisp process on one or many
-   machines is enabled using the [∅MQ] socket library.  Additionally,
-   because population initialization is left to the user, distributed
-   EC algorithms may also be implemented externally.  See
-   [second-run.lisp] for an example configuration file using an incoming
-   population.
+4. Repairs may be performed from an interactive lisp session by
+   evaluating the forms in test/gcd/repair-ast.lisp.
 
 
 
@@ -118,8 +107,7 @@ more information.
 
 
    [COPYING]: https://github.com/eschulte/software-evolution/blob/master/COPYING
+   [clang-mutate]: https://github.com/eschulte/clang-mutate
+   [cil-mutate]: https://github.com/eschulte/cil-mutate
    [github]: https://github.com/eschulte/software-evolution
-   [repair-clang.lisp]: https://github.com/eschulte/software-evolution/blob/master/test/gcd/repair-clang.lisp
-   [∅MQ]: http://www.zeromq.org
-   [second-run.lisp]: https://github.com/eschulte/software-evolution/blob/master/test/gcd/second-run.lisp
 

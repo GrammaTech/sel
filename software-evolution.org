@@ -75,30 +75,19 @@ variables and through arguments to the =evolve= function.
 Licensed under the GPLV3, see the [[https://github.com/eschulte/software-evolution/blob/master/COPYING][COPYING]] file in this directory for
 more information.
 
-1. Available using git from [[https://github.com/eschulte/software-evolution][github]].
+1. Optional dependencies for the clang and cil backends respectively
+   are [[https://github.com/eschulte/clang-mutate][clang-mutate]] and [[https://github.com/eschulte/cil-mutate][cil-mutate]].
 
-2. To begin, =cd= into the =test/gcd= directory and look around.
+2. Available using git from [[https://github.com/eschulte/software-evolution][github]].
+
+3. To begin, cd into the test/gcd directory and look around.
    : $ ls -1
    : gcd.c                   # <- original program
-   : gcd.s                   # <- compiled from gcd.c with gcc -S gcd.c
-   : repair-asm.lisp         # <- options to repair
+   : repair-ast.lisp         # <- lisp code driving the repair process
    : test.sh*                # <- test script used to exercise gcd variants
 
-3. Repairs may be performed from an interactive lisp session, for
-   example, through evaluating the forms in [[https://github.com/eschulte/software-evolution/blob/master/test/gcd/repair-clang.lisp][repair-clang.lisp]]
-
-4. Running =make= in this directory will build a =soft-ev= command
-   line utility allowing repair to be scripted from the command line
-   using simple configuration files.  The help message of the
-   =soft-ev= command line utility serves as a template configuration
-   file.
-
-5. Distributed evolution between multiple lisp process on one or many
-   machines is enabled using the [[http://www.zeromq.org][∅MQ]] socket library.  Additionally,
-   because population initialization is left to the user, distributed
-   EC algorithms may also be implemented externally.  See
-   [[https://github.com/eschulte/software-evolution/blob/master/test/gcd/second-run.lisp][second-run.lisp]] for an example configuration file using an incoming
-   population.
+4. Repairs may be performed from an interactive lisp session by
+   evaluating the forms in test/gcd/repair-ast.lisp.
 
 * COMMENT Notes
 The following are informal working and development notes.
