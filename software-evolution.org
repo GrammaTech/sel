@@ -37,12 +37,12 @@
 :  min-fit                            |
 :  pop-fn       +--------------+------+-------------+---------------+ ...
 :  ind-fn       |              |                    |               |
-:           +-------+  +---------------+  +-------------+  +----------------+
-:           | clang |  |      asm      |  |    lisp     |  |       cil      |
-:           +-------+  |---------------|  |-------------|  +----------------+
-:           | C AST |  | assembly code |  | lisp source |  | C Intermediate |
-:           +-------+  +---------------+  +-------------+  |    Language    |
-:                                                          +----------------+
+:           +-------+  +----------------+  +---------------+  +-------------+
+:           | clang |  |       cil      |  |      asm      |  |    lisp     |
+:           |-------|  |----------------|  |---------------|  |-------------|
+:           | C AST |  | C Intermediate |  | assembly code |  | lisp source |
+:           +-------+  |    Language    |  +---------------+  +-------------+
+:                      +----------------+                                    
 
 The =*population*= is a global variable holding a list of evolving
 software variants.  The evolutionary computation functions operate
