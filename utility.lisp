@@ -179,16 +179,30 @@ Optional argument OUT specifies an output stream."
   (let ((result (mapcar (lambda (n) (pexec (funcall f n))) list)))
     (map-into result #'yield result)))
 
+(defmacro mapcomb (func &rest lists)
+  "Parallel map FUNC over all combinations of the elements of LISTS.
+The arity of FUNC must match the number of elements of LISTS."
+  (let* ((args (mapcar (lambda (_) (gensym)) lists))
+         (paired (map 'list #'cons args lists)))
+    (reduce (lambda (prev pair)
+              `(mapcar (lambda (,(car pair)) ,prev) ,(cdr pair)))
+            paired
+            :initial-value `(funcall ,func ,@args))))
+
+(defmacro pmapcomb (func &rest lists)
+  "Parallel map FUNC over all combinations of the elements of LISTS.
+The arity of FUNC must match the number of elements of LISTS."
+  (let* ((args (mapcar (lambda (_) (gensym)) lists))
+         (paired (map 'list #'cons args lists)))
+    (reduce (lambda (prev pair)
+              `(pmapcar (lambda (,(car pair)) ,prev) ,(cdr pair)))
+            paired
+            :initial-value `(funcall ,func ,@args))))
+
 (defmacro repeatedly (n &body body)
   `(loop :for _ :upto ,n :collect ,@body))
 
 (defmacro prepeatedly (n &body body)
-  "Return the result of running BODY N times in parallel."
-  (let ((result-sym (gensym)))
-    `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
-       (map-into ,result-sym #'yield ,result-sym))))
-
-(defmacro prepeat-until (n &body body)
   "Return the result of running BODY N times in parallel."
   (let ((result-sym (gensym)))
     `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
