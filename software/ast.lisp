@@ -73,7 +73,7 @@
     (ast-mutate (err) (declare (ignorable err)) (format t "caught") 0)))
 
 (defmethod mutate ((ast ast))
-  "Randomly mutate VARIANT with chance MUT-P."
+  "Randomly mutate AST."
   (let ((num-ids (num-ids ast)))
     (unless (and num-ids (> num-ids 0)) (error 'mutate "No valid IDs"))
     (setf (fitness ast) nil)

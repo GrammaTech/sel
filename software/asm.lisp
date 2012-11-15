@@ -25,23 +25,28 @@
 (in-package :software-evolution)
 
 
-;;; the class of assembly software objects
+;;; asm software objects
 (defclass asm (software)
   ((addr-map :initarg :addr-map :accessor addr-map :initform nil)
    (genome   :initarg :genome   :accessor genome   :initform nil)))
 
 (defvar asm-linker "gcc")
 
+(defmethod copy ((asm asm))
+  (make-instance 'asm
+    :addr-map (copy-tree (addr-map asm))
+    :genome (copy-tree (genome asm))))
+
 (defmethod from-file ((asm asm) path)
   (with-open-file (in path)
     (setf (genome asm)
-          (coerce (loop :for line = (read-line in nil)
-                     :while line :collect (list (cons :line line))) 'vector))
+          (loop :for line = (read-line in nil)
+             :while line :collect (list (cons :line line))))
     asm))
 
 (defun genome-string (asm)
   (mapconcat (comp (curry #'format nil "~a~%") (curry #'aget :line))
-             (coerce (genome asm) 'list) ""))
+             (genome asm) ""))
 
 (defmethod phenome ((asm asm) &key bin)
   (with-temp-file-of (src "s") (genome-string asm)
@@ -50,6 +55,49 @@
           (shell "~a -o ~a ~a" asm-linker bin src)
         (declare (ignorable stdout ))
         (values (if (zerop exit) bin stderr) exit)))))
+
+(defmethod size ((asm asm))
+  "Return the length of the genome of ASM."
+  (length (genome asm)))
+
+(defmethod mutate ((asm asm))
+  "Randomly mutate ASM."
+  (unless (> (size asm) 0) (error 'mutate "No valid IDs" asm))
+  (setf (fitness asm) nil)
+  (flet ((place () (random (size asm))))
+    (let ((mut (case (random-elt '(cut insert swap))
+                 (cut    `(:cut    ,(place)))
+                 (insert `(:insert ,(place) ,(place)))
+                 (swap   `(:swap   ,(place) ,(place))))))
+      (push mut (edits asm))
+      (setf (genome asm) (mutate-genome (genome asm) mut))))
+  asm)
+
+(defun mutate-genome (genome mutation)
+  (let ((op (first mutation))
+        (s1 (second mutation))
+        (s2 (third mutation)))
+    (case op
+      (:cut (setf (subseq genome s1)
+                  (subseq genome (1+ s1))))
+      (:insert (setf (subseq genome s2)
+                     (cons (nth s1 genome) (subseq genome s2))))
+      (:swap (let ((tmp (nth s1 genome)))
+               (setf (nth s1 genome) (nth s2 genome))
+               (setf (nth s2 genome) tmp))
+             genome)))
+  genome)
+
+(defmethod crossover ((a asm) (b asm))
+  "Two point crossover."
+  (let* ((range (min (size a) (size b)))
+         (points (sort (repeatedly 2 (random range)) #'<))
+         (new (copy a)))
+    (setf (genome new)
+          (copy-tree (append (subseq (genome a) 0 (first points))
+                             (subseq (genome a) (first points) (second points))
+                             (subseq (genome a) (second points)))))
+    new))
 
 
 ;;; memory mapping, address -> LOC
