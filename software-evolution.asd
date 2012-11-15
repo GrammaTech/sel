@@ -31,8 +31,8 @@
     :depends-on ("package" "utility" "software-evolution" "software/ast"))
    (:file       "software/clang"
     :depends-on ("package" "utility" "software-evolution" "software/ast"))
-   (:file       "evolution/neutral.lisp"
+   (:file       "evolution/neutral"
     :depends-on ("package" "utility"))
-   (:file       "evolution/by-function.lisp"
+   (:file       "evolution/by-function"
     :depends-on ("package" "utility"))
    ))

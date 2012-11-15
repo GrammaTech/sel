@@ -97,10 +97,12 @@
 
 (defun tournament (&optional (predicate *fitness-predicate*) &aux competitors)
   "Select an individual from *POPULATION* with a tournament of size NUMBER."
-  (assert *population* (*population*) "Empty population.")
-  (car (sort (dotimes (_ *tournament-size* competitors)
-               (push (random-elt *population*) competitors))
-             predicate :key #'fitness)))
+  (flet ((verify (it) (assert (numberp (fitness it)) (it)
+                              "Population member with no fitness") it))
+    (assert *population* (*population*) "Empty population.")
+    (car (sort (dotimes (_ *tournament-size* competitors)
+                 (push (verify (random-elt *population*)) competitors))
+               predicate :key #'fitness))))
 
 (defun mutant ()
   "Generate a new mutant from a *POPULATION*."

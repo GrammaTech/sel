@@ -34,6 +34,8 @@
 
 (defmethod copy ((asm asm))
   (make-instance 'asm
+    :fitness (fitness asm)
+    :edits (copy-tree (edits asm))
     :addr-map (copy-tree (addr-map asm))
     :genome (copy-tree (genome asm))))
 

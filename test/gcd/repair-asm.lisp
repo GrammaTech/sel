@@ -15,6 +15,8 @@
 ;; (apply-path original :pos (samples-from-oprofile-file "sample.pos"))
 
 #+run
-(let ((*population* (repeatedly 100 (copy *asm*)))
-      (*max-population-size* 100))
-  (store (evolve #'test-suite :max-fit 12) "results-asm.store"))
+(progn
+  (setf (fitness *asm*) (test-suite *asm*))
+  (let ((*population* (repeatedly 100 (copy *asm*)))
+        (*max-population-size* 100))
+    (store (evolve #'test-suite :max-fit 12) "results-asm.store")))
