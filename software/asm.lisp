@@ -26,45 +26,33 @@
 
 
 ;;; the class of assembly software objects
-(defclass asm (software-exe)
-  ((addr-map :initarg :addr-map :accessor raw-addr-map :initform nil)))
+(defclass asm (software)
+  ((addr-map :initarg :addr-map :accessor addr-map :initform nil)
+   (genome   :initarg :genome   :accessor genome   :initform nil)))
 
-(defvar *test-script*  nil "Script capable of running tests.")
-(defvar *pos-test-num* nil "Number of positive tests")
-(defvar *neg-test-num* nil "Number of negative tests")
+(defvar asm-linker "gcc")
 
-(defmethod from-file ((asm asm) file)
+(defmethod from-file ((asm asm) path)
   (with-open-file (in path)
-    (loop for line = (read-line in nil)
-       while line do (push `((:line . ,line)) genome))
-    (setf (genome asm) (reverse (coerce genome 'vector)))
+    (setf (genome asm)
+          (coerce (loop :for line = (read-line in nil)
+                     :while line :collect (list (cons :line line))) 'vector))
     asm))
 
-(defun asm-from-file (path &aux genome)
+(defun asm-from-file (path)
   (from-file (make-instance 'asm) path))
 
-(defun asm-to-file (software path)
-  (with-open-file (out path :direction :output :if-exists :supersede)
-    (dotimes (n (length (genome software)))
-      (format out "~a~%" (cdr (assoc :line (aref (genome software) n)))))))
+(defun genome-string (asm)
+  (mapconcat (comp (curry #'format nil "~a~%") (curry #'aget :line))
+             (coerce (genome asm) 'list) ""))
 
-(defun link (asm exe)
-  (multiple-value-bind (output error-output exit)
-      (shell "gcc -o ~a ~a" exe asm)
-    (values output error-output exit)))
-
-(defmethod exe ((asm asm) &optional place)
-  (let ((exe (or place (temp-file-name)))
-        (tmp (temp-file-name "s")))
-    (asm-to-file asm tmp)
-    (multiple-value-bind (output err-output exit) (link tmp exe)
-      (declare (ignorable output err-output))
-      (when (probe-file tmp) (delete-file tmp))
-      (when (= exit 0) exe))))
-
-(defmethod evaluate ((asm asm))
-  (evaluate-with-script asm *test-script* *pos-test-num* *neg-test-num*)
-  asm)
+(defmethod phenome ((asm asm) &key bin)
+  (with-temp-file-of (src "s") (genome-string asm)
+    (let ((bin (or bin (temp-file-name))))
+      (multiple-value-bind (stdout stderr exit)
+          (shell "~a -o ~a ~a" asm-linker bin src)
+        (declare (ignorable stdout ))
+        (values (if (zerop exit) bin stderr) exit)))))
 
 
 ;;; memory mapping, address -> LOC
@@ -94,31 +82,23 @@
      collect function
      else collect counter))
 
-(defmethod (setf addr-map) (new (asm asm))
-  (setf (raw-addr-map asm) new))
-
-(defmethod addr-map ((asm asm))
-  (or (raw-addr-map asm)
-      (setf (addr-map asm)
-            (apply
-             #'append
-             (let ((flines (function-lines asm)))
-               (mapcar (lambda (addrs lines)
-                         (mapcar #'cons addrs lines))
-                       (mapcar (lambda (func) (addrs asm func))
-                               (remove-if-not #'stringp flines))
-                       (cdr
-                        (mapcar (lambda (lines)
-                                  (remove-if
-                                   (lambda (n)
-                                     (scan "^[\\s]*\\."
-                                           (cdr (assoc :line
-                                                       (aref (genome asm) n)))))
-                                             lines))
-                                (split-sequence-if #'stringp flines)))))))))
-
-(defmethod lines ((asm asm))
-  (mapcar (lambda (line) (cdr (assoc :line line))) (coerce (genome asm) 'list)))
+(defmethod calculate-addr-map ((asm asm))
+  (apply
+   #'append
+   (let ((flines (function-lines asm)))
+     (mapcar (lambda (addrs lines)
+               (mapcar #'cons addrs lines))
+             (mapcar (lambda (func) (addrs asm func))
+                     (remove-if-not #'stringp flines))
+             (cdr
+              (mapcar (lambda (lines)
+                        (remove-if
+                         (lambda (n)
+                           (scan "^[\\s]*\\."
+                                 (cdr (assoc :line
+                                             (aref (genome asm) n)))))
+                         lines))
+                      (split-sequence-if #'stringp flines)))))))
 
 
 ;;; incorporation of oprofile samples
