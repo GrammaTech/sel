@@ -44,7 +44,7 @@
   (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
     (if op
         (with-temp-file-of (src (ext clang)) (genome clang)
-          (multiple-value-bind (output err-output exit)
+          (multiple-value-bind (stdout stderr exit)
               (shell "clang-mutate ~a"
                      (mapconcat #'identity
                                 (append
@@ -62,16 +62,16 @@
                                              (format nil "-~a" (car op))))))
                                  `(,src "--" ,@(c-flags clang) "|tail -n +3"))
                                 " "))
-            (unless (zerop exit) (throw 'ast-mutate err-output))
-            output))
+            (unless (zerop exit) (throw 'ast-mutate stderr))
+            stdout))
         (values (genome clang) 0))))
 
 (defmethod phenome ((clang clang) &key bin)
   (with-temp-file-of (src (ext clang)) (genome clang)
     (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (output err-output exit)
+      (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~a"
                  (compiler clang)
                  src bin (mapconcat #'identity (c-flags clang) " "))
-        (declare (ignorable output err-output))
-        (values (if (zerop exit) bin src) exit)))))
+        (declare (ignorable stdout stderr))
+        (values (if (zerop exit) bin stderr) exit)))))

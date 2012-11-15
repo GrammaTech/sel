@@ -33,7 +33,7 @@
 (defmethod ast-mutate ((cil cil) &optional op)
   (flet ((stmt (num arg) (format nil "-stmt~d ~d" num arg)))
     (with-temp-file-of (src cil-file-extension) (genome cil)
-      (multiple-value-bind (output err-output exit)
+      (multiple-value-bind (stdout stderr exit)
           (shell "cil-mutate ~a"
                  (mapconcat #'identity
                             (append
@@ -53,14 +53,14 @@
                                  nil)
                              `(,src))
                             " "))
-        (unless (zerop exit) (throw 'ast-mutate err-output))
-        output))))
+        (unless (zerop exit) (throw 'ast-mutate stderr))
+        stdout))))
 
 (defmethod phenome ((cil cil) &key bin)
   (with-temp-file-of (src cil-file-extension) (genome cil)
     (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (output err-output exit)
+      (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~a"
                  cil-compiler src bin (mapconcat #'identity (c-flags cil) " "))
-        (declare (ignorable output err-output))
-        (values (if (zerop exit) bin src) exit)))))
+        (declare (ignorable stdout))
+        (values (if (zerop exit) bin stderr) exit)))))
