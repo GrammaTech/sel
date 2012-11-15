@@ -228,6 +228,14 @@ The arity of FUNC must match the number of elements of LISTS."
 (defun mapconcat (func list sep)
   (apply #'concatenate 'string (interleave (mapcar func list) sep)))
 
+(defun drop (n seq)
+  "Return SEQ less the first N items."
+  (subseq seq n))
+
+(defun take (n seq)
+  "Return the first N items of SEQ."
+  (subseq seq 0 n))
+
 
 ;;; debugging helpers
 (defvar *note-level* 0 "Enables execution notes.")
