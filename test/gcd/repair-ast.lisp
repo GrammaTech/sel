@@ -2,47 +2,13 @@
 (require :software-evolution)
 (in-package :software-evolution)
 
-;; reproducibility
-(let ((seed-path "seed"))
-  (if (probe-file seed-path)
-      (setf *random-state* (with-open-file (in seed-path) (read in)))
-      (progn
-        (setf *random-state* (make-random-state t))
-        (with-open-file (out seed-path :direction :output)
-          (write *random-state* :stream out)))))
+(load #P"repair.lisp")
 
-(defvar *test*  "./test.sh")
 (defvar *base*  (file-to-string "gcd.c"))
 (defvar *clang* (from-file (make-instance 'clang) "gcd.c"))
 (defvar *cil*   (from-file (make-instance 'cil) "gcd.c"))
 
-(defun run-test (phenome num)
-  (multiple-value-bind (output err-output exit)
-      (shell "~a ~a ~a" *test* phenome num)
-    (declare (ignorable output err-output))
-    (zerop exit)))
-
-(def-memoized-function test-suite (ast)
-  (with-temp-file (bin)
-    (if (phenome ast :bin bin)
-        (count t (loop :for num :upto 11 :collect (run-test bin num)))
-        0)))
-
-;; sanity check
-(defun sanity-check (ast)
-  (setf (fitness ast) (test-suite ast))
-  (assert (= 11 (fitness ast)) (ast) "failed sanity check"))
-
-;; run different types of repair
-(defun ga (ast)
-  (assert (or (eq (type-of ast) 'cil)
-              (eq (type-of ast) 'clang)) (ast)
-              "AST should be either a cil or clang object")
-  (let ((*population* (repeatedly 100 (copy ast)))
-        (*max-population-size* 100))
-    (store (evolve #'test-suite :max-fit 12) "results-ga.store")))
-
-(defun brute-force (ast)
+(defun brute-force-ast (ast)
   (assert (or (eq (type-of ast) 'cil)
               (eq (type-of ast) 'clang)) (ast)
               "AST should be either a cil or clang object")
@@ -76,11 +42,9 @@
                (mut (list :swap left right))))))
      "results.store")))
 
-(defun neutral (ast &key (many 100))
-  (let (variants)
-    (loop :for variant = (mutate (copy ast))
-       :until (= (length variants) many)
-       :do (unless (member variant variants :key #'edits :test #'tree-equal)
-             (setf (fitness variant) (test-suite variant))
-             (push variant variants)))
-    (store variants "neutral.store")))
+#+run
+((lambda (ast)
+   (let ((*population* (repeatedly 100 (copy ast)))
+         (*max-population-size* 100))
+     (store (evolve #'test-suite :max-fit 12) "results-ast.store")))
+ *cil*)

@@ -39,9 +39,6 @@
                      :while line :collect (list (cons :line line))) 'vector))
     asm))
 
-(defun asm-from-file (path)
-  (from-file (make-instance 'asm) path))
-
 (defun genome-string (asm)
   (mapconcat (comp (curry #'format nil "~a~%") (curry #'aget :line))
              (coerce (genome asm) 'list) ""))
