@@ -1,4 +1,4 @@
-;;; distributed.lisp --- sharing between software-evolution instances using ∅MQ
+;;; distributed.lisp --- sharing between evolution instances using ∅MQ
 
 ;; Copyright (C) 2011  Eric Schulte
 
