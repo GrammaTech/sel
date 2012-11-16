@@ -74,10 +74,27 @@
                  ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
+;; (defun shell (&rest rst)
+;;   (multiple-value-bind (output err-output exit)
+;;       (shell-command (apply #'format (cons nil rst)) :input nil)
+;;     (values output err-output exit)))
+
+(defvar *work-dir* "work")
+
 (defun shell (&rest rst)
-  (multiple-value-bind (output err-output exit)
-      (shell-command (apply #'format (cons nil rst)) :input nil)
-    (values output err-output exit)))
+  (let* ((cmd (apply #'format (cons nil rst)))
+         (name (tempnam *work-dir* "lisp-job"))
+         (run-file (format nil "~a.run" name))
+         (done-file (format nil "~a.done" name)))
+    (string-to-file cmd run-file)
+    (do () (())
+      (when (probe-file done-file)
+        (let ((lines (split-sequence #\Newline (file-to-string done-file)
+                                     :remove-empty-subseqs t)))
+          (return (values (mapconcat (curry #'format nil "~a~%")
+                                     (butlast lines) "")
+                          (parse-integer (car (last lines)))))))
+      (sleep 1))))
 
 
 ;;; generic forensic functions over arbitrary objects
