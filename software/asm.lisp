@@ -46,9 +46,11 @@
              :while line :collect (list (cons :line line))))
     asm))
 
+(defun lines (asm)
+  (mapcar (curry #'aget :line) (genome asm)))
+
 (defun genome-string (asm)
-  (mapconcat (comp (curry #'format nil "~a~%") (curry #'aget :line))
-             (genome asm) ""))
+  (mapconcat (curry #'format nil "~a~%") (lines asm) ""))
 
 (defmethod phenome ((asm asm) &key bin)
   (with-temp-file-of (src "s") (genome-string asm)
@@ -103,49 +105,45 @@
 
 
 ;;; memory mapping, address -> LOC
-(defun gdb-disassemble (asm function)
+(defun gdb-disassemble (phenome function)
+  "Return the raw gdb disassembled code of FUNCTION in PHENOME."
   (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
-         function (exe asm)))
+         function phenome))
 
-(defun addrs (asm function)
+(defun addrs (phenome function)
   "Return the numerical addresses of the lines (in order) of FUNCTION."
   (remove nil
     (mapcar
      (lambda (line)
-       (register-groups-bind  (addr offset)
+       (declare (string line))
+       (register-groups-bind (addr offset)
            ("[\\s]*0x([\\S]+)[\\s]*<([\\S]+)>:.*" line)
          (declare (ignorable offset) (string addr))
          (parse-integer addr :radix 16)))
-     (split-sequence #\Newline (gdb-disassemble asm function)))))
+     (split-sequence #\Newline (gdb-disassemble phenome function)))))
 
-(defun function-lines (asm &aux function)
+(defun function-lines (asm)
   "Return the line numbers of the lines (in order) of FUNCTION."
-  (loop for line in (mapcar (lambda (line) (cdr (assoc :line line)))
-                            (coerce (genome asm) 'list)) as counter from 0
-     do (setq function (register-groups-bind
-                           (line-function) ("^([^\\.][\\S]+):" line)
-                         line-function))
-     if function
-     collect function
-     else collect counter))
+  (loop :for line :in (lines asm) :as counter :from 0
+     :for function = (register-groups-bind
+                         (line-function) ("^([^\\.][\\S]+):" line)
+                       line-function)
+     :collect (or function counter)))
 
-(defmethod calculate-addr-map ((asm asm))
-  (apply
-   #'append
-   (let ((flines (function-lines asm)))
-     (mapcar (lambda (addrs lines)
-               (mapcar #'cons addrs lines))
-             (mapcar (lambda (func) (addrs asm func))
-                     (remove-if-not #'stringp flines))
-             (cdr
-              (mapcar (lambda (lines)
-                        (remove-if
-                         (lambda (n)
-                           (scan "^[\\s]*\\."
-                                 (cdr (assoc :line
-                                             (aref (genome asm) n)))))
-                         lines))
-                      (split-sequence-if #'stringp flines)))))))
+(defun calculate-addr-map (asm)
+  (let ((flines (function-lines asm))
+        (phenome (phenome asm))
+        (genome (coerce (genome asm) 'vector)))
+    (mapcan (lambda (addrs lines)
+              (mapcar #'cons addrs lines))
+            (mapcar (lambda (func) (addrs phenome func))
+                    (remove-if-not #'stringp flines))
+            (cdr (mapcar
+                  (curry #'remove-if
+                         (comp (curry #'scan "^[\\s]*\\.")
+                               (curry #'aget :line)
+                               (curry #'aref genome)))
+                  (split-sequence-if #'stringp flines))))))
 
 
 ;;; incorporation of oprofile samples
