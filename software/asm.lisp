@@ -167,8 +167,8 @@ address and the cdr is the value."
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
     (remove nil
-      (loop :for line = (read-line in nil :eof)
-         :until (eq line :eof)
+      (loop :for line = (read-line in nil)
+         :while line
          :collect
          (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
            (declare (string c) (string a))
@@ -176,12 +176,11 @@ address and the cdr is the value."
 
 (defun samples-from-tracer-file (path &aux samples)
   (with-open-file (in path)
-    (loop :for line = (read-line in nil :eof)
-       :until (eq line :eof)
-       :do
-       (let ((addr (parse-integer line)))
-         (if (assoc addr samples)
-             (setf (cdr (assoc addr samples))
-                   (1+ (cdr (assoc addr samples))))
-             (setf samples (cons (cons addr 0) samples)))))
+    (loop :for line = (read-line in nil)
+       :while line
+       :do (let ((addr (parse-integer line)))
+             (if (assoc addr samples)
+                 (setf (cdr (assoc addr samples))
+                       (1+ (cdr (assoc addr samples))))
+                 (setf samples (cons (cons addr 0) samples)))))
     samples))
