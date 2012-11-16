@@ -8,3 +8,6 @@ README: software-evolution.txt
 	cp $< $@
 	sed -i '/^Author:/d' $@
 	sed -i '/^Date:/d' $@
+
+clean:
+	rm -f software-evolution.txt
