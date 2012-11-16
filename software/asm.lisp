@@ -133,17 +133,20 @@
 (defun calculate-addr-map (asm)
   (let ((flines (function-lines asm))
         (phenome (phenome asm))
-        (genome (coerce (genome asm) 'vector)))
-    (mapcan (lambda (addrs lines)
-              (mapcar #'cons addrs lines))
-            (mapcar (lambda (func) (addrs phenome func))
-                    (remove-if-not #'stringp flines))
-            (cdr (mapcar
-                  (curry #'remove-if
-                         (comp (curry #'scan "^[\\s]*\\.")
-                               (curry #'aget :line)
-                               (curry #'aref genome)))
-                  (split-sequence-if #'stringp flines))))))
+        (genome (coerce (genome asm) 'vector))
+        (map (make-hash-table)))
+    (loop
+       :for addrs :in (mapcar (lambda (func) (addrs phenome func))
+                              (remove-if-not #'stringp flines))
+       :for lines :in (cdr (mapcar
+                            (curry #'remove-if
+                                   (comp (curry #'scan "^[\\s]*\\.")
+                                         (curry #'aget :line)
+                                         (curry #'aref genome)))
+                            (split-sequence-if #'stringp flines)))
+       :do (mapc (lambda (addr line) (setf (gethash addr map) line))
+                 addrs lines))
+    map))
 
 
 ;;; incorporation of oprofile samples
@@ -155,7 +158,7 @@ address and the cdr is the value."
     (loop :for el :in addresses :as i :from 0 :do
        (let* ((addr (if (consp el) (car el) el))
               (val (if (consp el) (cdr el) t))
-              (loc (cdr (assoc addr map))))
+              (loc (gethash addr map)))
          (when loc
            (push (cons key val) (aref (genome asm) loc))
            (push (list i key val) applied)))))
