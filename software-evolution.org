@@ -1,9 +1,10 @@
 #+Title: Software Evolution
 #+Author: Eric Schulte
 #+email: eschulte@cs.unm.edu
-#+Options: toc:1 ^:nil
+#+Options: toc:nil ^:nil
 #+properties: exports code
-#+HTML: <center>extant software evolution</center>
+
+A tool for the evolution of extant software.
 
 * Design
 :   +-------------+    +-------------+    +--------+    +--------------+

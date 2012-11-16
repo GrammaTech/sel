@@ -1,7 +1,9 @@
 doc
 *.fasl
 *.html
+*.txt
 *.tex
 *.pdf
+*~
 soft-ev
 lisp-runner
