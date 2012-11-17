@@ -93,6 +93,7 @@
                                      :remove-empty-subseqs t)))
           (return (values (mapconcat (curry #'format nil "~a~%")
                                      (butlast lines) "")
+                          ""
                           (parse-integer (car (last lines)))))))
       (sleep 1))))
 
