@@ -92,8 +92,9 @@
         (let ((lines (split-sequence #\Newline (file-to-string done-file)
                                      :remove-empty-subseqs t)))
           (delete-file done-fille)
-          (return (values (mapconcat (curry #'format nil "~a~%")
-                                     (butlast lines) "")
+          (return (values (or (mapconcat (curry #'format nil "~a~%")
+                                         (butlast lines) "")
+                              "")
                           ""
                           (parse-integer (car (last lines)))))))
       (sleep 1))))
