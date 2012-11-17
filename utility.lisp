@@ -91,7 +91,7 @@
       (when (probe-file done-file)
         (let ((lines (split-sequence #\Newline (file-to-string done-file)
                                      :remove-empty-subseqs t)))
-          (delete-file done-fille)
+          (delete-file done-file)
           (return (values (or (mapconcat (curry #'format nil "~a~%")
                                          (butlast lines) "")
                               "")
