@@ -97,7 +97,7 @@
                               "")
                           ""
                           (parse-integer (car (last lines)))))))
-      (sleep 1))))
+      (sleep 0.1))))
 
 
 ;;; generic forensic functions over arbitrary objects
