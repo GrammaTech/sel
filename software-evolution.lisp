@@ -36,6 +36,11 @@
 (defgeneric phenome (software &key bin)
   (:documentation "Phenotype of the software."))
 
+(defgeneric cleanup (software &key bin)
+  ;; TODO: Figure out how to automatically run this (when defined)
+  ;;       after phenome generation.
+  (:documentation "Cleanup function to be run after phenome generation."))
+
 (defgeneric evaluate (software)
   (:documentation "Evaluate a the software returning a numerical fitness."))
 
