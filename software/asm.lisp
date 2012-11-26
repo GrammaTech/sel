@@ -38,7 +38,8 @@
     :fitness (fitness asm)
     :edits (copy-tree (edits asm))
     :addr-map (copy-tree (addr-map asm))
-    :genome (copy-tree (genome asm))))
+    :genome (copy-tree (genome asm))
+    :linker (linker asm)))
 
 (defmethod from-file ((asm asm) path)
   (with-open-file (in path)
