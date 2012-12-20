@@ -62,11 +62,13 @@
         base)))
 
 (defmacro with-temp-file (spec &rest body)
+  "SPEC should be a list of the variable used to reference the file and an optional extension."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
      (unwind-protect (progn ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
 (defmacro with-temp-file-of (spec str &rest body)
+  "SPEC should be a list of the variable used to reference the file and an optional extension."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
      (unwind-protect
           (progn ;; (format t "~&-->~a<--~%" ,(car spec))
