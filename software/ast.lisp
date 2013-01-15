@@ -58,10 +58,11 @@
                       :base (genome-helper parent))
                     (car (edits ast))))
       (base ast)))
-;; (memoize-function 'genome-helper :key #'identity)
-;; (unmemoize-function 'genome-helper)
+;; (memoize 'genome-helper :key #'identity)
+;; (un-memoize 'genome-helper)
 
 (defmethod genome ((ast ast)) (genome-helper ast))
+(defmethod genome-string ((ast ast)) (genome ast))
 
 (defgeneric ast-mutate (ast &optional op)
   (:documentation "Mutate AST with either clang-mutate or cil-mutate."))

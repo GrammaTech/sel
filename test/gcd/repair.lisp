@@ -20,11 +20,12 @@
     (declare (ignorable output err-output))
     (zerop exit)))
 
-(def-memoized-function test-suite (ast)
+(defun test-suite (ast)
   (with-temp-file (bin)
     (if (phenome ast :bin bin)
         (count t (loop :for num :upto 11 :collect (run-test bin num)))
         0)))
+(memoize test-suite)
 
 ;; sanity check
 (defun sanity-check (ast)
