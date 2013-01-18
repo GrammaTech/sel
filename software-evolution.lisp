@@ -147,7 +147,7 @@ Optional keys are as follows.
                                          internal-time-units-per-second)
                                       max-time)))
        :do (let ((new (new-individual)))
-             (push (cons (history new) (setf (fitness new) (funcall test new)))
+             (push (cons (edits new) (setf (fitness new) (funcall test new)))
                    *new-individuals*)
              (assert (numberp (fitness new)) (new) "Non-numeric fitness")
              (incorporate new)
