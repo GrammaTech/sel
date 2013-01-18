@@ -196,6 +196,7 @@ Optional argument OUT specifies an output stream."
        ,(reduce (lambda (f a) `(funcall ,f ,a))
                 funcs :initial-value arg-sym :from-end t))))
 
+#+eager
 (defun pmapcar (f list)
   "Parallel map (from http://marijnhaverbeke.nl/pcall/)."
   (let ((result (mapcar (lambda (n) (pexec (funcall f n))) list)))
@@ -211,6 +212,7 @@ The arity of FUNC must match the number of elements of LISTS."
             paired
             :initial-value `(funcall ,func ,@args))))
 
+#+eager
 (defmacro pmapcomb (func &rest lists)
   "Parallel map FUNC over all combinations of the elements of LISTS.
 The arity of FUNC must match the number of elements of LISTS."
@@ -224,6 +226,7 @@ The arity of FUNC must match the number of elements of LISTS."
 (defmacro repeatedly (n &body body)
   `(loop :for _ :upto ,n :collect ,@body))
 
+#+eager
 (defmacro prepeatedly (n &body body)
   "Return the result of running BODY N times in parallel."
   (let ((result-sym (gensym)))
