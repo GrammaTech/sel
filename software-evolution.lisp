@@ -82,7 +82,7 @@
 (defvar *cross-chance* 1/5
   "Fraction of new individuals generated using crossover rather than mutation.")
 
-(defvar *new-individuals* 0
+(defvar *new-individuals* nil
   "Track the total number of new individuals.")
 
 (defvar *fitness-evals* 0
@@ -137,7 +137,7 @@ Optional keys are as follows.
   POP-FN ---------- stop when the population satisfies this function
   IND-FN ---------- stop when an individual satisfies this function"
   (let ((start-time (get-internal-real-time)))
-    (setq *new-individuals* 0)
+    (setq *new-individuals* nil)
     (setq *fitness-evals* 0)
     (setq *running* t)
     (loop :until (or (not *running*)
@@ -147,8 +147,8 @@ Optional keys are as follows.
                                          internal-time-units-per-second)
                                       max-time)))
        :do (let ((new (new-individual)))
-             (incf *new-individuals*)
-             (setf (fitness new) (funcall test new))
+             (push (cons (history new) (setf (fitness new) (funcall test new)))
+                   *new-individuals*)
              (assert (numberp (fitness new)) (new) "Non-numeric fitness")
              (incorporate new)
              (when (or (and max-fit (>= (fitness new) max-fit))
