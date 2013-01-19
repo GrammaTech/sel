@@ -2,22 +2,7 @@
 
 ;; Copyright (C) 2011-2012  Eric Schulte
 
-;;; License:
-
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
+;;; License: GNU General Public License, Version 3 or later
 
 ;;; Commentary:
 
@@ -124,11 +109,14 @@
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
 
-(defun evolve (test
-               &key max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
+(defun evolve (test &key
+                      period period-func
+                      max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
   "Evolves population until an optional stopping criterion is met.
 
-Optional keys are as follows.
+Keyword arguments are as follows.
+  PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
+  PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
   MAX-EVALS ------- stop after this many fitness evaluations
   MAX-INDS -------- stop after this many new individuals have been tried
   MAX-TIME -------- stop after this many generations
@@ -149,6 +137,9 @@ Optional keys are as follows.
        :do (let ((new (new-individual)))
              (push (cons (edits new) (setf (fitness new) (funcall test new)))
                    *new-individuals*)
+             (incf *fitness-evals*)
+             (when (and period (zerop (mod *fitness-evals* period)))
+               (funcall period-func))
              (assert (numberp (fitness new)) (new) "Non-numeric fitness")
              (incorporate new)
              (when (or (and max-fit (>= (fitness new) max-fit))
