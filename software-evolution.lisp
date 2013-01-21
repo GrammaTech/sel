@@ -67,9 +67,6 @@
 (defvar *cross-chance* 1/5
   "Fraction of new individuals generated using crossover rather than mutation.")
 
-(defvar *new-individuals* nil
-  "Track the total number of new individuals.")
-
 (defvar *fitness-evals* 0
   "Track the total number of fitness evaluations.")
 
@@ -111,32 +108,28 @@
 
 (defun evolve (test &key
                       period period-func
-                      max-evals max-time max-inds max-fit min-fit pop-fn ind-fn)
+                      max-evals max-time max-fit min-fit pop-fn ind-fn)
   "Evolves population until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
   PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
   MAX-EVALS ------- stop after this many fitness evaluations
-  MAX-INDS -------- stop after this many new individuals have been tried
   MAX-TIME -------- stop after this many generations
   MAX-FIT --------- stop when an individual achieves this fitness or higher
   MIN-FIT --------- stop when an individual achieves this fitness or lower
   POP-FN ---------- stop when the population satisfies this function
   IND-FN ---------- stop when an individual satisfies this function"
   (let ((start-time (get-internal-real-time)))
-    (setq *new-individuals* nil)
     (setq *fitness-evals* 0)
     (setq *running* t)
     (loop :until (or (not *running*)
                      (and max-evals (> *fitness-evals* max-evals))
-                     (and max-inds (> *new-individuals* max-inds))
                      (and max-time (> (/ (- (get-internal-real-time) start-time)
                                          internal-time-units-per-second)
                                       max-time)))
        :do (let ((new (new-individual)))
-             (push (cons (edits new) (setf (fitness new) (funcall test new)))
-                   *new-individuals*)
+             (setf (fitness new) (funcall test new))
              (incf *fitness-evals*)
              (when (and period (zerop (mod *fitness-evals* period)))
                (funcall period-func))
