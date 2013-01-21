@@ -157,6 +157,9 @@ Optional argument OUT specifies an output stream."
                :initial-value t))
       (t (equal obj1 obj2)))))
 
+(defun indexed (list)
+  (loop :for element :in list :as i :from 0 :collect (list i element)))
+
 (defun different-it (obj1 obj2 &optional trace)
   (let ((trace1 (concatenate 'list (list obj1 obj2) trace)))
     (cond
