@@ -121,7 +121,6 @@ Keyword arguments are as follows.
   POP-FN ---------- stop when the population satisfies this function
   IND-FN ---------- stop when an individual satisfies this function"
   (let ((start-time (get-internal-real-time)))
-    (setq *fitness-evals* 0)
     (setq *running* t)
     (loop :until (or (not *running*)
                      (and max-evals (> *fitness-evals* max-evals))
