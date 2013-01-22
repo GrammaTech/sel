@@ -76,9 +76,9 @@
 (defun incorporate (software)
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
   (push software *population*)
-  (when (and *max-population-size*
-             (> (length *population*) *max-population-size*))
-    (evict)))
+  (loop :while (and *max-population-size*
+                    (> (length *population*) *max-population-size*))
+     :do (evict)))
 
 (defun evict ()
   (let ((loser (tournament (complement *fitness-predicate*))))
