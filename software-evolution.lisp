@@ -90,7 +90,8 @@
   (flet ((verify (it) (assert (numberp (fitness it)) (it)
                               "Population member with no fitness") it))
     (assert *population* (*population*) "Empty population.")
-    (car (sort (dotimes (_ *tournament-size* competitors)
+    (car (sort (dotimes (no *tournament-size* competitors)
+                 (declare (ignorable no))
                  (push (verify (random-elt *population*)) competitors))
                predicate :key #'fitness))))
 
