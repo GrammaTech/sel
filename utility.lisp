@@ -102,6 +102,22 @@ After BODY is executed the temporary file is removed."
                           (parse-integer (car (last lines)))))))
       (sleep 0.1))))
 
+(defun parse-number (string)
+  "Parse the number located at the front of STRING or return an error."
+  (let ((number-str
+         (or (multiple-value-bind (whole matches)
+                 (scan-to-strings "^([-0-9/]+|[-0-9.]+)([^./A-Xa-x_-]|$)"
+                                  string)
+               (declare (ignorable whole))
+               (when matches (aref matches 0)))
+             (multiple-value-bind (whole matches)
+                 (scan-to-strings "0([xX][0-9A-Fa-f]+)([^./]|$)"
+                                  string)
+               (declare (ignorable whole))
+               (when matches (concatenate 'string "#" (aref matches 0)))))))
+    (assert number-str (string) "String ~S doesn't specify a number." string)
+    (read-from-string number-str)))
+
 
 ;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)
