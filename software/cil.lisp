@@ -53,7 +53,7 @@
                                  nil)
                              `(,src))
                             " "))
-        (unless (zerop exit) (throw 'ast-mutate stderr))
+        (unless (zerop exit) (throw 'ast-mutate nil))
         stdout))))
 
 (defmethod phenome ((cil cil) &key bin)

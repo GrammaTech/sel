@@ -51,15 +51,11 @@
   (string-to-file (genome software) path :if-exists if-exists))
 
 (defun genome-helper (ast)
-  (if (edits ast)
-      (let ((parent (copy ast)))
-        (pop (edits parent))
-        (ast-mutate (make-instance (type-of ast)
-                      :base (genome-helper parent))
-                    (car (edits ast))))
-      (base ast)))
-;; (memoize 'genome-helper :key #'identity)
-;; (un-memoize 'genome-helper)
+  (catch 'ast-mutate
+    (let ((base (copy-seq (base ast))))
+      (loop :for edit :in (reverse (copy-seq (edits ast))) :do
+         (setf base (ast-mutate (make-instance (type-of ast) :base base) edit)))
+      base)))
 
 (defmethod genome ((ast ast)) (genome-helper ast))
 (defmethod genome-string ((ast ast)) (genome ast))

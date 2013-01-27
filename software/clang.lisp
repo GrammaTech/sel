@@ -62,7 +62,7 @@
                                              (format nil "-~a" (car op))))))
                                  `(,src "--" ,@(c-flags clang) "|tail -n +3"))
                                 " "))
-            (unless (zerop exit) (throw 'ast-mutate stderr))
+            (unless (zerop exit) (throw 'ast-mutate nil))
             stdout))
         (values (genome clang) 0))))
 
