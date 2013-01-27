@@ -60,6 +60,7 @@
 (defmethod genome ((ast ast)) (genome-helper ast))
 (defmethod genome-string ((ast ast)) (genome ast))
 
+;; TODO: memoize by base and edit op
 (defgeneric ast-mutate (ast &optional op)
   (:documentation "Mutate AST with either clang-mutate or cil-mutate."))
 
