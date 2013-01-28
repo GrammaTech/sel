@@ -65,10 +65,7 @@
   (:documentation "Mutate AST with either clang-mutate or cil-mutate."))
 
 (defun num-ids (ast)
-  (handler-case
-      (read-from-string
-       (ast-mutate ast (list :ids)))
-    (ast-mutate (err) (declare (ignorable err)) (format t "caught") 0)))
+  (catch 'ast-mutate (read-from-string (ast-mutate ast (list :ids)))))
 
 (defmethod mutate ((ast ast))
   "Randomly mutate AST."
