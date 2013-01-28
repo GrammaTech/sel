@@ -66,9 +66,16 @@
   "Return the length of the genome of ASM."
   (length (genome asm)))
 
+(define-condition mutate (error)
+  ((text :initarg :text :reader text)
+   (obj  :initarg :obj  :reader obj))
+  (:report (lambda (condition stream)
+             (format stream "Mutation error ~a on ~S"
+                     (text condition) (obj condition)))))
+
 (defmethod mutate ((asm asm))
   "Randomly mutate ASM."
-  (unless (> (size asm) 0) (error 'mutate "No valid IDs" asm))
+  (unless (> (size asm) 0) (error 'mutate :text "No valid IDs" :obj asm))
   (setf (fitness asm) nil)
   (flet ((place () (random (size asm))))
     (let ((mut (case (random-elt '(cut insert swap))

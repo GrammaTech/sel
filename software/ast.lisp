@@ -70,7 +70,8 @@
 (defmethod mutate ((ast ast))
   "Randomly mutate AST."
   (let ((num-ids (num-ids ast)))
-    (unless (and num-ids (> num-ids 0)) (error 'mutate "No valid IDs"))
+    (unless (and num-ids (> num-ids 0))
+      (error 'mutate :text "No valid IDs" :obj ast))
     (setf (fitness ast) nil)
     (flet ((place () (random num-ids)))
       (push (case (random-elt '(cut insert swap))
