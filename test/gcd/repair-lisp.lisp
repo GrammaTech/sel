@@ -14,7 +14,7 @@
 (defvar *gcd* (lisp-from-file "gcd.lisp"))
 
 ;; build up a starting population
-(dotimes (_ 8) (push *gcd* *population*))
+(dotimes (n 8) (push *gcd* *population*))
 
 ;; evolve a repair
 (defvar *repair* (repair :max-evals 1000 :max-fit 11))

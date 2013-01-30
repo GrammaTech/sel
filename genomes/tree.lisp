@@ -34,7 +34,7 @@
                 (tree-branches tree))))
 
 (defmethod inds ((genome tree) &aux (counter -1) inds)
-  (map-tree 'list (lambda (_) (declare (ignorable _))
+  (map-tree 'list (lambda (n) (declare (ignorable n))
                      (push (incf counter) inds))
             genome)
   (reverse inds))

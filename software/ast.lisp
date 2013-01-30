@@ -85,7 +85,7 @@
   "Return a new ast composed of subsets of the edits from A and B."
   (let ((new (copy a)))
     (flet ((some-of (edits)
-             (remove-if (lambda (_) (declare (ignorable _)) (zerop (random 2)))
+             (remove-if (lambda (n) (declare (ignorable n)) (zerop (random 2)))
                         (butlast edits 1))))
       (setf (edits new)
             (append (some-of (edits a)) (some-of (edits b))

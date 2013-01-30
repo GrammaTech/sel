@@ -14,7 +14,7 @@
 (defvar *qs* (lisp-from-file "quick-sort.lisp"))
 
 ;; build up a starting population
-(dotimes (_ 8) (push *qs* *population*))
+(dotimes (n 8) (declare (ignorable n)) (push *qs* *population*))
 
 ;; evolve a repair
 (defvar *repair* (repair :max-evals 5000 :max-fit 10))

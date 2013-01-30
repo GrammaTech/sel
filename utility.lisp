@@ -225,7 +225,7 @@ Optional argument OUT specifies an output stream."
 (defmacro mapcomb (func &rest lists)
   "Parallel map FUNC over all combinations of the elements of LISTS.
 The arity of FUNC must match the number of elements of LISTS."
-  (let* ((args (mapcar (lambda (_) (gensym)) lists))
+  (let* ((args (mapcar (lambda (n) (declare (ignorable n)) (gensym)) lists))
          (paired (map 'list #'cons args lists)))
     (reduce (lambda (prev pair)
               `(mapcar (lambda (,(car pair)) ,prev) ,(cdr pair)))
@@ -236,7 +236,7 @@ The arity of FUNC must match the number of elements of LISTS."
 (defmacro pmapcomb (func &rest lists)
   "Parallel map FUNC over all combinations of the elements of LISTS.
 The arity of FUNC must match the number of elements of LISTS."
-  (let* ((args (mapcar (lambda (_) (gensym)) lists))
+  (let* ((args (mapcar (lambda (n) (declare (ignorable n)) (gensym)) lists))
          (paired (map 'list #'cons args lists)))
     (reduce (lambda (prev pair)
               `(pmapcar (lambda (,(car pair)) ,prev) ,(cdr pair)))
@@ -244,13 +244,15 @@ The arity of FUNC must match the number of elements of LISTS."
             :initial-value `(funcall ,func ,@args))))
 
 (defmacro repeatedly (n &body body)
-  `(loop :for _ :upto ,n :collect ,@body))
+  (let ((var (gensym)))
+    `(loop :for ,var :upto ,n :collect ,@body)))
 
 #+eager
 (defmacro prepeatedly (n &body body)
   "Return the result of running BODY N times in parallel."
-  (let ((result-sym (gensym)))
-    `(let ((,result-sym (loop :for _ :upto ,n :collect (pexec ,@body))))
+  (let ((loop-sym (gensym))
+        (result-sym (gensym)))
+    `(let ((,result-sym (loop :for ,loop-sym :upto ,n :collect (pexec ,@body))))
        (map-into ,result-sym #'yield ,result-sym))))
 
 (defun aget (key list)
