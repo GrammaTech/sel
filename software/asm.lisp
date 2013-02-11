@@ -29,7 +29,8 @@
 (defclass asm (software)
   ((addr-map :initarg :addr-map :accessor addr-map :initform nil)
    (genome   :initarg :genome   :accessor genome   :initform nil)
-   (linker   :initarg :linker   :accessor linker   :initform nil)))
+   (linker   :initarg :linker   :accessor linker   :initform nil)
+   (flags    :initarg :flags    :accessor flags    :initform "")))
 
 (defvar asm-linker "gcc")
 
@@ -39,7 +40,8 @@
     :edits (copy-tree (edits asm))
     :addr-map (copy-tree (addr-map asm))
     :genome (copy-tree (genome asm))
-    :linker (linker asm)))
+    :linker (linker asm)
+    :flags  (flags asm)))
 
 (defmethod from-file ((asm asm) path)
   (with-open-file (in path)
@@ -58,7 +60,8 @@
   (with-temp-file-of (src "s") (genome-string asm)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr exit)
-          (shell "~a -o ~a ~a" (or (linker asm) asm-linker) bin src)
+          (shell "~a ~a -o ~a ~a"
+                 (or (linker asm) asm-linker) (flags asm) bin src)
         (declare (ignorable stdout ))
         (values (if (zerop exit) bin stderr) exit)))))
 
