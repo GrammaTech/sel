@@ -32,12 +32,13 @@
   ((base    :initarg :base    :accessor base    :initform nil)
    (c-flags :initarg :c-flags :accessor c-flags :initform nil)))
 
-(defmethod copy ((ast ast))
+(defmethod copy ((ast ast)
+                 &key (edits (copy-tree (edits ast))) (fitness (fitness ast)))
   (make-instance (type-of ast)
     :c-flags (copy-tree (c-flags ast))
     :base    (base ast)
-    :fitness (fitness ast)
-    :edits   (copy-tree (edits ast))))
+    :fitness fitness
+    :edits   edits))
 
 (defmethod from-file ((ast ast) path)
   (setf (base ast) (file-to-string path))

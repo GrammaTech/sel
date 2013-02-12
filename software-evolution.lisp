@@ -29,7 +29,7 @@
 (defgeneric evaluate (software)
   (:documentation "Evaluate a the software returning a numerical fitness."))
 
-(defgeneric copy (software)
+(defgeneric copy (software &key edits fitness)
   (:documentation "Copy the software."))
 
 (defgeneric mutate (software)

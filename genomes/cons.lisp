@@ -44,7 +44,7 @@
 
 
 ;;; Cons-cell Methods
-(defmethod copy ((genome list))
+(defmethod copy ((genome list) &key edits fitness)
   (copy-tree genome))
 
 (defmethod size ((genome list))

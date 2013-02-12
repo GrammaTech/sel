@@ -10,7 +10,7 @@
 
 
 ;;; Vector Methods
-(defmethod copy ((genome vector))
+(defmethod copy ((genome vector) &key edits fitness)
   (copy-seq genome))
 
 (defmethod size ((genome vector))

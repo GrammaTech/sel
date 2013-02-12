@@ -26,12 +26,15 @@
   ((compiler  :initarg :compiler :accessor compiler :initform "clang")
    (ext       :initarg :ext      :accessor ext      :initform "c")))
 
-(defmethod copy ((clang clang))
+(defmethod copy ((clang clang)
+                 &key
+                   (edits (copy-tree (edits clang)))
+                   (fitness (fitness clang)))
   (make-instance (type-of clang)
     :c-flags  (copy-tree (c-flags clang))
     :base     (base clang)
-    :fitness  (fitness clang)
-    :edits    (copy-tree (edits clang))
+    :edits    edits
+    :fitness  fitness
     :compiler (compiler clang)
     :ext      (ext clang)))
 
