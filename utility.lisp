@@ -77,30 +77,37 @@ After BODY is executed the temporary file is removed."
                  ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
-;; (defun shell (&rest rst)
-;;   (multiple-value-bind (output err-output exit)
-;;       (shell-command (apply #'format (cons nil rst)) :input nil)
-;;     (values output err-output exit)))
+(defun shell (&rest rst)
+  (multiple-value-bind (output err-output exit)
+      (shell-command (apply #'format (cons nil rst)) :input nil)
+    (values output err-output exit)))
 
-(defvar *work-dir* "work")
+(defvar *work-dir* nil)
 
 (defun shell (&rest rst)
-  (let* ((cmd (apply #'format (cons nil rst)))
-         (name (tempnam *work-dir* "lisp-job"))
-         (run-file (format nil "~a.run" name))
-         (done-file (format nil "~a.done" name)))
-    (string-to-file cmd run-file)
-    (do () (())
-      (when (probe-file done-file)
-        (let ((lines (split-sequence #\Newline (file-to-string done-file)
-                                     :remove-empty-subseqs t)))
-          (delete-file done-file)
-          (return (values (or (mapconcat (curry #'format nil "~a~%")
-                                         (butlast lines) "")
-                              "")
-                          ""
-                          (parse-integer (car (last lines)))))))
-      (sleep 0.1))))
+  (if *work-dir*
+      ;; more robust shell execution using foreman
+      (let* ((cmd (apply #'format (cons nil rst)))
+             (name (tempnam *work-dir* "lisp-job"))
+             (run-file (format nil "~a.run" name))
+             (done-file (format nil "~a.done" name)))
+        (string-to-file cmd run-file)
+        (do () (())
+          (when (probe-file done-file)
+            (let ((lines (split-sequence #\Newline (file-to-string done-file)
+                                         :remove-empty-subseqs t)))
+              (delete-file done-file)
+              (return (values (or (mapconcat (curry #'format nil "~a~%")
+                                             (butlast lines) "")
+                                  "")
+                              ""
+                              (parse-integer (car (last lines)))))))
+          (sleep 0.1)))
+      ;; native shell execution
+      (multiple-value-bind (output err-output exit)
+          #+sbcl (shell-command (apply #'format (cons nil rst)) :input nil)
+          #-(or sbcl) (error "not implemented")
+        (values output err-output exit))))
 
 (defun parse-number (string)
   "Parse the number located at the front of STRING or return an error."
