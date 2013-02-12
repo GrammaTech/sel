@@ -31,7 +31,7 @@
     (dir sb-alien:c-string)
     (prefix sb-alien:c-string)))
 
-(defun file-to-string (path)
+(defun file-to-string (path) ;; TODO: unbearably slow in some instances
   (apply #'concatenate 'string
          (let (res)
            (with-open-file (in path)
