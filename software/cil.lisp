@@ -59,6 +59,6 @@
       (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~a"
                  (compiler cil) src bin
-                 (mapconcat #'identity (c-flags cil) " "))
+                 (mapconcat #'identity (flags cil) " "))
         (declare (ignorable stdout))
         (values (if (zerop exit) bin stderr) exit)))))
