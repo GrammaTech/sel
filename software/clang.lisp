@@ -23,8 +23,7 @@
 (in-package :software-evolution)
 
 (defclass clang (ast)
-  ((compiler  :initarg :compiler :accessor compiler :initform "clang")
-   (ext       :initarg :ext      :accessor ext      :initform "c")))
+  ((compiler :initarg :compiler :accessor compiler :initform "clang")))
 
 (defmethod copy ((clang clang)
                  &key

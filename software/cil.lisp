@@ -24,15 +24,12 @@
 
 
 ;;; cil software objects
-(defclass cil (ast) ())
-
-(defvar cil-file-extension "c")
-
-(defvar cil-compiler "gcc")
+(defclass cil (ast)
+  ((compiler :initarg :compiler :accessor compiler :initform "gcc")))
 
 (defmethod ast-mutate ((cil cil) &optional op)
   (flet ((stmt (num arg) (format nil "-stmt~d ~d" num arg)))
-    (with-temp-file-of (src cil-file-extension) (genome cil)
+    (with-temp-file-of (src (ext cil)) (genome cil)
       (multiple-value-bind (stdout stderr exit)
           (shell "cil-mutate ~a"
                  (mapconcat #'identity
@@ -57,10 +54,11 @@
         stdout))))
 
 (defmethod phenome ((cil cil) &key bin)
-  (with-temp-file-of (src cil-file-extension) (genome cil)
+  (with-temp-file-of (src (ext cil)) (genome cil)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~a"
-                 cil-compiler src bin (mapconcat #'identity (c-flags cil) " "))
+                 (compiler cil) src bin
+                 (mapconcat #'identity (c-flags cil) " "))
         (declare (ignorable stdout))
         (values (if (zerop exit) bin stderr) exit)))))

@@ -29,24 +29,28 @@
 
 ;;; ast software objects
 (defclass ast (software)
-  ((base    :initarg :base    :accessor base    :initform nil)
-   (c-flags :initarg :c-flags :accessor c-flags :initform nil)))
+  ((base     :initarg :base     :accessor base     :initform nil)
+   (flags    :initarg :flags    :accessor flags    :initform nil)
+   (compiler :initarg :compiler :accessor compiler :initform nil)
+   (ext      :initarg :ext      :accessor ext      :initform "c")))
 
 (defmethod copy ((ast ast)
                  &key (edits (copy-tree (edits ast))) (fitness (fitness ast)))
   (make-instance (type-of ast)
-    :c-flags (copy-tree (c-flags ast))
-    :base    (base ast)
-    :fitness fitness
-    :edits   edits))
+    :flags    (copy-tree (flags ast))
+    :base     (base ast)
+    :compiler (compiler ast)
+    :ext      (ext ast)
+    :fitness  fitness
+    :edits    edits))
 
 (defmethod from-file ((ast ast) path)
   (setf (base ast) (file-to-string path))
   ast)
 
-(defun ast-from-file (path &key c-flags)
-  (assert (listp c-flags) (c-flags) "c-flags must be a list")
-  (from-file (make-instance 'ast :c-flags c-flags) path))
+(defun ast-from-file (path &key flags)
+  (assert (listp flags) (flags) "flags must be a list")
+  (from-file (make-instance 'ast :flags flags) path))
 
 (defun ast-to-file (software path &key if-exists)
   (string-to-file (genome software) path :if-exists if-exists))
