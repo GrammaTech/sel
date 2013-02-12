@@ -30,7 +30,6 @@
                    (edits (copy-tree (edits clang)))
                    (fitness (fitness clang)))
   (make-instance (type-of clang)
-    :c-flags  (copy-tree (c-flags clang))
     :base     (base clang)
     :edits    edits
     :fitness  fitness
@@ -62,7 +61,7 @@
                                                    (stmt 2 (third op))))
                                    (t (list (string-downcase
                                              (format nil "-~a" (car op))))))
-                                 `(,src "--" ,@(c-flags clang) "|tail -n +3"))
+                                 `(,src "--" ,@(flags clang) "|tail -n +3"))
                                 " "))
             (unless (zerop exit) (throw 'ast-mutate nil))
             stdout))
@@ -74,6 +73,6 @@
       (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~a"
                  (compiler clang)
-                 src bin (mapconcat #'identity (c-flags clang) " "))
+                 src bin (mapconcat #'identity (flags clang) " "))
         (declare (ignorable stdout stderr))
         (values (if (zerop exit) bin stderr) exit)))))
