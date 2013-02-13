@@ -77,10 +77,10 @@ After BODY is executed the temporary file is removed."
                  ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
-(defun shell (&rest rst)
-  (multiple-value-bind (output err-output exit)
-      (shell-command (apply #'format (cons nil rst)) :input nil)
-    (values output err-output exit)))
+;; (defun shell (&rest rst)
+;;   (multiple-value-bind (output err-output exit)
+;;       (shell-command (apply #'format (cons nil rst)) :input nil)
+;;     (values output err-output exit)))
 
 (defvar *work-dir* nil)
 
