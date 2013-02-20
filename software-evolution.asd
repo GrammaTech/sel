@@ -11,7 +11,7 @@
                trivial-timeout
                cl-ppcre
                ;; cl-quickcheck
-               ;; eager-future2
+               eager-future2
                memoize
                )
   :components
