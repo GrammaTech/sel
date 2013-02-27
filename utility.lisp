@@ -113,8 +113,9 @@ After BODY is executed the temporary file is removed."
   "Parse the number located at the front of STRING or return an error."
   (let ((number-str
          (or (multiple-value-bind (whole matches)
-                 (scan-to-strings "^([-0-9/]+|[-0-9.]+)([^./A-Xa-x_-]|$)"
-                                  string)
+                 (scan-to-strings
+                  "^(-?[0-9]+(/[-e0-9]+|\.[-e0-9]+)?)([^\./A-Xa-x_-]$|$)"
+                  string)
                (declare (ignorable whole))
                (when matches (aref matches 0)))
              (multiple-value-bind (whole matches)
