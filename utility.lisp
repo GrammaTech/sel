@@ -260,9 +260,9 @@ The arity of FUNC must match the number of elements of LISTS."
     `(let ((,result-sym (loop :for ,loop-sym :upto ,n :collect (pexec ,@body))))
        (map-into ,result-sym #'yield ,result-sym))))
 
-(defun aget (key list)
+(defun aget (key list &key (test #'eql))
   "Get KEY from association list LIST."
-  (cdr (assoc key list)))
+  (cdr (assoc key list :test test)))
 
 (defun getter (key)
   "Return a function which gets KEY from an association list."
