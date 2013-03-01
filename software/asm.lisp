@@ -30,7 +30,7 @@
   ((addr-map :initarg :addr-map :accessor addr-map :initform nil)
    (genome   :initarg :genome   :accessor genome   :initform nil)
    (linker   :initarg :linker   :accessor linker   :initform nil)
-   (flags    :initarg :flags    :accessor flags    :initform "")))
+   (flags    :initarg :flags    :accessor flags    :initform nil)))
 
 (defvar asm-linker "gcc")
 
