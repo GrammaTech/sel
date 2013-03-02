@@ -36,13 +36,13 @@
 
 (defmethod copy ((asm asm)
                  &key (edits (copy-tree (edits asm))) (fitness (fitness asm)))
-  (make-instance 'asm
+  (make-instance (type-of asm)
     :edits edits
     :fitness fitness
     :addr-map (copy-tree (addr-map asm))
     :genome (copy-tree (genome asm))
     :linker (linker asm)
-    :flags  (flags asm)))
+    :flags (flags asm)))
 
 (defmethod from-file ((asm asm) path)
   (with-open-file (in path)
