@@ -106,7 +106,8 @@ After BODY is executed the temporary file is removed."
                                              (butlast lines) "")
                                   ""))
                       (errno (parse-integer (car (last lines)))))
-                  (format t "~&stdout:~a~%errno:~a" stdout errno)
+                  (when *shell-debug*
+                    (format t "~&stdout:~a~%errno:~a" stdout errno))
                   (return (values stdout "" errno)))))
             (sleep 0.1)))
         ;; native shell execution
