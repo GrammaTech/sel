@@ -260,13 +260,13 @@ The arity of FUNC must match the number of elements of LISTS."
 
 (defmacro repeatedly (n &body body)
   (let ((var (gensym)))
-    `(loop :for ,var :upto ,n :collect ,@body)))
+    `(loop :for ,var :below ,n :collect ,@body)))
 
 (defmacro prepeatedly (n &body body)
   "Return the result of running BODY N times in parallel."
   (let ((loop-sym (gensym))
         (result-sym (gensym)))
-    `(let ((,result-sym (loop :for ,loop-sym :upto ,n :collect (pexec ,@body))))
+    `(let ((,result-sym (loop :for ,loop-sym :below ,n :collect (pexec ,@body))))
        (map-into ,result-sym #'yield ,result-sym))))
 
 (defun aget (key list &key (test #'eql))
