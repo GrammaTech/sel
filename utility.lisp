@@ -44,7 +44,8 @@
 
 (defun string-to-file (string path &key if-exists)
   (with-open-file (out path :direction :output :if-exists if-exists)
-    (format out "~a" string)))
+    (format out "~a" string))
+  path)
 
 (defun temp-file-name (&optional ext)
   (let ((base #+clisp
