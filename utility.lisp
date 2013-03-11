@@ -93,7 +93,7 @@ After BODY is executed the temporary file is removed."
     (when *shell-debug* (format t "  cmd: ~a~%" cmd))
     (if *work-dir*
         ;; more robust shell execution using foreman
-        (let* ((name (tempnam *work-dir* "lisp-job"))
+        (let* ((name (tempnam *work-dir* "lisp-"))
                (run-file (format nil "~a.run" name))
                (done-file (format nil "~a.done" name)))
           (string-to-file cmd run-file)
@@ -111,12 +111,12 @@ After BODY is executed the temporary file is removed."
                   (return (values stdout "" errno)))))
             (sleep 0.1)))
         ;; native shell execution
-        (multiple-value-bind (output err-output errno)
+        (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input nil)
             #-(or sbcl) (error "not implemented")
             (when *shell-debug*
               (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr errno))
-            (values output err-output errno)))))
+            (values stdout stderr errno)))))
 
 (defun parse-number (string)
   "Parse the number located at the front of STRING or return an error."
