@@ -6,16 +6,10 @@
   :depends-on (alexandria
                split-sequence
                metabang-bind
-               cl-store
-               trivial-shell
-               trivial-timeout
-               cl-ppcre
                curry-compose-reader-macros
-               ;; cl-quickcheck
-               eager-future2
-               memoize
-               elf
-               )
+               trivial-shell
+               cl-ppcre
+               elf)
   :components
   ((:static-file "COPYING")
    (:static-file "Makefile")
@@ -38,5 +32,4 @@
    (:file       "evolution/neutral"
     :depends-on ("package" "utility"))
    (:file       "evolution/by-function"
-    :depends-on ("package" "utility"))
-   ))
+    :depends-on ("package" "utility"))))

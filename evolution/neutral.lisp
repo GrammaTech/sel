@@ -28,6 +28,6 @@
        :do (unless (member variant variants :key #'edits :test #'tree-equal)
              (setf (fitness variant) (test-suite variant))
              (push variant variants)))
-    (store variants "neutral.store")))
+    variants))
 
 ;; TODO: multiple step neutral walks

@@ -23,6 +23,8 @@
 
 ;;; Code:
 (in-package :software-evolution)
+(require :trivial-timeout)
+(use-package :trivial-timeout)
 
 
 ;;; the class of lisp software objects

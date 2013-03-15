@@ -1,6 +1,10 @@
 ;; repair using software evolution
 (require :software-evolution)
 (in-package :software-evolution)
+(require :memoize)
+(use-package :memoize)
+(require :cl-store)
+(use-package :cl-store)
 
 ;; reproducibility
 (let ((seed-path "seed"))

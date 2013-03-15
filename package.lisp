@@ -5,14 +5,8 @@
    :alexandria
    :split-sequence
    :metabang-bind
-   :cl-store
-   :trivial-shell
-   :trivial-timeout
    :curry-compose-reader-macros
+   :trivial-shell
    :cl-ppcre
-   ;; :cl-quickcheck
-   :eager-future2
-   :memoize
-   :elf
-   )
+   :elf)
   (:shadow :type :magic-number))

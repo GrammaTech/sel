@@ -226,49 +226,6 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; Generic utility functions
-(defmacro comp (&rest funcs)
-  "Return a function equal to the composition of FUNCS."
-  (let ((arg-sym (gensym)))
-    `(lambda (,arg-sym)
-       ,(reduce (lambda (f a) `(funcall ,f ,a))
-                funcs :initial-value arg-sym :from-end t))))
-
-(defun pmapcar (f list)
-  "Parallel map (from http://marijnhaverbeke.nl/pcall/)."
-  (let ((result (mapcar (lambda (n) (pexec (funcall f n))) list)))
-    (map-into result #'yield result)))
-
-(defmacro mapcomb (func &rest lists)
-  "Parallel map FUNC over all combinations of the elements of LISTS.
-The arity of FUNC must match the number of elements of LISTS."
-  (let* ((args (mapcar (lambda (n) (declare (ignorable n)) (gensym)) lists))
-         (paired (map 'list #'cons args lists)))
-    (reduce (lambda (prev pair)
-              `(mapcar (lambda (,(car pair)) ,prev) ,(cdr pair)))
-            paired
-            :initial-value `(funcall ,func ,@args))))
-
-(defmacro pmapcomb (func &rest lists)
-  "Parallel map FUNC over all combinations of the elements of LISTS.
-The arity of FUNC must match the number of elements of LISTS."
-  (let* ((args (mapcar (lambda (n) (declare (ignorable n)) (gensym)) lists))
-         (paired (map 'list #'cons args lists)))
-    (reduce (lambda (prev pair)
-              `(pmapcar (lambda (,(car pair)) ,prev) ,(cdr pair)))
-            paired
-            :initial-value `(funcall ,func ,@args))))
-
-(defmacro repeatedly (n &body body)
-  (let ((var (gensym)))
-    `(loop :for ,var :below ,n :collect ,@body)))
-
-(defmacro prepeatedly (n &body body)
-  "Return the result of running BODY N times in parallel."
-  (let ((loop-sym (gensym))
-        (result-sym (gensym)))
-    `(let ((,result-sym (loop :for ,loop-sym :below ,n :collect (pexec ,@body))))
-       (map-into ,result-sym #'yield ,result-sym))))
-
 (defun aget (key list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc key list :test test)))
