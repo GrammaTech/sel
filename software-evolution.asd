@@ -13,6 +13,7 @@
                ;; cl-quickcheck
                eager-future2
                memoize
+               elf
                )
   :components
   ((:static-file "COPYING")

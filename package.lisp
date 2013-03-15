@@ -12,5 +12,6 @@
    ;; :cl-quickcheck
    :eager-future2
    :memoize
+   :elf
    )
-  (:shadow :type))
+  (:shadow :type :magic-number))
