@@ -10,6 +10,7 @@
                trivial-shell
                trivial-timeout
                cl-ppcre
+               curry-compose-reader-macros
                ;; cl-quickcheck
                eager-future2
                memoize

@@ -8,6 +8,7 @@
    :cl-store
    :trivial-shell
    :trivial-timeout
+   :curry-compose-reader-macros
    :cl-ppcre
    ;; :cl-quickcheck
    :eager-future2

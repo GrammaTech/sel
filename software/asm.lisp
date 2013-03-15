@@ -154,11 +154,9 @@
        :for addrs :in (mapcar (lambda (func) (addrs phenome func))
                               (remove-if-not #'stringp flines))
        :for lines :in (cdr (mapcar
-                            (curry #'remove-if
-                                   (comp (curry #'scan "^[\\s]*\\.")
-                                         (curry #'aget :line)
-                                         (curry #'aref genome)))
-                            (split-sequence-if #'stringp flines)))
+                            {remove-if
+                             [{scan "^[\\s]*\\."} {aget :line} {aref genome}]}
+                             (split-sequence-if #'stringp flines)))
        :do (mapc (lambda (addr line) (setf (gethash addr map) line))
                  addrs lines))
     map))
