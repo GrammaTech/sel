@@ -37,6 +37,13 @@
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 
+(define-condition mutate (error)
+  ((text :initarg :text :reader text)
+   (obj  :initarg :obj  :reader obj))
+  (:report (lambda (condition stream)
+             (format stream "Mutation error ~a on ~S"
+                     (text condition) (obj condition)))))
+
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects."))
 
