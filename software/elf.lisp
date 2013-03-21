@@ -16,38 +16,32 @@
    (genome    :initarg :genome    :accessor genome    :initform nil)
    (addresses :initarg :addresses :accessor addresses :initform nil)))
 
-(defmethod .text ((elf-sw elf-sw))
-  (named-section (base elf-sw) ".text"))
-
-(defmethod .rodata ((elf-sw elf-sw))
-  (named-section (base elf-sw) ".rodata"))
-
-(defmethod copy ((sw elf-sw) &key
-                               (edits (copy-tree (edits sw)))
-                               (fitness (fitness sw)))
-  (make-instance (type-of sw)
+(defmethod copy ((elf elf-sw) &key
+                               (edits (copy-tree (edits elf)))
+                               (fitness (fitness elf)))
+  (make-instance (type-of elf)
     :edits edits
     :fitness fitness
-    :genome (copy-tree (genome sw))
-    :base (copy-elf (base sw))))
+    :genome (copy-tree (genome elf))
+    :base (copy-elf (base elf))))
 
-(defmethod from-file ((sw elf-sw) path)
-  (setf (base sw) (read-elf path))
-  (let* ((text (.text sw))
+(defmethod from-file ((elf elf-sw) path)
+  (setf (base elf) (read-elf path))
+  (let* ((text (named-section (base elf) ".text"))
          (objdump (objdump-parse (objdump text))))
-    (setf (genome sw) (by-instruction text objdump))
-    (setf (addresses sw) (mapcar #'car (mapcan #'cdr objdump))))
-  sw)
+    (setf (genome elf) (by-instruction text objdump))
+    (setf (addresses elf) (mapcar #'car (mapcan #'cdr objdump))))
+  elf)
 
-(defmethod phenome ((sw elf-sw) &key (bin (temp-file-name)))
-  (write-elf (base sw) bin)
+(defmethod phenome ((elf elf-sw) &key (bin (temp-file-name)))
+  (write-elf (base elf) bin)
   (shell "chmod +x ~a" bin)
   bin)
 
-(defmethod mutate ((sw elf-sw))
-  "Randomly mutate SW."
-  (setf (fitness sw) nil)
-  (flet ((place () (random (length (data (.text sw))))))
+(defmethod mutate ((elf elf-sw))
+  "Randomly mutate ELF."
+  (setf (fitness elf) nil)
+  (flet ((place () (random (length (data (.text elf))))))
     (let ((mut (case (random-elt '(cut  #|insert swap d-cut d-insert d-swap|#))
                  (cut      `(:cut         ,(place)))
                  (insert   `(:insert      ,(place) ,(place)))
@@ -56,9 +50,9 @@
                  ;; (d-insert `(:data-insert ,(d-place) ,(d-place)))
                  ;; (d-swap   `(:data-swap   ,(d-place) ,(d-place)))
                  )))
-      (push mut (edits sw))
-      (apply-mutate sw mut)))
-  sw)
+      (push mut (edits elf))
+      (apply-mutate elf mut)))
+  elf)
 
 (defun apply-mutate (elf mut)
   (setf (genome elf)
