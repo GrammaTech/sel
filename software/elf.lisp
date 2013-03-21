@@ -129,3 +129,13 @@
     (mapcar (lambda (start end) (coerce (subseq data start end) 'list))
             offsets
             (append (cdr offsets) (list nil)))))
+
+(defmethod apply-path ((elf elf-sw) key addresses &aux applied)
+  (loop :for el :in addresses :as i :from 0 :do
+     (let* ((addr (if (consp el) (car el) el))
+            (val (if (consp el) (cdr el) t))
+            (place (position addr (addresses elf))))
+       (when place
+         (push (cons key val) (aref (genome elf) place))
+         (push (list i key val) applied))))
+  (reverse applied))

@@ -156,7 +156,7 @@
 
 
 ;;; incorporation of oprofile samples
-(defun apply-path (asm key addresses &aux applied)
+(defmethod apply-path ((asm asm) key addresses &aux applied)
   "Apply a list of sampled ADDRESSES to the ASM's genome behind KEY.
 If each element of ADDRESSES is a cons cell then assume the car is the
 address and the cdr is the value."
@@ -169,24 +169,3 @@ address and the cdr is the value."
            (push (cons key val) (aref (genome asm) loc))
            (push (list i key val) applied)))))
   (reverse applied))
-
-(defun samples-from-oprofile-file (path)
-  (with-open-file (in path)
-    (remove nil
-      (loop :for line = (read-line in nil)
-         :while line
-         :collect
-         (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
-           (declare (string c) (string a))
-           (cons (parse-integer a :radix 16) (parse-integer c)))))))
-
-(defun samples-from-tracer-file (path &aux samples)
-  (with-open-file (in path)
-    (loop :for line = (read-line in nil)
-       :while line
-       :do (let ((addr (parse-integer line)))
-             (if (assoc addr samples)
-                 (setf (cdr (assoc addr samples))
-                       (1+ (cdr (assoc addr samples))))
-                 (setf samples (cons (cons addr 0) samples)))))
-    samples))
