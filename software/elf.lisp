@@ -42,7 +42,7 @@
 (defmethod mutate ((elf elf-sw))
   "Randomly mutate ELF."
   (setf (fitness elf) nil)
-  (flet ((place () (random (length (data (.text elf))))))
+  (flet ((place () (random (length (data (named-section (base elf) ".text"))))))
     (let ((mut (case (random-elt '(cut  #|insert swap d-cut d-insert d-swap|#))
                  (cut      `(:cut         ,(place)))
                  (insert   `(:insert      ,(place) ,(place)))
@@ -130,8 +130,8 @@
 
 (defmethod apply-path ((elf elf-sw) key addresses &aux applied)
   (loop :for el :in addresses :as i :from 0 :do
-     (let* ((addr (if (consp el) (car el) el))
-            (val (if (consp el) (cdr el) t))
+     (let* ((addr  (if (consp el) (car el) el))
+            (val   (if (consp el) (cdr el) t))
             (place (position addr (addresses elf))))
        (when place
          (push (cons key val) (nth place (genome elf)))
