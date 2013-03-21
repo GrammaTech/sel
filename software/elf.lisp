@@ -16,6 +16,8 @@
    (genome    :initarg :genome    :accessor genome    :initform nil)
    (addresses :initarg :addresses :accessor addresses :initform nil)))
 
+(defvar x86-nop #x90)
+
 (defmethod copy ((elf elf-sw) &key
                                (edits (copy-tree (edits elf)))
                                (fitness (fitness elf)))
@@ -42,8 +44,8 @@
 (defmethod mutate ((elf elf-sw))
   "Randomly mutate ELF."
   (setf (fitness elf) nil)
-  (flet ((place () (random (length (data (named-section (base elf) ".text"))))))
-    (let ((mut (case (random-elt '(cut  #|insert swap d-cut d-insert d-swap|#))
+  (flet ((place () (random (length (genome elf)))))
+    (let ((mut (case (random-elt '(cut insert swap #|d-cut d-insert d-swap|#))
                  (cut      `(:cut         ,(place)))
                  (insert   `(:insert      ,(place) ,(place)))
                  (swap     `(:swap        ,(place) ,(place)))
@@ -63,10 +65,10 @@
                                (nth (third mut) (genome elf))))
           (:swap   (elf-swap (genome elf) (second mut) (third mut))))))
 
-(defvar x86-nop #x90)
-
 (defun elf-cut (genome s1)
   (let ((prev (copy-tree (nth s1 genome))))
+    (assert (assoc :bytes prev) (prev)
+            "attempt to cut genome element with no bytes: ~S" prev)
     (setf (cdr (assoc :bytes prev)) (list x86-nop))
     (append (subseq genome 0 s1)
             (setf (subseq genome s1)
@@ -75,9 +77,11 @@
                           (cdr (subseq genome s1)))))))
 
 (defun elf-insert (genome s1 val)
+  (assert (assoc :bytes val) (val)
+          "attempt to insert genome element with no bytes: ~S" val)
   (flet ((is-nop (n genome)
            (tree-equal (list x86-nop) (aget :bytes (nth n genome)))))
-    (let ((to-remove (length val))
+    (let ((to-remove (length (cdr (assoc :bytes val))))
           (expanded-length (1+ (length genome))))
       (setf genome (setf (subseq genome s1) (cons val (subseq genome s1))))
       ;; bookkeeping
