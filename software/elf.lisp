@@ -29,8 +29,9 @@
   (setf (base elf) (read-elf path))
   (let* ((text (named-section (base elf) ".text"))
          (objdump (objdump-parse (objdump text))))
-    (setf (genome elf) (by-instruction text objdump))
-    (setf (addresses elf) (mapcar #'car (mapcan #'cdr objdump))))
+    (setf (genome elf) (mapcar [#'list {cons :bytes}]
+                               (by-instruction text objdump)))
+    (setf (addresses elf) (mapcar #'car (mapcan #'cdr (copy-tree objdump)))))
   elf)
 
 (defmethod phenome ((elf elf-sw) &key (bin (temp-file-name)))
@@ -65,30 +66,33 @@
 (defvar x86-nop #x90)
 
 (defun elf-cut (genome s1)
-  (append (subseq genome 0 s1)
-          (setf (subseq genome s1)
-                (append (mapcar (constantly (list x86-nop)) (nth s1 genome))
-                        (cdr (subseq genome s1))))))
+  (let ((prev (copy-tree (nth s1 genome))))
+    (setf (cdr (assoc :bytes prev)) (list x86-nop))
+    (append (subseq genome 0 s1)
+            (setf (subseq genome s1)
+                  (append (mapcar (constantly prev)
+                                  (aget :bytes (nth s1 genome)))
+                          (cdr (subseq genome s1)))))))
 
 (defun elf-insert (genome s1 val)
-  (let ((to-remove (length val))
-        (expanded-length (1+ (length genome))))
-    (setf genome (setf (subseq genome s1) (cons val (subseq genome s1))))
-    ;; bookkeeping
-    (loop :for i :upto (max s1 (- (length genome) s1))
-       :while (> to-remove 0) :do
-       (let ((forward  (+ s1 i))
-             (backward (- s1 i)))
-         (when (and (< forward expanded-length)
-                    (tree-equal (list x86-nop) (nth forward genome)))
-           (decf to-remove)
-           (setf genome (elf-cut genome forward)))
-         (when (and (> to-remove 0) (> backward 0)
-                    (tree-equal (list x86-nop) (nth backward genome)))
-           (decf to-remove)
-           (setf genome (elf-cut genome backward)))))
-    (unless (zerop to-remove) (error 'mutate :text "size change" :obj genome))
-    genome))
+  (flet ((is-nop (n genome)
+           (tree-equal (list x86-nop) (aget :bytes (nth n genome)))))
+    (let ((to-remove (length val))
+          (expanded-length (1+ (length genome))))
+      (setf genome (setf (subseq genome s1) (cons val (subseq genome s1))))
+      ;; bookkeeping
+      (loop :for i :upto (max s1 (- (length genome) s1))
+         :while (> to-remove 0) :do
+         (let ((forward  (+ s1 i))
+               (backward (- s1 i)))
+           (when (and (< forward expanded-length) (is-nop forward genome))
+             (decf to-remove)
+             (setf genome (elf-cut genome forward)))
+           (when (and (> to-remove 0) (> backward 0) (is-nop backward genome))
+             (decf to-remove)
+             (setf genome (elf-cut genome backward)))))
+      (unless (zerop to-remove) (error 'mutate :text "size change" :obj genome))
+      genome)))
 
 (defun elf-swap (genome s1 s2)
   (mapcar (lambda-bind ((point . value))
@@ -115,11 +119,11 @@
                                  (subseq (genome b) point)))
       new)))
 
-(defun by-instruction (section
-                       &optional (objdump (objdump-parse (objdump section))))
-  (let ((data (data section))
-        (offsets (mapcar [{- _ (address (sh section))} #'car]
-                         (mapcan #'cdr objdump))))
+(defun by-instruction (section &optional objdump)
+  (let* ((objdump (or objdump (objdump-parse (objdump section))))
+         (data (data section))
+         (offsets (mapcar [{- _ (address (sh section))} #'car]
+                          (mapcan #'cdr objdump))))
     (mapcar (lambda (start end) (coerce (subseq data start end) 'list))
             offsets
             (append (cdr offsets) (list nil)))))
@@ -130,6 +134,6 @@
             (val (if (consp el) (cdr el) t))
             (place (position addr (addresses elf))))
        (when place
-         (push (cons key val) (aref (genome elf) place))
+         (push (cons key val) (nth place (genome elf)))
          (push (list i key val) applied))))
   (reverse applied))
