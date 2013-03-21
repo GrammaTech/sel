@@ -226,9 +226,9 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; Generic utility functions
-(defun aget (key list &key (test #'eql))
+(defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
-  (cdr (assoc key list :test test)))
+  (cdr (assoc item list :test test)))
 
 (defun getter (key)
   "Return a function which gets KEY from an association list."
