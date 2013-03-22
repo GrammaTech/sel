@@ -1,6 +1,7 @@
-Software Evolution --- A tool for the evolution of extant software.
+Software Evolution
+==================
 
-Design 
+A tool for the evolution of extant software.
 
     +-------------+    +-------------+    +--------+    +--------------+
     | interactive |    | distributed |    | repair |    | optimization |
@@ -38,7 +39,7 @@ Design
           |---------------|  |------------|  |---------------|  |-------------|
           |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
           |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
-          +---------------+  |   Format   |                         |  
+          +---------------+  |   Format   |                         |
                 |            +------------+                   +----------+
         +--------------+                                      |          |
         |              |                            +------------+  +----------+
