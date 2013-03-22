@@ -61,4 +61,7 @@
    :lisp
    :clang
    :cil
+   ;; elf methods
+   :base
+   :addresses
    ))
