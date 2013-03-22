@@ -1,6 +1,6 @@
 ;;; asm.lisp --- software representation of Assembly files
 
-;; Copyright (C) 2011  Eric Schulte
+;; Copyright (C) 2011-2013  Eric Schulte
 
 ;;; License:
 

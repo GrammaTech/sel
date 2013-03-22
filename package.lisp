@@ -1,4 +1,4 @@
-;; Copyright (C) 2011  Eric Schulte
+;; Copyright (C) 2011-2013  Eric Schulte
 (defpackage #:software-evolution
   (:use
    :common-lisp

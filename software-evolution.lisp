@@ -1,6 +1,6 @@
 ;;; software-evolution.lisp --- Extant Software Evolution
 
-;; Copyright (C) 2011-2012  Eric Schulte
+;; Copyright (C) 2011-2013  Eric Schulte
 
 ;;; License: GNU General Public License, Version 3 or later
 
@@ -156,6 +156,4 @@ Keyword arguments are as follows.
                    (return new))
                  (when (and pop-fn (funcall pop-fn *population*))
                    (return)))
-             (mutate (obj) nil)
-             ;; (error (other) (format t "Caught a weird error: ~S~%" other))
-             ))))
+             (mutate (obj) nil)))))
