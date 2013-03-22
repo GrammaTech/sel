@@ -1,104 +1,71 @@
-                          Software Evolution
-                          ==================
+Software Evolution --- A tool for the evolution of extant software.
 
+Design 
 
+    +-------------+    +-------------+    +--------+    +--------------+
+    | interactive |    | distributed |    | repair |    | optimization |
+    |-------------|    |  evolution  |    |--------|    |--------------|
+    | live in the |    |-------------|    | fixing |    |   improve    |
+    |   editor    |    |  using ZMQ  |    |  bugs  |    |  performance |
+    +-------------+    +-------------+    +--------+    +--------------+ ...
+           |                  |                |                 |
+           +------------------+------+---------+-----------------+
+                                     |
+                                   +-+-+                   population functions
+                                   | | |                   --------------------
+    global variables        +------------------+           incorporate
+    ----------------        |   *population*   |           evict
+    *population*            |------------------|           tournament
+    *max-population-size*   |      list of     |           mutate
+    *tournament-size*       | software objects |           crossed
+    *fitness-predicate*     +------------------+           new-individual
+    *cross-chance*                   |                     evolve
+    *fitness-evals*                +-+-+
+    *running*                      | | |                   software functions
+                            +------------------+           --------------
+                            | software object  |           genome
+    evolve arguments        |------------------|           phenome
+    ----------------        | edits,           |           evaluate
+    max-evals               | fitness          |           copy
+    max-time                | ...              |           mutate
+    max-inds                +------------------+           crossover
+    max-fit                           |                    edit-distance
+    min-fit                           |
+    pop-fn        +---------------+---+------------+------------------+ ...
+    ind-fn        |               |                |                  |
+          +---------------+  +------------+  +---------------+  +-------------+
+          |    C AST      |  |   ELF      |  |      asm      |  |    lisp     |
+          |---------------|  |------------|  |---------------|  |-------------|
+          |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
+          |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
+          +---------------+  |   Format   |                         |  
+                |            +------------+                   +----------+
+        +--------------+                                      |          |
+        |              |                            +------------+  +----------+
+     +-------+  +----------------+                  |   lisp fn  |  | lisp ext |
+     | clang |  |       cil      |                  |------------|  |----------|
+     |-------|  |----------------|                  | individual |  | external |
+     | C AST |  | C Intermediate |                  |  functions |  |   eval   |
+     +-------+  |    Language    |                  +------------+  +----------+
+                +----------------+
 
-A tool for the evolution of extant software.
-
-1 Design 
-=========
-  +-------------+    +-------------+    +--------+    +--------------+
-  | interactive |    | distributed |    | repair |    | optimization |
-  |-------------|    |  evolution  |    |--------|    |--------------|
-  | live in the |    |-------------|    | fixing |    |   improve    |
-  |   editor    |    |  using ZMQ  |    |  bugs  |    |  performance |
-  +-------------+    +-------------+    +--------+    +--------------+ ...
-         |                  |                |                 |
-         +------------------+------+---------+-----------------+
-                                   |
-                                 +-+-+                   population functions
-                                 | | |                   --------------------
- global variables         +------------------+           incorporate
- ----------------         |   *population*   |           evict
- *population*             |------------------|           tournament
- *max-population-size*    |      list of     |           mutate
- *tournament-size*        | software objects |           crossed
- *fitness-predicate*      +------------------+           new-individual
- *cross-chance*                    |                     evolve
- *fitness-evals*                 +-+-+
- *running*                       | | |                   software functions
-                          +------------------+           --------------
-                          | software object  |           genome
- evolve arguments         |------------------|           phenome
- ----------------         | edits,           |           evaluate
- max-evals                | fitness          |           copy
- max-time                 | ...              |           mutate
- max-inds                 +------------------+           crossover
- max-fit                            |                    edit-distance
- min-fit                            |
- pop-fn         +---------------+---+------------+------------------+ ...
- ind-fn         |               |                |                  |
-        +---------------+  +------------+  +---------------+  +-------------+
-        |    C AST      |  |   ELF      |  |      asm      |  |    lisp     |
-        |---------------|  |------------|  |---------------|  |-------------|
-        |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
-        |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
-        +---------------+  |   Format   |                         |  
-                |          +------------+                  +----------+
-      +--------------+                                     |          |
-      |              |                           +------------+  +----------+
-  +-------+  +----------------+                  |   lisp fn  |  | lisp ext |
-  | clang |  |       cil      |                  |------------|  |----------|
-  |-------|  |----------------|                  | individual |  | external |
-  | C AST |  | C Intermediate |                  |  functions |  |   eval   |
-  +-------+  |    Language    |                  +------------+  +----------+
-             +----------------+
-
-The =*population*= is a global variable holding a list of evolving
+The `*population*` is a global variable holding a list of evolving
 software variants.  The evolutionary computation functions operate
-directly on the =*population*= through the "population functions".
+directly on the `*population*` through the "population functions".
 Exposure of the population through a global variable enables the user
 to initialize the population in any way, and allows external functions
 to monitor and interact with the population during evolution.  For
-example =evolution/distributed.lisp= enables sharing of individuals
+example `evolution/distributed.lisp` enables sharing of individuals
 between multiple instances of evolution through two functions which
-interact with the =*population*= variable directly.
+interact with the `*population*` variable directly.
 
 Each software variant is an object whose class is a sub-class of the
-general =software= class.  New representations are implemented through
-sub-classing =software= and customizing the generic software functions
+general `software` class.  New representations are implemented through
+sub-classing `software` and customizing the generic software functions
 where necessary.
 
 Parameterization of the EC algorithm is done through setting global
-variables and through arguments to the =evolve= function.
+variables and through arguments to the `evolve` function.
 
-2 Usage 
-========
-Licensed under the GPLV3, see the [COPYING] file in this directory for
+Licensed under the GPLV3, see the COPYING file in this directory for
 more information.
-
-1. Optional dependencies for the clang and cil backends respectively
-   are [clang-mutate] and [cil-mutate].
-
-2. Available using git from [github].
-
-3. To begin, cd into the test/gcd directory and look around.
-   $ ls -1
-   gcd.c                   # <- original program
-   repair-ast.lisp         # <- lisp code driving the repair process
-   test.sh*                # <- test script used to exercise gcd variants
-
-4. Repairs may be performed from an interactive lisp session by
-   evaluating the forms in test/gcd/repair-ast.lisp.
-
-
-
-
-
-
-
-   [COPYING]: https://github.com/eschulte/software-evolution/blob/master/COPYING
-   [clang-mutate]: https://github.com/eschulte/clang-mutate
-   [cil-mutate]: https://github.com/eschulte/cil-mutate
-   [github]: https://github.com/eschulte/software-evolution
-
