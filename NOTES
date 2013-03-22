@@ -90,6 +90,17 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
+** external lisp runner
+Executable as a shell script.
+#+begin_src lisp
+(defun main (argv)
+  (format t "~a~%"
+          (eval (read-from-string
+                 (if (third argv)
+                     (progn (load (second argv)) (third argv))
+                     (second argv))))))
+#+end_src
+
 * Tasks [11/19]
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
