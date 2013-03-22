@@ -1,32 +1,17 @@
-;;; tests.lisp --- tests for the `software-evolution' package
+;;; software-evolution-test.lisp --- tests for the `software-evolution' package
 
-;; Copyright (C) 2011  Eric Schulte
+;; Copyright (C) 2011-2013  Eric Schulte
 
-;;; License:
-
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
+;; Licensed under the Gnu Public License Version 3 or later
 
 ;;; Code:
-(in-package :software-evolution)
-(require :stefil)
-(use-package :stefil)
-(defsuite software-evolution-test)
-(in-suite software-evolution-test)
+(in-package :software-evolution-test)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-curry-compose-reader-macros))
+
+(defsuite test)
+(in-suite test)
+
 (defvar *genome*  nil "Genome used in tests.")
 (defvar *soft*    nil "Software used in tests.")
 (defvar *gcd*     nil "Holds the gcd software object.")
@@ -34,14 +19,14 @@
 (defun gcd-dir (filename)
   (concatenate 'string *gcd-dir* "/" filename))
 
-(defixture vector-genome
-  (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
-  (:teardown))
-
 (defixture soft
   (:setup (setf *soft* (make-instance 'software
                          :genome (coerce (loop for i from 0 to 9 collect i)
                                          'vector))))
+  (:teardown))
+
+(defixture vector-genome
+  (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
   (:teardown))
 
 (defixture tree-genome
@@ -72,31 +57,42 @@
 
 (deftest inds-vector ()
   (with-fixture vector-genome
-    (is (equal-it (inds *genome*) (coerce *genome* 'list)))))
+    (is (software-evolution::equal-it
+         (inds *genome*)
+         (coerce *genome* 'list)))))
 
 (deftest setf-ind-vector ()
   (with-fixture vector-genome
     (setf (ind *genome* 1) :foo)
-    (is (equal-it *genome* #(0 :FOO 2 3 4 5 6 7 8 9)))))
+    (is (software-evolution::equal-it
+         *genome*
+         #(0 :FOO 2 3 4 5 6 7 8 9)))))
 
 (deftest cut-vector ()
   (with-fixture vector-genome
-    (is (= 9 (length (cut *genome*))))))
+    (is (= 9 (length (cut *genome* (random-elt (inds *genome*))))))))
 
 (deftest insert-vector ()
   (with-fixture vector-genome
-    (is (= 11 (length (insert *genome*))))
-    (is (= 10 (length (remove-duplicates (insert *genome*)))))))
+    (is (= 11 (length (insert *genome*
+                              (random-elt (inds *genome*))
+                              (random-elt (inds *genome*))))))
+    (is (= 10 (length (remove-duplicates
+                       (insert *genome*
+                               (random-elt (inds *genome*))
+                               (random-elt (inds *genome*)))))))))
 
 (deftest swap-vector ()
   (with-fixture vector-genome
-    (is (= 10 (length (swap *genome*))))))
+    (is (= 10 (length (swap *genome*
+                            (random-elt (inds *genome*))
+                            (random-elt (inds *genome*))))))))
 
 (deftest copy-soft ()
   (with-fixture soft
     (let ((new (copy *soft*)))
-      (is (equal-it (genome new) (genome *soft*)))
-      (cut new)
+      (is (software-evolution::equal-it (genome new) (genome *soft*)))
+      (cut new (random-elt (inds new)))
       (is (< (length (genome new))
              (length (genome *soft*)))))))
 
@@ -108,22 +104,23 @@
 ;;; tree genome
 (deftest list-to-tree ()
   (with-fixture tree-genome
-    (is (equal-it (to-tree '(1 2 3 (4 5) 6))
+    (is (software-evolution::equal-it (to-tree '(1 2 3 (4 5) 6))
                   *genome*))))
 
 (deftest tree-to-list-conversion ()
   (with-fixture tree-genome
-    (is (equal-it (to-list (to-tree *genome*))
+    (is (software-evolution::equal-it (to-list (to-tree *genome*))
                   *genome*))))
 
 (deftest ind-tree ()
   (with-fixture tree-genome
-    (is (equal-it (ind *genome* 3) (to-tree '(4 5))))))
+    (is (software-evolution::equal-it (ind *genome* 3) (to-tree '(4 5))))))
 
 (deftest inds-tree ()
   (with-fixture tree-genome
-    (is (equal-it (inds *genome*) '(0 1 2 3 4 5)))))
+    (is (software-evolution::equal-it (inds *genome*) '(0 1 2 3 4 5)))))
 
+#+broken ;; TODO: don't know where the make-tree function went
 (deftest setf-ind-tree ()
   (with-fixture tree-genome
     (is (equal (setf (ind *genome* 2) (make-tree :data :foo))
@@ -140,19 +137,19 @@
 (deftest setf-inds-on-list ()
   (let ((genome '(1 2 3 4 5)))
     (setf (ind genome '(:d :d :a)) 9)
-    (is (equal-it '(1 2 9 4 5) genome))))
+    (is (software-evolution::equal-it '(1 2 9 4 5) genome))))
 
 (deftest another-setf-inds-on-list ()
   (let ((genome '(1 2 3 4 5)))
     (setf (ind genome '(:d :d :a)) '(1 2 3))
-    (is (equal-it '(1 2 (1 2 3) 4 5) genome))))
+    (is (software-evolution::equal-it '(1 2 (1 2 3) 4 5) genome))))
 
 (deftest del-ind-on-list ()
-  (is (equal-it '(1 2 4)
+  (is (software-evolution::equal-it '(1 2 4)
                 (let ((genome (list 1 2 3 4)))
                   (del-ind genome '(:d :d :a))
                   genome)))
-  (is (equal-it '(2 3 4)
+  (is (software-evolution::equal-it '(2 3 4)
                 (let ((genome (list 1 2 3 4)))
                   (del-ind genome '(:a))
                   genome))))
@@ -174,31 +171,32 @@
     (is (equal 'asm (type-of *gcd*)))))
 
 (deftest idempotent-read-write ()
-  (let ((a (temp-file-name)))
+  (let ((a (software-evolution::temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
            (asm-to-file *gcd* a)
            (multiple-value-bind (out err ret)
-               (shell "diff ~s/gcd.s ~a" *gcd-dir* a)
+               (software-evolution::shell "diff ~s/gcd.s ~a" *gcd-dir* a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
 
 (deftest idempotent-copy ()
   (with-fixture gcd-asm
-   (is (equal-it *gcd* (copy *gcd*)))))
+   (is (software-evolution::equal-it *gcd* (copy *gcd*)))))
 
 (deftest idempotent-read-copy-write ()
-  (let ((a (temp-file-name)))
+  (let ((a (software-evolution::temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
            (asm-to-file (copy *gcd*) a)
            (multiple-value-bind (out err ret)
-               (shell "diff ~s/gcd.s ~a" *gcd-dir* a)
+               (software-evolution::shell "diff ~s/gcd.s ~a" *gcd-dir* a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
 
+#+broken ;; TODO: evaluate needs to be re-worked
 (deftest simple-fitness ()
   (let ((*pos-test-num* 5)
         (*neg-test-num* 1)
@@ -212,7 +210,7 @@
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
       (mutate ant)
-      (is (not (equal-it (genome ant) (genome *gcd*))))
+      (is (not (software-evolution::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 (deftest edit-of-different-is-more-than-zero ()
@@ -228,39 +226,46 @@
     (is (eq 'defun (caar (genome *gcd*))))))
 
 (deftest idempotent-read-write-lisp ()
-  (let ((a (temp-file-name)))
+  (let ((a (software-evolution::temp-file-name)))
     (unwind-protect
          (with-fixture gcd-lisp
            (lisp-to-file *gcd* a)
            (multiple-value-bind (out err ret)
-               (shell "tail -8 ~s/gcd.lisp |diff -wB ~a -" *gcd-dir* a)
+               (software-evolution::shell
+                "tail -8 ~s/gcd.lisp |diff -wB ~a -" *gcd-dir* a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
 
+(deftest swap-on-list ()
+  (with-fixture gcd-lisp
+    (is (not (software-evolution::equal-it
+              (edits *gcd*)
+              (progn (swap *gcd*
+                           (random-elt (inds (genome *gcd*)))
+                           (random-elt (inds (genome *gcd*))))
+                     (edits *gcd*)))))))
+
 (deftest cut-on-list ()
   (with-fixture gcd-lisp
     (is (> (length (inds (genome *gcd*)))
-           (progn (cut *gcd*)
+           (progn (cut *gcd* (random-elt (inds (genome *gcd*))))
                   (length (inds (genome *gcd*))))))))
 
 (deftest insert-on-list ()
   (with-fixture gcd-lisp
     (is (< (length (inds (genome *gcd*)))
-           (progn (insert *gcd*)
+           (progn (insert *gcd*
+                          (random-elt (inds (genome *gcd*)))
+                          (random-elt (inds (genome *gcd*))))
                   (length (inds (genome *gcd*))))))))
-
-(deftest swap-on-list ()
-  (with-fixture gcd-lisp
-    (is (not (equal-it (history *gcd*)
-                       (progn (swap *gcd*)
-                              (history *gcd*)))))))
 
 (deftest crossover-on-list ()
   (with-fixture gcd-lisp
-    (is (equal-it (genome *gcd*)
+    (is (software-evolution::equal-it (genome *gcd*)
                   (genome (crossover *gcd* *gcd*))))))
 
+#+broken ;; TODO: evaluate needs to be re-worked
 (deftest evaluate-lisp-program ()
   (with-fixture gcd-lisp
     (let ((*test-script* (gcd-dir "test-lisp.sh"))

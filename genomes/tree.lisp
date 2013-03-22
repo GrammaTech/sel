@@ -1,4 +1,14 @@
-;;; Tree Genomes
+;;; tree.lisp --- support for tree genomes
+
+;; Copyright (C) 2013  Eric Schulte
+
+;; Licensed under the Gnu Public License Version 3 or later
+
+;;; Code:
+(in-package :software-evolution)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-curry-compose-reader-macros))
+
 (defstruct (tree (:copier tree-copier))
   (data nil)
   (branches nil))

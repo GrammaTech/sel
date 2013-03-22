@@ -1,4 +1,14 @@
-;;; Cons-cell Genomes
+;;; cons.lisp --- support for cons-cell genomes
+
+;; Copyright (C) 2013  Eric Schulte
+
+;; Licensed under the Gnu Public License Version 3 or later
+
+;;; Code:
+(in-package :software-evolution)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-curry-compose-reader-macros))
+
 (defmethod inds ((genome cons))
   (unless (null genome)
     (flet ((follow (dir list)
@@ -45,6 +55,7 @@
 
 ;;; Cons-cell Methods
 (defmethod copy ((genome list) &key edits fitness)
+  (declare (ignorable edits fitness))
   (copy-tree genome))
 
 (defmethod size ((genome list))
@@ -52,7 +63,7 @@
       (+ (size (car genome)) (size (cdr genome)))
       1))
 
-(defmethod genome-average-keys ((genome list) place)
+(defmethod average-keys ((genome list) place)
   (let ((inds (list (butlast place) place
                     (append place '(:a)) (append place '(:d)))))
     (dolist (key *genome-averaging-keys*)
@@ -73,28 +84,21 @@
   (unless (proper-list-p lisp) (setf (cdr lisp) (cons (cdr lisp) nil)))
   lisp)
 
-(defmethod insert ((genome list) &key (good-key nil) (bad-key nil))
-  (declare (ignorable bad-key))
-  (let ((dup (location genome good-key))
-        (ins (location genome good-key))
-        (new (copy-tree genome)))
+(defmethod insert ((genome list) dup ins)
+  (let ((new (copy-tree genome)))
     (setf (ind new ins)
           (cons (copy-tree (ind genome ins))
                 (copy-tree (ind genome dup))))
     (values (ensure-proper-list new) (list ins dup))))
 
-(defmethod cut ((genome list) &key (good-key nil) (bad-key nil))
-  (declare (ignorable good-key))
-  (let ((del (location genome bad-key))
-        (new (copy-tree genome)))
+(defmethod cut ((genome list) del)
+  (let ((new (copy-tree genome)))
     (del-ind new del)
     (values (ensure-proper-list new) del)))
 
-(defmethod swap ((genome list) &key (good-key nil) (bad-key nil))
-  (let* ((a (location genome good-key))
-         (b (location genome bad-key))
-         (ordered (sort (list a b) #'< :key #'length))
-         (new (copy-tree genome)))
+(defmethod swap ((genome list) a b)
+  (let ((ordered (sort (list a b) #'< :key #'length))
+        (new (copy-tree genome)))
     (setf (ind new (second ordered)) (copy-tree (ind genome (first ordered))))
     (setf (ind new (first ordered))  (copy-tree (ind genome (second ordered))))
     (values (ensure-proper-list new) ordered)))

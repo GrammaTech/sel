@@ -23,6 +23,7 @@
 (defgeneric phenome (software &key bin)
   (:documentation "Phenotype of the software."))
 
+#+cleanup
 (defgeneric cleanup (software &key bin)
   ;; TODO: Figure out how to automatically run this (when defined)
   ;;       after phenome generation.
@@ -153,4 +154,5 @@ Keyword arguments are as follows.
                  (when (and pop-fn (funcall pop-fn *population*))
                    (return)))
              (mutate (obj) nil)
-             (error (other) (format t "Caught a weird error: ~S~%" other))))))
+             ;; (error (other) (format t "Caught a weird error: ~S~%" other))
+             ))))
