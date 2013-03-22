@@ -44,7 +44,7 @@
 
 #+run
 ((lambda (ast)
-   (let ((*population* (repeatedly 100 (copy ast)))
+   (let ((*population* (loop :for i :below 100 :collect (copy ast)))
          (*max-population-size* 100))
      (store (evolve #'test-suite :max-fit 12) "results-ast.store")))
  *cil*)

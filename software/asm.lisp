@@ -103,7 +103,7 @@
 (defmethod crossover ((a asm) (b asm))
   "Two point crossover."
   (let* ((range (min (size a) (size b)))
-         (points (sort (repeatedly 2 (random range)) #'<))
+         (points (sort (loop :for i :below 2 :collect (random range)) #'<))
          (new (copy a)))
     (setf (genome new)
           (copy-tree (append (subseq (genome a) 0 (first points))
