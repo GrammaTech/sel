@@ -12,12 +12,9 @@
                elf)
   :components
   ((:static-file "COPYING")
-   (:static-file "Makefile")
    (:file "package")
-   (:file "utility"
-    :depends-on ("package"))
-   (:file "software-evolution"
-    :depends-on ("package" "utility"))
+   (:file "utility" :depends-on ("package"))
+   (:file "software-evolution" :depends-on ("package" "utility"))
    ;; genomes
    (:file "genomes/genome"
     :depends-on ("package" "utility" "software-evolution"))
