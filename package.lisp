@@ -56,7 +56,8 @@
    ;; software backends
    :asm
    :asm-linker
-   :elf
+   :elf-sw
    :lisp
    :clang
-   :cil))
+   :cil
+   ))
