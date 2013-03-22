@@ -51,6 +51,9 @@
 (defgeneric edit-distance (software-a software-b)
   (:documentation "Return the edit distance between two software objects."))
 
+(defmethod edit-distance ((a software) (b software))
+  (edit-distance (genome a) (genome b)))
+
 (defgeneric from-file (software file)
   (:documentation "Initialize SOFTWARE with contents of FILE."))
 

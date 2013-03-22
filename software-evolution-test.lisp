@@ -19,8 +19,18 @@
 (defun gcd-dir (filename)
   (concatenate 'string *gcd-dir* "/" filename))
 
+(defclass soft (software)
+  ((genome   :initarg :genome   :accessor genome   :initform nil)))
+
+(defmethod copy ((soft soft)
+                 &key (edits (copy-tree (edits asm))) (fitness (fitness asm)))
+  (make-instance (type-of soft)
+    :genome  (genome soft)
+    :edits   edits
+    :fitness fitness))
+
 (defixture soft
-  (:setup (setf *soft* (make-instance 'software
+  (:setup (setf *soft* (make-instance 'soft
                          :genome (coerce (loop for i from 0 to 9 collect i)
                                          'vector))))
   (:teardown))
@@ -34,16 +44,16 @@
   (:teardown))
 
 (defixture gcd-asm
-  (:setup (setf *gcd* (asm-from-file (gcd-dir "gcd.s"))))
+  (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
   (:teardown))
 
 (defixture gcd-lisp
-  (:setup (setf *gcd* (lisp-from-file (gcd-dir "gcd.lisp"))))
+  (:setup (setf *gcd* (from-file (make-instance 'lisp) (gcd-dir "gcd.lisp"))))
   (:teardown))
 
 (defixture population
   (:setup (setf *population* (loop for i from 1 to 9
-                                collect (make-instance 'software
+                                collect (make-instance 'soft
                                           :genome (loop for j from 0 to i
                                                      collect j)
                                           :fitness i))))
@@ -174,7 +184,7 @@
   (let ((a (software-evolution::temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
-           (asm-to-file *gcd* a)
+           (to-file *gcd* a)
            (multiple-value-bind (out err ret)
                (software-evolution::shell "diff ~s/gcd.s ~a" *gcd-dir* a)
              (declare (ignorable out err))
@@ -189,7 +199,7 @@
   (let ((a (software-evolution::temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
-           (asm-to-file (copy *gcd*) a)
+           (to-file (copy *gcd*) a)
            (multiple-value-bind (out err ret)
                (software-evolution::shell "diff ~s/gcd.s ~a" *gcd-dir* a)
              (declare (ignorable out err))
@@ -229,7 +239,7 @@
   (let ((a (software-evolution::temp-file-name)))
     (unwind-protect
          (with-fixture gcd-lisp
-           (lisp-to-file *gcd* a)
+           (to-file *gcd* a)
            (multiple-value-bind (out err ret)
                (software-evolution::shell
                 "tail -8 ~s/gcd.lisp |diff -wB ~a -" *gcd-dir* a)

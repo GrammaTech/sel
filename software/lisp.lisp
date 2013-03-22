@@ -36,7 +36,7 @@
 (defvar *test-timeout* 0.05 "Time limit used to `evaluate' a `lisp' instance.")
 
 (defmethod from-file ((lisp lisp) file)
-  (with-open-file (in path)
+  (with-open-file (in file)
     (setf (genome lisp)
           (loop :for form = (read in nil :eof)
              :until (eq form :eof)

@@ -51,11 +51,12 @@
    :cut
    :insert
    :swap
-   ;; particular software back ends
-   :lisp-from-file
-   :asm-from-file
-   :clang-from-file
-   :cil-from-file
-   :elf-from-file
    :to-tree
-   :to-list))
+   :to-list
+   ;; software backends
+   :asm
+   :asm-linker
+   :elf
+   :lisp
+   :clang
+   :cil))

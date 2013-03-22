@@ -30,9 +30,6 @@
 (defgeneric average-keys (genome place)
   (:documentation "Average the keys around PLACE in GENOME."))
 
-(defgeneric edit-distance (genome1 genome2)
-  (:documentation "Return the number of edits separating GENOME1 and GENOME2."))
-
 (defgeneric cut (genome at)
   (:documentation "Cut the value at AT from GENOME."))
 

@@ -28,6 +28,8 @@
    (:file "genomes/vector"
     :depends-on ("package" "utility" "software-evolution"))
    ;; software
+   (:file "software/lisp"
+    :depends-on ("package" "utility" "software-evolution"))
    (:file "software/elf"
     :depends-on ("package" "utility" "software-evolution"))
    (:file "software/asm"
