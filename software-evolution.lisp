@@ -63,6 +63,9 @@
 (defmethod to-file ((software software) file)
   (string-to-file (genome software) file))
 
+(defgeneric apply-path (software key PATH)
+  (:documentation "Apply the execution trace PATH behind KEY in SOFTWARE."))
+
 
 ;;; Evolution
 (defvar *population* nil

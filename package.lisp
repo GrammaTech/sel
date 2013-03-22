@@ -25,6 +25,7 @@
    :edit-distance
    :from-file
    :to-file
+   :apply-path
    ;; global variables
    :*population*
    :*max-population-size*
