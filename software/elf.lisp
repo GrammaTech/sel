@@ -20,7 +20,7 @@
 
 (defmethod copy ((elf elf-sw) &key
                                 (edits (copy-tree (edits elf)))
-                                (fitness))
+                                (fitness (fitness elf)))
   (make-instance (type-of elf)
     :edits edits
     :fitness fitness
