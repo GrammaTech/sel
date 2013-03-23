@@ -64,4 +64,5 @@
    ;; elf methods
    :base
    :addresses
+   :pick ; <- generalize later
    ))
