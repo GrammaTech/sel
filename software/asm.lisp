@@ -85,23 +85,24 @@
                  (insert `(:insert ,(place) ,(place)))
                  (swap   `(:swap   ,(place) ,(place))))))
       (push mut (edits asm))
-      (setf (genome asm) (mutate-genome (genome asm) mut))))
+      (apply-mutation asm mut)))
   asm)
 
-(defun mutate-genome (genome mutation)
+(defmethod apply-mutation ((asm asm) mutation)
   (let ((op (first mutation))
         (s1 (second mutation))
         (s2 (third mutation)))
-    (setf genome (case op
-                   (:cut (append (subseq genome 0 s1)
-                                 (subseq genome (1+ s1))))
-                   (:insert (append (subseq genome 0 s1)
-                                    (list (nth s2 genome))
-                                    (subseq genome s1)))
-                   (:swap (let ((tmp (nth s1 genome)))
-                            (setf (nth s1 genome) (nth s2 genome))
-                            (setf (nth s2 genome) tmp))
-                          genome)))))
+    (with-slots (genome) asm
+      (setf genome (case op
+                     (:cut (append (subseq genome 0 s1)
+                                   (subseq genome (1+ s1))))
+                     (:insert (append (subseq genome 0 s1)
+                                      (list (nth s2 genome))
+                                      (subseq genome s1)))
+                     (:swap (let ((tmp (nth s1 genome)))
+                              (setf (nth s1 genome) (nth s2 genome))
+                              (setf (nth s2 genome) tmp))
+                            genome))))))
 
 (defmethod crossover ((a asm) (b asm))
   "Two point crossover."

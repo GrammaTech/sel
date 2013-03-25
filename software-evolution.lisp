@@ -45,6 +45,9 @@
              (format stream "Mutation error ~a on ~S"
                      (text condition) (obj condition)))))
 
+(defgeneric apply-mutation (software mutation)
+  (:documentation "Apply MUTATION to SOFTWARE."))
+
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects."))
 

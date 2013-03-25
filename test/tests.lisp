@@ -215,12 +215,30 @@
       (is (not (software-evolution::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
-#+broken
 (deftest edit-of-different-is-more-than-zero ()
   (with-fixture gcd-asm
-    (let ((ant (copy *gcd*)))
-      (mutate ant)
-      (is (> (edit-distance ant *gcd*) 0)))))
+    (let ((variant (copy *gcd*)))
+      (mutate variant)
+      (is (> (length (edits variant)) 0)))))
+
+(deftest asm-cut-actually-shortens ()
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:cut 4))
+      (is (< (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-insertion-actually-lengthens ()
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:insert 4 8))
+      (is (> (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-swap-maintains-length ()
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:swap 4 8))
+      (is (not (tree-equal (genome variant) (genome *gcd*))))
+      (is (= (length (genome variant)) (length (genome *gcd*)))))))
 
 
 ;;; Lisp representation

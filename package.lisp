@@ -21,6 +21,7 @@
    :evaluate
    :copy
    :mutate
+   :apply-mutation
    :crossover
    :edit-distance
    :from-file

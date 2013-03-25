@@ -55,10 +55,10 @@
                  ;; (d-swap   `(:data-swap   ,(d-place) ,(d-place)))
                  )))
       (push mut (edits elf))
-      (apply-mutate elf mut)))
+      (apply-mutation elf mut)))
   elf)
 
-(defun apply-mutate (elf mut)
+(defmethod apply-mutation ((elf elf-sw) mut)
   (flet ((byte-count (genome)
            (reduce #'+ (mapcar [#'length {aget :bytes}] genome))))
     (let ((starting-bytes (byte-count (genome elf))))
