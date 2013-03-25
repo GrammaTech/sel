@@ -57,6 +57,9 @@
 (defmethod genome-string (asm)
   (mapconcat (curry #'format nil "~a~%") (lines asm) ""))
 
+(defmethod to-file ((asm asm) file)
+  (string-to-file (genome-string asm) file))
+
 (defmethod phenome ((asm asm) &key bin)
   (with-temp-file-of (src "s") (genome-string asm)
     (let ((bin (or bin (temp-file-name))))

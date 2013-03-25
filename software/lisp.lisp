@@ -28,7 +28,8 @@
 
 
 ;;; the class of lisp software objects
-(defclass lisp (software) ())
+(defclass lisp (software)
+  ((genome :initarg :genome :accessor genome :initform nil)))
 
 (defmethod func ((lisp lisp)) (eval (genome lisp)))
 
@@ -43,13 +44,10 @@
              :collect form)))
   lisp)
 
-(defun lisp-from-file (path)
-  (from-file (make-instance 'lisp) path))
-
-(defun lisp-to-file (software path)
+(defmethod to-file ((software lisp) path)
   (with-open-file (out path :direction :output :if-exists :supersede)
     (dolist (form (genome software))
-      (format out "~&~S" form))))
+      (format out "~&~S~%" form))))
 
 (defmacro with-harness (&rest body)
   ;; TODO: protect against stack overflow

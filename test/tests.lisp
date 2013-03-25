@@ -15,7 +15,7 @@
 (defvar *genome*  nil "Genome used in tests.")
 (defvar *soft*    nil "Software used in tests.")
 (defvar *gcd*     nil "Holds the gcd software object.")
-(defvar *gcd-dir* "test/gcd" "Location of the gcd example directory")
+(defvar *gcd-dir* "gcd" "Location of the gcd example directory")
 (defun gcd-dir (filename)
   (concatenate 'string *gcd-dir* "/" filename))
 
@@ -23,7 +23,7 @@
   ((genome   :initarg :genome   :accessor genome   :initform nil)))
 
 (defmethod copy ((soft soft)
-                 &key (edits (copy-tree (edits asm))) (fitness (fitness asm)))
+                 &key (edits (copy-tree (edits soft))) (fitness (fitness soft)))
   (make-instance (type-of soft)
     :genome  (genome soft)
     :edits   edits
@@ -97,14 +97,6 @@
     (is (= 10 (length (swap *genome*
                             (random-elt (inds *genome*))
                             (random-elt (inds *genome*))))))))
-
-(deftest copy-soft ()
-  (with-fixture soft
-    (let ((new (copy *soft*)))
-      (is (software-evolution::equal-it (genome new) (genome *soft*)))
-      (cut new (random-elt (inds new)))
-      (is (< (length (genome new))
-             (length (genome *soft*)))))))
 
 (deftest edit-same-is-zero ()
   (with-fixture soft
@@ -223,6 +215,7 @@
       (is (not (software-evolution::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
+#+broken
 (deftest edit-of-different-is-more-than-zero ()
   (with-fixture gcd-asm
     (let ((ant (copy *gcd*)))
@@ -247,6 +240,7 @@
              (is (= 0 ret))))
       (delete-file a))))
 
+#|
 (deftest swap-on-list ()
   (with-fixture gcd-lisp
     (is (not (software-evolution::equal-it
@@ -275,13 +269,13 @@
     (is (software-evolution::equal-it (genome *gcd*)
                   (genome (crossover *gcd* *gcd*))))))
 
-#+broken ;; TODO: evaluate needs to be re-worked
 (deftest evaluate-lisp-program ()
   (with-fixture gcd-lisp
     (let ((*test-script* (gcd-dir "test-lisp.sh"))
           (*pos-test-num* 10)
           (*neg-test-num* 1))
       (is (= 10 (evaluate *gcd*))))))
+|#
 
 
 ;;; Population tests
