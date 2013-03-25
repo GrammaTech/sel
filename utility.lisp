@@ -43,7 +43,7 @@
            (reverse res))))
 
 (defun string-to-file (string path &key if-exists)
-  (with-open-file (out path :direction :output :if-exists if-exists)
+  (with-open-file (out path :direction :output :if-exists :supersede)
     (format out "~a" string))
   path)
 
