@@ -240,6 +240,16 @@
       (is (not (tree-equal (genome variant) (genome *gcd*))))
       (is (= (length (genome variant)) (length (genome *gcd*)))))))
 
+(deftest simple-crossover-test ()
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:cut 0))
+      (push '(:cut 0) (edits variant))
+      (let ((new (crossover variant *gcd*)))
+        (is (not (tree-equal (genome new) (genome *gcd*))))
+        (is (some [{equal :crossover} #'car] (edits new)))
+        (is (some [{equal :cut} #'caar] (second (edits new))))))))
+
 
 ;;; Lisp representation
 (deftest simple-read-lisp-from-file ()

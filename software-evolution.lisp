@@ -51,6 +51,12 @@
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects."))
 
+(defmethod crossover :around ((a software) (b software))
+  (multiple-value-bind (child places) (call-next-method)
+    (setf (edits child) (list (cons :crossover places)
+                              (list (edits a) (edits b))))
+    child))
+
 (defgeneric edit-distance (software-a software-b)
   (:documentation "Return the edit distance between two software objects."))
 

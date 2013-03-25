@@ -113,7 +113,7 @@
           (copy-tree (append (subseq (genome a) 0 (first points))
                              (subseq (genome a) (first points) (second points))
                              (subseq (genome b) (second points)))))
-    new))
+    (values new points)))
 
 
 ;;; memory mapping, address -> LOC
