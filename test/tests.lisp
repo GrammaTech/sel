@@ -1,4 +1,4 @@
-;;; software-evolution-test.lisp --- tests for the `software-evolution' package
+;;; tests.lisp --- tests for the `software-evolution' package
 
 ;; Copyright (C) 2011-2013  Eric Schulte
 
