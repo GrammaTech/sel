@@ -46,5 +46,6 @@
 (alexandria metabang-bind curry-compose-reader-macros stefil software-evolution)
   :components
   ((:static-file "COPYING")
-   (:file       "package-test")
-   (:file       "software-evolution-test" :depends-on ("package-test"))))
+   (:module "test"
+            (:file "package")
+            (:file "tests" :depends-on ("package")))))
