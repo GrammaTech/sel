@@ -128,7 +128,7 @@
     genome))
 
 (defmethod crossover ((a elf-sw) (b elf-sw))
-  "Two point crossover."
+  "One point crossover."
   (flet ((borders (elf)
            (let ((counter 0))
              (cdr (reverse (reduce (lambda (ac el) (cons (cons (+ el (caar ac))
