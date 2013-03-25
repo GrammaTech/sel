@@ -89,16 +89,16 @@
   (let ((op (first mutation))
         (s1 (second mutation))
         (s2 (third mutation)))
-    (case op
-      (:cut (setf (subseq genome s1)
-                  (subseq genome (1+ s1))))
-      (:insert (setf (subseq genome s2)
-                     (cons (nth s1 genome) (subseq genome s2))))
-      (:swap (let ((tmp (nth s1 genome)))
-               (setf (nth s1 genome) (nth s2 genome))
-               (setf (nth s2 genome) tmp))
-             genome)))
-  genome)
+    (setf genome (case op
+                   (:cut (append (subseq genome 0 s1)
+                                 (subseq genome (1+ s1))))
+                   (:insert (append (subseq genome 0 s1)
+                                    (list (nth s2 genome))
+                                    (subseq genome s1)))
+                   (:swap (let ((tmp (nth s1 genome)))
+                            (setf (nth s1 genome) (nth s2 genome))
+                            (setf (nth s2 genome) tmp))
+                          genome)))))
 
 (defmethod crossover ((a asm) (b asm))
   "Two point crossover."
