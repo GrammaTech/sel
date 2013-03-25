@@ -35,8 +35,11 @@
 (defgeneric copy (software &key edits fitness)
   (:documentation "Copy the software."))
 
-(defgeneric mutate (software)
-  (:documentation "Mutate the software.  May throw a `mutate' error."))
+(defgeneric mutate (software &key pick-good pick-bad)
+  (:documentation "Mutate the software.  May throw a `mutate' error.
+Optional argument PICK-GOOD and PICK-BAD may specify functions to
+select portions of the genome with desirable and undesirable
+properties for targeting of mutation operations."))
 
 (define-condition mutate (error)
   ((text :initarg :text :reader text)
