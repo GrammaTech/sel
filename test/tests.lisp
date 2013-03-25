@@ -33,23 +33,23 @@
   (:setup (setf *soft* (make-instance 'soft
                          :genome (coerce (loop for i from 0 to 9 collect i)
                                          'vector))))
-  (:teardown))
+  (:teardown (setf *soft* nil)))
 
 (defixture vector-genome
   (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
-  (:teardown))
+  (:teardown (setf *genome* nil)))
 
 (defixture tree-genome
   (:setup (setf *genome* (to-tree '(1 2 3 (4 5) 6))))
-  (:teardown))
+  (:teardown (setf *genome* nil)))
 
 (defixture gcd-asm
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
-  (:teardown))
+  (:teardown (setf *gcd* nil)))
 
 (defixture gcd-lisp
   (:setup (setf *gcd* (from-file (make-instance 'lisp) (gcd-dir "gcd.lisp"))))
-  (:teardown))
+  (:teardown (setf *gcd* nil)))
 
 (defixture population
   (:setup (setf *population* (loop for i from 1 to 9
@@ -198,7 +198,7 @@
              (is (= 0 ret))))
       (delete-file a))))
 
-#+broken ;; TODO: evaluate needs to be re-worked
+#+broken ;; NOTE: no longer using the with-exe class
 (deftest simple-fitness ()
   (let ((*pos-test-num* 5)
         (*neg-test-num* 1)
