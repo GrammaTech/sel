@@ -49,6 +49,7 @@
     (dolist (form (genome software))
       (format out "~&~S~%" form))))
 
+#+nil ;; NOTE: don't want to include trivial-timeout just now
 (defmacro with-harness (&rest body)
   ;; TODO: protect against stack overflow
   `(locally

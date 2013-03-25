@@ -1,14 +1,13 @@
 ;; Copyright (C) 2011-2013  Eric Schulte
-(defpackage #:software-evolution
+(defpackage :software-evolution
   (:use
    :common-lisp
    :alexandria
-   :split-sequence
    :metabang-bind
    :curry-compose-reader-macros
-   :trivial-shell
+   :elf
    :cl-ppcre
-   :elf)
+   :software-evolution-utility)
   (:shadow :type :magic-number)
   (:export
    ;; software objects

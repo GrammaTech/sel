@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-utility)
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
@@ -274,6 +274,7 @@ Optional argument OUT specifies an output stream."
             (apply #'format nil format-args))))
 
 ;; adopted from a public domain lisp implementation copied from the
+
 ;; scheme implementation given at
 ;; http://en.wikipedia.org/wiki/Levenshtein_distance
 (defun levenshtein-distance (s1 s2 &key (test #'char=) (key #'identity))
