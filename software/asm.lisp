@@ -112,7 +112,7 @@
     (setf (genome new)
           (copy-tree (append (subseq (genome a) 0 (first points))
                              (subseq (genome a) (first points) (second points))
-                             (subseq (genome a) (second points)))))
+                             (subseq (genome b) (second points)))))
     new))
 
 
