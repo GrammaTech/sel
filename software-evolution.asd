@@ -47,5 +47,6 @@
   :components
   ((:static-file "COPYING")
    (:module "test"
-            (:file "package")
-            (:file "tests" :depends-on ("package")))))
+            :components
+            ((:file "package")
+             (:file "tests" :depends-on ("package"))))))
