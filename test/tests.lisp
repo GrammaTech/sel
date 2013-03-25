@@ -268,7 +268,8 @@
              (is (= 0 ret))))
       (delete-file a))))
 
-#|
+#+broke
+(progn
 (deftest swap-on-list ()
   (with-fixture gcd-lisp
     (is (not (software-evolution::equal-it
@@ -303,7 +304,7 @@
           (*pos-test-num* 10)
           (*neg-test-num* 1))
       (is (= 10 (evaluate *gcd*))))))
-|#
+)
 
 
 ;;; Population tests
