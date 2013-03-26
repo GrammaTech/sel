@@ -299,6 +299,49 @@ Optional argument OUT specifies an output stream."
     (aref d (1- height) (1- width))))
 
 
+;;; memory mapping, address -> LOC
+(defun gdb-disassemble (phenome function)
+  "Return the raw gdb disassembled code of FUNCTION in PHENOME."
+  (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
+         function phenome))
+
+(defun addrs (phenome function)
+  "Return the numerical addresses of the lines (in order) of FUNCTION."
+  (remove nil
+    (mapcar
+     (lambda (line)
+       (declare (string line))
+       (register-groups-bind (addr offset)
+           ("[\\s]*0x([\\S]+)[\\s]*<([\\S]+)>:.*" line)
+         (declare (ignorable offset) (string addr))
+         (parse-integer addr :radix 16)))
+     (split-sequence #\Newline (gdb-disassemble phenome function)))))
+
+(defun function-lines (asm)
+  "Return the line numbers of the lines (in order) of FUNCTION."
+  (loop :for line :in (lines asm) :as counter :from 0
+     :for function = (register-groups-bind
+                         (line-function) ("^([^\\.][\\S]+):" line)
+                       line-function)
+     :collect (or function counter)))
+
+(defun calculate-addr-map (asm)
+  (let ((flines (function-lines asm))
+        (phenome (phenome asm))
+        (genome (coerce (genome asm) 'vector))
+        (map (make-hash-table)))
+    (loop
+       :for addrs :in (mapcar (lambda (func) (addrs phenome func))
+                              (remove-if-not #'stringp flines))
+       :for lines :in (cdr (mapcar
+                            {remove-if
+                             [{scan "^[\\s]*\\."} {aget :line} {aref genome}]}
+                             (split-sequence-if #'stringp flines)))
+       :do (mapc (lambda (addr line) (setf (gethash addr map) line))
+                 addrs lines))
+    map))
+
+
 ;;; Oprofile functions
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)

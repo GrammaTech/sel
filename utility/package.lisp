@@ -36,6 +36,11 @@
    :*note-level*
    :*note-out*
    :note
+   ;; gdb functions
+   :gdb-disassemble
+   :addrs
+   :function-lines
+   :calculate-addr-map
    ;; oprofile
    :samples-from-oprofile-file
    :samples-from-tracer-file))
