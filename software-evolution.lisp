@@ -179,4 +179,4 @@ Keyword arguments are as follows.
                    (return new))
                  (when (and pop-fn (funcall pop-fn *population*))
                    (return)))
-             (mutate (obj) nil)))))
+             (mutate (obj) (declare (ignorable obj)) nil)))))
