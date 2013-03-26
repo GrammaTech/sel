@@ -35,7 +35,15 @@
 (defgeneric copy (software &key edits fitness)
   (:documentation "Copy the software."))
 
-(defgeneric mutate (software &key pick-good pick-bad)
+(defgeneric pick-good (software)
+  (:documentation "Pick a 'good' index into a software object.
+Used to target mutation."))
+
+(defgeneric pick-bad (software)
+  (:documentation "Pick a 'bad' index into a software object.
+Used to target mutation."))
+
+(defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error.
 Optional argument PICK-GOOD and PICK-BAD may specify functions to
 select portions of the genome with desirable and undesirable
@@ -90,7 +98,7 @@ properties for targeting of mutation operations."))
   "Number of individuals to participate in tournament selection.")
 
 (defvar *fitness-predicate* #'>
-  "Whether to favor higher or lower fitness individuals by default.")
+  "Function to compare two fitness values to select which is preferred.")
 
 (defvar *cross-chance* 1/5
   "Fraction of new individuals generated using crossover rather than mutation.")

@@ -75,19 +75,19 @@
   "Return the length of the genome of ASM."
   (length (genome asm)))
 
-(defmethod mutate ((asm asm) &key pick-good pick-bad)
+(defmethod pick-good ((asm asm)) (random (size asm)))
+(defmethod pick-bad  ((asm asm)) (random (size asm)))
+
+(defmethod mutate ((asm asm))
   "Randomly mutate ASM."
   (unless (> (size asm) 0) (error 'mutate :text "No valid IDs" :obj asm))
   (setf (fitness asm) nil)
-  (flet ((place () (random (size asm))))
-    (let* ((pick-good (or pick-good #'place))
-           (pick-bad  (or pick-bad  #'place))
-           (mut (case (random-elt '(cut insert swap))
-                 (cut    `(:cut    ,(funcall pick-bad)))
-                 (insert `(:insert ,(funcall pick-bad) ,(funcall pick-good)))
-                 (swap   `(:swap   ,(funcall pick-bad) ,(funcall pick-good))))))
-      (push mut (edits asm))
-      (apply-mutation asm mut)))
+  (let ((mut (case (random-elt '(cut insert swap))
+               (cut    `(:cut    ,(pick-bad asm)))
+               (insert `(:insert ,(pick-bad asm) ,(pick-good asm)))
+               (swap   `(:swap   ,(pick-bad asm) ,(pick-good asm))))))
+    (push mut (edits asm))
+    (apply-mutation asm mut))
   asm)
 
 (defmethod apply-mutation ((asm asm) mutation)
