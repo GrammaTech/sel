@@ -32,7 +32,7 @@
    (linker   :initarg :linker   :accessor linker   :initform nil)
    (flags    :initarg :flags    :accessor flags    :initform nil)))
 
-(defvar asm-linker "gcc")
+(defvar *asm-linker* "gcc")
 
 (defmethod copy ((asm asm)
                  &key (edits (copy-tree (edits asm))) (fitness (fitness asm)))
@@ -65,7 +65,7 @@
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~a"
-                 (or (linker asm) asm-linker)
+                 (or (linker asm) *asm-linker*)
                  (mapconcat #'identity (flags asm) " ")
                  bin src)
         (declare (ignorable stdout ))

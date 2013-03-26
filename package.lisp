@@ -56,7 +56,7 @@
    :to-list
    ;; software backends
    :asm
-   :asm-linker
+   :*asm-linker*
    :elf-sw
    :lisp
    :clang
