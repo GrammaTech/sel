@@ -25,7 +25,17 @@
     :edits edits
     :fitness fitness
     :genome (copy-tree (genome elf))
-    :base (copy-elf (base elf))))
+    :base (base elf))) ;; <- let elf objects *share* an elf object
+
+(defmethod elf ((elf elf-sw))
+  "Return the elf object associated with ELF.
+This takes the `base' of ELF (which should not be changed), copies it,
+and applies the changed data in `genome' of ELF."
+  (let ((new (copy-elf (base elf))))
+    (setf (data (named-section new ".text"))
+          (coerce (mapcan [#'cdr {assoc :bytes}] (copy-tree (genome elf)))
+                  'vector))
+    new))
 
 (defmethod from-file ((elf elf-sw) path)
   (setf (base elf) (read-elf path))
@@ -37,7 +47,7 @@
   elf)
 
 (defmethod phenome ((elf elf-sw) &key (bin (temp-file-name)))
-  (write-elf (base elf) bin)
+  (write-elf (elf elf) bin)
   (shell "chmod +x ~a" bin)
   bin)
 
