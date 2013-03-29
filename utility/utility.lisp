@@ -123,7 +123,7 @@ After BODY is executed the temporary file is removed."
   (let ((number-str
          (or (multiple-value-bind (whole matches)
                  (scan-to-strings
-                  "^(-?[0-9]+(/[-e0-9]+|\.[-e0-9]+)?)([^\./A-Xa-x_-]$|$)"
+                  "^(-?.?[0-9]+(/[-e0-9]+|\.[-e0-9]+)?)([^\./A-Xa-x_-]$|$)"
                   string)
                (declare (ignorable whole))
                (when matches (aref matches 0)))
