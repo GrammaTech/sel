@@ -145,7 +145,8 @@ properties for targeting of mutation operations."))
 
 (defun evolve (test &key
                       period period-func
-                      max-evals max-time max-fit min-fit pop-fn ind-fn)
+                      max-evals max-time max-fit min-fit pop-fn ind-fn
+                      filter)
   "Evolves population until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
@@ -172,7 +173,9 @@ Keyword arguments are as follows.
                    (funcall period-func))
                  (assert (numberp (fitness new)) (new)
                          "Non-numeric fitness: ~S" (fitness new))
-                 (incorporate new)
+                 (when (or (null filter)
+                           (funcall filter new))
+                   (incorporate new))
                  (when (or (and max-fit (>= (fitness new) max-fit))
                            (and min-fit (<= (fitness new) min-fit))
                            (and ind-fn (funcall ind-fn new)))
