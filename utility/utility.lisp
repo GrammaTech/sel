@@ -224,6 +224,14 @@ Optional argument OUT specifies an output stream."
                :initial-value t))
       (t (or (equal obj1 obj2) (format t "~&~a!=~a" obj1 obj2))))))
 
+(defun count-cons (cons-cell)
+  "Count and return the number of cons cells used in CONS-CELL."
+  ;; TODO: extend to map over the fields in an object.
+  (if (consp cons-cell)
+      (+ (count-cons (car cons-cell))
+         (count-cons (cdr cons-cell)))
+      1))
+
 
 ;;; Generic utility functions
 (defun aget (item list &key (test #'eql))

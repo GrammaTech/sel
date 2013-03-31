@@ -21,6 +21,7 @@
    ;; forensic
    :show-it
    :equal-it
+   :count-cons
    ;; simple utility
    :indexed
    :different-it
