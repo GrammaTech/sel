@@ -62,8 +62,25 @@ properties for targeting of mutation operations."))
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects."))
 
+(defvar *edit-consolidation-size* (expt 2 7)
+  "Number of cons cells at which to consolidate edits")
+
+(defvar *consolidated-edits* nil
+  "List used to hold consolidated edits.")
+
+(defvar *edit-consolidation-function*
+  (lambda (hash edits) (push (cons hash edits) *consolidated-edits*))
+  "Optional function to record consolidated edits.")
+
 (defmethod crossover :around ((a software) (b software))
   (multiple-value-bind (child places) (call-next-method)
+    (mapc (lambda (var)
+            (when (> (count-cons (edits var)) *edit-consolidation-size*)
+              (let ((hash (sxhash (edits var))))
+                (when *edit-consolidation-function*
+                  (funcall *edit-consolidation-function* hash (edits var)))
+                (setf (edits var) (list hash)))))
+          (list a b))
     (setf (edits child) (list (cons :crossover places)
                               (list (edits a) (edits b))))
     child))

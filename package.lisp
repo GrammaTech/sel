@@ -22,6 +22,9 @@
    :mutate
    :apply-mutation
    :crossover
+   :*edit-consolidation-size*
+   :*consolidated-edits*
+   :*edit-consolidation-function*
    :edit-distance
    :from-file
    :to-file
