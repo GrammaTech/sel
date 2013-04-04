@@ -112,7 +112,7 @@
          (points (sort (loop :for i :below 2 :collect (random range)) #'<))
          (new (copy a)))
     (setf (genome new)
-          (copy-tree (append (subseq (genome a) 0 (first points))
+          (copy-tree (append (subseq (genome b) 0 (first points))
                              (subseq (genome a) (first points) (second points))
                              (subseq (genome b) (second points)))))
     (values new points)))
