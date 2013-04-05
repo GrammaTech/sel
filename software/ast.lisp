@@ -64,7 +64,9 @@ NOTE: this may be a good function to memoize, if mutations will repeat."))
 (defun num-ids (ast)
   (or (raw-num-ids ast)
       (setf (raw-num-ids ast)
-            (catch 'ast-mutate (parse-number (ast-mutate ast (list :ids)))))))
+            (or (ignore-errors
+                  (parse-number (ast-mutate ast (list :ids))))
+                0))))
 
 (defmethod pick-good ((ast ast)) (random (num-ids ast)))
 (defmethod pick-bad  ((ast ast)) (random (num-ids ast)))
