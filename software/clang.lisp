@@ -25,22 +25,6 @@
 (defclass clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")))
 
-(defmethod copy ((clang clang)
-                 &key
-                   (edits (copy-tree (edits clang)))
-                   (fitness (fitness clang)))
-  (make-instance (type-of clang)
-    :base     (base clang)
-    :edits    edits
-    :fitness  fitness
-    :compiler (compiler clang)
-    :ext      (ext clang)))
-
-(defmethod from-file ((clang clang) path)
-  (setf (base clang) (file-to-string path))
-  (setf (ext clang)  (pathname-type (pathname path)))
-  clang)
-
 (defmethod ast-mutate ((clang clang) &optional op)
   (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
     (if op

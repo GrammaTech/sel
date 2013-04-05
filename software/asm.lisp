@@ -54,7 +54,7 @@
 (defun lines (asm)
   (mapcar (curry #'aget :line) (genome asm)))
 
-(defmethod genome-string (asm)
+(defun genome-string (asm)
   (mapconcat (curry #'format nil "~a~%") (lines asm) ""))
 
 (defmethod to-file ((asm asm) file)

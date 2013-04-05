@@ -29,24 +29,29 @@
 
 ;;; ast software objects
 (defclass ast (software)
-  ((base     :initarg :base     :accessor base     :initform nil)
-   (flags    :initarg :flags    :accessor flags    :initform nil)
-   (compiler :initarg :compiler :accessor compiler :initform nil)
-   (ext      :initarg :ext      :accessor ext      :initform "c")
-   (num-ids  :initarg :num-ids  :accessor raw-num-ids  :initform nil)))
+  ((genome   :initarg :genome   :accessor genome      :initform nil)
+   (flags    :initarg :flags    :accessor flags       :initform nil)
+   (compiler :initarg :compiler :accessor compiler    :initform nil)
+   (ext      :initarg :ext      :accessor ext         :initform "c")
+   (num-ids  :initarg :num-ids  :accessor raw-num-ids :initform nil)))
+
+(defgeneric ast-mutate (ast &optional op)
+  (:documentation "Mutate AST with either clang-mutate or cil-mutate.
+NOTE: this may be a good function to memoize, if mutations will repeat."))
 
 (defmethod copy ((ast ast)
                  &key (edits (copy-tree (edits ast))) (fitness (fitness ast)))
   (make-instance (type-of ast)
     :flags    (copy-tree (flags ast))
-    :base     (base ast)
+    :genome   (copy-seq (genome ast))
     :compiler (compiler ast)
     :ext      (ext ast)
     :fitness  fitness
     :edits    edits))
 
 (defmethod from-file ((ast ast) path)
-  (setf (base ast) (file-to-string path))
+  (setf (genome ast) (file-to-string path))
+  (setf (ext ast)  (pathname-type (pathname path)))
   ast)
 
 (defun ast-from-file (path &key flags)
@@ -55,20 +60,6 @@
 
 (defun ast-to-file (software path &key if-exists)
   (string-to-file (genome software) path :if-exists if-exists))
-
-(defun genome-helper (ast)
-  (catch 'ast-mutate
-    (let ((base (copy-seq (base ast))))
-      (loop :for edit :in (reverse (copy-seq (edits ast))) :do
-         (setf base (ast-mutate (make-instance (type-of ast) :base base) edit)))
-      base)))
-
-(defmethod genome ((ast ast)) (genome-helper ast))
-(defmethod genome-string ((ast ast)) (genome ast))
-
-;; TODO: memoize by base and edit op
-(defgeneric ast-mutate (ast &optional op)
-  (:documentation "Mutate AST with either clang-mutate or cil-mutate."))
 
 (defun num-ids (ast)
   (or (raw-num-ids ast)
@@ -83,24 +74,28 @@
   (unless (> (num-ids ast) 0)
     (error 'mutate :text "No valid IDs" :obj ast))
   (setf (fitness ast) nil)
-  (setf (raw-num-ids ast) nil)
-  (push (case (random-elt '(cut insert swap))
-          (cut    `(:cut    ,(pick-bad ast)))
-          (insert `(:insert ,(pick-bad ast) ,(pick-good ast)))
-          (swap   `(:swap   ,(pick-bad ast) ,(pick-good ast))))
-        (edits ast))
+  (let ((mut (case (random-elt '(cut insert swap))
+               (cut    `(:cut    ,(pick-bad ast)))
+               (insert `(:insert ,(pick-bad ast) ,(pick-good ast)))
+               (swap   `(:swap   ,(pick-bad ast) ,(pick-good ast))))))
+    (push mut (edits ast))
+    (apply-mutation ast mut))
   ast)
 
-(defmethod patch-subset ((a ast) (b ast))
-  "Return a new ast composed of subsets of the edits from A and B."
-  (let ((new (copy a)))
-    (flet ((some-of (edits)
-             (remove-if (lambda (n) (declare (ignorable n)) (zerop (random 2)))
-                        (butlast edits 1))))
-      (setf (edits new)
-            (append (some-of (edits a)) (some-of (edits b))
-                    (last (edits a))))
-      (setf (fitness new) nil)
-      new)))
+(defun apply-mutation (ast mut)
+  "Apply MUT to AST, and then update `NUM-IDS' for AST."
+  (ast-mutate ast mut)
+  (num-ids ast))
 
-(defmethod crossover ((a ast) (b ast)) (patch-subset a b))
+(defmethod crossover ((a ast) (b ast))
+  (flet ((line-breaks (genome)
+           (loop :for char :in (coerce genome 'list) :as index :from 0
+              :when (equal char #\Newline) :collect index)))
+    (let ((a-point (random-elt (line-breaks (genome a))))
+          (b-point (random-elt (line-breaks (genome b))))
+          (new (copy a)))
+      (setf (genome new)
+            (copy-seq (concatenate 'string
+                        (subseq (genome a) 0 a-point)
+                        (subseq (genome b) b-point))))
+      (values new (list a-point b-point)))))
