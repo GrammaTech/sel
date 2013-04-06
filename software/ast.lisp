@@ -84,7 +84,7 @@ NOTE: this may be a good function to memoize, if mutations will repeat."))
     (apply-mutation ast mut))
   ast)
 
-(defun apply-mutation (ast mut)
+(defmethod apply-mutation ((ast ast) mut)
   "Apply MUT to AST, and then update `NUM-IDS' for AST."
   (ast-mutate ast mut)
   (num-ids ast))
