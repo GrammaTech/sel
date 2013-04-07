@@ -31,16 +31,11 @@
     (dir sb-alien:c-string)
     (prefix sb-alien:c-string)))
 
-(defun file-to-string (path) ;; TODO: unbearably slow in some instances
-  (apply #'concatenate 'string
-         (let (res)
-           (with-open-file (in path)
-             (do ((p (multiple-value-bind (a b) (read-line in nil) (cons a b))
-                     (multiple-value-bind (a b) (read-line in nil) (cons a b))))
-                 ((cdr p))
-               (push (car p) res)
-               (push (vector #\Newline) res)))
-           (reverse res))))
+(defun file-to-string (path)
+  (with-open-file (in path)
+    (let ((seq (make-string (file-length in))))
+      (read-sequence seq in)
+      seq)))
 
 (defun string-to-file (string path &key if-exists)
   (with-open-file (out path :direction :output :if-exists :supersede)
