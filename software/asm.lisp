@@ -26,9 +26,8 @@
 
 
 ;;; asm software objects
-(defclass asm (software)
+(defclass asm (simple)
   ((addr-map :initarg :addr-map :accessor addr-map :initform nil)
-   (genome   :initarg :genome   :accessor genome   :initform nil)
    (linker   :initarg :linker   :accessor linker   :initform nil)
    (flags    :initarg :flags    :accessor flags    :initform nil)))
 
@@ -44,22 +43,6 @@
     :linker (linker asm)
     :flags (flags asm)))
 
-(defmethod from-file ((asm asm) path)
-  (with-open-file (in path)
-    (setf (genome asm)
-          (loop :for line = (read-line in nil)
-             :while line :collect (list (cons :line line))))
-    asm))
-
-(defun lines (asm)
-  (mapcar (curry #'aget :line) (genome asm)))
-
-(defun genome-string (asm)
-  (mapconcat (curry #'format nil "~a~%") (lines asm) ""))
-
-(defmethod to-file ((asm asm) file)
-  (string-to-file (genome-string asm) file))
-
 (defmethod phenome ((asm asm) &key bin)
   (with-temp-file-of (src "s") (genome-string asm)
     (let ((bin (or bin (temp-file-name))))
@@ -70,52 +53,6 @@
                  bin src)
         (declare (ignorable stdout ))
         (values (if (zerop exit) bin stderr) exit)))))
-
-(defmethod size ((asm asm))
-  "Return the length of the genome of ASM."
-  (length (genome asm)))
-
-(defmethod pick-good ((asm asm)) (random (size asm)))
-(defmethod pick-bad  ((asm asm)) (random (size asm)))
-
-(defmethod mutate ((asm asm))
-  "Randomly mutate ASM."
-  (unless (> (size asm) 0) (error 'mutate :text "No valid IDs" :obj asm))
-  (setf (fitness asm) nil)
-  (let ((mut (case (random-elt '(cut insert swap))
-               (cut    `(:cut    ,(pick-bad asm)))
-               (insert `(:insert ,(pick-bad asm) ,(pick-good asm)))
-               (swap   `(:swap   ,(pick-bad asm) ,(pick-good asm))))))
-    (push mut (edits asm))
-    (apply-mutation asm mut))
-  asm)
-
-(defmethod apply-mutation ((asm asm) mutation)
-  (let ((op (first mutation))
-        (s1 (second mutation))
-        (s2 (third mutation)))
-    (with-slots (genome) asm
-      (setf genome (case op
-                     (:cut (append (subseq genome 0 s1)
-                                   (subseq genome (1+ s1))))
-                     (:insert (append (subseq genome 0 s1)
-                                      (list (nth s2 genome))
-                                      (subseq genome s1)))
-                     (:swap (let ((tmp (nth s1 genome)))
-                              (setf (nth s1 genome) (nth s2 genome))
-                              (setf (nth s2 genome) tmp))
-                            genome))))))
-
-(defmethod crossover ((a asm) (b asm))
-  "Two point crossover."
-  (let* ((range (min (size a) (size b)))
-         (points (sort (loop :for i :below 2 :collect (random range)) #'<))
-         (new (copy a)))
-    (setf (genome new)
-          (copy-tree (append (subseq (genome b) 0 (first points))
-                             (subseq (genome a) (first points) (second points))
-                             (subseq (genome b) (second points)))))
-    (values new points)))
 
 
 ;;; incorporation of oprofile samples

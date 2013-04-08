@@ -27,8 +27,10 @@
     :depends-on ("package" "software-evolution"))
    (:file "software/elf"
     :depends-on ("package" "software-evolution"))
-   (:file "software/asm"
+   (:file "software/simple"
     :depends-on ("package" "software-evolution"))
+   (:file "software/asm"
+    :depends-on ("package" "software-evolution" "software/simple"))
    (:file "software/ast"
     :depends-on ("package" "software-evolution"))
    (:file "software/cil"
