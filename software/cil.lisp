@@ -30,28 +30,33 @@
 (defmethod ast-mutate ((cil cil) &optional op)
   (flet ((stmt (num arg) (format nil "-stmt~d ~d" num arg)))
     (with-temp-file-of (src (ext cil)) (genome cil)
-      (multiple-value-bind (stdout stderr exit)
-          (shell "cil-mutate ~a"
-                 (mapconcat #'identity
-                            (append
-                             (if op
-                                 (case (car op)
-                                   (:ids     (list "-ids"))
-                                   (:cut     (list "-delete"
-                                                   (stmt 1 (second op))))
-                                   (:insert  (list "-insert"
-                                                   (stmt 1 (second op))
-                                                   (stmt 2 (third op))))
-                                   (:swap    (list "-swap"
-                                                   (stmt 1 (second op))
-                                                   (stmt 2 (third op))))
-                                   (t (list (string-downcase
-                                             (format nil "-~a" (car op))))))
-                                 nil)
-                             `(,src))
-                            " "))
-        (unless (zerop exit) (throw 'ast-mutate nil))
-        stdout))))
+      (handler-case
+          (multiple-value-bind (stdout stderr exit)
+              (shell "cil-mutate ~a"
+                     (mapconcat #'identity
+                                (append
+                                 (if op
+                                     (case (car op)
+                                       (:ids     (list "-ids"))
+                                       (:cut     (list "-delete"
+                                                       (stmt 1 (second op))))
+                                       (:insert  (list "-insert"
+                                                       (stmt 1 (second op))
+                                                       (stmt 2 (third op))))
+                                       (:swap    (list "-swap"
+                                                       (stmt 1 (second op))
+                                                       (stmt 2 (third op))))
+                                       (t (list (string-downcase
+                                                 (format nil "-~a" (car op))))))
+                                     nil)
+                                 `(,src))
+                                " "))
+            (declare (ignorable stderr))
+            (unless (zerop exit)
+              (error 'mutate :text "CIL returned nonzero exit." :obj cil))
+            stdout)
+        (error (err)
+          (error 'mutate :text "Error applying CIL mutation." :obj err))))))
 
 (defmethod phenome ((cil cil) &key bin)
   (with-temp-file-of (src (ext cil)) (genome cil)
