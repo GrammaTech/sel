@@ -1,4 +1,4 @@
-;;; ast.lisp --- clang software representation
+;;; clang.lisp --- clang software representation
 
 ;; Copyright (C) 2012 Eric Schulte
 
