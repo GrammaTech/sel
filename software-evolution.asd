@@ -31,13 +31,13 @@
     :depends-on ("package" "software-evolution"))
    (:file "software/asm"
     :depends-on ("package" "software-evolution" "software/simple"))
-   (:file "software/llvm"
-    :depends-on ("package" "software-evolution" "software/simple"))
    (:file "software/ast"
     :depends-on ("package" "software-evolution"))
    (:file "software/cil"
     :depends-on ("package" "software-evolution" "software/ast"))
    (:file "software/clang"
+    :depends-on ("package" "software-evolution" "software/ast"))
+   (:file "software/llvm"
     :depends-on ("package" "software-evolution" "software/ast"))))
 
 (defsystem :software-evolution-test

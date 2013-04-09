@@ -21,38 +21,62 @@
 
 ;;; Commentary:
 
-;; There will likely ultimately be two different LLVM representations,
-;; one which will perform single-line mutations on a serial vector
-;; array of LLVM assembly instructions (similar to ASM), and another
-;; which will use the llvm opt tool [1] to manipulate the in-memory
-;; LLVM representation (see [2] for more information).
+;; This software object uses the llvm-mutate [1] pass run by the llvm
+;; opt tool [2] to manipulate the in-memory LLVM representation (see
+;; [3] for more information).
 
-;; [1] http://llvm.org/releases/3.2/docs/CommandGuide/opt.html
-;; [2] http://llvm.org/docs/LangRef.html#introduction
+;; [1] https://github.com/eschulte/llvm-mutate
+;; [2] http://llvm.org/releases/3.2/docs/CommandGuide/opt.html
+;; [3] http://llvm.org/docs/LangRef.html#introduction
 
 ;;; Code:
 (in-package :software-evolution)
 
 
-;;; asm software objects
-(defclass llvm (simple)
-  ((compiler :initarg :compiler :accessor compiler :initform "llc")
+;;; llvm software objects
+(defclass llvm (ast)
+  ((ext      :initarg :ext      :accessor ext      :initform "lb")
+   (compiler :initarg :compiler :accessor compiler :initform "llc")
    (linker   :initarg :linker   :accessor linker   :initform "gcc")))
 
-(defmethod copy ((llvm llvm)
-                 &key (edits (copy-tree (edits llvm))) (fitness (fitness llvm)))
-  (make-instance (type-of llvm) :edits edits :fitness fitness
-                 :genome (copy-tree (genome llvm))
-                 :compiler (compiler llvm)
-                 :linker (linker llvm)))
+(defmethod from-file ((llvm llvm) path)
+  (setf (genome llvm) (file-to-bytes path))
+  (setf (ext llvm)  (pathname-type (pathname path)))
+  llvm)
+
+(defmethod ast-mutate ((llvm llvm) &optional op)
+  (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
+    (if op
+        (with-temp-file (output)
+          (with-temp-file-of (src (ext llvm)) (genome llvm)
+            (multiple-value-bind (stdout stderr exit)
+                (shell "opt ~a "
+                       (mapconcat #'identity
+                                  (append
+                                   (case (car op)
+                                     (:ids     (list "-count"))
+                                     (:cut     (list "-cut"
+                                                     (stmt 1 (second op))))
+                                     (:insert  (list "-insert"
+                                                     (stmt 1 (second op))
+                                                     (stmt 2 (third op))))
+                                     (:swap    (list "-swap"
+                                                     (stmt 1 (second op))
+                                                     (stmt 2 (third op)))))
+                                   `(,src "-o" ,output))
+                                  " "))
+              (declare (ignorable stderr))
+              (unless (zerop exit) (throw 'ast-mutate nil))
+              (if (equal :ids (car op))
+                  stdout
+                  (file-to-bytes output)))))
+        (values (genome llvm) 0))))
 
 (defmethod phenome ((llvm llvm) &key bin)
-  (with-temp-file-of (src "ll") (genome-string llvm)
+  (with-temp-file-of (src (ext llvm)) (genome llvm)
     (let ((bin (or bin (temp-file-name))))
-      ;; echo 'main(){puts("hello");}'|clang -x c - -S -emit-llvm -o hello.ll
-      ;; cat hello.ll|llc|gcc -x assembler - -o hello
       (multiple-value-bind (stdout stderr exit)
           (shell "cat ~a|~a|~a -x assembler - -o ~a"
                  src (compiler llvm) (linker llvm) bin)
-        (declare (ignorable stdout))
+        (declare (ignorable stdout stderr))
         (values (if (zerop exit) bin stderr) exit)))))
