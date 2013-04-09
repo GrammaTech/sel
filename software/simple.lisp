@@ -32,7 +32,7 @@
 (defmethod lines ((simple simple))
   (mapcar {aget :line} (genome simple)))
 
-(defmethod genome-simple ((simple simple))
+(defmethod genome-string ((simple simple))
   (mapconcat {format nil "~a~%"} (lines simple) ""))
 
 (defmethod from-file ((simple simple) path)
@@ -43,7 +43,7 @@
     simple))
 
 (defmethod to-file ((simple simple) file)
-  (simple-to-file (genome-simple simple) file))
+  (simple-to-file (genome-string simple) file))
 
 (defmethod size ((simple simple))
   (length (genome simple)))
