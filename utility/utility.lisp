@@ -37,8 +37,14 @@
       (read-sequence seq in)
       seq)))
 
-(defun string-to-file (string path &key if-exists)
-  (with-open-file (out path :direction :output :if-exists :supersede)
+(defun file-to-bytes (path)
+  (with-open-file (in path :element-type '(unsigned-byte 8))
+    (let ((seq (make-array (file-length in) :element-type '(unsigned-byte 8))))
+      (read-sequence seq in)
+      seq)))
+
+(defun string-to-file (string path &key (if-exists :supersede))
+  (with-open-file (out path :direction :output :if-exists if-exists)
     (format out "~a" string))
   path)
 

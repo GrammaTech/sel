@@ -10,6 +10,7 @@
   (:export
    ;; OS
    :file-to-string
+   :file-to-bytes
    :string-to-file
    :temp-file-name
    :with-temp-file
