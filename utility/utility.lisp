@@ -309,6 +309,10 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; memory mapping, address -> LOC
+;;
+;; TODO: this section should be moved to the SOFTWARE-EVOLUTION
+;;       package proper given the functions it uses
+;;       
 (defun gdb-disassemble (phenome function)
   "Return the raw gdb disassembled code of FUNCTION in PHENOME."
   (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
