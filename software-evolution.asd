@@ -31,6 +31,8 @@
     :depends-on ("package" "software-evolution"))
    (:file "software/asm"
     :depends-on ("package" "software-evolution" "software/simple"))
+   (:file "software/llvm"
+    :depends-on ("package" "software-evolution" "software/simple"))
    (:file "software/ast"
     :depends-on ("package" "software-evolution"))
    (:file "software/cil"
