@@ -309,10 +309,6 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; memory mapping, address -> LOC
-;;
-;; TODO: this section should be moved to the SOFTWARE-EVOLUTION
-;;       package proper given the functions it uses
-;;       
 (defun gdb-disassemble (phenome function)
   "Return the raw gdb disassembled code of FUNCTION in PHENOME."
   (shell "gdb --batch --eval-command=\"disassemble ~s\" ~s 2>/dev/null"
@@ -330,18 +326,22 @@ Optional argument OUT specifies an output stream."
          (parse-integer addr :radix 16)))
      (split-sequence #\Newline (gdb-disassemble phenome function)))))
 
-(defun function-lines (asm)
-  "Return the line numbers of the lines (in order) of FUNCTION."
-  (loop :for line :in (lines asm) :as counter :from 0
+(defun function-lines (lines)
+  "Return the line numbers of the lines (in order) of FUNCTION.
+LINES should be the output of the `lines' function on an ASM object."
+  (loop :for line :in lines :as counter :from 0
      :for function = (register-groups-bind
                          (line-function) ("^([^\\.][\\S]+):" line)
                        line-function)
      :collect (or function counter)))
 
-(defun calculate-addr-map (asm)
-  (let ((flines (function-lines asm))
-        (phenome (phenome asm))
-        (genome (coerce (genome asm) 'vector))
+(defun calculate-addr-map (lines phenome genome)
+  "Calculate a map of memory address to offsets in LINES.
+LINES should be the output of the `lines' function on an ASM object,
+PHENOME should be the phenome of an ASM object and GENOME should be
+the genome of an ASM object."
+  (let ((flines (function-lines lines))
+        (genome (coerce genome 'vector))
         (map (make-hash-table)))
     (loop
        :for addrs :in (mapcar (lambda (func) (addrs phenome func))
