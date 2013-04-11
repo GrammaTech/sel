@@ -12,6 +12,7 @@
    :file-to-string
    :file-to-bytes
    :string-to-file
+   :bytes-to-file
    :temp-file-name
    :with-temp-file
    :with-temp-file-of

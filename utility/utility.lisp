@@ -48,6 +48,11 @@
     (format out "~a" string))
   path)
 
+(defun bytes-to-file (bytes path &key (if-exists :supersede))
+  (with-open-file (out path :element-type '(unsigned-byte 8)
+                       :direction :output :if-exists if-exists)
+    (write-sequence bytes out)))
+
 (defun temp-file-name (&optional ext)
   (let ((base #+clisp
           (let ((stream (gensym)))
