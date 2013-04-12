@@ -35,10 +35,6 @@
    (ext      :initarg :ext      :accessor ext         :initform "c")
    (num-ids  :initarg :num-ids  :accessor raw-num-ids :initform nil)))
 
-(defgeneric ast-mutate (ast &optional op)
-  (:documentation "Mutate AST with either clang-mutate or cil-mutate.
-NOTE: this may be a good function to memoize, if mutations will repeat."))
-
 (defmethod copy ((ast ast)
                  &key (edits (copy-tree (edits ast))) (fitness (fitness ast)))
   (make-instance (type-of ast)
@@ -65,14 +61,13 @@ NOTE: this may be a good function to memoize, if mutations will repeat."))
   (or (raw-num-ids ast)
       (setf (raw-num-ids ast)
             (or (ignore-errors
-                  (parse-number (ast-mutate ast (list :ids))))
+                  (parse-number (apply-mutation ast (list :ids))))
                 0))))
 
 (defmethod pick-good ((ast ast)) (random (num-ids ast)))
 (defmethod pick-bad  ((ast ast)) (random (num-ids ast)))
 
 (defmethod mutate ((ast ast))
-  "Randomly mutate AST."
   (unless (> (num-ids ast) 0)
     (error 'mutate :text "No valid IDs" :obj ast))
   (setf (fitness ast) nil)
@@ -84,10 +79,12 @@ NOTE: this may be a good function to memoize, if mutations will repeat."))
     (apply-mutation ast mut))
   ast)
 
-(defmethod apply-mutation ((ast ast) mut)
-  "Apply MUT to AST, and then update `NUM-IDS' for AST."
-  (ast-mutate ast mut)
-  (num-ids ast))
+(defmethod apply-mutation :around ((ast ast) mut)
+  ;; Apply MUT to AST, and then update `NUM-IDS' for AST.
+  (let ((result (call-next-method)))
+    (if (equal (car mut) :ids)
+        result
+        (num-ids ast))))
 
 (defmethod crossover ((a ast) (b ast))
   (flet ((line-breaks (genome)

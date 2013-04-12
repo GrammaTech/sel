@@ -21,9 +21,9 @@
 
 ;;; Commentary:
 
-;; This software object uses the llvm-mutate [1] pass run by the llvm
-;; opt tool [2] to manipulate the in-memory LLVM representation (see
-;; [3] for more information).
+;; This software object uses the llvm-mutate [1] compiler pass run by
+;; llvm opt [2] to manipulate LLVM intermediate representation (IR)
+;; code (see [3] for more information).
 
 ;; [1] https://github.com/eschulte/llvm-mutate
 ;; [2] http://llvm.org/releases/3.2/docs/CommandGuide/opt.html
@@ -35,42 +35,40 @@
 
 ;;; llvm software objects
 (defclass llvm (ast)
-  ((ext      :initarg :ext      :accessor ext      :initform "lb")
+  ((ext      :initarg :ext      :accessor ext      :initform "ll")
    (compiler :initarg :compiler :accessor compiler :initform "llc")
    (linker   :initarg :linker   :accessor linker   :initform "gcc")))
 
 (defmethod from-file ((llvm llvm) path)
-  (setf (genome llvm) (file-to-bytes path))
+  (setf (genome llvm) (file-to-string path))
   (setf (ext llvm)  (pathname-type (pathname path)))
   llvm)
 
-(defmethod ast-mutate ((llvm llvm) &optional op)
-  (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
-    (if op
-        (with-temp-file (output)
-          (with-temp-file-of (src (ext llvm)) (genome llvm)
-            (multiple-value-bind (stdout stderr exit)
-                (shell "opt ~a "
-                       (mapconcat #'identity
-                                  (append
-                                   (case (car op)
-                                     (:ids     (list "-count"))
-                                     (:cut     (list "-cut"
-                                                     (stmt 1 (second op))))
-                                     (:insert  (list "-insert"
-                                                     (stmt 1 (second op))
-                                                     (stmt 2 (third op))))
-                                     (:swap    (list "-swap"
-                                                     (stmt 1 (second op))
-                                                     (stmt 2 (third op)))))
-                                   `(,src "-o" ,output))
-                                  " "))
-              (declare (ignorable stderr))
-              (unless (zerop exit) (throw 'ast-mutate nil))
-              (if (equal :ids (car op))
-                  stdout
-                  (file-to-bytes output)))))
-        (values (genome llvm) 0))))
+(defmethod mutate ((llvm llvm))
+  (unless (> (num-ids llvm) 0)
+    (error 'mutate :text "No valid IDs" :obj llvm))
+  (setf (fitness llvm) nil)
+  (let ((mut (case (random-elt '(cut replace insert swap))
+               (cut     `(:cut     ,(pick-bad llvm)))
+               (replace `(:replace ,(pick-bad llvm) ,(pick-good llvm)))
+               (insert  `(:insert  ,(pick-bad llvm) ,(pick-good llvm)))
+               (swap    `(:swap    ,(pick-bad llvm) ,(pick-good llvm))))))
+    (push mut (edits llvm))
+    (apply-mutation llvm mut))
+  llvm)
+
+(defmethod apply-mutation ((llvm llvm) op)
+  (with-temp-file (output)
+    (with-temp-file-of (src (ext llvm)) (genome llvm)
+      (multiple-value-bind (stdout stderr exit)
+          (shell "cat ~a|llvm-mutate --~a"
+                 src
+                 (string-downcase (symbol-name (car op)))
+                 (mapconcat {format nil "~a"} (cdr op) ",")
+                 output)
+        (unless (zerop exit)
+          (error 'mutate :text "llvm-mutate" :obj llvm))
+        (if (equal :ids (car op)) stderr stdout)))))
 
 (defmethod phenome ((llvm llvm) &key bin)
   (with-temp-file-of (src (ext llvm)) (genome llvm)

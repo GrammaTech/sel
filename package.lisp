@@ -64,6 +64,8 @@
    :lisp
    :clang
    :cil
+   :llvm
+   :num-ids
    ;; elf methods
    :base
    :addresses

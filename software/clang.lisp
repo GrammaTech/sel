@@ -25,31 +25,19 @@
 (defclass clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")))
 
-(defmethod ast-mutate ((clang clang) &optional op)
-  (flet ((stmt (num arg) (format nil "-stmt~d=~d" num arg)))
-    (if op
-        (with-temp-file-of (src (ext clang)) (genome clang)
-          (multiple-value-bind (stdout stderr exit)
-              (shell "clang-mutate ~a"
-                     (mapconcat #'identity
-                                (append
-                                 (case (car op)
-                                   (:ids     (list "-ids"))
-                                   (:cut     (list "-delete"
-                                                   (stmt 1 (second op))))
-                                   (:insert  (list "-insert"
-                                                   (stmt 1 (second op))
-                                                   (stmt 2 (third op))))
-                                   (:swap    (list "-swap"
-                                                   (stmt 1 (second op))
-                                                   (stmt 2 (third op))))
-                                   (t (list (string-downcase
-                                             (format nil "-~a" (car op))))))
-                                 `(,src "--" ,@(flags clang) "|tail -n +3"))
-                                " "))
-            (unless (zerop exit) (throw 'ast-mutate nil))
-            stdout))
-        (values (genome clang) 0))))
+(defmethod apply-mutation ((clang clang) op)
+  (with-temp-file-of (src (ext clang)) (genome clang)
+    (multiple-value-bind (stdout stderr exit)
+        (shell "clang-mutate ~a ~a -- ~{~a~^ ~}|tail -n +3"
+               (mapconcat (lambda (pair)
+                            (format nil "-stmt~d=~d" (car pair) (cdr pair)))
+                          (loop :for id :in (cdr op) :as i :from 1
+                             :collect (cons 1 id)) " ")
+               src (flags clang))
+      (unless (zerop exit)
+        (error 'mutate
+               :text (format nil "clang-mutate:~a" stderr) :obj clang))
+      stdout)))
 
 (defmethod phenome ((clang clang) &key bin)
   (with-temp-file-of (src (ext clang)) (genome clang)
