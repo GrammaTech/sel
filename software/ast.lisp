@@ -81,10 +81,9 @@
 
 (defmethod apply-mutation :around ((ast ast) mut)
   ;; Apply MUT to AST, and then update `NUM-IDS' for AST.
-  (let ((result (call-next-method)))
-    (if (equal (car mut) :ids)
-        result
-        (num-ids ast))))
+  (if (equal (car mut) :ids)
+      (call-next-method)
+      (setf (genome ast) (call-next-method))))
 
 (defmethod crossover ((a ast) (b ast))
   (flet ((line-breaks (genome)

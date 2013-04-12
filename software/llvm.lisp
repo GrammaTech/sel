@@ -58,17 +58,15 @@
   llvm)
 
 (defmethod apply-mutation ((llvm llvm) op)
-  (with-temp-file (output)
-    (with-temp-file-of (src (ext llvm)) (genome llvm)
-      (multiple-value-bind (stdout stderr exit)
-          (shell "cat ~a|llvm-mutate --~a"
-                 src
-                 (string-downcase (symbol-name (car op)))
-                 (mapconcat {format nil "~a"} (cdr op) ",")
-                 output)
-        (unless (zerop exit)
-          (error 'mutate :text "llvm-mutate" :obj llvm))
-        (if (equal :ids (car op)) stderr stdout)))))
+  (with-temp-file-of (src (ext llvm)) (genome llvm)
+    (multiple-value-bind (stdout stderr exit)
+        (shell "cat ~a|llvm-mutate --~a ~a"
+               src
+               (string-downcase (symbol-name (car op)))
+               (mapconcat [{format nil "~a"} #'1+] (cdr op) ","))
+      (unless (zerop exit)
+        (error 'mutate :text "llvm-mutate" :obj llvm))
+      (if (equal (car op) :ids) stderr stdout))))
 
 (defmethod phenome ((llvm llvm) &key bin)
   (with-temp-file-of (src (ext llvm)) (genome llvm)
