@@ -18,5 +18,4 @@ case $2 in
   9)  test_equal "$( $1 310 55)" "5" ;;
   # negative test
   10) test_equal "$($1 0 55)" "55" ;;
-  11) test_equal "$($1 55 0)" "55" ;;
 esac 
