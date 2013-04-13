@@ -3,51 +3,42 @@ Software Evolution
 
 A tool for the evolution of extant software.
 
-    +-------------+    +-------------+    +--------+    +--------------+
-    | interactive |    | distributed |    | repair |    | optimization |
-    |-------------|    |  evolution  |    |--------|    |--------------|
-    | live in the |    |-------------|    | fixing |    |   improve    |
-    |   editor    |    |  using ZMQ  |    |  bugs  |    |  performance |
-    +-------------+    +-------------+    +--------+    +--------------+ ...
-           |                  |                |                 |
-           +------------------+------+---------+-----------------+
-                                     |
-                                   +-+-+                   population functions
-                                   | | |                   --------------------
-    global variables        +------------------+           incorporate
-    ----------------        |   *population*   |           evict
-    *population*            |------------------|           tournament
-    *max-population-size*   |      list of     |           mutate
-    *tournament-size*       | software objects |           crossed
-    *fitness-predicate*     +------------------+           new-individual
-    *cross-chance*                   |                     evolve
-    *fitness-evals*                +-+-+
-    *running*                      | | |                   software functions
-                            +------------------+           --------------
-                            | software object  |           genome
-    evolve arguments        |------------------|           phenome
-    ----------------        | edits,           |           evaluate
-    max-evals               | fitness          |           copy
-    max-time                | ...              |           mutate
-    max-inds                +------------------+           crossover
-    max-fit                           |                    edit-distance
-    min-fit                           |
-    pop-fn        +---------------+---+------------+------------------+ ...
-    ind-fn        |               |                |                  |
-          +---------------+  +------------+  +---------------+  +-------------+
-          |    C AST      |  |   ELF      |  |      asm      |  |    lisp     |
-          |---------------|  |------------|  |---------------|  |-------------|
-          |   C Abstract  |  | Executable |  | assembly code |  | lisp source |
-          |  Syntax Tree  |  |  Linkable  |  +---------------+  +-------------+
-          +---------------+  |   Format   |                         |
-                |            +------------+                   +----------+
-        +--------------+                                      |          |
-        |              |                            +------------+  +----------+
-     +-------+  +----------------+                  |   lisp fn  |  | lisp ext |
-     | clang |  |       cil      |                  |------------|  |----------|
-     |-------|  |----------------|                  | individual |  | external |
-     | C AST |  | C Intermediate |                  |  functions |  |   eval   |
-     +-------+  |    Language    |                  +------------+  +----------+
+                                                         population functions
+    global variables                                     --------------------
+    ----------------        +------------------+         incorporate
+    *population*            |   *population*   |         evict
+    *max-population-size*   |------------------|         tournament
+    *tournament-size*       |      list of     |         mutate
+    *fitness-predicate*     | software objects |         crossed
+    *cross-chance*          +------------------+         new-individual
+    *fitness-evals*                  |                   evolve
+    *running*                      +-+-+
+                                   | | |                 software functions
+                            +------------------+         --------------
+    evolve arguments        | software object  |         genome
+    ----------------        |------------------|         phenome
+    max-evals               | edits,           |         copy
+    max-time                | fitness          |         pick-good
+    target-fit              | ...              |         pick-bad
+    period                  +------------------+         mutate
+    period-func                       |                  crossover
+                                      |
+                  +---------------+---+------------+---------------+
+                  |               |                |               |
+         +---------------+  +------------+  +-------------+  +-------------+
+         |      AST      |  |    asm     |  |     ELF     |  |    lisp     |
+         |---------------|  |------------|  |-------------|  |-------------|
+         |   Abstract    |  |  assembly  |  | Executable  |  | lisp source |
+         |  Syntax Tree  |  |    code    |  |  Linkable   |  +-------------+
+         +---------------+  +------------+  |   Format    |
+                 |                          +-------------+
+        +--------------+-------------------+
+        |              |                   |
+     +-------+  +----------------+   +----------+
+     | Clang |  |       CIL      |   |   LLVM   |
+     |-------|  |----------------|   |----------|
+     | C AST |  | C Intermediate |   | LLVM IR  |
+     +-------+  |    Language    |   +----------+
                 +----------------+
 
 The `*population*` is a global variable holding a list of evolving

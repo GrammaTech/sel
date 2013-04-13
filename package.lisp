@@ -16,7 +16,6 @@
    :fitness
    :genome
    :phenome
-   :cleanup
    :evaluate
    :copy
    :mutate

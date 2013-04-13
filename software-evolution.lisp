@@ -23,12 +23,6 @@
 (defgeneric phenome (software &key bin)
   (:documentation "Phenotype of the software."))
 
-#+cleanup
-(defgeneric cleanup (software &key bin)
-  ;; TODO: Figure out how to automatically run this (when defined)
-  ;;       after phenome generation.
-  (:documentation "Cleanup function to be run after phenome generation."))
-
 (defgeneric evaluate (software)
   (:documentation "Evaluate a the software returning a numerical fitness."))
 
@@ -160,21 +154,15 @@ properties for targeting of mutation operations."))
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
 
-(defun evolve (test &key
-                      period period-func
-                      max-evals max-time max-fit min-fit pop-fn ind-fn
-                      filter)
+(defun evolve (test &key max-evals max-time target-fit period period-func)
   "Evolves population until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
-  PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
-  PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
   MAX-EVALS ------- stop after this many fitness evaluations
   MAX-TIME -------- stop after this many generations
-  MAX-FIT --------- stop when an individual achieves this fitness or higher
-  MIN-FIT --------- stop when an individual achieves this fitness or lower
-  POP-FN ---------- stop when the population satisfies this function
-  IND-FN ---------- stop when an individual satisfies this function"
+  TARGET-FIT ------ stop when an individual passes TARGET-FIT
+  PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
+  PERIOD-FUNC ----- function to run every PERIOD fitness evaluations"
   (let ((start-time (get-internal-real-time)))
     (setq *running* t)
     (loop :until (or (not *running*)
@@ -193,10 +181,7 @@ Keyword arguments are as follows.
                  (when (or (null filter)
                            (funcall filter new))
                    (incorporate new))
-                 (when (or (and max-fit (>= (fitness new) max-fit))
-                           (and min-fit (<= (fitness new) min-fit))
-                           (and ind-fn (funcall ind-fn new)))
-                   (return new))
-                 (when (and pop-fn (funcall pop-fn *population*))
-                   (return)))
+                 (when (and target-fit (funcall *fitness-predicate*
+                                                (fitness new) target-fit))
+                   (return new)))
              (mutate (obj) (declare (ignorable obj)) nil)))))
