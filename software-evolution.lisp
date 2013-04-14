@@ -24,7 +24,7 @@
   (:documentation "Phenotype of the software."))
 
 (defgeneric evaluate (software)
-  (:documentation "Evaluate a the software returning a numerical fitness."))
+  (:documentation "Evaluate the software returning a numerical fitness."))
 
 (defgeneric copy (software &key edits fitness)
   (:documentation "Copy the software."))
@@ -154,15 +154,16 @@ properties for targeting of mutation operations."))
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
 
-(defun evolve (test &key max-evals max-time target-fit period period-func)
+(defun evolve (test &key max-evals max-time target period period-func filter)
   "Evolves population until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
   MAX-EVALS ------- stop after this many fitness evaluations
   MAX-TIME -------- stop after this many generations
-  TARGET-FIT ------ stop when an individual passes TARGET-FIT
+  TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
-  PERIOD-FUNC ----- function to run every PERIOD fitness evaluations"
+  PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
+  FILTER ---------- only include individual for which FILTER returns true"
   (let ((start-time (get-internal-real-time)))
     (setq *running* t)
     (loop :until (or (not *running*)

@@ -19,10 +19,10 @@ A tool for the evolution of extant software.
     ----------------        |------------------|         phenome
     max-evals               | edits,           |         copy
     max-time                | fitness          |         pick-good
-    target-fit              | ...              |         pick-bad
+    target                  | ...              |         pick-bad
     period                  +------------------+         mutate
     period-func                       |                  crossover
-                                      |
+    filter                            |
                   +---------------+---+------------+---------------+
                   |               |                |               |
          +---------------+  +------------+  +-------------+  +-------------+
