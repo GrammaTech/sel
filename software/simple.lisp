@@ -43,7 +43,7 @@
     simple))
 
 (defmethod to-file ((simple simple) file)
-  (simple-to-file (genome-string simple) file))
+  (string-to-file (genome-string simple) file))
 
 (defmethod size ((simple simple))
   (length (genome simple)))
