@@ -65,6 +65,7 @@
    :cil
    :llvm
    :num-ids
+   :linker
    ;; elf methods
    :base
    :addresses
