@@ -23,6 +23,8 @@
 
 ;;; Code:
 (in-package :software-evolution-utility)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-curry-compose-reader-macros))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
