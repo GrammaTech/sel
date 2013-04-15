@@ -79,7 +79,18 @@
                               (setf (nth s2 genome) tmp))
                             genome))))))
 
-(defmethod crossover ((a simple) (b simple))
+
+;;; Crossover
+(defmethod crossover ((a simple) (b simple)) (two-point-crossover a b))
+
+#|
+(defun align-for-crossover (a b &key (test equal) key)
+  "Return two offsets which align genomes A and B for maximum similarity.
+TEST may be used to test for similarity and should return a boolean (number?)."
+  (values 0 0))
+|#
+
+(defmethod two-point-crossover ((a simple) (b simple))
   "Two point crossover."
   (let* ((range (min (size a) (size b)))
          (points (sort (loop :for i :below 2 :collect (random range)) #'<))
@@ -89,3 +100,12 @@
                              (subseq (genome a) (first points) (second points))
                              (subseq (genome b) (second points)))))
     (values new points)))
+
+(defmethod one-point-crossover ((a simple) (b simple))
+  (let* ((range (min (size a) (size b)))
+         (point (random range))
+         (new (copy a)))
+    (setf (genome new)
+          (copy-tree (append (subseq (genome b) 0 point)
+                             (subseq (genome a) point))))
+    (values new point)))

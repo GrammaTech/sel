@@ -21,6 +21,8 @@
    :mutate
    :apply-mutation
    :crossover
+   :one-point-crossover
+   :two-point-crossover
    :*edit-consolidation-size*
    :*consolidated-edits*
    :*edit-consolidation-function*

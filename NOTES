@@ -101,8 +101,8 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [11/20]
-** TODO expose a software-evolution utility class
+* Tasks [14/20]
+** DONE expose a software-evolution utility class
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names
@@ -138,7 +138,7 @@ these to write out offending genomes and functions to files for use in
 future test cases
 
 ** DONE ensure that all proper lists stay proper lists in list genome mutation
-** TODO add elf level representation
+** DONE add elf level representation
 ** TODO test external script repair at all three levels
 ** TODO add an =optimize= evolutionary method
    :PROPERTIES:
@@ -204,9 +204,13 @@ After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then b
 possible to share code between =soft-lisp= *and* =soft-asm= software
 objects.  Just another =defmethod= on the =crossover= generic
 function.
-** CANCELED integrate with LLVM
+** DONE integrate with LLVM
    - State "CANCELED"   from "TODO"       [2012-02-23 Thu 18:46] \\
      better (for now) to integrate with CLANG
+
+This was done using an external command line interface.
+
+*** Notes on FFI integration
 see
 - http://llvm.org/
 - http://www.cliki.net/LLVM
@@ -230,7 +234,7 @@ directives.
 
 Probably the most robust solution is to [[id:5291eb9c-6abd-4265-a7b5-f182cf317d6c][integrate with CLANG]].
 
-** TODO integrate with CLANG
+** DONE integrate with CLANG
    :PROPERTIES:
    :ID:       5291eb9c-6abd-4265-a7b5-f182cf317d6c
    :END:
