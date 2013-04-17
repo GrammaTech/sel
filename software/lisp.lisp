@@ -49,7 +49,7 @@
     (dolist (form (genome software))
       (format out "~&~S~%" form))))
 
-#+nil ;; NOTE: don't want to include trivial-timeout just now
+#| ;; NOTE: don't want to include trivial-timeout just now
 (defmacro with-harness (&rest body)
   ;; TODO: protect against stack overflow
   `(locally
@@ -60,6 +60,7 @@
        (handler-case (with-timeout (*test-timeout*) ,@body)
          (timeout-error (c) (declare (ignorable c)) :timeout)
          (error (e) (declare (ignorable e)) :error)))))
+|#
 
 (defmethod evaluate ((lisp lisp))
   (count-if (lambda (result)
