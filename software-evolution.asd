@@ -23,8 +23,8 @@
    (:file "genomes/vector"
     :depends-on ("package" "software-evolution"))
    ;; software
-   (:file "software/lisp"
-    :depends-on ("package" "software-evolution"))
+   ;; (:file "software/lisp"
+   ;;  :depends-on ("package" "software-evolution"))
    (:file "software/elf"
     :depends-on ("package" "software-evolution"))
    (:file "software/simple"
