@@ -91,7 +91,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
 |#
 
 (defmethod two-point-crossover ((a simple) (b simple))
-  "Two point crossover."
+  ;; Two point crossover
   (let* ((range (min (size a) (size b)))
          (points (sort (loop :for i :below 2 :collect (random range)) #'<))
          (new (copy a)))

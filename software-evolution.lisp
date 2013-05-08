@@ -85,13 +85,13 @@ properties for targeting of mutation operations."))
   child)
 
 (defmethod crossover :around ((a software) (b software))
-  (multiple-value-call a b (call-next-method)))
+  (multiple-value-call #'crossover-maintenance a b (call-next-method)))
 
-(defmethod one-point-crossover :around ((a software) (b software))
-  (multiple-value-call a b (call-next-method)))
-
-(defmethod two-point-crossover :around ((a software) (b software))
-  (multiple-value-call a b (call-next-method)))
+;; (defmethod one-point-crossover :around ((a software) (b software))
+;;   (multiple-value-call #'crossover-maintenance a b (call-next-method)))
+;;
+;; (defmethod two-point-crossover :around ((a software) (b software))
+;;   (multiple-value-call #'crossover-maintenance a b (call-next-method)))
 
 (defgeneric edit-distance (software-a software-b)
   (:documentation "Return the edit distance between two software objects."))
