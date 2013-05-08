@@ -273,7 +273,7 @@ Optional argument OUT specifies an output stream."
 
 ;;; debugging helpers
 (defvar *note-level* 0 "Enables execution notes.")
-(defvar *note-out* t "Target of notation.")
+(defvar *note-out* '(t) "Targets of notation.")
 
 (defun print-time (&optional (out t))
   (multiple-value-bind
@@ -285,9 +285,9 @@ Optional argument OUT specifies an output stream."
 
 (defun note (level &rest format-args)
   (when (>= *note-level* level)
-    (format *note-out* "~&~a: ~a~%"
-            (print-time nil)
-            (apply #'format nil format-args))))
+    (mapc
+     {format _ "~&~a: ~a~%" (print-time nil) (apply #'format nil format-args)}
+     *note-out*)))
 
 ;; adopted from a public domain lisp implementation copied from the
 
