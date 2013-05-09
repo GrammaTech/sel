@@ -45,12 +45,6 @@
 (defmethod to-file ((simple simple) file)
   (string-to-file (genome-string simple) file))
 
-(defmethod size ((simple simple))
-  (length (genome simple)))
-
-(defmethod pick-good ((simple simple)) (random (size simple)))
-(defmethod pick-bad  ((simple simple)) (random (size simple)))
-
 (defmethod mutate ((simple simple))
   "Randomly mutate SIMPLE."
   (unless (> (size simple) 0) (error 'mutate :text "No valid IDs" :obj simple))

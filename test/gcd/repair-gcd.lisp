@@ -15,7 +15,7 @@
     (assert (= 10 fitness) (ast)
             "AST should pass 10/11 test cases but instead passes ~a/11"
             fitness))
-  (let ((num (num-ids ast)))
+  (let ((num (size ast)))
     (store
      (block repair
        (flet ((mut (op)

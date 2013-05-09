@@ -8,7 +8,7 @@
    :elf
    :cl-ppcre
    :software-evolution-utility)
-  (:shadow :type :magic-number)
+  (:shadow :size :type :magic-number)
   (:export
    ;; software objects
    :software
@@ -66,7 +66,6 @@
    :clang
    :cil
    :llvm
-   :num-ids
    :linker
    ;; elf methods
    :base

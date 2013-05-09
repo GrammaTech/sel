@@ -29,11 +29,11 @@
 
 ;;; ast software objects
 (defclass ast (software)
-  ((genome   :initarg :genome   :accessor genome      :initform nil)
-   (flags    :initarg :flags    :accessor flags       :initform nil)
-   (compiler :initarg :compiler :accessor compiler    :initform nil)
-   (ext      :initarg :ext      :accessor ext         :initform "c")
-   (num-ids  :initarg :num-ids  :accessor raw-num-ids :initform nil)))
+  ((genome   :initarg :genome   :accessor genome   :initform nil)
+   (flags    :initarg :flags    :accessor flags    :initform nil)
+   (compiler :initarg :compiler :accessor compiler :initform nil)
+   (ext      :initarg :ext      :accessor ext      :initform "c")
+   (raw-size :initarg :size     :accessor raw-size :initform nil)))
 
 (defmethod copy ((ast ast)
                  &key (edits (copy-tree (edits ast))) (fitness (fitness ast)))
@@ -57,18 +57,15 @@
 (defun ast-to-file (software path &key if-exists)
   (string-to-file (genome software) path :if-exists if-exists))
 
-(defun num-ids (ast)
-  (or (raw-num-ids ast)
-      (setf (raw-num-ids ast)
+(defmethod size ((ast ast))
+  (or (raw-size ast)
+      (setf (raw-size ast)
             (or (ignore-errors
                   (parse-number (apply-mutation ast (list :ids))))
                 0))))
 
-(defmethod pick-good ((ast ast)) (random (num-ids ast)))
-(defmethod pick-bad  ((ast ast)) (random (num-ids ast)))
-
 (defmethod mutate ((ast ast))
-  (unless (> (num-ids ast) 0)
+  (unless (> (size ast) 0)
     (error 'mutate :text "No valid IDs" :obj ast))
   (setf (fitness ast) nil)
   (let ((mut (case (random-elt '(cut insert swap))
@@ -80,7 +77,7 @@
   ast)
 
 (defmethod apply-mutation :around ((ast ast) mut)
-  ;; Apply MUT to AST, and then update `NUM-IDS' for AST.
+  ;; Apply MUT to AST, and then update `SIZE' for AST.
   (if (equal (car mut) :ids)
       (call-next-method)
       (setf (genome ast) (call-next-method))))

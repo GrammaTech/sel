@@ -12,7 +12,7 @@
   (assert (or (eq (type-of ast) 'cil)
               (eq (type-of ast) 'clang)) (ast)
               "AST should be either a cil or clang object")
-  (let ((num (num-ids ast)))
+  (let ((num (size ast)))
     (store
      (block repair
        (flet ((mut (op)

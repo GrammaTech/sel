@@ -24,7 +24,7 @@
 (defgeneric del-ind (genome index)
   (:documentation "Delete the value located at INDEX from GENOME."))
 
-(defgeneric size (genome)
+(defgeneric size (genome) ;; Note: software has a `size' now as well
   (:documentation "Return the size of GENOME."))
 
 (defgeneric average-keys (genome place)

@@ -172,17 +172,3 @@ and applies the changed data in `genome' of ELF."
          (push (cons key val) (nth place (genome elf)))
          (push (list i key val) applied))))
   (reverse applied))
-
-
-;;; Technical Debt IOU: building things here which should be general,
-;;;                     but lets build them here first, then
-;;;                     generalize later when we're older and wiser.
-(defgeneric pick (genome key &optional function) ;; TODO: use `ind' functions?
-  (:documentation "Pick an element of GENOME based on values of KEY.
-Optional argument FUNCTION processes key values into numeric scores."))
-
-(defmethod pick ((elf elf-sw) key &optional (func #'identity))
-  (let ((raw (reduce (lambda (acc el) (cons (+ el (car acc)) acc))
-                     (mapcar func (mapcar {aget key} (genome elf)))
-                     :initial-value '(0))))
-    (position-if {<= (random (second raw))} (cdr (reverse raw)))))

@@ -29,13 +29,29 @@
 (defgeneric copy (software &key edits fitness)
   (:documentation "Copy the software."))
 
+(defgeneric size (software)
+  (:documentation "Return the size of the `genome' of SOFTWARE."))
+
+(defmethod size ((software software)) (length (genome software)))
+
+(defgeneric pick (genome key)
+  (:documentation "Pick an element of GENOME based on KEY of each element.
+KEY processes elements into numeric scores."))
+
+(defmethod pick ((sw software) key)
+  (let ((raw (reduce (lambda (acc el) (cons (+ el (car acc)) acc))
+                     (mapcar key (genome sw)) :initial-value '(0))))
+    (position-if {<= (random (second raw))} (cdr (reverse raw)))))
+
 (defgeneric pick-good (software)
   (:documentation "Pick a 'good' index into a software object.
 Used to target mutation."))
+(defmethod pick-good ((software software)) (random (size software)))
 
 (defgeneric pick-bad (software)
   (:documentation "Pick a 'bad' index into a software object.
 Used to target mutation."))
+(defmethod pick-bad  ((software software)) (random (size software)))
 
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error.

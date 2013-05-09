@@ -45,7 +45,7 @@
   llvm)
 
 (defmethod mutate ((llvm llvm))
-  (unless (> (num-ids llvm) 0)
+  (unless (> (size llvm) 0)
     (error 'mutate :text "No valid IDs" :obj llvm))
   (setf (fitness llvm) nil)
   (let ((mut (case (random-elt '(cut replace insert swap))
