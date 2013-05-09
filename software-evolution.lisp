@@ -34,7 +34,7 @@
 
 (defmethod size ((software software)) (length (genome software)))
 
-(defgeneric pick (genome key)
+(defgeneric pick (software key)
   (:documentation "Pick an element of GENOME based on KEY of each element.
 KEY processes elements into numeric scores."))
 
