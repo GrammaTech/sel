@@ -59,6 +59,7 @@
    :cil
    :llvm
    :linker
+   :flags
    ;; elf methods
    :base
    :addresses

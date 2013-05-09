@@ -72,7 +72,7 @@
   (with-temp-file-of (src (ext llvm)) (genome llvm)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr exit)
-          (shell "cat ~a|~a|~a -x assembler - -o ~a"
-                 src (compiler llvm) (linker llvm) bin)
+          (shell "cat ~a|~a|~a ~{~a~^ ~} -x assembler - -o ~a"
+                 src (compiler llvm) (linker llvm) (flags llvm) bin)
         (declare (ignorable stdout stderr))
         (values (if (zerop exit) bin stderr) exit)))))
