@@ -45,8 +45,6 @@
   (with-temp-file-of (src (ext cil)) (genome cil)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr exit)
-          (shell "~a ~a -o ~a ~a"
-                 (compiler cil) src bin
-                 (mapconcat #'identity (flags cil) " "))
+          (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler cil) src bin (flags cil))
         (declare (ignorable stdout))
         (values (if (zerop exit) bin stderr) exit)))))

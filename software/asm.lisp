@@ -47,10 +47,8 @@
   (with-temp-file-of (src "s") (genome-string asm)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr exit)
-          (shell "~a ~a -o ~a ~a"
-                 (or (linker asm) *asm-linker*)
-                 (mapconcat #'identity (flags asm) " ")
-                 bin src)
+          (shell "~a ~{~a~^ ~} -o ~a ~a"
+                 (or (linker asm) *asm-linker*) (flags asm) bin src)
         (declare (ignorable stdout ))
         (values (if (zerop exit) bin stderr) exit)))))
 
