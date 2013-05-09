@@ -173,7 +173,7 @@ properties for targeting of mutation operations."))
 
 Keyword arguments are as follows.
   MAX-EVALS ------- stop after this many fitness evaluations
-  MAX-TIME -------- stop after this many generations
+  MAX-TIME -------- stop after this many seconds
   TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
   PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
