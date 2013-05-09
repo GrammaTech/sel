@@ -18,6 +18,10 @@
    :phenome
    :evaluate
    :copy
+   :size
+   :pick
+   :pick-good
+   :pick-bad
    :mutate
    :apply-mutation
    :crossover
@@ -46,18 +50,6 @@
    :crossed
    :new-individual
    :evolve
-   ;; genome operations
-   :inds
-   :ind
-   :del-ind
-   :size
-   :average-keys
-   :edit-distance
-   :cut
-   :insert
-   :swap
-   :to-tree
-   :to-list
    ;; software backends
    :asm
    :*asm-linker*
@@ -70,5 +62,4 @@
    ;; elf methods
    :base
    :addresses
-   :pick ; <- generalize later
    ))
