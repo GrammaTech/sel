@@ -242,6 +242,15 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; Generic utility functions
+(defun counts (list &key (test #'eql) key &aux totals)
+  "Return an alist keyed by the unique elements of list holding their counts."
+  (mapc (lambda (el)
+          (if-let (place (assoc el totals :key key :test test))
+            (incf (cdr place))
+            (push (cons el 1) totals)))
+        list)
+  totals)
+
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))

@@ -27,6 +27,7 @@
    ;; simple utility
    :indexed
    :different-it
+   :counts
    :aget
    :getter
    :transpose
