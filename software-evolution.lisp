@@ -213,6 +213,8 @@ Keyword arguments are as follows.
                            (funcall filter new))
                    (incorporate new))
                  (when (and target
-                            (funcall *fitness-predicate* (fitness new) target))
+                            (let ((fit (fitness new)))
+                              (or (equal fit target)
+                                  (funcall *fitness-predicate* fit target))))
                    (return new)))
              (mutate (obj) (declare (ignorable obj)) nil)))))
