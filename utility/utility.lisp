@@ -251,6 +251,11 @@ Optional argument OUT specifies an output stream."
         list)
   totals)
 
+(defun proportional-pick (list key)
+  (let ((raw (reduce (lambda (acc el) (cons (+ el (car acc)) acc))
+                     (mapcar key list) :initial-value '(0))))
+    (position-if {<= (random (second raw))} (cdr (reverse raw)))))
+
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))

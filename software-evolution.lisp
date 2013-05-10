@@ -34,14 +34,14 @@
 
 (defmethod size ((software software)) (length (genome software)))
 
-(defgeneric pick (software key)
+(defgeneric pick (software key &optional func)
   (:documentation "Pick an element of GENOME based on KEY of each element.
-KEY processes elements into numeric scores."))
+KEY is passed to `proportional-pick' to return an index.  Optional
+argument FUNC processes the index to return a result."))
 
-(defmethod pick ((sw software) key)
-  (let ((raw (reduce (lambda (acc el) (cons (+ el (car acc)) acc))
-                     (mapcar key (genome sw)) :initial-value '(0))))
-    (position-if {<= (random (second raw))} (cdr (reverse raw)))))
+(defmethod pick ((sw software) key &optional func)
+  (let ((pick (proportional-pick (genome sw) key)))
+    (if func (funcall func pick) pick)))
 
 (defgeneric pick-good (software)
   (:documentation "Pick a 'good' index into a software object.

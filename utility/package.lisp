@@ -28,6 +28,7 @@
    :indexed
    :different-it
    :counts
+   :proportional-pick
    :aget
    :getter
    :transpose
