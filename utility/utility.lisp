@@ -299,9 +299,11 @@ Optional argument OUT specifies an output stream."
 
 (defun note (level &rest format-args)
   (when (>= *note-level* level)
-    (mapc
-     {format _ "~&~a: ~a~%" (print-time nil) (apply #'format nil format-args)}
-     *note-out*)))
+    (mapcar
+     #'finish-output
+     (mapc
+      {format _ "~&~a: ~a~%" (print-time nil) (apply #'format nil format-args)}
+      *note-out*))))
 
 ;; adopted from a public domain lisp implementation copied from the
 
