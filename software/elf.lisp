@@ -80,7 +80,7 @@ and applies the changed data in `genome' of ELF."
                                    (nth (third mut) (genome elf))))
               (:swap   (elf-swap (genome elf) (second mut) (third mut)))))
       (assert (= (byte-count (genome elf)) starting-bytes)
-              (elf) "mutation ~S changed size of genome [~S → ~S]"
+              (elf) "mutation ~S changed size of genome [~S -> ~S]"
               mut starting-bytes (byte-count (genome elf))))))
 
 (defun elf-cut (genome s1)
