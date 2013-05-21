@@ -33,7 +33,7 @@
   (mapcar {aget :line} (genome simple)))
 
 (defmethod genome-string ((simple simple))
-  (mapconcat {format nil "~a~%"} (lines simple) ""))
+  (format nil "~{~a~%~}" (lines simple)))
 
 (defmethod from-file ((simple simple) path)
   (with-open-file (in path)
