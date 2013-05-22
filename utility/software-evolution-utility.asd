@@ -7,7 +7,8 @@
                curry-compose-reader-macros
                split-sequence
                trivial-shell
-               cl-ppcre)
+               cl-ppcre
+               cl-store)
   :components
   ((:static-file "COPYING")
    (:file "package")

@@ -87,7 +87,7 @@ After BODY is executed the temporary file is removed."
   (with-temp-file (tmp) (bytes-to-file bytes tmp) (restore tmp)))
 
 (defun to-bytes (software)
-  (with-temp-file (tmp) (store soft tmp) (file-to-bytes tmp)))
+  (with-temp-file (tmp) (store software tmp) (file-to-bytes tmp)))
 
 (defvar *work-dir* nil)
 

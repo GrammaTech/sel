@@ -6,7 +6,8 @@
    :curry-compose-reader-macros
    :split-sequence
    :trivial-shell
-   :cl-ppcre)
+   :cl-ppcre
+   :cl-store)
   (:export
    ;; OS
    :file-to-string
