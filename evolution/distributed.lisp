@@ -50,8 +50,7 @@ The address should look like \"tcp://*:1234\"."
              (error (e) "~&zmq error ~a~%" e)))))))
 
 (defun share (individual address)
-  "Accept and `incorporate' any incoming individuals on ADDRESS.
-The address should look like \"tcp://localhost:1234\"."
+  "Broadcast INDIVIDUAL with ADDRESS."
   (zmq:with-context (context 1)
     (zmq:with-socket (socket context zmq:req)
       (zmq:connect socket address)

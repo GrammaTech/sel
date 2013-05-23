@@ -25,12 +25,6 @@
       (delete-file (exe software)))
     (setf (exe software) nil)))
 
-(defgeneric from-bytes (bytes)
-  (:documentation "Read a software object from a byte array."))
-
-(defgeneric to-bytes (software)
-  (:documentation "Write a software object to a byte array."))
-
 (defun evaluate-with-script (software script pos-num neg-num)
   "Evaluate SOFTWARE with SCRIPT.
 POS-NUM is the number of positive tests defined in SCRIPT NEG-NUM is

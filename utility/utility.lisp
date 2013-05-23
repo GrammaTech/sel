@@ -80,16 +80,14 @@ After BODY is executed the temporary file is removed."
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file and an optional extension."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect
-          (progn ;; (format t "~&-->~a<--~%" ,(car spec))
-                 (string-to-file ,str ,(car spec))
-                 ,@body)
+     (unwind-protect (progn (string-to-file ,str ,(car spec)) ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
-;; (defun shell (&rest rst)
-;;   (multiple-value-bind (output err-output exit)
-;;       (shell-command (apply #'format (cons nil rst)) :input nil)
-;;     (values output err-output exit)))
+(defun from-bytes (bytes)
+  (with-temp-file (tmp) (bytes-to-file bytes tmp) (restore tmp)))
+
+(defun to-bytes (software)
+  (with-temp-file (tmp) (store soft tmp) (file-to-bytes tmp)))
 
 (defvar *work-dir* nil)
 
