@@ -30,20 +30,57 @@
   ((genome   :initarg :genome   :accessor genome   :initform nil)))
 
 (defmethod lines ((simple simple))
-  (mapcar {aget :line} (genome simple)))
+  (remove nil (mapcar {aget :line} (genome simple))))
 
 (defmethod genome-string ((simple simple))
   (format nil "~{~a~%~}" (lines simple)))
 
+(defun file-to-simple-genome-list (filespec)
+  (with-open-file (in filespec)
+    (loop :for line = (read-line in nil) :while line
+       :collect (list (cons :line line)))))
+
 (defmethod from-file ((simple simple) path)
-  (with-open-file (in path)
+  (setf (genome simple) (file-to-simple-genome-list path))
+  simple)
+
+(defun common-subseq (paths)
+  (coerce (loop :for i :below (apply #'min (mapcar #'length paths))
+             :while (every [{equal (aref (car paths) i)} {aref _ i}] paths)
+             :collect (aref (car paths) i))
+          'string))
+
+(defmethod from-file ((simple simple) (paths list))
+  (let ((base (common-subseq paths)))
     (setf (genome simple)
-          (loop :for line = (read-line in nil)
-             :while line :collect (list (cons :line line))))
-    simple))
+          (mapcan (lambda (path)
+                    (cons (list (cons :path (subseq path (length base))))
+                          (file-to-simple-genome-list path)))
+                  paths)))
+  simple)
 
 (defmethod to-file ((simple simple) file)
-  (string-to-file (genome-string simple) file))
+  ;; handle multi-file individuals differently
+  (if (assoc :path (car (genome simple)))
+      ;; if multi-file, then assume FILE is a directory path
+      (let ((base (unless (equal #\/ (aref file (1- (length file))))
+                    (concatenate 'string file "/")))
+            path lines paths)
+        (flet ((flush ()
+                 (prog1 (push (string-to-file
+                               (format nil "~{~a~%~}" (nreverse lines))
+                               (concatenate 'string base path)) paths)
+                   (setf lines nil path nil))))
+          (loop :for el :in (genome simple) :do
+             (if (assoc :path el)
+                 (progn
+                   ;; write accumulated lines to path
+                   (when (and lines path) (flush))
+                   (setf path (cdr (assoc :path el))))
+                 (push (cdr (assoc :line el)) lines)))
+          (flush)))
+      ;; if single-file, then assume FILE is a file path
+      (string-to-file (genome-string simple) file)))
 
 (defmethod mutate ((simple simple))
   "Randomly mutate SIMPLE."
