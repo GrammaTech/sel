@@ -240,14 +240,18 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; Generic utility functions
-(defun counts (list &key (test #'eql) key &aux totals)
-  "Return an alist keyed by the unique elements of list holding their counts."
+(defun counts (list &key (test #'eql) key frac &aux totals)
+  "Return an alist keyed by the unique elements of list holding their counts.
+Keyword argument FRAC will return fractions instead of raw counts."
   (mapc (lambda (el)
           (if-let (place (assoc el totals :key key :test test))
             (incf (cdr place))
             (push (cons el 1) totals)))
         list)
-  totals)
+  (if frac
+      (let ((total (reduce #'+ (mapcar #'cdr totals))))
+        (mapcar (lambda-bind ((obj . cnt)) (cons obj (/ cnt total))) totals))
+      totals))
 
 (defun proportional-pick (list key)
   (let ((raw (reduce (lambda (acc el) (cons (+ el (car acc)) acc))
