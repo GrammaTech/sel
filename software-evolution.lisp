@@ -164,8 +164,12 @@ properties for targeting of mutation operations."))
 
 (defun tournament (&optional (predicate *fitness-predicate*))
   "Select an individual from *POPULATION* with a tournament of size NUMBER."
-  (flet ((verify (it) (assert (numberp (fitness it)) (it)
-                              "Population member with no fitness") it))
+  (flet ((verify (it)
+           (assert (typep it 'software) (it)
+                   "Population member is not software object")
+           (assert (numberp (fitness it)) (it)
+                   "Population member with no fitness")
+           it))
     (assert *population* (*population*) "Empty population.")
     (car (sort (loop :for i :below *tournament-size*
                   :collect (verify (random-elt *population*)))
