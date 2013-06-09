@@ -159,7 +159,7 @@ properties for targeting of mutation operations."))
 
 (defun evict ()
   (let ((loser (tournament (complement *fitness-predicate*))))
-    (setf *population* (remove loser *population* :count 1))
+    (setf *population* (delete loser *population* :count 1))
     loser))
 
 (defun tournament (&optional (predicate *fitness-predicate*))
