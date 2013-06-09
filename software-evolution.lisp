@@ -159,8 +159,8 @@ properties for targeting of mutation operations."))
 
 (defun evict ()
   (let ((loser (tournament (complement *fitness-predicate*))))
-    (setf *population* (delete loser *population* :count 1))
-    (setf loser nil)))
+    (setf *population* (remove loser *population* :count 1))
+    loser))
 
 (defun tournament (&optional (predicate *fitness-predicate*))
   "Select an individual from *POPULATION* with a tournament of size NUMBER."
@@ -197,7 +197,7 @@ Keyword arguments are as follows.
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
   PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
   FILTER ---------- only include individual for which FILTER returns true"
-  (let ((start-time (get-internal-real-time)) new)
+  (let ((start-time (get-internal-real-time)))
     (setq *running* t)
     (loop :until (or (not *running*)
                      (and max-evals (> *fitness-evals* max-evals))
@@ -205,13 +205,15 @@ Keyword arguments are as follows.
                                          internal-time-units-per-second)
                                       max-time)))
        :do (handler-case
-               (progn
-                 (setf new (new-individual))
+               (let ((new (new-individual)))
                  (setf (fitness new) (funcall test new))
                  (incf *fitness-evals*)
                  (when (and period (zerop (mod *fitness-evals* period)))
                    (funcall period-func))
-                 (when (or (null filter) (funcall filter new))
+                 (assert (numberp (fitness new)) (new)
+                         "Non-numeric fitness: ~S" (fitness new))
+                 (when (or (null filter)
+                           (funcall filter new))
                    (incorporate new))
                  (when (and target
                             (let ((fit (fitness new)))
