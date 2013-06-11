@@ -187,7 +187,8 @@ properties for targeting of mutation operations."))
   "Generate a new individual from *POPULATION*."
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
 
-(defun evolve (test &key max-evals max-time target period period-func filter)
+(defun evolve
+    (test &key max-evals max-time target period period-func every-func filter)
   "Evolves population until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
@@ -196,6 +197,7 @@ Keyword arguments are as follows.
   TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
   PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
+  EVERY-FUNC ------ function to run before every fitness evaluation
   FILTER ---------- only include individual for which FILTER returns true"
   (let ((start-time (get-internal-real-time)))
     (setq *running* t)
@@ -206,6 +208,7 @@ Keyword arguments are as follows.
                                       max-time)))
        :do (handler-case
                (let ((new (new-individual)))
+                 (when every-func (funcall every-func))
                  (setf (fitness new) (funcall test new))
                  (incf *fitness-evals*)
                  (when (and period (zerop (mod *fitness-evals* period)))
