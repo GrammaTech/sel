@@ -188,16 +188,16 @@ properties for targeting of mutation operations."))
   (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
 
 (defun evolve
-    (test &key max-evals max-time target period period-func every-func filter)
+    (test &key max-evals max-time target period period-fn every-fn filter)
   "Evolves population until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
   MAX-EVALS ------- stop after this many fitness evaluations
   MAX-TIME -------- stop after this many seconds
   TARGET ---------- stop when an individual passes TARGET-FIT
-  PERIOD ---------- interval of fitness evaluations to run PERIOD-FUNC
-  PERIOD-FUNC ----- function to run every PERIOD fitness evaluations
-  EVERY-FUNC ------ function to run before every fitness evaluation
+  PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
+  PERIOD-FN ------- function to run every PERIOD fitness evaluations
+  EVERY-FN -------- function to run before every fitness evaluation
   FILTER ---------- only include individual for which FILTER returns true"
   (let ((start-time (get-internal-real-time)))
     (setq *running* t)
@@ -208,11 +208,11 @@ Keyword arguments are as follows.
                                       max-time)))
        :do (handler-case
                (let ((new (new-individual)))
-                 (when every-func (funcall every-func))
+                 (when every-fn (funcall every-fn))
                  (setf (fitness new) (funcall test new))
                  (incf *fitness-evals*)
                  (when (and period (zerop (mod *fitness-evals* period)))
-                   (funcall period-func))
+                   (funcall period-fn))
                  (assert (numberp (fitness new)) (new)
                          "Non-numeric fitness: ~S" (fitness new))
                  (when (or (null filter)
