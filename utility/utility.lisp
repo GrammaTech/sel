@@ -119,7 +119,8 @@ After BODY is executed the temporary file is removed."
         ;; native shell execution
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input nil)
-            #-(or sbcl) (error "not implemented")
+            #+ccl (shell-command cmd :input "")
+            #-(or sbcl ccl) (error "not implemented")
             (when *shell-debug*
               (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr errno))
             (values stdout stderr errno)))))
