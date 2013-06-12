@@ -1,5 +1,7 @@
 doc
 *.fasl
+*.lx32fsl
+*.lx64fsl
 *.html
 *.txt
 *.tex
