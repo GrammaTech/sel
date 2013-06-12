@@ -63,7 +63,7 @@
           #+sbcl
           (tempnam nil nil)
           #+ccl
-          (ccl:temp-pathname)
+          (format nil "~a" (ccl:temp-pathname))
           #-(or sbcl clisp ccl)
           (error "no temporary file backend for this lisp.")))
     (if ext
