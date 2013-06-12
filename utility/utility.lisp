@@ -33,6 +33,11 @@
     (dir sb-alien:c-string)
     (prefix sb-alien:c-string)))
 
+#+ccl
+(defun tempnam (dir prefix)
+  (ccl:with-filename-cstrs ((base dir) (prefix prefix)) 
+    (ccl:get-foreign-namestring (#_tempnam base prefix))))
+
 (defun file-to-string (path)
   (with-open-file (in path)
     (let ((seq (make-string (file-length in))))
@@ -60,10 +65,8 @@
           (let ((stream (gensym)))
             (eval `(with-open-stream (,stream (ext:mkstemp nil))
                      (pathname ,stream))))
-          #+sbcl
+          #+(or sbcl ccl)
           (tempnam nil nil)
-          #+ccl
-          (format nil "~a" (ccl:temp-pathname))
           #-(or sbcl clisp ccl)
           (error "no temporary file backend for this lisp.")))
     (if ext
@@ -99,7 +102,9 @@ After BODY is executed the temporary file is removed."
     (when *shell-debug* (format t "  cmd: ~a~%" cmd))
     (if *work-dir*
         ;; more robust shell execution using foreman
-        (let* ((name (tempnam *work-dir* "lisp-"))
+        (let* ((name
+                #+(or sbcl ccl) (tempnam *work-dir* "lisp-")
+                #-(or sbcl ccl) (error "work-dir not supported for this lisp"))
                (run-file (format nil "~a.run" name))
                (done-file (format nil "~a.done" name)))
           (string-to-file cmd run-file)
