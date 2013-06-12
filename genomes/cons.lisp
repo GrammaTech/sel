@@ -35,7 +35,7 @@
                                (cons new nil)
                                new)) new))))
 
-(defun del-ind (genome index)
+(defmethod del-ind ((genome cons) index)
   (if (cddr index)
       (del-ind (case (car index) (:a (car genome)) (:d (cdr genome)))
                (cdr index))
