@@ -10,6 +10,5 @@
                cl-ppcre
                cl-store)
   :components
-  ((:static-file "COPYING")
-   (:file "package")
+  ((:file "package")
    (:file "utility" :depends-on ("package"))))

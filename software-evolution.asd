@@ -10,8 +10,7 @@
                elf
                software-evolution-utility)
   :components
-  ((:static-file "COPYING")
-   (:file "package")
+  ((:file "package")
    (:file "software-evolution" :depends-on ("package"))
    ;; genomes
    (:file "genomes/genome"
