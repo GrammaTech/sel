@@ -29,9 +29,11 @@
 (defclass simple (software)
   ((genome   :initarg :genome   :accessor genome   :initform nil)))
 
+(declaim (inline lines))
 (defmethod lines ((simple simple))
   (remove nil (mapcar {aget :line} (genome simple))))
 
+(declaim (inline genome-string))
 (defmethod genome-string ((simple simple))
   (format nil "~{~a~%~}" (lines simple)))
 
