@@ -39,17 +39,21 @@
   (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
   (:teardown (setf *genome* nil)))
 
+#|
 (defixture tree-genome
   (:setup (setf *genome* (to-tree '(1 2 3 (4 5) 6))))
   (:teardown (setf *genome* nil)))
+|#
 
 (defixture gcd-asm
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
   (:teardown (setf *gcd* nil)))
 
+#|
 (defixture gcd-lisp
   (:setup (setf *gcd* (from-file (make-instance 'lisp) (gcd-dir "gcd.lisp"))))
   (:teardown (setf *gcd* nil)))
+|#
 
 (defixture population
   (:setup (setf *population* (loop for i from 1 to 9
@@ -61,6 +65,7 @@
 
 
 ;;; vector genome
+#|
 (deftest ind-vector ()
   (with-fixture vector-genome
     (is (= 1 (ind *genome* 1)))))
@@ -165,6 +170,7 @@
   (is (proper-list-p (let ((it '(1 2)))
                        (del-ind it '(:d))
                        it))))
+|#
 
 
 ;;; ASM representation
@@ -252,6 +258,7 @@
 
 
 ;;; Lisp representation
+#|
 (deftest simple-read-lisp-from-file ()
   (with-fixture gcd-lisp
     (is (eq 'defun (caar (genome *gcd*))))))
@@ -267,6 +274,7 @@
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
+|#
 
 #+broke
 (progn
