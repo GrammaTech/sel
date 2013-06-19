@@ -164,7 +164,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
 ;; complexity to many genome manipulation methods.
 ;;
 ;; This class
-;; 
+;;
 (defclass range (simple)
   ((reference :initarg :reference :initform nil))
   (:documentation
@@ -303,3 +303,56 @@ initialize the RANGE object."))
                              (prog1 (rep r s1 val2) (setf s1 nil))
                              (prog1 (list r) (if s1 (decf s1 size))))))
                      genome))))))))))
+
+(defun range-subseq (range start &optional end)
+  (flet ((from (c range)
+           (remove nil
+             (mapcan (lambda (r)
+                       (let ((size (range-size r)))
+                         (cond
+                           ((and c (> c size)) (prog1 nil (decf c size)))
+                           ((and c (= c size)) (prog1 nil (setf c nil)))
+                           ((and c (zerop c))  (prog1 (list r) (setf c nil)))
+                           ((and c (< c size))
+                            (prog1 (list (cons (+ (car r) c) (cdr r)))
+                              (setf c nil)))
+                           ((not c) (list r)))))
+                     range)))
+         (to (c range)
+           (remove nil
+             (mapcan (lambda (r)
+                       (let ((size (range-size r)))
+                         (cond
+                           ((and c (> c size)) (prog1 (list r) (decf c size)))
+                           ((and c (= c size)) (prog1 (list r) (setf c nil)))
+                           ((and c (zerop c))  (prog1 nil (setf c nil)))
+                           ((and c (< c size))
+                            (prog1 (list (cons (car r) (+ (car r) (1- c))))
+                              (setf c nil)))
+                           ((not c) nil))))
+                     range))))
+    (if end (to (- end start) (from start range)) (from start range))))
+
+(defmethod one-point-crossover ((a range) (b range))
+  (assert (eq (reference a) (reference b)) (a b)
+          "Can not crossover range objects with unequal references.")
+  (let* ((range (min (size a) (size b)))
+         (point (random range))
+         (new (copy a)))
+    (setf
+     (genome new)
+     (copy-tree
+      (append (range-subseq (genome a) 0 point)
+              (range-subseq (genome b) point))))
+    (values new point)))
+
+(defmethod two-point-crossover ((a range) (b range))
+  (let* ((range (min (size a) (size b)))
+         (points (sort (loop :for i :below 2 :collect (random range)) #'<))
+         (new (copy a)))
+    (setf (genome new)
+          (copy-tree (append
+                      (range-subseq (genome b) 0 (first points))
+                      (range-subseq (genome a) (first points) (second points))
+                      (range-subseq (genome b) (second points)))))
+    (values new points)))

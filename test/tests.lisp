@@ -14,6 +14,8 @@
 
 (defvar *genome*  nil "Genome used in tests.")
 (defvar *soft*    nil "Software used in tests.")
+(defvar *tfos*    nil "Another software used in tests.")
+(defvar *range-ref* #("one" "two" "three" "four" "five" "six"))
 (defvar *gcd*     nil "Holds the gcd software object.")
 (defvar *gcd-dir* "gcd" "Location of the gcd example directory")
 (defun gcd-dir (filename)
@@ -44,6 +46,16 @@
                          :genome '((0 . 2) (1 . 1) (1 . 2))
                          :reference #("one" "two" "three"))))
   (:teardown (setf *soft* nil)))
+
+(defixture double-range
+  (:setup
+     (setf *soft* (make-instance 'range
+                    :genome '((0 . 2) (1 . 1) (1 . 2))
+                    :reference *range-ref*)
+           *tfos* (make-instance 'range
+                    :genome '((2 . 5) (4 . 4) (4 . 5))
+                    :reference *range-ref*)))
+  (:teardown (setf *soft* nil *tfos* nil)))
 
 #|
 (defixture tree-genome
@@ -279,6 +291,38 @@
                        (loop :for i :below (size *soft*) :collect i))
                '(0 1 2 1 1 2)))))
 
+(deftest range-subseq-test ()
+  (with-fixture range
+    ;; to
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 0 1)
+                    '((0 . 0))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 0 2)
+                    '((0 . 1))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 0 3)
+                    '((0 . 2))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 0 4)
+                    '((0 . 2) (1 . 1))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 0 5)
+                    '((0 . 2) (1 . 1) (1 . 1))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 0 6)
+                    '((0 . 2) (1 . 1) (1 . 2))))
+    ;; from
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 1 7)
+                    '((1 . 2) (1 . 1) (1 . 2))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 2 7)
+                    '((2 . 2) (1 . 1) (1 . 2))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 3 7)
+                    '((1 . 1) (1 . 2))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 4 7)
+                    '((1 . 2))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 5 7)
+                    '((2 . 2))))
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 6 7)
+                    'NIL))
+    ;; both
+    (is (tree-equal (software-evolution::range-subseq (genome *soft*) 2 5)
+                    '((2 . 2) (1 . 1) (1 . 1))))))
+
 (deftest some-range-cut-mutations ()
   (with-fixture range
     (is (tree-equal (apply-mutation *soft* '(:cut 2))
@@ -309,6 +353,28 @@
     (is (tree-equal (lines *soft*)
                     '("three" "two" "one" "two" "two" "three")
                     :test #'string=))))
+
+(deftest range-copy ()
+  (with-fixture range (is (typep (copy *soft*) 'range))))
+
+(deftest range-single-point-crossover ()
+  (with-fixture double-range
+    (is (eq (reference *soft*) (reference *tfos*)))
+    (let ((child (one-point-crossover *soft* *tfos*)))
+      (is (typep child 'range))
+      (is (listp (genome child))))))
+
+(deftest range-crossover ()
+  (with-fixture double-range
+    (let ((before-a (copy-tree (genome *soft*)))
+          (before-b (copy-tree (genome *tfos*)))
+          (child (crossover *soft* *tfos*)))
+      (is (typep child 'range))
+      (is (listp (genome child)))
+      (is (not (null (edits child))))
+      (is (eq (reference *soft*) (reference child)))
+      (is (tree-equal before-a (genome *soft*)))
+      (is (tree-equal before-b (genome *tfos*))))))
 
 
 ;;; Lisp representation
