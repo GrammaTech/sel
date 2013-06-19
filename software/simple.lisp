@@ -27,7 +27,7 @@
 
 ;;; simple software objects
 (defclass simple (software)
-  ((genome   :initarg :genome   :accessor genome   :initform nil)))
+  ((genome :initarg :genome :accessor genome :initform nil)))
 
 (declaim (inline lines))
 (defmethod lines ((simple simple))
@@ -142,3 +142,17 @@ TEST may be used to test for similarity and should return a boolean (number?)."
           (copy-tree (append (subseq (genome b) 0 point)
                              (subseq (genome a) point))))
     (values new point)))
+
+
+;;; light software objects
+;;
+;; A refinement of the "simple" software representation, using a
+;; simplified genome data structure which require fewer cons cells but
+;; does not allow tagging of lines of code with information.
+(defclass light (simple) ())
+
+(defmethod lines ((light light)) (genome light))
+
+(defmethod from-file ((light light) path)
+  (setf (genome light) (split-sequence #\Newline (file-to-string path)))
+  light)

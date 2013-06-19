@@ -5,8 +5,9 @@
    :alexandria
    :metabang-bind
    :curry-compose-reader-macros
-   :elf
+   :split-sequence
    :cl-ppcre
+   :elf
    :software-evolution-utility)
   (:shadow :size :type :magic-number)
   (:export
@@ -15,6 +16,7 @@
    :edits
    :fitness
    :genome
+   :lines
    :phenome
    :evaluate
    :copy
@@ -51,6 +53,8 @@
    :new-individual
    :evolve
    ;; software backends
+   :simple
+   :light
    :asm
    :*asm-linker*
    :elf-sw
