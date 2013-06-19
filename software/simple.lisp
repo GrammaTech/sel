@@ -156,3 +156,46 @@ TEST may be used to test for similarity and should return a boolean (number?)."
 (defmethod from-file ((light light) path)
   (setf (genome light) (split-sequence #\Newline (file-to-string path)))
   light)
+
+
+;;; range software objects
+;;
+;; An software object which uses even less memory, but adds some
+;; complexity to many genome manipulation methods.
+;;
+;; This class
+;; 
+(defclass range (simple)
+  ((reference :initarg :reference :initform nil))
+  (:documentation
+   "Alternative to SIMPLE software objects which should use less memory.
+Instead of directly holding code in the GENOME, each GENOME is a list
+of range references to an external REFERENCE code array."))
+
+(defgeneric reference (software))
+(defgeneric (setf reference) (software new)
+  (:documentation "Set the value of REFERENCE to NEW, and update the GENOME."))
+
+(defmethod reference ((range range)) (slot-value range 'reference))
+
+(defmethod (setf reference) (new (range range))
+  (declare (ignorable new))
+  (assert (typep new 'vector) (new) "Reference must be a vector.")
+  (setf (slot-value range 'reference) new)
+  (setf (genome range) (list (cons 0 (length new)))))
+
+(defmethod from-file ((range range) path)
+  (declare (ignorable path))
+  (error "RANGE individuals may not be initialized directly from files.
+First construct an array of lines of code from PATH and use this to
+initialize the RANGE object."))
+
+(defmethod copy
+    ((range range)
+     &key (edits (copy-tree (edits range))) (fitness (fitness range)))
+  (with-slots (reference genome) range
+    (make-instance '(class-of range)
+      :reference (reference range)
+      :genome (copy-tree (genome range))
+      :edits edits
+      :fitness fitness)))

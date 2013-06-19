@@ -16,7 +16,6 @@
    :edits
    :fitness
    :genome
-   :lines
    :phenome
    :evaluate
    :copy
@@ -55,6 +54,7 @@
    ;; software backends
    :simple
    :light
+   :range
    :asm
    :*asm-linker*
    :elf-sw
@@ -64,7 +64,9 @@
    :llvm
    :linker
    :flags
-   ;; elf methods
+   ;; software backend specific methods
+   :lines
+   :reference
    :base
    :addresses
    ))
