@@ -182,7 +182,7 @@ of range references to an external REFERENCE code array."))
   (declare (ignorable new))
   (assert (typep new 'vector) (new) "Reference must be a vector.")
   (setf (slot-value range 'reference) new)
-  (setf (genome range) (list (cons 0 (length new)))))
+  (setf (genome range) (list (cons 0 (1- (length new))))))
 
 (defmethod from-file ((range range) path)
   (declare (ignorable path))
@@ -199,3 +199,107 @@ initialize the RANGE object."))
       :genome (copy-tree (genome range))
       :edits edits
       :fitness fitness)))
+
+(declaim (inline range-size))
+(defun range-size (range) (1+ (- (cdr range) (car range))))
+
+(defmethod size ((range range))
+  (reduce #'+ (mapcar #'range-size (genome range))))
+
+(defmethod lines ((range range))
+  (mapcan (lambda-bind ((start . end))
+            (mapcar {aref (reference range)}
+                    (loop :for i :from start :to end :collect i)))
+          (genome range)))
+
+(defun range-nth (index range)
+  "Return the reference index of the INDEX line specified in RANGE."
+  (block nil (mapc (lambda (r)
+                     (let ((size (range-size r)))
+                       (if (> size index)
+                           (return (+ (car r) index))
+                           (decf index size))))
+                   (genome range))
+         nil))
+
+(defmethod apply-mutation ((range range) mutation)
+  (let ((op (first mutation))
+        (s1 (second mutation))
+        (s2 (third mutation)))
+    (flet ((ins (r s1 val)
+             (let* ((start (car r))
+                    (ins   (+ s1 start))
+                    (end   (cdr r)))
+               (cond
+                 ((= start ins)
+                  (list (cons val val) r))
+                 ((= ins end)
+                  (list r (cons val val)))
+                 (t
+                  (list (cons start (1- ins))
+                        (cons val val)
+                        (cons ins end))))))
+           (rep (r s1 val)
+             (let* ((start (car r))
+                    (ins   (+ s1 start))
+                    (end   (cdr r)))
+               (cond
+                 ((= start end ins)
+                  (list (cons val val)))
+                 ((= start ins)
+                  (list (cons val val) (cons (1+ start) end)))
+                 ((= ins end)
+                  (list (cons start (1- end)) (cons val val)))
+                 (t
+                  (list (cons start (1- ins))
+                        (cons val val)
+                        (cons (1+ ins) end)))))))
+      (with-slots (genome) range
+        (setf genome
+              (case op
+                (:cut
+                 (remove nil
+                   (mapcan (lambda (r)
+                             (let ((size (range-size r)))
+                               (if (and s1 (> size s1))
+                                   (if (> size 1)
+                                       (let* ((start (car r))
+                                              (del (+ s1 start))
+                                              (end (cdr r)))
+                                         (prog1
+                                             (cond
+                                               ((= start del)
+                                                (list (cons (1+ start) end)))
+                                               ((= del end)
+                                                (list (cons start (1- end))))
+                                               (t
+                                                (list (cons start (1- del))
+                                                      (cons (1+ del) end))))
+                                           (setf s1 nil)))
+                                       nil)
+                                   (prog1 (list r) (if s1 (decf s1 size))))))
+                           genome)))
+                (:insert
+                 (let ((val (range-nth s2 range)))
+                   (mapcan (lambda (r)
+                             (let ((size (range-size r)))
+                               (if (and s1 (> size s1))
+                                   (prog1 (ins r s1 val) (setf s1 nil))
+                                   (prog1 (list r) (if s1 (decf s1 size))))))
+                           genome)))
+                (:swap
+                 (let ((val1 (range-nth s1 range))
+                       (val2 (range-nth s2 range)))
+                   (mapcan
+                    (lambda (r)
+                      (let ((size (range-size r)))
+                        (if (and s2 (> size s2))
+                            (prog1 (rep r s2 val1) (setf s2 nil))
+                            (prog1 (list r) (if s2 (decf s2 size))))))
+                    (mapcan
+                     (lambda (r)
+                       (let ((size (range-size r)))
+                         (if (and s1 (> size s1))
+                             (prog1 (rep r s1 val2) (setf s1 nil))
+                             (prog1 (list r) (if s1 (decf s1 size))))))
+                     genome))))))))))

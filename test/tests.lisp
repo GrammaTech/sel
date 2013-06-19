@@ -39,6 +39,12 @@
   (:setup (setf *genome* (coerce (loop for i from 0 to 9 collect i) 'vector)))
   (:teardown (setf *genome* nil)))
 
+(defixture range
+  (:setup (setf *soft* (make-instance 'range
+                         :genome '((0 . 2) (1 . 1) (1 . 2))
+                         :reference #("one" "two" "three"))))
+  (:teardown (setf *soft* nil)))
+
 #|
 (defixture tree-genome
   (:setup (setf *genome* (to-tree '(1 2 3 (4 5) 6))))
@@ -255,6 +261,54 @@
         (is (not (tree-equal (genome new) (genome *gcd*))))
         (is (some [{equal :crossover} #'car] (edits new)))
         (is (some [{equal :cut} #'caar] (second (edits new))))))))
+
+
+;;; Range representation
+(deftest range-size ()
+  (with-fixture range (is (= 6 (size *soft*)))))
+
+(deftest range-lines ()
+  (with-fixture range
+    (is (tree-equal (lines *soft*)
+                    '("one" "two" "three" "two" "two" "three")
+                    :test #'string=))))
+
+(deftest range-nth-test ()
+  (with-fixture range
+    (is (equal (mapcar {software-evolution::range-nth _ *soft*}
+                       (loop :for i :below (size *soft*) :collect i))
+               '(0 1 2 1 1 2)))))
+
+(deftest some-range-cut-mutations ()
+  (with-fixture range
+    (is (tree-equal (apply-mutation *soft* '(:cut 2))
+                    '((0 . 1) (1 . 1) (1 . 2))))
+    (is (tree-equal (apply-mutation *soft* '(:cut 2))
+                    '((0 . 1) (2 . 2))))
+    (is (tree-equal (apply-mutation *soft* '(:cut 1))
+                    '((0 . 0) (2 . 2))))
+    (is (tree-equal (apply-mutation *soft* '(:cut 1))
+                    '((0 . 0))))
+    (is (null (apply-mutation *soft* '(:cut 0))))))
+
+(deftest some-range-insert-mutations ()
+  (with-fixture range
+    (is (tree-equal (apply-mutation *soft* '(:insert 0 2))
+                    '((2 . 2) (0 . 2) (1 . 1) (1 . 2))))
+    (is (tree-equal (apply-mutation *soft* '(:insert 5 1))
+                    '((2 . 2) (0 . 2) (1 . 1) (0 . 0) (1 . 2))))
+    (is (tree-equal (apply-mutation *soft* '(:insert 5 2))
+                    '((2 . 2) (0 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))
+    (is (tree-equal
+         (apply-mutation *soft* '(:insert 2 1))
+         '((2 . 2) (0 . 0) (0 . 0) (1 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))))
+
+(deftest some-range-swap-mutations ()
+  (with-fixture range
+    (apply-mutation *soft* '(:swap 0 2))
+    (is (tree-equal (lines *soft*)
+                    '("three" "two" "one" "two" "two" "three")
+                    :test #'string=))))
 
 
 ;;; Lisp representation
