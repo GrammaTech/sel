@@ -194,7 +194,7 @@ initialize the RANGE object."))
     ((range range)
      &key (edits (copy-tree (edits range))) (fitness (fitness range)))
   (with-slots (reference genome) range
-    (make-instance '(class-of range)
+    (make-instance (class-of range)
       :reference (reference range)
       :genome (copy-tree (genome range))
       :edits edits
