@@ -53,6 +53,7 @@
    :crossed
    :new-individual
    :evolve
+   :mcmc
    ;; software backends
    :simple
    :light
