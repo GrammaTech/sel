@@ -60,10 +60,17 @@ Used to target mutation."))
 (defmethod pick-bad  ((software software)) (random (size software)))
 
 (defgeneric mutate (software)
-  (:documentation "Mutate the software.  May throw a `mutate' error.
-Optional argument PICK-GOOD and PICK-BAD may specify functions to
-select portions of the genome with desirable and undesirable
-properties for targeting of mutation operations."))
+  (:documentation "Mutate the software.  May throw a `mutate' error."))
+
+(defgeneric mcmc-step (software)
+  (:documentation "Change software in a way amenable to MCMC.
+Specifically every step should be reversible, and the resulting walk
+should be ergodic."))
+
+(defvar *mcmc-fodder* nil
+  "Holds the genome elements which may be used by `mcmc-step'.
+Should be initialized to a list of the unique possible genome
+elements.")
 
 (define-condition mutate (error)
   ((text :initarg :text :reader text)
@@ -253,7 +260,7 @@ Keyword arguments are as follows.
     #'new-individual (incorporate new)))
 
 (defmacro mcmc
-    (original test step
+    (original test
      &key accept-fn max-evals max-time target period period-fn every-fn filter)
   "MCMC search from `*original*' until an optional stopping criterion is met.
 
@@ -271,7 +278,7 @@ Keyword arguments are as follows.
              (-search
               ,(list 'new test max-evals max-time target period period-fn
                      every-fn filter)
-              (,step ,curr)
+              (mcmc-step ,curr)
               (when (funcall acc (fitness ,curr) (fitness new))
                 (setf ,curr new))))))
     (if accept-fn

@@ -85,7 +85,6 @@
       (string-to-file (genome-string simple) file)))
 
 (defmethod mutate ((simple simple))
-  "Randomly mutate SIMPLE."
   (unless (> (size simple) 0) (error 'mutate :text "No valid IDs" :obj simple))
   (setf (fitness simple) nil)
   (let ((mut (case (random-elt '(cut insert swap))
@@ -111,6 +110,19 @@
                               (setf (nth s1 genome) (nth s2 genome))
                               (setf (nth s2 genome) tmp))
                             genome))))))
+
+(defmethod mcmc-step ((simple simple))
+  (let ((point (random (size simple))))
+    (with-slots (genome) simple
+      (setf genome
+            (if (zerop (random 2))
+                ;; delete an element
+                (append (subseq genome 0 point)
+                        (subseq genome (1+ point)))
+                ;; insert an element
+                (append (subseq genome 0 point)
+                        (list (random-elt *mcmc-fodder*))
+                        (subseq genome point)))))))
 
 
 ;;; Crossover
