@@ -34,6 +34,12 @@
 
 (defmethod size ((software software)) (length (genome software)))
 
+(defgeneric lines (software)
+  (:documentation "Return the lines of code of the `genome' of SOFTWARE."))
+
+(defgeneric genome-string (software)
+  (:documentation "Return a string of the `genome' of SOFTWARE."))
+
 (defgeneric pick (software key &optional func)
   (:documentation "Pick an element of GENOME based on KEY of each element.
 KEY is passed to `proportional-pick' to return an index.  Optional

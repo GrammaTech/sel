@@ -20,6 +20,8 @@
    :evaluate
    :copy
    :size
+   :lines
+   :genome-string
    :pick
    :pick-good
    :pick-bad
@@ -65,7 +67,6 @@
    :linker
    :flags
    ;; software backend specific methods
-   :lines
    :reference
    :base
    :addresses
