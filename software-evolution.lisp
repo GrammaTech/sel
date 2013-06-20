@@ -219,7 +219,7 @@ elements.")
                        '(not *running*))
                   :do (handler-case
                           (let ((,v (funcall ,step)))
-                            ,@(when every-fn `((funcall ,every-fn)))
+                            ,@(when every-fn `((funcall ,every-fn ,v)))
                             (setf (fitness ,v) (funcall ,f ,v))
                             (incf *fitness-evals*)
                             ,@(when (and pd pd-fn)
@@ -279,7 +279,7 @@ Keyword arguments are as follows.
               ,(list 'new test max-evals max-time target period period-fn
                      every-fn filter)
               (mcmc-step ,curr)
-              (when (funcall acc (fitness ,curr) (fitness new))
+              (when (funcall accept-fn (fitness ,curr) (fitness new))
                 (setf ,curr new))))))
     (if accept-fn
         body
@@ -288,4 +288,4 @@ Keyword arguments are as follows.
                   (or (funcall *fitness-predicate* new curr)
                       (< (random 1.0) ;; assumes numeric fitness
                          (if (> new curr) (/ curr new) (/ new curr)))))))
-           ,@body))))
+           ,body))))
