@@ -43,6 +43,7 @@
    :*tournament-size*
    :*fitness-predicate*
    :*cross-chance*
+   :*mut-chance*
    :*fitness-evals*
    :*running*
    ;; evolution functions

@@ -157,6 +157,9 @@ elements.")
 (defvar *cross-chance* 1/5
   "Fraction of new individuals generated using crossover rather than mutation.")
 
+(defvar *mut-chance* 1
+  "Chance to mutate a new individual.")
+
 (defvar *fitness-evals* 0
   "Track the total number of fitness evaluations.")
 
@@ -190,7 +193,8 @@ elements.")
 
 (defun mutant ()
   "Generate a new mutant from a *POPULATION*."
-  (mutate (copy (tournament))))
+  (let ((new (copy (tournament))))
+    (if (< (random 1.0) *mut-chance*) (mutate new) new)))
 
 (defun crossed ()
   "Generate a new individual from *POPULATION* using crossover."
