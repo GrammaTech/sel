@@ -101,7 +101,19 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [14/20]
+* Tasks [14/22]
+** TODO crossover and mutation should not be mutually exclusive
+Change this logic in the `new-individual' and related functions.
+
+** TODO fine tunable selection and eviction
+There should be separate tournament sizes for selection and eviction.
+
+To make `evolve' more of a classic /steady-state/ algorithm one would
+have rank-based selection and eviction.
+
+For now we could just make eviction and selection both controllable
+through the tournament size, with a size of 1 being completely random.
+
 ** DONE expose a software-evolution utility class
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
