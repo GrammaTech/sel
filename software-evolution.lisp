@@ -191,18 +191,17 @@ elements.")
                   :collect (verify (random-elt *population*)))
                predicate :key #'fitness))))
 
-(defun mutant ()
+(defun mutant (&optional (new (copy (tournament))))
   "Generate a new mutant from a *POPULATION*."
-  (let ((new (copy (tournament))))
-    (if (< (random 1.0) *mut-chance*) (mutate new) new)))
+  (if (< (random 1.0) *mut-chance*) (mutate new) new))
 
-(defun crossed ()
+(defun crossed (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION* using crossover."
-  (crossover (tournament) (tournament)))
+  (if (< (random 1.0) *cross-chance*) (crossover a b) (copy a)))
 
 (defun new-individual ()
   "Generate a new individual from *POPULATION*."
-  (if (< (random 1.0) *cross-chance*) (crossed) (mutant)))
+  (mutant (crossed)))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."

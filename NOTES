@@ -101,8 +101,8 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [14/22]
-** TODO crossover and mutation should not be mutually exclusive
+* Tasks [15/22]
+** DONE crossover and mutation should not be mutually exclusive
 Change this logic in the `new-individual' and related functions.
 
 ** TODO fine tunable selection and eviction
