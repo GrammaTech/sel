@@ -101,7 +101,7 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [16/22]
+* Tasks [17/21]
 ** DONE crossover and mutation should not be mutually exclusive
 Change this logic in the `new-individual' and related functions.
 
@@ -152,19 +152,11 @@ future test cases
 ** DONE ensure that all proper lists stay proper lists in list genome mutation
 ** DONE add elf level representation
 ** TODO test external script repair at all three levels
-** TODO add an =optimize= evolutionary method
+** CANCELED add an =optimize= evolutionary method
    :PROPERTIES:
    :CUSTOM_ID: multi-objective-optimization
    :END:
-- multi-objective optimization for things like speed and size
-- should live in file:evolution/optimize.lisp
-
-** TODO use optimization to evolve better FFT
-Use [[#multi-objective-optimization][the =optimize= method]] to evolve a better FFT function along
-dimensions such as
-- power consumption
-- running time
-- communication overhead
+(see https://github.com/eschulte/optimization)
 
 ** TODO look at interactive evolution of individual CL functions
 The idea being to support an interactive development environment in
@@ -213,9 +205,9 @@ lisp functions.
 
 ** TODO share assembly code between =soft-lisp= and =soft-asm=
 After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then be
-possible to share code between =soft-lisp= *and* =soft-asm= software
-objects.  Just another =defmethod= on the =crossover= generic
-function.
+possible to share code between =lisp= *and* =asm= software objects.
+Just another =defmethod= on the =crossover= generic function.
+
 ** DONE integrate with LLVM
    - State "CANCELED"   from "TODO"       [2012-02-23 Thu 18:46] \\
      better (for now) to integrate with CLANG
