@@ -41,6 +41,7 @@
    :*population*
    :*max-population-size*
    :*tournament-size*
+   :*tournament-eviction-size*
    :*fitness-predicate*
    :*cross-chance*
    :*mut-chance*

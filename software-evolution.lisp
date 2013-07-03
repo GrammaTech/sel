@@ -151,6 +151,9 @@ elements.")
 (defvar *tournament-size* 2
   "Number of individuals to participate in tournament selection.")
 
+(defvar *tournament-eviction-size* 2
+  "Number of individuals to participate in eviction tournaments.")
+
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
@@ -174,11 +177,13 @@ elements.")
      :do (evict)))
 
 (defun evict ()
-  (let ((loser (tournament (complement *fitness-predicate*))))
+  (let ((loser (tournament :predicate (complement *fitness-predicate*)
+                           :size *tournament-eviction-size*)))
     (setf *population* (remove loser *population* :count 1))
     loser))
 
-(defun tournament (&optional (predicate *fitness-predicate*))
+(defun tournament
+    (&key (predicate *fitness-predicate*) (size *tournament-size*))
   "Select an individual from *POPULATION* with a tournament of size NUMBER."
   (flet ((verify (it)
            (assert (typep it 'software) (it)
@@ -187,7 +192,7 @@ elements.")
                    "Population member with no fitness")
            it))
     (assert *population* (*population*) "Empty population.")
-    (car (sort (loop :for i :below *tournament-size*
+    (car (sort (loop :for i :below size
                   :collect (verify (random-elt *population*)))
                predicate :key #'fitness))))
 

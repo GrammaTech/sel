@@ -101,11 +101,11 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [15/22]
+* Tasks [16/22]
 ** DONE crossover and mutation should not be mutually exclusive
 Change this logic in the `new-individual' and related functions.
 
-** TODO fine tunable selection and eviction
+** DONE fine tunable selection and eviction
 There should be separate tournament sizes for selection and eviction.
 
 To make `evolve' more of a classic /steady-state/ algorithm one would
