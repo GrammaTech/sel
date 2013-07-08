@@ -157,7 +157,7 @@ elements.")
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
-(defvar *cross-chance* 1/5
+(defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
 
 (defvar *mut-chance* 1
