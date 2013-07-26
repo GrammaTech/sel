@@ -87,12 +87,11 @@
 (defmethod mutate ((simple simple))
   (unless (> (size simple) 0) (error 'mutate :text "No valid IDs" :obj simple))
   (setf (fitness simple) nil)
-  (let ((mut (case (random-elt '(cut insert swap))
-               (cut    `(:cut    ,(pick-bad simple)))
-               (insert `(:insert ,(pick-bad simple) ,(pick-good simple)))
-               (swap   `(:swap   ,(pick-bad simple) ,(pick-good simple))))))
-    (push mut (edits simple))
-    (apply-mutation simple mut))
+  (apply-mutation simple
+    (case (random-elt '(cut insert swap))
+      (cut    `(:cut    ,(pick-bad simple)))
+      (insert `(:insert ,(pick-bad simple) ,(pick-good simple)))
+      (swap   `(:swap   ,(pick-bad simple) ,(pick-good simple)))))
   simple)
 
 (defmethod apply-mutation ((simple simple) mutation)
@@ -202,15 +201,12 @@ of range references to an external REFERENCE code array."))
 First construct an array of lines of code from PATH and use this to
 initialize the RANGE object."))
 
-(defmethod copy
-    ((range range)
-     &key (edits (copy-tree (edits range))) (fitness (fitness range)))
+(defmethod copy ((range range))
   (with-slots (reference genome) range
     (make-instance (class-of range)
       :reference (reference range)
       :genome (copy-tree (genome range))
-      :edits edits
-      :fitness fitness)))
+      :fitness (fitness range))))
 
 (declaim (inline range-size))
 (defun range-size (range) (1+ (- (cdr range) (car range))))

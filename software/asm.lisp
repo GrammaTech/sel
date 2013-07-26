@@ -33,11 +33,9 @@
 
 (defvar *asm-linker* "gcc")
 
-(defmethod copy ((asm asm)
-                 &key (edits (copy-tree (edits asm))) (fitness (fitness asm)))
+(defmethod copy ((asm asm))
   (make-instance (type-of asm)
-    :edits edits
-    :fitness fitness
+    :fitness (fitness asm)
     :addr-map (copy-tree (addr-map asm))
     :genome (copy-tree (genome asm))
     :linker (linker asm)

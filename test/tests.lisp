@@ -24,12 +24,10 @@
 (defclass soft (software)
   ((genome   :initarg :genome   :accessor genome   :initform nil)))
 
-(defmethod copy ((soft soft)
-                 &key (edits (copy-tree (edits soft))) (fitness (fitness soft)))
+(defmethod copy ((soft soft))
   (make-instance (type-of soft)
     :genome  (genome soft)
-    :edits   edits
-    :fitness fitness))
+    :fitness (fitness soft)))
 
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft

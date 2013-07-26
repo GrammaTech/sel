@@ -35,15 +35,13 @@
    (ext      :initarg :ext      :accessor ext      :initform "c")
    (raw-size :initarg :size     :accessor raw-size :initform nil)))
 
-(defmethod copy ((ast ast)
-                 &key (edits (copy-tree (edits ast))) (fitness (fitness ast)))
+(defmethod copy ((ast ast))
   (make-instance (type-of ast)
     :flags    (copy-tree (flags ast))
     :genome   (copy-seq (genome ast))
     :compiler (compiler ast)
     :ext      (ext ast)
-    :fitness  fitness
-    :edits    edits))
+    :fitness  (fitness ast)))
 
 (defmethod from-file ((ast ast) path)
   (setf (genome ast) (file-to-string path))
@@ -68,12 +66,11 @@
   (unless (> (size ast) 0)
     (error 'mutate :text "No valid IDs" :obj ast))
   (setf (fitness ast) nil)
-  (let ((mut (case (random-elt '(cut insert swap))
-               (cut    `(:cut    ,(pick-bad ast)))
-               (insert `(:insert ,(pick-bad ast) ,(pick-good ast)))
-               (swap   `(:swap   ,(pick-bad ast) ,(pick-good ast))))))
-    (push mut (edits ast))
-    (apply-mutation ast mut))
+  (apply-mutation ast
+    (case (random-elt '(cut insert swap))
+      (cut    `(:cut    ,(pick-bad ast)))
+      (insert `(:insert ,(pick-bad ast) ,(pick-good ast)))
+      (swap   `(:swap   ,(pick-bad ast) ,(pick-good ast)))))
   ast)
 
 (defmethod apply-mutation :around ((ast ast) mut)

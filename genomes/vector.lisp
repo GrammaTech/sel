@@ -21,8 +21,7 @@
 
 
 ;;; Vector Methods
-(defmethod copy ((genome vector) &key edits fitness)
-  (declare (ignorable edits fitness))
+(defmethod copy ((genome vector))
   (copy-seq genome))
 
 (defmethod size ((genome vector))
@@ -42,9 +41,6 @@
             (setf (cdr (assoc key (aref genome place))) new)
             (push (cons key new) (aref genome place)))))
     genome))
-
-(defmethod edit-distance ((a vector) (b vector))
-  (levenshtein-distance a b :test #'equalp))
 
 (defmethod insert ((genome vector) dup ins)
   (values (cond

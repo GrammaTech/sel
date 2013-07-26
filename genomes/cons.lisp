@@ -54,8 +54,7 @@
 
 
 ;;; Cons-cell Methods
-(defmethod copy ((genome list) &key edits fitness)
-  (declare (ignorable edits fitness))
+(defmethod copy ((genome list))
   (copy-tree genome))
 
 (defmethod size ((genome list))
@@ -76,9 +75,6 @@
             (setf (cdr (assoc key (ind genome place))) new)
             (push (cons key new) (ind genome place)))))
     genome))
-
-(defmethod edit-distance ((a list) (b list))
-  (error "No edit distance metric implemented for cons trees."))
 
 (defun ensure-proper-list (lisp)
   (unless (proper-list-p lisp) (setf (cdr lisp) (cons (cdr lisp) nil)))

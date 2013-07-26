@@ -18,12 +18,9 @@
 
 (defvar x86-nop #x90)
 
-(defmethod copy ((elf elf-sw) &key
-                                (edits (copy-tree (edits elf)))
-                                (fitness (fitness elf)))
+(defmethod copy ((elf elf-sw))
   (make-instance (type-of elf)
-    :edits edits
-    :fitness fitness
+    :fitness (fitness elf)
     :genome (copy-tree (genome elf))
     :base (base elf))) ;; <- let elf objects *share* an elf object
 
@@ -57,16 +54,15 @@ and applies the changed data in `genome' of ELF."
 (defmethod mutate ((elf elf-sw))
   "Randomly mutate ELF."
   (setf (fitness elf) nil)
-  (let ((mut (case (random-elt '(cut insert swap #|d-cut d-insert d-swap|#))
-               (cut      `(:cut    ,(pick-bad elf)))
-               (insert   `(:insert ,(pick-bad elf) ,(pick-good elf)))
-               (swap     `(:swap   ,(pick-bad elf) ,(pick-good elf)))
-               ;; (d-cut    `(:data-cut    ,(d-place)))
-               ;; (d-insert `(:data-insert ,(d-place) ,(d-place)))
-               ;; (d-swap   `(:data-swap   ,(d-place) ,(d-place)))
-               )))
-    (push mut (edits elf))
-    (apply-mutation elf mut))
+  (apply-mutation elf
+    (case (random-elt '(cut insert swap #|d-cut d-insert d-swap|#))
+      (cut      `(:cut    ,(pick-bad elf)))
+      (insert   `(:insert ,(pick-bad elf) ,(pick-good elf)))
+      (swap     `(:swap   ,(pick-bad elf) ,(pick-good elf)))
+      ;; (d-cut    `(:data-cut    ,(d-place)))
+      ;; (d-insert `(:data-insert ,(d-place) ,(d-place)))
+      ;; (d-swap   `(:data-swap   ,(d-place) ,(d-place)))
+      ))
   elf)
 
 (defmethod apply-mutation ((elf elf-sw) mut)

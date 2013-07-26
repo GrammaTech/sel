@@ -14,8 +14,7 @@
 
 ;;; Software Object
 (defclass software ()
-  ((edits   :initarg :edits   :accessor edits   :initform nil)
-   (fitness :initarg :fitness :accessor fitness :initform nil)))
+  ((fitness :initarg :fitness :accessor fitness :initform nil)))
 
 (defgeneric genome (software)
   (:documentation "Genotype of the software."))
@@ -26,7 +25,7 @@
 (defgeneric evaluate (software)
   (:documentation "Evaluate the software returning a numerical fitness."))
 
-(defgeneric copy (software &key edits fitness)
+(defgeneric copy (software)
   (:documentation "Copy the software."))
 
 (defgeneric size (software)
@@ -80,7 +79,8 @@ elements.")
                      (text condition) (obj condition)))))
 
 (defgeneric apply-mutation (software mutation)
-  (:documentation "Apply MUTATION to SOFTWARE."))
+  (:documentation "Apply MUTATION to SOFTWARE.
+Define an :around method on this function to record mutations."))
 
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects."))
@@ -90,43 +90,6 @@ elements.")
 
 (defgeneric two-point-crossover (software-a software-b)
   (:documentation "Crossover between two points."))
-
-(defvar *edit-consolidation-size* (expt 2 7)
-  "Number of cons cells at which to consolidate edits")
-
-(defvar *consolidated-edits* nil
-  "List used to hold consolidated edits.")
-
-(defvar *edit-consolidation-function*
-  (lambda (hash edits) (push (cons hash edits) *consolidated-edits*))
-  "Optional function to record consolidated edits.")
-
-(defun crossover-maintenance (a b child places)
-  (mapc (lambda (var)
-          (when (> (count-cons (edits var)) *edit-consolidation-size*)
-            (let ((hash (sxhash (edits var))))
-              (when *edit-consolidation-function*
-                (funcall *edit-consolidation-function* hash (edits var)))
-              (setf (edits var) (list hash)))))
-        (list a b))
-  (setf (edits child)
-        (list (cons :crossover places) (list (edits a) (edits b))))
-  child)
-
-(defmethod crossover :around ((a software) (b software))
-  (multiple-value-call #'crossover-maintenance a b (call-next-method)))
-
-;; (defmethod one-point-crossover :around ((a software) (b software))
-;;   (multiple-value-call #'crossover-maintenance a b (call-next-method)))
-;;
-;; (defmethod two-point-crossover :around ((a software) (b software))
-;;   (multiple-value-call #'crossover-maintenance a b (call-next-method)))
-
-(defgeneric edit-distance (software-a software-b)
-  (:documentation "Return the edit distance between two software objects."))
-
-(defmethod edit-distance ((a software) (b software))
-  (edit-distance (genome a) (genome b)))
 
 (defgeneric from-file (software file)
   (:documentation "Initialize SOFTWARE with contents of FILE."))
