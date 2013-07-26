@@ -101,7 +101,14 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [17/21]
+* Tasks [17/22]
+** TODO better edit handling
+We don't always want to save edits, especially as they may end up
+taking up a huge amount of space.
+
+Maybe instead of handling edits by default, we should just supply
+mutation hooks for edit maintenance.
+
 ** DONE crossover and mutation should not be mutually exclusive
 Change this logic in the `new-individual' and related functions.
 
