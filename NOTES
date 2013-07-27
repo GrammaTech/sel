@@ -101,13 +101,16 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [17/22]
-** TODO better edit handling
-We don't always want to save edits, especially as they may end up
-taking up a huge amount of space.
+* Tasks [18/20]
+** DONE better edit handling
+Nothing is better than nothing, just dropped it entirely, easy for
+users to add on their own with something like the following.
 
-Maybe instead of handling edits by default, we should just supply
-mutation hooks for edit maintenance.
+#+begin_src lisp
+  (defmethod apply-mutate :around ((soft software-subclass-w-edits) op)
+    (push op (edits soft))
+    (call-next-method))
+#+end_src
 
 ** DONE crossover and mutation should not be mutually exclusive
 Change this logic in the `new-individual' and related functions.
@@ -158,7 +161,7 @@ future test cases
 
 ** DONE ensure that all proper lists stay proper lists in list genome mutation
 ** DONE add elf level representation
-** TODO test external script repair at all three levels
+** test external script repair at all three levels
 ** CANCELED add an =optimize= evolutionary method
    :PROPERTIES:
    :CUSTOM_ID: multi-objective-optimization
@@ -210,7 +213,7 @@ function, probably best to use a macro
 Using the =disassemble= it is possible to access the compiled ASM of
 lisp functions.
 
-** TODO share assembly code between =soft-lisp= and =soft-asm=
+** share assembly code between =soft-lisp= and =soft-asm=
 After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then be
 possible to share code between =lisp= *and* =asm= software objects.
 Just another =defmethod= on the =crossover= generic function.
