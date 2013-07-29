@@ -101,7 +101,10 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [18/20]
+* Tasks [19/21]
+** DONE allow multiple mutations
+=*mut-chance*= -> =*mut-rate*=
+
 ** DONE better edit handling
 Nothing is better than nothing, just dropped it entirely, easy for
 users to add on their own with something like the following.

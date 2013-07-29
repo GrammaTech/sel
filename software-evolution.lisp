@@ -123,8 +123,11 @@ Define an :around method on this function to record mutations."))
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
 
-(defvar *mut-chance* 1
-  "Chance to mutate a new individual.")
+(defvar *mut-rate* 1
+  "Chance to mutate a new individual.
+If <1, *MUT-RATE*/1 new individuals will be mutated once.
+If =1, then every new individual will be mutated exactly once.
+If >1, then new individuals will be mutated from 0 to *MUT-RATE*-1 times.")
 
 (defvar *fitness-evals* 0
   "Track the total number of fitness evaluations.")
@@ -161,7 +164,9 @@ Define an :around method on this function to record mutations."))
 
 (defun mutant (&optional (new (copy (tournament))))
   "Generate a new mutant from a *POPULATION*."
-  (if (< (random 1.0) *mut-chance*) (mutate new) new))
+  (cond ((< *mut-rate* 1) (if (< (random 1.0) *mut-rate*) (mutate new) new))
+        ((= *mut-rate* 1) (mutate new))
+        ((> *mut-rate* 1) (dotimes (n (random *mut-rate*) new) (mutate new)))))
 
 (defun crossed (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION* using crossover."

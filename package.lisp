@@ -44,7 +44,7 @@
    :*tournament-eviction-size*
    :*fitness-predicate*
    :*cross-chance*
-   :*mut-chance*
+   :*mut-rate*
    :*fitness-evals*
    :*running*
    ;; evolution functions
