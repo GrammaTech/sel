@@ -32,6 +32,8 @@
 (declaim (inline lines))
 (defmethod lines ((simple simple))
   (remove nil (mapcar {aget :line} (genome simple))))
+(defmethod (setf lines) (new (simple simple))
+  (setf (genome simple) (mapcar [#'list {cons :line}] new)))
 
 (declaim (inline genome-string))
 (defmethod genome-string ((simple simple))
@@ -163,6 +165,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
 (defclass light (simple) ())
 
 (defmethod lines ((light light)) (genome light))
+(defmethod (setf lines) (new (light light)) (setf (genome light) new))
 
 (defmethod from-file ((light light) path)
   (setf (genome light) (split-sequence #\Newline (file-to-string path)))
@@ -219,6 +222,10 @@ initialize the RANGE object."))
             (mapcar {aref (reference range)}
                     (loop :for i :from start :to end :collect i)))
           (genome range)))
+
+(defmethod (setf lines) (new (range range))
+  (setf (reference range) (coerce new 'vector))
+  (setf (genome range) (list (cons 0 (1- (length new))))))
 
 (defun range-nth (index range)
   "Return the reference index of the INDEX line specified in RANGE."
