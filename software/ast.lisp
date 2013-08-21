@@ -66,12 +66,12 @@
   (unless (> (size ast) 0)
     (error 'mutate :text "No valid IDs" :obj ast))
   (setf (fitness ast) nil)
-  (apply-mutation ast
-    (case (random-elt '(cut insert swap))
-      (cut    `(:cut    ,(pick-bad ast)))
-      (insert `(:insert ,(pick-bad ast) ,(pick-good ast)))
-      (swap   `(:swap   ,(pick-bad ast) ,(pick-good ast)))))
-  ast)
+  (let ((op (case (random-elt '(cut insert swap))
+              (cut    `(:cut    ,(pick-bad ast)))
+              (insert `(:insert ,(pick-bad ast) ,(pick-good ast)))
+              (swap   `(:swap   ,(pick-bad ast) ,(pick-good ast))))))
+    (apply-mutation ast op)
+    (values ast op)))
 
 (defmethod apply-mutation :around ((ast ast) mut)
   ;; Apply MUT to AST, and then update `SIZE' for AST.

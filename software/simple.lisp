@@ -89,12 +89,12 @@
 (defmethod mutate ((simple simple))
   (unless (> (size simple) 0) (error 'mutate :text "No valid IDs" :obj simple))
   (setf (fitness simple) nil)
-  (apply-mutation simple
-    (case (random-elt '(cut insert swap))
-      (cut    `(:cut    ,(pick-bad simple)))
-      (insert `(:insert ,(pick-bad simple) ,(pick-good simple)))
-      (swap   `(:swap   ,(pick-bad simple) ,(pick-good simple)))))
-  simple)
+  (let ((op (case (random-elt '(cut insert swap))
+              (cut    `(:cut    ,(pick-bad simple)))
+              (insert `(:insert ,(pick-bad simple) ,(pick-good simple)))
+              (swap   `(:swap   ,(pick-bad simple) ,(pick-good simple))))))
+    (apply-mutation simple op)
+    (values simple op)))
 
 (defmethod apply-mutation ((simple simple) mutation)
   (let ((op (first mutation))
