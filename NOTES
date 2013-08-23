@@ -216,6 +216,9 @@ function, probably best to use a macro
 Using the =disassemble= it is possible to access the compiled ASM of
 lisp functions.
 
+- for CCL checkout =defx86lapfunction=
+- for SBCL checkout VOPs
+
 ** share assembly code between =soft-lisp= and =soft-asm=
 After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then be
 possible to share code between =lisp= *and* =asm= software objects.
