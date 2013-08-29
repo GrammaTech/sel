@@ -36,8 +36,8 @@
   (setf (genome simple) (mapcar [#'list {cons :line}] new)))
 
 (declaim (inline genome-string))
-(defmethod genome-string ((simple simple))
-  (format nil "~{~a~%~}" (lines simple)))
+(defmethod genome-string ((simple simple) &optional stream)
+  (format stream "~{~a~%~}" (lines simple)))
 
 (defun file-to-simple-genome-list (filespec)
   (with-open-file (in filespec)
@@ -84,7 +84,8 @@
                  (push (cdr (assoc :line el)) lines)))
           (flush)))
       ;; if single-file, then assume FILE is a file path
-      (string-to-file (genome-string simple) file)))
+      (with-open-file (out path :direction :output :if-exists :supersede)
+        (genome-string simple out))))
 
 (defmethod mutate ((simple simple))
   (unless (> (size simple) 0) (error 'mutate :text "No valid IDs" :obj simple))

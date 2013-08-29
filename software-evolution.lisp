@@ -36,7 +36,7 @@
 (defgeneric lines (software)
   (:documentation "Return the lines of code of the `genome' of SOFTWARE."))
 
-(defgeneric genome-string (software)
+(defgeneric genome-string (software &optional stream)
   (:documentation "Return a string of the `genome' of SOFTWARE."))
 
 (defgeneric pick (software key &optional func)

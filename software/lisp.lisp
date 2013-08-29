@@ -51,15 +51,13 @@
              :collect form)))
   lisp)
 
-;; TODO: should take an optional stream
 (declaim (inline genome-string))
-(defmethod genome-string ((lisp lisp))
-  (with-output-to-string (out)
-    (dolist (form (genome lisp))
-      (format out "~&~S~%" form))))
+(defmethod genome-string ((lisp lisp) &optional stream)
+  (format stream "~&~{~S~^~%~}~%" lisp))
 
 (defmethod to-file ((lisp lisp) path)
-  (string-to-file (genome-string lisp) path))
+  (with-open-file (out path :direction :output :if-exists :supersede)
+    (genome-string lisp out)))
 
 (defmethod copy ((lisp lisp))
   (make-instance (type-of lisp)
