@@ -8,6 +8,32 @@
 (in-package :software-evolution)
 
 
+;;; Tree actions
+(defun tree-size (tree)
+  "Return the number of cons cells in TREE."
+  (if (and tree (consp tree))
+      (+ 1 (tree-size (car tree)) (tree-size (cdr tree)))
+      0))
+
+(defun subtree (tree index)
+  "Return the INDEX cons cell in TREE in depth first order."
+  (if (zerop index)
+      (values tree index)
+      (flet ((descend (branch)
+               (when (consp branch)
+                 (multiple-value-bind (new-tree new-index)
+                     (subtree branch (1- index))
+                   (if (= new-index 0)
+                       (return-from subtree (values new-tree new-index))
+                       (setf index new-index))))))
+        (descend (car tree))
+        (descend (cdr tree))
+        (values nil index))))
+
+(defun (setf subtree) (new tree index)
+  (rplaca (subtree tree index) new))
+
+
 ;;; Lisp software object
 (defclass lisp (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -35,29 +61,3 @@
   (make-instance (type-of lisp)
     :fitness (fitness lisp)
     :genome (copy-tree (genome lisp))))
-
-
-;;; Tree actions
-(defun tree-size (tree)
-  "Return the number of cons cells in TREE."
-  (if (and tree (consp tree))
-      (+ 1 (size (car tree)) (size (cdr tree)))
-      0))
-
-(defun subtree (tree index)
-  "Return the INDEX cons cell in TREE in depth first order."
-  (if (zerop index)
-      (values tree index)
-      (flet ((descend (branch)
-               (when (consp branch)
-                 (multiple-value-bind (new-tree new-index)
-                     (subtree branch (1- index))
-                   (if (= new-index 0)
-                       (return-from subtree (values new-tree new-index))
-                       (setf index new-index))))))
-        (descend (car tree))
-        (descend (cdr tree))
-        (values nil index))))
-
-(defun (setf subtree) (new tree index)
-  (rplaca (subtree tree index) new))
