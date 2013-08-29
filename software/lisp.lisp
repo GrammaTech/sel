@@ -20,14 +20,25 @@
              :collect form)))
   lisp)
 
+;; TODO: should take an optional stream
+(declaim (inline genome-string))
+(defmethod genome-string ((lisp lisp))
+  (with-output-to-string (out)
+    (dolist (form (genome lisp))
+      (format out "~&~S~%" form))))
+
 (defmethod to-file ((software lisp) path)
   (with-open-file (out path :direction :output :if-exists :supersede)
-    (dolist (form (genome software))
-      (format out "~&~S~%" form))))
+    (string-to-file (genome-string lisp))))
+
+(defmethod copy ((lisp lisp))
+  (make-instance (type-of lisp)
+    :fitness (fitness lisp)
+    :genome (copy-tree (genome lisp))))
 
 
 ;;; Tree actions
-(defun size (tree)
+(defun tree-size (tree)
   "Return the number of cons cells in TREE."
   (if (and tree (consp tree))
       (+ 1 (size (car tree)) (size (cdr tree)))

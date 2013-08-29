@@ -13,18 +13,9 @@
   :components
   ((:file "package")
    (:file "software-evolution" :depends-on ("package"))
-   ;; genomes
-   (:file "genomes/genome"
-    :depends-on ("package" "software-evolution"))
-   (:file "genomes/cons"
-    :depends-on ("package" "software-evolution"))
-   (:file "genomes/tree"
-    :depends-on ("package" "software-evolution"))
-   (:file "genomes/vector"
-    :depends-on ("package" "software-evolution"))
    ;; software
-   ;; (:file "software/lisp"
-   ;;  :depends-on ("package" "software-evolution"))
+   (:file "software/lisp"
+    :depends-on ("package" "software-evolution"))
    (:file "software/elf"
     :depends-on ("package" "software-evolution"))
    (:file "software/simple"
