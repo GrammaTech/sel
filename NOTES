@@ -219,6 +219,39 @@ lisp functions.
 - for CCL checkout =defx86lapfunction=
 - for SBCL checkout VOPs
 
+*** SBCL specific
+code-components
+
+**** disassembly call chain
+#+begin_src lisp
+  (sb-disassem::fun-code #'cons)   ; => #<code object CONS {1001646B9F}>
+  (type-of (sb-disassem::fun-code #'cons)) ; => SB-KERNEL:CODE-COMPONENT
+  (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons)) ; => segments
+  ;; disassemble all segments
+  (sb-disassem::disassemble-segments
+   (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons))
+   ,*standard-output* (sb-disassem::make-dstate))  ; => assembler
+  ;; disassemble a single segment
+  (sb-disassem::disassemble-segment
+   (car (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons)))
+   ,*standard-output* (sb-disassem::make-dstate)) ; => assembler
+  ;; get a single instruction
+  (let (it)
+    (sb-disassem::map-segment-instructions
+     (lambda (chunk inst) (unless it (setf it inst)))
+     (car (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons)))
+     (sb-disassem::make-dstate))
+    it) ; => #<SB-DISASSEM:INSTRUCTION POP(REG/MEM-DEFAULT-QWORD) {1001D4D8C3}>
+#+end_src
+
+**** execution of function as assembler instructions
+#+begin_src lisp
+  (sb-eval::eval-function
+   '(cons)
+   (sb-eval::make-env-from-native-environment (sb-eval::make-null-lexenv)))
+  ;; see also `compile'
+#+end_src
+
 ** share assembly code between =soft-lisp= and =soft-asm=
 After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then be
 possible to share code between =lisp= *and* =asm= software objects.
