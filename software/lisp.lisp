@@ -1,4 +1,4 @@
-;;; tree.lisp --- support for tree genomes
+;;; lisp.lisp --- software representation of lisp code
 
 ;; Copyright (C) 2013  Eric Schulte
 
@@ -7,6 +7,26 @@
 ;;; Code:
 (in-package :software-evolution)
 
+
+;;; Lisp software object
+(defclass lisp (software)
+  ((genome :initarg :genome :accessor genome :initform nil)))
+
+(defmethod from-file ((lisp lisp) file)
+  (with-open-file (in file)
+    (setf (genome lisp)
+          (loop :for form = (read in nil :eof)
+             :until (eq form :eof)
+             :collect form)))
+  lisp)
+
+(defmethod to-file ((software lisp) path)
+  (with-open-file (out path :direction :output :if-exists :supersede)
+    (dolist (form (genome software))
+      (format out "~&~S~%" form))))
+
+
+;;; Tree actions
 (defun size (tree)
   "Return the number of cons cells in TREE."
   (if (and tree (consp tree))
@@ -29,4 +49,4 @@
         (values nil index))))
 
 (defun (setf subtree) (new tree index)
-  (setf (car (subtree tree index)) new))
+  (rplaca (subtree tree index) new))

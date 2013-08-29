@@ -1,4 +1,4 @@
-;;; asm.lisp --- software representation of Assembly files
+;;; asm.lisp --- software representation of Assembly code
 
 ;; Copyright (C) 2011-2013  Eric Schulte
 
