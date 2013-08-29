@@ -6,59 +6,27 @@
 
 ;;; Code:
 (in-package :software-evolution)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros))
 
-(defstruct (tree (:copier tree-copier))
-  (data nil)
-  (branches nil))
+(defun size (tree)
+  "Return the number of cons cells in TREE."
+  (if (and tree (consp tree))
+      (+ 1 (size (car tree)) (size (cdr tree)))
+      0))
 
-(defun to-tree (item)
-  (if (consp item)
-      (make-tree
-       :data (car item)
-       :branches (mapcar #'to-tree (cdr item)))
-      (make-tree :data item)))
+(defun subtree (tree index)
+  "Return the INDEX cons cell in TREE in depth first order."
+  (if (zerop index)
+      (values tree index)
+      (flet ((descend (branch)
+               (when (consp branch)
+                 (multiple-value-bind (new-tree new-index)
+                     (subtree branch (1- index))
+                   (if (= new-index 0)
+                       (return-from subtree (values new-tree new-index))
+                       (setf index new-index))))))
+        (descend (car tree))
+        (descend (cdr tree))
+        (values nil index))))
 
-(defun to-list (tree)
-  (if (tree-branches tree)
-      (cons (tree-data tree)
-            (mapcar #'to-list (tree-branches tree)))
-      (tree-data tree)))
-
-(defun map-tree (type fun tree)
-  (let ((first (funcall fun tree))
-        (rest (mapcar (lambda (branch) (map-tree type fun branch))
-                      (tree-branches tree))))
-    (case type
-      (tree (make-tree :data first :branches rest))
-      (list (if rest (cons first rest) first)))))
-
-(defun accessors (tree &aux (ind -1))
-  "Return a list of accessors to subtrees in BFS order."
-  (cons 'it
-        (mapcan (lambda (branch)
-                  (incf ind)
-                  (mapcar (lambda (ac) `(nth ,ind (tree-branches ,ac)))
-                          (accessors branch)))
-                (tree-branches tree))))
-
-(defmethod inds ((genome tree) &aux (counter -1) inds)
-  (map-tree 'list (lambda (n) (declare (ignorable n))
-                     (push (incf counter) inds))
-            genome)
-  (reverse inds))
-
-(defmethod ind ((genome tree) index &aux (counter -1) result)
-  (map-tree 'tree (lambda (current)
-                    (when (= (incf counter) index)
-                      (setq result current))) genome)
-  result)
-
-(defmethod (setf ind) (new (genome tree) index)
-  (if (= index 0)
-      (progn
-        (setf (tree-data genome) (tree-data new))
-        (setf (tree-branches genome) (tree-branches new)))
-      (let ((ac (nth index (accessors genome))))
-        (eval `((lambda (it) (setf ,ac ,new)) ,genome)))))
+(defun (setf subtree) (new tree index)
+  (setf (car (subtree tree index)) new))
