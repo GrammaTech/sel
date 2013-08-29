@@ -30,8 +30,13 @@
         (descend (cdr tree))
         (values nil index))))
 
-(defun (setf subtree) (new tree index)
-  (rplaca (subtree tree index) new))
+(defmacro set-subtree (tree index new)
+  "Feels like some heuristics here (why `rplaca' instead of `rplacd')."
+  `(if (zerop ,index)
+       (setf ,tree ,new)
+       (rplaca (subtree ,tree (1- ,index)) ,new)))
+
+(defsetf subtree set-subtree)
 
 
 ;;; Lisp software object
@@ -53,11 +58,48 @@
     (dolist (form (genome lisp))
       (format out "~&~S~%" form))))
 
-(defmethod to-file ((software lisp) path)
-  (with-open-file (out path :direction :output :if-exists :supersede)
-    (string-to-file (genome-string lisp))))
+(defmethod to-file ((lisp lisp) path)
+  (string-to-file (genome-string lisp) path))
 
 (defmethod copy ((lisp lisp))
   (make-instance (type-of lisp)
     :fitness (fitness lisp)
     :genome (copy-tree (genome lisp))))
+
+(defmethod size ((lisp lisp)) (tree-size (genome lisp)))
+
+(defmethod mutate ((lisp lisp))
+  (unless (> (size lisp) 0) (error 'mutate :text "No valid IDs" :obj lisp))
+  (setf (fitness lisp) nil)
+  (let ((op (case (random-elt '(cut insert swap))
+              (cut    `(:cut    ,(pick-bad lisp)))
+              (insert `(:insert ,(pick-bad lisp) ,(pick-good lisp)))
+              (swap   `(:swap   ,(pick-bad lisp) ,(pick-good lisp))))))
+    (apply-mutation lisp op)
+    (values lisp op)))
+
+(defmethod apply-mutation ((lisp lisp) mutation)
+  (let ((op (first mutation))
+        (s1 (second mutation))
+        (s2 (third mutation)))
+    (with-slots (genome) lisp
+      (case op
+        (:cut    (setf (subtree genome s1)
+                       (copy-tree (cdr (subtree genome s1)))))
+        (:insert (setf (cdr (subtree genome s1))
+                       (cons (copy-tree (subtree genome s1))
+                             (copy-tree (cdr (subtree genome s1))))))
+        (:swap (let ((left  (copy-tree (subtree genome s1)))
+                     (right (copy-tree (subtree genome s2))))
+                 (setf (subtree genome s1) right)
+                 (setf (subtree genome s2) left)))))))
+
+(defmethod crossover ((a lisp) (b lisp))
+  (let ((range (min (size a) (size b))))
+    (if (> range 0)
+        (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))
+              (new (copy a)))
+          (setf (subtree (genome new) (first points))
+                (copy-tree (subtree (genome b) (second points))))
+          (values new points))
+        (values (copy a) nil))))
