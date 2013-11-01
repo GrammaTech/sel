@@ -83,7 +83,8 @@ elements.")
 Define an :around method on this function to record mutations."))
 
 (defgeneric crossover (software-a software-b)
-  (:documentation "Crossover two software objects."))
+  (:documentation "Crossover two software objects.
+Define an :around method on this function to record crossovers."))
 
 (defgeneric one-point-crossover (software-a software-b)
   (:documentation "Crossover at a single point."))
