@@ -90,7 +90,8 @@ One frequency options should be "fast as possible", but allowing
 frequencies could be good for known energy consumption (e.g., if
 running on someone's phone).
 
-** external lisp runner
+** evaluating potentially unsafe lisp code
+*** external lisp runner
 Executable as a shell script.
 #+begin_src lisp
 (defun main (argv)
@@ -101,7 +102,34 @@ Executable as a shell script.
                      (second argv))))))
 #+end_src
 
-* Tasks [19/21]
+*** separate SBCL instance
+[[gnus:sbcl#87ob7bpa82.fsf@gmail.com][Email from Stas Boukarev: Re: {Sbcl-devel} Coding Style ]]
+#+begin_quote
+> pure vs. impure
+>         When to use which?
+Impure when it modifies the environment, defines functions, variables,
+starts new threads. Impure test files are run each in a separate sbcl
+instance. But I don't see why not run all the files separately.
+#+end_quote
+
+* Tasks [19/22]
+** TODO MIPS elf rep
+- http://en.wikipedia.org/wiki/MIPS_architecture
+- http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html
+
+Shouldn't be too bad
+- all instructions are a single 32-bit word
+  #+begin_quote
+  The MIPS design uses 6 bits of the 32-bit word for the basic opcode;
+  the rest may contain a single 26-bit jump address or it may have up
+  to four 5-bit fields specifying up to three registers plus a shift
+  value combined with another 6-bits of opcode; another format, among
+  several, specifies two registers combined with a 16-bit immediate
+  value, etc.
+  #+end_quote
+- a no-operation (NOP or noop) instruction may be specified by all
+  zeros
+
 ** DONE allow multiple mutations
 =*mut-chance*= -> =*mut-rate*=
 
