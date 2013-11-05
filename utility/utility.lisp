@@ -26,6 +26,14 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
 
+(defvar infinity
+  #+sbcl
+  SB-EXT:DOUBLE-FLOAT-POSITIVE-INFINITY
+  #+ccl
+  CCL::DOUBLE-FLOAT-POSITIVE-INFINITY
+  #-(or sbcl ccl)
+  (error "must specify a positive infinity value"))
+
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (sb-alien:define-alien-routine (#-win32 "tempnam" #+win32 "_tempnam" tempnam)

@@ -9,6 +9,7 @@
    :cl-ppcre
    :cl-store)
   (:export
+   :infinity
    ;; OS
    :file-to-string
    :file-to-bytes
