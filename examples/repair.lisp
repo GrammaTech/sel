@@ -12,6 +12,8 @@
 
 ;;; Configuration Fitness and Runtime
 (defvar *orig* nil "Original version of the program to be run.")
+(defvar *evals*    (expt 2 18) "Maximum number of test evaluations.")
+
 (setf *max-population-size* (expt 2 9)
       *fitness-predicate* #'<
       *cross-chance* 2/3
@@ -42,7 +44,7 @@
                     forms)))))
 
 
-;;; Command line optimization driver
+;;; Command line repair driver
 (defun repair (&optional (args *arguments*))
   (in-package :repair)
   (let ((help "Usage: opt ASM-FILE [OPTIONS...]
@@ -108,7 +110,8 @@ Options:
                   '(*path*)))
 
     ;; sanity check
-    (when (= (fitness *orig*) #| TODO: fitness of the original |#)
+    (when (= (fitness *orig*) 0) ;; 0 should work, but it may be better to 
+                                 ;; parse the expected number of passing tests
       (throw-error "Original program has bad fitness!"))
 
     ;; save the original
@@ -123,7 +126,7 @@ Options:
                             :collect (copy *orig*))))
 
     ;; run repair
-    (evolve #'run #| TODO: implement (see software-optimization::evolve) |#)
+    (evolve #'run :max-evals *evals*)
 
     ;; finish up
     (note 1 "done after ~a fitness evaluations~%" *fitness-evals*)
