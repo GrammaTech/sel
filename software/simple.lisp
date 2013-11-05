@@ -185,7 +185,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
 ;;
 ;; This class
 ;;
-(defclass range (simple)
+(defclass sw-range (simple)
   ((reference :initarg :reference :initform nil))
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
@@ -196,21 +196,21 @@ of range references to an external REFERENCE code array."))
 (defgeneric (setf reference) (software new)
   (:documentation "Set the value of REFERENCE to NEW, and update the GENOME."))
 
-(defmethod reference ((range range)) (slot-value range 'reference))
+(defmethod reference ((range sw-range)) (slot-value range 'reference))
 
-(defmethod (setf reference) (new (range range))
+(defmethod (setf reference) (new (range sw-range))
   (declare (ignorable new))
   (assert (typep new 'vector) (new) "Reference must be a vector.")
   (setf (slot-value range 'reference) new)
   (setf (genome range) (list (cons 0 (1- (length new))))))
 
-(defmethod from-file ((range range) path)
+(defmethod from-file ((range sw-range) path)
   (declare (ignorable path))
   (error "RANGE individuals may not be initialized directly from files.
 First construct an array of lines of code from PATH and use this to
 initialize the RANGE object."))
 
-(defmethod copy ((range range))
+(defmethod copy ((range sw-range))
   (with-slots (reference genome) range
     (make-instance (class-of range)
       :reference (reference range)
@@ -220,16 +220,16 @@ initialize the RANGE object."))
 (declaim (inline range-size))
 (defun range-size (range) (1+ (- (cdr range) (car range))))
 
-(defmethod size ((range range))
+(defmethod size ((range sw-range))
   (reduce #'+ (mapcar #'range-size (genome range))))
 
-(defmethod lines ((range range))
+(defmethod lines ((range sw-range))
   (mapcan (lambda-bind ((start . end))
             (mapcar {aref (reference range)}
                     (loop :for i :from start :to end :collect i)))
           (genome range)))
 
-(defmethod (setf lines) (new (range range))
+(defmethod (setf lines) (new (range sw-range))
   (setf (reference range) (coerce new 'vector))
   (setf (genome range) (list (cons 0 (1- (length new))))))
 
@@ -312,7 +312,7 @@ initialize the RANGE object."))
               (prog1 (list range) (if s1 (decf s1 size))))))
       genome))))
 
-(defmethod apply-mutation ((range range) mutation)
+(defmethod apply-mutation ((range sw-range) mutation)
   (let ((op (first mutation))
         (s1 (second mutation))
         (s2 (third mutation)))
@@ -353,7 +353,7 @@ initialize the RANGE object."))
                      range))))
     (if end (to (- end start) (from start range)) (from start range))))
 
-(defmethod one-point-crossover ((a range) (b range))
+(defmethod one-point-crossover ((a sw-range) (b sw-range))
   (assert (eq (reference a) (reference b)) (a b)
           "Can not crossover range objects with unequal references.")
   (let ((range (min (size a) (size b))))
@@ -366,7 +366,7 @@ initialize the RANGE object."))
           (values new point))
         (values (copy a) 0))))
 
-(defmethod two-point-crossover ((a range) (b range))
+(defmethod two-point-crossover ((a sw-range) (b sw-range))
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))

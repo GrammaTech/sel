@@ -29,6 +29,7 @@
    :equal-it
    :count-cons
    ;; simple utility
+   :range
    :indexed
    :different-it
    :counts
