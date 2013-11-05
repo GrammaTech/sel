@@ -22,9 +22,9 @@
     :base (base elf))) ;; <- let elf objects *share* an elf object
 
 (defgeneric elf (elf-sw)
-  (:documentation "Return the elf object associated with ELF.
-This takes the `base' of ELF (which should not be changed), copies it,
-and applies the changed data in `genome' of ELF."))
+  (:documentation "Return the elf object associated with ELF-SW.
+This takes the `base' of ELF-SW (which should not be changed), copies
+it, and applies the changed data in `genome' of ELF-SW."))
 
 (defmethod phenome ((elf elf-sw) &key (bin (temp-file-name)))
   (write-elf (elf elf) bin)
@@ -44,20 +44,6 @@ and applies the changed data in `genome' of ELF."))
               )))
     (apply-mutation elf op)
     (values elf op)))
-
-(defmethod apply-mutation ((elf elf-sw) mut)
-  (flet ((byte-count (genome)
-           (reduce #'+ (mapcar [#'length {aget :bytes}] genome))))
-    (let ((starting-bytes (byte-count (genome elf))))
-      (setf (genome elf)
-            (case (car mut)
-              (:cut    (elf-cut (genome elf) (second mut)))
-              (:insert (elf-insert (genome elf) (second mut)
-                                   (nth (third mut) (genome elf))))
-              (:swap   (elf-swap (genome elf) (second mut) (third mut)))))
-      (assert (= (byte-count (genome elf)) starting-bytes)
-              (elf) "mutation ~S changed size of genome [~S -> ~S]"
-              mut starting-bytes (byte-count (genome elf))))))
 
 (defgeneric elf-cut (elf-sw s1)
   (:documentation "Cut place S1 from the genome of ELF-SW."))

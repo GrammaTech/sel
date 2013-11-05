@@ -16,6 +16,8 @@
    ;; software
    (:file "software/lisp"
     :depends-on ("package" "software-evolution"))
+   (:file "software/elf-mips"
+    :depends-on ("package" "software-evolution" "software/elf"))
    (:file "software/elf-x86"
     :depends-on ("package" "software-evolution" "software/elf"))
    (:file "software/elf"

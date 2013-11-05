@@ -41,6 +41,20 @@
     (setf (addresses elf) (mapcar #'car (mapcan #'cdr (copy-tree objdump)))))
   elf)
 
+(defmethod apply-mutation ((elf elf-x86-sw) mut)
+  (flet ((byte-count (genome)
+           (reduce #'+ (mapcar [#'length {aget :bytes}] genome))))
+    (let ((starting-bytes (byte-count (genome elf))))
+      (setf (genome elf)
+            (case (car mut)
+              (:cut    (elf-cut elf (second mut)))
+              (:insert (elf-insert elf (second mut)
+                                   (nth (third mut) (genome elf))))
+              (:swap   (elf-swap elf (second mut) (third mut)))))
+      (assert (= (byte-count (genome elf)) starting-bytes)
+              (elf) "mutation ~S changed size of genome [~S -> ~S]"
+              mut starting-bytes (byte-count (genome elf))))))
+
 (defmethod elf-cut ((elf elf-x86-sw) s1)
   (with-slots (genome) elf
     (let ((prev (copy-tree (nth s1 genome)))

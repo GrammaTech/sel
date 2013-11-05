@@ -69,6 +69,7 @@
    :llvm
    :linker
    :flags
+   :elf-mips-max-displacement
    ;; software backend specific methods
    :reference
    :base
