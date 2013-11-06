@@ -72,15 +72,25 @@ A value of nil means never replace.")
 
 (defmethod elf-insert ((elf elf-mips-sw) s1 val)
   (with-slots (genome) elf
-    (let ((nop-location                ; find the nearest nop in range
-           ;; TODO: needs to stop at program-section borders
-           ;;       (mapcar #'filesz (program-table (base elf)))
-           (loop :for i :below (or elf-mips-max-displacement infinity) :do
-              (cond
-                ((= mips-nop (cdr (assoc :bytes (aref genome (+ s1 i)))))
-                 (return (+ s1 i)))
-                ((= mips-nop (cdr (assoc :bytes (aref genome (- s1 i)))))
-                 (return (- s1 i)))))))
+    (let* ((borders (reduce (lambda (offsets ph)
+                              (cons (+ (car offsets) (filesz ph))
+                                    offsets))
+                            (program-table (base cgi)) :initial-value '(0)))
+           (backwards-p t) (forwards-p t)
+           (nop-location               ; find the nearest nop in range
+            (loop :for i :below (or elf-mips-max-displacement infinity) :do
+               (cond
+                 ;; don't cross borders
+                 ((member (+ s1 i) borders) (setf forwards-p nil))
+                 ((member (- s1 i) borders) (setf backwards-p nil))
+                 ((and (not forwards-p) (not backwards-p)) (return nil))
+                 ;; continue search forwards and backwards
+                 ((and forwards-p
+                       (= mips-nop (cdr (assoc :bytes (aref genome (+ s1 i))))))
+                  (return (+ s1 i)))
+                 ((and backwards-p
+                       (= mips-nop (cdr (assoc :bytes (aref genome (- s1 i))))))
+                  (return (- s1 i)))))))
       (if nop-location                 ; displace all bytes to the nop
           (reduce (lambda (previous i)
                     (let ((current (cdr (assoc :bytes (aref genome i)))))
