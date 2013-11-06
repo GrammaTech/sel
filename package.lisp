@@ -63,6 +63,8 @@
    :asm
    :*asm-linker*
    :elf-sw
+   :elf-x86-sw
+   :elf-mips-sw
    :lisp
    :clang
    :cil
