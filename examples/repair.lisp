@@ -5,6 +5,37 @@
 ;;; Commentary:
 
 ;;; Code:
+(mapc #'require
+      '(:alexandria
+        :metabang-bind
+        :curry-compose-reader-macros
+        :split-sequence
+        :cl-store
+        :cl-ppcre
+        :cl-launch
+        :bordeaux-threads
+        :diff
+        :delta-debug
+        :software-evolution
+        :software-evolution-utility))
+
+(defpackage :repair
+  (:use :common-lisp
+        :alexandria
+        :metabang-bind
+        :curry-compose-reader-macros
+        :split-sequence
+        :cl-store
+        :cl-ppcre
+        :cl-launch
+        :bordeaux-threads
+        :diff
+        :delta-debug
+        :software-evolution
+        :software-evolution-utility)
+  (:shadow :type :magic-number :repair)
+  (:export :repair))
+
 (in-package :repair)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
