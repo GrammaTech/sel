@@ -62,6 +62,7 @@
    :range
    :asm
    :*asm-linker*
+   :elf
    :elf-sw
    :elf-x86-sw
    :elf-mips-sw
