@@ -108,6 +108,7 @@ A value of nil means never replace.")
   "One point crossover."
   (let ((point (random (length (genome a))))
         (new (copy a)))
-    (setf (genome new) (append (subseq (genome a) 0 point)
-                               (subseq (genome b) point)))
+    (setf (genome new) (concatenate 'vector
+                         (subseq (genome a) 0 point)
+                         (subseq (genome b) point)))
     new))
