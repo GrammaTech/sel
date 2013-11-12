@@ -28,8 +28,9 @@ it, and applies the changed data in `genome' of ELF-SW."))
 
 (defmethod phenome ((elf elf-sw) &key (bin (temp-file-name)))
   (write-elf (elf elf) bin)
-  (shell "chmod +x ~a" bin)
-  bin)
+  (multiple-value-bind (stdout stderr exit) (shell "chmod +x ~a" bin)
+    (declare (ignorable stdout stderr))
+    (values bin exit)))
 
 (defmethod pick-good ((elf elf-sw)) (random (length (genome elf))))
 (defmethod pick-bad ((elf elf-sw)) (random (length (genome elf))))
