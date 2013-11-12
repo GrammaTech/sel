@@ -84,7 +84,7 @@
                  (push (cdr (assoc :line el)) lines)))
           (flush)))
       ;; if single-file, then assume FILE is a file path
-      (with-open-file (out path :direction :output :if-exists :supersede)
+      (with-open-file (out file :direction :output :if-exists :supersede)
         (genome-string simple out))))
 
 (defmethod mutate ((simple simple))

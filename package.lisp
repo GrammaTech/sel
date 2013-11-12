@@ -59,7 +59,7 @@
    ;; software backends
    :simple
    :light
-   :range
+   :sw-range
    :asm
    :*asm-linker*
    :elf

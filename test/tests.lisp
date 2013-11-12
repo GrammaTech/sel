@@ -40,17 +40,17 @@
   (:teardown (setf *genome* nil)))
 
 (defixture range
-  (:setup (setf *soft* (make-instance 'range
+  (:setup (setf *soft* (make-instance 'sw-range
                          :genome '((0 . 2) (1 . 1) (1 . 2))
                          :reference #("one" "two" "three"))))
   (:teardown (setf *soft* nil)))
 
 (defixture double-range
   (:setup
-     (setf *soft* (make-instance 'range
+     (setf *soft* (make-instance 'sw-range
                     :genome '((0 . 2) (1 . 1) (1 . 2))
                     :reference *range-ref*)
-           *tfos* (make-instance 'range
+           *tfos* (make-instance 'sw-range
                     :genome '((2 . 5) (4 . 4) (4 . 5))
                     :reference *range-ref*)))
   (:teardown (setf *soft* nil *tfos* nil)))
@@ -237,6 +237,7 @@
       (is (not (software-evolution::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
+#+broken ;; NOTE: no longer tracking edits
 (deftest edit-of-different-is-more-than-zero ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
@@ -266,11 +267,12 @@
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
       (apply-mutation variant '(:cut 0))
-      (push '(:cut 0) (edits variant))
+      ;; (push '(:cut 0) (edits variant))
       (let ((new (crossover variant *gcd*)))
         (is (not (tree-equal (genome new) (genome *gcd*))))
-        (is (some [{equal :crossover} #'car] (edits new)))
-        (is (some [{equal :cut} #'caar] (second (edits new))))))))
+        ;; (is (some [{equal :crossover} #'car] (edits new)))
+        ;; (is (some [{equal :cut} #'caar] (second (edits new))))
+        ))))
 
 
 ;;; Range representation
@@ -285,7 +287,7 @@
 
 (deftest range-nth-test ()
   (with-fixture range
-    (is (equal (mapcar {software-evolution::range-nth _ *soft*}
+    (is (equal (mapcar {software-evolution::range-nth _ (genome *soft*)}
                        (loop :for i :below (size *soft*) :collect i))
                '(0 1 2 1 1 2)))))
 
@@ -353,13 +355,13 @@
                     :test #'string=))))
 
 (deftest range-copy ()
-  (with-fixture range (is (typep (copy *soft*) 'range))))
+  (with-fixture range (is (typep (copy *soft*) 'sw-range))))
 
 (deftest range-single-point-crossover ()
   (with-fixture double-range
     (is (eq (reference *soft*) (reference *tfos*)))
     (let ((child (one-point-crossover *soft* *tfos*)))
-      (is (typep child 'range))
+      (is (typep child 'sw-range))
       (is (listp (genome child))))))
 
 (deftest range-crossover ()
@@ -367,9 +369,9 @@
     (let ((before-a (copy-tree (genome *soft*)))
           (before-b (copy-tree (genome *tfos*)))
           (child (crossover *soft* *tfos*)))
-      (is (typep child 'range))
+      (is (typep child 'sw-range))
       (is (listp (genome child)))
-      (is (not (null (edits child))))
+      ;; (is (not (null (edits child))))
       (is (eq (reference *soft*) (reference child)))
       (is (tree-equal before-a (genome *soft*)))
       (is (tree-equal before-b (genome *tfos*))))))
