@@ -71,7 +71,7 @@ A value of nil means never replace.")
     (let* ((borders (reduce (lambda (offsets ph)
                               (cons (+ (car offsets) (filesz ph))
                                     offsets))
-                            (program-table (base cgi)) :initial-value '(0)))
+                            (program-table (base elf)) :initial-value '(0)))
            (backwards-p t) (forwards-p t)
            (nop-location               ; find the nearest nop in range
             (loop :for i :below (or elf-mips-max-displacement infinity) :do
