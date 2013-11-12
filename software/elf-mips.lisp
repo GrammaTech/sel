@@ -19,28 +19,24 @@
   (with-slots (base genome) elf
     (let ((new (copy-elf base))
           (offset 0))
-      (mapcar (lambda (h)
-                (let ((size (filesz h)))
-                  (setf (data h) (subseq genome offset (incf offset size)))))
-              (program-table new))
+      (mapc (lambda (sec)
+              (setf (data sec)
+                    (map 'vector {aget :bytes}
+                         (subseq genome offset (incf offset (elf:size sec))))))
+            (remove-if-not [{eql :load}  #'elf:type]
+                           (sections base)))
       new)))
 
 (defmethod from-file ((elf elf-mips-sw) path)
   (with-slots (base genome) elf
     (setf base (read-elf path)
-          ;; Read in and concatenate program data into a single
-          ;; vector.  The single genome will hold the data from
-          ;; *every* program section in the elf file.
           genome
           (coerce
            (mapcar [#'list {cons :bytes}]
-                   (with-open-file (in path :element-type '(unsigned-byte 8))
-                     (apply #'concatenate 'list
-                            (mapcar (lambda (h)
-                                      (file-position in (offset h))
-                                      (read-value 'elf::raw-bytes in
-                                                  :length (filesz h)))
-                                    (program-table base)))))
+                   (apply #'concatenate 'list
+                          (mapcar #'data
+                                  (remove-if-not [{eql :load}  #'elf:type]
+                                                 (sections base)))))
            'vector)))
   elf)
 
