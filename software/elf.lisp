@@ -54,29 +54,3 @@ it, and applies the changed data in `genome' of ELF-SW."))
 
 (defgeneric elf-swap (elf-sw s1 s2)
   (:documentation "Swap S1 and S2 in genome of ELF-SW."))
-
-(defmethod crossover ((a elf-sw) (b elf-sw))
-  "One point crossover."
-  (flet ((borders (elf)
-           (let ((counter 0))
-             (cdr (reverse (reduce (lambda (ac el) (cons (cons (+ el (caar ac))
-                                                          (incf counter))
-                                                    ac))
-                                   (mapcar #'length (genome elf))
-                                   :initial-value '((0))))))))
-    (let ((point (random-elt (mapcar #'cdr (intersection (borders a) (borders b)
-                                                         :key #'car))))
-          (new (copy a)))
-      (setf (genome new) (append (subseq (genome a) 0 point)
-                                 (subseq (genome b) point)))
-      new)))
-
-(defmethod apply-path ((elf elf-sw) key addresses &aux applied)
-  (loop :for el :in addresses :as i :from 0 :do
-     (let* ((addr  (if (consp el) (car el) el))
-            (val   (if (consp el) (cdr el) t))
-            (place (position addr (addresses elf))))
-       (when place
-         (push (cons key val) (nth place (genome elf)))
-         (push (list i key val) applied))))
-  (reverse applied))

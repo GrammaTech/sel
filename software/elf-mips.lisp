@@ -103,3 +103,11 @@ A value of nil means never replace.")
       (setf (cdr (assoc :bytes (aref genome s1))) right-bytes
             (cdr (assoc :bytes (aref genome s2))) left-bytes))
     genome))
+
+(defmethod crossover ((a elf-mips-sw) (b elf-mips-sw))
+  "One point crossover."
+  (let ((point (random (length (genome a))))
+        (new (copy a)))
+    (setf (genome new) (append (subseq (genome a) 0 point)
+                               (subseq (genome b) point)))
+    new))
