@@ -24,7 +24,7 @@
                     (map 'vector {aget :bytes}
                          (subseq genome offset (incf offset (elf:size sec))))))
             (remove-if-not [{eql :load}  #'elf:type]
-                           (sections base)))
+                           (sections new)))
       new)))
 
 (defmethod from-file ((elf elf-mips-sw) path)
