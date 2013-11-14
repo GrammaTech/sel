@@ -15,6 +15,12 @@
 
 (defvar mips-nop #x0)
 
+(defmethod copy ((elf elf-mips-sw))
+  (make-instance (type-of elf)
+    :fitness (fitness elf)
+    :genome (map 'vector #'copy-tree (coerce (genome elf) 'list))
+    :base (base elf)))
+
 (defmethod elf ((elf elf-mips-sw))
   (with-slots (base genome) elf
     (let ((new (copy-elf base))
