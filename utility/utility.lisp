@@ -124,7 +124,9 @@ After BODY is executed the temporary file is removed."
                 (let ((stdout (or (mapconcat (curry #'format nil "~a~%")
                                              (butlast lines) "")
                                   ""))
-                      (errno (parse-integer (car (last lines)))))
+                      (errno (if (lastcar lines)
+                                 (parse-integer (lastcar lines))
+                                 2)))
                   (when *shell-debug*
                     (format t "~&stdout:~a~%errno:~a" stdout errno))
                   (return (values stdout "" errno)))))
