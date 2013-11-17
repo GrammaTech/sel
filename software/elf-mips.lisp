@@ -46,6 +46,12 @@
            'vector)))
   elf)
 
+(defmethod lines ((elf elf-mips-sw))
+  (map 'list {aget :bytes} (genome elf)))
+
+(defmethod (setf lines) (new (elf elf-mips-sw))
+  (setf (genome elf) (map 'vector [#'list {cons :bytes}] new)))
+
 (defmethod apply-mutation ((elf elf-mips-sw) mut)
   (let ((starting-length (length (genome elf))))
     (setf (genome elf)
