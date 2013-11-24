@@ -293,9 +293,10 @@ Keyword argument FRAC will return fractions instead of raw counts."
   (apply #'map 'list #'list matrix))
 
 (defun interleave (list sep &optional rest)
-  (if (cdr list)
-      (interleave (cdr list) sep (cons sep (cons (car list) rest)))
-      (reverse (cons (car list) rest))))
+  (cond
+    ((cdr list) (interleave (cdr list) sep (cons sep (cons (car list) rest))))
+    (list (reverse (cons (car list) rest)))
+    (t nil)))
 
 (defun mapconcat (func list sep)
   (apply #'concatenate 'string (interleave (mapcar func list) sep)))
