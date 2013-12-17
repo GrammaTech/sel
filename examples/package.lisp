@@ -6,7 +6,6 @@
         :split-sequence
         :cl-store
         :cl-ppcre
-        :cl-launch
         :bordeaux-threads
         :diff
         :delta-debug
