@@ -14,8 +14,8 @@
 (defvar *orig*    nil         "Original version of the program to be run.")
 (defvar *evals*   (expt 2 18) "Maximum number of test evaluations.")
 (defvar *path*    nil         "Path to Assembly file.")
-(defvar *rep*     nil         "Program representation to use.")
-(defvar *res-dir* nil         "Directory in which to save results.")
+(defvar *rep*     'range      "Program representation to use.")
+(defvar *res-dir* nil         "Directory in which to save results.") ;;;;; TODO: this is not set
 (defvar *target-fitness* nil  "The target fitness value (usually the number of tests)")
 (defvar *script*  nil         "The shell script fitness function")
 (setf *max-population-size* (expt 2 9)
@@ -40,8 +40,11 @@
 ;;          (if (zerop errno) 1 0)))))
 (defun run (asm)
   (with-temp-file-of (src "s") (genome-string asm)
-    (multiple-value-bind (stdout stderr errno) (shell *shell* src)
-      stdout)))
+    (multiple-value-bind (stdout stderr errno) 
+	(shell *script* src)
+      (declare (ignorable stderr) (ignorable stdout)) 
+      errno)))
+
 ;;;;;;;;;;;;;;;;;;;;; TODO: FINISH ME ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Shell script helpers
@@ -61,7 +64,7 @@
 
 
 ;;; Command line repair driver
-(defun repair (&optional (args *arguments*))
+(defun repair (args)
   (in-package :repair)
   (let ((help "Usage: repair ASM-FILE TEST-SCRIPT [OPTIONS...]
  Repair an assembly file.
@@ -108,22 +111,14 @@ Options:
     ;; process mandatory command line arguments
     (setf *path*   (pop args))
     (setf *script* (pop args))
+    (setf *script* (format nil "~a ~~a" *script*))
 
     (unless *orig*
-      (setf *orig* (from-file (make-instance (case *rep*
-                                               (asm 'asm-perf)
-                                               (light 'asm-light)
-                                               (range 'asm-range)))
-                              *path*)))
-
+      (setf *orig* (from-file (make-instance 'asm) *path*)))
+ 
 
     (when (string= (pathname-type (pathname *path*)) "store")
       (setf *orig* (restore *path*)))
-
-
-;;    TODO: do I need linker or flags???
-;;    (when linker (setf (linker *orig*) linker))
-;;    (when flags  (setf (flags  *orig*) flags))
 
     ;; write out version information
     (note 1 version)
@@ -134,7 +129,6 @@ Options:
                     (cons param (eval param)))
                   '(*path*)))
 
-    
     ;; sanity check
     (setf (fitness *orig*) (run *orig*))
     (when (= (fitness *orig*) 0) ;; 0 should work, but it may be better to parse
@@ -159,3 +153,27 @@ Options:
     ;; finish up
     (note 1 "done after ~a fitness evaluations~%" *fitness-evals*)
     (close (pop *note-out*))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;; (require :repair)
+;; ;; (in-package :repair)
+;; (setf *script* "./fit.sh")
+;; (setf *script* (format nil "~a ~~a" *script*))
+;; (setf *path* "selectmodle.s")
+;; (setf *orig* (from-file (make-instance 'asm) *path*))
+;; ;; (setf (fitness *orig*) (run *orig*))
+;; (setf (fitness *orig*) 21)
+;; ;; (format t "~D" (fitness *orig*))
+;; (format t "~D" *max-population-size*)
+;;
+;; (setf *population* (loop :for n :below 40
+;;                             :collect (copy *orig*)))
+;;
+;; (evolve #'run :max-evals *evals* :target 22)
+;;
+;; (defvar ext nil)
+;; (setf ext (extremum  *population* #'> :key #'fitness))
+;; (format t "~D" (fitness ext))
+
+
