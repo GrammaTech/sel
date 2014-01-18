@@ -1,10 +1,24 @@
-;;; repair.lisp --- repair softwarea
+;;; repair.lisp --- repair software
 
-;; Copyright (C) 2013  Eric Schulte
+;; Copyright (C) 2013-2014  Eric Schulte
+
+;;; License: GNU General Public License, Version 3 or later
 
 ;;; Commentary:
 
 ;;; Code:
+(defpackage :repair
+  (:use :common-lisp
+        :alexandria
+        :metabang-bind
+        :curry-compose-reader-macros
+        :cl-store
+        :split-sequence
+        :bordeaux-threads
+        :software-evolution
+        :software-evolution-utility
+        :software-evolution-command-line)
+  (:export :main))
 (in-package :repair)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
@@ -15,7 +29,7 @@
 (defvar *evals*   (expt 2 18) "Maximum number of test evaluations.")
 (defvar *path*    nil         "Path to Assembly file.")
 (defvar *rep*     'range      "Program representation to use.")
-(defvar *res-dir* nil         "Directory in which to save results.") ;;;;; TODO: this is not set
+(defvar *res-dir* nil         "Directory in which to save results.")
 (defvar *target-fitness* nil  "The target fitness value (usually the number of tests)")
 (defvar *script*  nil         "The shell script fitness function")
 (setf *max-population-size* (expt 2 9)
@@ -24,52 +38,21 @@
       *tournament-size* 2
       *tournament-eviction-size* 2)
 
-;;; Fitness function
-;; (defun run (asm)
-;;   (with-temp-file (bin)
-;;     (multiple-value-bind (info exit)
-;;         (phenome asm :bin bin)
-;;       (unless (zerop exit)
-;;         (note 5 "ERROR [~a]: ~a" exit info)
-;;         (error "error [~a]: ~a" exit info)))
-;;     (note 4 "running ~S~%" asm)
-;;     ;; TODO: define positive-test-numb
-;;     (loop :for positive :below *target-fitness* :collect
-;;        (multiple-value-bind (stdout stderr errno) (shell "test.sh ~a ~a" bin)
-;;          (declare (ignorable stderr) (ignorable stdout))
-;;          (if (zerop errno) 1 0)))))
-(defun run (asm)
-  (with-temp-file-of (src "s") (genome-string asm)
+(defun run (src)
+  (with-temp-file-of (src "s") (genome-string src)
     (multiple-value-bind (stdout stderr errno) 
 	(shell *script* src)
       (declare (ignorable stderr) (ignorable stdout)) 
       errno)))
 
-;;;;;;;;;;;;;;;;;;;;; TODO: FINISH ME ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;; Shell script helpers
-(defun throw-error (&rest args)
-  (apply #'note 0 args)
-  (quit))
-
-(defmacro getopts (&rest forms)
-  (let ((arg (gensym)))
-    `(loop :for ,arg = (pop args) :while ,arg :do
-        (cond
-          ,@(mapcar (lambda-bind ((short long . body))
-                      `((or (and ,short (string= ,arg ,short))
-                            (and ,long  (string= ,arg ,long)))
-                        ,@body))
-                    forms)))))
-
 
 ;;; Command line repair driver
-(defun repair (args)
+(defun main (args)
   (in-package :repair)
-  (let ((help "Usage: repair ASM-FILE TEST-SCRIPT [OPTIONS...]
+  (let ((help "Usage: repair ORIGINAL TEST-SCRIPT [OPTIONS...]
  Repair an assembly file.
 
-ASM-FILE:
+ORIGINAL:
   A text file of assembler code or (if using the \".store\"
   extension) a serialized assembly software object.
 
@@ -89,12 +72,12 @@ Options:
     (setf *note-level* 1)
 
     ;; process command line options
-    (getopts
-     ("-v" "--verbose"   (let ((lvl (parse-integer (pop args))))
-                           (when (>= lvl 4) (setf *shell-debug* t))
-                           (setf *note-level* lvl)))
-     ("-t" "--target"    (setf *target-fitness* (pop args)))
-     ("-w" "--work-dir"  (setf *work-dir*       (pop args))))
+    (getopts args
+      ("-v" "--verbose"   (let ((lvl (parse-integer (pop args))))
+                            (when (>= lvl 4) (setf *shell-debug* t))
+                            (setf *note-level* lvl)))
+      ("-t" "--target"    (setf *target-fitness* (pop args)))
+      ("-w" "--work-dir"  (setf *work-dir*       (pop args))))
 
     ;; check command line arguments
     (when (or (<= (length args) 2)
@@ -114,9 +97,14 @@ Options:
     (setf *script* (format nil "~a ~~a" *script*))
 
     (unless *orig*
-      (setf *orig* (from-file (make-instance 'asm) *path*)))
+      (setf *orig*
+            (from-file (make-instance
+                           (case (intern (string-upcase (pathname-type *path*)))
+                             (s 'asm)
+                             (c 'cil)
+                             (t 'elf-sw)))
+                       *path*)))
  
-
     (when (string= (pathname-type (pathname *path*)) "store")
       (setf *orig* (restore *path*)))
 
@@ -131,9 +119,11 @@ Options:
 
     ;; sanity check
     (setf (fitness *orig*) (run *orig*))
-    (when (= (fitness *orig*) 0) ;; 0 should work, but it may be better to parse
-                                 ;; the expected number of passing tests and error
-                                 ;; out if fitness is less than expected passsing
+    (when (= (fitness *orig*) 0) ; 0 should work, but it may be better
+                                 ; to parse the expected number of
+                                 ; passing tests and error out if
+                                 ; fitness is less than expected
+                                 ; passsing
       (throw-error "Original program has bad fitness!"))
 
     ;; save the original
@@ -153,27 +143,3 @@ Options:
     ;; finish up
     (note 1 "done after ~a fitness evaluations~%" *fitness-evals*)
     (close (pop *note-out*))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ;; (require :repair)
-;; ;; (in-package :repair)
-;; (setf *script* "./fit.sh")
-;; (setf *script* (format nil "~a ~~a" *script*))
-;; (setf *path* "selectmodle.s")
-;; (setf *orig* (from-file (make-instance 'asm) *path*))
-;; ;; (setf (fitness *orig*) (run *orig*))
-;; (setf (fitness *orig*) 21)
-;; ;; (format t "~D" (fitness *orig*))
-;; (format t "~D" *max-population-size*)
-;;
-;; (setf *population* (loop :for n :below 40
-;;                             :collect (copy *orig*)))
-;;
-;; (evolve #'run :max-evals *evals* :target 22)
-;;
-;; (defvar ext nil)
-;; (setf ext (extremum  *population* #'> :key #'fitness))
-;; (format t "~D" (fitness ext))
-
-

@@ -33,13 +33,13 @@ LCFLAGS+= --dynamic-space-size $(LISP_STACK)
 endif
 
 # Compiled lisp executables
-LISP_EXES=neutral
+LISP_EXES=neutral repair
 
 all: $(LISP_EXES)
 .PHONY:  clean
 
 %: %.lisp %.asd
-	$(LC) $(LCFLAGS) --load-system neutral --output $@ --entry "$*:main"
+	$(LC) $(LCFLAGS) --load-system $* --output $@ --entry "$*:main"
 
 clean:
-	rm -f $(LISP_BINS) **/*.fasl **/*.lx32fsl
+	rm -f $(LISP_EXES) **/*.fasl **/*.lx32fsl

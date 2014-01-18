@@ -20,9 +20,9 @@
   (apply #'format *error-output* args)
   (quit))
 
-(defmacro getopts (&rest forms)
+(defmacro getopts (args &rest forms)
   (let ((arg (gensym)))
-    `(loop :for ,arg = (pop args) :while ,arg :do
+    `(loop :for ,arg = (pop ,args) :while ,arg :do
         (cond
           ,@(mapcar (lambda-bind ((short long . body))
                       `((or (and ,short (string= ,arg ,short))
