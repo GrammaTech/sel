@@ -1,6 +1,6 @@
 ;;; neutral.lisp --- Evolve neutral variants of an original program
 
-;; Copyright (C) 2011-2013  Eric Schulte
+;; Copyright (C) 2014  Eric Schulte
 
 ;;; License: GNU General Public License, Version 3 or later
 
@@ -12,12 +12,15 @@
         :alexandria
         :split-sequence
         :metabang-bind
+        :cl-ppcre
         :curry-compose-reader-macros
         :software-evolution
         :software-evolution-utility
         :software-evolution-command-line)
   (:export :main))
 (in-package :neutral)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-curry-compose-reader-macros))
 
 (defvar help "Usage: ~a SCRIPT ORIGINAL [OPTIONS...]
 
@@ -58,57 +61,71 @@ Options:
               (string= (subseq (car args) 0 3) "--h"))
       (format t help self) (quit)))
 
-  (let* ((script (pop args)) (path (pop args))
+  (let* ((script (let ((script (pop args)))
+                   (if (scan "~a" script)
+                       script
+                       (format nil "~a ~~a" script))))
+         (path (pop args))
          ;; guess type from path
          (type (case (intern (string-upcase (pathname-type path)))
                  (s 'asm)
                  (c 'cil)
-                 (t 'elf-sw)))
+                 (t 'elf-x86-sw)))
          (num 256) (steps 16) keep
          (res-dir "neutral-variants")
          orig previous collected linker flags)
 
-    (getopts
-     ("-l" "--linker"  (setf linker (pop args)))
-     ("-L" "--lflags"  (setf flags
-                             (split-sequence #\Space (pop args)
-                                             :remove-empty-subseqs t)))
-     ("-r" "--res-dir" (setf res-dir (pop args)))
-     ("-n" "--num"     (setf num (parse-number (pop args))))
-     ("-s" "--steps"   (setf steps (parse-number (pop args))))
-     ("-k" "--keep"    (setf keep t))
-     ("-v" "--verbose" (setf *shell-debug* t)))
+    (getopts args
+      ("-l" "--linker"  (setf linker (pop args)))
+      ("-L" "--lflags"  (setf flags
+                              (split-sequence #\Space (pop args)
+                                              :remove-empty-subseqs t)))
+      ("-r" "--res-dir" (setf res-dir (pop args)))
+      ("-n" "--num"     (setf num (parse-number (pop args))))
+      ("-s" "--steps"   (setf steps (parse-number (pop args))))
+      ("-k" "--keep"    (setf keep t))
+      ("-v" "--verbose" (setf *shell-debug* t)))
 
     (setf orig (from-file (make-instance type) path))
     (when linker (setf (linker orig) linker))
     (when flags (setf (flags orig) flags))
     (setf previous (list orig))
 
-    (ensure-directories-exist (make-pathname :directory res-dir))
+    (ensure-directories-exist
+     (make-pathname :directory (list :relative res-dir)))
     (flet ((test (asm)
              ;; Return numerical fitness printed to STDOUT by SCRIPT or zero.
              (with-temp-file (bin)
-               (or (and (multiple-value-bind (info exit) (phenome asm :bin bin)
-                          (declare (ignorable info)) (zerop exit))
-                        (multiple-value-bind (out err errno) (shell script bin)
-                          (declare (ignorable err))
-                          (and (zerop errno)
-                               (ignore-errors (parse-number out)))))
+               (or (ignore-errors
+                     (and (multiple-value-bind (info exit) (phenome asm :bin bin)
+                            (declare (ignorable info)) (zerop exit))
+                          (multiple-value-bind (out err errno) (shell script bin)
+                            (declare (ignorable err))
+                            (and (zerop errno) (parse-number out)))))
                    0))))
       (setf (fitness orig) (test orig))
+      (when (zerop (fitness orig))
+        (throw-error "original program has no fitness"))
       (format t "~&original fitness ~d~%" (fitness orig))
-      (loop :for step :below steps :do
-         (format t "~&step ~d~%" step)
-         (loop :until (>= (length collected) num) :as i :from 0 :do
-            (let ((new (mutate (random-elt previous))))
-              (setf (fitness new) (test new))
-              (when (= (fitness new) (fitness orig))
-                (push new collected))
-              (when (or keep (= (fitness new) (fitness orig)))
-                (let ((filename
-                       (make-pathname
-                        :directory res-dir :type (pathname-type path)
-                        :name (format nil "~d-~d-~d" num i (fitness new)))))
-                  (with-open-file (out filename :direction :output)
-                    (genome-string new out))))))
-         (setf previous collected collected nil)))))
+      (let ((neutral (fitness orig)))
+        (loop :for step :below steps :do
+           (format t "~&step ~d~%" step)
+           (loop :until (>= (length collected) num) :as i :from 0 :do
+              (let ((new (mutate (copy (random-elt previous)))))
+                (setf (fitness new) (test new))
+                (when (= (fitness new) neutral)
+                  (push new collected))
+                (when (or keep (= (fitness new) neutral))
+                  (let ((filename
+                         (make-pathname
+                          :directory (list :relative res-dir)
+                          :type (pathname-type path)
+                          :name
+                          (let ((fmt (format nil "~~~d,'0d-~~~d,'0d-~~~d,'0d"
+                                             (1+ (ceiling (log steps 10)))
+                                             (2+ (ceiling (log num 10)))
+                                             (1+ (ceiling (log neutral 10))))))
+                            (format nil fmt step i (fitness new))))))
+                    (with-open-file (out filename :direction :output)
+                      (genome-string new out))))))
+           (setf previous collected collected nil))))))

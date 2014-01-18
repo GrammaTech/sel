@@ -15,6 +15,9 @@
   ((base      :initarg :base      :accessor base      :initform nil)
    (genome    :initarg :genome    :accessor genome    :initform nil)))
 
+(defmethod genome-string ((elf-sw elf-sw) &optional stream)
+  (format stream "~S" (genome elf-sw)))
+
 (defmethod copy ((elf elf-sw))
   (make-instance (type-of elf)
     :fitness (fitness elf)
