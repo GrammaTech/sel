@@ -35,6 +35,9 @@
    (ext      :initarg :ext      :accessor ext      :initform "c")
    (raw-size :initarg :size     :accessor raw-size :initform nil)))
 
+(defmethod genome-string ((ast ast) &optional stream)
+  (write-string (genome ast) stream))
+
 (defmethod copy ((ast ast))
   (make-instance (type-of ast)
     :flags    (copy-tree (flags ast))
