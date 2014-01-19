@@ -67,15 +67,22 @@ Appendices
 @chapter Introduction
 @cindex introduction
 
-Programmatic modification of extant software.  From C source code, to
-compiled assembler to linked ELF linkable or executable files.
+The ability to programatically modify and evaluate existing software
+is useful in a number of software engineering problems from repair to
+optimization and development.  This Software Evolution library enables
+programmatic modification of extant software.
 
-Enabling automated generation and evaluation of alternate
-implementations of existing programs, supporting a technique knows as
-Search Based Software Engineering (SBSE).
+A common interface abstracts multiple types of software objects
+(@pxref{Software Objects}) from source code abstract syntax trees, to
+LLVM IR, compiled assembler, or linked ELF binaries.  Methods of
+mutation and evaluation (@pxref{Software Methods}) are implemented on
+top of this interface supporting Search Based Software Engineering
+(SBSE) techniques (@pxref{Search}).
 
-Used to optimize benchmark programs for energy reduction () and to
-repair security vulnerabilities in closed source binaries.
+This library has been used to optimize benchmark programs to use less
+energy (see @cite{Post-compiler Software Optimization for Reducing
+Energy}) and to repair security vulnerabilities in closed source
+binaries (see @url{http://eschulte.github.io/netgear-repair/}).
 
 @node Implementation, Software Objects, Introduction, Top
 @chapter Implementation
@@ -154,29 +161,43 @@ These examples demonstrate usage.
 @section Parallel Fitness Evaluation
 @cindex parallel fitness evaluation
 
+TODO
+
 @node Annotations, Focused Mutation, Parallel Fitness Evaluation, Usage Examples
 @section Annotations
 @cindex annotations
+
+TODO
 
 @node Focused Mutation, Execution Statistics, Annotations, Usage Examples
 @section Focused Mutation
 @cindex focused mutation
 
+TODO
+
 @node Execution Statistics, Memoize Fitness, Focused Mutation, Usage Examples
 @section Execution Statistics
 @cindex execution statistics
+
+TODO
 
 @node Memoize Fitness, Neutral Variants, Execution Statistics, Usage Examples
 @section Memoize Fitness
 @cindex memoize fitness
 
+TODO
+
 @node Neutral Variants, Repair, Memoize Fitness, Usage Examples
 @section Neutral Variants
 @cindex neutral variants
 
+TODO
+
 @node Repair, Function Index, Neutral Variants, Usage Examples
 @section Repair
 @cindex repair
+
+TODO
 
 @node Function Index, Copying, Usage Examples, Top
 @chapter Function Index
