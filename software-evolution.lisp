@@ -22,7 +22,7 @@
 (defgeneric phenome (software &key bin)
   (:documentation "Phenotype of the software."))
 
-(defgeneric evaluate (software)
+(defgeneric evaluate (software)         ; TODO: is this used?
   (:documentation "Evaluate the software returning a numerical fitness."))
 
 (defgeneric copy (software)
@@ -101,7 +101,7 @@ Define an :around method on this function to record crossovers."))
 (defmethod to-file ((software software) file)
   (string-to-file (genome software) file))
 
-(defgeneric apply-path (software key PATH)
+(defgeneric apply-path (software key PATH) ; TODO: is this used?
   (:documentation "Apply the execution trace PATH behind KEY in SOFTWARE."))
 
 
@@ -126,7 +126,7 @@ Define an :around method on this function to record crossovers."))
 
 (defvar *mut-rate* 1
   "Chance to mutate a new individual.
-If <1, *MUT-RATE*/1 new individuals will be mutated once.
+If <1, new individuals will be mutated once with change *MUT-RATE*.
 If =1, then every new individual will be mutated exactly once.
 If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
@@ -134,7 +134,7 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
   "Track the total number of fitness evaluations.")
 
 (defvar *running* nil
-  "True when evolving, set to nil to stop evolution.")
+  "True when a search process is running, set to nil to stop evolution.")
 
 (defun incorporate (software)
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
@@ -240,7 +240,7 @@ Keyword arguments are as follows.
 (defmacro mcmc
     (original test
      &key accept-fn max-evals max-time target period period-fn every-fn filter)
-  "MCMC search from `*original*' until an optional stopping criterion is met.
+  "MCMC search from ORIGINAL until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
   ACCEPT-FN ------- function of current and new fitness, returns acceptance
