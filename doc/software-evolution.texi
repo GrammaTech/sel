@@ -1,10 +1,10 @@
 \input texinfo
 @c @setfilename emacs-web-server.info
 @documentencoding utf-8
-@settitle Software Evolution User Manual
+@settitle Software Evolution Library
 
 @copying
-This file documents the Common Lisp Software Evolution library
+This file documents the Software Evolution library
 
 Copyright (C) 2014 Eric Schulte <eschulte@@cs.unm.edu>
 
@@ -20,11 +20,11 @@ A copy of the license is included in the section entitled
 
 @dircategory Libraries
 @direntry
-* Software Evolution:         library enabling extant software evolution
+* Software Evolution: (software-evolution-lib). library enabling extant software evolution
 @end direntry
 
 @titlepage
-@title Software Evolution User Manual
+@title Software Evolution Library
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -35,14 +35,18 @@ A copy of the license is included in the section entitled
 
 @ifnottex
 @node Top, Introduction, (dir), (dir)
-@top Software Evolution User Manual
+@top Software Evolution Library
 
 @insertcopying
 @end ifnottex
 
 @menu
-* Introduction::                Overview of the Software Evolution library
-* Usage Examples::              Examples demonstrating usage
+* Introduction::                What's it for?
+* Implementation::
+* Software Objects::
+* Software Methods::            Mutation and Evaluation
+* Search::
+* Usage Examples::              Examples of common applications
 * Function Index::              List of Functions
 
 Appendices
@@ -59,23 +63,120 @@ Appendices
 
 @end menu
 
-@node Introduction, Usage Examples, Top, Top
+@node Introduction, Implementation, Top, Top
 @chapter Introduction
 @cindex introduction
 
-It is a library for manipulating extant software.
+Programmatic modification of extant software.  From C source code, to
+compiled assembler to linked ELF linkable or executable files.
 
-@node Usage Examples, Neutral Variants, Introduction, Top
+Enabling automated generation and evaluation of alternate
+implementations of existing programs, supporting a technique knows as
+Search Based Software Engineering (SBSE).
+
+Used to optimize benchmark programs for energy reduction () and to
+repair security vulnerabilities in closed source binaries.
+
+@node Implementation, Software Objects, Introduction, Top
+@chapter Implementation
+@cindex implementation
+
+@float Figure,fig:overview
+@example
+                                                      population functions
+ global variables                                     --------------------
+ ----------------        +------------------+         incorporate
+ *population*            |   *population*   |         evict
+ *max-population-size*   |------------------|         tournament
+ *tournament-size*       |      list of     |         mutate
+ *fitness-predicate*     | software objects |         crossed
+ *cross-chance*          +------------------+         new-individual
+ *fitness-evals*                  |                   evolve
+ *running*                      +-+-+
+                                | | |                 software functions
+                         +------------------+         --------------
+ evolve arguments        | software object  |         genome
+ ----------------        |------------------|         phenome
+ max-evals               | edits,           |         copy
+ max-time                | fitness          |         pick-good
+ target                  | ...              |         pick-bad
+ period                  +------------------+         mutate
+ period-func                       |                  crossover
+ filter                            |
+               +---------------+---+------------+----------------+
+               |               |                |                |
+      +---------------+  +-------------+  +-------------+  +------------+
+      |      AST      |  |     ELF     |  |    lisp     |  |    asm     |
+      |---------------|  |-------------|  |-------------|  |------------|
+      |   Abstract    |  | Executable  |  | lisp source |  |  assembly  |
+      |  Syntax Tree  |  |  Linkable   |  +-------------+  |    code    |
+      +---------------+  |   Format    |                   +------------+
+              |          +-------------+                      |
+     +--------------+-------------------+            +------------------+
+     |              |                   |            |     asm-range    |
+  +-------+  +----------------+   +----------+       |------------------|
+  | Clang |  |       CIL      |   |   LLVM   |       | memory efficient |
+  |-------|  |----------------|   |----------|       +------------------+
+  | C AST |  | C Intermediate |   | LLVM IR  |
+  +-------+  |    Language    |   +----------+
+             +----------------+
+@end example
+@end float
+
+@node Software Objects, Software Methods, Implementation, Top
+@chapter Software Objects
+@cindex software objects
+
+@node Software Methods, Search, Software Objects, Top
+@chapter Software Methods
+@cindex software methods
+
+@node Search, Usage Examples, Software Methods, Top
+@chapter Search
+@cindex search
+
+@node Usage Examples, Neutral Variants, Search, Top
 @chapter Usage Examples
 @cindex usage examples
 
 These examples demonstrate usage.
 @menu
+* Parallel Fitness Evaluation:: Parallelizing search
+* Annotations::                 Annotating portions of the genome
+* Focused Mutation::            Using annotations to focus mutation operations
+* Execution Statistics::        Saving statistics
+* Memoize Fitness::             A global memoized genome-fitness map
 * Neutral Variants::            Generate neutral variants of a program
+* Repair::                      Program repair
 @end menu
 
-@node Neutral Variants, Function Index, Usage Examples, Usage Examples
+@node Parallel Fitness Evaluation, Annotations, Usage Examples, Usage Examples
+@section Parallel Fitness Evaluation
+@cindex parallel fitness evaluation
+
+@node Annotations, Focused Mutation, Parallel Fitness Evaluation, Usage Examples
+@section Annotations
+@cindex annotations
+
+@node Focused Mutation, Execution Statistics, Annotations, Usage Examples
+@section Focused Mutation
+@cindex focused mutation
+
+@node Execution Statistics, Memoize Fitness, Focused Mutation, Usage Examples
+@section Execution Statistics
+@cindex execution statistics
+
+@node Memoize Fitness, Neutral Variants, Execution Statistics, Usage Examples
+@section Memoize Fitness
+@cindex memoize fitness
+
+@node Neutral Variants, Repair, Memoize Fitness, Usage Examples
 @section Neutral Variants
+@cindex neutral variants
+
+@node Repair, Function Index, Neutral Variants, Usage Examples
+@section Repair
+@cindex repair
 
 @node Function Index, Copying, Usage Examples, Top
 @chapter Function Index
