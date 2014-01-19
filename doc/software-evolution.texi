@@ -182,45 +182,62 @@ The following methods are defined for all software object types
 exposing a common interface for use by user programs or in heuristic
 search.
 
-@table @asis
-
-@item @code{genome}
+@anchor{genome}
+@defun genome software
 The software genotype or ``code'', exposed as a simplified data
 structure.  For example an AST genome, e.g., of a @code{cil} or
 @code{lisp} software object, my have a tree structure while the genome
 of a @code{asm} or @code{elf} software object will be a vector.
+@end defun
 
-@item @code{phenome}
+
+@anchor{phenome}
+@defun phenome software &key bin
 The software phenotype.  This method will link, compile or serialize
 the software object as necessary returning an executable version of
 the software suitable for testing and evaluation
+@end defun
 
-@item @code{copy}
+@anchor{copy}
+@defun copy software
 Return a deep copy of a software object.
+@end defun
 
-@item @code{pick}, @code{pick-good}, @code{pick-bad}
-Randomly select elements of a genome.  Selection may optionally be
-biased towards particular portions of the genome based on a @code{key}
-supplied to @code{pick} or on customized definitions of
-@code{pick-good} and @code{pick-bad}.  Useful for e.g., using
-annotations or fault localization information to bias mutation
-operations.
+@anchor{pick}
+@defun pick software key &optional func
+Randomly select elements of the genome of @code{SOFTWARE}.  Selection
+may optionally be biased towards particular portions of the genome
+based on a @code{key} supplied to @code{pick}.  Related
+@code{pick-good} and @code{pick-bad} methods may also be customized.
+Useful for e.g., using annotations or fault localization information
+to bias mutation operations.
+@end defun
 
-@item @code{mutate}
-Randomly mutate the supplied software object.
+@anchor{mutate}
+@defun mutate software
+Randomly mutate the supplied software object.  The modified software
+object and the applied mutation are returned.
+@end defun
 
-@item @code{crossover}, @code{one-point-crossover}, @code{two-point-crossover}
+@anchor{crossover}
+@defun crossover software-a software-b
 Perform the specified form of crossover on two software objects
-returning a new software object.
+returning a new software object and information on the crossover
+operation performed (e.g., the indices of crossover).  The related
+@code{one-point-crossover} and @code{two-point-crossover} methods may
+also be used to perform particular types of crossover.
+@end defun
 
-@item @code{from-file}
-Initialize a given software object using the contents of the specified
-file.
+@anchor{from-file}
+@defun from-file software file
+Initialize a software object @code{SOFTWARE} using the contents of
+@code{FILE}.
+@end defun
 
-@item @code{to-file}
-Write the genome of a software object to a file.
-
-@end table
+@anchor{to-file}
+@defun to-file software file
+Write the genome of software object @code{SOFTWARE} to @code{FILE}.
+@end defun
 
 @node Global Variables, Search Functions, Software Methods, Implementation
 @section Global Variables
@@ -229,47 +246,63 @@ Write the genome of a software object to a file.
 The following global variables are exposed for configuration and
 interaction with heuristic search processes.
 
-@table @code
-@item *population*
+
+@anchor{*population*}
+@defvar *population*
 A list of the software objects currently known to the system.  This
 variable may be read to inspect a running search process, or written
 to as part of a running search process.
+@end defvar
 
-@item *max-population-size*
+@anchor{*max-population-size*}
+@defvar *max-population-size*
 Maximum allowable population size.
+@end defvar
 
-@item *tournament-size*
+@anchor{*tournament-size*}
+@defvar *tournament-size*
 Number of individuals to participate in tournament selection.  Default
 value is ``@code{2}''.
+@end defvar
 
-@item *tournament-eviction-size*
+@anchor{*tournament-eviction-size*}
+@defvar *tournament-eviction-size*
 Number of individuals to participate in eviction tournaments.  Default
 value is ``@code{2}''.
+@end defvar
 
-@item *fitness-predicate* 
+@anchor{*fitness-predicate* }
+@defvar *fitness-predicate* 
 Function to compare two fitness values to select which is preferred.
 Default value is ``@code{#'>}''.
+@end defvar
 
-@item *cross-chance*
+@anchor{*cross-chance*}
+@defvar *cross-chance*
 Fraction of new individuals generated using crossover rather than
 mutation.  Default value is ``@code{2/3}''.
+@end defvar
 
-@item *mut-rate*
+@anchor{*mut-rate*}
+@defvar *mut-rate*
 Chance to mutate a new individual. If value is less than 1 then new
 individuals will be mutated once with change @code{*MUT-RATE*}.  If
 value is equal to 1, then every new individual will be mutated exactly
 once.  If value is greater than 1, then new individuals will be
 mutated from 1 to *MUT-RATE* times.  Default value is ``@code{1}''.
+@end defvar
 
-@item *fitness-evals*
+@anchor{*fitness-evals*}
+@defvar *fitness-evals*
 This variable tracks the total number of fitness evaluations
 performed.
+@end defvar
 
-@item *running*
+@anchor{*running*}
+@defvar *running*
 True when a search process is running, set this variable to nil to
 stop a running search.
-
-@end table
+@end defvar
 
 @node Search Functions, Usage, Global Variables, Implementation
 @section Search Functions
@@ -279,22 +312,23 @@ Currently two high-level search functions are implemented.  The
 @code{evolve} search function has received much more testing and is
 recommended.
 
-@table @code
-@item evolve
+@anchor{evolve}
+@defun evolve test &key max-evals max-time target period period-fn every-fn filter
 Evolve the existing @code{*population*} of software objects using the
-supplied @code{test} function to evaluate the fitness of software
-objects.  The fitness returned by the @code{test} function is
+supplied @code{TEST} function to evaluate the fitness of software
+objects.  The fitness returned by the @code{TEST} function is
 optimized.  A steady state evolutionary computation algorithm is used
 to evolve increasingly fit software objects in a process resembling
 natural selection.
+@end defun
 
-@item mcmc
+@anchor{mcmc}
+@defun mcmc original test &key accept-fn max-evals max-time target period period-fn every-fn filter
 Preform Markov chain Monte Carlo search from the supplied
-@code{original} software object using the supplied @code{test}
+@code{ORIGINAL} software object using the supplied @code{TEST}
 function to evaluate the fitness of software objects.  The fitness
 returned by the @code{test} function is optimized.
-
-@end table
+@end defun
 
 Both functions take the following optional keyword arguments
 
