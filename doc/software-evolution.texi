@@ -83,10 +83,16 @@ binaries (see @url{http://eschulte.github.io/netgear-repair/}).
 @cindex implementation
 
 The Software Evolution library is implemented in Common Lisp and is
-intended for use in Common Lisp programs.  The Common Lisp Object
-System (CLOS) is used to define a general interface into many types of
-software objects.  Software objects may be manipulated using simple
-``genetic'' mutation operations.
+intended for use in Common Lisp programs.  @ref{fig:overview} provides
+an overview of the Software Evolution system, the specifics of which
+are given in remainder of this section.
+
+@menu
+* Software Objects::            Representation of software
+* Software Methods::            Manipulation of software
+* Global Variables::            Interface to search processes
+* Search Functions::            High level functions to perform search
+@end menu
 
 @float Figure,fig:overview
 @example
@@ -132,47 +138,43 @@ software objects.  Software objects may be manipulated using simple
 shown along with the software object class hierarchy.}
 @end float
 
-The library exports high level heuristic search functions
-(@code{evolve} and @code{mcmc}) and global variables used for
-configuration and interaction with search processes.
-@ref{fig:overview} provides an overview of the Software Evolution
-system including global variables, exported functions and the software
-object class hierarchy.
-
-@menu
-* Software Objects::            Representation of software
-* Software Methods::            Manipulation of software
-* Global Variables::            Global interface to search
-* Search Functions::            High level functions to perform search
-@end menu
-
 @node Software Objects, Software Methods, Implementation, Implementation
 @section Software Objects
 @cindex software objects
 
 The following types of software objects are supported.
 
-@table @code
-@item asm
-General assembler backend used to manipulate @code{.s} text assembler
-files.
-@item cil
+@deftp Class asm fitness genome addr-map linker flags
+General assembler backend used to manipulate @code{.s} text assembler.
+@end deftp
+
+@deftp Class cil fitness genome flags compiler ext raw-size
 C abstract syntax trees using C Intermediate Language (CIL) (see
 @url{http://kerneis.github.io/cil/}).
-@item clang
+@end deftp
+
+@deftp Class clang fitness genome flags compiler ext raw-size
 C language (including @code{C}, @code{C++}, @code{C#}, etc...)
 abstract syntax trees using the C Language frontend for LLVM (see
 @url{http://clang.llvm.org/}).
-@item llvm
+@end deftp
+
+@deftp Class llvm fitness genome flags compiler ext raw-size ext linker
 Low Level Virtual Machine (LLVM) (see @url{http://llvm.org})
 intermediate representation (IR).
-@item elf-mips
+@end deftp
+
+@deftp Class elf-mips fitness genome base
 Executable Linkable Format (ELF) binaries in MIPS architectures.
-@item elf-x86
-ELF binaries in x86 architectures.
-@item lisp
+@end deftp
+
+@deftp Class elf-x86 fitness genome base addresses
+Executable Linkable Format (ELF) binaries in x86 architectures.
+@end deftp
+
+@deftp Class lisp fitness genome
 Common Lisp source code.
-@end table
+@end deftp
 
 @node Software Methods, Global Variables, Software Objects, Implementation
 @section Software Methods
@@ -365,13 +367,10 @@ current and new fitness that returns acceptance.
 
 @heading Installation
 
-Install the Software Evolution library in the same way as any other
-Common Lisp package.  The Quicklisp (see
-@url{http://www.quicklisp.org/}) package manager may be used to easily
-install this libraries and all dependencies.
-
-Requires the following Common Lisp packages which are all installable
-through Quicklisp.
+The source code for the Software Evolution library is available at
+@url{https://github.com/eschulte/software-evolution}.  The following
+Common Lisp packages are required by this library, all of which are
+installable through Quicklisp (see @url{http://www.quicklisp.org/}).
 @itemize
 @item alexandria
 @item metabang-bind
@@ -381,8 +380,8 @@ through Quicklisp.
 @item elf
 @end itemize
 
-Depending on the type of software object used the following software
-may also be required.
+Depending on the type of software object used the following may also
+be required.
 @itemize
 @item
 llvm-mutate for @code{llvm} object support (available from
@@ -398,7 +397,7 @@ clang-mutate for @code{clang} object support  (available from
 @heading Packaging
 
 The Software Evolution library is meant to be used from Common Lisp
-programs.  Such packages should include both the
+programs.  Common lisp packages should include the
 @code{software-evolution} library and may also include the
 @code{software-evolution-utility} library in their package definition
 as in the following example.
