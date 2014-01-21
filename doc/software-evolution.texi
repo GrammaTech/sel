@@ -73,10 +73,10 @@ Mutation and evaluation methods (@pxref{Software Methods}) are
 implemented on top of this interface supporting Search Based Software
 Engineering (SBSE) techniques (@pxref{Search Functions}).
 
-This library has been used to optimize benchmark programs to use less
-energy (see @cite{Post-compiler Software Optimization for Reducing
-Energy}) and to repair security vulnerabilities in closed source
-binaries (see @url{http://eschulte.github.io/netgear-repair/}).
+This library has been used to optimize benchmark programs (see
+@url{https://github.com/eschulte/goa}) and to patch vulnerabilities in
+closed source binaries (see
+@url{http://eschulte.github.io/netgear-repair}).
 
 @node Implementation, Software Objects, Introduction, Top
 @chapter Implementation
