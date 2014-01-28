@@ -102,8 +102,8 @@
       (mapcar (lambda-bind ((point . value))
                 ;; adjust to placeholder if necessary
                 (let ((point (position-if {assoc point} genome)))
-                  (setf genome (elf-cut genome point))
-                  (setf genome (elf-insert genome point value))))
+                  (setf genome (elf-cut elf point))
+                  (setf genome (elf-insert elf point value))))
               (sort (mapcar #'cons
                             (list :s1 :s2)
                             (mapcar [#'copy-tree {nth _ genome}] (list s2 s1)))
