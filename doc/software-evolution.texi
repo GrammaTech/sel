@@ -417,8 +417,8 @@ The following examples demonstrate usage.
 @menu
 * Mutation::                    Mutate a given program
 * Evaluation::                  Evaluate fitness of a mutant
-@c * Neutral Variants::            Generate neutral variants of a program
-@c * Repair::                      Program repair
+* Neutral Variants::            Generate neutral variants of a program
+* Repair::                      Program repair
 @c * Memoize Fitness::             A global memoized genome-fitness map
 @c * Annotations::                 Annotating portions of the genome
 @c * Focused Mutation::            Using annotations to focus mutation operations
@@ -446,11 +446,11 @@ Executing this code will print output resembling the following.
 Results of applying (:CUT 44) to gcd written to "/tmp/fileyfH5Hx.s".
 @end example
 
-@node Evaluation, Copying, Mutation, Usage
+@node Evaluation, Neutral Variants, Mutation, Usage
 @section Evaluation
 @cindex example evaluation
 
-The following example code does the following.
+The example code below does the following.
 @enumerate
 @item
 Defines a @code{test} function used to evaluate the fitness of a
@@ -490,6 +490,56 @@ Executing this code will print output resembling the following.
  0 fitness for edit (:INSERT 71 1)
 @end example
 
+@node Neutral Variants, Repair, Evaluation, Usage
+@section Neutral Variants
+@cindex neutral variants
+
+Using the @code{test} function defined in the previous example
+(@pxref{Evaluation}), the code block below generates a number of
+variants of the original program which still satisfy the test suite,
+known as ``neutral mutants'' (see @cite{Software Mutational
+Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
+
+@verbatiminclude ../examples/003-neutral.lisp
+
+@node Repair, Copying, Neutral Variants, Usage
+@section Repair
+@cindex repair
+
+Using the @code{test} function defined in a previous example
+(@pxref{Evaluation}), the code block below searches for a ``repair''
+of the buggy gcd implementation in @code{../test/gcd/gcd.s}.  The
+``repair'' will be a version of gcd which passes all 11 tests run in
+@code{test}.
+
+The @code{target} and @code{max-evals} keyword arguments are passed to
+@code{evolve} (@pxref{evolve}).  These arguments terminate the
+evolutionary search when either a repair has been reached or a budget
+of fitness evaluations has been exhausted respectively.
+
+The following properties of this example should be noted.
+
+@enumerate
+@item
+Before calling @code{evolve} the population is populated with copies
+of the original program.
+
+@item
+The @code{*orig*} individual is assigned a fitness before the
+@code{*population*} is populated.  This is necessary as the search
+functions assume that every element of @code{*population*} already
+have a fitness assigned.
+
+@item
+The @code{*population*} is not explicitly passed to the @code{evolve}
+function which implicitly modifies the @code{*population*} variable.
+When this function terminates the evolved program variants will be
+saved in the @code{*population*}.
+
+@end enumerate
+
+@verbatiminclude ../examples/004-evolve.lisp
+
 @c @node Parallel Fitness Evaluation, Annotations, Usage Examples, Usage Examples
 @c @section Parallel Fitness Evaluation
 @c @cindex parallel fitness evaluation
@@ -509,14 +559,6 @@ Executing this code will print output resembling the following.
 @c @node Memoize Fitness, Neutral Variants, Execution Statistics, Usage Examples
 @c @section Memoize Fitness
 @c @cindex memoize fitness
-
-@c @node Neutral Variants, Repair, Memoize Fitness, Usage Examples
-@c @section Neutral Variants
-@c @cindex neutral variants
-
-@c @node Repair, Function Index, Neutral Variants, Usage Examples
-@c @section Repair
-@c @cindex repair
 
 @node Copying, GNU Free Documentation License, Usage, Top
 @appendix GNU GENERAL PUBLIC LICENSE
