@@ -64,7 +64,8 @@ Appendices
 @cindex introduction
 
 The Software Evolution library enables the programmatic modification
-and evaluation of extant software.
+and evaluation of extant software.  The software evolution library was
+developed as part of the genprog project on automated program repair.
 
 A common interface abstracts over multiple types of software objects
 (@pxref{Software Objects}) including abstract syntax trees parsed from
