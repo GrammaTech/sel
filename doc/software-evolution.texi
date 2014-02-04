@@ -423,7 +423,6 @@ The following examples demonstrate usage.
 @c * Annotations::                 Annotating portions of the genome
 @c * Focused Mutation::            Using annotations to focus mutation operations
 @c * Execution Statistics::        Saving statistics
-@c * Parallel Fitness Evaluation:: Parallelizing search
 @end menu
 
 @node Mutation, Evaluation, Usage, Usage
@@ -540,9 +539,34 @@ saved in the @code{*population*}.
 
 @verbatiminclude ../examples/004-evolve.lisp
 
-@c @node Parallel Fitness Evaluation, Annotations, Usage Examples, Usage Examples
-@c @section Parallel Fitness Evaluation
-@c @cindex parallel fitness evaluation
+@heading Parallel Repair
+@cindex parallel repair
+
+Evolution may be parallelized by calling @code{evolve} in multiple
+threads.  For example a parallel version of the above example would
+replace,
+
+@example
+(evolve #'test :max-evals 100 :target 11)
+@end example
+
+with the following.
+
+@example
+(require 'bordeaux-threads)
+(defvar *num-threads* 64 "Number of available cores.")
+
+;; launch *num-threads* evolution threads
+(let (threads)
+  (loop :for n :below *num-threads* :do
+     (push (bordeaux-threads:make-thread
+            (lambda () (evolve #'test :max-evals 100 :target 11))
+            :name (format nil "opt-~d" n))
+           threads)))
+
+;; wait for all threads to return
+(mapc #'bordeaux-threads:join-thread threads)
+@end example
 
 @c @node Annotations, Focused Mutation, Parallel Fitness Evaluation, Usage Examples
 @c @section Annotations
