@@ -64,7 +64,7 @@
       (setf num-bytes (length (aget :bytes prev)))
       (setf (cdr (assoc :bytes prev)) (list x86-nop))
       (append (subseq genome 0 s1)
-              (loop :for i :below num-bytes :collect prev)
+              (loop :for i :below num-bytes :collect (copy-tree prev))
               (subseq genome (1+ s1))))))
 
 (defmethod elf-insert ((elf elf-x86-sw) s1 val)
