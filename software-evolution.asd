@@ -34,20 +34,3 @@
     :depends-on ("package" "software-evolution" "software/ast"))
    (:file "software/llvm"
     :depends-on ("package" "software-evolution" "software/ast"))))
-
-(defsystem :software-evolution-test
-  :description "Test the evolution of extant software."
-  :version "0.0.0"
-  :licence "GPL V3"
-  :depends-on (alexandria
-               metabang-bind
-               curry-compose-reader-macros
-               stefil
-               software-evolution
-               software-evolution-utility)
-  :components
-  ((:static-file "COPYING")
-   (:module "test"
-            :components
-            ((:file "package")
-             (:file "tests" :depends-on ("package"))))))
