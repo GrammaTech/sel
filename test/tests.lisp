@@ -19,7 +19,10 @@
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
 (defvar *gcd-dir*
-  (merge-pathnames #P"gcd" #.(or *compile-file-truename* *load-truename*))
+  (let ((dir (pathname-directory #.(or *compile-file-truename*
+                                       *load-truename*
+                                       *default-pathname-defaults*))))
+    (make-pathname :directory (append dir (list "gcd"))))
   "Location of the gcd example directory")
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 
@@ -77,7 +80,8 @@
          (with-fixture gcd-asm
            (to-file *gcd* a)
            (multiple-value-bind (out err ret)
-               (software-evolution::shell "diff ~s/gcd.s ~a" *gcd-dir* a)
+               (software-evolution::shell "diff ~s ~a"
+                                          (namestring (gcd-dir "gcd.s")) a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
@@ -92,7 +96,8 @@
          (with-fixture gcd-asm
            (to-file (copy *gcd*) a)
            (multiple-value-bind (out err ret)
-               (software-evolution::shell "diff ~s/gcd.s ~a" *gcd-dir* a)
+               (software-evolution::shell "diff ~s ~a"
+                                          (namestring (gcd-dir "gcd.s")) a)
              (declare (ignorable out err))
              (is (= 0 ret))))
       (delete-file a))))
