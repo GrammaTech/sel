@@ -237,6 +237,18 @@
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
 
+(deftest elf-swap-touching-last-element ()
+  (with-fixture gcd-elf
+    (let* ((variant (copy *gcd*))
+           (place1 (1- (length (genome *gcd*))))
+           (value1 (nth place1 (genome *gcd*)))
+           (place2 (random (1- (length (genome *gcd*)))))
+           (value2 (nth place2 (genome *gcd*))))
+      (apply-mutation variant (list :swap place1 place2))
+      (is (= (length (bytes *gcd*)) (length (bytes variant))))
+      (is (or (tree-equal value1 value2)
+              (not (equal-it (bytes *gcd*) (bytes variant))))))))
+
 (deftest elf-crossover-test ()
   (with-fixture gcd-elf
     (let ((variant (copy *gcd*)))
