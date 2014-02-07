@@ -200,15 +200,40 @@
 
 (deftest elf-insertion-changes-but-maintains-lengthens ()
   (with-fixture gcd-elf
-    (let ((variant (copy *gcd*)))
-      (apply-mutation variant '(:insert 4 8))
+    (let ((variant (copy *gcd*))
+          ;; FIND-SMALL: Pick a single-byte instruction so that it is
+          ;; more likely that there are sufficient no-ops to delete.
+          ;; This works with the local compiled version of gcd, but
+          ;; may fail in the future or on other systems.
+          (to-copy (position-if [{= 1} #'length {aget :bytes}] (genome *gcd*))))
+      (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
 
+(deftest elf-replace-changes-but-maintains-length ()
+  (with-fixture gcd-elf
+    (let* ((variant (copy *gcd*))
+           ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
+           (to-copy (position-if [{= 1} #'length {aget :bytes}] (genome *gcd*)))
+           (new-genome (software-evolution::elf-replace
+                        variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
+      (is (= (length (mapcan {aget :bytes} (copy-tree (genome *gcd*))))
+             (length (mapcan {aget :bytes} (copy-tree new-genome)))))
+      (is (not (equal-it (mapcan {aget :bytes} (copy-tree (genome *gcd*)))
+                         (mapcan {aget :bytes} (copy-tree new-genome))))))))
+
 (deftest elf-swap-changes-but-maintains-length ()
   (with-fixture gcd-elf
-    (let ((variant (copy *gcd*)))
-      (apply-mutation variant '(:swap 4 8))
+    (let* ((variant (copy *gcd*))
+           ;; Find two instructions of differing lengths so the genome
+           ;; isn't the same after our swap.
+           (prev nil)
+           (place (position-if (lambda (el)
+                                 (let ((ln (length (aget :bytes el))))
+                                   (prog1 (and prev (not (= prev ln)))
+                                     (setf prev ln))))
+                               (genome *gcd*))))
+      (apply-mutation variant (list :swap place (1- place)))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
 
