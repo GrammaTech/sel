@@ -111,6 +111,10 @@ Impure when it modifies the environment, defines functions, variables,
 starts new threads. Impure test files are run each in a separate sbcl
 instance. But I don't see why not run all the files separately.
 #+end_quote
+** removed code which may need resurrection
+Stashed away in the VC history.
+- 29cc873
+- 3cf6b1f
 
 * Tasks [19/22]
 ** TODO MIPS elf rep
