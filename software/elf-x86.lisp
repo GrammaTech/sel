@@ -55,63 +55,81 @@
               (elf) "mutation ~S changed size of genome [~S -> ~S]"
               mut starting-bytes (byte-count (genome elf))))))
 
+(defun elf-padd (genome place num-bytes flags)
+  (let ((base (cons (list :bytes x86-nop) (remove :bytes flags :key #'car))))
+    (append (subseq genome 0 place)
+            (loop :for i :below num-bytes :collect (copy-tree base))
+            (subseq genome place))))
+
+(defun elf-strip (genome place num-bytes)
+  (let ((length (length genome)))
+    (flet ((nop-p (n genome)
+             (tree-equal (list x86-nop) (aget :bytes (nth n genome))))
+           (del (n)
+             (decf num-bytes) (decf length)
+             (setf genome (delete-if (constantly t) genome :start n :count 1))))
+      (loop :for i :upto (max place (- length place)) :while (> num-bytes 0)
+         :do
+         (let ((f  (+ place i)) (b (- place i)))
+           (loop :while (and (> num-bytes 0) (< f length) (nop-p f genome))
+              :do (del f))
+           (loop :while (and (> num-bytes 0) (> b 0) (nop-p b genome))
+              :do (del b)))))))
+
+(defun elf-replace (elf s1 value)
+  (with-slots (genome) elf
+    (let* ((prev (nth s1 genome))
+           (out-bytes (length (aget :bytes prev)))
+           (in-bytes (length (aget :bytes value))))
+      (assert (assoc :bytes prev) (prev)
+              "attempt to replace genome element with no bytes: ~S" prev)
+      (let ((genome (append (subseq genome 0 s1)
+                            (list value)
+                            (subseq genome (1+ s1)))))
+        (if (> out-bytes in-bytes)
+            (elf-padd genome s1 (- out-bytes in-bytes) prev)
+            (elf-strip genome s1 (- in-bytes out-bytes)))))))
+
 (defmethod elf-cut ((elf elf-x86-sw) s1)
   (with-slots (genome) elf
-    (let ((prev (copy-tree (nth s1 genome)))
-          num-bytes)
+    (let ((prev (nth s1 genome)))
       (assert (assoc :bytes prev) (prev)
               "attempt to cut genome element with no bytes: ~S" prev)
-      (setf num-bytes (length (aget :bytes prev)))
-      (setf (cdr (assoc :bytes prev)) (list x86-nop))
-      (append (subseq genome 0 s1)
-              (loop :for i :below num-bytes :collect (copy-tree prev))
-              (subseq genome (1+ s1))))))
+      (elf-padd (append (subseq genome 0 s1) (subseq genome (1+ s1)))
+                s1 (length (aget :bytes prev))
+                (remove :bytes (copy-tree prev) :key #'car)))))
 
 (defmethod elf-insert ((elf elf-x86-sw) s1 val)
   (with-slots (genome) elf
     (assert (assoc :bytes val) (val)
             "attempt to insert genome element with no bytes: ~S" val)
-    (let ((left (length (cdr (assoc :bytes val))))
-          (length (length genome)))
-      (setf genome (append (subseq genome 0 s1) (list val) (subseq genome s1)))
-      (flet ((nop-p (n genome)
-               (tree-equal (list x86-nop) (aget :bytes (nth n genome))))
-             (del (n)
-               (decf left) (decf length)
-               (setf genome (delete-if (constantly t) genome :start n :count 1))))
-        ;; bookkeeping
-        (loop :for i :upto (max s1 (- (length genome) s1)) :while (> left 0) :do
-           (let ((f  (+ s1 i)) (b (- s1 i)))
-             (loop :while (and (> left 0) (< f length) (nop-p f genome))
-                :do (del f))
-             (loop :while (and (> left 0) (> b 0) (nop-p b genome))
-                :do (del b))))
-        genome))))
+    (setf genome (append (subseq genome 0 s1) (list val) (subseq genome s1)))
+    (elf-strip genome s1 (length (cdr (assoc :bytes val))))))
 
 (defmethod elf-swap ((elf elf-x86-sw) s1 s2)
-  (with-slots (genome) elf
-    (assert (every {assoc :bytes} (mapcar {nth _ genome} (list s1 s2)))
-            (s1 s2)
-            "attempt to swap genome elements w/o bytes: ~S"
-            (cons s1 s2))
-    (let ((larger (max s1 s2))
-          (smaller (min s1 s2)))
-      ;; drop in a place holder marking what we want to change
-      (push (list :s1) (nth larger genome))
-      (push (list :s2) (nth smaller genome))
-      (mapcar (lambda-bind ((point . value))
-                ;; adjust to placeholder if necessary
-                (let ((point (position-if {assoc point} genome)))
-                  (setf genome (elf-cut elf point))
-                  (setf genome (elf-insert elf point value))))
-              (sort (mapcar #'cons
-                            (list :s1 :s2)
-                            (mapcar [#'copy-tree {nth _ genome}] (list s2 s1)))
-                    #'< :key [#'length #'cdr]))
-      ;; clean out our placeholder
-      (setf (nth larger genome)
-            (remove :swap-placeholder (nth larger genome) :key #'car))
-      genome)))
+  (assert (every {assoc :bytes} (mapcar {nth _ (genome elf)} (list s1 s2)))
+          (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
+  (let ((larger (max s1 s2))
+        (smaller (min s1 s2)))
+    ;; drop in a place holders marking what we want to change
+    (push (list :s1) (nth larger (genome elf)))
+    (push (list :s2) (nth smaller (genome elf)))
+    (mapc (lambda-bind ((place . value))
+            (setf (genome elf)
+                  (let ((point (position-if {assoc place} (genome elf))))
+                    ;; clean out placeholder
+                    (setf (nth point (genome elf))
+                          (remove place (nth point (genome elf)) :key #'car))
+                    ;; perform replacement
+                    (elf-replace elf point value))))
+          ;; both markers with their values, sorted to operate on
+          ;; the smaller (by byte width) instruction first
+          (sort
+           (mapcar #'cons
+                   (list :s1 :s2)
+                   (mapcar [#'copy-tree {nth _ (genome elf)}] (list s2 s1)))
+           #'< :key [#'length #'cdr]))
+    (genome elf)))
 
 (defmethod crossover ((a elf-x86-sw) (b elf-x86-sw))
   "One point crossover."
