@@ -1,5 +1,5 @@
 (defsystem :software-evolution-utility
-  :description "Utility functions for extant software evolution."
+  :description "Utility functions for the SOFTWARE-EVOLUTION package."
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
@@ -10,5 +10,8 @@
                cl-ppcre
                cl-store)
   :components
-  ((:file "package")
-   (:file "utility" :depends-on ("package"))))
+  ((:module utility
+            :pathname "utility"
+            :components
+            ((:file "package")
+             (:file "utility" :depends-on ("package"))))))

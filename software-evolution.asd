@@ -1,6 +1,11 @@
 (defsystem :software-evolution
-  :description "evolution of extant software."
-  :long-description ""
+  :description "programmatic modification and evaluation of extant software"
+  :long-description "A common interface abstracts over multiple
+types of software objects including abstract syntax trees parsed from
+source code, LLVM IR, compiled assembler, and linked ELF binaries.
+Mutation and evaluation methods are implemented on top of this
+interface supporting Search Based Software Engineering (SBSE)
+techniques."
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
@@ -10,27 +15,24 @@
                cl-ppcre
                elf
                software-evolution-utility)
+  :in-order-to ((test-op (test-op software-evolution-test)))
   :components
-  ((:file "package")
-   (:file "software-evolution" :depends-on ("package"))
-   ;; software
-   (:file "software/lisp"
-    :depends-on ("package" "software-evolution"))
-   (:file "software/elf-mips"
-    :depends-on ("package" "software-evolution" "software/elf"))
-   (:file "software/elf-x86"
-    :depends-on ("package" "software-evolution" "software/elf"))
-   (:file "software/elf"
-    :depends-on ("package" "software-evolution"))
-   (:file "software/simple"
-    :depends-on ("package" "software-evolution"))
-   (:file "software/asm"
-    :depends-on ("package" "software-evolution" "software/simple"))
-   (:file "software/ast"
-    :depends-on ("package" "software-evolution"))
-   (:file "software/cil"
-    :depends-on ("package" "software-evolution" "software/ast"))
-   (:file "software/clang"
-    :depends-on ("package" "software-evolution" "software/ast"))
-   (:file "software/llvm"
-    :depends-on ("package" "software-evolution" "software/ast"))))
+  ((:module base
+            :pathname ""
+            :components
+            ((:file "package")
+             (:file "software-evolution" :depends-on ("package"))))
+   (:module software
+            :depends-on (base)
+            :pathname "software"
+            :components
+            ((:file "lisp")
+             (:file "simple")
+             (:file "asm" :depends-on ("simple"))
+             (:file "elf")
+             (:file "elf-mips" :depends-on ("elf"))
+             (:file "elf-x86" :depends-on ("elf"))
+             (:file "ast")
+             (:file "cil" :depends-on ("ast"))
+             (:file "clang" :depends-on ("ast"))
+             (:file "llvm" :depends-on ("ast"))))))

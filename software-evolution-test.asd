@@ -9,5 +9,8 @@
                software-evolution
                software-evolution-utility)
   :components
-  ((:file "package")
-   (:file "tests" :depends-on ("package"))))
+  ((:module test
+            :pathname "test"
+            :components
+            ((:file "package")
+             (:file "tests" :depends-on ("package"))))))
