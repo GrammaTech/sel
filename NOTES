@@ -116,8 +116,8 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [19/22]
-** TODO MIPS elf rep
+* Tasks [20/21]
+** DONE MIPS elf rep
 - http://en.wikipedia.org/wiki/MIPS_architecture
 - http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html
 
@@ -201,45 +201,7 @@ future test cases
    :PROPERTIES:
    :CUSTOM_ID: multi-objective-optimization
    :END:
-(see https://github.com/eschulte/optimization)
-
-** TODO look at interactive evolution of individual CL functions
-The idea being to support an interactive development environment in
-which the developer starts by associating some conditions with a
-function, probably best to use a macro
-#+begin_src lisp
-  (defmacro defadapt (name args conditions &body body)
-    (let ((func-name (gensym "function"))
-          (condition (gensym "condition")))
-      `(let ((,func-name (defun ,name ,args ,@body)))
-         (dolist (,condition ,conditions)
-           (setf (get ,func-name (first ,condition)) (second ,condition)))
-         ,func-name)))
-
-  (defadapt square-root (x)
-      '((test (for-all ((n #'an-integer)
-                        (r #'a-real))
-                (is numberp (square-root n))
-                (is numberp (square-root r))
-                (only-if (> n 0) (is > (expt (square-root n) 2) 0))
-                (only-if (> r 0) (is > (expt (square-root r) 2) 0))
-                (only-if (>= n 0) (is < (- n (expt (square-root n) 2)) 0.001))
-                (only-if (>= r 0) (is < (- r (expt (square-root r) 2)) 0.001)))))
-    (sqrt x) #| ...rest of body... |#)
-
-  (get 'square-root 'test)
-
-  #+QuickCheck
-  (quickcheck
-    (for-all ((n #'an-integer)
-              (r #'a-real))
-      (is numberp (square-root n))
-      (is numberp (square-root r))
-      (only-if (> n 0) (is > (expt (square-root n) 2) 0))
-      (only-if (> r 0) (is > (expt (square-root r) 2) 0))
-      (only-if (>= n 0) (is < (- n (expt (square-root n) 2)) 0.001))
-      (only-if (>= r 0) (is < (- r (expt (square-root r) 2)) 0.001))))
-#+end_src
+(see https://github.com/eschulte/goa)
 
 ** TODO manipulate compiled lisp code
    :PROPERTIES:
