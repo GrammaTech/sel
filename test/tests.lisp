@@ -225,13 +225,12 @@
 (deftest elf-swap-changes-but-maintains-length ()
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
-           ;; Find two instructions of differing lengths so the genome
+           ;; Find two instructions of differing content so the genome
            ;; isn't the same after our swap.
            (prev nil)
            (place (position-if (lambda (el)
-                                 (let ((ln (length (aget :bytes el))))
-                                   (prog1 (and prev (not (= prev ln)))
-                                     (setf prev ln))))
+                                 (prog1 (and prev (not (tree-equal prev el)))
+                                   (setf prev el)))
                                (genome *gcd*))))
       (apply-mutation variant (list :swap place (1- place)))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
