@@ -31,7 +31,9 @@
   SB-EXT:DOUBLE-FLOAT-POSITIVE-INFINITY
   #+ccl
   CCL::DOUBLE-FLOAT-POSITIVE-INFINITY
-  #-(or sbcl ccl)
+  #+allegro
+  excl:*infinity-double*
+  #-(or sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
 #+sbcl
@@ -43,7 +45,7 @@
 
 #+ccl
 (defun tempnam (dir prefix)
-  (ccl:with-filename-cstrs ((base dir) (prefix prefix)) 
+  (ccl:with-filename-cstrs ((base dir) (prefix prefix))
     (ccl:get-foreign-namestring (#_tempnam base prefix))))
 
 (defun file-to-string (path)
@@ -75,7 +77,9 @@
                      (pathname ,stream))))
           #+(or sbcl ccl)
           (tempnam nil nil)
-          #-(or sbcl clisp ccl)
+          #+allegro
+          (system:make-temp-file-name)
+          #-(or sbcl clisp ccl allegro)
           (error "no temporary file backend for this lisp.")))
     (if ext
         (concatenate 'string base "." ext)
@@ -135,7 +139,13 @@ After BODY is executed the temporary file is removed."
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input nil)
             #+ccl (shell-command cmd :input "")
-            #-(or sbcl ccl) (error "not implemented")
+            #+allegro
+            (multiple-value-bind (out-lines err-lines errno)
+                (excl.osi:command-output cmd)
+              (let ((out (apply #'concatenate 'string out-lines))
+                    (err (apply #'concatenate 'string err-lines)))
+                (values out err errno)))
+            #-(or sbcl ccl allegro) (error "not implemented")
             (when *shell-debug*
               (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr errno))
             (values stdout stderr errno)))))
@@ -336,23 +346,23 @@ Keyword argument FRAC will return fractions instead of raw counts."
 ;; http://en.wikipedia.org/wiki/Levenshtein_distance
 (defun levenshtein-distance (s1 s2 &key (test #'char=) (key #'identity))
   (let* ((width (1+ (length s1)))
-	 (height (1+ (length s2)))
-	 (d (make-array (list height width))))
+         (height (1+ (length s2)))
+         (d (make-array (list height width))))
     (dotimes (x width)
       (setf (aref d 0 x) x))
     (dotimes (y height)
       (setf (aref d y 0) y))
     (dotimes (x (length s1))
       (dotimes (y (length s2))
-	(setf (aref d (1+ y) (1+ x))
-	      (min (1+ (aref d y (1+ x)))
-		   (1+ (aref d (1+ y) x))
-		   (+ (aref d y x)
-		      (if (funcall test
+        (setf (aref d (1+ y) (1+ x))
+              (min (1+ (aref d y (1+ x)))
+                   (1+ (aref d (1+ y) x))
+                   (+ (aref d y x)
+                      (if (funcall test
                                    (funcall key (aref s1 x))
                                    (funcall key (aref s2 y)))
-			  0
-			  1))))))
+                          0
+                          1))))))
     (aref d (1- height) (1- width))))
 
 

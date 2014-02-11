@@ -54,3 +54,8 @@
    ;; oprofile
    :samples-from-oprofile-file
    :samples-from-tracer-file))
+
+#+allegro
+(set-dispatch-macro-character #\# #\_
+                              #'(lambda (s c n) (declare (ignore s c n)) nil))
+
