@@ -114,30 +114,31 @@
 (defmethod elf-swap ((elf elf-x86-sw) s1 s2)
   (assert (every {assoc :bytes} (mapcar {nth _ (genome elf)} (list s1 s2)))
           (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
-  ;; drop in a place holders marking what we want to change
-  (push (list :s1) (nth s1 (genome elf)))
-  (push (list :s2) (nth s2 (genome elf)))
-  ;; remove any leftover bytes
-  (mapc
-   (lambda-bind ((place . num-bytes))
-     (setf (genome elf) (elf-strip (genome elf) place num-bytes)))
-   (mapcar (lambda-bind ((place . value))
-             (let ((point (position-if {assoc place} (genome elf))))
-               ;; clean out placeholder
-               (setf (nth point (genome elf))
-                     (remove place (nth point (genome elf)) :key #'car))
-               ;; perform replacement
-               (multiple-value-bind (genome left) (elf-replace elf point value)
-                 (setf (genome elf) genome)
-                 ;; pass along any extra bytes for later removal
-                 (cons point (or left 0)))))
-           ;; both markers with their values, sorted to operate on
-           ;; the smaller (by byte width) instruction first
-           (sort (mapcar #'cons
-                         (list :s1 :s2)
-                         (mapcar [#'cdr #'copy-tree {nth _ (genome elf)}]
-                                 (list s2 s1)))
-                 #'< :key [#'length #'cdr])))
+  (unless (= s1 s2)
+    ;; drop in a place holders marking what we want to change
+    (push (list :s1) (nth s1 (genome elf)))
+    (push (list :s2) (nth s2 (genome elf)))
+    ;; remove any leftover bytes
+    (mapc
+     (lambda-bind ((place . num-bytes))
+       (setf (genome elf) (elf-strip (genome elf) place num-bytes)))
+     (mapcar (lambda-bind ((place . value))
+               (let ((point (position-if {assoc place} (genome elf))))
+                 ;; clean out placeholder
+                 (setf (nth point (genome elf))
+                       (remove place (nth point (genome elf)) :key #'car))
+                 ;; perform replacement
+                 (multiple-value-bind (genome left) (elf-replace elf point value)
+                   (setf (genome elf) genome)
+                   ;; pass along any extra bytes for later removal
+                   (cons point (or left 0)))))
+             ;; both markers with their values, sorted to operate on
+             ;; the smaller (by byte width) instruction first
+             (sort (mapcar #'cons
+                           (list :s1 :s2)
+                           (mapcar [#'cdr #'copy-tree {nth _ (genome elf)}]
+                                   (list s2 s1)))
+                   #'< :key [#'length #'cdr]))))
   (genome elf))
 
 (defmethod crossover ((a elf-x86-sw) (b elf-x86-sw))

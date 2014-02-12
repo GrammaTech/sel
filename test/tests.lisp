@@ -187,7 +187,8 @@
   (with-fixture gcd-elf
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      (mutate ant)
+      (handler-case (mutate ant)
+        (mutate (obj) (declare (ignorable obj)) nil))
       (is (not (software-evolution::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
@@ -247,6 +248,13 @@
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (or (tree-equal value1 value2)
               (not (equal-it (bytes *gcd*) (bytes variant))))))))
+
+(deftest elf-swap-with-self ()
+  (with-fixture gcd-elf
+    (let* ((place (random (length (genome *gcd*))))
+           (variant (copy *gcd*)))
+      (apply-mutation variant (list :swap place place))
+      (is (equal-it (genome variant) (genome *gcd*))))))
 
 (deftest elf-crossover-test ()
   (with-fixture gcd-elf
