@@ -53,7 +53,7 @@
 
 (declaim (inline genome-string))
 (defmethod genome-string ((lisp lisp) &optional stream)
-  (format stream "~&~{~S~^~%~}~%" lisp))
+  (format stream "~&~{~S~^~%~}~%" (genome lisp)))
 
 (defmethod to-file ((lisp lisp) path)
   (with-open-file (out path :direction :output :if-exists :supersede)
