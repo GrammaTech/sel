@@ -15,7 +15,7 @@
         (with-open-file (out seed-path :direction :output)
           (write *random-state* :stream out)))))
 
-(defvar *test*  "./test.sh")
+(defvar *test*  "./test/gcd/test.sh")
 
 (defun test-suite (ast)
   (with-temp-file (bin)

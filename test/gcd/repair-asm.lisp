@@ -20,4 +20,4 @@
    (setf (fitness *asm*) (test-suite *asm*))
    (setf *population* (loop :for i :below 100 :collect (copy *asm*)))
    (let ((*max-population-size* 100))
-     (store (evolve #'test-suite :max-fit 12) "results-asm.store"))))
+     (store (evolve #'test-suite :target 12) "results-asm.store"))))
