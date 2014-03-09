@@ -8,7 +8,7 @@ interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
   :licence "GPL V3"
-  :homepage "http://eschulte.github.io/software-evolution/index.html"
+  ;; :homepage "http://eschulte.github.io/software-evolution/index.html"
   :source-control (:git "git://github.com/eschulte/software-evolution")
   :depends-on (alexandria
                metabang-bind
