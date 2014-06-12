@@ -30,11 +30,16 @@
 (defmethod apply-mutation ((cil cil) op)
   (with-temp-file-of (src (ext cil)) (genome cil)
     (multiple-value-bind (stdout stderr exit)
-        (shell "cil-mutate ~a ~a"
+        (shell "cil-mutate ~a ~a ~a"
+               (ecase (car op)
+                 (:cut    "-cut")
+                 (:insert "-insert")
+                 (:swap   "-swap")
+                 (:ids    "-ids"))
                (mapconcat (lambda (pair)
                             (format nil "-stmt~d ~d" (car pair) (cdr pair)))
                           (loop :for id :in (cdr op) :as i :from 1
-                             :collect (cons 1 id)) " ")
+                             :collect (cons i id)) " ")
                src)
       (unless (zerop exit)
         (error 'mutate
