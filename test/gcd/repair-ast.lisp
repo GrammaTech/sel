@@ -1,6 +1,6 @@
 ;; repair using software evolution
 (require :software-evolution)
-(load #P"repair.lisp")
+(load #P"test/gcd/repair.lisp")
 (in-package :repair)
 
 (defvar *path*  "test/gcd/gcd.c")
@@ -43,7 +43,7 @@ not found."
                (mut (list :swap left right))))))
      "results.store")))
 
-#+run
+#+(or )
 ((lambda (ast)
    (let ((*population* (loop :for i :below 100 :collect (copy ast)))
          (*max-population-size* 100))
