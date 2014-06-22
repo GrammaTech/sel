@@ -1,4 +1,5 @@
 Notes                                                      -*- org -*-
+#+Options: ^:{}
 
 * Notes
 ** running from a saved population
@@ -116,7 +117,101 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [21/22]
+* Tasks [21/24]
+** TODO Python AST Backend
+http://blueprintforge.com/blog/2012/02/27/static-modification-of-python-with-python-the-ast-module/
+
+** TODO Python Bytecode backend
+- http://www.effbot.org/zone/librarybook/data-representation.pdf
+- http://mail.python.org/pipermail/python-list/2003-November/196230.html
+
+This guy apparently mutates python byte code.
+- http://multigrad.blogspot.ca/2014/06/fun-with-python-bytecode.html
+- https://github.com/mgard/deap
+
+*** Possibly using python code objects
+- http://effbot.org/librarybook/marshal.htm
+- http://effbot.org/librarybook/marshal/marshal-example-2.py
+
+- exec
+  #+begin_src python :results output
+    code = compile("print(3)", "<string>", "exec")
+    exec(code)
+  #+end_src
+
+  #+RESULTS:
+  : 3
+
+- return
+  #+begin_src python
+    code = compile("print(3)", "<string>", "exec")
+    return(code)
+  #+end_src
+
+  #+RESULTS:
+  : <code object <module> at 0x7ff31b3ae150, file "<string>", line 1>
+
+- inspect
+  #+begin_src python :results list
+    code = compile("print(3)", "<string>", "exec")
+    return dir(code)
+  #+end_src
+
+  #+RESULTS:
+  - __class__
+  - __delattr__
+  - __dir__
+  - __doc__
+  - __eq__
+  - __format__
+  - __ge__
+  - __getattribute__
+  - __gt__
+  - __hash__
+  - __init__
+  - __le__
+  - __lt__
+  - __ne__
+  - __new__
+  - __reduce__
+  - __reduce_ex__
+  - __repr__
+  - __setattr__
+  - __sizeof__
+  - __str__
+  - __subclasshook__
+  - co_argcount
+  - co_cellvars
+  - co_code
+  - co_consts
+  - co_filename
+  - co_firstlineno
+  - co_flags
+  - co_freevars
+  - co_kwonlyargcount
+  - co_lnotab
+  - co_name
+  - co_names
+  - co_nlocals
+  - co_stacksize
+  - co_varnames
+
+- code
+  #+begin_src python
+    code = compile("print(3)", "<string>", "exec")
+    return code.co_code
+  #+end_src
+
+  #+RESULTS:
+  : b'e\x00\x00d\x00\x00\x83\x01\x00\x01d\x01\x00S'
+
+- change the code (this throws an error, maybe make a new one)
+  #+begin_src python :results output
+    code = compile("print(3)", "<string>", "exec")
+    code.co_code = b'e\x00\x00d\x00\x00\x83\x01\x00\x01d\x01\x00S'
+    exec(code)
+  #+end_src
+
 ** DONE debug cil-mutate
 : 14:11 < stharding> _schulte_: do you have a working example for 
 :                    cil-mutate? when I use the 'cil software 
