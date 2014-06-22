@@ -35,11 +35,16 @@
                  (:cut    "-cut")
                  (:insert "-insert")
                  (:swap   "-swap")
-                 (:ids    "-ids"))
-               (mapconcat (lambda (pair)
-                            (format nil "-stmt~d ~d" (car pair) (cdr pair)))
-                          (loop :for id :in (cdr op) :as i :from 1
-                             :collect (cons i id)) " ")
+                 (:ids    "-ids")
+                 (:trace  "-trace"))
+               (if (eq (car op) :trace)
+                   (if (second op)
+                       (format nil "-trace-file ~a" (second op))
+                       "")
+                   (mapconcat (lambda (pair)
+                                (format nil "-stmt~d ~d" (car pair) (cdr pair)))
+                              (loop :for id :in (cdr op) :as i :from 1
+                                 :collect (cons i id)) " "))
                src)
       (unless (zerop exit)
         (error 'mutate
@@ -53,3 +58,9 @@
           (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler cil) src bin (flags cil))
         (declare (ignorable stdout))
         (values (if (zerop exit) bin stderr) exit)))))
+
+(defun instrument (cil &optional trace-file)
+  "Instrument CIL for traced execution.
+Optionally specify the name of the file in which to save trace data."
+  (setf (genome cil) (apply-mutation cil (list :trace trace-file)))
+  cil)

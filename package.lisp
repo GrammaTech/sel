@@ -77,4 +77,5 @@
    :reference
    :base
    :addresses
+   :instrument
    ))
