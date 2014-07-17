@@ -63,8 +63,7 @@
   (split-sequence #\Newline (genome cil)))
 
 (defmethod (setf lines) (new (cil cil))
-  (setf (genome cil) (format nil "~{~A~^~%~}" new)))
-
+  (setf (genome cil) (format nil "~{~a~^~%~}" new)))
 
 (defun instrument (cil &optional trace-file)
   "Instrument CIL for traced execution.
