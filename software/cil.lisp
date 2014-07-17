@@ -59,6 +59,13 @@
         (declare (ignorable stdout))
         (values (if (zerop exit) bin stderr) exit)))))
 
+(defmethod lines ((cil cil))
+  (split-sequence #\Newline (genome cil)))
+
+(defmethod (setf lines) (new (cil cil))
+  (setf (genome cil) (format nil "~{~A~^~%~}" new)))
+
+
 (defun instrument (cil &optional trace-file)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
