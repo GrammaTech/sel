@@ -79,6 +79,12 @@ This library has been used to optimize benchmark programs (see
 closed source binaries (see
 @url{http://eschulte.github.io/netgear-repair}).
 
+Please cite Eric Schulte's Ph.D. dissertation when you publish results
+that you have obtained with the SOFTWARE EVOLUTION library (see
+@cite{Neutral Networks of Real-World Programs and their Application to
+Automated Software Evolution} available at
+@url{https://cs.unm.edu/~eschulte/dissertation}).
+
 @node Implementation, Software Objects, Introduction, Top
 @chapter Implementation
 @cindex implementation
