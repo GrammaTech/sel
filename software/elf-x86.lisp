@@ -166,3 +166,9 @@
          (push (cons key val) (nth place (genome elf)))
          (push (list i key val) applied))))
   (reverse applied))
+
+(defmethod lines ((elf elf-x86-sw))
+  (map 'list {aget :bytes} (genome elf)))
+
+(defmethod (setf lines) (new (elf elf-x86-sw))
+  (setf (genome elf) (coerce (map 'vector [#'list {cons :bytes}] new) 'list)))
