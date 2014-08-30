@@ -31,22 +31,37 @@
 
 (defvar *forth-linker* "gforth")
 
-(defmethod from-file ((forth forth) path)
+(defun file-to-forth-symbols (filespec &aux strings)
   (flet ((rm-eol-comments (line)
            (subseq line 0 (search "\\ " line)))
          (rm-inline-comments (line)
-           (cl-ppcre:regex-replace-all "[\\s]\\([\\s][^\\)]*\\)" line "")))
-    (with-open-file (in path)
+           (cl-ppcre:regex-replace-all "[\\s]\\([\\s][^\\)]*\\)" line ""))
+         (rm-strings (line)
+           (let ((start 0) out)
+             (loop :while
+                (multiple-value-bind (match-start match-end)
+                    (scan "[\.sS]\"[^\"]+\"" line :start start)
+                  (when match-start
+                    (push (subseq line start match-start) out)
+                    (push :string out)
+                    (push (subseq line match-start match-end) strings)
+                    (setq start match-end))))
+             (push (subseq line start) out)
+             (nreverse out))))
+    (with-open-file (in filespec)
       (loop :for line = (read-line in nil) :while line :append
-         (mapcar {cons :symbol}
-                 (remove-if #'emptyp
-                            (split "[\\s]+" (rm-inline-comments
-                                             ;; TODO: handle
-                                             ;;       strings
-                                             ;;       before
-                                             ;;       inline
-                                             ;;       comments
-                                             (rm-eol-comments line)))))))))
+         (mapcar [#'list {cons :line}]
+                 (mapcan (lambda (el)
+                           (if (equal :string el)
+                               (list (pop strings))
+                               (remove-if #'emptyp
+                                          (split "[\\s]+"
+                                                 (rm-inline-comments el)))))
+                         (rm-strings (rm-eol-comments line))))))))
+
+(defmethod from-file ((forth forth) path)
+  (setf (genome forth) (file-to-forth-symbols path))
+  forth)
 
 (defmethod copy ((forth forth))
   (make-instance (type-of forth)
