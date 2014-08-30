@@ -66,6 +66,7 @@
    :elf-sw
    :elf-x86-sw
    :elf-mips-sw
+   :forth
    :lisp
    :clang
    :cil

@@ -27,40 +27,38 @@
 
 ;;; asm software objects
 (defclass forth (simple)
-  ((compiler :initarg :compiler :accessor compiler :initform nil)))
+  ((shebang :initarg :shebang :accessor shebang :initform nil)))
 
-(defvar *forth-linker* "gforth")
-
-(defun file-to-forth-symbols (filespec &aux strings)
-  (flet ((rm-eol-comments (line)
-           (subseq line 0 (search "\\ " line)))
-         (rm-inline-comments (line)
-           (cl-ppcre:regex-replace-all "[\\s]\\([\\s][^\\)]*\\)" line ""))
-         (rm-strings (line)
-           (let ((start 0) out)
-             (loop :while
-                (multiple-value-bind (match-start match-end)
-                    (scan "[\.sS]\"[^\"]+\"" line :start start)
-                  (when match-start
-                    (push (subseq line start match-start) out)
-                    (push :string out)
-                    (push (subseq line match-start match-end) strings)
-                    (setq start match-end))))
-             (push (subseq line start) out)
-             (nreverse out))))
-    (with-open-file (in filespec)
-      (loop :for line = (read-line in nil) :while line :append
-         (mapcar [#'list {cons :line}]
-                 (mapcan (lambda (el)
-                           (if (equal :string el)
-                               (list (pop strings))
-                               (remove-if #'emptyp
-                                          (split "[\\s]+"
-                                                 (rm-inline-comments el)))))
-                         (rm-strings (rm-eol-comments line))))))))
-
-(defmethod from-file ((forth forth) path)
-  (setf (genome forth) (file-to-forth-symbols path))
+(defmethod from-file ((forth forth) path &aux strings)
+  (setf (genome forth)
+        (flet ((rm-eol-comments (line)
+                 (subseq line 0 (search "\\ " line)))
+               (rm-inline-comments (line)
+                 (cl-ppcre:regex-replace-all "[\\s]\\([\\s][^\\)]*\\)" line ""))
+               (rm-strings (line)
+                 (let ((start 0) out)
+                   (loop :while
+                      (multiple-value-bind (match-start match-end)
+                          (scan "[\.sS]\"[^\"]+\"" line :start start)
+                        (when match-start
+                          (push (subseq line start match-start) out)
+                          (push :string out)
+                          (push (subseq line match-start match-end) strings)
+                          (setq start match-end))))
+                   (push (subseq line start) out)
+                   (nreverse out))))
+          (with-open-file (in path)
+            (loop :for line = (read-line in nil) :while line :append
+               (if (and (> (length line) 2) (string= "#! " (subseq line 0 3)))
+                   (prog1 nil (setf (shebang forth) line))
+                   (mapcar [#'list {cons :line}]
+                           (mapcan (lambda (el)
+                                     (if (equal :string el)
+                                         (list (pop strings))
+                                         (remove-if #'emptyp
+                                                    (split "[\\s]+"
+                                                           (rm-inline-comments el)))))
+                                   (rm-strings (rm-eol-comments line)))))))))
   forth)
 
 (defmethod copy ((forth forth))
@@ -70,9 +68,13 @@
     :compiler (compiler forth)))
 
 (defmethod phenome ((forth forth) &key bin)
-  (with-temp-file-of (src "fs") (genome-string forth)
-    (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (stdout stderr exit)
-          (shell #| TODO: |# (or (linker forth) *forth-linker*) bin src)
-        (declare (ignorable stdout ))
-        (values (if (zerop exit) bin stderr) exit)))))
+  (let ((bin (or bin (temp-file-name))))
+    (string-to-file (format nil "~a~%~a" (shebang forth) (genome-string forth))
+                    bin)
+    (multiple-value-bind (stdout stderr exit) (shell "chmod +x ~s" bin)
+      (declare (ignorable stdout stderr))
+      (values bin exit))))
+
+(declaim (inline genome-string))
+(defmethod genome-string ((forth forth) &optional stream)
+  (format stream "~{~a ~}~%" (lines forth)))
