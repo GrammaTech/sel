@@ -222,6 +222,10 @@ Optional argument OUT specifies an output stream."
                :initial-value t))
       (t (equal obj1 obj2)))))
 
+(defmacro repeatedly (times &rest body)
+  (let ((ignored (gensym)))
+    `(loop :for ,ignored :below ,times :collect ,@body)))
+
 (defun range (from &optional to)
   (unless to (setf to from from 0))
   (if (>= to from)
