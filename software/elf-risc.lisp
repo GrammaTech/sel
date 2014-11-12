@@ -45,26 +45,26 @@
                                (sections new))))
       new)))
 
+(defun risc-genome-from-elf (elf)
+  (map 'vector
+       [#'list {cons :code} #'list]
+       (or
+        ;; When initializing the genome, first try to
+        ;; read a .text section if present and named.
+        (coerce (data (named-section elf ".text")) 'list)
+        ;; Otherwise we assume that the elf file is
+        ;; stripped.  In this later case, collect all
+        ;; sections with program headers of type :LOAD.
+        (apply
+         #'concatenate 'list
+         (mapcar #'data
+                 (remove-if-not
+                  [{eql :load}  #'elf:type #'elf:ph]
+                  (remove-if-not #'elf:ph (sections elf))))))))
+
 (defmethod from-file ((elf elf-risc) path)
-  (with-slots (base genome) elf
-    (setf base (read-elf path)
-          genome
-          (coerce
-           (mapcar [#'list {cons :code} #'list]
-                   (or
-                    ;; When initializing the genome, first try to read
-                    ;; a .text section if present and named.
-                    (coerce (data (named-section base ".text")) 'list)
-                    ;; Otherwise we assume that the elf file is
-                    ;; stripped.  In this later case, collect all
-                    ;; sections with program headers of type :LOAD.
-                    (apply #'concatenate 'list
-                           (mapcar #'data
-                                   (remove-if-not
-                                    [{eql :load}  #'elf:type #'elf:ph]
-                                    (remove-if-not #'elf:ph
-                                                   (sections (base elf))))))))
-           'vector)))
+  (setf (base elf) (read-elf path))
+  (setf (genome elf) (risc-genome-from-elf (base elf)))
   elf)
 
 (defmethod lines ((elf elf-risc))
