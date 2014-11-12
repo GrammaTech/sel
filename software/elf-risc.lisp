@@ -19,7 +19,7 @@
 (defmethod copy ((elf elf-risc))
   (make-instance (type-of elf)
     :fitness (fitness elf)
-    :genome (copy-tree (genome elf))
+    :genome (copy-seq (genome elf))
     :base (base elf)))
 
 (defmethod elf ((elf elf-risc))
@@ -91,20 +91,22 @@
             (:cut    (elf-cut elf (second mut)))
             (:insert (elf-insert elf (second mut)
                                  (cdr (assoc :code
-                                             (aref (genome elf) (third mut))))))
+                                             (elt (genome elf) (third mut))))))
             (:swap   (elf-swap elf (second mut) (third mut)))))
     (assert (= (length (genome elf)) starting-length)
             (elf) "mutation ~S changed size of genome [~S -> ~S]"
             mut starting-length (length (genome elf)))))
 
 (defmethod elf-replace ((elf elf-risc) s1 value)
-  (mapcar (lambda-bind ((index element))
-            (if (= s1 index)
-                (let ((copy (copy-tree element)))
-                  (setf (cdr (assoc :code copy)) value)
-                  copy)
-                element))
-          (indexed (genome elf))))
+  (let ((genome (genome elf)))
+    (map (class-of genome)
+         (lambda-bind ((index element))
+           (if (= s1 index)
+               (let ((copy (copy-tree element)))
+                 (setf (cdr (assoc :code copy)) value)
+                 copy)
+               element))
+         (indexed (coerce genome 'list)))))
 
 (defmethod elf-cut ((elf elf-risc) s1)
   ;; NOTE: see the note above in the body of `apply-mutation'.
@@ -148,31 +150,32 @@ A value of nil means never replace.")
                    ((and (not forwards-p) (not backwards-p)) (return nil))
                    ;; continue search forwards and backwards
                    ((and forwards-p
-                         (equal nop (cdr (assoc :code (aref genome (+ s1 i))))))
+                         (equal nop (cdr (assoc :code (elt genome (+ s1 i))))))
                     (return (+ s1 i)))
                    ((and backwards-p
-                         (equal nop (cdr (assoc :code (aref genome (- s1 i))))))
+                         (equal nop (cdr (assoc :code (elt genome (- s1 i))))))
                     (return (- s1 i)))))))
         (if nop-location                 ; displace all bytes to the nop
             (let ((previous val))
-              (mapcar (lambda-bind ((i element))
-                        (if (and (<= s1 i) (<= i nop-location))
-                            (let ((copy (copy-tree (aref genome i))))
-                              (setf
-                               (cdr (assoc :code copy)) previous
-                               previous (copy-tree
-                                         (cdr (assoc :code (aref genome i)))))
-                              copy)
-                            element))
-                      (indexed genome)))
+              (map (class-of genome)
+                   (lambda-bind ((i element))
+                     (if (and (<= s1 i) (<= i nop-location))
+                         (let ((copy (copy-tree (elt genome i))))
+                           (setf
+                            (cdr (assoc :code copy)) previous
+                            previous (copy-tree
+                                      (cdr (assoc :code (elt genome i)))))
+                           copy)
+                         element))
+                   (indexed (coerce genome 'list))))
             (elf-replace elf val))))))
 
 (defmethod elf-swap ((elf elf-risc) s1 s2)
   ;; NOTE: see the note above in the body of `apply-mutation'.
   (let* ((genome (genome elf))
-         (tmp (copy-tree (genome elf))))
-    (setf (nth s1 tmp) (nth s2 genome))
-    (setf (nth s2 tmp) (nth s1 genome))
+         (tmp (copy-seq (genome elf))))
+    (setf (elt tmp s1) (elt genome s2))
+    (setf (elt tmp s2) (elt genome s1))
     tmp))
 
 (defmethod crossover ((a elf-risc) (b elf-risc))
