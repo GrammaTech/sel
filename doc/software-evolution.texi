@@ -1,0 +1,613 @@
+\input texinfo
+@c @setfilename emacs-web-server.info
+@documentencoding utf-8
+@settitle Software Evolution Library
+
+@copying
+This file documents the Software Evolution library
+
+Copyright (C) 2014 Eric Schulte <eschulte@@cs.unm.edu>
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being ``GNU GENERAL PUBLIC LICENSE,''
+A copy of the license is included in the section entitled
+``GNU Free Documentation License.''
+@end quotation
+@end copying
+
+@dircategory Libraries
+@direntry
+* Software Evolution: (software-evolution). library enabling extant software evolution
+@end direntry
+
+@titlepage
+@title Software Evolution Library
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@c Output the table of the contents at the beginning.
+@contents
+
+@ifnottex
+@node Top, Introduction, (dir), (dir)
+@top Software Evolution Library
+
+@insertcopying
+@end ifnottex
+
+@menu
+* Introduction::                What's it for?
+* Implementation::              How's it implemented?
+* Usage::                       How's it used?
+
+Appendices
+
+* Copying::                     The GNU General Public License gives
+                                you permission to redistribute GNU Emacs on
+                                certain terms; it also explains that there is
+                                no warranty.
+* GNU Free Documentation License::  The license for this documentation.
+* Index::                       Complete index.
+
+
+
+
+@end menu
+
+@node Introduction, Implementation, Top, Top
+@chapter Introduction
+@cindex introduction
+
+The Software Evolution library enables the programmatic modification
+and evaluation of extant software.  The software evolution library was
+developed as part of the genprog project on automated program repair.
+
+A common interface abstracts over multiple types of software objects
+(@pxref{Software Objects}) including abstract syntax trees parsed from
+source code, LLVM IR, compiled assembler, and linked ELF binaries.
+Mutation and evaluation methods (@pxref{Software Methods}) are
+implemented on top of this interface supporting Search Based Software
+Engineering (SBSE) techniques (@pxref{Search Functions}).
+
+This library has been used to optimize benchmark programs (see
+@url{https://github.com/eschulte/goa}) and to patch vulnerabilities in
+closed source binaries (see
+@url{http://eschulte.github.io/netgear-repair}).
+
+Please cite Eric Schulte's Ph.D. dissertation when you publish results
+that you have obtained with the SOFTWARE EVOLUTION library (see
+@cite{Neutral Networks of Real-World Programs and their Application to
+Automated Software Evolution} available at
+@url{https://cs.unm.edu/~eschulte/dissertation}).
+
+@node Implementation, Software Objects, Introduction, Top
+@chapter Implementation
+@cindex implementation
+
+The Software Evolution library is implemented in Common Lisp and is
+intended for use in Common Lisp programs.  @ref{fig:overview} provides
+an overview of the Software Evolution system, the specifics of which
+are given in remainder of this section.
+
+@menu
+* Software Objects::            Representation of software
+* Software Methods::            Manipulation of software
+* Global Variables::            Interface to search processes
+* Search Functions::            High level functions to perform search
+@end menu
+
+@float Figure,fig:overview
+@example
+                                                      population functions
+ global variables                                     --------------------
+ ----------------        +------------------+         incorporate
+ *population*            |   *population*   |         evict
+ *max-population-size*   |------------------|         tournament
+ *tournament-size*       |      list of     |         mutate
+ *fitness-predicate*     | software objects |         new-individual
+ *cross-chance*          +------------------+         evolve
+ *fitness-evals*                  |                   mcmc
+ *running*                      +-+-+
+                                | | |                 software functions
+                         +------------------+         --------------
+ evolve arguments        | software object  |         genome
+ ----------------        |------------------|         phenome
+ max-evals               | edits,           |         copy
+ max-time                | fitness          |         pick-good
+ target                  | ...              |         pick-bad
+ period                  +------------------+         mutate
+ period-func                       |                  crossover
+ filter                            |
+               +---------------+---+-----+------+----------------+
+               |               |         |      |                |
+      +---------------+  +-------------+ | +-------------+  +------------+
+      |      AST      |  |     ELF     | | |    lisp     |  |    asm     |
+      |---------------|  |-------------| | |-------------|  |------------|
+      |   Abstract    |  | Executable  | | | lisp source |  |  assembly  |
+      |  Syntax Tree  |  |  Linkable   | | +-------------+  |    code    |
+      +---------------+  |   Format    | |                  +------------+
+              |          +-------------+ +--------+             |
+     +--------------+-------------------+         |   +------------------+
+     |              |                   |         |   |     asm-range    |
+  +-------+  +----------------+   +----------+    |   |------------------|
+  | Clang |  |       CIL      |   |   LLVM   |    |   | memory efficient |
+  |-------|  |----------------|   |----------|    |   +------------------+
+  | C AST |  | C Intermediate |   | LLVM IR  |  +--------------+
+  +-------+  |    Language    |   +----------+  |    forth     |
+             +----------------+                 |--------------|
+                                                | forth source |
+                                                +--------------+
+@end example
+@caption{Software Evolution API.  Exported functions and variables are
+shown along with the software object class hierarchy.}
+@end float
+
+@node Software Objects, Software Methods, Implementation, Implementation
+@section Software Objects
+@cindex software objects
+
+The following types of software objects are supported.
+
+@deftp Class asm fitness genome addr-map linker flags
+General assembler backend used to manipulate @code{.s} text assembler.
+@end deftp
+
+@deftp Class cil fitness genome flags compiler ext raw-size
+C abstract syntax trees using C Intermediate Language (CIL) (see
+@url{http://kerneis.github.io/cil/}).
+@end deftp
+
+@deftp Class clang fitness genome flags compiler ext raw-size
+C language (including @code{C}, @code{C++}, @code{C#}, etc...)
+abstract syntax trees using the C Language frontend for LLVM (see
+@url{http://clang.llvm.org/}).
+@end deftp
+
+@deftp Class llvm fitness genome flags compiler ext raw-size ext linker
+Low Level Virtual Machine (LLVM) (see @url{http://llvm.org})
+intermediate representation (IR).
+@end deftp
+
+@deftp Class elf-mips fitness genome base
+Executable Linkable Format (ELF) binaries in MIPS architectures.
+@end deftp
+
+@deftp Class elf-x86 fitness genome base addresses
+Executable Linkable Format (ELF) binaries in x86 architectures.
+@end deftp
+
+@deftp Class lisp fitness genome
+Common Lisp source code.
+@end deftp
+
+@node Software Methods, Global Variables, Software Objects, Implementation
+@section Software Methods
+@cindex software methods
+
+The following methods are defined for all software object types
+exposing a common interface for use by user programs or in heuristic
+search.
+
+@anchor{genome}
+@defun genome software
+The software genotype or ``code'', exposed as a simplified data
+structure.  For example an AST genome, e.g., of a @code{cil} or
+@code{lisp} software object, my have a tree structure while the genome
+of a @code{asm} or @code{elf} software object will be a vector.
+@end defun
+
+
+@anchor{phenome}
+@defun phenome software &key bin
+The software phenotype.  This method will link, compile or serialize
+the software object as necessary returning an executable version of
+the software suitable for testing and evaluation
+@end defun
+
+@anchor{copy}
+@defun copy software
+Return a deep copy of a software object.
+@end defun
+
+@anchor{pick}
+@defun pick software key &optional func
+Randomly select elements of the genome of @code{SOFTWARE}.  Selection
+may optionally be biased towards particular portions of the genome
+based on a @code{key} supplied to @code{pick}.  Related
+@code{pick-good} and @code{pick-bad} methods may also be customized.
+Useful for e.g., using annotations or fault localization information
+to bias mutation operations.
+@end defun
+
+@anchor{mutate}
+@defun mutate software
+Randomly mutate the supplied software object.  The modified software
+object and the applied mutation are returned.
+@end defun
+
+@anchor{crossover}
+@defun crossover software-a software-b
+Perform the specified form of crossover on two software objects
+returning a new software object and information on the crossover
+operation performed (e.g., the indices of crossover).  The related
+@code{one-point-crossover} and @code{two-point-crossover} methods may
+also be used to perform particular types of crossover.
+@end defun
+
+@anchor{from-file}
+@defun from-file software file
+Initialize a software object @code{SOFTWARE} using the contents of
+@code{FILE}.
+@end defun
+
+@anchor{to-file}
+@defun to-file software file
+Write the genome of software object @code{SOFTWARE} to @code{FILE}.
+@end defun
+
+@node Global Variables, Search Functions, Software Methods, Implementation
+@section Global Variables
+@cindex Global Variables
+
+The following global variables are exposed for configuration and
+interaction with heuristic search processes.
+
+
+@anchor{*population*}
+@defvar *population*
+A list of the software objects currently known to the system.  This
+variable may be read to inspect a running search process, or written
+to as part of a running search process.
+@end defvar
+
+@anchor{*max-population-size*}
+@defvar *max-population-size*
+Maximum allowable population size.
+@end defvar
+
+@anchor{*tournament-size*}
+@defvar *tournament-size*
+Number of individuals to participate in tournament selection.  Default
+value is ``@code{2}''.
+@end defvar
+
+@anchor{*tournament-eviction-size*}
+@defvar *tournament-eviction-size*
+Number of individuals to participate in eviction tournaments.  Default
+value is ``@code{2}''.
+@end defvar
+
+@anchor{*fitness-predicate* }
+@defvar *fitness-predicate* 
+Function to compare two fitness values to select which is preferred.
+Default value is ``@code{#'>}''.
+@end defvar
+
+@anchor{*cross-chance*}
+@defvar *cross-chance*
+Fraction of new individuals generated using crossover rather than
+mutation.  Default value is ``@code{2/3}''.
+@end defvar
+
+@anchor{*mut-rate*}
+@defvar *mut-rate*
+Chance to mutate a new individual. If value is less than 1 then new
+individuals will be mutated once with change @code{*MUT-RATE*}.  If
+value is equal to 1, then every new individual will be mutated exactly
+once.  If value is greater than 1, then new individuals will be
+mutated from 1 to *MUT-RATE* times.  Default value is ``@code{1}''.
+@end defvar
+
+@anchor{*fitness-evals*}
+@defvar *fitness-evals*
+This variable tracks the total number of fitness evaluations
+performed.
+@end defvar
+
+@anchor{*running*}
+@defvar *running*
+True when a search process is running, set this variable to nil to
+stop a running search.
+@end defvar
+
+@node Search Functions, Usage, Global Variables, Implementation
+@section Search Functions
+@cindex search functions
+
+Currently two high-level search functions are implemented.  The
+@code{evolve} search function has received much more testing and is
+recommended.
+
+@anchor{evolve}
+@defun evolve test &key max-evals max-time target period period-fn every-fn filter
+Evolve the existing @code{*population*} of software objects using the
+supplied @code{TEST} function to evaluate the fitness of software
+objects.  The fitness returned by the @code{TEST} function is
+optimized.  A steady state evolutionary computation algorithm is used
+to evolve increasingly fit software objects in a process resembling
+natural selection.
+@end defun
+
+@anchor{mcmc}
+@defun mcmc original test &key accept-fn max-evals max-time target period period-fn every-fn filter
+Preform Markov chain Monte Carlo search from the supplied
+@code{ORIGINAL} software object using the supplied @code{TEST}
+function to evaluate the fitness of software objects.  The fitness
+returned by the @code{test} function is optimized.
+@end defun
+
+Both functions take the following optional keyword arguments
+
+@table @code
+@item max-evals
+stop after this many fitness evaluations
+
+@item max-time
+stop after this many seconds
+
+@item target
+stop when an individual passes @code{TARGET-FIT}
+
+@item period
+interval of fitness evaluations to run @code{PERIOD-FN}
+
+@item period-fn
+function to run every @code{PERIOD} fitness evaluations
+
+@item every-fn
+function to run before every fitness evaluation
+
+@end table
+
+In addition the @code{evolve} function takes an optional @code{filter}
+keyword argument which when specified only includes individual for
+which @code{FILTER} returns true, and the @code{mcmc} function takes
+an optional @code{accept-fn} keyword argument which is a function of
+current and new fitness that returns acceptance.
+
+@node Usage, Mutation, Implementation, Top
+@chapter Usage
+@cindex usage
+
+@heading Installation
+
+The source code for the Software Evolution library is available at
+@url{https://github.com/eschulte/software-evolution}.  The following
+Common Lisp packages are required by this library, all of which are
+installable through Quicklisp (see @url{http://www.quicklisp.org/}).
+@itemize
+@item alexandria
+@item metabang-bind
+@item curry-compose-reader-macros
+@item split-sequence
+@item cl-ppcre
+@item elf
+@end itemize
+
+Depending on the type of software object used the following may also
+be required.
+@itemize
+@item
+llvm-mutate for @code{llvm} object support (available from
+@url{https://github.com/eschulte/llvm-mutate}).
+@item
+cil-mutate for @code{cil} object support (available from
+@url{https://github.com/eschulte/cil-mutate}).
+@item
+clang-mutate for @code{clang} object support  (available from
+@url{https://github.com/eschulte/cil-mutate}).
+@end itemize
+
+@heading Packaging
+
+The Software Evolution library is meant to be used from Common Lisp
+programs.  Common lisp packages should include the
+@code{software-evolution} library and may also include the
+@code{software-evolution-utility} library in their package definition
+as in the following example.
+
+@example
+(defpackage :software-evolution-example
+  (:use :common-lisp
+        :software-evolution
+        :software-evolution-utility))
+@end example
+
+@heading Examples
+
+The following examples demonstrate usage.
+
+@menu
+* Mutation::                    Mutate a given program
+* Evaluation::                  Evaluate fitness of a mutant
+* Neutral Variants::            Generate neutral variants of a program
+* Repair::                      Program repair
+@c * Memoize Fitness::             A global memoized genome-fitness map
+@c * Annotations::                 Annotating portions of the genome
+@c * Focused Mutation::            Using annotations to focus mutation operations
+@c * Execution Statistics::        Saving statistics
+@end menu
+
+@node Mutation, Evaluation, Usage, Usage
+@section Mutation
+@cindex example mutation
+
+The following example code;
+@enumerate
+@item loads an @code{asm} software object from a file,
+@item mutates the object, and then
+@item writes the a modified version of the object to disk
+@item and prints the applied mutation.
+@end enumerate
+
+@verbatiminclude ../examples/001-mutate.lisp
+
+Executing this code will print output resembling the following.
+
+@example
+Results of applying (:CUT 44) to gcd written to "/tmp/fileyfH5Hx.s".
+@end example
+
+@node Evaluation, Neutral Variants, Mutation, Usage
+@section Evaluation
+@cindex example evaluation
+
+The example code below does the following.
+@enumerate
+@item
+Defines a @code{test} function used to evaluate the fitness of a
+software object.  This function makes use of an external shell script
+test driver which is run using the @code{shell} function defined in
+the @code{software-evolution-utility} library.
+
+@item
+The original program is initialized from a file on disk.
+
+@item
+Ten mutants of the original are generated by applying random edits.
+
+@item
+The @code{fitness} field of each mutant is set using the previously
+defined @code{test} method.
+
+@item
+The edits and fitness of each mutant are printed.
+
+@end enumerate
+
+@verbatiminclude ../examples/002-evaluation.lisp
+
+Executing this code will print output resembling the following.
+
+@example
+ 0 fitness for edit (:INSERT 76 38)
+ 0 fitness for edit (:SWAP 66 77)
+ 0 fitness for edit (:CUT 50)
+10 fitness for edit (:CUT 11)
+10 fitness for edit (:SWAP 62 39)
+ 0 fitness for edit (:INSERT 2 48)
+10 fitness for edit (:CUT 66)
+ 0 fitness for edit (:CUT 73)
+10 fitness for edit (:INSERT 73 26)
+ 0 fitness for edit (:INSERT 71 1)
+@end example
+
+@node Neutral Variants, Repair, Evaluation, Usage
+@section Neutral Variants
+@cindex neutral variants
+
+Using the @code{test} function defined in the previous example
+(@pxref{Evaluation}), the code block below generates a number of
+variants of the original program which still satisfy the test suite,
+known as ``neutral mutants'' (see @cite{Software Mutational
+Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
+
+@verbatiminclude ../examples/003-neutral.lisp
+
+@node Repair, Copying, Neutral Variants, Usage
+@section Repair
+@cindex repair
+
+Using the @code{test} function defined in a previous example
+(@pxref{Evaluation}), the code block below searches for a ``repair''
+of the buggy gcd implementation in @code{../test/gcd/gcd.s}.  The
+``repair'' will be a version of gcd which passes all 11 tests run in
+@code{test}.
+
+The @code{target} and @code{max-evals} keyword arguments are passed to
+@code{evolve} (@pxref{evolve}).  These arguments terminate the
+evolutionary search when either a repair has been reached or a budget
+of fitness evaluations has been exhausted respectively.
+
+The following properties of this example should be noted.
+
+@enumerate
+@item
+Before calling @code{evolve} the population is populated with copies
+of the original program.
+
+@item
+The @code{*orig*} individual is assigned a fitness before the
+@code{*population*} is populated.  This is necessary as the search
+functions assume that every element of @code{*population*} already
+have a fitness assigned.
+
+@item
+The @code{*population*} is not explicitly passed to the @code{evolve}
+function which implicitly modifies the @code{*population*} variable.
+When this function terminates the evolved program variants will be
+saved in the @code{*population*}.
+
+@end enumerate
+
+@verbatiminclude ../examples/004-evolve.lisp
+
+@heading Parallel Repair
+@cindex parallel repair
+
+Evolution may be parallelized by calling @code{evolve} in multiple
+threads.  For example a parallel version of the above example would
+replace,
+
+@example
+(evolve #'test :max-evals 100 :target 11)
+@end example
+
+with the following.
+
+@example
+(require 'bordeaux-threads)
+(defvar *num-threads* 64 "Number of available cores.")
+
+;; launch *num-threads* evolution threads
+(let (threads)
+  (loop :for n :below *num-threads* :do
+     (push (bordeaux-threads:make-thread
+            (lambda () (evolve #'test :max-evals 100 :target 11))
+            :name (format nil "opt-~d" n))
+           threads)))
+
+;; wait for all threads to return
+(mapc #'bordeaux-threads:join-thread threads)
+@end example
+
+@c @node Annotations, Focused Mutation, Parallel Fitness Evaluation, Usage Examples
+@c @section Annotations
+@c @cindex annotations
+
+@c @node Focused Mutation, Execution Statistics, Annotations, Usage Examples
+@c @section Focused Mutation
+@c @cindex focused mutation
+
+@c @node Execution Statistics, Memoize Fitness, Focused Mutation, Usage Examples
+@c @section Execution Statistics
+@c @cindex execution statistics
+
+@c @node Memoize Fitness, Neutral Variants, Execution Statistics, Usage Examples
+@c @section Memoize Fitness
+@c @cindex memoize fitness
+
+@node Copying, GNU Free Documentation License, Usage, Top
+@appendix GNU GENERAL PUBLIC LICENSE
+@include gpl.texi
+
+@node GNU Free Documentation License, Index, Copying, Top
+@appendix GNU Free Documentation License
+@include doclicense.texi
+
+@node Index,  , GNU Free Documentation License, Top
+@unnumbered Index
+
+@c Combine all index (function variable type and concept) types into a
+@c single index.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex tp cp
+@printindex cp
+
+@bye

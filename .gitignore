@@ -1,0 +1,12 @@
+*.fasl
+*.lx32fsl
+*.lx64fsl
+*.html
+*.txt
+*.tex
+*.pdf
+*~
+soft-ev
+lisp-runner
+scratch.lisp
+seed

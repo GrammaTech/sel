@@ -1,0 +1,406 @@
+Notes                                                      -*- org -*-
+#+Options: ^:{}
+
+* Notes
+** running from a saved population
+Could use this sort of file as fodder.
+#+begin_src lisp
+(in-package :software-evolution)
+(setq
+ *MAX-POPULATION-SIZE* 100         ;; Maximum allowable population size.
+ *POS-TEST-NUM*        10          ;; Number of positive tests.
+ *NEG-TEST-NUM*        1           ;; Number of negative tests.
+ *POS-TEST-MULT*       1           ;; Multiplier for positive test cases
+ *NEG-TEST-MULT*       1           ;; Multiplier for negative test cases
+ *CROSS-CHANCE*        1/5         ;; Fraction of new individuals generated
+                                   ;;   using crossover rather than mutation.
+ *PATHS*  '((:neg . "sample.neg")  ;; List of pairs of the form
+            (:pos . "sample.neg")) ;;   '(keyword . "sample-file").
+ *SEED-SOFT*           nil         ;; File holding a seed individual
+ *INCOMING-POPULATION* "pop.store" ;; File holding a cl-store serialized
+                                   ;;   incoming population.
+ *SAVE-SOFT*           "fix.s"     ;; File to hold any potential individual
+                                   ;;   returned by `repair'.
+ *SAVE-POPULATION*    "pop2.store" ;; Save the final population here.
+ MAX-EVALS             100         ;; Quit after this many fitness evaluations
+ MAX-FIT               11          ;; Quit when an individual achieves
+                                   ;;   this fitness or higher
+ )
+#+end_src
+
+** an option for containing the execution of evolved variants
+http://lxc.sourceforge.net/
+** when failing and running interactively, try to output errors from test.sh
+So often we start to debug the framework, when the bug is in test.sh.
+
+** ensure mutation operations can be reapplied
+So if say we know that a program was crossed over at point x, we
+should be able to call crossover(x) separate form the whole evolution
+framework.
+
+** objects generalizations and interactions
+:                       +--- evolution --- goals
+:                       |
+:                  population(s)
+:                       |
+: program --- representations----------- mutations ------ library/templates
+:                       |                                         |
+:                   evaluation                             version control
+
+** thread local global variables
+In case we want to run multiple populations in separate threads.
+
+This should be easy with =let= binding of global variables.
+
+** remember the need to collect statistics
+- number of test suite evaluations
+- time spent in many different aspects of the program, e.g.,
+  - compilation
+  - test suite evaluation
+  - mutation and population maintenance
+  - total run time
+
+** consider how weighted path information propagates with mutation operators
+Each individual should have its own weight, possibly expressed as a
+diff against some global weight.
+
+Even better, we can just store each individuals weight as part of its
+genome.  If memory does become an issue then diff fanciness can be
+brought to bear later on.
+
+** possibly re-calculate the weighted path with each test case run
+Nope, this would involve instrumenting each individual at the AST
+level, and would require multiple runs for sampling at the ASM/ELF
+levels, better to just use a heuristic to update/maintain weights.
+
+e.g., weight of a recently transplanted piece of code is equal to the
+average of previous weight and weight of both new neighbors.
+
+See the =*genome-averaging-keys*= variable.
+
+** allow adding individuals on-the-fly
+Implement all operations as one-offs against a local =*population*=, a
+la [[http://cs.unm.edu/~treport/tr/11-04/paper-2011-01.pdf][PEC]].
+
+** as basis for distributed GP repair
+See above, shouldn't be too difficult.  Loosely follow the PEC
+algorithm.
+
+** timed EC operators at set frequencies
+One frequency options should be "fast as possible", but allowing
+frequencies could be good for known energy consumption (e.g., if
+running on someone's phone).
+
+** evaluating potentially unsafe lisp code
+*** external lisp runner
+Executable as a shell script.
+#+begin_src lisp
+(defun main (argv)
+  (format t "~a~%"
+          (eval (read-from-string
+                 (if (third argv)
+                     (progn (load (second argv)) (third argv))
+                     (second argv))))))
+#+end_src
+
+*** separate SBCL instance
+[[gnus:sbcl#87ob7bpa82.fsf@gmail.com][Email from Stas Boukarev: Re: {Sbcl-devel} Coding Style ]]
+#+begin_quote
+> pure vs. impure
+>         When to use which?
+Impure when it modifies the environment, defines functions, variables,
+starts new threads. Impure test files are run each in a separate sbcl
+instance. But I don't see why not run all the files separately.
+#+end_quote
+** removed code which may need resurrection
+Stashed away in the VC history.
+- 29cc873
+- 3cf6b1f
+
+* Tasks [21/24]
+** TODO Python AST Backend
+http://blueprintforge.com/blog/2012/02/27/static-modification-of-python-with-python-the-ast-module/
+
+** TODO Python Bytecode backend
+- http://www.effbot.org/zone/librarybook/data-representation.pdf
+- http://mail.python.org/pipermail/python-list/2003-November/196230.html
+
+This guy apparently mutates python byte code.
+- http://multigrad.blogspot.ca/2014/06/fun-with-python-bytecode.html
+- https://github.com/mgard/deap
+
+*** Possibly using python code objects
+- http://effbot.org/librarybook/marshal.htm
+- http://effbot.org/librarybook/marshal/marshal-example-2.py
+
+- exec
+  #+begin_src python :results output
+    code = compile("print(3)", "<string>", "exec")
+    exec(code)
+  #+end_src
+
+  #+RESULTS:
+  : 3
+
+- return
+  #+begin_src python
+    code = compile("print(3)", "<string>", "exec")
+    return(code)
+  #+end_src
+
+  #+RESULTS:
+  : <code object <module> at 0x7ff31b3ae150, file "<string>", line 1>
+
+- inspect
+  #+begin_src python :results list
+    code = compile("print(3)", "<string>", "exec")
+    return dir(code)
+  #+end_src
+
+  #+RESULTS:
+  - __class__
+  - __delattr__
+  - __dir__
+  - __doc__
+  - __eq__
+  - __format__
+  - __ge__
+  - __getattribute__
+  - __gt__
+  - __hash__
+  - __init__
+  - __le__
+  - __lt__
+  - __ne__
+  - __new__
+  - __reduce__
+  - __reduce_ex__
+  - __repr__
+  - __setattr__
+  - __sizeof__
+  - __str__
+  - __subclasshook__
+  - co_argcount
+  - co_cellvars
+  - co_code
+  - co_consts
+  - co_filename
+  - co_firstlineno
+  - co_flags
+  - co_freevars
+  - co_kwonlyargcount
+  - co_lnotab
+  - co_name
+  - co_names
+  - co_nlocals
+  - co_stacksize
+  - co_varnames
+
+- code
+  #+begin_src python
+    code = compile("print(3)", "<string>", "exec")
+    return code.co_code
+  #+end_src
+
+  #+RESULTS:
+  : b'e\x00\x00d\x00\x00\x83\x01\x00\x01d\x01\x00S'
+
+- change the code (this throws an error, maybe make a new one)
+  #+begin_src python :results output
+    code = compile("print(3)", "<string>", "exec")
+    code.co_code = b'e\x00\x00d\x00\x00\x83\x01\x00\x01d\x01\x00S'
+    exec(code)
+  #+end_src
+
+** DONE debug cil-mutate
+: 14:11 < stharding> _schulte_: do you have a working example for 
+:                    cil-mutate? when I use the 'cil software 
+:                    object, evolve never makes any progress. i.e. 
+:                    *fitness-evals* never increments past zero 
+:                    and all I get is the output of cil-mutate 
+:                    dumped to the screen
+
+It turns out cil-mutate had never been implemented, just stubbed out.
+This is now fixed sufficiently to repair file:test/gcd/gcd.c using the
+code in file:test/gcd/repair-ast.lisp.
+
+** DONE MIPS elf rep
+- http://en.wikipedia.org/wiki/MIPS_architecture
+- http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html
+
+Shouldn't be too bad
+- all instructions are a single 32-bit word
+  #+begin_quote
+  The MIPS design uses 6 bits of the 32-bit word for the basic opcode;
+  the rest may contain a single 26-bit jump address or it may have up
+  to four 5-bit fields specifying up to three registers plus a shift
+  value combined with another 6-bits of opcode; another format, among
+  several, specifies two registers combined with a 16-bit immediate
+  value, etc.
+  #+end_quote
+- a no-operation (NOP or noop) instruction may be specified by all
+  zeros
+
+** DONE allow multiple mutations
+=*mut-chance*= -> =*mut-rate*=
+
+** DONE better edit handling
+Nothing is better than nothing, just dropped it entirely, easy for
+users to add on their own with something like the following.
+
+#+begin_src lisp
+  (defmethod apply-mutate :around ((soft software-subclass-w-edits) op)
+    (push op (edits soft))
+    (call-next-method))
+#+end_src
+
+** DONE crossover and mutation should not be mutually exclusive
+Change this logic in the `new-individual' and related functions.
+
+** DONE fine tunable selection and eviction
+There should be separate tournament sizes for selection and eviction.
+
+To make `evolve' more of a classic /steady-state/ algorithm one would
+have rank-based selection and eviction.
+
+For now we could just make eviction and selection both controllable
+through the tournament size, with a size of 1 being completely random.
+
+** DONE expose a software-evolution utility class
+** DONE cleanup files system [4/4]
+- [X] combine soft.lisp and genome.lisp
+- [X] use full names
+- [X] remove the zmq-specific packaging and asd file
+- [X] directory for evolutionary strategies?
+
+** DONE switch soft-asm from lists to vectors
+This will free up lists for CL source code.
+
+** DONE Flesh out the test suite [4/4]
+- [X] mutation operators
+- [X] copy returns a *new* and *equal* object
+- [X] fitness evaluation
+- [X] population addition and subtraction
+
+** DONE implement general tree-base operations
+** DONE implement general list-based operations
+** DONE fix bugs in list-based genome
+- setf doesn't seem to have any effect because it is called on the
+  constant data held in the variable rather than the variable itself
+
+** DONE add a lisp source-code level representation
+Should be able to repair the gcd algorithm.
+file:test/gcd/repair-lisp.lisp
+
+** DONE fix more bugs in lisp repair
+it looks like evaluation and mutation and crossover are all throwing
+errors, many of which are caused by that which should be a list not
+being a list.
+
+many `handler-case' statements are sprinkled through the code, update
+these to write out offending genomes and functions to files for use in
+future test cases
+
+** DONE ensure that all proper lists stay proper lists in list genome mutation
+** DONE add elf level representation
+** test external script repair at all three levels
+** CANCELED add an =optimize= evolutionary method
+   :PROPERTIES:
+   :CUSTOM_ID: multi-objective-optimization
+   :END:
+(see https://github.com/eschulte/goa)
+
+** TODO manipulate compiled lisp code
+   :PROPERTIES:
+   :CUSTOM_ID: lisp-asm
+   :END:
+Using the =disassemble= it is possible to access the compiled ASM of
+lisp functions.
+
+- for CCL checkout =defx86lapfunction=
+- for SBCL checkout VOPs
+
+*** SBCL specific
+code-components
+
+**** disassembly call chain
+#+begin_src lisp
+  (sb-disassem::fun-code #'cons)   ; => #<code object CONS {1001646B9F}>
+  (type-of (sb-disassem::fun-code #'cons)) ; => SB-KERNEL:CODE-COMPONENT
+  (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons)) ; => segments
+  ;; disassemble all segments
+  (sb-disassem::disassemble-segments
+   (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons))
+   ,*standard-output* (sb-disassem::make-dstate))  ; => assembler
+  ;; disassemble a single segment
+  (sb-disassem::disassemble-segment
+   (car (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons)))
+   ,*standard-output* (sb-disassem::make-dstate)) ; => assembler
+  ;; get a single instruction
+  (let (it)
+    (sb-disassem::map-segment-instructions
+     (lambda (chunk inst) (unless it (setf it inst)))
+     (car (sb-disassem::get-code-segments (sb-disassem::fun-code #'cons)))
+     (sb-disassem::make-dstate))
+    it) ; => #<SB-DISASSEM:INSTRUCTION POP(REG/MEM-DEFAULT-QWORD) {1001D4D8C3}>
+#+end_src
+
+**** execution of function as assembler instructions
+#+begin_src lisp
+  (sb-eval::eval-function
+   '(cons)
+   (sb-eval::make-env-from-native-environment (sb-eval::make-null-lexenv)))
+  ;; see also `compile'
+#+end_src
+
+** share assembly code between =soft-lisp= and =soft-asm=
+After [[#lisp-asm][manipulate compiled lisp code]] is complete, it should then be
+possible to share code between =lisp= *and* =asm= software objects.
+Just another =defmethod= on the =crossover= generic function.
+
+** DONE integrate with LLVM
+   - State "CANCELED"   from "TODO"       [2012-02-23 Thu 18:46] \\
+     better (for now) to integrate with CLANG
+
+This was done using an external command line interface.
+
+*** Notes on FFI integration
+see
+- http://llvm.org/
+- http://www.cliki.net/LLVM
+- https://github.com/sellout/CL-LLVM -- install with quicklisp and
+  work through the lisp version of the LLVM tutorial
+
+Then look at [[http://llvm.org/docs/WritingAnLLVMPass.html][How to write a Pass]] for implementing this entire
+technique as a compiler pass -- should have AST/IR manipulation in
+there as well.
+
+For parsing and manipulating LLVM IR, see [[http://stackoverflow.com/questions/9160509/how-do-i-parse-llvm-ir][how-do-i-parse-llvm-ir]].
+
+** CANCELED parse C source code
+   - State "CANCELED"   from "TODO"       [2012-06-20 Wed 14:24] \\
+     nope, use an extant library
+There is a lisp/YACC parser named =parcl= which uses yacc see
+http://common-lisp.net/~sionescu/misc/parcl.tar.gz.
+
+It works but isn't robust to stuff like comments or #include
+directives.
+
+Probably the most robust solution is to [[id:5291eb9c-6abd-4265-a7b5-f182cf317d6c][integrate with CLANG]].
+
+** DONE integrate with CLANG
+   :PROPERTIES:
+   :ID:       5291eb9c-6abd-4265-a7b5-f182cf317d6c
+   :END:
+- [[http://stackoverflow.com/questions/5130695/how-to-make-use-of-clangs-ast][This StackOverflow]] page has good links
+- Go [[http://llvm.org/devmtg/2010-11/][here]] and read _libclang: Thinking Beyond the Compiler_.
+- see the [[http://clang.llvm.org/doxygen/group__CINDEX.html][clang C API]], especially [[http://clang.llvm.org/doxygen/group__CINDEX__HIGH.html][higher level API functions]]
+- See "[[http://llvm.org/docs/ProgrammersManual.html#simplechanges][Making simple changes]]" in the Programmers Manual
+- see file:/usr/local/src/llvm/tools/clang/examples/PrintFunctionNames/PrintFunctionNames.cpp
+- see file:/usr/local/src/llvm/tools/clang/tools/c-index-test/c-index-test.c
+
+Another option is [[http://gcc-melt.org/][gcc-melt]] with [[https://github.com/bstarynk/melt-examples][examples]].
+
+*** useful functions, how this will work
+- [[file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::*%20\brief%20Retrieve%20the%20replacement%20information%20for%20a%20given%20fix-it.][file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::* \brief Retrieve the replacement information for a given fix-it.]]
+
