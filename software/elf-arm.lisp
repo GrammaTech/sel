@@ -38,3 +38,10 @@
 (defmethod (setf lines) :around ((elf elf-arm) path)
   (call-next-method)
   (setf (genome elf) (group-genome-bytes (genome elf) arm-op-width)))
+
+(defgeneric ops (elf-arm)
+  (:documentation
+   "Return the `arm-op-width'-sized chunks of an `elf-arm' object."))
+
+(defmethod ops ((arm elf-arm))
+  (map 'list [#'bytes-to-int #'cdr {assoc :code}] (genome arm)))
