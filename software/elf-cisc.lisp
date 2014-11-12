@@ -14,11 +14,10 @@
 (defclass elf-cisc (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil)))
 
-(defvar elf-cisc-nop #x90)
+(defclass elf-csurf (elf-cisc)
+  ((project :initarg :project :accessor project :initform nil)))
 
-(defvar elf-cisc-type 'elf:objdump
-  "Type of disassemblable ELF object to create.
-Should be either ELF:OBJDUMP or ELF:CSURF.")
+(defvar elf-cisc-nop #x90)
 
 (defmethod elf ((elf elf-cisc))
   (let ((new (copy-elf (base elf))))
@@ -26,14 +25,28 @@ Should be either ELF:OBJDUMP or ELF:CSURF.")
           (coerce (mappend [#'cdr {assoc :code}] (genome elf)) 'vector))
     new))
 
+(defun parse-disasm (elf section)
+  (let ((disasm (disassemble-section (base elf) section)))
+    (values
+     (mapcar #'car disasm)
+     (setf (genome elf) (mapcar (lambda-bind ((address bytes disasm))
+                                  (declare (ignorable address))
+                                  `((:code . ,bytes) (:disasm . ,disasm)))
+                                disasm)))))
+
 (defmethod from-file ((elf elf-cisc) path)
-  (setf (base elf) (read-elf path elf-cisc-type))
-  (let ((disasm (disassemble-section (base elf) ".text")))
-    (setf (genome elf) (mapcar (lambda-bind ((address bytes disasm))
-                                 (declare (ignorable address))
-                                 `((:code . ,bytes) (:disasm . ,disasm)))
-                               disasm))
-    (setf (addresses elf) (mapcar #'car disasm)))
+  (setf (base elf) (read-elf path 'objdump))
+  (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
+    (setf (addresses elf) addresses)
+    (setf (genome elf) genome))
+  elf)
+
+(defmethod from-file ((elf elf-csurf) path)
+  (setf (base elf) (read-elf path 'csurf))
+  (setf (project (base elf)) (project elf))
+  (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
+    (setf (addresses elf) addresses)
+    (setf (genome elf) genome))
   elf)
 
 (defmethod apply-mutation ((elf elf-cisc) mut)
