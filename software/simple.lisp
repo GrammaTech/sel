@@ -224,10 +224,10 @@ initialize the RANGE object."))
   (reduce #'+ (mapcar #'range-size (genome range))))
 
 (defmethod lines ((range sw-range))
-  (mapcan (lambda-bind ((start . end))
-            (mapcar {aref (reference range)}
-                    (loop :for i :from start :to end :collect i)))
-          (genome range)))
+  (mappend (lambda-bind ((start . end))
+             (mapcar {aref (reference range)}
+                     (loop :for i :from start :to end :collect i)))
+           (genome range)))
 
 (defmethod (setf lines) (new (range sw-range))
   (setf (reference range) (coerce new 'vector))

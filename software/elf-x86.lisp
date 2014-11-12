@@ -19,8 +19,7 @@
 (defmethod elf ((elf elf-x86))
   (let ((new (copy-elf (base elf))))
     (setf (data (named-section new ".text"))
-          (coerce (mapcan [#'cdr {assoc :bytes}] (copy-tree (genome elf)))
-                  'vector))
+          (coerce (mappend [#'cdr {assoc :bytes}] (genome elf)) 'vector))
     new))
 
 (defun by-instruction (section &optional objdump)
@@ -38,7 +37,7 @@
          (objdump (objdump-parse (objdump text))))
     (setf (genome elf) (mapcar [#'list {cons :bytes}]
                                (by-instruction text objdump)))
-    (setf (addresses elf) (mapcar #'car (mapcan #'cdr (copy-tree objdump)))))
+    (setf (addresses elf) (mapcar #'car (mappend #'cdr objdump))))
   elf)
 
 (defmethod apply-mutation ((elf elf-x86) mut)

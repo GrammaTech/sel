@@ -151,7 +151,7 @@
 
 
 ;;; ELF representation
-(defun bytes (elf) (mapcan [#'cdr {assoc :bytes}] (copy-tree (genome elf))))
+(defun bytes (elf) (mappend [#'cdr {assoc :bytes}] (genome elf)))
 
 (deftest elf-read ()
   (with-fixture gcd-elf
@@ -218,10 +218,10 @@
            (to-copy (position-if [{= 1} #'length {aget :bytes}] (genome *gcd*)))
            (new-genome (software-evolution::elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
-      (is (= (length (mapcan {aget :bytes} (copy-tree (genome *gcd*))))
-             (length (mapcan {aget :bytes} (copy-tree new-genome)))))
-      (is (not (equal-it (mapcan {aget :bytes} (copy-tree (genome *gcd*)))
-                         (mapcan {aget :bytes} (copy-tree new-genome))))))))
+      (is (= (length (mappend {aget :bytes} (genome *gcd*)))
+             (length (mappend {aget :bytes} new-genome))))
+      (is (not (equal-it (mappend {aget :bytes} (genome *gcd*))
+                         (mappend {aget :bytes} new-genome)))))))
 
 (deftest elf-swap-changes-but-maintains-length ()
   (with-fixture gcd-elf
