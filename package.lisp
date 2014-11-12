@@ -66,6 +66,8 @@
    :*asm-linker*
    :elf
    :elf-cisc
+   :elf-cisc-nop
+   :elf-cisc-type
    :elf-risc
    :elf-mips
    :forth
