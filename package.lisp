@@ -67,10 +67,12 @@
    :elf
    :elf-cisc
    :elf-csurf
-   :elf-cisc-nop
+   :elf-x86
+   :elf-arm
    :elf-risc
    :elf-mips
-   :padd
+   :pad
+   :nop-p
    :forth
    :lisp
    :clang
