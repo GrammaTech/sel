@@ -102,7 +102,7 @@ Options:
                            (case (intern (string-upcase (pathname-type *path*)))
                              (s 'asm)
                              (c 'cil)
-                             (t 'elf-sw)))
+                             (t 'elf)))
                        *path*)))
  
     (when (string= (pathname-type (pathname *path*)) "store")
