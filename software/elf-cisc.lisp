@@ -14,10 +14,11 @@
 (defclass elf-cisc (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil)))
 
+(defvar x86-nop #x90)
+(defclass elf-x86 (elf-cisc) ())
+
 (defclass elf-csurf (elf-cisc)
   ((project :initarg :project :accessor project :initform nil)))
-
-(defvar elf-cisc-nop #x90)
 
 (defmethod elf ((elf elf-cisc))
   (let ((new (copy-elf (base elf))))
@@ -66,11 +67,18 @@
                        mut starting-bytes (byte-count (genome elf)))
                :obj elf)))))
 
-(defun elf-padd (genome place num-bytes flags)
-  (let ((base (cons (list :code elf-cisc-nop) (remove :code flags :key #'car))))
-    (append (subseq genome 0 place)
-            (loop :for i :below num-bytes :collect (copy-tree base))
-            (subseq genome place))))
+(defgeneric padd (elf num-bytes)
+  (:documentation "Return NOP(s) sufficient to fill num-bytes"))
+
+(defmethod padd ((elf elf-x86) num-bytes)
+  (loop :for i :below num-bytes :collect x86-nop))
+
+(defun elf-padd (genome elf place num-bytes flags)
+  (let ((flags (remove :code (copy-tree flags) :key #'car)))
+    (append
+     (subseq genome 0 place)
+     (mapcar [{append flags} #'list {cons :code}] (padd elf num-bytes))
+     (subseq genome place))))
 
 (defun elf-strip (genome place num-bytes)
   (let ((length (length genome)))
@@ -102,7 +110,11 @@
                             (list value)
                             (subseq genome (1+ s1)))))
         (if (> out-bytes in-bytes)
-            (values (elf-padd genome s1 (- out-bytes in-bytes) prev) 0)
+            (values (elf-padd genome elf s1 (- out-bytes in-bytes)
+                              ;; mention replace in flags
+                              (cons '(:mutation . :replace)
+                                    prev))
+                    0)
             (multiple-value-call #'values
               (elf-strip genome s1 (- in-bytes out-bytes))))))))
 
@@ -112,8 +124,9 @@
       (assert (assoc :code prev) (prev)
               "attempt to cut genome element with no bytes: ~S" prev)
       (elf-padd (append (subseq genome 0 s1) (subseq genome (1+ s1)))
-                s1 (length (aget :code prev))
-                (remove :code (copy-tree prev) :key #'car)))))
+                elf s1 (length (aget :code prev))
+                ;; mention cut in flags
+                (cons '(:mutation . :cut) prev)))))
 
 (defmethod elf-insert ((elf elf-cisc) s1 val)
   (let ((genome (genome elf)))

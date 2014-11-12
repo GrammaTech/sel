@@ -70,6 +70,7 @@
    :elf-cisc-nop
    :elf-risc
    :elf-mips
+   :padd
    :forth
    :lisp
    :clang
