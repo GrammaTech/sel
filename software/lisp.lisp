@@ -80,7 +80,7 @@
   (let ((op (first mutation))
         (s1 (second mutation))
         (s2 (third mutation)))
-    (with-accessors ((genome genome)) lisp
+    (with-slots (genome) lisp
       (case op
         (:cut    (setf (subtree genome s1)
                        (copy-tree (cdr (subtree genome s1)))))

@@ -392,13 +392,11 @@
   (with-fixture diff (is (= 4 (size *soft*)))))
 
 (deftest diff-protects-reference ()
-  ;; NOTE: this fails, see the long comment in diff.lisp for an
-  ;;       explanation.
   (with-fixture diff
     (with-static-reference *soft*
-      (setf (nth 1 (genome *soft*)) nil)
-      (is (tree-equal (genome *soft*)
-                      '(((:CODE 1)) NIL ((:CODE 3)) ((:CODE 4))))))))
+      (setf (genome *soft*) nil)
+      (is (tree-equal (reference *soft*)
+                      '(((:CODE 1)) ((:CODE 2)) ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest diff-lines ()
   (with-fixture diff
@@ -423,9 +421,6 @@
                         ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest some-diff-swap-mutations ()
-  ;; NOTE: this often fails because of the failure of the genome
-  ;;       method in diff.lisp to properly protect against complex set
-  ;;       calls, see the long note in diff.lisp for an explanation.
   (with-fixture diff
     (with-static-reference *soft*
       (is (tree-equal (apply-mutation *soft* '(:swap 0 2))

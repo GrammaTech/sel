@@ -104,21 +104,29 @@
   (let ((op (first mutation))
         (s1 (second mutation))
         (s2 (third mutation)))
-    (with-accessors ((genome genome)) simple
-      (setf genome (case op
-                     (:cut (append (subseq genome 0 s1)
-                                   (subseq genome (1+ s1))))
-                     (:insert (append (subseq genome 0 s1)
-                                      (list (nth s2 genome))
-                                      (subseq genome s1)))
-                     (:swap (let ((tmp (nth s1 genome)))
-                              (setf (nth s1 genome) (nth s2 genome))
-                              (setf (nth s2 genome) tmp))
-                            genome))))))
+    ;; NOTE: it is important here that elements of genome are not
+    ;;       changed, rather the genome should *only* be changed by
+    ;;       setting the genome *accessor* directly.  I.e., avoid
+    ;;       forms like the following as they will change the
+    ;;       reference value of diff objects (see diff.lisp).
+    ;;
+    ;;           (setf (car (genome simple)) ...)
+    (let ((genome (genome simple)))
+      (setf (genome simple)
+            (case op
+              (:cut (append (subseq genome 0 s1)
+                            (subseq genome (1+ s1))))
+              (:insert (append (subseq genome 0 s1)
+                               (list (nth s2 genome))
+                               (subseq genome s1)))
+              (:swap (let ((tmp (copy-tree genome)))
+                       (setf (nth s1 tmp) (nth s2 genome))
+                       (setf (nth s2 tmp) (nth s1 genome))
+                       tmp)))))))
 
 (defmethod mcmc-step ((simple simple))
   (let ((point (random (size simple))))
-    (with-accessors ((genome genome)) simple
+    (let ((genome (genome simple)))
       (setf genome
             (if (zerop (random 2))
                 ;; delete an element
