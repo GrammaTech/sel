@@ -61,19 +61,3 @@ genome methods should have no effect.")
         (unless reference (setf reference list-new))
         (setf diffs (generate-seq-diff 'unified-diff reference list-new))))
     new))
-
-;; TODO: Handle complex setf's like (setf (nth (genome diff)) ...), as
-;;       these currently change the value of the reference.
-;;
-;;       Ask on #lisp, question could be posed as...
-;;
-;;       I'd like a method `foo' to support setf forms s.t. *all*
-;;       changes to the method are actually persisted in the form of
-;;       diffs against some global reference.  I have this working for
-;;       the simple (setf foo x) case using `(defmethod (setf foo)
-;;       ...)'.  It is possible to support more complex forms like
-;;       `(setf (car foo) x)' and if so how?
-;;
-;;       FWIW, I looked at `define-setf-expander', which seems like
-;;       what I need in general, but it's not clear how to make that
-;;       do object-based dispatch (which I do need).

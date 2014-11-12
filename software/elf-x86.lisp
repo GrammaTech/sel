@@ -79,8 +79,11 @@
               :do (del b))))
       (values genome num-bytes))))
 
-(defun elf-replace (elf s1 value)
-  (with-accessors ((genome genome)) elf
+(defgeneric elf-replace (elf s1 value)
+  (:documentation "Replace the contents of ELF at S1 with VALUE."))
+
+(defmethod elf-replace ((elf elf) s1 value)
+  (let ((genome (genome elf)))
     (let* ((prev (nth s1 genome))
            (out-bytes (length (aget :code prev)))
            (in-bytes (length (aget :code value))))
@@ -95,7 +98,7 @@
               (elf-strip genome s1 (- in-bytes out-bytes))))))))
 
 (defmethod elf-cut ((elf elf-x86) s1)
-  (with-accessors ((genome genome)) elf
+  (let ((genome (genome elf)))
     (let ((prev (nth s1 genome)))
       (assert (assoc :code prev) (prev)
               "attempt to cut genome element with no bytes: ~S" prev)
@@ -104,11 +107,12 @@
                 (remove :code (copy-tree prev) :key #'car)))))
 
 (defmethod elf-insert ((elf elf-x86) s1 val)
-  (with-accessors ((genome genome)) elf
+  (let ((genome (genome elf)))
     (assert (assoc :code val) (val)
             "attempt to insert genome element with no bytes: ~S" val)
-    (setf genome (append (subseq genome 0 s1) (list val) (subseq genome s1)))
-    (elf-strip genome s1 (length (aget :code val)))))
+    (setf (genome elf)
+          (append (subseq genome 0 s1) (list val) (subseq genome s1)))
+    (elf-strip (genome elf) s1 (length (aget :code val)))))
 
 (defmethod elf-swap ((elf elf-x86) s1 s2)
   (assert (every {assoc :code} (mapcar {nth _ (genome elf)} (list s1 s2)))

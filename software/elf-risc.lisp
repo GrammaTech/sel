@@ -23,27 +23,29 @@
     :base (base elf)))
 
 (defmethod elf ((elf elf-risc))
-  (with-accessors ((base base) (genome genome)) elf
-    (let ((new (copy-elf base))
-          (offset 0))
-      ;; If this file has a .text section, simply replace the contents
-      ;; of that section.
-      (if (named-section base ".text")
-          (setf (data (named-section base ".text"))
-                (coerce (mappend {aget :code} (coerce genome 'list)) 'vector))
-          ;; Otherwise split up the genome among all loadable
-          ;; sections.
-          (mapc (lambda (sec)
-                  (setf (data sec)
-                        (coerce
-                         (mappend {aget :code}
-                                  (coerce (subseq genome offset
-                                                  (incf offset (elf:size sec)))
-                                          'list))
-                         'vector)))
-                (remove-if-not [{eql :load}  #'elf:type]
-                               (sections new))))
-      new)))
+  (let ((genome (genome elf)))
+    (with-slots (base) elf
+      (let ((new (copy-elf base))
+            (offset 0))
+        ;; If this file has a .text section, simply replace the contents
+        ;; of that section.
+        (if (named-section base ".text")
+            (setf (data (named-section base ".text"))
+                  (coerce (mappend {aget :code} (coerce genome 'list)) 'vector))
+            ;; Otherwise split up the genome among all loadable
+            ;; sections.
+            (mapc
+             (lambda (sec)
+               (setf (data sec)
+                     (coerce
+                      (mappend {aget :code}
+                               (coerce (subseq genome offset
+                                               (incf offset (elf:size sec)))
+                                       'list))
+                      'vector)))
+             (remove-if-not [{eql :load}  #'elf:type]
+                            (sections new))))
+        new))))
 
 (defun risc-genome-from-elf (elf)
   (map 'vector
@@ -75,6 +77,15 @@
 
 (defmethod apply-mutation ((elf elf-risc) mut)
   (let ((starting-length (length (genome elf))))
+    ;; NOTE: it is important here that elements of genome are not
+    ;;       changed, rather the genome should *only* be changed by
+    ;;       setting the genome *accessor* directly.  I.e., avoid
+    ;;       forms like the following as they will change the
+    ;;       reference value of diff objects (see diff.lisp).
+    ;;
+    ;;           (setf (car (genome elf)) ...)
+    ;;
+    ;;       This applies to `elf-cut', `elf-insert', and `elf-swap'.
     (setf (genome elf)
           (ecase (car mut)
             (:cut    (elf-cut elf (second mut)))
@@ -86,10 +97,18 @@
             (elf) "mutation ~S changed size of genome [~S -> ~S]"
             mut starting-length (length (genome elf)))))
 
+(defmethod elf-replace ((elf elf-risc) s1 value)
+  (mapcar (lambda-bind ((index element))
+            (if (= s1 index)
+                (let ((copy (copy-tree element)))
+                  (setf (cdr (assoc :code copy)) value)
+                  copy)
+                element))
+          (indexed (genome elf))))
+
 (defmethod elf-cut ((elf elf-risc) s1)
-  (with-accessors ((genome genome) (nop nop)) elf
-    (setf (cdr (assoc :code (aref genome s1))) nop)
-    genome))
+  ;; NOTE: see the note above in the body of `apply-mutation'.
+  (elf-replace elf s1 (nop elf)))
 
 ;; Thanks to the uniform width of RISC instructions, this is the only
 ;; operation which requires any bookkeeping.  We'll try to
@@ -100,54 +119,61 @@ delete, if none is found in this range insertion becomes replacement.
 A value of nil means never replace.")
 
 (defmethod elf-insert ((elf elf-risc) s1 val)
-  (with-accessors ((genome genome) (base base) (nop nop)) elf
-    (let* ((borders
-            ;; Only return the borders between sections if this is the
-            ;; genome has been concatenated from multiple ELF
-            ;; sections.  We check this by looking for a .text
-            ;; section, and if one is found we know that it is the
-            ;; sole section in the genome, so no borders are
-            ;; necessary.
-            (if (named-section base ".text")
-                nil
-                (reduce (lambda (offsets ph)
-                          (cons (+ (car offsets) (filesz ph))
-                                offsets))
-                        (program-table (base elf)) :initial-value '(0))))
-           (backwards-p t) (forwards-p t)
-           (nop-location               ; find the nearest nop in range
-            (loop :for i :below (or elf-risc-max-displacement (length genome))
-               :do
-               (cond
-                 ;; don't cross borders or leave the genome
-                 ((or (member (+ s1 i) borders) (>= (+ s1 i) (length genome)))
-                  (setf forwards-p nil))
-                 ((or (member (- s1 i) borders) (< (- s1 i) 0))
-                  (setf backwards-p nil))
-                 ((and (not forwards-p) (not backwards-p)) (return nil))
-                 ;; continue search forwards and backwards
-                 ((and forwards-p
-                       (equal nop (cdr (assoc :code (aref genome (+ s1 i))))))
-                  (return (+ s1 i)))
-                 ((and backwards-p
-                       (equal nop (cdr (assoc :code (aref genome (- s1 i))))))
-                  (return (- s1 i)))))))
-      (if nop-location                 ; displace all bytes to the nop
-          (reduce (lambda (previous i)
-                    (let ((current (cdr (assoc :code (aref genome i)))))
-                      (setf (cdr (assoc :code (aref genome i))) previous)
-                      current))
-                  (range s1 nop-location) :initial-value val)
-          (setf (cdr (assoc :code (aref genome s1))) val)))
-    genome))
+  ;; NOTE: see the note above in the body of `apply-mutation'.
+  (let ((genome (genome elf)))
+    (with-slots (base nop) elf
+      (let* ((borders
+              ;; Only return the borders between sections if this is the
+              ;; genome has been concatenated from multiple ELF
+              ;; sections.  We check this by looking for a .text
+              ;; section, and if one is found we know that it is the
+              ;; sole section in the genome, so no borders are
+              ;; necessary.
+              (if (named-section base ".text")
+                  nil
+                  (reduce (lambda (offsets ph)
+                            (cons (+ (car offsets) (filesz ph))
+                                  offsets))
+                          (program-table (base elf)) :initial-value '(0))))
+             (backwards-p t) (forwards-p t)
+             (nop-location               ; find the nearest nop in range
+              (loop :for i :below (or elf-risc-max-displacement (length genome))
+                 :do
+                 (cond
+                   ;; don't cross borders or leave the genome
+                   ((or (member (+ s1 i) borders) (>= (+ s1 i) (length genome)))
+                    (setf forwards-p nil))
+                   ((or (member (- s1 i) borders) (< (- s1 i) 0))
+                    (setf backwards-p nil))
+                   ((and (not forwards-p) (not backwards-p)) (return nil))
+                   ;; continue search forwards and backwards
+                   ((and forwards-p
+                         (equal nop (cdr (assoc :code (aref genome (+ s1 i))))))
+                    (return (+ s1 i)))
+                   ((and backwards-p
+                         (equal nop (cdr (assoc :code (aref genome (- s1 i))))))
+                    (return (- s1 i)))))))
+        (if nop-location                 ; displace all bytes to the nop
+            (let ((previous val))
+              (mapcar (lambda-bind ((i element))
+                        (if (and (<= s1 i) (<= i nop-location))
+                            (let ((copy (copy-tree (aref genome i))))
+                              (setf
+                               (cdr (assoc :code copy)) previous
+                               previous (copy-tree
+                                         (cdr (assoc :code (aref genome i)))))
+                              copy)
+                            element))
+                      (indexed genome)))
+            (elf-replace elf val))))))
 
 (defmethod elf-swap ((elf elf-risc) s1 s2)
-  (with-accessors ((genome genome)) elf
-    (let ((left-bytes  (copy-tree (cdr (assoc :code (aref genome s1)))))
-          (right-bytes (copy-tree (cdr (assoc :code (aref genome s2))))))
-      (setf (cdr (assoc :code (aref genome s1))) right-bytes
-            (cdr (assoc :code (aref genome s2))) left-bytes))
-    genome))
+  ;; NOTE: see the note above in the body of `apply-mutation'.
+  (let* ((genome (genome elf))
+         (tmp (copy-tree (genome elf))))
+    (setf (nth s1 tmp) (nth s2 genome))
+    (setf (nth s2 tmp) (nth s1 genome))
+    tmp))
 
 (defmethod crossover ((a elf-risc) (b elf-risc))
   "One point crossover."
