@@ -29,6 +29,9 @@
 (defclass simple (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 
+(defmethod copy ((simple simple))
+  (make-instance (type-of simple) :genome (copy-tree (genome simple))))
+
 (declaim (inline lines))
 (defmethod lines ((simple simple))
   (remove nil (mapcar {aget :code} (genome simple))))
