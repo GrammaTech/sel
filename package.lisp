@@ -78,6 +78,7 @@
    :linker
    :flags
    :elf-risc-max-displacement
+   :ops                      ; <- might want to fold this into `lines'
    ;; software backend specific methods
    :reference
    :base
