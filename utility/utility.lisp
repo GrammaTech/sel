@@ -33,7 +33,9 @@
   CCL::DOUBLE-FLOAT-POSITIVE-INFINITY
   #+allegro
   excl:*infinity-double*
-  #-(or sbcl ccl allegro)
+  #+ecl
+  (/ (coerce 1 'double-float) (coerce 0.0 'double-float))
+  #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
 #+sbcl
@@ -46,7 +48,8 @@
 #+ccl
 (defun tempnam (dir prefix)
   (ccl:with-filename-cstrs ((base dir) (prefix prefix))
-    (ccl:get-foreign-namestring (#_tempnam base prefix))))
+    (ccl:get-foreign-namestring
+     (ccl:external-call "tempnam" :address base :address prefix :address))))
 
 (defun file-to-string (path)
   (with-open-file (in path)
