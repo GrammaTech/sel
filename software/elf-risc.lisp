@@ -13,16 +13,16 @@
 ;;; elf software objects
 (defvar risc-nop #x0)
 
-(defclass elf-risc-sw (elf-sw)
+(defclass elf-risc (elf)
   ((nop :initarg :nop :accessor nop :initform risc-nop)))
 
-(defmethod copy ((elf elf-risc-sw))
+(defmethod copy ((elf elf-risc))
   (make-instance (type-of elf)
     :fitness (fitness elf)
     :genome (map 'vector #'copy-tree (coerce (genome elf) 'list))
     :base (base elf)))
 
-(defmethod elf ((elf elf-risc-sw))
+(defmethod elf ((elf elf-risc))
   (with-slots (base genome) elf
     (let ((new (copy-elf base))
           (offset 0))
@@ -34,7 +34,7 @@
                            (sections new)))
       new)))
 
-(defmethod from-file ((elf elf-risc-sw) path)
+(defmethod from-file ((elf elf-risc) path)
   (with-slots (base genome) elf
     (setf base (read-elf path)
           genome
@@ -47,13 +47,13 @@
            'vector)))
   elf)
 
-(defmethod lines ((elf elf-risc-sw))
+(defmethod lines ((elf elf-risc))
   (map 'list {aget :bytes} (genome elf)))
 
-(defmethod (setf lines) (new (elf elf-risc-sw))
+(defmethod (setf lines) (new (elf elf-risc))
   (setf (genome elf) (map 'vector [#'list {cons :bytes}] new)))
 
-(defmethod apply-mutation ((elf elf-risc-sw) mut)
+(defmethod apply-mutation ((elf elf-risc) mut)
   (let ((starting-length (length (genome elf))))
     (setf (genome elf)
           (ecase (car mut)
@@ -66,7 +66,7 @@
             (elf) "mutation ~S changed size of genome [~S -> ~S]"
             mut starting-length (length (genome elf)))))
 
-(defmethod elf-cut ((elf elf-risc-sw) s1)
+(defmethod elf-cut ((elf elf-risc) s1)
   (with-slots (genome nop) elf
     (setf (cdr (assoc :bytes (aref genome s1))) nop)
     genome))
@@ -79,7 +79,7 @@ This is the range within which insertion will search for a nop to
 delete, if none is found in this range insertion becomes replacement.
 A value of nil means never replace.")
 
-(defmethod elf-insert ((elf elf-risc-sw) s1 val)
+(defmethod elf-insert ((elf elf-risc) s1 val)
   (with-slots (genome nop) elf
     (let* ((borders (reduce (lambda (offsets ph)
                               (cons (+ (car offsets) (filesz ph))
@@ -109,7 +109,7 @@ A value of nil means never replace.")
           (setf (cdr (assoc :bytes (aref genome s1))) val)))
     genome))
 
-(defmethod elf-swap ((elf elf-risc-sw) s1 s2)
+(defmethod elf-swap ((elf elf-risc) s1 s2)
   (with-slots (genome) elf
     (let ((left-bytes  (copy-tree (cdr (assoc :bytes (aref genome s1)))))
           (right-bytes (copy-tree (cdr (assoc :bytes (aref genome s2))))))
@@ -117,7 +117,7 @@ A value of nil means never replace.")
             (cdr (assoc :bytes (aref genome s2))) left-bytes))
     genome))
 
-(defmethod crossover ((a elf-risc-sw) (b elf-risc-sw))
+(defmethod crossover ((a elf-risc) (b elf-risc))
   "One point crossover."
   (let ((point (random (length (genome a))))
         (new (copy a)))

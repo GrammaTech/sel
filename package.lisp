@@ -9,7 +9,7 @@
    :cl-ppcre
    :elf
    :software-evolution-utility)
-  (:shadow :size :type :magic-number)
+  (:shadow :elf :size :type :magic-number)
   (:export
    ;; software objects
    :software
@@ -63,11 +63,10 @@
    :asm
    :*asm-linker*
    :elf
-   :elf-sw
-   :elf-x86-sw
-   :elf-risc-sw
-   :elf-mips-sw
-   :elf-arm-sw
+   :elf-x86
+   :elf-risc
+   :elf-mips
+   :elf-arm
    :forth
    :lisp
    :clang

@@ -11,12 +11,12 @@
 
 
 ;;; elf software objects
-(defclass elf-x86-sw (elf-sw)
+(defclass elf-x86 (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil)))
 
 (defvar x86-nop #x90)
 
-(defmethod elf ((elf elf-x86-sw))
+(defmethod elf ((elf elf-x86))
   (let ((new (copy-elf (base elf))))
     (setf (data (named-section new ".text"))
           (coerce (mapcan [#'cdr {assoc :bytes}] (copy-tree (genome elf)))
@@ -32,7 +32,7 @@
             offsets
             (append (cdr offsets) (list nil)))))
 
-(defmethod from-file ((elf elf-x86-sw) path)
+(defmethod from-file ((elf elf-x86) path)
   (setf (base elf) (read-elf path))
   (let* ((text (named-section (base elf) ".text"))
          (objdump (objdump-parse (objdump text))))
@@ -41,7 +41,7 @@
     (setf (addresses elf) (mapcar #'car (mapcan #'cdr (copy-tree objdump)))))
   elf)
 
-(defmethod apply-mutation ((elf elf-x86-sw) mut)
+(defmethod apply-mutation ((elf elf-x86) mut)
   (flet ((byte-count (genome)
            (reduce #'+ (mapcar [#'length {aget :bytes}] genome))))
     (let ((starting-bytes (byte-count (genome elf))))
@@ -95,7 +95,7 @@
             (multiple-value-call #'values
               (elf-strip genome s1 (- in-bytes out-bytes))))))))
 
-(defmethod elf-cut ((elf elf-x86-sw) s1)
+(defmethod elf-cut ((elf elf-x86) s1)
   (with-slots (genome) elf
     (let ((prev (nth s1 genome)))
       (assert (assoc :bytes prev) (prev)
@@ -104,14 +104,14 @@
                 s1 (length (aget :bytes prev))
                 (remove :bytes (copy-tree prev) :key #'car)))))
 
-(defmethod elf-insert ((elf elf-x86-sw) s1 val)
+(defmethod elf-insert ((elf elf-x86) s1 val)
   (with-slots (genome) elf
     (assert (assoc :bytes val) (val)
             "attempt to insert genome element with no bytes: ~S" val)
     (setf genome (append (subseq genome 0 s1) (list val) (subseq genome s1)))
     (elf-strip genome s1 (length (aget :bytes val)))))
 
-(defmethod elf-swap ((elf elf-x86-sw) s1 s2)
+(defmethod elf-swap ((elf elf-x86) s1 s2)
   (assert (every {assoc :bytes} (mapcar {nth _ (genome elf)} (list s1 s2)))
           (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
   (unless (= s1 s2)
@@ -141,13 +141,13 @@
                    #'< :key [#'length #'cdr]))))
   (genome elf))
 
-(defmethod crossover ((a elf-x86-sw) (b elf-x86-sw))
+(defmethod crossover ((a elf-x86) (b elf-x86))
   "One point crossover."
   (flet ((borders (elf)
            (let ((counter 0))
              (cdr (reverse (reduce (lambda (ac el) (cons (cons (+ el (caar ac))
-                                                          (incf counter))
-                                                    ac))
+                                                               (incf counter))
+                                                         ac))
                                    (mapcar #'length (genome elf))
                                    :initial-value '((0))))))))
     (let ((point (random-elt (mapcar #'cdr (intersection (borders a) (borders b)
@@ -157,7 +157,7 @@
                                  (subseq (genome b) point)))
       new)))
 
-(defmethod apply-path ((elf elf-x86-sw) key addresses &aux applied)
+(defmethod apply-path ((elf elf-x86) key addresses &aux applied)
   (loop :for el :in addresses :as i :from 0 :do
      (let* ((addr  (if (consp el) (car el) el))
             (val   (if (consp el) (cdr el) t))
@@ -167,8 +167,8 @@
          (push (list i key val) applied))))
   (reverse applied))
 
-(defmethod lines ((elf elf-x86-sw))
+(defmethod lines ((elf elf-x86))
   (map 'list {aget :bytes} (genome elf)))
 
-(defmethod (setf lines) (new (elf elf-x86-sw))
+(defmethod (setf lines) (new (elf elf-x86))
   (setf (genome elf) (coerce (map 'vector [#'list {cons :bytes}] new) 'list)))
