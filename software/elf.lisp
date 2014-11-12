@@ -11,34 +11,34 @@
 
 
 ;;; elf software objects
-(defclass elf-sw (software)
+(defclass elf (software)
   ((base      :initarg :base      :accessor base      :initform nil)
    (genome    :initarg :genome    :accessor genome    :initform nil)))
 
-(defmethod genome-string ((elf-sw elf-sw) &optional stream)
-  (format stream "~S" (genome elf-sw)))
+(defmethod genome-string ((elf elf) &optional stream)
+  (format stream "~S" (genome elf)))
 
-(defmethod copy ((elf elf-sw))
+(defmethod copy ((elf elf))
   (make-instance (type-of elf)
     :fitness (fitness elf)
     :genome (copy-tree (genome elf))
     :base (base elf))) ;; <- let elf objects *share* an elf object
 
-(defgeneric elf (elf-sw)
-  (:documentation "Return the elf object associated with ELF-SW.
-This takes the `base' of ELF-SW (which should not be changed), copies
-it, and applies the changed data in `genome' of ELF-SW."))
+(defgeneric elf (elf)
+  (:documentation "Return the ELF:ELF object associated with ELF.
+This takes the `base' of ELF (which should not be changed), copies it,
+and applies the changed data in `genome' of ELF."))
 
-(defmethod phenome ((elf elf-sw) &key (bin (temp-file-name)))
+(defmethod phenome ((elf elf) &key (bin (temp-file-name)))
   (write-elf (elf elf) bin)
   (multiple-value-bind (stdout stderr exit) (shell "chmod +x ~a" bin)
     (declare (ignorable stdout stderr))
     (values bin exit)))
 
-(defmethod pick-good ((elf elf-sw)) (random (length (genome elf))))
-(defmethod pick-bad ((elf elf-sw)) (random (length (genome elf))))
+(defmethod pick-good ((elf elf)) (random (length (genome elf))))
+(defmethod pick-bad ((elf elf)) (random (length (genome elf))))
 
-(defmethod mutate ((elf elf-sw))
+(defmethod mutate ((elf elf))
   "Randomly mutate ELF."
   (setf (fitness elf) nil)
   (let ((op (case (random-elt '(cut insert swap))
@@ -49,11 +49,11 @@ it, and applies the changed data in `genome' of ELF-SW."))
     (apply-mutation elf op)
     (values elf op)))
 
-(defgeneric elf-cut (elf-sw s1)
-  (:documentation "Cut place S1 from the genome of ELF-SW."))
+(defgeneric elf-cut (elf s1)
+  (:documentation "Cut place S1 from the genome of ELF."))
 
-(defgeneric elf-insert (elf-sw s1 val)
-  (:documentation "Insert VAL before S1 in the genome of ELF-SW."))
+(defgeneric elf-insert (elf s1 val)
+  (:documentation "Insert VAL before S1 in the genome of ELF."))
 
-(defgeneric elf-swap (elf-sw s1 s2)
-  (:documentation "Swap S1 and S2 in genome of ELF-SW."))
+(defgeneric elfap (elf s1 s2)
+  (:documentation "Swap S1 and S2 in genome of ELF."))

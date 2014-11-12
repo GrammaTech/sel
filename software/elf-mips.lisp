@@ -5,4 +5,4 @@
 ;;; Code:
 (in-package :software-evolution)
 
-(defclass elf-mips-sw (elf-risc-sw) ())
+(defclass elf-mips (elf-risc) ())

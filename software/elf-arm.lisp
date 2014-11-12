@@ -9,5 +9,5 @@
 ;; http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0170b/Caccegih.html
 (defvar arm-nop #xE1A00000)
 
-(defclass elf-arm-sw (elf-risc-sw)
+(defclass elf-arm (elf-risc)
   ((nop :initarg :nop :accessor nop :initform arm-nop)))
