@@ -384,12 +384,21 @@
 ;;; Diff tests
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))
-    `(let ((,ref-sym (sxhash (reference ,software))))
+    `(let ((,ref-sym (copy-tree (reference ,software))))
        ,@body
-       (is (equal ,ref-sym (sxhash (reference ,software)))))))
+       (is (tree-equal ,ref-sym (reference ,software))))))
 
 (deftest diff-size ()
   (with-fixture diff (is (= 4 (size *soft*)))))
+
+(deftest diff-protects-reference ()
+  ;; NOTE: this fails, see the long comment in diff.lisp for an
+  ;;       explanation.
+  (with-fixture diff
+    (with-static-reference *soft*
+      (setf (nth 1 (genome *soft*)) nil)
+      (is (tree-equal (genome *soft*)
+                      '(((:CODE 1)) NIL ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest diff-lines ()
   (with-fixture diff
@@ -414,9 +423,9 @@
                         ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest some-diff-swap-mutations ()
-  ;; NOTE: weirdly this appears to fail every-other time, but only
-  ;;       when run inside of the `deftest' form.  If the body of this
-  ;;       test is run in the REPL it works consistently.
+  ;; NOTE: this often fails because of the failure of the genome
+  ;;       method in diff.lisp to properly protect against complex set
+  ;;       calls, see the long note in diff.lisp for an explanation.
   (with-fixture diff
     (with-static-reference *soft*
       (is (tree-equal (apply-mutation *soft* '(:swap 0 2))
