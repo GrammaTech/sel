@@ -14,9 +14,9 @@
 (defclass elf-cisc (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil)))
 
-(defvar cisc-nop #x90)
+(defvar elf-cisc-nop #x90)
 
-(defvar cisc-elf-type 'elf:objdump
+(defvar elf-cisc-type 'elf:objdump
   "Type of disassemblable ELF object to create.
 Should be either ELF:OBJDUMP or ELF:CSURF.")
 
@@ -27,7 +27,7 @@ Should be either ELF:OBJDUMP or ELF:CSURF.")
     new))
 
 (defmethod from-file ((elf elf-cisc) path)
-  (setf (base elf) (read-elf path cisc-elf-type))
+  (setf (base elf) (read-elf path elf-cisc-type))
   (let ((disasm (disassemble-section (base elf) ".text")))
     (setf (genome elf) (mapcar (lambda-bind ((address bytes disasm))
                                  (declare (ignorable address))
@@ -54,7 +54,7 @@ Should be either ELF:OBJDUMP or ELF:CSURF.")
                :obj elf)))))
 
 (defun elf-padd (genome place num-bytes flags)
-  (let ((base (cons (list :code cisc-nop) (remove :code flags :key #'car))))
+  (let ((base (cons (list :code elf-cisc-nop) (remove :code flags :key #'car))))
     (append (subseq genome 0 place)
             (loop :for i :below num-bytes :collect (copy-tree base))
             (subseq genome place))))
@@ -62,7 +62,7 @@ Should be either ELF:OBJDUMP or ELF:CSURF.")
 (defun elf-strip (genome place num-bytes)
   (let ((length (length genome)))
     (flet ((nop-p (n genome)
-             (tree-equal (list cisc-nop) (aget :code (nth n genome))))
+             (tree-equal (list elf-cisc-nop) (aget :code (nth n genome))))
            (del (n)
              (decf num-bytes) (decf length)
              (setf genome (delete-if (constantly t) genome :start n :count 1))))
