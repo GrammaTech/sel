@@ -177,8 +177,8 @@ intermediate representation (IR).
 Executable Linkable Format (ELF) binaries in MIPS architectures.
 @end deftp
 
-@deftp Class elf-x86 fitness genome base addresses
-Executable Linkable Format (ELF) binaries in x86 architectures.
+@deftp Class elf-cisc fitness genome base addresses
+Executable Linkable Format (ELF) binaries in complex instruction set architectures.
 @end deftp
 
 @deftp Class lisp fitness genome

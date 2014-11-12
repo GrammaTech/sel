@@ -65,7 +65,7 @@
    :asm
    :*asm-linker*
    :elf
-   :elf-x86
+   :elf-cisc
    :elf-risc
    :elf-mips
    :forth

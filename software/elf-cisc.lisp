@@ -1,4 +1,4 @@
-;;; elf-x86.lisp --- software representation of x86 ELF files
+;;; elf-cisc.lisp --- software representation of cisc ELF files
 
 ;; Copyright (C) 2011-2013  Eric Schulte
 
@@ -11,18 +11,18 @@
 
 
 ;;; elf software objects
-(defclass elf-x86 (elf)
+(defclass elf-cisc (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil)))
 
-(defvar x86-nop #x90)
+(defvar cisc-nop #x90)
 
-(defmethod elf ((elf elf-x86))
+(defmethod elf ((elf elf-cisc))
   (let ((new (copy-elf (base elf))))
     (setf (data (named-section new ".text"))
           (coerce (mappend [#'cdr {assoc :code}] (genome elf)) 'vector))
     new))
 
-(defmethod from-file ((elf elf-x86) path)
+(defmethod from-file ((elf elf-cisc) path)
   (setf (base elf) (read-elf path))
   (let* ((text (named-section (base elf) ".text"))
          (disasm (disasm elf ".text")))
@@ -31,7 +31,7 @@
     (setf (addresses elf) (mapcar #'car disasm)))
   elf)
 
-(defmethod apply-mutation ((elf elf-x86) mut)
+(defmethod apply-mutation ((elf elf-cisc) mut)
   (flet ((byte-count (genome)
            (reduce #'+ (mapcar [#'length {aget :code}] genome))))
     (let ((starting-bytes (byte-count (genome elf))))
@@ -49,7 +49,7 @@
                :obj elf)))))
 
 (defun elf-padd (genome place num-bytes flags)
-  (let ((base (cons (list :code x86-nop) (remove :code flags :key #'car))))
+  (let ((base (cons (list :code cisc-nop) (remove :code flags :key #'car))))
     (append (subseq genome 0 place)
             (loop :for i :below num-bytes :collect (copy-tree base))
             (subseq genome place))))
@@ -57,7 +57,7 @@
 (defun elf-strip (genome place num-bytes)
   (let ((length (length genome)))
     (flet ((nop-p (n genome)
-             (tree-equal (list x86-nop) (aget :code (nth n genome))))
+             (tree-equal (list cisc-nop) (aget :code (nth n genome))))
            (del (n)
              (decf num-bytes) (decf length)
              (setf genome (delete-if (constantly t) genome :start n :count 1))))
@@ -88,7 +88,7 @@
             (multiple-value-call #'values
               (elf-strip genome s1 (- in-bytes out-bytes))))))))
 
-(defmethod elf-cut ((elf elf-x86) s1)
+(defmethod elf-cut ((elf elf-cisc) s1)
   (let ((genome (genome elf)))
     (let ((prev (nth s1 genome)))
       (assert (assoc :code prev) (prev)
@@ -97,7 +97,7 @@
                 s1 (length (aget :code prev))
                 (remove :code (copy-tree prev) :key #'car)))))
 
-(defmethod elf-insert ((elf elf-x86) s1 val)
+(defmethod elf-insert ((elf elf-cisc) s1 val)
   (let ((genome (genome elf)))
     (assert (assoc :code val) (val)
             "attempt to insert genome element with no bytes: ~S" val)
@@ -105,7 +105,7 @@
           (append (subseq genome 0 s1) (list val) (subseq genome s1)))
     (elf-strip (genome elf) s1 (length (aget :code val)))))
 
-(defmethod elf-swap ((elf elf-x86) s1 s2)
+(defmethod elf-swap ((elf elf-cisc) s1 s2)
   (assert (every {assoc :code} (mapcar {nth _ (genome elf)} (list s1 s2)))
           (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
   (unless (= s1 s2)
@@ -135,7 +135,7 @@
                    #'< :key [#'length #'cdr]))))
   (genome elf))
 
-(defmethod crossover ((a elf-x86) (b elf-x86))
+(defmethod crossover ((a elf-cisc) (b elf-cisc))
   "One point crossover."
   (flet ((borders (elf)
            (let ((counter 0))
@@ -151,7 +151,7 @@
                                  (subseq (genome b) point)))
       new)))
 
-(defmethod apply-path ((elf elf-x86) key addresses &aux applied)
+(defmethod apply-path ((elf elf-cisc) key addresses &aux applied)
   (loop :for el :in addresses :as i :from 0 :do
      (let* ((addr  (if (consp el) (car el) el))
             (val   (if (consp el) (cdr el) t))
@@ -161,8 +161,8 @@
          (push (list i key val) applied))))
   (reverse applied))
 
-(defmethod lines ((elf elf-x86))
+(defmethod lines ((elf elf-cisc))
   (map 'list {aget :code} (genome elf)))
 
-(defmethod (setf lines) (new (elf elf-x86))
+(defmethod (setf lines) (new (elf elf-cisc))
   (setf (genome elf) (coerce (map 'vector [#'list {cons :code}] new) 'list)))

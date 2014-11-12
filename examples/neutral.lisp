@@ -70,7 +70,7 @@ Options:
          (type (case (intern (string-upcase (pathname-type path)))
                  (s 'asm)
                  (c 'cil)
-                 (t 'elf-x86)))
+                 (t 'elf-cisc)))
          (num 256) (steps 16) keep
          (res-dir "neutral-variants")
          orig previous collected linker flags)

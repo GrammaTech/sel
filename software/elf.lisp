@@ -28,20 +28,6 @@
 This takes the `base' of ELF (which should not be changed), copies it,
 and applies the changed data in `genome' of ELF."))
 
-(defgeneric disasm (elf section-name)
-  (:documentation
-   "Return the disassembly of instructions in SECTION-NAME in ELF.
-Specifically this will return a list of instructions in the section,
-where the element for each instruction includes the address of the
-instruction, the content of the instruction (as a list of byte values)
-and the disassembly of the instruction (as a string)."))
-
-(defmethod disasm ((elf elf) section-name)
-  ;; Implementation of disasm using the objdump support provided by
-  ;; the ELF library.
-  (mapcan #'cdr
-          (objdump-parse (objdump (named-section (base elf) section-name)))))
-
 (defmethod from-file ((elf elf) path)
   (setf (base elf) (read-elf path))
   elf)
