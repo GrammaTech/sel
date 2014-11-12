@@ -187,18 +187,33 @@
        (setf (genome elf) (elf-strip elf (genome elf) place num-bytes)))
      (mapcar (lambda-bind ((place . value))
                (let ((point (position-if {assoc place} (genome elf))))
-                 ;; clean out placeholder
-                 (setf (nth point (genome elf))
-                       (remove place (nth point (genome elf)) :key #'car))
-                 ;; perform replacement
-                 (multiple-value-bind (genome left) (elf-replace elf point value)
-                   (setf (genome elf) genome)
-                   ;; pass along any extra bytes for later removal
-                   (cons point (or left 0)))))
+                 ;; NOTE: It is possible that no point is found.  This
+                 ;;       would be the case if the previous resulted
+                 ;;       in a call to `elf-strip' (from `elf-remove')
+                 ;;       which deleted the line of the genome holding
+                 ;;       the PLACE marker.  In this case we can't
+                 ;;       replace something that has already been
+                 ;;       removed, so we don't do anything.
+                 (if point
+                     (progn
+                       ;; clean out placeholder
+                       (setf (nth point (genome elf))
+                             (remove place (nth point (genome elf)) :key #'car))
+                       ;; perform replacement
+                       (multiple-value-bind (genome left)
+                           (elf-replace elf point value)
+                         (setf (genome elf) genome)
+                         ;; pass along any extra bytes for later removal
+                         (cons point (or left 0))))
+                     ;; When the place marker has been removed as
+                     ;; described in the previous note, we simply
+                     ;; return an empty place and 0 as num-bytes.
+                     (cons 0 0))))
              ;; both markers with their values, sorted to operate on
              ;; the smaller (by byte width) instruction first
              (sort (mapcar #'cons
-                           (list :s1 :s2)
+                           (list :s1 :s2) ; s1 is paired with contents
+                                          ; of s2, and vice versa.
                            (mapcar [#'cdr #'copy-tree {nth _ (genome elf)}]
                                    (list s2 s1)))
                    #'< :key [#'length #'cdr]))))
