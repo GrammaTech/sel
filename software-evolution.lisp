@@ -213,6 +213,7 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                               (or (equal ,fit-var ,target)
                                                   (funcall *fitness-predicate*
                                                            ,fit-var ,target)))
+                                        (setq *running* nil)
                                         (return ,v)))))
                         (mutate (obj) (declare (ignorable obj)) nil))))))
       (when target
