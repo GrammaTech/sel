@@ -168,7 +168,7 @@ A value of nil means never replace.")
                            copy)
                          element))
                    (indexed (coerce genome 'list))))
-            (elf-replace elf val))))))
+            (elf-replace elf s1 val))))))
 
 (defmethod elf-swap ((elf elf-risc) s1 s2)
   ;; NOTE: see the note above in the body of `apply-mutation'.
