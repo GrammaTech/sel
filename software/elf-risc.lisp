@@ -26,12 +26,20 @@
   (with-slots (base genome) elf
     (let ((new (copy-elf base))
           (offset 0))
-      (mapc (lambda (sec)
-              (setf (data sec)
-                    (map 'vector {aget :bytes}
-                         (subseq genome offset (incf offset (elf:size sec))))))
-            (remove-if-not [{eql :load}  #'elf:type]
-                           (sections new)))
+      ;; If this file has a .text section, simply replace the contents
+      ;; of that section.
+      (if (named-section base ".text")
+          (setf (data (named-section base ".text"))
+                (map 'vector {aget :bytes} genome))
+          ;; Otherwise split up the genome among all loadable
+          ;; sections.
+          (mapc (lambda (sec)
+                  (setf (data sec)
+                        (map 'vector {aget :bytes}
+                             (subseq genome offset
+                                     (incf offset (elf:size sec))))))
+                (remove-if-not [{eql :load}  #'elf:type]
+                               (sections new))))
       new)))
 
 (defmethod from-file ((elf elf-risc) path)
@@ -81,7 +89,7 @@
     genome))
 
 ;; Thanks to the uniform width of RISC instructions, this is the only
-;; operation which requires any bookkeeping.  We'll try to 
+;; operation which requires any bookkeeping.  We'll try to
 (defvar elf-risc-max-displacement nil
   "Maximum range that `elf-insert' will displace instructions.
 This is the range within which insertion will search for a nop to
