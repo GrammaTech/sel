@@ -23,7 +23,7 @@
     :base (base elf)))
 
 (defmethod elf ((elf elf-risc))
-  (with-slots (base genome) elf
+  (with-accessors ((base base) (genome genome)) elf
     (let ((new (copy-elf base))
           (offset 0))
       ;; If this file has a .text section, simply replace the contents
@@ -87,7 +87,7 @@
             mut starting-length (length (genome elf)))))
 
 (defmethod elf-cut ((elf elf-risc) s1)
-  (with-slots (genome nop) elf
+  (with-accessors ((genome genome) (nop nop)) elf
     (setf (cdr (assoc :code (aref genome s1))) nop)
     genome))
 
@@ -100,7 +100,7 @@ delete, if none is found in this range insertion becomes replacement.
 A value of nil means never replace.")
 
 (defmethod elf-insert ((elf elf-risc) s1 val)
-  (with-slots (genome base nop) elf
+  (with-accessors ((genome genome) (base base) (nop nop)) elf
     (let* ((borders
             ;; Only return the borders between sections if this is the
             ;; genome has been concatenated from multiple ELF
@@ -142,7 +142,7 @@ A value of nil means never replace.")
     genome))
 
 (defmethod elf-swap ((elf elf-risc) s1 s2)
-  (with-slots (genome) elf
+  (with-accessors ((genome genome)) elf
     (let ((left-bytes  (copy-tree (cdr (assoc :code (aref genome s1)))))
           (right-bytes (copy-tree (cdr (assoc :code (aref genome s2))))))
       (setf (cdr (assoc :code (aref genome s1))) right-bytes

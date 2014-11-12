@@ -101,7 +101,7 @@
   (let ((op (first mutation))
         (s1 (second mutation))
         (s2 (third mutation)))
-    (with-slots (genome) simple
+    (with-accessors ((genome genome)) simple
       (setf genome (case op
                      (:cut (append (subseq genome 0 s1)
                                    (subseq genome (1+ s1))))
@@ -115,7 +115,7 @@
 
 (defmethod mcmc-step ((simple simple))
   (let ((point (random (size simple))))
-    (with-slots (genome) simple
+    (with-accessors ((genome genome)) simple
       (setf genome
             (if (zerop (random 2))
                 ;; delete an element
