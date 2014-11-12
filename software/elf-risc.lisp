@@ -89,18 +89,30 @@ delete, if none is found in this range insertion becomes replacement.
 A value of nil means never replace.")
 
 (defmethod elf-insert ((elf elf-risc) s1 val)
-  (with-slots (genome nop) elf
-    (let* ((borders (reduce (lambda (offsets ph)
-                              (cons (+ (car offsets) (filesz ph))
-                                    offsets))
-                            (program-table (base elf)) :initial-value '(0)))
+  (with-slots (genome base nop) elf
+    (let* ((borders
+            ;; Only return the borders between sections if this is the
+            ;; genome has been concatenated from multiple ELF
+            ;; sections.  We check this by looking for a .text
+            ;; section, and if one is found we know that it is the
+            ;; sole section in the genome, so no borders are
+            ;; necessary.
+            (if (named-section base ".text")
+                nil
+                (reduce (lambda (offsets ph)
+                          (cons (+ (car offsets) (filesz ph))
+                                offsets))
+                        (program-table (base elf)) :initial-value '(0))))
            (backwards-p t) (forwards-p t)
            (nop-location               ; find the nearest nop in range
-            (loop :for i :below (or elf-risc-max-displacement infinity) :do
+            (loop :for i :below (or elf-risc-max-displacement (length genome))
+               :do
                (cond
-                 ;; don't cross borders
-                 ((member (+ s1 i) borders) (setf forwards-p nil))
-                 ((member (- s1 i) borders) (setf backwards-p nil))
+                 ;; don't cross borders or leave the genome
+                 ((or (member (+ s1 i) borders) (>= (+ s1 i) (length genome)))
+                  (setf forwards-p nil))
+                 ((or (member (- s1 i) borders) (< (- s1 i) 0))
+                  (setf backwards-p nil))
                  ((and (not forwards-p) (not backwards-p)) (return nil))
                  ;; continue search forwards and backwards
                  ((and forwards-p
