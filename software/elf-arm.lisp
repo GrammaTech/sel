@@ -29,8 +29,12 @@
        [#'list {cons :code} {mappend #'cdar} {coerce _ 'list}]
        (chunks genome width)))
 
-(defmethod from-file :after ((elf elf-arm) path)
-  (setf (genome elf) (group-genome-bytes (genome elf) arm-op-width)))
+(defmethod from-file ((elf elf-arm) path)
+  (setf (base elf) (read-elf path))
+  (setf (genome elf) (group-genome-bytes (risc-genome-from-elf (base elf))
+                                         arm-op-width))
+  elf)
 
-(defmethod (setf lines) :after ((elf elf-arm) path)
+(defmethod (setf lines) :around ((elf elf-arm) path)
+  (call-next-method)
   (setf (genome elf) (group-genome-bytes (genome elf) arm-op-width)))
