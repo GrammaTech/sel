@@ -10,7 +10,7 @@
    :diff
    :elf
    :software-evolution-utility)
-  (:shadow :elf :size :type :magic-number)
+  (:shadow :elf :size :type :magic-number :diff)
   (:export
    ;; software objects
    :software
@@ -61,7 +61,7 @@
    :simple
    :light
    :sw-range
-   :sw-diff
+   :diff
    :asm
    :*asm-linker*
    :elf
