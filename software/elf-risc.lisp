@@ -36,10 +36,10 @@
           (mapc (lambda (sec)
                   (setf (data sec)
                         (coerce
-                         (mapcan {aget :bytes}
-                                 (coerce (subseq genome offset
-                                                 (incf offset (elf:size sec)))
-                                         'list))
+                         (mappend {aget :bytes}
+                                  (coerce (subseq genome offset
+                                                  (incf offset (elf:size sec)))
+                                          'list))
                          'vector)))
                 (remove-if-not [{eql :load}  #'elf:type]
                                (sections new))))
@@ -68,7 +68,7 @@
   elf)
 
 (defmethod lines ((elf elf-risc))
-  (mapcan {aget :bytes} (coerce (genome elf) 'list)))
+  (mappend {aget :bytes} (coerce (genome elf) 'list)))
 
 (defmethod (setf lines) (new (elf elf-risc))
   (setf (genome elf) (map 'vector [#'list {cons :bytes}] new)))
