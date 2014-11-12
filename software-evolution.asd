@@ -15,6 +15,7 @@ techniques."
                curry-compose-reader-macros
                split-sequence
                cl-ppcre
+               diff
                elf
                software-evolution-utility)
   :in-order-to ((test-op (test-op software-evolution-test)))

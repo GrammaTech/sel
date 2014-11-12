@@ -121,6 +121,9 @@ Stashed away in the VC history.
 ** TODO More efficient storage for ELF files
 For now going to try to rebase ELF on top of SIMPLE.
 
+Actually fuck it, lets just start with a clean separate =diff= class,
+and we can incorporate if it works.
+
 *** abandoned approach -- new diff representation
 One option is to create an explicit diff representation.  Ideally
 something which can be included downstream.

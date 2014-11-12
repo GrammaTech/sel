@@ -19,7 +19,7 @@
 (defmethod copy ((elf elf-risc))
   (make-instance (type-of elf)
     :fitness (fitness elf)
-    :genome (map 'vector #'copy-tree (coerce (genome elf) 'list))
+    :genome (copy-tree (genome elf))
     :base (base elf)))
 
 (defmethod elf ((elf elf-risc))

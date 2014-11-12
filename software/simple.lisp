@@ -273,7 +273,6 @@ of range references to an external REFERENCE code array."))
 (defmethod reference ((range sw-range)) (slot-value range 'reference))
 
 (defmethod (setf reference) (new (range sw-range))
-  (declare (ignorable new))
   (assert (typep new 'vector) (new) "Reference must be a vector.")
   (setf (slot-value range 'reference) new)
   (setf (genome range) (list (cons 0 (1- (length new))))))

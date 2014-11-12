@@ -7,6 +7,7 @@
    :curry-compose-reader-macros
    :split-sequence
    :cl-ppcre
+   :diff
    :elf
    :software-evolution-utility)
   (:shadow :elf :size :type :magic-number)
