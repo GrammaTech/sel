@@ -34,7 +34,7 @@ techniques."
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
              (:file "elf"  :depends-on ("diff"))
-             (:file "elf-x86"  :depends-on ("elf"))
+             (:file "elf-cisc" :depends-on ("elf"))
              (:file "elf-risc" :depends-on ("elf"))
              (:file "elf-mips" :depends-on ("elf-risc"))
              (:file "elf-arm"  :depends-on ("elf-risc"))
