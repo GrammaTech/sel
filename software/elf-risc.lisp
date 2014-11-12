@@ -40,10 +40,19 @@
           genome
           (coerce
            (mapcar [#'list {cons :bytes}]
-                   (apply #'concatenate 'list
-                          (mapcar #'data
-                                  (remove-if-not [{eql :load}  #'elf:type]
-                                                 (sections base)))))
+                   (or
+                    ;; When initializing the genome, first try to read
+                    ;; a .text section if present and named.
+                    (coerce (data (named-section base ".text")) 'list)
+                    ;; Otherwise we assume that the elf file is
+                    ;; stripped.  In this later case, collect all
+                    ;; sections with program headers of type :LOAD.
+                    (apply #'concatenate 'list
+                           (mapcar #'data
+                                   (remove-if-not
+                                    [{eql :load}  #'elf:type #'elf:ph]
+                                    (remove-if-not #'elf:ph
+                                                   (sections (base elf))))))))
            'vector)))
   elf)
 
