@@ -151,7 +151,7 @@
 
 
 ;;; ELF representation
-(defun bytes (elf) (mappend [#'cdr {assoc :bytes}] (genome elf)))
+(defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 
 (deftest elf-read ()
   (with-fixture gcd-elf
@@ -206,7 +206,7 @@
           ;; more likely that there are sufficient no-ops to delete.
           ;; This works with the local compiled version of gcd, but
           ;; may fail in the future or on other systems.
-          (to-copy (position-if [{= 1} #'length {aget :bytes}] (genome *gcd*))))
+          (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*))))
       (apply-mutation variant (list :insert 0 to-copy))
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equal-it (bytes *gcd*) (bytes variant)))))))
@@ -215,13 +215,13 @@
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
-           (to-copy (position-if [{= 1} #'length {aget :bytes}] (genome *gcd*)))
+           (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*)))
            (new-genome (software-evolution::elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
-      (is (= (length (mappend {aget :bytes} (genome *gcd*)))
-             (length (mappend {aget :bytes} new-genome))))
-      (is (not (equal-it (mappend {aget :bytes} (genome *gcd*))
-                         (mappend {aget :bytes} new-genome)))))))
+      (is (= (length (mappend {aget :code} (genome *gcd*)))
+             (length (mappend {aget :code} new-genome))))
+      (is (not (equal-it (mappend {aget :code} (genome *gcd*))
+                         (mappend {aget :code} new-genome)))))))
 
 (deftest elf-swap-changes-but-maintains-length ()
   (with-fixture gcd-elf

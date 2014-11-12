@@ -30,13 +30,13 @@
       ;; of that section.
       (if (named-section base ".text")
           (setf (data (named-section base ".text"))
-                (coerce (mappend {aget :bytes} (coerce genome 'list)) 'vector))
+                (coerce (mappend {aget :code} (coerce genome 'list)) 'vector))
           ;; Otherwise split up the genome among all loadable
           ;; sections.
           (mapc (lambda (sec)
                   (setf (data sec)
                         (coerce
-                         (mappend {aget :bytes}
+                         (mappend {aget :code}
                                   (coerce (subseq genome offset
                                                   (incf offset (elf:size sec)))
                                           'list))
@@ -50,7 +50,7 @@
     (setf base (read-elf path)
           genome
           (coerce
-           (mapcar [#'list {cons :bytes} #'list]
+           (mapcar [#'list {cons :code} #'list]
                    (or
                     ;; When initializing the genome, first try to read
                     ;; a .text section if present and named.
@@ -68,10 +68,10 @@
   elf)
 
 (defmethod lines ((elf elf-risc))
-  (mappend {aget :bytes} (coerce (genome elf) 'list)))
+  (mappend {aget :code} (coerce (genome elf) 'list)))
 
 (defmethod (setf lines) (new (elf elf-risc))
-  (setf (genome elf) (map 'vector [#'list {cons :bytes}] new)))
+  (setf (genome elf) (map 'vector [#'list {cons :code}] new)))
 
 (defmethod apply-mutation ((elf elf-risc) mut)
   (let ((starting-length (length (genome elf))))
@@ -79,7 +79,7 @@
           (ecase (car mut)
             (:cut    (elf-cut elf (second mut)))
             (:insert (elf-insert elf (second mut)
-                                 (cdr (assoc :bytes
+                                 (cdr (assoc :code
                                              (aref (genome elf) (third mut))))))
             (:swap   (elf-swap elf (second mut) (third mut)))))
     (assert (= (length (genome elf)) starting-length)
@@ -88,7 +88,7 @@
 
 (defmethod elf-cut ((elf elf-risc) s1)
   (with-slots (genome nop) elf
-    (setf (cdr (assoc :bytes (aref genome s1))) nop)
+    (setf (cdr (assoc :code (aref genome s1))) nop)
     genome))
 
 ;; Thanks to the uniform width of RISC instructions, this is the only
@@ -127,26 +127,26 @@ A value of nil means never replace.")
                  ((and (not forwards-p) (not backwards-p)) (return nil))
                  ;; continue search forwards and backwards
                  ((and forwards-p
-                       (equal nop (cdr (assoc :bytes (aref genome (+ s1 i))))))
+                       (equal nop (cdr (assoc :code (aref genome (+ s1 i))))))
                   (return (+ s1 i)))
                  ((and backwards-p
-                       (equal nop (cdr (assoc :bytes (aref genome (- s1 i))))))
+                       (equal nop (cdr (assoc :code (aref genome (- s1 i))))))
                   (return (- s1 i)))))))
       (if nop-location                 ; displace all bytes to the nop
           (reduce (lambda (previous i)
-                    (let ((current (cdr (assoc :bytes (aref genome i)))))
-                      (setf (cdr (assoc :bytes (aref genome i))) previous)
+                    (let ((current (cdr (assoc :code (aref genome i)))))
+                      (setf (cdr (assoc :code (aref genome i))) previous)
                       current))
                   (range s1 nop-location) :initial-value val)
-          (setf (cdr (assoc :bytes (aref genome s1))) val)))
+          (setf (cdr (assoc :code (aref genome s1))) val)))
     genome))
 
 (defmethod elf-swap ((elf elf-risc) s1 s2)
   (with-slots (genome) elf
-    (let ((left-bytes  (copy-tree (cdr (assoc :bytes (aref genome s1)))))
-          (right-bytes (copy-tree (cdr (assoc :bytes (aref genome s2))))))
-      (setf (cdr (assoc :bytes (aref genome s1))) right-bytes
-            (cdr (assoc :bytes (aref genome s2))) left-bytes))
+    (let ((left-bytes  (copy-tree (cdr (assoc :code (aref genome s1)))))
+          (right-bytes (copy-tree (cdr (assoc :code (aref genome s2))))))
+      (setf (cdr (assoc :code (aref genome s1))) right-bytes
+            (cdr (assoc :code (aref genome s2))) left-bytes))
     genome))
 
 (defmethod crossover ((a elf-risc) (b elf-risc))

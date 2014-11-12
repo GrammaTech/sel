@@ -426,7 +426,7 @@ the genome of an ASM object."
                               (remove-if-not #'stringp flines))
        :for lines :in (cdr (mapcar
                             {remove-if
-                             [{scan "^[\\s]*\\."} {aget :line} {aref genome}]}
+                             [{scan "^[\\s]*\\."} {aget :code} {aref genome}]}
                              (split-sequence-if #'stringp flines)))
        :do (mapc (lambda (addr line) (setf (gethash addr map) line))
                  addrs lines))

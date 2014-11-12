@@ -51,7 +51,7 @@
             (loop :for line = (read-line in nil) :while line :append
                (if (and (> (length line) 2) (string= "#! " (subseq line 0 3)))
                    (prog1 nil (setf (shebang forth) line))
-                   (mapcar [#'list {cons :line}]
+                   (mapcar [#'list {cons :code}]
                            (mapcan (lambda (el)
                                      (if (equal :string el)
                                          (list (pop strings))

@@ -11,9 +11,8 @@
 
 
 ;;; elf software objects
-(defclass elf (software)
-  ((base      :initarg :base      :accessor base      :initform nil)
-   (genome    :initarg :genome    :accessor genome    :initform nil)))
+(defclass elf (simple)
+  ((base :initarg :base :accessor base :initform nil)))
 
 (defmethod genome-string ((elf elf) &optional stream)
   (format stream "~S" (genome elf)))
