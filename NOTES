@@ -117,8 +117,11 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [23/31]
-** TODO More efficient storage for ELF files
+* Tasks [24/31]
+** DONE More efficient storage for ELF files
+see file:software/diff.lisp
+
+*** double abandoned
 For now going to try to rebase ELF on top of SIMPLE.
 
 Actually fuck it, lets just start with a clean separate =diff= class,
