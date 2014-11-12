@@ -57,7 +57,8 @@
                                          (list (pop strings))
                                          (remove-if #'emptyp
                                                     (split "[\\s]+"
-                                                           (rm-inline-comments el)))))
+                                                           (rm-inline-comments
+                                                            el)))))
                                    (rm-strings (rm-eol-comments line)))))))))
   forth)
 
