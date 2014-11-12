@@ -34,6 +34,9 @@
     :genome  (genome soft)
     :fitness (fitness soft)))
 
+(defmethod crossover ((a soft) (b soft)) (copy a))
+(defmethod mutate ((a soft)) (copy a))
+
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
                          :genome (coerce (loop for i from 0 to 9 collect i)
@@ -84,7 +87,7 @@
   (:teardown (setf *gcd* nil)))
 
 (defixture population
-  (:setup (setf *population* (loop for i from 1 to 9
+  (:setup (setf *population* (loop :for i :from 1 :to 9
                                 collect (make-instance 'soft
                                           :genome (loop for j from 0 to i
                                                      collect j)
@@ -450,3 +453,14 @@
            (*max-population-size* (+ 1 before)))
       (is (< before (length (progn (incorporate (make-instance 'software))
                                    *population*)))))))
+
+(deftest terminate-evolution-on-success ()
+  (let ((counter 0)
+        (*fitness-evals* 0))
+    (flet ((test (candidate)
+             (declare (ignorable candidate))
+             (incf counter)
+             (if (= counter 5) 2 1)))
+      (with-fixture population
+        (evolve #'test :target 2)
+        (is (= *fitness-evals* 5))))))
