@@ -22,22 +22,13 @@
           (coerce (mappend [#'cdr {assoc :code}] (genome elf)) 'vector))
     new))
 
-(defun by-instruction (section &optional objdump)
-  (let* ((objdump (or objdump (objdump-parse (objdump section))))
-         (data (data section))
-         (offsets (mapcar [{- _ (address (sh section))} #'car]
-                          (mapcan #'cdr objdump))))
-    (mapcar (lambda (start end) (coerce (subseq data start end) 'list))
-            offsets
-            (append (cdr offsets) (list nil)))))
-
 (defmethod from-file ((elf elf-x86) path)
   (setf (base elf) (read-elf path))
   (let* ((text (named-section (base elf) ".text"))
-         (objdump (objdump-parse (objdump text))))
+         (disasm (disasm elf ".text")))
     (setf (genome elf) (mapcar [#'list {cons :code}]
-                               (by-instruction text objdump)))
-    (setf (addresses elf) (mapcar #'car (mappend #'cdr objdump))))
+                               (mapcar #'second disasm)))
+    (setf (addresses elf) (mapcar #'car disasm)))
   elf)
 
 (defmethod apply-mutation ((elf elf-x86) mut)

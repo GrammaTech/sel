@@ -82,6 +82,7 @@
    ;; software backend specific methods
    :reference
    :base
+   :disasm
    :addresses
    :instrument
    ))
