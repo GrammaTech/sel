@@ -31,13 +31,14 @@ genome methods should have no effect.")
     (let ((copy (call-next-method)))
       (setf (reference copy) (reference diff))
       (setf (diffs copy)     (diffs diff))
+      (setf (type copy)      (type diff))
       copy)))
 
 (defmethod genome ((diff diff))
   ;; Build the genome on the fly from the reference and diffs
   (unless *in-copy*
     (with-slots (reference diffs type) diff
-      (when (and reference diffs)       ; otherwise uninitialized
+      (when (and reference diffs type)  ; otherwise uninitialized
         (coerce (apply-seq-diff reference diffs) type)))))
 
 (defmethod (setf genome) (new (diff diff))
