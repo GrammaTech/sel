@@ -65,7 +65,9 @@
    :elf
    :elf-sw
    :elf-x86-sw
+   :elf-risc-sw
    :elf-mips-sw
+   :elf-arm-sw
    :forth
    :lisp
    :clang
@@ -73,7 +75,7 @@
    :llvm
    :linker
    :flags
-   :elf-mips-max-displacement
+   :elf-risc-max-displacement
    ;; software backend specific methods
    :reference
    :base

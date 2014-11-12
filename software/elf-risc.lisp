@@ -11,9 +11,10 @@
 
 
 ;;; elf software objects
-(defclass elf-risc-sw (elf-sw) ())
-
 (defvar risc-nop #x0)
+
+(defclass elf-risc-sw (elf-sw)
+  ((nop :initarg :nop :accessor nop :initform risc-nop)))
 
 (defmethod copy ((elf elf-risc-sw))
   (make-instance (type-of elf)
@@ -66,8 +67,8 @@
             mut starting-length (length (genome elf)))))
 
 (defmethod elf-cut ((elf elf-risc-sw) s1)
-  (with-slots (genome) elf
-    (setf (cdr (assoc :bytes (aref genome s1))) risc-nop)
+  (with-slots (genome nop) elf
+    (setf (cdr (assoc :bytes (aref genome s1))) nop)
     genome))
 
 ;; Thanks to the uniform width of RISC instructions, this is the only
@@ -79,7 +80,7 @@ delete, if none is found in this range insertion becomes replacement.
 A value of nil means never replace.")
 
 (defmethod elf-insert ((elf elf-risc-sw) s1 val)
-  (with-slots (genome) elf
+  (with-slots (genome nop) elf
     (let* ((borders (reduce (lambda (offsets ph)
                               (cons (+ (car offsets) (filesz ph))
                                     offsets))
@@ -94,10 +95,10 @@ A value of nil means never replace.")
                  ((and (not forwards-p) (not backwards-p)) (return nil))
                  ;; continue search forwards and backwards
                  ((and forwards-p
-                       (= risc-nop (cdr (assoc :bytes (aref genome (+ s1 i))))))
+                       (= nop (cdr (assoc :bytes (aref genome (+ s1 i))))))
                   (return (+ s1 i)))
                  ((and backwards-p
-                       (= risc-nop (cdr (assoc :bytes (aref genome (- s1 i))))))
+                       (= nop (cdr (assoc :bytes (aref genome (- s1 i))))))
                   (return (- s1 i)))))))
       (if nop-location                 ; displace all bytes to the nop
           (reduce (lambda (previous i)
