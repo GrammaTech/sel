@@ -24,8 +24,13 @@
 (defclass elf-arm (elf-risc)
   ((nop :initarg :nop :accessor nop :initform (arm-nop))))
 
+(defun group-genome-bytes (genome width)
+  (map 'vector
+       [#'list {cons :bytes} {mappend #'cdar} {coerce _ 'list}]
+       (chunks genome width)))
+
 (defmethod from-file :after ((elf elf-arm) path)
-  (setf (genome elf)
-        (map 'vector
-             [#'list {cons :bytes} {mappend #'cdar} {coerce _ 'list}]
-             (chunks (genome elf) arm-op-width))))
+  (setf (genome elf) (group-genome-bytes (genome elf) arm-op-width)))
+
+(defmethod (setf lines) :after ((elf elf-arm) path)
+  (setf (genome elf) (group-genome-bytes (genome elf) arm-op-width)))
