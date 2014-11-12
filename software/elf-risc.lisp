@@ -11,7 +11,7 @@
 
 
 ;;; elf software objects
-(defvar risc-nop #x0)
+(defvar risc-nop (coerce (elf:int-to-bytes #x0 1) 'list))
 
 (defclass elf-risc (elf)
   ((nop :initarg :nop :accessor nop :initform risc-nop)))
@@ -30,14 +30,17 @@
       ;; of that section.
       (if (named-section base ".text")
           (setf (data (named-section base ".text"))
-                (map 'vector {aget :bytes} genome))
+                (coerce (mappend {aget :bytes} (coerce genome 'list)) 'vector))
           ;; Otherwise split up the genome among all loadable
           ;; sections.
           (mapc (lambda (sec)
                   (setf (data sec)
-                        (map 'vector {aget :bytes}
-                             (subseq genome offset
-                                     (incf offset (elf:size sec))))))
+                        (coerce
+                         (mapcan {aget :bytes}
+                                 (coerce (subseq genome offset
+                                                 (incf offset (elf:size sec)))
+                                         'list))
+                         'vector)))
                 (remove-if-not [{eql :load}  #'elf:type]
                                (sections new))))
       new)))
@@ -47,7 +50,7 @@
     (setf base (read-elf path)
           genome
           (coerce
-           (mapcar [#'list {cons :bytes}]
+           (mapcar [#'list {cons :bytes} #'list]
                    (or
                     ;; When initializing the genome, first try to read
                     ;; a .text section if present and named.
@@ -65,7 +68,7 @@
   elf)
 
 (defmethod lines ((elf elf-risc))
-  (map 'list {aget :bytes} (genome elf)))
+  (mapcan {aget :bytes} (coerce (genome elf) 'list)))
 
 (defmethod (setf lines) (new (elf elf-risc))
   (setf (genome elf) (map 'vector [#'list {cons :bytes}] new)))
@@ -124,10 +127,10 @@ A value of nil means never replace.")
                  ((and (not forwards-p) (not backwards-p)) (return nil))
                  ;; continue search forwards and backwards
                  ((and forwards-p
-                       (= nop (cdr (assoc :bytes (aref genome (+ s1 i))))))
+                       (equal nop (cdr (assoc :bytes (aref genome (+ s1 i))))))
                   (return (+ s1 i)))
                  ((and backwards-p
-                       (= nop (cdr (assoc :bytes (aref genome (- s1 i))))))
+                       (equal nop (cdr (assoc :bytes (aref genome (- s1 i))))))
                   (return (- s1 i)))))))
       (if nop-location                 ; displace all bytes to the nop
           (reduce (lambda (previous i)
