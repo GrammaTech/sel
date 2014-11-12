@@ -87,7 +87,7 @@
   (:setup
    (let ((arch (intern (string-upcase (subseq (shell "uname -m") 0 3)))))
      (setf *gcd* (from-file (make-instance (case arch
-                                             (cisc 'elf-cisc)
+                                             (x86 'elf-cisc)
                                              (mips 'elf-mips)))
                             (gcd-dir "gcd")))))
   (:teardown (setf *gcd* nil)))

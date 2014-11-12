@@ -16,6 +16,10 @@
 
 (defvar cisc-nop #x90)
 
+(defvar cisc-elf-type 'elf:objdump
+  "Type of disassemblable ELF object to create.
+Should be either ELF:OBJDUMP or ELF:CSURF.")
+
 (defmethod elf ((elf elf-cisc))
   (let ((new (copy-elf (base elf))))
     (setf (data (named-section new ".text"))
@@ -23,11 +27,12 @@
     new))
 
 (defmethod from-file ((elf elf-cisc) path)
-  (setf (base elf) (read-elf path))
-  (let* ((text (named-section (base elf) ".text"))
-         (disasm (disasm elf ".text")))
-    (setf (genome elf) (mapcar [#'list {cons :code}]
-                               (mapcar #'second disasm)))
+  (setf (base elf) (read-elf path cisc-elf-type))
+  (let ((disasm (disassemble-section (base elf) ".text")))
+    (setf (genome elf) (mapcar (lambda-bind ((address bytes disasm))
+                                 (declare (ignorable address))
+                                 `((:code . ,bytes) (:disasm . ,disasm)))
+                               disasm))
     (setf (addresses elf) (mapcar #'car disasm)))
   elf)
 
