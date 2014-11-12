@@ -56,6 +56,20 @@
                     :reference *range-ref*)))
   (:teardown (setf *soft* nil *tfos* nil)))
 
+(defixture diff
+  (:setup
+   (setf *soft* (make-instance 'diff)
+         (genome *soft*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
+  (:teardown (setf *soft* nil)))
+
+(defixture double-diff
+  (:setup
+   (setf *soft* (make-instance 'diff)
+         (genome *soft*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))
+         *tfos* (make-instance 'diff)
+         (genome *tfos*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
+  (:teardown (setf *soft* nil *tfos* nil)))
+
 (defixture gcd-asm
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
   (:teardown (setf *gcd* nil)))
@@ -365,6 +379,59 @@
       (is (eq (reference *soft*) (reference child)))
       (is (tree-equal before-a (genome *soft*)))
       (is (tree-equal before-b (genome *tfos*))))))
+
+
+;;; Diff tests
+(defmacro with-static-reference (software &rest body)
+  (let ((ref-sym (gensym)))
+    `(let ((,ref-sym (sxhash (reference ,software))))
+       ,@body
+       (is (equal ,ref-sym (sxhash (reference ,software)))))))
+
+(deftest diff-size ()
+  (with-fixture diff (is (= 4 (size *soft*)))))
+
+(deftest diff-lines ()
+  (with-fixture diff
+    (with-static-reference *soft*
+      (is (tree-equal (lines *soft*) '((1) (2) (3) (4)))))))
+
+(deftest some-diff-cut-mutations ()
+  (with-fixture diff
+    (with-static-reference *soft*
+      (is (tree-equal (apply-mutation *soft* '(:cut 2))
+                      '(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
+      (is (tree-equal (apply-mutation *soft* '(:cut 1))
+                      '(((:CODE 1)) ((:CODE 4)))))
+      (is (tree-equal (apply-mutation *soft* '(:cut 1))
+                      '(((:CODE 1))))))))
+
+(deftest some-diff-insert-mutations ()
+  (with-fixture diff
+    (with-static-reference *soft*
+      (is (tree-equal (apply-mutation *soft* '(:insert 0 2))
+                      '(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
+                        ((:CODE 3)) ((:CODE 4))))))))
+
+(deftest some-diff-swap-mutations ()
+  ;; NOTE: weirdly this appears to fail every-other time, but only
+  ;;       when run inside of the `deftest' form.  If the body of this
+  ;;       test is run in the REPL it works consistently.
+  (with-fixture diff
+    (with-static-reference *soft*
+      (is (tree-equal (apply-mutation *soft* '(:swap 0 2))
+                      '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
+
+(deftest diff-copy ()
+  (with-fixture diff (is (typep (copy *soft*) 'diff))))
+
+(deftest diff-single-point-crossover ()
+  (with-fixture double-diff
+    (with-static-reference *soft*
+      (is (tree-equal (reference *soft*) (reference *tfos*)))
+      (let ((child (one-point-crossover *soft* *tfos*)))
+        (is (typep child 'diff))
+        (is (tree-equal (genome child) (genome *soft*)))))))
 
 
 ;;; Population tests
