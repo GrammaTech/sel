@@ -9,7 +9,7 @@
 ;;; Code:
 (in-package :software-evolution)
 
-(defclass sw-diff (simple)
+(defclass diff (simple)
   ((reference :initarg :reference :accessor reference :initform nil)
    (genome    :initarg :genome    :initform nil)
    (diffs     :initarg :diffs     :accessor diffs     :initform nil)
@@ -26,21 +26,21 @@ Similar to the range approach, but striving for a simpler interface."))
   "Cheating: set to non-nil only when mid-copy, at which point the
 genome methods should have no effect.")
 
-(defmethod copy :around ((diff sw-diff))
+(defmethod copy :around ((diff diff))
   (let ((*in-copy* t))
     (let ((copy (call-next-method)))
       (setf (reference copy) (reference diff))
       (setf (diffs copy)     (diffs diff))
       copy)))
 
-(defmethod genome ((diff sw-diff))
+(defmethod genome ((diff diff))
   ;; Build the genome on the fly from the reference and diffs
   (unless *in-copy*
     (with-slots (reference diffs type) diff
       (when (and reference diffs)       ; otherwise uninitialized
         (coerce (apply-seq-diff reference diffs) type)))))
 
-(defmethod (setf genome) (new (diff sw-diff))
+(defmethod (setf genome) (new (diff diff))
   ;; Convert the genome to a set of diffs against the reference
   (unless *in-copy*
     (setf (type diff) (type-of new))
