@@ -68,8 +68,6 @@
    :elf-x86
    :elf-risc
    :elf-mips
-   :elf-arm
-   :arm-op-width
    :forth
    :lisp
    :clang
