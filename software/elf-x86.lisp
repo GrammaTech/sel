@@ -19,7 +19,7 @@
 (defmethod elf ((elf elf-x86))
   (let ((new (copy-elf (base elf))))
     (setf (data (named-section new ".text"))
-          (coerce (mappend [#'cdr {assoc :bytes}] (genome elf)) 'vector))
+          (coerce (mappend [#'cdr {assoc :code}] (genome elf)) 'vector))
     new))
 
 (defun by-instruction (section &optional objdump)
@@ -35,14 +35,14 @@
   (setf (base elf) (read-elf path))
   (let* ((text (named-section (base elf) ".text"))
          (objdump (objdump-parse (objdump text))))
-    (setf (genome elf) (mapcar [#'list {cons :bytes}]
+    (setf (genome elf) (mapcar [#'list {cons :code}]
                                (by-instruction text objdump)))
     (setf (addresses elf) (mapcar #'car (mappend #'cdr objdump))))
   elf)
 
 (defmethod apply-mutation ((elf elf-x86) mut)
   (flet ((byte-count (genome)
-           (reduce #'+ (mapcar [#'length {aget :bytes}] genome))))
+           (reduce #'+ (mapcar [#'length {aget :code}] genome))))
     (let ((starting-bytes (byte-count (genome elf))))
       (setf (genome elf)
             (case (car mut)
@@ -58,7 +58,7 @@
                :obj elf)))))
 
 (defun elf-padd (genome place num-bytes flags)
-  (let ((base (cons (list :bytes x86-nop) (remove :bytes flags :key #'car))))
+  (let ((base (cons (list :code x86-nop) (remove :code flags :key #'car))))
     (append (subseq genome 0 place)
             (loop :for i :below num-bytes :collect (copy-tree base))
             (subseq genome place))))
@@ -66,7 +66,7 @@
 (defun elf-strip (genome place num-bytes)
   (let ((length (length genome)))
     (flet ((nop-p (n genome)
-             (tree-equal (list x86-nop) (aget :bytes (nth n genome))))
+             (tree-equal (list x86-nop) (aget :code (nth n genome))))
            (del (n)
              (decf num-bytes) (decf length)
              (setf genome (delete-if (constantly t) genome :start n :count 1))))
@@ -82,9 +82,9 @@
 (defun elf-replace (elf s1 value)
   (with-slots (genome) elf
     (let* ((prev (nth s1 genome))
-           (out-bytes (length (aget :bytes prev)))
-           (in-bytes (length (aget :bytes value))))
-      (assert (assoc :bytes prev) (prev)
+           (out-bytes (length (aget :code prev)))
+           (in-bytes (length (aget :code value))))
+      (assert (assoc :code prev) (prev)
               "attempt to replace genome element with no bytes: ~S" prev)
       (let ((genome (append (subseq genome 0 s1)
                             (list value)
@@ -97,21 +97,21 @@
 (defmethod elf-cut ((elf elf-x86) s1)
   (with-slots (genome) elf
     (let ((prev (nth s1 genome)))
-      (assert (assoc :bytes prev) (prev)
+      (assert (assoc :code prev) (prev)
               "attempt to cut genome element with no bytes: ~S" prev)
       (elf-padd (append (subseq genome 0 s1) (subseq genome (1+ s1)))
-                s1 (length (aget :bytes prev))
-                (remove :bytes (copy-tree prev) :key #'car)))))
+                s1 (length (aget :code prev))
+                (remove :code (copy-tree prev) :key #'car)))))
 
 (defmethod elf-insert ((elf elf-x86) s1 val)
   (with-slots (genome) elf
-    (assert (assoc :bytes val) (val)
+    (assert (assoc :code val) (val)
             "attempt to insert genome element with no bytes: ~S" val)
     (setf genome (append (subseq genome 0 s1) (list val) (subseq genome s1)))
-    (elf-strip genome s1 (length (aget :bytes val)))))
+    (elf-strip genome s1 (length (aget :code val)))))
 
 (defmethod elf-swap ((elf elf-x86) s1 s2)
-  (assert (every {assoc :bytes} (mapcar {nth _ (genome elf)} (list s1 s2)))
+  (assert (every {assoc :code} (mapcar {nth _ (genome elf)} (list s1 s2)))
           (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
   (unless (= s1 s2)
     ;; drop in a place holders marking what we want to change
@@ -167,7 +167,7 @@
   (reverse applied))
 
 (defmethod lines ((elf elf-x86))
-  (map 'list {aget :bytes} (genome elf)))
+  (map 'list {aget :code} (genome elf)))
 
 (defmethod (setf lines) (new (elf elf-x86))
-  (setf (genome elf) (coerce (map 'vector [#'list {cons :bytes}] new) 'list)))
+  (setf (genome elf) (coerce (map 'vector [#'list {cons :code}] new) 'list)))

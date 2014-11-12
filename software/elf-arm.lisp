@@ -26,7 +26,7 @@
 
 (defun group-genome-bytes (genome width)
   (map 'vector
-       [#'list {cons :bytes} {mappend #'cdar} {coerce _ 'list}]
+       [#'list {cons :code} {mappend #'cdar} {coerce _ 'list}]
        (chunks genome width)))
 
 (defmethod from-file :after ((elf elf-arm) path)

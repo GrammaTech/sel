@@ -31,9 +31,9 @@
 
 (declaim (inline lines))
 (defmethod lines ((simple simple))
-  (remove nil (mapcar {aget :line} (genome simple))))
+  (remove nil (mapcar {aget :code} (genome simple))))
 (defmethod (setf lines) (new (simple simple))
-  (setf (genome simple) (mapcar [#'list {cons :line}] new)))
+  (setf (genome simple) (mapcar [#'list {cons :code}] new)))
 
 (declaim (inline genome-string))
 (defmethod genome-string ((simple simple) &optional stream)
@@ -42,7 +42,7 @@
 (defun file-to-simple-genome-list (filespec)
   (with-open-file (in filespec)
     (loop :for line = (read-line in nil) :while line
-       :collect (list (cons :line line)))))
+       :collect (list (cons :code line)))))
 
 (defmethod from-file ((simple simple) path)
   (setf (genome simple) (file-to-simple-genome-list path))
@@ -81,7 +81,7 @@
                    ;; write accumulated lines to path
                    (when (and lines path) (flush))
                    (setf path (cdr (assoc :path el))))
-                 (push (cdr (assoc :line el)) lines)))
+                 (push (cdr (assoc :code el)) lines)))
           (flush)))
       ;; if single-file, then assume FILE is a file path
       (with-open-file (out file :direction :output :if-exists :supersede)
@@ -162,6 +162,80 @@ TEST may be used to test for similarity and should return a boolean (number?)."
           (values new point))
         (values (copy a) nil))))
 
+(defun context (list i size)
+  (loop :for j :from (max 0 (- i size)) :to (min (1- (length list)) (+ i size))
+     :collect (nth j list)))
+
+(defun contexts (list size)
+  "Return lists of contexts of LIST of radius SIZE."
+  (loop :for i :below (length list) :collect (context list i size)))
+
+(defun synapsing-points (a b &key
+                               (context 2)
+                               (test (lambda (a b) (if (tree-equal a b) 1 0)))
+                               (key 'identity))
+  "Return points from a and b which have similar context.
+First select a point from B at random, then select a point from A
+proportionately based on the similarity of context.  CONTEXT
+determines the number of elements on either side of the points to
+consider.  TEST should take two elements and return a similarity
+metric between 0 and 1.  KEY may be a function of one argument whose
+value is passed to TEST."
+  (let* ((ap (random (length a)))
+         (a-ctx (let ((ctx (subseq a
+                                   (max 0 (- ap context))
+                                   (min (length a) (+ ap context 1)))))
+                  (if key (mapcar key ctx) ctx)))
+         (bp
+          (position-extremum-rand (contexts b context) #'>
+                                  [#'mean {mapcar test a-ctx} {mapcar key}])))
+    ;; Debugging, print the matched sequences
+    ;; (format t "~S -- ~S~%" a-ctx (mapcar key (context b bp context)))
+    (list ap bp)))
+
+(defmethod synapsing-crossover ((a simple) (b simple)
+                                &key
+                                  (key {aget :code})
+                                  (context 2)
+                                  (test (lambda (a b) (if (tree-equal a b) 1 0))))
+  (let* ((starts (synapsing-points (genome a) (genome b)
+                                   :key key :context context :test test))
+         (ends (mapcar #'+ starts
+                       (synapsing-points (subseq (genome a) (first starts))
+                                         (subseq (genome b) (second starts))
+                                         :key key :context context :test test)))
+         (new (copy a)))
+    (setf (genome new)
+          (copy-tree (append (subseq (genome a) 0 (first starts))
+                             (subseq (genome b) (second starts) (second ends))
+                             (subseq (genome a) (first ends)))))
+    (values new (mapcar #'cons starts ends))))
+
+(defmethod similarity-crossover ((a simple) (b simple)
+                                 &key
+                                   (key {aget :code})
+                                   (test (lambda (a b) (if (tree-equal a b) 1 0))))
+  (let ((range (min (size a) (size b))))
+    (if (> range 0)
+        (let* ((new (copy a))
+               ;; random subset of A
+               (pts (sort (loop :for i :below 2 :collect (random range)) #'<))
+               (size (- (second pts) (first pts)))
+               (base (mapcar key (apply #'subseq (genome a) pts)))
+               ;; beginning of a subset of B similar to random subset of A
+               (bs
+                (proportional-pick
+                 (chunks (genome b) size)
+                 [{+ (/ 0.1 size)} #'mean {mapcar test base} {mapcar key}]))
+               (b-pts (list bs (+ bs (apply #'- (reverse pts))))))
+          (setf (genome new)
+                (append
+                 (subseq (genome a) 0 (first pts))
+                 (apply #'subseq (genome b) b-pts)
+                 (subseq (genome a) (second pts))))
+          (values new pts))
+        (values (copy a) nil))))
+
 
 ;;; light software objects
 ;;
@@ -206,9 +280,9 @@ of range references to an external REFERENCE code array."))
 
 (defmethod from-file ((range sw-range) path)
   (declare (ignorable path))
-  (error "RANGE individuals may not be initialized directly from files.
-First construct an array of lines of code from PATH and use this to
-initialize the RANGE object."))
+  (error "RANGE individuals may not be initialized directly from
+files.  First construct an array of code (lines or bytes) from PATH
+and use this to initialize the RANGE object."))
 
 (defmethod copy ((range sw-range))
   (with-slots (reference genome) range
