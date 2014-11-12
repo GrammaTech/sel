@@ -87,7 +87,7 @@
   (:setup
    (let ((arch (intern (string-upcase (subseq (shell "uname -m") 0 3)))))
      (setf *gcd* (from-file (make-instance (case arch
-                                             (x86 'elf-cisc)
+                                             (x86 'elf-x86)
                                              (mips 'elf-mips)))
                             (gcd-dir "gcd")))))
   (:teardown (setf *gcd* nil)))
@@ -178,7 +178,7 @@
 
 (deftest elf-read ()
   (with-fixture gcd-elf
-    (is (or (equal 'elf-cisc (type-of *gcd*))
+    (is (or (equal 'elf-x86 (type-of *gcd*))
             (equal 'elf-mips (type-of *gcd*))))))
 
 (deftest elf-idempotent-read-write ()

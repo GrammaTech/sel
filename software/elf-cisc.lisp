@@ -14,11 +14,54 @@
 (defclass elf-cisc (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil)))
 
-(defvar x86-nop #x90)
-(defclass elf-x86 (elf-cisc) ())
-
 (defclass elf-csurf (elf-cisc)
   ((project :initarg :project :accessor project :initform nil)))
+
+(defclass elf-x86 (elf-cisc) ())
+
+;; Yes, ARM is a RISC architecture, but it is not a fixed-width
+;; instruction, which means we treat it as CISC here.
+(defclass elf-arm (elf-cisc) ())
+
+(defgeneric pad (elf num-bytes)
+  (:documentation "Return NOP(s) sufficient to fill num-bytes"))
+
+(defgeneric nop-p (elf bytes)
+  (:documentation "Return non-nil if BYTES is a NOP for ELF."))
+
+(defvar x86-nop (list #x90))
+
+(defmethod pad ((elf elf-x86) num-bytes)
+  (loop :for i :below num-bytes :collect x86-nop))
+
+(defvar arm-nops
+  (loop :for i :below 3 :collect
+     (let ((width (expt 2 i)))
+       (coerce (elf::int-to-bytes
+                (ecase width
+                  (1 #x0)
+                  (2 #x46C0)
+                  (4 #xE1A00000))
+                width)
+               'list))))
+
+(defmethod pad ((elf elf-arm) num-bytes)
+  ;; Pad an ARM elf file with appropriately sized nops.
+  (flet ((arm-nop-for-width (width)
+           (car (remove-if-not {= width} arm-nops :key #'length))))
+    (loop :until (zerop num-bytes) :collect
+       (let ((pad (cond
+                    ((>= num-bytes 4) (arm-nop-for-width 4))
+                    ((>= num-bytes 2) (arm-nop-for-width 2))
+                    ((>= num-bytes 1) (arm-nop-for-width 1)))))
+         (decf num-bytes (length pad))
+         pad))))
+
+(defmethod nop-p ((elf elf-x86) bytes)
+  (tree-equal x86-nop bytes))
+
+(defmethod nop-p ((elf elf-arm) bytes)
+  (member bytes arm-nops :test #'tree-equal))
 
 (defmethod elf ((elf elf-cisc))
   (let ((new (copy-elf (base elf))))
@@ -67,23 +110,17 @@
                        mut starting-bytes (byte-count (genome elf)))
                :obj elf)))))
 
-(defgeneric padd (elf num-bytes)
-  (:documentation "Return NOP(s) sufficient to fill num-bytes"))
-
-(defmethod padd ((elf elf-x86) num-bytes)
-  (loop :for i :below num-bytes :collect x86-nop))
-
-(defun elf-padd (genome elf place num-bytes flags)
+(defun elf-pad (elf genome place num-bytes flags)
   (let ((flags (remove :code (copy-tree flags) :key #'car)))
     (append
      (subseq genome 0 place)
-     (mapcar [{append flags} #'list {cons :code}] (padd elf num-bytes))
+     (mapcar [{append flags} #'list {cons :code}] (pad elf num-bytes))
      (subseq genome place))))
 
-(defun elf-strip (genome place num-bytes)
+(defun elf-strip (elf genome place num-bytes)
   (let ((length (length genome)))
     (flet ((nop-p (n genome)
-             (tree-equal (list elf-cisc-nop) (aget :code (nth n genome))))
+             (nop-p elf (aget :code (nth n genome))))
            (del (n)
              (decf num-bytes) (decf length)
              (setf genome (delete-if (constantly t) genome :start n :count 1))))
@@ -110,23 +147,24 @@
                             (list value)
                             (subseq genome (1+ s1)))))
         (if (> out-bytes in-bytes)
-            (values (elf-padd genome elf s1 (- out-bytes in-bytes)
-                              ;; mention replace in flags
-                              (cons '(:mutation . :replace)
-                                    prev))
+            (values (elf-pad elf genome s1 (- out-bytes in-bytes)
+                             ;; mention replace in flags
+                             (cons '(:mutation . :replace)
+                                   prev))
                     0)
             (multiple-value-call #'values
-              (elf-strip genome s1 (- in-bytes out-bytes))))))))
+              (elf-strip elf genome s1 (- in-bytes out-bytes))))))))
 
 (defmethod elf-cut ((elf elf-cisc) s1)
   (let ((genome (genome elf)))
     (let ((prev (nth s1 genome)))
       (assert (assoc :code prev) (prev)
               "attempt to cut genome element with no bytes: ~S" prev)
-      (elf-padd (append (subseq genome 0 s1) (subseq genome (1+ s1)))
-                elf s1 (length (aget :code prev))
-                ;; mention cut in flags
-                (cons '(:mutation . :cut) prev)))))
+      (elf-pad elf
+               (append (subseq genome 0 s1) (subseq genome (1+ s1)))
+               s1 (length (aget :code prev))
+               ;; mention cut in flags
+               (cons '(:mutation . :cut) prev)))))
 
 (defmethod elf-insert ((elf elf-cisc) s1 val)
   (let ((genome (genome elf)))
@@ -134,7 +172,7 @@
             "attempt to insert genome element with no bytes: ~S" val)
     (setf (genome elf)
           (append (subseq genome 0 s1) (list val) (subseq genome s1)))
-    (elf-strip (genome elf) s1 (length (aget :code val)))))
+    (elf-strip elf (genome elf) s1 (length (aget :code val)))))
 
 (defmethod elf-swap ((elf elf-cisc) s1 s2)
   (assert (every {assoc :code} (mapcar {nth _ (genome elf)} (list s1 s2)))
@@ -146,7 +184,7 @@
     ;; remove any leftover bytes
     (mapc
      (lambda-bind ((place . num-bytes))
-       (setf (genome elf) (elf-strip (genome elf) place num-bytes)))
+       (setf (genome elf) (elf-strip elf (genome elf) place num-bytes)))
      (mapcar (lambda-bind ((place . value))
                (let ((point (position-if {assoc place} (genome elf))))
                  ;; clean out placeholder
@@ -171,8 +209,8 @@
   (flet ((borders (elf)
            (let ((counter 0))
              (cdr (reverse (reduce (lambda (ac el) (cons (cons (+ el (caar ac))
-                                                               (incf counter))
-                                                         ac))
+                                                          (incf counter))
+                                                    ac))
                                    (mapcar #'length (genome elf))
                                    :initial-value '((0))))))))
     (let ((point (random-elt (mapcar #'cdr (intersection (borders a) (borders b)
