@@ -319,6 +319,11 @@ Keyword argument FRAC will return fractions instead of raw counts."
   "Return the first N items of SEQ."
   (subseq seq 0 n))
 
+(defun chunks (list size)
+  "Return subsequent chunks of LIST of size SIZE."
+  (loop :for i :below (1+ (- (length list) size)) :by size :collect
+     (subseq list i (+ i size))))
+
 
 ;;; debugging helpers
 (defvar *note-level* 0 "Enables execution notes.")
