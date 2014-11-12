@@ -143,6 +143,8 @@
            (in-bytes (length (aget :code value))))
       (assert (assoc :code prev) (prev)
               "attempt to replace genome element with no bytes: ~S" prev)
+      (assert (assoc :code value) (value)
+              "attempt to insert genome element with no bytes: ~S" value)
       (let ((genome (append (subseq genome 0 s1)
                             (list value)
                             (subseq genome (1+ s1)))))
@@ -177,46 +179,21 @@
 (defmethod elf-swap ((elf elf-cisc) s1 s2)
   (assert (every {assoc :code} (mapcar {nth _ (genome elf)} (list s1 s2)))
           (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
-  (unless (= s1 s2)
-    ;; drop in a place holders marking what we want to change
-    (push (list :s1) (nth s1 (genome elf)))
-    (push (list :s2) (nth s2 (genome elf)))
-    ;; remove any leftover bytes
-    (mapc
-     (lambda-bind ((place . num-bytes))
-       (setf (genome elf) (elf-strip elf (genome elf) place num-bytes)))
-     (mapcar (lambda-bind ((place . value))
-               (let ((point (position-if {assoc place} (genome elf))))
-                 ;; NOTE: It is possible that no point is found.  This
-                 ;;       would be the case if the previous resulted
-                 ;;       in a call to `elf-strip' (from `elf-remove')
-                 ;;       which deleted the line of the genome holding
-                 ;;       the PLACE marker.  In this case we can't
-                 ;;       replace something that has already been
-                 ;;       removed, so we don't do anything.
-                 (if point
-                     (progn
-                       ;; clean out placeholder
-                       (setf (nth point (genome elf))
-                             (remove place (nth point (genome elf)) :key #'car))
-                       ;; perform replacement
-                       (multiple-value-bind (genome left)
-                           (elf-replace elf point value)
-                         (setf (genome elf) genome)
-                         ;; pass along any extra bytes for later removal
-                         (cons point (or left 0))))
-                     ;; When the place marker has been removed as
-                     ;; described in the previous note, we simply
-                     ;; return an empty place and 0 as num-bytes.
-                     (cons 0 0))))
-             ;; both markers with their values, sorted to operate on
-             ;; the smaller (by byte width) instruction first
-             (sort (mapcar #'cons
-                           (list :s1 :s2) ; s1 is paired with contents
-                                          ; of s2, and vice versa.
-                           (mapcar [#'cdr #'copy-tree {nth _ (genome elf)}]
-                                   (list s2 s1)))
-                   #'< :key [#'length #'cdr]))))
+  (flet ((rep (point value)
+           (setf (genome elf) (elf-replace elf point value))))
+    (unless (= s1 s2)
+      (let* ((s1-value (copy-tree (nth s1 (genome elf))))
+             (s1-size  (length (cdr (assoc :code s1-value))))
+             (s2-value (copy-tree (nth s2 (genome elf))))
+             (s2-size  (length (cdr (assoc :code s2-value)))))
+        ;; Stick the smaller instruction in the larger hole first,
+        ;; ensuring that will free up bytes to later make up for placing
+        ;; the larger instruction in the smaller hole.
+        (if (> s1-size s2-size)
+            (progn (rep s1 s2-value)
+                   (rep s2 s1-value))
+            (progn (rep s2 s1-value)
+                   (rep s1 s2-value))))))
   (genome elf))
 
 (defmethod crossover ((a elf-cisc) (b elf-cisc))
