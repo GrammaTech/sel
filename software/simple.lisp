@@ -30,11 +30,11 @@
   ((genome :initarg :genome :accessor genome :initform nil)))
 
 (defmethod copy ((simple simple))
-  (make-instance (type-of simple) :genome (copy-tree (genome simple))))
+  (make-instance (type-of simple) :genome (copy-seq (genome simple))))
 
 (declaim (inline lines))
 (defmethod lines ((simple simple))
-  (remove nil (mapcar {aget :code} (genome simple))))
+  (remove nil (map 'list {aget :code} (genome simple))))
 (defmethod (setf lines) (new (simple simple))
   (setf (genome simple) (mapcar [#'list {cons :code}] new)))
 
@@ -114,14 +114,16 @@
     (let ((genome (genome simple)))
       (setf (genome simple)
             (case op
-              (:cut (append (subseq genome 0 s1)
-                            (subseq genome (1+ s1))))
-              (:insert (append (subseq genome 0 s1)
-                               (list (nth s2 genome))
-                               (subseq genome s1)))
-              (:swap (let ((tmp (copy-tree genome)))
-                       (setf (nth s1 tmp) (nth s2 genome))
-                       (setf (nth s2 tmp) (nth s1 genome))
+              (:cut (concatenate (class-of genome)
+                      (subseq genome 0 s1)
+                      (subseq genome (1+ s1))))
+              (:insert (concatenate (class-of genome)
+                         (subseq genome 0 s1)
+                         (list (elt genome s2))
+                         (subseq genome s1)))
+              (:swap (let ((tmp (copy-seq genome)))
+                       (setf (elt tmp s1) (elt genome s2))
+                       (setf (elt tmp s2) (elt genome s1))
                        tmp)))))))
 
 (defmethod mcmc-step ((simple simple))
@@ -130,12 +132,14 @@
       (setf genome
             (if (zerop (random 2))
                 ;; delete an element
-                (append (subseq genome 0 point)
-                        (subseq genome (1+ point)))
+                (concatenate (class-of genome)
+                  (subseq genome 0 point)
+                  (subseq genome (1+ point)))
                 ;; insert an element
-                (append (subseq genome 0 point)
-                        (list (random-elt *mcmc-fodder*))
-                        (subseq genome point)))))))
+                (concatenate (class-of genome)
+                  (subseq genome 0 point)
+                  (list (random-elt *mcmc-fodder*))
+                  (subseq genome point)))))))
 
 
 ;;; Crossover
@@ -155,10 +159,10 @@ TEST may be used to test for similarity and should return a boolean (number?)."
         (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))
               (new (copy a)))
           (setf (genome new)
-                (copy-tree (append
-                            (subseq (genome b) 0 (first points))
-                            (subseq (genome a) (first points) (second points))
-                            (subseq (genome b) (second points)))))
+                (copy-seq (concatenate (class-of (genome a))
+                           (subseq (genome b) 0 (first points))
+                           (subseq (genome a) (first points) (second points))
+                           (subseq (genome b) (second points)))))
           (values new points))
         (values (copy a) nil))))
 
@@ -168,8 +172,9 @@ TEST may be used to test for similarity and should return a boolean (number?)."
         (let ((point (random range))
               (new (copy a)))
           (setf (genome new)
-                (copy-tree (append (subseq (genome b) 0 point)
-                                   (subseq (genome a) point))))
+                (copy-seq (concatenate (class-of (genome a))
+                            (subseq (genome b) 0 point)
+                            (subseq (genome a) point))))
           (values new point))
         (values (copy a) nil))))
 
@@ -217,9 +222,10 @@ value is passed to TEST."
                                          :key key :context context :test test)))
          (new (copy a)))
     (setf (genome new)
-          (copy-tree (append (subseq (genome a) 0 (first starts))
-                             (subseq (genome b) (second starts) (second ends))
-                             (subseq (genome a) (first ends)))))
+          (copy-seq (concatenate (class-of (genome a))
+                      (subseq (genome a) 0 (first starts))
+                      (subseq (genome b) (second starts) (second ends))
+                      (subseq (genome a) (first ends)))))
     (values new (mapcar #'cons starts ends))))
 
 (defmethod similarity-crossover ((a simple) (b simple)
@@ -240,10 +246,10 @@ value is passed to TEST."
                  [{+ (/ 0.1 size)} #'mean {mapcar test base} {mapcar key}]))
                (b-pts (list bs (+ bs (apply #'- (reverse pts))))))
           (setf (genome new)
-                (append
-                 (subseq (genome a) 0 (first pts))
-                 (apply #'subseq (genome b) b-pts)
-                 (subseq (genome a) (second pts))))
+                (concatenate (class-of (genome a))
+                  (subseq (genome a) 0 (first pts))
+                  (apply #'subseq (genome b) b-pts)
+                  (subseq (genome a) (second pts))))
           (values new pts))
         (values (copy a) nil))))
 
@@ -298,7 +304,7 @@ and use this to initialize the RANGE object."))
   (with-slots (reference genome) range
     (make-instance (class-of range)
       :reference (reference range)
-      :genome (copy-tree (genome range))
+      :genome (copy-seq (genome range))
       :fitness (fitness range))))
 
 (declaim (inline range-size))
@@ -445,8 +451,8 @@ and use this to initialize the RANGE object."))
         (let ((point (random range))
               (new (copy a)))
           (setf (genome new)
-                (copy-tree (append (range-subseq (genome a) 0 point)
-                                   (range-subseq (genome b) point))))
+                (copy-seq (append (range-subseq (genome a) 0 point)
+                                  (range-subseq (genome b) point))))
           (values new point))
         (values (copy a) 0))))
 
@@ -456,7 +462,7 @@ and use this to initialize the RANGE object."))
         (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))
               (new (copy a)))
           (setf (genome new)
-                (copy-tree
+                (copy-seq
                  (append
                   (range-subseq (genome b) 0 (first points))
                   (range-subseq (genome a) (first points) (second points))

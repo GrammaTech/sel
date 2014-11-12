@@ -73,6 +73,12 @@
          (genome *tfos*) '(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
   (:teardown (setf *soft* nil *tfos* nil)))
 
+(defixture diff-array
+  (:setup
+   (setf *soft* (make-instance 'diff)
+         (genome *soft*) #(((:code 1)) ((:code 2)) ((:code 3)) ((:code 4)))))
+  (:teardown (setf *soft* nil)))
+
 (defixture gcd-asm
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
   (:teardown (setf *gcd* nil)))
@@ -440,6 +446,40 @@
         (is (typep child 'diff))
         (is (tree-equal (genome child) (genome *soft*)))))))
 
+(deftest diff-array-protects-reference ()
+  (with-fixture diff-array
+    (with-static-reference *soft*
+      (setf (genome *soft*) nil)
+      (is (tree-equal (reference *soft*)
+                      '(((:CODE 1)) ((:CODE 2)) ((:CODE 3)) ((:CODE 4))))))))
+
+(deftest diff-array-lines ()
+  (with-fixture diff-array
+    (with-static-reference *soft*
+      (is (tree-equal (lines *soft*) '((1) (2) (3) (4)))))))
+
+(deftest some-diff-array-cut-mutations ()
+  (with-fixture diff-array
+    (with-static-reference *soft*
+      (is (equalp (apply-mutation *soft* '(:cut 2))
+                  #(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
+      (is (equalp (apply-mutation *soft* '(:cut 1))
+                  #(((:CODE 1)) ((:CODE 4)))))
+      (is (equalp (apply-mutation *soft* '(:cut 1))
+                  #(((:CODE 1))))))))
+
+(deftest some-diff-array-insert-mutations ()
+  (with-fixture diff-array
+    (with-static-reference *soft*
+      (is (equalp (apply-mutation *soft* '(:insert 0 2))
+                  #(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
+                    ((:CODE 3)) ((:CODE 4))))))))
+
+(deftest some-diff-array-swap-mutations ()
+  (with-fixture diff-array
+    (with-static-reference *soft*
+      (is (equalp (apply-mutation *soft* '(:swap 0 2))
+                  #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 ;;; Population tests
 (deftest evict-population ()
