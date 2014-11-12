@@ -13,12 +13,13 @@
 
 (defun arm-nop ()
   "Return the appropriate NOP opcode based on the `arm-op-width'."
-  (int-to-bytes
-   (ecase arm-op-width
-     (1 #x0)
-     (2 #x46C0)
-     (4 #xE1A00000))
-   arm-op-width))
+  (coerce (int-to-bytes
+           (ecase arm-op-width
+             (1 #x0)
+             (2 #x46C0)
+             (4 #xE1A00000))
+           arm-op-width)
+          'list))
 
 (defclass elf-arm (elf-risc)
   ((nop :initarg :nop :accessor nop :initform (arm-nop))))
