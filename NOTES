@@ -117,7 +117,29 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [21/24]
+* Tasks [23/31]
+** TODO More efficient storage for ELF files
+For now going to try to rebase ELF on top of SIMPLE.
+
+*** abandoned approach -- new diff representation
+One option is to create an explicit diff representation.  Ideally
+something which can be included downstream.
+#+begin_src lisp
+;;; diff.lisp --- Store genomes as differences against a reference genome
+
+;;; Commentary:
+
+;; Classes which inherit from diff will replace their genome structure
+;; with a diff which instead of holding a copy of the entire genome
+;; only holds a difference against a reference version of the genome.
+
+;;; Code:
+(in-package :software-evolution)
+
+(defclass diff (software)
+  ((diffs :initarg :diffs :accessor diffs :initform nil)))
+#+end_src
+
 ** TODO Python AST Backend
 http://blueprintforge.com/blog/2012/02/27/static-modification-of-python-with-python-the-ast-module/
 
