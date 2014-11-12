@@ -37,7 +37,6 @@ techniques."
              (:file "elf-cisc" :depends-on ("elf"))
              (:file "elf-risc" :depends-on ("elf"))
              (:file "elf-mips" :depends-on ("elf-risc"))
-             (:file "elf-arm"  :depends-on ("elf-risc"))
              (:file "ast")
              (:file "cil" :depends-on ("ast"))
              (:file "clang" :depends-on ("ast"))
