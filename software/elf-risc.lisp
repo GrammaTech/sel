@@ -16,11 +16,10 @@
 (defclass elf-risc (elf)
   ((nop :initarg :nop :accessor nop :initform risc-nop)))
 
-(defmethod copy ((elf elf-risc))
-  (make-instance (type-of elf)
-    :fitness (fitness elf)
-    :genome (copy-seq (genome elf))
-    :base (base elf)))
+(defmethod copy :around ((elf elf-risc))
+  (let ((copy (call-next-method)))
+    (setf (nop copy) (nop elf))
+    copy))
 
 (defmethod elf ((elf elf-risc))
   (let ((genome (genome elf)))

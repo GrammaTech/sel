@@ -33,13 +33,13 @@
 
 (defvar *asm-linker* "gcc")
 
-(defmethod copy ((asm asm))
-  (make-instance (type-of asm)
-    :fitness (fitness asm)
-    :addr-map (copy-tree (addr-map asm))
-    :genome (copy-tree (genome asm))
-    :linker (linker asm)
-    :flags (flags asm)))
+(defmethod copy :around ((asm asm))
+  (let ((copy (call-next-method)))
+    (setf (addr-map copy) (copy-tree (addr-map asm))
+          (genome copy) (copy-tree (genome asm))
+          (linker copy) (linker asm)
+          (flags copy) (flags asm))
+    copy))
 
 (defmethod phenome ((asm asm) &key bin)
   (with-temp-file-of (src "s") (genome-string asm)

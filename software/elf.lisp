@@ -17,11 +17,10 @@
 (defmethod genome-string ((elf elf) &optional stream)
   (format stream "~S" (genome elf)))
 
-(defmethod copy ((elf elf))
-  (make-instance (type-of elf)
-    :fitness (fitness elf)
-    :genome (copy-tree (genome elf))
-    :base (base elf))) ;; <- let elf objects *share* an elf object
+(defmethod copy :around ((elf elf))
+  (let ((copy (call-next-method)))
+    (setf (base copy) (base elf))
+    copy))
 
 (defgeneric elf (elf)
   (:documentation "Return the ELF:ELF object associated with ELF.

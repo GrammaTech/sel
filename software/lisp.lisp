@@ -40,8 +40,7 @@
 
 
 ;;; Lisp software object
-(defclass lisp (software)
-  ((genome :initarg :genome :accessor genome :initform nil)))
+(defclass lisp (simple) ())
 
 (defmethod from-file ((lisp lisp) file)
   (with-open-file (in file)
@@ -58,11 +57,6 @@
 (defmethod to-file ((lisp lisp) path)
   (with-open-file (out path :direction :output :if-exists :supersede)
     (genome-string lisp out)))
-
-(defmethod copy ((lisp lisp))
-  (make-instance (type-of lisp)
-    :fitness (fitness lisp)
-    :genome (copy-tree (genome lisp))))
 
 (defmethod size ((lisp lisp)) (tree-size (genome lisp)))
 
