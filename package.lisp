@@ -62,6 +62,7 @@
    :light
    :sw-range
    :diff
+   :original
    :asm
    :*asm-linker*
    :elf

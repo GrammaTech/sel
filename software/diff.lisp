@@ -45,6 +45,13 @@ genome methods should have no effect.")
       (setf (type copy)      (type diff))
       copy)))
 
+(defmethod original ((diff diff))
+  (let ((copy (copy diff)))
+    (setf (diffs copy)     (make-instance 'unified-seq-diff
+                             :original-pathname "original"
+                             :modified-pathname "modified"))
+    copy))
+
 (defmethod genome ((diff diff))
   ;; Build the genome on the fly from the reference and diffs
   (unless *in-copy*
@@ -59,5 +66,5 @@ genome methods should have no effect.")
     (let ((list-new (coerce new 'list)))
       (with-slots (reference diffs) diff
         (unless reference (setf reference list-new))
-        (setf diffs (generate-seq-diff 'unified-diff reference list-new))))
+        (setf diffs (generate-seq-diff 'unified-seq-diff reference list-new))))
     new))
