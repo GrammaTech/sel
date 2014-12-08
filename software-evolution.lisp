@@ -183,7 +183,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
-  (destructuring-bind (variant f max-evals max-time target pd pd-fn every-fn
+  (destructuring-bind (variant f max-evals max-time target pd pd-fn
+                               every-pre-fn every-post-fn
                                filter running fitness-counter)
       specs
     (let* ((time (gensym)) (fit-var (gensym))
@@ -202,8 +203,11 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                        `(not ,running))
                   :do (handler-case
                           (let ((,variant (funcall ,step)))
-                            ,@(when every-fn `((funcall ,every-fn ,variant)))
+                            ,@(when every-pre-fn
+                                    `((funcall ,every-pre-fn ,variant)))
                             (setf (fitness ,variant) (funcall ,f ,variant))
+                            ,@(when every-post-fn
+                                    `((funcall ,every-post-fn ,variant)))
                             (incf ,fitness-counter)
                             ,@(when (and pd pd-fn)
                                     `((when (zerop (mod ,fitness-counter ,pd))
@@ -228,7 +232,9 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
       main)))
 
 (defmacro evolve
-    (test &key max-evals max-time target period period-fn every-fn filter
+    (test &key max-evals max-time target period period-fn
+            every-pre-fn every-post-fn
+            filter
             (population '*population*)
             (max-population-size '*max-population-size*)
             (running '*running*)
@@ -241,16 +247,20 @@ Keyword arguments are as follows.
   TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
-  EVERY-FN -------- function to run before every fitness evaluation
+  EVERY-PRE-FN ---- function to run before every fitness evaluation
+  EVERY-POST-FN --- function to run after every fitness evaluation
   FILTER ---------- only include individual for which FILTER returns true"
-  `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn ,every-fn
+  `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
+                 ,every-pre-fn ,every-post-fn
                  ,filter ,running ,fitness-evals)
             #'new-individual
             (incorporate new ,population ,max-population-size)))
 
 (defmacro mcmc
     (original test
-     &key accept-fn max-evals max-time target period period-fn every-fn filter
+     &key accept-fn max-evals max-time target period period-fn
+       every-pre-fn every-post-fn
+       filter
        (running '*running*)
        (fitness-evals '*fitness-evals*))
   "MCMC search from ORIGINAL until an optional stopping criterion is met.
@@ -262,12 +272,14 @@ Keyword arguments are as follows.
   TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
-  EVERY-FN -------- function to run before every fitness evaluation"
+  EVERY-PRE-FN ---- function to run before every fitness evaluation
+  EVERY-POST-FN --- function to run after every fitness evaluation"
   (let* ((curr (gensym))
          (body
           `(let ((,curr ,original))
              (-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
-                           ,every-fn ,filter ,running ,fitness-evals)
+                           ,every-pre-fn ,every-post-fn ,filter
+                           ,running ,fitness-evals)
                       (mcmc-step ,curr)
                       (when (funcall accept-fn (fitness ,curr) (fitness new))
                         (setf ,curr new))))))
