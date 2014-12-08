@@ -136,12 +136,15 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 (defvar *running* nil
   "True when a search process is running, set to nil to stop evolution.")
 
-(defun incorporate (software)
+(defmacro incorporate (software &optional
+                                  (population '*population*)
+                                  (max-population-size '*max-population-size*))
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
-  (push software *population*)
-  (loop :while (and *max-population-size*
-                    (> (length *population*) *max-population-size*))
-     :do (evict)))
+  `(progn
+     (push ,software ,population)
+     (loop :while (and ,max-population-size
+                       (> (length ,population) ,max-population-size))
+        :do (evict))))
 
 (defun evict ()
   (let ((loser (tournament :predicate (complement *fitness-predicate*)
@@ -180,41 +183,43 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
-  (destructuring-bind (v f max-evals max-time target pd pd-fn every-fn filter)
+  (destructuring-bind (variant f max-evals max-time target pd pd-fn every-fn
+                               filter running fitness-counter)
       specs
     (let* ((time (gensym)) (fit-var (gensym))
            (main
             `(progn
-               (setq *running* t)
+               (setq ,running t)
                (loop :until
                   ,(if (or max-time max-evals)
-                       `(or (not *running*)
-                            ,@(when max-evals `((> *fitness-evals* ,max-evals)))
+                       `(or (not ,running)
+                            ,@(when max-evals
+                                    `((> ,fitness-counter ,max-evals)))
                             ,@(when max-time
                                     `((> (/ (- (get-internal-real-time) ,time)
                                             internal-time-units-per-second)
                                          ,max-time))))
-                       '(not *running*))
+                       `(not ,running))
                   :do (handler-case
-                          (let ((,v (funcall ,step)))
-                            ,@(when every-fn `((funcall ,every-fn ,v)))
-                            (setf (fitness ,v) (funcall ,f ,v))
-                            (incf *fitness-evals*)
+                          (let ((,variant (funcall ,step)))
+                            ,@(when every-fn `((funcall ,every-fn ,variant)))
+                            (setf (fitness ,variant) (funcall ,f ,variant))
+                            (incf ,fitness-counter)
                             ,@(when (and pd pd-fn)
-                                    `((when (zerop (mod *fitness-evals* ,pd))
+                                    `((when (zerop (mod ,fitness-counter ,pd))
                                         (funcall ,pd-fn))))
-                            (assert (numberp (fitness ,v)) (,v)
-                                    "Non-numeric fitness: ~S" (fitness ,v))
+                            (assert (numberp (fitness ,variant)) (,variant)
+                                    "Non-numeric fitness: ~S" (fitness ,variant))
                             ,@(if filter
-                                  `((when (funcall ,filter ,v) ,@body))
+                                  `((when (funcall ,filter ,variant) ,@body))
                                   body)
                             ,@(when target
-                                    `((when (let ((,fit-var (fitness ,v)))
+                                    `((when (let ((,fit-var (fitness ,variant)))
                                               (or (equal ,fit-var ,target)
                                                   (funcall *fitness-predicate*
                                                            ,fit-var ,target)))
-                                        (setq *running* nil)
-                                        (return ,v)))))
+                                        (setq ,running nil)
+                                        (return ,variant)))))
                         (mutate (obj) (declare (ignorable obj)) nil))))))
       (when target
         (setf main `(block nil ,main)))
@@ -223,7 +228,11 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
       main)))
 
 (defmacro evolve
-    (test &key max-evals max-time target period period-fn every-fn filter)
+    (test &key max-evals max-time target period period-fn every-fn filter
+            (population '*population*)
+            (max-population-size '*max-population-size*)
+            (running '*running*)
+            (fitness-evals '*fitness-evals*))
   "Evolves `*population*' until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
@@ -234,13 +243,16 @@ Keyword arguments are as follows.
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
   EVERY-FN -------- function to run before every fitness evaluation
   FILTER ---------- only include individual for which FILTER returns true"
-  `(-search
-    ,(list 'new test max-evals max-time target period period-fn every-fn filter)
-    #'new-individual (incorporate new)))
+  `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn ,every-fn
+                 ,filter ,running ,fitness-evals)
+            #'new-individual
+            (incorporate new ,population ,max-population-size)))
 
 (defmacro mcmc
     (original test
-     &key accept-fn max-evals max-time target period period-fn every-fn filter)
+     &key accept-fn max-evals max-time target period period-fn every-fn filter
+       (running '*running*)
+       (fitness-evals '*fitness-evals*))
   "MCMC search from ORIGINAL until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
@@ -254,12 +266,11 @@ Keyword arguments are as follows.
   (let* ((curr (gensym))
          (body
           `(let ((,curr ,original))
-             (-search
-              ,(list 'new test max-evals max-time target period period-fn
-                     every-fn filter)
-              (mcmc-step ,curr)
-              (when (funcall accept-fn (fitness ,curr) (fitness new))
-                (setf ,curr new))))))
+             (-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
+                           ,every-fn ,filter ,running ,fitness-evals)
+                      (mcmc-step ,curr)
+                      (when (funcall accept-fn (fitness ,curr) (fitness new))
+                        (setf ,curr new))))))
     (if accept-fn
         body
         `(let ((accept-fn
