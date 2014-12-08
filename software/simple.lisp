@@ -29,8 +29,10 @@
 (defclass simple (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 
-(defmethod copy ((simple simple))
-  (make-instance (type-of simple) :genome (copy-seq (genome simple))))
+(defmethod copy :around ((simple simple))
+  (let ((copy (call-next-method)))
+    (setf (genome copy) (copy-seq (genome simple)))
+    copy))
 
 (declaim (inline lines))
 (defmethod lines ((simple simple))
@@ -300,12 +302,10 @@ of range references to an external REFERENCE code array."))
 files.  First construct an array of code (lines or bytes) from PATH
 and use this to initialize the RANGE object."))
 
-(defmethod copy ((range sw-range))
-  (with-slots (reference genome) range
-    (make-instance (class-of range)
-      :reference (reference range)
-      :genome (copy-seq (genome range))
-      :fitness (fitness range))))
+(defmethod copy :around ((range sw-range))
+  (let ((copy (call-next-method)))
+    (setf (reference copy) (reference range))
+    copy))
 
 (declaim (inline range-size))
 (defun range-size (range) (1+ (- (cdr range) (car range))))

@@ -19,6 +19,16 @@
 
 (defclass elf-x86 (elf-cisc) ())
 
+(defmethod copy :around ((elf elf-cisc))
+  (let ((copy (call-next-method)))
+    (setf (addresses copy) (copy-seq (addresses elf)))
+    copy))
+
+(defmethod copy :around ((elf elf-csurf))
+  (let ((copy (call-next-method)))
+    (setf (project copy) (project elf))
+    copy))
+
 ;; Yes, ARM is a RISC architecture, but it is not a fixed-width
 ;; instruction, which means we treat it as CISC here.
 (defclass elf-arm (elf-cisc) ())

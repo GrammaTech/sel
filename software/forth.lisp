@@ -62,11 +62,12 @@
                                    (rm-strings (rm-eol-comments line)))))))))
   forth)
 
-(defmethod copy ((forth forth))
-  (make-instance (type-of forth)
-    :fitness (fitness forth)
-    :genome (copy-tree (genome forth))
-    :compiler (compiler forth)))
+(defmethod copy :around ((forth forth))
+  (let ((copy (call-next-method)))
+    (setf (fitness copy) (fitness forth)
+          (genome copy) (copy-tree (genome forth))
+          (compiler copy) (compiler forth))
+    copy))
 
 (defmethod phenome ((forth forth) &key bin)
   (let ((bin (or bin (temp-file-name))))
