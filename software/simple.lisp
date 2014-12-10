@@ -35,6 +35,11 @@
 (defmethod (setf lines) (new (simple simple))
   (setf (genome simple) (mapcar [#'list {cons :code}] new)))
 
+(defgeneric size (software)
+  (:documentation "Return the size of the `genome' of SOFTWARE."))
+(defmethod size ((obj simple))
+  (length (lines obj)))
+
 (declaim (inline genome-string))
 (defmethod genome-string ((simple simple) &optional stream)
   (format stream "~{~a~%~}" (lines simple)))
