@@ -218,7 +218,7 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                (loop :until
                   ,(if (or max-time max-evals)
                        `(or (not ,running)
-                            ,@(when (and max-evals (numberp max-evals))
+                            ,@(when max-evals
                                     `((> ,fitness-counter ,max-evals)))
                             ,@(when max-time
                                     `((> (/ (- (get-internal-real-time) ,time)
