@@ -208,11 +208,13 @@
                                                     ac))
                                    (mapcar #'length (genome elf))
                                    :initial-value '((0))))))))
-    (let ((point (random-elt (mapcar #'cdr (intersection (borders a) (borders b)
-                                                         :key #'car))))
+    (let ((intersection (mapcar #'cdr (intersection (borders a) (borders b)
+                                                    :key #'car)))
           (new (copy a)))
-      (setf (genome new) (append (subseq (genome a) 0 point)
-                                 (subseq (genome b) point)))
+      (when intersection
+        (let ((point (random-elt intersection)))
+          (setf (genome new) (append (subseq (genome a) 0 point)
+                                     (subseq (genome b) point)))))
       new)))
 
 (defmethod apply-path ((elf elf-cisc) key addresses &aux applied)
