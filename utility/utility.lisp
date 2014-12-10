@@ -376,7 +376,9 @@ Keyword argument FRAC will return fractions instead of raw counts."
      (mapc
       {format _ "~&;; ~a: ~a~%"
               (print-time nil) (apply #'format nil format-args)}
-      *note-out*))))
+      *note-out*)))
+  ;; Always return nil.
+  nil)
 
 ;; adopted from a public domain lisp implementation copied from the
 
