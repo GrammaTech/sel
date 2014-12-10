@@ -28,23 +28,18 @@
 
 
 ;;; ast software objects
-(defclass ast (software)
-  ((genome   :initarg :genome   :accessor genome   :initform nil)
-   (flags    :initarg :flags    :accessor flags    :initform nil)
+(define-software ast (software)
+  ((genome   :initarg :genome   :accessor genome   :initform nil
+             :copier copy-seq)
+   (flags    :initarg :flags    :accessor flags    :initform nil
+             :copier copy-tree)
    (compiler :initarg :compiler :accessor compiler :initform nil)
    (ext      :initarg :ext      :accessor ext      :initform "c")
-   (raw-size :initarg :size     :accessor raw-size :initform nil)))
+   (raw-size :initarg :size     :accessor raw-size :initform nil
+             :copier :none)))
 
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (genome ast) stream))
-
-(defmethod copy :around ((ast ast))
-  (let ((copy (call-next-method)))
-    (setf (flags copy)    (copy-tree (flags ast))
-          (genome copy)   (copy-seq (genome ast))
-          (compiler copy) (compiler ast)
-          (ext copy)      (ext ast))
-    copy))
 
 (defmethod from-file ((ast ast) path)
   (setf (genome ast) (file-to-string path))

@@ -33,6 +33,8 @@
    :range
    :indexed
    :different-it
+   :plist-get
+   :plist-drop
    :counts
    :proportional-pick
    :aget

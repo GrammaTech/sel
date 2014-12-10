@@ -26,13 +26,8 @@
 
 
 ;;; simple software objects
-(defclass simple (software)
-  ((genome :initarg :genome :accessor genome :initform nil)))
-
-(defmethod copy :around ((simple simple))
-  (let ((copy (call-next-method)))
-    (setf (genome copy) (copy-seq (genome simple)))
-    copy))
+(define-software simple (software)
+  ((genome :initarg :genome :accessor genome :initform nil :copier copy-seq)))
 
 (declaim (inline lines))
 (defmethod lines ((simple simple))
@@ -278,7 +273,7 @@ value is passed to TEST."
 ;;
 ;; This class
 ;;
-(defclass sw-range (simple)
+(define-software sw-range (simple)
   ((reference :initarg :reference :initform nil))
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
@@ -301,11 +296,6 @@ of range references to an external REFERENCE code array."))
   (error "RANGE individuals may not be initialized directly from
 files.  First construct an array of code (lines or bytes) from PATH
 and use this to initialize the RANGE object."))
-
-(defmethod copy :around ((range sw-range))
-  (let ((copy (call-next-method)))
-    (setf (reference copy) (reference range))
-    copy))
 
 (declaim (inline range-size))
 (defun range-size (range) (1+ (- (cdr range) (car range))))

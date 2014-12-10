@@ -11,16 +11,11 @@
 
 
 ;;; elf software objects
-(defclass elf (simple)
+(define-software elf (simple)
   ((base :initarg :base :accessor base :initform nil)))
 
 (defmethod genome-string ((elf elf) &optional stream)
   (format stream "~S" (genome elf)))
-
-(defmethod copy :around ((elf elf))
-  (let ((copy (call-next-method)))
-    (setf (base copy) (base elf))
-    copy))
 
 (defgeneric elf (elf)
   (:documentation "Return the ELF:ELF object associated with ELF.
