@@ -16,6 +16,27 @@
 (defclass software ()
   ((fitness :initarg :fitness :accessor fitness :initform nil)))
 
+(defmacro define-software (class-name superclasses slots &rest options)
+  `(progn
+     ;; Define the class
+     (defclass ,class-name ,superclasses
+       ,(mapcar {plist-drop :copier} slots)
+       ,@options)
+     ;; Define the copy method
+     ,(unless (null slots)
+        `(defmethod copy :around ((obj ,class-name))
+           (let ((copy (call-next-method)))
+             (setf
+              ,@(mappend (lambda (accessor copier)
+                           (unless (eql copier :none)
+                             `((,accessor copy)
+                               ,(if copier
+                                    `(,copier (,accessor obj))
+                                    `(,accessor obj)))))
+                         (mapcar #'car slots)
+                         (mapcar {plist-get :copier} slots)))
+             copy)))))
+
 (defgeneric genome (software)
   (:documentation "Genotype of the software."))
 

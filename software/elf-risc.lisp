@@ -13,13 +13,8 @@
 ;;; elf software objects
 (defvar risc-nop (coerce (elf:int-to-bytes #x0 1) 'list))
 
-(defclass elf-risc (elf)
+(define-software elf-risc (elf)
   ((nop :initarg :nop :accessor nop :initform risc-nop)))
-
-(defmethod copy :around ((elf elf-risc))
-  (let ((copy (call-next-method)))
-    (setf (nop copy) (nop elf))
-    copy))
 
 (defmethod elf ((elf elf-risc))
   (let ((genome (genome elf)))

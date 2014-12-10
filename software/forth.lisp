@@ -26,7 +26,7 @@
 
 
 ;;; asm software objects
-(defclass forth (simple)
+(define-software forth (simple)
   ((shebang :initarg :shebang :accessor shebang :initform nil)))
 
 (defmethod from-file ((forth forth) path &aux strings)
@@ -61,13 +61,6 @@
                                                             el)))))
                                    (rm-strings (rm-eol-comments line)))))))))
   forth)
-
-(defmethod copy :around ((forth forth))
-  (let ((copy (call-next-method)))
-    (setf (fitness copy) (fitness forth)
-          (genome copy) (copy-tree (genome forth))
-          (compiler copy) (compiler forth))
-    copy))
 
 (defmethod phenome ((forth forth) &key bin)
   (let ((bin (or bin (temp-file-name))))

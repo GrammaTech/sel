@@ -14,6 +14,7 @@
   (:export
    ;; software objects
    :software
+   :define-software
    :edits
    :fitness
    :genome

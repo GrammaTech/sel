@@ -26,13 +26,8 @@
   "Location of the gcd example directory")
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 
-(defclass soft (software)
-  ((genome   :initarg :genome   :accessor genome   :initform nil)))
-
-(defmethod copy ((soft soft))
-  (make-instance (type-of soft)
-    :genome  (genome soft)
-    :fitness (fitness soft)))
+(define-software soft (software)
+  ((genome :initarg :genome :accessor genome :initform nil)))
 
 (defmethod crossover ((a soft) (b soft)) (copy a))
 (defmethod mutate ((a soft)) (copy a))

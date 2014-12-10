@@ -279,6 +279,20 @@ Optional argument OUT specifies an output stream."
 
 
 ;;; Generic utility functions
+(defun plist-get (item list &key (test #'eql) &aux last)
+  (loop :for element :in list :do
+     (cond
+       (last (return element))
+       ((funcall test item element) (setf last t)))))
+
+(defun plist-drop (item list &key (test #'eql) &aux last)
+  (nreverse (reduce (lambda (acc element)
+                      (cond
+                        (last (setf last nil) acc)
+                        ((funcall test item element) (setf last t) acc)
+                        (t (cons element acc))))
+                    list :initial-value '())))
+
 (defun counts (list &key (test #'eql) key frac &aux totals)
   "Return an alist keyed by the unique elements of list holding their counts.
 Keyword argument FRAC will return fractions instead of raw counts."

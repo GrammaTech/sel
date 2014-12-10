@@ -26,20 +26,13 @@
 
 
 ;;; asm software objects
-(defclass asm (simple)
-  ((addr-map :initarg :addr-map :accessor addr-map :initform nil)
-   (linker   :initarg :linker   :accessor linker   :initform nil)
-   (flags    :initarg :flags    :accessor flags    :initform nil)))
+(define-software asm (simple)
+  ((addr-map :initarg :addr-map :accessor addr-map :initform nil
+             :copier copy-tree)
+   (linker   :initarg :linker   :accessor linker :initform nil)
+   (flags    :initarg :flags    :accessor flags :initform nil)))
 
 (defvar *asm-linker* "gcc")
-
-(defmethod copy :around ((asm asm))
-  (let ((copy (call-next-method)))
-    (setf (addr-map copy) (copy-tree (addr-map asm))
-          (genome copy) (copy-tree (genome asm))
-          (linker copy) (linker asm)
-          (flags copy) (flags asm))
-    copy))
 
 (defmethod phenome ((asm asm) &key bin)
   (with-temp-file-of (src "s") (genome-string asm)
