@@ -66,8 +66,7 @@
 
 (defmethod elf ((elf elf-cisc))
   (let ((new (copy-elf (base elf))))
-    (setf (data (named-section new ".text"))
-          (coerce (mappend [#'cdr {assoc :code}] (genome elf)) 'vector))
+    (setf (data (named-section new ".text")) (genome-bytes elf))
     new))
 
 (defun parse-disasm (elf section)

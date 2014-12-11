@@ -73,6 +73,7 @@
    :elf-arm
    :elf-risc
    :elf-mips
+   :genome-bytes
    :pad
    :nop-p
    :forth

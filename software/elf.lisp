@@ -17,6 +17,13 @@
 (defmethod genome-string ((elf elf) &optional stream)
   (format stream "~S" (genome elf)))
 
+(defgeneric genome-bytes (elf)
+  (:documentation "Return the bytes of the ELF's genome.
+The result should be a simple array of type '(UNSIGNED-BYTE 8)."))
+
+(defmethod genome-bytes ((elf elf))
+  (coerce (apply #'append (lines elf)) '(vector (unsigned-byte 8))))
+
 (defgeneric elf (elf)
   (:documentation "Return the ELF:ELF object associated with ELF.
 This takes the `base' of ELF (which should not be changed), copies it,
