@@ -10,7 +10,7 @@
    :diff
    :elf
    :software-evolution-utility)
-  (:shadow :elf :size :type :magic-number :diff)
+  (:shadow :elf :size :type :magic-number :diff :insert)
   (:export
    ;; software objects
    :software
