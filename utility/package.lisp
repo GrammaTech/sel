@@ -18,8 +18,8 @@
    :temp-file-name
    :with-temp-file
    :with-temp-file-of
-   :from-bytes
-   :to-bytes
+   ;; :from-bytes
+   ;; :to-bytes
    :*work-dir*
    :*shell-debug*
    :shell
