@@ -7,6 +7,7 @@ Mutation and evaluation methods are implemented on top of this
 interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
+  :author "Eric Schulte <schulte.eric@gmail.com>"
   :licence "GPL V3"
   ;; :homepage "http://eschulte.github.io/software-evolution/index.html"
   :source-control (:git "git://github.com/eschulte/software-evolution")
