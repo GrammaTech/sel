@@ -98,8 +98,18 @@
 (defixture hello-world-clang
   (:setup
     (setf *hello-world* 
-      (from-file (make-instance 'clang) (hello-world-dir "hello_world.c")))
+      (from-file (make-instance 'clang) (hello-world-dir "hello_world.c"))))
   (:teardown 
+    (setf *hello-world* nil)))
+
+(defixture hello-world-clang-w-fodder
+  (:setup
+    (setf *hello-world*
+      (clang-w-fodder-from-file
+         (hello-world-dir "hello_world.c")
+         :flags '()
+         :json-db-path (hello-world-dir "hello_world_ast.json"))))
+  (:teardown
     (setf *hello-world* nil)))
 
 (defixture population
@@ -307,21 +317,54 @@
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant '(:cut 7))
       (is (< (size variant)
-             (size *hello-world*))))))
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
 
 (deftest insert-lengthens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant '(:insert 1 7))
       (is (> (size variant)
-             (size *hello-world*))))))
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
 
 (deftest swap-changes-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant '(:swap 1 7))
       (is (= (size variant)
-             (size *hello-world*))))))
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
+
+;;; Clang w/ mutation fodder representation
+(deftest simply-able-to-load-a-clang-w-fodder-software-object()
+  (with-fixture hello-world-clang-w-fodder
+    (is (not (null *hello-world*)))))
+
+(deftest insert-value-lengthens-a-clang-w-fodder-software-object()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(:insert-value 1 "int i = 0;"))
+      (is (> (size variant)
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
+
+(deftest set-value-changes-a-clang-w-fodder-software-object()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(:set-value 6 "\"Hello, mutate!\""))
+      (is (= (size variant)
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
+
+(deftest pick-json-returns-non-null()
+  (with-fixture hello-world-clang-w-fodder
+    (is (not (null (pick-json *hello-world*))))))
 
 ;;; Range representation
 (deftest range-size ()
