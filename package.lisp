@@ -37,8 +37,10 @@
    :*edit-consolidation-function*
    :edit-distance
    :from-file
+   :clang-w-fodder-from-file
    :to-file
    :apply-path
+   :pick-json
    ;; global variables
    :*population*
    :*max-population-size*
@@ -79,6 +81,7 @@
    :forth
    :lisp
    :clang
+   :clang-w-fodder
    :cil
    :llvm
    :linker

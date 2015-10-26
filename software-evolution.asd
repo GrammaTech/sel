@@ -9,11 +9,11 @@ techniques."
   :version "0.0.0"
   :licence "GPL V3"
   ;; :homepage "http://eschulte.github.io/software-evolution/index.html"
-  :source-control (:git "git://github.com/eschulte/software-evolution")
   :depends-on (alexandria
                metabang-bind
                curry-compose-reader-macros
                split-sequence
+               cl-json
                cl-ppcre
                diff
                elf
@@ -40,4 +40,5 @@ techniques."
              (:file "ast")
              (:file "cil" :depends-on ("ast"))
              (:file "clang" :depends-on ("ast"))
+             (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "llvm" :depends-on ("ast"))))))
