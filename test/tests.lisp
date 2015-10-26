@@ -12,19 +12,27 @@
 (defsuite test)
 (in-suite test)
 
-(defvar *genome* nil "Genome used in tests.")
-(defvar *soft*   nil "Software used in tests.")
-(defvar *tfos*   nil "Another software used in tests.")
-(defvar *gcd*    nil "Holds the gcd software object.")
+(defvar *genome*      nil "Genome used in tests.")
+(defvar *soft*        nil "Software used in tests.")
+(defvar *tfos*        nil "Another software used in tests.")
+(defvar *gcd*         nil "Holds the gcd software object.")
+(defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
+(defvar *base-dir* 
+  (pathname-directory #.(or *compile-file-truename*
+                            *load-truename*
+                            *default-pathname-defaults*)))
 (defvar *gcd-dir*
-  (let ((dir (pathname-directory #.(or *compile-file-truename*
-                                       *load-truename*
-                                       *default-pathname-defaults*))))
-    (make-pathname :directory (append dir (list "gcd"))))
+  (make-pathname :directory (append *base-dir* (list "gcd")))
   "Location of the gcd example directory")
+
+(defvar *hello-world-dir*
+  (make-pathname :directory (append *base-dir* (list "hello-world")))
+  "Location of the hello world example directory")
+                    
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
+(defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -86,6 +94,13 @@
                                              (mips 'elf-mips)))
                             (gcd-dir "gcd")))))
   (:teardown (setf *gcd* nil)))
+
+(defixture hello-world-clang
+  (:setup
+    (setf *hello-world* 
+      (from-file (make-instance 'clang) (hello-world-dir "hello_world.c")))
+  (:teardown 
+    (setf *hello-world* nil)))
 
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
@@ -282,7 +297,32 @@
         (is (not (equal-it (genome new) (genome *gcd*))))
         (is (= (length (bytes *gcd*)) (length (bytes variant))))))))
 
-
+;;; Clang representation
+(deftest simply-able-to-load-a-clang-software-object()
+  (with-fixture hello-world-clang
+    (is (not (null *hello-world*)))))
+
+(deftest cut-shortens-a-clang-software-object()
+  (with-fixture hello-world-clang
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(:cut 7))
+      (is (< (size variant)
+             (size *hello-world*))))))
+
+(deftest insert-lengthens-a-clang-software-object()
+  (with-fixture hello-world-clang
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(:insert 1 7))
+      (is (> (size variant)
+             (size *hello-world*))))))
+
+(deftest swap-changes-a-clang-software-object()
+  (with-fixture hello-world-clang
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(:swap 1 7))
+      (is (= (size variant)
+             (size *hello-world*))))))
+
 ;;; Range representation
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))
