@@ -1,6 +1,6 @@
-;;; clang-w-fodder.lisp 
+;;; clang-w-fodder.lisp
 
-;;; clang software representation with a 
+;;; clang software representation with a
 ;;; JSON 'database' containing AST entries
 ;;; as fodder for the evolution process.
 
@@ -15,33 +15,35 @@
 (defun clang-w-fodder-from-file (path &key flags json-db-path)
   (assert (listp flags) (flags) "flags must be a list")
 
-  (from-file 
-    (make-instance 'clang-w-fodder 
+  (from-file
+    (make-instance 'clang-w-fodder
       :flags flags
-      :json-db 
+      :json-db
         (with-open-file (json-stream json-db-path)
           (json:decode-json-from-source json-stream)))
     path))
 
 (defmethod pick-json ((clang-w-fodder clang-w-fodder))
-  (let ((ast-entry (random-elt (json-db clang-w-fodder))))
-    (dolist (json-value ast-entry)
-      (if (eq :SRC--TEXT (car json-value))
-        (return (cdr json-value))))))
+  (aget :SRC--TEXT (random-elt (json-db clang-w-fodder))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
     (error 'mutate :text "No valid IDS" :obj clang-w-fodder))
   (unless (> (length (json-db clang-w-fodder)))
-    (error 'mutate :text "No valid JSON 'database' for fodder" :obj clang-w-fodder))
+    (error 'mutate :text "No valid JSON 'database' for fodder"
+           :obj clang-w-fodder))
   (setf (fitness clang-w-fodder) nil)
 
   (let ((op (case (random-elt '(cut insert swap set-value insert-value))
               (cut          `(:cut ,(pick-bad clang-w-fodder)))
-              (insert       `(:insert ,(pick-bad clang-w-fodder) ,(pick-good clang-w-fodder)))
-              (swap         `(:swap ,(pick-bad clang-w-fodder) ,(pick-good clang-w-fodder)))
-              (set-value    `(:set-value ,(pick-good clang-w-fodder) ,(pick-json clang-w-fodder)))
-              (insert-value `(:insert-value ,(pick-good clang-w-fodder) ,(pick-json clang-w-fodder))))))
+              (insert       `(:insert ,(pick-bad clang-w-fodder)
+                                      ,(pick-good clang-w-fodder)))
+              (swap         `(:swap ,(pick-bad clang-w-fodder)
+                                    ,(pick-good clang-w-fodder)))
+              (set-value    `(:set-value ,(pick-good clang-w-fodder)
+                                         ,(pick-json clang-w-fodder)))
+              (insert-value `(:insert-value ,(pick-good clang-w-fodder)
+                                            ,(pick-json clang-w-fodder))))))
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))
 
