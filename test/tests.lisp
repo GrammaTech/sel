@@ -30,7 +30,11 @@
 (defvar *hello-world-dir*
   (make-pathname :directory (append *base-dir* (list "hello-world")))
   "Location of the hello world example directory")
-                    
+
+(defvar *example-json-database-dir*
+  (merge-pathnames "*.json" (make-pathname :directory (append *base-dir* (list "example-json-database"))))
+  "Location of the json example directory")
+
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 (defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
 
@@ -361,6 +365,12 @@
              (size *hello-world*)))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
+
+;;; Test loading a JSON database of AST elements and picking
+;;; an element randomly from this database
+(deftest load-json-db-test ()
+  (is (> (list-length (load-json-db *example-json-database-dir*))
+         0)))
 
 (deftest pick-json-returns-non-null()
   (with-fixture hello-world-clang-w-fodder

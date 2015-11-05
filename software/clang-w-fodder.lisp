@@ -23,6 +23,14 @@
           (json:decode-json-from-source json-stream)))
     path))
 
+(defun load-json-db (json-dir)
+  (loop for json-file in (directory json-dir) do
+    (setq *clang-fodder* 
+      (append *clang-fodder*
+        (with-open-file (json-stream json-file)
+          (json:decode-json-from-source json-stream)))))
+  *clang-fodder*)
+
 (defmethod pick-json ((clang-w-fodder clang-w-fodder))
   (let ((ast-entry (random-elt (json-db clang-w-fodder))))
     (dolist (json-value ast-entry)
