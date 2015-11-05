@@ -38,6 +38,7 @@
    :edit-distance
    :from-file
    :clang-w-fodder-from-file
+   :load-json-db
    :to-file
    :apply-path
    :pick-json
