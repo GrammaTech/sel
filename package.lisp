@@ -82,6 +82,8 @@
    :lisp
    :clang
    :clang-w-fodder
+   :*json-database*
+   :*json-class-database*
    :cil
    :llvm
    :linker
