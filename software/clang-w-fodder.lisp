@@ -74,39 +74,6 @@ a uniformly selected element of the JSON database.")
              src (flags clang-w-fodder))
       (nonempty-lines stdout))))
 
-(defun random-elt-with-decay (orig-list decay-rate)
-  (if (null orig-list)
-      "/* no bound vars */"
-      (labels ((pick-from (list)
-                 (if (null list)
-                     (pick-from orig-list)
-                     (if (< (random 1.0) decay-rate)
-                         (car list)
-                         (pick-from (cdr list))))))
-        (pick-from orig-list))))
-
-;; From the Common Lisp Cookbook
-(defun replace-all (string part replacement &key (test #'char=))
-  "Returns a new string in which all the occurences of the part 
-is replaced with replacement."
-  (with-output-to-string (out)
-    (loop with part-length = (length part)
-          for old-pos = 0 then (+ pos part-length)
-          for pos = (search part string
-                            :start2 old-pos
-                            :test test)
-          do (write-string string out
-                           :start old-pos
-                           :end (or pos (length string)))
-          when pos do (write-string replacement out)
-       while pos)))
-
-(defun apply-replacements (list str)
-  (if (null list)
-      str
-      (let ((new-str (replace-all str (caar list) (cdar list))))
-        (apply-replacements (cdr list) new-str))))
-
 ;; Returns multiple values: (stmt-class-string has-semicolon)
 (defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
   (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
@@ -150,7 +117,8 @@ is replaced with replacement."
          (scope-vars (get-vars-in-scope clang-w-fodder pt))
          (bindings (map 'list
                         (lambda (x)
-                          (cons x (random-elt-with-decay scope-vars 0.5)))
+                          (cons x (or (random-elt-with-decay scope-vars 0.5)
+                                      "/* no bound vars */")))
                         free-vars))
          (replaced (apply-replacements bindings raw-code)))
     (if has-semi
