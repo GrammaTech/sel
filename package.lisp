@@ -37,7 +37,7 @@
    :*edit-consolidation-function*
    :edit-distance
    :from-file
-   :clang-w-fodder-from-file
+   :clang-w-fodder-setup-db
    :to-file
    :apply-path
    :pick-json

@@ -43,9 +43,10 @@ a uniformly selected element of the JSON database.")
 
 (defclass clang-w-fodder (clang) ())
 
-(defun clang-w-fodder-from-file (path &key compiler flags json-db-path)
-  (assert (listp flags) (flags) "flags must be a list")
+(defmethod from-file :before ((obj clang-w-fodder) path)
+  (assert (not (null *json-database-bins*))))
 
+(defun clang-w-fodder-setup-db (json-db-path)
   ;; Clobber the existing database
   (setq *json-database* (make-hash-table :test 'equal))
   (setq *json-database-bins* '())
@@ -58,13 +59,7 @@ a uniformly selected element of the JSON database.")
       (setf (gethash ast-class *json-database*) (cons snippet cur))))
 
   ;; Compute the bin sizes so that (random-snippet) becomes useful.
-  (populate-*json-database-bins*)
-
-  (from-file
-   (make-instance 'clang-w-fodder
-      :compiler compiler
-      :flags flags)
-    path))
+  (populate-*json-database-bins*))
 
 (defun nonempty-lines (text)
   (remove-if (lambda (x) (string= x ""))
