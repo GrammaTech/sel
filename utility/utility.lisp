@@ -322,6 +322,39 @@ Keyword argument FRAC will return fractions instead of raw counts."
     (random-elt (mapcar #'car (remove-if-not [{= (apply #'max scores)} #'second]
                                              (indexed scores))))))
 
+(defun random-elt-with-decay (orig-list decay-rate)
+  (if (null orig-list)
+      nil
+      (labels ((pick-from (list)
+                 (if (null list)
+                     (pick-from orig-list)
+                     (if (< (random 1.0) decay-rate)
+                         (car list)
+                         (pick-from (cdr list))))))
+        (pick-from orig-list))))
+
+;; From the Common Lisp Cookbook
+(defun replace-all (string part replacement &key (test #'char=))
+  "Returns a new string in which all the occurences of the part
+is replaced with replacement."
+  (with-output-to-string (out)
+    (loop with part-length = (length part)
+          for old-pos = 0 then (+ pos part-length)
+          for pos = (search part string
+                            :start2 old-pos
+                            :test test)
+          do (write-string string out
+                           :start old-pos
+                           :end (or pos (length string)))
+          when pos do (write-string replacement out)
+       while pos)))
+
+(defun apply-replacements (list str)
+  (if (null list)
+      str
+      (let ((new-str (replace-all str (caar list) (cdar list))))
+        (apply-replacements (cdr list) new-str))))
+
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
