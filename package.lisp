@@ -37,6 +37,7 @@
    :*edit-consolidation-function*
    :edit-distance
    :from-file
+   :ext
    :clang-w-fodder-setup-db
    :to-file
    :apply-path
