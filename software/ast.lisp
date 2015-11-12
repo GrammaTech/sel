@@ -39,7 +39,7 @@
              :copier :none)))
 
 (defmethod genome-string ((ast ast) &optional stream)
-  (write-string (genome ast) stream))
+  (write-string (or (genome ast) "") stream))
 
 (defmethod from-file ((ast ast) path)
   (setf (genome ast) (file-to-string path))
