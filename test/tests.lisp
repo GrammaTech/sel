@@ -108,11 +108,9 @@
 
 (defixture hello-world-clang-w-fodder
   (:setup
-    (setf *hello-world*
-      (clang-w-fodder-from-file
-         (hello-world-dir "hello_world.c")
-         :flags '()
-         :json-db-path (hello-world-dir "hello_world_ast.json"))))
+   (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
+   (setf *hello-world*
+         (from-file (hello-world-dir "hello_world.c") :flags '())))
   (:teardown
     (setf *hello-world* nil)))
 
