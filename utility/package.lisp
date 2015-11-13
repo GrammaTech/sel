@@ -40,6 +40,8 @@
    :random-elt-with-decay
    :apply-replacements
    :replace-all
+   :json-string-escape
+   :json-string-unescape
    :aget
    :getter
    :transpose

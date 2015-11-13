@@ -355,6 +355,25 @@ is replaced with replacement."
       (let ((new-str (replace-all str (caar list) (cdar list))))
         (apply-replacements (cdr list) new-str))))
 
+(defun json-string-escape (string)
+  (apply-replacements (list (cons (string #\\) "\\\\")
+                            (cons (string #\Newline) "\\n")
+                            (cons (string #\") "\\\""))
+                      string))
+
+(defun json-string-unescape (string)
+  (with-output-to-string (out)
+    (loop :for i :below (length string) :do
+       (write-char (if (and (char= #\\ (aref string i))
+                            (< i (1- (length string))))
+                       (prog1 (ecase (aref string (1+ i))
+                                (#\n #\Newline)
+                                (#\\ #\\)
+                                (#\" #\"))
+                         (incf i))
+                       (aref string i))
+                   out))))
+
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))

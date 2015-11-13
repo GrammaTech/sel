@@ -112,18 +112,18 @@ a uniformly selected element of the JSON database.")
                                  pt
                                  snippet
                                  has-semi)
-  (let* ((raw-code   (aget :SRC--TEXT snippet))
-         (free-vars  (aget :UNBOUND--VALS snippet))
-         (scope-vars (get-vars-in-scope clang-w-fodder pt))
-         (bindings (map 'list
-                        (lambda (x)
-                          (cons x (or (random-elt-with-decay scope-vars 0.5)
-                                      "/* no bound vars */")))
-                        free-vars))
-         (replaced (apply-replacements bindings raw-code)))
-    (if has-semi
-        (string-append replaced ";")
-        replaced)))
+  (let ((raw-code   (aget :SRC--TEXT snippet))
+        (free-vars  (aget :UNBOUND--VALS snippet))
+        (scope-vars (get-vars-in-scope clang-w-fodder pt)))
+    (concatenate 'string
+      (json-string-unescape
+       (apply-replacements
+        (map 'list
+             (lambda (x)
+               (cons x (or (random-elt-with-decay scope-vars 0.5)
+                           "/* no bound vars */")))
+             free-vars) raw-code))
+      (if has-semi ";" ""))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
