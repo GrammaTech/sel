@@ -31,10 +31,6 @@
   (make-pathname :directory (append *base-dir* (list "hello-world")))
   "Location of the hello world example directory")
 
-(defvar *example-json-database-dir*
-  (merge-pathnames "*.json" (make-pathname :directory (append *base-dir* (list "example-json-database"))))
-  "Location of the json example directory")
-
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 (defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
 
@@ -110,7 +106,8 @@
   (:setup
    (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
    (setf *hello-world*
-         (from-file (hello-world-dir "hello_world.c") :flags '())))
+         (from-file (make-instance 'clang-w-fodder) 
+                    (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
 
@@ -368,15 +365,12 @@
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
 
-;;; Test loading a JSON database of AST elements and picking
-;;; an element randomly from this database
-(deftest load-json-db-test ()
-  (is (> (list-length (load-json-db *example-json-database-dir*))
-         0)))
-
-(deftest pick-json-returns-non-null()
+(deftest tidy-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (is (not (null (pick-json *hello-world*))))))
+    (let ((variant (copy *hello-world*)))
+      (clang-tidy variant)
+      (is (= (size variant)
+             (size *hello-world*))))))
 
 ;;; Range representation
 (deftest range-size ()

@@ -39,6 +39,7 @@
    :from-file
    :ext
    :clang-w-fodder-setup-db
+   :clang-tidy
    :to-file
    :apply-path
    :pick-json
