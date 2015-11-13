@@ -178,7 +178,7 @@ a uniformly selected element of the JSON database.")
   (setf (genome clang-w-fodder)
         (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
           (multiple-value-bind (stdout stderr exit)
-            (shell "clang-tidy -fix -checks=~a ~a -- && cat ~a"
+            (shell "clang-tidy -fix -checks=~a ~a -- 1>&2 && cat ~a"
               (mapconcat 
                 (lambda (check) (format nil "~a" check))
                 (list "-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
