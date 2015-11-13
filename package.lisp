@@ -37,8 +37,8 @@
    :*edit-consolidation-function*
    :edit-distance
    :from-file
-   :clang-w-fodder-from-file
-   :load-json-db
+   :ext
+   :clang-w-fodder-setup-db
    :to-file
    :apply-path
    :pick-json
@@ -83,6 +83,7 @@
    :lisp
    :clang
    :clang-w-fodder
+   :*json-database*
    :cil
    :llvm
    :linker

@@ -322,6 +322,58 @@ Keyword argument FRAC will return fractions instead of raw counts."
     (random-elt (mapcar #'car (remove-if-not [{= (apply #'max scores)} #'second]
                                              (indexed scores))))))
 
+(defun random-elt-with-decay (orig-list decay-rate)
+  (if (null orig-list)
+      nil
+      (labels ((pick-from (list)
+                 (if (null list)
+                     (pick-from orig-list)
+                     (if (< (random 1.0) decay-rate)
+                         (car list)
+                         (pick-from (cdr list))))))
+        (pick-from orig-list))))
+
+;; From the Common Lisp Cookbook
+(defun replace-all (string part replacement &key (test #'char=))
+  "Returns a new string in which all the occurences of the part
+is replaced with replacement."
+  (with-output-to-string (out)
+    (loop with part-length = (length part)
+          for old-pos = 0 then (+ pos part-length)
+          for pos = (search part string
+                            :start2 old-pos
+                            :test test)
+          do (write-string string out
+                           :start old-pos
+                           :end (or pos (length string)))
+          when pos do (write-string replacement out)
+       while pos)))
+
+(defun apply-replacements (list str)
+  (if (null list)
+      str
+      (let ((new-str (replace-all str (caar list) (cdar list))))
+        (apply-replacements (cdr list) new-str))))
+
+(defun json-string-escape (string)
+  (apply-replacements (list (cons (string #\\) "\\\\")
+                            (cons (string #\Newline) "\\n")
+                            (cons (string #\") "\\\""))
+                      string))
+
+(defun json-string-unescape (string)
+  (with-output-to-string (out)
+    (loop :for i :below (length string) :do
+       (write-char (if (and (char= #\\ (aref string i))
+                            (< i (1- (length string))))
+                       (prog1 (ecase (aref string (1+ i))
+                                (#\n #\Newline)
+                                (#\\ #\\)
+                                (#\" #\"))
+                         (incf i))
+                       (aref string i))
+                   out))))
+
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
@@ -347,9 +399,25 @@ Keyword argument FRAC will return fractions instead of raw counts."
   "Return SEQ less the first N items."
   (subseq seq n))
 
+(defun drop-while (pred seq)
+  (if (and (not (null seq)) (funcall pred (car seq)))
+      (drop-while pred (cdr seq))
+      seq))
+
+(defun drop-until (pred seq)
+  (drop-while (complement pred) seq))
+
 (defun take (n seq)
   "Return the first N items of SEQ."
   (subseq seq 0 n))
+
+(defun take-while (pred seq)
+  (if (and (not (null seq)) (funcall pred (car seq)))
+      (cons (car seq) (take-while pred (cdr seq)))
+      '()))
+
+(defun take-until (pred seq)
+  (take-while (complement pred) seq))
 
 (defun chunks (list size)
   "Return subsequent chunks of LIST of size SIZE."

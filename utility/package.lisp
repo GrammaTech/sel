@@ -37,13 +37,22 @@
    :plist-drop
    :counts
    :proportional-pick
+   :random-elt-with-decay
+   :apply-replacements
+   :replace-all
+   :json-string-escape
+   :json-string-unescape
    :aget
    :getter
    :transpose
    :interleave
    :mapconcat
    :drop
+   :drop-while
+   :drop-until
    :take
+   :take-while
+   :take-until
    :levenshtein-distance
    ;; debugging
    :*note-level*

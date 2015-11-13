@@ -1,6 +1,6 @@
-;;; clang-w-fodder.lisp 
+;;; clang-w-fodder.lisp
 
-;;; clang software representation with a 
+;;; clang software representation with a
 ;;; JSON 'database' containing AST entries
 ;;; as fodder for the evolution process.
 
@@ -9,47 +9,145 @@
 ;;; the corresponding binary source code.
 (in-package :software-evolution)
 
-(defclass clang-w-fodder (clang)
-  ((json-db :initarg :json-db :accessor json-db :initform '())))
+(defvar *json-database* (make-hash-table :test 'equal)
+  "A database of source code snippets, grouped by AST class name.")
 
-(defun clang-w-fodder-from-file (path &key flags json-db-path)
-  (assert (listp flags) (flags) "flags must be a list")
+(defvar *json-database-bins* (lambda (x) "undefined-class")
+  "The inverse cumulative distribution function for the AST class name of
+a uniformly selected element of the JSON database.")
 
-  (from-file 
-    (make-instance 'clang-w-fodder 
-      :flags flags
-      :json-db 
-        (with-open-file (json-stream json-db-path)
-          (json:decode-json-from-source json-stream)))
-    path))
+(defun random-snippet ()
+  (assert (not (null *json-database-bins*)) (*json-database-bins*)
+          "*json-database-bins* must be precomputed.")
+  (let* ((binprob (random 1.0))
+         (bin (cdr (find-if (lambda (datum)
+                              (<= binprob (car datum))) *json-database-bins*))))
+    (random-elt (gethash bin *json-database* '("/* bad snippet */")))))
 
-(defun load-json-db (json-dir)
-  (loop for json-file in (directory json-dir) do
-    (setq *clang-fodder* 
-      (append *clang-fodder*
-        (with-open-file (json-stream json-file)
-          (json:decode-json-from-source json-stream)))))
-  *clang-fodder*)
+(defun populate-*json-database-bins* ()
+  (let ((total 0)
+        (totalp 0))
 
-(defmethod pick-json ((clang-w-fodder clang-w-fodder))
-  (let ((ast-entry (random-elt (json-db clang-w-fodder))))
-    (dolist (json-value ast-entry)
-      (if (eq :SRC--TEXT (car json-value))
-        (return (cdr json-value))))))
+    (setq *json-database-bins* '())
+    (maphash (lambda (k v)
+               (setf total (+ total (length v))))
+             *json-database*)
+
+    (maphash (lambda (k v)
+               (setq totalp (+ totalp (/ (length v) total)))
+               (setq *json-database-bins*
+                     (cons (cons totalp k) *json-database-bins*)))
+             *json-database*)
+
+    (reverse *json-database-bins*)))
+
+(defclass clang-w-fodder (clang) ())
+
+(defmethod from-file :before ((obj clang-w-fodder) path)
+  (assert (not (null *json-database-bins*))))
+
+(defun clang-w-fodder-setup-db (json-db-path)
+  ;; Clobber the existing database
+  (setq *json-database* (make-hash-table :test 'equal))
+  (setq *json-database-bins* '())
+
+  ;; Load the snippet database and classify by AST class.
+  (dolist (snippet (with-open-file (json-stream json-db-path)
+                     (json:decode-json-from-source json-stream)))
+    (let* ((ast-class (aget :AST--CLASS snippet))
+           (cur (gethash ast-class *json-database*)))
+      (setf (gethash ast-class *json-database*) (cons snippet cur))))
+
+  ;; Compute the bin sizes so that (random-snippet) becomes useful.
+  (populate-*json-database-bins*))
+
+(defun nonempty-lines (text)
+  (remove-if (lambda (x) (string= x ""))
+             (split-sequence #\Newline text)))
+
+(defmethod get-vars-in-scope ((clang-w-fodder clang-w-fodder) pt)
+  (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
+    (multiple-value-bind (stdout stderr exit)
+        (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
+             20
+             pt
+             src (flags clang-w-fodder))
+      (nonempty-lines stdout))))
+
+;; Returns multiple values: (stmt-class-string has-semicolon)
+(defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
+  (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
+     (multiple-value-bind (stdout stderr exit)
+         (shell "clang-mutate -get-info -stmt1=~a ~a -- ~{~a~^ ~}"
+                pt
+                src
+                (flags clang-w-fodder))
+       (apply #'values
+        (let ((result (nonempty-lines stdout)))
+          (if (not (equal (length result) 2))
+              '("[unknown-class]" nil)
+              (list (car result)
+                    (equal (cadr result) "has-semi"))))))))
+
+(defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
+  (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
+    (multiple-value-bind (ast-class has-semi) stmt-info
+      (prepare-code-snippet clang-w-fodder
+                            pt
+                            (random-snippet)
+                            has-semi))))
+
+(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt)
+  (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
+    (multiple-value-bind (ast-class has-semi) stmt-info
+      (let ((asts (gethash ast-class *json-database* '())))
+        (prepare-code-snippet clang-w-fodder
+                              pt
+                              (if (null asts)
+                                  (random-snippet)
+                                  (random-elt asts)) 
+                              has-semi)))))
+
+(defmethod prepare-code-snippet ((clang-w-fodder clang-w-fodder)
+                                 pt
+                                 snippet
+                                 has-semi)
+  (let ((raw-code   (aget :SRC--TEXT snippet))
+        (free-vars  (aget :UNBOUND--VALS snippet))
+        (scope-vars (get-vars-in-scope clang-w-fodder pt)))
+    (concatenate 'string
+      (json-string-unescape
+       (apply-replacements
+        (map 'list
+             (lambda (x)
+               (cons x (or (random-elt-with-decay scope-vars 0.5)
+                           "/* no bound vars */")))
+             free-vars) raw-code))
+      (if has-semi ";" ""))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
     (error 'mutate :text "No valid IDS" :obj clang-w-fodder))
-  (unless (> (length (json-db clang-w-fodder)))
-    (error 'mutate :text "No valid JSON 'database' for fodder" :obj clang-w-fodder))
+  (unless (> (hash-table-size *json-database*) 0)
+    (error 'mutate :text "No valid JSON 'database' for fodder"
+           :obj clang-w-fodder))
+
   (setf (fitness clang-w-fodder) nil)
 
   (let ((op (case (random-elt '(cut insert swap set-value insert-value))
               (cut          `(:cut ,(pick-bad clang-w-fodder)))
-              (insert       `(:insert ,(pick-bad clang-w-fodder) ,(pick-good clang-w-fodder)))
-              (swap         `(:swap ,(pick-bad clang-w-fodder) ,(pick-good clang-w-fodder)))
-              (set-value    `(:set-value ,(pick-good clang-w-fodder) ,(pick-json clang-w-fodder)))
-              (insert-value `(:insert-value ,(pick-good clang-w-fodder) ,(pick-json clang-w-fodder))))))
+              (insert       `(:insert ,(pick-bad clang-w-fodder)
+                                      ,(pick-good clang-w-fodder)))
+              (swap         `(:swap ,(pick-bad clang-w-fodder)
+                                    ,(pick-good clang-w-fodder)))
+              (set-value    (let ((good (pick-good clang-w-fodder)))
+                              `(:set-value ,good
+                                           ,(pick-json-by-class clang-w-fodder
+                                                                good))))
+              (insert-value (let ((good (pick-good clang-w-fodder)))
+                              `(:insert-value ,good
+                                              ,(pick-any-json clang-w-fodder
+                                                              good)))))))
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))
 
