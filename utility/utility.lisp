@@ -399,9 +399,25 @@ is replaced with replacement."
   "Return SEQ less the first N items."
   (subseq seq n))
 
+(defun drop-while (pred seq)
+  (if (and (not (null seq)) (funcall pred (car seq)))
+      (drop-while pred (cdr seq))
+      seq))
+
+(defun drop-until (pred seq)
+  (drop-while (complement pred) seq))
+
 (defun take (n seq)
   "Return the first N items of SEQ."
   (subseq seq 0 n))
+
+(defun take-while (pred seq)
+  (if (and (not (null seq)) (funcall pred (car seq)))
+      (cons (car seq) (take-while pred (cdr seq)))
+      '()))
+
+(defun take-until (pred seq)
+  (take-while (complement pred) seq))
 
 (defun chunks (list size)
   "Return subsequent chunks of LIST of size SIZE."

@@ -48,7 +48,11 @@
    :interleave
    :mapconcat
    :drop
+   :drop-while
+   :drop-until
    :take
+   :take-while
+   :take-until
    :levenshtein-distance
    ;; debugging
    :*note-level*
