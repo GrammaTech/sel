@@ -178,31 +178,25 @@ a uniformly selected element of the JSON database.")
   (setf (genome clang-w-fodder)
         (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
           (multiple-value-bind (stdout stderr exit)
-            (shell "clang-tidy -fix -checks=~a ~a -- 1>&2 && cat ~a"
-              (mapconcat 
-                (lambda (check) (format nil "~a" check))
-                (list "-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
-                      "-google-build-explicit-make-pair"
-                      "-google-explicit-constructor"
-                      "-google-readability-namespace-comments"
-                      "-google-readability-redundant-smartptr-get"
-                      "-google-readability-runtime-int"
-                      "-google-readability-readability-function-size"
-                      "-llvm-namespace-commant"
-                      "-llvm-include-order"
-                      "-misc-mode-constructor-init"
-                      "-misc-noexcept-move-constructor"
-                      "-misc-uniqueptr-reset-release"
-                      "-modernize*"
-                      "-readability-container-size-empty"
-                      "-readability-function-size"
-                      "-readability-redundant-smart-ptr-get"
-                      "-readability-uniqueptr-delete-release")
-                ",")
-              src
-              src)
-            stdout))))
-
-(defmethod phenome ((clang-w-fodder clang-w-fodder) &key bin)
-  (clang-tidy clang-w-fodder)
-  (call-next-method))
+              (shell "clang-tidy -fix -checks=~{~a~^,~} ~a -- 1>&2"
+                     '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
+                       "-google-build-explicit-make-pair"
+                       "-google-explicit-constructor"
+                       "-google-readability-namespace-comments"
+                       "-google-readability-redundant-smartptr-get"
+                       "-google-readability-runtime-int"
+                       "-google-readability-readability-function-size"
+                       "-llvm-namespace-commant"
+                       "-llvm-include-order"
+                       "-misc-mode-constructor-init"
+                       "-misc-noexcept-move-constructor"
+                       "-misc-uniqueptr-reset-release"
+                       "-modernize*"
+                       "-readability-container-size-empty"
+                       "-readability-function-size"
+                       "-readability-redundant-smart-ptr-get"
+                       "-readability-uniqueptr-delete-release")
+                     src
+                     src)
+            (declare (ignorable stdout stderr))
+            (if (zerop exit) (file-to-string src) (genome clang-w-fodder))))))
