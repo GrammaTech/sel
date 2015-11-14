@@ -89,3 +89,9 @@
                         (subseq (genome a) 0 a-point)
                         (subseq (genome b) b-point))))
       (values new (list a-point b-point)))))
+
+(defmethod lines ((ast ast))
+  (split-sequence #\Newline (genome ast)))
+
+(defmethod (setf lines) (new (ast ast))
+  (setf (genome ast) (format nil "~{~a~^~%~}" new)))
