@@ -79,8 +79,8 @@
 
 (defmethod crossover ((a ast) (b ast))
   (flet ((line-breaks (genome)
-           (loop :for char :in (coerce genome 'list) :as index :from 0
-              :when (equal char #\Newline) :collect index)))
+           (cons 0 (loop :for char :in (coerce genome 'list) :as index :from 0
+                      :when (equal char #\Newline) :collect index))))
     (let ((a-point (random-elt (line-breaks (genome a))))
           (b-point (random-elt (line-breaks (genome b))))
           (new (copy a)))
