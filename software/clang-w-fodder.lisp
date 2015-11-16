@@ -152,6 +152,9 @@ a uniformly selected element of the JSON database.")
     (values clang-w-fodder op)))
 
 (defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
+  (clang-mutate clang-w-fodder op))
+
+(defmethod clang-mutate ((clang-w-fodder clang-w-fodder) op)
   (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
     (multiple-value-bind (stdout stderr exit)
       (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
