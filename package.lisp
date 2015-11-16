@@ -23,6 +23,7 @@
    :copy
    :size
    :lines
+   :line-breaks
    :genome-string
    :pick
    :pick-good
@@ -45,6 +46,7 @@
    :to-file
    :apply-path
    :pick-json
+   :to-ast-hash-table
    ;; global variables
    :*population*
    :*max-population-size*

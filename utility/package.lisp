@@ -38,6 +38,7 @@
    :counts
    :proportional-pick
    :random-elt-with-decay
+   :random-hash-table-key
    :apply-replacements
    :replace-all
    :json-string-escape
