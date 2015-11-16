@@ -41,6 +41,7 @@
    :clang-w-fodder-setup-db
    :get-vars-in-scope
    :clang-tidy
+   :clang-mutate
    :to-file
    :apply-path
    :pick-json

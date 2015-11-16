@@ -26,6 +26,9 @@
   ((compiler :initarg :compiler :accessor compiler :initform "clang")))
 
 (defmethod apply-mutation ((clang clang) op)
+  (clang-mutate clang op))
+
+(defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src (ext clang)) (genome clang)
     (multiple-value-bind (stdout stderr exit)
         (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
