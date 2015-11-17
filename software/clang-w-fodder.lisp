@@ -203,59 +203,32 @@ a uniformly selected element of the JSON database.")
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))
 
-(defmethod apply-mutation :around ((clang-w-fodder clang-w-fodder) mut)
-   (call-next-method clang-w-fodder mut))
-
 (defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
-  (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
-    (multiple-value-bind (stdout stderr exit)
-      (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
-             (ecase (car op)
-               (:cut              "-cut")
-               (:insert           "-insert")
-               (:swap             "-swap")
-               (:set-value        "-set")
-               (:insert-value     "-insert-value")
-               (:insert-full-stmt "-insert-before")
-               (:ids              "-ids"))
-             (mapconcat (lambda (pair)
-                          (if (stringp (cdr pair))
-                              (format nil "-value='~a'" (cdr pair))
-                              (format nil "-stmt~d=~d" (car pair) (cdr pair))))
-                        (loop :for id :in (cdr op) :as i :from 1
-                           :collect (cons i id)) " ")
-             src (flags clang-w-fodder))
-      stdout)))
+  (clang-mutate clang-w-fodder op))
 
 (defmethod clang-tidy ((clang-w-fodder clang-w-fodder))
   (setf (genome clang-w-fodder)
         (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
           (multiple-value-bind (stdout stderr exit)
-            (shell "clang-tidy -fix -checks=~a ~a -- 1>&2 && cat ~a"
-              (mapconcat 
-                (lambda (check) (format nil "~a" check))
-                (list "-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
-                      "-google-build-explicit-make-pair"
-                      "-google-explicit-constructor"
-                      "-google-readability-namespace-comments"
-                      "-google-readability-redundant-smartptr-get"
-                      "-google-readability-runtime-int"
-                      "-google-readability-readability-function-size"
-                      "-llvm-namespace-commant"
-                      "-llvm-include-order"
-                      "-misc-mode-constructor-init"
-                      "-misc-noexcept-move-constructor"
-                      "-misc-uniqueptr-reset-release"
-                      "-modernize*"
-                      "-readability-container-size-empty"
-                      "-readability-function-size"
-                      "-readability-redundant-smart-ptr-get"
-                      "-readability-uniqueptr-delete-release")
-                ",")
-              src
-              src)
-            stdout))))
-
-(defmethod phenome ((clang-w-fodder clang-w-fodder) &key bin)
-  (clang-tidy clang-w-fodder)
-  (call-next-method))
+              (shell "clang-tidy -fix -checks=~{~a~^,~} ~a -- 1>&2"
+                     '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
+                       "-google-build-explicit-make-pair"
+                       "-google-explicit-constructor"
+                       "-google-readability-namespace-comments"
+                       "-google-readability-redundant-smartptr-get"
+                       "-google-readability-runtime-int"
+                       "-google-readability-readability-function-size"
+                       "-llvm-namespace-commant"
+                       "-llvm-include-order"
+                       "-misc-mode-constructor-init"
+                       "-misc-noexcept-move-constructor"
+                       "-misc-uniqueptr-reset-release"
+                       "-modernize*"
+                       "-readability-container-size-empty"
+                       "-readability-function-size"
+                       "-readability-redundant-smart-ptr-get"
+                       "-readability-uniqueptr-delete-release")
+                     src
+                     src)
+            (declare (ignorable stdout stderr))
+            (if (zerop exit) (file-to-string src) (genome clang-w-fodder))))))

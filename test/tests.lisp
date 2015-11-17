@@ -342,6 +342,12 @@
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
 
+(deftest crossover-clang-software-object-do-not-crash()
+  (with-fixture hello-world-clang
+    (let* ((variant (crossover (copy *hello-world*) (copy *hello-world*))))
+      (is (string/= (genome variant)
+                    "")))))
+
 ;;; Clang w/ mutation fodder representation
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
@@ -355,6 +361,11 @@
              (size *hello-world*)))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
+
+;;; Clang utility methods
+(deftest to-ast-hash-table-test()
+  (with-fixture hello-world-clang
+    (is (= 7 (hash-table-count (to-ast-hash-table *hello-world*))))))
 
 (deftest set-value-changes-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder

@@ -73,19 +73,27 @@
 
 (defmethod apply-mutation :around ((ast ast) mut)
   ;; Apply MUT to AST, and then update `SIZE' for AST.
-  (if (equal (car mut) :ids)
+  (if (member (car mut) '(:ids :list))
       (call-next-method)
       (setf (genome ast) (call-next-method))))
 
 (defmethod crossover ((a ast) (b ast))
-  (flet ((line-breaks (genome)
-           (loop :for char :in (coerce genome 'list) :as index :from 0
-              :when (equal char #\Newline) :collect index)))
-    (let ((a-point (random-elt (line-breaks (genome a))))
-          (b-point (random-elt (line-breaks (genome b))))
-          (new (copy a)))
-      (setf (genome new)
-            (copy-seq (concatenate 'string
-                        (subseq (genome a) 0 a-point)
-                        (subseq (genome b) b-point))))
-      (values new (list a-point b-point)))))
+  (let ((a-point (random-elt (line-breaks (genome a))))
+        (b-point (random-elt (line-breaks (genome b))))
+        (new (copy a)))
+    (setf (genome new)
+          (copy-seq (concatenate 'string
+                      (subseq (genome a) 0 a-point)
+                      (subseq (genome b) b-point))))
+    (values new (list a-point b-point))))
+
+(defmethod lines ((ast ast))
+  (split-sequence #\Newline (genome ast)))
+
+(defmethod line-breaks ((ast ast))
+  (cons 0 (loop :for char :in (coerce (genome ast) 'list) :as index 
+                :from 0
+                :when (equal char #\Newline) :collect index)))
+
+(defmethod (setf lines) (new (ast ast))
+  (setf (genome ast) (format nil "~{~a~^~%~}" new)))

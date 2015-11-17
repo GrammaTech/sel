@@ -26,25 +26,67 @@
   ((compiler :initarg :compiler :accessor compiler :initform "clang")))
 
 (defmethod apply-mutation ((clang clang) op)
+  (clang-mutate clang op))
+
+(defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src (ext clang)) (genome clang)
     (multiple-value-bind (stdout stderr exit)
-        (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
-               (ecase (car op)
-                 (:cut    "-cut")
-                 (:insert "-insert")
-                 (:swap   "-swap")
-                 (:ids    "-ids"))
-               (mapconcat (lambda (pair)
-                            (format nil "-stmt~d=~d" (car pair) (cdr pair)))
-                          (loop :for id :in (cdr op) :as i :from 1
-                             :collect (cons i id)) " ")
-               src (flags clang))
-      ;; NOTE: temporarily removing this check so we can use a clang
-      ;;       which can't satisfy some dependencies
-      ;; (unless (zerop exit)
-      ;;   (error 'mutate
-      ;;          :text (format nil "clang-mutate:~a" stderr) :obj clang))
+      (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
+             (ecase (car op)
+               (:cut              "-cut")
+               (:insert           "-insert")
+               (:swap             "-swap")
+               (:set-value        "-set")
+               (:insert-value     "-insert-value")
+               (:insert-full-stmt "-insert-before")
+               (:ids              "-ids")
+               (:list             "-list")
+               (:list-json        "-list -json"))
+             (mapconcat (lambda (pair)
+                          (if (stringp (cdr pair))
+                              (format nil "-value='~a'" (cdr pair))
+                              (format nil "-stmt~d=~d" (car pair) (cdr pair))))
+                        (loop :for id :in (cdr op) :as i :from 1
+                           :collect (cons i id)) " ")
+             src (flags clang))
       stdout)))
+
+(defmethod to-ast-hash-table ((clang clang))
+  (let ((ast-hash-table (make-hash-table :test 'equal)))
+    (dolist (ast-entry 
+      (json:decode-json-from-source (clang-mutate clang '(:list-json))))
+      (let* ((ast-class (aget :AST--CLASS ast-entry))
+             (cur (gethash ast-class ast-hash-table)))
+        (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
+    ast-hash-table))
+
+(defmethod crossover ((a clang) (b clang))
+  (let* ((a-asts (to-ast-hash-table a))
+         (b-asts (to-ast-hash-table b))
+         (random-ast-class (random-hash-table-key a-asts))
+         (a-crossover-ast (random-elt (gethash random-ast-class a-asts)))
+         (b-crossover-ast (if (gethash random-ast-class b-asts)
+                              (random-elt (gethash random-ast-class b-asts))
+                              nil))
+         (variant (copy a)))
+    (if b-crossover-ast
+        (let* ((a-crossover-src-ln (aget :END--SRC--LINE a-crossover-ast))
+               (a-crossover-src-col (aget :END--SRC--COL a-crossover-ast))
+               (a-line-breaks (line-breaks a))
+               (a-crossover-pt (+ (nth (1- a-crossover-src-ln) a-line-breaks)
+                                  a-crossover-src-col))
+               (b-crossover-src-ln (aget :BEGIN--SRC--LINE b-crossover-ast))
+               (b-crossover-src-col (aget :BEGIN--SRC--COL b-crossover-ast))
+               (b-line-breaks (line-breaks b))
+               (b-crossover-pt (+ (nth (1- b-crossover-src-ln) b-line-breaks)
+                                   b-crossover-src-col)))
+          (setf (genome variant)
+                (copy-seq (concatenate 'string
+                            (subseq (genome a) 0 a-crossover-pt)
+                            (subseq (genome b) b-crossover-pt))))))
+    variant))
+       
+
 
 (defmethod phenome ((clang clang) &key bin)
   (with-temp-file-of (src (ext clang)) (genome clang)

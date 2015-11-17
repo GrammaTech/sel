@@ -333,6 +333,19 @@ Keyword argument FRAC will return fractions instead of raw counts."
                          (pick-from (cdr list))))))
         (pick-from orig-list))))
 
+(defun find-hashtable-element (hash-tbl n)
+  (maphash 
+    #'(lambda (k v)
+      (declare (ignore v))
+      (when (= n 0) (return-from find-hashtable-element k))
+      (decf n))
+    hash-tbl))
+
+(defun random-hash-table-key (hash-tbl)
+  "Return a random key in a hash table"
+  (let ((pos (random (hash-table-count hash-tbl))))
+    (find-hashtable-element hash-tbl pos)))
+
 ;; From the Common Lisp Cookbook
 (defun replace-all (string part replacement &key (test #'char=))
   "Returns a new string in which all the occurences of the part
