@@ -335,11 +335,11 @@ Keyword argument FRAC will return fractions instead of raw counts."
 
 (defun find-hashtable-element (hash-tbl n)
   (maphash 
-    #'(lambda (k v)
-      (declare (ignore v))
-      (when (= n 0) (return-from find-hashtable-element k))
-      (decf n))
-    hash-tbl))
+   (lambda (k v)
+     (declare (ignore v))
+     (when (= n 0) (return-from find-hashtable-element k))
+     (decf n))
+   hash-tbl))
 
 (defun random-hash-table-key (hash-tbl)
   "Return a random key in a hash table"
