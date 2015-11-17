@@ -200,10 +200,9 @@ a uniformly selected element of the JSON database.")
                (let ((good (pick-good clang-w-fodder)))
                  `(:insert-full-stmt ,good
                                      ,(pick-full-stmt-json clang-w-fodder
-                                                           good))))
-              )))
+                                                           good)))))))
     (apply-mutation clang-w-fodder op)
-    (values clang-w-fodder op))))
+    (values clang-w-fodder op)))
 
 (defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
   (clang-mutate clang-w-fodder op))
