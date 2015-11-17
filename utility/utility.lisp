@@ -343,8 +343,9 @@ Keyword argument FRAC will return fractions instead of raw counts."
 
 (defun random-hash-table-key (hash-tbl)
   "Return a random key in a hash table"
-  (let ((pos (random (hash-table-count hash-tbl))))
-    (find-hashtable-element hash-tbl pos)))
+  (let ((size (hash-table-count hash-tbl)))
+    (unless (zerop size)
+      (find-hashtable-element hash-tbl (random size)))))
 
 ;; From the Common Lisp Cookbook
 (defun replace-all (string part replacement &key (test #'char=))
