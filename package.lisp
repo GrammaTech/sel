@@ -85,6 +85,8 @@
    :clang
    :clang-w-fodder
    :*json-database*
+   :*json-database-bins*
+   :*json-database-full-stmt-bins*
    :cil
    :llvm
    :linker
