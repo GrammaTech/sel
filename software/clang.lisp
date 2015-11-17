@@ -34,6 +34,7 @@
       (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
              (ecase (car op)
                (:cut              "-cut")
+               (:cut-enclosing    "-cut-enclosing")
                (:insert           "-insert")
                (:swap             "-swap")
                (:set-value        "-set")
