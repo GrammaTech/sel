@@ -52,6 +52,7 @@
                         (loop :for id :in (cdr op) :as i :from 1
                            :collect (cons i id)) " ")
              src (flags clang))
+      (declare (ignorable stderr exit))
       stdout)))
 
 (defmethod asts-of ((clang clang))
@@ -61,7 +62,9 @@
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
     (dolist (ast-entry 
-      (json:decode-json-from-source (clang-mutate clang '(:list-json))))
+              (let ((list-string (clang-mutate clang '(:list-json))))
+                (unless (zerop (length list-string))
+                  (json:decode-json-from-source list-string))))
       (let* ((ast-class (aget :AST--CLASS ast-entry))
              (cur (gethash ast-class ast-hash-table)))
         (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
@@ -71,12 +74,12 @@
   (let* ((a-asts (asts-of a))
          (b-asts (asts-of b))
          (random-ast-class (random-hash-table-key a-asts))
-         (a-crossover-ast (random-elt (gethash random-ast-class a-asts)))
-         (b-crossover-ast (if (gethash random-ast-class b-asts)
-                              (random-elt (gethash random-ast-class b-asts))
-                              nil))
+         (a-crossover-ast (when-let ((it (gethash random-ast-class a-asts)))
+                            (random-elt it)))
+         (b-crossover-ast (when-let ((it (gethash random-ast-class b-asts)))
+                            (random-elt it)))
          (variant (copy a)))
-    (if b-crossover-ast
+    (if (and a-crossover-ast b-crossover-ast)
         (let* ((a-crossover-src-ln (aget :END--SRC--LINE a-crossover-ast))
                (a-crossover-src-col (aget :END--SRC--COL a-crossover-ast))
                (a-line-breaks (line-breaks a))
