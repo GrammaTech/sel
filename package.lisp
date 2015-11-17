@@ -47,6 +47,8 @@
    :apply-path
    :pick-json
    :to-ast-hash-table
+   :extend-to-enclosing
+   :get-stmt-info
    ;; global variables
    :*population*
    :*max-population-size*

@@ -23,7 +23,8 @@
 (in-package :software-evolution)
 
 (defclass clang (ast)
-  ((compiler :initarg :compiler :accessor compiler :initform "clang")))
+  ((compiler :initarg :compiler :accessor compiler :initform "clang")
+   (clang-asts :initarg :clang-asts :accessor clang-asts  :initform nil)))
 
 (defmethod apply-mutation ((clang clang) op)
   (clang-mutate clang op))
@@ -34,12 +35,13 @@
       (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
              (ecase (car op)
                (:cut              "-cut")
-               (:cut-enclosing    "-cut-enclosing")
+               (:cut-full-stmt    "-cut")
                (:insert           "-insert")
                (:swap             "-swap")
+               (:swap-full-stmt   "-swap")
                (:set-value        "-set")
                (:insert-value     "-insert-value")
-               (:insert-full-stmt "-insert-before")
+               (:insert-full-stmt "-insert-value")
                (:ids              "-ids")
                (:list             "-list")
                (:list-json        "-list -json"))
@@ -53,6 +55,10 @@
       (declare (ignorable stderr exit))
       stdout)))
 
+(defmethod asts-of ((clang clang))
+  (or (clang-asts clang)
+      (setf (clang-asts clang) (to-ast-hash-table clang))))
+
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
     (dolist (ast-entry 
@@ -65,8 +71,8 @@
     ast-hash-table))
 
 (defmethod crossover ((a clang) (b clang))
-  (let* ((a-asts (to-ast-hash-table a))
-         (b-asts (to-ast-hash-table b))
+  (let* ((a-asts (asts-of a))
+         (b-asts (asts-of b))
          (random-ast-class (random-hash-table-key a-asts))
          (a-crossover-ast (when-let ((it (gethash random-ast-class a-asts)))
                             (random-elt it)))
