@@ -318,7 +318,7 @@
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:cut 7))
+      (apply-mutation variant '(:cut (:stmt1 . 7)))
       (is (< (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -327,7 +327,7 @@
 (deftest insert-lengthens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:insert 1 7))
+      (apply-mutation variant '(:insert (:stmt1 . 1) (:stmt2 . 7)))
       (is (> (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -336,7 +336,7 @@
 (deftest swap-changes-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:swap 1 7))
+      (apply-mutation variant '(:swap (:stmt1 . 1) (:stmt2 . 7)))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -356,8 +356,19 @@
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:insert-value 1 "int i = 0;"))
+      (apply-mutation variant '(:insert-value (:stmt1 . 1) 
+                                              (:value . "int i = 0;")))
       (is (> (size variant)
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
+
+(deftest set-value-changes-a-clang-w-fodder-software-object()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(:set-value (:stmt1 . 6) 
+                                           (:value . "\"Hello, mutate!\"")))
+      (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
@@ -370,15 +381,6 @@
 (deftest to-ast-hash-table-test()
   (with-fixture hello-world-clang
     (is (= 7 (hash-table-count (to-ast-hash-table *hello-world*))))))
-
-(deftest set-value-changes-a-clang-w-fodder-software-object()
-  (with-fixture hello-world-clang-w-fodder
-    (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:set-value 6 "\"Hello, mutate!\""))
-      (is (= (size variant)
-             (size *hello-world*)))
-      (is (string/= (genome variant)
-                    (genome *hello-world*))))))
 
 (deftest tidy-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder

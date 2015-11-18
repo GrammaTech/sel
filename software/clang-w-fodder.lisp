@@ -182,25 +182,28 @@ a uniformly selected element of the JSON database.")
   (let ((op (case (random-elt '(cut insert swap
                                 set-value insert-value insert-full-stmt
                                 cut-enclosing ))
-              (cut           `(:cut ,(pick-bad clang-w-fodder)))
-              (cut-enclosing `(:cut-enclosing ,(pick-bad clang-w-fodder)))
-              (insert        `(:insert ,(pick-bad clang-w-fodder)
-                                      ,(pick-good clang-w-fodder)))
-              (swap          `(:swap ,(pick-bad clang-w-fodder)
-                                    ,(pick-good clang-w-fodder)))
-              (set-value     (let ((good (pick-good clang-w-fodder)))
-                               `(:set-value ,good
-                                            ,(pick-json-by-class clang-w-fodder
-                                                                 good))))
-              (insert-value  (let ((good (pick-good clang-w-fodder)))
-                               `(:insert-value ,good
-                                               ,(pick-any-json clang-w-fodder
-                                                               good))))
-              (insert-full-stmt
-               (let ((good (pick-good clang-w-fodder)))
-                 `(:insert-full-stmt ,good
-                                     ,(pick-full-stmt-json clang-w-fodder
-                                                           good)))))))
+              (cut
+                 `(:cut (:stmt1 . ,(pick-bad clang-w-fodder))))
+              (cut-enclosing 
+                 `(:cut-enclosing (:stmt1 . ,(pick-bad clang-w-fodder))))
+              (insert
+                `(:insert (:stmt1 . ,(pick-bad clang-w-fodder))
+                          (:stmt2 . ,(pick-good clang-w-fodder))))
+              (swap
+                `(:swap (:stmt1 . ,(pick-bad clang-w-fodder))
+                        (:stmt2 . ,(pick-good clang-w-fodder))))
+              (set-value     
+                (let ((value (pick-json-by-class clang-w-fodder good)))
+                  `(:set-value (:stmt1 . ,(pick-good clang-w-fodder))
+                               (:value . ,value))))
+              (insert-value  
+                (let ((value (pick-any-json clang-w-fodder good)))
+                  `(:insert-value (:stmt1 . ,(pick-good clang-w-fodder))
+                                  (:value . ,value))))
+              (insert-full-stmt 
+                (let ((value (pick-full-stmt-json clang-w-fodder good)))
+                  `(:insert-full-stmt (:stmt1 . ,(pick-good clang-w-fodder))
+                                      (:value . ,value)))))))
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))
 
