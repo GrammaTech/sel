@@ -32,7 +32,7 @@
 (defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src-file (ext clang)) (genome clang)
     (multiple-value-bind (stdout stderr exit)
-      (shell "clang-mutate ~a ~a ~a -- ~{~a~^ ~}|tail -n +2"
+      (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
              (ecase (car op)
                (:cut              "-cut")
                (:cut-full-stmt    "-cut")
@@ -62,7 +62,8 @@
                            (format nil "-binary=~a" bin)))))))
                (cdr op) 
                " ")
-             src-file (flags clang))
+             src-file 
+             (mapconcat #'identity (flags clang) " "))
       (declare (ignorable stderr exit))
       stdout)))
 
