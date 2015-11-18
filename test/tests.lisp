@@ -363,6 +363,10 @@
                     (genome *hello-world*))))))
 
 ;;; Clang utility methods
+(deftest to-ast-list-test()
+  (with-fixture hello-world-clang
+    (is (= 9 (length (to-ast-list *hello-world*))))))
+
 (deftest to-ast-hash-table-test()
   (with-fixture hello-world-clang
     (is (= 7 (hash-table-count (to-ast-hash-table *hello-world*))))))

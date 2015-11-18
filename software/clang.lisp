@@ -55,16 +55,14 @@
       (declare (ignorable stderr exit))
       stdout)))
 
-(defmethod asts-of ((clang clang))
-  (or (clang-asts clang)
-      (setf (clang-asts clang) (to-ast-hash-table clang))))
+(defmethod to-ast-list ((clang clang))
+  (let ((list-string (clang-mutate clang '(:list-json))))
+    (unless (zerop (length list-string))
+      (json:decode-json-from-source list-string))))
 
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
-    (dolist (ast-entry 
-              (let ((list-string (clang-mutate clang '(:list-json))))
-                (unless (zerop (length list-string))
-                  (json:decode-json-from-source list-string))))
+    (dolist (ast-entry (to-ast-list clang))
       (let* ((ast-class (aget :AST--CLASS ast-entry))
              (cur (gethash ast-class ast-hash-table)))
         (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))

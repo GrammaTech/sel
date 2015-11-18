@@ -46,6 +46,7 @@
    :to-file
    :apply-path
    :pick-json
+   :to-ast-list
    :to-ast-hash-table
    :extend-to-enclosing
    :get-stmt-info
