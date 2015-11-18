@@ -128,12 +128,13 @@
                (b-crossover-src-col (aget :begin--src--col b-crossover-ast))
                (b-line-breaks (line-breaks b))
                (b-crossover-pt (+ (nth (1- b-crossover-src-ln) b-line-breaks)
-                                   b-crossover-src-col)))
+                                  b-crossover-src-col)))
           (setf (genome variant)
                 (copy-seq (concatenate 'string
                             (subseq (genome a) 0 a-crossover-pt)
-                            (subseq (genome b) b-crossover-pt))))))
-    variant))
+                            (subseq (genome b) b-crossover-pt))))
+          (values variant a-crossover-pt b-crossover-pt))
+        (values variant nil nil))))
 
 (defmethod phenome ((clang clang) &key bin)
   (with-temp-file-of (src-file (ext clang)) (genome clang)
