@@ -119,14 +119,15 @@ a uniformly selected element of the JSON database.")
                 (flags clang-w-fodder))
        (apply #'values
         (let ((result (nonempty-lines stdout)))
-          (if (not (equal (length result) 2))
-              '("[unknown-class]" nil)
-              (list (car result)
-                    (equal (cadr result) "has-semi"))))))))
+          (if (not (equal (length result) 3))
+              '("[unknown-class]" nil pt)
+              (list (first result)
+                    (equal (second result) "has-semi")
+                    (parse-integer (third result)))))))))
 
 (defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
   (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
-    (multiple-value-bind (ast-class has-semi) stmt-info
+    (multiple-value-bind (ast-class has-semi full-stmt) stmt-info
       (prepare-code-snippet clang-w-fodder
                             pt
                             (if has-semi
@@ -144,7 +145,7 @@ a uniformly selected element of the JSON database.")
 
 (defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt)
   (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
-    (multiple-value-bind (ast-class has-semi) stmt-info
+    (multiple-value-bind (ast-class has-semi full-stmt) stmt-info
       (let ((asts (gethash ast-class *json-database* '())))
         (prepare-code-snippet clang-w-fodder
                               pt
@@ -170,6 +171,12 @@ a uniformly selected element of the JSON database.")
              free-vars) raw-code))
       (if has-semi (format nil ";~%") ""))))
 
+(defmethod extend-to-enclosing ((clang-w-fodder clang-w-fodder) pt)
+    (multiple-value-bind (ast-class has-semi full-stmt)
+        (get-stmt-info clang-w-fodder pt)
+      (declare (ignorable ast-class has-semi))
+      full-stmt))
+
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
     (error 'mutate :text "No valid IDS" :obj clang-w-fodder))
@@ -179,33 +186,54 @@ a uniformly selected element of the JSON database.")
 
   (setf (fitness clang-w-fodder) nil)
 
-  (let ((op (case (random-elt '(cut insert swap
-                                set-value insert-value insert-full-stmt
-                                cut-enclosing ))
-              (cut
-                 `(:cut (:stmt1 . ,(pick-bad clang-w-fodder))))
-              (cut-enclosing 
-                 `(:cut-enclosing (:stmt1 . ,(pick-bad clang-w-fodder))))
-              (insert
-                `(:insert (:stmt1 . ,(pick-bad clang-w-fodder))
-                          (:stmt2 . ,(pick-good clang-w-fodder))))
-              (swap
-                `(:swap (:stmt1 . ,(pick-bad clang-w-fodder))
-                        (:stmt2 . ,(pick-good clang-w-fodder))))
-              (set-value     
-                (let ((value (pick-json-by-class clang-w-fodder good)))
-                  `(:set-value (:stmt1 . ,(pick-good clang-w-fodder))
-                               (:value . ,value))))
-              (insert-value  
-                (let ((value (pick-any-json clang-w-fodder good)))
-                  `(:insert-value (:stmt1 . ,(pick-good clang-w-fodder))
-                                  (:value . ,value))))
-              (insert-full-stmt 
-                (let ((value (pick-full-stmt-json clang-w-fodder good)))
-                  `(:insert-full-stmt (:stmt1 . ,(pick-good clang-w-fodder))
-                                      (:value . ,value)))))))
-    (apply-mutation clang-w-fodder op)
-    (values clang-w-fodder op)))
+  (labels ((good () (pick-good clang-w-fodder))
+           (bad  () (pick-bad  clang-w-fodder))
+           (good-stmt () (extend-to-enclosing clang-w-fodder (good)))
+           (bad-stmt  () (extend-to-enclosing clang-w-fodder (bad) )))
+    (let ((op (case (random-elt '(cut insert swap
+                                  set-value insert-value
+                                  insert-full-stmt
+                                  cut-full-stmt
+                                  swap-full-stmt
+                                  ))
+                 (cut            
+                   `(:cut            
+                      (:stmt1 . ,(bad))))
+                 (cut-full-stmt  
+                   `(:cut-full-stmt  
+                      (:stmt1 . ,(bad-stmt))))
+                 (insert         
+                   `(:insert         
+                      (:stmt1 . ,(bad)) 
+                      (:stmt2 . ,(good))))
+                 (swap           
+                   `(:swap           
+                      (:stmt1 . ,(bad)) 
+                      (:stmt2 . ,(good))))
+                 (swap-full-stmt 
+                   `(:swap-full-stmt 
+                      (:stmt1 . ,(bad-stmt)) 
+                      (:stmt2 . ,(good-stmt))))
+                 (set-value     
+                   (let ((pt (good)))
+                     `(:set-value    
+                        (:smt1 . ,pt)
+                        (:value . ,(pick-json-by-class clang-w-fodder 
+                                                       pt)))))
+                 (insert-value  
+                   (let ((pt (good)))
+                     `(:insert-value
+                        (:stmt1 . ,pt)
+                        (:sttm2 . ,(pick-any-json clang-w-fodder 
+                                                  pt)))))
+                 (insert-full-stmt
+                   (let ((pt (good-stmt)))
+                     `(:insert-full-stmt
+                        (:stmt1 . ,pt)
+                        (:value . ,(pick-full-stmt-json clang-w-fodder 
+                                                        pt))))))))
+      (apply-mutation clang-w-fodder op)
+      (values clang-w-fodder op))))
 
 (defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
   (clang-mutate clang-w-fodder op))
