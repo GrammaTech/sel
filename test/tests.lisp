@@ -98,7 +98,8 @@
 (defixture hello-world-clang
   (:setup
     (setf *hello-world* 
-      (from-file (make-instance 'clang) (hello-world-dir "hello_world.c"))))
+      (from-file (make-instance 'clang :compiler "gcc" :flags '("-g"))
+                 (hello-world-dir "hello_world.c"))))
   (:teardown 
     (setf *hello-world* nil)))
 
@@ -106,8 +107,8 @@
   (:setup
    (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
    (setf *hello-world*
-         (from-file (make-instance 'clang-w-fodder) 
-                    (hello-world-dir "hello_world.c"))))
+     (from-file (make-instance 'clang-w-fodder :compiler "gcc" :flags '("-g"))
+                (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
 
@@ -377,6 +378,13 @@
 (deftest to-ast-list-test()
   (with-fixture hello-world-clang
     (is (= 9 (length (to-ast-list *hello-world*))))))
+
+(deftest to-ast-list-in-bin-range-test()
+  (with-fixture hello-world-clang
+    (break)
+    (is (= 6 (length (to-ast-list-in-bin-range 
+                      *hello-world* 
+                      #x4004f8 #x400502))))))
 
 (deftest to-ast-hash-table-test()
   (with-fixture hello-world-clang

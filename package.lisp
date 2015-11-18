@@ -47,6 +47,7 @@
    :apply-path
    :pick-json
    :to-ast-list
+   :to-ast-list-in-bin-range
    :to-ast-hash-table
    ;; global variables
    :*population*
