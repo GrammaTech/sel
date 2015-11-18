@@ -81,12 +81,14 @@
       (when (and (aget :begin--addr ast-entry)
                  (aget :end--addr ast-entry))
         (when (and (not begin-ast)
-                   (<= begin-addr (aget :begin--addr ast-entry)))
+                   (<= begin-addr (aget :begin--addr ast-entry))
+                   (<= (aget :end--addr ast-entry) end-addr))
           (setf begin-ast ast-entry))
         (when (and (not end-ast)
                    begin-ast
                    (<= end-addr (aget :begin--addr ast-entry)))
           (setf end-ast ast-entry))))
+
     (when (and begin-ast end-ast)
       (dolist (ast-entry ast-list)
         (when (and (<= (aget :counter begin-ast) 
@@ -94,6 +96,7 @@
                    (< (aget :counter ast-entry)
                       (aget :counter end-ast)))
           (setf ast-list-in-range (cons ast-entry ast-list-in-range)))))
+
     (reverse ast-list-in-range)))
 
 (defmethod to-ast-hash-table ((clang clang) &key bin)
