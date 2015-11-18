@@ -381,7 +381,6 @@
 
 (deftest to-ast-list-in-bin-range-test()
   (with-fixture hello-world-clang
-    (break)
     (is (= 6 (length (to-ast-list-in-bin-range 
                       *hello-world* 
                       #x4004f8 #x400502))))))
