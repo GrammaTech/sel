@@ -203,11 +203,15 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
 (defun crossed (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION* using crossover."
-  (if (< (random 1.0) *cross-chance*) (crossover a b) (copy a)))
+  (if (< (random 1.0) *cross-chance*)
+      (crossover a b)
+      (values (copy a) nil nil)))
 
-(defun new-individual ()
+(defmethod new-individual (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION*."
-  (mutant (crossed)))
+  (multiple-value-bind (crossed a-point b-point) (crossed a b)
+    (multiple-value-bind (mutant mutation) (mutant crossed)
+      (values mutant mutation a-point b-point))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
