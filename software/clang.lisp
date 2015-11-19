@@ -23,8 +23,7 @@
 (in-package :software-evolution)
 
 (defclass clang (ast)
-  ((compiler :initarg :compiler :accessor compiler :initform "clang")
-   (clang-asts :initarg :clang-asts :accessor clang-asts  :initform nil)))
+  ((compiler :initarg :compiler :accessor compiler :initform "clang")))
 
 (defmethod apply-mutation ((clang clang) op)
   (clang-mutate clang op))
@@ -107,10 +106,6 @@
         (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
     ast-hash-table))
 
-(defmethod asts-of ((clang clang))
-  (or (clang-asts clang)
-      (setf (clang-asts clang) (to-ast-hash-table clang))))
-
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
     (dolist (ast-entry (to-ast-list clang))
@@ -120,8 +115,8 @@
     ast-hash-table))
 
 (defmethod crossover ((a clang) (b clang))
-  (let* ((a-asts (asts-of a))
-         (b-asts (asts-of b))
+  (let* ((a-asts (to-ast-hash-table a))
+         (b-asts (to-ast-hash-table b))
          (random-ast-class (random-hash-table-key a-asts))
          (a-crossover-ast (when-let ((it (gethash random-ast-class a-asts)))
                             (random-elt it)))
