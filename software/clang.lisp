@@ -27,11 +27,14 @@
    (clang-asts :initarg :clang-asts :initform nil)))
 
 (defmethod apply-mutation ((clang clang) op)
-  (clang-mutate clang op))
+  (multiple-value-bind (stdout exit)
+    (clang-mutate clang op)
+    (if (zerop exit) stdout nil)))
 
 (defmethod apply-mutation :after ((clang clang) op)
   (with-slots (clang-asts) clang
-    (setf clang-asts nil)))
+    (when (not (member (car op) '(:ids :list :list-json)))
+      (setf clang-asts nil))))
 
 (defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src-file (ext clang)) (genome clang)
@@ -68,8 +71,8 @@
                " ")
              src-file 
              (mapconcat #'identity (flags clang) " "))
-      (declare (ignorable stderr exit))
-      stdout)))
+      (declare (ignorable stderr))
+      (values stdout exit))))
 
 (defmethod to-ast-list ((clang clang))
   (with-slots (clang-asts) clang

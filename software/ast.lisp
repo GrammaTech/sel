@@ -77,7 +77,9 @@
   ;; Apply MUT to AST, and then update `SIZE' for AST.
   (if (member (car mut) '(:ids :list :list-json))
       (call-next-method)
-      (setf (genome ast) (call-next-method))))
+      (let ((new-genome (call-next-method)))
+        (when new-genome
+          (setf (genome ast) new-genome)))))
 
 (defmethod crossover ((a ast) (b ast))
   (let ((a-point (random-elt (line-breaks (genome a))))
