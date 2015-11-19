@@ -155,3 +155,30 @@
                src-file bin (mapconcat #'identity (flags clang) " "))
       (declare (ignorable stdout stderr))
       (values (if (zerop exit) bin stderr) exit))))
+
+(defmethod clang-tidy ((clang clang))
+  (setf (genome clang)
+        (with-temp-file-of (src (ext clang)) (genome clang)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "clang-tidy -fix -checks=~{~a~^,~} ~a -- ~a 1>&2"
+                     '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
+                       "-google-build-explicit-make-pair"
+                       "-google-explicit-constructor"
+                       "-google-readability-namespace-comments"
+                       "-google-readability-redundant-smartptr-get"
+                       "-google-readability-runtime-int"
+                       "-google-readability-readability-function-size"
+                       "-llvm-namespace-commant"
+                       "-llvm-include-order"
+                       "-misc-mode-constructor-init"
+                       "-misc-noexcept-move-constructor"
+                       "-misc-uniqueptr-reset-release"
+                       "-modernize*"
+                       "-readability-container-size-empty"
+                       "-readability-function-size"
+                       "-readability-redundant-smart-ptr-get"
+                       "-readability-uniqueptr-delete-release")
+                     src
+                     (mapconcat #'identity (flags clang) " "))
+            (declare (ignorable stdout stderr))
+            (if (zerop exit) (file-to-string src) (genome clang))))))
