@@ -242,7 +242,7 @@ a uniformly selected element of the JSON database.")
   (setf (genome clang-w-fodder)
         (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
           (multiple-value-bind (stdout stderr exit)
-              (shell "clang-tidy -fix -checks=~{~a~^,~} ~a -- 1>&2"
+              (shell "clang-tidy -fix -checks=~{~a~^,~} ~a -- ~a 1>&2"
                      '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
                        "-google-build-explicit-make-pair"
                        "-google-explicit-constructor"
@@ -261,6 +261,6 @@ a uniformly selected element of the JSON database.")
                        "-readability-redundant-smart-ptr-get"
                        "-readability-uniqueptr-delete-release")
                      src
-                     src)
+                     (mapconcat #'identity (flags clang-w-fodder) " "))
             (declare (ignorable stdout stderr))
             (if (zerop exit) (file-to-string src) (genome clang-w-fodder))))))
