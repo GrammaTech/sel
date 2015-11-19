@@ -23,10 +23,15 @@
 (in-package :software-evolution)
 
 (defclass clang (ast)
-  ((compiler :initarg :compiler :accessor compiler :initform "clang")))
+  ((compiler :initarg :compiler :accessor compiler :initform "clang")
+   (clang-asts :initarg :clang-asts :initform nil)))
 
 (defmethod apply-mutation ((clang clang) op)
   (clang-mutate clang op))
+
+(defmethod apply-mutation :after ((clang clang) op)
+  (with-slots (clang-asts) clang
+    (setf clang-asts nil)))
 
 (defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src-file (ext clang)) (genome clang)
@@ -67,9 +72,13 @@
       stdout)))
 
 (defmethod to-ast-list ((clang clang))
-  (let ((list-string (clang-mutate clang `(:list-json (:bin . t)))))
-    (unless (zerop (length list-string))
-      (json:decode-json-from-source list-string))))
+  (with-slots (clang-asts) clang
+    (if clang-asts
+        clang-asts
+        (setf clang-asts
+          (let ((list-string (clang-mutate clang `(:list-json (:bin . t)))))
+            (unless (zerop (length list-string))
+              (json:decode-json-from-source list-string)))))))
 
 (defmethod to-ast-list-in-bin-range((clang clang) begin-addr end-addr)
   (let ((ast-list (to-ast-list clang))
