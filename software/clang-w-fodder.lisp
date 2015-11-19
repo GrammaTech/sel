@@ -224,7 +224,7 @@ a uniformly selected element of the JSON database.")
                    (let ((pt (good)))
                      `(:insert-value
                         (:stmt1 . ,pt)
-                        (:sttm2 . ,(pick-any-json clang-w-fodder 
+                        (:stmt2 . ,(pick-any-json clang-w-fodder 
                                                   pt)))))
                  (insert-full-stmt
                    (let ((pt (good-stmt)))
