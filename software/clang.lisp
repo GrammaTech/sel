@@ -118,14 +118,6 @@
         (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
     ast-hash-table))
 
-(defmethod to-ast-hash-table ((clang clang))
-  (let ((ast-hash-table (make-hash-table :test 'equal)))
-    (dolist (ast-entry (to-ast-list clang))
-      (let* ((ast-class (aget :AST--CLASS ast-entry))
-             (cur (gethash ast-class ast-hash-table)))
-        (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
-    ast-hash-table))
-
 (defmethod crossover ((a clang) (b clang))
   (let* ((a-asts (to-ast-hash-table a))
          (b-asts (to-ast-hash-table b))
