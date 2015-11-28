@@ -381,9 +381,9 @@
                                              :compiler "gcc" 
                                              :flags '("-g")
                                              :diff-addresses '(((:begin-addr .
-                                                                  #x4004f4)
+                                                                  #x4004f8)
                                                                 (:end-addr .
-                                                                  #x400509)
+                                                                  #x400502)
                                                                 (:hint .
                                                                  :delete))))
                               (hello-world-dir "hello_world.c"))))
@@ -394,6 +394,28 @@
                                 #\Newline 
                                 (genome variant)))
                     (nth 5 (split-sequence:split-sequence 
+                                #\Newline 
+                                (genome *hello-world*))))))))
+
+(deftest targeted-mutation-changes-line-8-of-clang-w-fodder-software-object()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((variant (from-file (make-instance 'clang-w-fodder 
+                                             :compiler "gcc" 
+                                             :flags '("-g")
+                                             :diff-addresses '(((:begin-addr .
+                                                                  #x400502)
+                                                                (:end-addr .
+                                                                  #x400507)
+                                                                (:hint .
+                                                                 :delete))))
+                              (hello-world-dir "hello_world.c"))))
+      (mutate-targeted variant)
+      (is (string/= (genome variant)
+                    (genome *hello-world*)))
+      (is (string/= (nth 7 (split-sequence:split-sequence 
+                                #\Newline 
+                                (genome variant)))
+                    (nth 7 (split-sequence:split-sequence 
                                 #\Newline 
                                 (genome *hello-world*))))))))
 
