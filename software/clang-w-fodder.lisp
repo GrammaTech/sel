@@ -85,6 +85,10 @@ a uniformly selected element of the JSON database.")
 (defmethod from-file :before ((obj clang-w-fodder) path)
   (assert (not (null *json-database-bins*))))
 
+(defmethod (setf fitness-extra-data) (extra-data (clang-w-fodder clang-w-fodder))
+  (setf (diff-addresses clang-w-fodder) extra-data)
+  (call-next-method))
+
 (defun clang-w-fodder-setup-db (json-db-path)
   ;; Clobber the existing database
   (setq *json-database* (make-hash-table :test 'equal))
@@ -209,11 +213,16 @@ a uniformly selected element of the JSON database.")
              (bad  (aget :counter (random-elt bad-asts)))
              (good-stmt (extend-to-enclosing clang-w-fodder good))
              (bad-stmt  (extend-to-enclosing clang-w-fodder bad))
-             (hint (aget :hint bad-asts))
+             (hint (aget :hint target-diff))
              (op (case hint
-                   (:delete '(cut cut-full-stmt))
-                   (:swap '(set-value swap swap-full-stmt))
-                   (:insert (insert insert-value insert-full-stmt)))))
+                   (:delete (random-elt '(cut 
+                                          cut-full-stmt)))
+                   (:swap   (random-elt '(set-value 
+                                          swap 
+                                          swap-full-stmt)))
+                   (:insert (random-elt '(insert 
+                                          insert-value 
+                                          insert-full-stmt))))))
         (mutate-body clang-w-fodder op good bad good-stmt bad-stmt))
       (mutate-untargeted clang-w-fodder))))
 
