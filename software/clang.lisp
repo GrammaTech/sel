@@ -23,8 +23,12 @@
 (in-package :software-evolution)
 
 (defclass clang (ast)
-  ((compiler :initarg :compiler :accessor compiler :initform "clang")
-   (clang-asts :initarg :clang-asts :initform nil)))
+  ((compiler :initarg :compiler 
+             :accessor compiler 
+             :initform "clang"
+             :copier copy-seq)
+   (clang-asts :initarg :clang-asts 
+               :initform nil)))
 
 (defmethod apply-mutation ((clang clang) op)
   (multiple-value-bind (stdout exit)
