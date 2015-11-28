@@ -29,6 +29,8 @@
    :pick-good
    :pick-bad
    :mutate
+   :mutate-targeted
+   :mutate-untargeted
    :apply-mutation
    :crossover
    :one-point-crossover
