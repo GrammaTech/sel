@@ -5,6 +5,7 @@
   :depends-on (alexandria
                metabang-bind
                curry-compose-reader-macros
+               split-sequence
                stefil
                software-evolution
                software-evolution-utility)

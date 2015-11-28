@@ -374,6 +374,29 @@
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
 
+;;; Targetted mutation test
+(deftest targeted-mutation-changes-line-6-of-clang-w-fodder-software-object()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((variant (from-file (make-instance 'clang-w-fodder 
+                                             :compiler "gcc" 
+                                             :flags '("-g")
+                                             :diff-addresses '(((:begin-addr .
+                                                                  #x4004f4)
+                                                                (:end-addr .
+                                                                  #x400509)
+                                                                (:hint .
+                                                                 :delete))))
+                              (hello-world-dir "hello_world.c"))))
+      (mutate-targeted variant)
+      (is (string/= (genome variant)
+                    (genome *hello-world*)))
+      (is (string/= (nth 5 (split-sequence:split-sequence 
+                                #\Newline 
+                                (genome variant)))
+                    (nth 5 (split-sequence:split-sequence 
+                                #\Newline 
+                                (genome *hello-world*))))))))
+
 ;;; Clang utility methods
 (deftest to-ast-list-test()
   (with-fixture hello-world-clang
