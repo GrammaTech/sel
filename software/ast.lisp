@@ -33,7 +33,7 @@
              :copier copy-seq)
    (flags    :initarg :flags    :accessor flags    :initform nil
              :copier copy-tree)
-   (compiler :initarg :compiler :accessor compiler :initform nil
+   (compiler :initarg :compiler :accessor compiler :initform "clang"
              :copier copy-seq)
    (ext      :initarg :ext      :accessor ext      :initform "c"
              :copier copy-tree)
