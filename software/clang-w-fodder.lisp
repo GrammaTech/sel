@@ -194,54 +194,15 @@ a uniformly selected element of the JSON database.")
 
   (setf (fitness clang-w-fodder) nil)
 
-  (if (< (random 1.0) *targeted-mutation-chance*)
-    (mutate-targeted clang-w-fodder)
-    (mutate-untargeted clang-w-fodder)))
-
-(defvar *targeted-mutation-chance* 0.75
-  "Probability of performing a targeted vs. random mutation.")
-
-(defmethod mutate-targeted ((clang-w-fodder clang-w-fodder))
-  "Target mutation operation on ASTs corresponding to binary differences."
-  (let* ((target-diff (random-elt (diff-addresses clang-w-fodder)))
-         (bad-asts (to-ast-list-containing-bin-range 
-                     clang-w-fodder
-                     (aget :begin-addr target-diff)
-                     (aget :end-addr target-diff))))
-    (if bad-asts
-      (let* ((good (pick-good clang-w-fodder))
-             (bad  (aget :counter (random-elt bad-asts)))
-             (good-stmt (extend-to-enclosing clang-w-fodder good))
-             (bad-stmt  (extend-to-enclosing clang-w-fodder bad))
-             (hint (aget :hint target-diff))
-             (op (case hint
-                   (:delete (random-elt '(cut 
-                                          cut-full-stmt)))
-                   (:swap   (random-elt '(set-value 
-                                          swap 
-                                          swap-full-stmt)))
-                   (:insert (random-elt '(insert 
-                                          insert-value 
-                                          insert-full-stmt))))))
-        (mutate-body clang-w-fodder op good bad good-stmt bad-stmt))
-      (mutate-untargeted clang-w-fodder))))
-
-(defmethod mutate-untargeted ((clang-w-fodder clang-w-fodder))
-  "Perform a totally random mutation"
   (let* ((good  (pick-good clang-w-fodder))
          (bad   (pick-bad  clang-w-fodder))
          (good-stmt (extend-to-enclosing clang-w-fodder good))
          (bad-stmt  (extend-to-enclosing clang-w-fodder bad))
-         (op (random-elt '(cut insert swap
-                           set-value insert-value
-                           insert-full-stmt
-                           cut-full-stmt
-                           swap-full-stmt))))
-    (mutate-body clang-w-fodder op good bad good-stmt bad-stmt)))
-
-(defmethod mutate-body ((clang-w-fodder clang-w-fodder) op-param good bad good-stmt bad-stmt)
-  "Common mutation function for mutate-targeted/mutate-untargeted"
-  (let ((op (case op-param
+         (op (case (random-elt '(cut insert swap
+                                  set-value insert-value
+                                  insert-full-stmt
+                                  cut-full-stmt
+                                  swap-full-stmt))
                (cut            
                  `(:cut            
                     (:stmt1 . ,bad)))
@@ -277,6 +238,25 @@ a uniformly selected element of the JSON database.")
                                                     good)))))))
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))
+
+(defvar *targeted-mutation-chance* 0.75
+  "Probability of performing a targeted vs. random mutation.")
+
+(defmethod pick-bad((clang-w-fodder clang-w-fodder))
+  (if (< (random 1.0) *targeted-mutation-chance*)
+    (pick-bad-targetted clang-w-fodder)
+    (call-next-method)))
+
+(defmethod pick-bad-targetted((clang-w-fodder clang-w-fodder))
+  "Return the AST of a binary-difference inducing AST in clang-w-fodder"
+  (let* ((target-diff (random-elt (diff-addresses clang-w-fodder)))
+         (bad-asts (to-ast-list-containing-bin-range 
+                     clang-w-fodder
+                       (aget :begin-addr target-diff)
+                       (aget :end-addr target-diff))))
+    (if bad-asts
+      (aget :counter (random-elt bad-asts))
+      (aget :counter (random-elt (to-ast-list clang-w-fodder))))))
 
 (defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
   (clang-mutate clang-w-fodder op))
