@@ -49,7 +49,7 @@
    :apply-path
    :pick-json
    :to-ast-list
-   :to-ast-list-in-bin-range
+   :to-ast-list-containing-bin-range
    :to-ast-hash-table
    :extend-to-enclosing
    :get-stmt-info

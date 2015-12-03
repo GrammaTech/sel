@@ -83,32 +83,42 @@
             (unless (zerop (length list-string))
               (json:decode-json-from-source list-string)))))))
 
-(defmethod to-ast-list-in-bin-range((clang clang) begin-addr end-addr)
+(defmethod to-ast-list-containing-bin-range((clang clang) begin-addr end-addr)
   (let ((ast-list (to-ast-list clang))
-        (ast-list-in-range nil)
-        (begin-ast nil)
-        (end-ast nil))
+        (smallest-enclosing-ast nil)
+        (smallest-enclosing-ast-sub-asts nil))
     (dolist (ast-entry ast-list)
+      ;; Find the smallest AST which encloses the range [begin-addr, end-addr]
       (when (and (aget :begin--addr ast-entry)
-                 (aget :end--addr ast-entry))
-        (when (and (not begin-ast)
-                   (<= begin-addr (aget :begin--addr ast-entry))
-                   (<= (aget :end--addr ast-entry) end-addr))
-          (setf begin-ast ast-entry))
-        (when (and (not end-ast)
-                   begin-ast
-                   (<= end-addr (aget :begin--addr ast-entry)))
-          (setf end-ast ast-entry))))
+                 (aget :end--addr ast-entry)
+                 (<= (aget :begin--addr ast-entry) begin-addr)
+                 (<= end-addr (aget :end--addr ast-entry)))
+        (if smallest-enclosing-ast
+          (when (< (- (aget :end--addr ast-entry)
+                      (aget :begin--addr ast-entry))
+                   (- (aget :end--addr smallest-enclosing-ast)
+                      (aget :begin--addr smallest-enclosing-ast)))
+            (setf smallest-enclosing-ast ast-entry)
+            (setf smallest-enclosing-ast-sub-asts nil))
+          (setf smallest-enclosing-ast ast-entry)))
 
-    (when (and begin-ast end-ast)
-      (dolist (ast-entry ast-list)
-        (when (and (<= (aget :counter begin-ast) 
-                       (aget :counter ast-entry))
-                   (< (aget :counter ast-entry)
-                      (aget :counter end-ast)))
-          (setf ast-list-in-range (cons ast-entry ast-list-in-range)))))
-
-    (reverse ast-list-in-range)))
+      ;; Collect all sub-asts of the smallest AST which encloses the 
+      ;; range [begin-addr, end-addr].  
+      ;; @TODO: This could be optimized further
+      ;; to include only those sub-ASTs which have bytes
+      ;; in the range begin-addr/end-addr.
+      (when (and smallest-enclosing-ast
+                 (<= (aget :begin--src--line smallest-enclosing-ast)
+                     (aget :begin--src--line ast-entry))
+                 (<= (aget :begin--src--col smallest-enclosing-ast)
+                     (aget :begin--src--col ast-entry))
+                 (<= (aget :end--src--line ast-entry)
+                     (aget :end--src--line smallest-enclosing-ast))
+                 (<= (aget :end--src--col ast-entry)
+                     (aget :end--src--col smallest-enclosing-ast)))
+        (setf smallest-enclosing-ast-sub-asts
+              (cons ast-entry smallest-enclosing-ast-sub-asts))))
+    (reverse smallest-enclosing-ast-sub-asts)))
 
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))

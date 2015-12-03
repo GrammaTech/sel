@@ -204,7 +204,7 @@ a uniformly selected element of the JSON database.")
 (defmethod mutate-targeted ((clang-w-fodder clang-w-fodder))
   "Target mutation operation on ASTs corresponding to binary differences."
   (let* ((target-diff (random-elt (diff-addresses clang-w-fodder)))
-         (bad-asts (to-ast-list-in-bin-range 
+         (bad-asts (to-ast-list-containing-bin-range 
                      clang-w-fodder
                      (aget :begin-addr target-diff)
                      (aget :end-addr target-diff))))
