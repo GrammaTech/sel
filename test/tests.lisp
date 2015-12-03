@@ -424,9 +424,8 @@
   (with-fixture hello-world-clang
     (is (= 9 (length (to-ast-list *hello-world*))))))
 
-(deftest to-ast-list-in-bin-range-test()
+(deftest to-ast-list-containing-bin-range-test()
   (with-fixture hello-world-clang
-    (is (= 6 (length (to-ast-list-in-bin-range 
                       *hello-world* 
                       #x4004f8 #x400502))))))
 
