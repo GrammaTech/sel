@@ -375,49 +375,37 @@
                     (genome *hello-world*))))))
 
 ;;; Targetted mutation test
-(deftest targeted-mutation-changes-line-6-of-clang-w-fodder-software-object()
+(deftest pick-bad-returns-asts-on-line-6-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (let ((variant (from-file (make-instance 'clang-w-fodder 
-                                             :compiler "gcc" 
-                                             :flags '("-g")
-                                             :diff-addresses '(((:begin-addr .
-                                                                  #x4004f8)
-                                                                (:end-addr .
-                                                                  #x400502)
-                                                                (:hint .
-                                                                 :delete))))
-                              (hello-world-dir "hello_world.c"))))
-      (mutate-targeted variant)
-      (is (string/= (genome variant)
-                    (genome *hello-world*)))
-      (is (string/= (nth 5 (split-sequence:split-sequence 
-                                #\Newline 
-                                (genome variant)))
-                    (nth 5 (split-sequence:split-sequence 
-                                #\Newline 
-                                (genome *hello-world*))))))))
+    (let* ((variant (from-file (make-instance 'clang-w-fodder 
+                                              :compiler "gcc" 
+                                              :flags '("-g")
+                                              :diff-addresses '(((:begin-addr .
+                                                                   #x4004f8)
+                                                                 (:end-addr .
+                                                                   #x400502)
+                                                                 (:hint .
+                                                                  :delete))))
+                               (hello-world-dir "hello_world.c")))
+           (targetted-bad-ast (pick-bad-targetted variant)))
+      (is (and (<= 1 targetted-bad-ast)
+               (<= targetted-bad-ast 6))))))
 
-(deftest targeted-mutation-changes-line-8-of-clang-w-fodder-software-object()
+(deftest pick-bad-returns-asts-on-line-8-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (let ((variant (from-file (make-instance 'clang-w-fodder 
-                                             :compiler "gcc" 
-                                             :flags '("-g")
-                                             :diff-addresses '(((:begin-addr .
-                                                                  #x400502)
-                                                                (:end-addr .
-                                                                  #x400507)
-                                                                (:hint .
-                                                                 :delete))))
-                              (hello-world-dir "hello_world.c"))))
-      (mutate-targeted variant)
-      (is (string/= (genome variant)
-                    (genome *hello-world*)))
-      (is (string/= (nth 7 (split-sequence:split-sequence 
-                                #\Newline 
-                                (genome variant)))
-                    (nth 7 (split-sequence:split-sequence 
-                                #\Newline 
-                                (genome *hello-world*))))))))
+    (let* ((variant (from-file (make-instance 'clang-w-fodder 
+                                              :compiler "gcc" 
+                                              :flags '("-g")
+                                              :diff-addresses '(((:begin-addr .
+                                                                   #x400502)
+                                                                 (:end-addr .
+                                                                   #x400507)
+                                                                 (:hint .
+                                                                  :delete))))
+                               (hello-world-dir "hello_world.c")))
+            (targetted-bad-ast (pick-bad-targetted variant)))
+      (is (and (<= 7 targetted-bad-ast)
+               (<= targetted-bad-ast 8))))))
 
 ;;; Clang utility methods
 (deftest to-ast-list-test()
@@ -426,6 +414,7 @@
 
 (deftest to-ast-list-containing-bin-range-test()
   (with-fixture hello-world-clang
+    (is (= 6 (length (to-ast-list-containing-bin-range
                       *hello-world* 
                       #x4004f8 #x400502))))))
 
