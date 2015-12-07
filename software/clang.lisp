@@ -174,7 +174,7 @@
   (setf (genome clang)
         (with-temp-file-of (src (ext clang)) (genome clang)
           (multiple-value-bind (stdout stderr exit)
-              (shell "clang-tidy -fix -checks=~{~a~^,~} ~a -- ~a 1>&2"
+              (shell "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
                      '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
                        "-google-build-explicit-make-pair"
                        "-google-explicit-constructor"
