@@ -243,7 +243,8 @@ a uniformly selected element of the JSON database.")
   "Probability of performing a targeted vs. random mutation.")
 
 (defmethod pick-bad((clang-w-fodder clang-w-fodder))
-  (if (< (random 1.0) *targeted-mutation-chance*)
+  (if (and (diff-addresses clang-w-fodder) 
+           (< (random 1.0) *targeted-mutation-chance*))
     (pick-bad-targetted clang-w-fodder)
     (call-next-method)))
 
