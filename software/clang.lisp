@@ -110,12 +110,8 @@
       (when (and smallest-enclosing-ast
                  (<= (aget :begin--src--line smallest-enclosing-ast)
                      (aget :begin--src--line ast-entry))
-                 (<= (aget :begin--src--col smallest-enclosing-ast)
-                     (aget :begin--src--col ast-entry))
                  (<= (aget :end--src--line ast-entry)
-                     (aget :end--src--line smallest-enclosing-ast))
-                 (<= (aget :end--src--col ast-entry)
-                     (aget :end--src--col smallest-enclosing-ast)))
+                     (aget :end--src--line smallest-enclosing-ast)))
         (setf smallest-enclosing-ast-sub-asts
               (cons ast-entry smallest-enclosing-ast-sub-asts))))
     (reverse smallest-enclosing-ast-sub-asts)))
