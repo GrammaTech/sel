@@ -17,6 +17,7 @@
    :define-software
    :edits
    :fitness
+   :fitness-extra-data
    :genome
    :phenome
    :evaluate
