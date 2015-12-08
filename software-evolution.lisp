@@ -48,6 +48,9 @@
 
 (defmethod evaluate ((test function) (obj software))
   (multiple-value-bind (fit extra) (funcall test obj)
+    (assert (numberp fit) (fit)
+            "Test ~a returned non-numerical fitness ~a for software ~a."
+            test fit obj)
     (setf (fitness obj) fit)
     (setf (fitness-extra-data obj) extra)
     (values fit extra)))
