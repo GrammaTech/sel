@@ -28,8 +28,16 @@
 
 (defmethod apply-mutation ((clang clang) op)
   (multiple-value-bind (stdout exit)
-    (clang-mutate clang op)
-    (if (zerop exit) stdout nil)))
+    (restart-case (clang-mutate clang op)
+      (skip-mutation ()
+        :report "Skip mutation and return nil genome" 
+        nil)
+      (tidy () 
+        :report "Call clang-tidy before re-attempting mutation"
+        (clang-tidy clang))
+      (mutate () 
+        :report "Apply another mutation before re-attempting mutations"
+        (mutate clang)))))
 
 (defmethod apply-mutation :after ((clang clang) op)
   (with-slots (clang-asts) clang
@@ -72,6 +80,21 @@
              src-file 
              (mapconcat #'identity (flags clang) " "))
       (declare (ignorable stderr))
+
+      (when (not (zerop exit))
+        (if (or (= exit 131)
+                (= exit 132)
+                (= exit 134)
+                (= exit 136)
+                (= exit 139))
+             (error 'mutate 
+               :text (format t 
+                        "\"clang-mutate core dump with args ~{~a~^ ~}\""
+                        op))
+             (error 'mutate
+               :text (format t
+                        "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
+                        op))))
       (values stdout exit))))
 
 (defmethod to-ast-list ((clang clang))
