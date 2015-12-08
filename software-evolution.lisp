@@ -43,15 +43,20 @@
 (defgeneric phenome (software &key bin)
   (:documentation "Phenotype of the software."))
 
-(defgeneric evaluate (software)         ; TODO: is this used?
+(defgeneric evaluate (function software)
   (:documentation "Evaluate the software returning a numerical fitness."))
+
+(defmethod evaluate ((test function) (obj software))
+  (multiple-value-bind (fit extra) (funcall test obj)
+    (setf (fitness obj) fit)
+    (setf (fitness-extra-data obj) extra)
+    (values fit extra)))
 
 (defgeneric (setf fitness-extra-data) (extra-data software)
   (:documentation "Pass extra data (optionally) returned by the fitness function
                    to the software object."))
 
-(defmethod (setf fitness-extra-data) (extra-data (obj software))
-  ())
+(defmethod (setf fitness-extra-data) (extra-data (obj software)))
 
 (defgeneric copy (software)
   (:documentation "Copy the software."))
@@ -244,10 +249,7 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                           (let ((,variant (funcall ,step)))
                             ,@(when every-pre-fn
                                     `((funcall ,every-pre-fn ,variant)))
-                            (multiple-value-bind (new-fitness extra-data)
-                              (funcall ,f ,variant)
-                              (setf (fitness ,variant) new-fitness)
-                              (setf (fitness-extra-data ,variant) extra-data))
+                            (evaluate ,f ,variant)
                             ,@(when every-post-fn
                                     `((funcall ,every-post-fn ,variant)))
                             (incf ,fitness-counter)
