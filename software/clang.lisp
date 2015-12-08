@@ -106,6 +106,18 @@
             (unless (zerop (length list-string))
               (json:decode-json-from-source list-string)))))))
 
+(defun containing-asts (ast-list line col)
+  (remove-if-not (lambda (snippet)
+                   (let ((beg-line (aget :begin--src--line snippet))
+                         (end-line (aget :end--src--line snippet))
+                         (beg-col (aget :begin--src--col snippet))
+                         (end-col (aget :end--src--col snippet)))
+                     (and (or (< beg-line line)
+                              (and (= beg-line line) (<= beg-col col)))
+                          (or (> end-line line)
+                              (and (= end-line line) (>= end-col col))))))
+                 ast-list))
+
 (defmethod to-ast-list-containing-bin-range((clang clang) begin-addr end-addr)
   (let ((ast-list (to-ast-list clang))
         (smallest-enclosing-ast nil)
