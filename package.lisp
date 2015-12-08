@@ -49,6 +49,7 @@
    :apply-path
    :pick-json
    :to-ast-list
+   :containing-asts
    :to-ast-list-containing-bin-range
    :to-ast-hash-table
    :extend-to-enclosing
