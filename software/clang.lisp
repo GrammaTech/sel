@@ -22,9 +22,16 @@
 ;;; Code:
 (in-package :software-evolution)
 
-(defclass clang (ast)
-  ((clang-asts :initarg :clang-asts 
-               :initform nil)))
+(define-software clang (ast)
+  ((compiler :initarg :compiler :accessor compiler :initform "clang")
+   (clang-asts :initarg :clang-asts :accessor clang-asts :initform nil)
+   (mitochondria :initarg :mitochondria
+                 :accessor mitochondria
+                 :initform (make-instance 'clang-mito)
+                 :copier copy)))
+
+(defgeneric mitochondria (clang)
+  (:documentation "Additional 'foreign' genome required to build phenome."))
 
 (defmethod apply-mutation ((clang clang) op)
   (multiple-value-bind (stdout exit)
@@ -37,8 +44,8 @@
         (clang-tidy clang))
       (mutate () 
         :report "Apply another mutation before re-attempting mutations"
-        (mutate clang))) 
-    stdout))
+        (mutate clang)))
+    (values stdout exit)))
 
 (defmethod apply-mutation :after ((clang clang) op)
   (with-slots (clang-asts) clang
@@ -46,7 +53,7 @@
       (setf clang-asts nil))))
 
 (defmethod clang-mutate ((clang clang) op)
-  (with-temp-file-of (src-file (ext clang)) (genome clang)
+  (with-temp-file-of (src-file (ext clang)) (genome-string clang)
     (multiple-value-bind (stdout stderr exit)
       (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
              (ecase (car op)
@@ -81,7 +88,6 @@
              src-file 
              (mapconcat #'identity (flags clang) " "))
       (declare (ignorable stderr))
-
       (when (not (zerop exit))
         (if (or (= exit 131)
                 (= exit 132)
@@ -96,7 +102,11 @@
                :text (format t
                         "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
                         op))))
-      (values stdout exit))))
+      (values
+       (if (member (car op) '(:ids :list :list-json))
+           stdout
+         (keep-lines-after-matching "======^=====" stdout))
+       exit))))
 
 (defmethod to-ast-list ((clang clang))
   (with-slots (clang-asts) clang
@@ -118,6 +128,11 @@
                           (or (> end-line line)
                               (and (= end-line line) (>= end-col col))))))
                  ast-list))
+
+(defmethod line-breaks ((clang clang))
+  (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index 
+                :from 0
+                :when (equal char #\Newline) :collect index)))
 
 (defmethod to-ast-list-containing-bin-range((clang clang) begin-addr end-addr)
   (let ((ast-list (to-ast-list clang))
@@ -166,6 +181,8 @@
         (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
     ast-hash-table))
 
+;; FIXME: this is biased towards selecting crossover points at
+;; ASTs of the least common class.
 (defmethod crossover ((a clang) (b clang))
   (let* ((a-asts (to-ast-hash-table a))
          (b-asts (to-ast-hash-table b))
@@ -175,6 +192,7 @@
          (b-crossover-ast (when-let ((it (gethash random-ast-class b-asts)))
                             (random-elt it)))
          (variant (copy a)))
+    (union-mito (mitochondria variant) (mitochondria b))
     (if (and a-crossover-ast b-crossover-ast)
         (let* ((a-crossover-src-ln (aget :end--src--line a-crossover-ast))
                (a-crossover-src-col (aget :end--src--col a-crossover-ast))
@@ -193,8 +211,13 @@
           (values variant a-crossover-pt b-crossover-pt))
         (values variant nil nil))))
 
+(defmethod genome-string ((clang clang) &optional stream)
+  (format stream "~a~%//===============^==================~%~a"
+          (genome-string (mitochondria clang))
+          (genome clang)))
+
 (defmethod phenome ((clang clang) &key bin)
-  (with-temp-file-of (src-file (ext clang)) (genome clang)
+  (with-temp-file-of (src-file (ext clang)) (genome-string clang)
     (compile-software-object clang src-file :bin bin)))
 
 (defmethod compile-software-object ((clang clang) src-file &key bin)

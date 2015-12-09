@@ -26,6 +26,7 @@
    :lines
    :line-breaks
    :genome-string
+   :mitochondria
    :pick
    :pick-good
    :pick-bad
@@ -110,4 +111,8 @@
    :disasm
    :addresses
    :instrument
+   :clang-mito
+   :add-macro
+   :add-includes-for-function
+   :union-mito
    ))

@@ -556,3 +556,55 @@ the genome of an ASM object."
                        (1+ (cdr (assoc addr samples))))
                  (setf samples (cons (cons addr 0) samples)))))
     samples))
+
+(defvar *resolved-header-files* (make-hash-table :test 'equal)
+  "A map from function name to a list of headers where
+that function may be declared.")
+
+(defun headers-in-manpage (section name)
+  (multiple-value-bind (stdout stderr errno)
+      (shell "man -P cat ~a ~a | sed -n \"/DESCRIPTION/q;p\" | grep \"#include\" | cut -d'<' -f 2 | cut -d'>' -f 1"
+             section name)
+    (declare (ignorable stderr errno))
+    (split-sequence #\Newline stdout :remove-empty-subseqs t)))
+
+(defun resolve-function-headers (func)
+  (let ((headers (gethash func *resolved-header-files* 'not-found)))
+    (if (eq headers 'not-found)
+        (setf (gethash func *resolved-header-files*)
+              (or (headers-in-manpage 3 func)
+                  (headers-in-manpage 2 func)))
+        headers)))
+
+(defun intercalate (between strings)
+  (cond
+    ((null strings) "")
+    ((null (cdr strings)) (car strings))
+    (t (concatenate 'string
+                    (car strings) between
+                    (intercalate between (cdr strings))))))
+  
+(defun unlines (lines)
+  (intercalate (format nil "~a" #\Newline) lines))
+
+;; Just a little sed-ish thing: find the first line that
+;; contains the substring needle, and return the lines
+;; after the one that matched.
+(defun keep-lines-after-matching (needle haystack)
+  (labels ((keep-after (lines)
+             (if (null lines)
+                 '()
+                 (if (search needle (car lines))
+                     (cdr lines)
+                     (keep-after (cdr lines))))))
+    (unlines (keep-after (split-sequence '#\Newline haystack)))))
+
+(defun merge-hash-tables (to-ht from-ht &optional with)
+  (labels ((merge-fn (x y) (if with (with  x y) x)))
+    (loop for key being the hash-keys of from-ht
+       using (hash-value from-value)
+       do (let ((to-value (gethash key to-ht 'no-value-present)))
+            (setf (gethash key to-ht)
+                  (if (eq to-value 'no-value-present)
+                      from-value
+                      (merge-fn to-value from-value)))))))

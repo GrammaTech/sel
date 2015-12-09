@@ -166,6 +166,17 @@ a uniformly selected element of the JSON database.")
                                  pt
                                  snippet
                                  has-semi)
+  
+  (let ((functions (aget :UNBOUND--FUNS snippet)))
+    (loop for f in functions
+       do (add-includes-for-function (mitochondria clang-w-fodder) f)))
+
+  (let ((macros (aget :MACROS snippet)))
+    (loop for macro in macros
+       do (add-macro (mitochondria clang-w-fodder)
+                     (first macro)
+                     (second macro))))
+  
   (let ((raw-code   (aget :SRC--TEXT snippet))
         (free-vars  (aget :UNBOUND--VALS snippet))
         (scope-vars (get-vars-in-scope clang-w-fodder pt)))
