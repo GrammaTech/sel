@@ -261,14 +261,25 @@ a uniformly selected element of the JSON database.")
 
 (defmethod pick-bad-targetted((clang-w-fodder clang-w-fodder))
   "Return the AST of a binary-difference inducing AST in clang-w-fodder"
-  (let* ((target-diff (random-elt (diff-addresses clang-w-fodder)))
-         (bad-asts (to-ast-list-containing-bin-range 
-                     clang-w-fodder
-                       (aget :begin-addr target-diff)
-                       (aget :end-addr target-diff))))
-    (if bad-asts
-      (aget :counter (random-elt bad-asts))
-      (aget :counter (random-elt (to-ast-list clang-w-fodder))))))
+  ;; Loop until we find a diff range corresponding to one or more ASTs
+  ;; or we run out of diffs to consider.
+  (loop
+    (let* ((target-diff (random-elt (diff-addresses clang-w-fodder)))
+           (bad-asts (to-ast-list-containing-bin-range 
+                       clang-w-fodder
+                         (aget :begin-addr target-diff)
+                         (aget :end-addr target-diff))))
+      ;; If ASTs could be found for the diff, set the counter
+      ;; Otherwise, remove the diff from consideration.
+      (if bad-asts
+        (return (aget :counter (random-elt bad-asts)))
+        (setf (diff-addresses clang-w-fodder)
+              (remove target-diff (diff-addresses clang-w-fodder)))))
+    
+    ;; When there are no diffs left to consider, return a random
+    ;; element
+    (when (not (diff-addresses clang-w-fodder))
+      (return (random (size clang-w-fodder))))))
 
 (defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
   (clang-mutate clang-w-fodder op))
