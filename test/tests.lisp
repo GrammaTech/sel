@@ -388,8 +388,8 @@
                                                                   :delete))))
                                (hello-world-dir "hello_world.c")))
            (targetted-bad-ast (pick-bad-targetted variant)))
-      (is (and (<= 1 targetted-bad-ast)
-               (<= targetted-bad-ast 6))))))
+      (is (and (<= 2 targetted-bad-ast)
+               (<= targetted-bad-ast 7))))))
 
 (deftest pick-bad-returns-asts-on-line-8-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
