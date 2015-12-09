@@ -55,6 +55,11 @@
    :take-while
    :take-until
    :levenshtein-distance
+   :intercalate
+   :unlines
+   :keep-lines-after-matching
+   :resolve-function-headers
+   :merge-hash-tables
    ;; debugging
    :*note-level*
    :*note-out*
