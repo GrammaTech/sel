@@ -98,7 +98,7 @@
 (defixture hello-world-clang
   (:setup
     (setf *hello-world* 
-      (from-file (make-instance 'clang :compiler "gcc" :flags '("-g"))
+      (from-file (make-instance 'clang :compiler "clang" :flags '("-g -m32 -O0"))
                  (hello-world-dir "hello_world.c"))))
   (:teardown 
     (setf *hello-world* nil)))
@@ -107,7 +107,7 @@
   (:setup
    (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
    (setf *hello-world*
-     (from-file (make-instance 'clang-w-fodder :compiler "gcc" :flags '("-g"))
+     (from-file (make-instance 'clang-w-fodder :compiler "clang" :flags '("-g -m32 -O0"))
                 (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
@@ -378,12 +378,12 @@
 (deftest pick-bad-returns-asts-on-line-6-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let* ((variant (from-file (make-instance 'clang-w-fodder 
-                                              :compiler "gcc" 
-                                              :flags '("-g")
+                                              :compiler "clang" 
+                                              :flags '("-g -O0 -m32")
                                               :diff-addresses '(((:begin-addr .
-                                                                   #x4004f8)
+                                                                   #x8048433)
                                                                  (:end-addr .
-                                                                   #x400502)
+                                                                   #x804843d)
                                                                  (:hint .
                                                                   :delete))))
                                (hello-world-dir "hello_world.c")))
@@ -394,18 +394,18 @@
 (deftest pick-bad-returns-asts-on-line-8-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let* ((variant (from-file (make-instance 'clang-w-fodder 
-                                              :compiler "gcc" 
-                                              :flags '("-g")
+                                              :compiler "clang" 
+                                              :flags '("-g -O0 -m32")
                                               :diff-addresses '(((:begin-addr .
-                                                                   #x400502)
+                                                                   #x804843d)
                                                                  (:end-addr .
-                                                                   #x400507)
+                                                                   #x8048447)
                                                                  (:hint .
                                                                   :delete))))
                                (hello-world-dir "hello_world.c")))
             (targetted-bad-ast (pick-bad-targetted variant)))
-      (is (and (<= 7 targetted-bad-ast)
-               (<= targetted-bad-ast 8))))))
+      (is (and (<= 8 targetted-bad-ast)
+               (<= targetted-bad-ast 9))))))
 
 ;;; Clang utility methods
 (deftest to-ast-list-test()
@@ -416,7 +416,7 @@
   (with-fixture hello-world-clang
     (is (= 6 (length (to-ast-list-containing-bin-range
                       *hello-world* 
-                      #x4004f8 #x400502))))))
+                      #x8048433 #x804843d))))))
 
 (deftest to-ast-hash-table-test()
   (with-fixture hello-world-clang
