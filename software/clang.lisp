@@ -28,16 +28,17 @@
 
 (defmethod apply-mutation ((clang clang) op)
   (multiple-value-bind (stdout exit)
-    (restart-case (clang-mutate clang op)
+    (restart-case (clang-mutate clang op) 
       (skip-mutation ()
         :report "Skip mutation and return nil genome" 
-        nil)
+        (setf stdout nil))
       (tidy () 
         :report "Call clang-tidy before re-attempting mutation"
         (clang-tidy clang))
       (mutate () 
         :report "Apply another mutation before re-attempting mutations"
-        (mutate clang)))))
+        (mutate clang))) 
+    stdout))
 
 (defmethod apply-mutation :after ((clang clang) op)
   (with-slots (clang-asts) clang
@@ -124,7 +125,8 @@
         (smallest-enclosing-ast-sub-asts nil))
     (dolist (ast-entry ast-list)
       ;; Find the smallest AST which encloses the range [begin-addr, end-addr]
-      (when (and (aget :begin--addr ast-entry)
+      (when (and (/= (aget :parent--counter ast-entry) 0)
+                 (aget :begin--addr ast-entry)
                  (aget :end--addr ast-entry)
                  (<= (aget :begin--addr ast-entry) begin-addr)
                  (<= end-addr (aget :end--addr ast-entry)))
@@ -133,8 +135,8 @@
                       (aget :begin--addr ast-entry))
                    (- (aget :end--addr smallest-enclosing-ast)
                       (aget :begin--addr smallest-enclosing-ast)))
-            (setf smallest-enclosing-ast ast-entry)
-            (setf smallest-enclosing-ast-sub-asts nil))
+            (setf smallest-enclosing-ast-sub-asts nil)
+            (setf smallest-enclosing-ast ast-entry))
           (setf smallest-enclosing-ast ast-entry)))
 
       ;; Collect all sub-asts of the smallest AST which encloses the 
@@ -143,19 +145,22 @@
       ;; to include only those sub-ASTs which have bytes
       ;; in the range begin-addr/end-addr.
       (when (and smallest-enclosing-ast
-                 (<= (aget :begin--src--line smallest-enclosing-ast)
-                     (aget :begin--src--line ast-entry))
-                 (<= (aget :end--src--line ast-entry)
-                     (aget :end--src--line smallest-enclosing-ast)))
+                 (is-parent-ast? ast-list smallest-enclosing-ast ast-entry))
         (setf smallest-enclosing-ast-sub-asts
               (cons ast-entry smallest-enclosing-ast-sub-asts))))
     (reverse smallest-enclosing-ast-sub-asts)))
 
-(defmethod to-ast-hash-table ((clang clang) &key bin)
-  (let ((ast-hash-table (make-hash-table :test 'equal))
-        (ast-list (if bin (to-ast-list clang :bin bin)
-                          (to-ast-list clang))))
-    (dolist (ast-entry ast-list)
+(defun is-parent-ast?(ast-list possible-parent-ast ast)
+  (cond ((= (aget :counter possible-parent-ast)
+            (aget :counter ast)) t)
+        ((= (aget :parent--counter ast) 0) nil)
+        (t (is-parent-ast? ast-list 
+                           possible-parent-ast 
+                           (nth (1- (aget :parent--counter ast)) ast-list)))))
+
+(defmethod to-ast-hash-table ((clang clang))
+  (let ((ast-hash-table (make-hash-table :test 'equal)))
+    (dolist (ast-entry (to-ast-list clang))
       (let* ((ast-class (aget :ast--class ast-entry))
              (cur (gethash ast-class ast-hash-table)))
         (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
