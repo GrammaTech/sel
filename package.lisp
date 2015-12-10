@@ -45,6 +45,7 @@
    :clang-w-fodder-setup-db
    :get-vars-in-scope
    :clang-tidy
+   :clang-format
    :clang-mutate
    :to-file
    :apply-path
