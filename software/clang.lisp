@@ -207,12 +207,11 @@
                (b-line-breaks (line-breaks b))
                (b-crossover-pt (+ (nth (1- b-crossover-src-ln) b-line-breaks)
                                   b-crossover-src-col)))
-          (setf (genome variant)
-                (extract-clang-genome
-                 (copy-seq (concatenate
-                            'string
-                            (subseq (genome-string a) 0 a-crossover-pt)
-                            (subseq (genome-string b) b-crossover-pt)))))
+          (setf (genome-string variant)
+                (copy-seq (concatenate
+                           'string
+                           (subseq (genome-string a) 0 a-crossover-pt)
+                           (subseq (genome-string b) b-crossover-pt))))
           (values variant a-crossover-pt b-crossover-pt))
         (values variant nil nil))))
 
@@ -235,43 +234,48 @@
       (values (if (zerop exit) bin stderr) exit))))
 
 (defmethod clang-tidy ((clang clang))
-  (setf (genome clang)
-        (extract-clang-genome
-         (with-temp-file-of (src (ext clang)) (genome-string clang)
-           (multiple-value-bind (stdout stderr exit)
-               (shell "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-                      '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
-                        "-google-build-explicit-make-pair"
-                        "-google-explicit-constructor"
-                        "-google-readability-namespace-comments"
-                        "-google-readability-redundant-smartptr-get"
-                        "-google-readability-runtime-int"
-                        "-google-readability-readability-function-size"
-                        "-llvm-namespace-commant"
-                        "-llvm-include-order"
-                        "-misc-mode-constructor-init"
-                        "-misc-noexcept-move-constructor"
-                        "-misc-uniqueptr-reset-release"
-                        "-modernize*"
-                        "-readability-container-size-empty"
-                        "-readability-function-size"
-                        "-readability-redundant-smart-ptr-get"
-                        "-readability-uniqueptr-delete-release")
-                      src
-                      (mapconcat #'identity (flags clang) " "))
-             (declare (ignorable stdout stderr))
-             (if (zerop exit) (file-to-string src) (genome-string clang))))))
-  clang)
+  (setf (genome-string clang)
+        (with-temp-file-of (src (ext clang)) (genome-string clang)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
+                     '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
+                       "-google-build-explicit-make-pair"
+                       "-google-explicit-constructor"
+                       "-google-readability-namespace-comments"
+                       "-google-readability-redundant-smartptr-get"
+                       "-google-readability-runtime-int"
+                       "-google-readability-readability-function-size"
+                       "-llvm-namespace-commant"
+                       "-llvm-include-order"
+                       "-misc-mode-constructor-init"
+                       "-misc-noexcept-move-constructor"
+                       "-misc-uniqueptr-reset-release"
+                       "-modernize*"
+                       "-readability-container-size-empty"
+                       "-readability-function-size"
+                       "-readability-redundant-smart-ptr-get"
+                       "-readability-uniqueptr-delete-release")
+                     src
+                     (mapconcat #'identity (flags clang) " "))
+            (declare (ignorable stdout stderr))
+            (if (zerop exit) (file-to-string src) (genome-string clang))))))
 
 (defmethod clang-format ((obj clang) &optional style)
   ;; STYLE may be one of LLVM, Google, Chromium, Mozilla, WebKit.
-  (setf (genome obj)
-        (extract-clang-genome
-          (with-temp-file-of (src (ext obj)) (genome-string obj)
-             (multiple-value-bind (stdout stderr exit)
-                 (shell "clang-format ~a ~a "
-                        (if style (format nil "-style=~a" style) "")
-                        src)
-               (declare (ignorable stderr))
-               (if (zerop exit) stdout (genome-string obj))))))
-  obj)
+  (setf (genome-string obj)
+        (with-temp-file-of (src (ext obj)) (genome-string obj)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "clang-format ~a ~a "
+                     (if style (format nil "-style=~a" style) "")
+                     src)
+            (declare (ignorable stderr))
+            (if (zerop exit) stdout (genome-string obj))))))
+
+(defmethod (setf genome-string) (text (clang clang))
+  (setf (genome clang) (extract-clang-genome text)))
+
+(defmethod lines ((obj clang))
+  (split-sequence '#\Newline (genome-string obj)))
+
+(defmethod (setf lines) (new (obj clang))
+  (setf (genome-string obj) (format nil "~{~a~^~%~}" new)))
