@@ -20,6 +20,9 @@ a uniformly selected element of the JSON database.")
   "The inverse cumulative distribution function for the AST class name of
 a uniformly selected element of the JSON database.")
 
+(defvar *type-database* nil
+  "A database of user-defined types.")
+
 (defun select-random-bin ()
   (let ((binprob (random 1.0)))
     (cdr (find-if (lambda (datum)
@@ -92,14 +95,20 @@ a uniformly selected element of the JSON database.")
 (defun clang-w-fodder-setup-db (json-db-path)
   ;; Clobber the existing database
   (setq *json-database* (make-hash-table :test 'equal))
+  (setq *type-database* (make-hash-table :test 'equal))
   (setq *json-database-bins* '())
 
   ;; Load the snippet database and classify by AST class.
   (dolist (snippet (with-open-file (json-stream json-db-path)
                      (json:decode-json-from-source json-stream)))
-    (let* ((ast-class (aget :AST--CLASS snippet))
-           (cur (gethash ast-class *json-database*)))
-      (setf (gethash ast-class *json-database*) (cons snippet cur))))
+    (let ((ast-class (aget :AST--CLASS snippet)))
+      (if ast-class
+          ;; This entry describes a code snippet
+          (let ((cur (gethash ast-class *json-database*)))
+            (setf (gethash ast-class *json-database*) (cons snippet cur)))
+          ;; This entry describes a type
+          (let ((type-id (aget :HASH snippet)))
+            (setf (gethash type-id *type-database*) snippet)))))
 
   ;; Compute the bin sizes so that (random-snippet) becomes useful.
   (populate-database-bins))
@@ -109,7 +118,7 @@ a uniformly selected element of the JSON database.")
              (split-sequence #\Newline text)))
 
 (defmethod get-vars-in-scope ((clang-w-fodder clang-w-fodder) pt)
-  (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
+  (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
     (multiple-value-bind (stdout stderr exit)
         (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
              20
@@ -119,7 +128,7 @@ a uniformly selected element of the JSON database.")
 
 ;; Returns multiple values: (stmt-class-string has-semicolon)
 (defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
-  (with-temp-file-of (src (ext clang-w-fodder)) (genome clang-w-fodder)
+  (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
      (multiple-value-bind (stdout stderr exit)
          (shell "clang-mutate -get-info -stmt1=~a ~a -- ~{~a~^ ~}"
                 pt
@@ -170,6 +179,9 @@ a uniformly selected element of the JSON database.")
   (let ((functions (aget :UNBOUND--FUNS snippet)))
     (loop for f in functions
        do (add-includes-for-function (mitochondria clang-w-fodder) f)))
+
+  (loop for type in (aget :TYPES snippet)
+     do (add-type (mitochondria clang-w-fodder) type))
 
   (let ((macros (aget :MACROS snippet)))
     (loop for macro in macros

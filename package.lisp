@@ -100,6 +100,8 @@
    :*json-database*
    :*json-database-bins*
    :*json-database-full-stmt-bins*
+   :*type-database*
+   :prepare-code-snippet
    :cil
    :llvm
    :linker
@@ -115,5 +117,6 @@
    :clang-mito
    :add-macro
    :add-includes-for-function
+   :add-type
    :union-mito
    ))
