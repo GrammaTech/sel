@@ -13,6 +13,11 @@
             :accessor types
             :initform (make-hash-table :test 'equal)
             :copier copy-hash-table)
+   (sorted-types
+            :initarg :sorted-types
+            :accessor sorted-types
+            :initform nil
+            :copier copy)
    (globals :initarg :globals
             :accessor globals
             :initform (make-hash-table :test 'equal)
@@ -21,6 +26,10 @@
 (defmethod union-mito ((this clang-mito) (that clang-mito))
   (merge-hash-tables (headers this) (headers that))
   (merge-hash-tables (macros this)  (macros that))
+  (loop for ty in (sorted-types that)
+     do (when (not (gethash (car ty) (types this)))
+          (setf (sorted-types this)
+                (cons ty (sorted-types this)))))
   (merge-hash-tables (types this)   (types that))
   (merge-hash-tables (globals this) (globals that)))
 
@@ -33,9 +42,8 @@
         (loop for key being the hash-keys of (macros clang-mito)
            using (hash-value value)
            collecting (format nil "#define ~a~%" value))
-        (loop for key being the hash-keys of (types clang-mito)
-           using (hash-value value)
-           collecting (format nil "~a~%" value))
+        (loop for ty in (reverse (sorted-types clang-mito))
+           collecting (format nil "~a~%" (cdr ty)))
         (loop for key being the hash-keys of (globals clang-mito)
            using (hash-value value)
            collecting (format nil "~a~%" value))))))
@@ -52,3 +60,26 @@
   (loop for header in (resolve-function-headers name)
      do (setf (gethash header (headers clang-mito)) t))
   clang-mito)
+
+;; Add a type and its dependencies, transitively.
+(defmethod add-type ((clang-mito clang-mito) type-id)
+  (let ((type (gethash type-id *type-database*)))
+    (when type
+      (let ((hash (aget :HASH type))
+            (decl (json-string-unescape (aget :DECL type)))
+            (reqs (aget :REQS type))
+            (header (aget :INCLUDE type)))
+        (if header
+            (setf (gethash (json-string-unescape header)
+                           (headers clang-mito)) t)
+            (add-type-rec clang-mito hash decl reqs))))))
+
+(defmethod add-type-rec ((clang-mito clang-mito) type-id decl reqs)
+  (when (not (gethash type-id (types clang-mito)))
+    (setf (gethash type-id (types clang-mito)) "// pending")
+    (loop for req in reqs do (add-type clang-mito req))
+    (setf (sorted-types clang-mito)
+          (cons (cons type-id decl)
+                (sorted-types clang-mito)))
+    (setf (gethash type-id (types clang-mito)) decl)))
+
