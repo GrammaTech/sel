@@ -255,3 +255,14 @@
                      (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
             (if (zerop exit) (file-to-string src) (genome clang))))))
+
+(defmethod clang-format ((obj clang) &optional style)
+  ;; STYLE may be one of LLVM, Google, Chromium, Mozilla, WebKit.
+  (setf (genome obj)
+        (with-temp-file-of (src (ext obj)) (genome obj)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "clang-format ~a ~a "
+                     (if style (format nil "-style=~a" style) "")
+                     src)
+            (declare (ignorable stderr))
+            (if (zerop exit) stdout (genome obj))))))
