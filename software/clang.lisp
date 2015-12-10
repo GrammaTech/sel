@@ -258,7 +258,8 @@
                      src
                      (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
-            (if (zerop exit) (file-to-string src) (genome-string clang))))))
+            (if (zerop exit) (file-to-string src) (genome-string clang)))))
+  clang)
 
 (defmethod clang-format ((obj clang) &optional style)
   ;; STYLE may be one of LLVM, Google, Chromium, Mozilla, WebKit.
@@ -269,7 +270,8 @@
                      (if style (format nil "-style=~a" style) "")
                      src)
             (declare (ignorable stderr))
-            (if (zerop exit) stdout (genome-string obj))))))
+            (if (zerop exit) stdout (genome-string obj)))))
+  obj)
 
 (defmethod (setf genome-string) (text (clang clang))
   (setf (genome clang) (extract-clang-genome text)))
