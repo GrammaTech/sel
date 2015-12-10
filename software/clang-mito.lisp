@@ -17,7 +17,7 @@
             :initarg :sorted-types
             :accessor sorted-types
             :initform nil
-            :copier copy)
+            :copier copy-seq)
    (globals :initarg :globals
             :accessor globals
             :initform (make-hash-table :test 'equal)
