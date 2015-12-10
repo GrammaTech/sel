@@ -57,59 +57,61 @@
 
 (defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src-file (ext clang)) (genome-string clang)
-    (multiple-value-bind (stdout stderr exit)
-      (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
-             (ecase (car op)
-               (:cut              "-cut")
-               (:cut-full-stmt    "-cut")
-               (:insert           "-insert")
-               (:swap             "-swap")
-               (:swap-full-stmt   "-swap")
-               (:set-value        "-set")
-               (:insert-value     "-insert-value")
-               (:insert-full-stmt "-insert-value")
-               (:ids              "-ids")
-               (:list             "-list")
-               (:list-json        "-list -json"))
-             (mapconcat 
-               (lambda (arg-pair)
-                 (ecase (car arg-pair)
-                   (:stmt1 
-                     (format nil "-stmt1=~d" (cdr arg-pair)))
-                   (:stmt2 
-                     (format nil "-stmt2=~d" (cdr arg-pair)))
-                   (:value 
-                     (format nil "-value='~a'" (cdr arg-pair)))
-                   (:bin   
-                     (when (cdr arg-pair) 
-                       (multiple-value-bind (bin exit)
-                         (compile-software-object clang src-file)
-                         (when (zerop exit)
-                           (format nil "-binary=~a" bin)))))))
-               (cdr op) 
-               " ")
-             src-file 
-             (mapconcat #'identity (flags clang) " "))
-      (declare (ignorable stderr))
-      (when (not (zerop exit))
-        (if (or (= exit 131)
-                (= exit 132)
-                (= exit 134)
-                (= exit 136)
-                (= exit 139))
-             (error 'mutate 
-               :text (format t 
-                        "\"clang-mutate core dump with args ~{~a~^ ~}\""
-                        op))
-             (error 'mutate
-               :text (format t
-                        "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
-                        op))))
-      (values
-       (if (member (car op) '(:ids :list :list-json))
-           stdout
-         (extract-clang-genome stdout))
-       exit))))
+    (with-temp-file (value-file) ""
+      (multiple-value-bind (stdout stderr exit)
+        (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
+               (ecase (car op)
+                 (:cut              "-cut")
+                 (:cut-full-stmt    "-cut")
+                 (:insert           "-insert")
+                 (:swap             "-swap")
+                 (:swap-full-stmt   "-swap")
+                 (:set-value        "-set")
+                 (:insert-value     "-insert-value")
+                 (:insert-full-stmt "-insert-value")
+                 (:ids              "-ids")
+                 (:list             "-list")
+                 (:list-json        "-list -json"))
+               (mapconcat 
+                 (lambda (arg-pair)
+                   (ecase (car arg-pair)
+                     (:stmt1 
+                       (format nil "-stmt1=~d" (cdr arg-pair)))
+                     (:stmt2 
+                       (format nil "-stmt2=~d" (cdr arg-pair)))
+                     (:value 
+                       (string-to-file (cdr arg-pair) value-file)
+                       (format nil "-value=~a" value-file))
+                     (:bin   
+                       (when (cdr arg-pair) 
+                         (multiple-value-bind (bin exit)
+                           (compile-software-object clang src-file)
+                           (when (zerop exit)
+                             (format nil "-binary=~a" bin)))))))
+                 (cdr op) 
+                 " ")
+               src-file 
+               (mapconcat #'identity (flags clang) " "))
+        (declare (ignorable stderr))
+        (when (not (zerop exit))
+          (if (or (= exit 131)
+                  (= exit 132)
+                  (= exit 134)
+                  (= exit 136)
+                  (= exit 139))
+               (error 'mutate 
+                 :text (format t 
+                          "\"clang-mutate core dump with args ~{~a~^ ~}\""
+                          op))
+               (error 'mutate
+                 :text (format t
+                          "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
+                          op))))
+        (values
+         (if (member (car op) '(:ids :list :list-json))
+             stdout
+           (extract-clang-genome stdout))
+         exit)))))
 
 (defmethod to-ast-list ((clang clang))
   (with-slots (clang-asts) clang
@@ -230,7 +232,7 @@
         (shell "~a ~a -o ~a ~a"
                (compiler clang)
                src-file bin (mapconcat #'identity (flags clang) " "))
-      (declare (ignorable stdout stderr))
+      (declare (ignorable stdout))
       (values (if (zerop exit) bin stderr) exit))))
 
 (defmethod clang-tidy ((clang clang))
