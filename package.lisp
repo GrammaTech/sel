@@ -101,6 +101,7 @@
    :*json-database-bins*
    :*json-database-full-stmt-bins*
    :*type-database*
+   :nesting-depth
    :prepare-code-snippet
    :cil
    :llvm

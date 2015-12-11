@@ -113,6 +113,14 @@
            (extract-clang-genome stdout))
          exit)))))
 
+(defun json-db-to-vector (json)
+  (let ((vec (make-array (1+ (length json)))))
+    (loop for snippet in json
+       do (let ((counter (aget :counter snippet)))
+            (when counter
+              (setf (aref vec counter) snippet))))
+    vec))
+
 (defmethod to-ast-list ((clang clang))
   (with-slots (clang-asts) clang
     (if clang-asts
@@ -120,7 +128,8 @@
         (setf clang-asts
           (let ((list-string (clang-mutate clang `(:list-json (:bin . t)))))
             (unless (zerop (length list-string))
-              (json:decode-json-from-source list-string)))))))
+              (json-db-to-vector
+               (json:decode-json-from-source list-string))))))))
 
 (defun containing-asts (ast-list line col)
   (remove-if-not (lambda (snippet)
@@ -143,31 +152,33 @@
   (let ((ast-list (to-ast-list clang))
         (smallest-enclosing-ast nil)
         (smallest-enclosing-ast-sub-asts nil))
-    (dolist (ast-entry ast-list)
+    (loop for ast-entry across ast-list
       ;; Find the smallest AST which encloses the range [begin-addr, end-addr]
-      (when (and (/= (aget :parent--counter ast-entry) 0)
-                 (aget :begin--addr ast-entry)
-                 (aget :end--addr ast-entry)
-                 (<= (aget :begin--addr ast-entry) begin-addr)
-                 (<= end-addr (aget :end--addr ast-entry)))
-        (if smallest-enclosing-ast
-          (when (< (- (aget :end--addr ast-entry)
-                      (aget :begin--addr ast-entry))
-                   (- (aget :end--addr smallest-enclosing-ast)
-                      (aget :begin--addr smallest-enclosing-ast)))
-            (setf smallest-enclosing-ast-sub-asts nil)
-            (setf smallest-enclosing-ast ast-entry))
-          (setf smallest-enclosing-ast ast-entry)))
+       do (progn
+            (when (and (/= (aget :parent--counter ast-entry) 0)
+                       (aget :begin--addr ast-entry)
+                       (aget :end--addr ast-entry)
+                       (<= (aget :begin--addr ast-entry) begin-addr)
+                       (<= end-addr (aget :end--addr ast-entry)))
+              (if smallest-enclosing-ast
+                  (when (< (- (aget :end--addr ast-entry)
+                              (aget :begin--addr ast-entry))
+                           (- (aget :end--addr smallest-enclosing-ast)
+                              (aget :begin--addr smallest-enclosing-ast)))
+                    (setf smallest-enclosing-ast-sub-asts nil)
+                    (setf smallest-enclosing-ast ast-entry))
+                  (setf smallest-enclosing-ast ast-entry)))
 
-      ;; Collect all sub-asts of the smallest AST which encloses the 
-      ;; range [begin-addr, end-addr].  
-      ;; @TODO: This could be optimized further
-      ;; to include only those sub-ASTs which have bytes
-      ;; in the range begin-addr/end-addr.
-      (when (and smallest-enclosing-ast
-                 (is-parent-ast? ast-list smallest-enclosing-ast ast-entry))
-        (setf smallest-enclosing-ast-sub-asts
-              (cons ast-entry smallest-enclosing-ast-sub-asts))))
+            ;; Collect all sub-asts of the smallest AST which encloses the
+            ;; range [begin-addr, end-addr].
+            ;; @TODO: This could be optimized further
+            ;; to include only those sub-ASTs which have bytes
+            ;; in the range begin-addr/end-addr.
+
+            (when (and smallest-enclosing-ast
+                       (is-parent-ast? ast-list smallest-enclosing-ast ast-entry))
+              (setf smallest-enclosing-ast-sub-asts
+                    (cons ast-entry smallest-enclosing-ast-sub-asts)))))
     (reverse smallest-enclosing-ast-sub-asts)))
 
 (defun is-parent-ast?(ast-list possible-parent-ast ast)
@@ -175,16 +186,26 @@
             (aget :counter ast)) t)
         ((= (aget :parent--counter ast) 0) nil)
         (t (is-parent-ast? ast-list 
-                           possible-parent-ast 
-                           (nth (1- (aget :parent--counter ast)) ast-list)))))
+                           possible-parent-ast
+                           (aref (aget :counter possible-parent-ast) ast-list)))))
 
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
-    (dolist (ast-entry (to-ast-list clang))
-      (let* ((ast-class (aget :ast--class ast-entry))
-             (cur (gethash ast-class ast-hash-table)))
-        (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
+    (loop for ast-entry across (to-ast-list clang)
+         do (let* ((ast-class (aget :ast--class ast-entry))
+                   (cur (gethash ast-class ast-hash-table)))
+              (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
     ast-hash-table))
+
+(defmethod nesting-depth ((clang clang) index &optional depth-acc)
+  (let* ((ast (aref (to-ast-list clang) index))
+         (is-block (equal (aget :ast--class ast) "CompoundStmt"))
+         (depth (or depth-acc (if is-block -1 0)))
+         (new-index (aget :parent--counter ast))
+         (new-depth (if is-block (1+ depth) depth)))
+    (if (or (not new-index) (= new-index 0))
+        new-depth
+        (nesting-depth clang new-index new-depth))))
 
 ;; FIXME: this is biased towards selecting crossover points at
 ;; ASTs of the least common class.
