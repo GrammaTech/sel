@@ -190,7 +190,7 @@ a uniformly selected element of the JSON database.")
                      (second macro))))
   
   (let ((raw-code   (aget :SRC--TEXT snippet))
-        (free-vars  (aget :UNBOUND--VALS snippet))
+        (free-vars  (mapcar #'car (aget :UNBOUND--VALS snippet)))
         (scope-vars (get-vars-in-scope clang-w-fodder pt)))
     (concatenate 'string
       (json-string-unescape
