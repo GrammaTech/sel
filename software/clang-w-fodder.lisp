@@ -171,11 +171,8 @@ a uniformly selected element of the JSON database.")
                                   (random-elt asts)) 
                               has-semi)))))
 
-(defmethod prepare-code-snippet ((clang-w-fodder clang-w-fodder)
-                                 pt
-                                 snippet
-                                 has-semi)
-  
+(defmethod update-mito-from-snippet ((clang-w-fodder clang-w-fodder)
+                                     snippet)
   (let ((functions (aget :UNBOUND--FUNS snippet)))
     (loop for f in functions
        do (add-includes-for-function (mitochondria clang-w-fodder) f)))
@@ -187,7 +184,13 @@ a uniformly selected element of the JSON database.")
     (loop for macro in macros
        do (add-macro (mitochondria clang-w-fodder)
                      (first macro)
-                     (second macro))))
+                     (second macro)))))
+
+(defmethod prepare-code-snippet ((clang-w-fodder clang-w-fodder)
+                                 pt
+                                 snippet
+                                 has-semi)
+  (update-mito-from-snippet clang-w-fodder snippet)
   
   (let ((raw-code   (aget :SRC--TEXT snippet))
         (free-vars  (mapcar #'car (aget :UNBOUND--VALS snippet)))
