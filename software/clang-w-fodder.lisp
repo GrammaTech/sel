@@ -113,18 +113,6 @@ a uniformly selected element of the JSON database.")
   ;; Compute the bin sizes so that (random-snippet) becomes useful.
   (populate-database-bins))
 
-(defun nonempty-lines (text)
-  (remove-if (lambda (x) (string= x ""))
-             (split-sequence #\Newline text)))
-
-(defmethod get-vars-in-scope ((clang-w-fodder clang-w-fodder) pt)
-  (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
-    (multiple-value-bind (stdout stderr exit)
-        (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
-             20
-             pt
-             src (flags clang-w-fodder))
-      (nonempty-lines stdout))))
 
 ;; Returns multiple values: (stmt-class-string has-semicolon)
 (defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
