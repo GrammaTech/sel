@@ -327,6 +327,20 @@
     (format t "depth = ~a~%" (length fss))
     (create-sequence-snippet fss)))
 
+(defmethod update-mito-from-snippet ((clang clang) snippet)
+  (let ((functions (aget :UNBOUND--FUNS snippet)))
+    (loop for f in functions
+       do (add-includes-for-function (mitochondria clang) f)))
+
+  (loop for type in (aget :TYPES snippet)
+     do (add-type (mitochondria clang) type))
+
+  (let ((macros (aget :MACROS snippet)))
+    (loop for macro in macros
+       do (add-macro (mitochondria clang)
+                     (first macro)
+                     (second macro)))))
+
 (defun nonempty-lines (text)
   (remove-if (lambda (x) (string= x ""))
              (split-sequence #\Newline text)))
