@@ -105,6 +105,11 @@
    :enclosing-stmt
    :enclosing-block
    :block-successor
+   :show-full-stmt
+   :full-stmt-text
+   :full-stmt-info
+   :full-stmt-successors
+   :test-fss
    :prepare-code-snippet
    :cil
    :llvm
