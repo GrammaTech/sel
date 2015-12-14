@@ -197,15 +197,44 @@
               (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
     ast-hash-table))
 
-(defmethod nesting-depth ((clang clang) index &optional depth-acc)
-  (let* ((ast (aref (to-ast-list clang) index))
-         (is-block (equal (aget :ast--class ast) "CompoundStmt"))
-         (depth (or depth-acc (if is-block -1 0)))
-         (new-index (aget :parent--counter ast))
-         (new-depth (if is-block (1+ depth) depth)))
-    (if (or (not new-index) (= new-index 0))
-        new-depth
-        (nesting-depth clang new-index new-depth))))
+(defmethod nesting-depth ((clang clang) index &optional orig-depth)
+  (let ((depth (or orig-depth 0)))
+    (if (= 0 index)
+        depth
+        (nesting-depth clang (enclosing-block clang index) (1+ depth)))))
+
+(defmethod enclosing-block ((clang clang) index &optional child-index)
+  (if (= index 0) 0
+    (let* ((ast (aref (to-ast-list clang) index))
+           (is-block (equal (aget :ast--class ast) "CompoundStmt")))
+      (if (and is-block child-index)
+          index
+          (enclosing-block clang (aget :parent--counter ast) index)))))
+
+(defmethod enclosing-stmt ((clang clang) index &optional child-index)
+  (if (= index 0) 0
+    (let* ((ast (aref (to-ast-list clang) index))
+           (is-block (equal (aget :ast--class ast) "CompoundStmt")))
+      (if is-block
+          (or  child-index index)
+          (enclosing-stmt clang (aget :parent--counter ast) index)))))
+
+(defun get-entry-after (item list)
+  (if (null list)
+      nil
+      (if (equal (car list) item)
+          (if (null (cdr list))
+              nil
+              (cadr list))
+          (get-entry-after item (cdr list)))))
+
+(defmethod block-successor ((clang clang) raw-index)
+  (let* ((index (enclosing-stmt clang raw-index))
+         (block-index (enclosing-block clang index))
+         (the-block (aref (to-ast-list clang) block-index))
+         (the-stmts (if (= 0 block-index) nil
+                        (aget :stmt--list the-block))))
+    (get-entry-after index the-stmts)))
 
 ;; FIXME: this is biased towards selecting crossover points at
 ;; ASTs of the least common class.

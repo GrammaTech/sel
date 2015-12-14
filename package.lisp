@@ -102,6 +102,9 @@
    :*json-database-full-stmt-bins*
    :*type-database*
    :nesting-depth
+   :enclosing-stmt
+   :enclosing-block
+   :block-successor
    :prepare-code-snippet
    :cil
    :llvm
