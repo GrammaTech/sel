@@ -412,7 +412,7 @@
          using (hash-value index)
          collecting
            (cons var (or (random-elt-with-decay (gethash index scope-vars) 0.3)
-                         "/* no free vars */")))
+                         "/* no bound vars in scope */")))
       raw-code))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
