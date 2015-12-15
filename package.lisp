@@ -44,6 +44,11 @@
    :ext
    :clang-w-fodder-setup-db
    :get-vars-in-scope
+   :get-indexed-vars-in-scope
+   :bind-free-vars
+   :prepare-sequence-snippet
+   :crossover-2pt-outward
+   :crossover-single-stmt
    :clang-tidy
    :clang-format
    :clang-mutate
@@ -109,7 +114,6 @@
    :full-stmt-text
    :full-stmt-info
    :full-stmt-successors
-   :test-fss
    :prepare-code-snippet
    :cil
    :llvm

@@ -33,9 +33,30 @@
 (defgeneric mitochondria (clang)
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
+;; Replace the basic mutation operations with versions that
+;; rebind free variables in the appropriate context.
+(defmethod recontextualize-mutation-op ((clang clang) op)
+  (let* ((mut (car op))
+         (properties (cdr op))
+         (stmt1 (aget :stmt1 properties))
+         (stmt2 (aget :stmt2 properties))
+         (value (aget :value properties)))
+
+    (case mut
+      (:insert (cons :insert-value
+                     (list (cons :stmt1 stmt1)
+                           (cons :value
+                                 (bind-free-vars clang
+                                                 (get-stmt clang stmt2)
+                                                 stmt1)))))
+      (:swap op) ; <- TODO
+      (:swap-full-stmt op) ; <- TODO
+      (otherwise op))))
+
 (defmethod apply-mutation ((clang clang) op)
   (multiple-value-bind (stdout exit)
-    (restart-case (clang-mutate clang op) 
+      (restart-case (clang-mutate clang
+                                  (recontextualize-mutation-op clang op)) 
       (skip-mutation ()
         :report "Skip mutation and return nil genome" 
         (setf stdout nil))
@@ -67,6 +88,7 @@
                  (:swap             "-swap")
                  (:swap-full-stmt   "-swap")
                  (:set-value        "-set")
+                 (:set-range        "-set-range")
                  (:insert-value     "-insert-value")
                  (:insert-full-stmt "-insert-value")
                  (:ids              "-ids")
@@ -113,12 +135,17 @@
            (extract-clang-genome stdout))
          exit)))))
 
-(defun json-db-to-vector (json)
-  (let ((vec (make-array (1+ (length json)))))
+(defmethod get-stmt ((clang clang) stmt)
+  (if (or (not stmt) (= 0 stmt))
+      nil
+      (aref (to-ast-list clang) (1- stmt))))
+
+(defmethod json-db-to-vector ((clang clang) json)
+  (let ((vec (make-array (size clang))))
     (loop for snippet in json
        do (let ((counter (aget :counter snippet)))
             (when counter
-              (setf (aref vec counter) snippet))))
+              (setf (aref vec (1- counter)) snippet))))
     vec))
 
 (defmethod to-ast-list ((clang clang))
@@ -128,7 +155,7 @@
         (setf clang-asts
           (let ((list-string (clang-mutate clang `(:list-json (:bin . t)))))
             (unless (zerop (length list-string))
-              (json-db-to-vector
+              (json-db-to-vector clang
                (json:decode-json-from-source list-string))))))))
 
 (defun containing-asts (ast-list line col)
@@ -176,18 +203,18 @@
             ;; in the range begin-addr/end-addr.
 
             (when (and smallest-enclosing-ast
-                       (is-parent-ast? ast-list smallest-enclosing-ast ast-entry))
+                       (is-parent-ast? clang smallest-enclosing-ast ast-entry))
               (setf smallest-enclosing-ast-sub-asts
                     (cons ast-entry smallest-enclosing-ast-sub-asts)))))
     (reverse smallest-enclosing-ast-sub-asts)))
 
-(defun is-parent-ast?(ast-list possible-parent-ast ast)
+(defmethod is-parent-ast? ((clang clang) possible-parent-ast ast)
   (cond ((= (aget :counter possible-parent-ast)
             (aget :counter ast)) t)
         ((= (aget :parent--counter ast) 0) nil)
-        (t (is-parent-ast? ast-list 
+        (t (is-parent-ast? clang
                            possible-parent-ast
-                           (aref (aget :counter possible-parent-ast) ast-list)))))
+                           (get-stmt clang (aget :counter possible-parent-ast))))))
 
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
@@ -205,7 +232,7 @@
 
 (defmethod enclosing-block ((clang clang) index &optional child-index)
   (if (= index 0) (values  0 child-index)
-    (let* ((ast (aref (to-ast-list clang) index))
+    (let* ((ast (get-stmt clang index))
            (is-block (equal (aget :ast--class ast) "CompoundStmt")))
       (if (and is-block child-index)
           (values index child-index)
@@ -213,28 +240,38 @@
 
 (defmethod enclosing-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil
-    (let* ((ast (aref (to-ast-list clang) index))
+    (let* ((ast (get-stmt clang index))
            (is-block (equal (aget :ast--class ast) "CompoundStmt")))
       (if (and is-block child-index)
           child-index
           (enclosing-stmt clang (aget :parent--counter ast) index)))))
 
 (defun get-entry-after (item list)
-  (if (null list)
-      nil
-      (if (equal (car list) item)
-          (if (null (cdr list))
-              nil
-              (cadr list))
-          (get-entry-after item (cdr list)))))
+  (cond ((null list) nil)
+        ((not (equal (car list) item)) (get-entry-after item (cdr list)))
+        ((null (cdr list)) nil)
+        (t (cadr list))))
+
+(defun get-entry-before (item list &optional saw)
+  (cond ((null list) nil)
+        ((equal (car list) item) saw)
+        (t (get-entry-before item (cdr list) (car list)))))
 
 (defmethod block-successor ((clang clang) raw-index)
   (let* ((index (enclosing-stmt clang raw-index))
          (block-index (enclosing-block clang index))
-         (the-block (aref (to-ast-list clang) block-index))
+         (the-block (get-stmt clang block-index))
          (the-stmts (if (= 0 block-index) nil
                         (aget :stmt--list the-block))))
     (get-entry-after index the-stmts)))
+
+(defmethod block-predeccessor ((clang clang) raw-index)
+  (let* ((index (enclosing-stmt clang raw-index))
+         (block-index (enclosing-block clang index))
+         (the-block (get-stmt clang block-index))
+         (the-stmts (if (= 0 block-index) nil
+                        (aget :stmt--list the-block))))
+    (get-entry-before index the-stmts)))
 
 (defun process-full-stmt-text (snippet)
   (let ((text (json-string-unescape (aget :src--text snippet))))
@@ -244,7 +281,7 @@
             (concatenate 'string text ";")))))
 
 (defmethod full-stmt-text ((clang clang) raw-index)
-  (process-full-stmt-text (aref (to-ast-list clang)
+  (process-full-stmt-text (get-stmt clang
                                 (enclosing-stmt clang raw-index))))
 
 (defmethod show-full-stmt ((clang clang) raw-index)
@@ -254,7 +291,7 @@
   (let* ((index (enclosing-stmt clang raw-index)))
     (if (or (null index) (= 0 index))
         nil
-        (aref (to-ast-list clang) index))))
+        (get-stmt clang index))))
 
 (defmethod full-stmt-successors ((clang clang) index &optional do-acc acc blocks)
   (if (or (null index) (= 0 index))
@@ -289,7 +326,7 @@
 (defun ht->list (ht)
   (loop for k being the hash-keys of ht
      using (hash-value v)
-     collecting (if (eq v t) k (cons k v))))
+     collecting (if (eq v t) k (list k v))))
 
 (defun create-sequence-snippet (scopes)
   (let ((funcs  (make-hash-table :test 'equal))
@@ -298,12 +335,11 @@
         (vars   (make-hash-table :test 'equal))
         (stmts  '())
         (source (intercalate (format nil "~%}~%")
-                  (loop for scope in scopes
-                     collecting (unlines
-                                 (mapcar #'process-full-stmt-text scope))))))
+                   (loop for scope in scopes for k from 0
+                      collecting (unlines
+                         (mapcar #'process-full-stmt-text scope))))))
     (loop for scope in scopes for scope-depth from 0 do (progn
       (loop for stmt in scope do (progn
-        (format t "scope ~a: ~a~%" scope-depth (process-full-stmt-text stmt))
         (setf stmts (cons (aget :counter stmt) stmts))
         (list->ht (aget :types         stmt) types)
         (list->ht (aget :macros        stmt) macros)
@@ -313,7 +349,6 @@
                      (already-seen (gethash var vars nil)))
                 (when (not already-seen)
                   (setf (gethash var vars) scope-depth))))))))
-    (format t "source: ~%~a~%" source)
     (pairlis '(:src--text :unbound--vals :unbound--funs :types :macros :stmts)
              (list (json-string-escape source)
                    (ht->list vars)
@@ -321,11 +356,6 @@
                    (ht->list types)
                    (ht->list macros)
                    stmts))))
-
-(defmethod test-fss ((clang clang) index)
-  (let ((fss (full-stmt-successors clang index t)))
-    (format t "depth = ~a~%" (length fss))
-    (create-sequence-snippet fss)))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet)
   (let ((functions (aget :UNBOUND--FUNS snippet)))
@@ -346,46 +376,136 @@
              (split-sequence #\Newline text)))
 
 (defmethod get-vars-in-scope ((clang clang) pt)
-  (with-temp-file-of (src (ext clang)) (genome-string clang)
-    (multiple-value-bind (stdout stderr exit)
-        (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
-             20
-             pt
-             src (flags clang))
-      (apply #'append
-        (loop for line in (nonempty-lines stdout)
-           collecting (cdr (split-sequence #\Space line)))))))
+  (gethash 0 (get-indexed-vars-in-scope clang pt)))
 
-;; FIXME: this is biased towards selecting crossover points at
-;; ASTs of the least common class.
-(defmethod crossover ((a clang) (b clang))
-  (let* ((a-asts (to-ast-hash-table a))
-         (b-asts (to-ast-hash-table b))
-         (random-ast-class (random-hash-table-key a-asts))
-         (a-crossover-ast (when-let ((it (gethash random-ast-class a-asts)))
-                            (random-elt it)))
-         (b-crossover-ast (when-let ((it (gethash random-ast-class b-asts)))
-                            (random-elt it)))
-         (variant (copy a)))
-    (union-mito (mitochondria variant) (mitochondria b))
-    (if (and a-crossover-ast b-crossover-ast)
-        (let* ((a-crossover-src-ln (aget :end--src--line a-crossover-ast))
-               (a-crossover-src-col (aget :end--src--col a-crossover-ast))
-               (a-line-breaks (line-breaks a))
-               (a-crossover-pt (+ (nth (1- a-crossover-src-ln) a-line-breaks)
-                                  a-crossover-src-col))
-               (b-crossover-src-ln (aget :begin--src--line b-crossover-ast))
-               (b-crossover-src-col (aget :begin--src--col b-crossover-ast))
-               (b-line-breaks (line-breaks b))
-               (b-crossover-pt (+ (nth (1- b-crossover-src-ln) b-line-breaks)
-                                  b-crossover-src-col)))
-          (setf (genome-string variant)
-                (copy-seq (concatenate
-                           'string
-                           (subseq (genome-string a) 0 a-crossover-pt)
-                           (subseq (genome-string b) b-crossover-pt))))
-          (values variant a-crossover-pt b-crossover-pt))
+(defmethod get-indexed-vars-in-scope ((clang clang) pt)
+  (let ((index-table (make-hash-table :test 'equal))
+        (max-index 0))
+    (with-temp-file-of (src (ext clang)) (genome-string clang)
+      (multiple-value-bind (stdout stderr exit)
+          (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
+                 20
+                 pt
+                 src (flags clang))
+        (loop for line in (nonempty-lines stdout)
+           for index from 0
+           do (setf (gethash index index-table)
+                    (cdr (split-sequence #\Space line))
+                    max-index index))))
+    ;; Merge variables downward, so that every index-1 variable appears in
+    ;; the index-0 list etc.
+    (loop for index from max-index downto 1
+       do (let ((vars-n (gethash index index-table))
+                (vars-n-minus-1 (gethash (1- index) index-table)))
+            (setf (gethash (1- index) index-table)
+                  (concatenate 'list vars-n-minus-1 vars-n))))
+    index-table))
+
+(defmethod bind-free-vars ((clang clang) snippet pt)
+  (let ((raw-code    (aget :src--text snippet))
+        (free-vars   (make-hash-table :test 'equal))
+        (scope-vars  (get-indexed-vars-in-scope clang pt)))
+    (list->ht (aget :unbound--vals snippet) free-vars)
+    (json-string-unescape
+     (apply-replacements
+      (loop for var being the hash-keys of free-vars
+         using (hash-value index)
+         collecting
+           (cons var (or (random-elt-with-decay (gethash index scope-vars) 0.3)
+                         "/* no free vars */")))
+      raw-code))))
+
+(defmethod nth-enclosing-block ((clang clang) depth stmt)
+  (let ((the-block (enclosing-block clang stmt)))
+    (if (>= 0 depth) the-block
+        (nth-enclosing-block clang (1- depth) the-block))))
+
+(defmethod prepare-sequence-snippet ((clang clang) depth full-seq)
+  (let* ((initial-seq (loop for scope in full-seq
+                        for i from 0 to (1- depth)
+                        collecting scope))
+         (last-seq (nth depth full-seq))
+         (tail-size (if (null initial-seq)
+                        (1+ (random (length last-seq)))
+                        (random (1+ (length last-seq)))))
+         (init (if (null initial-seq)
+                   (car last-seq)
+                   (caar initial-seq)))
+         (last (loop for stmt in last-seq
+                  for i from 1 to tail-size
+                  collecting stmt)))
+    (acons   :stmt1 (aget :counter init)
+      (acons :stmt2 (if (= 0 tail-size)
+                        (nth-enclosing-block clang (1- depth)
+                                             (aget :counter init))
+                        (aget :counter (last-elt last)))
+             (create-sequence-snippet (append initial-seq (list last)))))))
+
+;; Perform 2-point crossover. The second point will be within the same
+;; function as the first point, but may be in an enclosing scope.
+;; The number of scopes exited as you go from the first crossover point
+;; to the second crossover point will be matched between a and b.
+;; Free variables are rebound in such a way as to ensure that they are
+;; bound to variables that are declared at each point of use.
+(defmethod crossover-2pt-outward ((a clang) (b clang))
+  (let ((a-begin (enclosing-stmt a (pick-bad a)))
+        (b-begin (enclosing-stmt b (pick-bad b)))
+        (variant (copy a)))
+
+    (if (and a-begin b-begin)
+        ;; The selected initial crossover points are valid; choose a
+        ;; nesting depth and find the second crossover points.
+        (let* ((depth (random (min (nesting-depth a a-begin)
+                                   (nesting-depth b b-begin))))
+               (a-snippet (prepare-sequence-snippet a
+                            depth (full-stmt-successors a a-begin t)))
+               (b-snippet (prepare-sequence-snippet b
+                            depth (full-stmt-successors b b-begin t))))
+
+          ;; Now execute the crossover, replacing a-snippet in variant
+          ;; with the recontextualized b-snippet.
+          (update-mito-from-snippet variant b-snippet)
+          (apply-mutation
+           variant
+           (cons :set-range
+                 (list
+                  (cons :stmt1 (aget :stmt1 a-snippet))
+                  (cons :stmt2 (aget :stmt2 a-snippet))
+                  (cons :value (bind-free-vars variant b-snippet a-begin)))))
+          (values variant
+                  (list (aget :stmt1 a-snippet) (aget :stmt2 a-snippet))
+                  (list (aget :stmt1 b-snippet) (aget :stmt2 b-snippet))))
+
+        ;; The selected initial crossover points were not valid; return a
+        ;; copy of a.
         (values variant nil nil))))
+
+;; Perform crossover by selecting a single AST from a and b to cross.
+;; Free variables are recontextualized to the insertion point.
+(defmethod crossover-single-stmt ((a clang) (b clang))
+  (let ((a-begin (enclosing-stmt a (pick-bad a)))
+        (b-begin (enclosing-stmt b (pick-bad b)))
+        (variant (copy a)))
+    (if (and a-begin b-begin)
+        (let ((a-snippet (create-sequence-snippet
+                          (list (list (get-stmt a a-begin)))))
+              (b-snippet (create-sequence-snippet
+                          (list (list (get-stmt b b-begin))))))
+          (update-mito-from-snippet variant b-snippet)
+          (apply-mutation
+           variant
+           (cons :set-range
+                 (list
+                  (cons :stmt1 a-begin)
+                  (cons :stmt2 a-begin)
+                  (cons :value (bind-free-vars variant b-snippet a-begin)))))
+          (values variant a-begin b-begin))
+        (values variant nil nil))))
+
+(defmethod crossover ((a clang) (b clang))
+  (let ((style (random-elt (list #'crossover-single-stmt
+                                 #'crossover-2pt-outward))))
+    (apply style (list a b))))
 
 (defmethod genome-string ((clang clang) &optional stream)
   (format stream "~a~%//===============^==================~%~a"
