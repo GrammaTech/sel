@@ -124,10 +124,10 @@ a uniformly selected element of the JSON database.")
                 (flags clang-w-fodder))
        (apply #'values
         (let ((result (nonempty-lines stdout)))
-          (if (not (equal (length result) 3))
+          (if (not (equal (length result) 2))
               '("[unknown-class]" nil pt)
               (list (first result)
-                    (parse-integer (third result)))))))))
+                    (parse-integer (second result)))))))))
 
 (defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
   (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
