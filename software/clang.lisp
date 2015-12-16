@@ -49,13 +49,25 @@
          (value2 (aget :value2 properties)))
 
     (case mut
-      (:insert (cons :insert-value
-                     (list (cons :stmt1 stmt1)
-                           (cons :value1
-                                 (recontextualize clang
-                                                  (get-stmt clang stmt2)
-                                                  stmt1)))))
-      (:swap op) ; <- TODO
+      (:insert
+       (cons :insert-value
+          (list (cons :stmt1 stmt1)
+                (cons :value1
+                      (recontextualize clang
+                                       (get-stmt clang stmt2)
+                                       stmt1)))))
+      (:swap
+       (cons :set2
+          (list (cons :stmt1 stmt1)
+                (cons :value1
+                      (recontextualize clang
+                                       (get-stmt clang stmt2)
+                                       stmt1))
+                (cons :stmt2 stmt2)
+                (cons :value2
+                      (recontextualize clang
+                                       (get-stmt clang stmt1)
+                                       stmt2)))))
       (:swap-full-stmt op) ; <- TODO
       (otherwise op))))
 
@@ -84,62 +96,63 @@
 
 (defmethod clang-mutate ((clang clang) op)
   (with-temp-file-of (src-file (ext clang)) (genome-string clang)
-    (with-temp-file (value-file) ""
-      (multiple-value-bind (stdout stderr exit)
-        (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
-               (ecase (car op)
-                 (:cut              "-cut")
-                 (:cut-full-stmt    "-cut")
-                 (:insert           "-insert")
-                 (:swap             "-swap")
-                 (:swap-full-stmt   "-swap")
-                 (:set-value        "-set")
-                 (:set2             "-set2")
-                 (:set-range        "-set-range")
-                 (:insert-value     "-insert-value")
-                 (:insert-full-stmt "-insert-value")
-                 (:ids              "-ids")
-                 (:list             "-list")
-                 (:list-json        "-list -json"))
-               (mapconcat 
-                 (lambda (arg-pair)
-                   (ecase (car arg-pair)
-                     (:stmt1 
-                       (format nil "-stmt1=~d" (cdr arg-pair)))
-                     (:stmt2 
-                       (format nil "-stmt2=~d" (cdr arg-pair)))
-                     (:value1
-                       (string-to-file (cdr arg-pair) value-file)
-                       (format nil "-value1=~a" value-file))
-                     (:value2
-                       (string-to-file (cdr arg-pair) value-file)
-                       (format nil "-value2=~a" value-file))
-                     (:bin   
-                       (when (cdr arg-pair) 
-                         (multiple-value-bind (bin exit)
-                           (compile-software-object clang src-file)
-                           (when (zerop exit)
-                             (format nil "-binary=~a" bin)))))))
-                 (cdr op) 
-                 " ")
-               src-file 
-               (mapconcat #'identity (flags clang) " "))
-        (declare (ignorable stderr))
-        (when (not (zerop exit))
-          (if (find exit '(131 132 134 136 139))
-              (error 'mutate
-                     :text (format t
-                             "\"clang-mutate core dump with args ~{~a~^ ~}\""
-                             op))
-              (error 'mutate
-                     :text (format t
-                             "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
-                             op))))
-        (values
-         (if (member (car op) '(:ids :list :list-json))
-             stdout
-           (extract-clang-genome stdout))
-         exit)))))
+   (with-temp-file (value1-file) ""
+    (with-temp-file (value2-file) ""
+     (multiple-value-bind (stdout stderr exit)
+       (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
+          (ecase (car op)
+            (:cut              "-cut")
+            (:cut-full-stmt    "-cut")
+            (:insert           "-insert")
+            (:swap             "-swap")
+            (:swap-full-stmt   "-swap")
+            (:set-value        "-set")
+            (:set2             "-set2")
+            (:set-range        "-set-range")
+            (:insert-value     "-insert-value")
+            (:insert-full-stmt "-insert-value")
+            (:ids              "-ids")
+            (:list             "-list")
+            (:list-json        "-list -json"))
+          (mapconcat
+           (lambda (arg-pair)
+             (ecase (car arg-pair)
+               (:stmt1
+                (format nil "-stmt1=~d" (cdr arg-pair)))
+               (:stmt2
+                (format nil "-stmt2=~d" (cdr arg-pair)))
+               (:value1
+                (string-to-file (cdr arg-pair) value1-file)
+                (format nil "-value1=~a" value1-file))
+               (:value2
+                (string-to-file (cdr arg-pair) value2-file)
+                (format nil "-value2=~a" value2-file))
+               (:bin
+                (when (cdr arg-pair)
+                  (multiple-value-bind (bin exit)
+                      (compile-software-object clang src-file)
+                    (when (zerop exit)
+                      (format nil "-binary=~a" bin)))))))
+           (cdr op)
+           " ")
+          src-file
+          (mapconcat #'identity (flags clang) " "))
+       (declare (ignorable stderr))
+       (when (not (zerop exit))
+         (if (find exit '(131 132 134 136 139))
+             (error 'mutate
+                    :text (format t
+                                  "\"clang-mutate core dump with args ~{~a~^ ~}\""
+                                  op))
+             (error 'mutate
+                    :text (format t
+                                  "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
+                                  op))))
+       (values
+        (if (member (car op) '(:ids :list :list-json))
+            stdout
+            (extract-clang-genome stdout))
+        exit))))))
 
 (defmethod get-stmt ((clang clang) stmt)
   (if (or (not stmt) (= 0 stmt))
@@ -282,6 +295,9 @@
                         (aget :stmt--list the-block))))
     (get-entry-before index the-stmts)))
 
+(defmethod get-stmt-text ((clang clang) stmt)
+  (json-string-unescape (aget :src--text (get-stmt clang stmt))))
+
 (defun process-full-stmt-text (snippet)
   (let ((text (json-string-unescape (aget :src--text snippet))))
     (if (equal text "") ";"
@@ -387,7 +403,7 @@
 (defmethod get-vars-in-scope ((clang clang) pt)
   (gethash 0 (get-indexed-vars-in-scope clang pt)))
 
-(defmethod get-indexed-vars-in-scope ((clang clang) pt)
+(defmethod get-indexed-vars-in-scope ((clang clang) pt &optional keep-globals)
   (let ((index-table (make-hash-table :test 'equal))
         (max-index 0))
     (with-temp-file-of (src (ext clang)) (genome-string clang)
@@ -403,6 +419,8 @@
                     max-index index))))
     ;; Merge variables downward, so that every index-1 variable appears in
     ;; the index-0 list etc.
+    (when (and (< 1 max-index) (not keep-globals))
+        (setf max-index (1- max-index)))
     (loop for index from max-index downto 1
        do (let ((vars-n (gethash index index-table))
                 (vars-n-minus-1 (gethash (1- index) index-table)))
@@ -410,10 +428,10 @@
                   (concatenate 'list vars-n-minus-1 vars-n))))
     index-table))
 
-(defmethod bind-free-vars ((clang clang) snippet pt)
+(defmethod bind-free-vars ((clang clang) snippet pt &optional keep-globals)
   (let ((raw-code    (aget :src--text snippet))
         (free-vars   (make-hash-table :test 'equal))
-        (scope-vars  (get-indexed-vars-in-scope clang pt)))
+        (scope-vars  (get-indexed-vars-in-scope clang pt keep-globals)))
     (list->ht (aget :unbound--vals snippet) free-vars)
     (json-string-unescape
      (apply-replacements

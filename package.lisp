@@ -108,6 +108,7 @@
    :*type-database*
    :recontextualize
    :nesting-depth
+   :get-stmt-text
    :is-full-stmt
    :enclosing-full-stmt
    :enclosing-block
