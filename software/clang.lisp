@@ -121,19 +121,15 @@
                (mapconcat #'identity (flags clang) " "))
         (declare (ignorable stderr))
         (when (not (zerop exit))
-          (if (or (= exit 131)
-                  (= exit 132)
-                  (= exit 134)
-                  (= exit 136)
-                  (= exit 139))
-               (error 'mutate 
-                 :text (format t 
-                          "\"clang-mutate core dump with args ~{~a~^ ~}\""
-                          op))
-               (error 'mutate
-                 :text (format t
-                          "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
-                          op))))
+          (if (find exit '(131 132 134 136 139))
+              (error 'mutate
+                     :text (format t
+                             "\"clang-mutate core dump with args ~{~a~^ ~}\""
+                             op))
+              (error 'mutate
+                     :text (format t
+                             "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
+                             op))))
         (values
          (if (member (car op) '(:ids :list :list-json))
              stdout
