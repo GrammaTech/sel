@@ -33,6 +33,11 @@
 (defgeneric mitochondria (clang)
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
+(defmethod recontextualize ((clang clang) snippet pt)
+  (concatenate 'string
+    (bind-free-vars clang snippet pt)
+    (if (is-full-stmt clang pt) ";" "")))
+
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
 (defmethod recontextualize-mutation-op ((clang clang) op)
@@ -47,9 +52,9 @@
       (:insert (cons :insert-value
                      (list (cons :stmt1 stmt1)
                            (cons :value1
-                                 (bind-free-vars clang
-                                                 (get-stmt clang stmt2)
-                                                 stmt1)))))
+                                 (recontextualize clang
+                                                  (get-stmt clang stmt2)
+                                                  stmt1)))))
       (:swap op) ; <- TODO
       (:swap-full-stmt op) ; <- TODO
       (otherwise op))))
@@ -238,6 +243,9 @@
       (if (and is-block child-index)
           (values index child-index)
           (enclosing-block clang (aget :parent--counter ast) index)))))
+
+(defmethod is-full-stmt ((clang clang) stmt)
+  (equal stmt (enclosing-full-stmt clang stmt)))
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil

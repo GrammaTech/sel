@@ -114,7 +114,7 @@ a uniformly selected element of the JSON database.")
   (populate-database-bins))
 
 
-;; Returns multiple values: (stmt-class-string has-semicolon)
+;; Returns multiple values: (stmt-class-string full-stmt)
 (defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
   (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
      (multiple-value-bind (stdout stderr exit)
@@ -127,61 +127,43 @@ a uniformly selected element of the JSON database.")
           (if (not (equal (length result) 3))
               '("[unknown-class]" nil pt)
               (list (first result)
-                    (equal (second result) "has-semi")
                     (parse-integer (third result)))))))))
 
 (defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
   (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
-    (multiple-value-bind (ast-class has-semi full-stmt) stmt-info
+    (multiple-value-bind (ast-class full-stmt) stmt-info
       (prepare-code-snippet clang-w-fodder
                             pt
-                            (if has-semi
+                            (if (is-full-stmt clang-w-fodder pt)
                                 (random-full-stmt-snippet)
-                                (random-snippet))
-                            has-semi
-                            ))))
+                                (random-snippet))))))
 
 
 (defmethod pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt)
   (prepare-code-snippet clang-w-fodder
                         pt
-                        (random-full-stmt-snippet)
-                        t))
+                        (random-full-stmt-snippet)))
 
 (defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt)
   (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
-    (multiple-value-bind (ast-class has-semi full-stmt) stmt-info
+    (multiple-value-bind (ast-class full-stmt) stmt-info
       (let ((asts (gethash ast-class *json-database* '())))
         (prepare-code-snippet clang-w-fodder
                               pt
                               (if (null asts)
                                   (random-snippet)
-                                  (random-elt asts)) 
-                              has-semi)))))
+                                  (random-elt asts)))))))
 
 (defmethod prepare-code-snippet ((clang-w-fodder clang-w-fodder)
                                  pt
-                                 snippet
-                                 has-semi)
+                                 snippet)
   (update-mito-from-snippet clang-w-fodder snippet)
-  
-  (let ((raw-code   (aget :SRC--TEXT snippet))
-        (free-vars  (mapcar #'car (aget :UNBOUND--VALS snippet)))
-        (scope-vars (get-vars-in-scope clang-w-fodder pt)))
-    (concatenate 'string
-      (json-string-unescape
-       (apply-replacements
-        (map 'list
-             (lambda (x)
-               (cons x (or (random-elt-with-decay scope-vars 0.5)
-                           "/* no bound vars */")))
-             free-vars) raw-code))
-      (if has-semi (format nil ";~%") ""))))
+  (recontextualize clang-w-fodder snippet pt))
 
 (defmethod extend-to-enclosing ((clang-w-fodder clang-w-fodder) pt)
-    (multiple-value-bind (ast-class has-semi full-stmt)
+    (multiple-value-bind (ast-class full-stmt)
         (get-stmt-info clang-w-fodder pt)
-      (declare (ignorable ast-class has-semi))
+      (declare (ignorable ast-class))
       full-stmt))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))

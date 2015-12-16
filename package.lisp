@@ -106,7 +106,9 @@
    :*json-database-bins*
    :*json-database-full-stmt-bins*
    :*type-database*
+   :recontextualize
    :nesting-depth
+   :is-full-stmt
    :enclosing-full-stmt
    :enclosing-block
    :block-successor
