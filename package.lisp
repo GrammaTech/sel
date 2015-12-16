@@ -107,7 +107,7 @@
    :*json-database-full-stmt-bins*
    :*type-database*
    :nesting-depth
-   :enclosing-stmt
+   :enclosing-full-stmt
    :enclosing-block
    :block-successor
    :show-full-stmt
