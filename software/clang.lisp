@@ -40,12 +40,13 @@
          (properties (cdr op))
          (stmt1 (aget :stmt1 properties))
          (stmt2 (aget :stmt2 properties))
-         (value (aget :value properties)))
+         (value1 (aget :value1 properties))
+         (value2 (aget :value2 properties)))
 
     (case mut
       (:insert (cons :insert-value
                      (list (cons :stmt1 stmt1)
-                           (cons :value
+                           (cons :value1
                                  (bind-free-vars clang
                                                  (get-stmt clang stmt2)
                                                  stmt1)))))
@@ -88,6 +89,7 @@
                  (:swap             "-swap")
                  (:swap-full-stmt   "-swap")
                  (:set-value        "-set")
+                 (:set2             "-set2")
                  (:set-range        "-set-range")
                  (:insert-value     "-insert-value")
                  (:insert-full-stmt "-insert-value")
@@ -101,9 +103,12 @@
                        (format nil "-stmt1=~d" (cdr arg-pair)))
                      (:stmt2 
                        (format nil "-stmt2=~d" (cdr arg-pair)))
-                     (:value 
+                     (:value1
                        (string-to-file (cdr arg-pair) value-file)
-                       (format nil "-value=~a" value-file))
+                       (format nil "-value1=~a" value-file))
+                     (:value2
+                       (string-to-file (cdr arg-pair) value-file)
+                       (format nil "-value2=~a" value-file))
                      (:bin   
                        (when (cdr arg-pair) 
                          (multiple-value-bind (bin exit)
@@ -471,7 +476,7 @@
                  (list
                   (cons :stmt1 (aget :stmt1 a-snippet))
                   (cons :stmt2 (aget :stmt2 a-snippet))
-                  (cons :value (bind-free-vars variant b-snippet a-begin)))))
+                  (cons :value1 (bind-free-vars variant b-snippet a-begin)))))
           (values variant
                   (list (aget :stmt1 a-snippet) (aget :stmt2 a-snippet))
                   (list (aget :stmt1 b-snippet) (aget :stmt2 b-snippet))))
@@ -498,7 +503,7 @@
                  (list
                   (cons :stmt1 a-begin)
                   (cons :stmt2 a-begin)
-                  (cons :value (bind-free-vars variant b-snippet a-begin)))))
+                  (cons :value1 (bind-free-vars variant b-snippet a-begin)))))
           (values variant a-begin b-begin))
         (values variant nil nil))))
 

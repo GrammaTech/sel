@@ -222,8 +222,8 @@ a uniformly selected element of the JSON database.")
                     (:stmt2 . ,good-stmt)))
                (set-value     
                  `(:set-value    
-                    (:stmt1 . ,good)
-                    (:value . ,(pick-json-by-class clang-w-fodder 
+                    (:stmt1  . ,good)
+                    (:value1 . ,(pick-json-by-class clang-w-fodder
                                                      good))))
                (insert-value  
                  `(:insert-value
@@ -232,8 +232,8 @@ a uniformly selected element of the JSON database.")
                                               good))))
                (insert-full-stmt
                  `(:insert-full-stmt
-                    (:stmt1 . ,good)
-                    (:value . ,(pick-full-stmt-json clang-w-fodder 
+                    (:stmt1  . ,good)
+                    (:value1 . ,(pick-full-stmt-json clang-w-fodder
                                                     good)))))))
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))

@@ -358,7 +358,7 @@
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant '(:insert-value (:stmt1 . 1) 
-                                              (:value . "int i = 0;")))
+                                              (:value1 . "int i = 0;")))
       (is (> (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -368,7 +368,7 @@
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant '(:set-value (:stmt1 . 6) 
-                                           (:value . "\"Hello, mutate!\"")))
+                                           (:value1 . "\"Hello, mutate!\"")))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
