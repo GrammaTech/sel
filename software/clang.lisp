@@ -147,7 +147,7 @@
       (aref (to-ast-list clang) (1- stmt))))
 
 (defmethod json-db-to-vector ((clang clang) json)
-  (let ((vec (make-array (size clang))))
+  (let ((vec (make-array (length json))))
     (loop for snippet in json
        do (let ((counter (aget :counter snippet)))
             (when counter
