@@ -239,13 +239,13 @@
           (values index child-index)
           (enclosing-block clang (aget :parent--counter ast) index)))))
 
-(defmethod enclosing-stmt ((clang clang) index &optional child-index)
+(defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil
     (let* ((ast (get-stmt clang index))
            (is-block (equal (aget :ast--class ast) "CompoundStmt")))
       (if (and is-block child-index)
           child-index
-          (enclosing-stmt clang (aget :parent--counter ast) index)))))
+          (enclosing-full-stmt clang (aget :parent--counter ast) index)))))
 
 (defun get-entry-after (item list)
   (cond ((null list) nil)
@@ -259,7 +259,7 @@
         (t (get-entry-before item (cdr list) (car list)))))
 
 (defmethod block-successor ((clang clang) raw-index)
-  (let* ((index (enclosing-stmt clang raw-index))
+  (let* ((index (enclosing-full-stmt clang raw-index))
          (block-index (enclosing-block clang index))
          (the-block (get-stmt clang block-index))
          (the-stmts (if (= 0 block-index) nil
@@ -267,7 +267,7 @@
     (get-entry-after index the-stmts)))
 
 (defmethod block-predeccessor ((clang clang) raw-index)
-  (let* ((index (enclosing-stmt clang raw-index))
+  (let* ((index (enclosing-full-stmt clang raw-index))
          (block-index (enclosing-block clang index))
          (the-block (get-stmt clang block-index))
          (the-stmts (if (= 0 block-index) nil
@@ -283,13 +283,13 @@
 
 (defmethod full-stmt-text ((clang clang) raw-index)
   (process-full-stmt-text (get-stmt clang
-                                (enclosing-stmt clang raw-index))))
+                                (enclosing-full-stmt clang raw-index))))
 
 (defmethod show-full-stmt ((clang clang) raw-index)
   (format t "~a~%" (full-stmt-text clang raw-index)))
 
 (defmethod full-stmt-info ((clang clang) raw-index)
-  (let* ((index (enclosing-stmt clang raw-index)))
+  (let* ((index (enclosing-full-stmt clang raw-index)))
     (if (or (null index) (= 0 index))
         nil
         (get-stmt clang index))))
@@ -314,7 +314,7 @@
                                     blocks)
               ;; We are the last statement in this block; move up a scope and push
               ;; the accumulated statements onto the block stack.
-              (full-stmt-successors clang (enclosing-stmt clang the-block) nil
+              (full-stmt-successors clang (enclosing-full-stmt clang the-block) nil
                                     '()
                                     (cons (reverse new-acc) blocks)))))))
 
@@ -449,8 +449,8 @@
 ;; Free variables are rebound in such a way as to ensure that they are
 ;; bound to variables that are declared at each point of use.
 (defmethod crossover-2pt-outward ((a clang) (b clang))
-  (let ((a-begin (enclosing-stmt a (pick-bad a)))
-        (b-begin (enclosing-stmt b (pick-bad b)))
+  (let ((a-begin (enclosing-full-stmt a (pick-bad a)))
+        (b-begin (enclosing-full-stmt b (pick-bad b)))
         (variant (copy a)))
 
     (if (and a-begin b-begin)
@@ -484,8 +484,8 @@
 ;; Perform crossover by selecting a single AST from a and b to cross.
 ;; Free variables are recontextualized to the insertion point.
 (defmethod crossover-single-stmt ((a clang) (b clang))
-  (let ((a-begin (enclosing-stmt a (pick-bad a)))
-        (b-begin (enclosing-stmt b (pick-bad b)))
+  (let ((a-begin (enclosing-full-stmt a (pick-bad a)))
+        (b-begin (enclosing-full-stmt b (pick-bad b)))
         (variant (copy a)))
     (if (and a-begin b-begin)
         (let ((a-snippet (create-sequence-snippet
