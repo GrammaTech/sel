@@ -177,13 +177,15 @@ a uniformly selected element of the JSON database.")
 
   (let* ((good  (pick-good clang-w-fodder))
          (bad   (pick-bad  clang-w-fodder))
-         (good-stmt (extend-to-enclosing clang-w-fodder good))
-         (bad-stmt  (extend-to-enclosing clang-w-fodder bad))
-         (op (case (random-elt '(cut insert swap
-                                  set-value insert-value
-                                  insert-full-stmt
-                                  cut-full-stmt
-                                  swap-full-stmt))
+         (good-stmt (enclosing-full-stmt clang-w-fodder good))
+         (bad-stmt  (enclosing-full-stmt clang-w-fodder bad))
+         (op (case (random-elt
+                    '(cut insert
+                      swap replace
+                      set-value insert-value
+                      cut-full-stmt insert-full-stmt
+                      swap-full-stmt replace-full-stmt
+                      set-full-value insert-full-value))
                (cut            
                  `(:cut            
                     (:stmt1 . ,bad)))
@@ -191,32 +193,46 @@ a uniformly selected element of the JSON database.")
                  `(:cut-full-stmt  
                     (:stmt1 . ,bad-stmt)))
                (insert         
-                 `(:insert         
+                 `(:insert
                     (:stmt1 . ,bad) 
                     (:stmt2 . ,good)))
+               (insert-full-stmt
+                 `(:insert-full-stmt
+                    (:stmt1 . ,bad-stmt)
+                    (:stmt2 . ,good-stmt)))
                (swap           
                  `(:swap           
                     (:stmt1 . ,bad) 
-                    (:stmt2 . ,good)))
+                    (:stmt2 . ,bad)))
                (swap-full-stmt 
                  `(:swap-full-stmt 
                     (:stmt1 . ,bad-stmt) 
+                    (:stmt2 . ,bad-stmt)))
+               (replace
+                 `(:replace
+                    (:stmt1 . ,bad)
+                    (:stmt2 . ,good)))
+               (replace-full-stmt
+                 `(:replace-full-stmt
+                    (:stmt1 . ,bad-stmt)
                     (:stmt2 . ,good-stmt)))
                (set-value     
                  `(:set-value    
-                    (:stmt1  . ,good)
-                    (:value1 . ,(pick-json-by-class clang-w-fodder
-                                                     good))))
+                    (:stmt1  . ,bad)
+                    (:value1 . ,(pick-json-by-class clang-w-fodder bad))))
+               (set-full-value
+                `(:set-full-value
+                  (:stmt1 . ,bad-stmt)
+                  (:value1 . ,(pick-json-by-class clang-w-fodder bad-stmt))))
                (insert-value  
                  `(:insert-value
-                    (:stmt1 . ,good)
-                    (:stmt2 . ,(pick-any-json clang-w-fodder 
-                                              good))))
-               (insert-full-stmt
-                 `(:insert-full-stmt
                     (:stmt1  . ,good)
+                    (:value1 . ,(pick-any-json clang-w-fodder good))))
+               (insert-full-value
+                 `(:insert-full-value
+                    (:stmt1  . ,good-stmt)
                     (:value1 . ,(pick-full-stmt-json clang-w-fodder
-                                                    good)))))))
+                                                     good-stmt)))))))
     (apply-mutation clang-w-fodder op)
     (values clang-w-fodder op)))
 
@@ -251,5 +267,3 @@ a uniformly selected element of the JSON database.")
     (when (not (diff-addresses clang-w-fodder))
       (return (random (size clang-w-fodder))))))
 
-(defmethod apply-mutation ((clang-w-fodder clang-w-fodder) op)
-  (clang-mutate clang-w-fodder op))
