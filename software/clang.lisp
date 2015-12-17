@@ -34,23 +34,46 @@
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
 (defmethod recontextualize ((clang clang) snippet pt)
-  (concatenate 'string
-    (bind-free-vars clang snippet pt)
-    (if (is-full-stmt clang pt) ";" "")))
+  (let ((text
+         (concatenate 'string
+           (bind-free-vars clang snippet pt)
+           (if (is-full-stmt clang pt) ";" ""))))
+    text))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
 (defmethod recontextualize-mutation-op ((clang clang) op)
   (let* ((mut (car op))
          (properties (cdr op))
-         (stmt1 (aget :stmt1 properties))
-         (stmt2 (aget :stmt2 properties))
+         (stmt1  (aget :stmt1  properties))
+         (stmt2  (aget :stmt2  properties))
          (value1 (aget :value1 properties))
          (value2 (aget :value2 properties)))
 
     (case mut
       (:insert
        (cons :insert-value
+          (list (cons :stmt1 stmt1)
+                (cons :value1
+                      (recontextualize clang
+                                       (get-stmt clang stmt2)
+                                       stmt1)))))
+      (:insert-full-stmt
+       (cons :insert-value
+          (list (cons :stmt1 stmt1)
+                (cons :value1
+                      (recontextualize clang
+                                       (get-stmt clang stmt2)
+                                       stmt1)))))
+      (:replace
+       (cons :set
+          (list (cons :stmt1 stmt1)
+                (cons :value1
+                      (recontextualize clang
+                                       (get-stmt clang stmt2)
+                                       stmt1)))))
+      (:replace-full-stmt
+       (cons :set
           (list (cons :stmt1 stmt1)
                 (cons :value1
                       (recontextualize clang
@@ -68,7 +91,18 @@
                       (recontextualize clang
                                        (get-stmt clang stmt1)
                                        stmt2)))))
-      (:swap-full-stmt op) ; <- TODO
+      (:swap-full-stmt
+       (cons :set2
+         (list (cons :stmt1 stmt1)
+               (cons :value1
+                     (recontextualize clang
+                                      (get-stmt clang stmt2)
+                                      stmt1))
+               (cons :stmt2 stmt2)
+               (cons :value2
+                     (recontextualize clang
+                                      (get-stmt clang stmt1)
+                                      stmt2)))))
       (otherwise op))))
 
 (defmethod apply-mutation ((clang clang) op)
@@ -101,19 +135,22 @@
      (multiple-value-bind (stdout stderr exit)
        (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
           (ecase (car op)
-            (:cut              "-cut")
-            (:cut-full-stmt    "-cut")
-            (:insert           "-insert")
-            (:swap             "-swap")
-            (:swap-full-stmt   "-swap")
-            (:set-value        "-set")
-            (:set2             "-set2")
-            (:set-range        "-set-range")
-            (:insert-value     "-insert-value")
-            (:insert-full-stmt "-insert-value")
-            (:ids              "-ids")
-            (:list             "-list")
-            (:list-json        "-list -json"))
+            (:cut                "-cut")
+            (:cut-full-stmt      "-cut")
+            (:insert             "-insert")
+            (:insert-full-stmt   "-insert")
+            (:swap               "-swap")
+            (:swap-full-stmt     "-swap")
+            (:set                "-set")
+            (:set-value          "-set")
+            (:set-full-value     "-set")
+            (:set2               "-set2")
+            (:set-range          "-set-range")
+            (:insert-value       "-insert-value")
+            (:insert-full-value  "-insert-value")
+            (:ids                "-ids")
+            (:list               "-list")
+            (:list-json          "-list -json"))
           (mapconcat
            (lambda (arg-pair)
              (ecase (car arg-pair)
@@ -258,7 +295,7 @@
           (enclosing-block clang (aget :parent--counter ast) index)))))
 
 (defmethod is-full-stmt ((clang clang) stmt)
-  (equal stmt (enclosing-full-stmt clang stmt)))
+  (and stmt (equal stmt (enclosing-full-stmt clang stmt))))
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil
@@ -400,8 +437,8 @@
   (remove-if (lambda (x) (string= x ""))
              (split-sequence #\Newline text)))
 
-(defmethod get-vars-in-scope ((clang clang) pt)
-  (gethash 0 (get-indexed-vars-in-scope clang pt)))
+(defmethod get-vars-in-scope ((clang clang) pt &optional keep-globals)
+  (gethash 0 (get-indexed-vars-in-scope clang pt keep-globals)))
 
 (defmethod get-indexed-vars-in-scope ((clang clang) pt &optional keep-globals)
   (let ((index-table (make-hash-table :test 'equal))
@@ -429,17 +466,20 @@
     index-table))
 
 (defmethod bind-free-vars ((clang clang) snippet pt &optional keep-globals)
-  (let ((raw-code    (aget :src--text snippet))
-        (free-vars   (make-hash-table :test 'equal))
-        (scope-vars  (get-indexed-vars-in-scope clang pt keep-globals)))
+  (let* ((raw-code    (aget :src--text snippet))
+         (free-vars   (make-hash-table :test 'equal))
+         (respect-depth (aget :respect--depth snippet))
+         (scope-vars (get-indexed-vars-in-scope clang pt keep-globals)))
     (list->ht (aget :unbound--vals snippet) free-vars)
     (json-string-unescape
      (apply-replacements
       (loop for var being the hash-keys of free-vars
          using (hash-value index)
          collecting
-           (cons var (or (random-elt-with-decay (gethash index scope-vars) 0.3)
-                         "/* no bound vars in scope */")))
+           (cons var (or (random-elt-with-decay
+                          (gethash (if respect-depth index 0) scope-vars) 0.3)
+                         (format nil
+                                 "/* no bound vars in scope at depth ~a */" index))))
       raw-code))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
@@ -466,7 +506,8 @@
                         (nth-enclosing-block clang (1- depth)
                                              (aget :counter init))
                         (aget :counter (last-elt last)))
-             (create-sequence-snippet (append initial-seq (list last)))))))
+        (acons :respect--depth t
+               (create-sequence-snippet (append initial-seq (list last))))))))
 
 ;; Perform 2-point crossover. The second point will be within the same
 ;; function as the first point, but may be in an enclosing scope.
