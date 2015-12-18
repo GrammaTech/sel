@@ -15,8 +15,8 @@
   (let* ((*test-progress-print-right-margin* (expt 2 20))
          (failures (stefil::failure-descriptions-of
                     (without-debugging (test)))))
-    (format t "FAILURES~%")
-    (mapc [{format t "  ~a~%"}
+    (format *error-output* "FAILURES~%")
+    (mapc [{format *error-output* "  ~a~%"}
            #'stefil::name-of
            #'stefil::test-of
            #'car #'stefil::test-context-backtrace-of]

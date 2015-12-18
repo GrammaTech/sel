@@ -11,3 +11,5 @@ lisp-runner
 scratch.lisp
 seed
 se-test
+tests.md
+tests.html
