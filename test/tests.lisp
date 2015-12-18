@@ -9,6 +9,19 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
 
+;;; Run tests is "batch" mode printing results as a string.
+(defun batch-test (&optional args)
+  (declare (ignorable args))
+  (let* ((*test-progress-print-right-margin* (expt 2 20))
+         (failures (stefil::failure-descriptions-of
+                    (without-debugging (test)))))
+    (format t "FAILURES~%")
+    (mapc [{format t "  ~a~%"}
+           #'stefil::name-of
+           #'stefil::test-of
+           #'car #'stefil::test-context-backtrace-of]
+          (coerce failures 'list))))
+
 (defsuite test)
 (in-suite test)
 
