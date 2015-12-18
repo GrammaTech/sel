@@ -160,14 +160,14 @@
                 (format nil "-stmt2=~d" (cdr arg-pair)))
                (:value1
                 (string-to-file (cdr arg-pair) value1-file)
-                (format nil "-value1=~a" value1-file))
+                (format nil "-file1=~a" value1-file))
                (:value2
                 (string-to-file (cdr arg-pair) value2-file)
-                (format nil "-value2=~a" value2-file))
+                (format nil "-file2=~a" value2-file))
                (:bin
                 (when (cdr arg-pair)
                   (multiple-value-bind (bin exit)
-                      (compile-software-object clang src-file)
+                    (compile-software-object clang src-file)
                     (when (zerop exit)
                       (format nil "-binary=~a" bin)))))))
            (cdr op)
