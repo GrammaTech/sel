@@ -1,4 +1,4 @@
-.PHONY: check doc test
+.PHONY: check doc test tests.md auto-check
 
 # Use buildapp as the lisp compiler.
 LC:=buildapp
@@ -49,3 +49,23 @@ test:
 
 check: se-test test
 	@./$<
+
+# Makefile target to support automated testing.
+tests.md: se-test test
+	echo "### $$(date +%Y-%m-%d-%H-%M-%S)" >> tests.md
+	echo "REPO" >> tests.md
+	echo ":   $(REPO)" >> tests.md
+	echo "" >> tests.md
+	echo "BRANCH" >> tests.md
+	echo ":   $(BRANCH)" >> tests.md
+	echo "" >> tests.md
+	echo "HEAD" >> tests.md
+	echo ":   $(HEAD)" >> tests.md
+	echo "" >> tests.md
+	make -s check 2>&1|sed 's/^/    /' >> tests.md
+	echo "" >> tests.md
+
+tests.html: tests.md
+	markdown $< > $@
+
+auto-check: tests.html
