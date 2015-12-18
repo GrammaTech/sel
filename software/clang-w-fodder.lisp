@@ -144,6 +144,10 @@ a uniformly selected element of the JSON database.")
                         pt
                         (random-full-stmt-snippet)))
 
+(defun random-snippet-by-class (class)
+  (let ((asts (gethash class *json-database*)))
+    (if asts (random-elt asts) (random-snippet))))
+
 (defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt)
   (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
     (multiple-value-bind (ast-class full-stmt) stmt-info
@@ -175,66 +179,35 @@ a uniformly selected element of the JSON database.")
 
   (setf (fitness clang-w-fodder) nil)
 
-  (let* ((good  (pick-good clang-w-fodder))
-         (bad   (pick-bad  clang-w-fodder))
-         (good-stmt (enclosing-full-stmt clang-w-fodder good))
-         (bad-stmt  (enclosing-full-stmt clang-w-fodder bad))
-         (op (case (random-elt
-                    '(cut insert
-                      swap replace
-                      set-value insert-value
-                      cut-full-stmt insert-full-stmt
-                      swap-full-stmt replace-full-stmt
-                      set-full-value insert-full-value))
-               (cut            
-                 `(:cut            
-                    (:stmt1 . ,bad)))
-               (cut-full-stmt  
-                 `(:cut-full-stmt  
-                    (:stmt1 . ,bad-stmt)))
-               (insert         
-                 `(:insert
-                    (:stmt1 . ,bad) 
-                    (:stmt2 . ,good)))
-               (insert-full-stmt
-                 `(:insert-full-stmt
-                    (:stmt1 . ,bad-stmt)
-                    (:stmt2 . ,good-stmt)))
-               (swap           
-                 `(:swap           
-                    (:stmt1 . ,bad) 
-                    (:stmt2 . ,bad)))
-               (swap-full-stmt 
-                 `(:swap-full-stmt 
-                    (:stmt1 . ,bad-stmt) 
-                    (:stmt2 . ,bad-stmt)))
-               (replace
-                 `(:replace
-                    (:stmt1 . ,bad)
-                    (:stmt2 . ,good)))
-               (replace-full-stmt
-                 `(:replace-full-stmt
-                    (:stmt1 . ,bad-stmt)
-                    (:stmt2 . ,good-stmt)))
-               (set-value     
-                 `(:set-value    
-                    (:stmt1  . ,bad)
-                    (:value1 . ,(pick-json-by-class clang-w-fodder bad))))
-               (set-full-value
-                `(:set-full-value
-                  (:stmt1 . ,bad-stmt)
-                  (:value1 . ,(pick-json-by-class clang-w-fodder bad-stmt))))
-               (insert-value  
-                 `(:insert-value
-                    (:stmt1  . ,good)
-                    (:value1 . ,(pick-any-json clang-w-fodder good))))
-               (insert-full-value
-                 `(:insert-full-value
-                    (:stmt1  . ,good-stmt)
-                    (:value1 . ,(pick-full-stmt-json clang-w-fodder
-                                                     good-stmt)))))))
-    (apply-mutation clang-w-fodder op)
-    (values clang-w-fodder op)))
+  (if (random-bool :bias 0.5)
+      ;; Perform a standard clang mutation
+      (call-next-method)
+      ;; Perform a mutation using fodder
+      (let* ((bad   (pick-bad  clang-w-fodder))
+             (bad-stmt  (enclosing-full-stmt clang-w-fodder bad))
+             (mutation (random-elt '(:replace-fodder-same :replace-fodder-full
+                                     :insert-fodder  :insert-fodder-full)))
+             (op (case mutation
+                   (:replace-fodder-same
+                    `(:replace   
+                      (:stmt1  . ,bad)
+                      (:value1 . ,(random-snippet-by-class
+                                   (get-ast-class clang-w-fodder bad)))))
+                   (:replace-fodder-full
+                    `(:replace
+                      (:stmt1  . ,bad-stmt)
+                      (:value1 . ,(random-full-stmt-snippet))))
+                   (:insert-fodder
+                    `(:insert
+                      (:stmt1  . ,bad)
+                      (:value1 . ,(random-snippet))))
+                   (:insert-fodder-full
+                    `(:insert
+                      (:stmt1  . ,bad-stmt)
+                      (:value1 . ,(random-full-stmt-snippet)))))))
+
+        (apply-mutation clang-w-fodder op)
+        (values clang-w-fodder (cons mutation (cdr op))))))
 
 (defvar *targeted-mutation-chance* 0.75
   "Probability of performing a targeted vs. random mutation.")

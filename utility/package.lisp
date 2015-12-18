@@ -37,6 +37,7 @@
    :plist-drop
    :counts
    :proportional-pick
+   :random-bool
    :random-elt-with-decay
    :random-hash-table-key
    :apply-replacements
@@ -44,6 +45,7 @@
    :json-string-escape
    :json-string-unescape
    :aget
+   :alist
    :getter
    :transpose
    :interleave
@@ -59,6 +61,9 @@
    :unlines
    :keep-lines-after-matching
    :resolve-function-headers
+   ;; hash tables
+   :ht->list
+   :list->ht
    :merge-hash-tables
    ;; debugging
    :*note-level*

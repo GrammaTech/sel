@@ -322,6 +322,9 @@ Keyword argument FRAC will return fractions instead of raw counts."
     (random-elt (mapcar #'car (remove-if-not [{= (apply #'max scores)} #'second]
                                              (indexed scores))))))
 
+(defun random-bool (&key bias)
+  (> (or bias 0.5) (random 1.0)))
+
 (defun random-elt-with-decay (orig-list decay-rate)
   (if (null orig-list)
       nil
@@ -391,6 +394,10 @@ is replaced with replacement."
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
+
+(defun alist (key value &rest rest)
+  "Create an association list from the alternating keys and values."
+  (acons key value (if (null rest) nil (apply #'alist rest))))
 
 (defun getter (key)
   "Return a function which gets KEY from an association list."
@@ -598,6 +605,17 @@ that function may be declared.")
                      (cdr lines)
                      (keep-after (cdr lines))))))
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
+
+(defun list->ht (list ht)
+  (loop for x in list
+     do (if (eq (type-of x) 'cons)
+            (setf (gethash (first x) ht) (second x))
+            (setf (gethash x ht) t))))
+
+(defun ht->list (ht)
+  (loop for k being the hash-keys of ht
+     using (hash-value v)
+     collecting (if (eq v t) k (list k v))))
 
 (defun merge-hash-tables (to-ht from-ht &optional with)
   (labels ((merge-fn (x y) (if with (with  x y) x)))
