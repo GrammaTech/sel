@@ -133,7 +133,7 @@
    (with-temp-file (value1-file) ""
     (with-temp-file (value2-file) ""
      (multiple-value-bind (stdout stderr exit)
-       (shell "clang-mutate ~a ~a ~a -- ~a | tail -n +2"
+       (shell "clang-mutate ~a ~a ~a -- ~a"
           (ecase (car op)
             (:cut                "-cut")
             (:cut-full-stmt      "-cut")
