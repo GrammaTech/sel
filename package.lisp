@@ -68,6 +68,7 @@
    :to-ast-hash-table
    :extend-to-enclosing
    :get-stmt-info
+   :worst
    ;; global variables
    :*population*
    :*max-population-size*
