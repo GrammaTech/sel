@@ -34,11 +34,87 @@
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
 (defmethod recontextualize ((clang clang) snippet pt)
-  (let ((text
-         (concatenate 'string
-           (bind-free-vars clang snippet pt)
-           (if (is-full-stmt clang pt) ";" ""))))
-    text))
+  (let ((text (bind-free-vars clang snippet pt)))
+    (format nil "~a~%"
+            (if (is-full-stmt clang pt)
+                (add-semicolon-if-needed text)
+                text))))
+
+(defun do-not-filter () (lambda (asts) asts))
+
+(defun with-class-filter (class asts)
+  (remove-if-not [{equal class} {aget :ast--class } ] asts))
+
+(defun full-stmt-filter (asts)
+  (remove-if-not { aget :full--stmt } asts))
+
+(defmethod all-asts ((clang clang))
+  (remove-if {equal 0} (to-ast-list clang)))
+
+(defmethod good-asts ((clang clang))
+  (all-asts clang))
+
+(defmethod bad-asts ((clang clang))
+  (all-asts clang))
+
+(defun random-stmt (asts)
+  (aget :counter (random-elt asts)))
+
+(defmethod pick-good ((clang clang))
+  (random-stmt (good-asts clang)))
+
+(defmethod pick-bad ((clang clang))
+  (random-stmt (bad-asts clang)))
+
+(defmethod get-ast-class ((clang clang) stmt)
+  (aget :ast--class (get-stmt clang stmt)))
+
+(defun execute-picks (get-asts1 &optional connector get-asts2)
+  (let* ((stmt1 (when get-asts1
+                  (random-stmt (funcall get-asts1))))
+         (stmt2 (when get-asts2
+                  (random-stmt (funcall connector stmt1
+                                        (funcall get-asts2))))))
+    (acons :stmt1 stmt1
+       (if stmt2 (acons :stmt2 stmt2 nil) nil))))
+
+(defun op-name (op &key full same)
+  (intern
+   (concatenate 'string
+     (symbol-name (car op))
+     (if full "-FULL" "")
+     (if (and same (aget :stmt2 (cdr op))) "-SAME" ""))
+   "KEYWORD"))
+
+(defmethod mutate ((clang clang))
+  (unless (> (size clang) 0)
+    (error 'mutate :text "No valid IDs" :obj clang))
+  (setf (fitness clang) nil)
+
+  (let* ((full-stmt  (random-bool :bias 0.75))
+         (same-class (random-bool :bias 0.75))
+         (mutation (random-elt '(:cut :insert :swap :replace))))
+    
+    (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))
+      (let* ((then (if same-class
+                       (lambda (stmt asts)
+                         (with-class-filter (get-ast-class clang stmt) asts))
+                       (lambda (stmt asts) asts)))
+             (good (lambda () (filter (good-asts clang))))
+             (bad  (lambda () (filter (bad-asts  clang))))
+             (todo
+              (ecase mutation
+                (:cut     (list bad))
+                (:insert  (list bad then good))
+                (:swap    (list bad then bad))
+                (:replace (list bad then good))))
+             (op (cons mutation (apply #'execute-picks todo))))
+
+        (apply-mutation clang op)
+        (values clang (cons (op-name op
+                                     :full full-stmt
+                                     :same same-class)
+                            (cdr op)))))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
@@ -47,8 +123,7 @@
          (properties (cdr op))
          (stmt1  (aget :stmt1  properties))
          (stmt2  (aget :stmt2  properties))
-         (value1 (aget :value1 properties))
-         (value2 (aget :value2 properties)))
+         (value1 (aget :value1 properties)))
 
     (case mut
       (:insert
@@ -56,28 +131,18 @@
           (list (cons :stmt1 stmt1)
                 (cons :value1
                       (recontextualize clang
-                                       (get-stmt clang stmt2)
-                                       stmt1)))))
-      (:insert-full-stmt
-       (cons :insert-value
-          (list (cons :stmt1 stmt1)
-                (cons :value1
-                      (recontextualize clang
-                                       (get-stmt clang stmt2)
+                                       (if stmt2
+                                           (get-stmt clang stmt2)
+                                           value1)
                                        stmt1)))))
       (:replace
        (cons :set
           (list (cons :stmt1 stmt1)
                 (cons :value1
                       (recontextualize clang
-                                       (get-stmt clang stmt2)
-                                       stmt1)))))
-      (:replace-full-stmt
-       (cons :set
-          (list (cons :stmt1 stmt1)
-                (cons :value1
-                      (recontextualize clang
-                                       (get-stmt clang stmt2)
+                                       (if stmt2
+                                           (get-stmt clang stmt2)
+                                           value1)
                                        stmt1)))))
       (:swap
        (cons :set2
@@ -91,18 +156,6 @@
                       (recontextualize clang
                                        (get-stmt clang stmt1)
                                        stmt2)))))
-      (:swap-full-stmt
-       (cons :set2
-         (list (cons :stmt1 stmt1)
-               (cons :value1
-                     (recontextualize clang
-                                      (get-stmt clang stmt2)
-                                      stmt1))
-               (cons :stmt2 stmt2)
-               (cons :value2
-                     (recontextualize clang
-                                      (get-stmt clang stmt1)
-                                      stmt2)))))
       (otherwise op))))
 
 (defmethod apply-mutation ((clang clang) op)
@@ -136,18 +189,13 @@
        (shell "clang-mutate ~a ~a ~a -- ~a"
           (ecase (car op)
             (:cut                "-cut")
-            (:cut-full-stmt      "-cut")
             (:insert             "-insert")
-            (:insert-full-stmt   "-insert")
             (:swap               "-swap")
-            (:swap-full-stmt     "-swap")
             (:set                "-set")
             (:set-value          "-set")
-            (:set-full-value     "-set")
             (:set2               "-set2")
             (:set-range          "-set-range")
             (:insert-value       "-insert-value")
-            (:insert-full-value  "-insert-value")
             (:ids                "-ids")
             (:list               "-list")
             (:list-json          "-list -json"))
@@ -335,19 +383,22 @@
 (defmethod get-stmt-text ((clang clang) stmt)
   (json-string-unescape (aget :src--text (get-stmt clang stmt))))
 
+(defun add-semicolon-if-needed (text)
+  (if (equal text "") ";"
+      ;; Add a semicolon unless the text ends in a } (CompoundStmts, etc)
+      ;; or already includes a semicolon (only seen for DeclStmts).
+      (if (find (char text (1- (length text)))
+                (list #\} #\;))
+          text
+          (concatenate 'string text ";"))))
+
 (defun process-full-stmt-text (snippet)
   (let ((text (json-string-unescape (aget :src--text snippet))))
-    (if (equal text "") ";"
-        (if (equal #\} (char text (1- (length text))))
-            text
-            (concatenate 'string text ";")))))
+    (add-semicolon-if-needed text)))
 
 (defmethod full-stmt-text ((clang clang) raw-index)
   (process-full-stmt-text (get-stmt clang
                                 (enclosing-full-stmt clang raw-index))))
-
-(defmethod show-full-stmt ((clang clang) raw-index)
-  (format t "~a~%" (full-stmt-text clang raw-index)))
 
 (defmethod full-stmt-info ((clang clang) raw-index)
   (let* ((index (enclosing-full-stmt clang raw-index)))
@@ -379,17 +430,6 @@
                                     '()
                                     (cons (reverse new-acc) blocks)))))))
 
-(defun list->ht (list ht)
-  (loop for x in list
-     do (if (eq (type-of x) 'cons)
-            (setf (gethash (first x) ht) (second x))
-            (setf (gethash x ht) t))))
-
-(defun ht->list (ht)
-  (loop for k being the hash-keys of ht
-     using (hash-value v)
-     collecting (if (eq v t) k (list k v))))
-
 (defun create-sequence-snippet (scopes)
   (let ((funcs  (make-hash-table :test 'equal))
         (macros (make-hash-table :test 'equal))
@@ -411,13 +451,13 @@
                      (already-seen (gethash var vars nil)))
                 (when (not already-seen)
                   (setf (gethash var vars) scope-depth))))))))
-    (pairlis '(:src--text :unbound--vals :unbound--funs :types :macros :stmts)
-             (list (json-string-escape source)
-                   (ht->list vars)
-                   (ht->list funcs)
-                   (ht->list types)
-                   (ht->list macros)
-                   stmts))))
+    
+    (alist :src--text (json-string-escape source)
+           :unbound--vals (ht->list vars)
+           :unbound--funs (ht->list funcs)
+           :types  (ht->list types)
+           :macros (ht->list macros)
+           :stmts stmts)))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet)
   (let ((functions (aget :UNBOUND--FUNS snippet)))

@@ -56,6 +56,9 @@
    :apply-path
    :pick-json
    :to-ast-list
+   :all-asts
+   :good-asts
+   :bad-asts
    :containing-asts
    :to-ast-list-containing-bin-range
    :to-ast-hash-table
@@ -106,6 +109,9 @@
    :*json-database-bins*
    :*json-database-full-stmt-bins*
    :*type-database*
+   :do-not-filter
+   :with-class-filter
+   :full-stmt-filter
    :recontextualize
    :nesting-depth
    :get-stmt-text
