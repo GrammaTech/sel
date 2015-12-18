@@ -51,11 +51,19 @@
 (defmethod all-asts ((clang clang))
   (remove-if {equal 0} (to-ast-list clang)))
 
+(defvar *good-asts-override* nil
+  "Override for the return value of the good-asts method.")
+
 (defmethod good-asts ((clang clang))
-  (all-asts clang))
+  (or *good-asts-override*
+      (all-asts clang)))
+
+(defvar *bad-asts-override* nil
+  "Override for the return value of the bad-asts method.")
 
 (defmethod bad-asts ((clang clang))
-  (all-asts clang))
+  (or *bad-asts-override*
+      (all-asts clang)))
 
 (defun random-stmt (asts)
   (aget :counter (random-elt asts)))
@@ -86,13 +94,23 @@
      (if (and same (aget :stmt2 (cdr op))) "-SAME" ""))
    "KEYWORD"))
 
+(defvar *clang-full-stmt-bias* 0.75
+  "The probability that a mutation will operate on a full statement.")
+
+(defvar *clang-same-class-bias* 0.75
+  "The probability that a mutation uses AST class matching.")
+
+(defvar *clang-mutation-cdf*
+  (cdf (uniform-probability '(:cut :insert :swap :replace)))
+  "The basic clang mutations probability distribution, as a CDF.")
+
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
     (error 'mutate :text "No valid IDs" :obj clang))
   (setf (fitness clang) nil)
 
-  (let* ((full-stmt  (random-bool :bias 0.75))
-         (same-class (random-bool :bias 0.75))
+  (let* ((full-stmt  (random-bool :bias *clang-full-stmt-bias*))
+         (same-class (random-bool :bias *clang-same-class-bias*))
          (mutation (random-elt '(:cut :insert :swap :replace))))
     
     (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))

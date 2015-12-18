@@ -325,6 +325,20 @@ Keyword argument FRAC will return fractions instead of raw counts."
 (defun random-bool (&key bias)
   (> (or bias 0.5) (random 1.0)))
 
+(defun uniform-probability (list)
+  (let ((prob (/ 1.0 (length list))))
+    (loop for item in list collecting (cons item prob))))
+
+(defun cdf (prob)
+  (labels ((combine (acc pr)
+             (if (null pr) '()
+                 (let ((new-acc (+ acc (cdar pr))))
+                   (acons (caar pr) new-acc (combine new-acc (cdr pr)))))))
+    (combine 0.0 prob)))
+
+(defun random-pick (cdf)
+  (car (find-if {<= (random 1.0)} cdf :key #'cdr)))
+
 (defun random-elt-with-decay (orig-list decay-rate)
   (if (null orig-list)
       nil

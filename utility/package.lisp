@@ -40,6 +40,9 @@
    :random-bool
    :random-elt-with-decay
    :random-hash-table-key
+   :uniform-probability
+   :cdf
+   :random-pick
    :apply-replacements
    :replace-all
    :json-string-escape
