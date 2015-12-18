@@ -50,8 +50,9 @@
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 
-(defmethod crossover ((a soft) (b soft)) (copy a))
-(defmethod mutate ((a soft)) (copy a))
+(defmethod crossover ((a soft) (b soft))
+  (values (copy a)(list :fake-a) (list :fake-b)))
+(defmethod mutate ((a soft)) (values (copy a) (list :fake)))
 
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
@@ -130,8 +131,14 @@
                                 collect (make-instance 'soft
                                           :genome (loop for j from 0 to i
                                                      collect j)
-                                          :fitness i))))
-  (:teardown (setf *population* nil)))
+                                          :fitness i))
+                *fitness-evals* 0
+                *mutation-stats* (make-hash-table)
+                *crossover-stats* (make-hash-table)))
+  (:teardown (setf *population* nil
+                   *fitness-evals* 0
+                   *mutation-stats* nil
+                   *crossover-stats* nil)))
 
 
 ;;; ASM representation
@@ -648,9 +655,37 @@
       (is (< before (length (progn (incorporate (make-instance 'software))
                                    *population*)))))))
 
-(deftest terminate-evolution-on-success ()
+(deftest evolution-collects-no-statistics-by-default ()
   (let ((counter 0)
-        (*fitness-evals* 0))
+        (*fitness-predicate* #'>))
+    (flet ((test (candidate)
+             (declare (ignorable candidate))
+             (incf counter)
+             (if (= counter 5) 2 1)))
+      (with-fixture population
+        (evolve #'test :max-evals 10)
+        (is (zerop (length (hash-table-alist *mutation-stats*))))))))
+
+(deftest evolution-collects-statistics-when-asked ()
+  (let ((counter 0)
+        (*fitness-predicate* #'>))
+    (flet ((test (candidate)
+             (declare (ignorable candidate))
+             (incf counter)
+             (let ((out (if (> counter 10)
+                            (- 0 counter)
+                            counter)))
+               out)))
+      (with-fixture population
+        (evolve #'test :max-evals 20 :mutation-stats t)
+        (is (equal '(:fake) (hash-table-keys *mutation-stats*)))
+        (is (= 21 (length (gethash :fake *mutation-stats*))))
+        (let ((statuses (mapcar #'cadr (gethash :fake *mutation-stats*))))
+          (is (member :better statuses)
+              (member :worse statuses)))))))
+
+(deftest terminate-evolution-on-success ()
+  (let ((counter 0))
     (flet ((test (candidate)
              (declare (ignorable candidate))
              (incf counter)

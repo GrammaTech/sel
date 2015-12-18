@@ -91,6 +91,9 @@ a uniformly selected element of the JSON database.")
 (defmethod from-file :before ((obj clang-w-fodder) path)
   (assert (not (null *json-database-bins*))))
 
+(defmethod fitness-extra-data ((obj clang-w-fodder))
+  (diff-addresses clang-w-fodder))
+
 (defmethod (setf fitness-extra-data) (extra-data (clang-w-fodder clang-w-fodder))
   (setf (diff-addresses clang-w-fodder) extra-data)
   (call-next-method))

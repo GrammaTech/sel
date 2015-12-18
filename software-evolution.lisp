@@ -47,13 +47,20 @@
   (:documentation "Evaluate the software returning a numerical fitness."))
 
 (defmethod evaluate ((test function) (obj software))
-  (multiple-value-bind (fit extra) (funcall test obj)
-    (assert (numberp fit) (fit)
-            "Test ~a returned non-numerical fitness ~a for software ~a."
-            test fit obj)
-    (setf (fitness obj) fit)
-    (setf (fitness-extra-data obj) extra)
-    (values fit extra)))
+  (if (fitness obj)
+      (values (fitness obj) (fitness-extra-data obj))
+      (multiple-value-bind (fit extra) (funcall test obj)
+        (assert (numberp fit) (fit)
+                "Test ~a returned non-numerical fitness ~a for software ~a."
+                test fit obj)
+        (setf (fitness obj) fit)
+        (setf (fitness-extra-data obj) extra)
+        (values fit extra))))
+
+(defgeneric fitness-extra-data (software)
+  (:documentation "Hold extra data returned by the fitness function."))
+
+(defmethod fitness-extra-data ((obj software)) nil)
 
 (defgeneric (setf fitness-extra-data) (extra-data software)
   (:documentation "Pass extra data (optionally) returned by the fitness function
@@ -99,6 +106,70 @@ Used to target mutation."))
 
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
+
+(defvar *mutation-stats* (make-hash-table
+                          #+sbcl :synchronized #+sbcl t)
+  "Variable to hold mutation statistics.")
+
+(defvar *crossover-stats* (make-hash-table
+                           #+sbcl :synchronized #+sbcl t)
+  "Variable to hold crossover statistics.")
+
+(defgeneric analyze-mutation (software mutation
+                              software-a cross-point-a
+                              crossed
+                              software-b cross-point-b
+                              &optional test)
+  (:documentation "Collect statistics from an applied mutation.
+Should return arguments unmodified as values to enable chaining
+against `new-individual' with `multiple-value-call'.  Calculated Stats
+should be added to the `*mutation-stats*' variable.  This method will
+calculate the fitness of SOFTWARE with `evaluate'.
+
+If candidate fitness has not already been evaluated, then optional
+argument TEST must be supplied."))
+
+(defmethod analyze-mutation ((obj software) mutation
+                             software-a cross-point-a
+                             crossed
+                             software-b cross-point-b
+                             &optional test)
+  (labels ((safe-eval (object)
+             (or (fitness object)
+                 (progn
+                   (assert test (object test)
+                           "TEST is mandatory if objects have no fitness")
+                   (evaluate test object))))
+           (classify (new old &optional old-2)
+             (let ((fit (safe-eval new))
+                   (old-fit (if old-2
+                                (extremum (list (safe-eval old)
+                                                (safe-eval old-2))
+                                          *fitness-predicate*)
+                                (safe-eval old))))
+               (cond
+                 ((= fit (worst)) :dead)
+                 ((= fit old-fit) :same)
+                 ((funcall (complement *fitness-predicate*) fit old-fit) :worse)
+                 ((funcall *fitness-predicate* fit old-fit) :better)))))
+    ;; Add information on the mutation to `*mutation-stats*`.
+    (let ((effect (classify obj (or crossed software-a))))
+      (push (list mutation effect)
+            (gethash (mutation-key obj mutation) *mutation-stats*)))
+    ;; Add information on the crossover to `*crossover-stats*`.
+    (when crossed
+      (let ((effect (classify crossed software-a software-b)))
+        (push (list mutation effect)
+              (gethash (mutation-key obj mutation) *crossover-stats*)))))
+  (values
+   obj mutation software-a cross-point-a crossed software-b cross-point-b))
+
+(defgeneric mutation-key (software mutation)
+  (:documentation "Key used to organize mutations in *mutation-stats*."))
+
+(defmethod mutation-key ((obj software) mutation)
+  ;; Default to using the mutation op.
+  (declare (ignorable obj)) (car mutation))
 
 (defgeneric mcmc-step (software)
   (:documentation "Change software in a way amenable to MCMC.
@@ -164,6 +235,12 @@ Define an :around method on this function to record crossovers."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
+(declaim (inline worst))
+(defun worst ()
+  (cond ((equal #'< *fitness-predicate*) infinity)
+        ((equal #'> *fitness-predicate*) 0)
+        (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
+
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
 
@@ -226,13 +303,14 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
   "Generate a new individual from *POPULATION*."
   (multiple-value-bind (crossed a-point b-point) (crossed a b)
     (multiple-value-bind (mutant mutation) (mutant crossed)
-      (values mutant mutation a-point b-point))))
+      (values mutant mutation a a-point crossed b b-point))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
   (destructuring-bind (variant f max-evals max-time target pd pd-fn
                                every-pre-fn every-post-fn
-                               filter running fitness-counter)
+                               filter running fitness-counter
+                               collect-mutation-stats)
       specs
     (let* ((time (gensym)) (fit-var (gensym))
            (main
@@ -249,10 +327,21 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                          ,max-time))))
                        `(not ,running))
                   :do (handler-case
-                          (let ((,variant (funcall ,step)))
+                          (multiple-value-bind
+                                (,variant mutation a a-point crossed b b-point)
+                              (funcall ,step)
+                            ,@(unless collect-mutation-stats
+                                      `((declare (ignorable mutation
+                                                            a a-point crossed
+                                                            b b-point))))
                             ,@(when every-pre-fn
                                     `((funcall ,every-pre-fn ,variant)))
                             (evaluate ,f ,variant)
+                            ,@(when collect-mutation-stats
+                                    `((funcall #'analyze-mutation
+                                               ,variant mutation
+                                               a a-point crossed b b-point
+                                               ,f)))
                             ,@(when every-post-fn
                                     `((funcall ,every-post-fn ,variant)))
                             (incf ,fitness-counter)
@@ -260,7 +349,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                     `((when (zerop (mod ,fitness-counter ,pd))
                                         (funcall ,pd-fn))))
                             (assert (numberp (fitness ,variant)) (,variant)
-                                    "Non-numeric fitness: ~S" (fitness ,variant))
+                                    "Non-numeric fitness: ~S"
+                                    (fitness ,variant))
                             ,@(if filter
                                   `((when (funcall ,filter ,variant) ,@body))
                                   body)
@@ -285,7 +375,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
             (population '*population*)
             (max-population-size '*max-population-size*)
             (running '*running*)
-            (fitness-evals '*fitness-evals*))
+            (fitness-evals '*fitness-evals*)
+            mutation-stats)
   "Evolves `*population*' until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
@@ -296,10 +387,11 @@ Keyword arguments are as follows.
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
   EVERY-PRE-FN ---- function to run before every fitness evaluation
   EVERY-POST-FN --- function to run after every fitness evaluation
-  FILTER ---------- only include individual for which FILTER returns true"
+  FILTER ---------- only include individual for which FILTER returns true
+  MUTATION-STATS -- set to non-nil to collect mutation statistics"
   `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
                  ,every-pre-fn ,every-post-fn
-                 ,filter ,running ,fitness-evals)
+                 ,filter ,running ,fitness-evals ,mutation-stats)
             #'new-individual
             (incorporate new ,population ,max-population-size)))
 
@@ -309,7 +401,8 @@ Keyword arguments are as follows.
        every-pre-fn every-post-fn
        filter
        (running '*running*)
-       (fitness-evals '*fitness-evals*))
+       (fitness-evals '*fitness-evals*)
+       mutation-stats)
   "MCMC search from ORIGINAL until an optional stopping criterion is met.
 
 Keyword arguments are as follows.
@@ -320,13 +413,14 @@ Keyword arguments are as follows.
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
   EVERY-PRE-FN ---- function to run before every fitness evaluation
-  EVERY-POST-FN --- function to run after every fitness evaluation"
+  EVERY-POST-FN --- function to run after every fitness evaluation
+  MUTATION-STATS -- set to non-nil to collect mutation statistics"
   (let* ((curr (gensym))
          (body
           `(let ((,curr ,original))
              (-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
                            ,every-pre-fn ,every-post-fn ,filter
-                           ,running ,fitness-evals)
+                           ,running ,fitness-evals ,mutation-stats)
                       (mcmc-step ,curr)
                       (when (funcall accept-fn (fitness ,curr) (fitness new))
                         (setf ,curr new))))))
