@@ -52,8 +52,7 @@ check: se-test test
 
 # Makefile target to support automated testing.
 tests.md: se-test test
-	echo "" >> tests.md
-	echo "### $$(date)" >> tests.md
+	echo "### $$(date +%Y-%m-%d-%H-%M-%S)" >> tests.md
 	echo "REPO" >> tests.md
 	echo ":   $(REPO)" >> tests.md
 	echo "" >> tests.md
@@ -64,6 +63,7 @@ tests.md: se-test test
 	echo ":   $(HEAD)" >> tests.md
 	echo "" >> tests.md
 	make -s check 2>&1|sed 's/^/    /' >> tests.md
+	echo "" >> tests.md
 
 tests.html: tests.md
 	markdown $< > $@
