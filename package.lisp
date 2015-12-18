@@ -33,6 +33,10 @@
    :pick-bad-targetted
    :mutate
    :apply-mutation
+   :*mutation-stats*
+   :*crossover-stats*
+   :analyze-mutation
+   :mutation-key
    :crossover
    :one-point-crossover
    :two-point-crossover
