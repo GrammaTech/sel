@@ -72,7 +72,7 @@
   (:documentation "Copy the software."))
 
 (defmethod copy ((obj software))
-  (make-instance (class-of obj) :fitness (fitness obj)))
+  (make-instance (class-of obj)))
 
 (defgeneric size (software)
   (:documentation "Return the size of the `genome' of SOFTWARE."))
