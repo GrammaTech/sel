@@ -32,7 +32,7 @@
 (defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
-(defvar *base-dir* 
+(defvar *base-dir*
   (pathname-directory #.(or *compile-file-truename*
                             *load-truename*
                             *default-pathname-defaults*)))
@@ -111,10 +111,10 @@
 
 (defixture hello-world-clang
   (:setup
-    (setf *hello-world* 
+    (setf *hello-world*
       (from-file (make-instance 'clang :compiler "clang" :flags '("-g -m32 -O0"))
                  (hello-world-dir "hello_world.c"))))
-  (:teardown 
+  (:teardown
     (setf *hello-world* nil)))
 
 (defixture hello-world-clang-w-fodder
@@ -377,7 +377,7 @@
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:insert-value (:stmt1 . 1) 
+      (apply-mutation variant '(:insert-value (:stmt1 . 1)
                                               (:value1 . "int i = 0;")))
       (is (> (size variant)
              (size *hello-world*)))
@@ -387,7 +387,7 @@
 (deftest set-value-changes-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:set-value (:stmt1 . 6) 
+      (apply-mutation variant '(:set-value (:stmt1 . 6)
                                            (:value1 . "\"Hello, mutate!\"")))
       (is (= (size variant)
              (size *hello-world*)))
@@ -397,8 +397,8 @@
 ;;; Targetted mutation test
 (deftest pick-bad-returns-asts-on-line-6-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (let* ((variant (from-file (make-instance 'clang-w-fodder 
-                                              :compiler "clang" 
+    (let* ((variant (from-file (make-instance 'clang-w-fodder
+                                              :compiler "clang"
                                               :flags '("-g -O0 -m32")
                                               :diff-addresses '(((:begin-addr .
                                                                    #x8048433)
@@ -413,8 +413,8 @@
 
 (deftest pick-bad-returns-asts-on-line-8-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (let* ((variant (from-file (make-instance 'clang-w-fodder 
-                                              :compiler "clang" 
+    (let* ((variant (from-file (make-instance 'clang-w-fodder
+                                              :compiler "clang"
                                               :flags '("-g -O0 -m32")
                                               :diff-addresses '(((:begin-addr .
                                                                    #x804843d)
@@ -435,7 +435,7 @@
 (deftest to-ast-list-containing-bin-range-test()
   (with-fixture hello-world-clang
     (is (= 6 (length (to-ast-list-containing-bin-range
-                      *hello-world* 
+                      *hello-world*
                       #x8048433 #x804843d))))))
 
 (deftest to-ast-hash-table-test()
