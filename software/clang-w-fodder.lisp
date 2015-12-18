@@ -23,6 +23,9 @@ a uniformly selected element of the JSON database.")
 (defvar *type-database* nil
   "A database of user-defined types.")
 
+(defvar *fodder-selection-bias* 0.5
+  "The probability that a clang-w-fodder mutation will use the code database.")
+
 (defun select-random-bin ()
   (let ((binprob (random 1.0)))
     (cdr (find-if (lambda (datum)
@@ -179,7 +182,7 @@ a uniformly selected element of the JSON database.")
 
   (setf (fitness clang-w-fodder) nil)
 
-  (if (random-bool :bias 0.5)
+  (if (random-bool :bias (- 1 *fodder-selection-bias*))
       ;; Perform a standard clang mutation
       (call-next-method)
       ;; Perform a mutation using fodder

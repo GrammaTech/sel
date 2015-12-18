@@ -74,6 +74,15 @@
    :*mut-rate*
    :*fitness-evals*
    :*running*
+   ;; clang / clang-w-fodder global variables
+   :*clang-full-stmt-bias*
+   :*clang-same-class-bias*
+   :*fodder-selection-bias*
+   :*clang-mutation-cdf*
+   :*json-database*
+   :*json-database-bins*
+   :*json-database-full-stmt-bins*
+   :*type-database*
    ;; evolution functions
    :incorporate
    :evict
@@ -105,10 +114,6 @@
    :lisp
    :clang
    :clang-w-fodder
-   :*json-database*
-   :*json-database-bins*
-   :*json-database-full-stmt-bins*
-   :*type-database*
    :do-not-filter
    :with-class-filter
    :full-stmt-filter
