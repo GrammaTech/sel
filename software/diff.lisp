@@ -44,7 +44,7 @@ Similar to the range approach, but striving for a simpler interface."))
 
 (defmethod original ((diff diff))
   (let ((copy (copy diff)))
-    (setf (diffs copy)     (make-instance 'unified-seq-diff
+    (setf (diffs copy)     (make-instance 'diff:unified-diff
                              :original-pathname "original"
                              :modified-pathname "modified"))
     copy))
@@ -61,5 +61,5 @@ Similar to the range approach, but striving for a simpler interface."))
   (let ((list-new (coerce new 'list)))
     (with-slots (reference diffs) diff
       (unless reference (setf reference list-new))
-      (setf diffs (generate-seq-diff 'unified-seq-diff reference list-new))))
+      (setf diffs (generate-seq-diff 'diff:unified-diff reference list-new))))
   new)
