@@ -8,4 +8,4 @@
    :stefil
    :software-evolution
    :software-evolution-utility)
-  (:export :test))
+  (:export :test :batch-test))
