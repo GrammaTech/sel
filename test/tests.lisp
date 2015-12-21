@@ -401,8 +401,10 @@
 (deftest set-value-changes-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:set-value (:stmt1 . 6)
-                                           (:value1 . "\"Hello, mutate!\"")))
+      (apply-mutation variant
+        `(:set
+          (:stmt1 . ,(stmt-with-text variant "\"Hello, World!\\n\""))
+          (:value1 . "\"Hello, mutate!\"")))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
