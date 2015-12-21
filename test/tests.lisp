@@ -30,6 +30,7 @@
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *huf*         nil "Holds the huf software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
 (defvar *base-dir*
@@ -44,8 +45,13 @@
   (make-pathname :directory (append *base-dir* (list "hello-world")))
   "Location of the hello world example directory")
 
+(defvar *huf-dir*
+  (make-pathname :directory (append *base-dir* (list "huf")))
+  "Location of the huf example directory")
+
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 (defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
+(defun huf-dir (filename) (merge-pathnames filename *huf-dir*))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -125,6 +131,14 @@
                 (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
+
+(defixture huf-clang
+  (:setup
+    (setf *huf*
+      (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
+                 (huf-dir "huf.c"))))
+  (:teardown
+    (setf *huf* nil)))
 
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
@@ -348,7 +362,7 @@
 (deftest insert-lengthens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:insert (:stmt1 . 1) (:stmt2 . 7)))
+      (apply-mutation variant '(:insert (:stmt1 . 2) (:stmt2 . 7)))
       (is (> (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -357,7 +371,7 @@
 (deftest swap-changes-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:swap (:stmt1 . 1) (:stmt2 . 7)))
+      (apply-mutation variant '(:swap (:stmt1 . 2) (:stmt2 . 8)))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -377,7 +391,7 @@
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:insert-value (:stmt1 . 1)
+      (apply-mutation variant '(:insert-value (:stmt1 . 2)
                                               (:value1 . "int i = 0;")))
       (is (> (size variant)
              (size *hello-world*)))
@@ -408,8 +422,7 @@
                                                                   :delete))))
                                (hello-world-dir "hello_world.c")))
            (targetted-bad-ast (pick-bad-targetted variant)))
-      (is (and (<= 2 targetted-bad-ast)
-               (<= targetted-bad-ast 7))))))
+      (is (<= 2 targetted-bad-ast 7)))))
 
 (deftest pick-bad-returns-asts-on-line-8-of-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
@@ -424,8 +437,7 @@
                                                                   :delete))))
                                (hello-world-dir "hello_world.c")))
             (targetted-bad-ast (pick-bad-targetted variant)))
-      (is (and (<= 8 targetted-bad-ast)
-               (<= targetted-bad-ast 9))))))
+      (is (<= 8 targetted-bad-ast 9)))))
 
 ;;; Clang utility methods
 (deftest to-ast-list-test()
@@ -693,3 +705,41 @@
       (with-fixture population
         (evolve #'test :target 2)
         (is (= *fitness-evals* 5))))))
+
+
+;; Helper function to avoid hard-coded statement numbers.
+(defun stmt-with-text (obj text)
+  (let ((the-snippet
+         (find-if (lambda (snippet)
+                    (and snippet
+                         (equal text
+                                (apply-replacements '(("(|" . "")
+                                                      ("|)" . ""))
+                                  (json-string-unescape
+                                   (aget :src--text snippet))))))
+                  (to-ast-list obj))))
+    (aget :counter the-snippet)))
+
+(deftest swap-can-recontextualize ()
+  (with-fixture huf-clang
+    (let ((variant (copy *huf*)))
+      (apply-mutation variant
+        (cons :swap
+              (list (cons :stmt1 (stmt-with-text variant "n > 0"))
+                    (cons :stmt2 (stmt-with-text variant "bc=0")))))
+      (multiple-value-bind (result exit)
+          (phenome variant)
+        (declare (ignorable result))
+        (is (= 0 exit))))))
+
+(deftest insert-can-recontextualize ()
+  (with-fixture huf-clang
+    (let ((variant (copy *huf*)))
+      (apply-mutation variant
+        (cons :insert
+              (list (cons :stmt1 (stmt-with-text variant "bc=0"))
+                    (cons :stmt2 (stmt-with-text variant "n > 0")))))
+      (multiple-value-bind (result exit)
+          (phenome variant)
+        (declare (ignorable result))
+        (is (= 0 exit))))))

@@ -77,7 +77,7 @@
 
 (defmethod apply-mutation :around ((ast ast) mut)
   ;; Apply MUT to AST, and then update `SIZE' for AST.
-  (if (member (car mut) '(:ids :list :list-json))
+  (if (member (car mut) '(:ids :list :json))
       (call-next-method)
       (let ((new-genome (call-next-method)))
         (when new-genome
