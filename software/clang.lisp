@@ -193,7 +193,7 @@
 
 (defmethod apply-mutation :after ((clang clang) op)
   (with-slots (clang-asts) clang
-    (when (not (member (car op) '(:ids :list :list-json)))
+    (when (not (member (car op) '(:ids :list :json)))
       (setf clang-asts nil))))
 
 (defun extract-clang-genome (full-genome)
@@ -216,7 +216,7 @@
             (:insert-value       "-insert-value")
             (:ids                "-ids")
             (:list               "-list")
-            (:list-json          "-list -json"))
+            (:json               "-json"))
           (mapconcat
            (lambda (arg-pair)
              (ecase (car arg-pair)
@@ -252,7 +252,7 @@
                                   "\"clang-mutate non-zero exit with args ~{~a~^ ~}\""
                                   op))))
        (values
-        (if (member (car op) '(:ids :list :list-json))
+        (if (member (car op) '(:ids :list :json))
             stdout
             (extract-clang-genome stdout))
         exit))))))
@@ -275,7 +275,7 @@
     (if clang-asts
         clang-asts
         (setf clang-asts
-          (let ((list-string (clang-mutate clang `(:list-json (:bin . t)))))
+          (let ((list-string (clang-mutate clang `(:json (:bin . t)))))
             (unless (zerop (length list-string))
               (json-db-to-vector clang
                (json:decode-json-from-source list-string))))))))
