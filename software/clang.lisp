@@ -210,7 +210,6 @@
             (:insert             "-insert")
             (:swap               "-swap")
             (:set                "-set")
-            (:set-value          "-set")
             (:set2               "-set2")
             (:set-range          "-set-range")
             (:insert-value       "-insert-value")
