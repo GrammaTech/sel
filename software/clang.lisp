@@ -223,6 +223,32 @@
                 (format nil "-stmt1=~d" (cdr arg-pair)))
                (:stmt2
                 (format nil "-stmt2=~d" (cdr arg-pair)))
+               (:fields
+                (format nil "-fields=~a" 
+                 (mapconcat (lambda (field)
+                  (ecase field
+                   (:counter "counter")
+                   (:parent--counter "parent_counter")
+                   (:ast--class "ast_class")
+                   (:src--file--name "src_file_name")
+                   (:begin--src--line "begin_src_line")
+                   (:begin--src--col "begin_src_col")
+                   (:end--src--line "end_src_line")
+                   (:end--src--col "end_src_col")
+                   (:src--text "src_text")
+                   (:guard--stmt "guard_stmt")
+                   (:full--stmt "full_stmt")
+                   (:unbound--vals "unbound_vals")
+                   (:unbound--funs "unbound_funs")
+                   (:macros "macros")
+                   (:types "types")
+                   (:stmt--list "stmt_list")
+                   (:binary--file--path "binary_file_path")
+                   (:begin--addr "begin_addr")
+                   (:end--addr "end_addr")
+                   (:binary--contents "binary_contents")))
+                  (cdr arg-pair)
+                  ",")))
                (:value1
                 (string-to-file (cdr arg-pair) value1-file)
                 (format nil "-file1=~a" value1-file))
