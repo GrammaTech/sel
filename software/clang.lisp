@@ -361,7 +361,7 @@
         ((= (aget :parent--counter ast) 0) nil)
         (t (is-parent-ast? clang
                            possible-parent-ast
-                           (get-stmt clang (aget :counter possible-parent-ast))))))
+                           (get-stmt clang (aget :parent--counter ast))))))
 
 (defmethod to-ast-hash-table ((clang clang))
   (let ((ast-hash-table (make-hash-table :test 'equal)))
