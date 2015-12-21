@@ -65,6 +65,8 @@
    :bad-asts
    :containing-asts
    :to-ast-list-containing-bin-range
+   :is-parent-ast?
+   :get-stmt
    :to-ast-hash-table
    :extend-to-enclosing
    :get-stmt-info

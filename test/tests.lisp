@@ -118,7 +118,8 @@
 (defixture hello-world-clang
   (:setup
     (setf *hello-world*
-      (from-file (make-instance 'clang :compiler "clang" :flags '("-g -m32 -O0"))
+      (from-file (make-instance 'clang :compiler "clang-3.7" 
+                                       :flags '("-g -m32 -O0"))
                  (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
@@ -127,7 +128,8 @@
   (:setup
    (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
    (setf *hello-world*
-     (from-file (make-instance 'clang-w-fodder :compiler "clang" :flags '("-g -m32 -O0"))
+     (from-file (make-instance 'clang-w-fodder :compiler "clang-3.7" 
+                                               :flags '("-g -m32 -O0"))
                 (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
@@ -451,6 +453,22 @@
     (is (= 6 (length (to-ast-list-containing-bin-range
                       *hello-world*
                       #x8048433 #x804843d))))))
+
+(deftest is-parent-ast?-true-test()
+  (with-fixture hello-world-clang
+    (is (is-parent-ast? *hello-world* 
+          (get-stmt *hello-world* (stmt-with-text *hello-world*
+                                                  "return 0"))
+          (get-stmt *hello-world* (stmt-with-text *hello-world* 
+                                                  "0"))))))
+
+(deftest is-parent-ast?-false-test()
+  (with-fixture hello-world-clang
+    (is (not (is-parent-ast? *hello-world* 
+               (get-stmt *hello-world* (stmt-with-text *hello-world* 
+                                                       "0"))
+               (get-stmt *hello-world* (stmt-with-text *hello-world* 
+                                                       "return 0")))))))
 
 (deftest to-ast-hash-table-test()
   (with-fixture hello-world-clang
