@@ -354,30 +354,36 @@
 
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
-    (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:cut (:stmt1 . 7)))
+    (let ((variant (copy *hello-world*))
+          (stmt1 (stmt-with-text *hello-world*
+                                 "printf(\"Hello, World!\\n\")")))
+      (apply-mutation variant `(:cut (:stmt1 . ,stmt1)))
       (is (< (size variant)
-             (size *hello-world*)))
-      (is (string/= (genome variant)
-                    (genome *hello-world*))))))
+             (size *hello-world*))))))
 
 (deftest insert-lengthens-a-clang-software-object()
   (with-fixture hello-world-clang
-    (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:insert (:stmt1 . 2) (:stmt2 . 7)))
+    (let ((variant (copy *hello-world*))
+          (stmt1 (stmt-with-text *hello-world*
+                                 "printf(\"Hello, World!\\n\")"))
+          (stmt2 (stmt-with-text *hello-world*
+                                 "return 0")))
+      (apply-mutation variant
+                      `(:insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
       (is (> (size variant)
-             (size *hello-world*)))
-      (is (string/= (genome variant)
-                    (genome *hello-world*))))))
+             (size *hello-world*))))))
 
 (deftest swap-changes-a-clang-software-object()
   (with-fixture hello-world-clang
-    (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(:swap (:stmt1 . 2) (:stmt2 . 8)))
+    (let ((variant (copy *hello-world*))
+          (stmt1 (stmt-with-text *hello-world*
+                                 "printf(\"Hello, World!\\n\")"))
+          (stmt2 (stmt-with-text *hello-world*
+                                 "return 0")))
+      (apply-mutation variant
+                      `(:swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
       (is (= (size variant)
-             (size *hello-world*)))
-      (is (string/= (genome variant)
-                    (genome *hello-world*))))))
+             (size *hello-world*))))))
 
 (deftest crossover-clang-software-object-do-not-crash()
   (with-fixture hello-world-clang
