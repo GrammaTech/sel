@@ -53,12 +53,12 @@ be used to associate bytes with AST elements."))
   "Probability of performing a targeted vs. random mutation.")
 
 (defmethod pick-bad((obj clang-w-binary))
-  (let ((random-elt (pick-bad-targetted obj)))
-    (if (and (diff-addresses obj)
-             random-elt
-             (< (random 1.0) *targeted-mutation-chance*))
-        random-elt
-        (call-next-method))))
+  (if (and (diff-addresses obj)
+           (< (random 1.0) *targeted-mutation-chance*))
+    (let ((random-elt (pick-bad-targetted obj)))
+      (if random-elt
+          random-elt
+          (call-next-method)))))
 
 (defmethod pick-bad-targetted((obj clang-w-binary))
   "Return the AST of a binary-difference inducing AST in clang-w-fodder"
