@@ -18,7 +18,7 @@ be used to associate bytes with AST elements."))
   ;; Wrap update-asts to pull dwarf information from the binary
   ;; associated with OBJ.
   (with-temp-file-of-bytes (bin) (bytes obj)
-    (call-next-method obj :clang-mutate-args (list (list :bin bin)))))
+    (call-next-method obj :clang-mutate-args (list (cons :bin bin)))))
 
 (defmethod fitness-extra-data ((obj clang-w-binary))
   (diff-addresses obj))
