@@ -44,7 +44,6 @@ and applies the changed data in `genome' of ELF."))
 
 (defmethod mutate ((elf elf))
   "Randomly mutate ELF."
-  (setf (fitness elf) nil)
   (let ((op (case (random-elt '(cut insert swap))
               (cut      `(:cut    ,(pick-bad elf)))
               (insert   `(:insert ,(pick-bad elf) ,(pick-good elf)))

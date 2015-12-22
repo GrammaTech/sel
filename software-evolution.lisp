@@ -107,6 +107,10 @@ Used to target mutation."))
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 
+(defmethod mutate :before ((obj software))
+  ;; Mutation removes previously calculated fitness values.
+  (setf (fitness obj) nil))
+
 (defvar *mutation-stats* (make-hash-table
                           #+sbcl :synchronized #+sbcl t)
   "Variable to hold mutation statistics.")
