@@ -82,4 +82,3 @@
           (cons (cons type-id decl)
                 (sorted-types clang-mito)))
     (setf (gethash type-id (types clang-mito)) decl)))
-

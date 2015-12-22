@@ -110,7 +110,7 @@
   (let* ((full-stmt  (random-bool :bias *clang-full-stmt-bias*))
          (same-class (random-bool :bias *clang-same-class-bias*))
          (mutation (random-elt '(:cut :insert :swap :replace))))
-    
+
     (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))
       (let* ((then (if same-class
                        (lambda (stmt asts)
@@ -176,17 +176,17 @@
 
 (defmethod apply-mutation ((clang clang) op)
   (multiple-value-bind (stdout exit)
-      (restart-case (clang-mutate clang
-                                  (recontextualize-mutation-op clang op)) 
-      (skip-mutation ()
-        :report "Skip mutation and return nil genome" 
-        (setf stdout nil))
-      (tidy () 
-        :report "Call clang-tidy before re-attempting mutation"
-        (clang-tidy clang))
-      (mutate () 
-        :report "Apply another mutation before re-attempting mutations"
-        (mutate clang)))
+      (restart-case
+          (clang-mutate clang (recontextualize-mutation-op clang op))
+        (skip-mutation ()
+          :report "Skip mutation and return nil genome"
+          (setf stdout nil))
+        (tidy ()
+          :report "Call clang-tidy before re-attempting mutation"
+          (clang-tidy clang))
+        (mutate ()
+          :report "Apply another mutation before re-attempting mutations"
+          (mutate clang)))
     stdout))
 
 (defmethod apply-mutation :after ((clang clang) op)
@@ -230,7 +230,7 @@
                (:stmt2
                 (format nil "-stmt2=~d" (cdr arg-pair)))
                (:fields
-                (format nil "-fields=~a" 
+                (format nil "-fields=~a"
                  (mapconcat (lambda (field)
                   (ecase field
                    (:counter "counter")
@@ -321,7 +321,7 @@
                  ast-list))
 
 (defmethod line-breaks ((clang clang))
-  (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index 
+  (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index
                 :from 0
                 :when (equal char #\Newline) :collect index)))
 
@@ -452,7 +452,8 @@
         nil
         (get-stmt clang index))))
 
-(defmethod full-stmt-successors ((clang clang) index &optional do-acc acc blocks)
+(defmethod full-stmt-successors
+    ((clang clang) index &optional do-acc acc blocks)
   (if (or (null index) (= 0 index))
       ;; We've made it to the top-level scope; return the accumulator.
       (reverse (if (null acc)
@@ -465,16 +466,18 @@
         (multiple-value-bind (the-block block-stmt)
             (enclosing-block clang index)
           (if next-stmt
-              ;; We're not the last statement of the block. Accumulate this snippet
-              ;; and move on to the next one.
+              ;; We're not the last statement of the block. Accumulate
+              ;; this snippet and move on to the next one.
               (full-stmt-successors clang next-stmt t
                                     new-acc
                                     blocks)
-              ;; We are the last statement in this block; move up a scope and push
-              ;; the accumulated statements onto the block stack.
-              (full-stmt-successors clang (enclosing-full-stmt clang the-block) nil
-                                    '()
-                                    (cons (reverse new-acc) blocks)))))))
+              ;; We are the last statement in this block; move up a
+              ;; scope and push the accumulated statements onto the
+              ;; block stack.
+              (full-stmt-successors
+               clang (enclosing-full-stmt clang the-block) nil
+               '()
+               (cons (reverse new-acc) blocks)))))))
 
 (defun create-sequence-snippet (scopes)
   (let ((funcs  (make-hash-table :test 'equal))
@@ -497,7 +500,7 @@
                      (already-seen (gethash var vars nil)))
                 (when (not already-seen)
                   (setf (gethash var vars) scope-depth))))))))
-    
+
     (alist :src--text (json-string-escape source)
            :unbound--vals (ht->list vars)
            :unbound--funs (ht->list funcs)
@@ -564,8 +567,8 @@
          collecting
            (cons var (or (random-elt-with-decay
                           (gethash (if respect-depth index 0) scope-vars) 0.3)
-                         (format nil
-                                 "/* no bound vars in scope at depth ~a */" index))))
+                         (format nil "/* no bound vars in scope at depth ~a */"
+                                 index))))
       raw-code))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
@@ -683,26 +686,27 @@
   (setf (genome-string clang)
         (with-temp-file-of (src (ext clang)) (genome-string clang)
           (multiple-value-bind (stdout stderr exit)
-              (shell "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-                     '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
-                       "-google-build-explicit-make-pair"
-                       "-google-explicit-constructor"
-                       "-google-readability-namespace-comments"
-                       "-google-readability-redundant-smartptr-get"
-                       "-google-readability-runtime-int"
-                       "-google-readability-readability-function-size"
-                       "-llvm-namespace-commant"
-                       "-llvm-include-order"
-                       "-misc-mode-constructor-init"
-                       "-misc-noexcept-move-constructor"
-                       "-misc-uniqueptr-reset-release"
-                       "-modernize*"
-                       "-readability-container-size-empty"
-                       "-readability-function-size"
-                       "-readability-redundant-smart-ptr-get"
-                       "-readability-uniqueptr-delete-release")
-                     src
-                     (mapconcat #'identity (flags clang) " "))
+              (shell
+               "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
+               '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
+                 "-google-build-explicit-make-pair"
+                 "-google-explicit-constructor"
+                 "-google-readability-namespace-comments"
+                 "-google-readability-redundant-smartptr-get"
+                 "-google-readability-runtime-int"
+                 "-google-readability-readability-function-size"
+                 "-llvm-namespace-commant"
+                 "-llvm-include-order"
+                 "-misc-mode-constructor-init"
+                 "-misc-noexcept-move-constructor"
+                 "-misc-uniqueptr-reset-release"
+                 "-modernize*"
+                 "-readability-container-size-empty"
+                 "-readability-function-size"
+                 "-readability-redundant-smart-ptr-get"
+                 "-readability-uniqueptr-delete-release")
+               src
+               (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
             (if (zerop exit) (file-to-string src) (genome-string clang)))))
   clang)
