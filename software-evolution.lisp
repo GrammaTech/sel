@@ -326,42 +326,40 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                             internal-time-units-per-second)
                                          ,max-time))))
                        `(not ,running))
-                  :do (handler-case
-                          (multiple-value-bind
-                                (,variant mutation a a-point crossed b b-point)
-                              (funcall ,step)
-                            ,@(unless collect-mutation-stats
-                                      `((declare (ignorable mutation
-                                                            a a-point crossed
-                                                            b b-point))))
-                            ,@(when every-pre-fn
-                                    `((funcall ,every-pre-fn ,variant)))
-                            (evaluate ,f ,variant)
-                            ,@(when collect-mutation-stats
-                                    `((funcall #'analyze-mutation
-                                               ,variant mutation
-                                               a a-point crossed b b-point
-                                               ,f)))
-                            ,@(when every-post-fn
-                                    `((funcall ,every-post-fn ,variant)))
-                            (incf ,fitness-counter)
-                            ,@(when (and pd pd-fn)
-                                    `((when (zerop (mod ,fitness-counter ,pd))
-                                        (funcall ,pd-fn))))
-                            (assert (numberp (fitness ,variant)) (,variant)
-                                    "Non-numeric fitness: ~S"
-                                    (fitness ,variant))
-                            ,@(if filter
-                                  `((when (funcall ,filter ,variant) ,@body))
-                                  body)
-                            ,@(when target
-                                    `((when (let ((,fit-var (fitness ,variant)))
-                                              (or (equal ,fit-var ,target)
-                                                  (funcall *fitness-predicate*
-                                                           ,fit-var ,target)))
-                                        (setq ,running nil)
-                                        (return ,variant)))))
-                        (mutate (obj) (declare (ignorable obj)) nil))))))
+                  :do (multiple-value-bind
+                            (,variant mutation a a-point crossed b b-point)
+                          (funcall ,step)
+                        ,@(unless collect-mutation-stats
+                                  `((declare (ignorable mutation
+                                                        a a-point crossed
+                                                        b b-point))))
+                        ,@(when every-pre-fn
+                                `((funcall ,every-pre-fn ,variant)))
+                        (evaluate ,f ,variant)
+                        ,@(when collect-mutation-stats
+                                `((funcall #'analyze-mutation
+                                           ,variant mutation
+                                           a a-point crossed b b-point
+                                           ,f)))
+                        ,@(when every-post-fn
+                                `((funcall ,every-post-fn ,variant)))
+                        (incf ,fitness-counter)
+                        ,@(when (and pd pd-fn)
+                                `((when (zerop (mod ,fitness-counter ,pd))
+                                    (funcall ,pd-fn))))
+                        (assert (numberp (fitness ,variant)) (,variant)
+                                "Non-numeric fitness: ~S"
+                                (fitness ,variant))
+                        ,@(if filter
+                              `((when (funcall ,filter ,variant) ,@body))
+                              body)
+                        ,@(when target
+                                `((when (let ((,fit-var (fitness ,variant)))
+                                          (or (equal ,fit-var ,target)
+                                              (funcall *fitness-predicate*
+                                                       ,fit-var ,target)))
+                                    (setq ,running nil)
+                                    (return ,variant)))))))))
       (when target
         (setf main `(block nil ,main)))
       (when max-time
