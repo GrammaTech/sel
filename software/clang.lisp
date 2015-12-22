@@ -24,14 +24,55 @@
 
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
-   (clang-asts :initarg :clang-asts :accessor clang-asts :initform nil)
+   (asts :initarg :asts :initform nil :copier :direct)
    (mitochondria :initarg :mitochondria
                  :accessor mitochondria
                  :initform (make-instance 'clang-mito)
                  :copier copy)))
 
+(defgeneric update-asts (software &key)
+  (:documentation "Update the store of asts associated with SOFTWARE."))
+
+(defgeneric asts (software)
+  (:documentation "Return a list of all asts in SOFTWARE."))
+
+(defgeneric get-ast (software id)
+  (:documentation "Return the statement in SOFTWARE indicated by ID."))
+
 (defgeneric mitochondria (clang)
   (:documentation "Additional 'foreign' genome required to build phenome."))
+
+(defmethod update-asts ((obj clang) &key clang-mutate-args)
+  (with-slots (asts) obj
+    (setf asts
+          (let* ((json (json:decode-json-from-source
+                        (clang-mutate obj (cons :json clang-mutate-args))))
+                 (vec (make-array (length json) :initial-element nil)))
+            ;; NOTE: if we can guarantee the ordering of elements from
+            ;; clang-mutate we could replace the following with a
+            ;; simple `coerce' of a list to a vector.
+            (loop for snippet in json
+               do (let ((counter (aget :counter snippet)))
+                    (when counter
+                      (setf (aref vec (1- counter)) snippet))))
+            vec))))
+
+(defmethod from-file ((obj clang) path)
+  (setf (genome obj) (file-to-string path))
+  (setf (ext obj)  (pathname-type (pathname path)))
+  (update-asts obj)
+  obj)
+
+(defmethod asts ((obj clang))
+  (with-slots (asts) obj
+    (remove-if {equal 0} (coerce asts 'list))))
+
+(defmethod (setf asts) (new (obj clang))
+  (format t "NEW:~S~%" new)
+  (with-slots (asts) obj (setf asts new)))
+
+(defmethod get-ast ((obj clang) id)
+  (with-slots (asts) obj (aref asts (1- id))))
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
@@ -48,22 +89,17 @@
 (defun full-stmt-filter (asts)
   (remove-if-not { aget :full--stmt } asts))
 
-(defmethod all-asts ((clang clang))
-  (remove-if {equal 0} (to-ast-list clang)))
-
 (defvar *good-asts-override* nil
   "Override for the return value of the good-asts method.")
 
 (defmethod good-asts ((clang clang))
-  (or *good-asts-override*
-      (all-asts clang)))
+  (or *good-asts-override* (asts clang)))
 
 (defvar *bad-asts-override* nil
   "Override for the return value of the bad-asts method.")
 
 (defmethod bad-asts ((clang clang))
-  (or *bad-asts-override*
-      (all-asts clang)))
+  (or *bad-asts-override* (asts clang)))
 
 (defun random-stmt (asts)
   (aget :counter (random-elt asts)))
@@ -75,7 +111,7 @@
   (random-stmt (bad-asts clang)))
 
 (defmethod get-ast-class ((clang clang) stmt)
-  (aget :ast--class (get-stmt clang stmt)))
+  (aget :ast--class (get-ast clang stmt)))
 
 (defun execute-picks (get-asts1 &optional connector get-asts2)
   (let* ((stmt1 (when get-asts1
@@ -148,7 +184,7 @@
                 (cons :value1
                       (recontextualize clang
                                        (if stmt2
-                                           (get-stmt clang stmt2)
+                                           (get-ast clang stmt2)
                                            value1)
                                        stmt1)))))
       (:replace
@@ -157,7 +193,7 @@
                 (cons :value1
                       (recontextualize clang
                                        (if stmt2
-                                           (get-stmt clang stmt2)
+                                           (get-ast clang stmt2)
                                            value1)
                                        stmt1)))))
       (:swap
@@ -165,12 +201,12 @@
           (list (cons :stmt1 stmt1)
                 (cons :value1
                       (recontextualize clang
-                                       (get-stmt clang stmt2)
+                                       (get-ast clang stmt2)
                                        stmt1))
                 (cons :stmt2 stmt2)
                 (cons :value2
                       (recontextualize clang
-                                       (get-stmt clang stmt1)
+                                       (get-ast clang stmt1)
                                        stmt2)))))
       (otherwise op))))
 
@@ -188,16 +224,15 @@
           (mutate clang)))
     (values stdout exit)))
 
-(defmethod apply-mutation :after ((clang clang) op)
-  (with-slots (clang-asts) clang
-    (when (not (member (car op) '(:ids :list :json)))
-      (setf clang-asts nil))))
+(defmethod apply-mutation :after ((obj clang) op)
+  (unless (member (car op) '(:ids :list :json))
+    (update-asts obj)))
 
 (defmethod mutation-key ((obj clang) operation)
   ;; Return a list of the operation keyword, and the classes of any
   ;; stmt1 or stmt2 arguments.
   (cons (car operation)
-        (mapcar [{aget :ast--class} {aref (to-ast-list obj)} #'1- #'cdr]
+        (mapcar [{aget :ast--class} {get-ast obj} #'cdr]
                 (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
                                (remove-if-not #'consp operation)))))
 
@@ -284,78 +319,60 @@
             (extract-clang-genome stdout))
         exit))))))
 
-(defmethod get-stmt ((clang clang) stmt)
-  (if (or (not stmt) (= 0 stmt))
-      nil
-      (aref (to-ast-list clang) (1- stmt))))
+(defclass source-location ()
+  ((line :initarg :line :accessor line :initform nil)
+   (column :initarg :column :accessor column :initform nil)))
 
-(defmethod json-db-to-vector ((clang clang) json)
-  (let ((vec (make-array (length json))))
-    (loop for snippet in json
-       do (let ((counter (aget :counter snippet)))
-            (when counter
-              (setf (aref vec (1- counter)) snippet))))
-    vec))
+(defmethod source-< ((a source-location) (b source-location))
+  (or (< (line a) (line b))
+      (and (= (line a) (line b))
+           (< (column a) (column b)))))
 
-(defmethod to-ast-list ((clang clang))
-  (with-slots (clang-asts) clang
-    (if clang-asts
-        clang-asts
-        (setf clang-asts
-          (let ((list-string (clang-mutate clang `(:json (:bin . t)))))
-            (unless (zerop (length list-string))
-              (json-db-to-vector clang
-               (json:decode-json-from-source list-string))))))))
+(defmethod source-<= ((a source-location) (b source-location))
+  (or (< (line a) (line b))
+      (and (= (line a) (line b))
+           (<= (column a) (column b)))))
 
-(defun containing-asts (ast-list line col)
+(defmethod source-> ((a source-location) (b source-location))
+  (or (> (line a) (line b))
+      (and (= (line a) (line b))
+           (> (column a) (column b)))))
+
+(defmethod source->= ((a source-location) (b source-location))
+  (or (> (line a) (line b))
+      (and (= (line a) (line b))
+           (>= (column a) (column b)))))
+
+(defmethod asts-containing-source-location ((obj clang) (loc source-location))
   (remove-if-not (lambda (snippet)
-                   (let ((beg-line (aget :begin--src--line snippet))
-                         (end-line (aget :end--src--line snippet))
-                         (beg-col (aget :begin--src--col snippet))
-                         (end-col (aget :end--src--col snippet)))
-                     (and (or (< beg-line line)
-                              (and (= beg-line line) (<= beg-col col)))
-                          (or (> end-line line)
-                              (and (= end-line line) (>= end-col col))))))
-                 ast-list))
+                   (and (<= (make-instance 'source-location
+                             :line (aget :begin--src--line snippet)
+                             :column (aget :begin--src--col snippet))
+                            loc)
+                        (>= (make-instance 'source-location
+                             :line (aget :end--src--line snippet)
+                             :column (aget :end--src--col snippet))
+                            loc)))
+                 (asts obj)))
+
+(defmethod asts-in-source-range ((obj clang)
+                                 (beg source-location)
+                                 (end source-location))
+  (remove-if-not (lambda (snippet)
+                   (or (<= (make-instance 'source-location
+                             :line (aget :begin--src--line snippet)
+                             :column (aget :begin--src--col snippet))
+                           end)
+                       (>= (make-instance 'source-location
+                             :line (aget :end--src--line snippet)
+                             :column (aget :end--src--col snippet))
+                           beg)))
+                 (asts obj)))
 
 (defmethod line-breaks ((clang clang))
   (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index
                 :from 0
                 :when (equal char #\Newline) :collect index)))
-
-(defmethod to-ast-list-containing-bin-range((clang clang) begin-addr end-addr)
-  (let ((ast-list (to-ast-list clang))
-        (smallest-enclosing-ast nil)
-        (smallest-enclosing-ast-sub-asts nil))
-    (loop for ast-entry across ast-list
-      ;; Find the smallest AST which encloses the range [begin-addr, end-addr]
-       do (progn
-            (when (and (/= (aget :parent--counter ast-entry) 0)
-                       (aget :begin--addr ast-entry)
-                       (aget :end--addr ast-entry)
-                       (<= (aget :begin--addr ast-entry) begin-addr)
-                       (<= end-addr (aget :end--addr ast-entry)))
-              (if smallest-enclosing-ast
-                  (when (< (- (aget :end--addr ast-entry)
-                              (aget :begin--addr ast-entry))
-                           (- (aget :end--addr smallest-enclosing-ast)
-                              (aget :begin--addr smallest-enclosing-ast)))
-                    (setf smallest-enclosing-ast-sub-asts nil)
-                    (setf smallest-enclosing-ast ast-entry))
-                  (setf smallest-enclosing-ast ast-entry)))
-
-            ;; Collect all sub-asts of the smallest AST which encloses the
-            ;; range [begin-addr, end-addr].
-            ;; @TODO: This could be optimized further
-            ;; to include only those sub-ASTs which have bytes
-            ;; in the range begin-addr/end-addr.
-
-            (when (and smallest-enclosing-ast
-                       (is-parent-ast? clang smallest-enclosing-ast ast-entry))
-              (setf smallest-enclosing-ast-sub-asts
-                    (cons ast-entry smallest-enclosing-ast-sub-asts)))))
-    (reverse smallest-enclosing-ast-sub-asts)))
 
 (defmethod is-parent-ast? ((clang clang) possible-parent-ast ast)
   (cond ((= (aget :counter possible-parent-ast)
@@ -363,15 +380,7 @@
         ((= (aget :parent--counter ast) 0) nil)
         (t (is-parent-ast? clang
                            possible-parent-ast
-                           (get-stmt clang (aget :parent--counter ast))))))
-
-(defmethod to-ast-hash-table ((clang clang))
-  (let ((ast-hash-table (make-hash-table :test 'equal)))
-    (loop for ast-entry across (to-ast-list clang)
-         do (let* ((ast-class (aget :ast--class ast-entry))
-                   (cur (gethash ast-class ast-hash-table)))
-              (setf (gethash ast-class ast-hash-table) (cons ast-entry cur))))
-    ast-hash-table))
+                           (get-ast clang (aget :parent--counter ast))))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
@@ -381,7 +390,7 @@
 
 (defmethod enclosing-block ((clang clang) index &optional child-index)
   (if (= index 0) (values  0 child-index)
-    (let* ((ast (get-stmt clang index))
+    (let* ((ast (get-ast clang index))
            (is-block (equal (aget :ast--class ast) "CompoundStmt")))
       (if (and is-block child-index)
           (values index child-index)
@@ -392,7 +401,7 @@
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil
-    (let* ((ast (get-stmt clang index))
+    (let* ((ast (get-ast clang index))
            (is-block (equal (aget :ast--class ast) "CompoundStmt")))
       (if (and is-block child-index)
           child-index
@@ -412,7 +421,7 @@
 (defmethod block-successor ((clang clang) raw-index)
   (let* ((index (enclosing-full-stmt clang raw-index))
          (block-index (enclosing-block clang index))
-         (the-block (get-stmt clang block-index))
+         (the-block (get-ast clang block-index))
          (the-stmts (if (= 0 block-index) nil
                         (aget :stmt--list the-block))))
     (get-entry-after index the-stmts)))
@@ -420,13 +429,13 @@
 (defmethod block-predeccessor ((clang clang) raw-index)
   (let* ((index (enclosing-full-stmt clang raw-index))
          (block-index (enclosing-block clang index))
-         (the-block (get-stmt clang block-index))
+         (the-block (get-ast clang block-index))
          (the-stmts (if (= 0 block-index) nil
                         (aget :stmt--list the-block))))
     (get-entry-before index the-stmts)))
 
-(defmethod get-stmt-text ((clang clang) stmt)
-  (json-string-unescape (aget :src--text (get-stmt clang stmt))))
+(defmethod get-ast-text ((clang clang) stmt)
+  (json-string-unescape (aget :src--text (get-ast clang stmt))))
 
 (defun add-semicolon-if-needed (text)
   (if (equal text "") ";"
@@ -442,14 +451,14 @@
     (add-semicolon-if-needed text)))
 
 (defmethod full-stmt-text ((clang clang) raw-index)
-  (process-full-stmt-text (get-stmt clang
-                                (enclosing-full-stmt clang raw-index))))
+  (process-full-stmt-text (get-ast clang
+                                   (enclosing-full-stmt clang raw-index))))
 
 (defmethod full-stmt-info ((clang clang) raw-index)
   (let* ((index (enclosing-full-stmt clang raw-index)))
     (if (or (null index) (= 0 index))
         nil
-        (get-stmt clang index))))
+        (get-ast clang index))))
 
 (defmethod full-stmt-successors
     ((clang clang) index &optional do-acc acc blocks)
@@ -642,7 +651,7 @@
         (variant (copy a)))
     (if (and a-begin b-begin)
         (let ((b-snippet (create-sequence-snippet
-                          (list (list (get-stmt b b-begin))))))
+                          (list (list (get-ast b b-begin))))))
           (update-mito-from-snippet variant b-snippet)
           (apply-mutation
            variant

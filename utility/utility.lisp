@@ -96,9 +96,17 @@ After BODY is executed the temporary file is removed."
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
 (defmacro with-temp-file-of (spec str &rest body)
-  "SPEC should be a list of the variable used to reference the file and an optional extension."
+  "SPEC should be a list of the variable used to reference the file
+and an optional extension."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
      (unwind-protect (progn (string-to-file ,str ,(car spec)) ,@body)
+       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+
+(defmacro with-temp-file-of-bytes (spec bytes &rest body)
+  "SPEC should be a list of the variable used to reference the file
+and an optional extension."
+  `(let ((,(car spec) (temp-file-name ,(second spec))))
+     (unwind-protect (progn (bytes-to-file ,bytes ,(car spec)) ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
 (defun from-bytes (bytes)

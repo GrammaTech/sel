@@ -62,17 +62,20 @@
    :to-file
    :apply-path
    :pick-json
-   :to-ast-list
-   :all-asts
+   :asts
    :good-asts
    :bad-asts
-   :containing-asts
-   :to-ast-list-containing-bin-range
+   :source-location
+   :line
+   :column
+   :asts-containing-source-location
+   :asts-in-source-range
+   :asts-containing-binary-location
+   :asts-in-binary-range
    :is-parent-ast?
-   :get-stmt
-   :to-ast-hash-table
+   :get-ast
    :extend-to-enclosing
-   :get-stmt-info
+   :get-ast-info
    :worst
    ;; global variables
    :*population*
@@ -124,12 +127,15 @@
    :lisp
    :clang
    :clang-w-fodder
+   :clang-w-binary
+   :bytes
+   :diff-addresses
    :do-not-filter
    :with-class-filter
    :full-stmt-filter
    :recontextualize
    :nesting-depth
-   :get-stmt-text
+   :get-ast-text
    :is-full-stmt
    :enclosing-full-stmt
    :enclosing-block
