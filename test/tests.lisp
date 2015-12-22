@@ -9,6 +9,12 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
 
+(defmacro every-is (function &rest lists)
+  (let ((args-sym (gensym "args")))
+    `(mapc (lambda (&rest ,args-sym)
+             (is (apply ,function ,args-sym)))
+           ,@lists)))
+
 ;;; Run tests is "batch" mode printing results as a string.
 (defun batch-test (&optional args)
   (declare (ignorable args))
@@ -771,6 +777,46 @@
           (phenome variant)
         (declare (ignorable result))
         (is (= 0 exit))))))
+
+(defun diff-strings (original modified diff-region)
+  "Convert a diff-region to a list of contents in ORIGINAL and MODIFIED."
+  (flet ((diff-subseq (seq start length)
+           (subseq seq start (+ start length))))
+    (list (diff-subseq original
+                       (diff::original-start diff-region)
+                       (diff::original-length diff-region))
+          (diff-subseq modified
+                       (diff::modified-start diff-region)
+                       (diff::modified-length diff-region)))))
+
+(defun show-diff (original modified &optional (stream t))
+  "Return a string diff of two software objects.
+Useful for printing or returning differences in the REPL."
+  (diff:render-diff (diff::generate-seq-diff 'DIFF:UNIFIED-DIFF
+                                             (lines original)
+                                             (lines modified))
+                    stream))
+
+(deftest swap-makes-expected-change ()
+  (with-fixture huf-clang
+    (let ((variant (copy *huf*))
+          (text-1 "n > 0")
+          (text-2 "bc=0"))
+      ;; Apply the swap mutation.
+      (apply-mutation variant
+        (cons :swap (list (cons :stmt1 (stmt-with-text variant text-1))
+                          (cons :stmt2 (stmt-with-text variant text-2)))))
+      ;; Each element should contain the text of one of the swapped pieces.
+      (every-is {scan (create-scanner (list :alternation text-1 text-2))}
+                (mappend {mapcar {apply #'concatenate 'string}}
+                         ;; Collect the differences between the
+                         ;; original and the variant.
+                         (mapcar {diff-strings (lines *huf*) (lines variant)}
+                                 (remove-if-not
+                                  [{equal 'diff:modified-diff-region} #'type-of]
+                                  (diff::compute-raw-seq-diff
+                                   (lines variant)
+                                   (lines *huf*)))))))))
 
 (deftest insert-can-recontextualize ()
   (with-fixture huf-clang
