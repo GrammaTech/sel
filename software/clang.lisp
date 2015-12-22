@@ -196,6 +196,14 @@
     (when (not (member (car op) '(:ids :list :json)))
       (setf clang-asts nil))))
 
+(defmethod mutation-key ((obj clang) operation)
+  ;; Return a list of the operation keyword, and the classes of any
+  ;; stmt1 or stmt2 arguments.
+  (cons (car operation)
+        (mapcar [{aget :ast--class} {aref (to-ast-list obj)} #'1- #'cdr]
+                (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
+                               (remove-if-not #'consp operation)))))
+
 (defun extract-clang-genome (full-genome)
   (keep-lines-after-matching "======^======" full-genome))
 
