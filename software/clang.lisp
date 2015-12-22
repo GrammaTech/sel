@@ -115,7 +115,7 @@
       (let* ((then (if same-class
                        (lambda (stmt asts)
                          (with-class-filter (get-ast-class clang stmt) asts))
-                       (lambda (stmt asts) asts)))
+                       (lambda (stmt asts) (declare (ignorable stmt)) asts)))
              (good (lambda () (filter (good-asts clang))))
              (bad  (lambda () (filter (bad-asts  clang))))
              (todo
@@ -179,15 +179,14 @@
       (restart-case
           (clang-mutate clang (recontextualize-mutation-op clang op))
         (skip-mutation ()
-          :report "Skip mutation and return nil genome"
-          (setf stdout nil))
+          :report "Skip mutation and return nil genome")
         (tidy ()
           :report "Call clang-tidy before re-attempting mutation"
           (clang-tidy clang))
         (mutate ()
           :report "Apply another mutation before re-attempting mutations"
           (mutate clang)))
-    stdout))
+    (values stdout exit)))
 
 (defmethod apply-mutation :after ((clang clang) op)
   (with-slots (clang-asts) clang
@@ -463,21 +462,19 @@
       (let* ((next-stmt (block-successor clang index))
              (snippet (full-stmt-info clang index))
              (new-acc (if do-acc (cons snippet acc) acc)))
-        (multiple-value-bind (the-block block-stmt)
-            (enclosing-block clang index)
-          (if next-stmt
-              ;; We're not the last statement of the block. Accumulate
-              ;; this snippet and move on to the next one.
-              (full-stmt-successors clang next-stmt t
-                                    new-acc
-                                    blocks)
-              ;; We are the last statement in this block; move up a
-              ;; scope and push the accumulated statements onto the
-              ;; block stack.
-              (full-stmt-successors
-               clang (enclosing-full-stmt clang the-block) nil
-               '()
-               (cons (reverse new-acc) blocks)))))))
+        (if next-stmt
+            ;; We're not the last statement of the block. Accumulate
+            ;; this snippet and move on to the next one.
+            (full-stmt-successors clang next-stmt t
+                                  new-acc
+                                  blocks)
+            ;; We are the last statement in this block; move up a
+            ;; scope and push the accumulated statements onto the
+            ;; block stack.
+            (full-stmt-successors
+             clang (enclosing-full-stmt clang (enclosing-block clang index)) nil
+             '()
+             (cons (reverse new-acc) blocks))))))
 
 (defun create-sequence-snippet (scopes)
   (let ((funcs  (make-hash-table :test 'equal))
@@ -533,16 +530,16 @@
   (let ((index-table (make-hash-table :test 'equal))
         (max-index 0))
     (with-temp-file-of (src (ext clang)) (genome-string clang)
-      (multiple-value-bind (stdout stderr exit)
-          (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
-                 20
-                 pt
-                 src (flags clang))
-        (loop for line in (nonempty-lines stdout)
-           for index from 0
-           do (setf (gethash index index-table)
-                    (cdr (split-sequence #\Space line))
-                    max-index index))))
+      (loop :for line
+         :in (nonempty-lines
+              (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
+                     20
+                     pt
+                     src (flags clang)))
+         for index from 0
+         do (setf (gethash index index-table)
+                  (cdr (split-sequence #\Space line))
+                  max-index index)))
     ;; Merge variables downward, so that every index-1 variable appears in
     ;; the index-0 list etc.
     (when (and (< 1 max-index) (not keep-globals))
@@ -644,9 +641,7 @@
         (b-begin (enclosing-full-stmt b (pick-bad b)))
         (variant (copy a)))
     (if (and a-begin b-begin)
-        (let ((a-snippet (create-sequence-snippet
-                          (list (list (get-stmt a a-begin)))))
-              (b-snippet (create-sequence-snippet
+        (let ((b-snippet (create-sequence-snippet
                           (list (list (get-stmt b b-begin))))))
           (update-mito-from-snippet variant b-snippet)
           (apply-mutation
