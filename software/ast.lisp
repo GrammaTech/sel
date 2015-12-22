@@ -40,6 +40,14 @@
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none)))
 
+(defmethod phenome ((obj ast) &key bin)
+  (with-temp-file-of (src (ext obj)) (genome-string obj)
+    (let ((bin (or bin (temp-file-name))))
+      (multiple-value-bind (stdout stderr exit)
+          (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
+        (declare (ignorable stdout))
+        (values (if (zerop exit) bin stderr) exit)))))
+
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (or (genome ast) "") stream))
 

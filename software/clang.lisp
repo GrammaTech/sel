@@ -675,19 +675,6 @@
           (genome-string (mitochondria clang))
           (genome clang)))
 
-(defmethod phenome ((clang clang) &key bin)
-  (with-temp-file-of (src-file (ext clang)) (genome-string clang)
-    (compile-software-object clang src-file :bin bin)))
-
-(defmethod compile-software-object ((clang clang) src-file &key bin)
-  (let ((bin (or bin (temp-file-name))))
-    (multiple-value-bind (stdout stderr exit)
-        (shell "~a ~a -o ~a ~a"
-               (compiler clang)
-               src-file bin (mapconcat #'identity (flags clang) " "))
-      (declare (ignorable stdout))
-      (values (if (zerop exit) bin stderr) exit))))
-
 (defmethod clang-tidy ((clang clang))
   (setf (genome-string clang)
         (with-temp-file-of (src (ext clang)) (genome-string clang)

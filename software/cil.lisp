@@ -50,16 +50,8 @@
         (error (make-condition 'mutate
                  :text (format nil "cil-mutate:~a" stderr)
                  :obj cil
-                 :operation op)))
+                 :op op)))
       stdout)))
-
-(defmethod phenome ((cil cil) &key bin)
-  (with-temp-file-of (src (ext cil)) (genome cil)
-    (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (stdout stderr exit)
-          (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler cil) src bin (flags cil))
-        (declare (ignorable stdout))
-        (values (if (zerop exit) bin stderr) exit)))))
 
 (defun instrument (cil &optional trace-file)
   "Instrument CIL for traced execution.
