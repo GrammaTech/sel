@@ -187,10 +187,14 @@ elements.")
 
 (define-condition mutate (error)
   ((text :initarg :text :reader text)
-   (obj  :initarg :obj  :reader obj))
+   (obj :initarg :obj :reader obj)
+   (operation :initarg :operation :initform nil :reader operation))
   (:report (lambda (condition stream)
-             (format stream "Mutation error ~a on ~S"
-                     (text condition) (obj condition)))))
+             (if (op condition)
+                 (format stream "Mutation error ~a applying ~S to ~S"
+                         (text condition) (operation condition) (obj condition))
+                 (format stream "Mutation error ~a on ~S"
+                         (text condition) (obj condition))))))
 
 (defgeneric apply-mutation (software mutation)
   (:documentation "Apply MUTATION to SOFTWARE.

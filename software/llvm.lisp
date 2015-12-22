@@ -64,7 +64,7 @@
                (string-downcase (symbol-name (car op)))
                (mapconcat [{format nil "~a"} #'1+] (cdr op) ","))
       (unless (zerop exit)
-        (error 'mutate :text "llvm-mutate" :obj llvm))
+        (error 'mutate :text "llvm-mutate" :obj llvm :operation op))
       (if (equal (car op) :ids) stderr stdout))))
 
 (defmethod phenome ((llvm llvm) &key bin)

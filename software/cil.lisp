@@ -48,7 +48,9 @@
                src)
       (unless (zerop exit)
         (error 'mutate
-               :text (format nil "cil-mutate:~a" stderr) :obj cil))
+               :text (format nil "cil-mutate:~a" stderr)
+               :obj cil
+               :operation op))
       stdout)))
 
 (defmethod phenome ((cil cil) &key bin)
