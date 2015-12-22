@@ -239,85 +239,87 @@
 (defun extract-clang-genome (full-genome)
   (keep-lines-after-matching "======^======" full-genome))
 
-(defmethod clang-mutate ((clang clang) op)
-  (with-temp-file-of (src-file (ext clang)) (genome-string clang)
-   (with-temp-file (value1-file) ""
-    (with-temp-file (value2-file) ""
-     (multiple-value-bind (stdout stderr exit)
-       (shell "clang-mutate ~a ~a ~a -- ~a"
-          (ecase (car op)
-            (:cut                "-cut")
-            (:insert             "-insert")
-            (:swap               "-swap")
-            (:set                "-set")
-            (:set2               "-set2")
-            (:set-range          "-set-range")
-            (:insert-value       "-insert-value")
-            (:ids                "-ids")
-            (:list               "-list")
-            (:json               "-json"))
-          (mapconcat
-           (lambda (arg-pair)
-             (ecase (car arg-pair)
-               (:stmt1
-                (format nil "-stmt1=~d" (cdr arg-pair)))
-               (:stmt2
-                (format nil "-stmt2=~d" (cdr arg-pair)))
-               (:fields
-                (format nil "-fields=~a"
-                 (mapconcat (lambda (field)
-                  (ecase field
-                   (:counter "counter")
-                   (:parent--counter "parent_counter")
-                   (:ast--class "ast_class")
-                   (:src--file--name "src_file_name")
-                   (:begin--src--line "begin_src_line")
-                   (:begin--src--col "begin_src_col")
-                   (:end--src--line "end_src_line")
-                   (:end--src--col "end_src_col")
-                   (:src--text "src_text")
-                   (:guard--stmt "guard_stmt")
-                   (:full--stmt "full_stmt")
-                   (:unbound--vals "unbound_vals")
-                   (:unbound--funs "unbound_funs")
-                   (:macros "macros")
-                   (:types "types")
-                   (:stmt--list "stmt_list")
-                   (:binary--file--path "binary_file_path")
-                   (:begin--addr "begin_addr")
-                   (:end--addr "end_addr")
-                   (:binary--contents "binary_contents")))
-                  (cdr arg-pair)
-                  ",")))
-               (:value1
-                (string-to-file (cdr arg-pair) value1-file)
-                (format nil "-file1=~a" value1-file))
-               (:value2
-                (string-to-file (cdr arg-pair) value2-file)
-                (format nil "-file2=~a" value2-file))
-               (:bin
-                (when (cdr arg-pair)
-                  (multiple-value-bind (bin exit)
-                    (compile-software-object clang src-file)
-                    (when (zerop exit)
-                      (format nil "-binary=~a" bin)))))))
-           (cdr op)
-           " ")
-          src-file
-          (mapconcat #'identity (flags clang) " "))
-       (declare (ignorable stderr))
-       (when (not (zerop exit))
-         (error 'mutate
-                :text (if (find exit '(131 132 134 136 139))
-                          "clang-mutate core dump"
-                          "clang-mutate non-zero exit")
-                :obj clang
-                :operation op))
-       (values
-        (if (member (car op) '(:ids :list :json))
-            stdout
-            (extract-clang-genome stdout))
-        exit))))))
+(defmethod clang-mutate ((obj clang) op &aux value1-file value2-file)
+  (labels ((command-opt (command)
+             (ecase command
+               (:cut "-cut")
+               (:insert "-insert")
+               (:insert-value "-insert-value")
+               (:swap "-swap")
+               (:set "-set")
+               (:set2 "-set2")
+               (:set-range "-set-range")
+               (:ids "-ids")
+               (:list "-list")
+               (:json "-json")))
+           (option-opt (pair)
+             (let ((option (car pair))
+                   (value (cdr pair)))
+               (ecase option
+                 (:stmt1 (format nil "-stmt1=~d" value))
+                 (:stmt2 (format nil "-stmt2=~d" value))
+                 (:fields (format nil "-fields=~a"
+                                  (mapconcat #'field-opt value ",")))
+                 (:value1
+                  (setf value1-file (temp-file-name))
+                  (string-to-file value value1-file)
+                  (format nil "-file1=~a" value1-file))
+                 (:value2
+                  (setf value2-file (temp-file-name))
+                  (string-to-file value value2-file)
+                  (format nil "-file2=~a" value2-file))
+                 (:bin (format nil "-binary=~a" value)))))
+           (field-opt (field)
+             (ecase field
+               (:counter "counter")
+               (:parent--counter "parent_counter")
+               (:ast--class "ast_class")
+               (:src--file--name "src_file_name")
+               (:begin--src--line "begin_src_line")
+               (:begin--src--col "begin_src_col")
+               (:end--src--line "end_src_line")
+               (:end--src--col "end_src_col")
+               (:src--text "src_text")
+               (:guard--stmt "guard_stmt")
+               (:full--stmt "full_stmt")
+               (:unbound--vals "unbound_vals")
+               (:unbound--funs "unbound_funs")
+               (:macros "macros")
+               (:types "types")
+               (:stmt--list "stmt_list")
+               (:binary--file--path "binary_file_path")
+               (:begin--addr "begin_addr")
+               (:end--addr "end_addr")
+               (:binary--contents "binary_contents"))))
+    (unwind-protect
+         (with-temp-file-of (src-file (ext obj)) (genome-string obj)
+           (multiple-value-bind (stdout stderr exit)
+               (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
+                      (command-opt (car op))
+                      (mapcar #'option-opt (cdr op))
+                      src-file
+                      (flags obj))
+             (declare (ignorable stderr))
+             (when (not (zerop exit))
+               (error
+                (make-condition 'mutate
+                  :text (concatenate 'string
+                          (if (find exit '(131 132 134 136 139))
+                              "clang-mutate core dump, "
+                              "clang-mutate exit, ")
+                          (write-to-string exit)
+                          ",")
+                  :obj obj :op op)))
+             (values
+              (if (member (car op) '(:ids :list :json))
+                  stdout
+                  (extract-clang-genome stdout))
+              exit)))
+      ;; Cleanup forms.
+      (when (and value1-file (probe-file value1-file))
+        (delete-file value1-file))
+      (when (and value2-file (probe-file value2-file))
+        (delete-file value2-file)))))
 
 (defclass source-location ()
   ((line :initarg :line :accessor line :initform nil)
