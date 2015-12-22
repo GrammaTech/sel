@@ -33,6 +33,9 @@
    :pick-bad-targetted
    :mutate
    :apply-mutation
+   :text
+   :obj
+   :operation
    :*mutation-stats*
    :*crossover-stats*
    :analyze-mutation
