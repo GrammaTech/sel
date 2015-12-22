@@ -143,7 +143,7 @@ and an optional extension."
                                  (parse-integer (lastcar lines))
                                  2)))
                   (when *shell-debug*
-                    (format t "~&stdout:~a~%errno:~a" stdout errno))
+                    (format t "~&stdout:~a~%errno:~a~%" stdout errno))
                   (return (values stdout "" errno)))))
             (sleep 0.1)))
         ;; native shell execution

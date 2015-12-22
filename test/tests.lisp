@@ -152,9 +152,10 @@
    (let ((src-path (hello-world-dir "hello_world.c"))
          (bin-path (hello-world-dir "hello_world")))
      (unless (probe-file bin-path)
-       (phenome (make-instance 'clang
-                  :compiler "clang-3.7"
-                  :flags '("-g -m32 -O0"))
+       (phenome (from-file (make-instance 'clang
+                             :compiler "clang-3.7"
+                             :flags '("-g -m32 -O0"))
+                           src-path)
                 :bin bin-path))
      (setf *hello-world*
            (from-file (make-instance 'clang-w-binary
