@@ -130,7 +130,7 @@
 (defixture hello-world-clang
   (:setup
     (setf *hello-world*
-      (from-file (make-instance 'clang :compiler "clang-3.7" 
+      (from-file (make-instance 'clang :compiler "clang-3.7"
                                        :flags '("-g -m32 -O0"))
                  (hello-world-dir "hello_world.c"))))
   (:teardown
@@ -140,11 +140,30 @@
   (:setup
    (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
    (setf *hello-world*
-     (from-file (make-instance 'clang-w-fodder :compiler "clang-3.7" 
+     (from-file (make-instance 'clang-w-fodder :compiler "clang-3.7"
                                                :flags '("-g -m32 -O0"))
                 (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
+
+(defixture hello-world-clang-w-binary
+  (:setup
+   (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
+   (let ((src-path (hello-world-dir "hello_world.c"))
+         (bin-path (hello-world-dir "hello_world")))
+     (unless (probe-file bin-path)
+       (phenome (make-instance 'clang
+                  :compiler "clang-3.7"
+                  :flags '("-g -m32 -O0"))
+                :bin bin-path))
+     (setf *hello-world*
+           (from-file (make-instance 'clang-w-binary
+                        :compiler "clang-3.7"
+                        :flags '("-g -m32 -O0")
+                        :bytes (file-to-bytes bin-path))
+                      src-path))))
+  (:teardown
+   (setf *hello-world* nil)))
 
 (defixture huf-clang
   (:setup
@@ -432,67 +451,45 @@
                     (genome *hello-world*))))))
 
 ;;; Targetted mutation test
-(deftest pick-bad-returns-asts-on-line-6-of-clang-w-fodder-software-object()
-  (with-fixture hello-world-clang-w-fodder
-    (let* ((variant (from-file (make-instance 'clang-w-fodder
-                                              :compiler "clang"
-                                              :flags '("-g -O0 -m32")
-                                              :diff-addresses '(((:begin-addr .
-                                                                   #x8048433)
-                                                                 (:end-addr .
-                                                                   #x804843d)
-                                                                 (:hint .
-                                                                  :delete))))
-                               (hello-world-dir "hello_world.c")))
-           (targetted-bad-ast (pick-bad-targetted variant)))
-      (is (<= 2 targetted-bad-ast 7)))))
-
-(deftest pick-bad-returns-asts-on-line-8-of-clang-w-fodder-software-object()
-  (with-fixture hello-world-clang-w-fodder
-    (let* ((variant (from-file (make-instance 'clang-w-fodder
-                                              :compiler "clang"
-                                              :flags '("-g -O0 -m32")
-                                              :diff-addresses '(((:begin-addr .
-                                                                   #x804843d)
-                                                                 (:end-addr .
-                                                                   #x8048447)
-                                                                 (:hint .
-                                                                  :delete))))
-                               (hello-world-dir "hello_world.c")))
-            (targetted-bad-ast (pick-bad-targetted variant)))
-      (is (<= 8 targetted-bad-ast 9)))))
+(deftest pick-bad-returns-appropriate-ast-of-clang-w-binary-software-object ()
+  (with-fixture hello-world-clang-w-binary
+    (let ((variant (from-file (make-instance 'clang-w-binary
+                                :compiler "clang"
+                                :flags '("-g -O0 -m32")
+                                :diff-addresses '(((:begin-addr . #x8048433)
+                                                   (:end-addr . #x804843d)
+                                                   (:hint . :delete)))
+                                :bytes (file-to-bytes (hello-world-dir
+                                                       "hello_world")))
+                              (hello-world-dir "hello_world.c"))))
+      (is (member (pick-bad-targetted variant) (list 2 8))))))
 
 
 ;;; Clang utility methods
-(deftest to-ast-list-test()
+(deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang
-    (is (= 9 (length (to-ast-list *hello-world*))))))
+    (is (= 9 (length (asts *hello-world*))))))
 
-(deftest to-ast-list-containing-bin-range-test()
-  (with-fixture hello-world-clang
-    (is (= 6 (length (to-ast-list-containing-bin-range
-                      *hello-world*
-                      #x8048433 #x804843d))))))
+(deftest asts-have-binary-addresses ()
+  (with-fixture hello-world-clang-w-binary
+    (is (>= (count-if-not {aget :begin--addr} (asts *hello-world*))
+            2))))
 
 (deftest is-parent-ast?-true-test()
   (with-fixture hello-world-clang
-    (is (is-parent-ast? *hello-world* 
-          (get-stmt *hello-world* (stmt-with-text *hello-world*
+    (is (is-parent-ast? *hello-world*
+          (get-ast *hello-world* (stmt-with-text *hello-world*
                                                   "return 0"))
-          (get-stmt *hello-world* (stmt-with-text *hello-world* 
+          (get-ast *hello-world* (stmt-with-text *hello-world*
                                                   "0"))))))
 
 (deftest is-parent-ast?-false-test()
   (with-fixture hello-world-clang
-    (is (not (is-parent-ast? *hello-world* 
-               (get-stmt *hello-world* (stmt-with-text *hello-world* 
+    (is (not (is-parent-ast? *hello-world*
+               (get-ast *hello-world* (stmt-with-text *hello-world*
                                                        "0"))
-               (get-stmt *hello-world* (stmt-with-text *hello-world* 
+               (get-ast *hello-world* (stmt-with-text *hello-world*
                                                        "return 0")))))))
-
-(deftest to-ast-hash-table-test()
-  (with-fixture hello-world-clang
-    (is (= 7 (hash-table-count (to-ast-hash-table *hello-world*))))))
 
 (deftest tidy-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
@@ -763,7 +760,7 @@
                                                       ("|)" . ""))
                                   (json-string-unescape
                                    (aget :src--text snippet))))))
-                  (to-ast-list obj))))
+                  (asts obj))))
     (aget :counter the-snippet)))
 
 (deftest swap-can-recontextualize ()

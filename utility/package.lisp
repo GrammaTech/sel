@@ -18,6 +18,7 @@
    :temp-file-name
    :with-temp-file
    :with-temp-file-of
+   :with-temp-file-of-bytes
    ;; :from-bytes
    ;; :to-bytes
    :*work-dir*

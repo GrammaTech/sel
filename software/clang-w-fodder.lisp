@@ -1,12 +1,10 @@
-;;; clang-w-fodder.lisp
+;;; clang-w-fodder.lisp --- clang software with a source fodder database
 
-;;; clang software representation with a
-;;; JSON 'database' containing AST entries
-;;; as fodder for the evolution process.
+;;; clang software representation with a JSON 'database' containing
+;;; AST entries as fodder for the evolution process.
 
-;;; Each AST entry in the JSON 'database'
-;;; contains source text and, where applicable,
-;;; the corresponding binary source code.
+;;; Each AST entry in the JSON 'database' contains source text and,
+;;; where applicable, the corresponding binary bytes.
 (in-package :software-evolution)
 
 (defvar *json-database* (make-hash-table :test 'equal)
@@ -81,21 +79,10 @@ a uniformly selected element of the JSON database.")
 
     (reverse bins)))
 
-(define-software clang-w-fodder (clang) 
-  ((diff-addresses :initarg :diff-addresses 
-                   :accessor diff-addresses 
-                   :initform nil
-                   :copier copy-seq)))
+(define-software clang-w-fodder (clang) ())
 
 (defmethod from-file :before ((obj clang-w-fodder) path)
   (assert (not (null *json-database-bins*))))
-
-(defmethod fitness-extra-data ((obj clang-w-fodder))
-  (diff-addresses obj))
-
-(defmethod (setf fitness-extra-data) (extra-data (clang-w-fodder clang-w-fodder))
-  (setf (diff-addresses clang-w-fodder) extra-data)
-  (call-next-method))
 
 (defun clang-w-fodder-setup-db (json-db-path)
   ;; Clobber the existing database
@@ -120,7 +107,7 @@ a uniformly selected element of the JSON database.")
 
 
 ;; Returns multiple values: (stmt-class-string full-stmt)
-(defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
+(defmethod get-ast-info ((clang-w-fodder clang-w-fodder) pt)
   (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
     (apply #'values
            (let ((result
@@ -159,7 +146,7 @@ a uniformly selected element of the JSON database.")
 
 (defmethod extend-to-enclosing ((clang-w-fodder clang-w-fodder) pt)
     (multiple-value-bind (ast-class full-stmt)
-        (get-stmt-info clang-w-fodder pt)
+        (get-ast-info clang-w-fodder pt)
       (declare (ignorable ast-class))
       full-stmt))
 
@@ -180,7 +167,7 @@ a uniformly selected element of the JSON database.")
                                      :insert-fodder  :insert-fodder-full)))
              (op (case mutation
                    (:replace-fodder-same
-                    `(:replace   
+                    `(:replace
                       (:stmt1  . ,bad)
                       (:value1 . ,(random-snippet-by-class
                                    (get-ast-class clang-w-fodder bad)))))
@@ -199,35 +186,3 @@ a uniformly selected element of the JSON database.")
 
         (apply-mutation clang-w-fodder op)
         (values clang-w-fodder (cons mutation (cdr op))))))
-
-(defvar *targeted-mutation-chance* 0.75
-  "Probability of performing a targeted vs. random mutation.")
-
-(defmethod pick-bad((clang-w-fodder clang-w-fodder))
-  (if (and (diff-addresses clang-w-fodder) 
-           (< (random 1.0) *targeted-mutation-chance*))
-    (pick-bad-targetted clang-w-fodder)
-    (call-next-method)))
-
-(defmethod pick-bad-targetted((clang-w-fodder clang-w-fodder))
-  "Return the AST of a binary-difference inducing AST in clang-w-fodder"
-  ;; Loop until we find a diff range corresponding to one or more ASTs
-  ;; or we run out of diffs to consider.
-  (loop
-    (let* ((target-diff (random-elt (diff-addresses clang-w-fodder)))
-           (bad-asts (to-ast-list-containing-bin-range 
-                       clang-w-fodder
-                         (aget :begin-addr target-diff)
-                         (aget :end-addr target-diff))))
-      ;; If ASTs could be found for the diff, set the counter
-      ;; Otherwise, remove the diff from consideration.
-      (if bad-asts
-        (return (aget :counter (random-elt bad-asts)))
-        (setf (diff-addresses clang-w-fodder)
-              (remove target-diff (diff-addresses clang-w-fodder)))))
-    
-    ;; When there are no diffs left to consider, return a random
-    ;; element
-    (when (not (diff-addresses clang-w-fodder))
-      (return (random (size clang-w-fodder))))))
-

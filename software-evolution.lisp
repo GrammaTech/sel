@@ -26,15 +26,21 @@
      ,(unless (null slots)
         `(defmethod copy :around ((obj ,class-name))
            (let ((copy (call-next-method)))
-             (setf
-              ,@(mappend (lambda (accessor copier)
-                           (unless (eql copier :none)
-                             `((,accessor copy)
-                               ,(if copier
-                                    `(,copier (,accessor obj))
-                                    `(,accessor obj)))))
-                         (mapcar #'car slots)
-                         (mapcar {plist-get :copier} slots)))
+             ,@(mappend
+                (lambda (accessor copier)
+                  (case copier
+                    (:none nil)
+                    (:direct
+                     `((with-slots (,accessor) copy
+                         (setf ,accessor
+                               (with-slots (,accessor) obj ,accessor)))))
+                    (otherwise
+                     `((setf (,accessor copy)
+                             ,(if copier
+                                  `(,copier (,accessor obj))
+                                  `(,accessor obj)))))))
+                (mapcar #'car slots)
+                (mapcar {plist-get :copier} slots))
              copy)))))
 
 (defgeneric genome (software)
