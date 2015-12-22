@@ -107,8 +107,6 @@
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
     (error 'mutate :text "No valid IDs" :obj clang))
-  (setf (fitness clang) nil)
-
   (let* ((full-stmt  (random-bool :bias *clang-full-stmt-bias*))
          (same-class (random-bool :bias *clang-same-class-bias*))
          (mutation (random-elt '(:cut :insert :swap :replace))))

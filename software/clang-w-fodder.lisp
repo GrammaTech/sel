@@ -183,8 +183,6 @@ a uniformly selected element of the JSON database.")
     (error 'mutate :text "No valid JSON 'database' for fodder"
            :obj clang-w-fodder))
 
-  (setf (fitness clang-w-fodder) nil)
-
   (if (random-bool :bias (- 1 *fodder-selection-bias*))
       ;; Perform a standard clang mutation
       (call-next-method)

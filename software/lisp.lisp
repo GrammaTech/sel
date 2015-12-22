@@ -62,7 +62,6 @@
 
 (defmethod mutate ((lisp lisp))
   (unless (> (size lisp) 0) (error 'mutate :text "No valid IDs" :obj lisp))
-  (setf (fitness lisp) nil)
   (let ((op (case (random-elt '(cut insert swap))
               (cut    `(:cut    ,(pick-bad lisp)))
               (insert `(:insert ,(pick-bad lisp) ,(pick-good lisp)))
