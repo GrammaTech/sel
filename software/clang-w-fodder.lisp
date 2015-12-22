@@ -52,7 +52,7 @@ a uniformly selected element of the JSON database.")
 (defun populate-database-bins ()
   ;; All database bins
   (setf *json-database-bins*
-        (compute-icdf-with-filter (lambda (x) t)))
+        (compute-icdf-with-filter (constantly t)))
 
   ;; "Full statement" database bins
   (let ((ht (make-hash-table :test 'equal)))
@@ -63,11 +63,10 @@ a uniformly selected element of the JSON database.")
     (setf *json-database-full-stmt-bins*
           (compute-icdf-with-filter (lambda (x) (gethash x ht nil))))))
 
-(defun compute-icdf-with-filter (filter)
+(defun compute-icdf-with-filter (filter &aux bins)
   (let ((total 0)
         (totalp 0))
 
-    (setq bins '())
     (maphash (lambda (k v)
                (when (funcall filter k)
                  (setf total (+ total (length v)))))
@@ -92,7 +91,7 @@ a uniformly selected element of the JSON database.")
   (assert (not (null *json-database-bins*))))
 
 (defmethod fitness-extra-data ((obj clang-w-fodder))
-  (diff-addresses clang-w-fodder))
+  (diff-addresses obj))
 
 (defmethod (setf fitness-extra-data) (extra-data (clang-w-fodder clang-w-fodder))
   (setf (diff-addresses clang-w-fodder) extra-data)
@@ -123,27 +122,25 @@ a uniformly selected element of the JSON database.")
 ;; Returns multiple values: (stmt-class-string full-stmt)
 (defmethod get-stmt-info ((clang-w-fodder clang-w-fodder) pt)
   (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
-     (multiple-value-bind (stdout stderr exit)
-         (shell "clang-mutate -get-info -stmt1=~a ~a -- ~{~a~^ ~}"
-                pt
-                src
-                (flags clang-w-fodder))
-       (apply #'values
-        (let ((result (nonempty-lines stdout)))
-          (if (not (equal (length result) 2))
-              '("[unknown-class]" nil pt)
-              (list (first result)
-                    (parse-integer (second result)))))))))
+    (apply #'values
+           (let ((result
+                  (nonempty-lines
+                   ;; TODO: Deprecated -get-info option
+                   (shell "clang-mutate -get-info -stmt1=~a ~a -- ~{~a~^ ~}"
+                          pt
+                          src
+                          (flags clang-w-fodder)))))
+             (if (not (equal (length result) 2))
+                 '("[unknown-class]" nil pt)
+                 (list (first result)
+                       (parse-integer (second result))))))))
 
 (defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
-  (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
-    (multiple-value-bind (ast-class full-stmt) stmt-info
-      (prepare-code-snippet clang-w-fodder
-                            pt
-                            (if (is-full-stmt clang-w-fodder pt)
-                                (random-full-stmt-snippet)
-                                (random-snippet))))))
-
+  (prepare-code-snippet clang-w-fodder
+                        pt
+                        (if (is-full-stmt clang-w-fodder pt)
+                            (random-full-stmt-snippet)
+                            (random-snippet))))
 
 (defmethod pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt)
   (prepare-code-snippet clang-w-fodder
@@ -153,16 +150,6 @@ a uniformly selected element of the JSON database.")
 (defun random-snippet-by-class (class)
   (let ((asts (gethash class *json-database*)))
     (if asts (random-elt asts) (random-snippet))))
-
-(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt)
-  (let ((stmt-info (get-stmt-info clang-w-fodder pt)))
-    (multiple-value-bind (ast-class full-stmt) stmt-info
-      (let ((asts (gethash ast-class *json-database* '())))
-        (prepare-code-snippet clang-w-fodder
-                              pt
-                              (if (null asts)
-                                  (random-snippet)
-                                  (random-elt asts)))))))
 
 (defmethod prepare-code-snippet ((clang-w-fodder clang-w-fodder)
                                  pt
