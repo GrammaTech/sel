@@ -93,7 +93,8 @@
         (genome-string simple out))))
 
 (defmethod mutate ((simple simple))
-  (unless (> (size simple) 0) (error 'mutate :text "No valid IDs" :obj simple))
+  (unless (> (size simple) 0)
+    (error (make-condition 'mutate :text "No valid IDs" :obj simple)))
   (let ((op (case (random-elt '(cut insert swap))
               (cut    `(:cut    ,(pick-bad simple)))
               (insert `(:insert ,(pick-bad simple) ,(pick-good simple)))

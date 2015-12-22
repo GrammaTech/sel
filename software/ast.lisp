@@ -64,7 +64,7 @@
 
 (defmethod mutate ((ast ast))
   (unless (> (size ast) 0)
-    (error 'mutate :text "No valid IDs" :obj ast))
+    (error (make-condition 'mutate :text "No valid IDs" :obj ast)))
   (let ((op (case (random-elt '(cut insert swap))
               (cut    `(:cut    (:stmt1 . ,(pick-bad ast))))
               (insert `(:insert (:stmt1 . ,(pick-bad ast)) 

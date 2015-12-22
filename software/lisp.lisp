@@ -61,7 +61,8 @@
 (defmethod size ((lisp lisp)) (tree-size (genome lisp)))
 
 (defmethod mutate ((lisp lisp))
-  (unless (> (size lisp) 0) (error 'mutate :text "No valid IDs" :obj lisp))
+  (unless (> (size lisp) 0)
+    (error (make-condition 'mutate :text "No valid IDs" :obj lisp)))
   (let ((op (case (random-elt '(cut insert swap))
               (cut    `(:cut    ,(pick-bad lisp)))
               (insert `(:insert ,(pick-bad lisp) ,(pick-good lisp)))

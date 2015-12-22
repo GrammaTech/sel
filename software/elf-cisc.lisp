@@ -107,12 +107,12 @@
                                    (nth (third mut) (genome elf))))
               (:swap   (elf-swap elf (second mut) (third mut)))))
       (unless (= (byte-count (genome elf)) starting-bytes)
-        (error 'mutate
-               :text
-               (format nil "mutation ~S changed size of genome [~S -> ~S]"
-                       mut starting-bytes (byte-count (genome elf)))
-               :obj elf
-               :operation mut)))))
+        (error (make-condition 'mutate
+                 :text
+                 (format nil "mutation ~S changed size of genome [~S -> ~S]"
+                         mut starting-bytes (byte-count (genome elf)))
+                 :obj elf
+                 :op mut))))))
 
 (defun elf-pad (elf genome place num-bytes flags)
   (let ((flags (remove :code (copy-tree flags) :key #'car)))

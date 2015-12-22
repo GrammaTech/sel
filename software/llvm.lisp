@@ -46,7 +46,7 @@
 
 (defmethod mutate ((llvm llvm))
   (unless (> (size llvm) 0)
-    (error 'mutate :text "No valid IDs" :obj llvm))
+    (error (make-condition 'mutate :text "No valid IDs" :obj llvm)))
   (let ((op (case (random-elt '(cut replace insert swap))
               (cut     `(:cut     ,(pick-bad llvm)))
               (replace `(:replace ,(pick-bad llvm) ,(pick-good llvm)))
@@ -63,7 +63,8 @@
                (string-downcase (symbol-name (car op)))
                (mapconcat [{format nil "~a"} #'1+] (cdr op) ","))
       (unless (zerop exit)
-        (error 'mutate :text "llvm-mutate" :obj llvm :operation op))
+        (error (make-condition 'mutate
+                 :text "llvm-mutate" :obj llvm :op op)))
       (if (equal (car op) :ids) stderr stdout))))
 
 (defmethod phenome ((llvm llvm) &key bin)
