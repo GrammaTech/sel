@@ -56,9 +56,15 @@
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 
+(defvar *soft-mutate-errors* nil
+  "Control when mutations on soft objects throw errors.")
+
 (defmethod crossover ((a soft) (b soft))
   (values (copy a)(list :fake-a) (list :fake-b)))
-(defmethod mutate ((a soft)) (values (copy a) (list :fake)))
+(defmethod mutate ((a soft))
+  (if *soft-mutate-errors*
+      (error 'mutate :text "FAKE" :obj a :operation '(:fake))
+      (values (copy a) (list :fake))))
 
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
@@ -391,6 +397,7 @@
       (is (string/= (genome variant)
                     "")))))
 
+
 ;;; Clang w/ mutation fodder representation
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
@@ -449,6 +456,7 @@
             (targetted-bad-ast (pick-bad-targetted variant)))
       (is (<= 8 targetted-bad-ast 9)))))
 
+
 ;;; Clang utility methods
 (deftest to-ast-list-test()
   (with-fixture hello-world-clang
@@ -487,6 +495,7 @@
       (is (= (size variant)
              (size *hello-world*))))))
 
+
 ;;; Range representation
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))
@@ -715,12 +724,17 @@
                             counter)))
                out)))
       (with-fixture population
+        ;; Should still signal errors.
+        (let ((*soft-mutate-errors* t))
+          (signals mutate (evolve #'test :max-evals 20 :mutation-stats t)))
         (evolve #'test :max-evals 20 :mutation-stats t)
         (is (equal '(:fake) (hash-table-keys *mutation-stats*)))
-        (is (= 21 (length (gethash :fake *mutation-stats*))))
+        ;; Error, and 1 more than :max-evals.
+        (is (= 22 (length (gethash :fake *mutation-stats*))))
         (let ((statuses (mapcar #'cadr (gethash :fake *mutation-stats*))))
-          (is (member :better statuses)
-              (member :worse statuses)))))))
+          (is (member :better statuses))
+          (is (member :worse statuses))
+          (is (member :error statuses)))))))
 
 (deftest terminate-evolution-on-success ()
   (let ((counter 0))
@@ -732,8 +746,8 @@
         (evolve #'test :target 2)
         (is (= *fitness-evals* 5))))))
 
-
-;; Helper function to avoid hard-coded statement numbers.
+
+;;; Helper function to avoid hard-coded statement numbers.
 (defun stmt-with-text (obj text)
   (let ((the-snippet
          (find-if (lambda (snippet)
