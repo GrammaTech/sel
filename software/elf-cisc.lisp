@@ -111,7 +111,8 @@
                :text
                (format nil "mutation ~S changed size of genome [~S -> ~S]"
                        mut starting-bytes (byte-count (genome elf)))
-               :obj elf)))))
+               :obj elf
+               :operation mut)))))
 
 (defun elf-pad (elf genome place num-bytes flags)
   (let ((flags (remove :code (copy-tree flags) :key #'car)))
