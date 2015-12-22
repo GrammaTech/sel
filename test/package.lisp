@@ -6,6 +6,7 @@
    :metabang-bind
    :curry-compose-reader-macros
    :stefil
+   :cl-ppcre
    :software-evolution
    :software-evolution-utility)
   (:export :test :batch-test))
