@@ -808,15 +808,16 @@ Useful for printing or returning differences in the REPL."
                           (cons :stmt2 (stmt-with-text variant text-2)))))
       ;; Each element should contain the text of one of the swapped pieces.
       (every-is {scan (create-scanner (list :alternation text-1 text-2))}
-                (mappend {mapcar {apply #'concatenate 'string}}
-                         ;; Collect the differences between the
-                         ;; original and the variant.
-                         (mapcar {diff-strings (lines *huf*) (lines variant)}
-                                 (remove-if-not
-                                  [{equal 'diff:modified-diff-region} #'type-of]
-                                  (diff::compute-raw-seq-diff
-                                   (lines variant)
-                                   (lines *huf*)))))))))
+                (mapcar [{apply #'concatenate 'string}
+                         {mapcar {apply #'concatenate 'string}}]
+                        ;; Collect the differences between the
+                        ;; original and the variant.
+                        (mapcar {diff-strings (lines *huf*) (lines variant)}
+                                (remove-if-not
+                                 [{equal 'diff:modified-diff-region} #'type-of]
+                                 (diff::compute-raw-seq-diff
+                                  (lines *huf*)
+                                  (lines variant)))))))))
 
 (deftest insert-can-recontextualize ()
   (with-fixture huf-clang
@@ -829,3 +830,33 @@ Useful for printing or returning differences in the REPL."
           (phenome variant)
         (declare (ignorable result))
         (is (= 0 exit))))))
+
+(deftest insert-makes-expected-change ()
+  (with-fixture huf-clang
+    (let ((variant (copy *huf*)))
+      (apply-mutation variant
+        (cons :insert
+              (list (cons :stmt1 (stmt-with-text variant "bc=0"))
+                    (cons :stmt2 (stmt-with-text variant "n > 0")))))
+      ;; Original and modified strings of the difference.
+      (destructuring-bind (original modified)
+          (mapcar {apply #'concatenate 'string}
+                  (first (mapcar {diff-strings (lines *huf*) (lines variant)}
+                                 (remove-if-not
+                                  [{equal 'diff:modified-diff-region} #'type-of]
+                                  (diff::compute-raw-seq-diff
+                                   (lines *huf*)
+                                   (lines variant))))))
+        (let ((size-o (length original))
+              (size-m (length modified))
+              (non-whitespace-orig
+               (multiple-value-bind (match-p matches)
+                   (scan-to-strings "^(\\s*)(\\S.*)" original)
+                 (declare (ignorable match-p))
+                 (aref matches 1))))
+          ;; Modified should be longer.
+          (is (> size-m size-o))
+          ;; End of modified should be the original.
+          (is (string= non-whitespace-orig
+                       (subseq modified
+                               (- size-m (length non-whitespace-orig))))))))))
