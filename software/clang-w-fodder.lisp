@@ -152,10 +152,11 @@ a uniformly selected element of the JSON database.")
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
-    (error 'mutate :text "No valid IDS" :obj clang-w-fodder))
+    (error (make-condition 'mutate :text "No valid IDS" :obj clang-w-fodder)))
   (unless (> (hash-table-size *json-database*) 0)
-    (error 'mutate :text "No valid JSON 'database' for fodder"
-           :obj clang-w-fodder))
+    (error (make-condition 'mutate
+             :text "No valid JSON 'database' for fodder"
+             :obj clang-w-fodder)))
 
   (if (random-bool :bias (- 1 *fodder-selection-bias*))
       ;; Perform a standard clang mutation

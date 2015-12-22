@@ -142,7 +142,7 @@
 
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
-    (error 'mutate :text "No valid IDs" :obj clang))
+    (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
   (let* ((full-stmt  (random-bool :bias *clang-full-stmt-bias*))
          (same-class (random-bool :bias *clang-same-class-bias*))
          (mutation (random-elt '(:cut :insert :swap :replace))))
@@ -228,13 +228,13 @@
   (unless (member (car op) '(:ids :list :json))
     (update-asts obj)))
 
-(defmethod mutation-key ((obj clang) operation)
-  ;; Return a list of the operation keyword, and the classes of any
-  ;; stmt1 or stmt2 arguments.
-  (cons (car operation)
+(defmethod mutation-key ((obj clang) op)
+  ;; Return a list of the OP keyword, and the classes of any stmt1 or
+  ;; stmt2 arguments.
+  (cons (car op)
         (mapcar [{aget :ast--class} {get-ast obj} #'cdr]
                 (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
-                               (remove-if-not #'consp operation)))))
+                               (remove-if-not #'consp op)))))
 
 (defun extract-clang-genome (full-genome)
   (keep-lines-after-matching "======^======" full-genome))

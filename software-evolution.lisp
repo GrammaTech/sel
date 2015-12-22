@@ -196,13 +196,13 @@ elements.")
   with clang-w-fodder objects.")
 
 (define-condition mutate (error)
-  ((text :initarg :text :reader text)
-   (obj :initarg :obj :reader obj)
-   (operation :initarg :operation :initform nil :reader operation))
+  ((text :initarg :text :initform nil :reader text)
+   (obj  :initarg :obj  :initform nil :reader obj)
+   (op   :initarg :op   :initform nil :reader op))
   (:report (lambda (condition stream)
              (if (op condition)
                  (format stream "Mutation error ~a applying ~S to ~S"
-                         (text condition) (operation condition) (obj condition))
+                         (text condition) (op condition) (obj condition))
                  (format stream "Mutation error ~a on ~S"
                          (text condition) (obj condition))))))
 
@@ -344,10 +344,9 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                         ,@(when collect-mutation-stats
                                 `(((mutate
                                     (lambda (err)
-                                      (push (list (operation err) :error)
+                                      (push (list (op err) :error)
                                             (gethash
-                                             (mutation-key
-                                              (obj err) (operation err))
+                                             (mutation-key (obj err) (op err))
                                              *mutation-stats*)))))))
                         (multiple-value-bind
                               (,variant mutation a a-point crossed b b-point)

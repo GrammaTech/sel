@@ -69,7 +69,10 @@
   (values (copy a)(list :fake-a) (list :fake-b)))
 (defmethod mutate ((a soft))
   (if *soft-mutate-errors*
-      (error 'mutate :text "FAKE" :obj a :operation '(:fake))
+      (error (make-condition 'mutate
+               :text "FAKE"
+               :obj a
+               :op '(:fake)))
       (values (copy a) (list :fake))))
 
 (defixture soft

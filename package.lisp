@@ -35,7 +35,7 @@
    :apply-mutation
    :text
    :obj
-   :operation
+   :op
    :*mutation-stats*
    :*crossover-stats*
    :analyze-mutation
