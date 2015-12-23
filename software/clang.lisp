@@ -48,8 +48,9 @@
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
   (with-slots (asts) obj
     (setf asts
-          (coerce (json:decode-json-from-source
-                   (clang-mutate obj (cons :json clang-mutate-args))) 'vector))))
+          (coerce (remove-if-not {aget :counter}
+                   (json:decode-json-from-source
+                    (clang-mutate obj (cons :json clang-mutate-args)))) 'vector))))
 
 (defmethod from-file ((obj clang) path)
   (setf (genome obj) (file-to-string path))
