@@ -178,6 +178,10 @@ and an optional extension."
     (assert number-str (string) "String ~S doesn't specify a number." string)
     (read-from-string number-str)))
 
+(defun parse-numbers (string &key (radix 10) (delim #\Space))
+  (mapcar #'(lambda (num) (parse-integer num :radix radix))
+          (split-sequence delim string :remove-empty-subseqs t)))
+
 
 ;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)
