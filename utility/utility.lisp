@@ -577,7 +577,19 @@ is replaced with replacement."
                           1))))))
     (aref d (1- height) (1- width))))
 
-
+;;; Diff computing
+(defun diff-scalar(original-seq modified-seq)
+  "Return an integer representing the diff size of two sequences"
+  (reduce (lambda (acc region)
+            (+ acc
+               (ecase (type-of region)
+                 (common-diff-region 0)
+                 (modified-diff-region
+                   (+ (original-length region)
+                      (modified-length region))))))
+          (diff:compute-raw-diff original-seq modified-seq)
+          :initial-value 0))
+
 ;;; memory mapping, address -> LOC
 (defun gdb-disassemble (phenome function)
   "Return the raw gdb disassembled code of FUNCTION in PHENOME."
