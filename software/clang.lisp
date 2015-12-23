@@ -42,6 +42,9 @@
 (defgeneric mitochondria (clang)
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
+(defmethod size ((obj clang))
+  (with-slots (asts) obj (length asts)))
+
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
   (with-slots (asts) obj
     (setf asts
@@ -224,9 +227,11 @@
           (mutate clang)))
     (values stdout exit)))
 
-(defmethod apply-mutation :after ((obj clang) op)
-  (unless (member (car op) '(:ids :list :json))
-    (update-asts obj)))
+(defmethod apply-mutation :around ((obj clang) op)
+  (multiple-value-bind (variant op) (call-next-method)
+    (unless (member (car op) '(:ids :list :json))
+      (update-asts obj))
+    (values variant op)))
 
 (defmethod mutation-key ((obj clang) op)
   ;; Return a list of the OP keyword, and the classes of any stmt1 or
