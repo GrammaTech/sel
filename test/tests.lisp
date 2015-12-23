@@ -387,10 +387,18 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
+(deftest cut-changes-clang-asts ()
+  (with-fixture hello-world-clang
+    (let* ((variant (copy *hello-world*))
+           (stmt1 (stmt-with-text variant
+                                  "printf(\"Hello, World!\\n\")")))
+      (apply-mutation variant `(:cut (:stmt1 . ,stmt1)))
+      (is  (equal (asts variant) (asts *hello-world*))))))
+
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*))
-          (stmt1 (stmt-with-text *hello-world*
+          (stmt1 (stmt-with-text variant
                                  "printf(\"Hello, World!\\n\")")))
       (apply-mutation variant `(:cut (:stmt1 . ,stmt1)))
       (is (< (size variant)

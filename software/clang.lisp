@@ -48,17 +48,8 @@
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
   (with-slots (asts) obj
     (setf asts
-          (let* ((json (json:decode-json-from-source
-                        (clang-mutate obj (cons :json clang-mutate-args))))
-                 (vec (make-array (length json) :initial-element nil)))
-            ;; NOTE: if we can guarantee the ordering of elements from
-            ;; clang-mutate we could replace the following with a
-            ;; simple `coerce' of a list to a vector.
-            (loop for snippet in json
-               do (let ((counter (aget :counter snippet)))
-                    (when counter
-                      (setf (aref vec (1- counter)) snippet))))
-            vec))))
+          (coerce (json:decode-json-from-source
+                   (clang-mutate obj (cons :json clang-mutate-args))) 'vector))))
 
 (defmethod from-file ((obj clang) path)
   (setf (genome obj) (file-to-string path))
@@ -68,7 +59,7 @@
 
 (defmethod asts ((obj clang))
   (with-slots (asts) obj
-    (remove-if {equal 0} (coerce asts 'list))))
+    (coerce asts 'list)))
 
 (defmethod (setf asts) (new (obj clang))
   (format t "NEW:~S~%" new)
