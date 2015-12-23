@@ -100,40 +100,26 @@ a uniformly selected element of the JSON database.")
   ;; Compute the bin sizes so that (random-snippet) becomes useful.
   (populate-database-bins))
 
+(defgeneric pick-any-json (clang-w-fodder pt &key)
+  (:documentation "Pick any JSON element from the fodder database"))
+(defgeneric pick-full-stmt-json (clang-w-fodder pt &key)
+  (:documentation "Pick any full-stmt JSON element from the fodder database"))
+(defgeneric pick-json-by-class (clang-w-fodder class &key)
+  (:documentation "Pick any JSON element of the same class from the fodder database"))
 
-;; Returns multiple values: (stmt-class-string full-stmt)
-(defmethod get-ast-info ((clang-w-fodder clang-w-fodder) pt)
-  (with-temp-file-of (src (ext clang-w-fodder)) (genome-string clang-w-fodder)
-    (apply #'values
-           (let ((result
-                  (nonempty-lines
-                   ;; TODO: Deprecated -get-info option
-                   (shell "clang-mutate -get-info -stmt1=~a ~a -- ~{~a~^ ~}"
-                          pt
-                          src
-                          (flags clang-w-fodder)))))
-             (if (not (equal (length result) 2))
-                 '("[unknown-class]" nil pt)
-                 (list (first result)
-                       (parse-integer (second result))))))))
-
-(defgeneric pick-any-json ((clang-w-fodder clang-w-fodder) pt)
-(defgeneric pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt)
-(defgeneric pick-json-by-class ((clang-w-fodder clang-w-fodder) class)
-
-(defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
+(defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt &key)
   (prepare-code-snippet clang-w-fodder
                         pt
                         (if (is-full-stmt clang-w-fodder pt)
                             (random-full-stmt-snippet)
                             (random-snippet))))
 
-(defmethod pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt)
+(defmethod pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt &key)
   (prepare-code-snippet clang-w-fodder
                         pt
                         (random-full-stmt-snippet)))
 
-(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) class)
+(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) class &key)
   (prepare-code-snippet clang-w-fodder
                         pt
                         (random-snippet-by-class class)))
@@ -147,12 +133,6 @@ a uniformly selected element of the JSON database.")
                                  snippet)
   (update-mito-from-snippet clang-w-fodder snippet)
   (recontextualize clang-w-fodder snippet pt))
-
-(defmethod extend-to-enclosing ((clang-w-fodder clang-w-fodder) pt)
-    (multiple-value-bind (ast-class full-stmt)
-        (get-ast-info clang-w-fodder pt)
-      (declare (ignorable ast-class))
-      full-stmt))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
