@@ -25,6 +25,7 @@
    :*shell-debug*
    :shell
    :parse-number
+   :parse-numbers
    ;; forensic
    :show-it
    :equal-it
