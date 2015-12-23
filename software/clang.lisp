@@ -321,55 +321,30 @@
       (when (and value2-file (probe-file value2-file))
         (delete-file value2-file)))))
 
-(defclass source-location ()
-  ((line :initarg :line :accessor line :initform nil)
-   (column :initarg :column :accessor column :initform nil)))
+(defun ast-to-source-range (ast)
+  "Convert AST to pair of SOURCE-LOCATIONS."
+  (make-instance 'source-range
+    :begin (make-instance 'source-location
+             :line (aget :begin--src--line ast)
+             :column (aget :begin--src--col ast))
+    :end (make-instance 'source-location
+           :line (aget :end--src--line ast)
+           :column (aget :end--src--col ast))))
 
-(defmethod source-< ((a source-location) (b source-location))
-  (or (< (line a) (line b))
-      (and (= (line a) (line b))
-           (< (column a) (column b)))))
-
-(defmethod source-<= ((a source-location) (b source-location))
-  (or (< (line a) (line b))
-      (and (= (line a) (line b))
-           (<= (column a) (column b)))))
-
-(defmethod source-> ((a source-location) (b source-location))
-  (or (> (line a) (line b))
-      (and (= (line a) (line b))
-           (> (column a) (column b)))))
-
-(defmethod source->= ((a source-location) (b source-location))
-  (or (> (line a) (line b))
-      (and (= (line a) (line b))
-           (>= (column a) (column b)))))
+(defun ast-to-binary-range (ast)
+  "Convert AST to pair of SOURCE-LOCATIONS."
+  (make-instance 'range
+    :begin (or (aget :begin--addr ast) 0)
+    :end (or (aget :end--addr ast) 0)))
 
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
-  (remove-if-not (lambda (snippet)
-                   (and (<= (make-instance 'source-location
-                             :line (aget :begin--src--line snippet)
-                             :column (aget :begin--src--col snippet))
-                            loc)
-                        (>= (make-instance 'source-location
-                             :line (aget :end--src--line snippet)
-                             :column (aget :end--src--col snippet))
-                            loc)))
-                 (asts obj)))
+  (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj)))
 
-(defmethod asts-in-source-range ((obj clang)
-                                 (beg source-location)
-                                 (end source-location))
-  (remove-if-not (lambda (snippet)
-                   (or (<= (make-instance 'source-location
-                             :line (aget :begin--src--line snippet)
-                             :column (aget :begin--src--col snippet))
-                           end)
-                       (>= (make-instance 'source-location
-                             :line (aget :end--src--line snippet)
-                             :column (aget :end--src--col snippet))
-                           beg)))
-                 (asts obj)))
+(defmethod asts-contained-in-source-range ((obj clang) (range source-range))
+  (remove-if-not [{contains range} #'ast-to-source-range] (asts obj)))
+
+(defmethod asts-intersecting-source-range ((obj clang) (range source-range))
+  (remove-if-not [{intersects range} #'ast-to-source-range] (asts obj)))
 
 (defmethod line-breaks ((clang clang))
   (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index

@@ -468,6 +468,63 @@ is replaced with replacement."
      (subseq list i (+ i size))))
 
 
+;;; Source and binary locations and ranges.
+(defclass source-location ()
+  ((line :initarg :line :accessor line :type 'fixnum)
+   (column :initarg :column :accessor column :type 'fixnum)))
+
+(defclass source-range ()
+  ((begin :initarg :begin :accessor begin :type 'source-location)
+   (end   :initarg :end   :accessor end   :type 'source-location)))
+
+(defclass range ()
+  ((begin :initarg :begin :accessor begin :type 'fixnum)
+   (end   :initarg :end   :accessor end   :type 'fixnum)))
+
+(defmethod source-< ((a source-location) (b source-location))
+  (or (< (line a) (line b))
+      (and (= (line a) (line b))
+           (< (column a) (column b)))))
+
+(defmethod source-<= ((a source-location) (b source-location))
+  (or (< (line a) (line b))
+      (and (= (line a) (line b))
+           (<= (column a) (column b)))))
+
+(defmethod source-> ((a source-location) (b source-location))
+  (or (> (line a) (line b))
+      (and (= (line a) (line b))
+           (> (column a) (column b)))))
+
+(defmethod source->= ((a source-location) (b source-location))
+  (or (> (line a) (line b))
+      (and (= (line a) (line b))
+           (>= (column a) (column b)))))
+
+(defmethod contains ((range source-range) (location source-location))
+  (and (source-<= (begin range) location)
+       (source->= (end range) location)))
+
+(defmethod contains ((a-range source-range) (b-range source-range))
+  (and (source-<= (begin a-range) (begin b-range))
+       (source->= (end a-range) (end b-range))))
+
+(defmethod contains ((range range) point)
+  (and (<= (begin range) point) (>= (end range) point)))
+
+(defmethod intersects ((a-range source-range) (b-range source-range))
+  (or (and (source-<= (begin a-range) (begin b-range))
+           (source->= (end a-range) (begin b-range)))
+      (and (source->= (end a-range) (end b-range))
+           (source-<= (begin a-range) (end b-range)))))
+
+(defmethod intersects ((a-range range) (b-range range))
+  (or (and (<= (begin a-range) (begin b-range))
+           (>= (end a-range) (begin b-range)))
+      (and (>= (end a-range) (end b-range))
+           (<= (begin a-range) (end b-range)))))
+
+
 ;;; debugging helpers
 (defvar *note-level* 0 "Enables execution notes.")
 (defvar *note-out* '(t) "Targets of notation.")
