@@ -117,6 +117,10 @@ a uniformly selected element of the JSON database.")
                  (list (first result)
                        (parse-integer (second result))))))))
 
+(defgeneric pick-any-json ((clang-w-fodder clang-w-fodder) pt)
+(defgeneric pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt)
+(defgeneric pick-json-by-class ((clang-w-fodder clang-w-fodder) class)
+
 (defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt)
   (prepare-code-snippet clang-w-fodder
                         pt
@@ -128,6 +132,11 @@ a uniformly selected element of the JSON database.")
   (prepare-code-snippet clang-w-fodder
                         pt
                         (random-full-stmt-snippet)))
+
+(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) class)
+  (prepare-code-snippet clang-w-fodder
+                        pt
+                        (random-snippet-by-class class)))
 
 (defun random-snippet-by-class (class)
   (let ((asts (gethash class *json-database*)))
@@ -165,12 +174,13 @@ a uniformly selected element of the JSON database.")
                    (:replace-fodder-same
                     `(:replace
                       (:stmt1  . ,bad)
-                      (:value1 . ,(random-snippet-by-class
+                      (:value1 . ,(pick-json-by-class
+                                   clang-w-fodder
                                    (get-ast-class clang-w-fodder bad)))))
                    (:replace-fodder-full
                     `(:replace
                       (:stmt1  . ,bad-stmt)
-                      (:value1 . ,(random-full-stmt-snippet))))
+                      (:value1 . ,(pick-full-stmt-json clang-w-fodder bad))))
                    (:insert-fodder
                     `(:insert
                       (:stmt1  . ,bad)
@@ -178,7 +188,7 @@ a uniformly selected element of the JSON database.")
                    (:insert-fodder-full
                     `(:insert
                       (:stmt1  . ,bad-stmt)
-                      (:value1 . ,(random-full-stmt-snippet)))))))
+                      (:value1 . ,(pick-full-stmt-json clang-w-fodder bad)))))))
 
         (apply-mutation clang-w-fodder op)
         (values clang-w-fodder (cons mutation (cdr op))))))
