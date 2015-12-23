@@ -53,25 +53,20 @@ a uniformly selected element of the JSON database.")
         (compute-icdf-with-filter (constantly t)))
 
   ;; "Full statement" database bins
-  (let ((ht (make-hash-table :test 'equal)))
-    (loop for bin in '("CompoundStmt" "DeclStmt" "BinaryOperator" "IfStmt"
-                       "CallExpr" "UnaryOperator" "ForStmt" "BreakStmt"
-                       "CompoundAssignOperator" "ConditionalOperator")
-       do (setf (gethash bin ht) t))
-    (setf *json-database-full-stmt-bins*
-          (compute-icdf-with-filter (lambda (x) (gethash x ht nil))))))
+  (setf *json-database-full-stmt-bins*
+        (compute-icdf-with-filter (lambda (k v) (aget :full--stmt v)))))
 
 (defun compute-icdf-with-filter (filter &aux bins)
   (let ((total 0)
         (totalp 0))
 
     (maphash (lambda (k v)
-               (when (funcall filter k)
+               (when (funcall filter k v)
                  (setf total (+ total (length v)))))
              *json-database*)
 
     (maphash (lambda (k v)
-               (when (funcall filter k)
+               (when (funcall filter k v)
                  (setq totalp (+ totalp (/ (length v) total)))
                  (setq bins
                        (cons (cons totalp k) bins))))
