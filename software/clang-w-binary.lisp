@@ -31,6 +31,21 @@ be used to associate bytes with AST elements."))
                 extra-data))
   (call-next-method))
 
+(defmethod phenome ((obj clang-w-binary) &key (bin (temp-file-name)))
+  ;; Since we keep up-to-date bytes associated with the binary, there
+  ;; is no need to compile at phenome generation time.
+  (bytes-to-file (bytes obj) bin)
+  (shell "chmod +x ~a" bin))
+
+(defmethod update-bytes ((obj clang-w-binary))
+  (with-temp-file (bin)
+    (phenome obj :bin bin)
+    (setf (bytes obj) (file-to-bytes bin))))
+
+(defmethod apply-mutation :after ((obj clang-w-binary) op)
+  (unless (member (car op) '(:ids :list :json))
+    (update-bytes obj)))
+
 (defvar *targeted-mutation-chance* 0.75
   "Probability of performing a targeted vs. random mutation.")
 
