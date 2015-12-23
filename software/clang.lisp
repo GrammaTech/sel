@@ -285,6 +285,7 @@
                (:macros "macros")
                (:types "types")
                (:stmt--list "stmt_list")
+               (:scopes "scopes")
                (:binary--file--path "binary_file_path")
                (:begin--addr "begin_addr")
                (:end--addr "end_addr")
@@ -514,15 +515,14 @@
   (let ((index-table (make-hash-table :test 'equal))
         (max-index 0))
     (with-temp-file-of (src (ext clang)) (genome-string clang)
-      (loop :for line
-         :in (nonempty-lines
-              (shell "clang-mutate -get-scope=~a -stmt1=~a ~a -- ~{~a~^ ~}"
-                     20
-                     pt
-                     src (flags clang)))
+      (loop
+         for scope in
+           (aget :scopes (car (json:decode-json-from-source
+                               (clang-mutate clang
+                                             `(:json (:fields . (:scopes))
+                                                     (:stmt1 . ,pt))))))
          for index from 0
-         do (setf (gethash index index-table)
-                  (cdr (split-sequence #\Space line))
+         do (setf (gethash index index-table) scope
                   max-index index)))
     ;; Merge variables downward, so that every index-1 variable appears in
     ;; the index-0 list etc.
