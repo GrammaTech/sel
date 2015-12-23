@@ -460,9 +460,9 @@
     (let ((variant (from-file (make-instance 'clang-w-binary
                                 :compiler "clang"
                                 :flags '("-g -O0 -m32")
-                                :diff-addresses '(((:begin-addr . #x8048433)
-                                                   (:end-addr . #x804843d)
-                                                   (:hint . :delete)))
+                                :diff-addresses (list (make-instance 'range
+                                                        :begin #x8048433
+                                                        :end #x804843d))
                                 :bytes (file-to-bytes (hello-world-dir
                                                        "hello_world")))
                               (hello-world-dir "hello_world.c"))))

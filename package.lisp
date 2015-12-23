@@ -69,9 +69,11 @@
    :line
    :column
    :asts-containing-source-location
-   :asts-in-source-range
+   :asts-contained-in-source-range
+   :asts-intersecting-source-range
    :asts-containing-binary-location
-   :asts-in-binary-range
+   :asts-contained-in-binary-range
+   :asts-intersecting-binary-range
    :is-parent-ast?
    :get-ast
    :extend-to-enclosing

@@ -60,6 +60,16 @@
    :take
    :take-while
    :take-until
+   :chunks
+   :source-location
+   :source-range
+   :range
+   :source-<
+   :source-<=
+   :source->
+   :source->=
+   :contains
+   :intersects
    :levenshtein-distance
    :intercalate
    :unlines
