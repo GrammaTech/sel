@@ -8,7 +8,8 @@
                split-sequence
                trivial-shell
                cl-ppcre
-               cl-store)
+               cl-store
+               diff)
   :components
   ((:module utility
             :pathname "utility"

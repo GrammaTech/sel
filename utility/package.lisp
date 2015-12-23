@@ -7,7 +7,8 @@
    :split-sequence
    :trivial-shell
    :cl-ppcre
-   :cl-store)
+   :cl-store
+   :diff)
   (:export
    :infinity
    ;; OS
@@ -84,6 +85,8 @@
    :*note-level*
    :*note-out*
    :note
+   ;; diff computing
+   :diff-scalar
    ;; gdb functions
    :gdb-disassemble
    :addrs
