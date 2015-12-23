@@ -214,6 +214,13 @@ Define an :around method on this function to record mutations."))
   (:documentation "Crossover two software objects.
 Define an :around method on this function to record crossovers."))
 
+(defmethod crossover :around ((software-a software) (software-b software))
+  ;; Mutation removes previously calculated fitness values.
+  (multiple-value-call (lambda (child &rest rest)
+                         (setf (fitness child) nil)
+                         (apply #'values child rest))
+    (call-next-method)))
+
 (defgeneric one-point-crossover (software-a software-b)
   (:documentation "Crossover at a single point."))
 
