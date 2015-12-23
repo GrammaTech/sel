@@ -387,20 +387,26 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
-(deftest cut-changes-clang-asts ()
+;; Check if the two AST lists differ. Do a smoke test with
+;; the list lengths; if they match, use the :src--text
+;; field as a proxy for equality. Strict equality isn't
+;; useful because of nondeterministic fields like :src--file.
+(defun different-asts (this that)
+  (or (not (equal (length this) (length that)))
+      (not (loop for x in this for y in that
+              always (equal (aget :src--text x)
+                            (aget :src--text y))))))
+
+(deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let* ((variant (copy *hello-world*))
            (stmt1 (stmt-with-text variant
                                   "printf(\"Hello, World!\\n\")")))
       (apply-mutation variant `(:cut (:stmt1 . ,stmt1)))
-      (is  (equal (asts variant) (asts *hello-world*))))))
-
-(deftest cut-shortens-a-clang-software-object()
-  (with-fixture hello-world-clang
-    (let ((variant (copy *hello-world*))
-          (stmt1 (stmt-with-text variant
-                                 "printf(\"Hello, World!\\n\")")))
-      (apply-mutation variant `(:cut (:stmt1 . ,stmt1)))
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
       (is (< (size variant)
              (size *hello-world*))))))
 
@@ -413,6 +419,10 @@
                                  "return 0")))
       (apply-mutation variant
                       `(:insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
       (is (> (size variant)
              (size *hello-world*))))))
 
@@ -425,6 +435,10 @@
                                  "return 0")))
       (apply-mutation variant
                       `(:swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
       (is (= (size variant)
              (size *hello-world*))))))
 
