@@ -228,10 +228,11 @@
     (values stdout exit)))
 
 (defmethod apply-mutation :around ((obj clang) op)
-  (multiple-value-bind (variant op) (call-next-method)
-    (unless (member (car op) '(:ids :list :json))
-      (update-asts obj))
-    (values variant op)))
+  (multiple-value-call (lambda (variant &rest rest)
+                         (unless (member (car op) '(:ids :list :json))
+                           (update-asts obj))
+                         (apply #'values variant rest))
+    (call-next-method)))
 
 (defmethod mutation-key ((obj clang) op)
   ;; Return a list of the OP keyword, and the classes of any stmt1 or

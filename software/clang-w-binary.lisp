@@ -42,9 +42,12 @@ be used to associate bytes with AST elements."))
     (phenome obj :bin bin)
     (setf (bytes obj) (file-to-bytes bin))))
 
-(defmethod apply-mutation :after ((obj clang-w-binary) op)
-  (unless (member (car op) '(:ids :list :json))
-    (update-bytes obj)))
+(defmethod apply-mutation :around ((obj clang-w-binary) op)
+  (multiple-value-call (lambda (variant &rest rest)
+                         (unless (member (car op) '(:ids :list :json))
+                           (update-bytes obj))
+                         (apply #'values variant rest))
+    (call-next-method)))
 
 (defvar *targeted-mutation-chance* 0.75
   "Probability of performing a targeted vs. random mutation.")
