@@ -63,9 +63,14 @@
    :take-while
    :take-until
    :chunks
+   ;;; Source and binary locations and ranges
    :source-location
+   :line
+   :column
    :source-range
    :range
+   :begin
+   :end
    :source-<
    :source-<=
    :source->

@@ -8,8 +8,8 @@
   ((bytes :initarg :bytes :accessor bytes :copier copy
           :initform (error "CLANG-W-BINARY objects require bytes")
           :copier :direct)
-   (diff-addresses :initarg :diff-addresses :accessor diff-addresses
-                   :copier copy-seq :initform nil :type '(list range)))
+   (diff-data :initarg :diff-data :accessor diff-data
+              :copier :direct :initform nil))
   (:documentation
    "Clang software object associated with a compiled binary which may
 be used to associate bytes with AST elements."))
@@ -21,14 +21,10 @@ be used to associate bytes with AST elements."))
     (call-next-method obj :clang-mutate-args (list (cons :bin bin)))))
 
 (defmethod fitness-extra-data ((obj clang-w-binary))
-  (diff-addresses obj))
+  (diff-data obj))
 
 (defmethod (setf fitness-extra-data) (extra-data (obj clang-w-binary))
-  (setf (diff-addresses obj)
-        (mapcar (lambda (data) (make-instance 'range
-                            :begin (aget :begin-addr data)
-                            :end (aget :end-addr data)))
-                extra-data))
+  (setf (diff-data obj) (extra-data))
   (call-next-method))
 
 (defmethod phenome ((obj clang-w-binary) &key (bin (temp-file-name)))
@@ -53,7 +49,7 @@ be used to associate bytes with AST elements."))
   "Probability of performing a targeted vs. random mutation.")
 
 (defmethod pick-bad((obj clang-w-binary))
-  (if (and (diff-addresses obj)
+  (if (and (diff-data obj)
            (< (random 1.0) *targeted-mutation-chance*))
     (let ((random-elt (pick-bad-targetted obj)))
       (if random-elt
@@ -68,7 +64,7 @@ be used to associate bytes with AST elements."))
    (mappend [{asts-contained-in-source-range obj} #'ast-to-source-range]
             ;; Collect all ASTs intersecting bad binary ranges.
             (mappend {asts-intersecting-binary-range obj}
-                     (diff-addresses obj)))))
+                     (mapcar {aget :range} (diff-data obj))))))
 
 (defmethod asts-containing-binary-address ((obj clang-w-binary) address)
   (remove-if-not [{contains _ address} #'ast-to-binary-range] (asts obj)))

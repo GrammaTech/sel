@@ -480,11 +480,12 @@
 (deftest pick-bad-returns-appropriate-ast-of-clang-w-binary-software-object ()
   (with-fixture hello-world-clang-w-binary
     (let ((variant (from-file (make-instance 'clang-w-binary
-                                :compiler "clang"
+                                :compiler "clang-3.7"
                                 :flags '("-g -O0 -m32")
-                                :diff-addresses (list (make-instance 'range
-                                                        :begin #x8048433
-                                                        :end #x804843d))
+                                :diff-data `(((:range . ,(make-instance 'range 
+                                                            :begin #x8048433
+                                                            :end #x804843d))
+                                              (:value . 0)))
                                 :bytes (file-to-bytes (hello-world-dir
                                                        "hello_world")))
                               (hello-world-dir "hello_world.c"))))
