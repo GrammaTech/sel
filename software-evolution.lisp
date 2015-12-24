@@ -347,7 +347,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                             internal-time-units-per-second)
                                          ,max-time))))
                        `(not ,running))
-                  :do (,(if collect-mutation-stats 'handler-bind 'progn)
+                  :do (restart-case
+                      (,(if collect-mutation-stats 'handler-bind 'progn)
                         ,@(when collect-mutation-stats
                                 `(((mutate
                                     (lambda (err)
@@ -388,7 +389,10 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                                 (funcall *fitness-predicate*
                                                          ,fit-var ,target)))
                                       (setq ,running nil)
-                                      (return ,variant))))))))))
+                                      (return ,variant))))))
+                        (ignore-failed-mutation ()
+                          :report
+                          "Ignore failed mutation and continue evolution"))))))
       (when target
         (setf main `(block nil ,main)))
       (when max-time
