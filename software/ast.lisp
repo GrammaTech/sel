@@ -46,7 +46,7 @@
       (multiple-value-bind (stdout stderr exit)
           (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
         (declare (ignorable stdout))
-        (values (if (zerop exit) bin stderr) exit)))))
+        (values (if (zerop exit) bin stderr) exit src)))))
 
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (or (genome ast) "") stream))

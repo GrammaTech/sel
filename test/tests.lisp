@@ -163,8 +163,7 @@
      (setf *hello-world*
            (from-file (make-instance 'clang-w-binary
                         :compiler "clang-3.7"
-                        :flags '("-g -m32 -O0")
-                        :bytes (file-to-bytes bin-path))
+                        :flags '("-g -m32 -O0"))
                       src-path))))
   (:teardown
    (setf *hello-world* nil)))
@@ -485,9 +484,7 @@
                                 :diff-data `(((:range . ,(make-instance 'range 
                                                             :begin #x8048433
                                                             :end #x804843d))
-                                              (:value . 0)))
-                                :bytes (file-to-bytes (hello-world-dir
-                                                       "hello_world")))
+                                              (:value . 0))))
                               (hello-world-dir "hello_world.c"))))
       (is (member (pick-bad-targetted variant) (list 2 8))))))
 
