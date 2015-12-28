@@ -29,6 +29,10 @@
    :mitochondria
    :pick
    :pick-good
+   :pick-json
+   :pick-any-json
+   :pick-full-stmt-json
+   :pick-json-by-class 
    :pick-bad
    :pick-bad-targetted
    :mutate
@@ -97,6 +101,7 @@
    :*json-database*
    :*json-database-bins*
    :*json-database-full-stmt-bins*
+   :*json-database-binary-fodder*
    :*type-database*
    ;; evolution functions
    :incorporate
@@ -130,6 +135,7 @@
    :clang
    :clang-w-fodder
    :clang-w-binary
+   :clang-w-fodder-and-binary
    :bytes
    :diff-addresses
    :do-not-filter

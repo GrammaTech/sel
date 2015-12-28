@@ -18,6 +18,9 @@ a uniformly selected element of the JSON database.")
   "The inverse cumulative distribution function for the AST class name of
 a uniformly selected element of the JSON database.")
 
+(defvar *json-database-binary-fodder* nil
+  "A database of source code snippets with binary fodder.")
+
 (defvar *type-database* nil
   "A database of user-defined types.")
 
@@ -84,6 +87,7 @@ a uniformly selected element of the JSON database.")
   (setq *json-database* (make-hash-table :test 'equal))
   (setq *type-database* (make-hash-table :test 'equal))
   (setq *json-database-bins* '())
+  (setq *json-database-binary-fodder* '())
 
   ;; Load the snippet database and classify by AST class.
   (dolist (snippet (with-open-file (json-stream json-db-path)
@@ -91,8 +95,13 @@ a uniformly selected element of the JSON database.")
     (let ((ast-class (aget :AST--CLASS snippet)))
       (if ast-class
           ;; This entry describes a code snippet
-          (let ((cur (gethash ast-class *json-database*)))
-            (setf (gethash ast-class *json-database*) (cons snippet cur)))
+          (progn
+            (when (aget :BINARY--contents snippet)
+              (setf *json-database-binary-fodder*
+                    (append *json-database-binary-fodder* (list snippet))))
+            (let ((cur (gethash ast-class *json-database*)))
+              (setf (gethash ast-class *json-database*) (cons snippet cur))))
+
           ;; This entry describes a type
           (let ((type-id (aget :HASH snippet)))
             (setf (gethash type-id *type-database*) snippet)))))

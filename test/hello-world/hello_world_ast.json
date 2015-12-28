@@ -1,2 +1,187 @@
-
-[{"ast_class":"CompoundStmt","begin_src_col":12,"begin_src_line":5,"counter":0,"end_src_col":1,"end_src_line":9,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"{\n    printf(\"Hello, World!\\n\");\n    return 0;\n}\n"},{"ast_class":"CallExpr","begin_src_col":2,"begin_src_line":6,"counter":1,"end_src_col":26,"end_src_line":6,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"printf(\"Hello, World!\\n\")"},{"ast_class":"ImplicitCastExpr","begin_src_col":2,"begin_src_line":6,"counter":2,"end_src_col":2,"end_src_line":6,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"printf"},{"ast_class":"DeclRefExpr","begin_src_col":2,"begin_src_line":6,"counter":3,"end_src_col":2,"end_src_line":6,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"printf"},{"ast_class":"ImplicitCastExpr","begin_src_col":9,"begin_src_line":6,"counter":4,"end_src_col":9,"end_src_line":6,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"\"Hello, World!\\n\""},{"ast_class":"ImplicitCastExpr","begin_src_col":9,"begin_src_line":6,"counter":5,"end_src_col":9,"end_src_line":6,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"\"Hello, World!\\n\""},{"ast_class":"StringLiteral","begin_src_col":9,"begin_src_line":6,"counter":6,"end_src_col":9,"end_src_line":6,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"\"Hello, World!\\n\""},{"ast_class":"ReturnStmt","begin_src_col":2,"begin_src_line":8,"counter":7,"end_src_col":9,"end_src_line":8,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"return 0;\n"},{"ast_class":"IntegerLiteral","begin_src_col":9,"begin_src_line":8,"counter":8,"end_src_col":9,"end_src_line":8,"src_file_name":"\/u1\/jruchti\/quicklisp\/local-projects\/software-evolution\/test\/hello-world\/hello_world.c","src_text":"0"}]
+[
+ {
+  "begin_src_col": 12,
+  "unbound_vals": [],
+  "unbound_funs": [
+   [
+    "printf",
+    0
+   ]
+  ],
+  "src_text": "{\\n\tprintf(\\\"Hello, World!\\\\n\\\");\\n\\n\treturn 0;\\n}",
+  "ast_class": "CompoundStmt",
+  "parent_counter": 0,
+  "begin_src_line": 5,
+  "counter": 1,
+  "full_stmt": true,
+  "end_src_col": 1,
+  "end_src_line": 9,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "stmt_list": [
+   2,
+   8
+  ],
+  "types": []
+ },
+ {
+  "begin_src_col": 2,
+  "unbound_vals": [],
+  "ast_class": "CallExpr",
+  "src_text": "printf(\\\"Hello, World!\\\\n\\\")",
+  "end_addr": 134513725,
+  "macros": [],
+  "begin_addr": 134513715,
+  "begin_src_line": 6,
+  "parent_counter": 1,
+  "full_stmt": true,
+  "binary_contents": "89 04 24 e8 b5 fe ff ff 31 c9",
+  "binary_file_path": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world",
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "counter": 2,
+  "end_src_col": 26,
+  "end_src_line": 6,
+  "guard_stmt": false,
+  "types": [],
+  "unbound_funs": [
+   [
+    "printf",
+    0
+   ]
+  ]
+ },
+ {
+  "begin_src_col": 2,
+  "unbound_vals": [],
+  "unbound_funs": [
+   [
+    "printf",
+    0
+   ]
+  ],
+  "src_text": "printf",
+  "ast_class": "ImplicitCastExpr",
+  "parent_counter": 2,
+  "begin_src_line": 6,
+  "counter": 3,
+  "full_stmt": false,
+  "end_src_col": 2,
+  "end_src_line": 6,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "types": []
+ },
+ {
+  "begin_src_col": 2,
+  "unbound_vals": [],
+  "unbound_funs": [
+   [
+    "printf",
+    0
+   ]
+  ],
+  "src_text": "printf",
+  "ast_class": "DeclRefExpr",
+  "parent_counter": 3,
+  "begin_src_line": 6,
+  "counter": 4,
+  "full_stmt": false,
+  "end_src_col": 2,
+  "end_src_line": 6,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "types": []
+ },
+ {
+  "begin_src_col": 9,
+  "unbound_vals": [],
+  "unbound_funs": [],
+  "src_text": "\\\"Hello, World!\\\\n\\\"",
+  "ast_class": "ImplicitCastExpr",
+  "parent_counter": 2,
+  "begin_src_line": 6,
+  "counter": 5,
+  "full_stmt": false,
+  "end_src_col": 9,
+  "end_src_line": 6,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "types": []
+ },
+ {
+  "begin_src_col": 9,
+  "unbound_vals": [],
+  "unbound_funs": [],
+  "src_text": "\\\"Hello, World!\\\\n\\\"",
+  "ast_class": "ImplicitCastExpr",
+  "parent_counter": 5,
+  "begin_src_line": 6,
+  "counter": 6,
+  "full_stmt": false,
+  "end_src_col": 9,
+  "end_src_line": 6,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "types": []
+ },
+ {
+  "begin_src_col": 9,
+  "unbound_vals": [],
+  "unbound_funs": [],
+  "src_text": "\\\"Hello, World!\\\\n\\\"",
+  "ast_class": "StringLiteral",
+  "parent_counter": 6,
+  "begin_src_line": 6,
+  "counter": 7,
+  "full_stmt": false,
+  "end_src_col": 9,
+  "end_src_line": 6,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "types": []
+ },
+ {
+  "begin_src_col": 2,
+  "unbound_vals": [],
+  "ast_class": "ReturnStmt",
+  "src_text": "return 0",
+  "end_addr": 134513735,
+  "macros": [],
+  "begin_addr": 134513725,
+  "begin_src_line": 8,
+  "parent_counter": 1,
+  "full_stmt": true,
+  "binary_contents": "89 45 f8 89 c8 83 c4 18 dd 5d c3",
+  "binary_file_path": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world",
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "counter": 8,
+  "end_src_col": 9,
+  "end_src_line": 8,
+  "guard_stmt": false,
+  "types": [],
+  "unbound_funs": []
+ },
+ {
+  "begin_src_col": 9,
+  "unbound_vals": [],
+  "unbound_funs": [],
+  "src_text": "0",
+  "ast_class": "IntegerLiteral",
+  "parent_counter": 8,
+  "begin_src_line": 8,
+  "counter": 9,
+  "full_stmt": false,
+  "end_src_col": 9,
+  "end_src_line": 8,
+  "guard_stmt": false,
+  "macros": [],
+  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "types": []
+ }
+]

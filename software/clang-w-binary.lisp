@@ -5,7 +5,7 @@
 
 (define-software clang-w-binary (clang)
   ((cached-compilation :accessor cached-compilation 
-                       :copier copy
+                       :copier :direct
                        :initform nil
                        :copier :direct)
    (diff-data :initarg :diff-data 
