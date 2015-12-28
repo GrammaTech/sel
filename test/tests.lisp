@@ -486,7 +486,8 @@
                                                             :end #x804843d))
                                               (:value . 0))))
                               (hello-world-dir "hello_world.c"))))
-      (is (member (pick-bad-targetted variant) (list 2 8))))))
+      (is (member (pick-bad-targetted variant) 
+                  (loop for n from 2 below 8 collect n))))))
 
 
 ;;; Clang utility methods
