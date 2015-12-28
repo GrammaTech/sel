@@ -512,7 +512,7 @@
   ;;; Test picking full statements matching the target bytes of the diff
   (with-fixture hello-world-clang-w-fodder-and-binary
     (let ((variant (copy *hello-world*)))
-      (is (string= "return 0" 
+      (is (string= (format nil "return 0~%")
                    (pick-full-stmt-json variant 9 
                        :byte-similar-mutation-chance 1))))))
 
