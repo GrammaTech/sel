@@ -168,6 +168,24 @@
   (:teardown
    (setf *hello-world* nil)))
 
+(defixture hello-world-clang-w-fodder-and-binary
+  (:setup
+   (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
+   (setf *hello-world*
+         (from-file (make-instance 'clang-w-fodder-and-binary
+                      :compiler "clang-3.7"
+                      :flags '("-g -m32 -O0")
+                      :diff-data 
+                        `(((:range . ,(make-instance 'range 
+                                        :begin #x804843D 
+                                        :end #x8048447))
+                           (:diff-value . ,(parse-numbers 
+                                           "89 45 f8 89 c8 83 c4 18 dd 5d c3"
+                                           :radix 16)))))
+                    (hello-world-dir "hello_world.c"))))
+  (:teardown
+   (setf *hello-world* nil)))
+
 (defixture huf-clang
   (:setup
     (setf *huf*
@@ -477,6 +495,7 @@
 
 ;;; Targetted mutation test
 (deftest pick-bad-returns-appropriate-ast-of-clang-w-binary-software-object ()
+  ;;; Test the diff-inducing ASTs are selected for mutation
   (with-fixture hello-world-clang-w-binary
     (let ((variant (from-file (make-instance 'clang-w-binary
                                 :compiler "clang-3.7"
@@ -489,7 +508,14 @@
       (is (member (pick-bad-targetted variant) 
                   (loop for n from 2 below 8 collect n))))))
 
-
+(deftest pick-full-stmt-json-returns-best-database-match()
+  ;;; Test picking full statements matching the target bytes of the diff
+  (with-fixture hello-world-clang-w-fodder-and-binary
+    (let ((variant (copy *hello-world*)))
+      (is (string= "return 0" 
+                   (pick-full-stmt-json variant 9 
+                       :byte-similar-mutation-chance 1))))))
+
 ;;; Clang utility methods
 (deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang
