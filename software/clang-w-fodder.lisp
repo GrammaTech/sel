@@ -103,9 +103,10 @@ a uniformly selected element of the JSON database.")
             (let ((cur (gethash ast-class *json-database*)))
               (setf (gethash ast-class *json-database*) (cons snippet cur))))
 
-          ;; This entry describes a type
+          ;; This entry describes a type, perhaps
           (let ((type-id (aget :HASH snippet)))
-            (setf (gethash type-id *type-database*) snippet)))))
+            (when type-id
+              (setf (gethash type-id *type-database*) snippet))))))
 
   ;; Compute the bin sizes so that (random-snippet) becomes useful.
   (populate-database-bins))
