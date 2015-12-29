@@ -134,6 +134,9 @@
   (cdf (uniform-probability '(:cut :insert :swap :replace)))
   "The basic clang mutations probability distribution, as a CDF.")
 
+(defvar *free-var-decay-rate* 0.3
+  "The decay rate for choosing variable bindings.")
+
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
@@ -527,7 +530,8 @@
          do (setf (gethash index index-table) scope
                   max-index index)))
     ;; Merge variables downward, so that every index-1 variable appears in
-    ;; the index-0 list etc.
+    ;; the index-0 list etc. Don't merge the outermost scope; we only want
+    ;; to draw from the global scope in special cases.
     (when (and (< 1 max-index) (not keep-globals))
         (setf max-index (1- max-index)))
     (loop for index from max-index downto 1
@@ -549,7 +553,8 @@
          using (hash-value index)
          collecting
            (cons var (or (random-elt-with-decay
-                          (gethash (if respect-depth index 0) scope-vars) 0.3)
+                          (gethash (if respect-depth index 0) scope-vars)
+                          *free-var-decay-rate*)
                          (format nil "/* no bound vars in scope at depth ~a */"
                                  index))))
       raw-code))))
