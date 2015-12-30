@@ -58,14 +58,17 @@
    :get-indexed-vars-in-scope
    :bind-free-vars
    :prepare-sequence-snippet
+   :apply-fun-body-substitutions
    :crossover-2pt-outward
    :crossover-single-stmt
+   :crossover-all-functions
    :clang-tidy
    :clang-format
    :clang-mutate
    :to-file
    :apply-path
    :pick-json
+   :prototypes
    :asts
    :good-asts
    :bad-asts
@@ -96,6 +99,7 @@
    ;; clang / clang-w-fodder global variables
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*
+   :*crossover-function-probability*
    :*fodder-selection-bias*
    :*clang-mutation-cdf*
    :*json-database*
@@ -169,5 +173,4 @@
    :add-macro
    :add-includes-for-function
    :add-type
-   :union-mito
-   ))
+   :union-mito))
