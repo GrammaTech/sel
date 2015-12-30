@@ -25,6 +25,7 @@
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
    (asts :initarg :asts :initform nil :copier :direct)
+   (prototypes :initarg :functions :initform nil :copier :direct)
    (mitochondria :initarg :mitochondria
                  :accessor mitochondria
                  :initform (make-instance 'clang-mito)
@@ -46,11 +47,14 @@
   (with-slots (asts) obj (length asts)))
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (with-slots (asts) obj
-    (setf asts
-          (coerce (remove-if-not {aget :counter}
-                   (json:decode-json-from-source
-                    (clang-mutate obj (cons :json clang-mutate-args)))) 'vector))))
+  (format t "update-asts~%")
+  (let ((json-db (json:decode-json-from-source
+                  (clang-mutate obj (cons :json clang-mutate-args)))))
+    (with-slots (asts prototypes) obj
+      (setf asts
+            (coerce (remove-if-not {aget :counter} json-db) 'vector)
+            prototypes
+            (coerce (remove-if-not {aget :ret} json-db) 'vector)))))
 
 (defmethod from-file ((obj clang) path)
   (setf (genome obj) (file-to-string path))
@@ -67,6 +71,10 @@
 
 (defmethod get-ast ((obj clang) id)
   (with-slots (asts) obj (aref asts (1- id))))
+
+(defmethod prototypes ((obj clang))
+  (with-slots (prototypes) obj
+    (coerce prototypes 'list)))
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
@@ -136,6 +144,9 @@
 
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
+
+(defvar *crossover-function-probability* 0.25
+  "The probability of crossing a function during whole-program crossover.")
 
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
@@ -250,6 +261,7 @@
                  (:set "-set")
                  (:set2 "-set2")
                  (:set-range "-set-range")
+                 (:set-func  "-set-func")
                  (:ids "-ids")
                  (:list "-list")
                  (:json "-json")))
@@ -645,9 +657,43 @@
           (values variant a-begin b-begin))
         (values variant nil nil))))
 
+(defmethod apply-fun-body-substitutions ((clang clang) substitutions)
+  (let ((sorted (sort (copy-seq substitutions) #'> :key #'car)))
+    (loop for (body-stmt . text) in sorted
+       do (apply-mutation clang
+                          (list :set-func
+                                (cons :stmt1  body-stmt)
+                                (cons :value1 text))))))
+
+(defmethod full-function-text ((clang clang) func)
+  (format nil "~a~%~a"
+          (aget :text func)
+          (get-ast-text clang (aget :body func))))
+
+;; Perform crossover by choosing a function body at random from
+;; either a or b.
+(defmethod crossover-all-functions ((a clang) (b clang))
+  (let ((common-funs (ht-intersect
+                      (list->ht (prototypes a)
+                                nil
+                                :key {aget :name}
+                                :value {aget :body})
+                      (list->ht (prototypes b)
+                                nil
+                                :key {aget :name}
+                                :value {full-function-text b})))
+        (variant (copy a)))
+    (apply-fun-body-substitutions variant
+     (loop for func being the hash-keys of common-funs
+        using (hash-value bodies)
+        when (> *crossover-function-probability* (random 1.0))
+        collect bodies))
+    (values variant nil nil)))
+
 (defmethod crossover ((a clang) (b clang))
   (let ((style (random-elt (list #'crossover-single-stmt
-                                 #'crossover-2pt-outward))))
+                                 #'crossover-2pt-outward
+                                 #'crossover-all-functions))))
     (apply style (list a b))))
 
 (defmethod genome-string ((clang clang) &optional stream)

@@ -86,6 +86,7 @@
    :ht->list
    :list->ht
    :merge-hash-tables
+   :ht-intersect
    ;; debugging
    :*note-level*
    :*note-out*

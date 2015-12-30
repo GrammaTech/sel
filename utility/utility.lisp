@@ -707,11 +707,22 @@ that function may be declared.")
                      (keep-after (cdr lines))))))
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
 
-(defun list->ht (list ht)
-  (loop for x in list
-     do (if (eq (type-of x) 'cons)
-            (setf (gethash (first x) ht) (second x))
-            (setf (gethash x ht) t))))
+(defun list->ht (list ht &key key value)
+  (let ((new-ht (make-hash-table :test 'equal)))
+    (labels ((get-value (x) (if value (funcall value x) x)))
+      (loop for x in list
+         do (cond
+              (key
+               (setf (gethash (funcall key x)
+                              (or ht new-ht))
+                     (get-value x)))
+              ((eq (type-of x) 'cons)
+               (setf (gethash (first x)
+                              (or ht new-ht))
+                     (second x)))
+              (t
+               (setf (gethash x (or ht new-ht)) t)))))
+    (or ht new-ht)))
 
 (defun ht->list (ht)
   (loop for k being the hash-keys of ht
@@ -719,7 +730,7 @@ that function may be declared.")
      collecting (if (eq v t) k (list k v))))
 
 (defun merge-hash-tables (to-ht from-ht &optional with)
-  (labels ((merge-fn (x y) (if with (with  x y) x)))
+  (labels ((merge-fn (x y) (if with (funcall with  x y) x)))
     (loop for key being the hash-keys of from-ht
        using (hash-value from-value)
        do (let ((to-value (gethash key to-ht 'no-value-present)))
@@ -727,3 +738,13 @@ that function may be declared.")
                   (if (eq to-value 'no-value-present)
                       from-value
                       (merge-fn to-value from-value)))))))
+
+(defun ht-intersect (a b &key with)
+  (let ((ht (make-hash-table :test 'equal)))
+    (labels ((merge-fn (x y) (if with (funcall with x y) (cons x y))))
+      (loop for key being the hash-keys of a
+           using (hash-value value-a)
+         do (let ((value-b (gethash key b)))
+              (when value-b
+                (setf (gethash key ht) (merge-fn value-a value-b))))))
+    ht))
