@@ -142,6 +142,13 @@
   (cdf (uniform-probability '(:cut :insert :swap :replace)))
   "The basic clang mutations probability distribution, as a CDF.")
 
+(defvar *clang-crossover-cdf*
+  (cdf (uniform-probability
+        (list #'crossover-2pt-outward
+              #'crossover-single-stmt
+              #'crossover-all-functions)))
+  "The crossover strategy probability distribution, as a CDF.")
+
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
 
@@ -153,7 +160,7 @@
     (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
   (let* ((full-stmt  (random-bool :bias *clang-full-stmt-bias*))
          (same-class (random-bool :bias *clang-same-class-bias*))
-         (mutation (random-elt '(:cut :insert :swap :replace))))
+         (mutation (random-pick *clang-mutation-cdf*)))
 
     (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))
       (let* ((then (if same-class
@@ -691,10 +698,7 @@
     (values variant nil nil)))
 
 (defmethod crossover ((a clang) (b clang))
-  (let ((style (random-elt (list #'crossover-single-stmt
-                                 #'crossover-2pt-outward
-                                 #'crossover-all-functions))))
-    (apply style (list a b))))
+  (funcall (random-pick *clang-crossover-cdf*) a b))
 
 (defmethod genome-string ((clang clang) &optional stream)
   (format stream "~a~%//===============^==================~%~a"

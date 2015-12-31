@@ -102,6 +102,7 @@
    :*crossover-function-probability*
    :*fodder-selection-bias*
    :*clang-mutation-cdf*
+   :*clang-crossover-cdf*
    :*json-database*
    :*json-database-bins*
    :*json-database-full-stmt-bins*
