@@ -14,11 +14,14 @@
 
   ;; Find the diffs corresponding the AST at the given point which contain
   ;; code (bytes) to be targeted
-  (let ((target-binary-contents-list 
-          (remove-if-not {aget :original-code}
-            (get-diffs-intersecting-ast 
-               obj 
-              (get-nearest-ast-w-bytes obj (get-ast obj pt))))))
+  (let* ((target-binary-contents-list 
+           (get-diffs-intersecting-ast 
+              obj 
+             (get-nearest-ast-w-bytes obj (get-ast obj pt))))
+         (target-binary-contents-list
+           (when target-binary-contents-list
+             (remove-if-not {aget :original-code} 
+               target-binary-contents-list))))
 
     ;; Test if we could find diffs corresponding to the given AST.
     (if (and target-binary-contents-list
