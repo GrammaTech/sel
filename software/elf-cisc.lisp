@@ -75,9 +75,10 @@
      (mapcar #'car disasm)
      (setf (genome elf)
            (mapcar (lambda-bind ((address bytes disasm))
-                     (declare (ignorable address))
-                     `((:code . ,bytes) (:disasm . ,disasm)))
-                   (remove-if-not [{= 3} #'length] disasm))))))
+                     `((:address . ,address)
+                       (:code . ,bytes) 
+                       (:disasm . ,disasm)))
+                   (remove-if-not [{= 3} #'length] (mappend #'cdr disasm)))))))
 
 (defmethod from-file ((elf elf-cisc) path)
   (setf (base elf) (read-elf path 'objdump))
