@@ -21,7 +21,7 @@
     (if (and target-binary-contents-list
              (random-bool :bias byte-similar-mutation-chance))
         ;; Perform a targetted mutation
-        (let* ((target-binary-content (aget :diff-value (random-elt target-binary-contents-list)))
+        (let* ((target-binary-content (aget :diff-code (random-elt target-binary-contents-list)))
                (sorted-snippets
                  (sort 
                    *json-database-binary-fodder*

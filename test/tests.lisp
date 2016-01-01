@@ -179,7 +179,7 @@
                         `(((:range . ,(make-instance 'range 
                                         :begin #x804843D 
                                         :end #x8048447))
-                           (:diff-value . ,(parse-numbers 
+                           (:diff-code . ,(parse-numbers 
                                            "89 45 f8 89 c8 83 c4 18 dd 5d c3"
                                            :radix 16)))))
                     (hello-world-dir "hello_world.c"))))
