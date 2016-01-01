@@ -514,7 +514,7 @@ is replaced with replacement."
        (source->= (end a-range) (end b-range))))
 
 (defmethod contains ((range range) point)
-  (and (<= (begin range) point) (> (end range) point)))
+  (and (<= (begin range) point) (>= (end range) point)))
 
 (defmethod contains((a-range range) (b-range range))
   (and (<= (begin a-range) (begin b-range))
