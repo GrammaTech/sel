@@ -47,7 +47,6 @@
   (with-slots (asts) obj (length asts)))
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (format t "update-asts~%")
   (let ((json-db (json:decode-json-from-source
                   (clang-mutate obj (cons :json clang-mutate-args)))))
     (with-slots (asts prototypes) obj
