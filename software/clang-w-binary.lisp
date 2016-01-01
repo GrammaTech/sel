@@ -83,7 +83,7 @@ be used to associate bytes with AST elements."))
   (let ((bad-asts (mappend [{asts-contained-in-source-range obj} #'ast-to-source-range]
                    ;; Collect all ASTs intersecting bad binary ranges.
                       (mappend {asts-intersecting-binary-range obj}
-                          (mapcar {aget :range} (diff-data obj))))))
+                          (mapcar {aget :modified-range} (diff-data obj))))))
     (when bad-asts (random-stmt bad-asts))))
 
 (defmethod asts-containing-binary-address ((obj clang-w-binary) address)
@@ -94,3 +94,20 @@ be used to associate bytes with AST elements."))
 
 (defmethod asts-intersecting-binary-range ((obj clang) (range range))
   (remove-if-not [{intersects range} #'ast-to-binary-range] (asts obj)))
+
+(defmethod get-diffs-intersecting-ast((obj clang-w-fodder-and-binary) ast)
+  "Get the diffs intersecting the given AST"
+  (when (diff-data obj)
+    (let ((ast-bin-range (make-instance 'range
+                                        :begin (aget :begin--addr ast)
+                                        :end (aget :end--addr ast))))
+      (remove-if-not [{intersects ast-bin-range} 
+                      #'(lambda(diff) (aget :modified-range diff))]
+        (diff-data obj)))))
+                     
+(defmethod get-nearest-ast-w-bytes((obj clang-w-fodder-and-binary) ast)
+  "Get the nearest AST in the hierarchy with bytes associated with it"
+  (when ast
+    (if (aget :binary--contents ast)
+      ast
+      (get-ast-w-bytes obj (get-ast obj (aget :parent--counter ast))))))

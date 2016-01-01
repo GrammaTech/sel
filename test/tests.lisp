@@ -176,12 +176,14 @@
                       :compiler "clang-3.7"
                       :flags '("-g -m32 -O0")
                       :diff-data 
-                        `(((:range . ,(make-instance 'range 
-                                        :begin #x804843D 
-                                        :end #x8048447))
-                           (:diff-code . ,(parse-numbers 
-                                           "89 45 f8 89 c8 83 c4 18 dd 5d c3"
-                                           :radix 16)))))
+                        `(((:modified-range . 
+                            ,(make-instance 'range
+                                            :begin #x804843D 
+                                            :end #x8048447))
+                           (:original-code . 
+                           ,(parse-numbers 
+                              "89 45 f8 89 c8 83 c4 18 dd 5d c3"
+                              :radix 16)))))
                     (hello-world-dir "hello_world.c"))))
   (:teardown
    (setf *hello-world* nil)))
@@ -500,10 +502,11 @@
     (let ((variant (from-file (make-instance 'clang-w-binary
                                 :compiler "clang-3.7"
                                 :flags '("-g -O0 -m32")
-                                :diff-data `(((:range . ,(make-instance 'range 
-                                                            :begin #x8048433
-                                                            :end #x804843d))
-                                              (:value . 0))))
+                                :diff-data `(((:modified-range . 
+                                               ,(make-instance 
+                                                  'range
+                                                  :begin #x8048433
+                                                  :end #x804843d)))))
                               (hello-world-dir "hello_world.c"))))
       (is (member (pick-bad-targetted variant) 
                   (loop for n from 2 below 8 collect n))))))
