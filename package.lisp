@@ -81,8 +81,9 @@
    :asts-containing-binary-location
    :asts-contained-in-binary-range
    :asts-intersecting-binary-range
-   :is-parent-ast?
    :get-ast
+   :get-parent-asts
+   :is-parent-ast?
    :extend-to-enclosing
    :get-ast-info
    :worst
