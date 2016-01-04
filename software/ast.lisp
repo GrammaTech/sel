@@ -100,6 +100,15 @@
                       (subseq (genome b) b-point))))
     (values new (list a-point b-point))))
 
+(defgeneric crossover-2pt-outward (a b)
+  (:documentation "Perform two-point across-and-out crossover."))
+
+(defgeneric crossover-single-stmt (a b)
+  (:documentation "Perform crossover of a single statement."))
+
+(defgeneric crossover-all-functions (a b)
+  (:documentation "Perform crossover by drawing each function body from one parent at random."))
+
 (defmethod lines ((ast ast))
   (split-sequence #\Newline (genome ast)))
 
