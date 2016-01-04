@@ -141,15 +141,6 @@
   (cdf (uniform-probability '(:cut :insert :swap :replace)))
   "The basic clang mutations probability distribution, as a CDF.")
 
-(defgeneric crossover-2pt-outward (a b)
-  (:documentation "Perform two-point across-and-out crossover."))
-
-(defgeneric crossover-single-stmt (a b)
-  (:documentation "Perform crossover of a single statement."))
-
-(defgeneric crossover-all-functions (a b)
-  (:documentation "Perform crossover by drawing each function body from one parent at random."))
-
 (defvar *clang-crossover-cdf*
   (cdf (uniform-probability
         (list #'crossover-2pt-outward
