@@ -381,6 +381,11 @@
                            possible-parent-ast
                            (get-ast clang (aget :parent--counter ast))))))
 
+(defmethod get-parent-asts((clang clang) ast)
+  (cond ((= (aget :counter ast) 0) nil)
+         (t  (append ast (get-parent-asts 
+                           (get-ast (aget :parent--counter ast)))))))
+
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
     (if (= 0 index)
