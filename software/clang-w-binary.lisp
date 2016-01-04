@@ -95,9 +95,17 @@ be used to associate bytes with AST elements."))
 (defmethod asts-intersecting-binary-range ((obj clang) (range range))
   (remove-if-not [{intersects range} #'ast-to-binary-range] (asts obj)))
 
+(defmethod get-asts-intersecting-diff((obj clang-w-binary) diff)
+  "Get the ASTs intersecting the given diff"
+  (mappend [{asts-contained-in-source-range obj} #'ast-to-source-range]
+    (mappend {asts-intersecting-binary-range obj} 
+             (aget :modified-range diff))))
+
 (defmethod get-diffs-intersecting-ast((obj clang-w-binary) ast)
   "Get the diffs intersecting the given AST"
-  (when (diff-data obj)
+  (when (and (diff-data obj) 
+             (aget :begin--addr ast)
+             (aget :end--addr ast))
     (let ((ast-bin-range (make-instance 'range
                                         :begin (aget :begin--addr ast)
                                         :end (aget :end--addr ast))))
