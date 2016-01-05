@@ -44,7 +44,7 @@ be used to associate bytes with AST elements."))
           (setf (cached-compilation obj) 
                 `((:output . ,(if (zerop exit) (file-to-bytes output) output))
                   (:exit . ,exit)
-                  (:src-file-path . ,src-file-path)))))
+                  (:src-file-path . ,src-file-path))))))
 
     ;; Since we keep up-to-date bytes associated with the binary, there
     ;; is no need to compile at phenome generation time.
@@ -54,7 +54,7 @@ be used to associate bytes with AST elements."))
       (when (zerop exit)
         (bytes-to-file output bin-name)
         (shell "chmod +x ~a" bin-name))
-      (values (if (zerop exit) bin-name output) exit src-file-path)))))
+      (values (if (zerop exit) bin-name output) exit src-file-path))))
 
 (defmethod apply-mutation :around ((obj clang-w-binary) op)
   (multiple-value-call (lambda (variant &rest rest)
@@ -98,8 +98,7 @@ be used to associate bytes with AST elements."))
 (defmethod get-asts-intersecting-diff((obj clang-w-binary) diff)
   "Get the ASTs intersecting the given diff"
   (mappend [{asts-contained-in-source-range obj} #'ast-to-source-range]
-    (mappend {asts-intersecting-binary-range obj} 
-             (aget :modified-range diff))))
+    (asts-intersecting-binary-range obj (aget :modified-range diff))))
 
 (defmethod get-diffs-intersecting-ast((obj clang-w-binary) ast)
   "Get the diffs intersecting the given AST"
