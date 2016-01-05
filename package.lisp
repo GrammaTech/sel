@@ -175,4 +175,5 @@
    :add-macro
    :add-includes-for-function
    :add-type
-   :union-mito))
+   :union-mito
+   :ignore-failed-mutation))
