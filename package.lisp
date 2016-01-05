@@ -81,6 +81,8 @@
    :asts-containing-binary-location
    :asts-contained-in-binary-range
    :asts-intersecting-binary-range
+   :get-asts-intersecting-diff
+   :get-diffs-intersecting-ast
    :get-ast
    :get-parent-asts
    :is-parent-ast?
@@ -143,7 +145,7 @@
    :clang-w-binary
    :clang-w-fodder-and-binary
    :bytes
-   :diff-addresses
+   :diff-data
    :do-not-filter
    :with-class-filter
    :full-stmt-filter
