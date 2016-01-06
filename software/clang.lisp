@@ -288,7 +288,7 @@
                     (string-to-file value value2-file)
                     (format nil "-file2=~a" value2-file))
                    (:bin (format nil "-binary=~a" value))
-                   (:dwarf-src-file-path 
+                   (:dwarf-src-file-path
                     (format nil "-dwarf-filepath-mapping=~a=~a"
                      value src-file)))))
              (field-opt (field)
@@ -384,7 +384,7 @@
 (defmethod get-parent-asts((clang clang) ast)
   (cond ((= (aget :parent--counter ast) 0) nil)
          (t  (append (list ast)
-                     (get-parent-asts 
+                     (get-parent-asts
                        clang
                        (get-ast clang (aget :parent--counter ast)))))))
 

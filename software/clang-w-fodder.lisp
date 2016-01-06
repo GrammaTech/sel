@@ -57,7 +57,7 @@ a uniformly selected element of the JSON database.")
 
   ;; "Full statement" database bins
   (setf *json-database-full-stmt-bins*
-        (compute-icdf-with-filter 
+        (compute-icdf-with-filter
             #'(lambda (k v)
                 (declare (ignorable k))
                 (remove-if-not {aget :full--stmt} v)))))
