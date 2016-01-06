@@ -56,7 +56,7 @@
             (coerce (remove-if-not {aget :ret} json-db) 'vector)))))
 
 (defmethod from-file ((obj clang) path)
-  (setf (genome obj) (file-to-string path))
+  (setf (genome-string obj) (file-to-string path))
   (setf (ext obj)  (pathname-type (pathname path)))
   (update-asts obj)
   obj)
@@ -754,6 +754,9 @@
 
 (defmethod (setf genome-string) (text (clang clang))
   (setf (genome clang) (extract-clang-genome text)))
+
+(defmethod (setf genome-string) :around (text (obj clang))
+  (prog1 (call-next-method) (update-asts obj)))
 
 (defmethod lines ((obj clang))
   (split-sequence '#\Newline (genome-string obj)))
