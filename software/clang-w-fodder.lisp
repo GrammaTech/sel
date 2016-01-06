@@ -58,7 +58,9 @@ a uniformly selected element of the JSON database.")
   ;; "Full statement" database bins
   (setf *json-database-full-stmt-bins*
         (compute-icdf-with-filter 
-            #'(lambda (k v) (remove-if-not {aget :full--stmt} v)))))
+            #'(lambda (k v)
+                (declare (ignorable k))
+                (remove-if-not {aget :full--stmt} v)))))
 
 (defun compute-icdf-with-filter (filter &aux bins)
   (let ((total 0)
@@ -113,10 +115,13 @@ a uniformly selected element of the JSON database.")
 
 (defgeneric pick-any-json (clang-w-fodder pt &key)
   (:documentation "Pick any JSON element from the fodder database"))
+
 (defgeneric pick-full-stmt-json (clang-w-fodder pt &key)
   (:documentation "Pick any full-stmt JSON element from the fodder database"))
-(defgeneric pick-json-by-class (clang-w-fodder class &key)
-  (:documentation "Pick any JSON element of the same class from the fodder database"))
+
+(defgeneric pick-json-by-class (clang-w-fodder pt class &key)
+  (:documentation
+   "Pick any JSON element of the same class from the fodder database"))
 
 (defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt &key)
   (prepare-code-snippet clang-w-fodder
@@ -130,7 +135,7 @@ a uniformly selected element of the JSON database.")
                         pt
                         (random-full-stmt-snippet)))
 
-(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) class &key)
+(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt class &key)
   (prepare-code-snippet clang-w-fodder
                         pt
                         (random-snippet-by-class class)))
@@ -166,7 +171,7 @@ a uniformly selected element of the JSON database.")
                     `(:replace
                       (:stmt1  . ,bad)
                       (:value1 . ,(pick-json-by-class
-                                   clang-w-fodder
+                                   clang-w-fodder bad
                                    (get-ast-class clang-w-fodder bad)))))
                    (:replace-fodder-full
                     `(:replace
