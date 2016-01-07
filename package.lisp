@@ -75,9 +75,6 @@
    :asts-containing-source-location
    :asts-contained-in-source-range
    :asts-intersecting-source-range
-   :asts-containing-binary-location
-   :asts-contained-in-binary-range
-   :asts-intersecting-binary-range
    :get-asts-intersecting-diff
    :get-diffs-intersecting-ast
    :get-ast
