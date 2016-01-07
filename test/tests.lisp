@@ -422,7 +422,7 @@
            (stmt1 (stmt-with-text variant
                                   "printf(\"Hello, World!\\n\")")))
       (apply-mutation variant
-        `(:replace (:stmt1 . ,stmt1) (:value1 . "/* FOO */")))
+        `(:replace (:stmt1 . ,stmt1) (:value1 . ((:src--text . "/* FOO */")))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
 
@@ -518,16 +518,16 @@
                                                   :begin #x8048433
                                                   :end #x804843d)))))
                               (hello-world-dir "hello_world.c"))))
-      (is (member (pick-bad-targetted variant) 
+      (is (member (let ((*targeted-mutation-chance* 1)) (pick-bad variant)) 
                   (loop for n from 2 below 8 collect n))))))
 
-(deftest pick-full-stmt-json-returns-best-database-match()
+(deftest pick-full-stmt-json-returns-best-database-match ()
   ;;; Test picking full statements matching the target bytes of the diff
   (with-fixture hello-world-clang-w-fodder-and-binary
     (let ((variant (copy *hello-world*)))
       (is (string= (format nil "return 0~%")
-                   (pick-full-stmt-json variant 9 
-                       :byte-similar-mutation-chance 1))))))
+                   (let ((*targeted-mutation-chance* 1))
+                     (pick-json variant :pt 9)))))))
 
 ;;; Clang utility methods
 (deftest asts-populated-on-creation ()
