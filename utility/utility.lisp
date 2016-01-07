@@ -398,6 +398,11 @@ is replaced with replacement."
       (let ((new-str (replace-all str (caar list) (cdar list))))
         (apply-replacements (cdr list) new-str))))
 
+;;  Helper function for removing tags identifying DeclRefs
+;;  from a code snippet.
+(defun peel-bananas (text)
+  (apply-replacements '(("(|" . "") ("|)" . "")) text))
+
 (defun json-string-escape (string)
   (apply-replacements (list (cons (string #\\) "\\\\")
                             (cons (string #\Newline) "\\n")

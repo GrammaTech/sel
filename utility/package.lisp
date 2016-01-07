@@ -47,6 +47,7 @@
    :cdf
    :random-pick
    :apply-replacements
+   :peel-bananas
    :replace-all
    :json-string-escape
    :json-string-unescape
