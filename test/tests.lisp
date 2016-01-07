@@ -416,6 +416,16 @@
               always (equal (aget :src--text x)
                             (aget :src--text y))))))
 
+(deftest can-apply-mutation-w-value1 ()
+  (with-fixture hello-world-clang
+    (let* ((variant (copy *hello-world*))
+           (stmt1 (stmt-with-text variant
+                                  "printf(\"Hello, World!\\n\")")))
+      (apply-mutation variant
+        `(:replace (:stmt1 . ,stmt1) (:value1 . "/* FOO */")))
+      (is (different-asts (asts variant) (asts *hello-world*)))
+      (is (not (equal (genome variant) (genome *hello-world*)))))))
+
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
     (let* ((variant (copy *hello-world*))
