@@ -32,7 +32,6 @@
    :pick-bad
    :pick-json
    :mutate
-   :*targeted-mutation-chance*
    :apply-mutation
    :text
    :obj
