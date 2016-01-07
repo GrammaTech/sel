@@ -752,8 +752,7 @@
          (find-if (lambda (snippet)
                     (and snippet
                          (equal text
-                                (apply-replacements '(("(|" . "")
-                                                      ("|)" . ""))
+                                (peel-bananas
                                   (json-string-unescape
                                    (aget :src--text snippet))))))
                   (asts obj))))

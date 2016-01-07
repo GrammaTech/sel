@@ -150,6 +150,10 @@
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
 
+(defvar *matching-free-var-retains-name-bias* 0.75
+  "The probability that if a free variable's original name matches a name
+already in scope, it will keep that name.")
+
 (defvar *crossover-function-probability* 0.25
   "The probability of crossing a function during whole-program crossover.")
 
@@ -572,6 +576,15 @@ Otherwise return the whole FULL-GENOME"
                   (concatenate 'list vars-n-minus-1 vars-n))))
     index-table))
 
+(defun random-scoped-replacement (var in-scope)
+  ;; If the variable's original name matches the name of a variable in
+  ;; scope, keep the original name with probability equal to
+  ;; *matching-free-var-retains-name-bias*
+  (if (and (find (peel-bananas var) in-scope :test #'equal)
+           (< (random 1.0) *matching-free-var-retains-name-bias*))
+      (peel-bananas var)
+      (random-elt-with-decay in-scope *free-var-decay-rate*)))
+
 (defmethod bind-free-vars ((clang clang) snippet pt &optional keep-globals)
   (let* ((raw-code    (aget :src--text snippet))
          (free-vars   (make-hash-table :test 'equal))
@@ -583,9 +596,8 @@ Otherwise return the whole FULL-GENOME"
       (loop for var being the hash-keys of free-vars
          using (hash-value index)
          collecting
-           (cons var (or (random-elt-with-decay
-                          (gethash (if respect-depth index 0) scope-vars)
-                          *free-var-decay-rate*)
+           (cons var (or (random-scoped-replacement var
+                          (gethash (if respect-depth index 0) scope-vars))
                          (format nil "/* no bound vars in scope at depth ~a */"
                                  index))))
       raw-code))))
