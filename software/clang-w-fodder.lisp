@@ -27,29 +27,6 @@ a uniformly selected element of the JSON database.")
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
 
-(defun select-random-bin ()
-  (let ((binprob (random 1.0)))
-    (cdr (find-if (lambda (datum)
-                    (<= binprob (car datum))) *json-database-bins*))))
-
-(defun select-random-full-stmt-bin ()
-  (let ((binprob (random 1.0)))
-    (cdr (find-if (lambda (datum)
-                    (<= binprob (car datum)))
-                  *json-database-full-stmt-bins*))))
-
-(defun random-full-stmt-snippet ()
-  (random-elt (gethash (select-random-full-stmt-bin)
-                       *json-database*
-                       '("/* bad snippet */"))))
-
-(defun random-snippet ()
-  (assert (not (null *json-database-bins*)) (*json-database-bins*)
-          "*json-database-bins* must be precomputed.")
-  (random-elt (gethash (select-random-bin)
-                       *json-database*
-                       '("/* bad snippet */"))))
-
 (defun populate-database-bins ()
   ;; All database bins
   (setf *json-database-bins*
@@ -113,42 +90,25 @@ a uniformly selected element of the JSON database.")
   ;; Compute the bin sizes so that (random-snippet) becomes useful.
   (populate-database-bins))
 
-(defgeneric pick-any-json (clang-w-fodder pt &key)
-  (:documentation "Pick any JSON element from the fodder database"))
+(defgeneric pick-json (clang-w-fodder &key full class pt)
+  (:documentation "Return a JSON element from the fodder database.
 
-(defgeneric pick-full-stmt-json (clang-w-fodder pt &key)
-  (:documentation "Pick any full-stmt JSON element from the fodder database"))
+With keyword :FULL t, select a full statement element.
 
-(defgeneric pick-json-by-class (clang-w-fodder pt class &key)
-  (:documentation
-   "Pick any JSON element of the same class from the fodder database"))
+With keyword argument :CLASS, select an element of the specified class.
 
-(defmethod pick-any-json ((clang-w-fodder clang-w-fodder) pt &key)
-  (prepare-code-snippet clang-w-fodder
-                        pt
-                        (if (is-full-stmt clang-w-fodder pt)
-                            (random-full-stmt-snippet)
-                            (random-snippet))))
+With keyword argument :PT select an element similar to that at :PT in
+CLANG-W-FODDER in a method-dependent fashion."))
 
-(defmethod pick-full-stmt-json ((clang-w-fodder clang-w-fodder) pt &key)
-  (prepare-code-snippet clang-w-fodder
-                        pt
-                        (random-full-stmt-snippet)))
-
-(defmethod pick-json-by-class ((clang-w-fodder clang-w-fodder) pt class &key)
-  (prepare-code-snippet clang-w-fodder
-                        pt
-                        (random-snippet-by-class class)))
-
-(defun random-snippet-by-class (class)
-  (let ((asts (gethash class *json-database*)))
-    (if asts (random-elt asts) (random-snippet))))
-
-(defmethod prepare-code-snippet ((clang-w-fodder clang-w-fodder)
-                                 pt
-                                 snippet)
-  (update-mito-from-snippet clang-w-fodder snippet)
-  (recontextualize clang-w-fodder snippet pt))
+(defmethod pick-json ((clang-w-fodder clang-w-fodder) &key full class pt)
+  (random-elt (gethash
+               (or class ; Specific class, or just a full class, or any class.
+                   (random-elt
+                    (if (or full (and pt (is-full-stmt clang-w-fodder pt)))
+                        *json-database-full-stmt-bins*
+                        *json-database-bins*)))
+               *json-database*
+               '("/* bad snippet */"))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
@@ -166,25 +126,30 @@ a uniformly selected element of the JSON database.")
              (bad-stmt  (enclosing-full-stmt clang-w-fodder bad))
              (mutation (random-elt '(:replace-fodder-same :replace-fodder-full
                                      :insert-fodder  :insert-fodder-full)))
+             (value (update-mito-from-snippet clang-w-fodder
+                      (ecase mutation
+                        (:replace-fodder-same
+                         (pick-json clang-w-fodder
+                                    :pt bad
+                                    :class (get-ast-class clang-w-fodder bad)))
+                        ((:replace-fodder-full :insert-fodder-full)
+                         (pick-json clang-w-fodder :pt bad :full t))
+                        (:insert-fodder
+                         (random-snippet)))))
+             (stmt (ecase mutation
+                     ((:replace-fodder-same :insert-fodder)
+                      bad)
+                     ((:replace-fodder-full :insert-fodder-full)
+                      bad-stmt)))
              (op (case mutation
-                   (:replace-fodder-same
-                    `(:replace
-                      (:stmt1  . ,bad)
-                      (:value1 . ,(pick-json-by-class
-                                   clang-w-fodder bad
-                                   (get-ast-class clang-w-fodder bad)))))
-                   (:replace-fodder-full
-                    `(:replace
-                      (:stmt1  . ,bad-stmt)
-                      (:value1 . ,(pick-full-stmt-json clang-w-fodder bad))))
-                   (:insert-fodder
-                    `(:insert
-                      (:stmt1  . ,bad)
-                      (:value1 . ,(random-snippet))))
-                   (:insert-fodder-full
-                    `(:insert
-                      (:stmt1  . ,bad-stmt)
-                      (:value1 . ,(pick-full-stmt-json clang-w-fodder bad)))))))
+                   ((:replace-fodder-same :replace-fodder-full)
+                    (list :replace
+                          (cons :stmt1 stmt)
+                          (cons :value1 value)))
+                   ((:insert-fodder :insert-fodder-full)
+                    (list :insert
+                          (cons :stmt1 stmt)
+                          (cons :value1 value))))))
 
         (apply-mutation clang-w-fodder op)
         (values clang-w-fodder (cons mutation (cdr op))))))

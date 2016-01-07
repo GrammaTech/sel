@@ -66,25 +66,23 @@ be used to associate bytes with AST elements."))
 (defvar *targeted-mutation-chance* 0.75
   "Probability of performing a targeted vs. random mutation.")
 
-(defmethod pick-bad((obj clang-w-binary))
-  (if (and (diff-data obj)
-           (< (random 1.0) *targeted-mutation-chance*))
-    (let ((random-stmt (pick-bad-targetted obj)))
-      (if random-stmt
-          random-stmt
-          (call-next-method)))
-    (call-next-method)))
-
-(defmethod pick-bad-targetted((obj clang-w-binary))
-  "Return the AST of a binary-difference inducing AST in clang-w-fodder"
-
-  ;; Collect all ASTs contained in the corresponding source ranges.
-  ;; In effect these should be the children of the below ASTs.
-  (let ((bad-asts (mappend [{asts-contained-in-source-range obj} #'ast-to-source-range]
-                   ;; Collect all ASTs intersecting bad binary ranges.
-                      (mappend {asts-intersecting-binary-range obj}
-                          (mapcar {aget :modified-range} (diff-data obj))))))
+(defmethod pick-bad-targetted ((obj clang-w-binary))
+  "Collect all ASTs in the modified source ranges intersecting bin ranges.
+In effect these should be all AST and children at locations of modification."
+  (let ((bad-asts
+         (mappend [{asts-contained-in-source-range obj} #'ast-to-source-range]
+                  ;; Collect all ASTs intersecting bad binary ranges.
+                  (mappend {asts-intersecting-binary-range obj}
+                           (mapcar {aget :modified-range} (diff-data obj))))))
     (when bad-asts (random-stmt bad-asts))))
+
+(defmethod pick-bad ((obj clang-w-binary))
+  ;; When a diff is present, with chance *targeted-mutation-chance*
+  ;; pick a targeted bad location.  Otherwise `call-next-method'.
+  (or (and (diff-data obj)
+           (< (random 1.0) *targeted-mutation-chance*)
+           (pick-bad-targetted obj))
+      (call-next-method)))
 
 (defmethod asts-containing-binary-address ((obj clang-w-binary) address)
   (remove-if-not [{contains _ address} #'ast-to-binary-range] (asts obj)))
@@ -118,3 +116,10 @@ be used to associate bytes with AST elements."))
     (if (aget :binary--contents ast)
       ast
       (get-ast-w-bytes obj (get-ast obj (aget :parent--counter ast))))))
+
+(defmethod get-ast-w-bytes ((obj clang-w-fodder-and-binary) ast)
+  "Get the nearest AST in the hierarchy with bytes associated with it"
+  (when ast
+    (if (aget :binary--contents ast)
+        ast
+        (get-ast-w-bytes obj (get-ast obj (aget :parent--counter ast))))))

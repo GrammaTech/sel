@@ -29,13 +29,10 @@
    :mitochondria
    :pick
    :pick-good
-   :pick-json
-   :pick-any-json
-   :pick-full-stmt-json
-   :pick-json-by-class 
    :pick-bad
-   :pick-bad-targetted
+   :pick-json
    :mutate
+   :*targeted-mutation-chance*
    :apply-mutation
    :text
    :obj
