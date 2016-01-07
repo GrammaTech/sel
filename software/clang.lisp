@@ -702,6 +702,7 @@ Otherwise return the whole FULL-GENOME"
                                 :key {aget :name}
                                 :value {full-function-text b})))
         (variant (copy a)))
+    (union-mito (mitochondria variant) (mitochondria b))
     (apply-fun-body-substitutions variant
      (loop for func being the hash-keys of common-funs
         using (hash-value bodies)
