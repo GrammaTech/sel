@@ -58,7 +58,6 @@
 (defmethod from-file ((obj clang) path)
   (setf (genome-string obj) (file-to-string path))
   (setf (ext obj)  (pathname-type (pathname path)))
-  (update-asts obj)
   obj)
 
 (defmethod asts ((obj clang))
@@ -254,7 +253,14 @@
                                (remove-if-not #'consp op)))))
 
 (defun extract-clang-genome (full-genome)
-  (keep-lines-after-matching "======^======" full-genome))
+  "If FULL-GENOME contains the magic separator return only the genome after.
+Otherwise return the whole FULL-GENOME"
+  ;; NOTE: This could potentially be faster if defined using cl-ppcre.
+  (let* ((lines (split-sequence #\Newline full-genome))
+         (at (position "======^======" lines :test #'string=)))
+    (if at
+        (unlines (subseq lines (1+ at)))
+        full-genome)))
 
 (defmethod clang-mutate ((obj clang) op &aux value1-file value2-file)
   (with-temp-file-of (src-file (ext obj)) (genome-string obj)
