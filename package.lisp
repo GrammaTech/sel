@@ -147,7 +147,7 @@
    :recontextualize
    :nesting-depth
    :get-ast-text
-   :is-full-stmt
+   :full-stmt-p
    :enclosing-full-stmt
    :enclosing-block
    :block-successor

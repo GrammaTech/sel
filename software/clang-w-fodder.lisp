@@ -104,7 +104,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
   (random-elt (gethash
                (or class ; Specific class, or just a full class, or any class.
                    (random-elt
-                    (if (or full (and pt (is-full-stmt clang-w-fodder pt)))
+                    (if (or full (and pt (full-stmt-p clang-w-fodder pt)))
                         *json-database-full-stmt-bins*
                         *json-database-bins*)))
                *json-database*
