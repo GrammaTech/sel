@@ -80,7 +80,7 @@
    :get-diffs-intersecting-ast
    :get-ast
    :get-parent-asts
-   :is-parent-ast?
+   :parent-ast-p
    :extend-to-enclosing
    :get-ast-info
    :worst

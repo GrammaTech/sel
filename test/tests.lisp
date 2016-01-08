@@ -471,17 +471,17 @@
   (with-fixture hello-world-clang
     (is (= 9 (length (asts *hello-world*))))))
 
-(deftest is-parent-ast?-true-test()
+(deftest parent-ast-p-true-test()
   (with-fixture hello-world-clang
-    (is (is-parent-ast? *hello-world*
+    (is (parent-ast-p *hello-world*
           (get-ast *hello-world* (stmt-with-text *hello-world*
                                                   "return 0"))
           (get-ast *hello-world* (stmt-with-text *hello-world*
                                                   "0"))))))
 
-(deftest is-parent-ast?-false-test()
+(deftest parent-ast-p-false-test()
   (with-fixture hello-world-clang
-    (is (not (is-parent-ast? *hello-world*
+    (is (not (parent-ast-p *hello-world*
                (get-ast *hello-world* (stmt-with-text *hello-world*
                                                        "0"))
                (get-ast *hello-world* (stmt-with-text *hello-world*
