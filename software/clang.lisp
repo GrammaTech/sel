@@ -383,13 +383,17 @@ Otherwise return the whole FULL-GENOME"
                 :from 0
                 :when (equal char #\Newline) :collect index)))
 
-(defmethod is-parent-ast? ((clang clang) possible-parent-ast ast)
+(defgeneric parent-ast-p (software possible-parent-ast ast)
+  (:documentation
+   "Check if POSSIBLE-PARENT-AST is a parent of AST in SOFTWARE."))
+
+(defmethod parent-ast-p ((clang clang) possible-parent-ast ast)
   (cond ((= (aget :counter possible-parent-ast)
             (aget :counter ast)) t)
         ((= (aget :parent--counter ast) 0) nil)
-        (t (is-parent-ast? clang
-                           possible-parent-ast
-                           (get-ast clang (aget :parent--counter ast))))))
+        (t (parent-ast-p clang
+                         possible-parent-ast
+                         (get-ast clang (aget :parent--counter ast))))))
 
 (defmethod get-parent-asts((clang clang) ast)
   (cond ((= (aget :parent--counter ast) 0) nil)
@@ -407,8 +411,8 @@ Otherwise return the whole FULL-GENOME"
 (defmethod enclosing-block ((clang clang) index &optional child-index)
   (if (= index 0) (values  0 child-index)
     (let* ((ast (get-ast clang index))
-           (is-block (equal (aget :ast--class ast) "CompoundStmt")))
-      (if (and is-block child-index)
+           (blockp (equal (aget :ast--class ast) "CompoundStmt")))
+      (if (and blockp child-index)
           (values index child-index)
           (enclosing-block clang (aget :parent--counter ast) index)))))
 
@@ -419,8 +423,8 @@ Otherwise return the whole FULL-GENOME"
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil
     (let* ((ast (get-ast clang index))
-           (is-block (equal (aget :ast--class ast) "CompoundStmt")))
-      (if (and is-block child-index)
+           (blockp (equal (aget :ast--class ast) "CompoundStmt")))
+      (if (and blockp child-index)
           child-index
           (enclosing-full-stmt clang (aget :parent--counter ast) index)))))
 
