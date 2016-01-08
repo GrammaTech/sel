@@ -77,7 +77,7 @@
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
     (format nil "~a~%"
-            (if (is-full-stmt clang pt)
+            (if (full-stmt-p clang pt)
                 (add-semicolon-if-needed text)
                 text))))
 
@@ -412,8 +412,9 @@ Otherwise return the whole FULL-GENOME"
           (values index child-index)
           (enclosing-block clang (aget :parent--counter ast) index)))))
 
-(defmethod is-full-stmt ((clang clang) stmt)
-  (and stmt (equal stmt (enclosing-full-stmt clang stmt))))
+(defmethod full-stmt-p ((clang clang) stmt)
+  ;; NOTE: This assumes that the :full--stmt tag is always populated.
+  (aget :full--stmt (get-ast clang stmt)))
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (= index 0) nil
