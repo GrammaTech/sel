@@ -615,6 +615,67 @@
       (is (tree-equal before-b (genome *tfos*))))))
 
 
+;;; Mutation analysis and statistics collection tests
+(defvar *test* nil "Variable to hold evaluation function for tests.")
+
+(defixture hello-world-clang-w-fitness
+  (:setup
+   (setf *hello-world*
+         (from-file (make-instance 'clang :compiler "clang-3.7"
+                                   :flags '("-g -m32 -O0"))
+                    (hello-world-dir "hello_world.c"))
+         *test* [#'length #'genome]
+         *fitness-predicate* #'>
+         *mutation-stats* (make-hash-table)
+         *population* (list *hello-world*)))
+  (:teardown
+   (setf *hello-world* nil *test* nil *mutation-stats* (make-hash-table))))
+
+(deftest mutation-stats-notices-fitness-improvement ()
+  (with-fixture hello-world-clang-w-fitness
+    (evaluate *test* *hello-world*)
+    (is (numberp (fitness *hello-world*)))
+    (let ((variant (copy *hello-world*))
+          (op '(:insert-value
+                (:stmt1 . 1)
+                (:value1 . "/* nothing */"))))
+      (apply-mutation variant op)
+      (is (null (fitness variant))
+          "Fitness is null after `apply-mutation'")
+      (analyze-mutation variant op *hello-world* nil nil nil nil *test*)
+      (is (not (null (fitness variant)))
+          "`analyze-mutation' calculates fitness when missing")
+      (let ((stats-alist (hash-table-alist *mutation-stats*)))
+        (is (= (length stats-alist) 1) "Single element in stats")
+        (is (equal :better (second (second (first stats-alist))))
+            "`analyze-mutation' notices fitness improvement")))))
+
+(deftest mutation-stats-notices-worsening ()
+  (with-fixture hello-world-clang-w-fitness
+    (evaluate *test* *hello-world*)
+    (is (numberp (fitness *hello-world*)))
+    (let ((variant (copy *hello-world*))
+          (op '(:cut (:stmt1 . 2))))
+      (apply-mutation variant op)
+      (analyze-mutation variant op *hello-world* nil nil nil nil *test*)
+      (is (equal :worse (second (second (first (hash-table-alist
+                                                *mutation-stats*)))))
+          "`analyze-mutation' notices worse improvement"))))
+
+(deftest mutation-stats-notices-same ()
+  (with-fixture hello-world-clang-w-fitness
+    (evaluate *test* *hello-world*)
+    (is (numberp (fitness *hello-world*)))
+    (let ((variant (copy *hello-world*))
+          (op '(:swap (:stmt1 . 2) (:stmt2 . 2))))
+      (setf (fitness variant) nil)
+      (analyze-mutation variant op *hello-world* nil nil nil nil *test*)
+      (is (equal :same (second (second (first (hash-table-alist
+                                               *mutation-stats*)))))
+          "`analyze-mutation' notices no change: ~S"
+          (hash-table-alist *mutation-stats*)))))
+
+
 ;;; Diff tests
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))
