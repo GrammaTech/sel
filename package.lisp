@@ -49,6 +49,8 @@
    :edit-distance
    :from-file
    :ext
+   :clang-genome-separator
+   :genome-string-without-separator
    :clang-w-fodder-setup-db
    :get-vars-in-scope
    :get-indexed-vars-in-scope
