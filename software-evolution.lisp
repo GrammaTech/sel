@@ -113,10 +113,6 @@ Used to target mutation."))
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 
-(defmethod mutate :before ((obj software))
-  ;; Mutation removes previously calculated fitness values.
-  (setf (fitness obj) nil))
-
 (defvar *mutation-stats* (make-hash-table
                           #+sbcl :synchronized #+sbcl t)
   "Variable to hold mutation statistics.")
@@ -209,6 +205,10 @@ elements.")
 (defgeneric apply-mutation (software mutation)
   (:documentation "Apply MUTATION to SOFTWARE.
 Define an :around method on this function to record mutations."))
+
+(defmethod apply-mutation :before ((obj software) mutation)
+  ;; Mutation removes previously calculated fitness values.
+  (setf (fitness obj) nil))
 
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects.
