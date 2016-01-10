@@ -261,7 +261,7 @@ already in scope, it will keep that name.")
 Otherwise return the whole FULL-GENOME"
   ;; NOTE: This could potentially be faster if defined using cl-ppcre.
   (let* ((lines (split-sequence #\Newline full-genome))
-         (at (position "======^======" lines :test #'string=)))
+         (at (position clang-genome-separator lines :test #'string=)))
     (if at
         (unlines (subseq lines (1+ at)))
         full-genome)))
@@ -730,9 +730,17 @@ Otherwise return the whole FULL-GENOME"
 (defmethod crossover ((a clang) (b clang))
   (funcall (random-pick *clang-crossover-cdf*) a b))
 
+(defvar clang-genome-separator "//===============^=================="
+  "String used to separate the mito and full portions of a clang genome.")
+
+(defmethod genome-string-without-separator ((obj clang))
+  (unlines (remove-if {string= clang-genome-separator}
+                      (split-sequence #\Newline (genome-string obj)))))
+
 (defmethod genome-string ((clang clang) &optional stream)
-  (format stream "~a~%//===============^==================~%~a"
+  (format stream "~a~%~a~%~a"
           (genome-string (mitochondria clang))
+          clang-genome-separator
           (genome clang)))
 
 (defmethod clang-tidy ((clang clang))
