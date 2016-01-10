@@ -154,14 +154,17 @@ argument TEST must be supplied."))
                                                 (safe-eval old-2))
                                           *fitness-predicate*)
                                 (safe-eval old))))
-               (cond
-                 ((= fit (worst)) :dead)
-                 ((= fit old-fit) :same)
-                 ((funcall (complement *fitness-predicate*) fit old-fit) :worse)
-                 ((funcall *fitness-predicate* fit old-fit) :better)))))
+               (values
+                (cond
+                  ((= fit (worst)) :dead)
+                  ((= fit old-fit) :same)
+                  ((funcall (complement *fitness-predicate*) fit old-fit) :worse)
+                  ((funcall *fitness-predicate* fit old-fit) :better))
+                fit old-fit))))
     ;; Add information on the mutation to `*mutation-stats*`.
-    (let ((effect (classify obj (or crossed software-a))))
-      (push (list mutation effect)
+    (multiple-value-bind (effect fit old-fit)
+        (classify obj (or crossed software-a))
+      (push (list mutation effect fit old-fit)
             (gethash (mutation-key obj mutation) *mutation-stats*)))
     ;; Add information on the crossover to `*crossover-stats*`.
     (when crossed
