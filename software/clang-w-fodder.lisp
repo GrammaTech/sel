@@ -101,14 +101,16 @@ With keyword argument :PT select an element similar to that at :PT in
 CLANG-W-FODDER in a method-dependent fashion."))
 
 (defmethod pick-json ((clang-w-fodder clang-w-fodder) &key full class pt)
-  (random-elt (gethash
-               (or class ; Specific class, or just a full class, or any class.
-                   (random-elt
-                    (if (or full (and pt (full-stmt-p clang-w-fodder pt)))
-                        *json-database-full-stmt-bins*
-                        *json-database-bins*)))
-               *json-database*
-               '("/* bad snippet */"))))
+  (random-elt
+   (gethash
+    (or class ; Specific class, or just a full class, or any class.
+        (cdr (find-if [{< (random 1.0)} #'car] ; Pick by bin size.
+                      (if (or full (and pt (full-stmt-p clang-w-fodder pt)))
+                          *json-database-full-stmt-bins*
+                          *json-database-bins*))))
+    *json-database*
+    (make-condition 'mutate
+      :test "No valid snippet" :obj clang-w-fodder))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
@@ -135,7 +137,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
                         ((:replace-fodder-full :insert-fodder-full)
                          (pick-json clang-w-fodder :pt bad :full t))
                         (:insert-fodder
-                         (random-snippet)))))
+                         (pick-json clang-w-fodder)))))
              (stmt (ecase mutation
                      ((:replace-fodder-same :insert-fodder)
                       bad)

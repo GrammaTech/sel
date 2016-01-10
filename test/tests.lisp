@@ -444,6 +444,24 @@
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
 
+(deftest pick-json-returns-a-json-snippet ()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((json (pick-json *hello-world*)))
+      (is (numberp (aget :counter json)))
+      (is (stringp (aget :src--text json)))
+      (is (assoc :full--stmt json)))))
+
+(deftest pick-json-respects-full-argument ()
+  (with-fixture hello-world-clang-w-fodder
+    (is (aget :full--stmt (pick-json *hello-world* :full t)))))
+
+(deftest pick-json-respects-class-argument ()
+  (with-fixture hello-world-clang-w-fodder
+    (dolist (class '("StringLiteral" "ReturnStmt" "CompoundStmt"))
+      (is (string= class
+                   (aget :ast--class
+                         (pick-json *hello-world* :class class)))))))
+
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
