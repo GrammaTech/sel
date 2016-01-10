@@ -130,7 +130,8 @@ Used to target mutation."))
 Should return arguments unmodified as values to enable chaining
 against `new-individual' with `multiple-value-call'.  Calculated Stats
 should be added to the `*mutation-stats*' variable.  This method will
-calculate the fitness of SOFTWARE with `evaluate'.
+calculate the fitness of SOFTWARE with `evaluate'.  Each mutation will
+be paired with one of the tags; :dead, :same, :worse, :better.
 
 If candidate fitness has not already been evaluated, then optional
 argument TEST must be supplied."))
