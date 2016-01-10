@@ -490,6 +490,28 @@ is replaced with replacement."
   ((begin :initarg :begin :accessor begin :type 'fixnum)
    (end   :initarg :end   :accessor end   :type 'fixnum)))
 
+(defmethod print-object ((obj source-location) stream)
+  (print-unreadable-object (obj stream :type t)
+    (prin1 (line obj) stream)
+    (format stream ":")
+    (prin1 (column obj) stream)))
+
+(defmethod print-object ((obj source-range) stream)
+  (flet ((p1-range (range)
+           (prin1 (line range) stream)
+           (format stream ":")
+           (prin1 (column range) stream)))
+    (print-unreadable-object (obj stream :type t)
+      (p1-range (begin obj))
+      (format stream " to ")
+      (p1-range (end obj)))))
+
+(defmethod print-object ((obj range) stream)
+  (print-unreadable-object (obj stream :type t)
+    (prin1 (begin obj) stream)
+    (format stream " to ")
+    (prin1 (end obj) stream)))
+
 (defmethod source-< ((a source-location) (b source-location))
   (or (< (line a) (line b))
       (and (= (line a) (line b))
