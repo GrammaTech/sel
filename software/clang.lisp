@@ -332,15 +332,16 @@ Otherwise return the whole FULL-GENOME"
                   src-file
                   (flags obj))
          (declare (ignorable stderr))
-         (when (not (zerop exit))
+         ;; NOTE: The clang-mutate executable will sometimes produce
+         ;;       usable output even on a non-zero exit, e.g., usable
+         ;;       json or successful mutations but an exit of 1
+         ;;       because of compiler errors.  To ensure these cases
+         ;;       are still usable, we only signal mutation errors on
+         ;;       specific exit values.
+         (when (find exit '(131 132 134 136 139))
            (error
             (make-condition 'mutate
-              :text (concatenate 'string
-                      (if (find exit '(131 132 134 136 139))
-                          "clang-mutate core dump, "
-                          "clang-mutate exit, ")
-                      (write-to-string exit)
-                      ",")
+              :text (format nil "clang-mutate core dump, ~d," exit)
               :obj obj :op op)))
          (values
           (if (member (car op) '(:ids :list :json))
