@@ -47,9 +47,16 @@
   (with-slots (asts) obj (length asts)))
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (let ((json-db (json:decode-json-from-source
-                  (clang-mutate obj (cons :json clang-mutate-args)))))
-    (with-slots (asts prototypes) obj
+  (with-slots (asts prototypes) obj
+    (let ((json-db
+           (handler-bind
+               ;; When clang-mutate errors we explicitly nullify the asts.
+               ;; Otherwise we can end up in weird situations, like trying to
+               ;; parse a mutation error condition as an alist of ASTS.
+               ((mutate (lambda (err) (declare (ignorable err)) (setf asts nil)
+                           ;; Also, return nil for json-db.
+                           nil)))
+             (clang-mutate obj (cons :json clang-mutate-args)))))
       (setf asts
             (coerce (remove-if-not {aget :counter} json-db) 'vector)
             prototypes
@@ -344,9 +351,16 @@ Otherwise return the whole FULL-GENOME"
               :text (format nil "clang-mutate core dump, ~d," exit)
               :obj obj :op op)))
          (values
-          (if (member (car op) '(:ids :list :json))
-              stdout
-              (extract-clang-genome stdout))
+          (case (car op)
+            (:json
+             (handler-case (json:decode-json-from-source stdout)
+               (end-of-file (err)
+                 (declare (ignorable err))
+                 (error (make-condition 'mutate
+                          :text "JSON decode error"
+                          :obj obj :op op)))))
+            ((:ids :list) stdout)
+            (t (extract-clang-genome stdout)))
           exit))
     ;; Cleanup forms.
     (when (and value1-file (probe-file value1-file))
@@ -563,10 +577,9 @@ Otherwise return the whole FULL-GENOME"
     (with-temp-file-of (src (ext clang)) (genome-string clang)
       (loop
          for scope in
-           (aget :scopes (car (json:decode-json-from-source
-                               (clang-mutate clang
-                                             `(:json (:fields . (:scopes))
-                                                     (:stmt1 . ,pt))))))
+           (aget :scopes (car (clang-mutate clang
+                                            `(:json (:fields . (:scopes))
+                                                    (:stmt1 . ,pt)))))
          for index from 0
          do (setf (gethash index index-table) scope
                   max-index index)))

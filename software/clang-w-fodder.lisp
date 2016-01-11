@@ -110,7 +110,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
                           *json-database-bins*))))
     *json-database*
     (make-condition 'mutate
-      :test "No valid snippet" :obj clang-w-fodder))))
+      :text "No valid snippet" :obj clang-w-fodder))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
