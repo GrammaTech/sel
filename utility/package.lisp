@@ -49,8 +49,6 @@
    :apply-replacements
    :peel-bananas
    :replace-all
-   :json-string-escape
-   :json-string-unescape
    :aget
    :alist
    :getter
@@ -64,6 +62,9 @@
    :take-while
    :take-until
    :chunks
+   :<and>
+   :<or>
+   :<not>
    ;;; Source and binary locations and ranges
    :source-location
    :line
