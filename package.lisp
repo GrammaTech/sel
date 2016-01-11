@@ -38,6 +38,7 @@
    :op
    :*mutation-stats*
    :*crossover-stats*
+   :*analyze-mutation-verbose-stream*
    :analyze-mutation
    :mutation-key
    :crossover

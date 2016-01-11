@@ -68,6 +68,7 @@
 (defmethod crossover ((a soft) (b soft))
   (values (copy a)(list :fake-a) (list :fake-b)))
 (defmethod mutate ((a soft))
+  (setf (fitness a) nil)
   (if *soft-mutate-errors*
       (error (make-condition 'mutate
                :text "FAKE"
@@ -642,7 +643,7 @@
       (apply-mutation variant op)
       (is (null (fitness variant))
           "Fitness is null after `apply-mutation'")
-      (analyze-mutation variant op *hello-world* nil nil nil nil *test*)
+      (analyze-mutation variant op nil nil *hello-world* nil nil *test*)
       (is (not (null (fitness variant)))
           "`analyze-mutation' calculates fitness when missing")
       (let ((stats-alist (hash-table-alist *mutation-stats*)))
@@ -657,7 +658,7 @@
     (let ((variant (copy *hello-world*))
           (op '(:cut (:stmt1 . 2))))
       (apply-mutation variant op)
-      (analyze-mutation variant op *hello-world* nil nil nil nil *test*)
+      (analyze-mutation variant op nil nil *hello-world* nil nil *test*)
       (is (equal :worse (second (second (first (hash-table-alist
                                                 *mutation-stats*)))))
           "`analyze-mutation' notices worse improvement"))))
@@ -669,7 +670,7 @@
     (let ((variant (copy *hello-world*))
           (op '(:swap (:stmt1 . 2) (:stmt2 . 2))))
       (setf (fitness variant) nil)
-      (analyze-mutation variant op *hello-world* nil nil nil nil *test*)
+      (analyze-mutation variant op nil nil *hello-world* nil nil *test*)
       (is (equal :same (second (second (first (hash-table-alist
                                                *mutation-stats*)))))
           "`analyze-mutation' notices no change: ~S"
@@ -793,7 +794,8 @@
 
 (deftest evolution-collects-statistics-when-asked ()
   (let ((counter 0)
-        (*fitness-predicate* #'>))
+        (*fitness-predicate* #'>)
+        (*mutation-stats* (make-hash-table)))
     (flet ((test (candidate)
              (declare (ignorable candidate))
              (incf counter)
