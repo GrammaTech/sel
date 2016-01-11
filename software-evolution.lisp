@@ -129,24 +129,32 @@ Used to target mutation."))
   (:documentation "Collect statistics from an applied mutation.
 Should return arguments unmodified as values to enable chaining
 against `new-individual' with `multiple-value-call'.  Calculated Stats
-should be added to the `*mutation-stats*' variable.  This method will
-calculate the fitness of SOFTWARE with `evaluate'.  Each mutation will
-be paired with one of the tags; :dead, :same, :worse, :better.
+should be added to the `*mutation-stats*' variable.  Calculated stats
+are also returned as additional values.  This method will calculate
+the fitness of SOFTWARE with `evaluate'.  Each mutation will be paired
+with one of the tags; :dead, :same, :worse, :better.
 
 If candidate fitness has not already been evaluated, then optional
 argument TEST must be supplied."))
+
+(defvar *analyze-mutation-verbose-stream* nil
+  "Non-nil to print verbose output when analyzing mutations to value.")
 
 (defmethod analyze-mutation ((obj software) mutation
                              software-a cross-point-a
                              crossed
                              software-b cross-point-b
-                             &optional test)
+                             &optional test
+                             &aux result)
   (labels ((safe-eval (object)
              (or (fitness object)
                  (progn
                    (assert test (object test)
                            "TEST is mandatory if objects have no fitness")
                    (evaluate test object))))
+           (note (string)
+             (when *analyze-mutation-verbose-stream*
+               (format *analyze-mutation-verbose-stream* string)))
            (classify (new old &optional old-2)
              (let ((fit (safe-eval new))
                    (old-fit (if old-2
@@ -156,23 +164,26 @@ argument TEST must be supplied."))
                                 (safe-eval old))))
                (values
                 (cond
-                  ((= fit (worst)) :dead)
-                  ((= fit old-fit) :same)
-                  ((funcall (complement *fitness-predicate*) fit old-fit) :worse)
-                  ((funcall *fitness-predicate* fit old-fit) :better))
+                  ((= fit (worst)) (note "_") :dead)
+                  ((= fit old-fit) (note "=") :same)
+                  ((funcall (complement *fitness-predicate*) fit old-fit)
+                   (note "-") :worse)
+                  ((funcall *fitness-predicate* fit old-fit)
+                   (note "+") :better))
                 fit old-fit))))
     ;; Add information on the mutation to `*mutation-stats*`.
     (multiple-value-bind (effect fit old-fit)
-        (classify obj (or crossed software-a))
-      (push (list mutation effect fit old-fit)
-            (gethash (mutation-key obj mutation) *mutation-stats*)))
+        (classify obj crossed)
+      (push (setf result (list mutation effect fit old-fit))
+            (gethash (mutation-key crossed mutation) *mutation-stats*)))
     ;; Add information on the crossover to `*crossover-stats*`.
-    (when crossed
+    (when cross-point-a
       (let ((effect (classify crossed software-a software-b)))
         (push (list mutation effect)
-              (gethash (mutation-key obj mutation) *crossover-stats*)))))
+              (gethash (mutation-key crossed mutation) *crossover-stats*)))))
   (values
-   obj mutation software-a cross-point-a crossed software-b cross-point-b))
+   obj mutation software-a cross-point-a crossed software-b cross-point-b
+   (first result) (second result) (third result)))
 
 (defgeneric mutation-key (software mutation)
   (:documentation "Key used to organize mutations in *mutation-stats*."))
@@ -327,7 +338,12 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 (defmethod new-individual (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION*."
   (multiple-value-bind (crossed a-point b-point) (crossed a b)
-    (multiple-value-bind (mutant mutation) (mutant crossed)
+    ;; NOTE: This `copy' call is only needed for `analyze-mutation'.
+    ;; If it appears to be adding significant overhead, consider two
+    ;; alternate implementations of `new-individual' instead of the
+    ;; current approach in which `analyze-mutate' "wraps"
+    ;; `new-individual'.
+    (multiple-value-bind (mutant mutation) (mutant (copy crossed))
       (values mutant mutation a a-point crossed b b-point))))
 
 (defmacro -search (specs step &rest body)
