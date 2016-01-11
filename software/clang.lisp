@@ -259,10 +259,12 @@ already in scope, it will keep that name.")
 (defmethod mutation-key ((obj clang) op)
   ;; Return a list of the OP keyword, and the classes of any stmt1 or
   ;; stmt2 arguments.
-  (cons (car op)
-        (mapcar [{aget :ast--class} {get-ast obj} #'cdr]
-                (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
-                               (remove-if-not #'consp op)))))
+  (cons
+   (car op)
+   (mapcar [{aget :ast--class} {get-ast obj} #'cdr]
+           (remove-if-not [#'numberp #'cdr]
+                          (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
+                                         (remove-if-not #'consp op))))))
 
 (defun extract-clang-genome (full-genome)
   "If FULL-GENOME contains the magic separator return only the genome after.
