@@ -154,7 +154,9 @@
   (:setup
     (setf *huf*
       (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
-                 (huf-dir "huf.c"))))
+                 (huf-dir "huf.c")))
+    (add-macro (mitochondria *huf*)
+               "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"))
   (:teardown
     (setf *huf* nil)))
 
@@ -833,9 +835,7 @@
          (find-if (lambda (snippet)
                     (and snippet
                          (equal text
-                                (peel-bananas
-                                  (json-string-unescape
-                                   (aget :src--text snippet))))))
+                                (peel-bananas (aget :src--text snippet)))))
                   (asts obj))))
     (aget :counter the-snippet)))
 
@@ -882,9 +882,9 @@ Useful for printing or returning differences in the REPL."
       ;; Each element should contain the text of one of the swapped pieces.
       (every-is {scan (create-scanner (list :alternation text-1 text-2))}
                 (remove-if
-                 {string= clang-genome-separator}
+                 (<or> {string= ""} {string= clang-genome-separator})
                  (mapcar [{apply #'concatenate 'string}
-                          {mapcar {apply #'concatenate 'string}}]
+                         {mapcar {apply #'concatenate 'string}}]
                          ;; Collect the differences between the
                          ;; original and the variant.
                          (mapcar {diff-strings (lines *huf*) (lines variant)}
@@ -898,9 +898,9 @@ Useful for printing or returning differences in the REPL."
   (with-fixture huf-clang
     (let ((variant (copy *huf*)))
       (apply-mutation variant
-        (cons :insert
-              (list (cons :stmt1 (stmt-with-text variant "bc=0"))
-                    (cons :stmt2 (stmt-with-text variant "n > 0")))))
+                      (cons :insert
+                            (list (cons :stmt1 (stmt-with-text variant "bc=0"))
+                                  (cons :stmt2 (stmt-with-text variant "n > 0")))))
       (multiple-value-bind (result exit)
           (phenome variant)
         (declare (ignorable result))

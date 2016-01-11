@@ -31,6 +31,12 @@
                  :initform (make-instance 'clang-mito)
                  :copier copy)))
 
+(defvar *type-database* (make-hash-table :test 'equal)
+  "A database of user-defined types.")
+
+(defun reset-type-database ()
+    (setf *type-database* (make-hash-table :test 'equal)))
+
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
 
@@ -62,9 +68,56 @@
             prototypes
             (coerce (remove-if-not {aget :ret} json-db) 'vector)))))
 
-(defmethod from-file ((obj clang) path)
+;; Create a clang software object from a given C file.
+;; The software object's genome will exactly the input
+;; file's contents, but the mitochondria will not reflect
+;; the preprocessor directives and user-defined types
+;; in the original program.
+(defmethod from-file-exactly ((obj clang) path)
   (setf (genome-string obj) (file-to-string path))
   (setf (ext obj)  (pathname-type (pathname path)))
+  obj)
+
+(defmethod from-file ((obj clang) path)
+  ;; Load the raw file and generate a json database
+  (from-file-exactly obj path)
+  (let ((json-db (clang-mutate obj (list :json))))
+
+    ;; Update the global type database
+    (loop for type in json-db
+       when (aget :hash type)
+       do (setf (gethash (aget :hash type) *type-database*) type))
+    
+    ;; Set the clang-mito's types. This will also populate any
+    ;; #include directives needed for library typedefs.
+    (loop for type in json-db
+       when (aget :hash type)
+       do (add-type (mitochondria obj) (aget :hash type)))
+
+    ;; Add any macro definitions seen.
+    (loop for snippet in json-db
+      do (loop for macro in (aget :macros snippet)
+           do (add-macro (mitochondria obj) (first macro) (second macro))))
+
+    ;; Add any #includes needed for the functions called.
+    (loop for snippet in json-db
+       do (loop for func in (aget :unbound--funs snippet)
+             do (add-includes-for-function (mitochondria obj) (car func))))
+
+    ;; The clang-mito object is now fully initialized.
+    ;; Next, generate the bulk of the program text by joining all global
+    ;; declarations together in the same order they originally appeared.
+    (setf (genome obj)
+          (unlines
+           (mapcar {aget :decl--text}
+                   (sort (remove-if-not {aget :decl--text} json-db)
+                         (lambda (x y)
+                           (or (< (first x) (first y))
+                               (and (= (first x) (first y))
+                                    (< (second x) (second y)))))
+                         :key (lambda (x)
+                                (cons (aget :begin--src--line x)
+                                      (aget :begin--src--col x))))))))
   obj)
 
 (defmethod asts ((obj clang))
@@ -474,7 +527,7 @@ Otherwise return the whole FULL-GENOME"
     (get-entry-before index the-stmts)))
 
 (defmethod get-ast-text ((clang clang) stmt)
-  (json-string-unescape (aget :src--text (get-ast clang stmt))))
+  (aget :src--text (get-ast clang stmt)))
 
 (defun add-semicolon-if-needed (text)
   (if (equal text "") ";"
@@ -486,8 +539,7 @@ Otherwise return the whole FULL-GENOME"
           (concatenate 'string text ";"))))
 
 (defun process-full-stmt-text (snippet)
-  (let ((text (json-string-unescape (aget :src--text snippet))))
-    (add-semicolon-if-needed text)))
+  (add-semicolon-if-needed (aget :src--text snippet)))
 
 (defmethod full-stmt-text ((clang clang) raw-index)
   (process-full-stmt-text (get-ast clang
@@ -546,7 +598,7 @@ Otherwise return the whole FULL-GENOME"
                 (when (not already-seen)
                   (setf (gethash var vars) scope-depth))))))))
 
-    (alist :src--text (json-string-escape source)
+    (alist :src--text source
            :unbound--vals (ht->list vars)
            :unbound--funs (ht->list funcs)
            :types  (ht->list types)
@@ -616,16 +668,15 @@ Otherwise return the whole FULL-GENOME"
          (respect-depth (aget :respect--depth snippet))
          (scope-vars (get-indexed-vars-in-scope clang pt keep-globals)))
     (list->ht (aget :unbound--vals snippet) free-vars)
-    (json-string-unescape
-     (apply-replacements
-      (loop for var being the hash-keys of free-vars
-         using (hash-value index)
-         collecting
-           (cons var (or (random-scoped-replacement var
-                          (gethash (if respect-depth index 0) scope-vars))
-                         (format nil "/* no bound vars in scope at depth ~a */"
-                                 index))))
-      raw-code))))
+    (apply-replacements
+     (loop for var being the hash-keys of free-vars
+        using (hash-value index)
+        collecting
+          (cons var (or (random-scoped-replacement var
+                                                   (gethash (if respect-depth index 0) scope-vars))
+                        (format nil "/* no bound vars in scope at depth ~a */"
+                                index))))
+     raw-code)))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))

@@ -66,12 +66,11 @@
   (let ((type (gethash type-id *type-database*)))
     (when type
       (let ((hash (aget :HASH type))
-            (decl (json-string-unescape (aget :DECL type)))
+            (decl (aget :DECL type))
             (reqs (aget :REQS type))
             (header (aget :INCLUDE type)))
         (if header
-            (setf (gethash (json-string-unescape header)
-                           (headers clang-mito)) t)
+            (setf (gethash header (headers clang-mito)) t)
             (add-type-rec clang-mito hash decl reqs))))))
 
 (defmethod add-type-rec ((clang-mito clang-mito) type-id decl reqs)

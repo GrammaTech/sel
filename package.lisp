@@ -52,6 +52,7 @@
    :ext
    :clang-genome-separator
    :genome-string-without-separator
+   :from-file-exactly
    :clang-w-fodder-setup-db
    :get-vars-in-scope
    :get-indexed-vars-in-scope
@@ -109,6 +110,7 @@
    :*json-database-full-stmt-bins*
    :*json-database-binary-fodder*
    :*type-database*
+   :reset-type-database
    ;; evolution functions
    :incorporate
    :evict

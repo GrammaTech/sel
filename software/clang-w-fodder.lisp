@@ -21,9 +21,6 @@ a uniformly selected element of the JSON database.")
 (defvar *json-database-binary-fodder* nil
   "A database of source code snippets with binary fodder.")
 
-(defvar *type-database* nil
-  "A database of user-defined types.")
-
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
 
@@ -65,7 +62,6 @@ a uniformly selected element of the JSON database.")
 (defun clang-w-fodder-setup-db (json-db-path)
   ;; Clobber the existing database
   (setq *json-database* (make-hash-table :test 'equal))
-  (setq *type-database* (make-hash-table :test 'equal))
   (setq *json-database-bins* '())
   (setq *json-database-binary-fodder* '())
 

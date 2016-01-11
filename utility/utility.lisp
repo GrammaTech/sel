@@ -403,25 +403,6 @@ is replaced with replacement."
 (defun peel-bananas (text)
   (apply-replacements '(("(|" . "") ("|)" . "")) text))
 
-(defun json-string-escape (string)
-  (apply-replacements (list (cons (string #\\) "\\\\")
-                            (cons (string #\Newline) "\\n")
-                            (cons (string #\") "\\\""))
-                      string))
-
-(defun json-string-unescape (string)
-  (with-output-to-string (out)
-    (loop :for i :below (length string) :do
-       (write-char (if (and (char= #\\ (aref string i))
-                            (< i (1- (length string))))
-                       (prog1 (ecase (aref string (1+ i))
-                                (#\n #\Newline)
-                                (#\\ #\\)
-                                (#\" #\"))
-                         (incf i))
-                       (aref string i))
-                   out))))
-
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
@@ -775,3 +756,18 @@ that function may be declared.")
               (when value-b
                 (setf (gethash key ht) (merge-fn value-a value-b))))))
     ht))
+
+(defun <not> (f)
+  (lambda (x) (not (funcall f x))))
+
+(defun <or> (f &rest fs)
+  (if (null fs)
+      (lambda (x) (funcall f x))
+      (lambda (x) (or (funcall f x)
+                      (funcall (apply #'<or> fs) x)))))
+
+(defun <and> (f &rest fs)
+  (if (null fs)
+      (lambda (x) (funcall f x))
+      (lambda (x) (and (funcall f x)
+                       (funcall (apply #'<or> fs) x)))))
