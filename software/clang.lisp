@@ -235,18 +235,19 @@ already in scope, it will keep that name.")
       (otherwise op))))
 
 (defmethod apply-mutation ((clang clang) op)
-  (multiple-value-bind (stdout exit)
-      (restart-case
-          (clang-mutate clang (recontextualize-mutation-op clang op))
-        (skip-mutation ()
-          :report "Skip mutation and return nil genome")
-        (tidy ()
-          :report "Call clang-tidy before re-attempting mutation"
-          (clang-tidy clang))
-        (mutate ()
-          :report "Apply another mutation before re-attempting mutations"
-          (mutate clang)))
-    (values stdout exit)))
+  (restart-case
+      (clang-mutate clang (recontextualize-mutation-op clang op))
+    (skip-mutation ()
+      :report "Skip mutation and return nil"
+      (values nil 1))
+    (tidy ()
+      :report "Call clang-tidy before re-attempting mutation"
+      (clang-tidy clang)
+      (apply-mutation clang op))
+    (mutate ()
+      :report "Apply another mutation before re-attempting mutations"
+      (mutate clang)
+      (apply-mutation clang op))))
 
 (defmethod apply-mutation :around ((obj clang) op)
   (multiple-value-call (lambda (variant &rest rest)
@@ -577,9 +578,12 @@ Otherwise return the whole FULL-GENOME"
     (with-temp-file-of (src (ext clang)) (genome-string clang)
       (loop
          for scope in
-           (aget :scopes (car (clang-mutate clang
-                                            `(:json (:fields . (:scopes))
-                                                    (:stmt1 . ,pt)))))
+           (aget :scopes (car
+                          (handler-bind ; When clang-mutate errors return nil.
+                              ((mutate (lambda (err) (declare (ignorable err)) nil)))
+                            (clang-mutate clang
+                                          `(:json (:fields . (:scopes))
+                                                  (:stmt1 . ,pt))))))
          for index from 0
          do (setf (gethash index index-table) scope
                   max-index index)))
