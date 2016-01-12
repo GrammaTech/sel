@@ -155,8 +155,13 @@
     (setf *huf*
       (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
                  (huf-dir "huf.c")))
+
+    ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
+    ;; be recalculated by setting the genome-string.
     (add-macro (mitochondria *huf*)
-               "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"))
+               "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)")
+    (setf (genome-string *huf*) (genome-string *huf*)))
+
   (:teardown
     (setf *huf* nil)))
 
@@ -939,3 +944,10 @@ Useful for printing or returning differences in the REPL."
           (is (string= non-whitespace-orig
                        (subseq modified
                                (- size-m (length non-whitespace-orig))))))))))
+
+;; Check that the ASTLister traversal and the ASTMutate traversal see
+;; the same number of ASTs.
+(deftest ast-lister-finds-same-number-of-ids ()
+  (with-fixture huf-clang
+    (is (= (size *huf*)
+           (count '#\Newline (clang-mutate *huf* '(:list)))))))
