@@ -87,7 +87,7 @@
     (loop for type in json-db
        when (aget :hash type)
        do (setf (gethash (aget :hash type) *type-database*) type))
-    
+
     ;; Set the clang-mito's types. This will also populate any
     ;; #include directives needed for library typedefs.
     (loop for type in json-db
@@ -617,7 +617,9 @@ Otherwise return the whole FULL-GENOME"
     (loop for macro in macros
        do (add-macro (mitochondria clang)
                      (first macro)
-                     (second macro)))))
+                     (second macro))))
+
+  snippet)
 
 (defun nonempty-lines (text)
   (remove-if (lambda (x) (string= x ""))
