@@ -64,7 +64,6 @@
    :chunks
    :<and>
    :<or>
-   :<not>
    ;;; Source and binary locations and ranges
    :source-location
    :line
