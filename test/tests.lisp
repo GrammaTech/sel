@@ -19,14 +19,17 @@
 (defun batch-test (&optional args)
   (declare (ignorable args))
   (let* ((*test-progress-print-right-margin* (expt 2 20))
-         (failures (stefil::failure-descriptions-of
-                    (without-debugging (test)))))
-    (format *error-output* "FAILURES~%")
-    (mapc [{format *error-output* "  ~a~%"}
-           #'stefil::name-of
-           #'stefil::test-of
-           #'car #'stefil::test-context-backtrace-of]
-          (coerce failures 'list))))
+         (failures (coerce (stefil::failure-descriptions-of
+                            (without-debugging (test)))
+                           'list)))
+    (if failures
+        (progn (format *error-output* "FAILURES~%")
+               (mapc [{format *error-output* "  ~a~%"}
+                      #'stefil::name-of
+                      #'stefil::test-of
+                      #'car #'stefil::test-context-backtrace-of]
+                     failures))
+        (format *error-output* "SUCCESS~%"))))
 
 (defsuite test)
 (in-suite test)
