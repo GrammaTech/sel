@@ -107,7 +107,7 @@
     ;; The clang-mito object is now fully initialized.
     ;; Next, generate the bulk of the program text by joining all global
     ;; declarations together in the same order they originally appeared.
-    (setf (genome obj)
+    (setf (genome-string obj)
           (unlines
            (mapcar {aget :decl--text}
                    (sort (remove-if-not {aget :decl--text} json-db)
