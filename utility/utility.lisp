@@ -532,15 +532,13 @@ is replaced with replacement."
   (or (and (source-<= (begin a-range) (begin b-range))
            (source->  (end a-range) (begin b-range)))
       (and (source->= (end a-range) (end b-range))
-           (source-<  (begin a-range) (end b-range))
-      (contains b-range a-range))))
+           (source-<  (begin a-range) (end b-range)))))
 
 (defmethod intersects ((a-range range) (b-range range))
   (or (and (<= (begin a-range) (begin b-range))
            (>  (end a-range) (begin b-range)))
       (and (>= (end a-range) (end b-range))
-           (<  (begin a-range) (end b-range)))
-      (contains b-range a-range)))
+           (<  (begin a-range) (end b-range)))))
 
 
 ;;; debugging helpers
