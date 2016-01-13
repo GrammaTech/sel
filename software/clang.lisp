@@ -434,12 +434,6 @@ Otherwise return the whole FULL-GENOME"
            :line (aget :end--src--line ast)
            :column (aget :end--src--col ast))))
 
-(defun ast-to-binary-range (ast)
-  "Convert AST to pair of SOURCE-LOCATIONS."
-  (make-instance 'range
-    :begin (or (aget :begin--addr ast) 0)
-    :end (or (aget :end--addr ast) 0)))
-
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
   (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj)))
 
