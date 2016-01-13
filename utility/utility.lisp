@@ -757,6 +757,22 @@ that function may be declared.")
                 (setf (gethash key ht) (merge-fn value-a value-b))))))
     ht))
 
+(defun ht-copy (ht)
+  (let ((new-ht (make-hash-table
+                 :test (hash-table-test ht)
+                 :rehash-size (hash-table-rehash-size ht)
+                 :rehash-threshold (hash-table-rehash-threshold ht)
+                 :size (hash-table-size ht))))
+    (loop for key being each hash-key of ht
+      using (hash-value value)
+      do (setf (gethash key new-ht) value)
+      finally (return new-ht))))
+
+(defun remhash-non-destructive(k ht)
+  (let ((ht-copy (ht-copy ht)))
+    (remhash k ht-copy)
+    ht-copy))
+
 (defun <not> (f)
   (lambda (x) (not (funcall f x))))
 

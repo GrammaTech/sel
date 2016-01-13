@@ -88,6 +88,8 @@
    :list->ht
    :merge-hash-tables
    :ht-intersect
+   :ht-copy
+   :remhash-non-destructive
    ;; debugging
    :*note-level*
    :*note-out*
