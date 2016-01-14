@@ -174,12 +174,12 @@ argument TEST must be supplied."))
     ;; Add information on the mutation to `*mutation-stats*`.
     (multiple-value-bind (effect fit old-fit)
         (classify obj crossed)
-      (push (setf result (list mutation effect fit old-fit))
+      (push (setf result (list mutation effect *fitness-evals* fit old-fit))
             (gethash (mutation-key crossed mutation) *mutation-stats*)))
     ;; Add information on the crossover to `*crossover-stats*`.
     (when cross-point-a
       (let ((effect (classify crossed software-a software-b)))
-        (push (list mutation effect)
+        (push (list mutation effect *fitness-evals*)
               (gethash (mutation-key crossed mutation) *crossover-stats*)))))
   (values
    obj mutation software-a cross-point-a crossed software-b cross-point-b
