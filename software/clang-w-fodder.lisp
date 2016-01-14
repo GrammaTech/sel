@@ -37,7 +37,7 @@ a uniformly selected element of the JSON database.")
                 (remove-if-not {aget :full--stmt} v))))
 
   (assert (not (null *json-database-full-stmt-bins*))
-          *json-database-full-stmt-bins*
+          (*json-database-full-stmt-bins*)
           "Full stmt bins should not be null"))
 
 (defun compute-icdf-with-filter (filter &aux bins)
