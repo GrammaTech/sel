@@ -143,6 +143,13 @@
   (:teardown
     (setf *hello-world* nil)))
 
+(defun inject-missing-swap-macro (obj)
+  ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
+  ;; be recalculated by setting the genome-string.
+  (add-macro (mitochondria obj)
+             "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)")
+  (setf (genome-string obj) (genome-string obj)))
+
 (defixture hello-world-clang-w-fodder
   (:setup
    (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
@@ -158,13 +165,7 @@
     (setf *huf*
       (from-file (make-instance 'clang :compiler "gcc" :flags '("-g -m32 -O0"))
                  (huf-dir "huf.c")))
-
-    ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
-    ;; be recalculated by setting the genome-string.
-    (add-macro (mitochondria *huf*)
-               "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)")
-    (setf (genome-string *huf*) (genome-string *huf*)))
-
+    (inject-missing-swap-macro *huf*))
   (:teardown
     (setf *huf* nil)))
 

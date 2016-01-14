@@ -65,6 +65,7 @@
    :clang-tidy
    :clang-format
    :clang-mutate
+   :update-mito-from-snippet
    :to-file
    :apply-path
    :pick-json
@@ -102,6 +103,9 @@
    :*fodder-selection-bias*
    :*clang-mutation-cdf*
    :*clang-crossover-cdf*
+   :*free-var-decay-rate*
+   :*matching-free-var-retains-name-bias*
+   :*allow-bindings-to-globals-bias*
    :*json-database*
    :*json-database-bins*
    :*json-database-full-stmt-bins*
