@@ -66,7 +66,7 @@
       (setf asts
             (coerce (remove-if-not {aget :counter} json-db) 'vector)
             prototypes
-            (coerce (remove-if-not {aget :ret} json-db) 'vector)))))
+            (coerce (remove-if-not {aget :body} json-db) 'vector)))))
 
 ;; Create a clang software object from a given C file.
 ;; The software object's genome will exactly the input
@@ -600,19 +600,15 @@ Otherwise return the whole FULL-GENOME"
            :stmts stmts)))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet)
-  (let ((functions (aget :UNBOUND--FUNS snippet)))
-    (loop for f in functions
-       do (add-includes-for-function (mitochondria clang) f)))
-
+  (loop for f in (aget :UNBOUND--FUNS snippet)
+     do (add-includes-for-function (mitochondria clang) (car f)))
   (loop for type in (aget :TYPES snippet)
      do (add-type (mitochondria clang) type))
-
   (let ((macros (aget :MACROS snippet)))
     (loop for macro in macros
        do (add-macro (mitochondria clang)
                      (first macro)
                      (second macro))))
-
   snippet)
 
 (defun nonempty-lines (text)
@@ -658,11 +654,18 @@ Otherwise return the whole FULL-GENOME"
       (peel-bananas var)
       (random-elt-with-decay in-scope *free-var-decay-rate*)))
 
-(defmethod bind-free-vars ((clang clang) snippet pt &optional keep-globals)
+(defvar *allow-bindings-to-globals-bias* 1/5
+  "Probability that we consider the global scope when binding
+free variables.")
+
+(defmethod bind-free-vars ((clang clang) snippet pt)
   (let* ((raw-code    (aget :src--text snippet))
          (free-vars   (make-hash-table :test 'equal))
          (respect-depth (aget :respect--depth snippet))
-         (scope-vars (get-indexed-vars-in-scope clang pt keep-globals)))
+         (scope-vars (get-indexed-vars-in-scope
+                       clang
+                       pt
+                       (random-bool :bias *allow-bindings-to-globals-bias*))))
     (list->ht (aget :unbound--vals snippet) free-vars)
     (apply-replacements
      (loop for var being the hash-keys of free-vars
