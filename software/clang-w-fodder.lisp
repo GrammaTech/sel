@@ -34,7 +34,11 @@ a uniformly selected element of the JSON database.")
         (compute-icdf-with-filter
             #'(lambda (k v)
                 (declare (ignorable k))
-                (remove-if-not {aget :full--stmt} v)))))
+                (remove-if-not {aget :full--stmt} v))))
+
+  (assert (not (null *json-database-full-stmt-bins*))
+          *json-database-full-stmt-bins*
+          "Full stmt bins should not be null"))
 
 (defun compute-icdf-with-filter (filter &aux bins)
   (let ((total 0)
@@ -106,7 +110,8 @@ CLANG-W-FODDER in a method-dependent fashion."))
          (bin (multiple-value-bind (result exists) (gethash key *json-database*)
                 (unless exists
                   (error (make-condition 'mutate
-                                         :text "No valid snippet" :obj clang-w-fodder)))
+                                         :text (format nil "No valid snippet for ~S" key)
+                                         :obj clang-w-fodder)))
                 result)))
     (random-elt bin)))
 
