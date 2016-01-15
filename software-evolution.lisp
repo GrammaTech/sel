@@ -100,15 +100,15 @@ argument FUNC processes the index to return a result."))
   (let ((pick (proportional-pick (genome sw) key)))
     (if func (funcall func pick) pick)))
 
-(defgeneric pick-good (software &key)
+(defgeneric pick-good (software)
   (:documentation "Pick a 'good' index into a software object.
 Used to target mutation."))
-(defmethod pick-good ((software software) &key) (random (size software)))
+(defmethod pick-good ((software software)) (random (size software)))
 
-(defgeneric pick-bad (software &key)
+(defgeneric pick-bad (software)
   (:documentation "Pick a 'bad' index into a software object.
 Used to target mutation."))
-(defmethod pick-bad  ((software software) &key) (random (size software)))
+(defmethod pick-bad  ((software software)) (random (size software)))
 
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
