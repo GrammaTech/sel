@@ -39,8 +39,8 @@ and applies the changed data in `genome' of ELF."))
     (declare (ignorable stdout stderr))
     (values bin exit)))
 
-(defmethod pick-good ((elf elf) &key) (random (length (genome elf))))
-(defmethod pick-bad ((elf elf) &key) (random (length (genome elf))))
+(defmethod pick-good ((elf elf)) (random (length (genome elf))))
+(defmethod pick-bad ((elf elf)) (random (length (genome elf))))
 
 (defmethod mutate ((elf elf))
   "Randomly mutate ELF."

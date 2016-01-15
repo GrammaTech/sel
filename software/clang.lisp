@@ -181,10 +181,10 @@
 (defun random-stmt (asts)
   (aget :counter (random-elt asts)))
 
-(defmethod pick-good ((clang clang) &key)
+(defmethod pick-good ((clang clang))
   (random-stmt (good-asts clang)))
 
-(defmethod pick-bad ((clang clang) &key)
+(defmethod pick-bad ((clang clang))
   (random-stmt (bad-asts clang)))
 
 (defmethod get-ast-class ((clang clang) stmt)
