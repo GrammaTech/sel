@@ -52,6 +52,19 @@
 (defmethod size ((obj clang))
   (with-slots (asts) obj (length asts)))
 
+(defvar *clang-json-required-fields*
+  '( :ast--class         :counter            :unbound--vals
+     :unbound--funs      :types              :stmt--list
+     :src--text          :parent--counter    :macros
+     :guard--stmt        :full--stmt         :begin--src--line
+     :end--src--line     :begin--src--col    :end--src--col
+     :begin--addr        :end--addr          :binary--contents )
+  "JSON database entry fields required for clang software objects.")
+
+(defvar *clang-json-required-aux*
+  '(:prototypes)
+  "JSON database AuxDB entries required for clang software objects.")
+
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
   (with-slots (asts prototypes) obj
     (let ((json-db
@@ -62,7 +75,11 @@
                ((mutate (lambda (err) (declare (ignorable err)) (setf asts nil)
                            ;; Also, return nil for json-db.
                            nil)))
-             (clang-mutate obj (cons :json clang-mutate-args)))))
+             (clang-mutate obj
+                           (list* :json
+                                  (cons :fields *clang-json-required-fields*)
+                                  (cons :aux *clang-json-required-aux*)
+                                  clang-mutate-args)))))
       (setf asts
             (coerce (remove-if-not {aget :counter} json-db) 'vector)
             prototypes
@@ -352,6 +369,8 @@ Otherwise return the whole FULL-GENOME"
                    (:stmt2 (format nil "-stmt2=~d" value))
                    (:fields (format nil "-fields=~a"
                                     (mapconcat #'field-opt value ",")))
+                   (:aux (format nil "-aux=~a"
+                                 (mapconcat #'aux-opt value ",")))
                    (:value1
                     (setf value1-file (temp-file-name))
                     (string-to-file value value1-file)
@@ -386,7 +405,13 @@ Otherwise return the whole FULL-GENOME"
                  (:scopes "scopes")
                  (:begin--addr "begin_addr")
                  (:end--addr "end_addr")
-                 (:binary--contents "binary_contents"))))
+                 (:binary--contents "binary_contents")))
+             (aux-opt (aux)
+               (ecase aux
+                 (:types "types")
+                 (:prototypes "prototypes")
+                 (:decls "decls")
+                 (:none "none"))))
     (unwind-protect
        (multiple-value-bind (stdout stderr exit)
            (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
