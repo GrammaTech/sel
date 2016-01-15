@@ -106,6 +106,8 @@
    :*free-var-decay-rate*
    :*matching-free-var-retains-name-bias*
    :*allow-bindings-to-globals-bias*
+   :*clang-json-required-fields*
+   :*clang-json-required-aux*
    :*json-database*
    :*json-database-bins*
    :*json-database-full-stmt-bins*
