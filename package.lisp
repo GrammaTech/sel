@@ -73,6 +73,7 @@
    :asts
    :good-asts
    :bad-asts
+   :update-asts
    :source-location
    :line
    :column
