@@ -62,7 +62,7 @@
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
-  '(:prototypes)
+  '(:protos)
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
@@ -409,7 +409,7 @@ Otherwise return the whole FULL-GENOME"
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
-                 (:prototypes "prototypes")
+                 (:protos "protos")
                  (:decls "decls")
                  (:none "none"))))
     (unwind-protect
