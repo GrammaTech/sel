@@ -73,12 +73,26 @@
   (let ((disasm (disassemble-section (base elf) section)))
     (values
      (mapcar #'car disasm)
+     ;; objdump will split the byte sequence for long instructions
+     ;; over multiple lines. The additional lines have an empty
+     ;; disassembly field, so we must accumulate the bytes in these
+     ;; entries back onto the corresponding instruction's bytes.
      (setf (genome elf)
-           (mapcar (lambda-bind ((address bytes disasm))
-                     `((:address . ,address)
-                       (:code . ,bytes) 
-                       (:disasm . ,disasm)))
-                   (remove-if-not [{= 3} #'length] (mappend #'cdr disasm)))))))
+           (loop :for (op . ops)
+              :on (mapcar (lambda-bind ((address bytes disasm))
+                                       `((:address . ,address)
+                                         (:code . ,bytes)
+                                         (:disasm . ,disasm)))
+                          (remove-if-not [{= 3} #'length]
+                                         (mappend #'cdr disasm)))
+              :when (aget :disasm op)
+              :collecting
+              `((:address . ,(aget :address op))
+                (:code . ,(apply {concatenate 'list}
+                            (mapcar
+                             {aget :code}
+                             (cons op (take-until {aget :disasm} ops)))))
+                (:disasm . ,(aget :disasm op))))))))
 
 (defmethod from-file ((elf elf-cisc) path)
   (setf (base elf) (read-elf path 'objdump))
