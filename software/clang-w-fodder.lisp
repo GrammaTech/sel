@@ -63,6 +63,23 @@ a uniformly selected element of the JSON database.")
 (defmethod from-file :before ((obj clang-w-fodder) path)
   (assert (not (null *json-database-bins*))))
 
+(defun load-json-with-caching (json-db-path)
+  (let ((json-stored-db-path (make-pathname
+                              :directory (pathname-directory json-db-path)
+                              :name (pathname-name json-db-path)
+                              :type "dbcache")))
+    (if (and (probe-file json-stored-db-path)
+             (> (file-write-date json-stored-db-path)
+                (file-write-date json-db-path)))
+        ;; Cache exists and is newer than the original
+        ;; JSON database; use the cache.
+        (cl-store:restore json-stored-db-path)
+        ;; Cache does not yet exist or has been invalidated;
+        ;; load from JSON and write back to the cache.
+        (with-open-file (json-stream json-db-path)
+          (cl-store:store (json:decode-json-from-source json-stream)
+                          json-stored-db-path)))))
+
 (defun clang-w-fodder-setup-db (json-db-path)
   ;; Clobber the existing database
   (setq *json-database* (make-hash-table :test 'equal))
@@ -70,8 +87,7 @@ a uniformly selected element of the JSON database.")
   (setq *json-database-binary-fodder* '())
 
   ;; Load the snippet database and classify by AST class.
-  (dolist (snippet (with-open-file (json-stream json-db-path)
-                     (json:decode-json-from-source json-stream)))
+  (dolist (snippet (load-json-with-caching json-db-path))
     (let ((ast-class (aget :AST--CLASS snippet)))
       (if ast-class
           ;; This entry describes a code snippet
