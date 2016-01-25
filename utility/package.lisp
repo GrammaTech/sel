@@ -89,6 +89,7 @@
    :merge-hash-tables
    :ht-intersect
    :ht-copy
+   :ht-keys
    :remhash-non-destructive
    ;; debugging
    :*note-level*
