@@ -766,6 +766,9 @@ that function may be declared.")
       do (setf (gethash key new-ht) value)
       finally (return new-ht))))
 
+(defun ht-keys (ht)
+  (loop for key being the hash-keys of ht collect key))
+
 (defun remhash-non-destructive(k ht)
   (let ((ht-copy (ht-copy ht)))
     (remhash k ht-copy)
