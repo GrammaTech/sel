@@ -451,22 +451,26 @@ Otherwise return the whole FULL-GENOME"
 
 (defun ast-to-source-range (ast)
   "Convert AST to pair of SOURCE-LOCATIONS."
-  (make-instance 'source-range
-    :begin (make-instance 'source-location
-             :line (aget :begin--src--line ast)
-             :column (aget :begin--src--col ast))
-    :end (make-instance 'source-location
-           :line (aget :end--src--line ast)
-           :column (aget :end--src--col ast))))
+  (when ast
+    (make-instance 'source-range
+      :begin (make-instance 'source-location
+               :line (aget :begin--src--line ast)
+               :column (aget :begin--src--col ast))
+      :end (make-instance 'source-location
+             :line (aget :end--src--line ast)
+             :column (aget :end--src--col ast)))))
 
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
-  (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj)))
+  (when loc
+    (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj))))
 
 (defmethod asts-contained-in-source-range ((obj clang) (range source-range))
-  (remove-if-not [{contains range} #'ast-to-source-range] (asts obj)))
+  (when range
+    (remove-if-not [{contains range} #'ast-to-source-range] (asts obj))))
 
 (defmethod asts-intersecting-source-range ((obj clang) (range source-range))
-  (remove-if-not [{intersects range} #'ast-to-source-range] (asts obj)))
+  (when range
+    (remove-if-not [{intersects range} #'ast-to-source-range] (asts obj))))
 
 (defmethod line-breaks ((clang clang))
   (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index
@@ -491,6 +495,16 @@ Otherwise return the whole FULL-GENOME"
                      (get-parent-asts
                        clang
                        (get-ast clang (aget :parent--counter ast)))))))
+
+(defmethod get-immediate-children ((clang clang) ast)
+  ;; NOTE: This would be much more efficient if the AST was organized
+  ;; as a tree instead of a list.  It also assumes that children ASTs
+  ;; are contained within the source text of an AST.
+  (remove-if-not (lambda (child-ast) (= (aget :parent--counter child-ast)
+                                        (aget :counter ast))) 
+                 (asts-contained-in-source-range 
+                     clang 
+                     (ast-to-source-range ast))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))

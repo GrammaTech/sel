@@ -84,6 +84,7 @@
    :get-ast
    :get-parent-asts
    :parent-ast-p
+   :get-immediate-children
    :extend-to-enclosing
    :get-ast-info
    :worst
