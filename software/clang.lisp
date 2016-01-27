@@ -497,14 +497,9 @@ Otherwise return the whole FULL-GENOME"
                        (get-ast clang (aget :parent--counter ast)))))))
 
 (defmethod get-immediate-children ((clang clang) ast)
-  ;; NOTE: This would be much more efficient if the AST was organized
-  ;; as a tree instead of a list.  It also assumes that children ASTs
-  ;; are contained within the source text of an AST.
   (remove-if-not (lambda (child-ast) (= (aget :parent--counter child-ast)
-                                        (aget :counter ast))) 
-                 (asts-contained-in-source-range 
-                     clang 
-                     (ast-to-source-range ast))))
+                                        (aget :counter ast)))
+                 (asts clang)))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
