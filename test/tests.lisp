@@ -54,12 +54,17 @@
   (make-pathname :directory (append *base-dir* (list "hello-world")))
   "Location of the hello world example directory")
 
+(defvar *clang-format-dir*
+  (make-pathname :directory (append *base-dir* (list "clang-format")))
+  "Location of the clang-format example directory")
+
 (defvar *huf-dir*
   (make-pathname :directory (append *base-dir* (list "huf")))
   "Location of the huf example directory")
 
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 (defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
+(defun clang-format-dir (filename) (merge-pathnames filename *clang-format-dir*))
 (defun huf-dir (filename) (merge-pathnames filename *huf-dir*))
 
 (define-software soft (software)
@@ -523,6 +528,14 @@
       (clang-tidy variant)
       (is (= (size variant)
              (size *hello-world*))))))
+
+(deftest format-a-clang-software-object()
+  (let ((obj (from-file (make-instance 'clang :compiler "clang-3.7"
+                         :flags '("-g -m32 -O0"))
+                        (clang-format-dir "unformatted.c"))))
+    (is (string= (genome-string-without-separator (clang-format obj))
+                 (file-to-string (clang-format-dir "formatted.c"))))))
+              
 
 
 ;;; Range representation
