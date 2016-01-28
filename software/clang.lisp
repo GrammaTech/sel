@@ -233,6 +233,10 @@ already in scope, it will keep that name.")
 (defvar *crossover-function-probability* 0.25
   "The probability of crossing a function during whole-program crossover.")
 
+(defvar *clang-format-after-mutation-chance* 0.125
+  "The probability of applying clang-format on an object after mutation")
+
+
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
@@ -321,6 +325,9 @@ already in scope, it will keep that name.")
 (defmethod apply-mutation :around ((obj clang) op)
   (multiple-value-call (lambda (variant &rest rest)
                          (unless (member (car op) '(:ids :list :json))
+                           (when (random-bool :bias 
+                                    *clang-format-after-mutation-chance*)
+                             (clang-format obj))
                            (update-asts obj))
                          (apply #'values variant rest))
     (call-next-method)))
