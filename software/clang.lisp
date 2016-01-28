@@ -153,10 +153,9 @@
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
-    (format nil "~a~%"
-            (if (full-stmt-p clang pt)
-                (add-semicolon-if-needed text)
-                text))))
+    (if (full-stmt-p clang pt)
+        (format nil "~a~%" (add-semicolon-if-needed text))
+        (format nil "~a" text))))
 
 (defun do-not-filter () (lambda (asts) asts))
 
