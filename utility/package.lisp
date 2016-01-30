@@ -90,6 +90,7 @@
    :ht-intersect
    :ht-copy
    :ht-keys
+   :ht-fold
    :remhash-non-destructive
    ;; debugging
    :*note-level*
