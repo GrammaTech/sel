@@ -507,6 +507,11 @@ Otherwise return the whole FULL-GENOME"
                                         (aget :counter ast)))
                  (asts clang)))
 
+(defmethod get-parent-full-stmt((clang clang) ast)
+  (cond ((aget :full--stmt ast) ast)
+        (t (get-parent-full-stmt clang (get-ast clang 
+                                                (aget :parent--counter ast))))))
+
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
     (if (= 0 index)
