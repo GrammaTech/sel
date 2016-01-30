@@ -769,6 +769,15 @@ that function may be declared.")
 (defun ht-keys (ht)
   (loop for key being the hash-keys of ht collect key))
 
+(defun ht-fold (f ht accum 
+                &key (key-sort #'<))
+  (cond ((= 0 (hash-table-count ht)) accum)
+        (t (let ((k (extremum (ht-keys ht) key-sort)))
+             (ht-fold f 
+                      (remhash-non-destructive k ht)
+                      (funcall f (gethash k ht) accum)
+                      :key-sort key-sort)))))
+
 (defun remhash-non-destructive(k ht)
   (let ((ht-copy (ht-copy ht)))
     (remhash k ht-copy)
