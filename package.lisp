@@ -27,6 +27,7 @@
    :line-breaks
    :genome-string
    :mitochondria
+   :ancestors
    :pick
    :pick-good
    :pick-bad
@@ -89,6 +90,7 @@
    :extend-to-enclosing
    :get-ast-info
    :worst
+   :get-fresh-ancestry-id
    ;; global variables
    :*population*
    :*max-population-size*
@@ -100,6 +102,7 @@
    :*fitness-evals*
    :*running*
    ;; clang / clang-w-fodder global variables
+   :*ancestor-logging*
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*
    :*crossover-function-probability*
