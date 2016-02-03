@@ -25,6 +25,10 @@
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
    (asts :initarg :asts :initform nil :copier :direct)
+   (ancestors :initarg :ancestors
+              :accessor ancestors
+              :initform nil
+              :copier :direct)
    (prototypes :initarg :functions :initform nil :copier :direct)
    (mitochondria :initarg :mitochondria
                  :accessor mitochondria
@@ -33,6 +37,17 @@
 
 (defvar *type-database* (make-hash-table :test 'equal)
   "A database of user-defined types.")
+
+(defvar *ancestor-logging* nil
+  "Enable ancestor logging")
+
+(defvar *next-ancestry-id* 0
+  "Unique identifier for ancestry.")
+
+(defun get-fresh-ancestry-id ()
+  (let ((id *next-ancestry-id*))
+    (incf *next-ancestry-id*)
+    id))
 
 (defun reset-type-database ()
     (setf *type-database* (make-hash-table :test 'equal)))
@@ -92,6 +107,10 @@
 ;; in the original program.
 (defmethod from-file-exactly ((obj clang) path)
   (setf (genome-string obj) (file-to-string path))
+  (when *ancestor-logging*
+    (setf (ancestors obj) (list (alist :base (file-to-string path)
+                                       :how 'from-file-exactly
+                                       :id (get-fresh-ancestry-id)))))
   (setf (ext obj)  (pathname-type (pathname path)))
   obj)
 
@@ -135,6 +154,10 @@
                          :key (lambda (x)
                                 (cons (aget :begin--src--line x)
                                       (aget :begin--src--col x))))))))
+  (when *ancestor-logging*
+    (setf (ancestors obj) (list (alist :base (file-to-string path)
+                                       :how 'from-file
+                                       :id (get-fresh-ancestry-id)))))
   obj)
 
 (defmethod asts ((obj clang))
@@ -325,6 +348,10 @@ already in scope, it will keep that name.")
 (defmethod apply-mutation :around ((obj clang) op)
   (multiple-value-call (lambda (variant &rest rest)
                          (unless (member (car op) '(:ids :list :json))
+                           (when *ancestor-logging*
+                             (push (alist :mutant op
+                                          :id (get-fresh-ancestry-id))
+                                   (ancestors obj)))
                            (when (random-bool :bias 
                                     *clang-format-after-mutation-chance*)
                              (clang-format obj))
@@ -782,11 +809,12 @@ free variables.")
                   (cons :value1 (bind-free-vars variant b-snippet a-begin)))))
           (values variant
                   (list (aget :stmt1 a-snippet) (aget :stmt2 a-snippet))
-                  (list (aget :stmt1 b-snippet) (aget :stmt2 b-snippet))))
+                  (list (aget :stmt1 b-snippet) (aget :stmt2 b-snippet))
+                  t))
 
         ;; The selected initial crossover points were not valid; return a
         ;; copy of a.
-        (values variant nil nil))))
+        (values variant nil nil nil))))
 
 ;; Perform crossover by selecting a single AST from a and b to cross.
 ;; Free variables are recontextualized to the insertion point.
@@ -805,16 +833,19 @@ free variables.")
                   (cons :stmt1 a-begin)
                   (cons :stmt2 a-begin)
                   (cons :value1 (bind-free-vars variant b-snippet a-begin)))))
-          (values variant a-begin b-begin))
-        (values variant nil nil))))
+          (values variant a-begin b-begin t))
+        (values variant nil nil nil))))
 
 (defmethod apply-fun-body-substitutions ((clang clang) substitutions)
-  (let ((sorted (sort (copy-seq substitutions) #'> :key #'car)))
+  (let ((sorted (sort (copy-seq substitutions) #'> :key #'car))
+        (changedp nil))
     (loop for (body-stmt . text) in sorted
-       do (apply-mutation clang
-                          (list :set-func
-                                (cons :stmt1  body-stmt)
-                                (cons :value1 text))))))
+       do (progn (setf changedp t)
+                 (apply-mutation clang
+                                 (list :set-func
+                                       (cons :stmt1  body-stmt)
+                                       (cons :value1 text)))))
+    changedp))
 
 (defmethod full-function-text ((clang clang) func)
   (format nil "~a~%~a"
@@ -835,15 +866,26 @@ free variables.")
                                 :value {full-function-text b})))
         (variant (copy a)))
     (union-mito (mitochondria variant) (mitochondria b))
-    (apply-fun-body-substitutions variant
-     (loop for func being the hash-keys of common-funs
-        using (hash-value bodies)
-        when (> *crossover-function-probability* (random 1.0))
-        collect bodies))
-    (values variant nil nil)))
+    (values variant nil nil
+            (apply-fun-body-substitutions
+             variant
+             (loop for func being the hash-keys of common-funs
+                using (hash-value bodies)
+                when (> *crossover-function-probability* (random 1.0))
+                collect bodies)))))
 
 (defmethod crossover ((a clang) (b clang))
-  (funcall (random-pick *clang-crossover-cdf*) a b))
+  (let ((crossover-method (random-pick *clang-crossover-cdf*)))
+    (multiple-value-bind (crossed a-point b-point changedp)
+        (funcall crossover-method a b)
+      (when (and changedp *ancestor-logging*)
+        (push (alist :cross-with (ancestors b)
+                     :crossover crossover-method
+                     :id (get-fresh-ancestry-id))
+              (ancestors crossed)))
+      (if changedp
+          (values crossed a-point b-point)
+          (values crossed nil nil)))))
 
 (defvar clang-genome-separator "//===============^=================="
   "String used to separate the mito and full portions of a clang genome.")
