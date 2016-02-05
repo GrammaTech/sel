@@ -144,7 +144,8 @@ CLANG-W-FODDER in a method-dependent fashion."))
       (call-next-method)
       ;; Perform a mutation using fodder
       (let* ((bad   (pick-bad  clang-w-fodder))
-             (bad-stmt  (enclosing-full-stmt clang-w-fodder bad))
+             (bad-stmt  (if (full-stmt-p clang-w-fodder bad) bad
+                            (enclosing-full-stmt clang-w-fodder bad)))
              (mutation (random-elt '(:replace-fodder-same :replace-fodder-full
                                      :insert-fodder  :insert-fodder-full)))
              (value (update-mito-from-snippet clang-w-fodder
