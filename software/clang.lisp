@@ -83,18 +83,16 @@
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
   (with-slots (asts prototypes) obj
     (let ((json-db
-           (handler-bind
-               ;; When clang-mutate errors we explicitly nullify the asts.
+           (handler-case
+               ;; When clang-mutate errors we nullify the asts.
                ;; Otherwise we can end up in weird situations, like trying to
                ;; parse a mutation error condition as an alist of ASTS.
-               ((mutate (lambda (err) (declare (ignorable err)) (setf asts nil)
-                           ;; Also, return nil for json-db.
-                           nil)))
              (clang-mutate obj
                            (list* :json
                                   (cons :fields *clang-json-required-fields*)
                                   (cons :aux *clang-json-required-aux*)
-                                  clang-mutate-args)))))
+                                  clang-mutate-args))
+             (mutate (err) (declare (ignorable err)) nil))))
       (setf asts
             (coerce (remove-if-not {aget :counter} json-db) 'vector)
             prototypes
@@ -697,11 +695,11 @@ Otherwise return the whole FULL-GENOME"
       (loop
          for scope in
            (aget :scopes (car
-                          (handler-bind ; When clang-mutate errors return nil.
-                              ((mutate (lambda (err) (declare (ignorable err)) nil)))
+                          (handler-case ; When clang-mutate errors return nil.
                             (clang-mutate clang
                                           `(:json (:fields . (:scopes))
-                                                  (:stmt1 . ,pt))))))
+                                                  (:stmt1 . ,pt)))
+                            (mutate (err) (declare (ignorable err)) nil))))
          for index from 0
          do (setf (gethash index index-table) scope
                   max-index index)))
