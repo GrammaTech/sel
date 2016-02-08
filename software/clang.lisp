@@ -58,6 +58,12 @@
 (defgeneric asts (software)
   (:documentation "Return a list of all asts in SOFTWARE."))
 
+(defgeneric good-asts (software)
+  (:documentation "Return a list of all good asts in SOFTWARE."))
+
+(defgeneric bad-asts (software)
+  (:documentation "Return a list of all bad asts in SOFTWARE."))
+
 (defgeneric get-ast (software id)
   (:documentation "Return the statement in SOFTWARE indicated by ID."))
 
@@ -186,17 +192,11 @@
 (defun full-stmt-filter (asts)
   (remove-if-not { aget :full--stmt } asts))
 
-(defvar *good-asts-override* nil
-  "Override for the return value of the good-asts method.")
-
 (defmethod good-asts ((clang clang))
-  (or *good-asts-override* (asts clang)))
-
-(defvar *bad-asts-override* nil
-  "Override for the return value of the bad-asts method.")
+  (asts clang))
 
 (defmethod bad-asts ((clang clang))
-  (or *bad-asts-override* (asts clang)))
+  (asts clang))
 
 (defun random-stmt (asts)
   (aget :counter (random-elt asts)))
