@@ -70,6 +70,12 @@
 (defgeneric mitochondria (clang)
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
+(defgeneric genome-string (clang &optional stream)
+  (:documentation "Get a string representation of the GENOME of CLANG"))
+
+(defgeneric (setf genome-string) (text clang)
+  (:documentation "Set the GENOME of CLANG to the string representation"))
+
 (defmethod size ((obj clang))
   (with-slots (asts) obj (length asts)))
 
