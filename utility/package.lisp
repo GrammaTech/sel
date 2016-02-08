@@ -91,6 +91,7 @@
    :ht-copy
    :ht-keys
    :ht-fold
+   :ht-take-rand
    :remhash-non-destructive
    ;; debugging
    :*note-level*
