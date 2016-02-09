@@ -336,7 +336,11 @@ already in scope, it will keep that name.")
 
 (defmethod apply-mutation ((clang clang) op)
   (restart-case
-      (clang-mutate clang (recontextualize-mutation-op clang op))
+      (handler-case (clang-mutate clang (recontextualize-mutation-op clang op))
+        (error (err)
+          (error (make-condition 'mutate
+                   :text (format nil "recontextualizing mutation error: ~a" err)
+                   :obj clang :op op))))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
