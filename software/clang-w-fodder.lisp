@@ -141,15 +141,22 @@ CLANG-W-FODDER in a method-dependent fashion."))
              (mutation (random-elt '(:replace-fodder-same :replace-fodder-full
                                      :insert-fodder  :insert-fodder-full)))
              (value (update-mito-from-snippet clang-w-fodder
-                      (ecase mutation
-                        (:replace-fodder-same
-                         (pick-json clang-w-fodder
-                                    :pt bad
-                                    :class (get-ast-class clang-w-fodder bad)))
-                        ((:replace-fodder-full :insert-fodder-full)
-                         (pick-json clang-w-fodder :pt bad :full t))
-                        (:insert-fodder
-                         (pick-json clang-w-fodder)))))
+                      (handler-case
+                          (ecase mutation
+                            (:replace-fodder-same
+                             (pick-json clang-w-fodder
+                                        :pt bad
+                                        :class
+                                        (get-ast-class clang-w-fodder bad)))
+                            ((:replace-fodder-full :insert-fodder-full)
+                             (pick-json clang-w-fodder :pt bad :full t))
+                            (:insert-fodder
+                             (pick-json clang-w-fodder)))
+                        (error (err)
+                          (error (make-condition 'mutate
+                                   :text
+                                   (format nil "value selection error: ~a" err)
+                                   :obj clang-w-fodder :op nil))))))
              (stmt (ecase mutation
                      ((:replace-fodder-same :insert-fodder)
                       bad)
