@@ -297,7 +297,7 @@ already in scope, it will keep that name.")
           (error (make-condition 'mutate
                    :text
                    (format nil "mutation error: ~a" err)
-                   :obj clang-w-fodder :op nil)))))))
+                   :obj clang :op nil)))))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
