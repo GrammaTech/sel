@@ -149,7 +149,8 @@ and an optional extension."
         ;; native shell execution
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input nil)
-            #+ccl (shell-command cmd :input "")
+            #+ccl (progn (warn "shell-command may hang if output is large")
+                         (shell-command cmd :input ""))
             #+allegro
             (multiple-value-bind (out-lines err-lines errno)
                 (excl.osi:command-output cmd)
