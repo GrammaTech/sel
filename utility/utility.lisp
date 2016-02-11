@@ -770,9 +770,11 @@ that function may be declared.")
   (loop for key being the hash-keys of ht collect key))
 
 (defun ht-fold (f ht accum 
-                &key (key-sort #'<))
+                &key (key-sort nil))
   (cond ((= 0 (hash-table-count ht)) accum)
-        (t (let ((k (extremum (ht-keys ht) key-sort)))
+        (t (let ((k (if key-sort 
+                        (extremum (ht-keys ht) key-sort)
+                        (random-elt (ht-keys ht)))))
              (ht-fold f 
                       (remhash-non-destructive k ht)
                       (funcall f (gethash k ht) accum)
