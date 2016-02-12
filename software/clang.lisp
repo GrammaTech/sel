@@ -272,32 +272,26 @@ already in scope, it will keep that name.")
          (mutation (random-pick *clang-mutation-cdf*)))
 
     (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))
-      (handler-case
-          (let* ((then (if same-class
-                           (lambda (stmt asts)
-                             (with-class-filter
-                                 (get-ast-class clang stmt) asts))
-                           (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-                 (good (lambda () (filter (good-asts clang))))
-                 (bad  (lambda () (filter (bad-asts  clang))))
-                 (todo
-                  (ecase mutation
-                    (:cut     (list bad))
-                    (:insert  (list bad then good))
-                    (:swap    (list bad then bad))
-                    (:replace (list bad then good))))
-                 (op (cons mutation (apply #'execute-picks todo))))
+      (let* ((then (if same-class
+                       (lambda (stmt asts)
+                         (with-class-filter
+                             (get-ast-class clang stmt) asts))
+                       (lambda (stmt asts) (declare (ignorable stmt)) asts)))
+             (good (lambda () (filter (good-asts clang))))
+             (bad  (lambda () (filter (bad-asts  clang))))
+             (todo
+              (ecase mutation
+                (:cut     (list bad))
+                (:insert  (list bad then good))
+                (:swap    (list bad then bad))
+                (:replace (list bad then good))))
+             (op (cons mutation (apply #'execute-picks todo))))
 
-            (apply-mutation clang op)
-            (values clang (cons (op-name op
-                                         :full full-stmt
-                                         :same same-class)
-                                (cdr op))))
-        (error (err)
-          (error (make-condition 'mutate
-                   :text
-                   (format nil "mutation error: ~a" err)
-                   :obj clang :op nil)))))))
+        (apply-mutation clang op)
+        (values clang (cons (op-name op
+                                     :full full-stmt
+                                     :same same-class)
+                            (cdr op)))))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
@@ -343,11 +337,7 @@ already in scope, it will keep that name.")
 
 (defmethod apply-mutation ((clang clang) op)
   (restart-case
-      (handler-case (clang-mutate clang (recontextualize-mutation-op clang op))
-        (error (err)
-          (error (make-condition 'mutate
-                   :text (format nil "recontextualizing mutation error: ~a" err)
-                   :obj clang :op op))))
+    (clang-mutate clang (recontextualize-mutation-op clang op))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
