@@ -62,6 +62,7 @@
    :take-while
    :take-until
    :chunks
+   :binary-search
    :<and>
    :<or>
    ;;; Source and binary locations and ranges
