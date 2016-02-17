@@ -458,6 +458,34 @@ is replaced with replacement."
   (loop :for i :below (1+ (- (length list) size)) :by size :collect
      (subseq list i (+ i size))))
 
+(defun binary-search (value array &key (low 0) 
+                                       (high (1- (length array)))
+                                       (test (lambda (v)
+                                                (cond ((< v value) -1)
+                                                      ((>= v value) 1)
+                                                      (t 0)))))
+  "Perform a binary search for VALUE on a sorted ARRAY.
+Optional keyword parameters:
+LOW:  Lower bound
+HIGH: Higher bound
+TEST: Test for the binary search algorithm taking on arg.
+Return -1 if arg is less than value, 1 if arg is greater than value,
+and 0 otherwise."
+  (if (< high low)
+      nil
+      (let ((middle (floor (/ (+ low high) 2))))
+
+        (cond ((< 0 (funcall test (aref array middle)))
+               (binary-search value array :low low
+                                          :high (1- middle)
+                                          :test test))
+
+              ((> 0 (funcall test (aref array middle)))
+               (binary-search value array :low (1+ middle)
+                                          :high high
+                                          :test test))
+
+              (t middle)))))
 
 ;;; Source and binary locations and ranges.
 (defclass source-location ()
