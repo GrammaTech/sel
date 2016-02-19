@@ -112,6 +112,7 @@
    :*free-var-decay-rate*
    :*matching-free-var-retains-name-bias*
    :*allow-bindings-to-globals-bias*
+   :*clang-format-after-mutation-chance*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
    :*json-database*
@@ -184,6 +185,7 @@
    :instrument
    :clang-mito
    :add-macro
+   :add-include
    :add-includes-for-function
    :add-type
    :union-mito
