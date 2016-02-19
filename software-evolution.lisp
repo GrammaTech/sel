@@ -337,20 +337,14 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
 (defmethod new-individual (&optional (a (tournament)) (b (tournament)))
   "Generate a new individual from *POPULATION*."
-  (handler-case
-      (multiple-value-bind (crossed a-point b-point) (crossed a b)
-        ;; NOTE: This `copy' call is only needed for `analyze-mutation'.
-        ;; If it appears to be adding significant overhead, consider two
-        ;; alternate implementations of `new-individual' instead of the
-        ;; current approach in which `analyze-mutate' "wraps"
-        ;; `new-individual'.
-        (multiple-value-bind (mutant mutation) (mutant (copy crossed))
-          (values mutant mutation a a-point crossed b b-point)))
-    (error (err)
-      (error (make-condition 'mutate
-               :text
-               (format nil "new individual error: ~a" err)
-               :obj nil :op nil)))))
+  (multiple-value-bind (crossed a-point b-point) (crossed a b)
+    ;; NOTE: This `copy' call is only needed for `analyze-mutation'.
+    ;; If it appears to be adding significant overhead, consider two
+    ;; alternate implementations of `new-individual' instead of the
+    ;; current approach in which `analyze-mutate' "wraps"
+    ;; `new-individual'.
+    (multiple-value-bind (mutant mutation) (mutant (copy crossed))
+      (values mutant mutation a a-point crossed b b-point))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
