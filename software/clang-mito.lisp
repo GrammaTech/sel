@@ -54,11 +54,15 @@
   (setf (gethash name (macros clang-mito))
         (gethash name (macros clang-mito) body)))
 
+;; Add an #include directive for a given header file.
+(defmethod add-include ((clang-mito clang-mito) header)
+  (setf (gethash header (headers clang-mito)) t))
+
 ;; If the named function is defined in a certain header file(s),
 ;; destructively update the genome with those header names.
 (defmethod add-includes-for-function ((clang-mito clang-mito) name)
   (loop for header in (resolve-function-headers name)
-     do (setf (gethash header (headers clang-mito)) t))
+     do (add-include clang-mito header))
   clang-mito)
 
 ;; Add a type and its dependencies, transitively.
