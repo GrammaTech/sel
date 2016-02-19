@@ -274,11 +274,13 @@ already in scope, it will keep that name.")
     (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))
       (let* ((then (if same-class
                        (lambda (stmt asts)
-                         (with-class-filter
-                             (get-ast-class clang stmt) asts))
+                         (or (with-class-filter (get-ast-class clang stmt)
+                                                 asts)
+                             (with-class-filter (get-ast-class clang stmt)
+                                                (asts clang))))
                        (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-             (good (lambda () (filter (good-asts clang))))
-             (bad  (lambda () (filter (bad-asts  clang))))
+             (good (lambda () (or (filter (good-asts clang)) (asts clang))))
+             (bad  (lambda () (or (filter (bad-asts clang)) (asts clang))))
              (todo
               (ecase mutation
                 (:cut     (list bad))
