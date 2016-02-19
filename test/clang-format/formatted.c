@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdarg.h>
 
 int main(int argc, char **argv) {
   int a = 2;
