@@ -378,10 +378,11 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                         ,@(when collect-mutation-stats
                                 `(((mutate
                                     (lambda (err)
-                                      (push (list (op err) :error)
-                                            (gethash
-                                             (mutation-key (obj err) (op err))
-                                             *mutation-stats*)))))))
+                                      (when (and (op err) (obj err))
+                                        (push (list (op err) :error)
+                                              (gethash
+                                               (mutation-key (obj err) (op err))
+                                               *mutation-stats*))))))))
                         (multiple-value-bind
                               (,variant mutation a a-point crossed b b-point)
                             (funcall ,step)
