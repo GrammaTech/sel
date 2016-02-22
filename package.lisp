@@ -91,6 +91,7 @@
    :get-ast-info
    :worst
    :get-fresh-ancestry-id
+   :random-function-name
    ;; global variables
    :*population*
    :*max-population-size*

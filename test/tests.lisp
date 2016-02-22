@@ -1005,3 +1005,12 @@ Useful for printing or returning differences in the REPL."
   (with-fixture huf-clang
     (is (= (size *huf*)
            (count '#\Newline (clang-mutate *huf* '(:list)))))))
+
+;; huf.c only contains one user function with 3 parameters,
+;; check that random-function-name can find it.
+(deftest finds-function-binding ()
+  (with-fixture huf-clang
+    (is (string= "inttobits"
+                 (random-function-name (prototypes *huf*)
+                                       :original-name "foo"
+                                       :arity 3)))))

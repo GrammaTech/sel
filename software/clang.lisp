@@ -85,7 +85,8 @@
      :src--text          :parent--counter    :macros
      :guard--stmt        :full--stmt         :begin--src--line
      :end--src--line     :begin--src--col    :end--src--col
-     :begin--addr        :end--addr          :binary--contents )
+     :begin--addr        :end--addr          :binary--contents
+     :includes)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -145,10 +146,10 @@
       do (loop for macro in (aget :macros snippet)
            do (add-macro (mitochondria obj) (first macro) (second macro))))
 
-    ;; Add any #includes needed for the functions called.
+    ;; Add any #includes needed.
     (loop for snippet in json-db
-       do (loop for func in (aget :unbound--funs snippet)
-             do (add-includes-for-function (mitochondria obj) (car func))))
+       do (loop for include in (aget :includes snippet)
+             do (add-include (mitochondria obj) include)))
 
     ;; The clang-mito object is now fully initialized.
     ;; Next, generate the bulk of the program text by joining all global
@@ -255,6 +256,10 @@
 
 (defvar *matching-free-var-retains-name-bias* 0.75
   "The probability that if a free variable's original name matches a name
+already in scope, it will keep that name.")
+
+(defvar *matching-free-function-retains-name-bias* 0.75
+  "The probability that if a free functions's original name matches a name
 already in scope, it will keep that name.")
 
 (defvar *crossover-function-probability* 0.25
@@ -445,7 +450,8 @@ Otherwise return the whole FULL-GENOME"
                  (:scopes "scopes")
                  (:begin--addr "begin_addr")
                  (:end--addr "end_addr")
-                 (:binary--contents "binary_contents")))
+                 (:binary--contents "binary_contents")
+                 (:includes "includes")))
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
@@ -664,7 +670,7 @@ Otherwise return the whole FULL-GENOME"
         (setf stmts (cons (aget :counter stmt) stmts))
         (list->ht (aget :types         stmt) types)
         (list->ht (aget :macros        stmt) macros)
-        (list->ht (aget :unbound--funs stmt) funcs)
+        (list->ht (aget :unbound--funs stmt) funcs :key #'car :value #'cdr)
         (loop for var-def in (aget :unbound--vals stmt)
            do (let* ((var (first var-def))
                      (already-seen (gethash var vars nil)))
@@ -673,14 +679,14 @@ Otherwise return the whole FULL-GENOME"
 
     (alist :src--text source
            :unbound--vals (ht->list vars)
-           :unbound--funs (ht->list funcs)
+           :unbound--funs (ht->list funcs :merge-fn #'cons)
            :types  (ht->list types)
            :macros (ht->list macros)
            :stmts stmts)))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet)
-  (loop for f in (aget :UNBOUND--FUNS snippet)
-     do (add-includes-for-function (mitochondria clang) (car f)))
+  (loop for f in (aget :INCLUDES snippet)
+     do (add-include (mitochondria clang) f))
   (loop for type in (aget :TYPES snippet)
      do (add-type (mitochondria clang) type))
   (let ((macros (aget :MACROS snippet)))
@@ -737,23 +743,55 @@ Otherwise return the whole FULL-GENOME"
   "Probability that we consider the global scope when binding
 free variables.")
 
+(defun random-function-name (protos &key original-name arity)
+  (let ((matching '())
+        (variadic '())
+        (others   '())
+        (saw-orig nil))
+    (loop :for proto :in protos
+       :do (let ((name (aget :name proto))
+                 (args (length (aget :args proto))))
+             (when (string= name original-name)
+               (setf saw-orig t))
+             (cond
+               ((= args arity) (push name matching))
+               ((and (< args arity)
+                     (aget :varargs proto)) (push name variadic))
+               (t (push name others)))))
+    (if (and saw-orig (< (random 1.0) *matching-free-function-retains-name-bias*))
+        original-name
+        (random-elt (or matching variadic others '(nil))))))
+
 (defmethod bind-free-vars ((clang clang) snippet pt)
   (let* ((raw-code    (aget :src--text snippet))
          (free-vars   (make-hash-table :test 'equal))
+         (free-funs   (make-hash-table :test 'equal))
          (respect-depth (aget :respect--depth snippet))
          (scope-vars (get-indexed-vars-in-scope
                        clang
                        pt
                        (random-bool :bias *allow-bindings-to-globals-bias*))))
     (list->ht (aget :unbound--vals snippet) free-vars)
+    (list->ht (aget :unbound--funs snippet) free-funs :key #'car :value #'cdr)
     (apply-replacements
-     (loop for var being the hash-keys of free-vars
-        using (hash-value index)
-        collecting
-          (cons var (or (random-scoped-replacement var
-                                                   (gethash (if respect-depth index 0) scope-vars))
-                        (format nil "/* no bound vars in scope at depth ~a */"
-                                index))))
+     (append
+      (loop for var being the hash-keys of free-vars
+         using (hash-value index)
+         collecting
+           (cons var (or (random-scoped-replacement
+                          var
+                          (gethash (if respect-depth index 0) scope-vars))
+                         (format nil "/* no bound vars in scope at depth ~a */"
+                                 index))))
+      (loop for fun being the hash-keys of free-funs
+         using (hash-value fun-info)
+         collecting
+           (cons fun
+                 (or (random-function-name
+                      (prototypes clang)
+                      :original-name (peel-bananas fun)
+                      :arity (third fun-info))
+                     "/* no functions? */"))))
      raw-code)))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
