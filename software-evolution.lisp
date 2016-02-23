@@ -72,7 +72,8 @@
   (:documentation "Pass extra data (optionally) returned by the fitness function
                    to the software object."))
 
-(defmethod (setf fitness-extra-data) (extra-data (obj software)))
+(defmethod (setf fitness-extra-data) (extra-data (obj software))
+  (declare (ignorable extra-data)))
 
 (defgeneric copy (software)
   (:documentation "Copy the software."))
@@ -120,6 +121,12 @@ Used to target mutation."))
 (defvar *crossover-stats* (make-hash-table
                            #+sbcl :synchronized #+sbcl t)
   "Variable to hold crossover statistics.")
+
+(defvar *fitness-evals* 0
+  "Track the total number of fitness evaluations.")
+
+(defvar *fitness-predicate* #'>
+  "Function to compare two fitness values to select which is preferred.")
 
 (defgeneric analyze-mutation (software mutation
                               software-a cross-point-a
@@ -223,6 +230,7 @@ Define an :around method on this function to record mutations."))
 
 (defmethod apply-mutation :before ((obj software) mutation)
   ;; Mutation removes previously calculated fitness values.
+  (declare (ignorable mutation))
   (setf (fitness obj) nil))
 
 (defgeneric crossover (software-a software-b)
@@ -268,9 +276,6 @@ Define an :around method on this function to record crossovers."))
 (defvar *tournament-eviction-size* 2
   "Number of individuals to participate in eviction tournaments.")
 
-(defvar *fitness-predicate* #'>
-  "Function to compare two fitness values to select which is preferred.")
-
 (declaim (inline worst))
 (defun worst ()
   (cond ((equal #'< *fitness-predicate*) infinity)
@@ -285,9 +290,6 @@ Define an :around method on this function to record crossovers."))
 If <1, new individuals will be mutated once with change *MUT-RATE*.
 If =1, then every new individual will be mutated exactly once.
 If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
-
-(defvar *fitness-evals* 0
-  "Track the total number of fitness evaluations.")
 
 (defvar *running* nil
   "True when a search process is running, set to nil to stop evolution.")
