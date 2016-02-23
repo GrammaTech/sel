@@ -381,12 +381,15 @@ already in scope, it will keep that name.")
                           (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
                                          (remove-if-not #'consp op))))))
 
+(defvar *clang-genome-separator* "//===============^=================="
+  "String used to separate the mito and full portions of a clang genome.")
+
 (defun extract-clang-genome (full-genome)
   "If FULL-GENOME contains the magic separator return only the genome after.
 Otherwise return the whole FULL-GENOME"
   ;; NOTE: This could potentially be faster if defined using cl-ppcre.
   (let* ((lines (split-sequence #\Newline full-genome))
-         (at (position clang-genome-separator lines :test #'string=)))
+         (at (position *clang-genome-separator* lines :test #'string=)))
     (if at
         (unlines (subseq lines (1+ at)))
         full-genome)))
@@ -932,17 +935,14 @@ free variables.")
           (values crossed a-point b-point)
           (values crossed nil nil)))))
 
-(defvar clang-genome-separator "//===============^=================="
-  "String used to separate the mito and full portions of a clang genome.")
-
 (defmethod genome-string-without-separator ((obj clang))
-  (unlines (remove-if {string= clang-genome-separator}
+  (unlines (remove-if {string= *clang-genome-separator*}
                       (split-sequence #\Newline (genome-string obj)))))
 
 (defmethod genome-string ((clang clang) &optional stream)
   (format stream "~a~%~a~%~a"
           (genome-string (mitochondria clang))
-          clang-genome-separator
+          *clang-genome-separator*
           (genome clang)))
 
 (defmethod clang-tidy ((clang clang))
