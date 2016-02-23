@@ -38,6 +38,10 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
+(defun getenv (name)
+  #+sbcl (sb-ext:posix-getenv name)
+  #+ccl  (uiop/os:getenv name))
+
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (sb-alien:define-alien-routine (#-win32 "tempnam" #+win32 "_tempnam" tempnam)
