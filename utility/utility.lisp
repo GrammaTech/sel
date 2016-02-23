@@ -431,7 +431,9 @@ is replaced with replacement."
 
 (defun drop (n seq)
   "Return SEQ less the first N items."
-  (subseq seq n))
+  (if (> n (length seq))
+      nil
+      (subseq seq (min n (length seq)))))
 
 (defun drop-while (pred seq)
   (if (and (not (null seq)) (funcall pred (car seq)))
@@ -443,7 +445,7 @@ is replaced with replacement."
 
 (defun take (n seq)
   "Return the first N items of SEQ."
-  (subseq seq 0 n))
+  (subseq seq 0 (min n (length seq))))
 
 (defun take-while (pred seq)
   (if (and (not (null seq)) (funcall pred (car seq)))
