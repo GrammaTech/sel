@@ -468,7 +468,7 @@ is replaced with replacement."
                                        (high (1- (length array)))
                                        (test (lambda (v)
                                                 (cond ((< v value) -1)
-                                                      ((>= v value) 1)
+                                                      ((> v value) 1)
                                                       (t 0)))))
   "Perform a binary search for VALUE on a sorted ARRAY.
 Optional keyword parameters:
