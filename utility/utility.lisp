@@ -161,23 +161,8 @@ and an optional extension."
         ;; native shell execution
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input nil)
-            #+ccl
-            (let (out err proc)
-              (setf err
-                    (with-output-to-string (stderr)
-                      (setf out
-                            (with-output-to-string (stdout)
-                              (setf proc
-                                    (ccl:run-program
-                                     trivial-shell::*bourne-compatible-shell*
-                                     (list "-c" cmd)
-                                     :silently-ignore-catastrophic-failures t
-                                     :output stdout
-                                     :error stderr))))))
-              (values out err (multiple-value-bind (state errno)
-                                  (ccl::external-process-status proc)
-                                (declare (ignorable state))
-                                errno)))
+            #+ccl (progn (warn "shell-command may hang if output is large")
+                         (shell-command cmd :input ""))
             #+allegro
             (multiple-value-bind (out-lines err-lines errno)
                 (excl.osi:command-output cmd)
