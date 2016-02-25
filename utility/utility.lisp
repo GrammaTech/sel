@@ -38,9 +38,17 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
-(defun getenv (name)
-  #+sbcl (sb-ext:posix-getenv name)
-  #+ccl  (uiop/os:getenv name))
+(defun getenv (name &optional default)
+  #-(or allegro clisp ecl lispworks sbcl ccl)
+  (error "getenv not implemented for ~a"
+         (lisp-implementation-type))
+  (or #+allegro (sys:getenv name)
+      #+clisp (ext:getenv name)
+      #+ecl (si:getenv name)
+      #+lispworks (lispworks:environment-variable name)
+      #+sbcl (sb-ext:posix-getenv name)
+      #+ccl  (uiop/os:getenv name)
+      default))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
