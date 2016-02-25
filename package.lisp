@@ -51,7 +51,7 @@
    :edit-distance
    :from-file
    :ext
-   :clang-genome-separator
+   :*clang-genome-separator*
    :genome-string-without-separator
    :from-file-exactly
    :clang-w-fodder-setup-db

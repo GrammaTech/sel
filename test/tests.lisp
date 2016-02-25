@@ -937,7 +937,7 @@ Useful for printing or returning differences in the REPL."
           ;; Each element should contain the text of one of the swapped pieces.
           (every-is {scan (create-scanner (list :alternation text-1 text-2))}
                     (remove-if
-                     (<or> {string= ""} {string= clang-genome-separator})
+                     (<or> {string= ""} {string= *clang-genome-separator*})
                      (mapcar [{apply #'concatenate 'string}
                              {mapcar {apply #'concatenate 'string}}]
                              ;; Collect the differences between the
@@ -976,7 +976,7 @@ Useful for printing or returning differences in the REPL."
           (destructuring-bind (original modified)
               (mapcar {apply #'concatenate 'string}
                       (first (remove-if
-                              [{string= clang-genome-separator}
+                              [{string= *clang-genome-separator*}
                               #'cadadr]
                               (mapcar {diff-strings (lines *huf*) (lines variant)}
                                       (remove-if-not
