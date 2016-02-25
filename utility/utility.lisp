@@ -342,6 +342,7 @@ Keyword argument FRAC will return fractions instead of raw counts."
 
 (defun position-extremum-rand (list predicate key)
   "Randomly returns one of position in LIST maximizing KEY."
+  (declare (ignorable predicate))
   (warn "`position-extremum-rand' not finished: doesn't use all parameters")
   (let ((scores (mapcar key list)))
     (random-elt (mapcar #'car (remove-if-not [{= (apply #'max scores)} #'second]
