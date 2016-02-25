@@ -1,7 +1,7 @@
 .PHONY: check doc test tests.md auto-check
 
 # Use buildapp as the lisp compiler.
-LC:=buildapp
+LC ?= buildapp
 
 # You can set this as an environment variable to point to an alternate
 # quicklisp install location.  If you do, ensure that it ends in a "/"
@@ -69,3 +69,6 @@ tests.html: tests.md
 	markdown $< > $@
 
 auto-check: tests.html
+
+clean:
+	rm -f se-test
