@@ -975,12 +975,12 @@ free variables.")
                      (if style
                          (format nil "-style=~a" style)
                          (format nil
-                            "-style='{BasedOnStyle:Google~
-                                      AllowShortBlocksOnASingleLine:false~
-                                      AllowShortCaseLabelsOnASingleLine:false~
-                                      AllowShortFunctionsOnASingleLine:false~
-                                      AllowShortIfStatementsOnASingleLine:false~
-                                      AllowShortLoopsOnASingleLine:false}'"))
+                           "-style='{BasedOnStyle: Google~
+                                     AllowShortBlocksOnASingleLine: false~
+                                     AllowShortCaseLabelsOnASingleLine: false~
+                                     AllowShortFunctionsOnASingleLine: false~
+                                     AllowShortIfStatementsOnASingleLine: false~
+                                     AllowShortLoopsOnASingleLine: false}'"))
                      src)
             (declare (ignorable stderr))
             (if (zerop exit) stdout (genome-string obj))))))
