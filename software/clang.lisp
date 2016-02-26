@@ -969,12 +969,19 @@ free variables.")
   clang)
 
 (defmethod clang-format ((obj clang) &optional style)
-  ;; STYLE may be one of LLVM, Google, Chromium, Mozilla, WebKit.
   (setf (genome-string obj)
         (with-temp-file-of (src (ext obj)) (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "clang-format ~a ~a "
-                     (if style (format nil "-style=~a" style) "")
+                     (if style
+                         (format nil "-style=~a" style)
+                         (format nil
+                            "-style='{BasedOnStyle:Google~
+                                      AllowShortBlocksOnASingleLine:false~
+                                      AllowShortCaseLabelsOnASingleLine:false~
+                                      AllowShortFunctionsOnASingleLine:false~
+                                      AllowShortIfStatementsOnASingleLine:false~
+                                      AllowShortLoopsOnASingleLine:false}'"))
                      src)
             (declare (ignorable stderr))
             (if (zerop exit) stdout (genome-string obj)))))
