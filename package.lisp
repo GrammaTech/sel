@@ -190,4 +190,5 @@
    :add-includes-for-function
    :add-type
    :union-mito
-   :ignore-failed-mutation))
+   :ignore-failed-mutation
+   :fix-compilation))
