@@ -551,7 +551,7 @@
                         (clang-format-dir "unformatted.c"))))
     (is (string= (genome-string-without-separator (clang-format obj))
                  (file-to-string (clang-format-dir "formatted.c"))))))
-              
+
 
 
 ;;; Range representation
@@ -1014,3 +1014,50 @@ Useful for printing or returning differences in the REPL."
                  (random-function-name (prototypes *huf*)
                                        :original-name "foo"
                                        :arity 3)))))
+
+;;; Fix compilation tests.
+(defvar *broken-clang* nil "")
+(defvar *broken-gcc* nil "")
+
+(defvar *test-dir*
+  (let ((dir (butlast (pathname-directory #.(or *compile-file-truename*
+						*load-truename*
+						*default-pathname-defaults*)))))
+    (make-pathname :directory (append dir (list "test"))))
+  "Location of the benchmarks example directory")
+
+(defixture broken-compilation
+  (:setup (setf *broken-clang*
+                (make-instance 'clang-w-fodder
+                  :genome "int main(int argc, char **argv) {
+	printf(\"Hello, World!\\n\");
+	return missing_variable;}"))
+          (clang-w-fodder-setup-db
+           (merge-pathnames "euler-example.json" *test-dir*))))
+
+(defixture broken-compilation-gcc
+  (:setup (setf *broken-gcc*
+                (make-instance 'clang-w-fodder
+                  :compiler "gcc"
+                  :flags '("-m32" "-O0" "-g")
+                  :genome "int main(int argc, char **argv) {
+	printf(\"Hello, World!\\n\");
+	return missing_variable;}"))
+          (clang-w-fodder-setup-db
+           (merge-pathnames "euler-example.json" *test-dir*))))
+
+(deftest fix-compilation-inserts-missing-include ()
+  (with-fixture broken-compilation
+    (is (scan (format nil "\#include <~a>" "stdio.h")
+              (genome-string (fix-compilation *broken-clang* 1)))))
+  (with-fixture broken-compilation-gcc
+    (is (scan (format nil "\#include <~a>" "stdio.h")
+              (genome-string (fix-compilation *broken-gcc* 1))))))
+
+(deftest fix-compilation-inserts-declaration-and-initializes ()
+  (with-fixture broken-compilation
+    (is (scan (quote-meta-chars "missing_variable =")
+              (genome (fix-compilation *broken-clang* 4)))))
+  (with-fixture broken-compilation-gcc
+    (is (scan (quote-meta-chars "missing_variable =")
+              (genome (fix-compilation *broken-gcc* 4))))))
