@@ -32,9 +32,9 @@ expression match.")
     (push (cons regex function) *compilation-fixers*)))
 
 (defmethod fix-compilation ((obj clang) max-attempts &aux matches)
+  ;; Tidy
+  (clang-tidy obj)
   (loop :for attempt :below max-attempts :do
-     ;; Tidy
-     (clang-tidy obj)
      ;; Compile
      (with-temp-file (bin)
        (multiple-value-bind (out errno) (phenome obj :bin bin)
