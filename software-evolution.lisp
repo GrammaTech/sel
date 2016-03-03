@@ -118,11 +118,15 @@ Used to target mutation."))
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 
 (defvar *mutation-stats* (make-hash-table
-                          #+sbcl :synchronized #+sbcl t)
+                          :test #'equal
+                          #+sbcl :synchronized #+sbcl t
+                          #+ccl :shared #+ccl :lock-free)
   "Variable to hold mutation statistics.")
 
 (defvar *crossover-stats* (make-hash-table
-                           #+sbcl :synchronized #+sbcl t)
+                           :test #'equal
+                           #+sbcl :synchronized #+sbcl t
+                           #+ccl :shared #+ccl :lock-free)
   "Variable to hold crossover statistics.")
 
 (defvar *fitness-evals* 0
