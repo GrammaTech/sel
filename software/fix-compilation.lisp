@@ -178,3 +178,63 @@ expression match.")
 (register-fixer
  ":(\\d+):(\\d+): error: expected expression before ‘(\\S+)’ "
  #'expected-expression-before)
+
+;; Replace C++-style casts with C-style casts.
+(defmethod c++-casts-to-c-casts ((obj clang) match-data)
+  (declare (ignorable match-data))
+  (setf (lines obj)
+        (loop :for line :in (lines obj)
+           :collecting (cl-ppcre:regex-replace-all
+                        "(reinterpret|static)_cast<([^>]*)>"
+                        line
+                        "(\\2)"))))
+
+(register-fixer
+ ":(\\d+):(\\d+): error: (‘|')(reinterpret|static)_cast(’|') undeclared"
+ #'c++-casts-to-c-casts)
+
+;; #include <stdint.h> when using types like int32_t.
+(defmethod require-stdint ((obj clang) match-data)
+  (declare (ignorable match-data))
+  (add-include (mitochondria obj) "stdint.h"))
+
+(register-fixer
+ ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)(8|16|32|64)_t(’|')"
+ #'require-stdint)
+
+;; Macro definitions for int1_t, uint1_t
+(defmethod add-int1-macros ((obj clang) match-data)
+  (declare (ignorable match-data))
+  (add-include (mitochondria obj) "stdint.h")
+  (add-macro   (mitochondria obj) "int1_t"  "int1_t int32_t")
+  (add-macro   (mitochondria obj) "uint1_t" "uint1_t uint32_t"))
+
+(register-fixer
+ ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
+ #'add-int1-macros)
+
+(defmethod delete-line-with-error ((obj clang) match-data)
+  (let ((target-line (parse-integer (aref match-data 0))))
+    (setf (lines obj)
+          (loop :for line :in (lines obj)
+             :for line-num :from 1
+             :when (not (= target-line line-num))
+             :collect line))))
+
+;; These four fixers just delete the offending line, because there is not much
+;; intelligent recovery we can do.
+(register-fixer
+ ":(\\d+):(\\d+): error: expected identifier or (‘|')\*(’|') before numeric constant"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: built-in function (‘|')(\\S+)(’|') declared as non-function"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: (‘|')(\\S+)(’|') redeclared as different kind of symbol"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: label (‘|')(\\S+)(’|') used but not defined"
+ #'delete-line-with-error)
