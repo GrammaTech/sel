@@ -71,7 +71,6 @@ expression match.")
   ;; TODO: For now we'll just synthesize a random instantiation, in
   ;;       the future we should pull variable names from DeclStmt's,
   ;;       and grab a DeclStmt, possibly of a particular type.
-  ;;       (gethash "DeclStmt" *json-database*)
   (let ((line-number (parse-integer (aref match-data line-number-index)))
         (variable-name (aref match-data variable-name-index))
         (lines (lines obj))
@@ -100,7 +99,7 @@ expression match.")
            (binary-assignment-fodder
             (random-elt
              (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src--text}]
-                            (gethash "BinaryOperator" *json-database*))))
+                            (find-snippets "BinaryOperator" :n 512))))
            ;; Find the "assigned-to" free-variable.
            (assigned-variable
             (multiple-value-bind (matchp match-data)
@@ -148,17 +147,16 @@ expression match.")
          (new-expression
           (recontextualize
            obj
-           (random-elt (mappend {gethash _ *json-database*}
-                                ;; Classes which might be valid expressions.
-                                (list "FloatingLiteral"
-                                      "IntegerLiteral"
-                                      "CharacterLiteral"
-                                      "StringLiteral"
-                                      "ParenExpr"
-                                      "DeclRefExpr"
-                                      "UnaryExprOrTypeTraitExpr"
-                                      "ImplicitCastExpr"
-                                      "CStyleCastExpr")))
+           (find-snippets ($in '("FloatingLiteral"
+                                 "IntegerLiteral"
+                                 "CharacterLiteral"
+                                 "StringLiteral"
+                                 "ParenExpr"
+                                 "DeclRefExpr"
+                                 "UnaryExprOrTypeTraitExpr"
+                                 "ImplicitCastExpr"
+                                 "CStyleCastExpr")
+                          :n 1))
            (aget :counter
                  (lastcar (asts-containing-source-location
                            obj (make-instance 'source-location
