@@ -7,8 +7,10 @@
    :curry-compose-reader-macros
    :split-sequence
    :cl-ppcre
+   :cl-mongo
    :diff
    :elf
+   :memoize
    :software-evolution-utility)
   (:shadow :elf :size :type :magic-number :diff :insert)
   (:export
@@ -31,7 +33,8 @@
    :pick
    :pick-good
    :pick-bad
-   :pick-json
+   :pick-snippet
+   :find-snippets
    :mutate
    :apply-mutation
    :text
@@ -40,6 +43,7 @@
    :*mutation-stats*
    :*crossover-stats*
    :*analyze-mutation-verbose-stream*
+   :*mongo-connection*
    :analyze-mutation
    :mutation-key
    :crossover
@@ -69,7 +73,6 @@
    :update-mito-from-snippet
    :to-file
    :apply-path
-   :pick-json
    :prototypes
    :asts
    :good-asts
@@ -116,12 +119,9 @@
    :*clang-format-after-mutation-chance*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
-   :*json-database*
-   :*json-database-bins*
-   :*json-database-full-stmt-bins*
-   :*json-database-binary-fodder*
    :*type-database*
    :reset-type-database
+   :populate-type-db-from-snippet
    ;; evolution functions
    :incorporate
    :evict

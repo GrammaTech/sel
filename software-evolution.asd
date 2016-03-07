@@ -15,8 +15,10 @@ techniques."
                split-sequence
                cl-json
                cl-ppcre
+               cl-mongo
                diff
                elf
+               memoize
                software-evolution-utility)
   :in-order-to ((test-op (test-op software-evolution-test)))
   :components

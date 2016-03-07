@@ -1,105 +1,38 @@
 ;;; clang-w-fodder.lisp --- clang software with a source fodder database
 
-;;; clang software representation with a JSON 'database' containing
+;;; clang software representation with a Mongo database containing
 ;;; AST entries as fodder for the evolution process.
 
-;;; Each AST entry in the JSON 'database' contains source text and,
+;;; Each AST entry in the Mongo database contains source text and,
 ;;; where applicable, the corresponding binary bytes.
 (in-package :software-evolution)
 
-(defvar *json-database* (make-hash-table :test 'equal)
-  "A database of source code snippets, grouped by AST class name.")
-
-(defvar *json-database-bins* nil
-  "The inverse cumulative distribution function for the AST class name of
-a uniformly selected element of the JSON database.")
-
-(defvar *json-database-full-stmt-bins* nil
-  "The inverse cumulative distribution function for the AST class name of
-a uniformly selected element of the JSON database.")
+(defvar *mongo-connection* nil
+  "Connection to the Mongo database")
 
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
 
-(defun populate-database-bins ()
-  ;; All database bins
-  (setf *json-database-bins*
-        (compute-icdf-with-filter (constantly t)))
-
-  ;; "Full statement" database bins
-  (setf *json-database-full-stmt-bins*
-        (compute-icdf-with-filter
-            #'(lambda (k v)
-                (declare (ignorable k))
-                (remove-if-not {aget :full--stmt} v))))
-
-  (assert (not (null *json-database-full-stmt-bins*))
-          (*json-database-full-stmt-bins*)
-          "Full stmt bins should not be null"))
-
-(defun compute-icdf-with-filter (filter &aux bins)
-  (let ((total 0)
-        (totalp 0))
-
-    (maphash (lambda (k v)
-               (when (funcall filter k v)
-                 (setf total (+ total (length v)))))
-             *json-database*)
-
-    (maphash (lambda (k v)
-               (when (funcall filter k v)
-                 (setq totalp (+ totalp (/ (length v) total)))
-                 (setq bins
-                       (cons (cons totalp k) bins))))
-             *json-database*)
-
-    (reverse bins)))
-
 (define-software clang-w-fodder (clang) ())
 
 (defmethod from-file :before ((obj clang-w-fodder) path)
-  (assert (not (null *json-database-bins*))))
+  (assert (not (null *mongo-connection*))))
 
-(defun load-json-with-caching (json-db-path)
-  (let ((json-stored-db-path (make-pathname
-                              :directory (pathname-directory json-db-path)
-                              :name (pathname-name json-db-path)
-                              :type "dbcache")))
-    (if (and (probe-file json-stored-db-path)
-             (> (file-write-date json-stored-db-path)
-                (file-write-date json-db-path)))
-        ;; Cache exists and is newer than the original
-        ;; JSON database; use the cache.
-        (cl-store:restore json-stored-db-path)
-        ;; Cache does not yet exist or has been invalidated;
-        ;; load from JSON and write back to the cache.
-        (with-open-file (json-stream json-db-path)
-          (cl-store:store (json:decode-json-from-source json-stream)
-                          json-stored-db-path)))))
+(defun clang-w-fodder-setup-db (db &key (host *mongo-default-host*)
+                                        (port *mongo-default-port*))
+  (setf *mongo-connection* (mongo :name (make-keyword db)
+                                  :db db
+                                  :host host
+                                  :port port))
+  (unless (mongo-registered (make-keyword db))
+    (setf *mongo-connection* nil)
+    (make-condition 'simple-error
+                    :format-control "Cannot open Mongo database ~a at ~a:~a"
+                    :format-arguments '(db host port)))
+   *mongo-connection*)
 
-(defun clang-w-fodder-setup-db (json-db-path)
-  ;; Clobber the existing database
-  (setq *json-database* (make-hash-table :test 'equal))
-  (setq *json-database-bins* '())
-
-  ;; Load the snippet database and classify by AST class.
-  (dolist (snippet (load-json-with-caching json-db-path))
-    (let ((ast-class (aget :AST--CLASS snippet)))
-      (if ast-class
-          ;; This entry describes a code snippet
-          (let ((cur (gethash ast-class *json-database*)))
-            (setf (gethash ast-class *json-database*) (cons snippet cur)))
-
-          ;; This entry describes a type, perhaps
-          (let ((type-id (aget :HASH snippet)))
-            (when type-id
-              (setf (gethash type-id *type-database*) snippet))))))
-
-  ;; Compute the bin sizes so that (random-snippet) becomes useful.
-  (populate-database-bins))
-
-(defgeneric pick-json (clang-w-fodder &key full class pt)
-  (:documentation "Return a JSON element from the fodder database.
+(defgeneric pick-snippet (clang-w-fodder &key full class pt)
+  (:documentation "Return a snippet from the fodder database.
 
 With keyword :FULL t, select a full statement element.
 
@@ -107,28 +40,65 @@ With keyword argument :CLASS, select an element of the specified class.
 
 With keyword argument :PT select an element similar to that at :PT in
 CLANG-W-FODDER in a method-dependent fashion."))
+(defmethod pick-snippet ((clang-w-fodder clang-w-fodder) &key full class pt)
+  (let* ((kv (cond (class (kv "ast_class" class))
+                   ((or full (and pt (full-stmt-p clang-w-fodder pt)))
+                             (kv "full_stmt" t))
+                   (t :all)))
+         (snippet (first (find-snippets kv :n 1))))
+    (if snippet
+        (error (make-condition 'mutate
+                               :text (format nil "No valid snippet found")))
+        (progn
+          (populate-type-db-from-snippet snippet)
+          snippet))))
 
-(defmethod pick-json ((clang-w-fodder clang-w-fodder) &key full class pt)
-  (let* ((key
-          (or class ; Specific class, or just a full class, or any class.
-              (cdr (find-if [{< (random 1.0)} #'car] ; Pick by bin size.
-                            (if (or full (and pt (full-stmt-p clang-w-fodder pt)))
-                                *json-database-full-stmt-bins*
-                                *json-database-bins*)))))
-         (bin (multiple-value-bind (result exists) (gethash key *json-database*)
-                (unless exists
-                  (error (make-condition 'mutate
-                                         :text (format nil "No valid snippet for ~S" key)
-                                         :obj clang-w-fodder)))
-                result)))
-    (random-elt bin)))
+(defun find-snippets (kv &key (n most-positive-fixnum))
+  "Find snippets in the Mongo database matching the predicate KV.
+:N <N> - Limit to N randomly drawn snippets"
+  (let ((count (get-element "n" (caadr (db.count "asts" kv
+                                                  :mongo *mongo-connection*)))))
+    (when count
+      (mongo-result-to-cljson (db.find "asts" kv
+                                       :limit (if (<= count n) count n)
+                                       :skip (if (<= count n)
+                                                 0 (random (- count n)))
+                                       :mongo *mongo-connection*)))))
+
+(defun mongo-result-to-cljson (result)
+  "Convert a Mongo result into a list of the form
+(((:key1 . value1) (:key2 . value2) ...)) ((:key1 . value1) (:key2 . value2)))
+formatted for interoperability with cl-json representations."
+  (mapcar
+    (lambda (document)
+      (loop for k being the hash-keys of (cl-mongo::elements document)
+        using (hash-value v)
+        collecting (cons (make-keyword (regex-replace-all "_"
+                                                          (string-upcase k)
+                                                          "--"))
+                         v)))
+    (second result)))
+
+(defun populate-type-db-from-snippet (snippet)
+  "Populate the *type-database* hash table with type information
+required for snippet insertion."
+  (loop for type-hash in (aget :types snippet)
+        do (populate-type-db-from-type-hash type-hash))
+  *type-database*)
+
+(defun-memoized populate-type-db-from-type-hash (hash)
+  "Populate the *type-database* hash table with type information
+for the type in the Mongo database with the given hash"
+  (let ((type (mongo-result-to-cljson (db.find "types" (kv "hash" hash)))))
+    (when type
+      (setf (gethash (aget :hash type) *type-database*) type))))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
     (error (make-condition 'mutate :text "No valid IDS" :obj clang-w-fodder)))
-  (unless (> (hash-table-size *json-database*) 0)
+  (unless *mongo-connection*
     (error (make-condition 'mutate
-             :text "No valid JSON 'database' for fodder"
+             :text "No valid Mongo database for fodder"
              :obj clang-w-fodder)))
 
   (if (random-bool :bias (- 1 *fodder-selection-bias*))
@@ -143,14 +113,14 @@ CLANG-W-FODDER in a method-dependent fashion."))
              (value (update-mito-from-snippet clang-w-fodder
                       (ecase mutation
                         (:replace-fodder-same
-                         (pick-json clang-w-fodder
-                                    :pt bad
-                                    :class
-                                    (get-ast-class clang-w-fodder bad)))
+                         (pick-snippet clang-w-fodder
+                                       :pt bad
+                                       :class
+                                       (get-ast-class clang-w-fodder bad)))
                         ((:replace-fodder-full :insert-fodder-full)
-                         (pick-json clang-w-fodder :pt bad :full t))
+                         (pick-snippet clang-w-fodder :pt bad :full t))
                         (:insert-fodder
-                         (pick-json clang-w-fodder)))))
+                         (pick-snippet clang-w-fodder)))))
              (stmt (ecase mutation
                      ((:replace-fodder-same :insert-fodder)
                       bad)
