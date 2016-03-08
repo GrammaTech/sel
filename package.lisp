@@ -43,7 +43,6 @@
    :*mutation-stats*
    :*crossover-stats*
    :*analyze-mutation-verbose-stream*
-   :*mongo-connection*
    :analyze-mutation
    :mutation-key
    :crossover
