@@ -7,8 +7,12 @@
 ;;; where applicable, the corresponding binary bytes.
 (in-package :software-evolution)
 
-(defvar *mongo-connection* nil
-  "Connection to the Mongo database")
+(defvar *mongo-host* *mongo-default-host*
+  "Host system for Mongo database")
+(defvar *mongo-port* *mongo-default-port*
+  "Port to connection to Mongo database")
+(defvar *mongo-db-name* nil
+  "Mongo database name")
 
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
@@ -16,20 +20,13 @@
 (define-software clang-w-fodder (clang) ())
 
 (defmethod from-file :before ((obj clang-w-fodder) path)
-  (assert (not (null *mongo-connection*))))
+  (assert (not (null *mongo-db-name*))))
 
 (defun clang-w-fodder-setup-db (db &key (host *mongo-default-host*)
-                                        (port *mongo-default-port*))
-  (setf *mongo-connection* (mongo :name (make-keyword db)
-                                  :db db
-                                  :host host
-                                  :port port))
-  (unless (mongo-registered (make-keyword db))
-    (setf *mongo-connection* nil)
-    (make-condition 'simple-error
-                    :format-control "Cannot open Mongo database ~a at ~a:~a"
-                    :format-arguments '(db host port)))
-   *mongo-connection*)
+                                        (port *mongo-port*))
+  (setf *mongo-db-name* db)
+  (setf *mongo-host* host)
+  (setf *mongo-port* port))
 
 (defgeneric pick-snippet (clang-w-fodder &key full class pt)
   (:documentation "Return a snippet from the fodder database.
@@ -56,14 +53,19 @@ CLANG-W-FODDER in a method-dependent fashion."))
 (defun find-snippets (kv &key (n most-positive-fixnum))
   "Find snippets in the Mongo database matching the predicate KV.
 :N <N> - Limit to N randomly drawn snippets"
-  (let ((count (get-element "n" (caadr (db.count "asts" kv
-                                                  :mongo *mongo-connection*)))))
+  (let ((count (get-element "n" (caadr
+                                  (with-mongo-connection (:db *mongo-db-name*
+                                                          :host *mongo-host*
+                                                          :port *mongo-port*)
+                                    (db.count "asts" kv))))))
     (when count
-      (mongo-result-to-cljson (db.find "asts" kv
-                                       :limit (if (<= count n) count n)
-                                       :skip (if (<= count n)
-                                                 0 (random (- count n)))
-                                       :mongo *mongo-connection*)))))
+      (with-mongo-connection (:db *mongo-db-name*
+                              :host *mongo-host*
+                              :port *mongo-port*)
+        (mongo-result-to-cljson (db.find "asts" kv
+                                         :limit (if (<= count n) count n)
+                                         :skip (if (<= count n)
+                                                   0 (random (- count n)))))))))
 
 (defun mongo-result-to-cljson (result)
   "Convert a Mongo result into a list of the form
@@ -96,7 +98,7 @@ for the type in the Mongo database with the given hash"
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
     (error (make-condition 'mutate :text "No valid IDS" :obj clang-w-fodder)))
-  (unless *mongo-connection*
+  (unless *mongo-db-name*
     (error (make-condition 'mutate
              :text "No valid Mongo database for fodder"
              :obj clang-w-fodder)))
