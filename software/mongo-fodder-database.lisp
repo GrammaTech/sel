@@ -24,7 +24,7 @@
 
   ;; Populate parameters.
   (when (aget :mongo-db mongo-config)
-        (setf (db mongo-database) (aget :db mongo-config)))
+        (setf (db mongo-database) (aget :mongo-db mongo-config)))
   (when (aget :host mongo-config)
         (setf (host mongo-database) (aget :host mongo-config)))
   (when (aget :port mongo-config)
@@ -51,10 +51,20 @@
                           :port (port mongo-database))
     (let ((count (get-element "n" (caadr (db.count "asts" kv)))))
       (when count
-        (mongo-result-to-cljson (db.find "asts" kv
-                                         :limit (if (<= count n) count n)
-                                         :skip (if (<= count n)
-                                                   0 (random (- count n)))))))))
+        (do* ((result (db.find "asts" kv
+                               :limit (min count n)
+                               :skip (if (<= count n)
+                                         0 (random (- count n))))
+                      (db.next "asts" cursor))
+              (cursor (nth 5 (first result))
+                      (nth 5 (first result)))
+              (documents (second result)
+                         (append documents (second result))))
+             ((or (zerop cursor)
+                  (>= (length documents)
+                      (min count n)))
+                (subseq (mongo-documents-to-cljson documents) 0 (min count n)))
+             ())))))
 
 (defmethod find-types ((mongo-database mongo-database) &key hash)
   "Find types in the type database (optionally) matching the keyword
@@ -66,10 +76,17 @@ paremeter HASH"
   (with-mongo-connection (:db (db mongo-database)
                           :host (host mongo-database)
                           :port (port mongo-database))
-    (mongo-result-to-cljson (db.find "types" kv))))
+    (do* ((result (db.find "types" kv)
+                  (db.next "types" cursor))
+          (cursor (nth 5 (first result))
+                  (nth 5 (first result)))
+          (documents (second result)
+                     (append documents (second result))))
+         ((zerop cursor) (mongo-documents-to-cljson documents))
+         ())))
 
-(defun mongo-result-to-cljson (result)
-  "Convert a Mongo result into a list of the form
+(defun mongo-documents-to-cljson (documents)
+  "Convert a list of Mongo documents into a list of the form
 (((:key1 . value1) (:key2 . value2) ...)) ((:key1 . value1) (:key2 . value2)))
 formatted for interoperability with cl-json representations."
   (mapcar
@@ -80,4 +97,4 @@ formatted for interoperability with cl-json representations."
                                                           (string-upcase k)
                                                           "--"))
                          v)))
-    (second result)))
+    documents))
