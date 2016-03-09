@@ -58,7 +58,6 @@
    :genome-string-without-separator
    :from-file-exactly
    :clang-w-fodder-setup-db
-   :add-types-for-snippet
    :get-vars-in-scope
    :get-indexed-vars-in-scope
    :bind-free-vars

@@ -56,15 +56,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
     (if (not snippet)
         (error (make-condition 'mutate
                                :text (format nil "No valid snippet found")))
-        (progn
-          (add-types-for-snippet clang-w-fodder snippet)
-          snippet))))
-
-(defmethod add-types-for-snippet ((clang-w-fodder clang-w-fodder) snippet)
-  "Populate the clang-w-fodder software object's mitochondria with the
-types required for snippet insertion."
-  (loop for type-id in (aget :types snippet)
-        do (add-type (mitochondria clang-w-fodder) *database* type-id)))
+        snippet)))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
@@ -93,7 +85,8 @@ types required for snippet insertion."
                         ((:replace-fodder-full :insert-fodder-full)
                          (pick-snippet clang-w-fodder :pt bad :full t))
                         (:insert-fodder
-                         (pick-snippet clang-w-fodder)))))
+                         (pick-snippet clang-w-fodder)))
+                      *database*))
              (stmt (ecase mutation
                      ((:replace-fodder-same :insert-fodder)
                       bad)

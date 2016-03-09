@@ -116,24 +116,27 @@
 (defmethod from-file ((obj clang) path)
   ;; Load the raw file and generate a json database
   (from-file-exactly obj path)
-  (let* ((json-out (clang-mutate obj (list :json)))
-         (json-db (open-database-from-json
-                    (make-instance 'json-database)
-                    json-out)))
+  (let* ((json-db (clang-mutate obj (list :json)))
+         (type-db-mito (make-instance 'clang-mito)))
+
+    ;; Populate a type database with the types found.
+    (loop for type in json-db
+       when (aget :hash type)
+       do (setf (gethash (aget :hash type) (types type-db-mito)) type))
 
     ;; Set the clang-mito's types. This will also populate any
     ;; #include directives needed for library typedefs.
-    (loop for type in (find-types json-db)
+    (loop for type in json-db
        when (aget :hash type)
-       do (add-type (mitochondria obj) json-db (aget :hash type)))
+       do (add-type (mitochondria obj) (aget :hash type) type-db-mito))
 
     ;; Add any macro definitions seen.
-    (loop for snippet in (find-snippets json-db)
+    (loop for snippet in json-db
       do (loop for macro in (aget :macros snippet)
            do (add-macro (mitochondria obj) (first macro) (second macro))))
 
     ;; Add any #includes needed.
-    (loop for snippet in (find-snippets json-db)
+    (loop for snippet in json-db
        do (loop for include in (aget :includes snippet)
              do (add-include (mitochondria obj) include)))
 
@@ -143,7 +146,7 @@
     (setf (genome-string obj)
           (unlines
            (mapcar {aget :decl--text}
-                   (sort (remove-if-not {aget :decl--text} json-out)
+                   (sort (remove-if-not {aget :decl--text} json-db)
                          (lambda (x y)
                            (or (< (first x) (first y))
                                (and (= (first x) (first y))
@@ -673,11 +676,11 @@ Otherwise return the whole FULL-GENOME"
            :macros (ht->list macros)
            :stmts stmts)))
 
-(defmethod update-mito-from-snippet ((clang clang) snippet)
+(defmethod update-mito-from-snippet ((clang clang) snippet type-database)
   (loop for f in (aget :INCLUDES snippet)
      do (add-include (mitochondria clang) f))
   (loop for type in (aget :TYPES snippet)
-     do (add-type (mitochondria clang) type))
+     do (add-type (mitochondria clang) type type-database))
   (let ((macros (aget :MACROS snippet)))
     (loop for macro in macros
        do (add-macro (mitochondria clang)
@@ -833,7 +836,7 @@ free variables.")
 
           ;; Now execute the crossover, replacing a-snippet in variant
           ;; with the recontextualized b-snippet.
-          (update-mito-from-snippet variant b-snippet)
+          (update-mito-from-snippet variant b-snippet (mitochondria b))
           (apply-mutation
            variant
            (cons :set-range
@@ -859,7 +862,7 @@ free variables.")
     (if (and a-begin b-begin)
         (let ((b-snippet (create-sequence-snippet
                           (list (list (get-ast b b-begin))))))
-          (update-mito-from-snippet variant b-snippet)
+          (update-mito-from-snippet variant b-snippet (mitochondria b))
           (apply-mutation
            variant
            (cons :set-range
