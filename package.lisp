@@ -58,6 +58,7 @@
    :genome-string-without-separator
    :from-file-exactly
    :clang-w-fodder-setup-db
+   :add-types-for-snippet
    :get-vars-in-scope
    :get-indexed-vars-in-scope
    :bind-free-vars
@@ -118,9 +119,7 @@
    :*clang-format-after-mutation-chance*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
-   :*type-database*
-   :reset-type-database
-   :populate-type-db-from-snippet
+   :*database*
    ;; evolution functions
    :incorporate
    :evict

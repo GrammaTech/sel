@@ -7,12 +7,7 @@
 ;;; where applicable, the corresponding binary bytes.
 (in-package :software-evolution)
 
-(defvar *mongo-host* *mongo-default-host*
-  "Host system for Mongo database")
-(defvar *mongo-port* *mongo-default-port*
-  "Port to connection to Mongo database")
-(defvar *mongo-db-name* nil
-  "Mongo database name")
+(defvar *database* "Database utilized for fodder selection")
 
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
@@ -20,13 +15,24 @@
 (define-software clang-w-fodder (clang) ())
 
 (defmethod from-file :before ((obj clang-w-fodder) path)
-  (assert (not (null *mongo-db-name*))))
+  (assert (not (null *database*))))
 
-(defun clang-w-fodder-setup-db (db &key (host *mongo-default-host*)
-                                        (port *mongo-port*))
-  (setf *mongo-db-name* db)
-  (setf *mongo-host* host)
-  (setf *mongo-port* port))
+(defun clang-w-fodder-setup-db (file)
+  ;; Clobbber the existing database.
+  (setf *database* nil)
+
+  (multiple-value-bind (stdout stderr exit)
+    (shell (format nil "grep -i mongo-db ~a" file))
+    (declare (ignorable stdout stderr))
+
+    ;; Test if we can find mongo-db in the JSON file. If so, this is JSON
+    ;; file with the Mongo configuration.  Otherwise, its a flat file
+    ;; of JSON-formatted ASTs.
+    (if (zerop exit)
+        (setf *database* (open-database (make-instance 'mongo-database)
+                                        file))
+        (setf *database* (open-database (make-instance 'json-database)
+                                        file)))))
 
 (defgeneric pick-snippet (clang-w-fodder &key full class pt)
   (:documentation "Return a snippet from the fodder database.
@@ -38,67 +44,32 @@ With keyword argument :CLASS, select an element of the specified class.
 With keyword argument :PT select an element similar to that at :PT in
 CLANG-W-FODDER in a method-dependent fashion."))
 (defmethod pick-snippet ((clang-w-fodder clang-w-fodder) &key full class pt)
-  (let* ((kv (cond (class (kv "ast_class" class))
-                   ((or full (and pt (full-stmt-p clang-w-fodder pt)))
-                             (kv "full_stmt" t))
-                   (t :all)))
-         (snippet (first (find-snippets kv :n 1))))
-    (if snippet
+  (let* ((snippet (first (find-snippets *database*
+                                        :full-stmt 
+                                          (or full
+                                              (and pt
+                                                   (full-stmt-p
+                                                      clang-w-fodder
+                                                      pt)))
+                                        :classes class 
+                                        :n 1))))
+    (if (not snippet)
         (error (make-condition 'mutate
                                :text (format nil "No valid snippet found")))
         (progn
-          (populate-type-db-from-snippet snippet)
+          (add-types-for-snippet clang-w-fodder snippet)
           snippet))))
 
-(defun find-snippets (kv &key (n most-positive-fixnum))
-  "Find snippets in the Mongo database matching the predicate KV.
-:N <N> - Limit to N randomly drawn snippets"
-  (let ((count (get-element "n" (caadr
-                                  (with-mongo-connection (:db *mongo-db-name*
-                                                          :host *mongo-host*
-                                                          :port *mongo-port*)
-                                    (db.count "asts" kv))))))
-    (when count
-      (with-mongo-connection (:db *mongo-db-name*
-                              :host *mongo-host*
-                              :port *mongo-port*)
-        (mongo-result-to-cljson (db.find "asts" kv
-                                         :limit (if (<= count n) count n)
-                                         :skip (if (<= count n)
-                                                   0 (random (- count n)))))))))
-
-(defun mongo-result-to-cljson (result)
-  "Convert a Mongo result into a list of the form
-(((:key1 . value1) (:key2 . value2) ...)) ((:key1 . value1) (:key2 . value2)))
-formatted for interoperability with cl-json representations."
-  (mapcar
-    (lambda (document)
-      (loop for k being the hash-keys of (cl-mongo::elements document)
-        using (hash-value v)
-        collecting (cons (make-keyword (regex-replace-all "_"
-                                                          (string-upcase k)
-                                                          "--"))
-                         v)))
-    (second result)))
-
-(defun populate-type-db-from-snippet (snippet)
-  "Populate the *type-database* hash table with type information
-required for snippet insertion."
-  (loop for type-hash in (aget :types snippet)
-        do (populate-type-db-from-type-hash type-hash))
-  *type-database*)
-
-(defun-memoized populate-type-db-from-type-hash (hash)
-  "Populate the *type-database* hash table with type information
-for the type in the Mongo database with the given hash"
-  (let ((type (mongo-result-to-cljson (db.find "types" (kv "hash" hash)))))
-    (when type
-      (setf (gethash (aget :hash type) *type-database*) type))))
+(defmethod add-types-for-snippet ((clang-w-fodder clang-w-fodder) snippet)
+  "Populate the clang-w-fodder software object's mitochondria with the
+types required for snippet insertion."
+  (loop for type-id in (aget :types snippet)
+        do (add-type (mitochondria clang-w-fodder) *database* type-id)))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless (> (size clang-w-fodder) 0)
     (error (make-condition 'mutate :text "No valid IDS" :obj clang-w-fodder)))
-  (unless *mongo-db-name*
+  (unless *database*
     (error (make-condition 'mutate
              :text "No valid Mongo database for fodder"
              :obj clang-w-fodder)))
