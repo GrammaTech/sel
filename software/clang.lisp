@@ -35,9 +35,6 @@
                  :initform (make-instance 'clang-mito)
                  :copier copy)))
 
-(defvar *type-database* (make-hash-table :test 'equal)
-  "A database of user-defined types.")
-
 (defvar *ancestor-logging* nil
   "Enable ancestor logging")
 
@@ -48,9 +45,6 @@
   (let ((id *next-ancestry-id*))
     (incf *next-ancestry-id*)
     id))
-
-(defun reset-type-database ()
-    (setf *type-database* (make-hash-table :test 'equal)))
 
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
@@ -122,26 +116,24 @@
 (defmethod from-file ((obj clang) path)
   ;; Load the raw file and generate a json database
   (from-file-exactly obj path)
-  (let ((json-db (clang-mutate obj (list :json))))
-
-    ;; Update the global type database
-    (loop for type in json-db
-       when (aget :hash type)
-       do (setf (gethash (aget :hash type) *type-database*) type))
+  (let* ((json-out (clang-mutate obj (list :json)))
+         (json-db (open-database-from-json
+                    (make-instance 'json-database)
+                    json-out)))
 
     ;; Set the clang-mito's types. This will also populate any
     ;; #include directives needed for library typedefs.
-    (loop for type in json-db
+    (loop for type in (find-types json-db)
        when (aget :hash type)
-       do (add-type (mitochondria obj) (aget :hash type)))
+       do (add-type (mitochondria obj) json-db (aget :hash type)))
 
     ;; Add any macro definitions seen.
-    (loop for snippet in json-db
+    (loop for snippet in (find-snippets json-db)
       do (loop for macro in (aget :macros snippet)
            do (add-macro (mitochondria obj) (first macro) (second macro))))
 
     ;; Add any #includes needed.
-    (loop for snippet in json-db
+    (loop for snippet in (find-snippets json-db)
        do (loop for include in (aget :includes snippet)
              do (add-include (mitochondria obj) include)))
 
@@ -151,7 +143,7 @@
     (setf (genome-string obj)
           (unlines
            (mapcar {aget :decl--text}
-                   (sort (remove-if-not {aget :decl--text} json-db)
+                   (sort (remove-if-not {aget :decl--text} json-out)
                          (lambda (x y)
                            (or (< (first x) (first y))
                                (and (= (first x) (first y))

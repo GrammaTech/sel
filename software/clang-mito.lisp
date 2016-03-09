@@ -66,8 +66,8 @@
   clang-mito)
 
 ;; Add a type and its dependencies, transitively.
-(defmethod add-type ((clang-mito clang-mito) type-id)
-  (let ((type (gethash type-id *type-database*)))
+(defmethod add-type ((clang-mito clang-mito) database type-id)
+  (let ((type (first (find-types database :hash type-id))))
     (when type
       (let ((hash (aget :HASH type))
             (decl (aget :DECL type))
@@ -75,12 +75,12 @@
             (header (aget :INCLUDE type)))
         (if header
             (setf (gethash header (headers clang-mito)) t)
-            (add-type-rec clang-mito hash decl reqs))))))
+            (add-type-rec clang-mito database hash decl reqs))))))
 
-(defmethod add-type-rec ((clang-mito clang-mito) type-id decl reqs)
+(defmethod add-type-rec ((clang-mito clang-mito) database type-id decl reqs)
   (when (not (gethash type-id (types clang-mito)))
     (setf (gethash type-id (types clang-mito)) "// pending")
-    (loop for req in reqs do (add-type clang-mito req))
+    (loop for req in reqs do (add-type clang-mito database req))
     (setf (sorted-types clang-mito)
           (cons (cons type-id decl)
                 (sorted-types clang-mito)))

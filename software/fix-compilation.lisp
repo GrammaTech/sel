@@ -99,7 +99,9 @@ expression match.")
            (binary-assignment-fodder
             (random-elt
              (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src--text}]
-                            (find-snippets "BinaryOperator" :n 512))))
+                            (find-snippets *database*
+                                           :classes "BinaryOperator"
+                                           :n 512))))
            ;; Find the "assigned-to" free-variable.
            (assigned-variable
             (multiple-value-bind (matchp match-data)
@@ -147,15 +149,16 @@ expression match.")
          (new-expression
           (recontextualize
            obj
-           (find-snippets ($in '("FloatingLiteral"
-                                 "IntegerLiteral"
-                                 "CharacterLiteral"
-                                 "StringLiteral"
-                                 "ParenExpr"
-                                 "DeclRefExpr"
-                                 "UnaryExprOrTypeTraitExpr"
-                                 "ImplicitCastExpr"
-                                 "CStyleCastExpr")
+           (find-snippets *database*
+                          :classes '("FloatingLiteral"
+                                     "IntegerLiteral"
+                                     "CharacterLiteral"
+                                     "StringLiteral"
+                                     "ParenExpr"
+                                     "DeclRefExpr"
+                                     "UnaryExprOrTypeTraitExpr"
+                                     "ImplicitCastExpr"
+                                     "CStyleCastExpr")
                           :n 1))
            (aget :counter
                  (lastcar (asts-containing-source-location
@@ -171,7 +174,7 @@ expression match.")
                           new-expression
                           (subseq orig col-number)))
                   (drop line-number lines)))
-    obj))
+    obj)
 
 (register-fixer
  ":(\\d+):(\\d+): error: expected expression before ‘(\\S+)’ "
