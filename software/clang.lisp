@@ -121,13 +121,22 @@
 
     ;; Populate a type database with the types found.
     (loop for type in json-db
-       when (aget :hash type)
+       when (and (assoc :hash type)
+                 (assoc :decl type)
+                 (assoc :type type)
+                 (or (assoc :include type)
+                     (assoc :decl type)))
        do (setf (gethash (aget :hash type) (types type-db-mito)) type))
 
     ;; Set the clang-mito's types. This will also populate any
     ;; #include directives needed for library typedefs.
     (loop for type in json-db
        when (aget :hash type)
+       when (and (assoc :hash type)
+                 (assoc :decl type)
+                 (assoc :type type)
+                 (or (assoc :include type)
+                     (assoc :decl type)))
        do (add-type (mitochondria obj) (aget :hash type) type-db-mito))
 
     ;; Add any macro definitions seen.
