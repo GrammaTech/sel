@@ -20,6 +20,7 @@
    :edits
    :fitness
    :fitness-extra-data
+   :mutation-stats
    :genome
    :phenome
    :evaluate
@@ -94,6 +95,7 @@
    :random-function-name
    ;; global variables
    :*population*
+   :*generations*
    :*max-population-size*
    :*tournament-size*
    :*tournament-eviction-size*
@@ -102,6 +104,8 @@
    :*mut-rate*
    :*fitness-evals*
    :*running*
+   :*start-time*
+   :elapsed-time
    ;; clang / clang-w-fodder global variables
    :fodder-database
    :mongo-database
@@ -132,8 +136,9 @@
    :mutant
    :crossed
    :new-individual
-   :evolve
    :mcmc
+   :evolve
+   :generational-evolve
    ;; software backends
    :simple
    :light
