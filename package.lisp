@@ -34,7 +34,6 @@
    :pick-good
    :pick-bad
    :pick-snippet
-   :find-snippets
    :mutate
    :apply-mutation
    :text
@@ -105,6 +104,11 @@
    :*fitness-evals*
    :*running*
    ;; clang / clang-w-fodder global variables
+   :fodder-database
+   :mongo-database
+   :json-database
+   :find-snippets
+   :find-types
    :*ancestor-logging*
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*
