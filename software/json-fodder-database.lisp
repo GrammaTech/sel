@@ -14,8 +14,9 @@
    ;; statements end.  Additionally, we could keep indexes where each AST
    ;; class begins and ends.
 
-   ;; The database of source code snippets, grouped by AST class name.
-  ((ast-database-ht :initarg :ast-database-ht
+
+  (;; The database of source code snippets, grouped by AST class name.
+   (ast-database-ht :initarg :ast-database-ht
                     :accessor ast-database-ht
                     :initform (make-hash-table :test 'equal))
    ;; The database of source code snippets as a raw list.
@@ -29,22 +30,20 @@
    ;; An auxillary database of type snippets, grouped by hash-code
    (type-database-ht :initarg :type-database-ht
                      :accessor type-database-ht
-                     :initform (make-hash-table :test 'equal))))
+                     :initform (make-hash-table :test 'equal))
+   ;; Stream of incoming JSON.
+   (json-stream :initarg :json-stream :accessor json-stream)))
 
-(defmethod open-database ((db json-database) file)
-  "Create the database using the contents of a JSON file"
-  (open-database-from-json db (load-json-with-caching file)))
+(defmethod print-object ((db json-database) stream)
+  (print-unreadable-object (db stream :type t)
+    (when (subtypep (type-of (json-stream db)) 'file-stream)
+      (format stream "~a:" (pathname (json-stream db))))
+    (prin1 (length (ast-database-list db)) stream)))
 
-(defmethod open-database-from-json((db json-database) json)
-  "Create the database using the JSON representation"
-  ;; Clobber the existing database
-  (setf (ast-database-ht db) (make-hash-table :test 'equal))
-  (setf (type-database-ht db) (make-hash-table :test 'equal))
-  (setf (ast-database-list db) nil)
-  (setf (ast-database-full-stmt-list db) nil)
-
+(defmethod initialize :after ((db json-database))
+  ;; Initialize a new json database.
   ;; Load the snippet database.
-  (dolist (snippet (shuffle json))
+  (dolist (snippet (shuffle (load-json-with-caching (json-stream db))))
     (let ((ast-class (aget :ast--class snippet)))
       (if ast-class
           ;; This entry describes a code snippet
@@ -58,47 +57,41 @@
             (let ((cur (gethash ast-class (ast-database-ht db))))
               (setf (gethash ast-class (ast-database-ht db))
                     (cons snippet cur))))
-
           ;; This entry describes a type, perhaps
           (let ((type-id (aget :hash snippet)))
             (when type-id
-              (setf (gethash type-id (type-database-ht db)) snippet))))))
+              (setf (gethash type-id (type-database-ht db)) snippet)))))))
 
-  db)
-
-(defun load-json-with-caching (json-db-path)
-  (let ((json-stored-db-path (make-pathname
-                              :directory (pathname-directory json-db-path)
-                              :name (pathname-name json-db-path)
-                              :type "dbcache")))
-    (if (and (probe-file json-stored-db-path)
-             (> (file-write-date json-stored-db-path)
-                (file-write-date json-db-path)))
-        ;; Cache exists and is newer than the original
-        ;; JSON database; use the cache.
-        (cl-store:restore json-stored-db-path)
-        ;; Cache does not yet exist or has been invalidated;
-        ;; load from JSON and write back to the cache.
-        (with-open-file (json-stream json-db-path)
-          (cl-store:store (json:decode-json-from-source json-stream)
-                          json-stored-db-path)))))
+(defmethod load-json-with-caching ((db json-database))
+  (if (subtypep (type-of (json-stream db)) 'file-stream)
+      (let* ((json-db-path (pathname (json-stream db)))
+             (json-stored-db-path (make-pathname
+                                   :directory (pathname-directory json-db-path)
+                                   :name (pathname-name json-db-path)
+                                   :type "dbcache")))
+        (if (and (probe-file json-stored-db-path)
+                 (> (file-write-date json-stored-db-path)
+                    (file-write-date json-db-path)))
+            ;; Cache exists and is newer than the original
+            ;; JSON database; use the cache.
+            (cl-store:restore json-stored-db-path)
+            ;; Cache does not yet exist or has been invalidated;
+            ;; load from JSON and write back to the cache.
+            (cl-store:store (json:decode-json-from-source (json-stream db))
+                            json-stored-db-path)))
+      (json:decode-json-from-source (json-stream db))))
 
 (defmethod find-snippets ((db json-database)
-                          &key classes
-                               full-stmt
-                               (n most-positive-fixnum))
-  "Find snippets in the fodder database (optionally)
-matching the keyword parameters CLASSES or FULL-STMT with the optional
-limit N."
+                          &key classes full-stmt (n most-positive-fixnum))
   (let ((snippets (cond ((and classes (listp classes))
-                           (mappend
-                             (lambda (class)
-                               (gethash class (ast-database-ht db)))
-                             classes))
+                         (mappend
+                          (lambda (class)
+                            (gethash class (ast-database-ht db)))
+                          classes))
                         ((and classes (stringp classes))
-                           (gethash classes (ast-database-ht db)))
+                         (gethash classes (ast-database-ht db)))
                         (full-stmt
-                          (ast-database-full-stmt-list db))
+                         (ast-database-full-stmt-list db))
                         (t (ast-database-list db)))))
     (if (<= (length snippets) n)
         snippets
@@ -106,10 +99,8 @@ limit N."
           (subseq snippets start (+ start n))))))
 
 (defmethod find-types ((db json-database) &key hash)
-  "Find the types in the type database (optionally)
-matching the keyword parameter HASH"
   (if hash
       (list (gethash hash (type-database-ht db)))
       (loop for k being the hash-keys of (type-database-ht db)
-        using (hash-value v)
-        collecting v)))
+         using (hash-value v)
+         collecting v)))

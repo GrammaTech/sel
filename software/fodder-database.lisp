@@ -4,12 +4,6 @@
 
 (defclass fodder-database () ())
 
-(defgeneric open-database (fodder-database file)
-  (:documentation "Open the fodder database using file"))
-
-(defgeneric open-database-from-json (fodder-database json)
-  (:documentation "Open the fodder database using the JSON representation"))
-
 (defgeneric find-snippets (fodder-database
                            &key classes full-stmt n)
   (:documentation "Find snippets in the fodder database (optionally)
@@ -22,3 +16,12 @@ matching the keyword parameters CLASSES or FULL-STMT.
 (defgeneric find-types (type-database &key hash)
   (:documentation "Find the types in the type database (optionally)
 matching the keyword parameter HASH"))
+
+(defgeneric find-types-kv (db kv)
+  (:documentation
+   "Find the types in the type database matching the predicate KV."))
+
+(defgeneric find-snippets-kv (db kv &key)
+  (:documentation
+   "Find snippets in the Mongo database matching the predicate KV.
+:N <N> - Limit to N randomly drawn snippets"))
