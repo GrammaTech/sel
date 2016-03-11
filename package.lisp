@@ -56,7 +56,6 @@
    :*clang-genome-separator*
    :genome-string-without-separator
    :from-file-exactly
-   :clang-w-fodder-setup-db
    :get-vars-in-scope
    :get-indexed-vars-in-scope
    :bind-free-vars

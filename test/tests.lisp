@@ -162,12 +162,15 @@
 
 (defixture hello-world-clang-w-fodder
   (:setup
-   (clang-w-fodder-setup-db (hello-world-dir "hello_world_ast.json"))
+   (setf *database*
+         (with-open-file (in (hello-world-dir "hello_world_ast.json"))
+           (make-instance 'json-database :json-stream in)))
    (setf *hello-world*
      (from-file (make-instance 'clang-w-fodder :compiler "clang-3.7"
                                                :flags '("-g -m32 -O0"))
                 (hello-world-dir "hello_world.c"))))
   (:teardown
+    (setf *database nil)
     (setf *hello-world* nil)))
 
 (defixture huf-clang
@@ -1032,8 +1035,11 @@ Useful for printing or returning differences in the REPL."
                   :genome "int main(int argc, char **argv) {
 	printf(\"Hello, World!\\n\");
 	return missing_variable;}"))
-          (clang-w-fodder-setup-db
-           (merge-pathnames "euler-example.json" *test-dir*))))
+          (setf *database*
+                (with-open-file (in (merge-pathnames "euler-example.json"
+                                                     *test-dir*))
+                  (make-instance 'json-database :json-stream in))))
+  (:teardown (setf *database* nil)))
 
 (defixture broken-compilation-gcc
   (:setup (setf *broken-gcc*
@@ -1043,8 +1049,11 @@ Useful for printing or returning differences in the REPL."
                   :genome "int main(int argc, char **argv) {
 	printf(\"Hello, World!\\n\");
 	return missing_variable;}"))
-          (clang-w-fodder-setup-db
-           (merge-pathnames "euler-example.json" *test-dir*))))
+          (setf *database*
+                (with-open-file (in (merge-pathnames "euler-example.json"
+                                                     *test-dir*))
+                  (make-instance 'json-database :json-stream in))))
+  (:teardown (setf *database* nil)))
 
 (deftest fix-compilation-inserts-missing-include ()
   (with-fixture broken-compilation
