@@ -17,23 +17,6 @@
 (defmethod from-file :before ((obj clang-w-fodder) path)
   (assert (not (null *database*))))
 
-(defun clang-w-fodder-setup-db (file)
-  ;; Clobbber the existing database.
-  (setf *database* nil)
-
-  (multiple-value-bind (stdout stderr exit)
-    (shell (format nil "grep -i mongo-db ~a" file))
-    (declare (ignorable stdout stderr))
-
-    ;; Test if we can find mongo-db in the JSON file. If so, this is JSON
-    ;; file with the Mongo configuration.  Otherwise, its a flat file
-    ;; of JSON-formatted ASTs.
-    (if (zerop exit)
-        (setf *database* (open-database (make-instance 'mongo-database)
-                                        file))
-        (setf *database* (open-database (make-instance 'json-database)
-                                        file)))))
-
 (defgeneric pick-snippet (clang-w-fodder &key full class pt)
   (:documentation "Return a snippet from the fodder database.
 

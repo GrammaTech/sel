@@ -40,10 +40,10 @@
       (format stream "~a:" (pathname (json-stream db))))
     (prin1 (length (ast-database-list db)) stream)))
 
-(defmethod initialize :after ((db json-database))
+(defmethod initialize-instance :after ((db json-database) &key)
   ;; Initialize a new json database.
   ;; Load the snippet database.
-  (dolist (snippet (shuffle (load-json-with-caching (json-stream db))))
+  (dolist (snippet (shuffle (load-json-with-caching db)))
     (let ((ast-class (aget :ast--class snippet)))
       (if ast-class
           ;; This entry describes a code snippet
