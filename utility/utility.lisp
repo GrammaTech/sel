@@ -789,7 +789,8 @@ that function may be declared.")
             (setf (gethash key to-ht)
                   (if (eq to-value 'no-value-present)
                       from-value
-                      (merge-fn to-value from-value)))))))
+                      (merge-fn to-value from-value))))
+       finally (return to-ht))))
 
 (defun ht-intersect (a b &key with)
   (let ((ht (make-hash-table :test 'equal)))
