@@ -69,23 +69,22 @@
 (defmethod add-type ((clang-mito clang-mito) type-id type-database)
   (let ((type (first (find-types type-database :hash type-id))))
     (when type
-      (let ((hash (aget :HASH type))
-            (decl (aget :DECL type))
-            (reqs (aget :REQS type))
-            (header (aget :INCLUDE type)))
+      (let ((header (aget :INCLUDE type)))
         (if header
             (setf (gethash header (headers clang-mito)) t)
-            (add-type-rec clang-mito hash decl reqs type-database))))))
+            (add-type-rec clang-mito type type-database))))))
 
-(defmethod add-type-rec ((clang-mito clang-mito)
-                         type-id decl reqs type-database)
-  (when (not (gethash type-id (types clang-mito)))
-    (setf (gethash type-id (types clang-mito)) "// pending")
-    (loop for req in reqs do (add-type clang-mito req type-database))
-    (setf (sorted-types clang-mito)
-          (cons (cons type-id decl)
-                (sorted-types clang-mito)))
-    (setf (gethash type-id (types clang-mito)) decl)))
+(defmethod add-type-rec ((clang-mito clang-mito) type type-database)
+  (let ((type-id (aget :HASH type))
+        (decl (aget :DECL type))
+        (reqs (aget :REQS type)))
+    (when (not (gethash type-id (types clang-mito)))
+      (setf (gethash type-id (types clang-mito)) "// pending")
+      (loop for req in reqs do (add-type clang-mito req type-database))
+      (setf (sorted-types clang-mito)
+            (cons (cons type-id decl)
+                  (sorted-types clang-mito)))
+      (setf (gethash type-id (types clang-mito)) type))))
 
 ;; Implementation of the find-type interface so clang-mito
 ;; objects can be passed to add-type as a type database.
