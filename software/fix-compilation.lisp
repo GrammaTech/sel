@@ -48,9 +48,18 @@ expression match.")
                              (multiple-value-bind (matchp match-data)
                                  (scan-to-strings (car fixer) line)
                                (when matchp match-data)))
-                 :do (when (ignore-errors (funcall (cdr fixer) obj matches))
+                 :do (when (funcall (cdr fixer) obj matches)
                        (return-from fix))))))))
   obj)
+
+;; Fallback strategy: just delete the offending line entirely.
+(defmethod delete-line-with-error ((obj clang) match-data)
+  (let ((target-line (parse-integer (aref match-data 0))))
+    (setf (lines obj)
+          (loop :for line :in (lines obj)
+             :for line-num :from 1
+             :when (not (= target-line line-num))
+             :collect line))))
 
 
 ;;; Resolve missing functions by adding #includes.
@@ -133,9 +142,33 @@ expression match.")
                               #-ccl #\Semicolon)
                       (string #\Newline))))))))
 
+;; For clang software objects with no fodder database,
+;; just delete the offending line.
+(defmethod add-declaration-and-initialize (line-number-index
+                                           variable-name-index
+                                           (obj clang)
+                                           match-data)
+  (declare (ignorable line-number-index)
+           (ignorable variable-name-index))
+  (delete-line-with-error obj match-data))
+
 (register-fixer
  ":(\\d+):\\d+: error: use of undeclared identifier '(\\S+)'"
  {add-declaration-and-initialize 0 1})
+
+;; Replace C++-style casts with C-style casts.
+(defmethod c++-casts-to-c-casts ((obj clang) match-data)
+  (declare (ignorable match-data))
+  (setf (lines obj)
+        (loop :for line :in (lines obj)
+           :collecting (cl-ppcre:regex-replace-all
+                        "(reinterpret|static)_cast<([^>]*)>"
+                        line
+                        "(\\2)"))))
+
+(register-fixer
+ ":(\\d+):(\\d+): error: (‘|')(reinterpret|static)_cast(’|') undeclared"
+ #'c++-casts-to-c-casts)
 
 (register-fixer
  ":(\\d+):\\d+: error: (‘|')(\\S+)(’|') undeclared"
@@ -180,20 +213,6 @@ expression match.")
  ":(\\d+):(\\d+): error: expected expression before ‘(\\S+)’ "
  #'expected-expression-before)
 
-;; Replace C++-style casts with C-style casts.
-(defmethod c++-casts-to-c-casts ((obj clang) match-data)
-  (declare (ignorable match-data))
-  (setf (lines obj)
-        (loop :for line :in (lines obj)
-           :collecting (cl-ppcre:regex-replace-all
-                        "(reinterpret|static)_cast<([^>]*)>"
-                        line
-                        "(\\2)"))))
-
-(register-fixer
- ":(\\d+):(\\d+): error: (‘|')(reinterpret|static)_cast(’|') undeclared"
- #'c++-casts-to-c-casts)
-
 ;; #include <stdint.h> when using types like int32_t.
 (defmethod require-stdint ((obj clang) match-data)
   (declare (ignorable match-data))
@@ -210,17 +229,25 @@ expression match.")
   (add-macro   (mitochondria obj) "int1_t"  "int1_t int32_t")
   (add-macro   (mitochondria obj) "uint1_t" "uint1_t uint32_t"))
 
+(defmethod delete-undefined-references ((obj clang) match-data)
+  (let ((id (format nil "(|~a|)" (aref match-data 0)))
+        (to-delete (make-hash-table :test 'equal)))
+    (loop :for ast :in (asts obj)
+       :when (find id
+                   (append (aget :unbound--vals ast)
+                           (aget :unbound--funs ast))
+                   :key #'car
+                   :test #'string=)
+       :do (setf (gethash (enclosing-full-stmt obj (aget :counter ast))
+                          to-delete) t))
+    (loop :for ast :in (sort (remove-if-not (lambda (x) x)
+                                            (ht->list to-delete)) #'>)
+       :when (not (= 0 ast))
+       :do (apply-mutation obj `(:cut (:stmt1 . ,ast))))))
+
 (register-fixer
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
  #'add-int1-macros)
-
-(defmethod delete-line-with-error ((obj clang) match-data)
-  (let ((target-line (parse-integer (aref match-data 0))))
-    (setf (lines obj)
-          (loop :for line :in (lines obj)
-             :for line-num :from 1
-             :when (not (= target-line line-num))
-             :collect line))))
 
 ;; These four fixers just delete the offending line, because there is not much
 ;; intelligent recovery we can do.
@@ -239,3 +266,19 @@ expression match.")
 (register-fixer
  ":(\\d+):(\\d+): error: label (‘|')(\\S+)(’|') used but not defined"
  #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: too many arguments (for format|to function)"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: invalid type argument of"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: called object (‘|')(\\S+)(’|') is not a function or function pointer"
+ #'delete-line-with-error)
+
+(register-fixer
+ ": undefined reference to `(\\S+)'"
+ #'delete-undefined-references)
