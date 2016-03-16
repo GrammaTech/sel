@@ -362,7 +362,7 @@ already in scope, it will keep that name.")
                              (push (alist :mutant op
                                           :id (get-fresh-ancestry-id))
                                    (ancestors obj)))
-                           (when (random-bool :bias 
+                           (when (random-bool :bias
                                     *clang-format-after-mutation-chance*)
                              (clang-format obj))
                            (update-asts obj))
@@ -459,42 +459,58 @@ Otherwise return the whole FULL-GENOME"
                  (:protos "protos")
                  (:decls "decls")
                  (:none "none"))))
-    (unwind-protect
-       (multiple-value-bind (stdout stderr exit)
-           (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
+    (let ((clang-mutate-outfile (temp-file-name)))
+      (unwind-protect
+        (multiple-value-bind (stdout stderr exit)
+          (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
                   (command-opt (car op))
                   (mapcar #'option-opt (cdr op))
                   src-file
-                  (flags obj))
-         (declare (ignorable stderr))
-         ;; NOTE: The clang-mutate executable will sometimes produce
-         ;;       usable output even on a non-zero exit, e.g., usable
-         ;;       json or successful mutations but an exit of 1
-         ;;       because of compiler errors.  To ensure these cases
-         ;;       are still usable, we only signal mutation errors on
-         ;;       specific exit values.
-         (when (find exit '(131 132 134 136 139))
-           (error
-            (make-condition 'mutate
-              :text (format nil "clang-mutate core dump, ~d," exit)
-              :obj obj :op op)))
-         (values
-          (case (car op)
-            (:json
-             (handler-case (json:decode-json-from-source stdout)
-               (end-of-file (err)
-                 (declare (ignorable err))
-                 (error (make-condition 'mutate
-                          :text "JSON decode error"
-                          :obj obj :op op)))))
-            ((:ids :list) stdout)
-            (t (extract-clang-genome stdout)))
-          exit))
-    ;; Cleanup forms.
-    (when (and value1-file (probe-file value1-file))
-      (delete-file value1-file))
-    (when (and value2-file (probe-file value2-file))
-      (delete-file value2-file))))))
+                  (flags obj)
+                  clang-mutate-outfile)
+          (declare (ignorable stdout stderr))
+          ;; NOTE: The clang-mutate executable will sometimes produce
+          ;;       usable output even on a non-zero exit, e.g., usable
+          ;;       json or successful mutations but an exit of 1
+          ;;       because of compiler errors.  To ensure these cases
+          ;;       are still usable, we only signal mutation errors on
+          ;;       specific exit values.
+          (when (find exit '(131 132 134 136 139))
+            (error
+             (make-condition 'mutate
+               :text (format nil "clang-mutate core dump, ~d," exit)
+               :obj obj :op op)))
+          ;; NOTE: If clang-mutate output exceeds 10 MB, this is likely due
+          ;; to an insertion which is technically legal via the standard,
+          ;; but is actually meaningless.  This tends to happen with array
+          ;; initialization forms (e.g { 254, 255, 256 ... }) being inserted
+          ;; and interpreted as a block.  Throw an error to clear the genome.
+          (with-open-file (clang-mutate-out clang-mutate-outfile
+                           :element-type '(unsigned-byte 8))
+            (when (> (file-length clang-mutate-out) 10485760)
+              (make-condition 'mutate
+                :text (format nil "clang-mutate output exceeds 10 MB.")
+                :obj obj :op op)))
+          (values
+           (case (car op)
+             (:json
+              (handler-case (json:decode-json-from-source
+                              (file-to-string clang-mutate-outfile))
+                (end-of-file (err)
+                  (declare (ignorable err))
+                  (error (make-condition 'mutate
+                           :text "JSON decode error"
+                           :obj obj :op op)))))
+             ((:ids :list) (file-to-string clang-mutate-outfile))
+             (t (extract-clang-genome (file-to-string clang-mutate-outfile))))
+           exit))
+      ;; Cleanup forms.
+      (when (probe-file clang-mutate-outfile)
+        (delete-file clang-mutate-outfile))
+      (when (and value1-file (probe-file value1-file))
+        (delete-file value1-file))
+      (when (and value2-file (probe-file value2-file))
+        (delete-file value2-file)))))))
 
 (defun ast-to-source-range (ast)
   "Convert AST to pair of SOURCE-LOCATIONS."
@@ -550,7 +566,7 @@ Otherwise return the whole FULL-GENOME"
 
 (defmethod get-parent-full-stmt((clang clang) ast)
   (cond ((aget :full--stmt ast) ast)
-        (t (get-parent-full-stmt clang (get-ast clang 
+        (t (get-parent-full-stmt clang (get-ast clang
                                                 (aget :parent--counter ast))))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
