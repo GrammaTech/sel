@@ -192,7 +192,7 @@ expression match.")
                                      "UnaryExprOrTypeTraitExpr"
                                      "ImplicitCastExpr"
                                      "CStyleCastExpr")
-                          :n 1))
+                          :n 1)
            (aget :counter
                  (lastcar (asts-containing-source-location
                            obj (make-instance 'source-location
@@ -207,7 +207,7 @@ expression match.")
                           new-expression
                           (subseq orig col-number)))
                   (drop line-number lines)))
-    obj)
+    obj))
 
 (register-fixer
  ":(\\d+):(\\d+): error: expected expression before ‘(\\S+)’ "
