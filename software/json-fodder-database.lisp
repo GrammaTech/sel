@@ -104,3 +104,55 @@
       (loop for k being the hash-keys of (type-database-ht db)
          using (hash-value v)
          collecting v)))
+
+(defmethod byte-sorted-snippets ((db json-database)
+                                  target-bytes
+                                  n-elems-to-return
+                                  &key (class nil)
+                                       (k-elems-to-consider most-positive-fixnum))
+  (let ((fodder (if class (find-snippets db :classes class)
+                          (find-snippets db :full-stmt t))))
+    (if (< k-elems-to-consider (length fodder))
+      (let ((start (random (- (length fodder) k-elems-to-consider))))
+        (json-sorted-snippets-nonmemoized
+          (subseq fodder start (+ start k-elems-to-consider))
+          target-bytes
+          #'byte-sorted-snippets-common
+          n-elems-to-return))
+      (json-sorted-snippets-memoized
+        fodder
+        target-bytes
+        #'byte-sorted-snippets-common
+        n-elems-to-return))))
+
+(defmethod disasm-sorted-snippets ((db json-database)
+                                   target-disasm
+                                   n-elems-to-return
+                                   &key (class nil)
+                                        (k-elems-to-consider most-positive-fixnum))
+  (let ((fodder (if class (find-snippets db :classes class)
+                          (find-snippets db :full-stmt t))))
+    (if (< k-elems-to-consider (length fodder))
+      (let ((start (random (- (length fodder) k-elems-to-consider))))
+        (json-sorted-snippets-nonmemoized
+          (subseq fodder start (+ start k-elems-to-consider))
+          target-disasm
+          #'disasm-sorted-snippets-common
+          n-elems-to-return))
+      (json-sorted-snippets-memoized
+        fodder
+        target-disasm
+        #'disasm-sorted-snippets-common
+        n-elems-to-return))))
+
+(defun-memoized json-sorted-snippets-memoized (fodder
+                                               target
+                                               sort-fn
+                                               n-elems-to-return)
+  (funcall sort-fn fodder target n-elems-to-return))
+
+(defun json-sorted-snippets-nonmemoized (fodder
+                                         target
+                                         sort-fn
+                                         n-elems-to-return)
+  (funcall sort-fn fodder target n-elems-to-return))
