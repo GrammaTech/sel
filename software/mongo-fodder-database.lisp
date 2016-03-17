@@ -29,22 +29,42 @@
   (with-mongo-connection (:db (db mongo-database)
                           :host (host mongo-database)
                           :port (port mongo-database))
-    (let ((count (get-element "n" (caadr (db.count "asts" kv)))))
-      (when count
-        (do* ((result (db.find "asts" kv
-                               :limit (min count n)
-                               :skip (if (<= count n)
-                                         0 (random (- count n))))
-                      (db.next "asts" cursor))
-              (cursor (nth 5 (first result))
-                      (nth 5 (first result)))
-              (documents (second result)
-                         (append documents (second result))))
-             ((or (zerop cursor)
-                  (>= (length documents)
-                      (min count n)))
-                (subseq (mongo-documents-to-cljson documents) 0 (min count n)))
-             ())))))
+    (labels ((kv-with-random (kv-rand kv-pred)
+               (if (equal kv-pred :all)
+                   kv-rand
+                   (kv kv-rand kv-pred))))
+      (let* ((rnd (random 1.0))
+             (snippets-above (find-snippets-kv-exe-query
+                               mongo-database
+                               (kv-with-random ($>= "random" rnd) kv)
+                               :n n :field "random" :asc t))
+             (snippets-below (when (< (length snippets-above) n)
+                               (find-snippets-kv-exe-query
+                                 mongo-database
+                                 (kv-with-random ($< "random" rnd) kv)
+                                 :n (- n (length snippets-above))
+                                 :field "random"
+                                 :asc nil))))
+        (append snippets-below snippets-above)))))
+
+(defmethod find-snippets-kv-exe-query ((mongo-database mongo-database) kv
+                                       &key (n most-positive-fixnum)
+                                            (field nil)
+                                            (asc t))
+  (do* ((result (db.sort "asts" kv
+                         :limit (if (equal n most-positive-fixnum) 0 n)
+                         :field field
+                         :asc asc)
+                (db.next "asts" cursor))
+        (cursor (nth 5 (first result))
+                (nth 5 (first result)))
+        (documents (second result)
+                   (append documents (second result))))
+       ((or (zerop cursor)
+            (>= (length documents) n))
+          (mongo-documents-to-cljson
+            (subseq documents 0 (min n (length documents)))))
+       ()))
 
 (defmethod find-types ((mongo-database mongo-database) &key hash)
   (find-types-kv mongo-database (if hash (kv "hash" hash) :all)))
