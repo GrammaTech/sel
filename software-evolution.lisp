@@ -56,9 +56,6 @@
   (if (fitness obj)
       (values (fitness obj) (fitness-extra-data obj))
       (multiple-value-bind (fit extra) (funcall test obj)
-        (assert (numberp fit) (fit)
-                "Test ~a returned non-numerical fitness ~a for software ~a."
-                test fit obj)
         (setf (fitness obj) fit)
         (setf (fitness-extra-data obj) extra)
         (values fit extra))))
@@ -169,15 +166,16 @@ argument TEST must be supplied."))
                (format *analyze-mutation-verbose-stream* string)))
            (classify (new old &optional old-2)
              (let ((fit (safe-eval new))
-                   (old-fit (if old-2
+                   (old-fit (if (and old-2 *fitness-predicate*)
                                 (extremum (list (safe-eval old)
                                                 (safe-eval old-2))
                                           *fitness-predicate*)
                                 (safe-eval old))))
                (values
                 (cond
-                  ((= fit (worst)) (note "_") :dead)
-                  ((= fit old-fit) (note "=") :same)
+                  ((funcall *worst-fitness-p* new) (note "_") :dead)
+                  ((equalp fit old-fit) (note "=") :same)
+                  ((not *fitness-predicate*) (note "?") :non-comparable)
                   ((funcall (complement *fitness-predicate*) fit old-fit)
                    (note "-") :worse)
                   ((funcall *fitness-predicate* fit old-fit)
@@ -280,12 +278,6 @@ Define an :around method on this function to record crossovers."))
 (defvar *tournament-eviction-size* 2
   "Number of individuals to participate in eviction tournaments.")
 
-(declaim (inline worst))
-(defun worst ()
-  (cond ((equal #'< *fitness-predicate*) infinity)
-        ((equal #'> *fitness-predicate*) 0)
-        (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
-
 (defvar *cross-chance* 2/3
   "Fraction of new individuals generated using crossover rather than mutation.")
 
@@ -326,7 +318,7 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
   (flet ((verify (it)
            (assert (typep it 'software) (it)
                    "Population member is not software object")
-           (assert (numberp (fitness it)) (it)
+           (assert (fitness it) (it)
                    "Population member with no fitness")
            it))
     (assert *population* (*population*) "Empty population.")
@@ -407,9 +399,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                           ,@(when (and pd pd-fn)
                                   `((when (zerop (mod ,fitness-counter ,pd))
                                       (funcall ,pd-fn))))
-                          (assert (numberp (fitness ,variant)) (,variant)
-                                  "Non-numeric fitness: ~S"
-                                  (fitness ,variant))
+                          (assert (fitness ,variant) (,variant)
+                                  "Variant with no fitness")
                           ,@(if filter
                                 `((when (funcall ,filter ,variant) ,@body))
                                 body)
@@ -494,7 +485,13 @@ Keyword arguments are as follows.
             #'new-individual
             (incorporate new ,population ,max-population-size)))
 
-(defvar *worst-fitness-p* nil
+(defun worst-numeric-fitness-p (obj)
+  (= (fitness obj)
+     (cond ((equal #'< *fitness-predicate*) infinity)
+           ((equal #'> *fitness-predicate*) 0)
+           (t (error "bad *fitness-predicate* ~a" *fitness-predicate*)))))
+
+(defvar *worst-fitness-p* #'worst-numeric-fitness-p
   "Predicate indicating whether an individual has the worst possible fitness.")
 (defvar *target-fitness-p* nil
   "Predicate indicating whether an individual has reached the target fitness.")
