@@ -108,6 +108,8 @@
    :json-database
    :find-snippets
    :find-types
+   :byte-sorted-snippets
+   :disasm-sorted-snippets
    :*ancestor-logging*
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*

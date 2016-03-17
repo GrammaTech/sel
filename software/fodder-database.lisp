@@ -9,7 +9,7 @@
   (:documentation "Find snippets in the fodder database (optionally)
 matching the keyword parameters CLASSES or FULL-STMT.
 
-:CLASSES - AST Class(es) all snippets should match
+:CLASSES - AST class(es) all snippets should match
 :FULL-STMT - Limit results to full statements if non-nil.
 :N <N> - Limit to N randomly drawn snippets"))
 
@@ -17,11 +17,22 @@ matching the keyword parameters CLASSES or FULL-STMT.
   (:documentation "Find the types in the type database (optionally)
 matching the keyword parameter HASH"))
 
-(defgeneric find-types-kv (db kv)
-  (:documentation
-   "Find the types in the type database matching the predicate KV."))
+(defgeneric byte-sorted-snippets (fodder-database
+                                  target-bytes
+                                  n-elems-to-return
+                                  &key class k-elems-to-consider)
+  (:documentation "Return the N-ELEMS-RETURN snippets closest to TARGET-BYTES
+in FODDER-DATABASE.
 
-(defgeneric find-snippets-kv (db kv &key)
-  (:documentation
-   "Find snippets in the Mongo database matching the predicate KV.
-:N <N> - Limit to N randomly drawn snippets"))
+:CLASS - AST class all snippets should match
+:K-ELEMS-TO-CONSIDER - Limit search to K-ELEMS-TO-CONSIDER random snippets"))
+
+(defgeneric disasm-sorted-snippets (fodder-database
+                                    target-disasm
+                                    n-elems-to-return
+                                    &key class k-elems-to-consider)
+  (:documentation "Return the N-ELEMS-RETURN snippets closest to TARGET-DISASM
+in FODDER-DATABASE.
+
+:CLASS - AST class all snippets should match
+:K-ELEMS-TO-CONSIDER - Limit search to K-ELEMS-TO-CONSIDER random snippets"))

@@ -62,6 +62,106 @@
          ((zerop cursor) (mongo-documents-to-cljson documents))
          ())))
 
+(defmethod byte-sorted-snippets ((mongo-database mongo-database)
+                                 target-bytes n-elems-to-return
+                                 &key (class nil)
+                                      (k-elems-to-consider
+                                       most-positive-fixnum))
+  (sorted-snippets-common
+    mongo-database
+    target-bytes
+    #'byte-sorted-snippets-common
+    n-elems-to-return
+    :class class
+    :k-elems-to-consider k-elems-to-consider))
+
+(defmethod disasm-sorted-snippets ((mongo-database mongo-database)
+                                   target-disasm n-elems-to-return
+                                   &key (class nil)
+                                        (k-elems-to-consider
+                                         most-positive-fixnum))
+  (sorted-snippets-common
+    mongo-database
+    target-disasm
+    #'disasm-sorted-snippets-common
+    n-elems-to-return
+    :class class
+    :k-elems-to-consider k-elems-to-consider))
+
+(defmethod sorted-snippets-common ((mongo-database mongo-database)
+                                   target sort-fn n-elems-to-return
+                                   &key (class nil)
+                                        (k-elems-to-consider
+                                         most-positive-fixnum))
+  (with-mongo-connection (:db (db mongo-database)
+                          :host (host mongo-database)
+                          :port (port mongo-database))
+    ;; Find the number of elements in the database matching the predicate.
+    (let ((count (get-element "n" (caadr (db.count "asts"
+                                                   (if class
+                                                       (kv "ast_class" class)
+                                                       (kv "full_stmt" t)))))))
+      (if (< k-elems-to-consider count)
+          ;; Sample k-elems-to-consider from the full set of elements
+          ;; matching the predicate.
+          (mongo-sorted-snippets-unmemoized mongo-database
+                                            target
+                                            sort-fn
+                                            n-elems-to-return
+                                            :class class
+                                            :k-elems-to-consider
+                                             k-elems-to-consider)
+          ;; Sample all elements matching the predicate in a memoized
+          ;; sort.
+          (mongo-sorted-snippets-memoized mongo-database
+                                          target
+                                          sort-fn
+                                          n-elems-to-return
+                                          :class class)))))
+
+(defun-memoized mongo-sorted-snippets-memoized (mongo-database target sort-fn
+                                                n-elems-to-ret
+                                                &key (class nil))
+  (with-mongo-connection (:db (db mongo-database)
+                          :host (host mongo-database)
+                          :port (port mongo-database))
+    ;; Iteratively pull chunks from the database.  According to Mongo
+    ;; documentation, each chunk should be no greater than 16 MB in size.
+    ;; After pulling the chunk, sort by similarity, keeping no more than
+    ;; N-ELEMS-TO-RETURN.  This minimizes the number of results in memory at
+    ;; any given time.
+    (do* ((result (db.find "asts" (if class (kv "ast_class" class)
+                                            (kv "full_stmt" t))
+                                  :limit 0)
+                  (db.next "asts" cursor))
+          (cursor (nth 5 (first result))
+                  (nth 5 (first result)))
+          (sorted-snippets
+                  (funcall sort-fn (mongo-documents-to-cljson
+                                     (second result))
+                                   target
+                                   n-elems-to-ret)
+                  (funcall sort-fn (append sorted-snippets
+                                           (mongo-documents-to-cljson
+                                             (second result)))
+                                   target
+                                   n-elems-to-ret)))
+         ((zerop cursor) sorted-snippets)
+         ())))
+
+(defun mongo-sorted-snippets-unmemoized (mongo-database target sort-fn
+                                         n-elems-to-ret
+                                         &key (class nil)
+                                              (k-elems-to-consider
+                                               most-positive-fixnum))
+  (funcall sort-fn
+           (if class (find-snippets-kv mongo-database (kv "ast_class" class)
+                                       :n k-elems-to-consider)
+                     (find-snippets-kv mongo-database (kv "full" t)
+                                       :n k-elems-to-consider))
+           target
+           n-elems-to-ret))
+
 (defun mongo-documents-to-cljson (documents)
   "Convert a list of Mongo documents into a list of the form
 (((:key1 . value1) (:key2 . value2) ...)) ((:key1 . value1) (:key2 . value2)))

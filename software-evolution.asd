@@ -45,6 +45,7 @@ techniques."
              (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "clang-mito" :depends-on ("ast"))
              (:file "fodder-database")
+             (:file "database-utils")
              (:file "json-fodder-database" :depends-on ("fodder-database"))
              (:file "mongo-fodder-database" :depends-on ("fodder-database"))
              (:file "fix-compilation" :depends-on ("clang" "clang-w-fodder"))
