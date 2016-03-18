@@ -86,33 +86,48 @@
                                  target-bytes n-elems-to-return
                                  &key (class nil)
                                       (k-elems-to-consider
-                                       most-positive-fixnum))
+                                       most-positive-fixnum)
+                                      (filter #'identity)
+                                      (sort-predicate #'<)
+                                      (similarity-fn #'diff-scalar))
   (sorted-snippets-common
     mongo-database
     target-bytes
     #'byte-sorted-snippets-common
     n-elems-to-return
     :class class
-    :k-elems-to-consider k-elems-to-consider))
+    :k-elems-to-consider k-elems-to-consider
+    :filter filter
+    :sort-predicate sort-predicate
+    :similarity-fn similarity-fn))
 
 (defmethod disasm-sorted-snippets ((mongo-database mongo-database)
                                    target-disasm n-elems-to-return
                                    &key (class nil)
                                         (k-elems-to-consider
-                                         most-positive-fixnum))
+                                         most-positive-fixnum)
+                                        (filter #'identity)
+                                        (sort-predicate #'<)
+                                        (similarity-fn #'diff-scalar))
   (sorted-snippets-common
     mongo-database
     target-disasm
     #'disasm-sorted-snippets-common
     n-elems-to-return
     :class class
-    :k-elems-to-consider k-elems-to-consider))
+    :k-elems-to-consider k-elems-to-consider
+    :filter filter
+    :sort-predicate sort-predicate
+    :similarity-fn similarity-fn))
 
 (defmethod sorted-snippets-common ((mongo-database mongo-database)
                                    target sort-fn n-elems-to-return
                                    &key (class nil)
                                         (k-elems-to-consider
-                                         most-positive-fixnum))
+                                         most-positive-fixnum)
+                                        (filter #'identity)
+                                        (sort-predicate #'<)
+                                        (similarity-fn #'diff-scalar))
   (with-mongo-connection (:db (db mongo-database)
                           :host (host mongo-database)
                           :port (port mongo-database))
@@ -124,24 +139,34 @@
       (if (< k-elems-to-consider count)
           ;; Sample k-elems-to-consider from the full set of elements
           ;; matching the predicate.
-          (mongo-sorted-snippets-unmemoized mongo-database
-                                            target
-                                            sort-fn
-                                            n-elems-to-return
-                                            :class class
-                                            :k-elems-to-consider
-                                             k-elems-to-consider)
+          (mongo-sorted-snippets-unmemoized
+            mongo-database
+            target
+            sort-fn
+            n-elems-to-return
+            :class class
+            :k-elems-to-consider k-elems-to-consider
+            :filter filter
+            :sort-predicate sort-predicate
+            :similarity-fn similarity-fn)
           ;; Sample all elements matching the predicate in a memoized
           ;; sort.
-          (mongo-sorted-snippets-memoized mongo-database
-                                          target
-                                          sort-fn
-                                          n-elems-to-return
-                                          :class class)))))
+          (mongo-sorted-snippets-memoized
+            mongo-database
+            target
+            sort-fn
+            n-elems-to-return
+            :class class
+            :filter filter
+            :sort-predicate sort-predicate
+            :similarity-fn similarity-fn)))))
 
 (defun-memoized mongo-sorted-snippets-memoized (mongo-database target sort-fn
                                                 n-elems-to-ret
-                                                &key (class nil))
+                                                &key (class nil)
+                                                     (filter #'identity)
+                                                     (sort-predicate #'<)
+                                                     (similarity-fn #'diff-scalar))
   (with-mongo-connection (:db (db mongo-database)
                           :host (host mongo-database)
                           :port (port mongo-database))
@@ -160,12 +185,18 @@
                   (funcall sort-fn (mongo-documents-to-cljson
                                      (second result))
                                    target
-                                   n-elems-to-ret)
+                                   n-elems-to-ret
+                                   :filter filter
+                                   :sort-predicate sort-predicate
+                                   :similarity-fn similarity-fn)
                   (funcall sort-fn (append sorted-snippets
                                            (mongo-documents-to-cljson
                                              (second result)))
                                    target
-                                   n-elems-to-ret)))
+                                   n-elems-to-ret
+                                   :filter filter
+                                   :sort-predicate sort-predicate
+                                   :similarity-fn similarity-fn)))
          ((zerop cursor) sorted-snippets)
          ())))
 
@@ -173,12 +204,21 @@
                                          n-elems-to-ret
                                          &key (class nil)
                                               (k-elems-to-consider
-                                               most-positive-fixnum))
+                                               most-positive-fixnum)
+                                              (filter #'identity)
+                                              (sort-predicate #'<)
+                                              (similarity-fn #'diff-scalar))
   (funcall sort-fn
            (if class (find-snippets-kv mongo-database (kv "ast_class" class)
-                                       :n k-elems-to-consider)
+                                       :n k-elems-to-consider
+                                       :filter filter
+                                       :sort-predicate sort-predicate
+                                       :similarity-fn similarity-fn)
                      (find-snippets-kv mongo-database (kv "full" t)
-                                       :n k-elems-to-consider))
+                                       :n k-elems-to-consider
+                                       :filter filter
+                                       :sort-predicate sort-predicate
+                                       :similarity-fn similarity-fn))
            target
            n-elems-to-ret))
 

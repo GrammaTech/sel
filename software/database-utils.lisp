@@ -1,25 +1,47 @@
 ;;; Collection of utility functions for all database implementations.
 (in-package :software-evolution)
 
-(defun disasm-sorted-snippets-common (fodder target-disasm n)
+(defun disasm-sorted-snippets-common (fodder target-disasm n
+                                      &key (filter #'identity)
+                                           (sort-predicate #'<)
+                                           (similarity-fn #'diff-scalar))
   "Sort FODDER database snippets by disassembly similarity to TARGET-DISASM
-and return the best N elements"
-  (take n (sort (remove-if-not {aget :disasm} fodder)
-                #'<
-                :key [{diff-scalar _ (mapcar
-                                       (lambda (instr)
+and return the best N elements
+
+FILTER - Function to remove snippets from consideration
+SORT-PREDICATE - Function to compare two similarity scores to select
+which is preferred.
+SIMILARITY-FN - Function to compute a similarity score between two sequences"
+  (let ((target-disasm-as-list (mapcar (lambda (instr)
                                          (append (list (elf:opcode instr))
                                                  (elf:operands instr)))
-                                       target-disasm)}
-                      {read-from-string}
-                      {aget :disasm}])))
+                                       target-disasm)))
+    (take n (sort (remove-if-not [{(lambda (snippet) (funcall filter snippet))}
+                                  {aget :disasm}] fodder)
+                  sort-predicate
+                  :key [{(lambda (candidate-disasm-as-list)
+                           (funcall similarity-fn
+                                      candidate-disasm-as-list
+                                      target-disasm-as-list))}
+                        {read-from-string}
+                        {aget :disasm}]))))
 
-(defun byte-sorted-snippets-common (fodder target-bytes n)
+(defun byte-sorted-snippets-common (fodder target-bytes n
+                                    &key (filter #'identity)
+                                         (sort-predicate #'<)
+                                         (similarity-fn #'diff-scalar))
   "Sort FODDER database snippets by byte-similarity to TARGET-BYTES
-and return the best N elements"
-  (take n (sort (remove-if-not {aget :binary--contents} fodder)
-                #'<
-                :key [{diff-scalar _ target-bytes}
+and return the best N elements
+
+FILTER - Function to remove snippets from consideration
+SORT-PREDICATE - Function to compare two similarity scores to select
+which is preferred.
+SIMILARITY-FN - Function to compute a similarity score between two sequences"
+  (take n (sort (remove-if-not [{(lambda (snippet) (funcall filter snippet))}
+                                {aget :binary--contents}] fodder)
+                sort-predicate
+                :key [{(lambda (candidate-bytes)
+                         (funcall similarity-fn candidate-bytes target-bytes))}
                       #'parse-binary-contents
                       {aget :binary--contents}])))
 

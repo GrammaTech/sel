@@ -109,7 +109,10 @@
                                   target-bytes
                                   n-elems-to-return
                                   &key (class nil)
-                                       (k-elems-to-consider most-positive-fixnum))
+                                       (k-elems-to-consider most-positive-fixnum)
+                                       (filter #'identity)
+                                       (sort-predicate #'<)
+                                       (similarity-fn #'diff-scalar))
   (let ((fodder (if class (find-snippets db :classes class)
                           (find-snippets db :full-stmt t))))
     (if (< k-elems-to-consider (length fodder))
@@ -118,18 +121,27 @@
           (subseq fodder start (+ start k-elems-to-consider))
           target-bytes
           #'byte-sorted-snippets-common
-          n-elems-to-return))
+          n-elems-to-return
+          :filter filter
+          :sort-predicate sort-predicate
+          :similarity-fn similarity-fn))
       (json-sorted-snippets-memoized
         fodder
         target-bytes
         #'byte-sorted-snippets-common
-        n-elems-to-return))))
+        n-elems-to-return
+        :filter filter
+        :sort-predicate sort-predicate
+        :similarity-fn similarity-fn))))
 
 (defmethod disasm-sorted-snippets ((db json-database)
                                    target-disasm
                                    n-elems-to-return
                                    &key (class nil)
-                                        (k-elems-to-consider most-positive-fixnum))
+                                        (k-elems-to-consider most-positive-fixnum)
+                                        (filter #'identity)
+                                        (sort-predicate #'<)
+                                        (similarity-fn #'diff-scalar))
   (let ((fodder (if class (find-snippets db :classes class)
                           (find-snippets db :full-stmt t))))
     (if (< k-elems-to-consider (length fodder))
@@ -138,21 +150,41 @@
           (subseq fodder start (+ start k-elems-to-consider))
           target-disasm
           #'disasm-sorted-snippets-common
-          n-elems-to-return))
+          n-elems-to-return
+          :filter filter
+          :sort-predicate sort-predicate
+          :similarity-fn similarity-fn))
       (json-sorted-snippets-memoized
         fodder
         target-disasm
         #'disasm-sorted-snippets-common
-        n-elems-to-return))))
+        n-elems-to-return
+        :filter filter
+        :sort-predicate sort-predicate
+        :similarity-fn similarity-fn))))
 
 (defun-memoized json-sorted-snippets-memoized (fodder
                                                target
                                                sort-fn
-                                               n-elems-to-return)
-  (funcall sort-fn fodder target n-elems-to-return))
+                                               n-elems-to-return
+                                               &key
+                                               (filter #'identity)
+                                               (sort-predicate #'<)
+                                               (similarity-fn #'diff-scalar))
+  (funcall sort-fn fodder target n-elems-to-return
+                   :filter filter
+                   :sort-predicate sort-predicate
+                   :similarity-fn similarity-fn))
 
 (defun json-sorted-snippets-nonmemoized (fodder
                                          target
                                          sort-fn
-                                         n-elems-to-return)
-  (funcall sort-fn fodder target n-elems-to-return))
+                                         n-elems-to-return
+                                         &key
+                                         (filter #'identity)
+                                         (sort-predicate #'<)
+                                         (similarity-fn #'diff-scalar))
+  (funcall sort-fn fodder target n-elems-to-return
+                   :filter filter
+                   :sort-predicate sort-predicate
+                   :similarity-fn similarity-fn))
