@@ -634,7 +634,7 @@ and 0 otherwise."
     (aref d (1- height) (1- width))))
 
 ;;; Diff computing
-(defun diff-scalar(original-seq modified-seq)
+(defun diff-scalar (original-seq modified-seq)
   "Return an integer representing the diff size of two sequences"
   (reduce (lambda (acc region)
             (+ acc
@@ -643,7 +643,7 @@ and 0 otherwise."
                  (modified-diff-region
                    (+ (original-length region)
                       (modified-length region))))))
-          (diff:compute-raw-diff original-seq modified-seq)
+          (diff:compute-raw-seq-diff original-seq modified-seq)
           :initial-value 0))
 
 ;;; memory mapping, address -> LOC
