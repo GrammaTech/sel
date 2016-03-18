@@ -6,15 +6,11 @@
 and return the best N elements"
   (take n (sort (remove-if-not {aget :disasm} fodder)
                 #'<
-                :key [{diff-scalar _ (coerce
-                                       (mappend
-                                         (lambda (instr)
-                                           (append (list (elf:opcode instr))
-                                                   (elf:operands instr)))
-                                         target-disasm)
-                                       'simple-vector)}
-                      {coerce _ 'simple-vector}
-                      {mappend (lambda (line) line)}
+                :key [{diff-scalar _ (mapcar
+                                       (lambda (instr)
+                                         (append (list (elf:opcode instr))
+                                                 (elf:operands instr)))
+                                       target-disasm)}
                       {read-from-string}
                       {aget :disasm}])))
 
@@ -23,8 +19,7 @@ and return the best N elements"
 and return the best N elements"
   (take n (sort (remove-if-not {aget :binary--contents} fodder)
                 #'<
-                :key [{diff-scalar _ (coerce target-bytes 'simple-vector)}
-                      {coerce _ 'simple-vector}
+                :key [{diff-scalar _ target-bytes}
                       #'parse-binary-contents
                       {aget :binary--contents}])))
 
