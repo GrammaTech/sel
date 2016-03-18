@@ -46,5 +46,5 @@ SIMILARITY-FN - Function to compute a similarity score between two sequences"
                       {aget :binary--contents}])))
 
 (defun parse-binary-contents (binary-contents-string)
-  (map '(vector (unsigned-byte 8)) {parse-integer _ :radix 16}
-       (split-sequence #\Space binary-contents-string)))
+  (mapcar {parse-integer _ :radix 16}
+          (split-sequence #\Space binary-contents-string)))
