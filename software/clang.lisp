@@ -488,9 +488,9 @@ Otherwise return the whole FULL-GENOME"
           (with-open-file (clang-mutate-out clang-mutate-outfile
                            :element-type '(unsigned-byte 8))
             (when (> (file-length clang-mutate-out) 10485760)
-              (make-condition 'mutate
-                :text (format nil "clang-mutate output exceeds 10 MB.")
-                :obj obj :op op)))
+              (error (make-condition 'mutate
+                       :text (format nil "clang-mutate output exceeds 10 MB.")
+                       :obj obj :op op))))
           (values
            (case (car op)
              (:json
