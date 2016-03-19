@@ -210,17 +210,14 @@
                                               (similarity-fn #'diff-scalar))
   (funcall sort-fn
            (if class (find-snippets-kv mongo-database (kv "ast_class" class)
-                                       :n k-elems-to-consider
-                                       :filter filter
-                                       :sort-predicate sort-predicate
-                                       :similarity-fn similarity-fn)
+                                       :n k-elems-to-consider)
                      (find-snippets-kv mongo-database (kv "full" t)
-                                       :n k-elems-to-consider
-                                       :filter filter
-                                       :sort-predicate sort-predicate
-                                       :similarity-fn similarity-fn))
+                                       :n k-elems-to-consider))
            target
-           n-elems-to-ret))
+           n-elems-to-ret
+           :filter filter
+           :sort-predicate sort-predicate
+           :similarity-fn similarity-fn))
 
 (defun mongo-documents-to-cljson (documents)
   "Convert a list of Mongo documents into a list of the form
