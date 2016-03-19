@@ -377,7 +377,7 @@ Keyword argument FRAC will return fractions instead of raw counts."
         (pick-from orig-list))))
 
 (defun find-hashtable-element (hash-tbl n)
-  (maphash 
+  (maphash
    (lambda (k v)
      (declare (ignore v))
      (when (= n 0) (return-from find-hashtable-element k))
@@ -473,7 +473,7 @@ is replaced with replacement."
   (loop :for i :below (1+ (- (length list) size)) :by size :collect
      (subseq list i (+ i size))))
 
-(defun binary-search (value array &key (low 0) 
+(defun binary-search (value array &key (low 0)
                                        (high (1- (length array)))
                                        (test (lambda (v)
                                                 (cond ((< v value) -1)
@@ -635,14 +635,18 @@ and 0 otherwise."
 
 ;;; Diff computing
 (defun diff-scalar (original-seq modified-seq)
-  "Return an integer representing the diff size of two sequences"
+  "Return an integer representing the diff size of two sequences
+Sum O + |O - M| over each diff region.  O is the length of the
+original diff region and M is the length of the modified diff
+region."
   (reduce (lambda (acc region)
             (+ acc
                (ecase (type-of region)
                  (common-diff-region 0)
                  (modified-diff-region
                    (+ (original-length region)
-                      (modified-length region))))))
+                      (abs (- (original-length region)
+                              (modified-length region))))))))
           (diff:compute-raw-seq-diff original-seq modified-seq)
           :initial-value 0))
 
@@ -741,7 +745,7 @@ that function may be declared.")
     (t (concatenate 'string
                     (car strings) between
                     (intercalate between (cdr strings))))))
-  
+
 (defun unlines (lines)
   (intercalate (format nil "~a" #\Newline) lines))
 
@@ -816,13 +820,13 @@ that function may be declared.")
 (defun ht-keys (ht)
   (loop for key being the hash-keys of ht collect key))
 
-(defun ht-fold (f ht accum 
+(defun ht-fold (f ht accum
                 &key (key-sort nil))
   (cond ((= 0 (hash-table-count ht)) accum)
-        (t (let ((k (if key-sort 
+        (t (let ((k (if key-sort
                         (extremum (ht-keys ht) key-sort)
                         (random-elt (ht-keys ht)))))
-             (ht-fold f 
+             (ht-fold f
                       (remhash-non-destructive k ht)
                       (funcall f (gethash k ht) accum)
                       :key-sort key-sort)))))
