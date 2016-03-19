@@ -21,8 +21,8 @@ SIMILARITY-FN - Function to compute a similarity score between two sequences"
                   sort-predicate
                   :key [{(lambda (candidate-disasm-as-list)
                            (funcall similarity-fn
-                                      candidate-disasm-as-list
-                                      target-disasm-as-list))}
+                                      target-disasm-as-list
+                                      candidate-disasm-as-list))}
                         {read-from-string}
                         {aget :disasm}]))))
 
@@ -41,7 +41,7 @@ SIMILARITY-FN - Function to compute a similarity score between two sequences"
                                 {aget :binary--contents}] fodder)
                 sort-predicate
                 :key [{(lambda (candidate-bytes)
-                         (funcall similarity-fn candidate-bytes target-bytes))}
+                         (funcall similarity-fn target-bytes candidate-bytes))}
                       #'parse-binary-contents
                       {aget :binary--contents}])))
 
