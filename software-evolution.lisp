@@ -14,9 +14,7 @@
 
 ;;; Software Object
 (defclass software ()
-  ((fitness :initarg :fitness :accessor fitness :initform nil)
-   (mutation-stats :initarg :mutation-stats :accessor mutation-stats
-                   :initform nil)))
+  ((fitness :initarg :fitness :accessor fitness :initform nil)))
 
 (defmacro define-software (class-name superclasses slots &rest options)
   `(progn
@@ -137,10 +135,7 @@ Used to target mutation."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
-(defgeneric analyze-mutation (software mutation
-                              software-a cross-point-a
-                              crossed
-                              software-b cross-point-b
+(defgeneric analyze-mutation (software mutation-info
                               &optional test)
   (:documentation "Collect statistics from an applied mutation.
 Should return arguments unmodified as values to enable chaining
@@ -156,13 +151,14 @@ argument TEST must be supplied."))
 (defvar *analyze-mutation-verbose-stream* nil
   "Non-nil to print verbose output when analyzing mutations to value.")
 
-(defmethod analyze-mutation ((obj software) mutation
-                             software-a cross-point-a
-                             crossed
-                             software-b cross-point-b
+(defmethod analyze-mutation ((obj software) mutation-info
                              &optional test
                              &aux result)
-  (labels ((safe-eval (object)
+  ;; Mutation info from new-individual
+  (destructuring-bind (mutation software-a cross-point-a
+                                crossed software-b cross-point-b)
+      mutation-info
+   (labels ((safe-eval (object)
              (or (fitness object)
                  (progn
                    (assert test (object test)
@@ -199,7 +195,7 @@ argument TEST must be supplied."))
               (gethash (mutation-key crossed mutation) *crossover-stats*)))))
   (values
    obj mutation software-a cross-point-a crossed software-b cross-point-b
-   (first result) (second result) (third result)))
+   (first result) (second result) (third result))))
 
 (defgeneric mutation-key (software mutation)
   (:documentation "Key used to organize mutations in *mutation-stats*."))
@@ -364,8 +360,9 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
     ;; current approach in which `analyze-mutate' "wraps"
     ;; `new-individual'.
     (multiple-value-bind (mutant mutation) (mutant (copy crossed))
-      (setf (mutation-stats mutant)
-            (list mutation a a-point crossed b b-point)))))
+      (values mutant
+              ;; Mutation info for analyze-mutation
+              (list mutation a a-point crossed b b-point)))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
@@ -398,21 +395,16 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                               (gethash
                                                (mutation-key (obj err) (op err))
                                                *mutation-stats*))))))))
-                        (multiple-value-bind
-                              (,variant mutation a a-point crossed b b-point)
+                        (multiple-value-bind (,variant mutation-info)
                             (funcall ,step)
                           ,@(unless collect-mutation-stats
-                                    `((declare (ignorable mutation
-                                                          a a-point crossed
-                                                          b b-point))))
+                                    `((declare (ignorable mutation-info))))
                           ,@(when every-pre-fn
                                   `((funcall ,every-pre-fn ,variant)))
                           (evaluate ,f ,variant)
                           ,@(when collect-mutation-stats
                                   `((funcall #'analyze-mutation
-                                             ,variant mutation
-                                             a a-point crossed b b-point
-                                             ,f)))
+                                             ,variant mutation-info ,f)))
                           ,@(when every-post-fn
                                   `((funcall ,every-post-fn ,variant)))
                           (incf ,fitness-counter)
@@ -514,7 +506,7 @@ Keyword arguments are as follows.
 (defun generational-evolve
     (reproduce evaluate select
      &key
-       every-pre-fn every-post-fn mutation-stats period period-fn
+       every-pre-fn every-post-fn mutation-stats test period period-fn
        max-generations max-evals max-time)
   "Evolves `*population*' until an optional stopping criterion is met.
 
@@ -530,7 +522,8 @@ Keyword arguments are as follows:
   PERIOD-FN -------- function to run every PERIOD generations
   EVERY-POST-FN ---- function to run on every new individual before evaluation
   EVERY-POST-FN ---- function to run on every new individual after evaluation
-  MUTATION-STATS --- set to non-nil to collect mutation statistics"
+  MUTATION-STATS --- set to non-nil to collect mutation statistics
+  TEST ------------- fitness test function for mutation statistics"
 
   (setq *running* t)
   (setq *start-time* (get-internal-real-time))
@@ -546,14 +539,16 @@ Keyword arguments are as follows:
                        (check-max (elapsed-time) max-time))
            :do
            (setf *generations* (+ 1 (or *generations* 0)))
-           (let* ((mutations (funcall reproduce *population*))
-                  (children (mapcar #'first mutations)))
+           (multiple-value-bind (children mutation-info)
+               (funcall reproduce *population*)
+
              (if every-pre-fn (mapc every-pre-fn children))
 
              (setq *population* (append children *population*))
              (funcall evaluate children)
 
-             (if mutation-stats (mapc {apply #'analyze-mutation} mutations))
+             (if mutation-stats (mapcar (lambda (c info) (analyze-mutation c info test))
+                                        children mutation-info))
              (if every-post-fn (mapc {funcall every-post-fn} children))
 
              (loop :for child :in children
@@ -570,15 +565,16 @@ Keyword arguments are as follows:
       (setq *running* nil))))
 
 (defun simple-reproduce (population)
-  (let (mutations)
+  (let (children mutations)
     (loop :for parent in population
        :do (restart-case
-               (push (multiple-value-list (new-individual parent (random-elt population)))
-                     mutations)
+               (multiple-value-bind (child info) (new-individual parent (random-elt population))
+                 (push child children)
+                 (push info mutations))
              (ignore-failed-mutation ()
                :report
                "Ignore failed mutation and continue evolution")))
-    mutations))
+    (values children mutations)))
 
 (defun simple-evaluate (test new-children)
   (mapc (lambda (child)
