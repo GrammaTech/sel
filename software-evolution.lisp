@@ -507,7 +507,7 @@ Keyword arguments are as follows.
     (reproduce evaluate select
      &key
        every-pre-fn every-post-fn mutation-stats test period period-fn
-       max-generations max-evals max-time)
+       max-generations max-evals max-time filter)
   "Evolves `*population*' until an optional stopping criterion is met.
 
 Required arguments are as follows:
@@ -523,7 +523,8 @@ Keyword arguments are as follows:
   EVERY-POST-FN ---- function to run on every new individual before evaluation
   EVERY-POST-FN ---- function to run on every new individual after evaluation
   MUTATION-STATS --- set to non-nil to collect mutation statistics
-  TEST ------------- fitness test function for mutation statistics"
+  TEST ------------- fitness test function for mutation statistics
+  FILTER ----------- remove individuals for which FILTER returns false"
 
   (setq *running* t)
   (setq *start-time* (get-internal-real-time))
@@ -547,6 +548,7 @@ Keyword arguments are as follows:
              (setq *population* (append children *population*))
              (funcall evaluate children)
 
+             (if filter (setq *population* (delete-if-not filter *population*)))
              (if mutation-stats (mapcar (lambda (c info) (analyze-mutation c info test))
                                         children mutation-info))
              (if every-post-fn (mapc {funcall every-post-fn} children))
