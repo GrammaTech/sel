@@ -507,22 +507,24 @@ Keyword arguments are as follows.
             (incorporate new ,population ,max-population-size)))
 
 (defvar *worst-fitness-p* nil
-  "Predicate indicating whether fitness value is the worst possible.")
+  "Predicate indicating whether an individual has the worst possible fitness.")
 (defvar *target-fitness-p* nil
-  "Predicate indicating whether fitness value has reached target.")
+  "Predicate indicating whether an individual has reached the target fitness.")
 
 (defun generational-evolve
     (reproduce evaluate select
      &key
        every-pre-fn every-post-fn mutation-stats period period-fn
        max-generations max-evals max-time)
-"Evolves `*population*' until an optional stopping criterion is met.
+  "Evolves `*population*' until an optional stopping criterion is met.
 
 Required arguments are as follows:
   REPRODUCE -------- create new individuals from the current population
   EVALUATE --------- evaluate the entire population
   SELECT ----------- select best individuals from the population
 Keyword arguments are as follows:
+  MAX-GENERATIONS -- stop after this many generations
+  MAX-EVALS -------- stop after this many fitness evaluations
   MAX-TIME --------- stop after this many seconds
   PERIOD ----------- interval of generations evaluations to run PERIOD-FN
   PERIOD-FN -------- function to run every PERIOD generations
@@ -533,37 +535,56 @@ Keyword arguments are as follows:
   (setq *running* t)
   (setq *start-time* (get-internal-real-time))
   (flet
-      ((check-max (current max) (or (not max) (< current max))))
-    (loop :for *generations* :upfrom 0
-       :while (and *running*
-                   (check-max *generations* max-generations)
-                   (check-max *fitness-evals* max-evals)
-                   (check-max (elapsed-time) max-time))
-       :do
-       (let* ((mutations (funcall reproduce *population*))
-              (children (mapc #'first mutations)))
-         (if every-pre-fn (mapc every-pre-fn children))
+      ((check-max (current max) (or (not max)
+                                    (not current)
+                                    (< current max))))
+    (prog1
+        (loop
+           :while (and *running*
+                       (check-max *generations* max-generations)
+                       (check-max *fitness-evals* max-evals)
+                       (check-max (elapsed-time) max-time))
+           :do
+           (setf *generations* (+ 1 (or *generations* 0)))
+           (let* ((mutations (funcall reproduce *population*))
+                  (children (mapcar #'first mutations)))
+             (if every-pre-fn (mapc every-pre-fn children))
 
-         (setq *population* (append children))
-         (funcall evaluate *population*)
+             (setq *population* (append children *population*))
+             (funcall evaluate children)
 
-         (if mutation-stats (mapc {apply #'analyze-mutation} mutations))
-         (if every-post-fn (mapc {funcall every-post-fn} children))
+             (if mutation-stats (mapc {apply #'analyze-mutation} mutations))
+             (if every-post-fn (mapc {funcall every-post-fn} children))
 
-         (mapc (lambda (c) (if (funcall *target-fitness-p* c) (return))) children))
+             (loop :for child :in children
+                 :when (funcall *target-fitness-p* child)
+                :do
+                (setf *running* nil)
+                (return-from generational-evolve child)))
 
-       (setq *population* (funcall select *population* *max-population-size*))
-       (assert (<= (length *population*) *max-population-size*))
+           (setq *population* (funcall select *population* *max-population-size*))
+           (assert (<= (length *population*) *max-population-size*))
 
-       (if (and period period-fn (zerop (mod *generations* period)))
-           (funcall period-fn)))))
+           (if (and period period-fn (zerop (mod *generations* period)))
+               (funcall period-fn)))
+      (setq *running* nil))))
 
 (defun simple-reproduce (population)
-  (mapcar (lambda (variant) (new-individual variant (random-elt population)))
-          population))
+  (let (mutations)
+    (loop :for parent in population
+       :do (restart-case
+               (push (multiple-value-list (new-individual parent (random-elt population)))
+                     mutations)
+             (ignore-failed-mutation ()
+               :report
+               "Ignore failed mutation and continue evolution")))
+    mutations))
 
-(defun simple-evaluate (test population)
-  (mapc {evaluate test} population))
+(defun simple-evaluate (test new-children)
+  (mapc (lambda (child)
+          (incf *fitness-evals*)
+          (evaluate test child))
+        new-children))
 
 (defun simple-select (population max-size &aux new-pop)
   (declare (ignorable population))      ; tournament uses global *population*

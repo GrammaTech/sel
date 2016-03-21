@@ -205,4 +205,6 @@
    :generational-evolve
    :simple-reproduce
    :simple-evaluate
-   :simple-select))
+   :simple-select
+   :*target-fitness-p*
+   :*worst-fitness-p*))
