@@ -201,4 +201,8 @@
    :add-type
    :union-mito
    :ignore-failed-mutation
-   :fix-compilation))
+   :fix-compilation
+   :generational-evolve
+   :simple-reproduce
+   :simple-evaluate
+   :simple-select))

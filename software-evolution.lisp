@@ -558,3 +558,14 @@ Keyword arguments are as follows:
        (if (and period period-fn (zerop (mod *generations* period)))
            (funcall period-fn)))))
 
+(defun simple-reproduce (population)
+  (mapcar (lambda (variant) (new-individual variant (random-elt population)))
+          population))
+
+(defun simple-evaluate (test population)
+  (mapc {evaluate test} population))
+
+(defun simple-select (population max-size &aux new-pop)
+  (declare (ignorable population))      ; tournament uses global *population*
+  (dotimes (n max-size new-pop)
+    (push (tournament) new-pop)))
