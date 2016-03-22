@@ -42,7 +42,8 @@
                                (find-snippets-kv-exe-query
                                  mongo-database
                                  (kv-with-random ($< "random" rnd) kv)
-                                 :n (- n (length snippets-above))
+                                 :n (if (equal n most-positive-fixnum)
+                                        n (- n (length snippets-above)))
                                  :field "random"
                                  :asc nil))))
         (append snippets-below snippets-above)))))
