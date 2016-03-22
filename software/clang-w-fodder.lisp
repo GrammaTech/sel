@@ -12,6 +12,11 @@
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
 
+(defvar *fodder-mutation-types*
+  '(:replace-fodder-same :replace-fodder-full
+    :insert-fodder       :insert-fodder-full)
+  "Types of valid fodder mutations")
+
 (define-software clang-w-fodder (clang) ())
 
 (defmethod from-file :before ((obj clang-w-fodder) path)
@@ -28,13 +33,13 @@ With keyword argument :PT select an element similar to that at :PT in
 CLANG-W-FODDER in a method-dependent fashion."))
 (defmethod pick-snippet ((clang-w-fodder clang-w-fodder) &key full class pt)
   (let* ((snippet (first (find-snippets *database*
-                                        :full-stmt 
+                                        :full-stmt
                                           (or full
                                               (and pt
                                                    (full-stmt-p
                                                       clang-w-fodder
                                                       pt)))
-                                        :classes class 
+                                        :classes class
                                         :n 1))))
     (if (not snippet)
         (error (make-condition 'mutate
@@ -42,24 +47,34 @@ CLANG-W-FODDER in a method-dependent fashion."))
         snippet)))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
-  (unless (> (size clang-w-fodder) 0)
-    (error (make-condition 'mutate :text "No valid IDS" :obj clang-w-fodder)))
   (unless *database*
     (error (make-condition 'mutate
              :text "No valid Mongo database for fodder"
              :obj clang-w-fodder)))
+  (call-next-method))
 
-  (if (random-bool :bias (- 1 *fodder-selection-bias*))
-      ;; Perform a standard clang mutation
+(defmethod mutation-types-clang ((clang-w-fodder clang-w-fodder))
+  (let ((existing-mutation-types (call-next-method)))
+    (append (loop for mutation-type in *fodder-mutation-types*
+              collecting (cons mutation-type
+                               (/ *fodder-selection-bias*
+                                  (length *fodder-mutation-types*))))
+            (loop for mutation-type in existing-mutation-types
+              collecting (cons (car mutation-type)
+                               (* (- 1 *fodder-selection-bias*)
+                                  (cdr mutation-type)))))))
+
+(defmethod mutate-clang ((clang-w-fodder clang-w-fodder) mutation-type)
+  (if (not (member mutation-type *fodder-mutation-types*))
+      ;; This isn't one of our mutation types, dispatch to the
+      ;; next software object method.
       (call-next-method)
       ;; Perform a mutation using fodder
       (let* ((bad   (pick-bad  clang-w-fodder))
              (bad-stmt  (if (full-stmt-p clang-w-fodder bad) bad
                             (enclosing-full-stmt clang-w-fodder bad)))
-             (mutation (random-elt '(:replace-fodder-same :replace-fodder-full
-                                     :insert-fodder  :insert-fodder-full)))
              (value (update-mito-from-snippet clang-w-fodder
-                      (ecase mutation
+                      (ecase mutation-type
                         (:replace-fodder-same
                          (pick-snippet clang-w-fodder
                                        :pt bad
@@ -70,12 +85,12 @@ CLANG-W-FODDER in a method-dependent fashion."))
                         (:insert-fodder
                          (pick-snippet clang-w-fodder)))
                       *database*))
-             (stmt (ecase mutation
+             (stmt (ecase mutation-type
                      ((:replace-fodder-same :insert-fodder)
                       bad)
                      ((:replace-fodder-full :insert-fodder-full)
                       bad-stmt)))
-             (op (case mutation
+             (op (case mutation-type
                    ((:replace-fodder-same :replace-fodder-full)
                     (list :replace
                           (cons :stmt1 stmt)
@@ -86,4 +101,4 @@ CLANG-W-FODDER in a method-dependent fashion."))
                           (cons :value1 value))))))
 
         (apply-mutation clang-w-fodder op)
-        (values clang-w-fodder (cons mutation (cdr op))))))
+        (values clang-w-fodder (cons mutation-type (cdr op))))))
