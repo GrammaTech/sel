@@ -64,6 +64,18 @@
 (defgeneric mitochondria (clang)
   (:documentation "Additional 'foreign' genome required to build phenome."))
 
+(defgeneric mutation-types-clang (clang)
+  (:documentation "Return a list of mutation types for the CLANG software
+object as well as their relative probabilities"))
+
+(defgeneric pick-mutation-type (clang)
+  (:documentation "Pick the type of mutation to be performed by the CLANG
+software object"))
+
+(defgeneric mutate-clang (clang mutation-type)
+  (:documentation "Perform a mutation of the given MUTATION-TYPE on the
+CLANG software object"))
+
 (defmethod size ((obj clang))
   (with-slots (asts) obj (length asts)))
 
@@ -224,23 +236,17 @@
     (acons :stmt1 stmt1
        (if stmt2 (acons :stmt2 stmt2 nil) nil))))
 
-(defun op-name (op &key full same)
-  (intern
-   (concatenate 'string
-     (symbol-name (car op))
-     (if full "-FULL" "")
-     (if (and same (aget :stmt2 (cdr op))) "-SAME" ""))
-   "KEYWORD"))
-
 (defvar *clang-full-stmt-bias* 0.75
   "The probability that a mutation will operate on a full statement.")
 
 (defvar *clang-same-class-bias* 0.75
   "The probability that a mutation uses AST class matching.")
 
-(defvar *clang-mutation-cdf*
-  (cdf (uniform-probability '(:cut :insert :swap :replace)))
-  "The basic clang mutations probability distribution, as a CDF.")
+(defvar *clang-mutation-types*
+  `(:cut     :cut-same     :cut-full     :cut-full-same
+    :insert  :insert-same  :insert-full  :insert-full-same
+    :swap    :swap-same    :swap-full    :swap-full-same
+    :replace :replace-same :replace-full :replace-full-same))
 
 (defvar *clang-crossover-cdf*
   (cdf (uniform-probability
@@ -266,37 +272,92 @@ already in scope, it will keep that name.")
 (defvar *clang-format-after-mutation-chance* 0.125
   "The probability of applying clang-format on an object after mutation")
 
+(defmethod mutation-types-clang ((clang clang))
+  (loop for mutation-type in *clang-mutation-types*
+    collecting
+      (cond ((member mutation-type
+                    `(:cut-full-same :insert-full-same
+                      :swap-full-same :replace-full-same))
+               (cons mutation-type
+                     (/ (* *clang-full-stmt-bias*
+                           *clang-same-class-bias*)
+                        (/ (length *clang-mutation-types*) 4))))
+            ((member mutation-type
+                    `(:cut-full  :insert-full
+                      :swap-full :replace-full))
+               (cons mutation-type
+                     (/ (* *clang-full-stmt-bias*
+                           (- 1 *clang-same-class-bias*))
+                        (/ (length *clang-mutation-types*) 4))))
+            ((member mutation-type
+                    `(:cut-same  :insert-same
+                      :swap-same :replace-same))
+               (cons mutation-type
+                     (/ (* (- 1 *clang-same-class-bias*)
+                           *clang-full-stmt-bias*)
+                        (/ (length *clang-mutation-types*) 4))))
+            ((member mutation-type
+                    `(:cut :insert
+                      :swap :replace))
+                (cons mutation-type
+                      (/ (* (- 1 *clang-same-class-bias*)
+                            (- 1 *clang-full-stmt-bias*))
+                         (/ (length *clang-mutation-types*) 4)))))))
+
+(defmethod pick-mutation-type ((clang clang))
+  (random-pick (cdf (mutation-types-clang clang))))
 
 (defmethod mutate ((clang clang))
   (unless (> (size clang) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
-  (let* ((full-stmt  (random-bool :bias *clang-full-stmt-bias*))
-         (same-class (random-bool :bias *clang-same-class-bias*))
-         (mutation (random-pick *clang-mutation-cdf*)))
 
-    (labels ((filter (asts) (if full-stmt (full-stmt-filter asts) asts)))
-      (let* ((then (if same-class
-                       (lambda (stmt asts)
-                         (or (with-class-filter (get-ast-class clang stmt)
-                                                 asts)
-                             (with-class-filter (get-ast-class clang stmt)
-                                                (asts clang))))
-                       (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-             (good (lambda () (or (filter (good-asts clang)) (asts clang))))
-             (bad  (lambda () (or (filter (bad-asts clang)) (asts clang))))
-             (todo
-              (ecase mutation
-                (:cut     (list bad))
-                (:insert  (list bad then good))
-                (:swap    (list bad then bad))
-                (:replace (list bad then good))))
-             (op (cons mutation (apply #'execute-picks todo))))
+  (mutate-clang clang (pick-mutation-type clang)))
 
-        (apply-mutation clang op)
-        (values clang (cons (op-name op
-                                     :full full-stmt
-                                     :same same-class)
-                            (cdr op)))))))
+(defmethod mutate-clang ((clang clang) mutation-type)
+  (unless (member mutation-type *clang-mutation-types*)
+    (error (make-condition 'mutate
+             :text (format nil "Mutation type ~S not supported" mutation-type)
+             :obj clang)))
+
+  (labels ((filter (asts)(if (member mutation-type
+                                     `(:cut-full     :cut-full-same
+                                       :insert-full  :insert-full-same
+                                       :swap-full    :swap-full-same
+                                       :replace-full :replace-full-same))
+                              (full-stmt-filter asts)
+                              asts)))
+    (let* ((then (if (member mutation-type
+                            `(:cut-same     :cut-full-same
+                              :insert-same  :insert-full-same
+                              :swap-same    :swap-full-same
+                              :replace-full :replace-full-same))
+                     (lambda (stmt asts)
+                       (or (with-class-filter (get-ast-class clang stmt)
+                                               asts)
+                           (with-class-filter (get-ast-class clang stmt)
+                                              (asts clang))))
+                     (lambda (stmt asts) (declare (ignorable stmt)) asts)))
+           (good (lambda () (or (filter (good-asts clang)) (asts clang))))
+           (bad  (lambda () (or (filter (bad-asts clang)) (asts clang))))
+           (op (cond ((member mutation-type `(:cut      :cut-same
+                                              :cut-full :cut-full-same))
+                        `(:cut . ,(apply #'execute-picks
+                                         (list bad))))
+                     ((member mutation-type `(:insert      :insert-same
+                                              :insert-full :insert-full-same))
+                        `(:insert . ,(apply #'execute-picks
+                                            (list bad then good))))
+                     ((member mutation-type `(:swap      :swap-same
+                                              :swap-full :swap-full-same))
+                        `(:swap . ,(apply #'execute-picks
+                                          (list bad then bad))))
+                     ((member mutation-type `(:replace      :replace-same
+                                              :replace-full :replace-full-same))
+                        `(:replace . ,(apply #'execute-picks
+                                             (list bad then good)))))))
+
+      (apply-mutation clang op)
+      (values clang op))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.

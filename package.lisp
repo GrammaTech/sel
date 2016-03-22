@@ -35,6 +35,8 @@
    :pick-bad
    :pick-snippet
    :mutate
+   :mutate-clang
+   :mutation-types-clang
    :apply-mutation
    :text
    :obj
