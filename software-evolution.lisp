@@ -534,48 +534,51 @@ Keyword arguments are as follows:
                                     (< current max))))
     (prog1
         (loop
-           :while (and *running*
-                       (check-max *generations* max-generations)
-                       (check-max *fitness-evals* max-evals)
-                       (check-max (elapsed-time) max-time))
-           :do
-           (setf *generations* (+ 1 (or *generations* 0)))
-           (multiple-value-bind (children mutation-info)
-               (funcall reproduce *population*)
+         :while (and *running*
+                     (check-max *generations* max-generations)
+                     (check-max *fitness-evals* max-evals)
+                     (check-max (elapsed-time) max-time))
+         :do
+         (setf *generations* (+ 1 (or *generations* 0)))
+         (multiple-value-bind (children mutation-info)
+             (funcall reproduce *population*)
 
-             (if every-pre-fn (mapc every-pre-fn children))
+           (if every-pre-fn (mapc every-pre-fn children))
 
-             (setq *population* (append children *population*))
-             (funcall evaluate children)
+           (setq *population* (append children *population*))
+           (funcall evaluate children)
 
-             (if filter (setq *population* (delete-if-not filter *population*)))
-             (if mutation-stats (mapcar (lambda (c info) (analyze-mutation c info test))
-                                        children mutation-info))
-             (if every-post-fn (mapc {funcall every-post-fn} children))
+           (if filter (setq *population* (delete-if-not filter *population*)))
+           (if mutation-stats
+               (mapcar (lambda (c info) (analyze-mutation c info test))
+                       children mutation-info))
+           (if every-post-fn (mapc {funcall every-post-fn} children))
 
-             (loop :for child :in children
-                 :when (funcall *target-fitness-p* child)
-                :do
-                (setf *running* nil)
-                (return-from generational-evolve child)))
+           (loop :for child :in children
+              :when (funcall *target-fitness-p* child)
+              :do
+              (setf *running* nil)
+              (return-from generational-evolve child)))
 
-           (setq *population* (funcall select *population* *max-population-size*))
-           (assert (<= (length *population*) *max-population-size*))
+         (setq *population*
+               (funcall select *population* *max-population-size*))
+         (assert (<= (length *population*) *max-population-size*))
 
-           (if (and period period-fn (zerop (mod *generations* period)))
-               (funcall period-fn)))
+         (if (and period period-fn (zerop (mod *generations* period)))
+             (funcall period-fn)))
       (setq *running* nil))))
 
 (defun simple-reproduce (population)
   (let (children mutations)
     (loop :for parent in population
-       :do (restart-case
-               (multiple-value-bind (child info) (new-individual parent (random-elt population))
+          :do (restart-case
+               (multiple-value-bind (child info)
+                   (new-individual parent (random-elt population))
                  (push child children)
                  (push info mutations))
-             (ignore-failed-mutation ()
-               :report
-               "Ignore failed mutation and continue evolution")))
+               (ignore-failed-mutation ()
+                 :report
+                 "Ignore failed mutation and continue evolution")))
     (values children mutations)))
 
 (defun simple-evaluate (test new-children)
