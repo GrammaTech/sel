@@ -170,7 +170,7 @@
                                                :flags '("-g -m32 -O0"))
                 (hello-world-dir "hello_world.c"))))
   (:teardown
-    (setf *database nil)
+    (setf *database* nil)
     (setf *hello-world* nil)))
 
 (defixture huf-clang
