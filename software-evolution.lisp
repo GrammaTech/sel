@@ -214,10 +214,6 @@ should be ergodic."))
 Should be initialized to a list of the unique possible genome
 elements.")
 
-(defvar *clang-fodder* nil
-  "Holds a JSON database of ASTs to be utilized in mutation operations
-  with clang-w-fodder objects.")
-
 (define-condition mutate (error)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
