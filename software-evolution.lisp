@@ -541,10 +541,11 @@ Keyword arguments are as follows:
 
            (if every-pre-fn (mapc every-pre-fn children))
 
-           (setq *population* (append children *population*))
            (funcall evaluate children)
 
-           (if filter (setq *population* (delete-if-not filter *population*)))
+           (if filter (setq children (delete-if-not filter children)))
+           (setq *population* (append children *population*))
+
            (if mutation-stats
                (mapcar (lambda (c info) (analyze-mutation c info test))
                        children mutation-info))
