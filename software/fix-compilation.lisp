@@ -180,24 +180,25 @@ expression match.")
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (1- (parse-integer (aref match-data 1))))
          (new-expression
-          (recontextualize
-           obj
-           (find-snippets *database*
-                          :classes '("FloatingLiteral"
-                                     "IntegerLiteral"
-                                     "CharacterLiteral"
-                                     "StringLiteral"
-                                     "ParenExpr"
-                                     "DeclRefExpr"
-                                     "UnaryExprOrTypeTraitExpr"
-                                     "ImplicitCastExpr"
-                                     "CStyleCastExpr")
-                          :n 1)
-           (aget :counter
-                 (lastcar (asts-containing-source-location
-                           obj (make-instance 'source-location
-                                 :line line-number
-                                 :column col-number))))))
+          (progn
+            (recontextualize
+             obj
+             (find-snippets *database*
+                            :classes '("FloatingLiteral"
+                                       "IntegerLiteral"
+                                       "CharacterLiteral"
+                                       "StringLiteral"
+                                       "ParenExpr"
+                                       "DeclRefExpr"
+                                       "UnaryExprOrTypeTraitExpr"
+                                       "ImplicitCastExpr"
+                                       "CStyleCastExpr")
+                            :n 1))
+            (aget :counter
+                  (lastcar (asts-containing-source-location
+                            obj (make-instance 'source-location
+                                  :line line-number
+                                  :column col-number))))))
          (lines (lines obj))
          (orig (nth (1- line-number) lines)))
     (setf (lines obj)
@@ -206,8 +207,8 @@ expression match.")
                           (subseq orig 0 col-number)
                           new-expression
                           (subseq orig col-number)))
-                  (drop line-number lines)))
-    obj))
+                  (drop line-number lines))))
+  obj)
 
 (register-fixer
  ":(\\d+):(\\d+): error: expected expression before ‘(\\S+)’ "

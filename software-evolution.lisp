@@ -135,10 +135,7 @@ Used to target mutation."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
-(defgeneric analyze-mutation (software mutation
-                              software-a cross-point-a
-                              crossed
-                              software-b cross-point-b
+(defgeneric analyze-mutation (software mutation-info
                               &optional test)
   (:documentation "Collect statistics from an applied mutation.
 Should return arguments unmodified as values to enable chaining
@@ -154,13 +151,14 @@ argument TEST must be supplied."))
 (defvar *analyze-mutation-verbose-stream* nil
   "Non-nil to print verbose output when analyzing mutations to value.")
 
-(defmethod analyze-mutation ((obj software) mutation
-                             software-a cross-point-a
-                             crossed
-                             software-b cross-point-b
+(defmethod analyze-mutation ((obj software) mutation-info
                              &optional test
                              &aux result)
-  (labels ((safe-eval (object)
+  ;; Mutation info from new-individual
+  (destructuring-bind (mutation software-a cross-point-a
+                                crossed software-b cross-point-b)
+      mutation-info
+   (labels ((safe-eval (object)
              (or (fitness object)
                  (progn
                    (assert test (object test)
@@ -197,7 +195,7 @@ argument TEST must be supplied."))
               (gethash (mutation-key crossed mutation) *crossover-stats*)))))
   (values
    obj mutation software-a cross-point-a crossed software-b cross-point-b
-   (first result) (second result) (third result)))
+   (first result) (second result) (third result))))
 
 (defgeneric mutation-key (software mutation)
   (:documentation "Key used to organize mutations in *mutation-stats*."))
@@ -270,6 +268,9 @@ Define an :around method on this function to record crossovers."))
 (defvar *population* nil
   "Holds the variant programs to be evolved.")
 
+(defvar *generations* nil
+  "Holds the running generation count.")
+
 (defvar *max-population-size* nil
   "Maximum allowable population size.")
 
@@ -296,6 +297,12 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
 (defvar *running* nil
   "True when a search process is running, set to nil to stop evolution.")
+
+(defvar *start-time* nil
+  "Holds the start time of evolutionary processes.")
+
+(declaim (inline elapsed-time))
+(defun elapsed-time () (- (get-internal-real-time) *start-time*))
 
 (defmacro incorporate (software &optional
                                   (population '*population*)
@@ -349,7 +356,9 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
     ;; current approach in which `analyze-mutate' "wraps"
     ;; `new-individual'.
     (multiple-value-bind (mutant mutation) (mutant (copy crossed))
-      (values mutant mutation a a-point crossed b b-point))))
+      (values mutant
+              ;; Mutation info for analyze-mutation
+              (list mutation a a-point crossed b b-point)))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
@@ -382,21 +391,16 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                               (gethash
                                                (mutation-key (obj err) (op err))
                                                *mutation-stats*))))))))
-                        (multiple-value-bind
-                              (,variant mutation a a-point crossed b b-point)
+                        (multiple-value-bind (,variant mutation-info)
                             (funcall ,step)
                           ,@(unless collect-mutation-stats
-                                    `((declare (ignorable mutation
-                                                          a a-point crossed
-                                                          b b-point))))
+                                    `((declare (ignorable mutation-info))))
                           ,@(when every-pre-fn
                                   `((funcall ,every-pre-fn ,variant)))
                           (evaluate ,f ,variant)
                           ,@(when collect-mutation-stats
                                   `((funcall #'analyze-mutation
-                                             ,variant mutation
-                                             a a-point crossed b b-point
-                                             ,f)))
+                                             ,variant mutation-info ,f)))
                           ,@(when every-post-fn
                                   `((funcall ,every-post-fn ,variant)))
                           (incf ,fitness-counter)
@@ -424,33 +428,6 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
       (when max-time
         (setf main `(let ((,time (get-internal-real-time))) ,main)))
       main)))
-
-(defmacro evolve
-    (test &key max-evals max-time target period period-fn
-            every-pre-fn every-post-fn
-            filter
-            (population '*population*)
-            (max-population-size '*max-population-size*)
-            (running '*running*)
-            (fitness-evals '*fitness-evals*)
-            mutation-stats)
-  "Evolves `*population*' until an optional stopping criterion is met.
-
-Keyword arguments are as follows.
-  MAX-EVALS ------- stop after this many fitness evaluations
-  MAX-TIME -------- stop after this many seconds
-  TARGET ---------- stop when an individual passes TARGET-FIT
-  PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
-  PERIOD-FN ------- function to run every PERIOD fitness evaluations
-  EVERY-PRE-FN ---- function to run before every fitness evaluation
-  EVERY-POST-FN --- function to run after every fitness evaluation
-  FILTER ---------- only include individual for which FILTER returns true
-  MUTATION-STATS -- set to non-nil to collect mutation statistics"
-  `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
-                 ,every-pre-fn ,every-post-fn
-                 ,filter ,running ,fitness-evals ,mutation-stats)
-            #'new-individual
-            (incorporate new ,population ,max-population-size)))
 
 (defmacro mcmc
     (original test
@@ -489,3 +466,124 @@ Keyword arguments are as follows.
                       (< (random 1.0) ;; assumes numeric fitness
                          (if (> new curr) (/ curr new) (/ new curr)))))))
            ,body))))
+
+(defmacro evolve
+    (test &key max-evals max-time target period period-fn
+            every-pre-fn every-post-fn
+            filter
+            (population '*population*)
+            (max-population-size '*max-population-size*)
+            (running '*running*)
+            (fitness-evals '*fitness-evals*)
+            mutation-stats)
+  "Evolves `*population*' until an optional stopping criterion is met.
+
+Keyword arguments are as follows.
+  MAX-EVALS ------- stop after this many fitness evaluations
+  MAX-TIME -------- stop after this many seconds
+  TARGET ---------- stop when an individual passes TARGET-FIT
+  PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
+  PERIOD-FN ------- function to run every PERIOD fitness evaluations
+  EVERY-PRE-FN ---- function to run before every fitness evaluation
+  EVERY-POST-FN --- function to run after every fitness evaluation
+  FILTER ---------- only include individual for which FILTER returns true
+  MUTATION-STATS -- set to non-nil to collect mutation statistics"
+  `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
+                 ,every-pre-fn ,every-post-fn
+                 ,filter ,running ,fitness-evals ,mutation-stats)
+            #'new-individual
+            (incorporate new ,population ,max-population-size)))
+
+(defvar *worst-fitness-p* nil
+  "Predicate indicating whether an individual has the worst possible fitness.")
+(defvar *target-fitness-p* nil
+  "Predicate indicating whether an individual has reached the target fitness.")
+
+(defun generational-evolve
+    (reproduce evaluate select
+     &key
+       every-pre-fn every-post-fn mutation-stats test period period-fn
+       max-generations max-evals max-time filter)
+  "Evolves `*population*' until an optional stopping criterion is met.
+
+Required arguments are as follows:
+  REPRODUCE -------- create new individuals from the current population
+  EVALUATE --------- evaluate the entire population
+  SELECT ----------- select best individuals from the population
+Keyword arguments are as follows:
+  MAX-GENERATIONS -- stop after this many generations
+  MAX-EVALS -------- stop after this many fitness evaluations
+  MAX-TIME --------- stop after this many seconds
+  PERIOD ----------- interval of generations evaluations to run PERIOD-FN
+  PERIOD-FN -------- function to run every PERIOD generations
+  EVERY-POST-FN ---- function to run on every new individual before evaluation
+  EVERY-POST-FN ---- function to run on every new individual after evaluation
+  MUTATION-STATS --- set to non-nil to collect mutation statistics
+  TEST ------------- fitness test function for mutation statistics
+  FILTER ----------- remove individuals for which FILTER returns false"
+
+  (setq *running* t)
+  (setq *start-time* (get-internal-real-time))
+  (flet
+      ((check-max (current max) (or (not max)
+                                    (not current)
+                                    (< current max))))
+    (prog1
+        (loop
+         :while (and *running*
+                     (check-max *generations* max-generations)
+                     (check-max *fitness-evals* max-evals)
+                     (check-max (elapsed-time) max-time))
+         :do
+         (setf *generations* (+ 1 (or *generations* 0)))
+         (multiple-value-bind (children mutation-info)
+             (funcall reproduce *population*)
+
+           (if every-pre-fn (mapc every-pre-fn children))
+
+           (setq *population* (append children *population*))
+           (funcall evaluate children)
+
+           (if filter (setq *population* (delete-if-not filter *population*)))
+           (if mutation-stats
+               (mapcar (lambda (c info) (analyze-mutation c info test))
+                       children mutation-info))
+           (if every-post-fn (mapc {funcall every-post-fn} children))
+
+           (loop :for child :in children
+              :when (funcall *target-fitness-p* child)
+              :do
+              (setf *running* nil)
+              (return-from generational-evolve child)))
+
+         (setq *population*
+               (funcall select *population* *max-population-size*))
+         (assert (<= (length *population*) *max-population-size*))
+
+         (if (and period period-fn (zerop (mod *generations* period)))
+             (funcall period-fn)))
+      (setq *running* nil))))
+
+(defun simple-reproduce (population)
+  (let (children mutations)
+    (loop :for parent in population
+          :do (restart-case
+               (multiple-value-bind (child info)
+                   (new-individual parent (random-elt population))
+                 (push child children)
+                 (push info mutations))
+               (ignore-failed-mutation ()
+                 :report
+                 "Ignore failed mutation and continue evolution")))
+    (values children mutations)))
+
+(defun simple-evaluate (test new-children)
+  (mapc (lambda (child)
+          (incf *fitness-evals*)
+          (evaluate test child))
+        new-children))
+
+(defun simple-select (population max-size &aux new-pop)
+  (declare (ignorable population))      ; tournament uses global *population*
+  (dotimes (n max-size new-pop)
+    (push (tournament) new-pop)))

@@ -352,8 +352,7 @@ Keyword argument FRAC will return fractions instead of raw counts."
   (> (or bias 0.5) (random 1.0)))
 
 (defun uniform-probability (list)
-  (let ((prob (/ 1.0 (length list))))
-    (loop for item in list collecting (cons item prob))))
+  (mapcar {cons _ (/ 1.0 (length list))} list))
 
 (defun cdf (prob)
   (labels ((combine (acc pr)
