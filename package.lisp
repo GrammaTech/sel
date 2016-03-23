@@ -207,4 +207,5 @@
    :simple-evaluate
    :simple-select
    :*target-fitness-p*
-   :*worst-fitness-p*))
+   :*worst-fitness-p*
+   :lexicase-evaluate))
