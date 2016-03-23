@@ -690,7 +690,7 @@
         (apply-mutation variant op)
         (is (null (fitness variant))
             "Fitness is null after `apply-mutation'")
-        (analyze-mutation variant op nil nil *hello-world* nil nil *test*)
+        (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
         (is (not (null (fitness variant)))
             "`analyze-mutation' calculates fitness when missing")
         (let ((stats-alist (hash-table-alist *mutation-stats*)))
@@ -706,7 +706,7 @@
       (let ((variant (copy *hello-world*))
             (op '(:cut (:stmt1 . 2))))
         (apply-mutation variant op)
-        (analyze-mutation variant op nil nil *hello-world* nil nil *test*)
+        (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
         (is (equal :worse (second (second (first (hash-table-alist
                                                   *mutation-stats*)))))
             "`analyze-mutation' notices worse improvement")))))
@@ -719,7 +719,7 @@
       (let ((variant (copy *hello-world*))
             (op '(:swap (:stmt1 . 2) (:stmt2 . 2))))
         (setf (fitness variant) nil)
-        (analyze-mutation variant op nil nil *hello-world* nil nil *test*)
+        (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
         (is (equal :same (second (second (first (hash-table-alist
                                                  *mutation-stats*)))))
             "`analyze-mutation' notices no change: ~S"
