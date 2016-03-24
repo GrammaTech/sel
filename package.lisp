@@ -92,7 +92,6 @@
    :get-immediate-children
    :extend-to-enclosing
    :get-ast-info
-   :worst
    :get-fresh-ancestry-id
    :random-function-name
    ;; global variables
@@ -208,4 +207,6 @@
    :simple-select
    :*target-fitness-p*
    :*worst-fitness-p*
+   :worst-numeric-fitness
+   :worst-numeric-fitness-p
    :lexicase-evaluate))

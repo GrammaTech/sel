@@ -485,11 +485,14 @@ Keyword arguments are as follows.
             #'new-individual
             (incorporate new ,population ,max-population-size)))
 
+(defun worst-numeric-fitness()
+  (cond ((equal #'< *fitness-predicate*) infinity)
+        ((equal #'> *fitness-predicate*) 0)
+        (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
+
 (defun worst-numeric-fitness-p (obj)
   (= (fitness obj)
-     (cond ((equal #'< *fitness-predicate*) infinity)
-           ((equal #'> *fitness-predicate*) 0)
-           (t (error "bad *fitness-predicate* ~a" *fitness-predicate*)))))
+     (worst-numeric-fitness)))
 
 (defvar *worst-fitness-p* #'worst-numeric-fitness-p
   "Predicate indicating whether an individual has the worst possible fitness.")
