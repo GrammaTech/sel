@@ -73,6 +73,7 @@
    :update-mito-from-snippet
    :to-file
    :apply-path
+   :compiler
    :prototypes
    :asts
    :good-asts
