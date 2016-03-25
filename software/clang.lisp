@@ -531,20 +531,15 @@ Otherwise return the whole FULL-GENOME"
                   clang-mutate-outfile)
           (declare (ignorable stdout stderr))
           ;; NOTE: The clang-mutate executable will sometimes produce
-          ;; JSON output when there are compiler errors (exit 1).
-          ;; This output is not guaranteed to respect several invariants.
-          ;; For instance, we assume the root of each AST is a compound
-          ;; statement; this may not hold on non-zero exits.
-          ;; Because of this, we cannot use the JSON output on a non-zero
-          ;; exit without the risk of errors in later processing.
-          (when (not (zerop exit))
+          ;;       usable output even on a non-zero exit, e.g., usable
+          ;;       json or successful mutations but an exit of 1
+          ;;       because of compiler errors.  To ensure these cases
+          ;;       are still usable, we only signal mutation errors on
+          ;;       specific exit values.
+          (when (find exit '(131 132 134 136 139))
             (error
              (make-condition 'mutate
-               :text (concatenate 'string
-                       (if (find exit '(131 132 134 136 139))
-                           "clang-mutate core dump, "
-                           "clang-mutate exit, ")
-                       (write-to-string exit))
+               :text (format nil "clang-mutate core dump, ~d," exit)
                :obj obj :op op)))
           ;; NOTE: If clang-mutate output exceeds 10 MB, this is likely due
           ;; to an insertion which is technically legal via the standard,
