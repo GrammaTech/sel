@@ -8,6 +8,8 @@
 ;;; ignored. All fitness values in the same population must be the
 ;;; same length and have their scores in the same order.
 
+(in-package :software-evolution)
+
 (defvar *lexicase-predicate* #'>
   "Function to compare individual scores in the test vector.")
 
