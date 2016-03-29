@@ -210,4 +210,5 @@
    :*worst-fitness-p*
    :worst-numeric-fitness
    :worst-numeric-fitness-p
-   :lexicase-evaluate))
+   :lexicase-select
+   :*lexicase-predicate*))
