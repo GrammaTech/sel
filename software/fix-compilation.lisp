@@ -122,25 +122,26 @@ expression match.")
            (scope-vars (get-vars-in-scope obj decl-stmt-id)))
       ;; Insert a BinaryOperator assignment after the DeclStmt binding
       ;; it's first free variable to the newly declared variable.
-      (apply-mutation obj
-        (list :insert-value (cons :stmt1 (1+ decl-stmt-id))
-              (cons :value1
-                    (concatenate 'string
-                      (apply-replacements
-                       (cons
-                        (cons assigned-variable variable-name)
-                        (mapcar
-                         (lambda (val-scope-pair)
-                           (cons (car val-scope-pair)
-                                 (or (random-elt-with-decay scope-vars 0.5)
-                                     "/* no bound vars */")))
-                         (remove-if [{string= assigned-variable} #'car]
-                                    (aget :unbound--vals
-                                          binary-assignment-fodder))))
-                       (aget :src--text binary-assignment-fodder))
-                      (string #+ccl #\;
-                              #-ccl #\Semicolon)
-                      (string #\Newline))))))))
+      (when decl-stmt-id
+        (apply-mutation obj
+          (list :insert-value (cons :stmt1 (1+ decl-stmt-id))
+                (cons :value1
+                      (concatenate 'string
+                        (apply-replacements
+                         (cons
+                          (cons assigned-variable variable-name)
+                          (mapcar
+                           (lambda (val-scope-pair)
+                             (cons (car val-scope-pair)
+                                   (or (random-elt-with-decay scope-vars 0.5)
+                                       "/* no bound vars */")))
+                           (remove-if [{string= assigned-variable} #'car]
+                                      (aget :unbound--vals
+                                            binary-assignment-fodder))))
+                         (aget :src--text binary-assignment-fodder))
+                        (string #+ccl #\;
+                                #-ccl #\Semicolon)
+                        (string #\Newline)))))))))
 
 ;; For clang software objects with no fodder database,
 ;; just delete the offending line.
