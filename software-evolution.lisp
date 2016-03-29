@@ -132,6 +132,20 @@ Used to target mutation."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
+(defun worst-numeric-fitness()
+  (cond ((equal #'< *fitness-predicate*) infinity)
+        ((equal #'> *fitness-predicate*) 0)
+        (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
+
+(defun worst-numeric-fitness-p (obj)
+  (= (fitness obj)
+     (worst-numeric-fitness)))
+
+(defvar *worst-fitness-p* #'worst-numeric-fitness-p
+  "Predicate indicating whether an individual has the worst possible fitness.")
+(defvar *target-fitness-p* nil
+  "Predicate indicating whether an individual has reached the target fitness.")
+
 (defgeneric analyze-mutation (software mutation-info
                               &optional test)
   (:documentation "Collect statistics from an applied mutation.
@@ -173,9 +187,11 @@ argument TEST must be supplied."))
                                 (safe-eval old))))
                (values
                 (cond
-                  ((funcall *worst-fitness-p* new) (note "_") :dead)
-                  ((equalp fit old-fit) (note "=") :same)
                   ((not *fitness-predicate*) (note "?") :non-comparable)
+                  ((funcall *worst-fitness-p* new) (note "_") :dead)
+                  ((and (not (funcall *fitness-predicate* fit old-fit))
+                        (not (funcall *fitness-predicate* old-fit fit)))
+                     (note "=") :same)
                   ((funcall (complement *fitness-predicate*) fit old-fit)
                    (note "-") :worse)
                   ((funcall *fitness-predicate* fit old-fit)
@@ -484,20 +500,6 @@ Keyword arguments are as follows.
                  ,filter ,running ,fitness-evals ,mutation-stats)
             #'new-individual
             (incorporate new ,population ,max-population-size)))
-
-(defun worst-numeric-fitness()
-  (cond ((equal #'< *fitness-predicate*) infinity)
-        ((equal #'> *fitness-predicate*) 0)
-        (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
-
-(defun worst-numeric-fitness-p (obj)
-  (= (fitness obj)
-     (worst-numeric-fitness)))
-
-(defvar *worst-fitness-p* #'worst-numeric-fitness-p
-  "Predicate indicating whether an individual has the worst possible fitness.")
-(defvar *target-fitness-p* nil
-  "Predicate indicating whether an individual has reached the target fitness.")
 
 (defun generational-evolve
     (reproduce evaluate select
