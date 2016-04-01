@@ -25,6 +25,9 @@
    ;; :to-bytes
    :*work-dir*
    :*shell-debug*
+   :*shell-error-codes*
+   :ignore-shell-error
+   :shell-command-failed
    :shell
    :parse-number
    :parse-numbers
@@ -113,4 +116,3 @@
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
-

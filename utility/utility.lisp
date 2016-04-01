@@ -132,6 +132,16 @@ and an optional extension."
 (defvar *shell-debug* nil
   "Set to true to print shell invocations.")
 
+(defvar *shell-error-codes* '(126 127)
+  "Raise a condition on these exit codes.")
+
+(define-condition shell-command-failed (error)
+  ((commmand :initarg :command :initform nil :reader command)
+   (exit-code :initarg :exit-code :initform nil :reader exit-code))
+  (:report (lambda (condition stream)
+             (format stream "Shell command failed with status ~a: \"~a\""
+                     (exit-code condition) (command condition)))))
+
 (defun shell (&rest rst)
   (let ((cmd (apply #'format (cons nil rst))))
     (when *shell-debug* (format t "  cmd: ~a~%" cmd))
@@ -172,6 +182,11 @@ and an optional extension."
             #-(or sbcl ccl allegro) (error "not implemented")
             (when *shell-debug*
               (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr errno))
+            (if (find errno *shell-error-codes*)
+                (restart-case (error (make-condition 'shell-command-failed
+                                                     :exit-code errno
+                                                     :command cmd))
+                  (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
 
 (defun parse-number (string)
