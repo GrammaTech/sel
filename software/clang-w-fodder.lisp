@@ -7,7 +7,8 @@
 ;;; where applicable, the corresponding binary bytes.
 (in-package :software-evolution)
 
-(defvar *database* "Database utilized for fodder selection")
+(defvar *database* nil
+  "Database utilized for fodder selection")
 
 (defvar *fodder-selection-bias* 0.5
   "The probability that a clang-w-fodder mutation will use the code database.")
