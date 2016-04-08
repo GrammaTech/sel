@@ -85,8 +85,7 @@ CLANG software object"))
      :src--text          :parent--counter    :macros
      :guard--stmt        :full--stmt         :begin--src--line
      :end--src--line     :begin--src--col    :end--src--col
-     :begin--addr        :end--addr          :binary--contents
-     :includes)
+     :begin--addr        :end--addr          :includes)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -512,7 +511,6 @@ Otherwise return the whole FULL-GENOME"
                  (:scopes "scopes")
                  (:begin--addr "begin_addr")
                  (:end--addr "end_addr")
-                 (:binary--contents "binary_contents")
                  (:includes "includes")))
              (aux-opt (aux)
                (ecase aux
