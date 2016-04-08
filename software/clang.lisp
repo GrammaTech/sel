@@ -1070,7 +1070,10 @@ free variables.")
   (setf (genome clang) (extract-clang-genome text)))
 
 (defmethod (setf genome-string) :around (text (obj clang))
-  (prog1 (call-next-method) (update-asts obj)))
+  (prog1
+    (call-next-method)
+    (setf (fitness obj) nil)
+    (update-asts obj)))
 
 (defmethod lines ((obj clang))
   (split-sequence '#\Newline (genome-string obj)))
