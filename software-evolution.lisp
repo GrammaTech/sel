@@ -310,7 +310,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
   "Holds the start time of evolutionary processes.")
 
 (declaim (inline elapsed-time))
-(defun elapsed-time () (- (get-internal-real-time) *start-time*))
+(defun elapsed-time () (/ (- (get-internal-real-time) *start-time*)
+                          internal-time-units-per-second))
 
 (defmacro incorporate (software &optional
                                   (population '*population*)
