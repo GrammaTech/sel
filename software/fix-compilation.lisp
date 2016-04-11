@@ -284,3 +284,19 @@ expression match.")
 (register-fixer
  ": undefined reference to `(\\S+)'"
  #'delete-undefined-references)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: duplicate case value"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): 'case' statement not in switch statement"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): 'break' statement not in loop or switch statement"
+ #'delete-line-with-error)
+
+(register-fixer
+ ":(\\d+):(\\d+): 'continue' statement not in loop statement"
+ #'delete-line-with-error)
