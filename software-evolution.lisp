@@ -498,7 +498,8 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                                       (return ,variant))))))
                         (ignore-failed-mutation ()
                           :report
-                          "Ignore failed mutation and continue evolution"))))))
+                          "Ignore failed mutation and continue evolution")))
+               (setq ,running nil))))
       (when target
         (setf main `(block nil ,main)))
       (when max-time
