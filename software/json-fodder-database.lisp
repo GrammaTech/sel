@@ -3,37 +3,44 @@
 (in-package :software-evolution)
 
 (defclass json-database (fodder-database)
-   ;; The current implementation of the database
-   ;; has redundant data, trading space for query time.
-   ;; It is assumed that all JSON databases will be fairly small;
-   ;; otherwise, Mongo should be utilized.
+  ;; The current implementation of the database
+  ;; has redundant data, trading space for query time.
+  ;; It is assumed that all JSON databases will be fairly small;
+  ;; otherwise, Mongo should be utilized.
 
-   ;; TODO: We could potentially support all query types in a smaller
-   ;; memory footprint by stable sorting the ast-database-list first by
-   ;; full-stmt and then by AST class.  We could keep an index where the full
-   ;; statements end.  Additionally, we could keep indexes where each AST
-   ;; class begins and ends.
-
-  (;; Stream of incoming JSON.
-   (json-stream :initarg :json-stream
-                :accessor json-stream
-                :initform (error "JSON-STREAM field is required for DATABASE."))
-   ;; The database of source code snippets, grouped by AST class name.
-   (ast-database-ht :initarg :ast-database-ht
-                    :accessor ast-database-ht
-                    :initform (make-hash-table :test 'equal))
-   ;; The database of source code snippets as a raw list.
-   (ast-database-list :initarg :ast-database-list
-                      :accessor ast-database-list
-                      :initform nil)
-   ;; The database of source code snippets which are full statements.
-   (ast-database-full-stmt-list :initarg :ast-database-full-stmt-list
-                                :accessor ast-database-full-stmt-list
-                                :initform nil)
-   ;; An auxillary database of type snippets, grouped by hash-code
-   (type-database-ht :initarg :type-database-ht
-                     :accessor type-database-ht
-                     :initform (make-hash-table :test 'equal))))
+  ;; TODO: We could potentially support all query types in a smaller
+  ;; memory footprint by stable sorting the ast-database-list first by
+  ;; full-stmt and then by AST class.  We could keep an index where the full
+  ;; statements end.  Additionally, we could keep indexes where each AST
+  ;; class begins and ends.
+  ((json-stream :initarg :json-stream :accessor json-stream
+                :initform (error "JSON-STREAM field is required for DATABASE.")
+                :documentation "Stream of incoming JSON.")
+   (ast-database-ht
+    :initarg :ast-database-ht
+    :accessor ast-database-ht
+    :initform (make-hash-table :test 'equal)
+    :documentation
+    "The database of source code snippets, grouped by AST class name.")
+   (ast-database-list
+    :initarg :ast-database-list
+    :accessor ast-database-list
+    :initform nil
+    :documentation "The database of source code snippets as a raw list.")
+   (ast-database-full-stmt-list
+    :initarg :ast-database-full-stmt-list
+    :accessor ast-database-full-stmt-list
+    :initform nil
+    :documentation
+    "The database of source code snippets which are full statements.")
+   (type-database-ht
+    :initarg :type-database-ht
+    :accessor type-database-ht
+    :initform (make-hash-table :test 'equal)
+    :documentation
+    "An auxillary database of type snippets, grouped by hash-code")
+   (json-stream :initarg :json-stream :accessor json-stream
+                :documentation "Stream of incoming JSON.")))
 
 (defmethod print-object ((db json-database) stream)
   (print-unreadable-object (db stream :type t)
