@@ -48,6 +48,11 @@
         (declare (ignorable stdout))
         (values (if (zerop exit) bin stderr) exit src)))))
 
+(defmethod compile-p ((obj ast))
+  (with-temp-file-of (bin)
+    (multiple-value-bind (out errno) (phenome obj :bin bin)
+      (zerop errno))))
+
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (or (genome ast) "") stream))
 

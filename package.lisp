@@ -23,6 +23,7 @@
    :mutation-stats
    :genome
    :phenome
+   :compile-p
    :evaluate
    :copy
    :size
