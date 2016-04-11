@@ -13,8 +13,8 @@ SORT-PREDICATE - Function to compare two similarity scores to select
 which is preferred.
 SIMILARITY-FN - Function to compute a similarity score between two sequences"
   (let ((target-disasm-as-list (mapcar (lambda (instr)
-                                         (append (list (elf:opcode instr))
-                                                 (elf:operands instr)))
+                                         (cons (elf:opcode instr)
+                                               (elf:operands instr)))
                                        target-disasm)))
     (take n (sort (remove-if-not [{(lambda (snippet) (funcall filter snippet))}
                                   {aget :disasm}] fodder)
