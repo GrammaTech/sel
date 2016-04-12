@@ -89,13 +89,11 @@
       (json:decode-json-from-source (json-stream db))))
 
 (defmethod find-snippets ((db json-database) &key classes full-stmt limit)
-  (let ((snippets (cond ((and classes (listp classes))
+  (let ((snippets (cond (classes
                          (mappend
                           (lambda (class)
                             (gethash class (ast-database-ht db)))
                           classes))
-                        ((and classes (stringp classes))
-                         (gethash classes (ast-database-ht db)))
                         (full-stmt
                          (ast-database-full-stmt-list db))
                         (t (ast-database-list db)))))

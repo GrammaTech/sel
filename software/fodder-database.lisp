@@ -7,7 +7,7 @@
 (defgeneric find-snippets (database &key classes full-stmt limit)
   (:documentation "Find snippets in the fodder database DATABASE.
 
-:CLASSES --- AST class(es) all snippets should match
+:CLASSES --- AST class all snippets should match
 :FULL-STMT - Limit results to full statements if non-nil.
 :LIMIT ----- Limit to N randomly drawn snippets"))
 

@@ -109,8 +109,8 @@ expression match.")
             (random-elt
              (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src--text}]
                             (find-snippets *database*
-                                           :classes "BinaryOperator"
-                                           :n 512))))
+                                           :classes (list "BinaryOperator")
+                                           :limit 512))))
            ;; Find the "assigned-to" free-variable.
            (assigned-variable
             (multiple-value-bind (matchp match-data)
@@ -194,12 +194,12 @@ expression match.")
                                        "UnaryExprOrTypeTraitExpr"
                                        "ImplicitCastExpr"
                                        "CStyleCastExpr")
-                            :n 1)
+                            :limit 1))
             (aget :counter
                   (lastcar (asts-containing-source-location
                             obj (make-instance 'source-location
                                   :line line-number
-                                  :column col-number)))))))
+                                  :column col-number))))))
          (lines (lines obj))
          (orig (nth (1- line-number) lines)))
     (setf (lines obj)
