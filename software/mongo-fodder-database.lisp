@@ -21,8 +21,7 @@
     (format stream "~a@~a:~d" (db obj) (host obj) (port obj))))
 
 (defmethod find-snippets ((obj mongo-database) &key classes full-stmt limit)
-  (let ((kv (cond ((and classes (listp classes)) ($in "ast_class" classes))
-                  ((and classes (stringp classes)) (kv "ast_class" classes))
+  (let ((kv (cond (classes ($in "ast_class" classes))
                   (full-stmt (kv "full_stmt" t))
                   (t :all))))
     (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
