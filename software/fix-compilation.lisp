@@ -231,6 +231,22 @@ expression match.")
   (add-macro   (mitochondria obj) "int1_t"  "int1_t int32_t")
   (add-macro   (mitochondria obj) "uint1_t" "uint1_t uint32_t"))
 
+(defmethod delete-redefinitions ((obj clang) match-data)
+  ;; TODO: For now, we just take care of offending structs.
+  (multiple-value-bind (new-genome matched)
+    (regex-replace (concatenate 'string
+                       "struct\\s+"
+                       (aref match-data 2)
+                       "\\s+\\{.*\\}")
+                   (genome-string obj)
+                   "")
+    (when matched
+      (setf (genome-string obj) new-genome))))
+
+(register-fixer
+ ": error: redefinition of '(.*)'"
+ #'delete-redefinitions)
+
 (defmethod delete-undefined-references ((obj clang) match-data)
   (let ((id (format nil "(|~a|)" (aref match-data 0)))
         (to-delete (make-hash-table :test 'equal)))
@@ -248,10 +264,14 @@ expression match.")
        :do (apply-mutation obj `(:cut (:stmt1 . ,ast))))))
 
 (register-fixer
+ ": undefined reference to `(\\S+)'"
+ #'delete-undefined-references)
+
+(register-fixer
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
  #'add-int1-macros)
 
-;; These four fixers just delete the offending line, because there is not much
+;; These fixers just delete the offending line, because there is not much
 ;; intelligent recovery we can do.
 (register-fixer
  ":(\\d+):(\\d+): error: expected identifier or (‘|')\*(’|') before numeric constant"
@@ -282,10 +302,6 @@ expression match.")
  #'delete-line-with-error)
 
 (register-fixer
- ": undefined reference to `(\\S+)'"
- #'delete-undefined-references)
-
-(register-fixer
  ":(\\d+):(\\d+): error: duplicate case value"
  #'delete-line-with-error)
 
@@ -299,4 +315,8 @@ expression match.")
 
 (register-fixer
  ":(\\d+):(\\d+): 'continue' statement not in loop statement"
+ #'delete-line-with-error)
+
+(register-fixer
+ ": error: typedef redefinition with different types"
  #'delete-line-with-error)
