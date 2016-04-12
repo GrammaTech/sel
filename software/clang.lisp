@@ -133,7 +133,7 @@ CLANG software object"))
     ;; Populate a type database with the types found.
     (loop for type in json-db
        when (and (assoc :hash type)
-                 (assoc :decl type)
+                 (assoc :reqs type)
                  (assoc :type type)
                  (or (assoc :include type)
                      (assoc :decl type)))
