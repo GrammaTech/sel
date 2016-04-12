@@ -172,6 +172,8 @@
    :with-class-filter
    :full-stmt-filter
    :recontextualize
+   :rebind-uses
+   :rebind-uses-in-snippet
    :nesting-depth
    :get-ast-text
    :full-stmt-p
