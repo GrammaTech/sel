@@ -88,8 +88,7 @@
                             json-stored-db-path)))
       (json:decode-json-from-source (json-stream db))))
 
-(defmethod find-snippets ((db json-database)
-                          &key classes full-stmt (n most-positive-fixnum))
+(defmethod find-snippets ((db json-database) &key classes full-stmt limit)
   (let ((snippets (cond ((and classes (listp classes))
                          (mappend
                           (lambda (class)
@@ -100,10 +99,10 @@
                         (full-stmt
                          (ast-database-full-stmt-list db))
                         (t (ast-database-list db)))))
-    (if (<= (length snippets) n)
+    (if (and limit (<= (length snippets) limit))
         snippets
-        (let ((start (random (- (length snippets) n))))
-          (subseq snippets start (+ start n))))))
+        (let ((start (random (- (length snippets) limit))))
+          (subseq snippets start (+ start limit))))))
 
 (defmethod find-types ((db json-database) &key hash)
   (if hash

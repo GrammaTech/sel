@@ -15,12 +15,35 @@
   (:documentation "Find the types in the type database (optionally)
 matching the keyword parameter HASH"))
 
+(defgeneric weighted-pick
+    (database predicate weight
+     &key target key limit classes filter limit-considered)
+  ;; NOTE: This function is largely only present so that classes like
+  ;;       MONGO-MIDDLE-FODDER-DATABASE can provide optimized access
+  ;;       to single results for sorted queries without having to
+  ;;       retrieve and return all of the documents in the sorted
+  ;;       results.
+  (:documentation
+   "Perform a random pick weighted by weight from `sorted-snippets'.
+All other arguments are passed through to sorted snippets."))
+
+(defmethod weighted-pick ((obj fodder-database) predicate weight
+                          &key target key limit classes filter
+                            (limit-considered infinity))
+  (random-elt-with-decay
+   (sorted-snippets obj predicate
+                    :target target :key key :limit limit :classes classes
+                    :filter filter :limit-considered limit-considered)
+   weight))
+
 (defgeneric sorted-snippets
     (database predicate
-     &key key limit class limit-considered filter)
+     &key target key limit classes limit-considered filter)
   (:documentation
    "Return snippets from DATABASE sorted by PREDICATE.
 
+:TARGET ----------- specify the TARGET for a comparison based predicate
+                    (this may be used to identify cached comparison results)
 :KEY -------------- a function called on each snippet before predicate
 :LIMIT ------------ only return the MANY most similar snippets
 :CLASSES ---------- only consider snippets matching these AST classes
@@ -28,22 +51,25 @@ matching the keyword parameter HASH"))
 :FILTER ----------- limit search to snippets for which FILTER returns false"))
 
 (defmethod sorted-snippets ((db fodder-database) predicate
-                          &key key classes limit filter
-                            (limit-considered infinity))
+                            &key target key classes limit filter
+                              (limit-considered infinity))
+  (declare (ignorable target))
   (let ((fodder (find-snippets db :classes classes :full-stmt (not classes))))
     (if (< limit-considered (length fodder))
         (let ((start (random (- (length fodder) limit-considered))))
           (sorted-snippets-unmemoized
            (subseq fodder start (+ start limit-considered))
-           predicate :limit limit :key key))
-        (sorted-snippets-memoized fodder predicate :limit limit :key key))))
+           predicate :limit limit :key key :filter filter))
+        (sorted-snippets-memoized fodder predicate
+                                  :limit limit :key key :filter filter))))
 
-(defun-memoized sorted-snippets-memoized (fodder predicate &key limit key)
+(defun-memoized sorted-snippets-memoized
+    (fodder predicate &key limit key filter)
   (let ((base (apply #'sort (remove-if filter fodder) predicate
                      (if key (list :key key) '()))))
     (if limit (take limit base) base)))
 
-(defun sorted-snippets-unmemoized (fodder predicate &key limit key)
+(defun sorted-snippets-unmemoized (fodder predicate &key limit key filter)
   (let ((base (apply #'sort (remove-if filter fodder) predicate
                      (if key (list :key key) '()))))
     (if limit (take limit base) base)))

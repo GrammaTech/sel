@@ -16,6 +16,8 @@ techniques."
                cl-json
                cl-ppcre
                cl-mongo
+               mongo-middle-man
+               usocket
                diff
                elf
                memoize
@@ -47,6 +49,8 @@ techniques."
              (:file "fodder-database")
              (:file "json-fodder-database" :depends-on ("fodder-database"))
              (:file "mongo-fodder-database" :depends-on ("fodder-database"))
+             (:file "mongo-middle-fodder-database"
+                    :depends-on ("fodder-database"))
              (:file "fix-compilation" :depends-on ("clang" "clang-w-fodder"))
              (:file "llvm" :depends-on ("ast"))
              (:file "lexicase")))))

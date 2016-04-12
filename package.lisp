@@ -8,6 +8,8 @@
    :split-sequence
    :cl-ppcre
    :cl-mongo
+   :mongo-middle-man
+   :usocket
    :diff
    :elf
    :memoize
@@ -113,6 +115,9 @@
    ;; clang / clang-w-fodder global variables
    :fodder-database
    :mongo-database
+   :db :host :port
+   :mongo-middle-database
+   :source-collection :cache-collection :middle-host :middle-port
    :json-database
    :find-snippets
    :find-types
