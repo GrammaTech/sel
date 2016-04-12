@@ -870,6 +870,30 @@ free variables.")
                      "/* no functions? */"))))
      raw-code)))
 
+(defun rebind-uses-in-snippet (snippet orig-var new-var)
+  (apply-replacements
+   (append
+    (loop :for var :in (mapcar #'car (aget :unbound--vals snippet))
+       :collecting (cons var (if (equal (peel-bananas var) orig-var)
+                                 new-var
+                                 (peel-bananas var))))
+    (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
+       :collecting (cons fun (if (equal (peel-bananas fun) orig-var)
+                                 new-var
+                                 (peel-bananas fun)))))
+   (aget :src--text snippet)))
+
+(defmethod rebind-uses ((clang clang) stmt orig-var new-var)
+  (if (equal (get-ast-class clang stmt) "CompoundStmt")
+      (format t "{~%~{~a~%~}}~%"
+              (loop :for one-stmt
+                 :in (aget :stmt--list (get-ast clang stmt))
+                 :collecting
+                 (rebind-uses-in-snippet (get-ast clang one-stmt)
+                                         orig-var
+                                         new-var)))
+      (rebind-uses-in-snippet (get-ast clang stmt) orig-var new-var)))
+
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))
     (if (>= 0 depth) the-block
