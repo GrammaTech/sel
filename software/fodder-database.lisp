@@ -4,45 +4,46 @@
 
 (defclass fodder-database () ())
 
-(defgeneric find-snippets (fodder-database
-                           &key classes full-stmt n)
-  (:documentation "Find snippets in the fodder database (optionally)
-matching the keyword parameters CLASSES or FULL-STMT.
+(defgeneric find-snippets (database &key classes full-stmt limit)
+  (:documentation "Find snippets in the fodder database DATABASE.
 
-:CLASSES - AST class(es) all snippets should match
+:CLASSES --- AST class(es) all snippets should match
 :FULL-STMT - Limit results to full statements if non-nil.
-:N <N> - Limit to N randomly drawn snippets"))
+:LIMIT ----- Limit to N randomly drawn snippets"))
 
 (defgeneric find-types (type-database &key hash)
   (:documentation "Find the types in the type database (optionally)
 matching the keyword parameter HASH"))
 
-(defgeneric byte-sorted-snippets (fodder-database
-                                  target-bytes
-                                  n-elems-to-return
-                                  &key class k-elems-to-consider
-                                       filter sort-predicate similarity-fn)
-  (:documentation "Return the N-ELEMS-RETURN snippets closest to TARGET-BYTES
-in FODDER-DATABASE.
+(defgeneric sorted-snippets
+    (database predicate
+     &key key limit class limit-considered filter)
+  (:documentation
+   "Return snippets from DATABASE sorted by PREDICATE.
 
-:CLASS - AST class all snippets should match
-:K-ELEMS-TO-CONSIDER - Limit search to K-ELEMS-TO-CONSIDER random snippets
-:FILTER - Function to remove snippets from consideration
-:SORT-PREDICATE - Function to compare two similarity scores to select
-which is preferred.
-:SIMILARITY-FN - Function to compute a similarity score between two sequences"))
+:KEY -------------- a function called on each snippet before predicate
+:LIMIT ------------ only return the MANY most similar snippets
+:CLASSES ---------- only consider snippets matching these AST classes
+:LIMIT-CONSIDERED - limit search to MANY-CONSIDERED random snippets
+:FILTER ----------- limit search to snippets for which FILTER returns false"))
 
-(defgeneric disasm-sorted-snippets (fodder-database
-                                    target-disasm
-                                    n-elems-to-return
-                                    &key class k-elems-to-consider
-                                         filter sort-predicate similarity-fn)
-  (:documentation "Return the N-ELEMS-RETURN snippets closest to TARGET-DISASM
-in FODDER-DATABASE.
+(defmethod sorted-snippets ((db fodder-database) predicate
+                          &key key classes limit filter
+                            (limit-considered infinity))
+  (let ((fodder (find-snippets db :classes classes :full-stmt (not classes))))
+    (if (< limit-considered (length fodder))
+        (let ((start (random (- (length fodder) limit-considered))))
+          (sorted-snippets-unmemoized
+           (subseq fodder start (+ start limit-considered))
+           predicate :limit limit :key key))
+        (sorted-snippets-memoized fodder predicate :limit limit :key key))))
 
-:CLASS - AST class all snippets should match
-:K-ELEMS-TO-CONSIDER - Limit search to K-ELEMS-TO-CONSIDER random snippets
-:FILTER - Function to remove snippets from consideration
-:SORT-PREDICATE - Function to compare two similarity scores to select
-which is preferred.
-:SIMILARITY-FN - Function to compute a similarity score between two sequences"))
+(defun-memoized sorted-snippets-memoized (fodder predicate &key limit key)
+  (let ((base (apply #'sort (remove-if filter fodder) predicate
+                     (if key (list :key key) '()))))
+    (if limit (take limit base) base)))
+
+(defun sorted-snippets-unmemoized (fodder predicate &key limit key)
+  (let ((base (apply #'sort (remove-if filter fodder) predicate
+                     (if key (list :key key) '()))))
+    (if limit (take limit base) base)))
