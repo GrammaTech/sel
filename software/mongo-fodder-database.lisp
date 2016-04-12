@@ -6,9 +6,15 @@
 ;;; Each Mongo database instance needs to store the name of the
 ;;; database we are connecting to, the database host, and port.
 (defclass mongo-database (fodder-database)
-  ((db :initarg :db :accessor db :type simple-string)
-   (host :initarg :host :accessor host :type simple-string)
-   (port :initarg :port :accessor port :type integer)))
+  ((db :initarg :db :accessor db
+       :initform *mongo-default-db* :type simple-string)
+   (host :initarg :host :accessor host
+         :initform *mongo-default-host* :type simple-string)
+   (port :initarg :port :accessor port
+         :initform *mongo-default-port* :type integer)))
+
+(defvar fodder-collection "asts"
+  "Name of the default collection holding fodder ASTs.")
 
 (defmethod print-object ((obj mongo-database) stream)
   (print-unreadable-object (obj stream :type t)
@@ -49,17 +55,16 @@ FIELD -- optionally selects the field on which to sort results
 (defmethod find-snippets-kv-exe-query ((obj mongo-database) kv
                                        &key limit field (asc t))
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
-    (do* ((result (db.sort "asts" kv
+    (do* ((result (db.sort fodder-collection kv
                            :limit (or limit 0)
                            :field field
                            :asc asc)
-                  (db.next "asts" cursor))
-          (cursor (nth 5 (first result))
-                  (nth 5 (first result)))
-          (documents (second result)
-                     (append documents (second result))))
-         ((or (zerop cursor)
-              (and limit (>= (length documents) limit)))
+                  (db.next fodder-collection cursor))
+          (cursor (cursor result)
+                  (cursor result))
+          (documents (documents result)
+                     (append documents (documents result))))
+         ((or (zerop cursor) (and limit (>= (length documents) limit)))
           (mapcar #'document-cljson
                   (if limit (take limit documents) documents))))))
 
@@ -70,11 +75,11 @@ FIELD -- optionally selects the field on which to sort results
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.find "types" kv)
                   (db.next "types" cursor))
-          (cursor (nth 5 (first result))
-                  (nth 5 (first result)))
-          (documents (second result)
-                     (append documents (second result))))
-         ((zerop cursor) (mongo-documents-to-cljson documents)))))
+          (cursor (cursor results)
+                  (cursor results))
+          (documents (documents result)
+                     (append documents (documents result))))
+         ((zerop cursor) (mapcar #'document-cljson documents)))))
 
 
 ;;; Utility functions

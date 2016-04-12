@@ -35,16 +35,16 @@ CLANG-W-FODDER in a method-dependent fashion."))
 (defmethod pick-snippet ((clang-w-fodder clang-w-fodder) &key full class pt)
   (let* ((snippet (first (find-snippets *database*
                                         :full-stmt
-                                          (or full
-                                              (and pt
-                                                   (full-stmt-p
-                                                      clang-w-fodder
-                                                      pt)))
+                                        (or full
+                                            (and pt
+                                                 (full-stmt-p
+                                                  clang-w-fodder
+                                                  pt)))
                                         :classes class
-                                        :n 1))))
+                                        :limit 1))))
     (if (not snippet)
         (error (make-condition 'mutate
-                               :text (format nil "No valid snippet found")))
+                 :text (format nil "No valid snippet found")))
         snippet)))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
