@@ -4,6 +4,9 @@
 
 (defclass fodder-database () ())
 
+(defgeneric size (database)
+  (:documentation "Return the number of elements in the database."))
+
 (defgeneric find-snippets (database &key classes full-stmt limit)
   (:documentation "Find snippets in the fodder database DATABASE.
 
@@ -54,7 +57,8 @@ All other arguments are passed through to sorted snippets."))
                             &key target key classes limit filter
                               (limit-considered infinity))
   (declare (ignorable target))
-  (let ((fodder (find-snippets db :classes classes :full-stmt (not classes))))
+  (let ((fodder (find-snippets
+                 db :classes classes :full-stmt (not classes) :limit limit)))
     (if (< limit-considered (length fodder))
         (let ((start (random (- (length fodder) limit-considered))))
           (sorted-snippets-unmemoized
