@@ -10,9 +10,7 @@
   "Default number of seconds to allow middle man processing before continuing.")
 
 (defclass mongo-middle-database (mongo-database)
-  ((source-collection :initarg :source-collection :accessor source-collection
-                      :type simple-string :initform fodder-collection)
-   (cache-collection :initarg :cache-collection :accessor cache-collection
+  ((cache-collection :initarg :cache-collection :accessor cache-collection
                      :type simple-string :initform cache-collection)
    (middle-host :initarg :middle-host :accessor middle-host
                 :type simple-string :initform "127.0.0.1")
@@ -30,12 +28,11 @@
 (defmethod weighted-pick ((obj fodder-database) predicate weight
                           &key target key limit classes filter
                             (limit-considered infinity))
-  (mongo-doc-for-id
-   (random-elt-with-decay
-    (sorted-snippets obj predicate
-                     :target target :key key :limit limit :classes classes
-                     :filter filter :limit-considered limit-considered)
-    weight)))
+  (declare (ignorable key classes filter limit-considered))
+  (mongo-docs-for-ids obj
+    (random-elt-with-decay
+     (sorted-snippet-ids obj :target target :limit limit)
+     weight)))
 
 (defmethod mongo-docs-for-ids ((obj mongo-middle-database) ids)
   "Return the doc for the given ID."
@@ -64,7 +61,6 @@
         (read stream))
     (values seconds hash)))
 
-;; TODO: get server on dog accepting external connections.
 (defmethod sorted-snippet-ids ((obj mongo-middle-database) &key target limit
                                &aux tag)
   (unless target (error "Mongo Middle Database requires a TARGET."))

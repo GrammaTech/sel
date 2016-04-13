@@ -13,9 +13,10 @@
   ;; full-stmt and then by AST class.  We could keep an index where the full
   ;; statements end.  Additionally, we could keep indexes where each AST
   ;; class begins and ends.
-  ((json-stream :initarg :json-stream :accessor json-stream
-                :initform (error "JSON-STREAM field is required for DATABASE.")
-                :documentation "Stream of incoming JSON.")
+  ((json-stream
+    :initarg :json-stream :accessor json-stream
+    :initform (error "JSON-STREAM field is required for DATABASE.")
+    :documentation "Stream of incoming JSON.")
    (ast-database-ht
     :initarg :ast-database-ht
     :accessor ast-database-ht
@@ -39,8 +40,9 @@
     :initform (make-hash-table :test 'equal)
     :documentation
     "An auxillary database of type snippets, grouped by hash-code")
-   (json-stream :initarg :json-stream :accessor json-stream
-                :documentation "Stream of incoming JSON.")))
+   (cached-size :type integer)))
+
+(defmethod size ((obj json-database)) (slot-value obj 'cached-size))
 
 (defmethod print-object ((db json-database) stream)
   (print-unreadable-object (db stream :type t)
@@ -67,7 +69,8 @@
           ;; This entry describes a type, perhaps
           (let ((type-id (aget :hash snippet)))
             (when type-id
-              (setf (gethash type-id (type-database-ht db)) snippet)))))))
+              (setf (gethash type-id (type-database-ht db)) snippet))))))
+  (setf (slot-value db 'cached-size) (length (ast-database-list db))))
 
 (defmethod load-json-with-caching ((db json-database))
   (if (subtypep (type-of (json-stream db)) 'file-stream)
