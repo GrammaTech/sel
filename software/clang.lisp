@@ -144,7 +144,7 @@ CLANG software object"))
     (loop for type in json-db
        when (aget :hash type)
        when (and (assoc :hash type)
-                 (assoc :decl type)
+                 (assoc :reqs type)
                  (assoc :type type)
                  (or (assoc :include type)
                      (assoc :decl type)))
