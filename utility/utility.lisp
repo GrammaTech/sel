@@ -775,6 +775,9 @@ that function may be declared.")
                      (keep-after (cdr lines))))))
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
 
+;;; TODO: Remove these next two functions.  The Alexandria library
+;;; already provides `hash-table-alist' and `hash-table-plist'.  We
+;;; shouldn't roll our own.
 (defun list->ht (list ht &key key value)
   (let ((new-ht (make-hash-table :test 'equal)))
     (labels ((get-value (x) (if value (funcall value x) x)))
