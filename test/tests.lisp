@@ -1070,3 +1070,21 @@ Useful for printing or returning differences in the REPL."
   (with-fixture broken-compilation-gcc
     (is (scan (quote-meta-chars "missing_variable =")
               (genome (fix-compilation *broken-gcc* 4))))))
+
+(deftest fix-compilation-declare-var-as-pointer ()
+  (with-temp-file (genome ".c")
+    (string-to-file "int main(int argc, char **argv) {
+                      int y = 0;
+                      return *y;
+                    }"
+                    genome)
+    (let ((broken-clang (from-file (make-instance 'clang
+                                     :compiler "clang"
+                                     :flags '("-m32" "-O0" "-g"))
+                                   genome))
+          (broken-gcc   (from-file (make-instance 'clang
+                                     :compiler "clang"
+                                     :flags '("-m32" "-O0" "-g"))
+                                   genome)))
+      (is (compile-p (fix-compilation broken-clang 1)))
+      (is (compile-p (fix-compilation broken-gcc 1))))))

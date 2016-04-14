@@ -231,6 +231,10 @@ expression match.")
   (add-macro   (mitochondria obj) "int1_t"  "int1_t int32_t")
   (add-macro   (mitochondria obj) "uint1_t" "uint1_t uint32_t"))
 
+(register-fixer
+ ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
+ #'add-int1-macros)
+
 (defmethod delete-redefinitions ((obj clang) match-data)
   ;; TODO: For now, we just take care of offending structs.
   (multiple-value-bind (new-genome matched)
@@ -267,9 +271,39 @@ expression match.")
  ": undefined reference to `(\\S+)'"
  #'delete-undefined-references)
 
+(defmethod declare-var-as-pointer ((obj clang) match-data)
+  (let* ((line-number (parse-integer (aref match-data 0)))
+         (col-number (parse-integer (aref match-data 1)))
+         (variable (scan-to-strings
+                     "^[a-zA-Z_][a-zA-Z0-9_]*"
+                     (subseq (nth (1- line-number) (lines obj))
+                             col-number)))
+         (*matching-free-var-retains-name-bias* 1)
+         (*matching-free-function-retains-name-bias* 1))
+    (when variable
+      (loop :for ast
+            :in (reverse (asts obj))
+            :when (and (string= (aget :ast--class ast) "DeclStmt")
+                       (scan (concatenate 'string variable "\\s*=")
+                             (aget :src--text ast)))
+            :do (let ((pointer-variable (concatenate 'string "*" variable)))
+                  (apply-mutation obj
+                    `(:replace . ((:stmt1 . ,(aget :counter ast))
+                                  (:value1 . ,(replace-fields-in-ast ast
+                                                `((:src--text .
+                                                  ,(regex-replace variable
+                                                     (aget :src--text ast)
+                                                     pointer-variable))))))))
+                  (return obj))))
+    obj))
+
 (register-fixer
- ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
- #'add-int1-macros)
+ ":(\\d+):(\\d+): error: subscripted value is not an array, pointer, or vector"
+ #'declare-var-as-pointer)
+
+(register-fixer
+ ":(\\d+):(\\d+): error: indirection requires pointer operand"
+ #'declare-var-as-pointer)
 
 ;; These fixers just delete the offending line, because there is not much
 ;; intelligent recovery we can do.
