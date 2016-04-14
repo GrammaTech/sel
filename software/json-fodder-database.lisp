@@ -14,8 +14,11 @@
    ;; statements end.  Additionally, we could keep indexes where each AST
    ;; class begins and ends.
 
-
-  (;; The database of source code snippets, grouped by AST class name.
+  (;; Stream of incoming JSON.
+   (json-stream :initarg :json-stream
+                :accessor json-stream
+                :initform (error "JSON-STREAM field is required for DATABASE."))
+   ;; The database of source code snippets, grouped by AST class name.
    (ast-database-ht :initarg :ast-database-ht
                     :accessor ast-database-ht
                     :initform (make-hash-table :test 'equal))
@@ -30,9 +33,7 @@
    ;; An auxillary database of type snippets, grouped by hash-code
    (type-database-ht :initarg :type-database-ht
                      :accessor type-database-ht
-                     :initform (make-hash-table :test 'equal))
-   ;; Stream of incoming JSON.
-   (json-stream :initarg :json-stream :accessor json-stream)))
+                     :initform (make-hash-table :test 'equal))))
 
 (defmethod print-object ((db json-database) stream)
   (print-unreadable-object (db stream :type t)
