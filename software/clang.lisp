@@ -306,8 +306,8 @@ already in scope, it will keep that name.")
                         `(:cut-same  :insert-same
                           :swap-same :replace-same))
                 (cons mutation-type
-                      (/ (* (- 1 *clang-same-class-bias*)
-                            *clang-full-stmt-bias*)
+                      (/ (* *clang-same-class-bias*
+                            (- 1 *clang-full-stmt-bias*))
                          (/ (length *clang-mutation-types*) 4))))
                ((member mutation-type
                         `(:cut :insert
