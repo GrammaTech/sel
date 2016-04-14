@@ -71,7 +71,7 @@
                  (kv "full_stmt" t))))
          #-(or )
          (debug (kv)
-           (format t "~a(~d)-~a-~a->~a~%" limit (size db) classes full-stmt kv)
+           (format t "~a(~d)-~a-~a->~a~%" limit (size obj) classes full-stmt kv)
            kv))
     (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
       (let ((documents
