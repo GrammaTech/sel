@@ -85,7 +85,8 @@ CLANG software object"))
      :src--text          :parent--counter    :macros
      :guard--stmt        :full--stmt         :begin--src--line
      :end--src--line     :begin--src--col    :end--src--col
-     :begin--addr        :end--addr          :includes)
+     :begin--addr        :end--addr          :includes
+     :declares)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -871,21 +872,22 @@ free variables.")
      raw-code)))
 
 (defun rebind-uses-in-snippet (snippet orig-var new-var)
-  (apply-replacements
-   (append
-    (loop :for var :in (mapcar #'car (aget :unbound--vals snippet))
-       :collecting (cons var (if (equal (peel-bananas var) orig-var)
-                                 new-var
-                                 (peel-bananas var))))
-    (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
-       :collecting (cons fun (if (equal (peel-bananas fun) orig-var)
-                                 new-var
-                                 (peel-bananas fun)))))
-   (aget :src--text snippet)))
+  (add-semicolon-if-needed
+   (apply-replacements
+    (append
+     (loop :for var :in (mapcar #'car (aget :unbound--vals snippet))
+        :collecting (cons var (if (equal (peel-bananas var) orig-var)
+                                  new-var
+                                  (peel-bananas var))))
+     (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
+        :collecting (cons fun (if (equal (peel-bananas fun) orig-var)
+                                  new-var
+                                  (peel-bananas fun)))))
+    (aget :src--text snippet))))
 
 (defmethod rebind-uses ((clang clang) stmt orig-var new-var)
   (if (equal (get-ast-class clang stmt) "CompoundStmt")
-      (format t "{~%~{~a~%~}}~%"
+      (format nil "{~%~{~a~%~}}~%"
               (loop :for one-stmt
                  :in (aget :stmt--list (get-ast clang stmt))
                  :collecting
@@ -893,6 +895,28 @@ free variables.")
                                          orig-var
                                          new-var)))
       (rebind-uses-in-snippet (get-ast clang stmt) orig-var new-var)))
+
+(defmethod delete-decl-stmt ((clang clang) decl new-name)
+  (let ((the-block (enclosing-block clang decl))
+        (old-name (aget :declares (get-ast clang decl))))
+    (apply-mutation clang `(:set (:stmt1 . ,the-block)
+                                 (:value1 . ,(rebind-uses clang
+                                                          the-block
+                                                          old-name
+                                                          new-name))))
+    (apply-mutation clang `(:cut (:stmt1 . ,decl)))))
+
+(defmethod rename-variable-near-use ((clang clang) use new-name)
+  (let ((the-block (enclosing-block clang use))
+        (old-name (peel-bananas (aget :src--text (get-ast clang use)))))
+    (apply-mutation clang `(:set (:stmt1 . ,the-block)
+                                 (:value1 . ,(rebind-uses clang
+                                                          the-block
+                                                          old-name
+                                                          new-name))))))
+
+(defmethod select-variable-replacement ((clang clang) use)
+  )
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))

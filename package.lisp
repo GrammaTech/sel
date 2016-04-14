@@ -175,6 +175,8 @@
    :recontextualize
    :rebind-uses
    :rebind-uses-in-snippet
+   :delete-decl-stmt
+   :rename-variable-near-use
    :nesting-depth
    :get-ast-text
    :full-stmt-p
