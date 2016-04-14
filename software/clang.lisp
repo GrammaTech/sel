@@ -1102,3 +1102,18 @@ free variables.")
 
 (defmethod (setf lines) (new (obj clang))
   (setf (genome-string obj) (format nil "~{~a~^~%~}" new)))
+
+(defun replace-fields-in-ast (ast field-replacement-pairs)
+  "Given an AST and an association list in the form ((:field . <value>))
+replace or create an associative entry in the AST with the given values."
+  (if (null field-replacement-pairs)
+      ast
+      (let ((field-replacement-pair (first field-replacement-pairs)))
+        (replace-fields-in-ast
+          (append
+            (remove-if
+              (lambda (entry) (equal (car entry) (car field-replacement-pair)))
+              ast)
+            `((,(car field-replacement-pair) .
+               ,(cdr field-replacement-pair))))
+          (cdr field-replacement-pairs)))))
