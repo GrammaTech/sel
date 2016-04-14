@@ -493,6 +493,7 @@ Otherwise return the whole FULL-GENOME"
              (field-opt (field)
                (ecase field
                  (:counter "counter")
+                 (:declares "declares")
                  (:parent--counter "parent_counter")
                  (:ast--class "ast_class")
                  (:src--file--name "src_file_name")
