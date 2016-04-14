@@ -96,6 +96,7 @@
    :get-ast-info
    :get-fresh-ancestry-id
    :random-function-name
+   :replace-fields-in-ast
    ;; global variables
    :*population*
    :*generations*
