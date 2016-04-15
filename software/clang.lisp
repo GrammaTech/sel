@@ -330,7 +330,7 @@ already in scope, it will keep that name.")
                             `(:cut-same     :cut-full-same
                               :insert-same  :insert-full-same
                               :swap-same    :swap-full-same
-                              :replace-full :replace-full-same))
+                              :replace-same :replace-full-same))
                      (lambda (stmt asts)
                        (or (with-class-filter (get-ast-class clang stmt)
                                                asts)
