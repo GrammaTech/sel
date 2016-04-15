@@ -242,11 +242,15 @@ CLANG software object"))
 (defvar *clang-same-class-bias* 0.75
   "The probability that a mutation uses AST class matching.")
 
+(defvar *decl-mutation-bias* 0.1
+  "The probability that a mutation will target a variable declaration.")
+
 (defvar *clang-mutation-types*
-  `(:cut     :cut-same     :cut-full     :cut-full-same
-    :insert  :insert-same  :insert-full  :insert-full-same
-    :swap    :swap-same    :swap-full    :swap-full-same
-    :replace :replace-same :replace-full :replace-full-same))
+  `(:cut      :cut-same     :cut-full        :cut-full-same
+    :insert   :insert-same  :insert-full     :insert-full-same
+    :swap     :swap-same    :swap-full       :swap-full-same
+    :replace  :replace-same :replace-full    :replace-full-same
+    :cut-decl :swap-decls   :rename-variable ))
 
 (defvar *clang-crossover-cdf*
   (cdf (uniform-probability
@@ -272,37 +276,52 @@ already in scope, it will keep that name.")
 (defvar *clang-format-after-mutation-chance* 0.125
   "The probability of applying clang-format on an object after mutation")
 
-(defmethod mutation-types-clang ((clang clang))
-  (loop for mutation-type in *clang-mutation-types*
-    collecting
-      (cond ((member mutation-type
-                    `(:cut-full-same :insert-full-same
-                      :swap-full-same :replace-full-same))
-               (cons mutation-type
-                     (/ (* *clang-full-stmt-bias*
-                           *clang-same-class-bias*)
-                        (/ (length *clang-mutation-types*) 4))))
-            ((member mutation-type
-                    `(:cut-full  :insert-full
-                      :swap-full :replace-full))
-               (cons mutation-type
-                     (/ (* *clang-full-stmt-bias*
-                           (- 1 *clang-same-class-bias*))
-                        (/ (length *clang-mutation-types*) 4))))
-            ((member mutation-type
-                    `(:cut-same  :insert-same
-                      :swap-same :replace-same))
-               (cons mutation-type
-                     (/ (* *clang-same-class-bias*
-                           (- 1 *clang-full-stmt-bias*))
-                        (/ (length *clang-mutation-types*) 4))))
-            ((member mutation-type
-                    `(:cut :insert
-                      :swap :replace))
+(defun combine-with-bias (bias heads tails)
+  (append
+   (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) bias))) heads)
+   (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) (- 1 bias)))) tails)))
+
+(defmethod decl-mutation-types-clang ((clang clang))
+  (uniform-probability '(:cut-decl :swap-decls :rename-variable)))
+
+(defmethod basic-mutation-types-clang ((clang clang))
+  (remove-if #'null
+    (loop for mutation-type in *clang-mutation-types*
+       collecting
+         (cond ((member mutation-type
+                        `(:cut-full-same :insert-full-same
+                          :swap-full-same :replace-full-same))
+                (cons mutation-type
+                      (/ (* *clang-full-stmt-bias*
+                            *clang-same-class-bias*)
+                         (/ (length *clang-mutation-types*) 4))))
+               ((member mutation-type
+                        `(:cut-full  :insert-full
+                          :swap-full :replace-full))
+                (cons mutation-type
+                      (/ (* *clang-full-stmt-bias*
+                            (- 1 *clang-same-class-bias*))
+                         (/ (length *clang-mutation-types*) 4))))
+               ((member mutation-type
+                        `(:cut-same  :insert-same
+                          :swap-same :replace-same))
+                (cons mutation-type
+                      (/ (* (- 1 *clang-same-class-bias*)
+                            *clang-full-stmt-bias*)
+                         (/ (length *clang-mutation-types*) 4))))
+               ((member mutation-type
+                        `(:cut :insert
+                          :swap :replace))
                 (cons mutation-type
                       (/ (* (- 1 *clang-same-class-bias*)
                             (- 1 *clang-full-stmt-bias*))
-                         (/ (length *clang-mutation-types*) 4)))))))
+                         (/ (length *clang-mutation-types*) 4))))
+               (t nil)))))
+
+(defmethod mutation-types-clang ((clang clang))
+  (combine-with-bias *decl-mutation-bias*
+                     (decl-mutation-types-clang clang)
+                     (basic-mutation-types-clang clang)))
 
 (defmethod pick-mutation-type ((clang clang))
   (random-pick (cdf (mutation-types-clang clang))))
@@ -319,24 +338,27 @@ already in scope, it will keep that name.")
              :text (format nil "Mutation type ~S not supported" mutation-type)
              :obj clang)))
 
-  (labels ((filter (asts)(if (member mutation-type
+  (if (member mutation-type
+              '(:cut-decl :swap-decls :rename-variable))
+    (decl-mutate-clang clang mutation-type))
+    (labels ((filter (asts)(if (member mutation-type
                                      `(:cut-full     :cut-full-same
                                        :insert-full  :insert-full-same
                                        :swap-full    :swap-full-same
                                        :replace-full :replace-full-same))
                               (full-stmt-filter asts)
                               asts)))
-    (let* ((then (if (member mutation-type
-                            `(:cut-same     :cut-full-same
-                              :insert-same  :insert-full-same
-                              :swap-same    :swap-full-same
-                              :replace-same :replace-full-same))
-                     (lambda (stmt asts)
-                       (or (with-class-filter (get-ast-class clang stmt)
-                                               asts)
-                           (with-class-filter (get-ast-class clang stmt)
-                                              (asts clang))))
-                     (lambda (stmt asts) (declare (ignorable stmt)) asts)))
+      (let* ((then (if (member mutation-type
+                              `(:cut-same     :cut-full-same
+                                :insert-same  :insert-full-same
+                                :swap-same    :swap-full-same
+                                :replace-full :replace-full-same))
+                       (lambda (stmt asts)
+                         (or (with-class-filter (get-ast-class clang stmt)
+                                                 asts)
+                             (with-class-filter (get-ast-class clang stmt)
+                                                (asts clang))))
+                       (lambda (stmt asts) (declare (ignorable stmt)) asts)))
            (good (lambda () (or (filter (good-asts clang)) (asts clang))))
            (bad  (lambda () (or (filter (bad-asts clang)) (asts clang))))
            (op (cond ((member mutation-type `(:cut      :cut-same
@@ -358,6 +380,23 @@ already in scope, it will keep that name.")
 
       (apply-mutation clang op)
       (values clang op))))
+
+(defmethod decl-mutate-clang ((clang clang) mutation-type)
+  (values clang
+          (case mutation-type
+            (:cut-decl
+             (run-cut-decl
+              clang
+              (random-stmt (with-class-filter "DeclStmt" (asts clang)))))
+            (:swap-decls
+             (run-swap-decls
+              clang
+              (enclosing-block clang
+                               (random-stmt (bad-asts clang)))))
+            (:rename-variable
+             (run-rename-variable
+              clang
+              (random-stmt (bad-asts clang)))))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
@@ -872,52 +911,114 @@ free variables.")
                      "/* no functions? */"))))
      raw-code)))
 
-(defun rebind-uses-in-snippet (snippet orig-var new-var)
-  (add-semicolon-if-needed
-   (apply-replacements
-    (append
-     (loop :for var :in (mapcar #'car (aget :unbound--vals snippet))
-        :collecting (cons var (if (equal (peel-bananas var) orig-var)
-                                  new-var
-                                  (peel-bananas var))))
-     (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
-        :collecting (cons fun (if (equal (peel-bananas fun) orig-var)
-                                  new-var
-                                  (peel-bananas fun)))))
-    (aget :src--text snippet))))
+(defun rebind-uses-in-snippet (snippet renames-list)
+  (let ((renames (make-hash-table :test 'equal)))
+    (list->ht renames-list renames :key #'car :value #'cdr)
+    (add-semicolon-if-needed
+     (apply-replacements
+      (append
+       (loop :for var :in (mapcar #'car (aget :unbound--vals snippet))
+          :collecting (cons var (gethash (peel-bananas var) renames
+                                         (peel-bananas var))))
+       (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
+          :collecting (cons fun (gethash (peel-bananas fun) renames
+                                         (peel-bananas fun)))))
+      (aget :src--text snippet)))))
 
-(defmethod rebind-uses ((clang clang) stmt orig-var new-var)
+(defmethod rebind-uses ((clang clang) stmt renames-list)
   (if (equal (get-ast-class clang stmt) "CompoundStmt")
       (format nil "{~%~{~a~%~}}~%"
               (loop :for one-stmt
                  :in (aget :stmt--list (get-ast clang stmt))
                  :collecting
                  (rebind-uses-in-snippet (get-ast clang one-stmt)
-                                         orig-var
-                                         new-var)))
-      (rebind-uses-in-snippet (get-ast clang stmt) orig-var new-var)))
+                                         renames-list)))
+      (rebind-uses-in-snippet (get-ast clang stmt)
+                              renames-list)))
 
-(defmethod delete-decl-stmt ((clang clang) decl new-name)
-  (let ((the-block (enclosing-block clang decl))
-        (old-name (aget :declares (get-ast clang decl))))
-    (apply-mutation clang `(:set (:stmt1 . ,the-block)
-                                 (:value1 . ,(rebind-uses clang
-                                                          the-block
-                                                          old-name
-                                                          new-name))))
-    (apply-mutation clang `(:cut (:stmt1 . ,decl)))))
+(defmethod delete-decl-stmts ((clang clang) the-block decl-replacements)
+  (let ((renames-list
+         (mapcar (lambda (pair)
+                   (cons (aget :declares (get-ast clang (car pair)))
+                         (cdr pair)))
+                 decl-replacements))
+        (decls (mapcar #'car decl-replacements)))
+    (apply-mutation clang
+                    `(:set (:stmt1 . ,the-block)
+                           (:value1 . ,(rebind-uses
+                                        clang
+                                        the-block
+                                        renames-list))))
+    (loop :for decl :in (sort decls #'>)
+       :do (apply-mutation clang `(:cut (:stmt1 . ,decl))))))
 
 (defmethod rename-variable-near-use ((clang clang) use new-name)
   (let ((the-block (enclosing-block clang use))
         (old-name (peel-bananas (aget :src--text (get-ast clang use)))))
-    (apply-mutation clang `(:set (:stmt1 . ,the-block)
-                                 (:value1 . ,(rebind-uses clang
-                                                          the-block
-                                                          old-name
-                                                          new-name))))))
+    (apply-mutation clang
+                    `(:set (:stmt1 . ,the-block)
+                           (:value1 . ,(rebind-uses
+                                        clang
+                                        the-block
+                                        (list (cons old-name new-name))))))))
 
-(defmethod select-variable-replacement ((clang clang) use)
-  )
+(defmethod get-declared-variables ((clang clang) the-block)
+    (remove-if #'null
+               (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
+                  :collecting (aget :declares (get-ast clang stmt)))))
+
+(defmethod get-used-variables ((clang clang) stmt)
+  (mapcar [{peel-bananas} {car}] (aget :unbound--vals (get-ast clang stmt))))
+
+(defmethod get-children-using ((clang clang) var the-block)
+  (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
+     :when (find var (get-used-variables clang stmt) :test #'equal)
+     :collecting stmt))
+
+(defmethod run-cut-decl ((clang clang) decl)
+  (let* ((the-block (enclosing-block clang decl))
+         (old-name (aget :declares (get-ast clang decl)))
+         (uses (get-children-using clang old-name the-block))
+         (vars (remove-if {equal old-name}
+                          (get-vars-in-scope clang
+                                             (if uses (car uses) the-block))))
+         (var (if vars (random-elt vars)
+                  "/* no vars available before first use of cut decl */")))
+    (delete-decl-stmts clang the-block `((,decl . ,var)))
+    (list :cut-decl decl old-name var)))
+
+(defun pick-two (things)
+  (let ((this (random-elt things))
+        (that (random-elt things)))
+    (if (equal this that)
+        (pick-two things)
+        (values this that))))
+
+(defmethod run-swap-decls ((clang clang) the-block)
+  (if (equal the-block 0)
+      (list :swap-decls 'did-nothing)
+      (let ((decls
+             (mapcar {aget :counter}
+                     (with-class-filter "DeclStmt"
+                       (mapcar {get-ast clang}
+                               (aget :stmt--list
+                                     (get-ast clang the-block)))))))
+        (if (> 2 (length decls))
+            (run-swap-decls clang (enclosing-block clang the-block))
+            (multiple-value-bind (stmt1 stmt2) (pick-two decls)
+              (apply-mutation clang `(:swap (:stmt1 . ,stmt1)
+                                            (:stmt2 . ,stmt2)))
+              (list :swap-decls stmt1 stmt2))))))
+
+(defmethod run-rename-variable ((clang clang) stmt)
+  (let ((used (get-used-variables clang stmt)))
+    (if used
+        (let ((old-var (random-elt used))
+              (new-var (random-elt (get-vars-in-scope clang stmt))))
+          (rebind-uses clang (enclosing-block clang stmt)
+                       (list (cons old-var new-var)))
+          (list :rename-variable stmt old-var new-var))
+        (list :rename-variable stmt 'did-nothing))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))

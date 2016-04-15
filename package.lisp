@@ -179,8 +179,11 @@
    :recontextualize
    :rebind-uses
    :rebind-uses-in-snippet
-   :delete-decl-stmt
+   :delete-decl-stmts
    :rename-variable-near-use
+   :run-cut-decl
+   :run-swap-decls
+   :run-rename-variable
    :nesting-depth
    :get-ast-text
    :full-stmt-p
@@ -192,6 +195,8 @@
    :full-stmt-info
    :full-stmt-successors
    :prepare-code-snippet
+   :get-children-using
+   :get-declared-variables
    :cil
    :llvm
    :linker
