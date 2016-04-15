@@ -136,6 +136,7 @@
    :*ancestor-logging*
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*
+   :*decl-mutation-bias*
    :*crossover-function-probability*
    :*fodder-selection-bias*
    :*clang-mutation-cdf*
