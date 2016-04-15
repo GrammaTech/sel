@@ -240,7 +240,7 @@ expression match.")
   (multiple-value-bind (new-genome matched)
     (regex-replace (concatenate 'string
                        "struct\\s+"
-                       (aref match-data 2)
+                       (aref match-data 0)
                        "\\s+\\{.*\\}")
                    (genome-string obj)
                    "")
