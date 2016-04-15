@@ -487,6 +487,243 @@
                     "")))))
 
 
+;;; Detailed clang mutation tests
+;;; These all run the entire mutate method, rather that just
+;;; apply-mutation, adjusting the good and bad picks to get
+;;; predictable results. And they check the results of each mutation
+;;; in as much detail as possible.
+
+(defvar *good-asts* nil "Control pick-good")
+(defvar *bad-asts* nil "Control pick-bad")
+(define-software clang-control-picks (clang) ())
+(defmethod good-asts ((obj clang-control-picks))
+  (or *good-asts* (asts obj)))
+(defmethod bad-asts ((obj clang-control-picks))
+  (or *bad-asts* (asts obj)))
+
+(defixture hello-world-clang-control-picks
+  (:setup
+    (setf *hello-world*
+      (from-file (make-instance 'clang-control-picks :compiler "clang-3.7"
+                                :flags '("-g -m32 -O0"))
+                 (hello-world-dir "hello_world.c"))))
+  (:teardown
+   (setf *hello-world* nil)))
+
+(defun asts-with-text (obj &rest texts)
+  (mapcar [{get-ast obj} {stmt-with-text obj}] texts))
+
+(deftest cut-full-removes-full-stmt ()
+  (with-fixture hello-world-clang
+    (without-helpers
+        (let ((software-evolution::*clang-mutation-types*
+               '(:cut :cut-full :cut-same :cut-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (< (count-if {aget :full--stmt} (asts variant))
+                 (count-if {aget :full--stmt} (asts *hello-world*))))))))
+
+(deftest cut-removes-non-full-stmt ()
+  (with-fixture hello-world-clang
+    (without-helpers
+        (let ((software-evolution::*clang-mutation-types*
+               '(:cut :cut-full :cut-same :cut-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 0.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (< (count-if-not {aget :full--stmt} (asts variant))
+                 (count-if-not {aget :full--stmt} (asts *hello-world*))))))))
+
+(deftest insert-full-adds-full-stmt ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((software-evolution::*clang-mutation-types*
+               '(:insert :insert-full :insert-same :insert-full-same))
+              (*bad-asts* (asts-with-text *hello-world* "return 0"))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (*clang-same-class-bias* 0.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (> (count-if {aget :full--stmt} (asts variant))
+                 (count-if {aget :full--stmt} (asts *hello-world*))))))))
+
+(deftest insert-adds-non-full-stmt ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "printf"))
+              (*good-asts* (asts-with-text *hello-world* "printf"))
+              (software-evolution::*clang-mutation-types*
+               '(:insert :insert-full :insert-same :insert-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 0.0)
+              (*clang-same-class-bias* 0.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (stmt-with-text variant "printfprintf"))))))
+
+(deftest insert-same-adds-same-class ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "0"))
+              (software-evolution::*clang-mutation-types*
+               '(:insert :insert-full :insert-same :insert-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 0.0)
+              (*clang-same-class-bias* 1.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (stmt-with-text variant "00"))))))
+
+(deftest insert-full-same-adds-same-class-full-stmt ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
+              (software-evolution::*clang-mutation-types*
+               '(:insert :insert-full :insert-same :insert-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (*clang-same-class-bias* 1.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (> (count-if [{equal "ReturnStmt"} {aget :ast--class}]
+                           (asts variant))
+                 (count-if [{equal "ReturnStmt"} {aget :ast--class}]
+                           (asts *hello-world*))))))))
+
+(deftest replace-changes-non-full-stmt ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "0"))
+              (*good-asts* (asts-with-text *hello-world* "printf"))
+              (software-evolution::*clang-mutation-types*
+               '(:replace :replace-full :replace-same :replace-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 0.0)
+              (*clang-same-class-bias* 0.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (stmt-with-text variant "return printf"))))))
+
+(deftest replace-full-changes-full-stmt ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
+              (*good-asts* (asts-with-text *hello-world*
+                                           "0" "printf(\"Hello, World!\\n\")"))
+              (software-evolution::*clang-mutation-types*
+               '(:replace :replace-full :replace-same :replace-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (*clang-same-class-bias* 0.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (> (count-if [{equal "CallExpr"} {aget :ast--class}]
+                           (asts variant))
+                 (count-if [{equal "CallExpr"} {aget :ast--class}]
+                           (asts *hello-world*))))))))
+
+(deftest replace-same-changes-same-class ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "\"Hello, World!\\n\""))
+              (*good-asts* (asts-with-text *hello-world*
+                                           "0" "printf"))
+              (software-evolution::*clang-mutation-types*
+               '(:replace :replace-full :replace-same :replace-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 0.0)
+              (*clang-same-class-bias* 1.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (stmt-with-text variant "printf(printf)"))))))
+
+(deftest replace-full-same-changes-same-class-full-stmt ()
+  (with-fixture hello-world-clang
+    (without-helpers
+        (let ((software-evolution::*clang-mutation-types*
+               '(:replace :replace-full :replace-same :replace-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (*clang-same-class-bias* 1.0)
+              (variant (copy *hello-world*)))
+          (multiple-value-bind  (variant mutation) (mutate variant)
+            (is (aget :full--stmt
+                      (get-ast *hello-world* (aget :stmt1 (cdr mutation)))))
+            (is (aget :full--stmt
+                      (get-ast *hello-world* (aget :stmt2 (cdr mutation)))))
+
+            ;; Not a very interesting test: this can only replace a
+            ;; statement with itself, but sometimes there are whitespace
+            ;; changes. Just compare AST classes to avoid spurious
+            ;; failures.
+            (is (equal (mapcar {aget :ast--class} (asts variant))
+                       (mapcar {aget :ast--class} (asts *hello-world*)))))))))
+
+(deftest swap-changes-non-full-stmts ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((*bad-asts* (asts-with-text *hello-world* "\"Hello, World!\\n\"" "0"))
+              (software-evolution::*clang-mutation-types*
+               '(:swap :swap-full :swap-same :swap-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 0.0)
+              (*clang-same-class-bias* 0.0)
+              (variant (copy *hello-world*)))
+          (mutate variant)
+          (is (stmt-with-text variant "\"Hello, World!\\n\""))
+          (is (stmt-with-text variant "0"))))))
+
+(deftest swap-full-changes-full-stmts ()
+  (with-fixture hello-world-clang-control-picks
+    (without-helpers
+        (let ((software-evolution::*clang-mutation-types*
+               '(:swap :swap-full :swap-same :swap-full-same))
+              ;; Avoid swapping the function body
+              (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast--class}]
+                                     (asts *hello-world*)))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (*clang-same-class-bias* 0.0)
+              (variant (copy *hello-world*)))
+
+          (multiple-value-bind  (variant mutation) (mutate variant)
+            ;; We can't predict exactly what will be swapped. Just
+            ;; sanity check.
+            (is (aget :full--stmt
+                      (get-ast *hello-world* (aget :stmt1 (cdr mutation)))))
+            (is (aget :full--stmt
+                      (get-ast *hello-world* (aget :stmt2 (cdr mutation)))))
+            (is (stmt-with-text variant "printf"))
+            (is (stmt-with-text variant "return 0")))))))
+
+(deftest swap-full-same-changes-same-class-full-stmt ()
+  (with-fixture hello-world-clang
+    (without-helpers
+        (let ((software-evolution::*clang-mutation-types*
+               '(:swap :swap-full :swap-same :swap-full-same))
+              (*decl-mutation-bias* 0.0)
+              (*clang-full-stmt-bias* 1.0)
+              (*clang-same-class-bias* 1.0)
+              (variant (copy *hello-world*)))
+          (multiple-value-bind  (variant mutation) (mutate variant)
+            (is (aget :full--stmt
+                      (get-ast *hello-world* (aget :stmt1 (cdr mutation)))))
+            (is (aget :full--stmt
+                      (get-ast *hello-world* (aget :stmt2 (cdr mutation)))))
+
+            ;; Not a very interesting test: this can only swap a
+            ;; statement with itself, but sometimes there are whitespace
+            ;; changes. Just compare AST classes to avoid spurious
+            ;; failures.
+            (is (equal (mapcar {aget :ast--class} (asts variant))
+                       (mapcar {aget :ast--class} (asts *hello-world*)))))))))
+
+
+
 ;;; Clang w/ mutation fodder representation
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
