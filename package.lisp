@@ -137,6 +137,7 @@
    :*clang-json-required-fields*
    :*clang-json-required-aux*
    :*database*
+   :*mmm-processing-seconds*
    ;; evolution functions
    :incorporate
    :evict
