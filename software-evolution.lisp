@@ -278,6 +278,15 @@ Define an :around method on this function to record crossovers."))
   (:documentation "Apply the execution trace PATH behind KEY in SOFTWARE."))
 
 
+;;; Mutation object
+(defclass mutation ()
+  ((targets :initarg :targets :accessor targets :initform nil)))
+
+(defmethod print-object ((obj mutation) stream)
+  (print-unreadable-object (obj stream :type t)
+    (prin1 (targets obj) stream)))
+
+
 ;;; Evolution
 (defvar *population* nil
   "Holds the variant programs to be evolved.")

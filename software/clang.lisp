@@ -35,6 +35,161 @@
                  :initform (make-instance 'clang-mito)
                  :copier copy)))
 
+
+;;; Mutations
+(defclass clang-mutation (mutation) ())
+
+(defgeneric build-op (mutation)
+  (:documentation "Build clang-mutate operation from a mutation."))
+
+(defgeneric pick-targets (mutation good then bad)
+  (:documentation "Choose mutation arguments."))
+
+(defmethod initialize-instance :after ((mutation clang-mutation)
+                                       &key software full-stmt same-class)
+  ;; TODO: skip picks if targets are already initialized (to allow direct
+  ;; construction of mutations).
+  (labels ((filter (asts) (if full-stmt
+                              (full-stmt-filter asts)
+                              asts)))
+    (let* ((then (if same-class
+                     (lambda (stmt asts)
+                       (or (with-class-filter (get-ast-class software stmt)
+                             asts)
+                           (with-class-filter (get-ast-class software stmt)
+                             (asts software))))
+                     (lambda (stmt asts) (declare (ignorable stmt)) asts)))
+           (good (lambda () (or (filter (good-asts software)) (asts software))))
+           (bad  (lambda () (or (filter (bad-asts software)) (asts software)))))
+      (setf (targets mutation) (pick-targets mutation good then bad)))))
+
+(defmethod apply-mutation ((software clang)
+                           (mutation clang-mutation))
+  (restart-case
+      ;; Sort the mutation operations and run them in reverse AST
+      ;; order (so AST numbers won't change in the middle).
+      (loop :for op :in (sort (recontextualize-mutation software mutation)
+                              #'> :key [{aget :stmt1} #'cdr])
+         :do
+         (setf (genome software) (clang-mutate software op)))
+    (skip-mutation ()
+      :report "Skip mutation and return nil"
+      (values nil 1))
+    (tidy ()
+      :report "Call clang-tidy before re-attempting mutation"
+      (clang-tidy software)
+      (apply-mutation software mutation))
+    (mutate ()
+      :report "Apply another mutation before re-attempting mutations"
+      (mutate software)
+      (apply-mutation software mutation))))
+
+;; Insert
+(defclass clang-insert (clang-mutation) ())
+
+(defmethod build-op ((mutation clang-insert))
+  `((:insert-value . ,(targets mutation))))
+
+(defmethod pick-targets ((mutation clang-insert) good then bad)
+  (execute-picks bad then good))
+
+(defclass clang-insert-full (clang-insert) ())
+(defmethod initialize-instance :around ((mutation clang-insert-full)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class nil))
+
+(defclass clang-insert-same (clang-insert) ())
+(defmethod initialize-instance :around ((mutation clang-insert-same)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt nil :same-class t))
+
+(defclass clang-insert-full-same (clang-insert) ())
+(defmethod initialize-instance :around ((mutation clang-insert-full-same)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class t))
+
+;; Swap
+(defclass clang-swap (clang-mutation) ())
+
+(defmethod build-op ((mutation clang-swap))
+  `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
+          (:stmt2 . ,(aget :stmt2 (targets mutation))))
+    (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
+          (:stmt2 . ,(aget :stmt1 (targets mutation))))))
+
+(defmethod pick-targets ((mutation clang-swap) good then bad)
+  (execute-picks bad then bad))
+
+(defclass clang-swap-full (clang-swap) ())
+(defmethod initialize-instance :around ((mutation clang-swap-full)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class nil))
+
+(defclass clang-swap-same (clang-swap) ())
+(defmethod initialize-instance :around ((mutation clang-swap-same)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt nil :same-class t))
+
+(defclass clang-swap-full-same (clang-swap) ())
+(defmethod initialize-instance :around ((mutation clang-swap-full-same)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class t))
+
+;; Replace
+(defclass clang-replace (clang-mutation) ())
+
+(defmethod build-op ((mutation clang-replace))
+  `((:set . ,(targets mutation))))
+
+(defmethod pick-targets ((mutation clang-replace) good then bad)
+  (execute-picks bad then good))
+
+(defclass clang-replace-full (clang-replace) ())
+(defmethod initialize-instance :around ((mutation clang-replace-full)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class nil))
+
+(defclass clang-replace-same (clang-replace) ())
+(defmethod initialize-instance :around ((mutation clang-replace-same)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt nil :same-class t))
+
+(defclass clang-replace-full-same (clang-replace) ())
+(defmethod initialize-instance :around ((mutation clang-replace-full-same)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class t))
+
+;; Cut
+(defclass clang-cut (clang-mutation) ())
+
+(defmethod build-op ((mutation clang-cut))
+  `((:cut . ,(targets mutation))))
+
+(defmethod pick-targets ((mutation clang-cut) good then bad)
+  (execute-picks bad))
+
+(defclass clang-cut-full (clang-cut) ())
+(defmethod initialize-instance :around ((mutation clang-cut-full)
+                                        &key software full-stmt same-class)
+  (declare (ignorable full-stmt same-class))
+  (call-next-method mutation :software software :full-stmt t :same-class nil))
+
+;; The same variants only exist for symmetry (which makes it easier to
+;; build the CDF). Since cut only picks one AST the same-class
+;; constraint has no effect.
+(defclass clang-cut-same (clang-cut) ())
+(defclass clang-cut-full-same (clang-cut-full) ())
+
+
 (defvar *ancestor-logging* nil
   "Enable ancestor logging")
 
@@ -257,11 +412,11 @@ CLANG software object"))
   "The probability that a mutation will target a variable declaration.")
 
 (defvar *clang-mutation-types*
-  `(:cut      :cut-same     :cut-full        :cut-full-same
-    :insert   :insert-same  :insert-full     :insert-full-same
-    :swap     :swap-same    :swap-full       :swap-full-same
-    :replace  :replace-same :replace-full    :replace-full-same
-    :cut-decl :swap-decls   :rename-variable ))
+  `(clang-cut      clang-cut-same     clang-cut-full        clang-cut-full-same
+    clang-insert   clang-insert-same  clang-insert-full     clang-insert-full-same
+    clang-swap     clang-swap-same    clang-swap-full       clang-swap-full-same
+    clang-replace  clang-replace-same clang-replace-full    clang-replace-full-same
+    :cut-decl :swap-decls :rename-variable ))
 
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
@@ -293,29 +448,29 @@ already in scope, it will keep that name.")
     (loop for mutation-type in *clang-mutation-types*
        collecting
          (cond ((member mutation-type
-                        `(:cut-full-same :insert-full-same
-                          :swap-full-same :replace-full-same))
+                        `(clang-cut-full-same clang-insert-full-same
+                          clang-swap-full-same clang-replace-full-same))
                 (cons mutation-type
                       (/ (* *clang-full-stmt-bias*
                             *clang-same-class-bias*)
                          4)))
                ((member mutation-type
-                        `(:cut-full  :insert-full
-                          :swap-full :replace-full))
+                        `(clang-cut-full  clang-insert-full
+                          clang-swap-full clang-replace-full))
                 (cons mutation-type
                       (/ (* *clang-full-stmt-bias*
                             (- 1 *clang-same-class-bias*))
                          4)))
                ((member mutation-type
-                        `(:cut-same  :insert-same
-                          :swap-same :replace-same))
+                        `(clang-cut-same  clang-insert-same
+                          clang-swap-same clang-replace-same))
                 (cons mutation-type
                       (/ (* *clang-same-class-bias*
                             (- 1 *clang-full-stmt-bias*))
                          4)))
                ((member mutation-type
-                        `(:cut :insert
-                          :swap :replace))
+                        `(clang-cut clang-insert
+                          clang-swap clang-replace))
                 (cons mutation-type
                       (/ (* (- 1 *clang-same-class-bias*)
                             (- 1 *clang-full-stmt-bias*))
@@ -344,45 +499,10 @@ already in scope, it will keep that name.")
 
   (if (member mutation-type
               '(:cut-decl :swap-decls :rename-variable))
-    (decl-mutate-clang clang mutation-type)
-    (labels ((filter (asts)(if (member mutation-type
-                                     `(:cut-full     :cut-full-same
-                                       :insert-full  :insert-full-same
-                                       :swap-full    :swap-full-same
-                                       :replace-full :replace-full-same))
-                              (full-stmt-filter asts)
-                              asts)))
-      (let* ((then (if (member mutation-type
-                              `(:cut-same     :cut-full-same
-                                :insert-same  :insert-full-same
-                                :swap-same    :swap-full-same
-                                :replace-same :replace-full-same))
-                       (lambda (stmt asts)
-                         (or (with-class-filter (get-ast-class clang stmt)
-                                                 asts)
-                             (with-class-filter (get-ast-class clang stmt)
-                                                (asts clang))))
-                       (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-           (good (lambda () (or (filter (good-asts clang)) (asts clang))))
-           (bad  (lambda () (or (filter (bad-asts clang)) (asts clang))))
-           (op (cond ((member mutation-type `(:cut      :cut-same
-                                              :cut-full :cut-full-same))
-                        `(:cut . ,(apply #'execute-picks
-                                         (list bad))))
-                     ((member mutation-type `(:insert      :insert-same
-                                              :insert-full :insert-full-same))
-                        `(:insert . ,(apply #'execute-picks
-                                            (list bad then good))))
-                     ((member mutation-type `(:swap      :swap-same
-                                              :swap-full :swap-full-same))
-                        `(:swap . ,(apply #'execute-picks
-                                          (list bad then bad))))
-                     ((member mutation-type `(:replace      :replace-same
-                                              :replace-full :replace-full-same))
-                        `(:replace . ,(apply #'execute-picks
-                                             (list bad then good)))))))
-      (apply-mutation clang op)
-      (values clang op)))))
+      (decl-mutate-clang clang mutation-type)
+      (let ((mutation (make-instance mutation-type :software clang)))
+        (apply-mutation clang mutation)
+        (values clang mutation))))
 
 (defmethod decl-mutate-clang ((clang clang) mutation-type)
   (values clang
@@ -400,6 +520,22 @@ already in scope, it will keep that name.")
              (run-rename-variable
               clang
               (random-stmt (bad-asts clang)))))))
+
+(defmethod recontextualize-mutation ((clang clang) mutation)
+  (loop :for (op . properties) :in (build-op mutation)
+     :collecting
+     (let ((stmt1  (aget :stmt1  properties))
+           (stmt2  (aget :stmt2  properties))
+           (value1 (aget :value1 properties)))
+       (cons op
+             (cons (cons :stmt1 stmt1)
+                   (if (or stmt2 value1)
+                       (list (cons :value1
+                                   (recontextualize clang
+                                                    (if stmt2
+                                                        (get-ast clang stmt2)
+                                                        value1)
+                                                    stmt1)))))))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
@@ -459,16 +595,16 @@ already in scope, it will keep that name.")
       (apply-mutation clang op))))
 
 (defmethod apply-mutation :around ((obj clang) op)
+  ;; TODO: another :ids :list :json special case removed here
   (multiple-value-call (lambda (variant &rest rest)
-                         (unless (member (car op) '(:ids :list :json))
-                           (when *ancestor-logging*
+                         (when *ancestor-logging*
                              (push (alist :mutant op
                                           :id (get-fresh-ancestry-id))
                                    (ancestors obj)))
-                           (when (random-bool :bias
+                         (when (random-bool :bias
                                     *clang-format-after-mutation-chance*)
-                             (clang-format obj))
-                           (update-asts obj))
+                           (clang-format obj))
+                         (update-asts obj)
                          (apply #'values variant rest))
     (call-next-method)))
 

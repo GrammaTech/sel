@@ -88,13 +88,13 @@
     (apply-mutation ast op)
     (values ast op)))
 
+;; TODO: this used to have a special case for :ids :list and :json
+;; I don't think that's still relevant, but need to double-check
 (defmethod apply-mutation :around ((ast ast) mut)
   ;; Apply MUT to AST, and then update `SIZE' for AST.
-  (if (member (car mut) '(:ids :list :json))
-      (call-next-method)
-      (let ((new-genome (call-next-method)))
-        (when new-genome
-          (setf (genome ast) new-genome)))))
+  (let ((new-genome (call-next-method)))
+    (when new-genome
+      (setf (genome ast) new-genome))))
 
 (defmethod crossover ((a ast) (b ast))
   (let ((a-point (random-elt (line-breaks (genome a))))
