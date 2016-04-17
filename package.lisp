@@ -243,4 +243,6 @@
    :worst-numeric-fitness
    :worst-numeric-fitness-p
    :lexicase-select
-   :*lexicase-predicate*))
+   :*lexicase-predicate*
+   :mutation
+   :targets))
