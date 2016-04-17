@@ -64,9 +64,11 @@
 (defmethod sorted-snippet-ids ((obj mongo-middle-database) &key target limit
                                &aux tag)
   (unless target (error "Mongo Middle Database requires a TARGET."))
-  (loop :until (> (multiple-value-bind (time this-tag) (submit obj target)
-                    (setf tag this-tag) time)
-                  *processing-seconds*))
+  (multiple-value-bind (time this-tag) (submit obj target)
+    (setf tag this-tag)
+    (when (> (- *processing-seconds* time) 0)
+      (sleep (- *processing-seconds* time))))
+
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.sort (cache-collection obj) (kv "tag" tag) :field "res")
                   (db.next (cache-collection obj) cursor))
