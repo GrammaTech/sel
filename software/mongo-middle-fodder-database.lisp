@@ -49,7 +49,27 @@
                               (limit-considered infinity))
   (declare (ignorable predicate key classes filter limit-considered))
   (unless target (error "Mongo Middle Database requires a TARGET."))
-  (mongo-docs-for-ids obj (sorted-snippet-ids obj :target target :limit limit)))
+  (handler-case
+    (let ((snippet-ids (sorted-snippet-ids obj :target target :limit limit)))
+      (if snippet-ids
+          (mongo-docs-for-ids obj snippet-ids)
+          ;; The middle-man server did not populate any results.
+          ;; As a fallback, take a sample of snippets from the
+          ;; database and sort them.
+          (call-next-method obj predicate
+                            :target target :key key :limit limit
+                            :classes classes :filter filter
+                            :limit-considered
+                            (if (equal limit-considered infinity)
+                                2500 limit-considered))))
+    (error (e)
+      (note 2 "mongo-middle-man error: ~a" e)
+      (call-next-method obj predicate
+                        :target target :key key :limit limit
+                        :classes classes :filter filter
+                        :limit-considered
+                        (if (equal limit-considered infinity)
+                            2500 limit-considered)))))
 
 (defmethod submit ((obj mongo-middle-database) target)
   ;; Submit TARGET to the middle man server, return seconds since
