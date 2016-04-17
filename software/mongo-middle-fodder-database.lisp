@@ -6,7 +6,7 @@
 (defvar cache-collection "asts-cache"
   "Name of the default collection holding caches for `fodder-collection'.")
 
-(defvar *processing-seconds* 30
+(defvar *mmm-processing-seconds* 30
   "Default number of seconds to allow middle man processing before continuing.")
 
 (defclass mongo-middle-database (mongo-database)
@@ -86,8 +86,8 @@
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (multiple-value-bind (time this-tag) (submit obj target)
     (setf tag this-tag)
-    (when (> (- *processing-seconds* time) 0)
-      (sleep (- *processing-seconds* time))))
+    (when (> (- *mmm-processing-seconds* time) 0)
+      (sleep (- *mmm-processing-seconds* time))))
 
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.sort (cache-collection obj) (kv "tag" tag) :field "res")
