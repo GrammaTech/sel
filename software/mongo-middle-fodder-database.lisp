@@ -63,7 +63,7 @@
                             (if (equal limit-considered infinity)
                                 2500 limit-considered))))
     (error (e)
-      (note 2 "mongo-middle-man error: ~a" e)
+      (note 1 "mongo-middle-man error: ~a" e)
       (call-next-method obj predicate
                         :target target :key key :limit limit
                         :classes classes :filter filter
