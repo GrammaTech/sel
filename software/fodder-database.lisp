@@ -57,8 +57,9 @@ All other arguments are passed through to sorted snippets."))
                             &key target key classes limit filter
                               (limit-considered infinity))
   (declare (ignorable target))
-  (let ((fodder (find-snippets
-                 db :classes classes :full-stmt (not classes) :limit limit)))
+  (let ((fodder (find-snippets db
+                               :classes classes :full-stmt (not classes)
+                               :limit limit-considered)))
     (if (< limit-considered (length fodder))
         (let ((start (random (- (length fodder) limit-considered))))
           (sorted-snippets-unmemoized
@@ -67,17 +68,13 @@ All other arguments are passed through to sorted snippets."))
         (sorted-snippets-memoized fodder predicate
                                   :limit limit :key key :filter filter))))
 
-(defun-memoized sorted-snippets-memoized
+(defun sorted-snippets-memoized
     (fodder predicate &key limit key filter)
-  (let ((base (apply #'sort 
-                     (if filter (remove-if filter fodder) fodder)
-                     predicate
-                     (if key (list :key key) '()))))
+  (let ((base (sort (if filter (remove-if filter fodder) fodder)
+                    predicate :key key)))
     (if limit (take limit base) base)))
 
 (defun sorted-snippets-unmemoized (fodder predicate &key limit key filter)
-  (let ((base (apply #'sort
-                     (if filter (remove-if filter fodder) fodder)
-                     predicate
-                     (if key (list :key key) '()))))
+  (let ((base (sort (if filter (remove-if filter fodder) fodder)
+                    predicate :key key)))
     (if limit (take limit base) base)))
