@@ -69,11 +69,15 @@ All other arguments are passed through to sorted snippets."))
 
 (defun-memoized sorted-snippets-memoized
     (fodder predicate &key limit key filter)
-  (let ((base (apply #'sort (remove-if filter fodder) predicate
+  (let ((base (apply #'sort 
+                     (if filter (remove-if filter fodder) fodder)
+                     predicate
                      (if key (list :key key) '()))))
     (if limit (take limit base) base)))
 
 (defun sorted-snippets-unmemoized (fodder predicate &key limit key filter)
-  (let ((base (apply #'sort (remove-if filter fodder) predicate
+  (let ((base (apply #'sort
+                     (if filter (remove-if filter fodder) fodder)
+                     predicate
                      (if key (list :key key) '()))))
     (if limit (take limit base) base)))
