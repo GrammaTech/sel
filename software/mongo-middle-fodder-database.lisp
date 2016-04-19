@@ -25,17 +25,6 @@
             (middle-host obj) (middle-port obj)
             (db obj) (host obj) (port obj))))
 
-(defmethod weighted-pick ((obj fodder-database) predicate weight
-                          &key target key limit classes filter
-                               (max-seconds *mmm-processing-seconds*)
-                               (limit-considered infinity))
-  (declare (ignorable key classes filter limit-considered))
-  (mongo-docs-for-ids obj
-    (random-elt-with-decay
-     (sorted-snippet-ids obj :target target :limit limit
-                             :max-seconds max-seconds)
-     weight)))
-
 (defmethod mongo-docs-for-ids ((obj mongo-middle-database) ids)
   "Return the doc for the given ID."
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
