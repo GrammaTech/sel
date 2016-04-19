@@ -340,7 +340,7 @@ already in scope, it will keep that name.")
 
   (if (member mutation-type
               '(:cut-decl :swap-decls :rename-variable))
-    (decl-mutate-clang clang mutation-type))
+    (decl-mutate-clang clang mutation-type)
     (labels ((filter (asts)(if (member mutation-type
                                      `(:cut-full     :cut-full-same
                                        :insert-full  :insert-full-same
@@ -377,9 +377,8 @@ already in scope, it will keep that name.")
                                               :replace-full :replace-full-same))
                         `(:replace . ,(apply #'execute-picks
                                              (list bad then good)))))))
-
       (apply-mutation clang op)
-      (values clang op))))
+      (values clang op)))))
 
 (defmethod decl-mutate-clang ((clang clang) mutation-type)
   (values clang
