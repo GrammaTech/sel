@@ -66,22 +66,24 @@
 (defmethod submit ((obj mongo-middle-database) target)
   ;; Submit TARGET to the middle man server, return seconds since
   ;; processing began.
-  (destructuring-bind (hash . seconds)
+  (destructuring-bind (hash seconds-elapsed finished)
       (with-client-socket (sock stream (middle-host obj) (middle-port obj))
         (format stream "~S~%" target)
         (force-output stream)
         (read stream))
-    (values seconds hash)))
+    (values hash seconds-elapsed finished)))
 
 (defmethod sorted-snippet-ids ((obj mongo-middle-database)
                                &key target limit
                                     (max-seconds *mmm-processing-seconds*)
                                &aux tag)
   (unless target (error "Mongo Middle Database requires a TARGET."))
-  (multiple-value-bind (time this-tag) (submit obj target)
-    (setf tag this-tag)
-    (when (> (- max-seconds time) 0)
-      (sleep (- max-seconds time))))
+
+  (loop :until (multiple-value-bind (this-tag seconds-elapsed finished)
+                 (submit obj target)
+                 (setf tag this-tag)
+                 (or finished (> seconds-elapsed max-seconds)))
+        :do (sleep 2.5))
 
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.sort (cache-collection obj) (kv "tag" tag) :field "res")
