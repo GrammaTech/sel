@@ -43,7 +43,6 @@
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (handler-case
     (let ((snippet-ids (sorted-snippet-ids obj :target target :limit limit)))
-      (format t "~a~%" snippet-ids)
       (if snippet-ids
           (mongo-docs-for-ids obj snippet-ids)
           ;; The middle-man server did not populate any results.
