@@ -67,7 +67,11 @@
    :get-indexed-vars-in-scope
    :bind-free-vars
    :prepare-sequence-snippet
+   :prepare-inward-snippet
+   :create-inward-snippet
    :apply-fun-body-substitutions
+   :select-before
+   :crossover-2pt-inward
    :crossover-2pt-outward
    :crossover-single-stmt
    :crossover-all-functions
