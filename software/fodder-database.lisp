@@ -20,7 +20,7 @@ matching the keyword parameter HASH"))
 
 (defgeneric weighted-pick
     (database predicate weight
-     &key target key limit classes filter limit-considered)
+     &key target key limit classes filter max-seconds limit-considered)
   ;; NOTE: This function is largely only present so that classes like
   ;;       MONGO-MIDDLE-FODDER-DATABASE can provide optimized access
   ;;       to single results for sorted queries without having to
@@ -32,11 +32,13 @@ All other arguments are passed through to sorted snippets."))
 
 (defmethod weighted-pick ((obj fodder-database) predicate weight
                           &key target key limit classes filter
-                            (limit-considered infinity))
+                               (max-seconds infinity)
+                               (limit-considered infinity))
   (random-elt-with-decay
    (sorted-snippets obj predicate
                     :target target :key key :limit limit :classes classes
-                    :filter filter :limit-considered limit-considered)
+                    :filter filter :max-seconds max-seconds
+                    :limit-considered limit-considered)
    weight))
 
 (defgeneric sorted-snippets
@@ -51,12 +53,14 @@ All other arguments are passed through to sorted snippets."))
 :LIMIT ------------ only return the MANY most similar snippets
 :CLASSES ---------- only consider snippets matching these AST classes
 :LIMIT-CONSIDERED - limit search to MANY-CONSIDERED random snippets
+:MAX-SECONDS ------ limit search to MAX-SECONDS seconds
 :FILTER ----------- limit search to snippets for which FILTER returns false"))
 
 (defmethod sorted-snippets ((db fodder-database) predicate
                             &key target key classes limit filter
-                              (limit-considered infinity))
-  (declare (ignorable target))
+                                 (limit-considered infinity)
+                                 (max-seconds infinity))
+  (declare (ignorable target max-seconds))
   (let ((fodder (find-snippets db
                                :classes classes :full-stmt (not classes)
                                :limit limit-considered)))
