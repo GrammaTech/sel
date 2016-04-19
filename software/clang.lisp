@@ -294,28 +294,28 @@ already in scope, it will keep that name.")
                 (cons mutation-type
                       (/ (* *clang-full-stmt-bias*
                             *clang-same-class-bias*)
-                         (/ (length *clang-mutation-types*) 4))))
+                         4)))
                ((member mutation-type
                         `(:cut-full  :insert-full
                           :swap-full :replace-full))
                 (cons mutation-type
                       (/ (* *clang-full-stmt-bias*
                             (- 1 *clang-same-class-bias*))
-                         (/ (length *clang-mutation-types*) 4))))
+                         4)))
                ((member mutation-type
                         `(:cut-same  :insert-same
                           :swap-same :replace-same))
                 (cons mutation-type
                       (/ (* *clang-same-class-bias*
                             (- 1 *clang-full-stmt-bias*))
-                         (/ (length *clang-mutation-types*) 4))))
+                         4)))
                ((member mutation-type
                         `(:cut :insert
                           :swap :replace))
                 (cons mutation-type
                       (/ (* (- 1 *clang-same-class-bias*)
                             (- 1 *clang-full-stmt-bias*))
-                         (/ (length *clang-mutation-types*) 4))))
+                         4)))
                (t nil)))))
 
 (defmethod mutation-types-clang ((clang clang))
