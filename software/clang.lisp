@@ -652,7 +652,7 @@ Otherwise return the whole FULL-GENOME"
                          (get-ast clang (aget :parent--counter ast))))))
 
 (defmethod get-parent-asts((clang clang) ast)
-  (cond ((= (aget :parent--counter ast) 0) nil)
+  (cond ((= (aget :parent--counter ast) 0) (list ast))
          (t  (append (list ast)
                      (get-parent-asts
                        clang
@@ -1303,8 +1303,10 @@ free variables.")
         ;; a copy of a.
         (values variant nil nil nil))))
 
-
-
+(defmethod intraprocedural-2pt-crossover ((a clang) (b clang)
+                                          a-begin a-end
+                                          b-begin b-end)
+  nil)
 
 ;; Perform crossover by selecting a single AST from a and b to cross.
 ;; Free variables are recontextualized to the insertion point.
