@@ -9,8 +9,8 @@
 (defmethod initialize-instance :after ((mutation clang-template-mutation)
                                        &key software)
   (if (not (targets mutation))
-      (setf (targets mutation) (pick-template-targets mutation software))))
-
+      (setf (slot-value mutation 'targets)
+            (pick-template-targets mutation software))))
 
 (defclass refine-condition (clang-template-mutation) ())
 

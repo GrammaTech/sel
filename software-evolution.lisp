@@ -280,11 +280,30 @@ Define an :around method on this function to record crossovers."))
 
 ;;; Mutation object
 (defclass mutation ()
-  ((targets :initarg :targets :accessor targets :initform nil)))
+  ((object :initarg :object :accessor object :initform nil
+           :type 'software
+           :documentation "The software object to be mutated.")
+   (targeter :initarg :targeter :accessor targeter :initform nil
+             :type function
+             :documentation "A function from software -> targets.")
+   (targets :initarg :targets :reader get-targets :initform nil
+            :type (list * *)
+            :documentation "A calculated target set.")))
 
-(defmethod print-object ((obj mutation) stream)
-  (print-unreadable-object (obj stream :type t)
-    (prin1 (targets obj) stream)))
+(defmethod print-object ((mut mutation) stream)
+  (print-unreadable-object (mut stream :type t)
+    (prin1 (object mut) stream)
+    (when (or (get-targets mut) (targeter mut))
+      (format stream " ")
+      (prin1 (or (get-targets mut)
+                 (multiple-value-call [#'third #'list]
+                   (function-lambda-expression (targeter mut)))) stream))))
+
+(defmethod targets ((mut mutation))
+  (or (get-targets mut)
+      (when (object mut)
+        (setf (slot-value mut 'targets)
+              (funcall (targeter mut) (object mut))))))
 
 
 ;;; Evolution
