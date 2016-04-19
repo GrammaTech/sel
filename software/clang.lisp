@@ -387,7 +387,7 @@ already in scope, it will keep that name.")
             (:cut-decl
              (run-cut-decl
               clang
-              (random-stmt (with-class-filter "DeclStmt" (asts clang)))))
+              (with-class-filter "DeclStmt" (asts clang))))
             (:swap-decls
              (run-swap-decls
               clang
@@ -975,17 +975,20 @@ free variables.")
      :when (find var (get-used-variables clang stmt) :test #'equal)
      :collecting stmt))
 
-(defmethod run-cut-decl ((clang clang) decl)
-  (let* ((the-block (enclosing-block clang decl))
-         (old-name (aget :declares (get-ast clang decl)))
-         (uses (get-children-using clang old-name the-block))
-         (vars (remove-if {equal old-name}
-                          (get-vars-in-scope clang
-                                             (if uses (car uses) the-block))))
-         (var (if vars (random-elt vars)
-                  "/* no vars available before first use of cut decl */")))
-    (delete-decl-stmts clang the-block `((,decl . ,var)))
-    (list :cut-decl decl old-name var)))
+(defmethod run-cut-decl ((clang clang) decls)
+  (if (not decls)
+    (list :cut-decl 'did-nothing)
+    (let* ((decl (random-stmt decls))
+           (the-block (enclosing-block clang decl))
+           (old-name (aget :declares (get-ast clang decl)))
+           (uses (get-children-using clang old-name the-block))
+           (vars (remove-if {equal old-name}
+                            (get-vars-in-scope clang
+                                               (if uses (car uses) the-block))))
+           (var (if vars (random-elt vars)
+                    "/* no vars available before first use of cut decl */")))
+      (delete-decl-stmts clang the-block `((,decl . ,var)))
+      (list :cut-decl decl old-name var))))
 
 (defun pick-two (things)
   (let ((this (random-elt things))
