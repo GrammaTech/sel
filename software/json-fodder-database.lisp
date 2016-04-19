@@ -100,10 +100,10 @@
                         (full-stmt
                          (ast-database-full-stmt-list db))
                         (t (ast-database-list db)))))
-    (if (and limit (<= (length snippets) limit))
-        snippets
+    (if (and limit (<= limit (length snippets)))
         (let ((start (random (- (length snippets) limit))))
-          (subseq snippets start (+ start limit))))))
+          (subseq snippets start (+ start limit)))
+        snippets)))
 
 (defmethod find-types ((db json-database) &key hash)
   (if hash
