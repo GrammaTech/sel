@@ -18,29 +18,6 @@
   (:documentation "Find the types in the type database (optionally)
 matching the keyword parameter HASH"))
 
-(defgeneric weighted-pick
-    (database predicate weight
-     &key target key limit classes filter max-seconds limit-considered)
-  ;; NOTE: This function is largely only present so that classes like
-  ;;       MONGO-MIDDLE-FODDER-DATABASE can provide optimized access
-  ;;       to single results for sorted queries without having to
-  ;;       retrieve and return all of the documents in the sorted
-  ;;       results.
-  (:documentation
-   "Perform a random pick weighted by weight from `sorted-snippets'.
-All other arguments are passed through to sorted snippets."))
-
-(defmethod weighted-pick ((obj fodder-database) predicate weight
-                          &key target key limit classes filter
-                               (max-seconds infinity)
-                               (limit-considered infinity))
-  (random-elt-with-decay
-   (sorted-snippets obj predicate
-                    :target target :key key :limit limit :classes classes
-                    :filter filter :max-seconds max-seconds
-                    :limit-considered limit-considered)
-   weight))
-
 (defgeneric sorted-snippets
     (database predicate
      &key target key limit classes limit-considered filter)
