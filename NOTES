@@ -117,8 +117,9 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [24/32]
-** TODO define =se= as the usable package prefix
+* Tasks [23/26]
+** DONE define =se= as the usable package prefix
+   CLOSED: [2016-04-19 Tue 09:42]
 So code can e.g., =(se::references ...)= to call private functions.
 
 ** DONE More efficient storage for ELF files
