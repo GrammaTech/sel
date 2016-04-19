@@ -27,11 +27,13 @@
 
 (defmethod weighted-pick ((obj fodder-database) predicate weight
                           &key target key limit classes filter
-                            (limit-considered infinity))
+                               (max-seconds *mmm-processing-seconds*)
+                               (limit-considered infinity))
   (declare (ignorable key classes filter limit-considered))
   (mongo-docs-for-ids obj
     (random-elt-with-decay
-     (sorted-snippet-ids obj :target target :limit limit)
+     (sorted-snippet-ids obj :target target :limit limit
+                             :max-seconds max-seconds)
      weight)))
 
 (defmethod mongo-docs-for-ids ((obj mongo-middle-database) ids)
@@ -46,11 +48,13 @@
 
 (defmethod sorted-snippets ((obj mongo-middle-database) predicate
                             &key target key limit classes filter
-                              (limit-considered infinity))
+                                 (max-seconds *mmm-processing-seconds*)
+                                 (limit-considered infinity))
   (declare (ignorable predicate key classes filter limit-considered))
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (handler-case
     (let ((snippet-ids (sorted-snippet-ids obj :target target :limit limit)))
+      (format t "~a~%" snippet-ids)
       (if snippet-ids
           (mongo-docs-for-ids obj snippet-ids)
           ;; The middle-man server did not populate any results.
@@ -81,13 +85,15 @@
         (read stream))
     (values seconds hash)))
 
-(defmethod sorted-snippet-ids ((obj mongo-middle-database) &key target limit
+(defmethod sorted-snippet-ids ((obj mongo-middle-database)
+                               &key target limit
+                                    (max-seconds *mmm-processing-seconds*)
                                &aux tag)
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (multiple-value-bind (time this-tag) (submit obj target)
     (setf tag this-tag)
-    (when (> (- *mmm-processing-seconds* time) 0)
-      (sleep (- *mmm-processing-seconds* time))))
+    (when (> (- max-seconds time) 0)
+      (sleep (- max-seconds time))))
 
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.sort (cache-collection obj) (kv "tag" tag) :field "res")
