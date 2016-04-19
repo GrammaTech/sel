@@ -1000,7 +1000,7 @@ free variables.")
            (uses (apply #'append
                         (mapcar {get-children-using clang _ the-block}
                                 old-names)))
-           (vars (remove-if {find _ old-names :test #'equal}
+           (vars (remove-if (lambda (var) (find var old-names :test #'equal))
                             (get-vars-in-scope clang
                                                (if uses (car uses) the-block))))
            (var (if vars (random-elt vars)
