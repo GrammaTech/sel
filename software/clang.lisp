@@ -266,7 +266,7 @@ CLANG software object"))
   "The probability that if a free variable's original name matches a name
 already in scope, it will keep that name.")
 
-(defvar *matching-free-function-retains-name-bias* 0.75
+(defvar *matching-free-function-retains-name-bias* 0.95
   "The probability that if a free functions's original name matches a name
 already in scope, it will keep that name.")
 
@@ -776,6 +776,7 @@ Otherwise return the whole FULL-GENOME"
         (macros (make-hash-table :test 'equal))
         (types  (make-hash-table :test 'equal))
         (vars   (make-hash-table :test 'equal))
+        (decls  (make-hash-table :test 'equal))
         (stmts  '())
         (source (intercalate (format nil "~%}~%")
                    (loop for scope in scopes for k from 0
@@ -783,6 +784,8 @@ Otherwise return the whole FULL-GENOME"
                          (mapcar #'process-full-stmt-text scope))))))
     (loop for scope in scopes for scope-depth from 0 do (progn
       (loop for stmt in scope do (progn
+        (loop for decl in (aget :declares stmt)
+           do (setf (gethash decl decls) t))
         (setf stmts (cons (aget :counter stmt) stmts))
         (list->ht (aget :types         stmt) types)
         (list->ht (aget :macros        stmt) macros)
@@ -793,12 +796,20 @@ Otherwise return the whole FULL-GENOME"
                 (when (not already-seen)
                   (setf (gethash var vars) scope-depth))))))))
 
-    (alist :src--text source
-           :unbound--vals (ht->list vars)
-           :unbound--funs (ht->list funcs :merge-fn #'cons)
-           :types  (ht->list types)
-           :macros (ht->list macros)
-           :stmts stmts)))
+    (let ((declared (loop for decl being the hash-keys of decls
+                       collecting (format nil "(|~a|)" decl))))
+      (alist :src--text
+             (apply-replacements
+              (mapcar (lambda (decl) (cons decl (peel-bananas decl)))
+                      declared)
+              source)
+             :unbound--vals
+               (remove-if [{find _ declared :test #'equal} {car}]
+                          (ht->list vars))
+             :unbound--funs (ht->list funcs :merge-fn #'cons)
+             :types  (ht->list types)
+             :macros (ht->list macros)
+             :stmts stmts))))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet type-database)
   (loop for f in (aget :INCLUDES snippet)
@@ -887,6 +898,12 @@ free variables.")
                        clang
                        pt
                        (random-bool :bias *allow-bindings-to-globals-bias*))))
+    (loop :for vars :in (aget :scope--removals snippet)
+       :do (setf (gethash (first vars) scope-vars)
+                 (remove-if {find _ (second vars) :test #'equal}
+                            (gethash (first vars) scope-vars nil))))
+    (loop :for vars :in (aget :scope--additions snippet)
+       :do (appendf (gethash (first vars) scope-vars) (second vars)))
     (list->ht (aget :unbound--vals snippet) free-vars)
     (list->ht (aget :unbound--funs snippet) free-funs :key #'car :value #'cdr)
     (apply-replacements
@@ -1029,14 +1046,18 @@ free variables.")
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
 
-(defmethod prepare-sequence-snippet ((clang clang) depth full-seq)
+(defmethod prepare-sequence-snippet ((clang clang) depth full-seq
+                                     &key (full-tail nil))
   (let* ((initial-seq (loop for scope in full-seq
-                        for i from 0 to (1- depth)
-                        collecting scope))
+                         for i from 0 to (1- depth)
+                         collecting scope))
          (last-seq (nth depth full-seq))
-         (tail-size (if (null initial-seq)
-                        (1+ (random (length last-seq)))
-                        (random (1+ (length last-seq)))))
+         (tail-size
+          (if full-tail
+              (length last-seq)
+              (if (null initial-seq)
+                  (1+ (random (length last-seq)))
+                  (random (1+ (length last-seq))))))
          (init (if (null initial-seq)
                    (car last-seq)
                    (caar initial-seq)))
@@ -1152,7 +1173,7 @@ free variables.")
     ((equal (get-ast-class clang stmt1) "CompoundStmt")
      (multiple-value-bind (text more-defns vals funs macros includes types)
          (prepare-inward-snippet clang (car (aget :stmt--list (get-ast clang stmt1))) stmt2 defns)
-       (values (format nil "{/**/~%~a" text) more-defns
+       (values (format nil "{~%~a" text) more-defns
                vals funs macros includes types)))
     (t
      (let* ((local-defns '())
@@ -1219,26 +1240,6 @@ free variables.")
                        local-includes
                        local-types))))))))
 
-(defmethod extend-inward-snippet- ((clang clang) addition removal)
-  (let* ((stmt1 (aget :stmt1 removal))
-         (stmt2 (aget :stmt2 removal))
-         (the-block (if (equal "CompoundStmt" (get-ast-class clang stmt1))
-                        stmt1
-                        (enclosing-block clang stmt1)))
-         (scope
-          (mapcar
-           (lambda (vars adds rems)
-             (append adds (remove-if {find _ rems :test #'equal} vars)))
-           (mapcar #'cadr (ht->list (get-indexed-vars-in-scope clang stmt2)))
-           (loop :for vars :on (aget :scope-adjustments addition)
-              :collecting (apply #'append vars))
-           (loop :for vars :on (aget :scope-adjustments removal)
-              :collecting (apply #'append vars))))
-         (bindings (make-hash-table :test 'equal)))
-    (format t "initial  scope at ~a: ~a~%" stmt2
-            (mapcar #'cadr (ht->list (get-indexed-vars-in-scope clang stmt2))))
-    (format t "modified scope at ~a: ~a~%" stmt2 scope)))
-
 (defmethod crossover-2pt-inward ((a clang) (b clang))
   (let ((a-end (enclosing-full-stmt a (pick-bad a)))
         (b-end (enclosing-full-stmt b (pick-bad b)))
@@ -1250,13 +1251,60 @@ free variables.")
                (a-begin (select-before a depth a-end))
                (b-begin (select-before b depth b-end))
                (a-snippet (create-inward-snippet a a-begin a-end))
-               (b-snippet (create-inward-snippet b b-begin b-end)))
-          (format t "A-SNIPPET: ~a~%~%" a-snippet)
-          (format t "B-SNIPPET: ~a~%~%" b-snippet)
-          (extend-inward-snippet- variant b-snippet a-snippet))
+               (b-snippet (create-inward-snippet b b-begin b-end))
+               (succ (full-stmt-successors variant
+                                           (aget :stmt2 a-snippet)
+                                           t))
+               (removals (loop :for vars
+                            :in (reverse
+                                 (aget :scope-adjustments a-snippet))
+                            :for index :from 0
+                            :collecting (list index vars)))
+               (additions (loop :for vars
+                             :in (reverse
+                                  (aget :scope-adjustments b-snippet))
+                             :for index :from 0
+                             :collecting (list index vars)))
+               (tail (acons :scope--removals removals
+                       (acons :scope--additions additions
+                         (prepare-sequence-snippet
+                          variant
+                          (1- (length (aget :scope-adjustments b-snippet)))
+                          succ
+                          :full-tail t))))
+               (snippet
+                (alist
+                 :src--text
+                 (format nil "~a~%~a"
+                   (bind-free-vars variant
+                                   b-snippet
+                                   (aget :stmt1 a-snippet))
+                   (bind-free-vars variant
+                                   tail
+                                   (aget :stmt2 a-snippet)))
+                 :macros (aget :macros b-snippet)
+                 :includes (aget :includes b-snippet)
+                 :types (aget :types b-snippet)
+                 :unbound--vals (aget :unbound--vals tail)
+                 :unbound--funs (aget :unbound--funs tail))))
+          (update-mito-from-snippet variant snippet (mitochondria b))
+          (apply-mutation
+           variant
+           (cons :set-range
+                 (list
+                  (cons :stmt1 (aget :stmt1 a-snippet))
+                  (cons :stmt2 (aget :stmt2 tail))
+                  (cons :value1 (aget :src--text snippet)))))
+          (values variant
+                  (list a-begin a-end)
+                  (list b-begin b-end)
+                  t))
         ;; The selected final crossover points were not valid; return
         ;; a copy of a.
         (values variant nil nil nil))))
+
+
+
 
 ;; Perform crossover by selecting a single AST from a and b to cross.
 ;; Free variables are recontextualized to the insertion point.
