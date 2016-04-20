@@ -290,6 +290,18 @@ Define an :around method on this function to record crossovers."))
             :type (list * *)
             :documentation "A calculated target set.")))
 
+(defmacro define-mutation (class-name superclasses slots
+                           &key targeter)
+  (let* ((targeter-slot
+         `(targeter :accessor targeter
+                    :initform ,targeter
+                    :documentation "A function from software -> targets."))
+         (slots (if targeter
+                    (cons targeter-slot slots)
+                    slots)))
+    `(defclass ,class-name ,superclasses
+       ,slots)))
+
 (defmethod print-object ((mut mutation) stream)
   (print-unreadable-object (mut stream :type t)
     (prin1 (object mut) stream)

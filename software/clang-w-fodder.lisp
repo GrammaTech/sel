@@ -86,22 +86,14 @@ CLANG-W-FODDER in a method-dependent fashion."))
     (list (cons :stmt1 stmt) (cons :value1 value))))
 
 ;; Fodder mutation classes
-(defclass insert-fodder (clang-insert)
-  ((targeter :initarg :targeter :accessor targeter
-             :initform #'pick-bad-fodder
-             :type function)))
+(define-mutation insert-fodder (clang-insert) ()
+                 :targeter #'pick-bad-fodder)
 
-(defclass insert-fodder-full (clang-insert)
-  ((targeter :initarg :targeter :accessor targeter
-             :initform {pick-bad-fodder _ t nil}
-             :type function)))
+(define-mutation insert-fodder-full (clang-insert) ()
+                 :targeter {pick-bad-fodder _ t nil})
 
-(defclass replace-fodder (clang-replace)
-  ((targeter :initarg :targeter :accessor targeter
-             :initform #'pick-bad-fodder
-             :type function)))
+(define-mutation replace-fodder (clang-replace) ()
+                 :targeter #'pick-bad-fodder)
 
-(defclass replace-fodder-same (clang-replace)
-  ((targeter :initarg :targeter :accessor targeter
-             :initform {pick-bad-fodder _ nil t}
-             :type function)))
+(define-mutation replace-fodder-same (clang-replace) ()
+                 :targeter {pick-bad-fodder _ nil t})
