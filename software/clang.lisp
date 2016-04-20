@@ -955,7 +955,8 @@ free variables.")
 (defmethod delete-decl-stmts ((clang clang) the-block decl-replacements)
   (let ((renames-list
          (mapcar (lambda (pair)
-                   (append (aget :declares (get-ast clang (car pair)))
+                   (append (list (random-elt (aget :declares
+                                                   (get-ast clang (car pair)))))
                            (cdr pair)))
                  decl-replacements))
         (decls (mapcar #'car decl-replacements)))
