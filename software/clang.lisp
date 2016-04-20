@@ -955,9 +955,10 @@ free variables.")
 (defmethod delete-decl-stmts ((clang clang) the-block decl-replacements)
   (let ((renames-list
          (mapcar (lambda (pair)
-                   (append (list (random-elt (aget :declares
-                                                   (get-ast clang (car pair)))))
-                           (cdr pair)))
+                   (loop
+                      :for decl :in (aget :declares (get-ast clang (car pair)))
+                      :for var  :in (cdr pair)
+                      :collecting (cons decl var)))
                  decl-replacements))
         (decls (mapcar #'car decl-replacements)))
     (apply-mutation clang
@@ -999,14 +1000,21 @@ free variables.")
            (the-block (enclosing-block clang decl))
            (old-names (aget :declares (get-ast clang decl)))
            (uses (apply #'append
+<<<<<<< Updated upstream
                         (mapcar (lambda (name)
                                   (get-children-using clang name the-block))
                                 old-names)))
            (vars (remove-if (lambda (var) (find var old-names :test #'equal))
+=======
+                        (mapcar (lambda (x) (get-children-using clang x the-block))
+                                old-names)))
+           (vars (remove-if (lambda (x) (find x old-names :test #'equal))
+>>>>>>> Stashed changes
                             (get-vars-in-scope clang
                                                (if uses (car uses) the-block))))
-           (var (if vars (random-elt vars)
-                    "/* no vars available before first use of cut decl */")))
+           (var (loop :for _ :in old-names :collecting
+                   (if vars (random-elt vars)
+                       "/* no vars available before first use of cut decl */"))))
       (delete-decl-stmts clang the-block `((,decl . ,var)))
       (list :cut-decl decl old-names var))))
 
@@ -1304,6 +1312,40 @@ free variables.")
         ;; The selected final crossover points were not valid; return
         ;; a copy of a.
         (values variant nil nil nil))))
+
+(defmethod common-ancestor ((clang clang) x y)
+  (let* ((x-ancestry
+           (get-parent-asts clang
+             (get-ast clang
+               (if (full-stmt-p clang x)
+                   x
+                   (enclosing-full-stmt clang x)))))
+         (y-ancestry
+           (get-parent-asts clang
+             (get-ast clang
+               (if (full-stmt-p clang y)
+                   y
+                   (enclosing-full-stmt clang y)))))
+         (last 0))
+    (loop
+       :for xp :in (mapcar {aget :counter} (reverse x-ancestry))
+       :for yp :in (mapcar {aget :counter} (reverse y-ancestry))
+       :when (equal xp yp)
+       :do (setf last xp))
+    last))
+
+(defmethod scopes-between ((clang clang) stmt ancestor)
+  (length (remove-if
+           (lambda (ast)
+             (or (>= (aget :counter ast) stmt)
+                 (<= (aget :counter ast) ancestor)
+                 (not (equal (aget :ast--class ast) "CompoundStmt"))))
+           (get-parent-asts clang (get-ast clang stmt)))))
+
+(defmethod nesting-relation ((clang clang) x y)
+  (let ((ancestor (common-ancestor clang x y)))
+    (cons (scopes-between clang x ancestor)
+          (scopes-between clang y ancestor))))
 
 (defmethod intraprocedural-2pt-crossover ((a clang) (b clang)
                                           a-begin a-end

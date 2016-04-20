@@ -190,11 +190,14 @@
    :run-cut-decl
    :run-swap-decls
    :run-rename-variable
+   :common-ancestor
+   :scopes-between
    :nesting-depth
    :get-ast-text
    :full-stmt-p
    :enclosing-full-stmt
    :enclosing-block
+   :nesting-relation
    :block-successor
    :show-full-stmt
    :full-stmt-text
