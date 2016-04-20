@@ -6,28 +6,30 @@
 
 (defclass clang-template-mutation (clang-mutation) ())
 
-(defmethod initialize-instance :after ((mutation clang-template-mutation))
-  (if (not (targets mutation))
-      (setf (slot-value mutation 'targets)
-            (pick-template-targets mutation (object mutation)))))
-
 ;; refine-condition: add an additional boolean clause to an if condition
-(defclass refine-condition (clang-template-mutation) ())
+(defclass refine-condition (clang-template-mutation)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform (lambda (software)
+                         (list (pick-target-condition software)
+                               (pick-condition-expr software)))
+             :type function)
+   (connector :reader connector)))
 
-(defmethod pick-template-targets ((mutation refine-condition) software)
-  (list (pick-target-condition software)
-        (random-elt '("&&" "||"))
-        (pick-condition-expr software)))
+(defclass tighten-condition (refine-condition)
+  ((connector :reader connector :initform "&&")))
+
+(defclass loosen-condition (refine-condition)
+  ((connector :reader connector :initform "||")))
 
 (defmethod build-op ((mutation refine-condition) software)
-  (bind (((target connector expr) (targets mutation))
+  (bind (((target expr) (targets mutation))
          (target-ast (get-ast software target))
          (expr-ast (get-ast software expr)))
     `((:set (:stmt1 . ,target)
             (:value1 .
                      ((:src--text . ,(format nil "(~a) ~a (~a)"
                                              (aget :src--text target-ast)
-                                             connector
+                                             (connector mutation)
                                              (aget :src--text expr-ast)))
                       (:unbound--vals .
                            ,(merge-lists (aget :unbound--vals target-ast)
@@ -37,11 +39,14 @@
                                          (aget :unbound--funs expr-ast)))))))))
 
 ;; add-condition: wrap a statement in an if
-(defclass add-condition (clang-mutation) ())
-
-(defmethod pick-template-targets ((mutation add-condition) software)
-  (list (aget :counter (random-elt (full-stmt-filter (asts software))))
-        (pick-condition-expr software)))
+(defclass add-condition (clang-mutation)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform
+             (lambda (software)
+               (list (aget :counter (random-elt
+                                     (full-stmt-filter (asts software))))
+                     (pick-condition-expr software)))
+             :type function)))
 
 (defmethod build-op ((mutation add-condition) software)
   (bind (((target expr) (targets mutation))
