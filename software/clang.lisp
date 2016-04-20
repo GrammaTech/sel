@@ -1039,7 +1039,10 @@ free variables.")
     (if used
         (let ((old-var (random-elt used))
               (new-var (random-elt (get-vars-in-scope clang stmt))))
-          (rebind-uses clang (enclosing-block clang stmt)
+          (rebind-uses clang
+                       (if (equal "CompoundStmt" (get-ast-class clang stmt))
+                           stmt
+                           (enclosing-block clang stmt))
                        (list (cons old-var new-var)))
           (list :rename-variable stmt old-var new-var))
         (list :rename-variable stmt 'did-nothing))))
