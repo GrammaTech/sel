@@ -53,4 +53,5 @@ techniques."
                     :depends-on ("fodder-database"))
              (:file "fix-compilation" :depends-on ("clang" "clang-w-fodder"))
              (:file "llvm" :depends-on ("ast"))
-             (:file "lexicase")))))
+             (:file "lexicase")
+             (:file "clang-templates" :depends-on ("clang"))))))

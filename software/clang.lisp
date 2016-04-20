@@ -38,30 +38,30 @@
 
 ;;; Mutations
 (defclass clang-mutation (mutation) ())
+(defclass clang-basic-mutation (clang-mutation) ())
 
-(defgeneric build-op (mutation)
+(defgeneric build-op (mutation software)
   (:documentation "Build clang-mutate operation from a mutation."))
 
 (defgeneric pick-targets (mutation good then bad)
   (:documentation "Choose mutation arguments."))
 
-(defmethod initialize-instance :after ((mutation clang-mutation)
+(defmethod initialize-instance :after ((mutation clang-basic-mutation)
                                        &key software full-stmt same-class)
-  ;; TODO: skip picks if targets are already initialized (to allow direct
-  ;; construction of mutations).
-  (labels ((filter (asts) (if full-stmt
-                              (full-stmt-filter asts)
-                              asts)))
-    (let* ((then (if same-class
-                     (lambda (stmt asts)
-                       (or (with-class-filter (get-ast-class software stmt)
-                             asts)
-                           (with-class-filter (get-ast-class software stmt)
-                             (asts software))))
-                     (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-           (good (lambda () (or (filter (good-asts software)) (asts software))))
-           (bad  (lambda () (or (filter (bad-asts software)) (asts software)))))
-      (setf (targets mutation) (pick-targets mutation good then bad)))))
+  (if (not (targets mutation))
+      (labels ((filter (asts) (if full-stmt
+                                  (full-stmt-filter asts)
+                                  asts)))
+        (let* ((then (if same-class
+                         (lambda (stmt asts)
+                           (or (with-class-filter (get-ast-class software stmt)
+                                 asts)
+                               (with-class-filter (get-ast-class software stmt)
+                                 (asts software))))
+                         (lambda (stmt asts) (declare (ignorable stmt)) asts)))
+               (good (lambda () (or (filter (good-asts software)) (asts software))))
+               (bad  (lambda () (or (filter (bad-asts software)) (asts software)))))
+          (setf (targets mutation) (pick-targets mutation good then bad))))))
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
@@ -71,7 +71,8 @@
       (loop :for op :in (sort (recontextualize-mutation software mutation)
                               #'> :key [{aget :stmt1} #'cdr])
          :do
-         (setf (genome software) (clang-mutate software op)))
+         (setf (genome software) (clang-mutate software op))
+         :finally (return (genome software)))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -85,9 +86,9 @@
       (apply-mutation software mutation))))
 
 ;; Insert
-(defclass clang-insert (clang-mutation) ())
+(defclass clang-insert (clang-basic-mutation) ())
 
-(defmethod build-op ((mutation clang-insert))
+(defmethod build-op ((mutation clang-insert) software)
   `((:insert-value . ,(targets mutation))))
 
 (defmethod pick-targets ((mutation clang-insert) good then bad)
@@ -112,9 +113,9 @@
   (call-next-method mutation :software software :full-stmt t :same-class t))
 
 ;; Swap
-(defclass clang-swap (clang-mutation) ())
+(defclass clang-swap (clang-basic-mutation) ())
 
-(defmethod build-op ((mutation clang-swap))
+(defmethod build-op ((mutation clang-swap) software)
   `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
           (:stmt2 . ,(aget :stmt2 (targets mutation))))
     (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
@@ -142,9 +143,9 @@
   (call-next-method mutation :software software :full-stmt t :same-class t))
 
 ;; Replace
-(defclass clang-replace (clang-mutation) ())
+(defclass clang-replace (clang-basic-mutation) ())
 
-(defmethod build-op ((mutation clang-replace))
+(defmethod build-op ((mutation clang-replace) software)
   `((:set . ,(targets mutation))))
 
 (defmethod pick-targets ((mutation clang-replace) good then bad)
@@ -169,9 +170,9 @@
   (call-next-method mutation :software software :full-stmt t :same-class t))
 
 ;; Cut
-(defclass clang-cut (clang-mutation) ())
+(defclass clang-cut (clang-basic-mutation) ())
 
-(defmethod build-op ((mutation clang-cut))
+(defmethod build-op ((mutation clang-cut) software)
   `((:cut . ,(targets mutation))))
 
 (defmethod pick-targets ((mutation clang-cut) good then bad)
@@ -183,11 +184,12 @@
   (declare (ignorable full-stmt same-class))
   (call-next-method mutation :software software :full-stmt t :same-class nil))
 
-;; The same variants only exist for symmetry (which makes it easier to
+;; The -same variants only exist for symmetry (which makes it easier to
 ;; build the CDF). Since cut only picks one AST the same-class
 ;; constraint has no effect.
 (defclass clang-cut-same (clang-cut) ())
 (defclass clang-cut-full-same (clang-cut-full) ())
+
 
 
 (defvar *ancestor-logging* nil
@@ -521,7 +523,7 @@ already in scope, it will keep that name.")
               (random-stmt (bad-asts clang)))))))
 
 (defmethod recontextualize-mutation ((clang clang) mutation)
-  (loop :for (op . properties) :in (build-op mutation)
+  (loop :for (op . properties) :in (build-op mutation clang)
      :collecting
      (let ((stmt1  (aget :stmt1  properties))
            (stmt2  (aget :stmt2  properties))
