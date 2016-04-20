@@ -1000,16 +1000,9 @@ free variables.")
            (the-block (enclosing-block clang decl))
            (old-names (aget :declares (get-ast clang decl)))
            (uses (apply #'append
-<<<<<<< Updated upstream
-                        (mapcar (lambda (name)
-                                  (get-children-using clang name the-block))
-                                old-names)))
-           (vars (remove-if (lambda (var) (find var old-names :test #'equal))
-=======
-                        (mapcar (lambda (x) (get-children-using clang x the-block))
-                                old-names)))
+                    (mapcar (lambda (x) (get-children-using clang x the-block))
+                            old-names)))
            (vars (remove-if (lambda (x) (find x old-names :test #'equal))
->>>>>>> Stashed changes
                             (get-vars-in-scope clang
                                                (if uses (car uses) the-block))))
            (var (loop :for _ :in old-names :collecting
