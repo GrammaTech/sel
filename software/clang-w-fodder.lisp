@@ -14,8 +14,8 @@
   "The probability that a clang-w-fodder mutation will use the code database.")
 
 (defvar *fodder-mutation-types*
-  '(:replace-fodder-same :replace-fodder-full
-    :insert-fodder       :insert-fodder-full)
+  '('replace-fodder-same 'replace-fodder-full
+    'insert-fodder       'insert-fodder-full)
   "Types of valid fodder mutations")
 
 (define-software clang-w-fodder (clang) ())
@@ -65,41 +65,43 @@ CLANG-W-FODDER in a method-dependent fashion."))
                                (* (- 1 *fodder-selection-bias*)
                                   (cdr mutation-type)))))))
 
-(defmethod mutate-clang ((clang-w-fodder clang-w-fodder) mutation-type)
-  (if (not (member mutation-type *fodder-mutation-types*))
-      ;; This isn't one of our mutation types, dispatch to the
-      ;; next software object method.
-      (call-next-method)
-      ;; Perform a mutation using fodder
-      (let* ((bad   (pick-bad  clang-w-fodder))
-             (bad-stmt  (if (full-stmt-p clang-w-fodder bad) bad
-                            (enclosing-full-stmt clang-w-fodder bad)))
-             (value (update-mito-from-snippet clang-w-fodder
-                      (ecase mutation-type
-                        (:replace-fodder-same
-                         (pick-snippet clang-w-fodder
-                                       :pt bad
-                                       :class
-                                       (get-ast-class clang-w-fodder bad)))
-                        ((:replace-fodder-full :insert-fodder-full)
-                         (pick-snippet clang-w-fodder :pt bad :full t))
-                        (:insert-fodder
-                         (pick-snippet clang-w-fodder)))
-                      *database*))
-             (stmt (ecase mutation-type
-                     ((:replace-fodder-same :insert-fodder)
-                      bad)
-                     ((:replace-fodder-full :insert-fodder-full)
-                      bad-stmt)))
-             (op (case mutation-type
-                   ((:replace-fodder-same :replace-fodder-full)
-                    (list :replace
-                          (cons :stmt1 stmt)
-                          (cons :value1 value)))
-                   ((:insert-fodder :insert-fodder-full)
-                    (list :insert
-                          (cons :stmt1 stmt)
-                          (cons :value1 value))))))
+(defun pick-bad-fodder (software &optional full-stmt-p same-class)
+  "Choose a bad AST and a fodder snippet"
+  (let* ((bad   (pick-bad  software))
+         (bad-stmt  (if (full-stmt-p software bad) bad
+                        (enclosing-full-stmt software bad)))
+         (value (update-mito-from-snippet software
+                 (cond
+                   (same-class
+                    (pick-snippet software
+                                  :pt bad
+                                  :class
+                                  (get-ast-class software bad)))
+                   (full-stmt-p
+                    (pick-snippet software :pt bad :full t))
+                   (t
+                    (pick-snippet software)))
+                 *database*))
+         (stmt (if full-stmt-p bad-stmt bad)))
+    (list (cons :stmt1 stmt) (cons :value1 value))))
 
-        (apply-mutation clang-w-fodder op)
-        (values clang-w-fodder (cons mutation-type (cdr op))))))
+;; Fodder mutation classes
+(defclass insert-fodder (clang-insert)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform #'pick-bad-fodder
+             :type function)))
+
+(defclass insert-fodder-full (clang-insert)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-fodder _ t nil}
+             :type function)))
+
+(defclass replace-fodder (clang-replace)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform #'pick-bad-fodder
+             :type function)))
+
+(defclass replace-fodder-same (clang-replace)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-fodder _ nil t}
+             :type function)))
