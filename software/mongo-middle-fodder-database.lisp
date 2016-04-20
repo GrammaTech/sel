@@ -37,8 +37,7 @@
 
 (defmethod sorted-snippets ((obj mongo-middle-database) predicate
                             &key target key limit classes filter
-                                 (max-seconds *mmm-processing-seconds*)
-                                 (limit-considered infinity))
+                              (limit-considered infinity))
   (declare (ignorable predicate key classes filter limit-considered))
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (handler-case
@@ -73,16 +72,14 @@
         (read stream))
     (values hash seconds-elapsed finished)))
 
-(defmethod sorted-snippet-ids ((obj mongo-middle-database)
-                               &key target limit
-                                    (max-seconds *mmm-processing-seconds*)
+(defmethod sorted-snippet-ids ((obj mongo-middle-database) &key target limit
                                &aux tag)
   (unless target (error "Mongo Middle Database requires a TARGET."))
 
   (loop :until (multiple-value-bind (this-tag seconds-elapsed finished)
                  (submit obj target)
                  (setf tag this-tag)
-                 (or finished (> seconds-elapsed max-seconds)))
+                 (or finished (> seconds-elapsed *mmm-processing-seconds*)))
         :do (sleep 2.5))
 
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))

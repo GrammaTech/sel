@@ -30,14 +30,12 @@ matching the keyword parameter HASH"))
 :LIMIT ------------ only return the MANY most similar snippets
 :CLASSES ---------- only consider snippets matching these AST classes
 :LIMIT-CONSIDERED - limit search to MANY-CONSIDERED random snippets
-:MAX-SECONDS ------ limit search to MAX-SECONDS seconds
 :FILTER ----------- limit search to snippets for which FILTER returns false"))
 
 (defmethod sorted-snippets ((db fodder-database) predicate
                             &key target key classes limit filter
-                                 (limit-considered infinity)
-                                 (max-seconds infinity))
-  (declare (ignorable target max-seconds))
+                              (limit-considered infinity))
+  (declare (ignorable target))
   (let ((fodder (find-snippets db
                                :classes classes :full-stmt (not classes)
                                :limit limit-considered)))
