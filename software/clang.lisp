@@ -36,87 +36,75 @@
                  :copier copy)))
 
 
+;; Targeting functions
+(defun restrict-targets (software full-stmt same-class)
+  (labels ((filter (asts) (if full-stmt
+                              (full-stmt-filter asts)
+                              asts)))
+    (let* ((then (if same-class
+                     (lambda (stmt asts)
+                       (or (with-class-filter (get-ast-class software stmt)
+                             asts)
+                           (with-class-filter (get-ast-class software stmt)
+                             (asts software))))
+                     (lambda (stmt asts) (declare (ignorable stmt)) asts)))
+           (good (lambda () (or (filter (good-asts software))
+                                (asts software))))
+           (bad  (lambda () (or (filter (bad-asts software))
+                                (asts software)))))
+      (list good bad then))))
+
+(defun pick-bad-good (software &optional full-stmt same-class)
+  (destructuring-bind (good bad then)
+      (restrict-targets software full-stmt same-class)
+    (execute-picks bad then good)))
+
+(defun pick-bad-bad (software &optional full-stmt same-class)
+  (destructuring-bind (good bad then)
+      (restrict-targets software full-stmt same-class)
+    (declare (ignorable good))
+    (execute-picks bad then bad)))
+
+(defun pick-bad-only (software &optional full-stmt)
+  (destructuring-bind (good bad then)
+      (restrict-targets software full-stmt nil)
+    (execute-picks bad)))
+
 ;;; Mutations
 (defclass clang-mutation (mutation) ())
-(defclass clang-basic-mutation (clang-mutation) ())
 
 (defgeneric build-op (mutation software)
   (:documentation "Build clang-mutate operation from a mutation."))
 
-(defgeneric pick-targets (mutation good then bad)
-  (:documentation "Choose mutation arguments."))
-
-(defmethod initialize-instance :after ((mutation clang-basic-mutation)
-                                       &key software full-stmt same-class)
-  (if (not (targets mutation))
-      (labels ((filter (asts) (if full-stmt
-                                  (full-stmt-filter asts)
-                                  asts)))
-        (let* ((then (if same-class
-                         (lambda (stmt asts)
-                           (or (with-class-filter (get-ast-class software stmt)
-                                 asts)
-                               (with-class-filter (get-ast-class software stmt)
-                                 (asts software))))
-                         (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-               (good (lambda () (or (filter (good-asts software))
-                                    (asts software))))
-               (bad  (lambda () (or (filter (bad-asts software))
-                                    (asts software)))))
-          (setf (slot-value mutation 'targets)
-                (pick-targets mutation good then bad))))))
-
-(defmethod apply-mutation ((software clang)
-                           (mutation clang-mutation))
-  (restart-case
-      ;; Sort the mutation operations and run them in reverse AST
-      ;; order (so AST numbers won't change in the middle).
-      (loop :for op :in (sort (recontextualize-mutation software mutation)
-                              #'> :key [{aget :stmt1} #'cdr])
-         :do
-         (setf (genome software) (clang-mutate software op))
-         :finally (return (genome software)))
-    (skip-mutation ()
-      :report "Skip mutation and return nil"
-      (values nil 1))
-    (tidy ()
-      :report "Call clang-tidy before re-attempting mutation"
-      (clang-tidy software)
-      (apply-mutation software mutation))
-    (mutate ()
-      :report "Apply another mutation before re-attempting mutations"
-      (mutate software)
-      (apply-mutation software mutation))))
-
 ;; Insert
-(defclass clang-insert (clang-basic-mutation) ())
+(defclass clang-insert (clang-mutation)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform #'pick-bad-good
+             :type function)))
 
 (defmethod build-op ((mutation clang-insert) software)
   `((:insert-value . ,(targets mutation))))
 
-(defmethod pick-targets ((mutation clang-insert) good then bad)
-  (execute-picks bad then good))
+(defclass clang-insert-full (clang-insert)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-good _ t nil}
+             :type function)))
 
-(defclass clang-insert-full (clang-insert) ())
-(defmethod initialize-instance :around ((mutation clang-insert-full)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class nil))
+(defclass clang-insert-same (clang-insert)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-good _ nil t}
+             :type function)))
 
-(defclass clang-insert-same (clang-insert) ())
-(defmethod initialize-instance :around ((mutation clang-insert-same)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt nil :same-class t))
-
-(defclass clang-insert-full-same (clang-insert) ())
-(defmethod initialize-instance :around ((mutation clang-insert-full-same)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class t))
+(defclass clang-insert-full-same (clang-insert)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-good _ t t}
+             :type function)))
 
 ;; Swap
-(defclass clang-swap (clang-basic-mutation) ())
+(defclass clang-swap (clang-mutation)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform #'pick-bad-bad
+             :type function)))
 
 (defmethod build-op ((mutation clang-swap) software)
   `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
@@ -124,68 +112,58 @@
     (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
           (:stmt2 . ,(aget :stmt1 (targets mutation))))))
 
-(defmethod pick-targets ((mutation clang-swap) good then bad)
-  (execute-picks bad then bad))
+(defclass clang-swap-full (clang-swap)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-bad _ t nil}
+             :type function)))
 
-(defclass clang-swap-full (clang-swap) ())
-(defmethod initialize-instance :around ((mutation clang-swap-full)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class nil))
+(defclass clang-swap-same (clang-swap)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-bad _ nil t}
+             :type function)))
 
-(defclass clang-swap-same (clang-swap) ())
-(defmethod initialize-instance :around ((mutation clang-swap-same)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt nil :same-class t))
-
-(defclass clang-swap-full-same (clang-swap) ())
-(defmethod initialize-instance :around ((mutation clang-swap-full-same)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class t))
+(defclass clang-swap-full-same (clang-swap)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-bad _ t t}
+             :type function)))
 
 ;; Replace
-(defclass clang-replace (clang-basic-mutation) ())
+(defclass clang-replace (clang-mutation)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform #'pick-bad-good
+             :type function)))
 
 (defmethod build-op ((mutation clang-replace) software)
   `((:set . ,(targets mutation))))
 
-(defmethod pick-targets ((mutation clang-replace) good then bad)
-  (execute-picks bad then good))
+(defclass clang-replace-full (clang-replace)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-good _ t nil}
+             :type function)))
 
-(defclass clang-replace-full (clang-replace) ())
-(defmethod initialize-instance :around ((mutation clang-replace-full)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class nil))
+(defclass clang-replace-same (clang-replace)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-good _ nil t}
+             :type function)))
 
-(defclass clang-replace-same (clang-replace) ())
-(defmethod initialize-instance :around ((mutation clang-replace-same)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt nil :same-class t))
-
-(defclass clang-replace-full-same (clang-replace) ())
-(defmethod initialize-instance :around ((mutation clang-replace-full-same)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class t))
+(defclass clang-replace-full-same (clang-replace)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-good _ t t}
+             :type function)))
 
 ;; Cut
-(defclass clang-cut (clang-basic-mutation) ())
+(defclass clang-cut (clang-mutation)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform #'pick-bad-only
+             :type function)))
 
 (defmethod build-op ((mutation clang-cut) software)
   `((:cut . ,(targets mutation))))
 
-(defmethod pick-targets ((mutation clang-cut) good then bad)
-  (execute-picks bad))
-
-(defclass clang-cut-full (clang-cut) ())
-(defmethod initialize-instance :around ((mutation clang-cut-full)
-                                        &key software full-stmt same-class)
-  (declare (ignorable full-stmt same-class))
-  (call-next-method mutation :software software :full-stmt t :same-class nil))
+(defclass clang-cut-full (clang-cut)
+  ((targeter :initarg :targeter :accessor targeter
+             :initform {pick-bad-only _ t}
+             :type function)))
 
 ;; The -same variants only exist for symmetry (which makes it easier to
 ;; build the CDF). Since cut only picks one AST the same-class
@@ -504,7 +482,7 @@ already in scope, it will keep that name.")
   (if (member mutation-type
               '(:cut-decl :swap-decls :rename-variable))
       (decl-mutate-clang clang mutation-type)
-      (let ((mutation (make-instance mutation-type :software clang)))
+      (let ((mutation (make-instance mutation-type :object clang)))
         (apply-mutation clang mutation)
         (values clang mutation))))
 
@@ -583,6 +561,31 @@ already in scope, it will keep that name.")
                                        stmt2)))))
       (otherwise op))))
 
+;; For new-style mutations
+(defmethod apply-mutation ((software clang)
+                           (mutation clang-mutation))
+  (restart-case
+      ;; Sort the mutation operations and run them in reverse AST
+      ;; order (so AST numbers won't change in the middle).
+      (loop :for op :in (sort (recontextualize-mutation software mutation)
+                              #'> :key [{aget :stmt1} #'cdr])
+         :do
+         (setf (genome software) (clang-mutate software op))
+         :finally (return (genome software)))
+    (skip-mutation ()
+      :report "Skip mutation and return nil"
+      (values nil 1))
+    (tidy ()
+      :report "Call clang-tidy before re-attempting mutation"
+      (clang-tidy software)
+      (apply-mutation software mutation))
+    (mutate ()
+      :report "Apply another mutation before re-attempting mutations"
+      (mutate software)
+      (apply-mutation software mutation))))
+
+;; For old-style mutations.
+;; TODO: remove this and recontextualize-mutation-op
 (defmethod apply-mutation ((clang clang) op)
   (restart-case
     (clang-mutate clang (recontextualize-mutation-op clang op))

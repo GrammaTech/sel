@@ -6,12 +6,12 @@
 
 (defclass clang-template-mutation (clang-mutation) ())
 
-(defmethod initialize-instance :after ((mutation clang-template-mutation)
-                                       &key software)
+(defmethod initialize-instance :after ((mutation clang-template-mutation))
   (if (not (targets mutation))
       (setf (slot-value mutation 'targets)
-            (pick-template-targets mutation software))))
+            (pick-template-targets mutation (object mutation)))))
 
+;; refine-condition: add an additional boolean clause to an if condition
 (defclass refine-condition (clang-template-mutation) ())
 
 (defmethod pick-template-targets ((mutation refine-condition) software)
@@ -36,6 +36,7 @@
                            ,(merge-lists (aget :unbound--funs target-ast)
                                          (aget :unbound--funs expr-ast)))))))))
 
+;; add-condition: wrap a statement in an if
 (defclass add-condition (clang-mutation) ())
 
 (defmethod pick-template-targets ((mutation add-condition) software)
@@ -58,6 +59,7 @@
                            ,(merge-lists (aget :unbound--funs target-ast)
                                          (aget :unbound--funs expr-ast)))))))))
 
+;;; Helper functions
 (defun merge-lists (a b)
   (remove-duplicates (append a b) :test #'equal))
 
