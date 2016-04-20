@@ -4,21 +4,19 @@
 
 (in-package :software-evolution)
 
-(defclass clang-template-mutation (clang-mutation) ())
+(define-mutation clang-template-mutation (clang-mutation) ())
 
 ;; refine-condition: add an additional boolean clause to an if condition
-(defclass refine-condition (clang-template-mutation)
-  ((targeter :initarg :targeter :accessor targeter
-             :initform (lambda (software)
-                         (list (pick-target-condition software)
-                               (pick-condition-expr software)))
-             :type function)
-   (connector :reader connector)))
+(define-mutation refine-condition (clang-template-mutation)
+  ((connector :reader connector))
+  :targeter (lambda (software)
+              (list (pick-target-condition software)
+                    (pick-condition-expr software))))
 
-(defclass tighten-condition (refine-condition)
+(define-mutation tighten-condition (refine-condition)
   ((connector :reader connector :initform "&&")))
 
-(defclass loosen-condition (refine-condition)
+(define-mutation loosen-condition (refine-condition)
   ((connector :reader connector :initform "||")))
 
 (defmethod build-op ((mutation refine-condition) software)
@@ -39,14 +37,11 @@
                                          (aget :unbound--funs expr-ast)))))))))
 
 ;; add-condition: wrap a statement in an if
-(defclass add-condition (clang-mutation)
-  ((targeter :initarg :targeter :accessor targeter
-             :initform
-             (lambda (software)
-               (list (aget :counter (random-elt
-                                     (full-stmt-filter (asts software))))
-                     (pick-condition-expr software)))
-             :type function)))
+(define-mutation add-condition (clang-mutation) ()
+                 :targeter (lambda (software)
+                   (list (aget :counter (random-elt
+                                         (full-stmt-filter (asts software))))
+                         (pick-condition-expr software))))
 
 (defmethod build-op ((mutation add-condition) software)
   (bind (((target expr) (targets mutation))
