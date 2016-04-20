@@ -1461,7 +1461,7 @@ free variables.")
   (setf (genome-string obj)
         (with-temp-file-of (src (ext obj)) (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
-              (shell "clang-format ~a ~a "
+              (shell "clang-format ~a ~a -- ~a"
                      (if style
                          (format nil "-style=~a" style)
                          (format nil
@@ -1471,7 +1471,8 @@ free variables.")
                                      AllowShortFunctionsOnASingleLine: false~
                                      AllowShortIfStatementsOnASingleLine: false~
                                      AllowShortLoopsOnASingleLine: false}'"))
-                     src)
+                     src
+                     (mapconcat #'identity (flags obj) " "))
             (declare (ignorable stderr))
             (if (zerop exit) stdout (genome-string obj))))))
 
