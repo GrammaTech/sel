@@ -93,6 +93,7 @@
    :object
    :targeter
    :targets
+   :at-targets
    :compiler
    :prototypes
    :asts
