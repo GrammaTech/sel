@@ -106,7 +106,7 @@
                       (subseq (genome b) b-point))))
     (values new (list a-point b-point))))
 
-(defgeneric crossover-2pt-outward (a b)
+(defgeneric crossover-2pt-outward (a b c d e f)
   (:documentation "Perform two-point across-and-out crossover."))
 
 (defgeneric crossover-single-stmt (a b)
