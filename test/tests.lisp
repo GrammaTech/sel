@@ -949,9 +949,9 @@
       (evaluate *test* *hello-world*)
       (is (numberp (fitness *hello-world*)))
       (let ((variant (copy *hello-world*))
-            (op '(clang-insert
-                  (:stmt1 . 1)
-                  (:literal1 . "/* nothing */"))))
+            (op (make-instance 'clang-insert
+                               :targets '((:stmt1 . 1)
+                                          (:literal1 . "/* nothing */")))))
         (apply-mutation variant op)
         (is (null (fitness variant))
             "Fitness is null after `apply-mutation'")
@@ -969,7 +969,7 @@
       (evaluate *test* *hello-world*)
       (is (numberp (fitness *hello-world*)))
       (let ((variant (copy *hello-world*))
-            (op '(clang-cut (:stmt1 . 2))))
+            (op (make-instance 'clang-cut :targets '((:stmt1 . 2)))))
         (apply-mutation variant op)
         (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
         (is (equal :worse (second (second (first (hash-table-alist
@@ -982,7 +982,8 @@
       (evaluate *test* *hello-world*)
       (is (numberp (fitness *hello-world*)))
       (let ((variant (copy *hello-world*))
-            (op '(:swap (:stmt1 . 2) (:stmt2 . 2))))
+            (op (make-instance 'clang-swap
+                               :targets '((:stmt1 . 2) (:stmt2 . 2)))))
         (setf (fitness variant) nil)
         (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
         (is (equal :same (second (second (first (hash-table-alist
