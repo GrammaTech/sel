@@ -97,10 +97,12 @@
   ((targeter :initform #'pick-bad-bad)))
 
 (defmethod build-op ((mutation clang-swap) software)
-  `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
-          (:stmt2 . ,(aget :stmt2 (targets mutation))))
-    (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
-          (:stmt2 . ,(aget :stmt1 (targets mutation))))))
+  ;; Sort in reverse AST order so operations won't step on each other
+  (sort `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
+                (:stmt2 . ,(aget :stmt2 (targets mutation))))
+          (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
+                (:stmt2 . ,(aget :stmt1 (targets mutation)))))
+        #'> :key [{aget :stmt1} #'cdr]))
 
 (define-mutation clang-swap-full (clang-swap)
   ((targeter :initform {pick-bad-bad _ t nil})))
@@ -145,6 +147,91 @@
 (define-mutation clang-cut-full-same (clang-cut-full)
   ((targeter :initform {pick-bad-only _ t})))
 
+;; Cut Decl
+(define-mutation cut-decl (clang-mutation)
+  ((targeter :initform #'pick-cut-decl)))
+
+(defun pick-cut-decl (clang)
+  (let ((decls (with-class-filter "DeclStmt" (asts clang))))
+    (if (not decls)
+        'did-nothing
+        `((:stmt1 . ,(random-stmt decls))))))
+
+(defmethod build-op ((mutation cut-decl) clang)
+  (let* ((decl (aget :stmt1 (targets mutation)))
+         (the-block (enclosing-block clang decl))
+         (old-names (aget :declares (get-ast clang decl)))
+         (uses (apply #'append
+                      (mapcar (lambda (x) (get-children-using clang x the-block))
+                              old-names)))
+         (vars (remove-if {find _ old-names :test #'equal}
+                          (get-vars-in-scope clang
+                                             (if uses (car uses) the-block))))
+         (var (loop :for _ :in old-names :collecting
+                 (if vars (random-elt vars)
+                     "/* no vars available before first use of cut decl */"))))
+    (delete-decl-stmts clang the-block `((,decl . ,var)))))
+
+;; Swap Decls
+(define-mutation swap-decls (clang-swap)
+  ((targeter :initform #'pick-swap-decls)))
+
+(defmethod build-op :around ((mutation swap-decls) software)
+  (if (not (eq (targets mutation) 'did-nothing))
+      (call-next-method)))
+
+(defun pick-two (things)
+  (let ((this (random-elt things))
+        (that (random-elt things)))
+    (if (equal this that)
+        (pick-two things)
+        (values this that))))
+
+(defun pick-swap-decls (clang)
+  (labels
+      ((pick-from-block (the-block)
+         (if (equal the-block 0)
+             'did-nothing
+             (let ((decls
+                    (mapcar {aget :counter}
+                            (with-class-filter "DeclStmt"
+                              (mapcar {get-ast clang}
+                                      (aget :stmt--list
+                                            (get-ast clang the-block)))))))
+               (if (> 2 (length decls))
+                   (pick-from-block (enclosing-block clang the-block))
+                   (multiple-value-bind (stmt1 stmt2) (pick-two decls)
+                     `((:stmt1 . ,stmt1) (:stmt2 . ,stmt2))))))))
+    (pick-from-block (enclosing-block clang
+                                      (random-stmt (bad-asts clang))))))
+
+;; Rename variable
+(define-mutation rename-variable (clang-mutation)
+  ((targeter :initform #'pick-rename-variable)))
+
+(defun pick-rename-variable (clang)
+  (let* ((stmt (random-stmt (bad-asts clang)))
+         (used (get-used-variables clang stmt)))
+    (if used
+        (let* ((old-var (random-elt used))
+               (new-var (random-elt
+                         (or (remove-if {equal old-var}
+                                        (get-vars-in-scope clang stmt))
+                             (list old-var))))
+               (stmt1 (enclosing-full-stmt-or-block clang stmt)))
+          `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var)))
+        'did-nothing)))
+
+(defmethod build-op ((mutation rename-variable) software)
+  (if (not (eq (targets mutation) 'did-nothing))
+      (let ((stmt1 (aget :stmt1 (targets mutation)))
+            (old-var (aget :old-var (targets mutation)))
+            (new-var (aget :new-var (targets mutation))))
+        `((:set
+           (:stmt1 . ,stmt1)
+           (:literal1 . ,(rebind-uses software
+                                      stmt1
+                                      (list (cons old-var new-var)))))))))
 
 
 (defvar *ancestor-logging* nil
@@ -369,11 +456,11 @@ CLANG software object"))
   "The probability that a mutation will target a variable declaration.")
 
 (defvar *clang-mutation-types*
-  `(clang-cut      clang-cut-same     clang-cut-full        clang-cut-full-same
-    clang-insert   clang-insert-same  clang-insert-full     clang-insert-full-same
-    clang-swap     clang-swap-same    clang-swap-full       clang-swap-full-same
-    clang-replace  clang-replace-same clang-replace-full    clang-replace-full-same
-    :cut-decl :swap-decls :rename-variable ))
+  `(clang-cut      clang-cut-same     clang-cut-full      clang-cut-full-same
+    clang-insert   clang-insert-same  clang-insert-full   clang-insert-full-same
+    clang-swap     clang-swap-same    clang-swap-full     clang-swap-full-same
+    clang-replace  clang-replace-same clang-replace-full  clang-replace-full-same
+    cut-decl swap-decls rename-variable))
 
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
@@ -398,7 +485,7 @@ already in scope, it will keep that name.")
    (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) (- 1 bias)))) tails)))
 
 (defmethod decl-mutation-types-clang ((clang clang))
-  (uniform-probability '(:cut-decl :swap-decls :rename-variable)))
+  (uniform-probability '(cut-decl swap-decls rename-variable)))
 
 (defmethod basic-mutation-types-clang ((clang clang))
   (let* ((weights
@@ -453,45 +540,27 @@ already in scope, it will keep that name.")
              :text (format nil "Mutation type ~S not supported" mutation-type)
              :obj clang)))
 
-  (if (member mutation-type
-              '(:cut-decl :swap-decls :rename-variable))
-      (decl-mutate-clang clang mutation-type)
-      (let ((mutation (make-instance mutation-type :object clang)))
-        (apply-mutation clang mutation)
-        (values clang mutation))))
-
-(defmethod decl-mutate-clang ((clang clang) mutation-type)
-  (values clang
-          (case mutation-type
-            (:cut-decl
-             (run-cut-decl
-              clang
-              (with-class-filter "DeclStmt" (asts clang))))
-            (:swap-decls
-             (run-swap-decls
-              clang
-              (enclosing-block clang
-                               (random-stmt (bad-asts clang)))))
-            (:rename-variable
-             (run-rename-variable
-              clang
-              (random-stmt (bad-asts clang)))))))
+  (let ((mutation (make-instance mutation-type :object clang)))
+    (apply-mutation clang mutation)
+    (values clang mutation)))
 
 (defmethod recontextualize-mutation ((clang clang) mutation)
   (loop :for (op . properties) :in (build-op mutation clang)
      :collecting
      (let ((stmt1  (aget :stmt1  properties))
-           (stmt2  (aget :stmt2  properties))
-           (value1 (aget :value1 properties)))
+            (stmt2  (aget :stmt2  properties))
+            (value1 (aget :value1 properties))
+            (literal1 (aget :literal1 properties)))
        (cons op
              (cons (cons :stmt1 stmt1)
-                   (if (or stmt2 value1)
-                       (list (cons :value1
-                                   (recontextualize clang
-                                                    (if stmt2
-                                                        (get-ast clang stmt2)
-                                                        value1)
-                                                    stmt1)))))))))
+                   (if (or stmt2 value1 literal1)
+                       `((:value1 .
+                          ,(or literal1
+                               (recontextualize clang
+                                                (if stmt2
+                                                    (get-ast clang stmt2)
+                                                    value1)
+                                                stmt1))))))))))
 
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
@@ -539,10 +608,7 @@ already in scope, it will keep that name.")
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
   (restart-case
-      ;; Sort the mutation operations and run them in reverse AST
-      ;; order (so AST numbers won't change in the middle).
-      (loop :for op :in (sort (recontextualize-mutation software mutation)
-                              #'> :key [{aget :stmt1} #'cdr])
+      (loop :for op :in (recontextualize-mutation software mutation)
          :do
          (setf (genome software) (clang-mutate software op))
          :finally (return (genome software)))
@@ -1089,24 +1155,13 @@ free variables.")
                              :collecting (cons decl var)))
                         decl-replacements)))
         (decls (mapcar #'car decl-replacements)))
-    (apply-mutation clang
-                    `(:set (:stmt1 . ,the-block)
-                           (:value1 . ,(rebind-uses
-                                        clang
-                                        the-block
-                                        renames-list))))
-    (loop :for decl :in (sort decls #'>)
-       :do (apply-mutation clang `(:cut (:stmt1 . ,decl))))))
-
-(defmethod rename-variable-near-use ((clang clang) use new-name)
-  (let ((the-block (enclosing-block clang use))
-        (old-name (peel-bananas (aget :src--text (get-ast clang use)))))
-    (apply-mutation clang
-                    `(:set (:stmt1 . ,the-block)
-                           (:value1 . ,(rebind-uses
-                                        clang
-                                        the-block
-                                        (list (cons old-name new-name))))))))
+    (cons `(:set (:stmt1 . ,the-block)
+                 (:literal1 . ,(rebind-uses
+                                clang
+                                the-block
+                                renames-list)))
+          (loop :for decl :in (sort decls #'>)
+             :collecting `(:cut (:stmt1 . ,decl))))))
 
 (defmethod get-declared-variables ((clang clang) the-block)
   (apply #'append
@@ -1120,64 +1175,6 @@ free variables.")
   (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
      :when (find var (get-used-variables clang stmt) :test #'equal)
      :collecting stmt))
-
-(defmethod run-cut-decl ((clang clang) decls)
-  (if (not decls)
-    (list :cut-decl 'did-nothing)
-    (let* ((decl (random-stmt decls))
-           (the-block (enclosing-block clang decl))
-           (old-names (aget :declares (get-ast clang decl)))
-           (uses (apply #'append
-                   (mapcar (lambda (x) (get-children-using clang x the-block))
-                           old-names)))
-           (vars (remove-if {find _ old-names :test #'equal}
-                            (get-vars-in-scope clang
-                                               (if uses (car uses) the-block))))
-           (var (loop :for _ :in old-names :collecting
-                   (if vars (random-elt vars)
-                       "/* no vars available before first use of cut decl */"))))
-      (delete-decl-stmts clang the-block `((,decl . ,var)))
-      (list :cut-decl decl old-names var))))
-
-(defun pick-two (things)
-  (let ((this (random-elt things))
-        (that (random-elt things)))
-    (if (equal this that)
-        (pick-two things)
-        (values this that))))
-
-(defmethod run-swap-decls ((clang clang) the-block)
-  (if (equal the-block 0)
-      (list :swap-decls 'did-nothing)
-      (let ((decls
-             (mapcar {aget :counter}
-                     (with-class-filter "DeclStmt"
-                       (mapcar {get-ast clang}
-                               (aget :stmt--list
-                                     (get-ast clang the-block)))))))
-        (if (> 2 (length decls))
-            (run-swap-decls clang (enclosing-block clang the-block))
-            (multiple-value-bind (stmt1 stmt2) (pick-two decls)
-              (apply-mutation clang `(:swap (:stmt1 . ,stmt1)
-                                            (:stmt2 . ,stmt2)))
-              (list :swap-decls stmt1 stmt2))))))
-
-(defmethod run-rename-variable ((clang clang) stmt)
-  (let ((used (get-used-variables clang stmt)))
-    (if used
-        (let* ((old-var (random-elt used))
-               (new-var (random-elt
-                         (or (remove-if {equal old-var}
-                                        (get-vars-in-scope clang stmt))
-                             (list old-var)))))
-          (apply-mutation clang
-           `(:set
-             (:stmt1 . ,(enclosing-full-stmt-or-block clang stmt))
-             (:value1 . ,(rebind-uses clang
-                                      (enclosing-full-stmt-or-block clang stmt)
-                                      (list (cons old-var new-var))))))
-          (list :rename-variable stmt old-var new-var))
-        (list :rename-variable stmt 'did-nothing))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))
@@ -1354,7 +1351,7 @@ free variables.")
        (let* ((defn-replacements
                (mapcar (lambda (x) (cons (format nil "(|~a|)" x) x)) defns))
               (stmts-text (loop :for stmt :in stmts
-                             :collecting
+                               :collecting
                              (apply-replacements
                                 defn-replacements
                                 (process-full-stmt-text

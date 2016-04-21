@@ -191,7 +191,8 @@
 (defixture scopes-clang
   (:setup
     (setf *scopes*
-      (from-file (make-instance 'clang :compiler "clang" :flags '("-g -m32 -O0"))
+          (from-file (make-instance 'clang-control-picks
+                                    :compiler "clang" :flags '("-g -m32 -O0"))
                  (scopes-dir "scopes.c"))))
   (:teardown
     (setf *scopes* nil)))
@@ -1564,23 +1565,23 @@ Useful for printing or returning differences in the REPL."
 (deftest delete-decl-stmts-works ()
   (with-fixture scopes-clang
     (let ((variant (copy *scopes*)))
-      (run-cut-decl variant
-                    (list (get-ast *scopes*
-                                   (stmt-with-text *scopes* "int a;"))))
+      (apply-mutation
+       variant
+       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a;"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (let ((variant (copy *scopes*)))
-      (run-cut-decl variant
-                    (list (get-ast *scopes*
-                                   (stmt-with-text *scopes* "int d;"))))
+      (apply-mutation
+       variant
+       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int d;"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (let ((variant (copy *scopes*)))
-      (run-cut-decl variant
-                    (list (get-ast *scopes*
-                                   (stmt-with-text *scopes* "int f, g;"))))
+      (apply-mutation
+       variant
+       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int f, g;"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
@@ -1588,31 +1589,37 @@ Useful for printing or returning differences in the REPL."
 (deftest swap-decls-works ()
   (with-fixture scopes-clang
     ;; Check if the basic swap-decls mutation works.
-    (let ((variant (copy *scopes*)))
-      (run-swap-decls variant
-                      (aget :parent--counter
-                            (get-ast *scopes*
-                                     (stmt-with-text *scopes* "int a;"))))
+    (let ((variant (copy *scopes*))
+          (*bad-asts*
+           (list (get-ast *scopes*
+                          (stmt-with-text *scopes* "int a;")))))
+      (setf c variant)
+      (apply-mutation variant
+                      (make-instance 'swap-decls :object variant))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     ;; Check if swap-decls works when only one decl is in the
     ;; selected scope. The expected behavior is to crawl up to
     ;; the first enclosing scope with at least two decls.
-    (let ((variant (copy *scopes*)))
-      (run-swap-decls variant
-                      (aget :parent--counter
-                            (get-ast *scopes*
-                                     (stmt-with-text *scopes* "int d;"))))
+    (let ((variant (copy *scopes*))
+          (*bad-asts*
+           (list (get-ast *scopes*
+                          (stmt-with-text *scopes* "int d;")))))
+      (apply-mutation variant
+                      (make-instance 'swap-decls :object variant))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
 (deftest rename-variable-works ()
   (with-fixture scopes-clang
-    (let ((variant (copy *scopes*)))
-      (run-rename-variable variant
-                           (stmt-with-text *scopes* "b = 1"))
+    (let ((variant (copy *scopes*))
+          (*bad-asts*
+           (list (get-ast *scopes*
+                          (stmt-with-text *scopes* "b = 1")))))
+      (apply-mutation variant
+                      (make-instance 'rename-variable :object variant))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
