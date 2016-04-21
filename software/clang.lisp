@@ -600,14 +600,14 @@ already in scope, it will keep that name.")
     (call-next-method)))
 
 (defmethod mutation-key ((obj clang) op)
-  ;; Return a list of the OP keyword, and the classes of any stmt1 or
+  ;; Return a list of the mutation type, and the classes of any stmt1 or
   ;; stmt2 arguments.
   (cons
-   (car op)
+   (type-of op)
    (mapcar [{aget :ast--class} {get-ast obj} #'cdr]
            (remove-if-not [#'numberp #'cdr]
                           (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
-                                         (remove-if-not #'consp op))))))
+                                         (remove-if-not #'consp (targets op)))))))
 
 (defvar *clang-genome-separator* "//===============^=================="
   "String used to separate the mito and full portions of a clang genome.")

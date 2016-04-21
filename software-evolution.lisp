@@ -324,6 +324,9 @@ Also, ensures MUTATION is a member of superclasses"
 (defmethod at-targets ((mut mutation) targets &key (object (object mut)))
   (make-instance (type-of mut) :object object :targets targets))
 
+(defmethod mutation-key ((obj software) (mutation mutation))
+  (declare (ignorable obj)) (type-of mutation))
+
 
 ;;; Evolution
 (defvar *population* nil
