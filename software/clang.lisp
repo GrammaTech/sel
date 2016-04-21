@@ -444,38 +444,37 @@ already in scope, it will keep that name.")
   (uniform-probability '(:cut-decl :swap-decls :rename-variable)))
 
 (defmethod basic-mutation-types-clang ((clang clang))
-  (remove-if #'null
-    (loop for mutation-type in *clang-mutation-types*
-       collecting
-         (cond ((member mutation-type
-                        `(clang-cut-full-same clang-insert-full-same
-                          clang-swap-full-same clang-replace-full-same))
-                (cons mutation-type
-                      (/ (* *clang-full-stmt-bias*
-                            *clang-same-class-bias*)
-                         4)))
-               ((member mutation-type
-                        `(clang-cut-full  clang-insert-full
-                          clang-swap-full clang-replace-full))
-                (cons mutation-type
-                      (/ (* *clang-full-stmt-bias*
-                            (- 1 *clang-same-class-bias*))
-                         4)))
-               ((member mutation-type
-                        `(clang-cut-same  clang-insert-same
-                          clang-swap-same clang-replace-same))
-                (cons mutation-type
-                      (/ (* *clang-same-class-bias*
-                            (- 1 *clang-full-stmt-bias*))
-                         4)))
-               ((member mutation-type
-                        `(clang-cut clang-insert
-                          clang-swap clang-replace))
-                (cons mutation-type
-                      (/ (* (- 1 *clang-same-class-bias*)
-                            (- 1 *clang-full-stmt-bias*))
-                         4)))
-               (t nil)))))
+  (let* ((weights
+          (remove-if #'null
+           (loop for mutation-type in *clang-mutation-types*
+              collecting
+                (cond ((member mutation-type
+                               `(clang-cut-full-same clang-insert-full-same
+                                 clang-swap-full-same clang-replace-full-same))
+                       (cons mutation-type
+                             (* *clang-full-stmt-bias*
+                                *clang-same-class-bias*)))
+                      ((member mutation-type
+                               `(clang-cut-full  clang-insert-full
+                                 clang-swap-full clang-replace-full))
+                       (cons mutation-type
+                             (* *clang-full-stmt-bias*
+                                (- 1 *clang-same-class-bias*))))
+                      ((member mutation-type
+                               `(clang-cut-same  clang-insert-same
+                                 clang-swap-same clang-replace-same))
+                       (cons mutation-type
+                             (* *clang-same-class-bias*
+                                (- 1 *clang-full-stmt-bias*))))
+                      ((member mutation-type
+                               `(clang-cut clang-insert
+                                 clang-swap clang-replace))
+                       (cons mutation-type
+                             (* (- 1 *clang-same-class-bias*)
+                                (- 1 *clang-full-stmt-bias*))))
+                      (t nil)))))
+         (total-weight (reduce #'+ weights :key #'cdr)))
+    (mapc (lambda (w) (setf (cdr w) (/ (cdr w) total-weight))) weights)))
 
 (defmethod mutation-types-clang ((clang clang))
   (combine-with-bias *decl-mutation-bias*
