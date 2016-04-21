@@ -328,13 +328,23 @@ Optional argument OUT specifies an output stream."
        (last (return element))
        ((funcall test item element) (setf last t)))))
 
-(defun plist-drop (item list &key (test #'eql) &aux last)
+(defun plist-keys (plist)
+  (loop :for (key value) :on plist :by #'cddr :collect key))
+
+(defun plist-drop-if (predicate list &aux last)
   (nreverse (reduce (lambda (acc element)
                       (cond
                         (last (setf last nil) acc)
-                        ((funcall test item element) (setf last t) acc)
+                        ((funcall predicate element) (setf last t) acc)
                         (t (cons element acc))))
                     list :initial-value '())))
+
+(defun plist-drop (item list &key (test #'eql))
+  (plist-drop-if {funcall test item} list))
+
+(defun plist-merge (plist-1 plist-2)
+  "Merge arguments into a single plist with unique keys, prefer PLIST-1 items."
+  (append plist-1 (plist-drop-if {member _ (plist-keys plist-1)} plist-2)))
 
 (defun counts (list &key (test #'eql) key frac &aux totals)
   "Return an alist keyed by the unique elements of list holding their counts.
@@ -441,6 +451,10 @@ is replaced with replacement."
 (defun alist (key value &rest rest)
   "Create an association list from the alternating keys and values."
   (acons key value (if (null rest) nil (apply #'alist rest))))
+
+(defun alist-merge (alist-1 alist-2)
+  "Merge arguments into a single alist with unique keys, prefer ALIST-1 items."
+  (mapcar (lambda-bind ((key . value)) (cons key (or (aget key alist-1) value))) alist-2))
 
 (defun getter (key)
   "Return a function which gets KEY from an association list."

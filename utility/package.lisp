@@ -41,7 +41,10 @@
    :indexed
    :different-it
    :plist-get
+   :plist-keys
+   :plist-drop-if
    :plist-drop
+   :plist-merge
    :counts
    :proportional-pick
    :random-bool
@@ -55,6 +58,7 @@
    :replace-all
    :aget
    :alist
+   :alist-merge
    :getter
    :transpose
    :interleave
