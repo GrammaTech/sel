@@ -428,8 +428,9 @@
                (stmt1 (stmt-with-text variant
                                       "printf(\"Hello, World!\\n\")")))
           (apply-mutation variant
-                          `(:replace (:stmt1 . ,stmt1)
-                                     (:value1 . ((:src--text . "/* FOO */")))))
+                          `(clang-replace
+                            (:stmt1 . ,stmt1)
+                            (:value1 . ((:src--text . "/* FOO */")))))
           (is (different-asts (asts variant) (asts *hello-world*)))
           (is (not (equal (genome variant) (genome *hello-world*))))))))
 
@@ -439,7 +440,7 @@
         (let* ((variant (copy *hello-world*))
                (stmt1 (stmt-with-text variant
                                       "printf(\"Hello, World!\\n\")")))
-          (apply-mutation variant `(:cut (:stmt1 . ,stmt1)))
+          (apply-mutation variant `(clang-cut (:stmt1 . ,stmt1)))
           (is (different-asts (asts variant)
                               (asts *hello-world*)))
           (is (not (equal (genome variant)
@@ -456,7 +457,7 @@
               (stmt2 (stmt-with-text *hello-world*
                                      "return 0")))
           (apply-mutation variant
-                          `(:insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+                          `(clang-insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
           (is (different-asts (asts variant)
                               (asts *hello-world*)))
           (is (not (equal (genome variant)
@@ -473,7 +474,7 @@
               (stmt2 (stmt-with-text *hello-world*
                                      "return 0")))
           (apply-mutation variant
-                          `(:swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+                          `(clang-swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
           (is (different-asts (asts variant)
                               (asts *hello-world*)))
           (is (not (equal (genome variant)
@@ -764,8 +765,8 @@
   (with-fixture hello-world-clang-w-fodder
     (without-helpers
         (let ((variant (copy *hello-world*)))
-          (apply-mutation variant '(:insert-value (:stmt1 . 2)
-                                    (:value1 . "int i = 0;")))
+          (apply-mutation variant '(clang-insert (:stmt1 . 2)
+                                    (:literal1 . "int i = 0;")))
           (is (> (size variant)
                  (size *hello-world*)))
           (is (string/= (genome variant)
@@ -776,9 +777,9 @@
     (without-helpers
         (let ((variant (copy *hello-world*)))
           (apply-mutation variant
-                          `(:set
+                          `(clang-replace
                             (:stmt1 . ,(stmt-with-text variant "\"Hello, World!\\n\""))
-                            (:value1 . "\"Hello, mutate!\"")))
+                            (:literal1 . "\"Hello, mutate!\"")))
           (is (= (size variant)
                  (size *hello-world*)))
           (is (string/= (genome variant)
@@ -948,9 +949,9 @@
       (evaluate *test* *hello-world*)
       (is (numberp (fitness *hello-world*)))
       (let ((variant (copy *hello-world*))
-            (op '(:insert-value
+            (op '(clang-insert
                   (:stmt1 . 1)
-                  (:value1 . "/* nothing */"))))
+                  (:literal1 . "/* nothing */"))))
         (apply-mutation variant op)
         (is (null (fitness variant))
             "Fitness is null after `apply-mutation'")
@@ -968,7 +969,7 @@
       (evaluate *test* *hello-world*)
       (is (numberp (fitness *hello-world*)))
       (let ((variant (copy *hello-world*))
-            (op '(:cut (:stmt1 . 2))))
+            (op '(clang-cut (:stmt1 . 2))))
         (apply-mutation variant op)
         (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
         (is (equal :worse (second (second (first (hash-table-alist
@@ -1172,7 +1173,7 @@
     (without-helpers
         (let ((variant (copy *huf*)))
           (apply-mutation variant
-                          (cons :swap
+                          (cons 'clang-swap
                                 (list (cons :stmt1 (stmt-with-text variant "n > 0"))
                                       (cons :stmt2 (stmt-with-text variant "bc=0")))))
           (multiple-value-bind (result exit)
@@ -1207,7 +1208,7 @@ Useful for printing or returning differences in the REPL."
               (text-2 "bc=0"))
           ;; Apply the swap mutation.
           (apply-mutation variant
-                          (cons :swap
+                          (cons 'clang-swap
                                 (list (cons :stmt1
                                             (stmt-with-text variant text-1))
                                       (cons :stmt2
@@ -1232,7 +1233,7 @@ Useful for printing or returning differences in the REPL."
     (without-helpers
         (let ((variant (copy *huf*)))
           (apply-mutation variant
-                          (cons :insert
+                          (cons 'clang-insert
                                 (list (cons :stmt1
                                             (stmt-with-text variant "bc=0"))
                                       (cons :stmt2
@@ -1247,7 +1248,7 @@ Useful for printing or returning differences in the REPL."
     (without-helpers
         (let ((variant (copy *huf*)))
           (apply-mutation variant
-                          (cons :insert
+                          (cons 'clang-insert
                                 (list (cons :stmt1 (stmt-with-text variant "bc=0"))
                                       (cons :stmt2 (stmt-with-text variant "n > 0")))))
           ;; Original and modified strings of the difference.

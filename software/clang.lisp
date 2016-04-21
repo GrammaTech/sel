@@ -562,49 +562,6 @@ already in scope, it will keep that name.")
                                                     value1)
                                                 stmt1))))))))))
 
-;; Replace the basic mutation operations with versions that
-;; rebind free variables in the appropriate context.
-(defmethod recontextualize-mutation-op ((clang clang) op)
-  (let* ((mut (car op))
-         (properties (cdr op))
-         (stmt1  (aget :stmt1  properties))
-         (stmt2  (aget :stmt2  properties))
-         (value1 (aget :value1 properties)))
-
-    (case mut
-      (:insert
-       (cons :insert-value
-          (list (cons :stmt1 stmt1)
-                (cons :value1
-                      (recontextualize clang
-                                       (if stmt2
-                                           (get-ast clang stmt2)
-                                           value1)
-                                       stmt1)))))
-      (:replace
-       (cons :set
-          (list (cons :stmt1 stmt1)
-                (cons :value1
-                      (recontextualize clang
-                                       (if stmt2
-                                           (get-ast clang stmt2)
-                                           value1)
-                                       stmt1)))))
-      (:swap
-       (cons :set2
-          (list (cons :stmt1 stmt1)
-                (cons :value1
-                      (recontextualize clang
-                                       (get-ast clang stmt2)
-                                       stmt1))
-                (cons :stmt2 stmt2)
-                (cons :value2
-                      (recontextualize clang
-                                       (get-ast clang stmt1)
-                                       stmt2)))))
-      (otherwise op))))
-
-;; For new-style mutations
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
   (restart-case
@@ -624,22 +581,9 @@ already in scope, it will keep that name.")
       (mutate software)
       (apply-mutation software mutation))))
 
-;; For old-style mutations.
-;; TODO: remove this and recontextualize-mutation-op
-(defmethod apply-mutation ((clang clang) op)
-  (restart-case
-    (clang-mutate clang (recontextualize-mutation-op clang op))
-    (skip-mutation ()
-      :report "Skip mutation and return nil"
-      (values nil 1))
-    (tidy ()
-      :report "Call clang-tidy before re-attempting mutation"
-      (clang-tidy clang)
-      (apply-mutation clang op))
-    (mutate ()
-      :report "Apply another mutation before re-attempting mutations"
-      (mutate clang)
-      (apply-mutation clang op))))
+;; Convenience form for compilation fixers, crossover, etc
+(defmethod apply-mutation ((clang clang) (op list))
+  (apply-mutation clang (make-instance (car op) :targets (cdr op))))
 
 (defmethod apply-mutation :around ((obj clang) op)
   ;; TODO: another :ids :list :json special case removed here
