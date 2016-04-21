@@ -17,28 +17,19 @@
          :initform *mongo-default-host* :type simple-string)
    (port :initarg :port :accessor port
          :initform *mongo-default-port* :type integer)
-   (cached-size :type integer)
-   (cached-size-since :type integer)))
+   (size :type integer)))
 
 (defmethod initialize-instance :after ((db mongo-database) &key)
   (update-size db))
 
 (defmethod update-size ((obj mongo-database))
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
-    (setf (slot-value obj 'cached-size-since) (get-universal-time)
-          (slot-value obj 'cached-size)
+    (setf (slot-value obj 'size)
           (get-element "n" (first (second (db.count "asts" :all)))))))
 
 (defmethod print-object ((obj mongo-database) stream)
   (print-unreadable-object (obj stream :type t)
     (format stream "~a@~a:~d" (db obj) (host obj) (port obj))))
-
-(defmethod size ((obj mongo-database))
-  ;; Lets refresh every 15 minutes.
-  (with-slots (cached-size cached-size-since) obj
-    (if (< (- (get-universal-time) cached-size-since) (* 15 60))
-        cached-size
-        (update-size obj))))
 
 (defmethod find-snippets ((obj mongo-database)
                           &key full-stmt classes limit expanded-window)
