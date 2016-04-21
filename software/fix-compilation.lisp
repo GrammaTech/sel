@@ -121,11 +121,11 @@ expression match.")
               (aref match-data 0)))
            (scope-vars (get-vars-in-scope obj decl-stmt-id)))
       ;; Insert a BinaryOperator assignment after the DeclStmt binding
-      ;; it's first free variable to the newly declared variable.
+      ;; its first free variable to the newly declared variable.
       (when decl-stmt-id
         (apply-mutation obj
-          (list :insert-value (cons :stmt1 (1+ decl-stmt-id))
-                (cons :value1
+          (list 'clang-insert (cons :stmt1 (1+ decl-stmt-id))
+                (cons :literal1
                       (concatenate 'string
                         (apply-replacements
                          (cons
@@ -264,7 +264,7 @@ expression match.")
     (loop :for ast :in (sort (remove-if-not (lambda (x) x)
                                             (ht->list to-delete)) #'>)
        :when (not (= 0 ast))
-       :do (apply-mutation obj `(:cut (:stmt1 . ,ast))))))
+       :do (apply-mutation obj `(clang-cut (:stmt1 . ,ast))))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"
@@ -287,8 +287,8 @@ expression match.")
                              (aget :src--text ast)))
             :do (let ((pointer-variable (concatenate 'string "*" variable)))
                   (apply-mutation obj
-                    `(:replace . ((:stmt1 . ,(aget :counter ast))
-                                  (:value1 . ,(replace-fields-in-ast ast
+                    `(clang-replace . ((:stmt1 . ,(aget :counter ast))
+                                       (:value1 . ,(replace-fields-in-ast ast
                                                 `((:src--text .
                                                   ,(regex-replace variable
                                                      (aget :src--text ast)
