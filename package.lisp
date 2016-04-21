@@ -253,4 +253,28 @@
    :lexicase-select
    :*lexicase-predicate*
    :mutation
-   :targets))
+   :targets
+   :clang-cut
+   :clang-cut-same
+   :clang-cut-full
+   :clang-cut-full-same
+   :clang-insert
+   :clang-insert-same
+   :clang-insert-full
+   :clang-insert-full-same
+   :clang-swap
+   :clang-swap-same
+   :clang-swap-full
+   :clang-swap-full-same
+   :clang-replace
+   :clang-replace-same
+   :clang-replace-full
+   :clang-replace-full-same
+   :cut-decl
+   :swap-decls
+   :rename-variable
+   :replace-fodder-same
+   :replace-fodder-full
+   :insert-fodder
+   :insert-fodder-full
+   ))
