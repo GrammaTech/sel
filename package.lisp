@@ -42,6 +42,8 @@
    :mutate
    :mutate-clang
    :mutation-types-clang
+   :clang-mutation
+   :build-op
    :apply-mutation
    :text
    :obj
