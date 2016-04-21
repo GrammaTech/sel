@@ -518,10 +518,7 @@
   (with-fixture hello-world-clang
     (without-helpers
         (let ((software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-cut
-                 software-evolution::clang-cut-full
-                 software-evolution::clang-cut-same
-                 software-evolution::clang-cut-full-same))
+               '(clang-cut clang-cut-full clang-cut-same clang-cut-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
               (variant (copy *hello-world*)))
@@ -533,10 +530,7 @@
   (with-fixture hello-world-clang
     (without-helpers
         (let ((software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-cut
-                 software-evolution::clang-cut-full
-                 software-evolution::clang-cut-same
-                 software-evolution::clang-cut-full-same))
+               '(clang-cut clang-cut-full clang-cut-same clang-cut-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 0.0)
               (variant (copy *hello-world*)))
@@ -548,10 +542,8 @@
   (with-fixture hello-world-clang-control-picks
     (without-helpers
         (let ((software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-insert
-                 software-evolution::clang-insert-full
-                 software-evolution::clang-insert-same
-                 software-evolution::clang-insert-full-same))
+               '(clang-insert clang-insert-full
+                 clang-insert-same clang-insert-full-same))
               (*bad-asts* (asts-with-text *hello-world* "return 0"))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
@@ -567,10 +559,8 @@
         (let ((*bad-asts* (asts-with-text *hello-world* "printf"))
               (*good-asts* (asts-with-text *hello-world* "printf"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-insert
-                 software-evolution::clang-insert-full
-                 software-evolution::clang-insert-same
-                 software-evolution::clang-insert-full-same))
+               '(clang-insert clang-insert-full
+                 clang-insert-same clang-insert-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 0.0)
               (*clang-same-class-bias* 0.0)
@@ -583,10 +573,8 @@
     (without-helpers
         (let ((*bad-asts* (asts-with-text *hello-world* "0"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-insert
-                 software-evolution::clang-insert-full
-                 software-evolution::clang-insert-same
-                 software-evolution::clang-insert-full-same))
+               '(clang-insert clang-insert-full
+                 clang-insert-same clang-insert-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 0.0)
               (*clang-same-class-bias* 1.0)
@@ -599,10 +587,8 @@
     (without-helpers
         (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-insert
-                 software-evolution::clang-insert-full
-                 software-evolution::clang-insert-same
-                 software-evolution::clang-insert-full-same))
+               '(clang-insert clang-insert-full
+                 clang-insert-same clang-insert-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
               (*clang-same-class-bias* 1.0)
@@ -619,10 +605,8 @@
         (let ((*bad-asts* (asts-with-text *hello-world* "0"))
               (*good-asts* (asts-with-text *hello-world* "printf"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-replace
-                 software-evolution::clang-replace-full
-                 software-evolution::clang-replace-same
-                 software-evolution::clang-replace-full-same))
+               '(clang-replace clang-replace-full
+                 clang-replace-same clang-replace-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 0.0)
               (*clang-same-class-bias* 0.0)
@@ -637,10 +621,8 @@
               (*good-asts* (asts-with-text *hello-world*
                                            "0" "printf(\"Hello, World!\\n\")"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-replace
-                 software-evolution::clang-replace-full
-                 software-evolution::clang-replace-same
-                 software-evolution::clang-replace-full-same))
+               '(clang-replace clang-replace-full
+                 clang-replace-same clang-replace-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
               (*clang-same-class-bias* 0.0)
@@ -658,10 +640,8 @@
               (*good-asts* (asts-with-text *hello-world*
                                            "0" "printf"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-replace
-                 software-evolution::clang-replace-full
-                 software-evolution::clang-replace-same
-                 software-evolution::clang-replace-full-same))
+               '(clang-replace clang-replace-full
+                 clang-replace-same clang-replace-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 0.0)
               (*clang-same-class-bias* 1.0)
@@ -673,10 +653,8 @@
   (with-fixture hello-world-clang
     (without-helpers
         (let ((software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-replace
-                 software-evolution::clang-replace-full
-                 software-evolution::clang-replace-same
-                 software-evolution::clang-replace-full-same))
+               '(clang-replace clang-replace-full
+                 clang-replace-same clang-replace-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
               (*clang-same-class-bias* 1.0)
@@ -700,10 +678,8 @@
         (let ((*bad-asts* (asts-with-text *hello-world*
                                           "\"Hello, World!\\n\"" "0"))
               (software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-swap
-                 software-evolution::clang-swap-full
-                 software-evolution::clang-swap-same
-                 software-evolution::clang-swap-full-same))
+               '(clang-swap clang-swap-full
+                 clang-swap-same clang-swap-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 0.0)
               (*clang-same-class-bias* 0.0)
@@ -716,10 +692,8 @@
   (with-fixture hello-world-clang-control-picks
     (without-helpers
         (let ((software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-swap
-                 software-evolution::clang-swap-full
-                 software-evolution::clang-swap-same
-                 software-evolution::clang-swap-full-same))
+               '(clang-swap clang-swap-full clang-swap-same
+                 clang-swap-full-same))
               ;; Avoid swapping the function body
               (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast--class}]
                                      (asts *hello-world*)))
@@ -742,10 +716,8 @@
   (with-fixture hello-world-clang
     (without-helpers
         (let ((software-evolution::*clang-mutation-types*
-               '(software-evolution::clang-swap
-                 software-evolution::clang-swap-full
-                 software-evolution::clang-swap-same
-                 software-evolution::clang-swap-full-same))
+               '(clang-swap clang-swap-full clang-swap-same
+                 clang-swap-full-same))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
               (*clang-same-class-bias* 1.0)
