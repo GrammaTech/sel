@@ -279,30 +279,29 @@ Define an :around method on this function to record crossovers."))
 
 
 ;;; Mutation object
-(defclass mutation ()
-  ((object :initarg :object :accessor object :initform nil
-           :type software
-           :documentation "The software object to be mutated.")
-   (targeter :initarg :targeter :accessor targeter :initform nil
-             :type function
-             :documentation "A function from software -> targets.")
-   (targets :initarg :targets :reader get-targets :initform nil
-            :type (list * *)
-            :documentation "A calculated target set.")))
-
 (defmacro define-mutation (class-name superclasses slots &rest options)
   "Like `defclass' but inherits TARGETER slot-options from MUTATION.
 Also, ensures MUTATION is a member of superclasses"
-  `(defclass ,class-name ,(if (member 'mutation superclasses)
+  `(defclass ,class-name ,(if (member 'mutation (cons class-name superclasses))
                               superclasses
                               (append superclasses (list 'mutation)))
      ((targeter
        ,@(plist-merge
           (cdr (assoc 'targeter slots))
-          (list :reader 'targeter :initform '(function pick-bad) :type 'function
+          (list :initarg :targeter :reader 'targeter
+                :initform '(function pick-bad) :type 'function
                 :documentation "A function from software -> targets.")))
       ,@(remove-if [{eql 'targeter} #'car] slots))
      ,@options))
+
+(define-mutation mutation ()
+  ((object :initarg :object :accessor object :initform nil
+           :type software
+           :documentation "The software object to be mutated.")
+   (targets :initarg :targets :reader get-targets :initform nil
+            :type (list * *)
+            :documentation "A calculated target set."))
+  (:documentation "The base class of all software mutations."))
 
 (defmethod print-object ((mut mutation) stream)
   (print-unreadable-object (mut stream :type t)
