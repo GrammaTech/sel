@@ -86,6 +86,11 @@
    :update-mito-from-snippet
    :to-file
    :apply-path
+   :mutation
+   :define-mutation
+   :object
+   :targeter
+   :targets
    :compiler
    :prototypes
    :asts

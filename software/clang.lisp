@@ -77,24 +77,24 @@
   (:documentation "Build clang-mutate operation from a mutation."))
 
 ;; Insert
-(define-mutation clang-insert (clang-mutation) ()
-                 :targeter #'pick-bad-good)
+(define-mutation clang-insert (clang-mutation)
+  ((targeter :initform #'pick-bad-good)))
 
 (defmethod build-op ((mutation clang-insert) software)
   `((:insert-value . ,(targets mutation))))
 
-(define-mutation clang-insert-full (clang-insert) ()
-                 :targeter {pick-bad-good _ t nil})
+(define-mutation clang-insert-full (clang-insert)
+  ((targeter :initform {pick-bad-good _ t nil})))
 
-(define-mutation clang-insert-same (clang-insert) ()
-                 :targeter {pick-bad-good _ nil t})
+(define-mutation clang-insert-same (clang-insert)
+  ((targeter :initform {pick-bad-good _ nil t})))
 
-(define-mutation clang-insert-full-same (clang-insert) ()
-                 :targeter {pick-bad-good _ t t})
+(define-mutation clang-insert-full-same (clang-insert)
+  ((targeter :initform {pick-bad-good _ t t})))
 
 ;; Swap
-(define-mutation clang-swap (clang-mutation) ()
-                 :targeter #'pick-bad-bad)
+(define-mutation clang-swap (clang-mutation)
+  ((targeter :initform #'pick-bad-bad)))
 
 (defmethod build-op ((mutation clang-swap) software)
   `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
@@ -102,46 +102,48 @@
     (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
           (:stmt2 . ,(aget :stmt1 (targets mutation))))))
 
-(define-mutation clang-swap-full (clang-swap) ()
-                 :targeter {pick-bad-bad _ t nil})
+(define-mutation clang-swap-full (clang-swap)
+  ((targeter :initform {pick-bad-bad _ t nil})))
 
-(define-mutation clang-swap-same (clang-swap) ()
-                 :targeter {pick-bad-bad _ nil t})
+(define-mutation clang-swap-same (clang-swap)
+  ((targeter :initform {pick-bad-bad _ nil t})))
 
-(define-mutation clang-swap-full-same (clang-swap) ()
-                 :targeter {pick-bad-bad _ t t})
+(define-mutation clang-swap-full-same (clang-swap)
+  ((targeter :initform {pick-bad-bad _ t t})))
 
 ;; Replace
-(define-mutation clang-replace (clang-mutation) ()
-                 :targeter #'pick-bad-good)
+(define-mutation clang-replace (clang-mutation)
+  ((targeter :initform #'pick-bad-good)))
 
 (defmethod build-op ((mutation clang-replace) software)
   `((:set . ,(targets mutation))))
 
-(define-mutation clang-replace-full (clang-replace) ()
-                 :targeter {pick-bad-good _ t nil})
+(define-mutation clang-replace-full (clang-replace)
+  ((targeter :initform {pick-bad-good _ t nil})))
 
-(define-mutation clang-replace-same (clang-replace) ()
-                 :targeter {pick-bad-good _ nil t})
+(define-mutation clang-replace-same (clang-replace)
+  ((targeter :initform {pick-bad-good _ nil t})))
 
-(define-mutation clang-replace-full-same (clang-replace) ()
-                 :targeter {pick-bad-good _ t t})
+(define-mutation clang-replace-full-same (clang-replace)
+  ((targeter :initform {pick-bad-good _ t t})))
 
 ;; Cut
-(define-mutation clang-cut (clang-mutation) ()
-                 :targeter #'pick-bad-only)
+(define-mutation clang-cut (clang-mutation)
+  ((targeter :initform #'pick-bad-only)))
 
 (defmethod build-op ((mutation clang-cut) software)
   `((:cut . ,(targets mutation))))
 
-(define-mutation clang-cut-full (clang-cut) ()
-                 :targeter {pick-bad-only _ t})
+(define-mutation clang-cut-full (clang-cut)
+  ((targeter :initform {pick-bad-only _ t})))
 
 ;; The -same variants only exist for symmetry (which makes it easier to
 ;; build the CDF). Since cut only picks one AST the same-class
 ;; constraint has no effect.
-(define-mutation clang-cut-same (clang-cut) ())
-(define-mutation clang-cut-full-same (clang-cut-full) ())
+(define-mutation clang-cut-same (clang-cut)
+  ((targeter :initform #'pick-bad-only)))
+(define-mutation clang-cut-full-same (clang-cut-full)
+  ((targeter :initform {pick-bad-only _ t})))
 
 
 

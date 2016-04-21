@@ -281,7 +281,7 @@ Define an :around method on this function to record crossovers."))
 ;;; Mutation object
 (defclass mutation ()
   ((object :initarg :object :accessor object :initform nil
-           :type 'software
+           :type software
            :documentation "The software object to be mutated.")
    (targeter :initarg :targeter :accessor targeter :initform nil
              :type function
@@ -290,17 +290,19 @@ Define an :around method on this function to record crossovers."))
             :type (list * *)
             :documentation "A calculated target set.")))
 
-(defmacro define-mutation (class-name superclasses slots
-                           &key targeter)
-  (let* ((targeter-slot
-         `(targeter :accessor targeter
-                    :initform ,targeter
-                    :documentation "A function from software -> targets."))
-         (slots (if targeter
-                    (cons targeter-slot slots)
-                    slots)))
-    `(defclass ,class-name ,superclasses
-       ,slots)))
+(defmacro define-mutation (class-name superclasses slots &rest options)
+  "Like `defclass' but inherits TARGETER slot-options from MUTATION.
+Also, ensures MUTATION is a member of superclasses"
+  `(defclass ,class-name ,(if (member 'mutation superclasses)
+                              superclasses
+                              (append superclasses (list 'mutation)))
+     ((targeter
+       ,@(plist-merge
+          (cdr (assoc 'targeter slots))
+          (list :reader 'targeter :initform '(function pick-bad) :type 'function
+                :documentation "A function from software -> targets.")))
+      ,@(remove-if [{eql 'targeter} #'car] slots))
+     ,@options))
 
 (defmethod print-object ((mut mutation) stream)
   (print-unreadable-object (mut stream :type t)
@@ -316,6 +318,12 @@ Define an :around method on this function to record crossovers."))
       (when (object mut)
         (setf (slot-value mut 'targets)
               (funcall (targeter mut) (object mut))))))
+
+(defgeneric at-targets (mutation targets &key)
+  (:documentation "Return a copy of MUTATION with `targets' set to TARGETS."))
+
+(defmethod at-targets ((mut mutation) targets &key (object (object mut)))
+  (make-instance (type-of mut) :object object :targets targets))
 
 
 ;;; Evolution
