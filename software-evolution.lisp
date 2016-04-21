@@ -248,6 +248,18 @@ Define an :around method on this function to record mutations."))
   (declare (ignorable mutation))
   (setf (fitness obj) nil))
 
+(defgeneric apply-mutations (software mutation)
+  (:documentation "Apply MUTATION to every target in SOFTWARE.
+Returns the resulting software objects, also returns a list of the
+applied mutations."))
+
+(defmethod apply-mutations ((obj software) (mut mutation))
+  (setf (object mut) obj)
+  (loop :for targeted :in (mapcar {at-targets mut} (targets mut))
+     :collect targeted :into mutations
+     :collect (apply-mutation (copy obj) targeted) :into results
+     :finally (return (values results mutations))))
+
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects.
 Define an :around method on this function to record crossovers."))
