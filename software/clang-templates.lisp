@@ -8,10 +8,11 @@
 
 ;; refine-condition: add an additional boolean clause to an if condition
 (define-mutation refine-condition (clang-template-mutation)
-  ((connector :reader connector))
-  :targeter (lambda (software)
-              (list (pick-target-condition software)
-                    (pick-condition-expr software))))
+  
+  ((targeter :initform (lambda (software)
+                         (list (pick-target-condition software)
+                               (pick-condition-expr software))))
+   (connector :reader connector)))
 
 (define-mutation tighten-condition (refine-condition)
   ((connector :reader connector :initform "&&")))
@@ -37,11 +38,12 @@
                                          (aget :unbound--funs expr-ast)))))))))
 
 ;; add-condition: wrap a statement in an if
-(define-mutation add-condition (clang-mutation) ()
-                 :targeter (lambda (software)
-                   (list (aget :counter (random-elt
-                                         (full-stmt-filter (asts software))))
-                         (pick-condition-expr software))))
+(define-mutation add-condition (clang-mutation)
+  ((targeter :initform
+             (lambda (software)
+               (list (aget :counter (random-elt
+                                     (full-stmt-filter (asts software))))
+                     (pick-condition-expr software))))))
 
 (defmethod build-op ((mutation add-condition) software)
   (bind (((target expr) (targets mutation))
