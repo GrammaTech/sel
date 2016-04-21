@@ -243,7 +243,7 @@ elements.")
   (:documentation "Apply MUTATION to SOFTWARE.
 Define an :around method on this function to record mutations."))
 
-(defmethod apply-mutation :before ((obj software) mutation)
+(defmethod apply-mutation :before ((obj software) (mut mutation))
   ;; Mutation removes previously calculated fitness values.
   (declare (ignorable mutation))
   (setf (fitness obj) nil))
