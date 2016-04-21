@@ -75,6 +75,8 @@
    :crossover-2pt-outward
    :crossover-single-stmt
    :crossover-all-functions
+   :intraprocedural-2pt-crossover
+   :select-crossover-points
    :clang-tidy
    :clang-format
    :clang-mutate
@@ -198,6 +200,7 @@
    :enclosing-full-stmt
    :enclosing-block
    :nesting-relation
+   :match-nesting
    :block-successor
    :show-full-stmt
    :full-stmt-text

@@ -45,6 +45,7 @@
 (defvar *gcd*         nil "Holds the gcd software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *huf*         nil "Holds the huf software object.")
+(defvar *scopes*      nil "Holds the scopes software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
 (defvar *base-dir*
@@ -67,10 +68,15 @@
   (make-pathname :directory (append *base-dir* (list "huf")))
   "Location of the huf example directory")
 
+(defvar *scopes-dir*
+  (make-pathname :directory (append *base-dir* (list "scopes")))
+  "Location of the scopes example directory")
+
 (defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
 (defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
 (defun clang-format-dir (filename) (merge-pathnames filename *clang-format-dir*))
 (defun huf-dir (filename) (merge-pathnames filename *huf-dir*))
+(defun scopes-dir (filename) (merge-pathnames filename *scopes-dir*))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -181,6 +187,14 @@
     (inject-missing-swap-macro *huf*))
   (:teardown
     (setf *huf* nil)))
+
+(defixture scopes-clang
+  (:setup
+    (setf *scopes*
+      (from-file (make-instance 'clang :compiler "clang" :flags '("-g -m32 -O0"))
+                 (scopes-dir "scopes.c"))))
+  (:teardown
+    (setf *scopes* nil)))
 
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
@@ -882,7 +896,7 @@
         (is (= *fitness-evals* 5))))))
 
 
-;;; Helper function to avoid hard-coded statement numbers.
+;;; Helper functions to avoid hard-coded statement numbers.
 (defun stmt-with-text (obj text)
   (let ((the-snippet
          (find-if (lambda (snippet)
@@ -890,6 +904,17 @@
                          (equal text
                                 (peel-bananas (aget :src--text snippet)))))
                   (asts obj))))
+    (aget :counter the-snippet)))
+
+(defun stmt-starting-with-text (obj text)
+  (let ((the-snippet
+         (find-if
+          (lambda (snippet)
+            (and snippet
+                 (equal 0
+                        (search text
+                                (peel-bananas (aget :src--text snippet))))))
+          (asts obj))))
     (aget :counter the-snippet)))
 
 (deftest swap-can-recontextualize ()
@@ -1088,3 +1113,152 @@ Useful for printing or returning differences in the REPL."
                                    genome)))
       (is (compile-p (fix-compilation broken-clang 1)))
       (is (compile-p (fix-compilation broken-gcc 1))))))
+
+(deftest basic-2pt-crossover-works ()
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int d;"))
+           (a-stmt2 (stmt-with-text *scopes* "d = 5"))
+           (b-stmt1 (stmt-with-text *scopes* "int e;"))
+           (b-stmt2 (stmt-with-text *scopes* "c = 10"))
+           (target-a-pts (cons a-stmt1 a-stmt2)))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is ok)
+        (is (compile-p variant))
+        (is (equal effective-a-pts target-a-pts))))))
+
+(deftest crossover-can-match-nesting ()
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
+           (a-stmt2 (stmt-with-text *scopes* "int e;"))
+           (b-stmt1 (stmt-with-text *scopes* "c = 6"))
+           (b-stmt2 (stmt-with-text *scopes* "e = 8"))
+           (target-a-pts
+            (cons (stmt-starting-with-text *scopes* "while (d > 0)")
+                  a-stmt2)))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (equal effective-a-pts target-a-pts)))))
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
+           (a-stmt2 (stmt-with-text *scopes* "int e;"))
+           (b-stmt1 (stmt-with-text *scopes* "a = 11"))
+           (b-stmt2 (stmt-with-text *scopes* "c = 13"))
+           (target-a-pts
+            (cons (stmt-starting-with-text *scopes* "for (b = 2;")
+                  (stmt-starting-with-text *scopes* "if (b == 7)"))))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (equal effective-a-pts target-a-pts))))))
+
+(deftest crossover-can-rebind-text ()
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int b;"))
+           (a-stmt2 (stmt-with-text *scopes* "int c;"))
+           (b-stmt1 (stmt-with-text *scopes* "a = 11"))
+           (b-stmt2 (stmt-with-text *scopes* "a = 11")))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant)))))
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int b;"))
+           (a-stmt2 (stmt-with-text *scopes* "int c;"))
+           (b-stmt1 (stmt-with-text *scopes* "d = 5"))
+           (b-stmt2 (stmt-with-text *scopes* "--d")))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))))))
+
+(deftest crossover-the-world ()
+  ;; Entire text of a function
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int a;"))
+           (a-stmt2 (stmt-with-text *scopes* "return a + b + c"))
+           (b-stmt1 a-stmt1)
+           (b-stmt2 a-stmt2))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))
+        (is (= (length (asts *scopes*))
+               (length (asts variant)))))))
+  ;; A single statement (the first one)
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int a;"))
+           (a-stmt2 a-stmt1)
+           (b-stmt1 a-stmt1)
+           (b-stmt2 a-stmt2))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))
+        (is (= (length (asts *scopes*))
+               (length (asts variant)))))))
+  ;; A single statement (the last one)
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "return a + b + c"))
+           (a-stmt2 a-stmt1)
+           (b-stmt1 a-stmt1)
+           (b-stmt2 a-stmt2))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))
+        (is (= (length (asts *scopes*))
+               (length (asts variant)))))))
+  ;; A single complex statement
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-starting-with-text *scopes*
+                                             "for (b = 2;"))
+           (a-stmt2 a-stmt1)
+           (b-stmt1 a-stmt1)
+           (b-stmt2 a-stmt2))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))
+        (is (= (length (asts *scopes*))
+               (length (asts variant)))))))
+  ;; A statement and one of its descendants
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-starting-with-text *scopes*
+                                             "for (b = 2;"))
+           (a-stmt2 (stmt-with-text *scopes* "c = 4"))
+           (b-stmt1 a-stmt1)
+           (b-stmt2 a-stmt2))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))
+        (is (= (length (asts *scopes*))
+               (length (asts variant)))))))
+  ;; A statement and one of its ancestors
+  (with-fixture scopes-clang
+    (let* ((a-stmt1 (stmt-with-text *scopes* "c = 4"))
+           (a-stmt2 (stmt-starting-with-text *scopes*
+                                             "for (b = 2;"))
+           (b-stmt1 a-stmt1)
+           (b-stmt2 a-stmt2))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt1 b-stmt2)
+        (is (compile-p variant))
+        (is (= (length (asts *scopes*))
+               (length (asts variant))))))))
+

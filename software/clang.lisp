@@ -252,9 +252,10 @@ CLANG software object"))
     :replace  :replace-same :replace-full    :replace-full-same
     :cut-decl :swap-decls   :rename-variable ))
 
+;; TODO: no longer needed, clean up
 (defvar *clang-crossover-cdf*
   (cdf (uniform-probability
-        (list #'crossover-2pt-outward
+        (list
               #'crossover-single-stmt
               #'crossover-all-functions)))
   "The crossover strategy probability distribution, as a CDF.")
@@ -687,7 +688,7 @@ Otherwise return the whole FULL-GENOME"
   (aget :full--stmt (get-ast clang stmt)))
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
-  (if (= index 0) nil
+  (if (or (null index) (= index 0)) nil
     (let* ((ast (get-ast clang index))
            (blockp (equal (aget :ast--class ast) "CompoundStmt")))
       (if (and blockp child-index)
@@ -781,7 +782,7 @@ Otherwise return the whole FULL-GENOME"
         (source (intercalate (format nil "~%}~%")
                    (loop for scope in scopes for k from 0
                       collecting (unlines
-                         (mapcar #'process-full-stmt-text scope))))))
+                                  (mapcar #'process-full-stmt-text scope))))))
     (loop for scope in scopes for scope-depth from 0 do (progn
       (loop for stmt in scope do (progn
         (loop for decl in (aget :declares stmt)
@@ -906,26 +907,28 @@ free variables.")
        :do (appendf (gethash (first vars) scope-vars) (second vars)))
     (list->ht (aget :unbound--vals snippet) free-vars)
     (list->ht (aget :unbound--funs snippet) free-funs :key #'car :value #'cdr)
-    (apply-replacements
-     (append
-      (loop for var being the hash-keys of free-vars
-         using (hash-value index)
-         collecting
-           (cons var (or (random-scoped-replacement
-                          var
-                          (gethash (if respect-depth index 0) scope-vars))
-                         (format nil "/* no bound vars in scope at depth ~a */"
-                                 index))))
-      (loop for fun being the hash-keys of free-funs
-         using (hash-value fun-info)
-         collecting
-           (cons fun
-                 (or (random-function-name
-                      (prototypes clang)
-                      :original-name (peel-bananas fun)
-                      :arity (third fun-info))
-                     "/* no functions? */"))))
-     raw-code)))
+    (let ((replacements
+           (append
+            (loop for var being the hash-keys of free-vars
+               using (hash-value index)
+               collecting
+                 (cons var
+                   (or (random-scoped-replacement
+                        var
+                        (gethash (if respect-depth index 0) scope-vars))
+                           (format nil "/* no bound vars in scope at depth ~a */"
+                                   index))))
+            (loop for fun being the hash-keys of free-funs
+               using (hash-value fun-info)
+               collecting
+                 (cons fun
+                       (or (random-function-name
+                            (prototypes clang)
+                            :original-name (peel-bananas fun)
+                            :arity (third fun-info))
+                           "/* no functions? */")))))_)
+      (values (apply-replacements replacements raw-code)
+              replacements))))
 
 (defun rebind-uses-in-snippet (snippet renames-list)
   (let ((renames (make-hash-table :test 'equal)))
@@ -1000,9 +1003,9 @@ free variables.")
            (the-block (enclosing-block clang decl))
            (old-names (aget :declares (get-ast clang decl)))
            (uses (apply #'append
-                    (mapcar (lambda (x) (get-children-using clang x the-block))
-                            old-names)))
-           (vars (remove-if (lambda (x) (find x old-names :test #'equal))
+                   (mapcar (lambda (x) (get-children-using clang x the-block))
+                           old-names)))
+           (vars (remove-if {find _ old-names :test #'equal}
                             (get-vars-in-scope clang
                                                (if uses (car uses) the-block))))
            (var (loop :for _ :in old-names :collecting
@@ -1052,31 +1055,31 @@ free variables.")
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
 
-(defmethod prepare-sequence-snippet ((clang clang) depth full-seq
-                                     &key (full-tail nil))
-  (let* ((initial-seq (loop for scope in full-seq
-                         for i from 0 to (1- depth)
-                         collecting scope))
-         (last-seq (nth depth full-seq))
-         (tail-size
-          (if full-tail
-              (length last-seq)
-              (if (null initial-seq)
-                  (1+ (random (length last-seq)))
-                  (random (1+ (length last-seq))))))
-         (init (if (null initial-seq)
-                   (car last-seq)
-                   (caar initial-seq)))
-         (last (loop for stmt in last-seq
-                  for i from 1 to tail-size
-                  collecting stmt)))
-    (acons   :stmt1 (aget :counter init)
-      (acons :stmt2 (if (= 0 tail-size)
-                        (nth-enclosing-block clang (1- depth)
-                                             (aget :counter init))
-                        (aget :counter (last-elt last)))
-        (acons :respect--depth t
-               (create-sequence-snippet (append initial-seq (list last))))))))
+(defmethod prepare-sequence-snippet ((clang clang) end depth full-seq)
+  (let ((last-seq (if (null end)
+                      nil
+                      (remove-if [{>= end} {aget :counter}]
+                                 (nth depth full-seq)))))
+    (if (and (equal (length full-seq) 1) (null last-seq))
+        (alist :stmt2 end :src--text "")
+        (let* ((initial-seq (loop for scope in full-seq
+                               for i from 0 to (1- depth)
+                               collecting scope))
+               (tail-size (length last-seq))
+               (init (if (null initial-seq)
+                         (car last-seq)
+                         (caar initial-seq)))
+               (last (loop for stmt in last-seq
+                        for i from 1 to tail-size
+                        collecting stmt)))
+          (acons   :stmt1 (aget :counter init)
+            (acons :stmt2 (if (= 0 tail-size)
+                              (nth-enclosing-block clang (1- depth)
+                                                   (aget :counter init))
+                              (aget :counter (last-elt last)))
+                   (acons :respect--depth t
+                          (create-sequence-snippet
+                           (append initial-seq (list last))))))))))
 
 ;; Perform 2-point crossover. The second point will be within the same
 ;; function as the first point, but may be in an enclosing scope.
@@ -1084,39 +1087,23 @@ free variables.")
 ;; to the second crossover point will be matched between a and b.
 ;; Free variables are rebound in such a way as to ensure that they are
 ;; bound to variables that are declared at each point of use.
-(defmethod crossover-2pt-outward ((a clang) (b clang))
-  (let ((a-begin (enclosing-full-stmt a (pick-bad a)))
-        (b-begin (enclosing-full-stmt b (pick-bad b)))
-        (variant (copy a)))
-
-    (if (and a-begin b-begin)
-        ;; The selected initial crossover points are valid; choose a
-        ;; nesting depth and find the second crossover points.
-        (let* ((depth (random (min (nesting-depth a a-begin)
-                                   (nesting-depth b b-begin))))
-               (a-snippet (prepare-sequence-snippet a
-                            depth (full-stmt-successors a a-begin t)))
-               (b-snippet (prepare-sequence-snippet b
-                            depth (full-stmt-successors b b-begin t))))
-
-          ;; Now execute the crossover, replacing a-snippet in variant
-          ;; with the recontextualized b-snippet.
-          (update-mito-from-snippet variant b-snippet (mitochondria b))
-          (apply-mutation
-           variant
-           (cons :set-range
-                 (list
-                  (cons :stmt1 (aget :stmt1 a-snippet))
-                  (cons :stmt2 (aget :stmt2 a-snippet))
-                  (cons :value1 (bind-free-vars variant b-snippet a-begin)))))
-          (values variant
-                  (list (aget :stmt1 a-snippet) (aget :stmt2 a-snippet))
-                  (list (aget :stmt1 b-snippet) (aget :stmt2 b-snippet))
-                  t))
-
-        ;; The selected initial crossover points were not valid; return a
-        ;; copy of a.
-        (values variant nil nil nil))))
+;;
+;; Modifies parameter A.
+;;
+(defmethod crossover-2pt-outward
+    ((a clang) (b clang) a-begin a-end b-begin b-end)
+  (let* ((depth (- (nesting-depth a a-begin) (nesting-depth a a-end)))
+         (b-snippet (prepare-sequence-snippet b
+                                              infinity
+                       depth (full-stmt-successors b b-begin t))))
+    ;; Now generate text for the recontextualized b-snippet.
+    (update-mito-from-snippet a b-snippet (mitochondria b))
+    (multiple-value-bind (text replacements)
+        (bind-free-vars a b-snippet a-begin)
+      (alist :src--text text
+             :replacements replacements
+             :stmt1 a-begin
+             :stmt2 a-end))))
 
 (defmethod select-before ((clang clang) depth pt)
   (let ((the-block (enclosing-block clang
@@ -1151,26 +1138,29 @@ free variables.")
         (needle (get-ast-text clang child)))
     (apply-replacements (list (cons needle "")) haystack)))
 
-(defmethod create-inward-snippet ((clang clang) stmt1 stmt2)
-  (let ((compound-stmt1-p (equal (get-ast-class clang stmt1) "CompoundStmt")))
-    (multiple-value-bind (text defns vals funs macros includes types)
-        (prepare-inward-snippet clang stmt1 stmt2 '())
-      (alist
-       :stmt1 (if compound-stmt1-p
-                  stmt1
-                  (enclosing-full-stmt clang stmt1))
-       :stmt2 (enclosing-full-stmt clang stmt2)
-       :src--text text
-       :macros (remove-duplicates macros :test #'equal :key #'car)
-       :includes (remove-duplicates includes :test #'equal)
-       :types (remove-duplicates types :test #'equal)
-       :unbound--vals (remove-duplicates vals :test #'equal :key #'car)
-       :unbound--funs (remove-duplicates funs :test #'equal :key #'car)
-       :scope-adjustments
-       (loop :for scoped-defns :on (reverse (if compound-stmt1-p
-                                                (cons '() defns)
-                                                defns))
-          :collecting (apply #'append scoped-defns))))))
+(defmethod create-inward-snippet ((clang clang) stmt1 stmt2 &optional replacements)
+  (if (or (null stmt1) (null stmt2))
+      (alist :stmt1 stmt1 :stmt2 stmt2 :src--text "")
+      (let ((compound-stmt1-p (equal (get-ast-class clang stmt1)
+                                     "CompoundStmt")))
+        (multiple-value-bind (text defns vals funs macros includes types)
+            (prepare-inward-snippet clang stmt1 stmt2 '())
+          (alist
+           :stmt1 (if compound-stmt1-p
+                      stmt1
+                      (enclosing-full-stmt clang stmt1))
+           :stmt2 (enclosing-full-stmt clang stmt2)
+           :src--text (apply-replacements replacements text)
+           :macros (remove-duplicates macros :test #'equal :key #'car)
+           :includes (remove-duplicates includes :test #'equal)
+           :types (remove-duplicates types :test #'equal)
+           :unbound--vals (remove-duplicates vals :test #'equal :key #'car)
+           :unbound--funs (remove-duplicates funs :test #'equal :key #'car)
+           :scope-adjustments
+           (loop :for scoped-defns :on (reverse (if compound-stmt1-p
+                                                    (cons '() defns)
+                                                    defns))
+              :collecting (apply #'append scoped-defns)))))))
 
 (defmethod prepare-inward-snippet ((clang clang) stmt1 stmt2 defns)
   (cond
@@ -1178,7 +1168,8 @@ free variables.")
      (values "" nil nil nil))
     ((equal (get-ast-class clang stmt1) "CompoundStmt")
      (multiple-value-bind (text more-defns vals funs macros includes types)
-         (prepare-inward-snippet clang (car (aget :stmt--list (get-ast clang stmt1))) stmt2 defns)
+         (prepare-inward-snippet clang
+            (car (aget :stmt--list (get-ast clang stmt1))) stmt2 defns)
        (values (format nil "{~%~a" text) more-defns
                vals funs macros includes types)))
     (t
@@ -1192,9 +1183,12 @@ free variables.")
             (full-stmt1 (enclosing-full-stmt clang stmt1))
             (full-stmt2 (enclosing-full-stmt clang stmt2))
             (stmt2-ancestor (ancestor-after clang the-block stmt2))
-            (stmts (remove-if-not (lambda (pt) (and (<= full-stmt1 pt)
-                                                    (< pt stmt2-ancestor)))
-                                  (aget :stmt--list (get-ast clang the-block)))))
+            (stmts (remove-if-not
+                    (lambda (pt) (and (<= full-stmt1 pt)
+                                      (< pt stmt2-ancestor)))
+                    (aget :stmt--list (get-ast clang the-block)))))
+       (when (= the-block (enclosing-block clang stmt2))
+         (appendf stmts (list stmt2)))
        (loop :for stmt :in stmts
           :when (aget :declares (get-ast clang stmt))
           :do (loop :for decl :in (aget :declares (get-ast clang stmt))
@@ -1204,7 +1198,8 @@ free variables.")
        (loop :for stmt :in (cons stmt2-ancestor stmts)
           :do (let ((ast (get-ast clang stmt)))
                 (loop :for var :in (aget :unbound--vals ast)
-                   :when (not (find (peel-bananas (car var)) defns :test #'equal))
+                   :when (not (find (peel-bananas (car var)) defns
+                                    :test #'equal))
                    :do (push var local-free-vars))
                 (setf local-free-funs (append local-free-funs
                                               (aget :unbound--funs ast)))
@@ -1216,14 +1211,16 @@ free variables.")
                                           (aget :types ast)))))
        (let* ((defn-replacements
                (mapcar (lambda (x) (cons (format nil "(|~a|)" x) x)) defns))
-              (text (format nil "~{~a~%~}~a"
-                            (loop :for stmt :in stmts
-                               :collecting 
-                               (apply-replacements defn-replacements (full-stmt-text clang stmt)))
-                            (apply-replacements
-                             defn-replacements
-                             (if (= the-block (enclosing-block clang stmt2))
-                                 (full-stmt-text clang full-stmt2)
+              (stmts-text (loop :for stmt :in stmts
+                             :collecting
+                             (apply-replacements
+                                defn-replacements
+                                (full-stmt-text clang stmt))))
+              (text (if (= the-block (enclosing-block clang stmt2))
+                        (unlines stmts-text)
+                        (format nil "~{~a~%~}~a" stmts-text
+                                (apply-replacements
+                                 defn-replacements
                                  (stmt-text-minus clang stmt2-ancestor
                                                   (ancestor-after clang stmt2-ancestor stmt2)))))))
          (if (= the-block (enclosing-block clang stmt2))
@@ -1238,7 +1235,7 @@ free variables.")
                  (prepare-inward-snippet clang
                                          (ancestor-after clang stmt2-ancestor stmt2)
                                          stmt2 defns)
-               (values (format nil "~a~%~a" text more-text)
+               (values (concatenate 'string text more-text)
                        (cons local-defns more-defns)
                        local-free-vars
                        local-free-funs
@@ -1246,68 +1243,55 @@ free variables.")
                        local-includes
                        local-types))))))))
 
-(defmethod crossover-2pt-inward ((a clang) (b clang))
-  (let ((a-end (enclosing-full-stmt a (pick-bad a)))
-        (b-end (enclosing-full-stmt b (pick-bad b)))
-        (variant (copy a)))
-    
-    (if (and a-end b-end)
-        (let* ((depth (random (min (nesting-depth a a-end)
-                                   (nesting-depth b b-end))))
-               (a-begin (select-before a depth a-end))
-               (b-begin (select-before b depth b-end))
-               (a-snippet (create-inward-snippet a a-begin a-end))
-               (b-snippet (create-inward-snippet b b-begin b-end))
-               (succ (full-stmt-successors variant
-                                           (aget :stmt2 a-snippet)
-                                           t))
-               (removals (loop :for vars
-                            :in (reverse
-                                 (aget :scope-adjustments a-snippet))
-                            :for index :from 0
-                            :collecting (list index vars)))
-               (additions (loop :for vars
-                             :in (reverse
-                                  (aget :scope-adjustments b-snippet))
-                             :for index :from 0
-                             :collecting (list index vars)))
-               (tail (acons :scope--removals removals
-                       (acons :scope--additions additions
-                         (prepare-sequence-snippet
-                          variant
-                          (1- (length (aget :scope-adjustments b-snippet)))
-                          succ
-                          :full-tail t))))
-               (snippet
-                (alist
-                 :src--text
-                 (format nil "~a~%~a"
-                   (bind-free-vars variant
+(defmethod crossover-2pt-inward ((a clang) (b clang) a-range b-range
+                                 &optional replacements)
+  (let* ((a-begin (car a-range))
+         (a-end (cdr a-range))
+         (b-begin (car b-range))
+         (b-end (cdr b-range))
+         (a-snippet (create-inward-snippet a a-begin a-end replacements))
+         (b-snippet (create-inward-snippet b b-begin b-end replacements))
+         (succ (if a-snippet
+                   (full-stmt-successors a
+                                         (aget :stmt2 a-snippet)
+                                         t)
+                   nil))
+         (removals (loop :for vars
+                      :in (reverse
+                           (aget :scope-adjustments a-snippet))
+                      :for index :from 0
+                      :collecting (list index vars)))
+         (additions (loop :for vars
+                       :in (reverse
+                            (aget :scope-adjustments b-snippet))
+                       :for index :from 0
+                       :collecting (list index vars)))
+         (tail (acons :scope--removals removals
+                      (acons :scope--additions additions
+                             (prepare-sequence-snippet
+                              a
+                              a-end
+                              (1- (length (aget :scope-adjustments b-snippet)))
+                              succ))))
+         (snippet
+          (alist
+           :src--text
+           (format nil "~a~%~a"
+                   (bind-free-vars a
                                    b-snippet
                                    (aget :stmt1 a-snippet))
-                   (bind-free-vars variant
+                   (bind-free-vars a
                                    tail
                                    (aget :stmt2 a-snippet)))
-                 :macros (aget :macros b-snippet)
-                 :includes (aget :includes b-snippet)
-                 :types (aget :types b-snippet)
-                 :unbound--vals (aget :unbound--vals tail)
-                 :unbound--funs (aget :unbound--funs tail))))
-          (update-mito-from-snippet variant snippet (mitochondria b))
-          (apply-mutation
-           variant
-           (cons :set-range
-                 (list
-                  (cons :stmt1 (aget :stmt1 a-snippet))
-                  (cons :stmt2 (aget :stmt2 tail))
-                  (cons :value1 (aget :src--text snippet)))))
-          (values variant
-                  (list a-begin a-end)
-                  (list b-begin b-end)
-                  t))
-        ;; The selected final crossover points were not valid; return
-        ;; a copy of a.
-        (values variant nil nil nil))))
+           :macros (aget :macros b-snippet)
+           :includes (aget :includes b-snippet)
+           :types (aget :types b-snippet)
+           :unbound--vals (aget :unbound--vals tail)
+           :unbound--funs (aget :unbound--funs tail))))
+    (update-mito-from-snippet a snippet (mitochondria b))
+    (alist :src--text (aget :src--text snippet)
+           :stmt1 (aget :stmt1 a-snippet)
+           :stmt2 (aget :stmt2 tail))))
 
 (defmethod common-ancestor ((clang clang) x y)
   (let* ((x-ancestry
@@ -1330,23 +1314,108 @@ free variables.")
        :do (setf last xp))
     last))
 
+(defmethod ancestor-of ((clang clang) x y)
+  (= (common-ancestor clang x y) x))
+
 (defmethod scopes-between ((clang clang) stmt ancestor)
   (length (remove-if
            (lambda (ast)
              (or (>= (aget :counter ast) stmt)
-                 (<= (aget :counter ast) ancestor)
+                 (< (aget :counter ast) ancestor)
                  (not (equal (aget :ast--class ast) "CompoundStmt"))))
            (get-parent-asts clang (get-ast clang stmt)))))
 
 (defmethod nesting-relation ((clang clang) x y)
-  (let ((ancestor (common-ancestor clang x y)))
-    (cons (scopes-between clang x ancestor)
-          (scopes-between clang y ancestor))))
+  (if (or (null x) (null y)) nil
+      (let* ((ancestor (common-ancestor clang x y)))
+        (cond
+          ((= x ancestor) (cons 0 (scopes-between clang y ancestor)))
+          ((= y ancestor) (cons (scopes-between clang x ancestor) 0))
+          (t              (cons (1- (scopes-between clang x ancestor))
+                                (1- (scopes-between clang y ancestor))))))))
+
+;; Split the path between two nodes into the disjoint union of
+;; a path appropriate for across-and-out crossover, followed by a
+;; path approppriate for across-and-in.  Returns the pair of
+;; path descriptions, or NIL for a path that is not needed.
+(defmethod split-vee ((clang clang) x y)
+  (let* ((ancestor (common-ancestor clang x y))
+         (stmt (ancestor-after clang ancestor x)))
+    (cond
+      ((= x stmt)
+       (values nil (cons x y)))
+      ((or (= x ancestor) (= y ancestor))
+       (values (cons x y) (list y)))
+      (t
+       (values (cons x stmt)
+               (cons (block-successor clang stmt) y))))))
+
+(defmethod match-nesting ((a clang) xs (b clang) ys)
+  (let* (;; Nesting relationships for xs, ys
+         (x-rel (nesting-relation a (car xs) (cdr xs)))
+         (y-rel (nesting-relation b (car ys) (cdr ys)))
+         ;; Parent statements of points in xs, ys
+         (xps (cons (enclosing-full-stmt a
+                      (aget :parent--counter (get-ast a (car xs))))
+                    (enclosing-full-stmt a
+                      (aget :parent--counter (get-ast a (cdr xs))))))
+         (yps (cons (enclosing-full-stmt b
+                      (aget :parent--counter (get-ast b (car ys))))
+                    (enclosing-full-stmt b
+                      (aget :parent--counter (get-ast b (cdr ys)))))))
+    ;; If nesting relations don't match, replace one of the points with
+    ;; its parent's enclosing full statement and try again.
+    (cond
+      ((< (car x-rel) (car y-rel))
+       (match-nesting a xs b (cons (car yps) (cdr ys))))
+      ((< (cdr x-rel) (cdr y-rel))
+       (match-nesting a xs b (cons (car ys) (cdr yps))))
+      ((> (car x-rel) (car y-rel))
+       (match-nesting a (cons (car xps) (cdr xs)) b ys))
+      ((> (cdr x-rel) (cdr y-rel))
+       (match-nesting a (cons (car xs) (cdr xps)) b ys))
+      (t
+       (multiple-value-bind (a-in a-out)
+           (split-vee a (car xs) (cdr xs))
+         (multiple-value-bind (b-in b-out)
+             (split-vee b (car ys) (cdr ys))
+           (values a-in a-out b-in b-out)))))))
 
 (defmethod intraprocedural-2pt-crossover ((a clang) (b clang)
                                           a-begin a-end
                                           b-begin b-end)
-  nil)
+  (let ((variant (copy a)))
+    (multiple-value-bind (a-in a-out b-in b-out)
+        (match-nesting a (cons a-begin a-end)
+                       b (cons b-begin b-end))
+      (let* ((outward-snippet
+              (if (null b-in)
+                  (alist :src--text "") ; No corresponding text from b
+                  (crossover-2pt-outward variant b
+                                         (car a-in) (cdr a-in)
+                                         (car b-in) (cdr b-in))))
+             (inward-snippet
+              (if (and (null (cdr a-out)) (null (cdr b-out)))
+                  (alist :src--text "") ; No corresponding text from b
+                  (crossover-2pt-inward
+                   variant b a-out b-out
+                   (aget :replacements outward-snippet)))))
+        (apply-mutation
+         variant
+         `(:set-range
+           (:stmt1 . ,(or (aget :stmt1 outward-snippet)
+                          (aget :stmt1 inward-snippet)))
+           (:stmt2 . ,(or (aget :stmt2 inward-snippet)
+                          (aget :stmt2 outward-snippet)))
+           (:value1 . ,(concatenate 'string
+                                    (aget :src--text outward-snippet)
+                                    (aget :src--text inward-snippet)))))
+        (values variant
+                (cons a-in a-out)
+                (cons b-begin b-end)
+                t
+                (cons (or (car a-in) (car a-out))
+                      (or (cdr a-out) (cdr a-in))))))))
 
 ;; Perform crossover by selecting a single AST from a and b to cross.
 ;; Free variables are recontextualized to the insertion point.
@@ -1406,18 +1475,42 @@ free variables.")
                 when (> *crossover-function-probability* (random 1.0))
                 collect bodies)))))
 
+(defmethod select-crossover-points ((clang clang))
+  (let* ((proto (random-elt (prototypes clang)))
+         (first (1+ (first (aget :stmt--range proto))))
+         (last (if (< (second (aget :stmt--range proto)) first)
+                   first
+                   (second (aget :stmt--range proto))))
+         (stmt1 (enclosing-full-stmt
+                 clang
+                 (+ first (random (1+ (- last first))))))
+         (stmt2 (enclosing-full-stmt
+                 clang
+                 (+ first (random (1+ (- last first)))))))
+    (cond ((or (ancestor-of clang stmt1 stmt2)
+                 (ancestor-of clang stmt2 stmt1))
+             (values stmt1 stmt2))
+          ((< stmt2 stmt1)
+           (values stmt2 stmt1))
+          (t
+           (values stmt1 stmt2)))))
+
 (defmethod crossover ((a clang) (b clang))
-  (let ((crossover-method (random-pick *clang-crossover-cdf*)))
-    (multiple-value-bind (crossed a-point b-point changedp)
-        (funcall crossover-method a b)
-      (when (and changedp *ancestor-logging*)
-        (push (alist :cross-with (ancestors b)
-                     :crossover crossover-method
-                     :id (get-fresh-ancestry-id))
-              (ancestors crossed)))
-      (if changedp
-          (values crossed a-point b-point)
-          (values crossed nil nil)))))
+  (multiple-value-bind (a-stmt1 a-stmt2)
+      (select-crossover-points a)
+    (multiple-value-bind (b-stmt1 b-stmt2)
+        (select-crossover-points b)
+      (multiple-value-bind (crossed a-point b-point changedp)
+          (intraprocedural-2pt-crossover
+           a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+        (when (and changedp *ancestor-logging*)
+          (push (alist :cross-with (ancestors b)
+                       :crossover '2pt
+                       :id (get-fresh-ancestry-id))
+                (ancestors crossed)))
+        (if changedp
+            (values crossed a-point b-point)
+            (values crossed nil nil))))))
 
 (defmethod genome-string-without-separator ((obj clang))
   (unlines (remove-if {string= *clang-genome-separator*}
