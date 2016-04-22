@@ -240,13 +240,13 @@ elements.")
                          (text condition) (obj condition))))))
 
 (defgeneric apply-mutation (software mutation)
-  (:documentation "Apply MUTATION to SOFTWARE.
+  (:documentation "Apply MUTATION to SOFTWARE, return the resulting software.
 Define an :around method on this function to record mutations."))
 
 (defgeneric apply-all-mutations (software mutation)
   (:documentation "Apply MUTATION to every target in SOFTWARE.
-Returns the resulting software objects, also returns a list of the
-applied mutations."))
+Returns the resulting software objects.  Returns a list of the applied
+mutations as an optional second value."))
 
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects.
@@ -336,10 +336,7 @@ Also, ensures MUTATION is a member of superclasses"
   (setf (object mut) obj)
   (loop :for targeted :in (mapcar {at-targets mut} (targets mut))
      :collect targeted :into mutations
-     :collect (let ((copy (copy obj)))
-                (setf (genome copy)
-                      (apply-mutation (copy obj) targeted))
-                copy) :into results
+     :collect (apply-mutation (copy obj) targeted) :into results
      :finally (return (values results mutations))))
 
 

@@ -65,7 +65,7 @@
       (unless (zerop exit)
         (error (make-condition 'mutate
                  :text "llvm-mutate" :obj llvm :op op)))
-      (if (equal (car op) :ids) stderr stdout))))
+      llvm)))
 
 (defmethod phenome ((llvm llvm) &key bin)
   (with-temp-file-of (src (ext llvm)) (genome llvm)

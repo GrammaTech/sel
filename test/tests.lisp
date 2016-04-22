@@ -873,27 +873,27 @@
 (deftest some-range-cut-mutations ()
   (with-fixture range
     (without-helpers
-        (is (tree-equal (apply-mutation *soft* '(:cut 2))
+        (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
                         '((0 . 1) (1 . 1) (1 . 2))))
-      (is (tree-equal (apply-mutation *soft* '(:cut 2))
+      (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
                       '((0 . 1) (2 . 2))))
-      (is (tree-equal (apply-mutation *soft* '(:cut 1))
+      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
                       '((0 . 0) (2 . 2))))
-      (is (tree-equal (apply-mutation *soft* '(:cut 1))
+      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
                       '((0 . 0))))
-      (is (null (apply-mutation *soft* '(:cut 0)))))))
+      (is (null (genome (apply-mutation *soft* '(:cut 0))))))))
 
 (deftest some-range-insert-mutations ()
   (with-fixture range
     (without-helpers
-        (is (tree-equal (apply-mutation *soft* '(:insert 0 2))
+        (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
                         '((2 . 2) (0 . 2) (1 . 1) (1 . 2))))
-      (is (tree-equal (apply-mutation *soft* '(:insert 5 1))
+      (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 1)))
                       '((2 . 2) (0 . 2) (1 . 1) (0 . 0) (1 . 2))))
-      (is (tree-equal (apply-mutation *soft* '(:insert 5 2))
+      (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 2)))
                       '((2 . 2) (0 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))
       (is (tree-equal
-           (apply-mutation *soft* '(:insert 2 1))
+           (genome (apply-mutation *soft* '(:insert 2 1)))
            '((2 . 2) (0 . 0) (0 . 0) (1 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2)))))))
 
 (deftest some-range-swap-mutations ()
@@ -1018,18 +1018,18 @@
   (with-fixture diff
     (with-static-reference *soft*
       (without-helpers
-        (is (tree-equal (apply-mutation *soft* '(:cut 2))
+        (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
                         '(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
-        (is (tree-equal (apply-mutation *soft* '(:cut 1))
+        (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
                         '(((:CODE 1)) ((:CODE 4)))))
-        (is (tree-equal (apply-mutation *soft* '(:cut 1))
+        (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
                         '(((:CODE 1)))))))))
 
 (deftest some-diff-insert-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
       (without-helpers
-        (is (tree-equal (apply-mutation *soft* '(:insert 0 2))
+        (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
                         '(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
                           ((:CODE 3)) ((:CODE 4)))))))))
 
@@ -1037,7 +1037,7 @@
   (with-fixture diff
     (with-static-reference *soft*
       (without-helpers
-        (is (tree-equal (apply-mutation *soft* '(:swap 0 2))
+        (is (tree-equal (genome (apply-mutation *soft* '(:swap 0 2)))
                         '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4)))))))))
 
 (deftest diff-copy ()
@@ -1067,18 +1067,18 @@
   (with-fixture diff-array
     (with-static-reference *soft*
       (without-helpers
-        (is (equalp (apply-mutation *soft* '(:cut 2))
+        (is (equalp (genome (apply-mutation *soft* '(:cut 2)))
                     #(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
-        (is (equalp (apply-mutation *soft* '(:cut 1))
+        (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
                     #(((:CODE 1)) ((:CODE 4)))))
-        (is (equalp (apply-mutation *soft* '(:cut 1))
+        (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
                     #(((:CODE 1)))))))))
 
 (deftest some-diff-array-insert-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
       (without-helpers
-        (is (equalp (apply-mutation *soft* '(:insert 0 2))
+        (is (equalp (genome (apply-mutation *soft* '(:insert 0 2)))
                     #(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
                       ((:CODE 3)) ((:CODE 4)))))))))
 
@@ -1086,7 +1086,7 @@
   (with-fixture diff-array
     (with-static-reference *soft*
       (without-helpers
-        (is (equalp (apply-mutation *soft* '(:swap 0 2))
+        (is (equalp (genome (apply-mutation *soft* '(:swap 0 2)))
                     #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4)))))))))
 
 ;;; Population tests
