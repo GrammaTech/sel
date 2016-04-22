@@ -17,7 +17,7 @@
          :initform *mongo-default-host* :type simple-string)
    (port :initarg :port :accessor port
          :initform *mongo-default-port* :type integer)
-   (size :type integer)))
+   (size :reader size :type integer)))
 
 (defmethod initialize-instance :after ((db mongo-database) &key)
   (update-size db))
