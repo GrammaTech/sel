@@ -1507,14 +1507,21 @@ free variables.")
                     (second (aget :stmt--range proto)))))
     (+ first (random (1+ (- last first))))))
 
+(defmethod select-intraprocedural-pair ((clang clang))
+  ;; Select a statement uniformly first, then another statement from the
+  ;; same function. Selecting the function first would bias crossover
+  ;; towards ASTs in smaller functions.
+  (let ((proto (random-elt (prototypes clang))))
+    (values (random-point-in-function clang proto)
+            (random-point-in-function clang proto)
+            proto)))
+
 (defmethod select-crossover-points ((a clang) (b clang))
-  (let* ((a-proto (random-elt (prototypes a)))
-         (b-proto (random-elt (prototypes b))))
-    (values
-     (random-point-in-function a a-proto)
-     (random-point-in-function a a-proto)
-     (random-point-in-function b b-proto)
-     (random-point-in-function b b-proto))))
+  (multiple-value-bind (a-stmt1 a-stmt2)
+      (select-intraprocedural-pair a)
+    (multiple-value-bind (b-stmt1 b-stmt2)
+        (select-intraprocedural-pair b)
+      (values a-stmt1 a-stmt2 b-stmt1 b-stmt2))))
 
 (defmethod select-crossover-points-with-corrections ((a clang) (b clang))
   (multiple-value-bind (a-pt1 a-pt2 b-pt1 b-pt2)
