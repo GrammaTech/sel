@@ -45,7 +45,7 @@
    :clang-mutation
    :build-op
    :apply-mutation
-   :apply-mutations
+   :apply-all-mutations
    :text
    :obj
    :op
