@@ -243,7 +243,7 @@ elements.")
   (:documentation "Apply MUTATION to SOFTWARE.
 Define an :around method on this function to record mutations."))
 
-(defgeneric apply-mutations (software mutation)
+(defgeneric apply-all-mutations (software mutation)
   (:documentation "Apply MUTATION to every target in SOFTWARE.
 Returns the resulting software objects, also returns a list of the
 applied mutations."))
@@ -332,11 +332,14 @@ Also, ensures MUTATION is a member of superclasses"
   (declare (ignorable mutation))
   (setf (fitness obj) nil))
 
-(defmethod apply-mutations ((obj software) (mut mutation))
+(defmethod apply-all-mutations ((obj software) (mut mutation))
   (setf (object mut) obj)
   (loop :for targeted :in (mapcar {at-targets mut} (targets mut))
      :collect targeted :into mutations
-     :collect (apply-mutation (copy obj) targeted) :into results
+     :collect (let ((copy (copy obj)))
+                (setf (genome copy)
+                      (apply-mutation (copy obj) targeted))
+                copy) :into results
      :finally (return (values results mutations))))
 
 
