@@ -252,14 +252,6 @@ CLANG software object"))
     :replace  :replace-same :replace-full    :replace-full-same
     :cut-decl :swap-decls   :rename-variable ))
 
-;; TODO: no longer needed, clean up
-(defvar *clang-crossover-cdf*
-  (cdf (uniform-probability
-        (list
-              #'crossover-single-stmt
-              #'crossover-all-functions)))
-  "The crossover strategy probability distribution, as a CDF.")
-
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
 

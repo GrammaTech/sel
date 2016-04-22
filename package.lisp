@@ -73,8 +73,6 @@
    :select-before
    :crossover-2pt-inward
    :crossover-2pt-outward
-   :crossover-single-stmt
-   :crossover-all-functions
    :intraprocedural-2pt-crossover
    :select-crossover-points
    :prototype-containing-ast
@@ -138,7 +136,6 @@
    :*crossover-function-probability*
    :*fodder-selection-bias*
    :*clang-mutation-cdf*
-   :*clang-crossover-cdf*
    :*free-var-decay-rate*
    :*matching-free-var-retains-name-bias*
    :*matching-free-function-retains-name-bias*
