@@ -1142,6 +1142,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (equal effective-a-pts target-a-pts)))))
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
@@ -1155,6 +1156,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (equal effective-a-pts target-a-pts))))))
 
 (deftest crossover-can-rebind-text ()
@@ -1167,6 +1169,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant)))))
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int b;"))
@@ -1177,6 +1180,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))))))
 
 (deftest crossover-the-world ()
@@ -1190,6 +1194,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant)))))))
@@ -1203,6 +1208,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant)))))))
@@ -1216,6 +1222,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant)))))))
@@ -1230,6 +1237,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant)))))))
@@ -1244,6 +1252,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant)))))))
@@ -1258,6 +1267,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
