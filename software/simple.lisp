@@ -124,7 +124,8 @@
               (:swap (let ((tmp (copy-seq genome)))
                        (setf (elt tmp s1) (elt genome s2))
                        (setf (elt tmp s2) (elt genome s1))
-                       tmp)))))))
+                       tmp))))
+      simple)))
 
 (defmethod mcmc-step ((simple simple))
   (let ((point (random (size simple))))
@@ -405,7 +406,8 @@ and use this to initialize the RANGE object."))
                      (:insert (range-insert genome s1 (range-nth s2 genome)))
                      (:swap   (range-swap   genome s1 s2
                                             (range-nth s1 genome)
-                                            (range-nth s2 genome))))))))
+                                            (range-nth s2 genome)))))
+      range)))
 
 (defun range-subseq (range start &optional end)
   (flet ((from (c range)

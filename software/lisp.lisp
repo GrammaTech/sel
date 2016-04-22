@@ -84,7 +84,8 @@
         (:swap (let ((left  (copy-tree (subtree genome s1)))
                      (right (copy-tree (subtree genome s2))))
                  (setf (subtree genome s1) right)
-                 (setf (subtree genome s2) left)))))))
+                 (setf (subtree genome s2) left)))))
+    lisp))
 
 (defmethod crossover ((a lisp) (b lisp))
   (let ((range (min (size a) (size b))))

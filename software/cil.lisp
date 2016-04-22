@@ -51,10 +51,11 @@
                  :text (format nil "cil-mutate:~a" stderr)
                  :obj cil
                  :op op)))
-      stdout)))
+      (setf (genome cil) stdout)))
+  cil)
 
 (defun instrument (cil &optional trace-file)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
-  (setf (genome cil) (apply-mutation cil (list :trace trace-file)))
+  (apply-mutation cil (list :trace trace-file))
   cil)

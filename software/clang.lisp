@@ -532,15 +532,7 @@ already in scope, it will keep that name.")
   (unless (> (size clang) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
 
-  (mutate-clang clang (pick-mutation-type clang)))
-
-(defmethod mutate-clang ((clang clang) mutation-type)
-  (unless (member mutation-type *clang-mutation-types*)
-    (error (make-condition 'mutate
-             :text (format nil "Mutation type ~S not supported" mutation-type)
-             :obj clang)))
-
-  (let ((mutation (make-instance mutation-type :object clang)))
+  (let ((mutation (make-instance (pick-mutation-type clang) :object clang)))
     (apply-mutation clang mutation)
     (values clang mutation)))
 
@@ -568,7 +560,7 @@ already in scope, it will keep that name.")
       (loop :for op :in (recontextualize-mutation software mutation)
          :do
          (setf (genome software) (clang-mutate software op))
-         :finally (return (genome software)))
+         :finally (return software))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))

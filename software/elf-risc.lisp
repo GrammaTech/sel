@@ -87,6 +87,7 @@
                                  (cdr (assoc :code
                                              (elt (genome elf) (third mut))))))
             (:swap   (elf-swap elf (second mut) (third mut)))))
+    elf
     (assert (= (length (genome elf)) starting-length)
             (elf) "mutation ~S changed size of genome [~S -> ~S]"
             mut starting-length (length (genome elf)))))
