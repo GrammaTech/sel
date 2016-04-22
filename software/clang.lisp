@@ -1485,42 +1485,55 @@ free variables.")
                 when (> *crossover-function-probability* (random 1.0))
                 collect bodies)))))
 
-(defmethod select-crossover-points ((clang clang))
-  (let* ((proto (random-elt (prototypes clang)))
-         (first (1+ (first (aget :stmt--range proto))))
-         (last (if (< (second (aget :stmt--range proto)) first)
-                   first
-                   (second (aget :stmt--range proto))))
-         (stmt1 (enclosing-full-stmt
-                 clang
-                 (+ first (random (1+ (- last first))))))
-         (stmt2 (enclosing-full-stmt
-                 clang
-                 (+ first (random (1+ (- last first)))))))
+(defmethod reorder-crossover-points ((clang clang) x y)
+  (let ((stmt1 (if (equal (get-ast-class clang x) "CompoundStmt")
+                   x
+                   (enclosing-full-stmt clang x)))
+        (stmt2 (if (equal (get-ast-class clang y) "CompoundStmt")
+                   y
+                   (enclosing-full-stmt clang y))))
     (cond ((or (ancestor-of clang stmt1 stmt2)
-                 (ancestor-of clang stmt2 stmt1))
-             (values stmt1 stmt2))
+               (ancestor-of clang stmt2 stmt1))
+           (values stmt1 stmt2))
           ((< stmt2 stmt1)
            (values stmt2 stmt1))
           (t
            (values stmt1 stmt2)))))
 
+(defmethod random-point-in-function ((clang clang) proto)
+  (let* ((first (1+ (first (aget :stmt--range proto))))
+         (last  (if (< (second (aget :stmt--range proto)) first)
+                    first
+                    (second (aget :stmt--range proto)))))
+    (+ first (random (1+ (- last first))))))
+
+(defmethod select-crossover-points ((a clang) (b clang))
+  (let* ((a-proto (random-elt (prototypes a)))
+         (b-proto (random-elt (prototypes b))))
+    (multiple-value-bind (a-stmt1 a-stmt2)
+        (reorder-crossover-points a
+          (random-point-in-function a a-proto)
+          (random-point-in-function a a-proto))
+      (multiple-value-bind (b-stmt1 b-stmt2)
+          (reorder-crossover-points b
+            (random-point-in-function b b-proto)
+            (random-point-in-function b b-proto))
+        (values a-stmt1 a-stmt2 b-stmt1 b-stmt2)))))
+
 (defmethod crossover ((a clang) (b clang))
-  (multiple-value-bind (a-stmt1 a-stmt2)
-      (select-crossover-points a)
-    (multiple-value-bind (b-stmt1 b-stmt2)
-        (select-crossover-points b)
-      (multiple-value-bind (crossed a-point b-point changedp)
-          (intraprocedural-2pt-crossover
-           a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
-        (when (and changedp *ancestor-logging*)
-          (push (alist :cross-with (ancestors b)
-                       :crossover '2pt
-                       :id (get-fresh-ancestry-id))
-                (ancestors crossed)))
-        (if changedp
-            (values crossed a-point b-point)
-            (values crossed nil nil))))))
+  (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+      (select-crossover-points a b)
+    (multiple-value-bind (crossed a-point b-point changedp)
+        (intraprocedural-2pt-crossover
+         a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+      (when (and changedp *ancestor-logging*)
+        (push (alist :cross-with (ancestors b)
+                     :crossover '2pt
+                     :id (get-fresh-ancestry-id))
+              (ancestors crossed)))
+      (if changedp
+          (values crossed a-point b-point)
+          (values crossed nil nil)))))
 
 (defmethod genome-string-without-separator ((obj clang))
   (unlines (remove-if {string= *clang-genome-separator*}
