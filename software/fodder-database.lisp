@@ -30,27 +30,13 @@ matching the keyword parameter HASH"))
 :FILTER ----------- limit search to snippets for which FILTER returns false"))
 
 (defmethod sorted-snippets ((db fodder-database) predicate
-                            &key target key classes limit filter
-                              (limit-considered infinity))
+                            &key target key classes limit
+                                 (filter #'null)
+                                 (limit-considered infinity))
   (declare (ignorable target))
-  (let ((fodder (find-snippets db
-                               :classes classes :full-stmt (not classes)
-                               :limit limit-considered)))
-    (if (< limit-considered (length fodder))
-        (let ((start (random (- (length fodder) limit-considered))))
-          (sorted-snippets-unmemoized
-           (subseq fodder start (+ start limit-considered))
-           predicate :limit limit :key key :filter filter))
-        (sorted-snippets-memoized fodder predicate
-                                  :limit limit :key key :filter filter))))
-
-(defun-memoized sorted-snippets-memoized
-    (fodder predicate &key limit key filter)
-  (let ((base (sort (if filter (remove-if filter fodder) fodder)
-                    predicate :key key)))
-    (if limit (take limit base) base)))
-
-(defun sorted-snippets-unmemoized (fodder predicate &key limit key filter)
-  (let ((base (sort (if filter (remove-if filter fodder) fodder)
+  (let ((base (sort (remove-if filter
+                               (find-snippets db
+                                 :classes classes :full-stmt (not classes)
+                                 :limit limit-considered))
                     predicate :key key)))
     (if limit (take limit base) base)))
