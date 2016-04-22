@@ -1510,22 +1510,29 @@ free variables.")
 (defmethod select-crossover-points ((a clang) (b clang))
   (let* ((a-proto (random-elt (prototypes a)))
          (b-proto (random-elt (prototypes b))))
+    (values
+     (random-point-in-function a a-proto)
+     (random-point-in-function a a-proto)
+     (random-point-in-function b b-proto)
+     (random-point-in-function b b-proto))))
+
+(defmethod select-crossover-points-with-corrections ((a clang) (b clang))
+  (multiple-value-bind (a-pt1 a-pt2 b-pt1 b-pt2)
+      (select-crossover-points a b)
     (multiple-value-bind (a-stmt1 a-stmt2)
-        (reorder-crossover-points a
-          (random-point-in-function a a-proto)
-          (random-point-in-function a a-proto))
+        (reorder-crossover-points a a-pt1 a-pt2)
       (multiple-value-bind (b-stmt1 b-stmt2)
-          (reorder-crossover-points b
-            (random-point-in-function b b-proto)
-            (random-point-in-function b b-proto))
+          (reorder-crossover-points b b-pt1 b-pt2)
         (values a-stmt1 a-stmt2 b-stmt1 b-stmt2)))))
 
 (defmethod crossover ((a clang) (b clang))
   (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
-      (select-crossover-points a b)
+      (select-crossover-points-with-corrections a b)
     (multiple-value-bind (crossed a-point b-point changedp)
-        (intraprocedural-2pt-crossover
-         a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+        (handler-case
+            (intraprocedural-2pt-crossover
+             a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+          (t (err) (declare (ignorable err)) (values (copy a) nil nil nil)))
       (when (and changedp *ancestor-logging*)
         (push (alist :cross-with (ancestors b)
                      :crossover '2pt
@@ -1534,6 +1541,11 @@ free variables.")
       (if changedp
           (values crossed a-point b-point)
           (values crossed nil nil)))))
+
+(defmethod prototype-containing-ast ((clang clang) stmt)
+  (let ((body (aget :counter
+                (car (last (get-parent-asts clang (get-ast clang stmt)))))))
+    (car (remove-if-not [{= body} {aget :body}] (prototypes clang)))))
 
 (defmethod genome-string-without-separator ((obj clang))
   (unlines (remove-if {string= *clang-genome-separator*}
