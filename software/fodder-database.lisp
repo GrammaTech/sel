@@ -4,9 +4,6 @@
 
 (defclass fodder-database () ())
 
-(defgeneric size (database)
-  (:documentation "Return the number of elements in the database."))
-
 (defgeneric find-snippets (database &key classes full-stmt limit)
   (:documentation "Find snippets in the fodder database DATABASE.
 
