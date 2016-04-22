@@ -40,9 +40,7 @@
     :initform (make-hash-table :test 'equal)
     :documentation
     "An auxillary database of type snippets, grouped by hash-code")
-   (cached-size :type integer)))
-
-(defmethod size ((obj json-database)) (slot-value obj 'cached-size))
+   (size :reader size :type integer)))
 
 (defmethod print-object ((db json-database) stream)
   (print-unreadable-object (db stream :type t)
@@ -70,7 +68,7 @@
           (let ((type-id (aget :hash snippet)))
             (when type-id
               (setf (gethash type-id (type-database-ht db)) snippet))))))
-  (setf (slot-value db 'cached-size) (length (ast-database-list db))))
+  (setf (slot-value db 'size) (length (ast-database-list db))))
 
 (defmethod load-json-with-caching ((db json-database))
   (if (subtypep (type-of (json-stream db)) 'file-stream)
