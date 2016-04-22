@@ -77,6 +77,8 @@
    :crossover-all-functions
    :intraprocedural-2pt-crossover
    :select-crossover-points
+   :prototype-containing-ast
+   :random-point-in-function
    :clang-tidy
    :clang-format
    :clang-mutate
