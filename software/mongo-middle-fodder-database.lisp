@@ -52,7 +52,7 @@
                             :classes classes :filter filter
                             :limit-considered
                             (if (equal limit-considered infinity)
-                                2500 limit-considered))))
+                                10000 limit-considered))))
     (error (e)
       (note 1 "mongo-middle-man error: ~a" e)
       (call-next-method obj predicate
@@ -60,7 +60,7 @@
                         :classes classes :filter filter
                         :limit-considered
                         (if (equal limit-considered infinity)
-                            2500 limit-considered)))))
+                            10000 limit-considered)))))
 
 (defmethod submit ((obj mongo-middle-database) target)
   ;; Submit TARGET to the middle man server, return seconds since
