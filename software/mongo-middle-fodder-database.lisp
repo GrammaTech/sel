@@ -79,8 +79,8 @@
   (multiple-value-bind (this-tag seconds-elapsed finished)
     (submit obj target)
     (setf tag this-tag)
-    (or finished (> seconds-elapsed *mmm-processing-seconds*))
-    (sleep *mmm-processing-seconds*))
+    (unless (or finished (> seconds-elapsed *mmm-processing-seconds*))
+      (sleep *mmm-processing-seconds*)))
 
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.sort (cache-collection obj) (kv "tag" tag) :field "res")
