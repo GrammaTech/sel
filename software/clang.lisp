@@ -139,6 +139,12 @@
 (define-mutation clang-cut-full (clang-cut)
   ((targeter :initform {pick-bad-only _ t})))
 
+;; Set Range
+(define-mutation clang-set-range (clang-mutation) ())
+
+(defmethod build-op ((mutation clang-set-range) software)
+  `((:set-range . ,(targets mutation))))
+
 ;; The -same variants only exist for symmetry (which makes it easier to
 ;; build the CDF). Since cut only picks one AST the same-class
 ;; constraint has no effect.
@@ -543,16 +549,20 @@ already in scope, it will keep that name.")
             (stmt2  (aget :stmt2  properties))
             (value1 (aget :value1 properties))
             (literal1 (aget :literal1 properties)))
-       (cons op
-             (cons (cons :stmt1 stmt1)
-                   (if (or stmt2 value1 literal1)
-                       `((:value1 .
-                          ,(or literal1
-                               (recontextualize clang
-                                                (if stmt2
-                                                    (get-ast clang stmt2)
-                                                    value1)
-                                                stmt1))))))))))
+       (case op
+         ((:cut :set :insert-value)
+          (cons op
+                (cons (cons :stmt1 stmt1)
+                      (if (or stmt2 value1 literal1)
+                          `((:value1 .
+                             ,(or literal1
+                                  (recontextualize clang
+                                                   (if stmt2
+                                                       (get-ast clang stmt2)
+                                                     value1)
+                                                   stmt1))))))))
+         ;; Other ops are passed through without changes
+         (otherwise (cons op properties))))))
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
@@ -1498,7 +1508,7 @@ free variables.")
                    (aget :replacements outward-snippet)))))
         (apply-mutation
          variant
-         `(:set-range
+         `(clang-set-range
            (:stmt1 . ,(or (aget :stmt1 outward-snippet)
                           (aget :stmt1 inward-snippet)))
            (:stmt2 . ,(or (aget :stmt2 inward-snippet)
