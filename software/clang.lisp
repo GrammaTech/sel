@@ -1141,7 +1141,7 @@ free variables.")
       (let ((compound-stmt1-p (equal (get-ast-class clang stmt1)
                                      "CompoundStmt")))
         (multiple-value-bind (text defns vals funs macros includes types)
-            (prepare-inward-snippet clang stmt1 stmt2 '())
+            (prepare-inward-snippet clang stmt1 stmt2 '() 0)
           (alist
            :stmt1 (if compound-stmt1-p
                       stmt1
@@ -1159,14 +1159,21 @@ free variables.")
                                                     defns))
               :collecting (apply #'append scoped-defns)))))))
 
-(defmethod prepare-inward-snippet ((clang clang) stmt1 stmt2 defns)
+(defmethod prepare-inward-snippet
+    ((clang clang) stmt1 stmt2 defns recursion-throttle)
   (cond
+    ((< 100 recursion-throttle)
+     (error
+      (make-condition 'mutate
+        :obj clang
+        :text (format nil "no progress from stmt1=~a, stmt2=~a" stmt1 stmt2))))
     ((null stmt1)
      (values "" nil nil nil))
     ((equal (get-ast-class clang stmt1) "CompoundStmt")
      (multiple-value-bind (text more-defns vals funs macros includes types)
          (prepare-inward-snippet clang
-            (car (aget :stmt--list (get-ast clang stmt1))) stmt2 defns)
+           (car (aget :stmt--list (get-ast clang stmt1))) stmt2 defns
+           (1+ recursion-throttle))
        (values (format nil "{~%~a" text) more-defns
                vals funs macros includes types)))
     (t
@@ -1231,7 +1238,8 @@ free variables.")
              (multiple-value-bind (more-text more-defns)
                  (prepare-inward-snippet clang
                                          (ancestor-after clang stmt2-ancestor stmt2)
-                                         stmt2 defns)
+                                         stmt2 defns
+                                         (1+ recursion-throttle))
                (values (concatenate 'string text more-text)
                        (cons local-defns more-defns)
                        local-free-vars
