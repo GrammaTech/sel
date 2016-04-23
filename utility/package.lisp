@@ -102,6 +102,7 @@
    :*note-level*
    :*note-out*
    :note
+   :trace-memory
    ;; diff computing
    :diff-scalar
    ;; gdb functions

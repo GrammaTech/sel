@@ -622,6 +622,17 @@ and 0 otherwise."
   ;; Always return nil.
   nil)
 
+(defun trace-memory ()
+  #+sbcl
+  (when (>= *note-level* 4)
+    (let ((percentage-used (/ (sb-vm::dynamic-usage)
+                              (sb-ext::dynamic-space-size))))
+      (when (>= *note-level* 5)
+        (note 5 "~a ~a~%" (second (sb-debug:list-backtrace))
+                          percentage-used))
+      (when (>= percentage-used 0.5)
+        (note 4 (sb-debug:list-backtrace))))))
+
 ;; adopted from a public domain lisp implementation copied from the
 
 ;; scheme implementation given at
