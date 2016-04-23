@@ -94,9 +94,6 @@ CLANG software object"))
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (with-slots (asts prototypes) obj
     (let ((json-db
            (handler-case
@@ -120,9 +117,6 @@ CLANG software object"))
 ;; the preprocessor directives and user-defined types
 ;; in the original program.
 (defmethod from-file-exactly ((obj clang) path)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (setf (genome-string obj) (file-to-string path))
   (when *ancestor-logging*
     (setf (ancestors obj) (list (alist :base (file-to-string path)
@@ -132,9 +126,6 @@ CLANG software object"))
   obj)
 
 (defmethod from-file ((obj clang) path)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   ;; Load the raw file and generate a json database
   (from-file-exactly obj path)
   (let* ((json-db (clang-mutate obj (list :json)))
@@ -191,35 +182,20 @@ CLANG software object"))
   obj)
 
 (defmethod asts ((obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (with-slots (asts) obj
     (coerce asts 'list)))
 
 (defmethod (setf asts) (new (obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (with-slots (asts) obj (setf asts new)))
 
 (defmethod get-ast ((obj clang) id)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (with-slots (asts) obj (aref asts (1- id))))
 
 (defmethod prototypes ((obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (with-slots (prototypes) obj
     (coerce prototypes 'list)))
 
 (defmethod recontextualize ((clang clang) snippet pt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((text (bind-free-vars clang snippet pt)))
     (if (full-stmt-p clang pt)
         (format nil "~a~%" (add-semicolon-if-needed text))
@@ -228,57 +204,30 @@ CLANG software object"))
 (defun do-not-filter () (lambda (asts) asts))
 
 (defun with-class-filter (class asts)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (remove-if-not [{equal class} {aget :ast--class } ] asts))
 
 (defun full-stmt-filter (asts)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (remove-if-not { aget :full--stmt } asts))
 
 (defmethod good-asts ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (asts clang))
 
 (defmethod bad-asts ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (asts clang))
 
 (defun random-stmt (asts)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (aget :counter (random-elt asts)))
 
 (defmethod pick-good ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (random-stmt (good-asts clang)))
 
 (defmethod pick-bad ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (random-stmt (bad-asts clang)))
 
 (defmethod get-ast-class ((clang clang) stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (aget :ast--class (get-ast clang stmt)))
 
 (defun execute-picks (get-asts1 &optional connector get-asts2)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((stmt1 (when get-asts1
                   (random-stmt (funcall get-asts1))))
          (stmt2 (when get-asts2
@@ -321,23 +270,14 @@ already in scope, it will keep that name.")
   "The probability of applying clang-format on an object after mutation")
 
 (defun combine-with-bias (bias heads tails)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (append
    (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) bias))) heads)
    (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) (- 1 bias)))) tails)))
 
 (defmethod decl-mutation-types-clang ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (uniform-probability '(:cut-decl :swap-decls :rename-variable)))
 
 (defmethod basic-mutation-types-clang ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (remove-if #'null
     (loop for mutation-type in *clang-mutation-types*
        collecting
@@ -372,32 +312,20 @@ already in scope, it will keep that name.")
                (t nil)))))
 
 (defmethod mutation-types-clang ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (combine-with-bias *decl-mutation-bias*
                      (decl-mutation-types-clang clang)
                      (basic-mutation-types-clang clang)))
 
 (defmethod pick-mutation-type ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (random-pick (cdf (mutation-types-clang clang))))
 
 (defmethod mutate ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (unless (> (size clang) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
 
   (mutate-clang clang (pick-mutation-type clang)))
 
 (defmethod mutate-clang ((clang clang) mutation-type)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (unless (member mutation-type *clang-mutation-types*)
     (error (make-condition 'mutate
              :text (format nil "Mutation type ~S not supported" mutation-type)
@@ -446,9 +374,6 @@ already in scope, it will keep that name.")
       (values clang op)))))
 
 (defmethod decl-mutate-clang ((clang clang) mutation-type)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (values clang
           (case mutation-type
             (:cut-decl
@@ -468,9 +393,6 @@ already in scope, it will keep that name.")
 ;; Replace the basic mutation operations with versions that
 ;; rebind free variables in the appropriate context.
 (defmethod recontextualize-mutation-op ((clang clang) op)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((mut (car op))
          (properties (cdr op))
          (stmt1  (aget :stmt1  properties))
@@ -511,9 +433,6 @@ already in scope, it will keep that name.")
       (otherwise op))))
 
 (defmethod apply-mutation ((clang clang) op)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (restart-case
     (clang-mutate clang (recontextualize-mutation-op clang op))
     (skip-mutation ()
@@ -529,9 +448,6 @@ already in scope, it will keep that name.")
       (apply-mutation clang op))))
 
 (defmethod apply-mutation :around ((obj clang) op)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (multiple-value-call (lambda (variant &rest rest)
                          (unless (member (car op) '(:ids :list :json))
                            (when *ancestor-logging*
@@ -546,9 +462,6 @@ already in scope, it will keep that name.")
     (call-next-method)))
 
 (defmethod mutation-key ((obj clang) op)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   ;; Return a list of the OP keyword, and the classes of any stmt1 or
   ;; stmt2 arguments.
   (cons
@@ -564,9 +477,6 @@ already in scope, it will keep that name.")
 (defun extract-clang-genome (full-genome)
   "If FULL-GENOME contains the magic separator return only the genome after.
 Otherwise return the whole FULL-GENOME"
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   ;; NOTE: This could potentially be faster if defined using cl-ppcre.
   (let* ((lines (split-sequence #\Newline full-genome))
          (at (position *clang-genome-separator* lines :test #'string=)))
@@ -575,9 +485,6 @@ Otherwise return the whole FULL-GENOME"
         full-genome)))
 
 (defmethod clang-mutate ((obj clang) op &aux value1-file value2-file)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (with-temp-file-of (src-file (ext obj)) (genome-string obj)
     (labels ((command-opt (command)
                (ecase command
@@ -698,9 +605,6 @@ Otherwise return the whole FULL-GENOME"
         (delete-file value2-file)))))))
 
 (defun ast-to-source-range (ast)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   "Convert AST to pair of SOURCE-LOCATIONS."
   (when ast
     (make-instance 'source-range
@@ -712,30 +616,18 @@ Otherwise return the whole FULL-GENOME"
              :column (aget :end--src--col ast)))))
 
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (when loc
     (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj))))
 
 (defmethod asts-contained-in-source-range ((obj clang) (range source-range))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (when range
     (remove-if-not [{contains range} #'ast-to-source-range] (asts obj))))
 
 (defmethod asts-intersecting-source-range ((obj clang) (range source-range))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (when range
     (remove-if-not [{intersects range} #'ast-to-source-range] (asts obj))))
 
 (defmethod line-breaks ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index
                 :from 0
                 :when (equal char #\Newline) :collect index)))
@@ -745,9 +637,6 @@ Otherwise return the whole FULL-GENOME"
    "Check if POSSIBLE-PARENT-AST is a parent of AST in SOFTWARE."))
 
 (defmethod parent-ast-p ((clang clang) possible-parent-ast ast)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cond ((= (aget :counter possible-parent-ast)
             (aget :counter ast)) t)
         ((= (aget :parent--counter ast) 0) nil)
@@ -756,9 +645,6 @@ Otherwise return the whole FULL-GENOME"
                          (get-ast clang (aget :parent--counter ast))))))
 
 (defmethod get-parent-asts((clang clang) ast)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cond ((= (aget :parent--counter ast) 0) (list ast))
          (t  (append (list ast)
                      (get-parent-asts
@@ -766,34 +652,22 @@ Otherwise return the whole FULL-GENOME"
                        (get-ast clang (aget :parent--counter ast)))))))
 
 (defmethod get-immediate-children ((clang clang) ast)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (remove-if-not (lambda (child-ast) (= (aget :parent--counter child-ast)
                                         (aget :counter ast)))
                  (asts clang)))
 
 (defmethod get-parent-full-stmt((clang clang) ast)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cond ((aget :full--stmt ast) ast)
         (t (get-parent-full-stmt clang (get-ast clang
                                                 (aget :parent--counter ast))))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((depth (or orig-depth 0)))
     (if (= 0 index)
         depth
         (nesting-depth clang (enclosing-block clang index) (1+ depth)))))
 
 (defmethod enclosing-block ((clang clang) index &optional child-index)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (= index 0) (values  0 child-index)
     (let* ((ast (get-ast clang index))
            (blockp (equal (aget :ast--class ast) "CompoundStmt")))
@@ -802,16 +676,10 @@ Otherwise return the whole FULL-GENOME"
           (enclosing-block clang (aget :parent--counter ast) index)))))
 
 (defmethod full-stmt-p ((clang clang) stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   ;; NOTE: This assumes that the :full--stmt tag is always populated.
   (aget :full--stmt (get-ast clang stmt)))
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (or (null index) (= index 0)) nil
     (let* ((ast (get-ast clang index))
            (blockp (equal (aget :ast--class ast) "CompoundStmt")))
@@ -820,26 +688,17 @@ Otherwise return the whole FULL-GENOME"
           (enclosing-full-stmt clang (aget :parent--counter ast) index)))))
 
 (defun get-entry-after (item list)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cond ((null list) nil)
         ((not (equal (car list) item)) (get-entry-after item (cdr list)))
         ((null (cdr list)) nil)
         (t (cadr list))))
 
 (defun get-entry-before (item list &optional saw)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cond ((null list) nil)
         ((equal (car list) item) saw)
         (t (get-entry-before item (cdr list) (car list)))))
 
 (defmethod block-successor ((clang clang) raw-index)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((index (enclosing-full-stmt clang raw-index))
          (block-index (enclosing-block clang index))
          (the-block (get-ast clang block-index))
@@ -848,9 +707,6 @@ Otherwise return the whole FULL-GENOME"
     (get-entry-after index the-stmts)))
 
 (defmethod block-predeccessor ((clang clang) raw-index)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((index (enclosing-full-stmt clang raw-index))
          (block-index (enclosing-block clang index))
          (the-block (get-ast clang block-index))
@@ -859,15 +715,9 @@ Otherwise return the whole FULL-GENOME"
     (get-entry-before index the-stmts)))
 
 (defmethod get-ast-text ((clang clang) stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (aget :src--text (get-ast clang stmt)))
 
 (defun add-semicolon-if-needed (text)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (equal text "") ";"
       ;; Add a semicolon unless the text ends in a } (CompoundStmts, etc)
       ;; or already includes a semicolon (only seen for DeclStmts).
@@ -877,22 +727,13 @@ Otherwise return the whole FULL-GENOME"
           (concatenate 'string text ";"))))
 
 (defun process-full-stmt-text (snippet)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (add-semicolon-if-needed (aget :src--text snippet)))
 
 (defmethod full-stmt-text ((clang clang) raw-index)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (process-full-stmt-text (get-ast clang
                                    (enclosing-full-stmt clang raw-index))))
 
 (defmethod full-stmt-info ((clang clang) raw-index)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((index (enclosing-full-stmt clang raw-index)))
     (if (or (null index) (= 0 index))
         nil
@@ -900,9 +741,6 @@ Otherwise return the whole FULL-GENOME"
 
 (defmethod full-stmt-successors
     ((clang clang) index &optional do-acc acc blocks)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (or (null index) (= 0 index))
       ;; We've made it to the top-level scope; return the accumulator.
       (reverse (if (null acc)
@@ -927,9 +765,6 @@ Otherwise return the whole FULL-GENOME"
              (cons (reverse new-acc) blocks))))))
 
 (defun create-sequence-snippet (scopes &optional replacements)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((funcs  (make-hash-table :test 'equal))
         (macros (make-hash-table :test 'equal))
         (types  (make-hash-table :test 'equal))
@@ -972,9 +807,6 @@ Otherwise return the whole FULL-GENOME"
              :stmts stmts))))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet type-database)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (loop for f in (aget :INCLUDES snippet)
      do (add-include (mitochondria clang) f))
   (loop for type in (aget :TYPES snippet)
@@ -987,22 +819,13 @@ Otherwise return the whole FULL-GENOME"
   snippet)
 
 (defun nonempty-lines (text)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (remove-if (lambda (x) (string= x ""))
              (split-sequence #\Newline text)))
 
 (defmethod get-vars-in-scope ((clang clang) pt &optional keep-globals)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (gethash 0 (get-indexed-vars-in-scope clang pt keep-globals)))
 
 (defmethod get-indexed-vars-in-scope ((clang clang) pt &optional keep-globals)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((index-table (make-hash-table :test 'equal))
         (max-index 0))
     (with-temp-file-of (src (ext clang)) (genome-string clang)
@@ -1030,9 +853,6 @@ Otherwise return the whole FULL-GENOME"
     index-table))
 
 (defun random-scoped-replacement (var in-scope)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   ;; If the variable's original name matches the name of a variable in
   ;; scope, keep the original name with probability equal to
   ;; *matching-free-var-retains-name-bias*
@@ -1046,9 +866,6 @@ Otherwise return the whole FULL-GENOME"
 free variables.")
 
 (defun random-function-name (protos &key original-name arity)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((matching '())
         (variadic '())
         (others   '())
@@ -1068,9 +885,6 @@ free variables.")
         (random-elt (or matching variadic others '(nil))))))
 
 (defmethod bind-free-vars ((clang clang) snippet pt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((raw-code    (aget :src--text snippet))
          (free-vars   (make-hash-table :test 'equal))
          (free-funs   (make-hash-table :test 'equal))
@@ -1112,9 +926,6 @@ free variables.")
               replacements))))
 
 (defun rebind-uses-in-snippet (snippet renames-list)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((renames (make-hash-table :test 'equal)))
     (list->ht renames-list renames :key #'car :value #'cdr)
     (add-semicolon-if-needed
@@ -1129,9 +940,6 @@ free variables.")
       (aget :src--text snippet)))))
 
 (defmethod rebind-uses ((clang clang) stmt renames-list)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (equal (get-ast-class clang stmt) "CompoundStmt")
       (format nil "{~%~{~a~%~}}~%"
               (loop :for one-stmt
@@ -1143,9 +951,6 @@ free variables.")
                               renames-list)))
 
 (defmethod delete-decl-stmts ((clang clang) the-block decl-replacements)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((renames-list
          (mapcar (lambda (pair)
                    (loop
@@ -1164,9 +969,6 @@ free variables.")
        :do (apply-mutation clang `(:cut (:stmt1 . ,decl))))))
 
 (defmethod rename-variable-near-use ((clang clang) use new-name)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((the-block (enclosing-block clang use))
         (old-name (peel-bananas (aget :src--text (get-ast clang use)))))
     (apply-mutation clang
@@ -1177,31 +979,19 @@ free variables.")
                                         (list (cons old-name new-name))))))))
 
 (defmethod get-declared-variables ((clang clang) the-block)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
     (apply #'append
            (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
               :collecting (aget :declares (get-ast clang stmt)))))
 
 (defmethod get-used-variables ((clang clang) stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (mapcar [{peel-bananas} {car}] (aget :unbound--vals (get-ast clang stmt))))
 
 (defmethod get-children-using ((clang clang) var the-block)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
      :when (find var (get-used-variables clang stmt) :test #'equal)
      :collecting stmt))
 
 (defmethod run-cut-decl ((clang clang) decls)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (not decls)
     (list :cut-decl 'did-nothing)
     (let* ((decl (random-stmt decls))
@@ -1220,9 +1010,6 @@ free variables.")
       (list :cut-decl decl old-names var))))
 
 (defun pick-two (things)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((this (random-elt things))
         (that (random-elt things)))
     (if (equal this that)
@@ -1230,9 +1017,6 @@ free variables.")
         (values this that))))
 
 (defmethod run-swap-decls ((clang clang) the-block)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (equal the-block 0)
       (list :swap-decls 'did-nothing)
       (let ((decls
@@ -1249,9 +1033,6 @@ free variables.")
               (list :swap-decls stmt1 stmt2))))))
 
 (defmethod run-rename-variable ((clang clang) stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((used (get-used-variables clang stmt)))
     (if used
         (let ((old-var (random-elt used))
@@ -1265,18 +1046,12 @@ free variables.")
         (list :rename-variable stmt 'did-nothing))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((the-block (enclosing-block clang stmt)))
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
 
 (defmethod prepare-sequence-snippet ((clang clang) end depth full-seq
                                      &optional replacements)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((last-seq (if (null end)
                       nil
                       (remove-if [{>= end} {aget :counter}]
@@ -1314,9 +1089,6 @@ free variables.")
 ;;
 (defmethod crossover-2pt-outward
     ((a clang) (b clang) a-begin a-end b-begin b-end)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((depth (- (nesting-depth a a-begin) (nesting-depth a a-end)))
          (b-snippet (prepare-sequence-snippet b
                                               infinity
@@ -1331,9 +1103,6 @@ free variables.")
              :stmt2 a-end))))
 
 (defmethod select-before ((clang clang) depth pt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((the-block (enclosing-block clang
                                     (if (equal (get-ast-class clang pt)
                                                "CompoundStmt")
@@ -1347,9 +1116,6 @@ free variables.")
                (if preds (random-elt preds) pt))))))
 
 (defmethod parent-at-depth ((clang clang) depth pt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((the-block (enclosing-block clang pt)))
     (if (= 0 depth)
         the-block
@@ -1358,9 +1124,6 @@ free variables.")
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
 ;; On failure, just return STMT again.
 (defmethod ancestor-after ((clang clang) ancestor stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (funcall [{car} {last} {cons stmt}]
     (remove-if {>= ancestor}
                (mapcar {aget :counter}
@@ -1368,17 +1131,11 @@ free variables.")
                                         (get-ast clang stmt))))))
 
 (defmethod stmt-text-minus ((clang clang) stmt child)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((haystack (get-ast-text clang stmt))
         (needle (get-ast-text clang child)))
     (apply-replacements (list (cons needle "")) haystack)))
 
 (defmethod create-inward-snippet ((clang clang) stmt1 stmt2 &optional replacements)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (or (null stmt1) (null stmt2))
       (alist :stmt1 stmt1 :stmt2 stmt2 :src--text "")
       (let ((compound-stmt1-p (equal (get-ast-class clang stmt1)
@@ -1404,9 +1161,6 @@ free variables.")
 
 (defmethod prepare-inward-snippet
     ((clang clang) stmt1 stmt2 defns recursion-throttle)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (cond
     ((< 100 recursion-throttle)
      (error
@@ -1496,9 +1250,6 @@ free variables.")
 
 (defmethod crossover-2pt-inward ((a clang) (b clang) a-range b-range
                                  &optional replacements)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((a-begin (car a-range))
          (a-end (cdr a-range))
          (b-begin (car b-range))
@@ -1549,9 +1300,6 @@ free variables.")
            :stmt2 (aget :stmt2 tail))))
 
 (defmethod common-ancestor ((clang clang) x y)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((x-ancestry
            (get-parent-asts clang
              (get-ast clang
@@ -1573,15 +1321,9 @@ free variables.")
     last))
 
 (defmethod ancestor-of ((clang clang) x y)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (= (common-ancestor clang x y) x))
 
 (defmethod scopes-between ((clang clang) stmt ancestor)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (length (remove-if
            (lambda (ast)
              (or (>= (aget :counter ast) stmt)
@@ -1590,9 +1332,6 @@ free variables.")
            (get-parent-asts clang (get-ast clang stmt)))))
 
 (defmethod nesting-relation ((clang clang) x y)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (if (or (null x) (null y)) nil
       (let* ((ancestor (common-ancestor clang x y)))
         (cond
@@ -1606,9 +1345,6 @@ free variables.")
 ;; path approppriate for across-and-in.  Returns the pair of
 ;; path descriptions, or NIL for a path that is not needed.
 (defmethod split-vee ((clang clang) x y)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((ancestor (common-ancestor clang x y))
          (stmt (ancestor-after clang ancestor x)))
     (cond
@@ -1625,9 +1361,6 @@ free variables.")
                (cons (block-successor clang stmt) y))))))
 
 (defmethod match-nesting ((a clang) xs (b clang) ys)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* (;; Nesting relationships for xs, ys
          (x-rel (nesting-relation a (car xs) (cdr xs)))
          (y-rel (nesting-relation b (car ys) (cdr ys)))
@@ -1661,9 +1394,6 @@ free variables.")
 (defmethod intraprocedural-2pt-crossover ((a clang) (b clang)
                                           a-begin a-end
                                           b-begin b-end)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((variant (copy a)))
     (multiple-value-bind (a-out b-out a-in b-in)
         (match-nesting a (cons a-begin a-end)
@@ -1718,9 +1448,6 @@ free variables.")
         (values variant nil nil nil))))
 
 (defmethod apply-fun-body-substitutions ((clang clang) substitutions)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((sorted (sort (copy-seq substitutions) #'> :key #'car))
         (changedp nil))
     (loop for (body-stmt . text) in sorted
@@ -1732,9 +1459,6 @@ free variables.")
     changedp))
 
 (defmethod full-function-text ((clang clang) func)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (format nil "~a~%~a"
           (aget :text func)
           (get-ast-text clang (aget :body func))))
@@ -1742,9 +1466,6 @@ free variables.")
 ;; Perform crossover by choosing a function body at random from
 ;; either a or b.
 (defmethod crossover-all-functions ((a clang) (b clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((common-funs (ht-intersect
                       (list->ht (prototypes a)
                                 nil
@@ -1765,9 +1486,6 @@ free variables.")
                 collect bodies)))))
 
 (defmethod reorder-crossover-points ((clang clang) x y)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((stmt1 (if (equal (get-ast-class clang x) "CompoundStmt")
                    x
                    (enclosing-full-stmt clang x)))
@@ -1783,9 +1501,6 @@ free variables.")
            (values stmt1 stmt2)))))
 
 (defmethod random-point-in-function ((clang clang) proto)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let* ((first (1+ (first (aget :stmt--range proto))))
          (last  (if (< (second (aget :stmt--range proto)) first)
                     first
@@ -1796,18 +1511,12 @@ free variables.")
   ;; Select a statement uniformly first, then another statement from the
   ;; same function. Selecting the function first would bias crossover
   ;; towards ASTs in smaller functions.
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((proto (random-elt (prototypes clang))))
     (values (random-point-in-function clang proto)
             (random-point-in-function clang proto)
             proto)))
 
 (defmethod select-crossover-points ((a clang) (b clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (multiple-value-bind (a-stmt1 a-stmt2)
       (select-intraprocedural-pair a)
     (multiple-value-bind (b-stmt1 b-stmt2)
@@ -1815,9 +1524,6 @@ free variables.")
       (values a-stmt1 a-stmt2 b-stmt1 b-stmt2))))
 
 (defmethod select-crossover-points-with-corrections ((a clang) (b clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (multiple-value-bind (a-pt1 a-pt2 b-pt1 b-pt2)
       (select-crossover-points a b)
     (multiple-value-bind (a-stmt1 a-stmt2)
@@ -1827,9 +1533,6 @@ free variables.")
         (values a-stmt1 a-stmt2 b-stmt1 b-stmt2)))))
 
 (defmethod crossover ((a clang) (b clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
       (select-crossover-points-with-corrections a b)
     (multiple-value-bind (crossed a-point b-point changedp)
@@ -1847,33 +1550,21 @@ free variables.")
           (values crossed nil nil)))))
 
 (defmethod prototype-containing-ast ((clang clang) stmt)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (let ((body (aget :counter
                 (car (last (get-parent-asts clang (get-ast clang stmt)))))))
     (car (remove-if-not [{= body} {aget :body}] (prototypes clang)))))
 
 (defmethod genome-string-without-separator ((obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (unlines (remove-if {string= *clang-genome-separator*}
                       (split-sequence #\Newline (genome-string obj)))))
 
 (defmethod genome-string ((clang clang) &optional stream)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (format stream "~a~%~a~%~a"
           (genome-string (mitochondria clang))
           *clang-genome-separator*
           (genome clang)))
 
 (defmethod clang-tidy ((clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (setf (genome-string clang)
         (with-temp-file-of (src (ext clang)) (genome-string clang)
           (multiple-value-bind (stdout stderr exit)
@@ -1902,9 +1593,6 @@ free variables.")
             (if (zerop exit) (file-to-string src) (genome-string clang))))))
 
 (defmethod clang-format ((obj clang) &optional style)
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (setf (genome-string obj)
         (with-temp-file-of (src (ext obj)) (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
@@ -1924,38 +1612,23 @@ free variables.")
             (if (zerop exit) stdout (genome-string obj))))))
 
 (defmethod (setf genome-string) (text (clang clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (setf (genome clang) (extract-clang-genome text)))
 
 (defmethod (setf genome-string) :around (text (obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (prog1
     (call-next-method)
     (setf (fitness obj) nil)
     (update-asts obj)))
 
 (defmethod lines ((obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (split-sequence '#\Newline (genome-string obj)))
 
 (defmethod (setf lines) (new (obj clang))
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (setf (genome-string obj) (format nil "~{~a~^~%~}" new)))
 
 (defun replace-fields-in-ast (ast field-replacement-pairs)
   "Given an AST and an association list in the form ((:field . <value>))
 replace the entries in the AST with the given values."
-  (when (> (/ (sb-vm::dynamic-usage) (sb-ext:dynamic-space-size)) 3/8)
-    (format t "Backtrace ~% ~{~a~% ~}" (sb-debug:list-backtrace)))
-
   (loop :for pair
         :in field-replacement-pairs
         :do (let ((field (car pair))
