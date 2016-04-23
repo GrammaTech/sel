@@ -71,6 +71,7 @@
   (setf (slot-value db 'size) (length (ast-database-list db))))
 
 (defmethod load-json-with-caching ((db json-database))
+  (trace-memory)
   (if (subtypep (type-of (json-stream db)) 'file-stream)
       (let* ((json-db-path (pathname (json-stream db)))
              (json-stored-db-path (make-pathname
@@ -90,6 +91,7 @@
       (json:decode-json-from-source (json-stream db))))
 
 (defmethod find-snippets ((db json-database) &key classes full-stmt limit)
+  (trace-memory)
   (let ((snippets (cond (classes
                          (mappend
                           (lambda (class)
@@ -104,6 +106,7 @@
         snippets)))
 
 (defmethod find-types ((db json-database) &key hash)
+  (trace-memory)
   (if hash
       (list (gethash hash (type-database-ht db)))
       (loop for k being the hash-keys of (type-database-ht db)

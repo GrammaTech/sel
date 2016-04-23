@@ -33,6 +33,7 @@ With keyword argument :CLASS, select an element of the specified class.
 With keyword argument :PT select an element similar to that at :PT in
 CLANG-W-FODDER in a method-dependent fashion."))
 (defmethod pick-snippet ((clang-w-fodder clang-w-fodder) &key full class pt)
+  (trace-memory)
   (let* ((snippet (first (find-snippets *database*
                                         :full-stmt
                                         (or full
@@ -48,6 +49,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
         snippet)))
 
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
+  (trace-memory)
   (unless *database*
     (error (make-condition 'mutate
              :text "No valid Mongo database for fodder"
@@ -55,6 +57,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
   (call-next-method))
 
 (defmethod mutation-types-clang ((clang-w-fodder clang-w-fodder))
+  (trace-memory)
   (let ((existing-mutation-types (call-next-method)))
     (append (loop for mutation-type in *fodder-mutation-types*
               collecting (cons mutation-type
@@ -66,6 +69,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
                                   (cdr mutation-type)))))))
 
 (defmethod mutate-clang ((clang-w-fodder clang-w-fodder) mutation-type)
+  (trace-memory)
   (if (not (member mutation-type *fodder-mutation-types*))
       ;; This isn't one of our mutation types, dispatch to the
       ;; next software object method.

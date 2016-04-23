@@ -34,6 +34,7 @@ matching the keyword parameter HASH"))
                                  (filter #'null)
                                  (limit-considered infinity))
   (declare (ignorable target))
+  (trace-memory)
   (let ((base (sort (remove-if filter
                                (find-snippets db
                                  :classes classes :full-stmt (not classes)
