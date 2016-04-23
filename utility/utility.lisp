@@ -624,14 +624,14 @@ and 0 otherwise."
 
 (defun trace-memory ()
   #+sbcl
-  (when (>= *note-level* 4)
+  (when (>= *note-level* 2)
     (let ((percentage-used (/ (sb-vm::dynamic-usage)
                               (sb-ext::dynamic-space-size))))
-      (when (>= *note-level* 5)
-        (note 5 "~a ~a~%" (second (sb-debug:list-backtrace))
+      (when (>= *note-level* 4)
+        (note 4 "~a ~a~%" (second (sb-debug:list-backtrace))
                           percentage-used))
       (when (>= percentage-used 0.5)
-        (note 4 (sb-debug:list-backtrace))))))
+        (note 2 (sb-debug:list-backtrace))))))
 
 ;; adopted from a public domain lisp implementation copied from the
 
