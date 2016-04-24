@@ -631,7 +631,7 @@ and 0 otherwise."
         (note 4 "~a ~a~%" (second (sb-debug:list-backtrace))
                           percentage-used))
       (when (>= percentage-used 0.5)
-        (note 2 (sb-debug:list-backtrace))))))
+        (note 2 "Memory usage > 50%: ~a~%" (sb-debug:list-backtrace))))))
 
 ;; adopted from a public domain lisp implementation copied from the
 
