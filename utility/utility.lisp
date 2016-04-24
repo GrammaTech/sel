@@ -627,11 +627,12 @@ and 0 otherwise."
   (when (>= *note-level* 2)
     (let ((percentage-used (/ (sb-vm::dynamic-usage)
                               (sb-ext::dynamic-space-size))))
-      (when (>= *note-level* 4)
+      (if (>= *note-level* 4)
         (note 4 "~a ~a~%" (second (sb-debug:list-backtrace))
-                          percentage-used))
-      (when (>= percentage-used 0.5)
-        (note 2 "Memory usage > 50%: ~a~%" (sb-debug:list-backtrace))))))
+                          percentage-used)
+        (when (>= percentage-used 0.5)
+          (note 2 "~a ~a~%" (second (sb-debug:list-backtrace))
+                            percentage-used))))))
 
 ;; adopted from a public domain lisp implementation copied from the
 
