@@ -44,7 +44,7 @@
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (handler-case
     (let ((snippet-ids (sorted-snippet-ids obj :target target :limit limit)))
-      (if snippet-ids
+      (if (> (length snippet-ids) 256)
           (mongo-docs-for-ids obj snippet-ids)
           ;; The middle-man server did not populate any results.
           ;; As a fallback, take a sample of snippets from the
@@ -54,7 +54,7 @@
                             :classes classes :filter filter
                             :limit-considered
                             (if (equal limit-considered infinity)
-                                10000 limit-considered))))
+                                5120 limit-considered))))
     (error (e)
       (note 1 "mongo-middle-man error: ~a" e)
       (call-next-method obj predicate
