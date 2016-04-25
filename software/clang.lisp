@@ -1521,27 +1521,6 @@ free variables.")
                 (cons (or (car a-out) (car a-in))
                       (or (cdr a-in) (cdr a-out))))))))
 
-;; Perform crossover by selecting a single AST from a and b to cross.
-;; Free variables are recontextualized to the insertion point.
-(defmethod crossover-single-stmt ((a clang) (b clang))
-  (trace-memory)
-  (let ((a-begin (enclosing-full-stmt a (pick-bad a)))
-        (b-begin (enclosing-full-stmt b (pick-bad b)))
-        (variant (copy a)))
-    (if (and a-begin b-begin)
-        (let ((b-snippet (create-sequence-snippet
-                          (list (list (get-ast b b-begin))))))
-          (update-mito-from-snippet variant b-snippet (mitochondria b))
-          (apply-mutation
-           variant
-           (cons :set-range
-                 (list
-                  (cons :stmt1 a-begin)
-                  (cons :stmt2 a-begin)
-                  (cons :value1 (bind-free-vars variant b-snippet a-begin)))))
-          (values variant a-begin b-begin t))
-        (values variant nil nil nil))))
-
 (defmethod apply-fun-body-substitutions ((clang clang) substitutions)
   (trace-memory)
   (let ((sorted (sort (copy-seq substitutions) #'> :key #'car))
@@ -1559,29 +1538,6 @@ free variables.")
   (format nil "~a~%~a"
           (aget :text func)
           (get-ast-text clang (aget :body func))))
-
-;; Perform crossover by choosing a function body at random from
-;; either a or b.
-(defmethod crossover-all-functions ((a clang) (b clang))
-  (trace-memory)
-  (let ((common-funs (ht-intersect
-                      (list->ht (prototypes a)
-                                nil
-                                :key {aget :name}
-                                :value {aget :body})
-                      (list->ht (prototypes b)
-                                nil
-                                :key {aget :name}
-                                :value {full-function-text b})))
-        (variant (copy a)))
-    (union-mito (mitochondria variant) (mitochondria b))
-    (values variant nil nil
-            (apply-fun-body-substitutions
-             variant
-             (loop for func being the hash-keys of common-funs
-                using (hash-value bodies)
-                when (> *crossover-function-probability* (random 1.0))
-                collect bodies)))))
 
 (defmethod reorder-crossover-points ((clang clang) x y)
   (trace-memory)
