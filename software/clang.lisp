@@ -1115,9 +1115,7 @@ free variables.")
         (let ((old-var (random-elt used))
               (new-var (random-elt (get-vars-in-scope clang stmt))))
           (rebind-uses clang
-                       (if (equal "CompoundStmt" (get-ast-class clang stmt))
-                           stmt
-                           (enclosing-block clang stmt))
+                       (enclosing-full-stmt-or-block clang stmt)
                        (list (cons old-var new-var)))
           (list :rename-variable stmt old-var new-var))
         (list :rename-variable stmt 'did-nothing))))
@@ -1185,10 +1183,7 @@ free variables.")
 (defmethod select-before ((clang clang) depth pt)
   (trace-memory)
   (let ((the-block (enclosing-block clang
-                                    (if (equal (get-ast-class clang pt)
-                                               "CompoundStmt")
-                                        (aget :counter (get-ast clang pt))
-                                        pt))))
+                                    (enclosing-full-stmt-or-block clang pt))))
     (cond ((= 0 the-block) pt)
           ((< 0 depth) (select-before clang (- depth 1) the-block))
           (t (let ((preds
@@ -1228,9 +1223,7 @@ free variables.")
         (multiple-value-bind (text defns vals funs macros includes types)
             (prepare-inward-snippet clang stmt1 stmt2 '() 0)
           (alist
-           :stmt1 (if compound-stmt1-p
-                      stmt1
-                      (enclosing-full-stmt clang stmt1))
+           :stmt1 (enclosing-full-stmt-or-block clang stmt1)
            :stmt2 (enclosing-full-stmt clang stmt2)
            :src--text (apply-replacements replacements text)
            :macros (remove-duplicates macros :test #'equal :key #'car)
@@ -1255,11 +1248,14 @@ free variables.")
         :text (format nil "no progress from stmt1=~a, stmt2=~a" stmt1 stmt2))))
     ((null stmt1)
      (values "" nil nil nil))
-    ((equal (get-ast-class clang stmt1) "CompoundStmt")
+    ((and (not (= stmt1 stmt2))
+          (equal (get-ast-class clang stmt1) "CompoundStmt"))
      (multiple-value-bind (text more-defns vals funs macros includes types)
          (prepare-inward-snippet clang
-           (car (aget :stmt--list (get-ast clang stmt1))) stmt2 defns
-           (1+ recursion-throttle))
+                                 (car (aget :stmt--list (get-ast clang stmt1)))
+                                 stmt2
+                                 defns
+                                 (1+ recursion-throttle))
        (values (format nil "{~%~a" text) more-defns
                vals funs macros includes types)))
     (t
@@ -1276,7 +1272,9 @@ free variables.")
             (stmts (remove-if-not
                     (lambda (pt) (and (<= full-stmt1 pt)
                                       (< pt stmt2-ancestor)))
-                    (aget :stmt--list (get-ast clang the-block)))))
+                    (aget :stmt--list (if (= 0 the-block)
+                                          '()
+                                          (get-ast clang the-block))))))
        (when (= the-block (enclosing-block clang stmt2))
          (appendf stmts (list stmt2)))
        (loop :for stmt :in stmts
@@ -1305,14 +1303,19 @@ free variables.")
                              :collecting
                              (apply-replacements
                                 defn-replacements
-                                (full-stmt-text clang stmt))))
+                                (process-full-stmt-text
+                                      (get-ast clang
+                                               (enclosing-full-stmt-or-block
+                                                clang stmt))))))
               (text (if (= the-block (enclosing-block clang stmt2))
                         (unlines stmts-text)
                         (format nil "~{~a~%~}~a" stmts-text
                                 (apply-replacements
                                  defn-replacements
                                  (stmt-text-minus clang stmt2-ancestor
-                                                  (ancestor-after clang stmt2-ancestor stmt2)))))))
+                                                  (ancestor-after clang
+                                                                  stmt2-ancestor
+                                                                  stmt2)))))))
          (if (= the-block (enclosing-block clang stmt2))
              (values text
                      (list local-defns)
@@ -1452,20 +1455,26 @@ free variables.")
        (values (cons x stmt)
                (cons (block-successor clang stmt) y))))))
 
+(defmethod enclosing-full-stmt-or-block ((clang clang) stmt)
+  (cond ((= 0 stmt) 0)
+        ((and (full-stmt-p clang stmt)
+              (equal (get-ast-class clang stmt) "CompoundStmt")) stmt)
+        (t (enclosing-full-stmt clang stmt))))
+
 (defmethod match-nesting ((a clang) xs (b clang) ys)
   (trace-memory)
   (let* (;; Nesting relationships for xs, ys
          (x-rel (nesting-relation a (car xs) (cdr xs)))
          (y-rel (nesting-relation b (car ys) (cdr ys)))
          ;; Parent statements of points in xs, ys
-         (xps (cons (enclosing-full-stmt a
+         (xps (cons (enclosing-full-stmt-or-block a
                       (aget :parent--counter (get-ast a (car xs))))
-                    (enclosing-full-stmt a
+                    (enclosing-full-stmt-or-block a
                       (aget :parent--counter (get-ast a (cdr xs))))))
-         (yps (cons (enclosing-full-stmt b
+         (yps (cons (enclosing-full-stmt-or-block b
                       (aget :parent--counter (get-ast b (car ys))))
-                    (enclosing-full-stmt b
-                      (aget :parent--counter (get-ast b (cdr ys)))))))
+                    (enclosing-full-stmt-or-block b
+                                         (aget :parent--counter (get-ast b (cdr ys)))))))
     ;; If nesting relations don't match, replace one of the points with
     ;; its parent's enclosing full statement and try again.
     (cond
@@ -1541,12 +1550,8 @@ free variables.")
 
 (defmethod reorder-crossover-points ((clang clang) x y)
   (trace-memory)
-  (let ((stmt1 (if (equal (get-ast-class clang x) "CompoundStmt")
-                   x
-                   (enclosing-full-stmt clang x)))
-        (stmt2 (if (equal (get-ast-class clang y) "CompoundStmt")
-                   y
-                   (enclosing-full-stmt clang y))))
+  (let ((stmt1 (enclosing-full-stmt-or-block clang x))
+        (stmt2 (enclosing-full-stmt-or-block clang y)))
     (cond ((or (ancestor-of clang stmt1 stmt2)
                (ancestor-of clang stmt2 stmt1))
            (values stmt1 stmt2))
