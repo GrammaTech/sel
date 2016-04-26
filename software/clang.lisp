@@ -1147,8 +1147,10 @@ free variables.")
                         collecting stmt)))
           (acons   :stmt1 (aget :counter init)
             (acons :stmt2 (if (= 0 tail-size)
-                              (nth-enclosing-block clang (1- depth)
-                                                   (aget :counter init))
+                              (if (= 0 depth)
+                                  end
+                                  (nth-enclosing-block clang (1- depth)
+                                                       (aget :counter init)))
                               (aget :counter (last-elt last)))
                    (acons :respect--depth t
                           (create-sequence-snippet
