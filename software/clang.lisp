@@ -1219,7 +1219,10 @@ free variables.")
 (defmethod create-inward-snippet ((clang clang) stmt1 stmt2 &optional replacements)
   (trace-memory)
   (if (or (null stmt1) (null stmt2))
-      (alist :stmt1 stmt1 :stmt2 stmt2 :src--text "")
+      (alist :stmt1 stmt1
+             :stmt2 stmt2
+             :scope-adjustments (list nil)
+             :src--text "")
       (let ((compound-stmt1-p (equal (get-ast-class clang stmt1)
                                      "CompoundStmt")))
         (multiple-value-bind (text defns vals funs macros includes types)
