@@ -54,7 +54,6 @@ expression match.")
 
 ;; Fallback strategy: just delete the offending line entirely.
 (defmethod delete-line-with-error ((obj clang) match-data)
-  (trace-memory)
   (let ((target-line (parse-integer (aref match-data 0))))
     (setf (lines obj)
           (loop :for line :in (lines obj)
@@ -81,7 +80,6 @@ expression match.")
   ;; TODO: For now we'll just synthesize a random instantiation, in
   ;;       the future we should pull variable names from DeclStmt's,
   ;;       and grab a DeclStmt, possibly of a particular type.
-  (trace-memory)
   (let ((line-number (parse-integer (aref match-data line-number-index)))
         (variable-name (aref match-data variable-name-index))
         (lines (lines obj))
@@ -153,7 +151,6 @@ expression match.")
                                            match-data)
   (declare (ignorable line-number-index)
            (ignorable variable-name-index))
-  (trace-memory)
   (delete-line-with-error obj match-data))
 
 (register-fixer
@@ -163,7 +160,6 @@ expression match.")
 ;; Replace C++-style casts with C-style casts.
 (defmethod c++-casts-to-c-casts ((obj clang) match-data)
   (declare (ignorable match-data))
-  (trace-memory)
   (setf (lines obj)
         (loop :for line :in (lines obj)
            :collecting (cl-ppcre:regex-replace-all
@@ -182,7 +178,6 @@ expression match.")
 
 ;;; Add declaration and initialize uninitialized variables.
 (defmethod expected-expression-before ((obj clang-w-fodder) match-data)
-  (trace-memory)
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (1- (parse-integer (aref match-data 1))))
          (new-expression
@@ -223,7 +218,6 @@ expression match.")
 ;; #include <stdint.h> when using types like int32_t.
 (defmethod require-stdint ((obj clang) match-data)
   (declare (ignorable match-data))
-  (trace-memory)
   (add-include (mitochondria obj) "stdint.h"))
 
 (register-fixer
@@ -233,7 +227,6 @@ expression match.")
 ;; Macro definitions for int1_t, uint1_t
 (defmethod add-int1-macros ((obj clang) match-data)
   (declare (ignorable match-data))
-  (trace-memory)
   (add-include (mitochondria obj) "stdint.h")
   (add-macro   (mitochondria obj) "int1_t"  "int1_t int32_t")
   (add-macro   (mitochondria obj) "uint1_t" "uint1_t uint32_t"))
@@ -244,7 +237,6 @@ expression match.")
 
 (defmethod delete-redefinitions ((obj clang) match-data)
   ;; TODO: For now, we just take care of offending structs.
-  (trace-memory)
   (multiple-value-bind (new-genome matched)
     (regex-replace (concatenate 'string
                        "struct\\s+"
@@ -260,7 +252,6 @@ expression match.")
  #'delete-redefinitions)
 
 (defmethod delete-undefined-references ((obj clang) match-data)
-  (trace-memory)
   (let ((id (format nil "(|~a|)" (aref match-data 0)))
         (to-delete (make-hash-table :test 'equal)))
     (loop :for ast :in (asts obj)
@@ -281,7 +272,6 @@ expression match.")
  #'delete-undefined-references)
 
 (defmethod declare-var-as-pointer ((obj clang) match-data)
-  (trace-memory)
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (parse-integer (aref match-data 1)))
          (variable (scan-to-strings
