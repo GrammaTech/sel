@@ -49,10 +49,10 @@
         (values (if (zerop exit) bin stderr) exit src)))))
 
 (defmethod compile-p ((obj ast))
-  (with-temp-file-of (bin)
+  (with-temp-file (bin)
     (multiple-value-bind (out errno) (phenome obj :bin bin)
       (declare (ignorable out))
-      (return-from compile-p (zerop errno)))))
+      (compile-p (zerop errno)))))
 
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (or (genome ast) "") stream))
