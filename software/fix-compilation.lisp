@@ -181,8 +181,7 @@ expression match.")
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (1- (parse-integer (aref match-data 1))))
          (new-expression
-          (progn
-            (recontextualize
+           (recontextualize
              obj
              (find-snippets *database*
                             :classes '("FloatingLiteral"
@@ -194,7 +193,7 @@ expression match.")
                                        "UnaryExprOrTypeTraitExpr"
                                        "ImplicitCastExpr"
                                        "CStyleCastExpr")
-                            :limit 1))
+                            :limit 1)
             (aget :counter
                   (lastcar (asts-containing-source-location
                             obj (make-instance 'source-location
