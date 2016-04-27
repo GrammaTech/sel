@@ -32,20 +32,25 @@
     (format stream "~a@~a:~d" (db obj) (host obj) (port obj))))
 
 (defmethod find-snippets ((obj mongo-database)
-                          &key full-stmt classes limit expanded-window)
-  (flet ((window ()
-           ;; Only use a window if limit is less than half the size of
-           ;; OBJ.
-           (when (< limit (/ (size obj) 2))
-             ;; When limited, take a random subset of
-             ;; the corpus by requesting a window of
-             ;; size equal to the fraction of LIMIT in
-             ;; database SIZE times 2.
-             (let ((frac (or expanded-window
-                             (* (/ limit (size obj)) 2)))
-                   (window-base (random 1.0)))
-               (kv ($>= "random" window-base)
-                   ($<= "random" (+ window-base frac))))))
+                          &key full-stmt classes limit
+                          &aux (pred (if (random-bool) #'< #'>=))
+                               (rnd (random 1.0)))
+  (flet ((add-random ()
+           ;; Only use random draws if a limit is specified
+           (when limit
+             (cond ((equal pred #'<=) ($<= "random" rnd))
+                   ((equal pred #'<)  ($<  "random" rnd))
+                   ((equal pred #'>=) ($>= "random" rnd))
+                   ((equal pred #'>)  ($>  "random" rnd))
+                   (t nil))))
+         (add-random-compliment ()
+           ;; Only use random draws if a limit is specified
+           (when limit
+             (cond ((equal pred #'<=) ($> "random" rnd))
+                   ((equal pred #'<)  ($>= "random" rnd))
+                   ((equal pred #'>=) ($<  "random" rnd))
+                   ((equal pred #'>)  ($<= "random" rnd))
+                   (t nil))))
          (add-classes (kv)
            (if kv
                (if classes
@@ -59,51 +64,33 @@
                    (kv (kv "full_stmt" t) kv)
                    kv)
                (when full-stmt
-                 (kv "full_stmt" t)))))
-    (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
-      (let ((documents
+                 (kv "full_stmt" t))))
+         (find-snippets-kv (kv limit)
+           (with-mongo-connection (:db (db obj)
+                                   :host (host obj)
+                                   :port (port obj))
              (do* ((result
-                    (db.find (source-collection obj)
-                             (or (add-full-stmt (add-classes (window))) :all)
-                             :limit (or limit 0))
+                    (db.sort (source-collection obj) kv :limit (or limit 0)
+                                                        :field "random")
                     (db.next (source-collection obj) cursor))
                    (cursor (cursor result)
                            (cursor result))
                    (documents (documents result)
                               (append documents (documents result))))
-                  ((or (zerop cursor) (and limit (>= (length documents) limit)))
-                   (mapcar #'document-cljson documents)))))
-        (if (< (length documents) limit)
-            ;; The difficulty here is how to narrow the range of the
-            ;; database randomly returned to something reasonable, when
-            ;; we don't know what fraction of the randomly returned
-            ;; documents will be acceptable given our other filters
-            ;; (namely CLASSES and FULL-STMT).  To heuristically do a
-            ;; reasonable job of this most of the time we first multiple
-            ;; the expected fraction of the database needed by 2 above
-            ;; in the calculation of FRAC used to calculate the WINDOW.
-            ;;
-            ;; Additionally, below, if we have undershot the first time,
-            ;; then we use the optional EXPANDED-WINDOW keyword argument
-            ;; to pull a larger (doubled) random fraction of the
-            ;; database.  This should satisfy limit in a small number of
-            ;; total queries.
-            (append documents
-                    ;; To ensure we don't recurse infinitely when no
-                    ;; documents satisfy the query, abort when our
-                    ;; window is as large as the database.
-                    ;;
-                    ;; When LIMIT *is* less than the number of
-                    ;; documents in the database, we know that in this
-                    ;; call we did *not* have a random window because
-                    ;; limit was greater than half the size of the
-                    ;; database.
-                    (when (< (* 2 limit) (size obj))
-                      (find-snippets obj
-                        :full-stmt full-stmt :classes classes
-                        :limit (- limit (length documents))
-                        :expanded-window (* 2 limit))))
-            (take limit documents))))))
+                  ((or (zerop cursor)
+                       (and limit (>= (length documents) limit)))
+                   (mapcar #'document-cljson documents))))))
+    (let* ((snippets (find-snippets-kv
+                       (or (add-full-stmt (add-classes (add-random))) :all)
+                       limit)))
+      (if (and limit (< (length snippets) limit))
+          (take (or limit infinity)
+                (append snippets
+                  (find-snippets-kv
+                    (or (add-full-stmt (add-classes (add-random-compliment)))
+                        :all)
+                    (- limit (length snippets)))))
+          (take (or limit infinity) snippets)))))
 
 (defmethod find-types ((mongo-database mongo-database) &key hash)
   (find-types-kv mongo-database (if hash (kv "hash" hash) :all)))
