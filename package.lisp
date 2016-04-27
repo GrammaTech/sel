@@ -34,6 +34,11 @@
    :line-breaks
    :genome-string
    :mitochondria
+   :headers
+   :macros
+   :types
+   :sorted-types
+   :globals
    :ancestors
    :pick
    :pick-good
