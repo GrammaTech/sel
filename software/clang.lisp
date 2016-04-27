@@ -374,14 +374,13 @@ CLANG software object"))
     (setf (genome-string obj)
           (unlines
            (mapcar {aget :decl--text}
-                   (sort (remove-if-not {aget :decl--text} json-db)
-                         (lambda (x y)
-                           (or (< (first x) (first y))
-                               (and (= (first x) (first y))
-                                    (< (second x) (second y)))))
-                         :key (lambda (x)
-                                (cons (aget :begin--src--line x)
-                                      (aget :begin--src--col x))))))))
+                   (sort
+                    (remove-if-not {aget :decl--text} json-db)
+                    (lambda (x y)
+                      (or (< (first x) (first y))
+                          (and (= (first x) (first y))
+                               (< (second x) (second y)))))
+                    :key «{aget :begin--src--line} {aget :begin--src--col}»)))))
   (when *ancestor-logging*
     (setf (ancestors obj) (list (alist :base string
                                        :how 'from-string
