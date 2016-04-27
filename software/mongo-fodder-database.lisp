@@ -23,7 +23,6 @@
   (update-size db))
 
 (defmethod update-size ((obj mongo-database))
-  (trace-memory)
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (setf (slot-value obj 'size)
           (get-element "n" (first (second (db.count "asts" :all)))))))
@@ -34,11 +33,9 @@
 
 (defmethod find-snippets ((obj mongo-database)
                           &key full-stmt classes limit expanded-window)
-  (trace-memory)
   (flet ((window ()
            ;; Only use a window if limit is less than half the size of
            ;; OBJ.
-           (trace-memory)
            (when (< limit (/ (size obj) 2))
              ;; When limited, take a random subset of
              ;; the corpus by requesting a window of
@@ -62,11 +59,7 @@
                    (kv (kv "full_stmt" t) kv)
                    kv)
                (when full-stmt
-                 (kv "full_stmt" t))))
-         #-(or )
-         (debug (kv)
-           (format t "~a(~d)-~a-~a->~a~%" limit (size obj) classes full-stmt kv)
-           kv))
+                 (kv "full_stmt" t)))))
     (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
       (let ((documents
              (do* ((result
@@ -113,11 +106,9 @@
             (take limit documents))))))
 
 (defmethod find-types ((mongo-database mongo-database) &key hash)
-  (trace-memory)
   (find-types-kv mongo-database (if hash (kv "hash" hash) :all)))
 
 (defmethod find-types-kv ((obj mongo-database) kv)
-  (trace-memory)
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (do* ((result (db.find "types" kv)
                   (db.next "types" cursor))
@@ -130,14 +121,11 @@
 
 ;;; Utility functions
 (defun document-alist (document)
-  (trace-memory)
   (hash-table-alist (cl-mongo::elements document)))
 
 (defun cljson-key (key)
-  (trace-memory)
   (make-keyword (regex-replace-all "_" (string-upcase key) "--")))
 
 (defun document-cljson (document)
-  (trace-memory)
   (mapcar (lambda-bind ((key . value)) (cons (cljson-key key) value))
           (document-alist document)))

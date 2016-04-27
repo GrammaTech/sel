@@ -27,7 +27,6 @@
 
 (defmethod mongo-docs-for-ids ((obj mongo-middle-database) ids)
   "Return the doc for the given ID."
-  (trace-memory)
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
     (mapcar #'document-cljson
             (remove-if-not {typep _ 'document}
@@ -40,7 +39,6 @@
                             &key target key limit classes filter
                               (limit-considered infinity))
   (declare (ignorable predicate key classes filter limit-considered))
-  (trace-memory)
   (unless target (error "Mongo Middle Database requires a TARGET."))
   (handler-case
     (let ((snippet-ids (sorted-snippet-ids obj :target target :limit limit)))
@@ -67,7 +65,6 @@
 (defmethod submit ((obj mongo-middle-database) target)
   ;; Submit TARGET to the middle man server, return seconds since
   ;; processing began.
-  (trace-memory)
   (destructuring-bind (hash seconds-elapsed finished)
       (with-client-socket (sock stream (middle-host obj) (middle-port obj))
         (format stream "~S~%" target)
@@ -77,7 +74,6 @@
 
 (defmethod sorted-snippet-ids ((obj mongo-middle-database) &key target limit
                                &aux tag)
-  (trace-memory)
   (unless target (error "Mongo Middle Database requires a TARGET."))
 
   (multiple-value-bind (this-tag seconds-elapsed finished)
