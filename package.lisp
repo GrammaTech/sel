@@ -130,6 +130,7 @@
    :source-collection :cache-collection :middle-host :middle-port
    :json-database
    :find-snippets
+   :weighted-pick
    :find-types
    :sorted-snippets
    :*ancestor-logging*
