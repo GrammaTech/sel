@@ -20,7 +20,7 @@
 
 (define-software clang-w-fodder (clang) ())
 
-(defmethod from-file :before ((obj clang-w-fodder) path)
+(defmethod from-string :before ((obj clang-w-fodder) string)
   (assert (not (null *database*))))
 
 (defgeneric pick-snippet (clang-w-fodder &key full class pt)

@@ -46,6 +46,9 @@
     (incf *next-ancestry-id*)
     id))
 
+(defgeneric from-string (software string)
+  (:documentation "Initialize SOFTWARE with the contents of STRING"))
+
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
 
@@ -111,23 +114,22 @@ CLANG software object"))
             prototypes
             (coerce (remove-if-not {aget :body} json-db) 'vector)))))
 
-;; Create a clang software object from a given C file.
+;; Create a clang software object from a given C file's string representation.
 ;; The software object's genome will exactly the input
 ;; file's contents, but the mitochondria will not reflect
 ;; the preprocessor directives and user-defined types
 ;; in the original program.
-(defmethod from-file-exactly ((obj clang) path)
-  (setf (genome-string obj) (file-to-string path))
+(defmethod from-string-exactly ((obj clang) string)
+  (setf (genome-string obj) string)
   (when *ancestor-logging*
-    (setf (ancestors obj) (list (alist :base (file-to-string path)
-                                       :how 'from-file-exactly
+    (setf (ancestors obj) (list (alist :base string
+                                       :how 'from-string-exactly
                                        :id (get-fresh-ancestry-id)))))
-  (setf (ext obj)  (pathname-type (pathname path)))
   obj)
 
-(defmethod from-file ((obj clang) path)
-  ;; Load the raw file and generate a json database
-  (from-file-exactly obj path)
+(defmethod from-string ((obj clang) string)
+  ;; Load the raw string and generate a json database
+  (from-string-exactly obj string)
   (let* ((json-db (clang-mutate obj (list :json)))
          (type-db-mito (make-instance 'clang-mito)))
 
@@ -176,10 +178,18 @@ CLANG software object"))
                                 (cons (aget :begin--src--line x)
                                       (aget :begin--src--col x))))))))
   (when *ancestor-logging*
-    (setf (ancestors obj) (list (alist :base (file-to-string path)
-                                       :how 'from-file
+    (setf (ancestors obj) (list (alist :base string
+                                       :how 'from-string
                                        :id (get-fresh-ancestry-id)))))
   obj)
+
+(defmethod from-file-exactly ((obj clang) path)
+  (setf (ext obj) (pathname-type (pathname path)))
+  (from-string-exactly (file-to-string path)))
+
+(defmethod from-file ((obj clang) path)
+  (setf (ext obj) (pathname-type (pathname path)))
+  (from-string obj (file-to-string path)))
 
 (defmethod asts ((obj clang))
   (with-slots (asts) obj
