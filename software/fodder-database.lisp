@@ -17,7 +17,7 @@ matching the keyword parameter HASH"))
 
 (defgeneric weighted-pick
     (database predicate weight
-     &key target key limit classes filter max-seconds limit-considered)
+     &key target key limit classes filter limit-considered)
   ;; NOTE: This function is largely only present so that classes like
   ;;       MONGO-MIDDLE-FODDER-DATABASE can provide optimized access
   ;;       to single results for sorted queries without having to
