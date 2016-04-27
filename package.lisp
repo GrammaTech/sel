@@ -59,10 +59,12 @@
    :*edit-consolidation-function*
    :edit-distance
    :from-file
+   :from-string
    :ext
    :*clang-genome-separator*
    :genome-string-without-separator
    :from-file-exactly
+   :from-string-exactly
    :get-vars-in-scope
    :get-indexed-vars-in-scope
    :bind-free-vars
