@@ -947,7 +947,7 @@ free variables.")
                                          (peel-bananas var))))
        (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
           :collecting (cons fun (gethash (peel-bananas fun) renames
-                                         (peel-bananas fun)))))
+                                                       (peel-bananas fun)))))
       (aget :src--text snippet)))))
 
 (defmethod rebind-uses ((clang clang) stmt renames-list)
@@ -963,12 +963,14 @@ free variables.")
 
 (defmethod delete-decl-stmts ((clang clang) the-block decl-replacements)
   (let ((renames-list
-         (mapcar (lambda (pair)
-                   (loop
-                      :for decl :in (aget :declares (get-ast clang (car pair)))
-                      :for var  :in (cdr pair)
-                      :collecting (cons decl var)))
-                 decl-replacements))
+         (apply #'append
+                (mapcar (lambda (pair)
+                          (loop
+                             :for decl :in (aget :declares
+                                                 (get-ast clang (car pair)))
+                             :for var  :in (cdr pair)
+                             :collecting (cons decl var)))
+                        decl-replacements)))
         (decls (mapcar #'car decl-replacements)))
     (apply-mutation clang
                     `(:set (:stmt1 . ,the-block)
@@ -1046,11 +1048,17 @@ free variables.")
 (defmethod run-rename-variable ((clang clang) stmt)
   (let ((used (get-used-variables clang stmt)))
     (if used
-        (let ((old-var (random-elt used))
-              (new-var (random-elt (get-vars-in-scope clang stmt))))
-          (rebind-uses clang
-                       (enclosing-full-stmt-or-block clang stmt)
-                       (list (cons old-var new-var)))
+        (let* ((old-var (random-elt used))
+               (new-var (random-elt
+                         (or (remove-if {equal old-var}
+                                        (get-vars-in-scope clang stmt))
+                             (list old-var)))))
+          (apply-mutation clang
+           `(:set
+             (:stmt1 . ,(enclosing-full-stmt-or-block clang stmt))
+             (:value1 . ,(rebind-uses clang
+                                      (enclosing-full-stmt-or-block clang stmt)
+                                      (list (cons old-var new-var))))))
           (list :rename-variable stmt old-var new-var))
         (list :rename-variable stmt 'did-nothing))))
 
