@@ -52,7 +52,7 @@
   (with-temp-file (bin)
     (multiple-value-bind (out errno) (phenome obj :bin bin)
       (declare (ignorable out))
-      (compile-p (zerop errno)))))
+      (zerop errno))))
 
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (or (genome ast) "") stream))
