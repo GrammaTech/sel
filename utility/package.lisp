@@ -103,6 +103,7 @@
    :*note-out*
    :note
    :trace-memory
+   :*shell-count*
    ;; diff computing
    :diff-scalar
    ;; gdb functions

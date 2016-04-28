@@ -142,8 +142,11 @@ and an optional extension."
              (format stream "Shell command failed with status ~a: \"~a\""
                      (exit-code condition) (command condition)))))
 
+(defvar *shell-count* 0)
+
 (defun shell (&rest rst)
   (let ((cmd (apply #'format (cons nil rst))))
+    (incf *shell-count*)
     (when *shell-debug* (format t "  cmd: ~a~%" cmd))
     (if *work-dir*
         ;; more robust shell execution using foreman
