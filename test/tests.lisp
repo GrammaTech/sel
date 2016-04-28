@@ -1147,8 +1147,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
            (a-stmt2 (stmt-with-text *scopes* "int e;"))
-           (b-stmt1 (stmt-with-text *scopes* "a = 11"))
-           (b-stmt2 (stmt-with-text *scopes* "c = 13"))
+           (b-stmt1 (stmt-with-text *scopes* "a = 13"))
+           (b-stmt2 (stmt-with-text *scopes* "c = 15"))
            (target-a-pts
             (cons (stmt-starting-with-text *scopes* "for (b = 2;")
                   (stmt-starting-with-text *scopes* "if (b == 7)"))))
@@ -1163,8 +1163,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int b;"))
            (a-stmt2 (stmt-with-text *scopes* "int c;"))
-           (b-stmt1 (stmt-with-text *scopes* "a = 11"))
-           (b-stmt2 (stmt-with-text *scopes* "a = 11")))
+           (b-stmt1 (stmt-with-text *scopes* "a = 13"))
+           (b-stmt2 (stmt-with-text *scopes* "a = 13")))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
@@ -1272,3 +1272,70 @@ Useful for printing or returning differences in the REPL."
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
+(deftest single-decl-works ()
+  (with-fixture scopes-clang
+    (let ((ast (get-ast *scopes*
+                        (stmt-with-text *scopes* "int a;"))))
+      (is (= 1 (length (aget :declares ast)))))))
+
+(deftest multiple-decl-works ()
+  (with-fixture scopes-clang
+    (let ((ast (get-ast *scopes*
+                        (stmt-with-text *scopes* "int f, g;"))))
+      (is (= 2 (length (aget :declares ast)))))))
+
+(deftest delete-decl-stmts-works ()
+  (with-fixture scopes-clang
+    (let ((variant (copy *scopes*)))
+      (run-cut-decl variant
+                    (list (get-ast *scopes*
+                                   (stmt-with-text *scopes* "int a;"))))
+      (is (compile-p variant))
+      (is (not (equal (genome-string *scopes*)
+                      (genome-string variant)))))
+    (let ((variant (copy *scopes*)))
+      (run-cut-decl variant
+                    (list (get-ast *scopes*
+                                   (stmt-with-text *scopes* "int d;"))))
+      (is (compile-p variant))
+      (is (not (equal (genome-string *scopes*)
+                      (genome-string variant)))))
+    (let ((variant (copy *scopes*)))
+      (run-cut-decl variant
+                    (list (get-ast *scopes*
+                                   (stmt-with-text *scopes* "int f, g;"))))
+      (is (compile-p variant))
+      (is (not (equal (genome-string *scopes*)
+                      (genome-string variant)))))))
+
+(deftest swap-decls-works ()
+  (with-fixture scopes-clang
+    ;; Check if the basic swap-decls mutation works.
+    (let ((variant (copy *scopes*)))
+      (run-swap-decls variant
+                      (aget :parent--counter
+                            (get-ast *scopes*
+                                     (stmt-with-text *scopes* "int a;"))))
+      (is (compile-p variant))
+      (is (not (equal (genome-string *scopes*)
+                      (genome-string variant)))))
+    ;; Check if swap-decls works when only one decl is in the
+    ;; selected scope. The expected behavior is to crawl up to
+    ;; the first enclosing scope with at least two decls.
+    (let ((variant (copy *scopes*)))
+      (run-swap-decls variant
+                      (aget :parent--counter
+                            (get-ast *scopes*
+                                     (stmt-with-text *scopes* "int d;"))))
+      (is (compile-p variant))
+      (is (not (equal (genome-string *scopes*)
+                      (genome-string variant)))))))
+
+(deftest rename-variable-works ()
+  (with-fixture scopes-clang
+    (let ((variant (copy *scopes*)))
+      (run-rename-variable variant
+                           (stmt-with-text *scopes* "b = 1"))
+      (is (compile-p variant))
+      (is (not (equal (genome-string *scopes*)
+                      (genome-string variant)))))))

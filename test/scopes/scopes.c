@@ -18,12 +18,15 @@ int main(void)
     b = 7;
     if (b == 7) {
         int e;
+        int f, g;
         e = 8;
         b = 9;
         c = 10;
+        f = 11;
+        g = 12;
     }
-    a = 11;
-    b = 12;
-    c = 13;
+    a = 13;
+    b = 14;
+    c = 15;
     return a + b + c;
 }
