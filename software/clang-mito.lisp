@@ -33,12 +33,21 @@
   (merge-hash-tables (types this)   (types that))
   (merge-hash-tables (globals this) (globals that)))
 
+;; For backwards-compatibility with older JSON database snippets;
+;; newer versions of clang-mutate should never generate a bare
+;; filename for #includes.
+(defun format-include (name)
+  (cond ((or (equal name "")
+             (equal (char name 0) #\")
+             (equal (char name 0) #\<)) name)
+        (t (format nil "<~a>" name))))
+
 (defmethod genome-string ((clang-mito clang-mito) &optional stream)
   (format stream "~a"
     (apply #'concatenate 'string
       (concatenate 'list
         (loop for key being the hash-keys of (headers clang-mito)
-           collecting (format nil "#include <~a>~%" key))
+           collecting (format nil "#include ~a~%" (format-include key)))
         (loop for key being the hash-keys of (macros clang-mito)
            using (hash-value value)
            collecting (format nil "#define ~a~%" value))
