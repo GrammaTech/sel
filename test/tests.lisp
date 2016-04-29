@@ -765,7 +765,7 @@
   (with-fixture hello-world-clang-w-fodder
     (without-helpers
         (let ((variant (copy *hello-world*)))
-          (apply-mutation variant '(clang-insert (:stmt1 . 2)
+          (apply-mutation variant '(clang-insert (:stmt1 . 3)
                                     (:literal1 . "int i = 0;")))
           (is (> (size variant)
                  (size *hello-world*)))
@@ -788,7 +788,7 @@
 ;;; Clang utility methods
 (deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang
-    (is (= 9 (length (asts *hello-world*))))))
+    (is (= 10 (length (asts *hello-world*))))))
 
 (deftest parent-ast-p-true-test()
   (with-fixture hello-world-clang
