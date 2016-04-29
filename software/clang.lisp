@@ -1646,18 +1646,17 @@ free variables.")
   (setf (genome-string obj)
         (with-temp-file-of (src (ext obj)) (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
-              (shell "clang-format ~a ~a -- ~a"
-                     (if style
-                         (format nil "-style=~a" style)
-                         (format nil
-                           "-style='{BasedOnStyle: Google~
-                                     AllowShortBlocksOnASingleLine: false~
-                                     AllowShortCaseLabelsOnASingleLine: false~
-                                     AllowShortFunctionsOnASingleLine: false~
-                                     AllowShortIfStatementsOnASingleLine: false~
-                                     AllowShortLoopsOnASingleLine: false}'"))
-                     src
-                     (mapconcat #'identity (flags obj) " "))
+              (shell "clang-format ~a ~a"
+                (if style
+                    (format nil "-style=~a" style)
+                    (format nil
+                      "-style='{BasedOnStyle: Google,~
+                                AllowShortBlocksOnASingleLine: false,~
+                                AllowShortCaseLabelsOnASingleLine: false,~
+                                AllowShortFunctionsOnASingleLine: false,~
+                                AllowShortIfStatementsOnASingleLine: false,~
+                                AllowShortLoopsOnASingleLine: false}'"))
+                src)
             (declare (ignorable stderr))
             (if (zerop exit) stdout (genome-string obj)))))
   obj)
