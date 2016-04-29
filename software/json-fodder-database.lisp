@@ -98,7 +98,7 @@
                         (full-stmt
                          (ast-database-full-stmt-list db))
                         (t (ast-database-list db)))))
-    (if (and limit (<= limit (length snippets)))
+    (if (and limit (< limit (length snippets)))
         (let ((start (random (- (length snippets) limit))))
           (subseq snippets start (+ start limit)))
         snippets)))
