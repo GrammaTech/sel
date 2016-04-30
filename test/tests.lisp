@@ -1368,9 +1368,9 @@ Useful for printing or returning differences in the REPL."
 
 (deftest basic-2pt-crossover-works ()
   (with-fixture scopes-clang
-    (let* ((a-stmt1 (stmt-with-text *scopes* "int d;"))
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int d"))
            (a-stmt2 (stmt-with-text *scopes* "d = 5"))
-           (b-stmt1 (stmt-with-text *scopes* "int e;"))
+           (b-stmt1 (stmt-with-text *scopes* "int e"))
            (b-stmt2 (stmt-with-text *scopes* "c = 10"))
            (target-a-pts (cons a-stmt1 a-stmt2)))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -1384,7 +1384,7 @@ Useful for printing or returning differences in the REPL."
 (deftest crossover-can-match-nesting ()
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
-           (a-stmt2 (stmt-with-text *scopes* "int e;"))
+           (a-stmt2 (stmt-with-text *scopes* "int e"))
            (b-stmt1 (stmt-with-text *scopes* "c = 6"))
            (b-stmt2 (stmt-with-text *scopes* "e = 8"))
            (target-a-pts
@@ -1398,7 +1398,7 @@ Useful for printing or returning differences in the REPL."
         (is (equal effective-a-pts target-a-pts)))))
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
-           (a-stmt2 (stmt-with-text *scopes* "int e;"))
+           (a-stmt2 (stmt-with-text *scopes* "int e"))
            (b-stmt1 (stmt-with-text *scopes* "a = 13"))
            (b-stmt2 (stmt-with-text *scopes* "c = 15"))
            (target-a-pts
@@ -1413,8 +1413,8 @@ Useful for printing or returning differences in the REPL."
 
 (deftest crossover-can-rebind-text ()
   (with-fixture scopes-clang
-    (let* ((a-stmt1 (stmt-with-text *scopes* "int b;"))
-           (a-stmt2 (stmt-with-text *scopes* "int c;"))
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int b"))
+           (a-stmt2 (stmt-with-text *scopes* "int c"))
            (b-stmt1 (stmt-with-text *scopes* "a = 13"))
            (b-stmt2 (stmt-with-text *scopes* "a = 13")))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -1424,8 +1424,8 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant)))))
   (with-fixture scopes-clang
-    (let* ((a-stmt1 (stmt-with-text *scopes* "int b;"))
-           (a-stmt2 (stmt-with-text *scopes* "int c;"))
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int b"))
+           (a-stmt2 (stmt-with-text *scopes* "int c"))
            (b-stmt1 (stmt-with-text *scopes* "d = 5"))
            (b-stmt2 (stmt-with-text *scopes* "--d")))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -1438,7 +1438,7 @@ Useful for printing or returning differences in the REPL."
 (deftest crossover-the-world ()
   ;; Entire text of a function
   (with-fixture scopes-clang
-    (let* ((a-stmt1 (stmt-with-text *scopes* "int a;"))
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int a"))
            (a-stmt2 (stmt-with-text *scopes* "return a + b + c"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
@@ -1452,7 +1452,7 @@ Useful for printing or returning differences in the REPL."
                (length (asts variant)))))))
   ;; A single statement (the first one)
   (with-fixture scopes-clang
-    (let* ((a-stmt1 (stmt-with-text *scopes* "int a;"))
+    (let* ((a-stmt1 (stmt-with-text *scopes* "int a"))
            (a-stmt2 a-stmt1)
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
@@ -1527,13 +1527,13 @@ Useful for printing or returning differences in the REPL."
 (deftest single-decl-works ()
   (with-fixture scopes-clang
     (let ((ast (get-ast *scopes*
-                        (stmt-with-text *scopes* "int a;"))))
+                        (stmt-with-text *scopes* "int a"))))
       (is (= 1 (length (aget :declares ast)))))))
 
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
     (let ((ast (get-ast *scopes*
-                        (stmt-with-text *scopes* "int f, g;"))))
+                        (stmt-with-text *scopes* "int f, g"))))
       (is (= 2 (length (aget :declares ast)))))))
 
 (deftest delete-decl-stmts-works ()
@@ -1541,21 +1541,21 @@ Useful for printing or returning differences in the REPL."
     (let ((variant (copy *scopes*)))
       (apply-mutation
        variant
-       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a;"))))
+       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
        variant
-       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int d;"))))
+       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int d"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
        variant
-       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int f, g;"))))
+       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int f, g"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
@@ -1566,8 +1566,7 @@ Useful for printing or returning differences in the REPL."
     (let ((variant (copy *scopes*))
           (*bad-asts*
            (list (get-ast *scopes*
-                          (stmt-with-text *scopes* "int a;")))))
-      (setf c variant)
+                          (stmt-with-text *scopes* "int a")))))
       (apply-mutation variant
                       (make-instance 'swap-decls :object variant))
       (is (compile-p variant))
@@ -1579,7 +1578,7 @@ Useful for printing or returning differences in the REPL."
     (let ((variant (copy *scopes*))
           (*bad-asts*
            (list (get-ast *scopes*
-                          (stmt-with-text *scopes* "int d;")))))
+                          (stmt-with-text *scopes* "int d")))))
       (apply-mutation variant
                       (make-instance 'swap-decls :object variant))
       (is (compile-p variant))
