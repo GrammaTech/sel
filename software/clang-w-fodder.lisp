@@ -14,8 +14,8 @@
   "The probability that a clang-w-fodder mutation will use the code database.")
 
 (defvar *fodder-mutation-types*
-  '('replace-fodder-same 'replace-fodder-full
-    'insert-fodder       'insert-fodder-full)
+  '(replace-fodder-same replace-fodder-full
+    insert-fodder       insert-fodder-full)
   "Types of valid fodder mutations")
 
 (define-software clang-w-fodder (clang) ())
