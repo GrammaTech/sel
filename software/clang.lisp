@@ -389,7 +389,7 @@ CLANG software object"))
 
 (defmethod from-file-exactly ((obj clang) path)
   (setf (ext obj) (pathname-type (pathname path)))
-  (from-string-exactly (file-to-string path)))
+  (from-string-exactly obj (file-to-string path)))
 
 (defmethod from-file ((obj clang) path)
   (setf (ext obj) (pathname-type (pathname path)))
