@@ -164,19 +164,21 @@
         `((:stmt1 . ,(random-stmt decls))))))
 
 (defmethod build-op ((mutation cut-decl) clang)
-  (let* ((decl (aget :stmt1 (targets mutation)))
-         (the-block (enclosing-block clang decl))
-         (old-names (aget :declares (get-ast clang decl)))
-         (uses (apply #'append
-                      (mapcar (lambda (x) (get-children-using clang x the-block))
-                              old-names)))
-         (vars (remove-if {find _ old-names :test #'equal}
-                          (get-vars-in-scope clang
+  (if (not (eq (targets mutation) 'did-nothing))
+      (let* ((decl (aget :stmt1 (targets mutation)))
+             (the-block (enclosing-block clang decl))
+             (old-names (aget :declares (get-ast clang decl)))
+             (uses (apply #'append
+                          (mapcar (lambda (x)
+                                    (get-children-using clang x the-block))
+                                  old-names)))
+             (vars (remove-if {find _ old-names :test #'equal}
+                              (get-vars-in-scope clang
                                              (if uses (car uses) the-block))))
-         (var (loop :for _ :in old-names :collecting
-                 (if vars (random-elt vars)
-                     "/* no vars available before first use of cut decl */"))))
-    (delete-decl-stmts clang the-block `((,decl . ,var)))))
+             (var (loop :for _ :in old-names :collecting
+                     (if vars (random-elt vars)
+                      "/* no vars available before first use of cut decl */"))))
+        (delete-decl-stmts clang the-block `((,decl . ,var))))))
 
 ;; Swap Decls
 (define-mutation swap-decls (clang-swap)
