@@ -92,8 +92,8 @@ CLANG-W-FODDER in a method-dependent fashion."))
 (define-mutation insert-fodder-full (clang-insert)
   ((targeter :initform {pick-bad-fodder _ t nil})))
 
-(define-mutation replace-fodder (clang-replace)
-  ((targeter :initform #'pick-bad-fodder)))
-
 (define-mutation replace-fodder-same (clang-replace)
   ((targeter :initform {pick-bad-fodder _ nil t})))
+
+(define-mutation replace-fodder-full (clang-replace)
+  ((targeter :initform {pick-bad-fodder _ t nil})))
