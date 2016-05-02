@@ -1603,7 +1603,9 @@ free variables.")
 
 (defmethod prototype-containing-ast ((clang clang) stmt)
   (let ((body (aget :counter
-                (car (last (get-parent-asts clang (get-ast clang stmt)))))))
+                (car (last (remove-if-not
+                            [{equal "CompoundStmt"} {aget :ast--class}]
+                            (get-parent-asts clang (get-ast clang stmt))))))))
     (car (remove-if-not [{= body} {aget :body}] (prototypes clang)))))
 
 (defmethod genome-string-without-separator ((obj clang))
