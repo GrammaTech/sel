@@ -25,7 +25,7 @@
             (middle-host obj) (middle-port obj)
             (db obj) (host obj) (port obj))))
 
-(defmethod weighted-pick ((obj fodder-database) predicate weight
+(defmethod weighted-pick ((obj mongo-middle-database) predicate weight
                           &key target key limit classes filter
                                (limit-considered infinity))
   (declare (ignorable key classes filter limit-considered))

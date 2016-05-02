@@ -34,8 +34,7 @@ All other arguments are passed through to sorted snippets."))
   (random-elt-with-decay
    (sorted-snippets obj predicate
                     :target target :key key :limit limit :classes classes
-                    :filter filter :max-seconds max-seconds
-                    :limit-considered limit-considered)
+                    :filter filter :limit-considered limit-considered)
    weight))
 
 (defgeneric sorted-snippets
