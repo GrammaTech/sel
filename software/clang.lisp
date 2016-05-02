@@ -696,7 +696,7 @@ Otherwise return the whole FULL-GENOME"
     (let ((clang-mutate-outfile (temp-file-name)))
       (unwind-protect
         (multiple-value-bind (stdout stderr exit)
-          (shell "clang-mutate -decls ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
+          (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
                   (command-opt (car op))
                   (mapcar #'option-opt (cdr op))
                   src-file
