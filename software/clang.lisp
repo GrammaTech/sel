@@ -430,6 +430,7 @@ CLANG software object"))
   (asts clang))
 
 (defmethod bad-asts ((clang clang))
+  ;; TODO: Remove inst-decls and parameter-decls.
   (asts clang))
 
 (defun random-stmt (asts)
