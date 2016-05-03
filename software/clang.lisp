@@ -215,7 +215,7 @@ restrictions. For use by targeter functions/execute picks."
                     (mapcar {aget :counter}
                             (with-class-filter "DeclStmt"
                               (mapcar {get-ast clang}
-                                      (aget :stmt--list
+                                      (aget :stmt-list
                                             (get-ast clang the-block)))))))
                (if (> 2 (length decls))
                    (pick-from-block (enclosing-block clang the-block))
@@ -297,12 +297,12 @@ software object"))
   (with-slots (asts) obj (length asts)))
 
 (defvar *clang-json-required-fields*
-  '( :ast--class         :counter            :unbound--vals
-     :unbound--funs      :types              :stmt--list
-     :src--text          :parent--counter    :macros
-     :guard--stmt        :full--stmt         :begin--src--line
-     :end--src--line     :begin--src--col    :end--src--col
-     :begin--addr        :end--addr          :includes
+  '( :ast-class         :counter           :unbound-vals
+     :unbound-funs      :types             :stmt-list
+     :src-text          :parent-counter    :macros
+     :guard-stmt        :full-stmt         :begin-src-line
+     :end-src-line      :begin-src-col     :end-src-col
+     :begin-addr        :end-addr          :includes
      :declares)
   "JSON database entry fields required for clang software objects.")
 
@@ -382,14 +382,14 @@ software object"))
     ;; declarations together in the same order they originally appeared.
     (setf (genome-string obj)
           (unlines
-           (mapcar {aget :decl--text}
+           (mapcar {aget :decl-text}
                    (sort
-                    (remove-if-not {aget :decl--text} json-db)
+                    (remove-if-not {aget :decl-text} json-db)
                     (lambda (x y)
                       (or (< (first x) (first y))
                           (and (= (first x) (first y))
                                (< (second x) (second y)))))
-                    :key «{aget :begin--src--line} {aget :begin--src--col}»)))))
+                    :key «{aget :begin-src-line} {aget :begin-src-col}»)))))
   (when *ancestor-logging*
     (setf (ancestors obj) (list (alist :base string
                                        :how 'from-string
@@ -428,10 +428,10 @@ software object"))
   (lambda (asts) asts))
 
 (defun with-class-filter (class asts)
-  (remove-if-not [{equal class} {aget :ast--class } ] asts))
+  (remove-if-not [{equal class} {aget :ast-class } ] asts))
 
 (defun full-stmt-filter (asts)
-  (remove-if-not { aget :full--stmt } asts))
+  (remove-if-not { aget :full-stmt } asts))
 
 (defmethod good-asts ((clang clang))
   (asts clang))
@@ -450,7 +450,7 @@ software object"))
   (random-stmt (bad-asts clang)))
 
 (defmethod get-ast-class ((clang clang) stmt)
-  (aget :ast--class (get-ast clang stmt)))
+  (aget :ast-class (get-ast clang stmt)))
 
 (defun execute-picks (get-asts1 &optional connector get-asts2)
   (let* ((stmt1 (when get-asts1
@@ -615,7 +615,7 @@ already in scope, it will keep that name.")
   ;; stmt2 arguments.
   (cons
    (type-of op)
-   (mapcar [{aget :ast--class} {get-ast obj} #'cdr]
+   (mapcar [{aget :ast-class} {get-ast obj} #'cdr]
            (remove-if-not [#'numberp #'cdr]
                           (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
                                          (remove-if-not #'consp (targets op)))))))
@@ -674,25 +674,25 @@ Otherwise return the whole FULL-GENOME"
                (ecase field
                  (:counter "counter")
                  (:declares "declares")
-                 (:parent--counter "parent_counter")
-                 (:ast--class "ast_class")
-                 (:src--file--name "src_file_name")
-                 (:begin--src--line "begin_src_line")
-                 (:begin--src--col "begin_src_col")
-                 (:end--src--line "end_src_line")
-                 (:end--src--col "end_src_col")
-                 (:src--text "src_text")
-                 (:guard--stmt "guard_stmt")
-                 (:full--stmt "full_stmt")
-                 (:unbound--vals "unbound_vals")
-                 (:unbound--funs "unbound_funs")
+                 (:parent-counter "parent_counter")
+                 (:ast-class "ast_class")
+                 (:src-file-name "src_file_name")
+                 (:begin-src-line "begin_src_line")
+                 (:begin-src-col "begin_src_col")
+                 (:end-src-line "end_src_line")
+                 (:end-src-col "end_src_col")
+                 (:src-text "src_text")
+                 (:guard-stmt "guard_stmt")
+                 (:full-stmt "full_stmt")
+                 (:unbound-vals "unbound_vals")
+                 (:unbound-funs "unbound_funs")
                  (:macros "macros")
                  (:types "types")
-                 (:stmt--list "stmt_list")
-                 (:binary--file--path "binary_file_path")
+                 (:stmt-list "stmt_list")
+                 (:binary-file-path "binary_file_path")
                  (:scopes "scopes")
-                 (:begin--addr "begin_addr")
-                 (:end--addr "end_addr")
+                 (:begin-addr "begin_addr")
+                 (:end-addr "end_addr")
                  (:includes "includes")))
              (aux-opt (aux)
                (ecase aux
@@ -700,7 +700,8 @@ Otherwise return the whole FULL-GENOME"
                  (:protos "protos")
                  (:decls "decls")
                  (:none "none"))))
-    (let ((clang-mutate-outfile (temp-file-name)))
+    (let ((clang-mutate-outfile (temp-file-name))
+          (json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
       (unwind-protect
         (multiple-value-bind (stdout stderr exit)
           (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
@@ -758,11 +759,11 @@ Otherwise return the whole FULL-GENOME"
   (when ast
     (make-instance 'source-range
       :begin (make-instance 'source-location
-               :line (aget :begin--src--line ast)
-               :column (aget :begin--src--col ast))
+               :line (aget :begin-src-line ast)
+               :column (aget :begin-src-col ast))
       :end (make-instance 'source-location
-             :line (aget :end--src--line ast)
-             :column (aget :end--src--col ast)))))
+             :line (aget :end-src-line ast)
+             :column (aget :end-src-col ast)))))
 
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
   (when loc
@@ -788,27 +789,27 @@ Otherwise return the whole FULL-GENOME"
 (defmethod parent-ast-p ((clang clang) possible-parent-ast ast)
   (cond ((= (aget :counter possible-parent-ast)
             (aget :counter ast)) t)
-        ((= (aget :parent--counter ast) 0) nil)
+        ((= (aget :parent-counter ast) 0) nil)
         (t (parent-ast-p clang
                          possible-parent-ast
-                         (get-ast clang (aget :parent--counter ast))))))
+                         (get-ast clang (aget :parent-counter ast))))))
 
 (defmethod get-parent-asts((clang clang) ast)
-  (cond ((= (aget :parent--counter ast) 0) (list ast))
+  (cond ((= (aget :parent-counter ast) 0) (list ast))
          (t  (append (list ast)
                      (get-parent-asts
                        clang
-                       (get-ast clang (aget :parent--counter ast)))))))
+                       (get-ast clang (aget :parent-counter ast)))))))
 
 (defmethod get-immediate-children ((clang clang) ast)
-  (remove-if-not (lambda (child-ast) (= (aget :parent--counter child-ast)
+  (remove-if-not (lambda (child-ast) (= (aget :parent-counter child-ast)
                                         (aget :counter ast)))
                  (asts clang)))
 
 (defmethod get-parent-full-stmt((clang clang) ast)
-  (cond ((aget :full--stmt ast) ast)
+  (cond ((aget :full-stmt ast) ast)
         (t (get-parent-full-stmt clang (get-ast clang
-                                                (aget :parent--counter ast))))))
+                                                (aget :parent-counter ast))))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
@@ -819,22 +820,22 @@ Otherwise return the whole FULL-GENOME"
 (defmethod enclosing-block ((clang clang) index &optional child-index)
   (if (= index 0) (values  0 child-index)
     (let* ((ast (get-ast clang index))
-           (blockp (equal (aget :ast--class ast) "CompoundStmt")))
+           (blockp (equal (aget :ast-class ast) "CompoundStmt")))
       (if (and blockp child-index)
           (values index child-index)
-          (enclosing-block clang (aget :parent--counter ast) index)))))
+          (enclosing-block clang (aget :parent-counter ast) index)))))
 
 (defmethod full-stmt-p ((clang clang) stmt)
-  ;; NOTE: This assumes that the :full--stmt tag is always populated.
-  (aget :full--stmt (get-ast clang stmt)))
+  ;; NOTE: This assumes that the :full-stmt tag is always populated.
+  (aget :full-stmt (get-ast clang stmt)))
 
 (defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
   (if (or (null index) (= index 0)) nil
     (let* ((ast (get-ast clang index))
-           (blockp (equal (aget :ast--class ast) "CompoundStmt")))
+           (blockp (equal (aget :ast-class ast) "CompoundStmt")))
       (if (and blockp child-index)
           child-index
-          (enclosing-full-stmt clang (aget :parent--counter ast) index)))))
+          (enclosing-full-stmt clang (aget :parent-counter ast) index)))))
 
 (defun get-entry-after (item list)
   (cond ((null list) nil)
@@ -852,7 +853,7 @@ Otherwise return the whole FULL-GENOME"
          (block-index (enclosing-block clang index))
          (the-block (get-ast clang block-index))
          (the-stmts (if (= 0 block-index) nil
-                        (aget :stmt--list the-block))))
+                        (aget :stmt-list the-block))))
     (get-entry-after index the-stmts)))
 
 (defmethod block-predeccessor ((clang clang) raw-index)
@@ -860,11 +861,11 @@ Otherwise return the whole FULL-GENOME"
          (block-index (enclosing-block clang index))
          (the-block (get-ast clang block-index))
          (the-stmts (if (= 0 block-index) nil
-                        (aget :stmt--list the-block))))
+                        (aget :stmt-list the-block))))
     (get-entry-before index the-stmts)))
 
 (defmethod get-ast-text ((clang clang) stmt)
-  (aget :src--text (get-ast clang stmt)))
+  (aget :src-text (get-ast clang stmt)))
 
 (defun add-semicolon-if-needed (text)
   (if (equal text "") ";"
@@ -876,7 +877,7 @@ Otherwise return the whole FULL-GENOME"
           (concatenate 'string text ";"))))
 
 (defun process-full-stmt-text (snippet)
-  (add-semicolon-if-needed (aget :src--text snippet)))
+  (add-semicolon-if-needed (aget :src-text snippet)))
 
 (defmethod full-stmt-text ((clang clang) raw-index)
   (process-full-stmt-text (get-ast clang
@@ -931,8 +932,8 @@ Otherwise return the whole FULL-GENOME"
         (setf stmts (cons (aget :counter stmt) stmts))
         (list->ht (aget :types         stmt) types)
         (list->ht (aget :macros        stmt) macros)
-        (list->ht (aget :unbound--funs stmt) funcs :key #'car :value #'cdr)
-        (loop for var-def in (aget :unbound--vals stmt)
+        (list->ht (aget :unbound-funs stmt)  funcs :key #'car :value #'cdr)
+        (loop for var-def in (aget :unbound-vals stmt)
            do (let* ((var (first var-def))
                      (already-seen (gethash var vars nil)))
                 (when (or (not already-seen)
@@ -941,16 +942,16 @@ Otherwise return the whole FULL-GENOME"
 
     (let ((declared (loop for decl being the hash-keys of decls
                        collecting (format nil "(|~a|)" decl))))
-      (alist :src--text
+      (alist :src-text
              (apply-replacements
               (append replacements
                       (mapcar (lambda (decl) (cons decl (peel-bananas decl)))
                               declared))
               source)
-             :unbound--vals
+             :unbound-vals
                (remove-if [{find _ declared :test #'equal} {car}]
                           (ht->list vars))
-             :unbound--funs (ht->list funcs :merge-fn #'cons)
+             :unbound-funs (ht->list funcs :merge-fn #'cons)
              :types  (ht->list types)
              :macros (ht->list macros)
              :stmts stmts))))
@@ -1034,23 +1035,23 @@ free variables.")
         (random-elt (or matching variadic others '(nil))))))
 
 (defmethod bind-free-vars ((clang clang) snippet pt)
-  (let* ((raw-code    (aget :src--text snippet))
+  (let* ((raw-code    (aget :src-text snippet))
          (free-vars   (make-hash-table :test 'equal))
          (free-funs   (make-hash-table :test 'equal))
-         (respect-depth (aget :respect--depth snippet))
+         (respect-depth (aget :respect-depth snippet))
          (scope-vars (get-indexed-vars-in-scope
                        clang
                        pt
                        (random-bool :bias *allow-bindings-to-globals-bias*))))
-    (loop :for vars :in (aget :scope--removals snippet)
+    (loop :for vars :in (aget :scope-removals snippet)
        :do (setf (gethash (first vars) scope-vars)
                  (remove-if {find _ (second vars) :test #'equal}
                             (gethash (first vars) scope-vars nil))))
-    (loop :for vars :in (aget :scope--additions snippet)
+    (loop :for vars :in (aget :scope-additions snippet)
        :do (appendf (gethash (first vars) scope-vars) (second vars)))
 
-    (list->ht (aget :unbound--vals snippet) free-vars)
-    (list->ht (aget :unbound--funs snippet) free-funs :key #'car :value #'cdr)
+    (list->ht (aget :unbound-vals snippet) free-vars)
+    (list->ht (aget :unbound-funs snippet) free-funs :key #'car :value #'cdr)
     (let ((replacements
            (append
             (loop for var being the hash-keys of free-vars
@@ -1080,19 +1081,19 @@ free variables.")
     (add-semicolon-if-needed
      (apply-replacements
       (append
-       (loop :for var :in (mapcar #'car (aget :unbound--vals snippet))
+       (loop :for var :in (mapcar #'car (aget :unbound-vals snippet))
           :collecting (cons var (gethash (peel-bananas var) renames
                                          (peel-bananas var))))
-       (loop for fun :in (mapcar #'car (aget :unbound--funs snippet))
+       (loop for fun :in (mapcar #'car (aget :unbound-funs snippet))
           :collecting (cons fun (gethash (peel-bananas fun) renames
                                                        (peel-bananas fun)))))
-      (aget :src--text snippet)))))
+      (aget :src-text snippet)))))
 
 (defmethod rebind-uses ((clang clang) stmt renames-list)
   (if (equal (get-ast-class clang stmt) "CompoundStmt")
       (format nil "{~%~{~a~%~}}~%"
               (loop :for one-stmt
-                 :in (aget :stmt--list (get-ast clang stmt))
+                 :in (aget :stmt-list (get-ast clang stmt))
                  :collecting
                  (rebind-uses-in-snippet (get-ast clang one-stmt)
                                          renames-list)))
@@ -1120,14 +1121,14 @@ free variables.")
 
 (defmethod get-declared-variables ((clang clang) the-block)
   (apply #'append
-         (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
+         (loop :for stmt :in (aget :stmt-list (get-ast clang the-block))
             :collecting (aget :declares (get-ast clang stmt)))))
 
 (defmethod get-used-variables ((clang clang) stmt)
-  (mapcar [{peel-bananas} {car}] (aget :unbound--vals (get-ast clang stmt))))
+  (mapcar [{peel-bananas} {car}] (aget :unbound-vals (get-ast clang stmt))))
 
 (defmethod get-children-using ((clang clang) var the-block)
-  (loop :for stmt :in (aget :stmt--list (get-ast clang the-block))
+  (loop :for stmt :in (aget :stmt-list (get-ast clang the-block))
      :when (find var (get-used-variables clang stmt) :test #'equal)
      :collecting stmt))
 
@@ -1143,7 +1144,7 @@ free variables.")
                       (remove-if [{>= end} {aget :counter}]
                                  (nth depth full-seq)))))
     (if (and (equal (length full-seq) 1) (null last-seq))
-        (alist :stmt2 end :src--text "")
+        (alist :stmt2 end :src-text "")
         (let* ((initial-seq (loop for scope in full-seq
                                for i from 0 to (1- depth)
                                collecting scope))
@@ -1161,7 +1162,7 @@ free variables.")
                                   (nth-enclosing-block clang (1- depth)
                                                        (aget :counter init)))
                               (aget :counter (last-elt last)))
-                   (acons :respect--depth t
+                   (acons :respect-depth t
                           (create-sequence-snippet
                            (append initial-seq (list last))
                            replacements))))))))
@@ -1185,7 +1186,7 @@ free variables.")
     (update-mito-from-snippet a b-snippet (mitochondria b))
     (multiple-value-bind (text replacements)
         (bind-free-vars a b-snippet a-begin)
-      (alist :src--text text
+      (alist :src-text text
              :replacements replacements
              :stmt1 a-begin
              :stmt2 a-end))))
@@ -1197,7 +1198,7 @@ free variables.")
           ((< 0 depth) (select-before clang (- depth 1) the-block))
           (t (let ((preds
                     (remove-if {< pt}
-                               (aget :stmt--list (get-ast clang the-block)))))
+                               (aget :stmt-list (get-ast clang the-block)))))
                (if preds (random-elt preds) pt))))))
 
 (defmethod parent-at-depth ((clang clang) depth pt)
@@ -1225,7 +1226,7 @@ free variables.")
       (alist :stmt1 stmt1
              :stmt2 stmt2
              :scope-adjustments (list nil)
-             :src--text "")
+             :src-text "")
       (let ((compound-stmt1-p (equal (get-ast-class clang stmt1)
                                      "CompoundStmt")))
         (multiple-value-bind (text defns vals funs macros includes types)
@@ -1233,12 +1234,12 @@ free variables.")
           (alist
            :stmt1 (enclosing-full-stmt-or-block clang stmt1)
            :stmt2 (enclosing-full-stmt clang stmt2)
-           :src--text (apply-replacements replacements text)
+           :src-text (apply-replacements replacements text)
            :macros (remove-duplicates macros :test #'equal :key #'car)
            :includes (remove-duplicates includes :test #'equal)
            :types (remove-duplicates types :test #'equal)
-           :unbound--vals (remove-duplicates vals :test #'equal :key #'car)
-           :unbound--funs (remove-duplicates funs :test #'equal :key #'car)
+           :unbound-vals (remove-duplicates vals :test #'equal :key #'car)
+           :unbound-funs (remove-duplicates funs :test #'equal :key #'car)
            :scope-adjustments
            (loop :for scoped-defns :on (reverse (if compound-stmt1-p
                                                     (cons '() defns)
@@ -1259,7 +1260,7 @@ free variables.")
           (equal (get-ast-class clang stmt1) "CompoundStmt"))
      (multiple-value-bind (text more-defns vals funs macros includes types)
          (prepare-inward-snippet clang
-                                 (car (aget :stmt--list (get-ast clang stmt1)))
+                                 (car (aget :stmt-list (get-ast clang stmt1)))
                                  stmt2
                                  defns
                                  (1+ recursion-throttle))
@@ -1278,9 +1279,9 @@ free variables.")
             (stmts (remove-if-not
                     (lambda (pt) (and (<= full-stmt1 pt)
                                       (< pt stmt2-ancestor)))
-                    (aget :stmt--list (if (= 0 the-block)
-                                          '()
-                                          (get-ast clang the-block))))))
+                    (aget :stmt-list (if (= 0 the-block)
+                                         '()
+                                         (get-ast clang the-block))))))
        (when (= the-block (enclosing-block clang stmt2))
          (appendf stmts (list stmt2)))
        (loop :for stmt :in stmts
@@ -1291,12 +1292,12 @@ free variables.")
                        (push decl local-defns))))
        (loop :for stmt :in (cons stmt2-ancestor stmts)
           :do (let ((ast (get-ast clang stmt)))
-                (loop :for var :in (aget :unbound--vals ast)
+                (loop :for var :in (aget :unbound-vals ast)
                    :when (not (find (peel-bananas (car var)) defns
                                     :test #'equal))
                    :do (push var local-free-vars))
                 (setf local-free-funs (append local-free-funs
-                                              (aget :unbound--funs ast)))
+                                              (aget :unbound-funs ast)))
                 (setf local-macros (append local-macros
                                            (aget :macros ast)))
                 (setf local-includes (append local-includes
@@ -1367,9 +1368,9 @@ free variables.")
          (b-data (multiple-value-bind (b-text b-repl)
                      (bind-free-vars a b-snippet (aget :stmt1 a-snippet))
                    (cons b-text b-repl)))
-         (tail (acons   :resepct--depth t
-                (acons  :scope--removals removals
-                 (acons :scope--additions additions
+         (tail (acons   :resepct-depth t
+                (acons  :scope-removals removals
+                 (acons :scope-additions additions
                    (prepare-sequence-snippet
                     a
                     a-end
@@ -1378,7 +1379,7 @@ free variables.")
                     (cdr b-data))))))
          (snippet
           (alist
-           :src--text
+           :src-text
            (format nil "~a~%~a"
                    (car b-data)
                    (bind-free-vars a
@@ -1387,10 +1388,10 @@ free variables.")
            :macros (aget :macros b-snippet)
            :includes (aget :includes b-snippet)
            :types (aget :types b-snippet)
-           :unbound--vals (aget :unbound--vals tail)
-           :unbound--funs (aget :unbound--funs tail))))
+           :unbound-vals (aget :unbound-vals tail)
+           :unbound-funs (aget :unbound-funs tail))))
     (update-mito-from-snippet a snippet (mitochondria b))
-    (alist :src--text (aget :src--text snippet)
+    (alist :src-text (aget :src-text snippet)
            :stmt1 (aget :stmt1 a-snippet)
            :stmt2 (aget :stmt2 tail))))
 
@@ -1423,7 +1424,7 @@ free variables.")
            (lambda (ast)
              (or (>= (aget :counter ast) stmt)
                  (< (aget :counter ast) ancestor)
-                 (not (equal (aget :ast--class ast) "CompoundStmt"))))
+                 (not (equal (aget :ast-class ast) "CompoundStmt"))))
            (get-parent-asts clang (get-ast clang stmt)))))
 
 (defmethod nesting-relation ((clang clang) x y)
@@ -1467,13 +1468,13 @@ free variables.")
          (y-rel (nesting-relation b (car ys) (cdr ys)))
          ;; Parent statements of points in xs, ys
          (xps (cons (enclosing-full-stmt-or-block a
-                      (aget :parent--counter (get-ast a (car xs))))
+                      (aget :parent-counter (get-ast a (car xs))))
                     (enclosing-full-stmt-or-block a
-                      (aget :parent--counter (get-ast a (cdr xs))))))
+                      (aget :parent-counter (get-ast a (cdr xs))))))
          (yps (cons (enclosing-full-stmt-or-block b
-                      (aget :parent--counter (get-ast b (car ys))))
+                      (aget :parent-counter (get-ast b (car ys))))
                     (enclosing-full-stmt-or-block b
-                                         (aget :parent--counter (get-ast b (cdr ys)))))))
+                                         (aget :parent-counter (get-ast b (cdr ys)))))))
     ;; If nesting relations don't match, replace one of the points with
     ;; its parent's enclosing full statement and try again.
     (cond
@@ -1505,13 +1506,13 @@ free variables.")
                        b (cons b-begin b-end))
       (let* ((outward-snippet
               (if (null b-out)
-                  (alist :src--text "") ; No corresponding text from b
+                  (alist :src-text "") ; No corresponding text from b
                   (crossover-2pt-outward variant b
                                          (car a-out) (cdr a-out)
                                          (car b-out) (cdr b-out))))
              (inward-snippet
               (if (and (null (cdr a-in)) (null (cdr b-in)))
-                  (alist :src--text "") ; No corresponding text from b
+                  (alist :src-text "") ; No corresponding text from b
                   (crossover-2pt-inward
                    variant b a-in b-in
                    (aget :replacements outward-snippet)))))
@@ -1523,8 +1524,8 @@ free variables.")
            (:stmt2 . ,(or (aget :stmt2 inward-snippet)
                           (aget :stmt2 outward-snippet)))
            (:value1 . ,(concatenate 'string
-                                    (aget :src--text outward-snippet)
-                                    (aget :src--text inward-snippet)))))
+                                    (aget :src-text outward-snippet)
+                                    (aget :src-text inward-snippet)))))
         (values variant
                 (cons a-begin a-end)
                 (cons b-begin b-end)
@@ -1560,10 +1561,10 @@ free variables.")
            (values stmt1 stmt2)))))
 
 (defmethod random-point-in-function ((clang clang) proto)
-  (let* ((first (1+ (first (aget :stmt--range proto))))
-         (last  (if (< (second (aget :stmt--range proto)) first)
+  (let* ((first (1+ (first (aget :stmt-range proto))))
+         (last  (if (< (second (aget :stmt-range proto)) first)
                     first
-                    (second (aget :stmt--range proto)))))
+                    (second (aget :stmt-range proto)))))
     (+ first (random (1+ (- last first))))))
 
 (defmethod select-intraprocedural-pair ((clang clang))
@@ -1611,7 +1612,7 @@ free variables.")
 (defmethod prototype-containing-ast ((clang clang) stmt)
   (let ((body (aget :counter
                 (car (last (remove-if-not
-                            [{equal "CompoundStmt"} {aget :ast--class}]
+                            [{equal "CompoundStmt"} {aget :ast-class}]
                             (get-parent-asts clang (get-ast clang stmt))))))))
     (car (remove-if-not [{= body} {aget :body}] (prototypes clang)))))
 
