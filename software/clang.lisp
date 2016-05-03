@@ -38,6 +38,8 @@
 
 ;; Targeting functions
 (defun restrict-targets (software full-stmt same-class)
+  "Return good, bad, then callbacks with full-stmt/same-class
+restrictions. For use by targeter functions/execute picks."
   (labels ((filter (asts) (if full-stmt
                               (full-stmt-filter asts)
                               asts)))
@@ -55,17 +57,20 @@
       (list good bad then))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
+  "Pick a bad AST, then a good one."
   (destructuring-bind (good bad then)
       (restrict-targets software full-stmt same-class)
     (execute-picks bad then good)))
 
 (defun pick-bad-bad (software &optional full-stmt same-class)
+  "Pick a bad AST, then another bad one."
   (destructuring-bind (good bad then)
       (restrict-targets software full-stmt same-class)
     (declare (ignorable good))
     (execute-picks bad then bad)))
 
 (defun pick-bad-only (software &optional full-stmt)
+  "Pick a bad AST."
   (destructuring-bind (good bad then)
       (restrict-targets software full-stmt nil)
     (execute-picks bad)))
