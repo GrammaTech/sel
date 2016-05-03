@@ -45,7 +45,6 @@
    :pick-bad
    :pick-snippet
    :mutate
-   :mutate-clang
    :mutation-types-clang
    :clang-mutation
    :build-op
@@ -277,6 +276,7 @@
    :clang-replace-same
    :clang-replace-full
    :clang-replace-full-same
+   :clang-nop
    :cut-decl
    :swap-decls
    :rename-variable

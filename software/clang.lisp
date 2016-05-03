@@ -145,6 +145,12 @@
 (defmethod build-op ((mutation clang-set-range) software)
   `((:set-range . ,(targets mutation))))
 
+;; Nop
+(define-mutation clang-nop (clang-mutation) ())
+
+(defmethod build-op ((mutation clang-nop) software)
+  nil)
+
 ;; The -same variants only exist for symmetry (which makes it easier to
 ;; build the CDF). Since cut only picks one AST the same-class
 ;; constraint has no effect.
@@ -281,10 +287,6 @@ object as well as their relative probabilities"))
 (defgeneric pick-mutation-type (clang)
   (:documentation "Pick the type of mutation to be performed by the CLANG
 software object"))
-
-(defgeneric mutate-clang (clang mutation-type)
-  (:documentation "Perform a mutation of the given MUTATION-TYPE on the
-CLANG software object"))
 
 (defmethod size ((obj clang))
   (with-slots (asts) obj (length asts)))
@@ -548,9 +550,9 @@ already in scope, it will keep that name.")
   (loop :for (op . properties) :in (build-op mutation clang)
      :collecting
      (let ((stmt1  (aget :stmt1  properties))
-            (stmt2  (aget :stmt2  properties))
-            (value1 (aget :value1 properties))
-            (literal1 (aget :literal1 properties)))
+           (stmt2  (aget :stmt2  properties))
+           (value1 (aget :value1 properties))
+           (literal1 (aget :literal1 properties)))
        (case op
          ((:cut :set :insert-value)
           (cons op
