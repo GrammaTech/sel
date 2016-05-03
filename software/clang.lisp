@@ -484,7 +484,7 @@ already in scope, it will keep that name.")
 (defvar *crossover-function-probability* 0.25
   "The probability of crossing a function during whole-program crossover.")
 
-(defvar *clang-format-after-mutation-chance* 0.125
+(defvar *clang-format-after-mutation-chance* 0
   "The probability of applying clang-format on an object after mutation")
 
 (defun combine-with-bias (bias heads tails)
