@@ -103,8 +103,8 @@
    :compiler
    :prototypes
    :asts
-   :good-asts
-   :bad-asts
+   :good-stmts
+   :bad-stmts
    :update-asts
    :source-location
    :line
@@ -203,6 +203,7 @@
    :do-not-filter
    :with-class-filter
    :full-stmt-filter
+   :decl-filter
    :recontextualize
    :rebind-uses
    :rebind-uses-in-snippet

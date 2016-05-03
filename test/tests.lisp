@@ -498,10 +498,10 @@
 (defvar *good-asts* nil "Control pick-good")
 (defvar *bad-asts* nil "Control pick-bad")
 (define-software clang-control-picks (clang) ())
-(defmethod good-asts ((obj clang-control-picks))
-  (or *good-asts* (asts obj)))
-(defmethod bad-asts ((obj clang-control-picks))
-  (or *bad-asts* (asts obj)))
+(defmethod good-stmts ((obj clang-control-picks))
+  (or *good-asts* (decl-filter (asts obj))))
+(defmethod bad-stmts ((obj clang-control-picks))
+  (or *bad-asts* (decl-filter (asts obj))))
 
 (defixture hello-world-clang-control-picks
   (:setup

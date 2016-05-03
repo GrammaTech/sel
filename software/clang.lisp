@@ -50,9 +50,9 @@ restrictions. For use by targeter functions/execute picks."
                            (with-class-filter (get-ast-class software stmt)
                              (asts software))))
                      (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-           (good (lambda () (or (filter (good-asts software))
+           (good (lambda () (or (filter (good-stmts software))
                                 (asts software))))
-           (bad  (lambda () (or (filter (bad-asts software))
+           (bad  (lambda () (or (filter (bad-stmts software))
                                 (asts software)))))
       (list good bad then))))
 
@@ -222,14 +222,14 @@ restrictions. For use by targeter functions/execute picks."
                    (multiple-value-bind (stmt1 stmt2) (pick-two decls)
                      `((:stmt1 . ,stmt1) (:stmt2 . ,stmt2))))))))
     (pick-from-block (enclosing-block clang
-                                      (random-stmt (bad-asts clang))))))
+                                      (random-stmt (bad-stmts clang))))))
 
 ;; Rename variable
 (define-mutation rename-variable (clang-mutation)
   ((targeter :initform #'pick-rename-variable)))
 
 (defun pick-rename-variable (clang)
-  (let* ((stmt (random-stmt (bad-asts clang)))
+  (let* ((stmt (random-stmt (bad-stmts clang)))
          (used (get-used-variables clang stmt)))
     (if used
         (let* ((old-var (random-elt used))
@@ -273,11 +273,11 @@ restrictions. For use by targeter functions/execute picks."
 (defgeneric asts (software)
   (:documentation "Return a list of all asts in SOFTWARE."))
 
-(defgeneric good-asts (software)
-  (:documentation "Return a list of all good asts in SOFTWARE."))
+(defgeneric good-stmts (software)
+  (:documentation "Return a list of all good statement asts in SOFTWARE."))
 
-(defgeneric bad-asts (software)
-  (:documentation "Return a list of all bad asts in SOFTWARE."))
+(defgeneric bad-stmts (software)
+  (:documentation "Return a list of all bad statement asts in SOFTWARE."))
 
 (defgeneric get-ast (software id)
   (:documentation "Return the statement in SOFTWARE indicated by ID."))
@@ -430,24 +430,26 @@ software object"))
 (defun with-class-filter (class asts)
   (remove-if-not [{equal class} {aget :ast-class } ] asts))
 
+(defun decl-filter (asts)
+  (remove-if { aget :is-decl } asts))
+
 (defun full-stmt-filter (asts)
   (remove-if-not { aget :full-stmt } asts))
 
-(defmethod good-asts ((clang clang))
-  (asts clang))
+(defmethod good-stmts ((clang clang))
+  (decl-filter (asts clang)))
 
-(defmethod bad-asts ((clang clang))
-  ;; TODO: Remove inst-decls and parameter-decls.
-  (asts clang))
+(defmethod bad-stmts ((clang clang))
+  (decl-filter (asts clang)))
 
 (defun random-stmt (asts)
   (aget :counter (random-elt asts)))
 
 (defmethod pick-good ((clang clang))
-  (random-stmt (good-asts clang)))
+  (random-stmt (good-stmts clang)))
 
 (defmethod pick-bad ((clang clang))
-  (random-stmt (bad-asts clang)))
+  (random-stmt (bad-stmts clang)))
 
 (defmethod get-ast-class ((clang clang) stmt)
   (aget :ast-class (get-ast clang stmt)))
