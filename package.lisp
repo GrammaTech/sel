@@ -284,4 +284,7 @@
    :replace-fodder-full
    :insert-fodder
    :insert-fodder-full
+   :pick-bad-good
+   :pick-bad-bad
+   :pick-bad-only
    ))
