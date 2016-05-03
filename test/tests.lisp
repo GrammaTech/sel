@@ -412,14 +412,14 @@
     (is (not (null *hello-world*)))))
 
 ;; Check if the two AST lists differ. Do a smoke test with
-;; the list lengths; if they match, use the :src--text
+;; the list lengths; if they match, use the :src-text
 ;; field as a proxy for equality. Strict equality isn't
-;; useful because of nondeterministic fields like :src--file.
+;; useful because of nondeterministic fields like :src-file.
 (defun different-asts (this that)
   (or (not (equal (length this) (length that)))
       (not (loop for x in this for y in that
-              always (equal (aget :src--text x)
-                            (aget :src--text y))))))
+              always (equal (aget :src-text x)
+                            (aget :src-text y))))))
 
 (deftest can-apply-mutation-w-value1 ()
   (with-fixture hello-world-clang
@@ -430,7 +430,7 @@
           (apply-mutation variant
                           `(clang-replace
                             (:stmt1 . ,stmt1)
-                            (:value1 . ((:src--text . "/* FOO */")))))
+                            (:value1 . ((:src-text . "/* FOO */")))))
           (is (different-asts (asts variant) (asts *hello-world*)))
           (is (not (equal (genome variant) (genome *hello-world*))))))))
 
@@ -524,8 +524,8 @@
               (*clang-full-stmt-bias* 1.0)
               (variant (copy *hello-world*)))
           (mutate variant)
-          (is (< (count-if {aget :full--stmt} (asts variant))
-                 (count-if {aget :full--stmt} (asts *hello-world*))))))))
+          (is (< (count-if {aget :full-stmt} (asts variant))
+                 (count-if {aget :full-stmt} (asts *hello-world*))))))))
 
 (deftest cut-removes-non-full-stmt ()
   (with-fixture hello-world-clang
@@ -536,8 +536,8 @@
               (*clang-full-stmt-bias* 0.0)
               (variant (copy *hello-world*)))
           (mutate variant)
-          (is (< (count-if-not {aget :full--stmt} (asts variant))
-                 (count-if-not {aget :full--stmt} (asts *hello-world*))))))))
+          (is (< (count-if-not {aget :full-stmt} (asts variant))
+                 (count-if-not {aget :full-stmt} (asts *hello-world*))))))))
 
 (deftest insert-full-adds-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -551,8 +551,8 @@
               (*clang-same-class-bias* 0.0)
               (variant (copy *hello-world*)))
           (mutate variant)
-          (is (> (count-if {aget :full--stmt} (asts variant))
-                 (count-if {aget :full--stmt} (asts *hello-world*))))))))
+          (is (> (count-if {aget :full-stmt} (asts variant))
+                 (count-if {aget :full-stmt} (asts *hello-world*))))))))
 
 (deftest insert-adds-non-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -595,9 +595,9 @@
               (*clang-same-class-bias* 1.0)
               (variant (copy *hello-world*)))
           (mutate variant)
-          (is (> (count-if [{equal "ReturnStmt"} {aget :ast--class}]
+          (is (> (count-if [{equal "ReturnStmt"} {aget :ast-class}]
                            (asts variant))
-                 (count-if [{equal "ReturnStmt"} {aget :ast--class}]
+                 (count-if [{equal "ReturnStmt"} {aget :ast-class}]
                            (asts *hello-world*))))))))
 
 (deftest replace-changes-non-full-stmt ()
@@ -629,9 +629,9 @@
               (*clang-same-class-bias* 0.0)
               (variant (copy *hello-world*)))
           (mutate variant)
-          (is (> (count-if [{equal "CallExpr"} {aget :ast--class}]
+          (is (> (count-if [{equal "CallExpr"} {aget :ast-class}]
                            (asts variant))
-                 (count-if [{equal "CallExpr"} {aget :ast--class}]
+                 (count-if [{equal "CallExpr"} {aget :ast-class}]
                            (asts *hello-world*))))))))
 
 (deftest replace-same-changes-same-class ()
@@ -661,17 +661,17 @@
               (*clang-same-class-bias* 1.0)
               (variant (copy *hello-world*)))
           (multiple-value-bind  (variant mutation) (mutate variant)
-            (is (aget :full--stmt
+            (is (aget :full-stmt
                       (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-            (is (aget :full--stmt
+            (is (aget :full-stmt
                       (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
 
             ;; Not a very interesting test: this can only replace a
             ;; statement with itself, but sometimes there are whitespace
             ;; changes. Just compare AST classes to avoid spurious
             ;; failures.
-            (is (equal (mapcar {aget :ast--class} (asts variant))
-                       (mapcar {aget :ast--class} (asts *hello-world*)))))))))
+            (is (equal (mapcar {aget :ast-class} (asts variant))
+                       (mapcar {aget :ast-class} (asts *hello-world*)))))))))
 
 (deftest swap-changes-non-full-stmts ()
   (with-fixture hello-world-clang-control-picks
@@ -696,7 +696,7 @@
                '(clang-swap clang-swap-full clang-swap-same
                  clang-swap-full-same))
               ;; Avoid swapping the function body
-              (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast--class}]
+              (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast-class}]
                                      (asts *hello-world*)))
               (*decl-mutation-bias* 0.0)
               (*clang-full-stmt-bias* 1.0)
@@ -706,9 +706,9 @@
           (multiple-value-bind  (variant mutation) (mutate variant)
             ;; We can't predict exactly what will be swapped. Just
             ;; sanity check.
-            (is (aget :full--stmt
+            (is (aget :full-stmt
                       (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-            (is (aget :full--stmt
+            (is (aget :full-stmt
                       (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
             (is (stmt-with-text variant "printf"))
             (is (stmt-with-text variant "return 0")))))))
@@ -724,17 +724,17 @@
               (*clang-same-class-bias* 1.0)
               (variant (copy *hello-world*)))
           (multiple-value-bind  (variant mutation) (mutate variant)
-            (is (aget :full--stmt
+            (is (aget :full-stmt
                       (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-            (is (aget :full--stmt
+            (is (aget :full-stmt
                       (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
 
             ;; Not a very interesting test: this can only swap a
             ;; statement with itself, but sometimes there are whitespace
             ;; changes. Just compare AST classes to avoid spurious
             ;; failures.
-            (is (equal (mapcar {aget :ast--class} (asts variant))
-                       (mapcar {aget :ast--class} (asts *hello-world*)))))))))
+            (is (equal (mapcar {aget :ast-class} (asts variant))
+                       (mapcar {aget :ast-class} (asts *hello-world*)))))))))
 
 
 
@@ -747,18 +747,18 @@
   (with-fixture hello-world-clang-w-fodder
     (let ((json (pick-snippet *hello-world*)))
       (is (numberp (aget :counter json)))
-      (is (stringp (aget :src--text json)))
-      (is (assoc :full--stmt json)))))
+      (is (stringp (aget :src-text json)))
+      (is (assoc :full-stmt json)))))
 
 (deftest pick-snippet-json-db-respects-full-argument ()
   (with-fixture hello-world-clang-w-fodder
-    (is (aget :full--stmt (pick-snippet *hello-world* :full t)))))
+    (is (aget :full-stmt (pick-snippet *hello-world* :full t)))))
 
 (deftest pick-snippet-json-db-respects-class-argument ()
   (with-fixture hello-world-clang-w-fodder
     (dolist (class '("StringLiteral" "ReturnStmt" "CompoundStmt"))
       (is (string= class
-                   (aget :ast--class
+                   (aget :ast-class
                          (pick-snippet *hello-world* :class class)))))))
 
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
@@ -1154,7 +1154,7 @@
          (find-if (lambda (snippet)
                     (and snippet
                          (equal text
-                                (peel-bananas (aget :src--text snippet)))))
+                                (peel-bananas (aget :src-text snippet)))))
                   (asts obj))))
     (aget :counter the-snippet)))
 
@@ -1165,7 +1165,7 @@
             (and snippet
                  (equal 0
                         (search text
-                                (peel-bananas (aget :src--text snippet))))))
+                                (peel-bananas (aget :src-text snippet))))))
           (asts obj))))
     (aget :counter the-snippet)))
 

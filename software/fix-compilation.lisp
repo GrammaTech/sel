@@ -100,14 +100,14 @@ expression match.")
     (let* ((decl-stmt-id
             (aget :counter
                   (car (remove-if-not (lambda (snippet)
-                                        (and (string= (aget :ast--class snippet)
+                                        (and (string= (aget :ast-class snippet)
                                                       "DeclStmt")
-                                             (= (aget :begin--src--line snippet)
+                                             (= (aget :begin-src-line snippet)
                                                 line-number)))
                                       (asts obj)))))
            (binary-assignment-fodder
             (random-elt
-             (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src--text}]
+             (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
                             (find-snippets *database*
                                            :classes (list "BinaryOperator")
                                            :limit 512))))
@@ -115,7 +115,7 @@ expression match.")
            (assigned-variable
             (multiple-value-bind (matchp match-data)
                 (scan-to-strings "(\\(\\|\\w+\\|\\)) = "
-                                 (aget :src--text binary-assignment-fodder))
+                                 (aget :src-text binary-assignment-fodder))
               (assert matchp (binary-assignment-fodder)
                       "Assignment fodder should assign to a free variable.")
               (aref match-data 0)))
@@ -136,9 +136,9 @@ expression match.")
                                    (or (random-elt-with-decay scope-vars 0.5)
                                        "/* no bound vars */")))
                            (remove-if [{string= assigned-variable} #'car]
-                                      (aget :unbound--vals
+                                      (aget :unbound-vals
                                             binary-assignment-fodder))))
-                         (aget :src--text binary-assignment-fodder))
+                         (aget :src-text binary-assignment-fodder))
                         (string #+ccl #\;
                                 #-ccl #\Semicolon)
                         (string #\Newline)))))))))
@@ -255,8 +255,8 @@ expression match.")
         (to-delete (make-hash-table :test 'equal)))
     (loop :for ast :in (asts obj)
        :when (find id
-                   (append (aget :unbound--vals ast)
-                           (aget :unbound--funs ast))
+                   (append (aget :unbound-vals ast)
+                           (aget :unbound-funs ast))
                    :key #'car
                    :test #'string=)
        :do (setf (gethash (enclosing-full-stmt obj (aget :counter ast))
@@ -282,16 +282,16 @@ expression match.")
     (when variable
       (loop :for ast
             :in (reverse (asts obj))
-            :when (and (string= (aget :ast--class ast) "DeclStmt")
+            :when (and (string= (aget :ast-class ast) "DeclStmt")
                        (scan (concatenate 'string variable "\\s*=")
-                             (aget :src--text ast)))
+                             (aget :src-text ast)))
             :do (let ((pointer-variable (concatenate 'string "*" variable)))
                   (apply-mutation obj
                     `(clang-replace . ((:stmt1 . ,(aget :counter ast))
                                        (:value1 . ,(replace-fields-in-ast ast
-                                                `((:src--text .
+                                                `((:src-text .
                                                   ,(regex-replace variable
-                                                     (aget :src--text ast)
+                                                     (aget :src-text ast)
                                                      pointer-variable))))))))
                   (return obj))))
     obj))

@@ -111,7 +111,7 @@
   (hash-table-alist (cl-mongo::elements document)))
 
 (defun cljson-key (key)
-  (make-keyword (regex-replace-all "_" (string-upcase key) "--")))
+  (make-keyword (regex-replace-all "_" (string-upcase key) "-")))
 
 (defun document-cljson (document)
   (mapcar (lambda-bind ((key . value)) (cons (cljson-key key) value))
