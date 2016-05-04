@@ -1,15 +1,45 @@
+# Compiled files
 *.fasl
-*.lx32fsl
 *.lx64fsl
-*.html
-*.txt
-*.tex
+
+# Documentation cruft
+*.aux
+*.bak
+*.bbl
+*.blg
+*.bll
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.xdy
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.pgf
 *.pdf
+*.docx
+*.snm
+*.toc
+*.vrb
+*.svg
+*.html
+
+# Backup files
 *~
-soft-ev
-lisp-runner
+
+# Core dumps, store files, experimental cruft
 scratch.lisp
-seed
-se-test
-tests.md
-tests.html
+core.*
+*.store
+
+ltxpng
+
+CSURF.FILES
+a.out.prj
+
+local.mk
