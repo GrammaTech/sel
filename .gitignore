@@ -1,0 +1,45 @@
+# Compiled files
+*.fasl
+*.lx64fsl
+
+# Documentation cruft
+*.aux
+*.bak
+*.bbl
+*.blg
+*.bll
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.xdy
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.pgf
+*.pdf
+*.docx
+*.snm
+*.toc
+*.vrb
+*.svg
+*.html
+
+# Backup files
+*~
+
+# Core dumps, store files, experimental cruft
+scratch.lisp
+core.*
+*.store
+
+ltxpng
+
+CSURF.FILES
+a.out.prj
+
+local.mk
