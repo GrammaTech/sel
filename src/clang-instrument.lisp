@@ -3,33 +3,31 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros :include-utf8))
 
-(defvar *uninstrumented-classes* '("ParmVar" "CompoundStmt")
-  "AST classes which should not be instrumented.")
-
-(defvar *uninstrumented-parent-classes*
-  nil
-  "AST classes which should not be instrumented.")
-
 (defmethod instrument ((obj clang) &optional trace-file)
   (when trace-file (warn "TODO: implement TRACE-FILE support."))
   (-<>> (asts obj)
         (remove-if-not {aget :full-stmt})
-        (remove-if [{member _ *uninstrumented-classes* :test #'string=}
-                    {aget :ast-class}])
-        (mapcar
+        ;; Remove statements if they are *not* in a compound statement.
+        (remove-if-not
          (lambda (ast)
-           (let ((counter (aget :counter ast)))
-             `(:set
-               (:stmt1 . ,counter)
-               (:value1 . ,(format nil "fputs(\"TRACE:~d\\n\", stderr);~%~a"
-                                   counter
-                                   (peel-bananas (aget :src-text ast))))))))
-        (sort <> #'> :key [{aget :stmt1} #'cdr])
-        (mapc (lambda (op)
-                (note 2 "Instrumenting AST#~d." (aget :stmt1 (cdr op)))
-                (setf (genome obj) (clang-mutate obj op))
-                obj)))
-  obj)
+           (let ((parent-counter (aget :parent-counter ast)))
+             (and (not (zerop parent-counter))
+                  (string= "CompoundStmt"
+                           (aget :ast-class (get-ast obj parent-counter)))))))
+        (mapcar {aget :counter})
+        (sort <> #'>)
+        (reduce (lambda (variant counter)
+                  (note 2 "Instrumenting AST#~d." counter)
+                  (let* ((fmt "fputs(\"TRACE:~d\\n\", stderr);~%~a")
+                         (text (peel-bananas
+                                (aget :src-text (get-ast variant counter))))
+                         (op `(:set
+                               (:stmt1 . ,counter)
+                               (:value1 . ,(format nil fmt counter text)))))
+                    (setf (genome variant) (clang-mutate variant op)))
+                  (update-asts variant)
+                  variant)
+                <> :initial-value (copy obj))))
 
 (defmacro getopts (&rest forms)
   (let ((arg (gensym)))
