@@ -73,6 +73,7 @@ restrictions. For use by targeter functions/execute picks."
   "Pick a bad AST."
   (destructuring-bind (good bad then)
       (restrict-targets software full-stmt nil)
+    (declare (ignorable good then))
     (execute-picks bad)))
 
 ;;; Mutations
@@ -1497,13 +1498,9 @@ free variables.")
              (split-vee b (car ys) (cdr ys))
            (values a-out b-out a-in b-in)))))))
 
-(defun *crossover-data* nil)
-
 (defmethod intraprocedural-2pt-crossover ((a clang) (b clang)
                                           a-begin a-end
                                           b-begin b-end)
-  (setf *crossover-data*
-        (list (genome-string a) (genome-string  b) a-begin a-end b-begin b-end))
   (let ((variant (copy a)))
     (multiple-value-bind (a-out b-out a-in b-in)
         (match-nesting a (cons a-begin a-end)
@@ -1600,10 +1597,8 @@ free variables.")
   (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
       (select-crossover-points-with-corrections a b)
     (multiple-value-bind (crossed a-point b-point changedp)
-;        (handler-case)
-      (intraprocedural-2pt-crossover
-       a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
-;      (t (err) (declare (ignorable err)) (values (copy a) nil nil nil))
+        (intraprocedural-2pt-crossover
+         a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
       (when (and changedp *ancestor-logging*)
         (push (alist :cross-with (ancestors b)
                      :crossover '2pt

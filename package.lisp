@@ -197,7 +197,6 @@
    :clang-w-fodder
    :clang-w-binary
    :clang-w-fodder-and-binary
-   :*crossover-data*
    :bytes
    :diff-data
    :do-not-filter
