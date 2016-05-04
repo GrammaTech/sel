@@ -54,7 +54,7 @@
       (setf (genome cil) stdout)))
   cil)
 
-(defun instrument (cil &optional trace-file)
+(defmethod instrument ((cil cil) &optional trace-file)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
   (apply-mutation cil (list :trace trace-file))
