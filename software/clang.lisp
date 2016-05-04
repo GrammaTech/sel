@@ -1157,17 +1157,19 @@ free variables.")
                (last (loop for stmt in last-seq
                         for i from 1 to tail-size
                         collecting stmt)))
-          (acons   :stmt1 (aget :counter init)
-            (acons :stmt2 (if (= 0 tail-size)
-                              (if (= 0 depth)
-                                  end
-                                  (nth-enclosing-block clang (1- depth)
-                                                       (aget :counter init)))
-                              (aget :counter (last-elt last)))
-                   (acons :respect-depth t
-                          (create-sequence-snippet
-                           (append initial-seq (list last))
-                           replacements))))))))
+          (if (null init)
+              (alist :stmt2 end :src-text "")
+              (acons   :stmt1 (aget :counter init)
+                (acons :stmt2 (if (= 0 tail-size)
+                                  (if (= 0 depth)
+                                      end
+                                      (nth-enclosing-block clang (1- depth)
+                                                           (aget :counter init)))
+                                  (aget :counter (last-elt last)))
+                       (acons :respect-depth t
+                              (create-sequence-snippet
+                               (append initial-seq (list last))
+                               replacements)))))))))
 
 ;; Perform 2-point crossover. The second point will be within the same
 ;; function as the first point, but may be in an enclosing scope.
@@ -1370,7 +1372,7 @@ free variables.")
          (b-data (multiple-value-bind (b-text b-repl)
                      (bind-free-vars a b-snippet (aget :stmt1 a-snippet))
                    (cons b-text b-repl)))
-         (tail (acons   :resepct-depth t
+         (tail (acons   :respect-depth t
                 (acons  :scope-removals removals
                  (acons :scope-additions additions
                    (prepare-sequence-snippet
