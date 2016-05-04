@@ -113,3 +113,6 @@
 
 (defmethod (setf lines) (new (ast ast))
   (setf (genome ast) (format nil "~{~a~^~%~}" new)))
+
+(defgeneric instrument (software &optional trace-file)
+  (:documentation "Instrument SOFTWARE source code for trace generation."))
