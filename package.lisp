@@ -85,6 +85,7 @@
    :intraprocedural-2pt-crossover
    :select-crossover-points
    :prototype-containing-ast
+   :function-body-p
    :random-point-in-function
    :select-intraprocedural-pair
    :clang-tidy
