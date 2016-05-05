@@ -434,14 +434,22 @@ software object"))
 (defun with-class-filter (class asts)
   (remove-if-not [{equal class} {aget :ast-class } ] asts))
 
-(defun decl-filter (asts)
-  (remove-if { aget :is-decl } asts))
+(defmethod get-parent-decls ((clang clang) ast)
+  (remove-if-not {aget :is-decl} (get-parent-asts clang ast)))
+
+(defmethod decl-filter ((clang clang) asts)
+  (remove-if {aget :is-decl} ast))
 
 (defun full-stmt-filter (asts)
   (remove-if-not { aget :full-stmt } asts))
 
 (defmethod stmts ((clang clang))
-  (decl-filter (asts clang)))
+  "Remove each AST which is a decl or has a non-function parent decl"
+  (remove-if (lambda (ast)
+               (or (aget :is-decl ast)
+                   (remove-if [{equal "Function"}{aget :ast-class}]
+                              (get-parent-decls clang ast))))
+             (asts clang)))
 
 (defmethod good-stmts ((clang clang))
   (stmts clang))
