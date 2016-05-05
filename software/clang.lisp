@@ -274,6 +274,9 @@ restrictions. For use by targeter functions/execute picks."
 (defgeneric asts (software)
   (:documentation "Return a list of all asts in SOFTWARE."))
 
+(defgeneric stmts (software)
+  (:documentation "Return a list of all statement asts in SOFTWARE."))
+
 (defgeneric good-stmts (software)
   (:documentation "Return a list of all good statement asts in SOFTWARE."))
 
@@ -437,11 +440,14 @@ software object"))
 (defun full-stmt-filter (asts)
   (remove-if-not { aget :full-stmt } asts))
 
-(defmethod good-stmts ((clang clang))
+(defmethod stmts ((clang clang))
   (decl-filter (asts clang)))
 
+(defmethod good-stmts ((clang clang))
+  (stmts clang))
+
 (defmethod bad-stmts ((clang clang))
-  (decl-filter (asts clang)))
+  (stmts clang))
 
 (defun random-stmt (asts)
   (aget :counter (random-elt asts)))
@@ -547,8 +553,8 @@ already in scope, it will keep that name.")
   (random-pick (cdf (mutation-types-clang clang))))
 
 (defmethod mutate ((clang clang))
-  (unless (> (size clang) 0)
-    (error (make-condition 'mutate :text "No valid IDs" :obj clang)))
+  (unless (> (stmts clang) 0)
+    (error (make-condition 'mutate :text "No valid statements" :obj clang)))
 
   (let ((mutation (make-instance (pick-mutation-type clang) :object clang)))
     (apply-mutation clang mutation)
