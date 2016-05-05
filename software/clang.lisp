@@ -1046,9 +1046,8 @@ Otherwise return the whole FULL-GENOME"
 (defmethod get-indexed-vars-in-scope ((clang clang) pt &optional keep-globals)
   (let ((index-table (make-hash-table :test 'equal))
         (max-index 0))
-    (with-temp-file-of (src (ext clang)) (genome-string clang)
-      (loop
-         for scope in (aget :scopes (get-ast clang pt))
+    (when (and pt (< 0 pt))
+      (loop for scope in (aget :scopes (get-ast clang pt))
          for index from 0
          do (setf (gethash index index-table) scope
                   max-index index)))
