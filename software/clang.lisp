@@ -553,7 +553,7 @@ already in scope, it will keep that name.")
   (random-pick (cdf (mutation-types-clang clang))))
 
 (defmethod mutate ((clang clang))
-  (unless (> (stmts clang) 0)
+  (unless (> (length (stmts clang)) 0)
     (error (make-condition 'mutate :text "No valid statements" :obj clang)))
 
   (let ((mutation (make-instance (pick-mutation-type clang) :object clang)))
