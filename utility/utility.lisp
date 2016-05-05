@@ -142,12 +142,15 @@ and an optional extension."
              (format stream "Shell command failed with status ~a: \"~a\""
                      (exit-code condition) (command condition)))))
 
-(defvar *shell-count* 0)
-
 (defun shell (&rest rst)
+  (apply {shell-with-input nil} rst))
+
+(defun shell-with-input (input &rest rst)
   (let ((cmd (apply #'format (cons nil rst))))
-    (incf *shell-count*)
-    (when *shell-debug* (format t "  cmd: ~a~%" cmd))
+    (when *shell-debug*
+      (format t "  cmd: ~a~%" cmd)
+      (when input
+        (format t "  input: ~a~%" input)))
     (if *work-dir*
         ;; more robust shell execution using foreman
         (let* ((name
@@ -173,7 +176,7 @@ and an optional extension."
             (sleep 0.1)))
         ;; native shell execution
         (multiple-value-bind (stdout stderr errno)
-            #+sbcl (shell-command cmd :input nil)
+            #+sbcl (shell-command cmd :input input)
             #+ccl (progn (warn "shell-command may hang if output is large")
                          (shell-command cmd :input ""))
             #+allegro

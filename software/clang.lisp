@@ -587,14 +587,21 @@ already in scope, it will keep that name.")
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
   (restart-case
-      (let* ((tu 0)
-             (cmd (format nil "reset ~a; ~a; preview ~a"
-                          tu
-                          (mapcar {mutation-op-to-cmd 0}
-                                  (recontextualize-mutation software mutation))
-                          tu)))
-        (setf (genome software) (clang-mutate software
-                                              `(:cmd (:script ,cmd))))
+      (let* ((tu 0)                     ; If we multiplex multiple software
+                                        ; objects onto one clang-mutate
+                                        ; invocation, they will need to track
+                                        ; their own TU ids.  With one software
+                                        ; object, it will always be TU 0.
+             (cmd ))
+        (setf (genome software)
+              (clang-mutate software
+                 '(:scripted)
+                 :script (format nil "reset ~a; ~a; preview ~a"
+                                 tu
+                                 (mapcar {mutation-op-to-cmd tu}
+                                         (recontextualize-mutation software
+                                                                   mutation))
+                                 tu)))
         software)
     (skip-mutation ()
       :report "Skip mutation and return nil"
@@ -651,7 +658,7 @@ Otherwise return the whole FULL-GENOME"
 
 (defun mutation-op-to-cmd (tu op)
   (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
-           (str (tag) (json-string-encode (aget tag (cdr op)))))
+           (str (tag) (json:encode-json-to-string (aget tag (cdr op)))))
     (let ((options (cdr op)))
       (ecase (car op)
         (:cut
@@ -691,7 +698,9 @@ Otherwise return the whole FULL-GENOME"
                (format nil "ast ~a ~a" (ast :stmt1) fields)
                (format nil "json ~a ~a ~a" (ast :stmt1) fields aux))))))))
 
-(defmethod clang-mutate ((obj clang) op &aux value1-file value2-file)
+(defmethod clang-mutate ((obj clang) op
+                         &key script
+                         &aux value1-file value2-file)
   (with-temp-file-of (src-file (ext obj)) (genome-string obj)
     (labels ((command-opt (command)
                (ecase command
@@ -705,7 +714,8 @@ Otherwise return the whole FULL-GENOME"
                  (:set-func  "-set-func")
                  (:ids "-ids")
                  (:list "-list")
-                 (:json "-json")))
+                 (:json "-json")
+                 (:scripted "-interactive -silent")))
              (option-opt (pair)
                (let ((option (car pair))
                      (value (cdr pair)))
@@ -727,7 +737,7 @@ Otherwise return the whole FULL-GENOME"
                    (:bin (format nil "-binary=~a" value))
                    (:dwarf-src-file-path
                     (format nil "-dwarf-filepath-mapping=~a=~a"
-                     value src-file)))))
+                            value src-file)))))
              (field-opt (field)
                (ecase field
                  (:counter "counter")
@@ -762,12 +772,13 @@ Otherwise return the whole FULL-GENOME"
           (json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
       (unwind-protect
         (multiple-value-bind (stdout stderr exit)
-          (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
-                  (command-opt (car op))
-                  (mapcar #'option-opt (cdr op))
-                  src-file
-                  (flags obj)
-                  clang-mutate-outfile)
+            (shell-with-input script
+                              "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
+                              (command-opt (car op))
+                              (mapcar #'option-opt (cdr op))
+                              src-file
+                              (flags obj)
+                              clang-mutate-outfile)
           (declare (ignorable stdout stderr))
           ;; NOTE: The clang-mutate executable will sometimes produce
           ;;       usable output even on a non-zero exit, e.g., usable

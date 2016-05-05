@@ -29,6 +29,7 @@
    :ignore-shell-error
    :shell-command-failed
    :shell
+   :shell-with-input
    :parse-number
    :parse-numbers
    ;; forensic
