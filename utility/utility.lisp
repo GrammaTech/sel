@@ -382,12 +382,13 @@ Keyword argument FRAC will return fractions instead of raw counts."
 (defun uniform-probability (list)
   (mapcar {cons _ (/ 1.0 (length list))} list))
 
-(defun cdf (prob)
-  (labels ((combine (acc pr)
-             (if (null pr) '()
-                 (let ((new-acc (+ acc (cdar pr))))
-                   (acons (caar pr) new-acc (combine new-acc (cdr pr)))))))
-    (combine 0.0 prob)))
+(defun cdf (alist)
+  "Cumulative distribution function.
+Return an updated version of ALIST in which the cdr of each element is
+transformed from an instant to a cumulative probability."
+  (nreverse
+   (reduce (lambda-bind (acc (value . prob)) (acons value (+ (cdar acc) prob) acc))
+           (cdr alist) :initial-value (list (car alist)))))
 
 (defun random-pick (cdf)
   (car (find-if {<= (random 1.0)} cdf :key #'cdr)))
