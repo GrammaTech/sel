@@ -1673,6 +1673,9 @@ free variables.")
                             (get-parent-asts clang (get-ast clang stmt))))))))
     (car (remove-if-not [{= body} {aget :body}] (prototypes clang)))))
 
+(defmethod function-body-p ((clang clang) stmt)
+  (find-if [{= stmt} {aget :body}] (prototypes clang)))
+
 (defmethod genome-string-without-separator ((obj clang))
   (unlines (remove-if {string= *clang-genome-separator*}
                       (split-sequence #\Newline (genome-string obj)))))
