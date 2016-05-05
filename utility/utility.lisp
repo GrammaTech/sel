@@ -881,7 +881,7 @@ that function may be declared.")
                       (funcall f (gethash k ht) accum)
                       :key-sort key-sort)))))
 
-(defun ht-take-rand(ht n)
+(defun ht-take-rand (ht n)
   (let ((new-ht (ht-copy ht)))
     (loop for i below (if (< 0 (- (length (ht-keys ht)) n))
                           (- (length (ht-keys ht)) n)
