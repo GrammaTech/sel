@@ -307,7 +307,7 @@ software object"))
      :guard-stmt        :full-stmt         :begin-src-line
      :end-src-line      :begin-src-col     :end-src-col
      :begin-addr        :end-addr          :includes
-     :declares)
+     :declares          :scopes )
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -991,13 +991,7 @@ Otherwise return the whole FULL-GENOME"
         (max-index 0))
     (with-temp-file-of (src (ext clang)) (genome-string clang)
       (loop
-         for scope in
-           (aget :scopes (car
-                          (handler-case ; When clang-mutate errors return nil.
-                            (clang-mutate clang
-                                          `(:json (:fields . (:scopes))
-                                                  (:stmt1 . ,pt)))
-                            (mutate (err) (declare (ignorable err)) nil))))
+         for scope in (aget :scopes (get-ast clang pt))
          for index from 0
          do (setf (gethash index index-table) scope
                   max-index index)))
