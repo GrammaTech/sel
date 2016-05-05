@@ -587,10 +587,15 @@ already in scope, it will keep that name.")
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
   (restart-case
-      (loop :for op :in (recontextualize-mutation software mutation)
-         :do
-         (setf (genome software) (clang-mutate software op))
-         :finally (return software))
+      (let* ((tu 0)
+             (cmd (format nil "reset ~a; ~a; preview ~a"
+                          tu
+                          (mapcar {mutation-op-to-cmd 0}
+                                  (recontextualize-mutation software mutation))
+                          tu)))
+        (setf (genome software) (clang-mutate software
+                                              `(:cmd (:script ,cmd))))
+        software)
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -643,6 +648,48 @@ Otherwise return the whole FULL-GENOME"
     (if at
         (unlines (subseq lines (1+ at)))
         full-genome)))
+
+(defun mutation-op-to-cmd (tu op)
+  (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
+           (str (tag) (json-string-encode (aget tag (cdr op)))))
+    (let ((options (cdr op)))
+      (ecase (car op)
+        (:cut
+         (format nil "cut ~a.~a" (ast :stmt1)))
+        (:insert
+         (format nil "get ~a as $stmt; before ~a $stmt"
+                 (ast :stmt1) (ast :stmt2)))
+        (:insert-value
+         (format nil "before ~a ~a" (ast :stmt1) (str :value1)))
+        (:swap
+         (format nil "swap ~a ~a" (ast :stmt1) (ast :stmt2)))
+        (:set
+         (format nil "set ~a ~a" (ast :stmt1) (str :value1)))
+        (:set2
+         (format nil "set ~a ~a ~a ~a"
+                 (ast :stmt1) (str :value1)
+                 (ast :stmt2) (str :value2)))
+        (:set-range
+         (format nil "set-range ~a ~a ~a"
+                 (ast :stmt1) (ast :stmt2) (str :value1)))
+        (:set-func
+         (format nil "set-func ~a ~a" (ast :stmt1) (str :value1)))
+        (:ids
+         (format nil "ids ~a" tu))
+        (:list
+         (format nil "list ~a" tu))
+        (:json
+         (let ((aux (if (aget :aux (cdr op))
+                        (format nil "aux=~a"
+                                (intercalate "," (aget :aux (cdr op))))
+                        ""))
+               (fields (if (aget :fields (cdr op))
+                           (format nil "fields=~a"
+                                   (intercalate "," (aget :fields (cdr op))))
+                           "")))
+           (if (aget :stmt1 (cdr op))
+               (format nil "ast ~a ~a" (ast :stmt1) fields)
+               (format nil "json ~a ~a ~a" (ast :stmt1) fields aux))))))))
 
 (defmethod clang-mutate ((obj clang) op &aux value1-file value2-file)
   (with-temp-file-of (src-file (ext obj)) (genome-string obj)
