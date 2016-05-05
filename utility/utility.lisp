@@ -452,6 +452,21 @@ is replaced with replacement."
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
 
+(define-setf-expander aget (item list &key (test 'eql) &environment env)
+  (multiple-value-bind (dummies vals stores store-form access-form)
+      (get-setf-expansion list env)
+    (declare (ignorable stores store-form))
+    (let ((store (gensym))
+          (cons-sym (gensym)))
+      (values dummies
+              vals
+              `(,store)
+              `(let ((,cons-sym (assoc ,item ,list :test ',test)))
+                 (if ,cons-sym
+                     (setf (cdr ,cons-sym) ,store)
+                     (progn (setf ,list (acons ,item ,store ,list)) ,store)))
+              `(aget ,item ,access-form)))))
+
 (defun alist (key value &rest rest)
   "Create an association list from the alternating keys and values."
   (acons key value (if (null rest) nil (apply #'alist rest))))
