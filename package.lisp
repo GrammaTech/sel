@@ -201,8 +201,6 @@
    :diff-data
    :do-not-filter
    :with-class-filter
-   :full-stmt-filter
-   :decl-filter
    :recontextualize
    :rebind-uses
    :rebind-uses-in-snippet

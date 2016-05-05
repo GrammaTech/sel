@@ -41,7 +41,7 @@
   "Return good, bad, then callbacks with full-stmt/same-class
 restrictions. For use by targeter functions/execute picks."
   (labels ((filter (asts) (if full-stmt
-                              (full-stmt-filter asts)
+                              (remove-if-not {aget :full-stmt} asts)
                               asts)))
     (let* ((then (if same-class
                      (lambda (stmt asts)
@@ -436,12 +436,6 @@ software object"))
 
 (defmethod get-parent-decls ((clang clang) ast)
   (remove-if-not {aget :is-decl} (get-parent-asts clang ast)))
-
-(defmethod decl-filter ((clang clang) asts)
-  (remove-if {aget :is-decl} ast))
-
-(defun full-stmt-filter (asts)
-  (remove-if-not { aget :full-stmt } asts))
 
 (defmethod stmts ((clang clang))
   "Remove each AST which is a decl or has a non-function parent decl"
