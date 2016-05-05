@@ -68,7 +68,9 @@
    :*edit-consolidation-function*
    :edit-distance
    :from-file
+   :from-file-exactly
    :from-string
+   :from-string-exactly
    :ext
    :genome-string-without-separator
    :get-vars-in-scope
@@ -292,6 +294,7 @@
    :clang-replace-same
    :clang-replace-full
    :clang-replace-full-same
+   :clang-set-range
    :clang-nop
    :clang-instrument
    :cut-decl
