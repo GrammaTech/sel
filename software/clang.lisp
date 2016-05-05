@@ -594,14 +594,13 @@ already in scope, it will keep that name.")
                                         ; object, it will always be TU 0.
              (cmd ))
         (setf (genome software)
-              (clang-mutate software
-                 '(:scripted)
-                 :script (format nil "reset ~a; ~a; preview ~a"
-                                 tu
-                                 (mapcar {mutation-op-to-cmd tu}
-                                         (recontextualize-mutation software
-                                                                   mutation))
-                                 tu)))
+              (clang-mutate software '(:scripted) :script
+                 (format nil "reset ~a; ~{~a; ~}preview ~a"
+                         tu
+                         (mapcar {mutation-op-to-cmd tu}
+                                 (recontextualize-mutation software
+                                                           mutation))
+                         tu)))
         software)
     (skip-mutation ()
       :report "Skip mutation and return nil"
@@ -662,7 +661,7 @@ Otherwise return the whole FULL-GENOME"
     (let ((options (cdr op)))
       (ecase (car op)
         (:cut
-         (format nil "cut ~a.~a" (ast :stmt1)))
+         (format nil "cut ~a" (ast :stmt1)))
         (:insert
          (format nil "get ~a as $stmt; before ~a $stmt"
                  (ast :stmt1) (ast :stmt2)))
