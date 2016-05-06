@@ -54,6 +54,7 @@
    :uniform-probability
    :cdf
    :random-pick
+   :random-subseq
    :apply-replacements
    :peel-bananas
    :replace-all

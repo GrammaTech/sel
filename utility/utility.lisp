@@ -407,6 +407,9 @@ transformed from an instant to a cumulative probability."
                          (pick-from (cdr list))))))
         (pick-from orig-list))))
 
+(defun random-subseq (list &optional (size (random (1+ (length list)))))
+  (subseq (shuffle list) 0 size))
+
 (defun find-hashtable-element (hash-tbl n)
   (maphash
    (lambda (k v)
