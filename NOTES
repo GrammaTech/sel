@@ -117,8 +117,9 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [23/27]
-** TODO organize files, software/ is only for software
+* Tasks [24/27]
+** DONE organize files, software/ is only for software
+   CLOSED: [2016-05-06 Fri 09:05]
 ** DONE define =se= as the usable package prefix
    CLOSED: [2016-04-19 Tue 09:42]
 So code can e.g., =(se::references ...)= to call private functions.
