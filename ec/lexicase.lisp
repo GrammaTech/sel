@@ -38,8 +38,7 @@ selection. The same individual may be selected multiple times."
                   *lexicase-predicate* :key *lexicase-key*)))
        ;; Pick individuals with the highest score on the current test.
        (setf population
-             (remove-if-not (lambda (obj)
-                              (= (cdr (elt (fitness obj) which-test)) best))
+             (remove-if-not [{= best} {elt _ which-test} #'fitness]
                             population :key *lexicase-key*))
        ;; Stop when we get down to one individual
        (when (not (cdr population)) (return))))
