@@ -307,7 +307,7 @@ software object"))
      :guard-stmt        :full-stmt         :begin-src-line
      :end-src-line      :begin-src-col     :end-src-col
      :begin-addr        :end-addr          :includes
-     :declares          :scopes )
+     :declares          :scopes            :is-decl)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -741,6 +741,7 @@ Otherwise return the whole FULL-GENOME"
                (ecase field
                  (:counter "counter")
                  (:declares "declares")
+                 (:is-decl "is_decl")
                  (:parent-counter "parent_counter")
                  (:ast-class "ast_class")
                  (:src-file-name "src_file_name")
