@@ -257,6 +257,7 @@
    :worst-numeric-fitness-p
    :lexicase-select
    :*lexicase-predicate*
+   :*lexicase-key*
    :mutation
    :targets
    :clang-cut
