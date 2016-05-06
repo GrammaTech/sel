@@ -1,17 +1,19 @@
 ;;; lexicase selection
 
-;;; Fitness values should be a vector of the form:
-;;; #( ("label0" . score0) ("label1" . score1) ... ("labeln" . scoren))
-
-;;; Where each pair represents a single test case or objective. The
-;;; labels are purely for human consumption and are otherwise
-;;; ignored. All fitness values in the same population must be the
-;;; same length and have their scores in the same order.
+;; Fitness values should be a vector of numeric scores.
+;; (A key option may be supplied for non-numeric scores.)
+;;
+;; Where each entry represents a single test case or objective.  All
+;; fitness values in the same population must be the same length and
+;; have their scores in the same order.
 
 (in-package :software-evolution)
 
 (defvar *lexicase-predicate* #'>
   "Function to compare individual scores in the test vector.")
+
+(defvar *lexicase-key* nil
+  "Optional key function for components of test vector.")
 
 (defun lexicase-select (population max-size &aux new-pop)
   "Choose max-size individuals from the population by lexicase
@@ -32,13 +34,13 @@ selection. The same individual may be selected multiple times."
   (loop :for which-test :in order
      :do
      (let ((best (extremum
-                  (mapcar [#'cdr {elt _ which-test} #'fitness] population)
-                  *lexicase-predicate*)))
+                  (mapcar [{elt _ which-test} #'fitness] population)
+                  *lexicase-predicate* :key *lexicase-key*)))
        ;; Pick individuals with the highest score on the current test.
        (setf population
              (remove-if-not (lambda (obj)
                               (= (cdr (elt (fitness obj) which-test)) best))
-                            population))
+                            population :key *lexicase-key*))
        ;; Stop when we get down to one individual
        (when (not (cdr population)) (return))))
   ;; If there's still a tie after all tests, choose randomly.
