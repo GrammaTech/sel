@@ -464,7 +464,7 @@ is replaced with replacement."
       (values dummies
               vals
               `(,store)
-              `(let ((,cons-sym (assoc ,item ,list :test ',test)))
+              `(let ((,cons-sym (assoc ,item ,list :test ,test)))
                  (if ,cons-sym
                      (setf (cdr ,cons-sym) ,store)
                      (progn (setf ,list (acons ,item ,store ,list)) ,store)))
