@@ -322,18 +322,20 @@ software object"))
     (let ((json-db
            (handler-case
                ;; When clang-mutate errors we nullify the asts.
-               ;; Otherwise we can end up in weird situations, like trying to
-               ;; parse a mutation error condition as an alist of ASTS.
-             (clang-mutate obj
-                           (list* :json
-                                  (cons :fields *clang-json-required-fields*)
-                                  (cons :aux *clang-json-required-aux*)
-                                  clang-mutate-args))
+               ;; Otherwise we can end up in weird situations, like
+               ;; trying to parse a mutation error condition as an
+               ;; alist of ASTS.
+               (clang-mutate obj
+                 (list* :json
+                        (cons :fields *clang-json-required-fields*)
+                        (cons :aux *clang-json-required-aux*)
+                        clang-mutate-args))
              (mutate (err) (declare (ignorable err)) nil))))
       (setf asts
             (coerce (remove-if-not {aget :counter} json-db) 'vector)
             prototypes
-            (coerce (remove-if-not {aget :body} json-db) 'vector)))))
+            (coerce (remove-if-not {aget :body} json-db) 'vector))))
+  obj)
 
 ;; Create a clang software object from a given C file's string representation.
 ;; The software object's genome will exactly the input
