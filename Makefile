@@ -15,6 +15,11 @@ all: bin/clang-instrument
 
 ## Executables
 
+# Set personal or machine-local flags in a file named local.mk
+ifneq ("$(wildcard local.mk)","")
+include local.mk
+endif
+
 # Use buildapp as the lisp compiler.
 LC ?= buildapp
 
@@ -28,10 +33,15 @@ $(error Please point QUICK_LISP to your quicklisp installation)
 endif
 
 MANIFEST_FILE=$(QUICK_LISP)/local-projects/system-index.txt
-LISP_LIBS+= clang-instrument
+LISP_LIBS+= software-evolution-test
 LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
 LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(LISP_LIBS))
 LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
+
+LISP_DEPS =				\
+	$(wildcard *.lisp) 		\
+	$(wildcard software/*.lisp)	\
+	$(wildcard test/*.lisp)
 
 # Flags to buildapp
 QUIT=(lambda (error hook-value)
@@ -70,6 +80,18 @@ $(MANIFEST_FILE): $(wildcard $(QUICK_LISP)/local-projects/*/*.asd)
           --eval "#+sbcl (exit) #+ccl (quit)"
 	touch $@
 
+se-test: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST_FILE)
+	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se-test:batch-test"
+
+$(MANIFEST_FILE): $(wildcard $(QUICK_LISP)/local-projects/*/*.asd)
+	$(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp --eval '(ql:register-local-projects)' \
+          --eval "#+sbcl (exit) #+ccl (quit)"
+
+%.loaded:
+	$(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp --eval '(ql:quickload :$(notdir $*))' \
+          --eval "#+sbcl (exit) #+ccl (quit)"
+	touch $@
+
 bin/clang-instrument: src/clang-instrument.lisp $(LOADED_LIBS) $(MANIFEST_FILE)
 	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "ci:main"
 
@@ -85,6 +107,5 @@ index.html: README.md
 
 # Administrative stuff
 clean:
-	@rm -f bin/clang-instrument
-	@rm -f src/*.fasl
-	@rm -f *{.md.tmp,.html,.1.gz}
+	@find . -type f -name "*.fasl" -exec rm {} \+
+	@rm -f se-test

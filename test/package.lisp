@@ -1,5 +1,6 @@
 ;; Copyright (C) 2013  Eric Schulte
 (defpackage #:software-evolution-test
+  (:nicknames :se-test)
   (:use
    :common-lisp
    :alexandria

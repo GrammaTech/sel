@@ -36,12 +36,9 @@
 
 # Core dumps, store files, experimental cruft
 scratch.lisp
-core.*
-*.store
-
-ltxpng
-
-CSURF.FILES
-a.out.prj
+seed
+se-test
+tests.md
+tests.html
 
 local.mk

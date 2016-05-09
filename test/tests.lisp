@@ -23,6 +23,9 @@
 ;;; Run tests is "batch" mode printing results as a string.
 (defun batch-test (&optional args)
   (declare (ignorable args))
+
+  (format *error-output* "GCD-DIR:~S~%" +gcd-dir+)
+
   (let* ((*test-progress-print-right-margin* (expt 2 20))
          (failures (coerce (stefil::failure-descriptions-of
                             (without-debugging (test)))
@@ -48,35 +51,72 @@
 (defvar *scopes*      nil "Holds the scopes software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
-(defvar *base-dir*
-  (pathname-directory #.(or *compile-file-truename*
-                            *load-truename*
-                            *default-pathname-defaults*)))
-(defvar *gcd-dir*
-  (make-pathname :directory (append *base-dir* (list "gcd")))
-  "Location of the gcd example directory")
 
-(defvar *hello-world-dir*
-  (make-pathname :directory (append *base-dir* (list "hello-world")))
-  "Location of the hello world example directory")
+(handler-bind ((error (lambda (e) (declare (ignorable e)) (invoke-restart 'ignore))))
+  (define-constant +gcd-dir+
+      (append (butlast (pathname-directory
+                        #.(or *compile-file-truename*
+                              *load-truename*
+                              *default-pathname-defaults*)))
+              (list "gcd"))
+    :test #'equalp
+    :documentation "Path to directory holding gcd.")
 
-(defvar *clang-format-dir*
-  (make-pathname :directory (append *base-dir* (list "clang-format")))
-  "Location of the clang-format example directory")
+  (define-constant +hello-world-dir+
+      (append (butlast (pathname-directory
+                        #.(or *compile-file-truename*
+                              *load-truename*
+                              *default-pathname-defaults*)))
+              (list "hello-world"))
+    :test #'equalp
+    :documentation "Location of the hello world example directory")
 
-(defvar *huf-dir*
-  (make-pathname :directory (append *base-dir* (list "huf")))
-  "Location of the huf example directory")
+  (define-constant +clang-format-dir+
+      (append (butlast (pathname-directory
+                        #.(or *compile-file-truename*
+                              *load-truename*
+                              *default-pathname-defaults*)))
+              (list "clang-format"))
+    :test #'equalp
+    :documentation "Location of the clang-format example directory")
 
-(defvar *scopes-dir*
-  (make-pathname :directory (append *base-dir* (list "scopes")))
-  "Location of the scopes example directory")
+  (define-constant +huf-dir+
+      (append (butlast (pathname-directory
+                        #.(or *compile-file-truename*
+                              *load-truename*
+                              *default-pathname-defaults*)))
+              (list "huf"))
+    :test #'equalp
+    :documentation "Location of the huf example directory")
 
-(defun gcd-dir (filename) (merge-pathnames filename *gcd-dir*))
-(defun hello-world-dir (filename) (merge-pathnames filename *hello-world-dir*))
-(defun clang-format-dir (filename) (merge-pathnames filename *clang-format-dir*))
-(defun huf-dir (filename) (merge-pathnames filename *huf-dir*))
-(defun scopes-dir (filename) (merge-pathnames filename *scopes-dir*))
+  (define-constant +scopes-dir+
+      (append (butlast (pathname-directory
+                        #.(or *compile-file-truename*
+                              *load-truename*
+                              *default-pathname-defaults*)))
+              (list "scopes"))
+    :test #'equalp
+    :documentation "Location of the scopes example directory")
+
+  (define-constant +test-dir+
+      (append (butlast (pathname-directory
+                        #.(or *compile-file-truename*
+                              *load-truename*
+                              *default-pathname-defaults*)))
+              (list "tests"))
+    :test #'equalp
+    :documentation "Location of the benchmarks example directory"))
+
+(defun gcd-dir (filename)
+  (make-pathname :name filename :directory +gcd-dir+))
+(defun hello-world-dir (filename)
+  (make-pathname :name filename :directory +hello-world-dir+))
+(defun clang-format-dir (filename)
+  (make-pathname :name filename :directory +clang-format-dir+))
+(defun huf-dir (filename)
+  (make-pathname :name filename :directory +huf-dir+))
+(defun scopes-dir (filename)
+  (make-pathname :name filename :directory +scopes-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -1299,13 +1339,6 @@ Useful for printing or returning differences in the REPL."
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")
 
-(defvar *test-dir*
-  (let ((dir (butlast (pathname-directory #.(or *compile-file-truename*
-						*load-truename*
-						*default-pathname-defaults*)))))
-    (make-pathname :directory (append dir (list "test"))))
-  "Location of the benchmarks example directory")
-
 (defixture broken-compilation
   (:setup (setf *broken-clang*
                 (make-instance 'clang-w-fodder
@@ -1313,8 +1346,8 @@ Useful for printing or returning differences in the REPL."
 	printf(\"Hello, World!\\n\");
 	return missing_variable;}"))
           (setf *database*
-                (with-open-file (in (merge-pathnames "euler-example.json"
-                                                     *test-dir*))
+                (with-open-file (in (make-pathname :name "euler-example.json"
+                                                   :directory +test-dir+))
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
 
@@ -1327,8 +1360,8 @@ Useful for printing or returning differences in the REPL."
 	printf(\"Hello, World!\\n\");
 	return missing_variable;}"))
           (setf *database*
-                (with-open-file (in (merge-pathnames "euler-example.json"
-                                                     *test-dir*))
+                (with-open-file (in (make-pathname :name "euler-example.json"
+                                                   :directory +test-dir+))
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
 
@@ -1377,6 +1410,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
         (is (equal effective-a-pts target-a-pts))))))
@@ -1394,6 +1428,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable variant a-pts b-pts))
         (is ok)
         (is (equal effective-a-pts target-a-pts)))))
   (with-fixture scopes-clang
@@ -1408,6 +1443,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable variant a-pts b-pts))
         (is ok)
         (is (equal effective-a-pts target-a-pts))))))
 
@@ -1421,6 +1457,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant)))))
   (with-fixture scopes-clang
@@ -1432,6 +1469,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))))))
 
@@ -1446,6 +1484,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
@@ -1460,6 +1499,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
@@ -1474,6 +1514,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
@@ -1489,6 +1530,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
@@ -1504,6 +1546,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
@@ -1519,6 +1562,7 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover *scopes* *scopes*
                                          a-stmt1 a-stmt2
                                          b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
