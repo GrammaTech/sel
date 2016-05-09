@@ -455,7 +455,7 @@ is replaced with replacement."
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))
 
-(define-setf-expander aget (item list &key (test 'eql) &environment env)
+(define-setf-expander aget (item list &key (test ''eql) &environment env)
   (multiple-value-bind (dummies vals stores store-form access-form)
       (get-setf-expansion list env)
     (declare (ignorable stores store-form))
@@ -464,11 +464,12 @@ is replaced with replacement."
       (values dummies
               vals
               `(,store)
-              `(let ((,cons-sym (assoc ,item ,list :test ,test)))
+              `(let ((,cons-sym (assoc ,item ,access-form :test ,test)))
                  (if ,cons-sym
                      (setf (cdr ,cons-sym) ,store)
-                     (progn (setf ,list (acons ,item ,store ,list)) ,store)))
-              `(aget ,item ,access-form)))))
+                     (prog1 ,store
+                       (setf ,access-form (acons ,item ,store ,access-form)))))
+              `(aget ,item ,access-form :test ,test)))))
 
 (defun alist (key value &rest rest)
   "Create an association list from the alternating keys and values."
