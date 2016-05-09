@@ -763,7 +763,8 @@ Otherwise return the whole FULL-GENOME"
                  (:scopes "scopes")
                  (:begin-addr "begin_addr")
                  (:end-addr "end_addr")
-                 (:includes "includes")))
+                 (:includes "includes")
+                 (:opcode "opcode")))
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
