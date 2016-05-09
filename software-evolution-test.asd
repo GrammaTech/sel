@@ -11,7 +11,7 @@
                software-evolution-utility)
   :components
   ((:module test
-            :pathname "test"
+            :pathname "test/src"
             :components
             ((:file "package")
-             (:file "tests" :depends-on ("package"))))))
+             (:file "software-evolution-test" :depends-on ("package"))))))

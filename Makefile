@@ -96,10 +96,38 @@ bin/clang-instrument: src/clang-instrument.lisp $(LOADED_LIBS) $(MANIFEST_FILE)
 	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "ci:main"
 
 
-# Documentation
-clang-instrument.1.gz: README.md
-	pandoc -s -t man $^ -o $<.tmp
-	gzip -9 < $<.tmp > $@
+## Testing
+test/etc/gcd/gcd: test/etc/gcd/gcd.c
+	$(CC) $< -o $@
+
+test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
+	$(CC) $< -S -o $@
+
+test: test/etc/gcd/gcd test/etc/gcd/gcd.s
+	@make -sC test
+
+check: se-test test
+	@./$<
+
+# Makefile target to support automated testing.
+tests.md: se-test test
+	echo "### $$(date +%Y-%m-%d-%H-%M-%S)" >> tests.md
+	echo "REPO" >> tests.md
+	echo ":   $(REPO)" >> tests.md
+	echo "" >> tests.md
+	echo "BRANCH" >> tests.md
+	echo ":   $(BRANCH)" >> tests.md
+	echo "" >> tests.md
+	echo "HEAD" >> tests.md
+	echo ":   $(HEAD)" >> tests.md
+	echo "" >> tests.md
+	make -s check 2>&1|sed 's/^/    /' >> tests.md
+	echo "" >> tests.md
+
+tests.html: tests.md
+	markdown $< > $@
+
+auto-check: tests.html
 
 index.html: README.md
 	pandoc -s -t html $< -o $@
