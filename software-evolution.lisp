@@ -52,6 +52,9 @@
 (defgeneric evaluate (function software)
   (:documentation "Evaluate the software returning a numerical fitness."))
 
+(defmethod evaluate ((test symbol) (obj software))
+  (evalute (function test) obj))
+
 (defmethod evaluate ((test function) (obj software))
   (if (fitness obj)
       (values (fitness obj) (fitness-extra-data obj))
