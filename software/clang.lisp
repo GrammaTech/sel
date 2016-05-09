@@ -1497,8 +1497,17 @@ free variables.")
         (cond
           ((= x ancestor) (cons 0 (scopes-between clang y ancestor)))
           ((= y ancestor) (cons (scopes-between clang x ancestor) 0))
-          (t              (cons (1- (scopes-between clang x ancestor))
-                                (1- (scopes-between clang y ancestor))))))))
+          (t
+           ;; If the two crossover points share a CompoundStmt as the
+           ;; common ancestor, then you can get from one to the other
+           ;; without passing through the final set of braces.  To
+           ;; compensate, we subtract one from the number of scopes
+           ;; that must be traversed to get from X to Y.
+           (let ((correction (if (equal (get-ast-class clang ancestor)
+                                        "CompoundStmt")
+                                 1 0)))
+             (cons (- (scopes-between clang x ancestor) correction)
+                   (- (scopes-between clang y ancestor) correction))))))))
 
 ;; Split the path between two nodes into the disjoint union of
 ;; a path appropriate for across-and-out crossover, followed by a
