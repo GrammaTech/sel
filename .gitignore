@@ -3,6 +3,7 @@
 *.lx64fsl
 
 # Documentation cruft
+*.1.gz
 *.aux
 *.bak
 *.bbl
@@ -18,6 +19,7 @@
 *.lof
 *.log
 *.lot
+*.md.tmp
 *.nav
 *.out
 *.pgf
