@@ -75,7 +75,13 @@ doc:
 
 
 ## Testing
-test:
+test/etc/gcd/gcd: test/etc/gcd/gcd.c
+	$(CC) $< -o $@
+
+test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
+	$(CC) $< -S -o $@
+
+test: test/etc/gcd/gcd test/etc/gcd/gcd.s
 	@make -sC test
 
 check: se-test test
