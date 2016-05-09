@@ -104,6 +104,7 @@
    :compiler
    :prototypes
    :asts
+   :stmts
    :good-stmts
    :bad-stmts
    :update-asts
