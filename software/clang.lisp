@@ -187,9 +187,12 @@ restrictions. For use by targeter functions/execute picks."
              (vars (remove-if {find _ old-names :test #'equal}
                               (get-vars-in-scope clang
                                              (if uses (car uses) the-block))))
-             (var (loop :for _ :in old-names :collecting
-                     (if vars (random-elt vars)
-                      "/* no vars available before first use of cut decl */"))))
+             (var (mapcar (lambda (old-name)
+                            (declare (ignorable old-name))
+                            (if vars
+                                (random-elt vars)
+                                "/* no vars before first use of cut-decl */"))
+                          old-names)))
         (delete-decl-stmts clang the-block `((,decl . ,var))))))
 
 ;; Swap Decls
@@ -587,20 +590,18 @@ already in scope, it will keep that name.")
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
   (restart-case
-      (let* ((tu 0)                     ; If we multiplex multiple software
-                                        ; objects onto one clang-mutate
-                                        ; invocation, they will need to track
-                                        ; their own TU ids.  With one software
-                                        ; object, it will always be TU 0.
-             (cmd ))
+      ;; If we multiplex multiple software objects onto one
+      ;; clang-mutate invocation, they will need to track their own TU
+      ;; ids.  With one software object, it will always be TU 0.
+      (let ((tu 0))
         (setf (genome software)
               (clang-mutate software '(:scripted) :script
-                 (format nil "reset ~a; ~{~a; ~}preview ~a"
-                         tu
-                         (mapcar {mutation-op-to-cmd tu}
-                                 (recontextualize-mutation software
-                                                           mutation))
-                         tu)))
+                            (format nil "reset ~a; ~{~a; ~}preview ~a"
+                                    tu
+                                    (mapcar {mutation-op-to-cmd tu}
+                                            (recontextualize-mutation software
+                                                                      mutation))
+                                    tu)))
         software)
     (skip-mutation ()
       :report "Skip mutation and return nil"
@@ -658,44 +659,43 @@ Otherwise return the whole FULL-GENOME"
 (defun mutation-op-to-cmd (tu op)
   (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
            (str (tag) (json:encode-json-to-string (aget tag (cdr op)))))
-    (let ((options (cdr op)))
-      (ecase (car op)
-        (:cut
-         (format nil "cut ~a" (ast :stmt1)))
-        (:insert
-         (format nil "get ~a as $stmt; before ~a $stmt"
-                 (ast :stmt1) (ast :stmt2)))
-        (:insert-value
-         (format nil "before ~a ~a" (ast :stmt1) (str :value1)))
-        (:swap
-         (format nil "swap ~a ~a" (ast :stmt1) (ast :stmt2)))
-        (:set
-         (format nil "set ~a ~a" (ast :stmt1) (str :value1)))
-        (:set2
-         (format nil "set ~a ~a ~a ~a"
-                 (ast :stmt1) (str :value1)
-                 (ast :stmt2) (str :value2)))
-        (:set-range
-         (format nil "set-range ~a ~a ~a"
-                 (ast :stmt1) (ast :stmt2) (str :value1)))
-        (:set-func
-         (format nil "set-func ~a ~a" (ast :stmt1) (str :value1)))
-        (:ids
-         (format nil "ids ~a" tu))
-        (:list
-         (format nil "list ~a" tu))
-        (:json
-         (let ((aux (if (aget :aux (cdr op))
-                        (format nil "aux=~a"
-                                (intercalate "," (aget :aux (cdr op))))
-                        ""))
-               (fields (if (aget :fields (cdr op))
-                           (format nil "fields=~a"
-                                   (intercalate "," (aget :fields (cdr op))))
-                           "")))
-           (if (aget :stmt1 (cdr op))
-               (format nil "ast ~a ~a" (ast :stmt1) fields)
-               (format nil "json ~a ~a ~a" (ast :stmt1) fields aux))))))))
+    (ecase (car op)
+      (:cut
+       (format nil "cut ~a" (ast :stmt1)))
+      (:insert
+       (format nil "get ~a as $stmt; before ~a $stmt"
+               (ast :stmt1) (ast :stmt2)))
+      (:insert-value
+       (format nil "before ~a ~a" (ast :stmt1) (str :value1)))
+      (:swap
+       (format nil "swap ~a ~a" (ast :stmt1) (ast :stmt2)))
+      (:set
+       (format nil "set ~a ~a" (ast :stmt1) (str :value1)))
+      (:set2
+       (format nil "set ~a ~a ~a ~a"
+               (ast :stmt1) (str :value1)
+               (ast :stmt2) (str :value2)))
+      (:set-range
+       (format nil "set-range ~a ~a ~a"
+               (ast :stmt1) (ast :stmt2) (str :value1)))
+      (:set-func
+       (format nil "set-func ~a ~a" (ast :stmt1) (str :value1)))
+      (:ids
+       (format nil "ids ~a" tu))
+      (:list
+       (format nil "list ~a" tu))
+      (:json
+       (let ((aux (if (aget :aux (cdr op))
+                      (format nil "aux=~a"
+                              (intercalate "," (aget :aux (cdr op))))
+                      ""))
+             (fields (if (aget :fields (cdr op))
+                         (format nil "fields=~a"
+                                 (intercalate "," (aget :fields (cdr op))))
+                         "")))
+         (if (aget :stmt1 (cdr op))
+             (format nil "ast ~a ~a" (ast :stmt1) fields)
+             (format nil "json ~a ~a ~a" (ast :stmt1) fields aux)))))))
 
 (defmethod clang-mutate ((obj clang) op
                          &key script
@@ -1182,17 +1182,16 @@ free variables.")
              :collecting `(:cut (:stmt1 . ,decl))))))
 
 (defmethod get-declared-variables ((clang clang) the-block)
-  (apply #'append
-         (loop :for stmt :in (aget :stmt-list (get-ast clang the-block))
-            :collecting (aget :declares (get-ast clang stmt)))))
+  (mappend [{aget :declares} {get-ast clang}]
+           (aget :stmt-list (get-ast clang the-block))))
 
 (defmethod get-used-variables ((clang clang) stmt)
-  (mapcar [{peel-bananas} {car}] (aget :unbound-vals (get-ast clang stmt))))
+  (mapcar [#'peel-bananas #'car] (aget :unbound-vals (get-ast clang stmt))))
 
 (defmethod get-children-using ((clang clang) var the-block)
-  (loop :for stmt :in (aget :stmt-list (get-ast clang the-block))
-     :when (find var (get-used-variables clang stmt) :test #'equal)
-     :collecting stmt))
+  (remove-if-not [(lambda (el) (find var el :test #'equal))
+                  {get-used-variables clang}]
+                 (aget :stmt-list (get-ast clang the-block))))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))
