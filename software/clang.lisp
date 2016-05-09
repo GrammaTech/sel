@@ -1623,13 +1623,14 @@ free variables.")
 (defmethod reorder-crossover-points ((clang clang) x y)
   (let ((stmt1 (enclosing-full-stmt-or-block clang x))
         (stmt2 (enclosing-full-stmt-or-block clang y)))
-    (cond ((or (ancestor-of clang stmt1 stmt2)
-               (ancestor-of clang stmt2 stmt1))
-           (values stmt1 stmt2))
-          ((< stmt2 stmt1)
-           (values stmt2 stmt1))
-          (t
-           (values stmt1 stmt2)))))
+    (when (and stmt1 stmt2)
+      (cond ((or (ancestor-of clang stmt1 stmt2)
+                 (ancestor-of clang stmt2 stmt1))
+             (values stmt1 stmt2))
+            ((< stmt2 stmt1)
+             (values stmt2 stmt1))
+            (t
+             (values stmt1 stmt2))))))
 
 (defmethod random-point-in-function ((clang clang) proto)
   (let* ((first (1+ (first (aget :stmt-range proto))))
@@ -1666,17 +1667,20 @@ free variables.")
 (defmethod crossover ((a clang) (b clang))
   (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
       (select-crossover-points-with-corrections a b)
-    (multiple-value-bind (crossed a-point b-point changedp)
-        (intraprocedural-2pt-crossover
-         a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
-      (when (and changedp *ancestor-logging*)
-        (push (alist :cross-with (ancestors b)
-                     :crossover '2pt
-                     :id (get-fresh-ancestry-id))
-              (ancestors crossed)))
-      (if changedp
-          (values crossed a-point b-point)
-          (values crossed nil nil)))))
+    (if (and a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+        (multiple-value-bind (crossed a-point b-point changedp)
+            (intraprocedural-2pt-crossover
+             a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+          (when (and changedp *ancestor-logging*)
+            (push (alist :cross-with (ancestors b)
+                         :crossover '2pt
+                         :id (get-fresh-ancestry-id))
+                  (ancestors crossed)))
+          (if changedp
+              (values crossed a-point b-point)
+              (values crossed nil nil)))
+        ;; Could not find crossover point
+        (values a nil nil))))
 
 (defmethod prototype-containing-ast ((clang clang) stmt)
   (let ((body (aget :counter
