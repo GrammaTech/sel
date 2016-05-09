@@ -18,7 +18,7 @@
         (sort <> #'>)
         (reduce (lambda (variant counter)
                   (note 2 "Instrumenting AST#~d." counter)
-                  (let* ((fmt "fputs(\"TRACE:~d\\n\", stderr);~%~a")
+                  (let* ((fmt "fputs(\"((:COUNTER . ~d))\\n\", stderr);~%~a")
                          (text (peel-bananas
                                 (aget :src-text (get-ast variant counter))))
                          (op `(:set
