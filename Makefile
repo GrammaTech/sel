@@ -26,7 +26,7 @@ LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard software/*.lisp)	\
-	$(wildcard test/*.lisp)
+	$(wildcard test/src/*.lisp)
 
 # Flags to buildapp
 QUIT=(lambda (error hook-value)
@@ -81,10 +81,11 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -o $@
 
-test: test/etc/gcd/gcd test/etc/gcd/gcd.s
-	@make -sC test
+TEST_ARTIFACTS = \
+	test/etc/gcd/gcd \
+	test/etc/gcd/gcd.s
 
-check: se-test test
+check: se-test $(TEST_ARTIFACTS)
 	@./$<
 
 # Makefile target to support automated testing.
@@ -109,4 +110,4 @@ auto-check: tests.html
 
 clean:
 	@find . -type f -name "*.fasl" -exec rm {} \+
-	@rm -f se-test
+	@rm -f se-test $(TEST_ARTIFACTS)

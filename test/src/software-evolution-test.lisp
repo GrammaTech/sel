@@ -24,8 +24,6 @@
 (defun batch-test (&optional args)
   (declare (ignorable args))
 
-  (format *error-output* "GCD-DIR:~S~%" +gcd-dir+)
-
   (let* ((*test-progress-print-right-margin* (expt 2 20))
          (failures (coerce (stefil::failure-descriptions-of
                             (without-debugging (test)))
@@ -53,70 +51,59 @@
   "Example range software object.")
 
 (handler-bind ((error (lambda (e) (declare (ignorable e)) (invoke-restart 'ignore))))
-  (define-constant +gcd-dir+
+  (define-constant +etc-dir+
       (append (butlast (pathname-directory
                         #.(or *compile-file-truename*
                               *load-truename*
                               *default-pathname-defaults*)))
-              (list "gcd"))
+              (list "etc"))
+    :test #'equalp
+    :documentation "Path to directory holding testing artifacts.")
+
+  (define-constant +gcd-dir+ (append +etc-dir+ (list "gcd"))
     :test #'equalp
     :documentation "Path to directory holding gcd.")
 
-  (define-constant +hello-world-dir+
-      (append (butlast (pathname-directory
-                        #.(or *compile-file-truename*
-                              *load-truename*
-                              *default-pathname-defaults*)))
-              (list "hello-world"))
+  (define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
     :test #'equalp
     :documentation "Location of the hello world example directory")
 
-  (define-constant +clang-format-dir+
-      (append (butlast (pathname-directory
-                        #.(or *compile-file-truename*
-                              *load-truename*
-                              *default-pathname-defaults*)))
-              (list "clang-format"))
+  (define-constant +clang-format-dir+ (append +etc-dir+ (list "clang-format"))
     :test #'equalp
     :documentation "Location of the clang-format example directory")
 
-  (define-constant +huf-dir+
-      (append (butlast (pathname-directory
-                        #.(or *compile-file-truename*
-                              *load-truename*
-                              *default-pathname-defaults*)))
-              (list "huf"))
+  (define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
     :test #'equalp
     :documentation "Location of the huf example directory")
 
-  (define-constant +scopes-dir+
-      (append (butlast (pathname-directory
-                        #.(or *compile-file-truename*
-                              *load-truename*
-                              *default-pathname-defaults*)))
-              (list "scopes"))
+  (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
     :test #'equalp
-    :documentation "Location of the scopes example directory")
-
-  (define-constant +test-dir+
-      (append (butlast (pathname-directory
-                        #.(or *compile-file-truename*
-                              *load-truename*
-                              *default-pathname-defaults*)))
-              (list "tests"))
-    :test #'equalp
-    :documentation "Location of the benchmarks example directory"))
+    :documentation "Location of the scopes example directory"))
 
 (defun gcd-dir (filename)
-  (make-pathname :name filename :directory +gcd-dir+))
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +gcd-dir+))
+
 (defun hello-world-dir (filename)
-  (make-pathname :name filename :directory +hello-world-dir+))
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +hello-world-dir+))
+
 (defun clang-format-dir (filename)
-  (make-pathname :name filename :directory +clang-format-dir+))
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +clang-format-dir+))
+
 (defun huf-dir (filename)
-  (make-pathname :name filename :directory +huf-dir+))
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +huf-dir+))
+
 (defun scopes-dir (filename)
-  (make-pathname :name filename :directory +scopes-dir+))
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +scopes-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -1347,7 +1334,7 @@ Useful for printing or returning differences in the REPL."
 	return missing_variable;}"))
           (setf *database*
                 (with-open-file (in (make-pathname :name "euler-example.json"
-                                                   :directory +test-dir+))
+                                                   :directory +etc-dir+))
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
 
@@ -1361,7 +1348,7 @@ Useful for printing or returning differences in the REPL."
 	return missing_variable;}"))
           (setf *database*
                 (with-open-file (in (make-pathname :name "euler-example.json"
-                                                   :directory +test-dir+))
+                                                   :directory +etc-dir+))
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
 
