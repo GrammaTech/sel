@@ -53,7 +53,7 @@
   (:documentation "Evaluate the software returning a numerical fitness."))
 
 (defmethod evaluate ((test symbol) (obj software))
-  (evalute (function test) obj))
+  (evaluate (symbol-function test) obj))
 
 (defmethod evaluate ((test function) (obj software))
   (if (fitness obj)
