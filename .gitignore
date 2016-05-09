@@ -13,3 +13,5 @@ seed
 se-test
 tests.md
 tests.html
+
+local.mk

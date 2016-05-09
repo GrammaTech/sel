@@ -1,5 +1,10 @@
 .PHONY: check doc test tests.md auto-check
 
+# Set personal or machine-local flags in a file named local.mk
+ifneq ("$(wildcard local.mk)","")
+include local.mk
+endif
+
 # Use buildapp as the lisp compiler.
 LC ?= buildapp
 
@@ -12,8 +17,11 @@ $(warning $(QUICK_LISP) does not appear to be a valid quicklisp install)
 $(error Please point QUICK_LISP to your quicklisp installation)
 endif
 
+MANIFEST_FILE=$(QUICK_LISP)/local-projects/system-index.txt
 LISP_LIBS+= software-evolution-test
 LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
+LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(LISP_LIBS))
+LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
 
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
@@ -25,7 +33,7 @@ QUIT=(lambda (error hook-value)
 QUIT+=(declare (ignorable hook-value))
 QUIT+=(format *error-output* \"ERROR: ~a~%\" error)
 QUIT+=\#+sbcl (sb-ext:exit :code 2) \#+ccl (quit 2))
-LCFLAGS=--manifest-file $(QUICK_LISP)/local-projects/system-index.txt \
+LCFLAGS=--manifest-file $(MANIFEST_FILE) \
 	--asdf-tree $(QUICK_LISP)/dists/quicklisp/software \
 	--eval "(setf *debugger-hook* $(QUIT))"
 
@@ -33,9 +41,32 @@ ifneq ($(LISP_STACK),)
 LCFLAGS+= --dynamic-space-size $(LISP_STACK)
 endif
 
-se-test: $(LISP_DEPS)
-	$(LC) $(LCFLAGS) $(LC_LIBS) --output $@ \
-		--entry "software-evolution-test:batch-test"
+# Default lisp to build manifest file.
+SBCL ?= sbcl
+ifeq ("$(LISP)","")
+ifeq ("$(SBCL_HOME)","")
+SBCL_HOME=$(dir $(shell which $(SBCL)))../lib/sbcl
+endif
+LISP = SBCL_HOME=$(SBCL_HOME) $(SBCL)
+endif
+LISP ?= sbcl
+ifneq (,$(findstring sbcl, $(LISP)))
+LISP_FLAGS = --no-userinit --no-sysinit
+else
+LISP_FLAGS = --quiet --no-init
+endif
+
+$(MANIFEST_FILE): $(wildcard $(QUICK_LISP)/local-projects/*/*.asd)
+	$(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp --eval '(ql:register-local-projects)' \
+          --eval "#+sbcl (exit) #+ccl (quit)"
+
+%.loaded:
+	$(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp --eval '(ql:quickload :$(notdir $*))' \
+          --eval "#+sbcl (exit) #+ccl (quit)"
+	touch $@
+
+se-test: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST_FILE)
+	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se-test:batch-test"
 
 
 ## Documentation
@@ -71,4 +102,5 @@ tests.html: tests.md
 auto-check: tests.html
 
 clean:
-	rm -f se-test
+	@find . -type f -name "*.fasl" -exec rm {} \+
+	@rm -f se-test
