@@ -67,11 +67,14 @@
   obj)
 
 (defmethod log-to-filename ((obj clang) log-variable filename)
-  (insert-at-entry
-   obj
-   (concatenate 'string
-     (format nil "FILE *~a;~%" log-variable)
-     (format nil "~a = fopen(~s, \"a\");~%" log-variable filename)))
+  (setf obj
+        (insert-at-entry obj (format nil "~a = fopen(~s, \"a\");~%"
+                                     log-variable filename)))
+  ;; Insert the declaration at the very top of the file.
+  (setf (genome obj)
+        (concatenate 'string
+          (format nil "FILE *~a;~%" log-variable)
+          (genome obj)))
   obj)
 
 
