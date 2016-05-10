@@ -54,8 +54,11 @@
       (setf (genome cil) stdout)))
   cil)
 
-(defmethod instrument ((cil cil) &optional trace-file)
+(defmethod instrument ((cil cil) &key points trace-file)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
+  (unless (null points)
+    (warn
+     "Program point instrumentation not support for CIL software objects."))
   (apply-mutation cil (list :trace trace-file))
   cil)

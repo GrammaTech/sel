@@ -177,6 +177,14 @@
                             (gcd-dir "gcd")))))
   (:teardown (setf *gcd* nil)))
 
+(defixture gcd-clang
+  (:setup
+   (setf *gcd*
+         (from-file (make-instance 'clang :compiler "clang-3.7")
+                    (gcd-dir "gcd.c"))))
+  (:teardown
+   (setf *hello-world* nil)))
+
 (defixture hello-world-clang
   (:setup
     (setf *hello-world*
@@ -517,6 +525,7 @@
 
 
 ;;; Detailed clang mutation tests
+;;;
 ;;; These all run the entire mutate method, rather that just
 ;;; apply-mutation, adjusting the good and bad picks to get
 ;;; predictable results. And they check the results of each mutation
@@ -763,7 +772,6 @@
             (is (equal (mapcar {aget :ast-class} (asts variant))
                        (mapcar {aget :ast-class} (asts *hello-world*)))))))))
 
-
 
 ;;; Clang w/ mutation fodder representation
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
@@ -846,7 +854,6 @@
                         (clang-format-dir "unformatted.c"))))
     (is (string= (genome-string-without-separator (clang-format obj))
                  (file-to-string (clang-format-dir "formatted.c"))))))
-
 
 
 ;;; Range representation
@@ -1115,6 +1122,7 @@
       (without-helpers
         (is (equalp (genome (apply-mutation *soft* '(:swap 0 2)))
                     #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4)))))))))
+
 
 ;;; Population tests
 (deftest evict-population ()
@@ -1321,6 +1329,7 @@ Useful for printing or returning differences in the REPL."
                  (random-function-name (prototypes *huf*)
                                        :original-name "foo"
                                        :arity 3)))))
+
 
 ;;; Fix compilation tests.
 (defvar *broken-clang* nil "")
@@ -1627,3 +1636,16 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
+
+
+;;; Instrumentation tests
+(deftest instrumentation-insertion-test ()
+  (flet ((count-full-under-compound (obj)
+           (count-if
+            [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}]
+            (remove-if-not {aget :full-stmt} (asts obj)))))
+    (with-fixture gcd-clang
+      (let ((instrumented (instrument (copy *gcd*))))
+        ;; Do we insert the right number of printf statements?
+        (is (= (* 2 (count-full-under-compound *gcd*))
+               (count-full-under-compound instrumented)))))))
