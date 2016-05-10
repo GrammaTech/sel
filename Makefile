@@ -30,7 +30,7 @@ LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard software/*.lisp)	\
 	$(wildcard src/*.lisp)		\
-	$(wildcard test/src/*.lisp)
+	$(wildcard utility/*.lisp)
 
 # Flags to buildapp
 QUIT=(lambda (error hook-value)
@@ -74,12 +74,13 @@ bin/clang-instrument: src/clang-instrument.lisp $(LOADED_LIBS) $(MANIFEST_FILE)
 
 
 # Test executable
+TEST_LISP_DEPS=$(wildcard test/src/*.lisp)
 TEST_LISP_LIBS+= software-evolution-test
 TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
 
-bin/se-test: $(TEST_LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
+bin/se-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
 	CC=$(CC) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
 
 
