@@ -12,6 +12,7 @@ techniques."
   :depends-on (alexandria
                metabang-bind
                curry-compose-reader-macros
+               cl-arrows
                split-sequence
                cl-json
                cl-ppcre
@@ -53,6 +54,7 @@ techniques."
             :components
             ((:file "lexicase")
              (:file "fix-compilation")
+             (:file "clang-instrument")
              (:file "fodder-database")
              (:file "json-fodder-database" :depends-on ("fodder-database"))
              (:file "mongo-fodder-database" :depends-on ("fodder-database"))

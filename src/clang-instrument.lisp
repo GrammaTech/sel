@@ -1,7 +1,5 @@
 ;;; clang-instrument --- Instrument C-language source files
-(in-package :clang-instrument)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros :include-utf8))
+(in-package :se)
 
 
 ;;;; Instrumentation
