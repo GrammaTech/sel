@@ -13,6 +13,7 @@ techniques."
                metabang-bind
                curry-compose-reader-macros
                cl-arrows
+               iterate
                split-sequence
                cl-json
                cl-ppcre

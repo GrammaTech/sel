@@ -357,34 +357,34 @@ software object"))
          (type-db-mito (make-instance 'clang-mito)))
 
     ;; Populate a type database with the types found.
-    (loop for type in json-db
-       when (and (assoc :hash type)
-                 (assoc :reqs type)
-                 (assoc :type type)
-                 (or (assoc :include type)
-                     (assoc :decl type)))
-       do (setf (gethash (aget :hash type) (types type-db-mito)) type))
+    (loop :for type :in json-db
+       :when (and (assoc :hash type)
+                  (assoc :reqs type)
+                  (assoc :type type)
+                  (or (assoc :include type)
+                      (assoc :decl type)))
+       :do (setf (gethash (aget :hash type) (types type-db-mito)) type))
 
     ;; Set the clang-mito's types. This will also populate any
     ;; #include directives needed for library typedefs.
-    (loop for type in json-db
-       when (aget :hash type)
-       when (and (assoc :hash type)
-                 (assoc :reqs type)
-                 (assoc :type type)
-                 (or (assoc :include type)
-                     (assoc :decl type)))
-       do (add-type (mitochondria obj) (aget :hash type) type-db-mito))
+    (loop :for type :in json-db
+       :when (aget :hash type)
+       :when (and (assoc :hash type)
+                  (assoc :reqs type)
+                  (assoc :type type)
+                  (or (assoc :include type)
+                      (assoc :decl type)))
+       :do (add-type (mitochondria obj) (aget :hash type) type-db-mito))
 
     ;; Add any macro definitions seen.
-    (loop for snippet in json-db
-      do (loop for macro in (aget :macros snippet)
-           do (add-macro (mitochondria obj) (first macro) (second macro))))
+    (loop :for snippet :in json-db
+       :do (loop :for macro :in (aget :macros snippet)
+              :do (add-macro (mitochondria obj) (first macro) (second macro))))
 
     ;; Add any #includes needed.
-    (loop for snippet in json-db
-       do (loop for include in (aget :includes snippet)
-             do (add-include (mitochondria obj) include)))
+    (loop :for snippet :in json-db
+       :do (loop :for include :in (aget :includes snippet)
+              :do (add-include (mitochondria obj) include)))
 
     ;; The clang-mito object is now fully initialized.
     ;; Next, generate the bulk of the program text by joining all global
@@ -521,8 +521,8 @@ already in scope, it will keep that name.")
 (defmethod basic-mutation-types-clang ((clang clang))
   (let* ((weights
           (remove-if #'null
-           (loop for mutation-type in *clang-mutation-types*
-              collecting
+           (loop :for mutation-type :in *clang-mutation-types*
+              :collecting
                 (cond ((member mutation-type
                                `(clang-cut-full-same clang-insert-full-same
                                  clang-swap-full-same clang-replace-full-same))
@@ -997,27 +997,26 @@ Otherwise return the whole FULL-GENOME"
         (vars   (make-hash-table :test 'equal))
         (decls  (make-hash-table :test 'equal))
         (stmts  '())
-        (source (intercalate (format nil "~%}~%")
-                   (loop for scope in scopes for k from 0
-                      collecting (unlines
-                                  (mapcar #'process-full-stmt-text scope))))))
-    (loop for scope in scopes for scope-depth from 0 do (progn
-      (loop for stmt in scope do (progn
-        (loop for decl in (aget :declares stmt)
-           do (setf (gethash decl decls) t))
-        (setf stmts (cons (aget :counter stmt) stmts))
-        (list->ht (aget :types         stmt) types)
-        (list->ht (aget :macros        stmt) macros)
-        (list->ht (aget :unbound-funs stmt)  funcs :key #'car :value #'cdr)
-        (loop for var-def in (aget :unbound-vals stmt)
-           do (let* ((var (first var-def))
-                     (already-seen (gethash var vars nil)))
-                (when (or (not already-seen)
-                          (< already-seen scope-depth))
-                  (setf (gethash var vars) scope-depth))))))))
+        (source (intercalate
+                 (format nil "~%}~%")
+                 (mapcar [#'unlines {mapcar #'process-full-stmt-text}]
+                         scopes))))
+    (loop :for scope :in scopes :as scope-depth :from 0 :do
+       (loop :for stmt :in scope :do
+          (loop :for decl :in (aget :declares stmt)
+             :do (setf (gethash decl decls) t))
+          (setf stmts (cons (aget :counter stmt) stmts))
+          (list->ht (aget :types         stmt) types)
+          (list->ht (aget :macros        stmt) macros)
+          (list->ht (aget :unbound-funs stmt)  funcs :key #'car :value #'cdr)
+          (loop :for var-def :in (aget :unbound-vals stmt)
+             :do (let* ((var (first var-def))
+                        (already-seen (gethash var vars nil)))
+                   (when (or (not already-seen)
+                             (< already-seen scope-depth))
+                     (setf (gethash var vars) scope-depth))))))
 
-    (let ((declared (loop for decl being the hash-keys of decls
-                       collecting (format nil "(|~a|)" decl))))
+    (let ((declared (mapcar {format nil "(|~a|)"} (hash-table-keys decls))))
       (alist :src-text
              (apply-replacements
               (append replacements
@@ -1025,23 +1024,19 @@ Otherwise return the whole FULL-GENOME"
                               declared))
               source)
              :unbound-vals
-               (remove-if [{find _ declared :test #'equal} {car}]
-                          (ht->list vars))
+             (remove-if [{find _ declared :test #'equal} {car}]
+                        (ht->list vars))
              :unbound-funs (ht->list funcs :merge-fn #'cons)
              :types  (ht->list types)
              :macros (ht->list macros)
              :stmts stmts))))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet type-database)
-  (loop for f in (aget :INCLUDES snippet)
-     do (add-include (mitochondria clang) f))
-  (loop for type in (aget :TYPES snippet)
-     do (add-type (mitochondria clang) type type-database))
-  (let ((macros (aget :MACROS snippet)))
-    (loop for macro in macros
-       do (add-macro (mitochondria clang)
-                     (first macro)
-                     (second macro))))
+  (mapc {add-include (mitochondria clang)} (aget :INCLUDES snippet))
+  (mapc (lambda (type) (add-type (mitochondria clang) type type-database))
+        (aget :types snippet))
+  (mapc [{apply #'add-macro} {cons (mitochondria clang)}]
+        (aget :macros snippet))
   snippet)
 
 (defun nonempty-lines (text)
@@ -1055,20 +1050,20 @@ Otherwise return the whole FULL-GENOME"
   (let ((index-table (make-hash-table :test 'equal))
         (max-index 0))
     (when (and pt (< 0 pt))
-      (loop for scope in (aget :scopes (get-ast clang pt))
-         for index from 0
-         do (setf (gethash index index-table) scope
-                  max-index index)))
+      (loop :for scope :in (aget :scopes (get-ast clang pt))
+         :as index :from 0
+         :do (setf (gethash index index-table) scope
+                   max-index index)))
     ;; Merge variables downward, so that every index-1 variable appears in
     ;; the index-0 list etc. Don't merge the outermost scope; we only want
     ;; to draw from the global scope in special cases.
     (when (and (< 1 max-index) (not keep-globals))
         (setf max-index (1- max-index)))
-    (loop for index from max-index downto 1
-       do (let ((vars-n (gethash index index-table))
-                (vars-n-minus-1 (gethash (1- index) index-table)))
-            (setf (gethash (1- index) index-table)
-                  (concatenate 'list vars-n-minus-1 vars-n))))
+    (loop :for index :from max-index :downto 1
+       :do (let ((vars-n (gethash index index-table))
+                 (vars-n-minus-1 (gethash (1- index) index-table)))
+             (setf (gethash (1- index) index-table)
+                   (concatenate 'list vars-n-minus-1 vars-n))))
     index-table))
 
 (defun random-scoped-replacement (var in-scope)
@@ -1123,24 +1118,24 @@ free variables.")
     (list->ht (aget :unbound-funs snippet) free-funs :key #'car :value #'cdr)
     (let ((replacements
            (append
-            (loop for var being the hash-keys of free-vars
-               using (hash-value index)
-               collecting
-                 (cons var
-                   (or (random-scoped-replacement
-                        var
-                        (gethash (if respect-depth index 0) scope-vars))
-                           (format nil "/* no bound vars in scope at depth ~a */"
-                                   index))))
-            (loop for fun being the hash-keys of free-funs
-               using (hash-value fun-info)
-               collecting
-                 (cons fun
-                       (or (random-function-name
-                            (prototypes clang)
-                            :original-name (peel-bananas fun)
-                            :arity (third fun-info))
-                           "/* no functions? */"))))))
+            (mapcar
+             (lambda-bind ((var . index))
+               (cons var
+                     (or (random-scoped-replacement
+                          var
+                          (gethash (if respect-depth index 0) scope-vars))
+                         (format nil "/* no bound vars in scope at depth ~a */"
+                                 index))))
+             (hash-table-alist free-vars))
+            (mapcar
+             (lambda-bind ((fun . fun-info))
+               (cons fun
+                     (or (random-function-name
+                          (prototypes clang)
+                          :original-name (peel-bananas fun)
+                          :arity (third fun-info))
+                         "/* no functions? */")))
+             (hash-table-alist free-funs)))))
       (values (apply-replacements replacements raw-code)
               replacements))))
 
@@ -1149,13 +1144,13 @@ free variables.")
     (list->ht renames-list renames :key #'car :value #'cdr)
     (add-semicolon-if-needed
      (apply-replacements
-      (append
-       (loop :for var :in (mapcar #'car (aget :unbound-vals snippet))
-          :collecting (cons var (gethash (peel-bananas var) renames
-                                         (peel-bananas var))))
-       (loop for fun :in (mapcar #'car (aget :unbound-funs snippet))
-          :collecting (cons fun (gethash (peel-bananas fun) renames
-                                                       (peel-bananas fun)))))
+      (mapcar (lambda (it)
+                (let ((peeled (peel-bananas it)))
+                  (cons it (gethash peeled renames peeled))))
+              (mapcar #'car
+                      (append
+                       (aget :unbound-vals snippet)
+                       (aget :unbound-funs snippet))))
       (aget :src-text snippet)))))
 
 (defmethod rebind-uses ((clang clang) stmt renames-list)
@@ -1213,16 +1208,16 @@ free variables.")
                                  (nth depth full-seq)))))
     (if (and (equal (length full-seq) 1) (null last-seq))
         (alist :stmt2 end :src-text "")
-        (let* ((initial-seq (loop for scope in full-seq
-                               for i from 0 to (1- depth)
-                               collecting scope))
+        (let* ((initial-seq (loop :for scope :in full-seq
+                               :for i :from 0 :to (1- depth)
+                               :collecting scope))
                (tail-size (length last-seq))
                (init (if (null initial-seq)
                          (car last-seq)
                          (caar initial-seq)))
-               (last (loop for stmt in last-seq
-                        for i from 1 to tail-size
-                        collecting stmt)))
+               (last (loop :for stmt :in last-seq
+                        :for i :from 1 :to tail-size
+                        :collecting stmt)))
           (if (null init)
               (alist :stmt2 end :src-text "")
               (acons   :stmt1 (aget :counter init)
@@ -1611,12 +1606,12 @@ free variables.")
 (defmethod apply-fun-body-substitutions ((clang clang) substitutions)
   (let ((sorted (sort (copy-seq substitutions) #'> :key #'car))
         (changedp nil))
-    (loop for (body-stmt . text) in sorted
-       do (progn (setf changedp t)
-                 (apply-mutation clang
-                                 (list :set-func
-                                       (cons :stmt1  body-stmt)
-                                       (cons :value1 text)))))
+    (loop :for (body-stmt . text) :in sorted
+       :do (progn (setf changedp t)
+                  (apply-mutation clang
+                    (list :set-func
+                          (cons :stmt1  body-stmt)
+                          (cons :value1 text)))))
     changedp))
 
 (defmethod full-function-text ((clang clang) func)

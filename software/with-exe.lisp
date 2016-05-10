@@ -39,16 +39,16 @@ SCRIPT should return 0 on success and 1 on failure."
     (if (eq (exe software) :failed)
         0
         (progn
-          (loop for i from 1 to pos-num
-             do (multiple-value-bind (output err-output exit)
-                    (shell "~a ~a p~d" script (exe software) i)
-                  (declare (ignorable output err-output))
-                  (when (= exit 0) (incf pos))))
-          (loop for i from 1 to neg-num
-             do (multiple-value-bind (output err-output exit)
-                    (shell "~a ~a n~d" script (exe software) i)
-                  (declare (ignorable output err-output))
-                  (when (= exit 0) (incf neg))))
+          (loop :for i :from 1 :to pos-num
+             :do (multiple-value-bind (output err-output exit)
+                     (shell "~a ~a p~d" script (exe software) i)
+                   (declare (ignorable output err-output))
+                   (when (= exit 0) (incf pos))))
+          (loop :for i :from 1 :to neg-num
+             :do (multiple-value-bind (output err-output exit)
+                     (shell "~a ~a n~d" script (exe software) i)
+                   (declare (ignorable output err-output))
+                   (when (= exit 0) (incf neg))))
           (incf *fitness-evals*)
           (delete-exe software)
           (+ pos neg)))))

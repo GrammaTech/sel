@@ -429,16 +429,16 @@ transformed from an instant to a cumulative probability."
   "Returns a new string in which all the occurences of the part
 is replaced with replacement."
   (with-output-to-string (out)
-    (loop with part-length = (length part)
-          for old-pos = 0 then (+ pos part-length)
-          for pos = (search part string
-                            :start2 old-pos
-                            :test test)
-          do (write-string string out
-                           :start old-pos
-                           :end (or pos (length string)))
-          when pos do (write-string replacement out)
-       while pos)))
+    (loop :with part-length := (length part)
+       :for old-pos := 0 :then (+ pos part-length)
+       :for pos := (search part string
+                           :start2 old-pos
+                           :test test)
+       :do (write-string string out
+                         :start old-pos
+                         :end (or pos (length string)))
+       :when pos :do (write-string replacement out)
+       :while pos)))
 
 (defun apply-replacements (list str)
   (if (null list)
@@ -767,7 +767,7 @@ the genome of an ASM object."
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
     (remove nil
-      (loop :for line = (read-line in nil)
+      (loop :for line := (read-line in nil)
          :while line
          :collect
          (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
@@ -776,7 +776,7 @@ the genome of an ASM object."
 
 (defun samples-from-tracer-file (path &aux samples)
   (with-open-file (in path)
-    (loop :for line = (read-line in nil)
+    (loop :for line := (read-line in nil)
        :while line
        :do (let ((addr (parse-integer line)))
              (if (assoc addr samples)
@@ -833,46 +833,46 @@ that function may be declared.")
 (defun list->ht (list ht &key key value)
   (let ((new-ht (make-hash-table :test 'equal)))
     (labels ((get-value (x) (if value (funcall value x) x)))
-      (loop for x in list
-         do (cond
-              (key
-               (setf (gethash (funcall key x)
-                              (or ht new-ht))
-                     (get-value x)))
-              ((eq (type-of x) 'cons)
-               (setf (gethash (first x)
-                              (or ht new-ht))
-                     (second x)))
-              (t
-               (setf (gethash x (or ht new-ht)) t)))))
+      (loop :for x :in list
+         :do (cond
+               (key
+                (setf (gethash (funcall key x)
+                               (or ht new-ht))
+                      (get-value x)))
+               ((eq (type-of x) 'cons)
+                (setf (gethash (first x)
+                               (or ht new-ht))
+                      (second x)))
+               (t
+                (setf (gethash x (or ht new-ht)) t)))))
     (or ht new-ht)))
 
 (defun ht->list (ht &key merge-fn)
-  (loop for k being the hash-keys of ht
-     using (hash-value v)
-     collecting (if (eq v t) k (if merge-fn
-                                   (funcall merge-fn k v)
-                                   (list k v)))))
+  (loop :for k :being :the :hash-keys :of ht
+     :using (hash-value v)
+     :collecting (if (eq v t) k (if merge-fn
+                                    (funcall merge-fn k v)
+                                    (list k v)))))
 
 (defun merge-hash-tables (to-ht from-ht &optional with)
   (labels ((merge-fn (x y) (if with (funcall with  x y) x)))
-    (loop for key being the hash-keys of from-ht
-       using (hash-value from-value)
-       do (let ((to-value (gethash key to-ht 'no-value-present)))
-            (setf (gethash key to-ht)
-                  (if (eq to-value 'no-value-present)
-                      from-value
-                      (merge-fn to-value from-value))))
-       finally (return to-ht))))
+    (loop :for key :being :the :hash-keys :of from-ht
+       :using (hash-value from-value)
+       :do (let ((to-value (gethash key to-ht 'no-value-present)))
+             (setf (gethash key to-ht)
+                   (if (eq to-value 'no-value-present)
+                       from-value
+                       (merge-fn to-value from-value))))
+       :finally (return to-ht))))
 
 (defun ht-intersect (a b &key with)
   (let ((ht (make-hash-table :test 'equal)))
     (labels ((merge-fn (x y) (if with (funcall with x y) (cons x y))))
-      (loop for key being the hash-keys of a
-           using (hash-value value-a)
-         do (let ((value-b (gethash key b)))
-              (when value-b
-                (setf (gethash key ht) (merge-fn value-a value-b))))))
+      (loop :for key :being :the :hash-keys :of a
+         :using (hash-value value-a)
+         :do (let ((value-b (gethash key b)))
+               (when value-b
+                 (setf (gethash key ht) (merge-fn value-a value-b))))))
     ht))
 
 (defun ht-copy (ht)
@@ -881,13 +881,13 @@ that function may be declared.")
                  :rehash-size (hash-table-rehash-size ht)
                  :rehash-threshold (hash-table-rehash-threshold ht)
                  :size (hash-table-size ht))))
-    (loop for key being each hash-key of ht
-      using (hash-value value)
-      do (setf (gethash key new-ht) value)
-      finally (return new-ht))))
+    (loop :for key :being :each :hash-key :of ht
+       :using (hash-value value)
+       :do (setf (gethash key new-ht) value)
+       :finally (return new-ht))))
 
 (defun ht-keys (ht)
-  (loop for key being the hash-keys of ht collect key))
+  (loop :for key :being :the :hash-keys :of ht :collect key))
 
 (defun ht-fold (f ht accum
                 &key (key-sort nil))
@@ -902,11 +902,11 @@ that function may be declared.")
 
 (defun ht-take-rand (ht n)
   (let ((new-ht (ht-copy ht)))
-    (loop for i below (if (< 0 (- (length (ht-keys ht)) n))
-                          (- (length (ht-keys ht)) n)
-                          0)
-      do (remhash (random-hash-table-key new-ht) new-ht)
-      finally (return new-ht))))
+    (loop :for i :below (if (< 0 (- (length (ht-keys ht)) n))
+                            (- (length (ht-keys ht)) n)
+                            0)
+       :do (remhash (random-hash-table-key new-ht) new-ht)
+       :finally (return new-ht))))
 
 (defun remhash-non-destructive(k ht)
   (let ((ht-copy (ht-copy ht)))

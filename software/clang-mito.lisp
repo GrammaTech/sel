@@ -26,10 +26,10 @@
 (defmethod union-mito ((this clang-mito) (that clang-mito))
   (merge-hash-tables (headers this) (headers that))
   (merge-hash-tables (macros this)  (macros that))
-  (loop for ty in (sorted-types that)
-     do (when (not (gethash (car ty) (types this)))
-          (setf (sorted-types this)
-                (cons ty (sorted-types this)))))
+  (loop :for ty :in (sorted-types that)
+     :do (when (not (gethash (car ty) (types this)))
+           (setf (sorted-types this)
+                 (cons ty (sorted-types this)))))
   (merge-hash-tables (types this)   (types that))
   (merge-hash-tables (globals this) (globals that)))
 
@@ -43,19 +43,15 @@
         (t (format nil "<~a>" name))))
 
 (defmethod genome-string ((clang-mito clang-mito) &optional stream)
-  (format stream "~a"
-    (apply #'concatenate 'string
-      (concatenate 'list
-        (loop for key being the hash-keys of (headers clang-mito)
-           collecting (format nil "#include ~a~%" (format-include key)))
-        (loop for key being the hash-keys of (macros clang-mito)
-           using (hash-value value)
-           collecting (format nil "#define ~a~%" value))
-        (loop for ty in (reverse (sorted-types clang-mito))
-           collecting (format nil "~a~%" (cdr ty)))
-        (loop for key being the hash-keys of (globals clang-mito)
-           using (hash-value value)
-           collecting (format nil "~a~%" value))))))
+  (with-output-to-string (str)
+    (mapc [{format (or stream str) "#include ~a~%"} #'se::format-include]
+          (hash-table-keys (headers clang-mito)))
+    (mapc {format (or stream str) "#define ~a~%"}
+          (hash-table-values (macros clang-mito)))
+    (mapc [{format (or stream str) "~a~%"} #'cdr]
+          (reverse (sorted-types clang-mito)))
+    (mapc {format (or stream str) "~a~%"}
+          (hash-table-values (globals clang-mito)))))
 
 ;; If a macro with the given name already exists, do nothing; otheriwse,
 ;; destructively update the genome to add the macro.
@@ -70,8 +66,7 @@
 ;; If the named function is defined in a certain header file(s),
 ;; destructively update the genome with those header names.
 (defmethod add-includes-for-function ((clang-mito clang-mito) name)
-  (loop for header in (resolve-function-headers name)
-     do (add-include clang-mito header))
+  (mapc {add-include clang-mito} (resolve-function-headers name))
   clang-mito)
 
 ;; Add a type and its dependencies, transitively.
@@ -89,7 +84,7 @@
         (reqs (aget :REQS type)))
     (when (not (gethash type-id (types clang-mito)))
       (setf (gethash type-id (types clang-mito)) "// pending")
-      (loop for req in reqs do (add-type clang-mito req type-database))
+      (mapc (lambda (req) (add-type clang-mito req type-database)) reqs)
       (setf (sorted-types clang-mito)
             (cons (cons type-id decl)
                   (sorted-types clang-mito)))
@@ -100,6 +95,4 @@
 (defmethod find-types ((clang-mito clang-mito) &key hash)
   (if hash
       (list (gethash hash (types clang-mito)))
-      (loop for k being the hash-keys of (types clang-mito)
-        using (hash-value v)
-        collecting v)))
+      (hash-table-values (types clang-mito))))

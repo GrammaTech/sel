@@ -45,7 +45,7 @@
 (defmethod from-file ((lisp lisp) file)
   (with-open-file (in file)
     (setf (genome lisp)
-          (loop :for form = (read in nil :eof)
+          (loop :for form := (read in nil :eof)
              :until (eq form :eof)
              :collect form)))
   lisp)
