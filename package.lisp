@@ -6,6 +6,7 @@
    :alexandria
    :metabang-bind
    :curry-compose-reader-macros
+   :cl-arrows
    :split-sequence
    :cl-ppcre
    :cl-mongo
