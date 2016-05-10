@@ -1,4 +1,7 @@
+SHELL=bash
 .PHONY: check doc test tests.md auto-check
+
+all: bin/se-test bin/clang-instrument
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
@@ -18,7 +21,7 @@ $(error Please point QUICK_LISP to your quicklisp installation)
 endif
 
 MANIFEST_FILE=$(QUICK_LISP)/local-projects/system-index.txt
-LISP_LIBS+= software-evolution-test
+LISP_LIBS+= software-evolution
 LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
 LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(LISP_LIBS))
 LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
@@ -26,6 +29,7 @@ LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard software/*.lisp)	\
+	$(wildcard src/*.lisp)		\
 	$(wildcard test/src/*.lisp)
 
 # Flags to buildapp
@@ -65,8 +69,18 @@ $(MANIFEST_FILE): $(wildcard $(QUICK_LISP)/local-projects/*/*.asd)
           --eval "#+sbcl (exit) #+ccl (quit)"
 	touch $@
 
-se-test: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST_FILE)
-	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se-test:batch-test"
+bin/clang-instrument: src/clang-instrument.lisp $(LOADED_LIBS) $(MANIFEST_FILE)
+	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se:clang-instrument"
+
+
+# Test executable
+TEST_LISP_LIBS+= software-evolution-test
+TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
+TEST_LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(TEST_LISP_LIBS))
+TEST_LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
+
+bin/se-test: $(TEST_LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
+	CC=$(CC) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
 
 
 ## Documentation
@@ -85,11 +99,11 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-check: se-test $(TEST_ARTIFACTS)
+check: bin/se-test $(TEST_ARTIFACTS)
 	@./$<
 
 # Makefile target to support automated testing.
-tests.md: se-test test
+tests.md: bin/se-test test
 	echo "### $$(date +%Y-%m-%d-%H-%M-%S)" >> tests.md
 	echo "REPO" >> tests.md
 	echo ":   $(REPO)" >> tests.md
@@ -110,4 +124,4 @@ auto-check: tests.html
 
 clean:
 	@find . -type f -name "*.fasl" -exec rm {} \+
-	@rm -f se-test $(TEST_ARTIFACTS)
+	@rm -f bin/{se-test,clang-instrument} $(TEST_ARTIFACTS)

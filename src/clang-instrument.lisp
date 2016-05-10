@@ -88,9 +88,9 @@
 
 (setf *note-level* 1)
 
-(defun main (args)
+(defun clang-instrument (args)
   "Interface to the command line instrumentation tool."
-  (in-package :clang-instrument)
+  (in-package :se)
   (let ((self (pop args))
         (original (make-instance 'clang
                     :compiler (or (getenv "CC") "clang")

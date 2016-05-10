@@ -38,7 +38,6 @@
 # Binaries
 soft-ev
 lisp-runner
-se-test
 
 # Core dumps, store files, experimental cruft
 scratch.lisp
