@@ -989,44 +989,45 @@ Otherwise return the whole FULL-GENOME"
              (cons (reverse new-acc) blocks))))))
 
 (defun create-sequence-snippet (scopes &optional replacements)
-  (let ((funcs  (make-hash-table :test 'equal))
-        (macros (make-hash-table :test 'equal))
-        (types  (make-hash-table :test 'equal))
-        (vars   (make-hash-table :test 'equal))
-        (decls  (make-hash-table :test 'equal))
-        (stmts  '())
-        (source (format nil "~{~a~^~%}~%~}"
-                        (mapcar [#'unlines {mapcar #'process-full-stmt-text}]
-                                scopes))))
-    (loop :for scope :in scopes :as scope-depth :from 0 :do
-       (loop :for stmt :in scope :do
-          (loop :for decl :in (aget :declares stmt)
-             :do (setf (gethash decl decls) t))
-          (setf stmts (cons (aget :counter stmt) stmts))
-          (list->ht (aget :types         stmt) types)
-          (list->ht (aget :macros        stmt) macros)
-          (list->ht (aget :unbound-funs stmt)  funcs :key #'car :value #'cdr)
-          (loop :for var-def :in (aget :unbound-vals stmt)
-             :do (let* ((var (first var-def))
-                        (already-seen (gethash var vars nil)))
-                   (when (or (not already-seen)
-                             (< already-seen scope-depth))
-                     (setf (gethash var vars) scope-depth))))))
-
-    (let ((declared (mapcar {format nil "(|~a|)"} (hash-table-keys decls))))
-      (alist :src-text
-             (apply-replacements
-              (append replacements
-                      (mapcar (lambda (decl) (cons decl (peel-bananas decl)))
-                              declared))
-              source)
-             :unbound-vals
-             (remove-if [{find _ declared :test #'equal} {car}]
-                        (ht->list vars))
-             :unbound-funs (ht->list funcs :merge-fn #'cons)
-             :types  (ht->list types)
-             :macros (ht->list macros)
-             :stmts stmts))))
+  (let (decls stmts types macros funcs vars)
+    (iter (for scope in scopes) (as scope-depth from 0)
+          (iter (for stmt in scope)
+                (pushnew (aget :counter stmt) stmts)
+                (dolist (decl (aget :declares stmt))
+                  (pushnew decl decls :test #'string=))
+                (dolist (type (aget :types stmt))
+                  (pushnew type types :test #'string=))
+                (dolist (macro (aget :macros stmt))
+                  (pushnew macro macros :test #'string=))
+                (dolist (func (aget :unbound-funs stmt))
+                  (pushnew func funcs :test #'string=))
+                (dolist (var-def (aget :unbound-vals stmt))
+                  (let* ((v (first var-def))
+                         (already-seen (aget v vars)))
+                    (when (or (not already-seen)
+                              (< already-seen scope-depth))
+                      (setf (aget v vars :test #'string=) scope-depth)))))
+          (finally
+           (return
+             (let ((declared (mapcar {format nil "(|~a|)"} decls)))
+               (alist :src-text
+                      (apply-replacements
+                       (append replacements
+                               (mapcar (lambda (d) (cons d (peel-bananas d)))
+                                       declared))
+                       (format nil "~{~a~^~%}~%~}"
+                               (mapcar
+                                [#'unlines {mapcar #'process-full-stmt-text}]
+                                scopes)))
+                      :unbound-vals ; TODO: Switch :unbound-vals to alist.
+                      (mapcar
+                       (lambda-bind ((a . b)) (list a b))
+                       (remove-if [{find _ declared :test #'string=} #'car]
+                                  vars))
+                      :unbound-funs funcs
+                      :types types
+                      :macros macros
+                      :stmts stmts)))))))
 
 (defmethod update-mito-from-snippet ((clang clang) snippet type-database)
   (mapc {add-include (mitochondria clang)} (aget :INCLUDES snippet))
