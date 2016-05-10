@@ -8,6 +8,7 @@
    :curry-compose-reader-macros
    :cl-arrows
    :iterate
+   :split-sequence
    :stefil
    :cl-ppcre
    :software-evolution
