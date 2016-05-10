@@ -1640,34 +1640,63 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Instrumentation tests
+(defun count-full-under-compound (obj)
+  (count-if
+   [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}]
+   (remove-if-not {aget :full-stmt} (asts obj))))
+
+(defun read-trace (string)
+  (let ((start 0))
+    (iter (for (values piece end) =
+               (read-from-string string nil :eof :start start))
+          (until (eql piece :eof))
+          (setf start end)
+          (collect piece))))
+
 (deftest instrumentation-insertion-test ()
-  (flet ((count-full-under-compound (obj)
-           (count-if
-            [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}]
-            (remove-if-not {aget :full-stmt} (asts obj))))
-         (read-trace (string)
-           (let ((start 0))
-             (iter (for (values piece end) =
-                        (read-from-string string nil :eof :start start))
-                   (until (eql piece :eof))
-                   (setf start end)
-                   (collect piece)))))
-    (with-fixture gcd-clang
-      (let ((instrumented (instrument (copy *gcd*))))
-        ;; Do we insert the right number of printf statements?
-        (is (= (* 2 (count-full-under-compound *gcd*))
-               (count-full-under-compound instrumented)))
-        ;; Instrumented compiles and runs.
-        (with-temp-file (bin)
-          (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-            (declare (ignorable out))
+  (with-fixture gcd-clang
+    (let ((instrumented (instrument (copy *gcd*))))
+      ;; Do we insert the right number of printf statements?
+      (is (= (* 2 (count-full-under-compound *gcd*))
+             (count-full-under-compound instrumented)))
+      ;; Instrumented compiles and runs.
+      (with-temp-file (bin)
+        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
+          (declare (ignorable out))
+          (is (zerop errno))
+          (is (probe-file bin))
+          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
             (is (zerop errno))
-            (is (probe-file bin))
-            (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-              (is (zerop errno))
-              (let ((trace (read-trace stderr)))
-                (is (listp trace))
-                (is (= (length trace)
-                       (length (split-sequence
-                                   #\Newline stderr
-                                   :remove-empty-subseqs t))))))))))))
+            (let ((trace (read-trace stderr)))
+              (is (listp trace))
+              (is (= (length trace)
+                     (length (split-sequence
+                                 #\Newline stderr
+                                 :remove-empty-subseqs t)))))))))))
+
+(deftest instrumentation-insertion-w-points-test ()
+  (with-fixture gcd-clang
+    (let ((instrumented
+           (instrument (copy *gcd*)
+                       :points
+                       (iter (for i below (size *gcd*))
+                             (if (evenp i)
+                                 (collect (list i ":even"))
+                                 (collect (list i ":odd")))))))
+      ;; Do we insert the right number of printf statements?
+      (is (= (* 3 (count-full-under-compound *gcd*))
+             (count-full-under-compound instrumented)))
+      ;; Instrumented compiles and runs.
+      (with-temp-file (bin)
+        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
+          (declare (ignorable out))
+          (is (zerop errno))
+          (is (probe-file bin))
+          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (is (zerop errno))
+            (let ((trace (read-trace stderr)))
+              (is (listp trace))
+              (is (= (length trace)
+                     (length (split-sequence
+                                 #\Newline stderr
+                                 :remove-empty-subseqs t)))))))))))

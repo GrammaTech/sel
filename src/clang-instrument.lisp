@@ -5,30 +5,40 @@
 ;;;; Instrumentation
 (defmethod instrument ((obj clang) &key points trace-file)
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr")))
-    (-<>> (asts obj)
-          (remove-if-not {aget :full-stmt})
-          ;; Remove statements if they are *not* in a compound statement.
-          (remove-if-not
-           [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}])
-          (mapcar {aget :counter})
-          (sort <> #'>)
-          (reduce
-           (lambda (variant counter)
-             (note 2 "Instrumenting AST#~d." counter)
-             (let* ((fmt "fputs(\"((:COUNTER . ~d))\\n\", ~a);~%~a")
-                    (text (peel-bananas
-                           (aget :src-text (get-ast variant counter))))
-                    (op
-                     `(:set
-                       (:stmt1 . ,counter)
-                       ,(cons :value1
-                              (format nil fmt counter log-var text)))))
-               (setf (genome variant) (clang-mutate variant op)))
-             (update-asts variant)
-             variant)
-           <> :initial-value obj)
-          (update-asts)
-          (setf obj))
+    (flet ((instrument-ast (original-text trace-strings)
+             ;; Given an AST and list of TRACE-STRINGS, return
+             ;; instrumented source.
+             (format nil "~{~a~}~a~%"
+                     (mapcar
+                      {format nil
+                              (format nil "fputs(\"~~a\\n\", ~a);~%" log-var)}
+                      trace-strings)
+                     original-text)))
+      (-<>> (asts obj)
+            (remove-if-not {aget :full-stmt})
+            ;; Remove statements if they are *not* in a compound statement.
+            (remove-if-not
+             [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}])
+            (mapcar {aget :counter})
+            (sort <> #'>)
+            (reduce
+             (lambda (variant counter)
+               (note 2 "Instrumenting AST#~d." counter)
+               (setf (genome variant)
+                     (clang-mutate variant
+                       `(:set
+                         (:stmt1 . ,counter)
+                         ,(cons :value1
+                                (instrument-ast
+                                 (peel-bananas
+                                  (aget :src-text (get-ast obj counter)))
+                                 (cons (format nil "((:COUNTER . ~d))" counter)
+                                       (aget counter points)))))))
+               (update-asts variant)
+               variant)
+             <> :initial-value obj)
+            (update-asts)
+            (setf obj)))
     (when trace-file
       (setf obj (log-to-filename obj log-var trace-file)))
     (clang-format obj)
