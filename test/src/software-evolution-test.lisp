@@ -51,34 +51,35 @@
   "Example range software object.")
 
 (handler-bind ((error (lambda (e) (declare (ignorable e)) (invoke-restart 'ignore))))
-  (define-constant +etc-dir+
-      (append (butlast (pathname-directory
-                        #.(or *compile-file-truename*
-                              *load-truename*
-                              *default-pathname-defaults*)))
-              (list "etc"))
-    :test #'equalp
-    :documentation "Path to directory holding testing artifacts.")
+  (progn
+    (define-constant +etc-dir+
+        (append (butlast (pathname-directory
+                          #.(or *compile-file-truename*
+                                *load-truename*
+                                *default-pathname-defaults*)))
+                (list "etc"))
+      :test #'equalp
+      :documentation "Path to directory holding testing artifacts.")
 
-  (define-constant +gcd-dir+ (append +etc-dir+ (list "gcd"))
-    :test #'equalp
-    :documentation "Path to directory holding gcd.")
+    (define-constant +gcd-dir+ (append +etc-dir+ (list "gcd"))
+      :test #'equalp
+      :documentation "Path to directory holding gcd.")
 
-  (define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
-    :test #'equalp
-    :documentation "Location of the hello world example directory")
+    (define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
+      :test #'equalp
+      :documentation "Location of the hello world example directory")
 
-  (define-constant +clang-format-dir+ (append +etc-dir+ (list "clang-format"))
-    :test #'equalp
-    :documentation "Location of the clang-format example directory")
+    (define-constant +clang-format-dir+ (append +etc-dir+ (list "clang-format"))
+      :test #'equalp
+      :documentation "Location of the clang-format example directory")
 
-  (define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
-    :test #'equalp
-    :documentation "Location of the huf example directory")
+    (define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
+      :test #'equalp
+      :documentation "Location of the huf example directory")
 
-  (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
-    :test #'equalp
-    :documentation "Location of the scopes example directory"))
+    (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
+      :test #'equalp
+      :documentation "Location of the scopes example directory")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
