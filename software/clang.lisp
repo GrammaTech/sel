@@ -688,12 +688,10 @@ Otherwise return the whole FULL-GENOME"
        (format nil "list ~a" tu))
       (:json
        (let ((aux (if (aget :aux (cdr op))
-                      (format nil "aux=~a"
-                              (intercalate "," (aget :aux (cdr op))))
+                      (format nil "aux=~{~a~^,~}" (aget :aux (cdr op)))
                       ""))
              (fields (if (aget :fields (cdr op))
-                         (format nil "fields=~a"
-                                 (intercalate "," (aget :fields (cdr op))))
+                         (format nil "fields=~{~a~^,~}" (aget :fields (cdr op)))
                          "")))
          (if (aget :stmt1 (cdr op))
              (format nil "ast ~a ~a" (ast :stmt1) fields)
@@ -997,10 +995,9 @@ Otherwise return the whole FULL-GENOME"
         (vars   (make-hash-table :test 'equal))
         (decls  (make-hash-table :test 'equal))
         (stmts  '())
-        (source (intercalate
-                 (format nil "~%}~%")
-                 (mapcar [#'unlines {mapcar #'process-full-stmt-text}]
-                         scopes))))
+        (source (format nil "~{~a~^~%}~%~}"
+                        (mapcar [#'unlines {mapcar #'process-full-stmt-text}]
+                                scopes))))
     (loop :for scope :in scopes :as scope-depth :from 0 :do
        (loop :for stmt :in scope :do
           (loop :for decl :in (aget :declares stmt)

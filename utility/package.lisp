@@ -90,7 +90,6 @@
    :contains
    :intersects
    :levenshtein-distance
-   :intercalate
    :unlines
    :keep-lines-after-matching
    :resolve-function-headers

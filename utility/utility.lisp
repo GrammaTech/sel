@@ -804,16 +804,8 @@ that function may be declared.")
                   (headers-in-manpage 2 func)))
         headers)))
 
-(defun intercalate (between strings)
-  (cond
-    ((null strings) "")
-    ((null (cdr strings)) (car strings))
-    (t (concatenate 'string
-                    (car strings) between
-                    (intercalate between (cdr strings))))))
-
 (defun unlines (lines)
-  (intercalate (format nil "~a" #\Newline) lines))
+  (format nil "~{~a~^~%~}" lines))
 
 ;; Just a little sed-ish thing: find the first line that
 ;; contains the substring needle, and return the lines
