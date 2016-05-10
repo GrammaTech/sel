@@ -114,5 +114,11 @@
 (defmethod (setf lines) (new (ast ast))
   (setf (genome ast) (format nil "~{~a~^~%~}" new)))
 
-(defgeneric instrument (software &optional trace-file)
-  (:documentation "Instrument SOFTWARE source code for trace generation."))
+(defgeneric instrument (software &key points trace-file)
+  (:documentation
+   "Instrument SOFTWARE to produce runtime execution information.
+Keyword argument POINTS may hold an alist keyed by program points and
+valued with strings to print when that point is executed.  Keyword
+argument TRACE-FILE should hold a string file path to which the trace
+will be written.  If TRACE-FILE is not supplied the trace will be
+written to STDERR."))

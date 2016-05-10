@@ -866,7 +866,11 @@ Otherwise return the whole FULL-GENOME"
                          possible-parent-ast
                          (get-ast clang (aget :parent-counter ast))))))
 
-(defmethod get-parent-asts((clang clang) ast)
+(defmethod get-parent-ast ((obj clang) ast)
+  (let ((parent-counter (aget :parent-counter ast)))
+    (and (not (zerop parent-counter)) (get-ast obj parent-counter))))
+
+(defmethod get-parent-asts ((clang clang) ast)
   (cond ((= (aget :parent-counter ast) 0) (list ast))
          (t  (append (list ast)
                      (get-parent-asts

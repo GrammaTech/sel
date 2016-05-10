@@ -3,18 +3,13 @@
 
 
 ;;;; Instrumentation
-(defmethod instrument ((obj clang) &optional trace-file)
+(defmethod instrument ((obj clang) &key points trace-file)
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr")))
     (-<>> (asts obj)
           (remove-if-not {aget :full-stmt})
           ;; Remove statements if they are *not* in a compound statement.
           (remove-if-not
-           (lambda (ast)
-             (let ((parent-counter (aget :parent-counter ast)))
-               (and (not (zerop parent-counter))
-                    (string=
-                     "CompoundStmt"
-                     (aget :ast-class (get-ast obj parent-counter)))))))
+           [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}])
           (mapcar {aget :counter})
           (sort <> #'>)
           (reduce

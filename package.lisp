@@ -117,6 +117,7 @@
    :asts-intersecting-source-range
    :ast-to-source-range
    :get-ast
+   :get-parent-ast
    :get-parent-asts
    :parent-ast-p
    :get-parent-full-stmt
