@@ -1656,14 +1656,4 @@ Useful for printing or returning differences in the REPL."
       (let ((instrumented (instrument (copy *gcd*))))
         ;; Do we insert the right number of printf statements?
         (is (= (* 2 (count-full-under-compound *gcd*))
-               (count-full-under-compound instrumented)))
-        ;; Instrumented compiles and runs.
-        (with-temp-file (bin)
-          (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-            (declare (ignorable out))
-            (is (zerop errno))
-            (is (probe-file bin))
-            (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-              (is (zerop errno))
-              
-              )))))))
+               (count-full-under-compound instrumented)))))))
