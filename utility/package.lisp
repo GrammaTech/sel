@@ -94,7 +94,6 @@
    :keep-lines-after-matching
    :resolve-function-headers
    ;; hash tables
-   :ht->list
    :list->ht
    :merge-hash-tables
    :ht-intersect

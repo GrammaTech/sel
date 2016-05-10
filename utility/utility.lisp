@@ -839,13 +839,6 @@ that function may be declared.")
                 (setf (gethash x (or ht new-ht)) t)))))
     (or ht new-ht)))
 
-(defun ht->list (ht &key merge-fn)
-  (loop :for k :being :the :hash-keys :of ht
-     :using (hash-value v)
-     :collecting (if (eq v t) k (if merge-fn
-                                    (funcall merge-fn k v)
-                                    (list k v)))))
-
 (defun merge-hash-tables (to-ht from-ht &optional with)
   (labels ((merge-fn (x y) (if with (funcall with  x y) x)))
     (loop :for key :being :the :hash-keys :of from-ht

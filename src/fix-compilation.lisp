@@ -261,10 +261,11 @@ expression match.")
                    :test #'string=)
        :do (setf (gethash (enclosing-full-stmt obj (aget :counter ast))
                           to-delete) t))
-    (loop :for ast :in (sort (remove-if-not (lambda (x) x)
-                                            (ht->list to-delete)) #'>)
-       :when (not (= 0 ast))
-       :do (apply-mutation obj `(clang-cut (:stmt1 . ,ast))))))
+    (-<>> (hash-table-keys to-delete)
+          (remove nil)
+          (sort <> #'>)
+          (remove-if #'zerop)
+          mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}])))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"
