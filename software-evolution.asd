@@ -29,16 +29,6 @@ techniques."
             :components
             ((:file "package")
              (:file "software-evolution" :depends-on ("package"))))
-   (:module ec
-            :depends-on (base)
-            :pathname "ec"
-            :components
-            ((:file "lexicase")
-             (:file "fodder-database")
-             (:file "json-fodder-database" :depends-on ("fodder-database"))
-             (:file "mongo-fodder-database" :depends-on ("fodder-database"))
-             (:file "mongo-middle-fodder-database"
-                    :depends-on ("fodder-database"))))
    (:module software
             :depends-on (base)
             :pathname "software"
@@ -56,5 +46,15 @@ techniques."
              (:file "clang" :depends-on ("ast" "clang-mito"))
              (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "clang-mito" :depends-on ("ast"))
-             (:file "fix-compilation" :depends-on ("clang" "clang-w-fodder"))
-             (:file "llvm" :depends-on ("ast"))))))
+             (:file "llvm" :depends-on ("ast"))))
+   (:module src
+            :depends-on (base software)
+            :pathname "src"
+            :components
+            ((:file "lexicase")
+             (:file "fix-compilation")
+             (:file "fodder-database")
+             (:file "json-fodder-database" :depends-on ("fodder-database"))
+             (:file "mongo-fodder-database" :depends-on ("fodder-database"))
+             (:file "mongo-middle-fodder-database"
+                    :depends-on ("fodder-database"))))))
