@@ -117,7 +117,17 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [24/27]
+* Tasks [24/28]
+** TODO remove unnecessary functions
+- list->ht
+- ht-intersect
+- ht-copy
+- ht-fold
+- ht-take-rand
+
+These utility functions all duplicate functionality already provided
+by standard libraries.
+
 ** DONE organize files, software/ is only for software
    CLOSED: [2016-05-06 Fri 09:05]
 ** DONE define =se= as the usable package prefix
