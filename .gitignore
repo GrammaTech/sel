@@ -34,6 +34,10 @@
 # Backup files
 *~
 
+# Binaries
+soft-ev
+lisp-runner
+
 # Core dumps, store files, experimental cruft
 scratch.lisp
 seed

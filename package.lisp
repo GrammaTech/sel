@@ -279,6 +279,7 @@
    :clang-replace-full
    :clang-replace-full-same
    :clang-nop
+   :clang-instrument
    :cut-decl
    :swap-decls
    :rename-variable
