@@ -56,14 +56,14 @@ CLANG-W-FODDER in a method-dependent fashion."))
 
 (defmethod mutation-types-clang ((clang-w-fodder clang-w-fodder))
   (let ((existing-mutation-types (call-next-method)))
-    (append (loop for mutation-type in *fodder-mutation-types*
-              collecting (cons mutation-type
-                               (/ *fodder-selection-bias*
-                                  (length *fodder-mutation-types*))))
-            (loop for mutation-type in existing-mutation-types
-              collecting (cons (car mutation-type)
-                               (* (- 1 *fodder-selection-bias*)
-                                  (cdr mutation-type)))))))
+    (append (loop :for mutation-type :in *fodder-mutation-types*
+               :collecting (cons mutation-type
+                                 (/ *fodder-selection-bias*
+                                    (length *fodder-mutation-types*))))
+            (loop :for mutation-type :in existing-mutation-types
+               :collecting (cons (car mutation-type)
+                                 (* (- 1 *fodder-selection-bias*)
+                                    (cdr mutation-type)))))))
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet"

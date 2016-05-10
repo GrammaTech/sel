@@ -44,7 +44,7 @@
 
 (defun file-to-simple-genome-list (filespec)
   (with-open-file (in filespec)
-    (loop :for line = (read-line in nil) :while line
+    (loop :for line := (read-line in nil) :while line
        :collect (list (cons :code line)))))
 
 (defmethod from-file ((simple simple) path)

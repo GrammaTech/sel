@@ -5,6 +5,8 @@
   :depends-on (alexandria
                metabang-bind
                curry-compose-reader-macros
+               cl-arrows
+               iterate
                split-sequence
                trivial-shell
                cl-ppcre

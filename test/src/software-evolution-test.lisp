@@ -124,7 +124,7 @@
 
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
-                         :genome (coerce (loop for i from 0 to 9 collect i)
+                         :genome (coerce (loop :for i :from 0 :to 9 :collect i)
                                          'vector))))
   (:teardown (setf *soft* nil)))
 
@@ -235,8 +235,8 @@
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
                                 collect (make-instance 'soft
-                                          :genome (loop for j from 0 to i
-                                                     collect j)
+                                          :genome (loop :for j :from 0 :to i
+                                                     :collect j)
                                           :fitness i))
                 *fitness-evals* 0
                 *mutation-stats* (make-hash-table)
@@ -452,9 +452,9 @@
 ;; useful because of nondeterministic fields like :src-file.
 (defun different-asts (this that)
   (or (not (equal (length this) (length that)))
-      (not (loop for x in this for y in that
-              always (equal (aget :src-text x)
-                            (aget :src-text y))))))
+      (not (every (lambda (x y)
+                    (string= (aget :src-text x) (aget :src-text y)))
+                  this that))))
 
 (deftest can-apply-mutation-w-value1 ()
   (with-fixture hello-world-clang
@@ -1580,22 +1580,22 @@ Useful for printing or returning differences in the REPL."
   (with-fixture scopes-clang
     (let ((variant (copy *scopes*)))
       (apply-mutation
-       variant
-       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a"))))
+          variant
+        `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
-       variant
-       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int d"))))
+          variant
+        `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int d"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
-       variant
-       `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int f, g"))))
+          variant
+        `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int f, g"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
@@ -1643,9 +1643,26 @@ Useful for printing or returning differences in the REPL."
   (flet ((count-full-under-compound (obj)
            (count-if
             [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}]
-            (remove-if-not {aget :full-stmt} (asts obj)))))
+            (remove-if-not {aget :full-stmt} (asts obj))))
+         (read-trace (string)
+           (let ((start 0))
+             (iter (for (values piece end) =
+                        (read-from-string string nil :eof :start start))
+                   (until (eql piece :eof))
+                   (setf start end)
+                   (collect piece)))))
     (with-fixture gcd-clang
       (let ((instrumented (instrument (copy *gcd*))))
         ;; Do we insert the right number of printf statements?
         (is (= (* 2 (count-full-under-compound *gcd*))
-               (count-full-under-compound instrumented)))))))
+               (count-full-under-compound instrumented)))
+        ;; Instrumented compiles and runs.
+        (with-temp-file (bin)
+          (multiple-value-bind (out errno) (phenome instrumented :bin bin)
+            (declare (ignorable out))
+            (is (zerop errno))
+            (is (probe-file bin))
+            (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+              (is (zerop errno))
+              
+              )))))))

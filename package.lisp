@@ -7,6 +7,7 @@
    :metabang-bind
    :curry-compose-reader-macros
    :cl-arrows
+   :iterate
    :split-sequence
    :cl-ppcre
    :cl-mongo
@@ -17,6 +18,7 @@
    :memoize
    :software-evolution-utility)
   (:shadow :elf :size :type :magic-number :diff :insert)
+  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:export
    ;; software objects
    :software

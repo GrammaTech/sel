@@ -107,9 +107,9 @@
 (defmethod find-types ((db json-database) &key hash)
   (if hash
       (list (gethash hash (type-database-ht db)))
-      (loop for k being the hash-keys of (type-database-ht db)
-         using (hash-value v)
-         collecting v)))
+      (loop :for k :being :the :hash-keys :of (type-database-ht db)
+         :using (hash-value v)
+         :collecting v)))
 
 (defun se-json-identifier-name-to-key (json-identifier)
   (make-keyword (string-upcase (regex-replace-all "--" json-identifier "-"))))
