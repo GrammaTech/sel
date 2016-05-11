@@ -4,7 +4,13 @@
 
 ;;;; Instrumentation
 (defmethod instrument ((obj clang) &key points trace-file)
-  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr")))
+  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
+        ;; Promote every counter key in POINTS to the enclosing full
+        ;; statement with a CompoundStmt as a parent.  Otherwise they
+        ;; will not appear in the output.
+        (points (mapcar (lambda-bind ((counter . value))
+                          (cons (enclosing-full-stmt obj counter) value))
+                        points)))
     (flet ((instrument-ast (original-text trace-strings)
              ;; Given an AST and list of TRACE-STRINGS, return
              ;; instrumented source.
@@ -34,11 +40,16 @@
                                   (aget :src-text (get-ast obj counter)))
                                  (cons (format nil "(:COUNTER . ~d)" counter)
                                        (aget counter points)))))))
+               (setf (aget counter points) nil)
                (update-asts variant)
                variant)
              <> :initial-value obj)
             (update-asts)
             (setf obj)))
+    ;; Warn about any uninserted points.
+    (mapc (lambda (point)
+            (warn "No insertion point found for pointer ~a." point))
+          (remove-if-not #'cdr points))
     (when trace-file
       (setf obj (log-to-filename obj log-var trace-file)))
     (clang-format obj)
