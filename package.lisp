@@ -123,6 +123,10 @@
    :get-parent-asts
    :parent-ast-p
    :get-parent-full-stmt
+   :wrap-ast
+   :wrap-children
+   :can-be-made-full-p
+   :get-make-parent-full-stmt
    :get-immediate-children
    :extend-to-enclosing
    :get-ast-info

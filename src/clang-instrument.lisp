@@ -9,7 +9,7 @@
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
         (points (mapcar (lambda-bind ((counter . value))
-                          (cons (enclosing-full-stmt obj counter) value))
+                          (cons (get-make-parent-full-stmt obj counter) value))
                         points)))
     (flet ((instrument-ast (original-text trace-strings)
              ;; Given an AST and list of TRACE-STRINGS, return
@@ -20,26 +20,42 @@
                               (format nil "fputs(\"~~a\\n\", ~a);~%" log-var)}
                       trace-strings)
                      original-text)))
+      ;; TODO: This gets hairy because wrapping statements in {}
+      ;;       affects the counters of prior statements.  E.g.,
+      ;;
+      #+(or )
       (-<>> (asts obj)
-            (remove-if-not {aget :full-stmt})
-            ;; Remove statements if they are *not* in a compound statement.
-            (remove-if-not
-             [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}])
+            (remove-if-not {can-be-made-full-p obj})
+            (mapcar {aget :counter})
+            (sort <> #'>)
+            (mapcar (lambda (counter)
+                      (genome-string obj t)
+                      (format t "-----------~d---------~%" counter)
+                      (get-make-parent-full-stmt obj counter))))
+      ;;
+      ;;       The solution here is probably to update the
+      ;;       `get-make-parent-full-stmt' method so that it only
+      ;;       affects the original statement (not e.g., the other
+      ;;       branches of an enclosing if).  That might be
+      ;;       sufficient.
+      (-<>> (asts obj)
+            (remove-if-not {can-be-made-full-p obj})
             (mapcar {aget :counter})
             (sort <> #'>)
             (reduce
              (lambda (variant counter)
                (note 2 "Instrumenting AST#~d." counter)
-               (setf (genome variant)
-                     (clang-mutate variant
-                       `(:set
-                         (:stmt1 . ,counter)
-                         ,(cons :value1
-                                (instrument-ast
-                                 (peel-bananas
-                                  (aget :src-text (get-ast obj counter)))
-                                 (cons (format nil "(:COUNTER . ~d)" counter)
-                                       (aget counter points)))))))
+               (let ((pt (aget :counter
+                               (get-make-parent-full-stmt variant counter))))
+                 (setf (genome variant)
+                       (clang-mutate variant
+                         `(:set (:stmt1 . ,pt)
+                                ,(cons :value1
+                                       (instrument-ast
+                                        (peel-bananas
+                                         (aget :src-text (get-ast variant pt)))
+                                        (cons (format nil "(:C . ~d)" pt)
+                                              (aget pt points))))))))
                (setf (aget counter points) nil)
                (update-asts variant)
                variant)
