@@ -265,7 +265,7 @@ expression match.")
           (remove nil)
           (sort <> #'>)
           (remove-if #'zerop)
-          mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}])))
+          (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}]))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"
