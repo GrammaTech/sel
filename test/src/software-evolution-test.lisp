@@ -1641,11 +1641,13 @@ Useful for printing or returning differences in the REPL."
 
 ;;; Instrumentation tests
 (defun count-full-under-compound (obj)
+  "Return a count of full statements parented by compound statements"
   (count-if
    [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}]
    (remove-if-not {aget :full-stmt} (asts obj))))
 
 (defun read-trace (string)
+  "Read a trace into a lisp objects."
   (let ((start 0))
     (iter (for (values piece end) =
                (read-from-string string nil :eof :start start))
@@ -1700,3 +1702,18 @@ Useful for printing or returning differences in the REPL."
                      (length (split-sequence
                                  #\Newline stderr
                                  :remove-empty-subseqs t)))))))))))
+
+(deftest instrumentation-insertion-w-trace-file-test ()
+  (with-fixture gcd-clang
+    (with-temp-file (trace)
+      (with-temp-file (bin)
+        (let ((instrumented
+               (instrument (copy *gcd*) :trace-file trace)))
+          (is (scan (quote-meta-chars trace) (genome-string instrumented)))
+          (multiple-value-bind (out errno) (phenome instrumented :bin bin)
+            (declare (ignorable out))
+            (is (zerop errno))
+            (is (probe-file bin))
+            (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+              (is (zerop errno))
+              (is (probe-file trace)))))))))
