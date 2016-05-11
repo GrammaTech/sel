@@ -186,6 +186,14 @@
   (:teardown
    (setf *hello-world* nil)))
 
+(defixture gcd-wo-curlies-clang
+  (:setup
+   (setf *gcd*
+         (from-file (make-instance 'clang :compiler "clang-3.7")
+                    (gcd-dir "gcd-wo-curlies.c"))))
+  (:teardown
+   (setf *hello-world* nil)))
+
 (defixture hello-world-clang
   (:setup
     (setf *hello-world*
@@ -523,6 +531,55 @@
     (let* ((variant (crossover (copy *hello-world*) (copy *hello-world*))))
       (is (string/= (genome variant)
                     "")))))
+
+(deftest able-to-wrap-statements-in-blocks ()
+  (with-fixture gcd-wo-curlies-clang
+    (let ((var (copy *gcd*))
+          (if-counter (stmt-with-text *gcd* "if (a > b) a = a - b;
+        else       b = b - a")))
+      ;; Setup, ensure everything is what we thing it should be.
+      (is (string= "BinaryOperator"     ; Guard
+                   (aget :ast-class (ast-with-text var "a > b"))))
+      (is (string= "BinaryOperator"     ; Then
+                   (aget :ast-class (ast-with-text var "a = a - b"))))
+      (is (string= "BinaryOperator"     ; Else
+                   (aget :ast-class (ast-with-text var "b = b - a"))))
+      ;; Wrap children and ensure changes are made.
+      (setf var (wrap-children var 56))
+      (is (string= "BinaryOperator"     ; Guard
+                   (aget :ast-class (ast-with-text var "a > b"))))
+      (is (string= "CompoundStmt"       ; Then
+                   (aget :ast-class (get-parent-ast var
+                                      (ast-with-text var "a = a - b")))))
+      (is (string= "CompoundStmt"       ; Then
+                   (aget :ast-class (get-parent-ast var
+                                      (ast-with-text var "b = b - a")))))
+      ;; Ensure gcd remains unchanged.
+      (is (string= "BinaryOperator"     ; Guard
+                   (aget :ast-class (ast-with-text *gcd* "a > b"))))
+      (is (string= "BinaryOperator"     ; Then
+                   (aget :ast-class (ast-with-text *gcd* "a = a - b"))))
+      (is (string= "BinaryOperator"     ; Else
+                   (aget :ast-class (ast-with-text *gcd* "b = b - a")))))))
+
+(deftest get-make-full-parent-works-when-making-new-parent-test ()
+  (with-fixture gcd-wo-curlies-clang
+    (let ((full-parent (get-make-parent-full-stmt
+                        *gcd* (ast-with-text *gcd* "a = a - b"))))
+      (is (aget :full-stmt full-parent))
+      (is (scan (quote-meta-chars "a = a - b")
+                (peel-bananas (aget :src-text full-parent)))))))
+
+(deftest get-make-full-parent-works-when-not-making-new-parent-test ()
+  (with-fixture gcd-clang
+    (let ((original-text (copy-seq (genome-string *gcd*)))
+          (full-parent (get-make-parent-full-stmt
+                        *gcd* (ast-with-text *gcd* "a = a - b"))))
+      (is (aget :full-stmt full-parent))
+      (is (scan (quote-meta-chars "a = a - b")
+                (peel-bananas (aget :src-text full-parent))))
+      (is (string= original-text (genome-string *gcd*))
+          "No change should be made to the original program text."))))
 
 
 ;;; Detailed clang mutation tests
@@ -1194,6 +1251,10 @@
                   (asts obj))))
     (aget :counter the-snippet)))
 
+(defun ast-with-text (obj text)
+  (when-let ((id (stmt-with-text obj text)))
+    (get-ast obj id)))
+
 (defun stmt-starting-with-text (obj text)
   (let ((the-snippet
          (find-if
@@ -1718,3 +1779,7 @@ Useful for printing or returning differences in the REPL."
             (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
               (is (zerop errno))
               (is (probe-file trace)))))))))
+
+(deftest instrumentation-handles-missing-curlies-test ()
+  (with-fixture gcd-wo-curlies-clang
+    ))

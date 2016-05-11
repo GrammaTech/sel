@@ -873,26 +873,113 @@ Otherwise return the whole FULL-GENOME"
                          possible-parent-ast
                          (get-ast clang (aget :parent-counter ast))))))
 
-(defmethod get-parent-ast ((obj clang) ast)
+(defmethod get-parent-ast ((obj clang) (ast number))
+  (get-parent-ast obj (get-ast obj ast)))
+
+(defmethod get-parent-ast ((obj clang) (ast list))
   (let ((parent-counter (aget :parent-counter ast)))
     (and (not (zerop parent-counter)) (get-ast obj parent-counter))))
 
-(defmethod get-parent-asts ((clang clang) ast)
+(defmethod get-parent-asts ((clang clang) (ast number))
+  (get-parent-asts clang (get-ast clang ast)))
+
+(defmethod get-parent-asts ((clang clang) (ast list))
   (cond ((= (aget :parent-counter ast) 0) (list ast))
-         (t  (append (list ast)
-                     (get-parent-asts
-                       clang
-                       (get-ast clang (aget :parent-counter ast)))))))
+        (t  (append (list ast)
+                    (get-parent-asts
+                     clang
+                     (get-ast clang (aget :parent-counter ast)))))))
 
-(defmethod get-immediate-children ((clang clang) ast)
-  (remove-if-not (lambda (child-ast) (= (aget :parent-counter child-ast)
-                                        (aget :counter ast)))
-                 (asts clang)))
+(defmethod get-immediate-children ((clang clang) (ast list))
+  (if (member :children *clang-json-required-fields*)
+      (aget :children ast)
+      (get-immediate-children clang (aget :counter ast))))
 
-(defmethod get-parent-full-stmt((clang clang) ast)
+(defmethod get-immediate-children ((clang clang) (ast number))
+  (if (member :children *clang-json-required-fields*)
+      (aget :children (get-ast clang ast))
+      (remove-if-not [{= ast} {aget :parent-counter}] (asts clang))))
+
+(defgeneric get-parent-full-stmt (software ast)
+  (:documentation
+   "Return the first ancestor of AST in SOFTWARE which is a full stmt.
+Returns nil if no full-stmt parent is found."))
+
+(defmethod get-parent-full-stmt ((clang clang) (ast number))
+  (get-parent-full-stmt clang (get-ast clang ast)))
+
+(defmethod get-parent-full-stmt ((clang clang) (ast list))
   (cond ((aget :full-stmt ast) ast)
-        (t (get-parent-full-stmt clang (get-ast clang
-                                                (aget :parent-counter ast))))))
+        (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
+
+(defgeneric wrap-ast (software ast)
+  (:documentation "Wrap AST in SOFTWARE in a block."))
+
+(defmethod wrap-ast ((obj clang) (ast number))
+  (wrap-ast obj (get-ast obj ast)))
+
+(defmethod wrap-ast ((obj clang) (ast list))
+  (setf (genome obj)
+        (clang-mutate obj
+          `(:set (:stmt1 . ,(aget :counter ast))
+                 (:value1 . ,(concatenate'string
+                              "{" (peel-bananas (aget :src-text ast)) ";}")))))
+  (update-asts obj)
+  obj)
+
+(defgeneric wrap-children (software ast)
+  (:documentation "Wrap children of AST in SOFTWARE in blocks."))
+
+(defmethod wrap-children ((obj clang) (ast number))
+  (wrap-children obj (get-ast obj ast)))
+
+(defmethod wrap-children ((obj clang) (ast list))
+  (-<>> (eswitch ((aget :ast-class ast) :test #'string=)
+          ("WhileStmt" (cdr (get-immediate-children obj ast)))
+          ("IfStmt"    (cdr (get-immediate-children obj ast))))
+        (sort <> #'> :key {aget :counter})
+        (mapc {wrap-ast obj}))
+  obj)
+
+(defgeneric can-be-made-full-p (software ast)
+  (:documentation "Check if AST can be made a full statement in SOFTWARE."))
+
+(defmethod can-be-made-full-p ((obj clang) (ast number))
+  (can-be-made-full-p obj (get-ast obj ast)))
+
+(defmethod can-be-made-full-p ((obj clang) (ast list))
+  (or (aget :full-stmt ast)
+      (when-let ((parent (get-parent-ast obj ast)))
+        ;; Is a child of a statement which might have a hanging body.
+        (and (member (aget :ast-class parent) '("WhileStmt" "IfStmt" "ForStmt")
+                     :test #'string=)
+             ;; Is not the first child, which will be the guard.
+             (not (= (aget :counter (first (get-immediate-children obj parent)))
+                     (aget :counter ast)))))))
+
+(defgeneric get-make-parent-full-stmt (software ast)
+  (:documentation
+   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
+If a statement is reached which is not itself full, but which could be
+made full wrap it in a block."))
+
+(defmethod get-make-parent-full-stmt ((clang clang) (ast number))
+  (get-make-parent-full-stmt clang (get-ast clang ast)))
+
+(defmethod get-make-parent-full-stmt ((obj clang) (ast list))
+  (cond
+    ((aget :full-stmt ast) ast)
+    ;; Wrap AST in a CompoundStmt to make it full.
+    ((can-be-made-full-p obj ast)
+     ;; Get this ASTs child index, to find after the change.
+     (let* ((parent (get-parent-ast obj ast))
+            (index (position-if [{= (aget :counter ast)} {aget :counter}]
+                                (get-immediate-children obj parent))))
+       (setf obj (wrap-children obj parent))
+       (first (get-immediate-children ; First child of newly created stmt.
+               obj (nth index (get-immediate-children ; Child of changed parent.
+                               obj (aget :counter parent)))))))
+    (ast (get-make-parent-full-stmt obj (get-parent-ast obj ast)))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
