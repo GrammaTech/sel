@@ -1679,12 +1679,13 @@ Useful for printing or returning differences in the REPL."
 (deftest instrumentation-insertion-w-points-test ()
   (with-fixture gcd-clang
     (let ((instrumented
-           (instrument (copy *gcd*)
-                       :points
-                       (iter (for i below (size *gcd*))
-                             (if (evenp i)
-                                 (collect (list i ":even"))
-                                 (collect (list i ":odd")))))))
+           (handler-bind ((warning #'muffle-warning))
+             (instrument (copy *gcd*)
+               :points
+               (iter (for i below (size *gcd*))
+                     (if (evenp i)
+                         (collect (list i ":even"))
+                         (collect (list i ":odd"))))))))
       ;; Do we insert the right number of printf statements?
       (is (= (* 3 (count-full-under-compound *gcd*))
              (count-full-under-compound instrumented)))
