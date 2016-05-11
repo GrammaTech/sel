@@ -919,11 +919,17 @@ Returns nil if no full-stmt parent is found."))
   (wrap-ast obj (get-ast obj ast)))
 
 (defmethod wrap-ast ((obj clang) (ast list))
-  (setf (genome obj)
-        (clang-mutate obj
-          `(:set (:stmt1 . ,(aget :counter ast))
-                 (:value1 . ,(concatenate'string
-                              "{" (peel-bananas (aget :src-text ast)) ";}")))))
+  (let ((new-text (concatenate 'string
+                    "{" (peel-bananas (aget :src-text ast)) ";}")))
+    (setf (genome obj)
+          ;; TODO: This is really gross and should be fixed on the
+          ;;       clang-mutate side of things.
+          (regex-replace (concatenate 'string
+                           (quote-meta-chars new-text) "\\s*;")
+                         (clang-mutate obj
+                           `(:set (:stmt1 . ,(aget :counter ast))
+                                  (:value1 . ,new-text)))
+                         new-text)))
   (update-asts obj)
   obj)
 
