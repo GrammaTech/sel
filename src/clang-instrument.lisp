@@ -72,7 +72,7 @@
 (defmethod log-to-filename ((obj clang) log-variable filename)
   (setf obj
         (insert-at-entry obj (format nil "~a = fopen(~s, \"a\");~%"
-                                     log-variable filename)))
+                                     log-variable (namestring filename))))
   ;; Insert the declaration at the very top of the file.
   (setf (genome obj)
         (concatenate 'string
