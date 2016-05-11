@@ -32,7 +32,7 @@
                                 (instrument-ast
                                  (peel-bananas
                                   (aget :src-text (get-ast obj counter)))
-                                 (cons (format nil "((:COUNTER . ~d))" counter)
+                                 (cons (format nil "(:COUNTER . ~d)" counter)
                                        (aget counter points)))))))
                (update-asts variant)
                variant)
