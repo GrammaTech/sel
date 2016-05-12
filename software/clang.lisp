@@ -964,11 +964,16 @@ Returns nil if no full-stmt parent is found."))
 (define-ast-number-or-nil-default-dispatch can-be-made-full-p)
 (defmethod can-be-made-full-p ((obj clang) (ast list))
   (or (and (aget :full-stmt ast)
-           ;; NOTE: Work around clang-mutate bug in which "ParmVar"s
-           ;; and the "CompoundStmt" holding a full function body are
-           ;; both considered to be full statements.
-           (not (string= "Function"
-                         (aget :ast-class (get-parent-ast obj ast)))))
+           (let ((parent-class (aget :ast-class (get-parent-ast obj ast))))
+             (and
+              ;; NOTE: Work around clang-mutate bug in which
+              ;; "ParmVar"s and the "CompoundStmt" holding a full
+              ;; function body are both considered to be full
+              ;; statements.
+              (not (string= "Function" parent-class))
+              ;; NOTE: Work around another clang-mutate bug in which
+              ;; the list length of a "Var" is considered a full stmt.
+              (not (string= "Var" parent-class)))))
       (unless (or (aget :guard-stmt ast)  ; Don't wrap guard statements.
                   (string= "CompoundStmt" ; Don't wrap CompoundStmts.
                            (aget :ast-class ast)))
