@@ -25,15 +25,43 @@
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
    (asts :initarg :asts :initform nil :copier :direct)
-   (ancestors :initarg :ancestors
-              :accessor ancestors
-              :initform nil
-              :copier :direct)
+   (ancestors :initarg :ancestors :accessor ancestors
+              :initform nil :copier :direct)
    (prototypes :initarg :functions :initform nil :copier :direct)
-   (mitochondria :initarg :mitochondria
-                 :accessor mitochondria
-                 :initform (make-instance 'clang-mito)
-                 :copier copy)))
+   (headers :initarg :headers :accessor headers :copier copy-seq
+            :initform nil :type (list string *)
+            :documentation "Names of included headers.")
+   (types :initarg :types :accessor types :copier copy-seq
+          :initform nil :type (list (cons number string) *)
+          :documentation "Association list of types keyed by HASH id.")
+   (macros :initarg :macros :accessor macros :copier copy-seq
+           :initform nil :type (list (cons string string) *)
+           :documentation "Association list of Names and values of macros.")
+   (globals :initarg :globals :accessor globals :copier copy-seq
+            :initform nil :type (list (cons string string) *)
+            :documentation "Association list of names and values of globals.")))
+
+
+;;; Handling header information (formerly "Michondria")
+(defgeneric add-header (software header)
+  (:documentation "Add HEADER to `headers' of SOFTWARE, unique."))
+(defmethod add-header ((obj clang) header)
+  (pushnew header (header obj) :test #'string=))
+
+(defgeneric add-type (software type)
+  (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
+(defmethod add-type ((obj clang) type)
+  (pushnew (cons (aget :hash type) type) (types obj) :key #'car))
+
+(defgeneric add-macro (software name body)
+  (:documentation "Add the macro if NAME is new to SOFTWARE."))
+(defmethod add-macro ((obj clang) (name string) (body string))
+  (pushnew (cons name body) (macros obj) :test #'string= :key #'car))
+
+(defgeneric add-include (software header)
+  (:documentation "Add an #include directive for a HEADER to SOFTWARE."))
+(defmethod add-include ((obj clang) header)
+  (pushnew header (headers obj) :test #'string=))
 
 
 ;;; Constants
@@ -324,9 +352,6 @@ restrictions. For use by targeter functions/execute picks."
     (incf *next-ancestry-id*)
     id))
 
-(defgeneric from-string (software string)
-  (:documentation "Initialize SOFTWARE with the contents of STRING"))
-
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
 
@@ -344,9 +369,6 @@ restrictions. For use by targeter functions/execute picks."
 
 (defgeneric get-ast (software id)
   (:documentation "Return the statement in SOFTWARE indicated by ID."))
-
-(defgeneric mitochondria (clang)
-  (:documentation "Additional 'foreign' genome required to build phenome."))
 
 (defgeneric mutation-types-clang (clang)
   (:documentation "Return a list of mutation types for the CLANG software
@@ -393,11 +415,26 @@ software object"))
             (coerce (remove-if-not {aget :body} json-db) 'vector))))
   obj)
 
-;; Create a clang software object from a given C file's string representation.
-;; The software object's genome will exactly the input
-;; file's contents, but the mitochondria will not reflect
-;; the preprocessor directives and user-defined types
-;; in the original program.
+(defgeneric from-file-exactly (software path)
+  (:documentation
+   "Initialize SOFTWARE from PATH as done by `from-string-exactly'."))
+
+(defmethod from-file-exactly ((obj clang) path)
+  (setf (ext obj) (pathname-type (pathname path)))
+  (from-string-exactly obj (file-to-string path)))
+
+(defmethod from-file ((obj clang) path)
+  (setf (ext obj) (pathname-type (pathname path)))
+  (from-string obj (file-to-string path))
+  (when *ancestor-logging*
+    (setf (aget :base (ancestors obj)) path)))
+
+(defgeneric from-string-exactly (software string)
+  (:documentation
+   "Create a clang software object from a given C file's string representation.
+The software object's genome will exactly the input file's contents,
+but no parsing will occur."))
+
 (defmethod from-string-exactly ((obj clang) string)
   (setf (genome-string obj) string)
   (when *ancestor-logging*
@@ -406,68 +443,51 @@ software object"))
                                        :id (get-fresh-ancestry-id)))))
   obj)
 
+(defgeneric ast-type-p (ast)
+  (:documentation "Check if AST is a type ast."))
+
+(defmethod ast-type-p ((ast list))
+  (and (assoc :hash ast)
+       (assoc :reqs ast)
+       (assoc :type ast)
+       (or (assoc :include ast)
+           (assoc :decl ast))))
+
 (defmethod from-string ((obj clang) string)
   ;; Load the raw string and generate a json database
   (from-string-exactly obj string)
-  (let* ((json-db (clang-mutate obj (list :json)))
-         (type-db-mito (make-instance 'clang-mito)))
+  (let ((json-db (clang-mutate obj (list :json))))
 
-    ;; Populate a type database with the types found.
-    (loop :for type :in json-db
-       :when (and (assoc :hash type)
-                  (assoc :reqs type)
-                  (assoc :type type)
-                  (or (assoc :include type)
-                      (assoc :decl type)))
-       :do (setf (gethash (aget :hash type) (types type-db-mito)) type))
+    ;; Program header.
+    (mapc {add-type obj } (remove-if-not #'ast-type-p json-db))    ; Types.
+    ;; TODO: This requires actual macro capture by clang-mutate, not
+    ;;       simply grabbing macros from ASTs.  For reasons why see
+    ;;       the `clang-headers-parsed-in-order' test.
+    (mapc [{mapc {apply #'add-macro obj}} {aget :macros}] json-db) ; Macros.
+    (mapc [{mapc {add-include obj}} {aget :includes}] json-db)     ; Includes.
 
-    ;; Set the clang-mito's types. This will also populate any
-    ;; #include directives needed for library typedefs.
-    (loop :for type :in json-db
-       :when (aget :hash type)
-       :when (and (assoc :hash type)
-                  (assoc :reqs type)
-                  (assoc :type type)
-                  (or (assoc :include type)
-                      (assoc :decl type)))
-       :do (add-type (mitochondria obj) (aget :hash type) type-db-mito))
-
-    ;; Add any macro definitions seen.
-    (loop :for snippet :in json-db
-       :do (loop :for macro :in (aget :macros snippet)
-              :do (add-macro (mitochondria obj) (first macro) (second macro))))
-
-    ;; Add any #includes needed.
-    (loop :for snippet :in json-db
-       :do (loop :for include :in (aget :includes snippet)
-              :do (add-include (mitochondria obj) include)))
-
-    ;; The clang-mito object is now fully initialized.
-    ;; Next, generate the bulk of the program text by joining all global
-    ;; declarations together in the same order they originally appeared.
+    ;; Program body.
+    ;;
+    ;; Generate the bulk of the program text by joining all global
+    ;; declarations (including functions) together in the same order
+    ;; they originally appeared.
     (setf (genome-string obj)
-          (unlines
-           (mapcar {aget :decl-text}
-                   (sort
-                    (remove-if-not {aget :decl-text} json-db)
-                    (lambda (x y)
-                      (or (< (first x) (first y))
-                          (and (= (first x) (first y))
-                               (< (second x) (second y)))))
-                    :key «{aget :begin-src-line} {aget :begin-src-col}»)))))
+          (mapconcat {aget :decl-text}
+                     (sort
+                      (remove-if-not {aget :decl-text} json-db)
+                      (lambda (x y)
+                        (or (< (first x) (first y))
+                            (and (= (first x) (first y))
+                                 (< (second x) (second y)))))
+                      :key «{aget :begin-src-line} {aget :begin-src-col}»)
+                     (string #\Newline))))
+
   (when *ancestor-logging*
     (setf (ancestors obj) (list (alist :base string
                                        :how 'from-string
                                        :id (get-fresh-ancestry-id)))))
+
   obj)
-
-(defmethod from-file-exactly ((obj clang) path)
-  (setf (ext obj) (pathname-type (pathname path)))
-  (from-string-exactly obj (file-to-string path)))
-
-(defmethod from-file ((obj clang) path)
-  (setf (ext obj) (pathname-type (pathname path)))
-  (from-string obj (file-to-string path)))
 
 (defmethod asts ((obj clang))
   (with-slots (asts) obj
@@ -702,7 +722,7 @@ already in scope, it will keep that name.")
                                          (remove-if-not #'consp (targets op)))))))
 
 (defvar *clang-genome-separator* "//===============^=================="
-  "String used to separate the mito and full portions of a clang genome.")
+  "String used to separate the headers and full portions of a clang genome.")
 
 (defun extract-clang-genome (full-genome)
   "If FULL-GENOME contains the magic separator return only the genome after.
@@ -1206,12 +1226,10 @@ statement was added to create a full statement."))
                       :macros macros
                       :stmts stmts)))))))
 
-(defmethod update-mito-from-snippet ((clang clang) snippet type-database)
-  (mapc {add-include (mitochondria clang)} (aget :INCLUDES snippet))
-  (mapc (lambda (type) (add-type (mitochondria clang) type type-database))
-        (aget :types snippet))
-  (mapc [{apply #'add-macro} {cons (mitochondria clang)}]
-        (aget :macros snippet))
+(defmethod update-headers-from-snippet ((clang clang) snippet type-database)
+  (mapc {add-include clang} (aget :includes snippet))
+  (mapc {add-type clang} (aget :types snippet))
+  (mapc {apply #'add-macro clang} (aget :macros snippet))
   snippet)
 
 (defun nonempty-lines (text)
@@ -1275,13 +1293,12 @@ free variables.")
 
 (defmethod bind-free-vars ((clang clang) snippet pt)
   (let* ((raw-code    (aget :src-text snippet))
-         (free-vars   (make-hash-table :test 'equal))
-         (free-funs   (make-hash-table :test 'equal))
          (respect-depth (aget :respect-depth snippet))
          (scope-vars (get-indexed-vars-in-scope
-                       clang
-                       pt
-                       (random-bool :bias *allow-bindings-to-globals-bias*))))
+                      clang
+                      pt
+                      (random-bool :bias *allow-bindings-to-globals-bias*)))
+         free-vars free-funs)
     (loop :for vars :in (aget :scope-removals snippet)
        :do (setf (gethash (first vars) scope-vars)
                  (remove-if {find _ (second vars) :test #'equal}
@@ -1289,8 +1306,10 @@ free variables.")
     (loop :for vars :in (aget :scope-additions snippet)
        :do (appendf (gethash (first vars) scope-vars) (second vars)))
 
-    (list->ht (aget :unbound-vals snippet) free-vars)
-    (list->ht (aget :unbound-funs snippet) free-funs :key #'car :value #'cdr)
+    (dolist (var (aget :unbound-vals snippet))
+      (pushnew var free-vars :test #'string=))
+    (dolist (fun (aget :unbound-funs snippet))
+      (pushnew fun free-funs :test #'string=))
     (let ((replacements
            (append
             (mapcar
@@ -1301,7 +1320,7 @@ free variables.")
                           (gethash (if respect-depth index 0) scope-vars))
                          (format nil "/* no bound vars in scope at depth ~a */"
                                  index))))
-             (hash-table-alist free-vars))
+             free-vars)
             (mapcar
              (lambda-bind ((fun . fun-info))
                (cons fun
@@ -1310,23 +1329,21 @@ free variables.")
                           :original-name (peel-bananas fun)
                           :arity (third fun-info))
                          "/* no functions? */")))
-             (hash-table-alist free-funs)))))
+             free-funs))))
       (values (apply-replacements replacements raw-code)
               replacements))))
 
 (defun rebind-uses-in-snippet (snippet renames-list)
-  (let ((renames (make-hash-table :test 'equal)))
-    (list->ht renames-list renames :key #'car :value #'cdr)
-    (add-semicolon-if-needed
-     (apply-replacements
-      (mapcar (lambda (it)
-                (let ((peeled (peel-bananas it)))
-                  (cons it (gethash peeled renames peeled))))
-              (mapcar #'car
-                      (append
-                       (aget :unbound-vals snippet)
-                       (aget :unbound-funs snippet))))
-      (aget :src-text snippet)))))
+  (add-semicolon-if-needed
+   (apply-replacements
+    (mapcar (lambda (it)
+              (let ((peeled (peel-bananas it)))
+                (cons it (aget peeled renames-list :test #'string=))))
+            (mapcar #'car
+                    (append
+                     (aget :unbound-vals snippet)
+                     (aget :unbound-funs snippet))))
+    (aget :src-text snippet))))
 
 (defmethod rebind-uses ((clang clang) stmt renames-list)
   (if (equal (get-ast-class clang stmt) "CompoundStmt")
@@ -1925,11 +1942,19 @@ VARIABLE-NAME should be declared in AST."))
   (unlines (remove-if {string= *clang-genome-separator*}
                       (split-sequence #\Newline (genome-string obj)))))
 
-(defmethod genome-string ((clang clang) &optional stream)
-  (format stream "~a~%~a~%~a"
-          (genome-string (mitochondria clang))
-          *clang-genome-separator*
-          (genome clang)))
+(defmethod genome-string ((obj clang) &optional stream)
+  ;; TODO: Print all header material sorted as organized in the
+  ;;       original.
+  (with-output-to-string (str)
+    (mapc [{format (or stream str) "#include ~a~%"} #'se::format-include]
+          (headers obj))
+    (mapc {format (or stream str) "#define ~a~%"}
+          (mapcar #'cdr (macros obj)))
+    (mapc [{format (or stream str) "~a~%"} #'cdr]
+          (reverse (types obj)))
+    (mapc {format (or stream str) "~a~%"}
+          (mapcar #'cdr (globals obj)))
+    (format (or stream str) "~a~%~a" *clang-genome-separator* (genome obj))))
 
 (defmethod clang-tidy ((clang clang))
   (setf (genome-string clang)

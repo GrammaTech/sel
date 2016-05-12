@@ -268,6 +268,9 @@ Define an :around method on this function to record crossovers."))
 (defgeneric two-point-crossover (software-a software-b)
   (:documentation "Crossover between two points."))
 
+(defgeneric from-string (software string)
+  (:documentation "Initialize SOFTWARE with contents of STRING."))
+
 (defgeneric from-file (software file)
   (:documentation "Initialize SOFTWARE with contents of FILE."))
 

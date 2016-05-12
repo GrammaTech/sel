@@ -206,7 +206,7 @@
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
-  (add-macro (mitochondria obj)
+  (add-macro obj
              "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)")
   (setf (genome-string obj) (genome-string obj)))
 
@@ -1242,13 +1242,9 @@
 
 ;;; Helper functions to avoid hard-coded statement numbers.
 (defun stmt-with-text (obj text)
-  (let ((the-snippet
-         (find-if (lambda (snippet)
-                    (and snippet
-                         (equal text
-                                (peel-bananas (aget :src-text snippet)))))
-                  (asts obj))))
-    (aget :counter the-snippet)))
+  (->> (asts obj)
+       (find-if [{string= text} #'peel-bananas {aget :src-text}])
+       (aget :counter)))
 
 (defun ast-with-text (obj text)
   (when-let ((id (stmt-with-text obj text)))
@@ -1270,9 +1266,9 @@
     (without-helpers
         (let ((variant (copy *huf*)))
           (apply-mutation variant
-                          (cons 'clang-swap
-                                (list (cons :stmt1 (stmt-with-text variant "n > 0"))
-                                      (cons :stmt2 (stmt-with-text variant "bc=0")))))
+            (cons 'clang-swap
+                  (list (cons :stmt1 (stmt-with-text variant "n > 0"))
+                        (cons :stmt2 (stmt-with-text variant "bc=0")))))
           (multiple-value-bind (result exit)
               (phenome variant)
             (declare (ignorable result))

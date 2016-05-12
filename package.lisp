@@ -36,11 +36,9 @@
    :lines
    :line-breaks
    :genome-string
-   :mitochondria
    :headers
    :macros
    :types
-   :sorted-types
    :globals
    :ancestors
    :pick
@@ -73,8 +71,6 @@
    :ext
    :*clang-genome-separator*
    :genome-string-without-separator
-   :from-file-exactly
-   :from-string-exactly
    :get-vars-in-scope
    :get-indexed-vars-in-scope
    :bind-free-vars
@@ -94,7 +90,7 @@
    :clang-tidy
    :clang-format
    :clang-mutate
-   :update-mito-from-snippet
+   :update-headers-from-snippet
    :to-file
    :apply-path
    :mutation
@@ -265,12 +261,10 @@
    :addresses
    :instrument
    :unbound-var-instrument
-   :clang-mito
+   :add-header
+   :add-type
    :add-macro
    :add-include
-   :add-includes-for-function
-   :add-type
-   :union-mito
    :ignore-failed-mutation
    :fix-compilation
    :generational-evolve

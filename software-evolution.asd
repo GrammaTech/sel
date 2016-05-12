@@ -45,9 +45,8 @@ techniques."
              (:file "elf-mips" :depends-on ("elf-risc"))
              (:file "ast")
              (:file "cil" :depends-on ("ast"))
-             (:file "clang" :depends-on ("ast" "clang-mito"))
+             (:file "clang" :depends-on ("ast"))
              (:file "clang-w-fodder" :depends-on ("clang"))
-             (:file "clang-mito" :depends-on ("ast"))
              (:file "llvm" :depends-on ("ast"))))
    (:module src
             :depends-on (base software)

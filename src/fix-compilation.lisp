@@ -64,7 +64,7 @@ expression match.")
 
 ;;; Resolve missing functions by adding #includes.
 (defmethod resolve-function ((obj clang) match-data)
-  (add-includes-for-function (mitochondria obj) (aref match-data 2))
+  (mapc {add-include obj} (resolve-function-headers (aref match-data 2)))
   obj)
 
 (register-fixer
