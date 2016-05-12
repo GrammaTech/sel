@@ -873,15 +873,18 @@ Otherwise return the whole FULL-GENOME"
                          possible-parent-ast
                          (get-ast clang (aget :parent-counter ast))))))
 
-(defmethod get-parent-ast ((obj clang) (ast number))
-  (get-parent-ast obj (get-ast obj ast)))
+(defmacro define-ast-number-or-nil-default-dispatch (symbol &rest additional)
+  "Define default dispatch for clang ast methods when ast is an integer or nil."
+  `(progn
+     (defmethod ,symbol ((obj clang) (ast integer) ,@additional)
+       (unless (zerop ast)
+         (,symbol obj (get-ast obj ast) ,@(mapcar #'car additional))))
+     (defmethod ,symbol ((obj clang) (ast (eql nil)) ,@additional) nil)))
 
+(define-ast-number-or-nil-default-dispatch get-parent-ast)
 (defmethod get-parent-ast ((obj clang) (ast list))
   (let ((parent-counter (aget :parent-counter ast)))
     (and (not (zerop parent-counter)) (get-ast obj parent-counter))))
-
-(defmethod get-parent-asts ((clang clang) (ast number))
-  (get-parent-asts clang (get-ast clang ast)))
 
 (defmethod get-parent-asts ((clang clang) (ast list))
   (cond ((= (aget :parent-counter ast) 0) (list ast))
@@ -890,14 +893,17 @@ Otherwise return the whole FULL-GENOME"
                      clang
                      (get-ast clang (aget :parent-counter ast)))))))
 
+(defgeneric get-immediate-children (sosftware ast)
+  (:documentation "Return the immediate children of AST in SOFTWARE."))
+
 (defmethod get-immediate-children ((clang clang) (ast list))
   (if (member :children *clang-json-required-fields*)
-      (aget :children ast)
+      (mapcar {get-ast clang} (aget :children ast))
       (get-immediate-children clang (aget :counter ast))))
 
-(defmethod get-immediate-children ((clang clang) (ast number))
+(defmethod get-immediate-children ((clang clang) (ast integer))
   (if (member :children *clang-json-required-fields*)
-      (aget :children (get-ast clang ast))
+      (mapcar {get-ast clang} (aget :children (get-ast clang ast)))
       (remove-if-not [{= ast} {aget :parent-counter}] (asts clang))))
 
 (defgeneric get-parent-full-stmt (software ast)
@@ -905,9 +911,7 @@ Otherwise return the whole FULL-GENOME"
    "Return the first ancestor of AST in SOFTWARE which is a full stmt.
 Returns nil if no full-stmt parent is found."))
 
-(defmethod get-parent-full-stmt ((clang clang) (ast number))
-  (get-parent-full-stmt clang (get-ast clang ast)))
-
+(define-ast-number-or-nil-default-dispatch get-parent-full-stmt)
 (defmethod get-parent-full-stmt ((clang clang) (ast list))
   (cond ((aget :full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
@@ -915,9 +919,7 @@ Returns nil if no full-stmt parent is found."))
 (defgeneric wrap-ast (software ast)
   (:documentation "Wrap AST in SOFTWARE in a block."))
 
-(defmethod wrap-ast ((obj clang) (ast number))
-  (wrap-ast obj (get-ast obj ast)))
-
+(define-ast-number-or-nil-default-dispatch wrap-ast)
 (defmethod wrap-ast ((obj clang) (ast list))
   (let* ((old-text (peel-bananas (aget :src-text ast)))
          (new-text (concatenate 'string
@@ -936,17 +938,15 @@ Returns nil if no full-stmt parent is found."))
   (update-asts obj)
   obj)
 
-(defgeneric wrap-child (software ast index)
-  (:documentation "Wrap INDEX child of AST in SOFTWARE in blocks."))
-
-(defmethod wrap-child ((obj clang) (ast number) (index integer))
-  (wrap-child obj (get-ast obj ast) index))
-
 (define-constant +clang-wrapable-parents+
     '("WhileStmt" "IfStmt" "ForStmt")
   :test #'equalp
   :documentation "Types which can be wrapped.")
 
+(defgeneric wrap-child (software ast index)
+  (:documentation "Wrap INDEX child of AST in SOFTWARE in blocks."))
+
+(define-ast-number-or-nil-default-dispatch wrap-child (index integer))
 (defmethod wrap-child ((obj clang) (ast list) (index integer))
   (if (member (aget :ast-class ast) +clang-wrapable-parents+
               :test #'string=)
@@ -958,9 +958,7 @@ Returns nil if no full-stmt parent is found."))
 (defgeneric can-be-made-full-p (software ast)
   (:documentation "Check if AST can be made a full statement in SOFTWARE."))
 
-(defmethod can-be-made-full-p ((obj clang) (ast number))
-  (can-be-made-full-p obj (get-ast obj ast)))
-
+(define-ast-number-or-nil-default-dispatch can-be-made-full-p)
 (defmethod can-be-made-full-p ((obj clang) (ast list))
   (or (and (aget :full-stmt ast)
            ;; NOTE: Work around clang-mutate bug in which "ParmVar"s
@@ -983,9 +981,7 @@ If a statement is reached which is not itself full, but which could be
 made full wrap it in a block.  Second return value indicates if a
 statement was added to create a full statement."))
 
-(defmethod get-make-parent-full-stmt ((clang clang) (ast number))
-  (get-make-parent-full-stmt clang (get-ast clang ast)))
-
+(define-ast-number-or-nil-default-dispatch get-make-parent-full-stmt)
 (defmethod get-make-parent-full-stmt ((obj clang) (ast list))
   (cond
     ((aget :full-stmt ast) (values ast nil))

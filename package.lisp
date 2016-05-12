@@ -124,7 +124,7 @@
    :parent-ast-p
    :get-parent-full-stmt
    :wrap-ast
-   :wrap-children
+   :wrap-child
    :can-be-made-full-p
    :get-make-parent-full-stmt
    :get-immediate-children

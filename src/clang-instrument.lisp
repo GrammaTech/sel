@@ -4,7 +4,21 @@
 
 ;;;; Instrumentation
 (defmethod instrument ((obj clang) &key points trace-file)
-  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr")))
+  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
+        ;; Promote every counter key in POINTS to the enclosing full
+        ;; statement with a CompoundStmt as a parent.  Otherwise they
+        ;; will not appear in the output.
+        (points
+         (remove nil
+           (let ((inc 0))
+             (mapcar (lambda-bind ((counter . value))
+                       (multiple-value-bind (parent madep)
+                           (get-make-parent-full-stmt obj (+ inc counter))
+                         (when madep (incf inc))
+                         (if parent (cons (aget :counter parent) value)
+                             (warn "Point ~d doesn't match traceable AST."
+                                   counter))))
+                     points)))))
     (flet ((instrument-ast (ast trace-strings)
              ;; Given an AST and list of TRACE-STRINGS, return
              ;; instrumented source.
@@ -28,9 +42,17 @@
             (reduce (lambda-bind (acc (counter . orig-counter))
                       (multiple-value-bind (parent madep)
                           (get-make-parent-full-stmt obj counter)
+                        ;; As we add CompoundStmts, we increment
+                        ;; all subsequent pointers...
+                        (when madep
+                          (setf points
+                                (mapcar (lambda-bind ((p . rest))
+                                          (cons (if (>= p counter)
+                                                    (1+ p) p)
+                                                rest))
+                                        points)))
                         (cons (cons (aget :counter parent) orig-counter)
-                              ;; As we add CompoundStmts, we increment
-                              ;; all subsequent counters.
+                              ;; and counters.
                               (if madep
                                   (mapcar (lambda-bind ((counter . orig-counter))
                                             (cons (1+ counter) orig-counter))
@@ -48,8 +70,8 @@
                                 (instrument-ast
                                  (get-ast obj counter)
                                  (cons (format nil "(:C . ~d)" orig-counter)
-                                       (aget orig-counter points)))))))
-               (setf (aget orig-counter points) nil)
+                                       (aget counter points)))))))
+               (setf (aget counter points) nil)
                (update-asts obj)
                obj))))
     ;; Warn about any leftover un-inserted points.
@@ -169,7 +191,7 @@ Built with ~a version ~a.~%"
                    :type type)))
         (note 1 "Saving original to ~a." dest)
         (with-open-file (out dest :direction :output :if-exists :supersede)
-          (genome-string original out))))
+          (genome-string (clang-format original) out))))
 
     ;; Instrument and save.
     (note 1 "Instrumenting ~a." path)

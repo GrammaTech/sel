@@ -534,9 +534,7 @@
 
 (deftest able-to-wrap-statements-in-blocks ()
   (with-fixture gcd-wo-curlies-clang
-    (let ((var (copy *gcd*))
-          (if-counter (stmt-with-text *gcd* "if (a > b) a = a - b;
-        else       b = b - a")))
+    (let ((var (copy *gcd*)))
       ;; Setup, ensure everything is what we thing it should be.
       (is (string= "BinaryOperator"     ; Guard
                    (aget :ast-class (ast-with-text var "a > b"))))
@@ -545,7 +543,8 @@
       (is (string= "BinaryOperator"     ; Else
                    (aget :ast-class (ast-with-text var "b = b - a"))))
       ;; Wrap children and ensure changes are made.
-      (setf var (wrap-children var 56))
+      (setf var (wrap-child var 56 1))
+      (setf var (wrap-child var 56 2))
       (is (string= "BinaryOperator"     ; Guard
                    (aget :ast-class (ast-with-text var "a > b"))))
       (is (string= "CompoundStmt"       ; Then
@@ -1727,6 +1726,7 @@ Useful for printing or returning differences in the REPL."
           (is (zerop errno))
           (is (probe-file bin))
           (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (declare (ignorable stdout))
             (is (zerop errno))
             (let ((trace (read-trace stderr)))
               (is (listp trace))
@@ -1755,6 +1755,7 @@ Useful for printing or returning differences in the REPL."
           (is (zerop errno))
           (is (probe-file bin))
           (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (declare (ignorable stdout))
             (is (zerop errno))
             (let ((trace (read-trace stderr)))
               (is (listp trace))
@@ -1775,6 +1776,7 @@ Useful for printing or returning differences in the REPL."
             (is (zerop errno))
             (is (probe-file bin))
             (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+              (declare (ignorable stdout stderr))
               (is (zerop errno))
               (is (probe-file trace)))))))))
 
@@ -1796,5 +1798,26 @@ Useful for printing or returning differences in the REPL."
           (is (zerop errno))
           (is (probe-file bin))
           (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (declare (ignorable stdout))
             (is (zerop errno))
             (is (listp (read-trace stderr)))))))))
+
+(deftest instrumentation-insertion-w-points-and-added-blocks-test ()
+  (with-fixture gcd-wo-curlies-clang
+    (let* ((coookie "TEST-COOKIE")
+           (instrumented
+            (instrument (copy *gcd*)
+              :points
+              `((,(aget :counter (ast-with-text *gcd* "b - a")) ,coookie)))))
+      ;; Instrumented program holds the TEST-COOKIE line.
+      (is (scan (quote-meta-chars coookie) (genome-string instrumented)))
+      ;; Instrumented compiles and runs.
+      (with-temp-file (bin)
+        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
+          (declare (ignorable out))
+          (is (zerop errno))
+          (is (probe-file bin))
+          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (declare (ignorable stdout))
+            (is (zerop errno))
+            (is (scan (quote-meta-chars coookie) stderr))))))))
