@@ -420,7 +420,7 @@ software object"))
 (defmethod (setf asts) (new (obj clang))
   (with-slots (asts) obj (setf asts new)))
 
-(defmethod get-ast ((obj clang) id)
+(defmethod get-ast ((obj clang) (id integer))
   (with-slots (asts) obj (aref asts (1- id))))
 
 (defmethod prototypes ((obj clang))
@@ -919,8 +919,11 @@ Returns nil if no full-stmt parent is found."))
   (wrap-ast obj (get-ast obj ast)))
 
 (defmethod wrap-ast ((obj clang) (ast list))
-  (let ((new-text (concatenate 'string
-                    "{" (peel-bananas (aget :src-text ast)) ";}")))
+  (let* ((old-text (peel-bananas (aget :src-text ast)))
+         (new-text (concatenate 'string
+                     "{" old-text
+                     ;; Check if a semicolon is needed.
+                     (if (scan "}\\s*$" old-text) "}" ";}"))))
     (setf (genome obj)
           ;; TODO: This is really gross and should be fixed on the
           ;;       clang-mutate side of things.
@@ -933,18 +936,23 @@ Returns nil if no full-stmt parent is found."))
   (update-asts obj)
   obj)
 
-(defgeneric wrap-children (software ast)
-  (:documentation "Wrap children of AST in SOFTWARE in blocks."))
+(defgeneric wrap-child (software ast index)
+  (:documentation "Wrap INDEX child of AST in SOFTWARE in blocks."))
 
-(defmethod wrap-children ((obj clang) (ast number))
-  (wrap-children obj (get-ast obj ast)))
+(defmethod wrap-child ((obj clang) (ast number) (index integer))
+  (wrap-child obj (get-ast obj ast) index))
 
-(defmethod wrap-children ((obj clang) (ast list))
-  (-<>> (eswitch ((aget :ast-class ast) :test #'string=)
-          ("WhileStmt" (cdr (get-immediate-children obj ast)))
-          ("IfStmt"    (cdr (get-immediate-children obj ast))))
-        (sort <> #'> :key {aget :counter})
-        (mapc {wrap-ast obj}))
+(define-constant +clang-wrapable-parents+
+    '("WhileStmt" "IfStmt" "ForStmt")
+  :test #'equalp
+  :documentation "Types which can be wrapped.")
+
+(defmethod wrap-child ((obj clang) (ast list) (index integer))
+  (if (member (aget :ast-class ast) +clang-wrapable-parents+
+              :test #'string=)
+      (wrap-ast obj (nth index (get-immediate-children obj ast)))
+      (error "Will not wrap children of type ~a, only useful for ~a."
+             (aget :ast-class ast) +clang-wrapable-parents+))
   obj)
 
 (defgeneric can-be-made-full-p (software ast)
@@ -954,10 +962,15 @@ Returns nil if no full-stmt parent is found."))
   (can-be-made-full-p obj (get-ast obj ast)))
 
 (defmethod can-be-made-full-p ((obj clang) (ast list))
-  (or (aget :full-stmt ast)
+  (or (and (aget :full-stmt ast)
+           ;; NOTE: Work around clang-mutate bug in which "ParmVar"s
+           ;; and the "CompoundStmt" holding a full function body are
+           ;; both considered to be full statements.
+           (not (string= "Function"
+                         (aget :ast-class (get-parent-ast obj ast)))))
       (when-let ((parent (get-parent-ast obj ast)))
         ;; Is a child of a statement which might have a hanging body.
-        (and (member (aget :ast-class parent) '("WhileStmt" "IfStmt" "ForStmt")
+        (and (member (aget :ast-class parent) +clang-wrapable-parents+
                      :test #'string=)
              ;; Is not the first child, which will be the guard.
              (not (= (aget :counter (first (get-immediate-children obj parent)))
@@ -967,25 +980,29 @@ Returns nil if no full-stmt parent is found."))
   (:documentation
    "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
 If a statement is reached which is not itself full, but which could be
-made full wrap it in a block."))
+made full wrap it in a block.  Second return value indicates if a
+statement was added to create a full statement."))
 
 (defmethod get-make-parent-full-stmt ((clang clang) (ast number))
   (get-make-parent-full-stmt clang (get-ast clang ast)))
 
 (defmethod get-make-parent-full-stmt ((obj clang) (ast list))
   (cond
-    ((aget :full-stmt ast) ast)
+    ((aget :full-stmt ast) (values ast nil))
     ;; Wrap AST in a CompoundStmt to make it full.
     ((can-be-made-full-p obj ast)
      ;; Get this ASTs child index, to find after the change.
      (let* ((parent (get-parent-ast obj ast))
             (index (position-if [{= (aget :counter ast)} {aget :counter}]
                                 (get-immediate-children obj parent))))
-       (setf obj (wrap-children obj parent))
-       (first (get-immediate-children ; First child of newly created stmt.
-               obj (nth index (get-immediate-children ; Child of changed parent.
-                               obj (aget :counter parent)))))))
-    (ast (get-make-parent-full-stmt obj (get-parent-ast obj ast)))))
+       (setf obj (wrap-child obj parent index))
+       (values
+        (first (get-immediate-children ; Only child of new CompoundStmt.
+                obj (nth index (get-immediate-children ; Index child of parent.
+                                obj (aget :counter parent)))))
+        t)))
+    (ast (get-make-parent-full-stmt obj (get-parent-ast obj ast)))
+    (:otherwise (values nil nil))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
   (let ((depth (or orig-depth 0)))
