@@ -34,6 +34,15 @@ collection during dynamic execution.
     `EXT` are the basename and extension of the input source file
     respectively.
 
+-O,--orig
+:   Also write a formatted copy of the un-instrumented original to
+    `BASE-original.EXT` where `BASE` and `EXT` are the basename and
+    extension of the input source file respectively.
+
+-p,--point *NUM*,*STRING*
+:   Instrument the program to print *STRING* when ast numbered *NUM*
+    is executed.
+
 -q,--quiet
 :   Set verbosity level to 0
 
