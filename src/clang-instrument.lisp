@@ -4,14 +4,8 @@
 
 ;;;; Instrumentation
 (defmethod instrument ((obj clang) &key points trace-file)
-  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
-        ;; Promote every counter key in POINTS to the enclosing full
-        ;; statement with a CompoundStmt as a parent.  Otherwise they
-        ;; will not appear in the output.
-        (points (mapcar (lambda-bind ((counter . value))
-                          (cons (get-make-parent-full-stmt obj counter) value))
-                        points)))
-    (flet ((instrument-ast (original-text trace-strings)
+  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr")))
+    (flet ((instrument-ast (ast trace-strings)
              ;; Given an AST and list of TRACE-STRINGS, return
              ;; instrumented source.
              (format nil "~{~a~}~a~%"
@@ -19,50 +13,46 @@
                       {format nil
                               (format nil "fputs(\"~~a\\n\", ~a);~%" log-var)}
                       trace-strings)
-                     original-text)))
-      ;; TODO: This gets hairy because wrapping statements in {}
-      ;;       affects the counters of prior statements.  E.g.,
-      ;;
-      #+(or )
+                     ;; Text of instrumented statement.
+                     (peel-bananas (aget :src-text ast)))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
             (mapcar {aget :counter})
+            ;; Bottom up ensure earlier insertions don't invalidate
+            ;; later counters.
             (sort <> #'>)
-            (mapcar (lambda (counter)
-                      (genome-string obj t)
-                      (format t "-----------~d---------~%" counter)
-                      (get-make-parent-full-stmt obj counter))))
-      ;;
-      ;;       The solution here is probably to update the
-      ;;       `get-make-parent-full-stmt' method so that it only
-      ;;       affects the original statement (not e.g., the other
-      ;;       branches of an enclosing if).  That might be
-      ;;       sufficient.
-      (-<>> (asts obj)
-            (remove-if-not {can-be-made-full-p obj})
-            (mapcar {aget :counter})
-            (sort <> #'>)
-            (reduce
-             (lambda (variant counter)
-               (note 2 "Instrumenting AST#~d." counter)
-               (let ((pt (aget :counter
-                               (get-make-parent-full-stmt variant counter))))
-                 (setf (genome variant)
-                       (clang-mutate variant
-                         `(:set (:stmt1 . ,pt)
-                                ,(cons :value1
-                                       (instrument-ast
-                                        (peel-bananas
-                                         (aget :src-text (get-ast variant pt)))
-                                        (cons (format nil "(:C . ~d)" pt)
-                                              (aget pt points))))))))
-               (setf (aget counter points) nil)
-               (update-asts variant)
-               variant)
-             <> :initial-value obj)
-            (update-asts)
-            (setf obj)))
-    ;; Warn about any uninserted points.
+            ;; Setup to hold (updated-value . original-value) to
+            ;; accommodate inserted CompoundStmts.
+            (mapcar (lambda (counter) (cons counter counter)))
+            ;; Collect/create parents, when needed update counters.
+            (reduce (lambda-bind (acc (counter . orig-counter))
+                      (multiple-value-bind (parent madep)
+                          (get-make-parent-full-stmt obj counter)
+                        (cons (cons (aget :counter parent) orig-counter)
+                              ;; As we add CompoundStmts, we increment
+                              ;; all subsequent counters.
+                              (if madep
+                                  (mapcar (lambda-bind ((counter . orig-counter))
+                                            (cons (1+ counter) orig-counter))
+                                          acc)
+                                  acc))))
+                    <> :initial-value '())
+            (nreverse) ; The prior reduce reverses the order, this fixes that.
+            (mapc      ; Actually insert the instrumentation.
+             (lambda-bind ((counter . orig-counter))
+               (setf
+                (genome obj)
+                (clang-mutate obj
+                  `(:set (:stmt1 . ,counter)
+                         ,(cons :value1
+                                (instrument-ast
+                                 (get-ast obj counter)
+                                 (cons (format nil "(:C . ~d)" orig-counter)
+                                       (aget orig-counter points)))))))
+               (setf (aget orig-counter points) nil)
+               (update-asts obj)
+               obj))))
+    ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))

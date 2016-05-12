@@ -1701,11 +1701,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Instrumentation tests
-(defun count-full-under-compound (obj)
+(defun count-fullable (obj)
   "Return a count of full statements parented by compound statements"
-  (count-if
-   [{string= "CompoundStmt"} {aget :ast-class} {get-parent-ast obj}]
-   (remove-if-not {aget :full-stmt} (asts obj))))
+  (count-if {can-be-made-full-p obj} (asts obj)))
 
 (defun read-trace (string)
   "Read a trace into a lisp objects."
@@ -1720,8 +1718,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*))))
       ;; Do we insert the right number of printf statements?
-      (is (= (* 2 (count-full-under-compound *gcd*))
-             (count-full-under-compound instrumented)))
+      (is (<= (* 2 (count-fullable *gcd*))
+              (count-fullable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (multiple-value-bind (out errno) (phenome instrumented :bin bin)
@@ -1748,8 +1746,8 @@ Useful for printing or returning differences in the REPL."
                          (collect (list i ":even"))
                          (collect (list i ":odd"))))))))
       ;; Do we insert the right number of printf statements?
-      (is (= (* 3 (count-full-under-compound *gcd*))
-             (count-full-under-compound instrumented)))
+      (is (<= (* 3 (count-fullable *gcd*))
+              (count-fullable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (multiple-value-bind (out errno) (phenome instrumented :bin bin)
@@ -1782,4 +1780,21 @@ Useful for printing or returning differences in the REPL."
 
 (deftest instrumentation-handles-missing-curlies-test ()
   (with-fixture gcd-wo-curlies-clang
-    ))
+    (let ((instrumented (instrument (copy *gcd*))))
+      ;; Ensure we were able to instrument an else branch w/o curlies.
+      (let* ((else-counter (stmt-with-text *gcd* "b = b - a"))
+             (matcher (quote-meta-chars (format nil "(:C . ~d)" else-counter))))
+        (is (scan matcher (genome instrumented)))
+        ;; The next line should be the else branch.
+        (let ((location (position-if {scan matcher} (lines instrumented))))
+          (is (scan (quote-meta-chars "b = b - a")
+                    (nth (1+ location) (lines instrumented))))))
+      ;; Finally, lets be sure we still compile.
+      (with-temp-file (bin)
+        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
+          (declare (ignorable out))
+          (is (zerop errno))
+          (is (probe-file bin))
+          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (is (zerop errno))
+            (is (listp (read-trace stderr)))))))))
