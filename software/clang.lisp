@@ -966,13 +966,13 @@ Returns nil if no full-stmt parent is found."))
            ;; both considered to be full statements.
            (not (string= "Function"
                          (aget :ast-class (get-parent-ast obj ast)))))
-      (when-let ((parent (get-parent-ast obj ast)))
-        ;; Is a child of a statement which might have a hanging body.
-        (and (member (aget :ast-class parent) +clang-wrapable-parents+
-                     :test #'string=)
-             ;; Is not the first child, which will be the guard.
-             (not (= (aget :counter (first (get-immediate-children obj parent)))
-                     (aget :counter ast)))))))
+      (unless (or (aget :guard-stmt ast)  ; Don't wrap guard statements.
+                  (string= "CompoundStmt" ; Don't wrap CompoundStmts.
+                           (aget :ast-class ast)))
+        (when-let ((parent (get-parent-ast obj ast)))
+          ;; Is a child of a statement which might have a hanging body.
+          (member (aget :ast-class parent) +clang-wrapable-parents+
+                  :test #'string=)))))
 
 (defgeneric get-make-parent-full-stmt (software ast)
   (:documentation
