@@ -139,7 +139,7 @@
         (original (make-instance 'clang
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
-        path out-dir name type trace-file out-file save-original)
+        path out-dir name type trace-file out-file save-original points)
     (when (or (not args)
               (< (length args) 1)
               (string= (subseq (car args) 0 2) "-h")
@@ -155,6 +155,7 @@ Options:
  -o,--out-file FILE -------- write mutated source to FILE
                              (default STDOUT)
  -O,--orig ----------------- also save a copy of the original
+ -p,--point NUM,STRING ----- instrument to print STRING at ast NUM
  -q,--quiet ---------------- set verbosity level to 0
  -t,--trace-file FILE ------ instrumented to write trace to fILE
                              (default to STDERR)
@@ -177,6 +178,10 @@ Built with ~a version ~a.~%"
       ("-F" "--flags" (setf (flags original) (pop args)))
       ("-o" "--out-file" (setf out-file (pop args)))
       ("-O" "--orig" (setf save-original t))
+      ("-p" "--point" (destructuring-bind (counter string)
+                          (split-sequence #\Comma (pop args))
+                        (pushnew string (aget (parse-integer counter) points)
+                                 :test #'string=)))
       ("-q" "--quiet" (setf *note-level* 0))
       ("-t" "--trace-file" (setf trace-file (pop args)))
       ("-v" "--verbose"   (let ((lvl (parse-integer (pop args))))
@@ -200,7 +205,9 @@ Built with ~a version ~a.~%"
                      :directory out-dir
                      :name (format nil "~a-instrumented" name)
                      :type type)))
-          (instrumented (clang-format (instrument original trace-file))))
+          (instrumented
+           (clang-format
+            (instrument original :trace-file trace-file :points points))))
       (note 1 "Writing instrumented to ~a." dest)
       (with-open-file
           (out dest :direction :output :if-exists :supersede)
