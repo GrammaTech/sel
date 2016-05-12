@@ -158,6 +158,7 @@
    :find-types
    :sorted-snippets
    :*ancestor-logging*
+   :*clang-max-json-size*
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*
    :*decl-mutation-bias*

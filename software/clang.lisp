@@ -263,6 +263,9 @@ restrictions. For use by targeter functions/execute picks."
 (defvar *next-ancestry-id* 0
   "Unique identifier for ancestry.")
 
+(defvar *clang-max-json-size* 104857600
+  "Maximum size of output accepted from `clang-mutate'.")
+
 (defun get-fresh-ancestry-id ()
   (let ((id *next-ancestry-id*))
     (incf *next-ancestry-id*)
@@ -808,9 +811,9 @@ Otherwise return the whole FULL-GENOME"
           ;; and interpreted as a block.  Throw an error to clear the genome.
           (with-open-file (clang-mutate-out clang-mutate-outfile
                            :element-type '(unsigned-byte 8))
-            (when (> (file-length clang-mutate-out) 10485760)
+            (when (> (file-length clang-mutate-out) *clang-max-json-size*)
               (error (make-condition 'mutate
-                       :text (format nil "clang-mutate output exceeds 10 MB.")
+                       :text (format nil "clang-mutate output exceeds 100 MB.")
                        :obj obj :op op))))
           (values
            (case (car op)
