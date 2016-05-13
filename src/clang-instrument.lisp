@@ -3,7 +3,7 @@
 
 
 ;;;; Instrumentation
-(defmethod instrument ((obj clang) &key points trace-file)
+(defmethod instrument ((obj clang) &key points functions trace-file)
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
@@ -19,14 +19,27 @@
                              (warn "Point ~d doesn't match traceable AST."
                                    counter))))
                      points)))))
-    (flet ((instrument-ast (ast trace-strings)
+    (flet ((instrument-ast (ast orig-counter formats-w-args trace-strings)
              ;; Given an AST and list of TRACE-STRINGS, return
              ;; instrumented source.
-             (format nil "~{~a~}~a~%"
-                     (mapcar
-                      {format nil
-                              (format nil "fputs(\"~~a\\n\", ~a);~%" log-var)}
-                      trace-strings)
+             (format nil "~{~a~}fputs(\")\\n\", ~a);~%~a~%"
+                     (append
+                      (cons
+                       (format nil      ; Start up alist w/counter.
+                               "fputs(\"((:C . ~d) \", ~a);~%"
+                               orig-counter log-var)
+                       (when trace-strings
+                         (list
+                          (format nil   ; Points instrumentation.
+                                  "fputs(\"(~{~a~^ ~})\", ~a);~%"
+                                  trace-strings log-var))))
+                      (mapcar
+                       {format nil      ; Functions instrumentation.
+                               (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
+                                       log-var)}
+                       (mapcar #'car formats-w-args)
+                       (mapcar #'cdr formats-w-args)))
+                     log-var
                      ;; Text of instrumented statement.
                      (peel-bananas (aget :src-text ast)))))
       (-<>> (asts obj)
@@ -67,10 +80,12 @@
                 (clang-mutate obj
                   `(:set (:stmt1 . ,counter)
                          ,(cons :value1
-                                (instrument-ast
-                                 (get-ast obj counter)
-                                 (cons (format nil "(:C . ~d)" orig-counter)
-                                       (aget counter points)))))))
+                                (let ((ast (get-ast obj counter)))
+                                  (instrument-ast
+                                   ast
+                                   orig-counter
+                                   (mapcar {funcall _ ast} functions)
+                                   (aget counter points)))))))
                (setf (aget counter points) nil)
                (update-asts obj)
                obj))))
@@ -82,6 +97,30 @@
       (setf obj (log-to-filename obj log-var trace-file)))
     (clang-format obj)
     obj))
+
+(defgeneric unbound-var-instrument (software ast)
+  (:documentation
+   "Return a format string and variable list for variable instrumentation."))
+
+(defmethod unbound-var-instrument ((obj clang) (ast list))
+  (flet ((fmt-code (c-type)
+           (eswitch (c-type :test #'string=)
+             ("char"        "%c")
+             ("short"       "%hi")
+             ("int"         "%i")
+             ("long"        "%li")
+             ("float"       "%f")
+             ("double"      "%G")
+             ("long double" "%LG"))))
+    (iter (for var in (mapcar [#'peel-bananas #'car]
+                              (aget :unbound-vals ast)))
+          (let ((c-type (type-of-var obj var)))
+            (when (member c-type +c-numeric-types+ :test #'string=)
+              (concatenate (format nil " (:~a . ~a)" var (fmt-code c-type))
+                into format
+                initial-value "(:V")
+              (collect var into vars)))
+          (finally (return (cons (concatenate 'string format ")") vars))))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the counter of the entry AST in SOFTWARE."))
@@ -139,7 +178,8 @@
         (original (make-instance 'clang
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
-        path out-dir name type trace-file out-file save-original points)
+        path out-dir name type trace-file out-file save-original
+        points functions)
     (when (or (not args)
               (< (length args) 1)
               (string= (subseq (car args) 0 2) "-h")
@@ -159,7 +199,8 @@ Options:
  -q,--quiet ---------------- set verbosity level to 0
  -t,--trace-file FILE ------ instrumented to write trace to fILE
                              (default to STDERR)
- -v,--verbose NUM ---------- verbosity level 0-4
+ -v,--variables ------------ write numeric variables to trace
+ -V,--verbose NUM ---------- verbosity level 0-4
 
 Built with ~a version ~a.~%"
               self (lisp-implementation-type) (lisp-implementation-version))
@@ -184,7 +225,9 @@ Built with ~a version ~a.~%"
                                  :test #'string=)))
       ("-q" "--quiet" (setf *note-level* 0))
       ("-t" "--trace-file" (setf trace-file (pop args)))
-      ("-v" "--verbose"   (let ((lvl (parse-integer (pop args))))
+      ("-v" "--variables" (push (list {unbound-var-instrument original})
+                                functions))
+      ("-V" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
                             (setf *note-level* lvl))))
 
@@ -207,7 +250,9 @@ Built with ~a version ~a.~%"
                      :type type)))
           (instrumented
            (clang-format
-            (instrument original :trace-file trace-file :points points))))
+            (instrument original :trace-file trace-file
+                        :points points
+                        :functions functions))))
       (note 1 "Writing instrumented to ~a." dest)
       (with-open-file
           (out dest :direction :output :if-exists :supersede)

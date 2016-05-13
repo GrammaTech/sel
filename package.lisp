@@ -264,6 +264,7 @@
    :disasm
    :addresses
    :instrument
+   :unbound-var-instrument
    :clang-mito
    :add-macro
    :add-include

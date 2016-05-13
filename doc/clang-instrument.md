@@ -50,7 +50,11 @@ collection during dynamic execution.
 :   Instrument program to write instrumentation to *FILE*.  By default
     instrumentation is written to `STDERR`.
 
--v,--verbose *NUM*
+-v,--variables
+:   Instrument program to write values of numeric variables at every
+    instrumentation point.
+
+-V,--verbose *NUM*
 :   Set verbosity level to *NUM*.  *NUM* should be in the range [0-4].
 
 # EXAMPLES
