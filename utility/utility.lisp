@@ -653,12 +653,13 @@ and 0 otherwise."
 
 (defun note (level &rest format-args)
   (when (>= *note-level* level)
-    (mapcar
-     #'finish-output
-     (mapc
-      {format _ "~&;; ~a: ~a~%"
-              (print-time nil) (apply #'format nil format-args)}
-      *note-out*)))
+    (let ((*print-pretty* nil))
+      (mapcar
+       #'finish-output
+       (mapc
+        {format _ "~&;; ~a: ~a~%"
+                (print-time nil) (apply #'format nil format-args)}
+        *note-out*))))
   ;; Always return nil.
   nil)
 
