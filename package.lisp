@@ -130,6 +130,21 @@
    :get-immediate-children
    :extend-to-enclosing
    :get-ast-info
+   :+c-numeric-types+
+   :+c-relational-operators+
+   :+c-arithmetic-binary-operators+
+   :+c-arithmetic-assignment-operators+
+   :+c-bitwise-binary-operators+
+   :+c-bitwise-assignment-operators+
+   :+c-arithmetic-unary-operators+
+   :+c-bitwise-unary-operators+
+   :+c-sign-unary-operators+
+   :+c-pointer-unary-operators+
+   :all-use-of-var
+   :ast-declares
+   :declaration-of
+   :declared-type
+   :type-of-var
    :get-fresh-ancestry-id
    :random-function-name
    :replace-fields-in-ast
