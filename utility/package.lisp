@@ -4,11 +4,13 @@
    :alexandria
    :metabang-bind
    :curry-compose-reader-macros
+   :iterate
    :split-sequence
    :trivial-shell
    :cl-ppcre
    :cl-store
    :diff)
+  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:export
    :infinity
    ;; OS
@@ -117,7 +119,9 @@
    :calculate-addr-map
    ;; oprofile
    :samples-from-oprofile-file
-   :samples-from-tracer-file))
+   :samples-from-tracer-file
+   ;; iterate helpers
+   :concatenating))
 
 #+allegro
 (set-dispatch-macro-character #\# #\_

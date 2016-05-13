@@ -910,3 +910,11 @@ that function may be declared.")
   (let ((args (gensym "args")))
     `(lambda (&rest ,args)
        (and ,@(mapcar (lambda (f) `(apply ,f ,args)) fs)))))
+
+
+;;; Iteration helpers
+(defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))
+  `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
+
+(defmacro-clause (CONCATENATE expr &optional INTO var INITIAL-VALUE (val ""))
+  `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
