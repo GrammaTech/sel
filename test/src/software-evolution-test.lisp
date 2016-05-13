@@ -1790,7 +1790,7 @@ Useful for printing or returning differences in the REPL."
         ;; The next line should be the else branch.
         (let ((location (position-if {scan matcher} (lines instrumented))))
           (is (scan (quote-meta-chars "b = b - a")
-                    (nth (1+ location) (lines instrumented))))))
+                    (nth (+ 2 location) (lines instrumented))))))
       ;; Finally, lets be sure we still compile.
       (with-temp-file (bin)
         (multiple-value-bind (out errno) (phenome instrumented :bin bin)
@@ -1821,3 +1821,23 @@ Useful for printing or returning differences in the REPL."
             (declare (ignorable stdout))
             (is (zerop errno))
             (is (scan (quote-meta-chars coookie) stderr))))))))
+
+(deftest instrumentation-print-in-scope-vars ()
+  (with-fixture gcd-clang
+    (handler-bind ((warning #'muffle-warning))
+      (instrument *gcd* :functions (list {unbound-var-instrument *gcd*})))
+    (is (scan (quote-meta-chars "fprintf(stderr, \"(:V") (genome-string *gcd*))
+        "We find code to print unbound variables in the instrumented source.")
+    (with-temp-file (bin)
+      (phenome *gcd* :bin bin)
+      (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+        (declare (ignorable stdout))
+        (is (zerop errno))
+        (let ((trace (read-trace stderr)))
+          (is (listp trace) "We got a trace.")
+          (is (= (length trace) (count-if {assoc :c} trace))
+              "Counter in every trace element.")
+          (is (= (length trace) (count-if {assoc :v} trace))
+              "Variable list in every trace element.")
+          (is (> (length trace) (count-if {aget :v} trace))
+              "Variable list not populated in every trace element."))))))
