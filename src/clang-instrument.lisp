@@ -225,8 +225,7 @@ Built with ~a version ~a.~%"
                                  :test #'string=)))
       ("-q" "--quiet" (setf *note-level* 0))
       ("-t" "--trace-file" (setf trace-file (pop args)))
-      ("-v" "--variables" (push (list {unbound-var-instrument original})
-                                functions))
+      ("-v" "--variables" (push {unbound-var-instrument original} functions))
       ("-V" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
                             (setf *note-level* lvl))))
@@ -249,10 +248,14 @@ Built with ~a version ~a.~%"
                      :name (format nil "~a-instrumented" name)
                      :type type)))
           (instrumented
-           (clang-format
-            (instrument original :trace-file trace-file
-                        :points points
-                        :functions functions))))
+           (handler-bind ((warning  ; Muffle warnings at low verbosity.
+                          (if (> *note-level* 2)
+                              #'identity
+                              #'muffle-warning)))
+             (clang-format
+              (instrument original :trace-file trace-file
+                          :points points
+                          :functions functions)))))
       (note 1 "Writing instrumented to ~a." dest)
       (with-open-file
           (out dest :direction :output :if-exists :supersede)
