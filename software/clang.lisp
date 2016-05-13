@@ -36,6 +36,58 @@
                  :copier copy)))
 
 
+;;; Constants
+(define-constant +c-numeric-types+
+    '("char" "short" "int" "long" "float" "double" "long double")
+  :test #'equalp
+  :documentation "C Numeric type names.")
+
+(define-constant +c-relational-operators+
+    '("<" "<=" "==" "!=" ">=" ">")
+  :test #'equalp
+  :documentation "C Relational operators.")
+
+(define-constant +c-arithmetic-binary-operators+
+    '("+" "-" "*" "/" "%")
+  :test #'equalp
+  :documentation "C arithmetic operators on two arguments.")
+
+(define-constant +c-arithmetic-assignment-operators+
+    '("+=" "-=" "*=" "/=" "%=")
+  :test #'equalp
+  :documentation "C arithmetic assignment operators.")
+
+(define-constant +c-bitwise-binary-operators+
+    '("&" "|" "^" "<<" ">>")
+  :test #'equalp
+  :documentation "C bitwise operators on two arguments.")
+
+(define-constant +c-bitwise-assignment-operators+
+    '("&=" "|=" "^=" "<<=" ">>=")
+  :test #'equalp
+  :documentation "C bitwise assignment operators.")
+
+(define-constant +c-arithmetic-unary-operators+
+    '("++" "--")
+  :test #'equalp
+  :documentation "C arithmetic operators on one arguments.")
+
+(define-constant +c-bitwise-unary-operators+
+    '("~" "!")
+  :test #'equalp
+  :documentation "C bitwise operators on one arguments.")
+
+(define-constant +c-sign-unary-operators+
+    '("+" "-" )
+  :test #'equalp
+  :documentation "C sign operators on one arguments.")
+
+(define-constant +c-pointer-unary-operators+
+    '("&" "*" )
+  :test #'equalp
+  :documentation "C pointer operators on one arguments.")
+
+
 ;; Targeting functions
 (defun restrict-targets (software full-stmt same-class)
   "Return good, bad, then callbacks with full-stmt/same-class
@@ -76,6 +128,7 @@ restrictions. For use by targeter functions/execute picks."
     (declare (ignorable good then))
     (execute-picks bad)))
 
+
 ;;; Mutations
 (defclass clang-mutation (mutation) ())
 
@@ -98,7 +151,7 @@ restrictions. For use by targeter functions/execute picks."
 (define-mutation clang-insert-full-same (clang-insert)
   ((targeter :initform {pick-bad-good _ t t})))
 
-;; Swap
+;;; Swap
 (define-mutation clang-swap (clang-mutation)
   ((targeter :initform #'pick-bad-bad)))
 
@@ -119,7 +172,7 @@ restrictions. For use by targeter functions/execute picks."
 (define-mutation clang-swap-full-same (clang-swap)
   ((targeter :initform {pick-bad-bad _ t t})))
 
-;; Replace
+;;; Replace
 (define-mutation clang-replace (clang-mutation)
   ((targeter :initform #'pick-bad-good)))
 
@@ -135,7 +188,7 @@ restrictions. For use by targeter functions/execute picks."
 (define-mutation clang-replace-full-same (clang-replace)
   ((targeter :initform {pick-bad-good _ t t})))
 
-;; Cut
+;;; Cut
 (define-mutation clang-cut (clang-mutation)
   ((targeter :initform #'pick-bad-only)))
 
@@ -145,13 +198,13 @@ restrictions. For use by targeter functions/execute picks."
 (define-mutation clang-cut-full (clang-cut)
   ((targeter :initform {pick-bad-only _ t})))
 
-;; Set Range
+;;; Set Range
 (define-mutation clang-set-range (clang-mutation) ())
 
 (defmethod build-op ((mutation clang-set-range) software)
   `((:set-range . ,(targets mutation))))
 
-;; Nop
+;;; Nop
 (define-mutation clang-nop (clang-mutation) ())
 
 (defmethod build-op ((mutation clang-nop) software)
@@ -165,7 +218,7 @@ restrictions. For use by targeter functions/execute picks."
 (define-mutation clang-cut-full-same (clang-cut-full)
   ((targeter :initform {pick-bad-only _ t})))
 
-;; Cut Decl
+;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
   ((targeter :initform #'pick-cut-decl)))
 
@@ -195,7 +248,7 @@ restrictions. For use by targeter functions/execute picks."
                           old-names)))
         (delete-decl-stmts clang the-block `((,decl . ,var))))))
 
-;; Swap Decls
+;;; Swap Decls
 (define-mutation swap-decls (clang-swap)
   ((targeter :initform #'pick-swap-decls)))
 
@@ -228,7 +281,7 @@ restrictions. For use by targeter functions/execute picks."
     (pick-from-block (enclosing-block clang
                                       (random-stmt (bad-stmts clang))))))
 
-;; Rename variable
+;;; Rename variable
 (define-mutation rename-variable (clang-mutation)
   ((targeter :initform #'pick-rename-variable)))
 
@@ -836,6 +889,8 @@ Otherwise return the whole FULL-GENOME"
       (when (and value2-file (probe-file value2-file))
         (delete-file value2-file)))))))
 
+
+;;; AST Utility functions
 (defun ast-to-source-range (ast)
   "Convert AST to pair of SOURCE-LOCATIONS."
   (when ast
@@ -1321,6 +1376,59 @@ free variables.")
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
 
+(defgeneric all-use-of-var (software variable-name)
+  (:documentation "Return every place VARIABLE-NAME is used in SOFTWARE."))
+
+(defmethod all-use-of-var ((obj clang) (variable-name string))
+  (mapcar {aget :counter}
+          (remove-if-not [{some {string= (format nil "(|~a|)" variable-name)}}
+                          {mapcar #'car} {aget :unbound-vals}]
+                         (asts obj))))
+
+(defgeneric ast-declares (ast)
+  (:documentation "Return the names of the variables that AST declares."))
+
+(defmethod ast-declares ((ast list))
+  (cond
+    ((string= (aget :ast-class ast) "Var") ; Global variable.
+     (list (caar (aget :scopes ast))))
+    ((string= (aget :ast-class ast) "DeclStmt") ; Sub-function declaration.
+     (aget :declares ast))
+    (:otherwise nil)))
+
+(defgeneric declaration-of (software variable-name)
+  (:documentation "Return the AST in SOFTWARE which declares VARIABLE-NAME."))
+
+(defmethod declaration-of ((obj clang) (variable-name string))
+  (find-if (lambda (ast)
+             (member variable-name (ast-declares ast) :test #'string=))
+           (asts obj)))
+
+(defgeneric declared-type (ast variable-name)
+  (:documentation "Guess the type of the VARIABLE-NAME in AST.
+VARIABLE-NAME should be declared in AST."))
+
+(defmethod declared-type ((ast list) variable-name)
+  ;; NOTE: This is very simple and probably not robust to variable
+  ;; declarations which are "weird" in any way.
+  (declare (ignorable variable-name))
+  (first
+   (split-sequence #\Space (aget :src-text ast) :remove-empty-subseqs t)))
+
+(defgeneric type-of-var (software variable-name)
+  ;; TODO: This should search in successive enclosing scopes of a
+  ;;       specified start AST.
+  (:documentation "Return the type of VARIABLE-NAME in SOFTWARE."))
+
+(defmethod type-of-var ((obj clang) (variable-name string))
+  (let ((declaration-ast (declaration-of obj variable-name)))
+    ;; (assert declaration-ast (obj variable-name)
+    ;;         "Can't find declaration of ~a in ~a." variable-name obj)
+    (warn "Can't find declaration of ~a in ~a." variable-name obj)
+    (declared-type declaration-ast variable-name)))
+
+
+;;; Crossover functions
 (defmethod prepare-sequence-snippet ((clang clang) end depth full-seq
                                      &optional replacements)
   (let ((last-seq (if (null end)
@@ -1812,6 +1920,8 @@ free variables.")
 (defmethod function-body-p ((clang clang) stmt)
   (find-if [{= stmt} {aget :body}] (prototypes clang)))
 
+
+;;; Clang methods
 (defmethod genome-string-without-separator ((obj clang))
   (unlines (remove-if {string= *clang-genome-separator*}
                       (split-sequence #\Newline (genome-string obj)))))
