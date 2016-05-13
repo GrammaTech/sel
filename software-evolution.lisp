@@ -337,10 +337,10 @@ Also, ensures MUTATION is a member of superclasses"
 
 (defmethod apply-all-mutations ((obj software) (mut mutation))
   (setf (object mut) obj)
-  (loop :for targeted :in (mapcar {at-targets mut} (targets mut))
-     :collect targeted :into mutations
-     :collect (apply-mutation (copy obj) targeted) :into results
-     :finally (return (values results mutations))))
+  (iter (for targeted in (mapcar {at-targets mut} (targets mut)))
+        (collect targeted into mutations)
+        (collect (apply-mutation (copy obj) targeted) into results)
+        (finally (return (values results mutations)))))
 
 
 ;;; Evolution
