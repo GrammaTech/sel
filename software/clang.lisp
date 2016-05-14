@@ -558,9 +558,6 @@ already in scope, it will keep that name.")
 (defvar *crossover-function-probability* 0.25
   "The probability of crossing a function during whole-program crossover.")
 
-(defvar *clang-format-after-mutation-chance* 0
-  "The probability of applying clang-format on an object after mutation")
-
 (defun combine-with-bias (bias heads tails)
   (append
    (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) bias))) heads)
@@ -671,16 +668,6 @@ already in scope, it will keep that name.")
 ;; Convenience form for compilation fixers, crossover, etc
 (defmethod apply-mutation ((clang clang) (op list))
   (apply-mutation clang (make-instance (car op) :targets (cdr op))))
-
-(defmethod apply-mutation :around ((obj clang) op)
-  ;; TODO: another :ids :list :json special case removed here
-  (multiple-value-call
-      (lambda (variant &rest rest)
-        (when (random-bool :bias *clang-format-after-mutation-chance*)
-          (clang-format obj))
-        (update-asts obj)
-        (apply #'values variant rest))
-    (call-next-method)))
 
 (defmethod mutation-key ((obj clang) op)
   ;; Return a list of the mutation type, and the classes of any stmt1 or

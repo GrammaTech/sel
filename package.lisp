@@ -179,7 +179,6 @@
    :*matching-free-var-retains-name-bias*
    :*matching-free-function-retains-name-bias*
    :*allow-bindings-to-globals-bias*
-   :*clang-format-after-mutation-chance*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
    :*database*
