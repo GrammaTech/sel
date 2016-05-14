@@ -70,10 +70,8 @@
    :from-file
    :from-string
    :ext
-   :*clang-genome-separator*
    :genome-string-without-separator
    :get-vars-in-scope
-   :get-indexed-vars-in-scope
    :bind-free-vars
    :prepare-sequence-snippet
    :prepare-inward-snippet
@@ -116,6 +114,7 @@
    :asts-intersecting-source-range
    :ast-to-source-range
    :get-ast
+   :header-asts
    :get-parent-ast
    :get-parent-asts
    :parent-ast-p
@@ -259,10 +258,9 @@
    :addresses
    :instrument
    :unbound-var-instrument
-   :add-header
+   :add-include
    :add-type
    :add-macro
-   :add-include
    :ignore-failed-mutation
    :fix-compilation
    :generational-evolve

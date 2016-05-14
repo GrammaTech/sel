@@ -94,7 +94,7 @@
    :levenshtein-distance
    :unlines
    :keep-lines-after-matching
-   :resolve-function-headers
+   :resolve-function-includes
    ;; hash tables
    :list->ht
    :merge-hash-tables

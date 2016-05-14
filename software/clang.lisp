@@ -24,11 +24,16 @@
 
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
-   (asts :initarg :asts :initform nil :copier :direct)
+   (asts :initarg :asts :initform nil :copier :direct
+         :type (list (cons keyword *) *) :documentation
+         "Association List of body ASTs.")
+   (header-asts :initarg :header-asts :initform nil :copier :direct
+                :type (list (cons keyword *) *) :documentation
+                "Association List of header ASTs.")
    (prototypes :initarg :functions :initform nil :copier :direct)
-   (headers :initarg :headers :accessor headers :copier copy-seq
+   (includes :initarg :includes :accessor includes :copier copy-seq
             :initform nil :type (list string *)
-            :documentation "Names of included headers.")
+            :documentation "Names of included includes.")
    (types :initarg :types :accessor types :copier copy-seq
           :initform nil :type (list (cons number string) *)
           :documentation "Association list of types keyed by HASH id.")
@@ -41,25 +46,43 @@
 
 
 ;;; Handling header information (formerly "Michondria")
-(defgeneric add-header (software header)
-  (:documentation "Add HEADER to `headers' of SOFTWARE, unique."))
-(defmethod add-header ((obj clang) header)
-  (pushnew header (header obj) :test #'string=))
-
 (defgeneric add-type (software type)
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 (defmethod add-type ((obj clang) type)
-  (pushnew (cons (aget :hash type) type) (types obj) :key #'car))
+  (unless (member type (types obj) :key #'car)
+    (setf (genome-string obj)
+          (concatenate 'string
+            (format nil "~a~&" (cdr type))
+            (genome-string obj)))
+    (push type (types obj)))
+  obj)
+
+(defmethod find-types ((obj clang) &key hash)
+  (if hash (aget hash (types obj)) (mapcar #'cdr (types obj))))
 
 (defgeneric add-macro (software name body)
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
 (defmethod add-macro ((obj clang) (name string) (body string))
-  (pushnew (cons name body) (macros obj) :test #'string= :key #'car))
+  (unless (member name (macros obj) :test #'string= :key #'car)
+    (setf (genome-string obj)
+          (concatenate 'string
+            (format nil "#define ~a~&" body)
+            (genome-string obj)))
+    (push (cons name body) (macros obj)))
+  obj)
 
-(defgeneric add-include (software header)
-  (:documentation "Add an #include directive for a HEADER to SOFTWARE."))
-(defmethod add-include ((obj clang) header)
-  (pushnew header (headers obj) :test #'string=))
+(defgeneric add-include (software include)
+  (:documentation "Add an #include directive for a INCLUDE to SOFTWARE."))
+(defmethod add-include ((obj clang) (include string))
+  (unless (member include (includes obj) :test #'string=)
+    ;; Add to genome-string but don't (setf genome) which would
+    ;; nullify the asts.
+    (setf (genome-string obj)
+          (concatenate 'string
+            (format nil "#include ~a~&" include)
+            (genome-string obj)))
+    (push include (includes obj)))
+  obj)
 
 
 ;;; Constants
@@ -129,9 +152,9 @@ restrictions. For use by targeter functions/execute picks."
                              (asts software))))
                      (lambda (stmt asts) (declare (ignorable stmt)) asts)))
            (good (lambda () (or (filter (good-stmts software))
-                                (asts software))))
+                           (asts software))))
            (bad  (lambda () (or (filter (bad-stmts software))
-                                (asts software)))))
+                           (asts software)))))
       (list good bad then))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
@@ -259,13 +282,11 @@ restrictions. For use by targeter functions/execute picks."
       (let* ((decl (aget :stmt1 (targets mutation)))
              (the-block (enclosing-block clang decl))
              (old-names (aget :declares (get-ast clang decl)))
-             (uses (apply #'append
-                          (mapcar (lambda (x)
-                                    (get-children-using clang x the-block))
-                                  old-names)))
+             (uses (mappend (lambda (x) (get-children-using clang x the-block))
+                            old-names))
              (vars (remove-if {find _ old-names :test #'equal}
                               (get-vars-in-scope clang
-                                             (if uses (car uses) the-block))))
+                                (if uses (car uses) the-block))))
              (var (mapcar (lambda (old-name)
                             (declare (ignorable old-name))
                             (if vars
@@ -340,6 +361,12 @@ restrictions. For use by targeter functions/execute picks."
 (defvar *clang-max-json-size* 104857600
   "Maximum size of output accepted from `clang-mutate'.")
 
+(defgeneric update-header (software &key)
+  (:documentation "Update SOFTWARE header from ASTs."))
+
+(defgeneric update-body (software &key)
+  (:documentation "Update SOFTWARE body from ASTs."))
+
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
 
@@ -367,7 +394,9 @@ object as well as their relative probabilities"))
 software object"))
 
 (defmethod size ((obj clang))
-  (with-slots (asts) obj (length asts)))
+  (with-slots (asts) obj
+    (unless asts (update-asts obj))
+    (length asts)))
 
 (defvar *clang-json-required-fields*
   '( :ast-class         :counter           :unbound-vals
@@ -383,25 +412,64 @@ software object"))
   '(:protos)
   "JSON database AuxDB entries required for clang software objects.")
 
+(defmethod (setf genome) :before (new (obj clang))
+  (with-slots (asts) obj (setf asts nil)))
+
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (with-slots (asts prototypes) obj
-    (let ((json-db
-           (handler-case
-               ;; When clang-mutate errors we nullify the asts.
-               ;; Otherwise we can end up in weird situations, like
-               ;; trying to parse a mutation error condition as an
-               ;; alist of ASTS.
-               (clang-mutate obj
-                 (list* :json
-                        (cons :fields *clang-json-required-fields*)
-                        (cons :aux *clang-json-required-aux*)
-                        clang-mutate-args))
-             (mutate (err) (declare (ignorable err)) nil))))
-      (setf asts
-            (coerce (remove-if-not {aget :counter} json-db) 'vector)
-            prototypes
-            (coerce (remove-if-not {aget :body} json-db) 'vector))))
+  ;; TODO: Set `types' on instantiation, figure out exactly what we're
+  ;;       doing with type hashes.
+  (with-slots (asts header-asts prototypes genome) obj
+    ;; incorporate ASTs.
+    (iter (for ast in (handler-case
+                          (clang-mutate obj
+                            (list* :json
+                                   (cons :fields *clang-json-required-fields*)
+                                   (cons :aux *clang-json-required-aux*)
+                                   clang-mutate-args))
+                        ;; If clang-mutate errors return a dummy
+                        ;; failure AST.
+                        (mutate (err)
+                          (declare (ignorable err))
+                          (warn "Couldn't parse due to error.")
+                          '((:counter . 0) (:ast-class "Failure")))))
+          (if (aget :counter ast)
+              (collect ast into body)
+              (collect ast into head))
+          (when (aget :body ast)
+            (collect ast into protos))
+          (finally (setf asts (coerce body 'vector)
+                         header-asts head
+                         prototypes (coerce protos 'vector)))))
   obj)
+
+(defmethod update-header ((obj clang) &key)
+  (with-slots (asts header-asts) obj
+    ;; Program header.
+    (mapc (lambda (ast)                      ; Types.
+            (add-type obj (cons (aget :hash ast) (aget :src-text ast))))
+          (remove-if-not #'ast-type-p header-asts))
+    ;; TODO: This requires actual macro capture by clang-mutate, not
+    ;;       simply grabbing macros from ASTs.  For reasons why see
+    ;;       the `clang-headers-parsed-in-order' test.
+    (mapc [{mapc {apply #'add-macro obj}} {aget :macros}] asts) ; Macros.
+    (mapc [{mapc {add-include obj}} {aget :includes}] asts))) ; Includes.
+
+(defmethod update-body ((obj clang) &key)
+  ;; Program body.
+  ;;
+  ;; Generate the bulk of the program text by joining all global
+  ;; declarations (including functions) together in the same order
+  ;; they originally appeared.
+  (setf (genome-string obj)
+        (mapconcat {aget :decl-text}
+                   (sort
+                    (remove-if-not {aget :decl-text} (asts obj))
+                    (lambda (x y)
+                      (or (< (first x) (first y))
+                          (and (= (first x) (first y))
+                               (< (second x) (second y)))))
+                    :key «{aget :begin-src-line} {aget :begin-src-col}»)
+                   (string #\Newline))))
 
 (defgeneric from-file-exactly (software path)
   (:documentation
@@ -419,11 +487,38 @@ software object"))
 (defgeneric from-string-exactly (software string)
   (:documentation
    "Create a clang software object from a given C file's string representation.
-The software object's genome will exactly the input file's contents,
-but no parsing will occur."))
+The software object's genome will exactly match the input file's
+contents aside from some simple transformations to ease downstream
+processing.
 
-(defmethod from-string-exactly ((obj clang) string)
-  (setf (genome-string obj) string)
+Currently the only such transformation is to split variable
+declarations onto multiple lines to ease subsequent decl mutations."))
+
+(defmethod from-string-exactly ((obj clang) string &aux (index 0))
+  ;; TODO: Improve clang-mutate so we no longer need this hack.
+  ;; Find every probable multi-variable declaration, then split.
+  (let ((regex "[{};]\\s*\\n\\s*(\\w+\\s+)([\\w\\s]+,[\\w\\s,]+);\\s*\\n"))
+    (iter (for (values match-start match-end match-type match-vars)
+               = (scan regex string :start index))
+          (while match-end)
+          ;; C has strict limits on valid strings, so we don't have to
+          ;; worry about being in side of a string.
+          (concatenating
+           (concatenate 'string
+             (subseq string index (aref match-type 0))
+             (let ((type
+                    (subseq string
+                            (aref match-type 0)
+                            (aref match-type 1))))
+               (mapconcat {concatenate 'string type " "}
+                          (split-sequence #\Comma
+                            (subseq string (aref match-vars 0)
+                                    (aref match-vars 1)))
+                          (coerce (list #\Semicolon #\Newline) 'string))))
+           into out-str)
+          (setf index (aref match-vars 1))
+          (finally (setf (genome-string obj)
+                         (concatenate 'string out-str (subseq string index))))))
   obj)
 
 (defgeneric ast-type-p (ast)
@@ -439,43 +534,29 @@ but no parsing will occur."))
 (defmethod from-string ((obj clang) string)
   ;; Load the raw string and generate a json database
   (from-string-exactly obj string)
-  (let ((json-db (clang-mutate obj (list :json))))
-    ;; Program header.
-    (mapc {add-type obj } (remove-if-not #'ast-type-p json-db))    ; Types.
-    ;; TODO: This requires actual macro capture by clang-mutate, not
-    ;;       simply grabbing macros from ASTs.  For reasons why see
-    ;;       the `clang-headers-parsed-in-order' test.
-    (mapc [{mapc {apply #'add-macro obj}} {aget :macros}] json-db) ; Macros.
-    (mapc [{mapc {add-include obj}} {aget :includes}] json-db)     ; Includes.
-    ;; Program body.
-    ;;
-    ;; Generate the bulk of the program text by joining all global
-    ;; declarations (including functions) together in the same order
-    ;; they originally appeared.
-    (setf (genome-string obj)
-          (mapconcat {aget :decl-text}
-                     (sort
-                      (remove-if-not {aget :decl-text} json-db)
-                      (lambda (x y)
-                        (or (< (first x) (first y))
-                            (and (= (first x) (first y))
-                                 (< (second x) (second y)))))
-                      :key «{aget :begin-src-line} {aget :begin-src-col}»)
-                     (string #\Newline))))
   obj)
 
 (defmethod asts ((obj clang))
   (with-slots (asts) obj
+    (unless asts (update-asts obj))
     (coerce asts 'list)))
 
 (defmethod (setf asts) (new (obj clang))
   (with-slots (asts) obj (setf asts new)))
 
 (defmethod get-ast ((obj clang) (id integer))
-  (with-slots (asts) obj (aref asts (1- id))))
+  (with-slots (asts) obj
+    (unless asts (update-asts obj))
+    (aref asts (1- id))))
+
+(defmethod header-asts ((obj clang))
+  (with-slots (asts header-asts) obj
+    (unless asts (update-asts obj))
+    header-asts))
 
 (defmethod prototypes ((obj clang))
-  (with-slots (prototypes) obj
+  (with-slots (asts prototypes) obj
+    (unless asts (update-asts obj))
     (coerce prototypes 'list)))
 
 (defmethod recontextualize ((clang clang) snippet pt)
@@ -679,19 +760,6 @@ already in scope, it will keep that name.")
                           (remove-if-not [{member _ (list :stmt1 :stmt2)} #'car]
                                          (remove-if-not #'consp (targets op)))))))
 
-(defvar *clang-genome-separator* "//===============^=================="
-  "String used to separate the headers and full portions of a clang genome.")
-
-(defun extract-clang-genome (full-genome)
-  "If FULL-GENOME contains the magic separator return only the genome after.
-Otherwise return the whole FULL-GENOME"
-  ;; NOTE: This could potentially be faster if defined using cl-ppcre.
-  (let* ((lines (split-sequence #\Newline full-genome))
-         (at (position *clang-genome-separator* lines :test #'string=)))
-    (if at
-        (unlines (subseq lines (1+ at)))
-        full-genome)))
-
 (defun mutation-op-to-cmd (tu op)
   (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
            (str (tag) (json:encode-json-to-string (aget tag (cdr op)))))
@@ -857,7 +925,7 @@ Otherwise return the whole FULL-GENOME"
                            :text "JSON decode error"
                            :obj obj :op op)))))
              ((:ids :list) (file-to-string clang-mutate-outfile))
-             (t (extract-clang-genome (file-to-string clang-mutate-outfile))))
+             (t (file-to-string clang-mutate-outfile)))
            exit))
       ;; Cleanup forms.
       (when (probe-file clang-mutate-outfile)
@@ -911,11 +979,16 @@ Otherwise return the whole FULL-GENOME"
 
 (defmacro define-ast-number-or-nil-default-dispatch (symbol &rest additional)
   "Define default dispatch for clang ast methods when ast is an integer or nil."
-  `(progn
-     (defmethod ,symbol ((obj clang) (ast integer) ,@additional)
-       (unless (zerop ast)
-         (,symbol obj (get-ast obj ast) ,@(mapcar #'car additional))))
-     (defmethod ,symbol ((obj clang) (ast (eql nil)) ,@additional) nil)))
+  (let ((additional-args
+         (mapcar (lambda (a) (if (listp a) (car a) a))
+                 (remove-if {member _ '(&optional &key)} additional))))
+    `(progn
+       (defmethod ,symbol ((obj clang) (ast integer) ,@additional)
+         (unless (zerop ast)
+           (,symbol obj (get-ast obj ast) ,@additional-args)))
+       (defmethod ,symbol ((obj clang) (ast (eql nil)) ,@additional)
+         (declare (ignorable ,@additional-args))
+         nil))))
 
 (define-ast-number-or-nil-default-dispatch get-parent-ast)
 (defmethod get-parent-ast ((obj clang) (ast list))
@@ -1186,7 +1259,8 @@ statement was added to create a full statement."))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet type-database)
   (mapc {add-include clang} (aget :includes snippet))
-  (mapc {add-type clang} (aget :types snippet))
+  (mapc [{add-type clang} {find-types type-database :hash}]
+        (aget :types snippet))
   (mapc {apply #'add-macro clang} (aget :macros snippet))
   snippet)
 
@@ -1194,37 +1268,13 @@ statement was added to create a full statement."))
   (remove-if (lambda (x) (string= x ""))
              (split-sequence #\Newline text)))
 
-(defmethod get-vars-in-scope ((clang clang) pt &optional keep-globals)
-  (gethash 0 (get-indexed-vars-in-scope clang pt keep-globals)))
-
-(defmethod get-indexed-vars-in-scope ((clang clang) pt &optional keep-globals)
-  (let ((index-table (make-hash-table :test 'equal))
-        (max-index 0))
-    (when (and pt (< 0 pt))
-      (loop :for scope :in (aget :scopes (get-ast clang pt))
-         :as index :from 0
-         :do (setf (gethash index index-table) scope
-                   max-index index)))
-    ;; Merge variables downward, so that every index-1 variable appears in
-    ;; the index-0 list etc. Don't merge the outermost scope; we only want
-    ;; to draw from the global scope in special cases.
-    (when (and (< 1 max-index) (not keep-globals))
-        (setf max-index (1- max-index)))
-    (loop :for index :from max-index :downto 1
-       :do (let ((vars-n (gethash index index-table))
-                 (vars-n-minus-1 (gethash (1- index) index-table)))
-             (setf (gethash (1- index) index-table)
-                   (concatenate 'list vars-n-minus-1 vars-n))))
-    index-table))
-
-(defun random-scoped-replacement (var in-scope)
-  ;; If the variable's original name matches the name of a variable in
-  ;; scope, keep the original name with probability equal to
-  ;; *matching-free-var-retains-name-bias*
-  (if (and (find (peel-bananas var) in-scope :test #'equal)
-           (< (random 1.0) *matching-free-var-retains-name-bias*))
-      (peel-bananas var)
-      (random-elt-with-decay in-scope *free-var-decay-rate*)))
+(defgeneric get-vars-in-scope (software ast &optional keep-globals)
+  (:documentation "Return all variables in enclosing scopes."))
+(define-ast-number-or-nil-default-dispatch get-vars-in-scope &optional keep-globals)
+(defmethod get-vars-in-scope ((obj clang) (ast list) &optional keep-globals)
+  (apply #'append (if keep-globals
+                      (butlast (aget :scopes ast))
+                      (aget :scopes ast))))
 
 (defvar *allow-bindings-to-globals-bias* 1/5
   "Probability that we consider the global scope when binding
@@ -1250,35 +1300,37 @@ free variables.")
         (random-elt (or matching variadic others '(nil))))))
 
 (defmethod bind-free-vars ((clang clang) snippet pt)
-  (let* ((raw-code    (aget :src-text snippet))
-         (respect-depth (aget :respect-depth snippet))
-         (scope-vars (get-indexed-vars-in-scope
-                      clang
-                      pt
-                      (random-bool :bias *allow-bindings-to-globals-bias*)))
-         free-vars free-funs)
-    (loop :for vars :in (aget :scope-removals snippet)
-       :do (setf (gethash (first vars) scope-vars)
-                 (remove-if {find _ (second vars) :test #'equal}
-                            (gethash (first vars) scope-vars nil))))
-    (loop :for vars :in (aget :scope-additions snippet)
-       :do (appendf (gethash (first vars) scope-vars) (second vars)))
+  (let ((scope-vars (aget :scopes (get-ast clang pt))))
 
-    (dolist (var (aget :unbound-vals snippet))
-      (pushnew var free-vars :test #'string=))
-    (dolist (fun (aget :unbound-funs snippet))
-      (pushnew fun free-funs :test #'string=))
+    (iter (for (scope vars) in (aget :scope-removals snippet))
+          (setf (nth scope scope-vars)
+                (remove-if {member _ vars :test #'string=}
+                           (nth scope scope-vars))))
+    (iter (for (scope vars) in (aget :scope-additions snippet))
+          (appendf (nth scope scope-vars) vars))
+
     (let ((replacements
            (append
             (mapcar
-             (lambda-bind ((var . index))
+             (lambda-bind ((var index))
                (cons var
-                     (or (random-scoped-replacement
-                          var
-                          (gethash (if respect-depth index 0) scope-vars))
-                         (format nil "/* no bound vars in scope at depth ~a */"
-                                 index))))
-             free-vars)
+                     ;; If the variable's original name matches the
+                     ;; name of a variable in scope, keep the original
+                     ;; name with probability equal to
+                     ;; *matching-free-var-retains-name-bias*
+                     (let ((in-scope
+                            (if (aget :respect-depth snippet)
+                                (nth index scope-vars)
+                                (apply #'append (drop index scope-vars)))))
+                       (or (when (and (< (random 1.0)
+                                         *matching-free-var-retains-name-bias*)
+                                      (find (peel-bananas var) in-scope
+                                            :test #'equal))
+                             (peel-bananas var))
+                           (random-elt-with-decay
+                            in-scope *free-var-decay-rate*)
+                           "/* no bound vars in scope */"))))
+             (aget :unbound-vals snippet))
             (mapcar
              (lambda-bind ((fun . fun-info))
                (cons fun
@@ -1287,8 +1339,8 @@ free variables.")
                           :original-name (peel-bananas fun)
                           :arity (third fun-info))
                          "/* no functions? */")))
-             free-funs))))
-      (values (apply-replacements replacements raw-code)
+             (aget :unbound-funs snippet)))))
+      (values (apply-replacements replacements (aget :src-text snippet))
               replacements))))
 
 (defun rebind-uses-in-snippet (snippet renames-list)
@@ -1296,42 +1348,59 @@ free variables.")
    (apply-replacements
     (mapcar (lambda (it)
               (let ((peeled (peel-bananas it)))
-                (cons it (aget peeled renames-list :test #'string=))))
+                (cons it (or (aget peeled renames-list :test #'string=)
+                             peeled))))
             (mapcar #'car
                     (append
                      (aget :unbound-vals snippet)
                      (aget :unbound-funs snippet))))
     (aget :src-text snippet))))
 
-(defmethod rebind-uses ((clang clang) stmt renames-list)
-  (if (equal (get-ast-class clang stmt) "CompoundStmt")
-      (format nil "{~%~{~a~%~}}~%"
-              (loop :for one-stmt
-                 :in (aget :stmt-list (get-ast clang stmt))
-                 :collecting
-                 (rebind-uses-in-snippet (get-ast clang one-stmt)
-                                         renames-list)))
-      (rebind-uses-in-snippet (get-ast clang stmt)
-                              renames-list)))
+(define-ast-number-or-nil-default-dispatch rebind-uses (renames-list list))
+(defmethod rebind-uses ((obj clang) (ast list) (renames-list list))
+  (if (string= (aget :ast-class ast) "CompoundStmt")
+      (iter (for id in (aget :stmt-list ast))
+            (concatenating
+             (rebind-uses-in-snippet (get-ast obj id) renames-list))
+            (concatenating (string #\Newline)))
+      (rebind-uses-in-snippet ast renames-list)))
 
-(defmethod delete-decl-stmts ((clang clang) the-block decl-replacements)
-  (let ((renames-list
-         (apply #'append
-                (mapcar (lambda (pair)
-                          (loop
-                             :for decl :in (aget :declares
-                                                 (get-ast clang (car pair)))
-                             :for var  :in (cdr pair)
-                             :collecting (cons decl var)))
-                        decl-replacements)))
-        (decls (mapcar #'car decl-replacements)))
-    (cons `(:set (:stmt1 . ,the-block)
-                 (:literal1 . ,(rebind-uses
-                                clang
-                                the-block
-                                renames-list)))
-          (loop :for decl :in (sort decls #'>)
-             :collecting `(:cut (:stmt1 . ,decl))))))
+(defgeneric delete-decl-stmts (software block replacements)
+  (:documentation
+   "Return mutation ops applying REPLACEMENTS to BLOCK in SOFTWARE.
+REPLACEMENTS is a list holding lists of an ID to replace, and the new
+variables to replace use of the variables declared in stmt ID."))
+
+(define-ast-number-or-nil-default-dispatch
+    delete-decl-stmts (replacements list))
+(defmethod delete-decl-stmts ((obj clang) (block list) (replacements list))
+  (append
+   ;; Remove the declaration.
+   (mapcar [{list :cut} {cons :stmt1} #'car] replacements)
+   ;; Rewrite those stmts in the BLOCK which use an old variable.
+   (let* ((old->new      ; First collect a map of old-name -> new-name.
+           (mappend (lambda-bind ((id . replacements))
+                      (mapcar #'cons
+                              (aget :declares (get-ast obj id))
+                              replacements))
+                    replacements))
+          (old (mapcar #'car old->new)))
+     ;; Collect statements using old
+     (-<>> (aget :stmt-list block)
+           (mapcar {get-ast obj})
+           (remove-if-not (lambda (ast)      ; Only Statements using old.
+                            (intersection
+                             (mapcar [#'peel-bananas #'car]
+                                     (append (aget :unbound-vals ast)
+                                             (aget :unbound-funs ast)))
+                             old :test #'string=)))
+           (sort <> #'> :key {aget :counter}) ; Bottom up.
+           (mapcar (lambda (ast)
+                     (list :set (cons :stmt1 (aget :counter ast))
+                           (cons :literal1
+                                 (peel-bananas
+                                  (apply-replacements
+                                   old->new (aget :src-text ast)))))))))))
 
 (defmethod get-declared-variables ((clang clang) the-block)
   (mappend [{aget :declares} {get-ast clang}]
@@ -1891,21 +1960,26 @@ VARIABLE-NAME should be declared in AST."))
 
 
 ;;; Clang methods
-(defmethod genome-string-without-separator ((obj clang))
-  (unlines (remove-if {string= *clang-genome-separator*}
-                      (split-sequence #\Newline (genome-string obj)))))
-
 (defmethod genome-string ((obj clang) &optional stream)
   ;; TODO: Print all header material sorted as organized in the
   ;;       original.
   (with-output-to-string (str)
-    (mapc {format (or stream str) "#include ~a~%"} (headers obj))
-    (mapc {format (or stream str) "#define ~a~%"} (mapcar #'cdr (macros obj)))
-    (mapc [{format (or stream str) "~a~%"} #'cdr] (types obj))
-    (mapc {format (or stream str) "~a~%"} (mapcar #'cdr (globals obj)))
-    (format (or stream str) "~a~%~a" *clang-genome-separator* (genome obj))))
+    ;; For now, just don't print any of the header information, it
+    ;; will all still be in the original genome.  At some point,
+    ;; update the add-(include|macro|type) functions, s.t., when the
+    ;; new top-level element *is* new, it is immediately added to the
+    ;; genome.
+    ;;
+    ;; (mapc {format (or stream str) "#include ~a~&"} (headers obj))
+    ;; (mapc {format (or stream str) "#define ~a~&"} (mapcar #'cdr (macros obj)))
+    ;; (mapc [{format (or stream str) "~a~&"} #'cdr] (types obj))
+    ;; (mapc {format (or stream str) "~a~&"} (mapcar #'cdr (globals obj)))
+    (format (or stream str) "~a~&" (genome obj))))
 
-(defmethod clang-tidy ((clang clang))
+(defgeneric clang-tidy (software)
+  (:documentation "Apply the software fixing command line, part of Clang."))
+
+(defmethod clang-tidy ((clang clang) &aux errno)
   (setf (genome-string clang)
         (with-temp-file-of (src (ext clang)) (genome-string clang)
           (multiple-value-bind (stdout stderr exit)
@@ -1931,34 +2005,37 @@ VARIABLE-NAME should be declared in AST."))
                src
                (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
-            (if (zerop exit) (file-to-string src) (genome-string clang))))))
+            (setf errno exit)
+            (if (zerop exit) (file-to-string src) (genome-string clang)))))
+  (values clang errno))
 
-(defmethod clang-format ((obj clang) &optional style)
+(defmethod clang-format ((obj clang) &optional style &aux errno)
   (setf (genome-string obj)
         (with-temp-file-of (src (ext obj)) (genome-string obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "clang-format ~a ~a"
-                (if style
-                    (format nil "-style=~a" style)
-                    (format nil
-                      "-style='{BasedOnStyle: Google,~
+                     (if style
+                         (format nil "-style=~a" style)
+                         (format nil
+                                 "-style='{BasedOnStyle: Google,~
                                 AllowShortBlocksOnASingleLine: false,~
                                 AllowShortCaseLabelsOnASingleLine: false,~
                                 AllowShortFunctionsOnASingleLine: false,~
                                 AllowShortIfStatementsOnASingleLine: false,~
                                 AllowShortLoopsOnASingleLine: false}'"))
-                src)
+                     src)
             (declare (ignorable stderr))
-            (if (zerop exit) stdout (genome-string obj))))))
+            (setf errno exit)
+            (if (zerop exit) stdout (genome-string obj)))))
+  (values obj errno))
 
 (defmethod (setf genome-string) (text (clang clang))
-  (setf (genome clang) (extract-clang-genome text)))
+  (setf (genome clang) text))
 
 (defmethod (setf genome-string) :around (text (obj clang))
-  (prog1
-    (call-next-method)
-    (setf (fitness obj) nil)
-    (update-asts obj)))
+  (prog1 (call-next-method)
+    (setf (fitness obj) nil
+          (asts obj) nil)))
 
 (defmethod lines ((obj clang))
   (split-sequence '#\Newline (genome-string obj)))

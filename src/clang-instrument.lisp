@@ -116,9 +116,8 @@
                               (aget :unbound-vals ast)))
           (let ((c-type (type-of-var obj var)))
             (when (member c-type +c-numeric-types+ :test #'string=)
-              (concatenate (format nil " (:~a . ~a)" var (fmt-code c-type))
-                into format
-                initial-value "(:V")
+              (concatenating (format nil " (:~a . ~a)" var (fmt-code c-type))
+                             into format initial-value "(:V")
               (collect var into vars)))
           (finally (return (cons (concatenate 'string format ")") vars))))))
 
@@ -151,10 +150,9 @@
   (setf obj
         (insert-at-entry obj (format nil "~a = fopen(~s, \"a\");~%"
                                      log-variable (namestring filename))))
-  ;; Insert the declaration at the very top of the file.
   (setf (genome obj)
         (concatenate 'string
-          (format nil "FILE *~a;~%" log-variable)
+          (format nil "#include <stdio.h>~%FILE *~a;~%" log-variable)
           (genome obj)))
   obj)
 

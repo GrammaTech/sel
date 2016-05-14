@@ -553,8 +553,12 @@
       (is (string= "BinaryOperator"     ; Else
                    (aget :ast-class (ast-with-text var "b = b - a"))))
       ;; Wrap children and ensure changes are made.
-      (setf var (wrap-child var 56 1))
-      (setf var (wrap-child var 56 2))
+      (let ((if-counter
+             (aget :counter
+                   (second (remove-if-not [{string= "IfStmt"} {aget :ast-class}]
+                                          (asts var))))))
+        (setf var (wrap-child var if-counter 1))
+        (setf var (wrap-child var if-counter 2)))
       (is (string= "BinaryOperator"     ; Guard
                    (aget :ast-class (ast-with-text var "a > b"))))
       (is (string= "CompoundStmt"       ; Then
@@ -578,6 +582,10 @@
       (is (aget :full-stmt full-parent))
       (is (scan (quote-meta-chars "a = a - b")
                 (peel-bananas (aget :src-text full-parent)))))))
+
+(deftest split-multi-var-decls-on-clang ()
+  (with-fixture gcd-clang
+    (is (not (scan "double a,b,c;" (genome-string *gcd*))))))
 
 (deftest get-make-full-parent-works-when-not-making-new-parent-test ()
   (with-fixture gcd-clang
@@ -798,7 +806,9 @@
            '(clang-swap clang-swap-full clang-swap-same
              clang-swap-full-same))
           ;; Avoid swapping the function body
-          (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast-class}]
+          (*bad-asts* (remove-if [{member _  '("CompoundStmt" "Function")
+                                          :test #'string=}
+                                  {aget :ast-class}]
                                  (asts *hello-world*)))
           (*decl-mutation-bias* 0.0)
           (*clang-full-stmt-bias* 1.0)
@@ -911,12 +921,15 @@
       (is (= (size variant)
              (size *hello-world*))))))
 
-(deftest format-a-clang-software-object()
-  (let ((obj (from-file (make-instance 'clang :compiler "clang-3.7"
-                         :flags '("-g -m32 -O0"))
-                        (clang-format-dir "unformatted.c"))))
-    (is (string= (genome-string-without-separator (clang-format obj))
-                 (file-to-string (clang-format-dir "formatted.c"))))))
+(deftest format-a-clang-software-object ()
+  (flet ((run (obj)
+           (with-temp-file (bin)
+             (phenome obj :bin bin)
+             (shell bin))))
+    (with-fixture hello-world-clang
+      (multiple-value-bind (obj errno) (clang-format (copy *hello-world*))
+        (is (zerop errno))
+        (is (string= (run *hello-world*) (run obj)))))))
 
 
 ;;; Range representation
@@ -1298,10 +1311,11 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text variant text-1))
                     (cons :stmt2
                           (stmt-with-text variant text-2)))))
-      ;; Each element should contain the text of one of the swapped pieces.
+      ;; Each element should contain the text of one of the swapped
+      ;; pieces with possibly different variable names.
       (every-is {scan (create-scanner (list :alternation text-1 text-2))}
                 (remove-if
-                 (<or> {string= ""} {string= *clang-genome-separator*})
+                 {string= ""}
                  (mapcar [{apply #'concatenate 'string}
                           {mapcar {apply #'concatenate 'string}}]
                          ;; Collect the differences between the
@@ -1337,16 +1351,13 @@ Useful for printing or returning differences in the REPL."
       ;; Original and modified strings of the difference.
       (destructuring-bind (original modified)
           (mapcar {apply #'concatenate 'string}
-                  (first (remove-if
-                          [{string= *clang-genome-separator*}
-                           #'cadadr]
-                          (mapcar {diff-strings (lines *huf*) (lines variant)}
-                                  (remove-if-not
-                                   [{equal 'diff:modified-diff-region}
-                                    #'type-of]
-                                   (diff::compute-raw-seq-diff
-                                    (lines *huf*)
-                                    (lines variant)))))))
+                  (first (mapcar {diff-strings (lines *huf*) (lines variant)}
+                                 (remove-if-not
+                                  [{equal 'diff:modified-diff-region}
+                                   #'type-of]
+                                  (diff::compute-raw-seq-diff
+                                   (lines *huf*)
+                                   (lines variant))))))
         (let ((size-o (length original))
               (size-m (length modified))
               (non-whitespace-orig
@@ -1619,8 +1630,8 @@ Useful for printing or returning differences in the REPL."
 
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
-    (let ((ast (get-ast *scopes*
-                        (stmt-with-text *scopes* "int f, g"))))
+    (when-let* ((it (stmt-with-text *scopes* "int f, g"))
+                (ast (get-ast *scopes* id)))
       (is (= 2 (length (aget :declares ast)))))))
 
 (deftest delete-decl-stmts-works ()
@@ -1639,10 +1650,9 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
-    (let ((variant (copy *scopes*)))
-      (apply-mutation
-          variant
-        `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int f, g"))))
+    (when-let* ((variant (copy *scopes*))
+                (id (stmt-with-text *scopes* "int f, g")))
+      (apply-mutation variant `(cut-decl (:stmt1 . ,id)))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))

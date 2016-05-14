@@ -64,7 +64,7 @@ expression match.")
 
 ;;; Resolve missing functions by adding #includes.
 (defmethod resolve-function ((obj clang) match-data)
-  (mapc {add-include obj} (resolve-function-headers (aref match-data 2)))
+  (mapc {add-include obj} (resolve-function-includes (aref match-data 2)))
   obj)
 
 (register-fixer
@@ -77,71 +77,73 @@ expression match.")
                                            variable-name-index
                                            (obj clang-w-fodder)
                                            match-data)
-  ;; TODO: For now we'll just synthesize a random instantiation, in
-  ;;       the future we should pull variable names from DeclStmt's,
-  ;;       and grab a DeclStmt, possibly of a particular type.
-  (let ((line-number (parse-integer (aref match-data line-number-index)))
-        (variable-name (aref match-data variable-name-index))
-        (lines (lines obj))
-        ;; TODO: fix this very incomplete list of possible types.
-        (types (mappend (lambda (type)
-                          (list type type (concatenate 'string type "* ")))
-                        '("int"
-                          "unsigned"
-                          "long"
-                          "unsigned long"
-                          "char"))))
-    ;; Insert a declaration.
-    (setf (lines obj)
-          (append (take (1- line-number) lines)
-                  (list (format nil "~a ~a;" (random-elt types) variable-name))
-                  (drop (1- line-number) lines)))
-    ;; Find the ID of the declaration.
-    (let* ((decl-stmt-id
-            (aget :counter
-                  (car (remove-if-not (lambda (snippet)
-                                        (and (string= (aget :ast-class snippet)
-                                                      "DeclStmt")
-                                             (= (aget :begin-src-line snippet)
-                                                line-number)))
-                                      (asts obj)))))
-           (binary-assignment-fodder
-            (random-elt
-             (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
-                            (find-snippets *database*
-                                           :classes (list "BinaryOperator")
-                                           :limit 512))))
-           ;; Find the "assigned-to" free-variable.
-           (assigned-variable
-            (multiple-value-bind (matchp match-data)
-                (scan-to-strings "(\\(\\|\\w+\\|\\)) = "
-                                 (aget :src-text binary-assignment-fodder))
-              (assert matchp (binary-assignment-fodder)
-                      "Assignment fodder should assign to a free variable.")
-              (aref match-data 0)))
-           (scope-vars (get-vars-in-scope obj decl-stmt-id)))
-      ;; Insert a BinaryOperator assignment after the DeclStmt binding
-      ;; its first free variable to the newly declared variable.
-      (when decl-stmt-id
-        (apply-mutation obj
-          (list 'clang-insert (cons :stmt1 (1+ decl-stmt-id))
-                (cons :literal1
-                      (concatenate 'string
-                        (apply-replacements
-                         (cons
-                          (cons assigned-variable variable-name)
-                          (mapcar
-                           (lambda (val-scope-pair)
-                             (cons (car val-scope-pair)
-                                   (or (random-elt-with-decay scope-vars 0.5)
-                                       "/* no bound vars */")))
-                           (remove-if [{string= assigned-variable} #'car]
-                                      (aget :unbound-vals
-                                            binary-assignment-fodder))))
-                         (aget :src-text binary-assignment-fodder))
-                        (string #+ccl #\;
-                                #-ccl #\Semicolon)
-                        (string #\Newline)))))))))
+  (flet ((random-type ()
+           (random-elt ; TODO: More types.
+            (mappend (lambda (type)
+                       (list type type (concatenate 'string type "* ")))
+                     
+                     +c-numeric-types+))))
+    ;; TODO: For now we'll just synthesize a random instantiation, in
+    ;;       the future we should pull variable names from DeclStmt's,
+    ;;       and grab a DeclStmt, possibly of a particular type.
+    (let ((line-number (parse-integer (aref match-data line-number-index)))
+          (variable-name (aref match-data variable-name-index))
+          (lines (lines obj)))
+      ;; Insert a declaration.
+      (setf (lines obj)
+            (append (take (1- line-number) lines)
+                    (list (format nil "~a ~a;" (random-type) variable-name))
+                    (drop (1- line-number) lines)))
+      ;; Find the ID of the declaration.
+      (let* ((decl-stmt-id
+              (aget :counter
+                    (find-if (lambda (snippet)
+                               (and (string= (aget :ast-class snippet)
+                                             "DeclStmt")
+                                    (= (aget :begin-src-line snippet)
+                                       line-number)))
+                             (asts obj))))
+             (binary-assignment-fodder
+              (random-elt
+               (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
+                              (find-snippets *database*
+                                :classes (list "BinaryOperator")
+                                :limit 512))))
+             ;; Find the "assigned-to" free-variable.
+             (assigned-variable
+              (multiple-value-bind (matchp match-data)
+                  (scan-to-strings "(\\(\\|\\w+\\|\\)) = "
+                                   (aget :src-text binary-assignment-fodder))
+                (assert matchp (binary-assignment-fodder)
+                        "Assignment fodder should assign to a free variable.")
+                (aref match-data 0)))
+             (scope-vars (get-vars-in-scope obj decl-stmt-id)))
+        ;; Insert a BinaryOperator assignment after the DeclStmt binding
+        ;; its first free variable to the newly declared variable.
+        (when decl-stmt-id
+          (apply-mutation obj
+            (list 'clang-insert
+                  (cons :stmt1      ; First full statement after decl.
+                        (iter (for i upfrom (1+ decl-stmt-id))
+                              (when (aget :full-stmt (get-ast obj i))
+                                (return i))))
+                  (cons :literal1
+                        (concatenate 'string
+                          (apply-replacements
+                           (cons
+                            (cons assigned-variable variable-name)
+                            (mapcar
+                             (lambda (val-scope-pair)
+                               (cons (car val-scope-pair)
+                                     (or (random-elt-with-decay scope-vars 0.5)
+                                         "/* no bound vars */")))
+                             (remove-if [{string= assigned-variable} #'car]
+                                        (aget :unbound-vals
+                                              binary-assignment-fodder))))
+                           (aget :src-text binary-assignment-fodder))
+                          (string #+ccl #\;
+                                  #-ccl #\Semicolon)
+                          (string #\Newline))))))))))
 
 ;; For clang software objects with no fodder database,
 ;; just delete the offending line.
@@ -217,7 +219,7 @@ expression match.")
 ;; #include <stdint.h> when using types like int32_t.
 (defmethod require-stdint ((obj clang) match-data)
   (declare (ignorable match-data))
-  (add-include (mitochondria obj) "stdint.h"))
+  (add-include obj "stdint.h"))
 
 (register-fixer
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)(8|16|32|64)_t(’|')"
@@ -226,9 +228,9 @@ expression match.")
 ;; Macro definitions for int1_t, uint1_t
 (defmethod add-int1-macros ((obj clang) match-data)
   (declare (ignorable match-data))
-  (add-include (mitochondria obj) "stdint.h")
-  (add-macro   (mitochondria obj) "int1_t"  "int1_t int32_t")
-  (add-macro   (mitochondria obj) "uint1_t" "uint1_t uint32_t"))
+  (add-include obj "stdint.h")
+  (add-macro   obj "int1_t"  "int1_t int32_t")
+  (add-macro   obj "uint1_t" "uint1_t uint32_t"))
 
 (register-fixer
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"
