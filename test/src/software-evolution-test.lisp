@@ -10,10 +10,6 @@
   (enable-curry-compose-reader-macros))
 
 ;; Disable clang-format and any other helpers
-(defmacro without-helpers (&rest body)
-  `(let ((*clang-format-after-mutation-chance* 0.0))
-     ,@body))
-
 (defmacro every-is (function &rest lists)
   (let ((args-sym (gensym "args")))
     `(mapc (lambda (&rest ,args-sym)
@@ -299,37 +295,33 @@
 
 (deftest asm-cut-actually-shortens ()
   (with-fixture gcd-asm
-    (without-helpers
-        (let ((variant (copy *gcd*)))
-          (apply-mutation variant '(:cut 4))
-          (is (< (length (genome variant)) (length (genome *gcd*))))))))
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:cut 4))
+      (is (< (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-insertion-actually-lengthens ()
   (with-fixture gcd-asm
-    (without-helpers
-        (let ((variant (copy *gcd*)))
-          (apply-mutation variant '(:insert 4 8))
-          (is (> (length (genome variant)) (length (genome *gcd*))))))))
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:insert 4 8))
+      (is (> (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-swap-maintains-length ()
   (with-fixture gcd-asm
-    (without-helpers
-        (let ((variant (copy *gcd*)))
-          (apply-mutation variant '(:swap 4 8))
-          (is (not (tree-equal (genome variant) (genome *gcd*))))
-          (is (= (length (genome variant)) (length (genome *gcd*))))))))
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:swap 4 8))
+      (is (not (tree-equal (genome variant) (genome *gcd*))))
+      (is (= (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest simple-crossover-test ()
-  (without-helpers
-      (with-fixture gcd-asm
-        (let ((variant (copy *gcd*)))
-          (apply-mutation variant '(:cut 0))
-          ;; (push '(:cut 0) (edits variant))
-          (let ((new (crossover variant *gcd*)))
-            (is (not (tree-equal (genome new) (genome *gcd*))))
-            ;; (is (some [{equal :crossover} #'car] (edits new)))
-            ;; (is (some [{equal :cut} #'caar] (second (edits new))))
-            )))))
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant '(:cut 0))
+      ;; (push '(:cut 0) (edits variant))
+      (let ((new (crossover variant *gcd*)))
+        (is (not (tree-equal (genome new) (genome *gcd*))))
+        ;; (is (some [{equal :crossover} #'car] (edits new)))
+        ;; (is (some [{equal :cut} #'caar] (second (edits new))))
+        ))))
 
 
 ;;; ELF representation
@@ -467,64 +459,60 @@
 
 (deftest can-apply-mutation-w-value1 ()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let* ((variant (copy *hello-world*))
-               (stmt1 (stmt-with-text variant
-                                      "printf(\"Hello, World!\\n\")")))
-          (apply-mutation variant
-                          `(clang-replace
-                            (:stmt1 . ,stmt1)
-                            (:value1 . ((:src-text . "/* FOO */")))))
-          (is (different-asts (asts variant) (asts *hello-world*)))
-          (is (not (equal (genome variant) (genome *hello-world*))))))))
+    (let* ((variant (copy *hello-world*))
+           (stmt1 (stmt-with-text variant
+                                  "printf(\"Hello, World!\\n\")")))
+      (apply-mutation variant
+        `(clang-replace
+          (:stmt1 . ,stmt1)
+          (:value1 . ((:src-text . "/* FOO */")))))
+      (is (different-asts (asts variant) (asts *hello-world*)))
+      (is (not (equal (genome variant) (genome *hello-world*)))))))
 
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let* ((variant (copy *hello-world*))
-               (stmt1 (stmt-with-text variant
-                                      "printf(\"Hello, World!\\n\")")))
-          (apply-mutation variant `(clang-cut (:stmt1 . ,stmt1)))
-          (is (different-asts (asts variant)
-                              (asts *hello-world*)))
-          (is (not (equal (genome variant)
-                          (genome *hello-world*))))
-          (is (< (size variant)
-                 (size *hello-world*)))))))
+    (let* ((variant (copy *hello-world*))
+           (stmt1 (stmt-with-text variant
+                                  "printf(\"Hello, World!\\n\")")))
+      (apply-mutation variant `(clang-cut (:stmt1 . ,stmt1)))
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
+      (is (< (size variant)
+             (size *hello-world*))))))
 
 (deftest insert-lengthens-a-clang-software-object()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let ((variant (copy *hello-world*))
-              (stmt1 (stmt-with-text *hello-world*
-                                     "printf(\"Hello, World!\\n\")"))
-              (stmt2 (stmt-with-text *hello-world*
-                                     "return 0")))
-          (apply-mutation variant
-                          `(clang-insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
-          (is (different-asts (asts variant)
-                              (asts *hello-world*)))
-          (is (not (equal (genome variant)
-                          (genome *hello-world*))))
-          (is (> (size variant)
-                 (size *hello-world*)))))))
+    (let ((variant (copy *hello-world*))
+          (stmt1 (stmt-with-text *hello-world*
+                                 "printf(\"Hello, World!\\n\")"))
+          (stmt2 (stmt-with-text *hello-world*
+                                 "return 0")))
+      (apply-mutation variant
+        `(clang-insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
+      (is (> (size variant)
+             (size *hello-world*))))))
 
 (deftest swap-changes-a-clang-software-object()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let ((variant (copy *hello-world*))
-              (stmt1 (stmt-with-text *hello-world*
-                                     "printf(\"Hello, World!\\n\")"))
-              (stmt2 (stmt-with-text *hello-world*
-                                     "return 0")))
-          (apply-mutation variant
-                          `(clang-swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
-          (is (different-asts (asts variant)
-                              (asts *hello-world*)))
-          (is (not (equal (genome variant)
-                          (genome *hello-world*))))
-          (is (= (size variant)
-                 (size *hello-world*)))))))
+    (let ((variant (copy *hello-world*))
+          (stmt1 (stmt-with-text *hello-world*
+                                 "printf(\"Hello, World!\\n\")"))
+          (stmt2 (stmt-with-text *hello-world*
+                                 "return 0")))
+      (apply-mutation variant
+        `(clang-swap (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
+      (is (= (size variant)
+             (size *hello-world*))))))
 
 (deftest crossover-clang-software-object-do-not-crash()
   (with-fixture hello-world-clang
@@ -610,224 +598,211 @@
 
 (deftest cut-full-removes-full-stmt ()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let ((software-evolution::*clang-mutation-types*
-               '(clang-cut clang-cut-full clang-cut-same clang-cut-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (< (count-if {aget :full-stmt} (asts variant))
-                 (count-if {aget :full-stmt} (asts *hello-world*))))))))
+    (let ((software-evolution::*clang-mutation-types*
+           '(clang-cut clang-cut-full clang-cut-same clang-cut-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (< (count-if {aget :full-stmt} (asts variant))
+             (count-if {aget :full-stmt} (asts *hello-world*)))))))
 
 (deftest cut-removes-non-full-stmt ()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let ((software-evolution::*clang-mutation-types*
-               '(clang-cut clang-cut-full clang-cut-same clang-cut-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 0.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (< (count-if-not {aget :full-stmt} (asts variant))
-                 (count-if-not {aget :full-stmt} (asts *hello-world*))))))))
+    (let ((software-evolution::*clang-mutation-types*
+           '(clang-cut clang-cut-full clang-cut-same clang-cut-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 0.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (< (count-if-not {aget :full-stmt} (asts variant))
+             (count-if-not {aget :full-stmt} (asts *hello-world*)))))))
 
 (deftest insert-full-adds-full-stmt ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((software-evolution::*clang-mutation-types*
-               '(clang-insert clang-insert-full
-                 clang-insert-same clang-insert-full-same))
-              (*bad-asts* (asts-with-text *hello-world* "return 0"))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (*clang-same-class-bias* 0.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (> (count-if {aget :full-stmt} (asts variant))
-                 (count-if {aget :full-stmt} (asts *hello-world*))))))))
+    (let ((software-evolution::*clang-mutation-types*
+           '(clang-insert clang-insert-full
+             clang-insert-same clang-insert-full-same))
+          (*bad-asts* (asts-with-text *hello-world* "return 0"))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (*clang-same-class-bias* 0.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (> (count-if {aget :full-stmt} (asts variant))
+             (count-if {aget :full-stmt} (asts *hello-world*)))))))
 
 (deftest insert-adds-non-full-stmt ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world* "printf"))
-              (*good-asts* (asts-with-text *hello-world* "printf"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-insert clang-insert-full
-                 clang-insert-same clang-insert-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 0.0)
-              (*clang-same-class-bias* 0.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (stmt-with-text variant "printfprintf"))))))
+    (let ((*bad-asts* (asts-with-text *hello-world* "printf"))
+          (*good-asts* (asts-with-text *hello-world* "printf"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-insert clang-insert-full
+             clang-insert-same clang-insert-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 0.0)
+          (*clang-same-class-bias* 0.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (stmt-with-text variant "printfprintf")))))
 
 (deftest insert-same-adds-same-class ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world* "0"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-insert clang-insert-full
-                 clang-insert-same clang-insert-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 0.0)
-              (*clang-same-class-bias* 1.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (stmt-with-text variant "00"))))))
+    (let ((*bad-asts* (asts-with-text *hello-world* "0"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-insert clang-insert-full
+             clang-insert-same clang-insert-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 0.0)
+          (*clang-same-class-bias* 1.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (stmt-with-text variant "00")))))
 
 (deftest insert-full-same-adds-same-class-full-stmt ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-insert clang-insert-full
-                 clang-insert-same clang-insert-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (*clang-same-class-bias* 1.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (> (count-if [{equal "ReturnStmt"} {aget :ast-class}]
-                           (asts variant))
-                 (count-if [{equal "ReturnStmt"} {aget :ast-class}]
-                           (asts *hello-world*))))))))
+    (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-insert clang-insert-full
+             clang-insert-same clang-insert-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (*clang-same-class-bias* 1.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (> (count-if [{equal "ReturnStmt"} {aget :ast-class}]
+                       (asts variant))
+             (count-if [{equal "ReturnStmt"} {aget :ast-class}]
+                       (asts *hello-world*)))))))
 
 (deftest replace-changes-non-full-stmt ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world* "0"))
-              (*good-asts* (asts-with-text *hello-world* "printf"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-replace clang-replace-full
-                 clang-replace-same clang-replace-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 0.0)
-              (*clang-same-class-bias* 0.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (stmt-with-text variant "return printf"))))))
+    (let ((*bad-asts* (asts-with-text *hello-world* "0"))
+          (*good-asts* (asts-with-text *hello-world* "printf"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-replace clang-replace-full
+             clang-replace-same clang-replace-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 0.0)
+          (*clang-same-class-bias* 0.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (stmt-with-text variant "return printf")))))
 
 (deftest replace-full-changes-full-stmt ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
-              (*good-asts* (asts-with-text *hello-world*
-                                           "0" "printf(\"Hello, World!\\n\")"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-replace clang-replace-full
-                 clang-replace-same clang-replace-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (*clang-same-class-bias* 0.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (> (count-if [{equal "CallExpr"} {aget :ast-class}]
-                           (asts variant))
-                 (count-if [{equal "CallExpr"} {aget :ast-class}]
-                           (asts *hello-world*))))))))
+    (let ((*bad-asts* (asts-with-text *hello-world* "printf" "return 0"))
+          (*good-asts* (asts-with-text *hello-world*
+                                       "0" "printf(\"Hello, World!\\n\")"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-replace clang-replace-full
+             clang-replace-same clang-replace-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (*clang-same-class-bias* 0.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (> (count-if [{equal "CallExpr"} {aget :ast-class}]
+                       (asts variant))
+             (count-if [{equal "CallExpr"} {aget :ast-class}]
+                       (asts *hello-world*)))))))
 
 (deftest replace-same-changes-same-class ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world* "\"Hello, World!\\n\""))
-              (*good-asts* (asts-with-text *hello-world*
-                                           "0" "printf"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-replace clang-replace-full
-                 clang-replace-same clang-replace-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 0.0)
-              (*clang-same-class-bias* 1.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (stmt-with-text variant "printf(printf)"))))))
+    (let ((*bad-asts* (asts-with-text *hello-world* "\"Hello, World!\\n\""))
+          (*good-asts* (asts-with-text *hello-world*
+                                       "0" "printf"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-replace clang-replace-full
+             clang-replace-same clang-replace-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 0.0)
+          (*clang-same-class-bias* 1.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (stmt-with-text variant "printf(printf)")))))
 
 (deftest replace-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let ((software-evolution::*clang-mutation-types*
-               '(clang-replace clang-replace-full
-                 clang-replace-same clang-replace-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (*clang-same-class-bias* 1.0)
-              (variant (copy *hello-world*)))
-          (multiple-value-bind  (variant mutation) (mutate variant)
-            (is (aget :full-stmt
-                      (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-            (is (aget :full-stmt
-                      (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
+    (let ((software-evolution::*clang-mutation-types*
+           '(clang-replace clang-replace-full
+             clang-replace-same clang-replace-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (*clang-same-class-bias* 1.0)
+          (variant (copy *hello-world*)))
+      (multiple-value-bind  (variant mutation) (mutate variant)
+        (is (aget :full-stmt
+                  (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
+        (is (aget :full-stmt
+                  (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
 
-            ;; Not a very interesting test: this can only replace a
-            ;; statement with itself, but sometimes there are whitespace
-            ;; changes. Just compare AST classes to avoid spurious
-            ;; failures.
-            (is (equal (mapcar {aget :ast-class} (asts variant))
-                       (mapcar {aget :ast-class} (asts *hello-world*)))))))))
+        ;; Not a very interesting test: this can only replace a
+        ;; statement with itself, but sometimes there are whitespace
+        ;; changes. Just compare AST classes to avoid spurious
+        ;; failures.
+        (is (equal (mapcar {aget :ast-class} (asts variant))
+                   (mapcar {aget :ast-class} (asts *hello-world*))))))))
 
 (deftest swap-changes-non-full-stmts ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((*bad-asts* (asts-with-text *hello-world*
-                                          "\"Hello, World!\\n\"" "0"))
-              (software-evolution::*clang-mutation-types*
-               '(clang-swap clang-swap-full
-                 clang-swap-same clang-swap-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 0.0)
-              (*clang-same-class-bias* 0.0)
-              (variant (copy *hello-world*)))
-          (mutate variant)
-          (is (stmt-with-text variant "\"Hello, World!\\n\""))
-          (is (stmt-with-text variant "0"))))))
+    (let ((*bad-asts* (asts-with-text *hello-world*
+                                      "\"Hello, World!\\n\"" "0"))
+          (software-evolution::*clang-mutation-types*
+           '(clang-swap clang-swap-full
+             clang-swap-same clang-swap-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 0.0)
+          (*clang-same-class-bias* 0.0)
+          (variant (copy *hello-world*)))
+      (mutate variant)
+      (is (stmt-with-text variant "\"Hello, World!\\n\""))
+      (is (stmt-with-text variant "0")))))
 
 (deftest swap-full-changes-full-stmts ()
   (with-fixture hello-world-clang-control-picks
-    (without-helpers
-        (let ((software-evolution::*clang-mutation-types*
-               '(clang-swap clang-swap-full clang-swap-same
-                 clang-swap-full-same))
-              ;; Avoid swapping the function body
-              (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast-class}]
-                                     (asts *hello-world*)))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (*clang-same-class-bias* 0.0)
-              (variant (copy *hello-world*)))
+    (let ((software-evolution::*clang-mutation-types*
+           '(clang-swap clang-swap-full clang-swap-same
+             clang-swap-full-same))
+          ;; Avoid swapping the function body
+          (*bad-asts* (remove-if [{equal "CompoundStmt"} {aget :ast-class}]
+                                 (asts *hello-world*)))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (*clang-same-class-bias* 0.0)
+          (variant (copy *hello-world*)))
 
-          (multiple-value-bind  (variant mutation) (mutate variant)
-            ;; We can't predict exactly what will be swapped. Just
-            ;; sanity check.
-            (is (aget :full-stmt
-                      (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-            (is (aget :full-stmt
-                      (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
-            (is (stmt-with-text variant "printf"))
-            (is (stmt-with-text variant "return 0")))))))
+      (multiple-value-bind  (variant mutation) (mutate variant)
+        ;; We can't predict exactly what will be swapped. Just
+        ;; sanity check.
+        (is (aget :full-stmt
+                  (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
+        (is (aget :full-stmt
+                  (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
+        (is (stmt-with-text variant "printf"))
+        (is (stmt-with-text variant "return 0"))))))
 
 (deftest swap-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
-    (without-helpers
-        (let ((software-evolution::*clang-mutation-types*
-               '(clang-swap clang-swap-full clang-swap-same
-                 clang-swap-full-same))
-              (*decl-mutation-bias* 0.0)
-              (*clang-full-stmt-bias* 1.0)
-              (*clang-same-class-bias* 1.0)
-              (variant (copy *hello-world*)))
-          (multiple-value-bind  (variant mutation) (mutate variant)
-            (is (aget :full-stmt
-                      (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-            (is (aget :full-stmt
-                      (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
+    (let ((software-evolution::*clang-mutation-types*
+           '(clang-swap clang-swap-full clang-swap-same
+             clang-swap-full-same))
+          (*decl-mutation-bias* 0.0)
+          (*clang-full-stmt-bias* 1.0)
+          (*clang-same-class-bias* 1.0)
+          (variant (copy *hello-world*)))
+      (multiple-value-bind  (variant mutation) (mutate variant)
+        (is (aget :full-stmt
+                  (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
+        (is (aget :full-stmt
+                  (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
 
-            ;; Not a very interesting test: this can only swap a
-            ;; statement with itself, but sometimes there are whitespace
-            ;; changes. Just compare AST classes to avoid spurious
-            ;; failures.
-            (is (equal (mapcar {aget :ast-class} (asts variant))
-                       (mapcar {aget :ast-class} (asts *hello-world*)))))))))
+        ;; Not a very interesting test: this can only swap a
+        ;; statement with itself, but sometimes there are whitespace
+        ;; changes. Just compare AST classes to avoid spurious
+        ;; failures.
+        (is (equal (mapcar {aget :ast-class} (asts variant))
+                   (mapcar {aget :ast-class} (asts *hello-world*))))))))
 
 
 ;;; Clang w/ mutation fodder representation
@@ -855,27 +830,25 @@
 
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (without-helpers
-        (let ((variant (copy *hello-world*)))
-          (apply-mutation variant '(clang-insert (:stmt1 . 3)
-                                    (:literal1 . "int i = 0;")))
-          (is (> (size variant)
-                 (size *hello-world*)))
-          (is (string/= (genome variant)
-                        (genome *hello-world*)))))))
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant '(clang-insert (:stmt1 . 3)
+                                (:literal1 . "int i = 0;")))
+      (is (> (size variant)
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
 
 (deftest set-value-changes-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (without-helpers
-        (let ((variant (copy *hello-world*)))
-          (apply-mutation variant
-                          `(clang-replace
-                            (:stmt1 . ,(stmt-with-text variant "\"Hello, World!\\n\""))
-                            (:literal1 . "\"Hello, mutate!\"")))
-          (is (= (size variant)
-                 (size *hello-world*)))
-          (is (string/= (genome variant)
-                        (genome *hello-world*)))))))
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant
+        `(clang-replace
+          (:stmt1 . ,(stmt-with-text variant "\"Hello, World!\\n\""))
+          (:literal1 . "\"Hello, mutate!\"")))
+      (is (= (size variant)
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
 
 ;;; Clang utility methods
 (deftest asts-populated-on-creation ()
@@ -963,37 +936,34 @@
 
 (deftest some-range-cut-mutations ()
   (with-fixture range
-    (without-helpers
-        (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
-                        '((0 . 1) (1 . 1) (1 . 2))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
-                      '((0 . 1) (2 . 2))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
-                      '((0 . 0) (2 . 2))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
-                      '((0 . 0))))
-      (is (null (genome (apply-mutation *soft* '(:cut 0))))))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
+                    '((0 . 1) (1 . 1) (1 . 2))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
+                    '((0 . 1) (2 . 2))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
+                    '((0 . 0) (2 . 2))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
+                    '((0 . 0))))
+    (is (null (genome (apply-mutation *soft* '(:cut 0)))))))
 
 (deftest some-range-insert-mutations ()
   (with-fixture range
-    (without-helpers
-        (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
-                        '((2 . 2) (0 . 2) (1 . 1) (1 . 2))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 1)))
-                      '((2 . 2) (0 . 2) (1 . 1) (0 . 0) (1 . 2))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 2)))
-                      '((2 . 2) (0 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))
-      (is (tree-equal
-           (genome (apply-mutation *soft* '(:insert 2 1)))
-           '((2 . 2) (0 . 0) (0 . 0) (1 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2)))))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
+                    '((2 . 2) (0 . 2) (1 . 1) (1 . 2))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 1)))
+                    '((2 . 2) (0 . 2) (1 . 1) (0 . 0) (1 . 2))))
+    (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 2)))
+                    '((2 . 2) (0 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))
+    (is (tree-equal
+         (genome (apply-mutation *soft* '(:insert 2 1)))
+         '((2 . 2) (0 . 0) (0 . 0) (1 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))))
 
 (deftest some-range-swap-mutations ()
   (with-fixture range
-    (without-helpers
-        (apply-mutation *soft* '(:swap 0 2))
-      (is (tree-equal (lines *soft*)
-                      '("three" "two" "one" "two" "two" "three")
-                      :test #'string=)))))
+    (apply-mutation *soft* '(:swap 0 2))
+    (is (tree-equal (lines *soft*)
+                    '("three" "two" "one" "two" "two" "three")
+                    :test #'string=))))
 
 (deftest range-copy ()
   (with-fixture range (is (typep (copy *soft*) 'sw-range))))
@@ -1036,51 +1006,48 @@
 
 (deftest mutation-stats-notices-fitness-improvement ()
   (with-fixture hello-world-clang-w-fitness
-    (without-helpers
-      (evaluate *test* *hello-world*)
-      (is (numberp (fitness *hello-world*)))
-      (let ((variant (copy *hello-world*))
-            (op (make-instance 'clang-insert
-                               :targets '((:stmt1 . 1)
-                                          (:literal1 . "/* nothing */")))))
-        (apply-mutation variant op)
-        (is (null (fitness variant))
-            "Fitness is null after `apply-mutation'")
-        (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
-        (is (not (null (fitness variant)))
-            "`analyze-mutation' calculates fitness when missing")
-        (let ((stats-alist (hash-table-alist *mutation-stats*)))
-          (is (= (length stats-alist) 1) "Single element in stats")
-          (is (equal :better (second (second (first stats-alist))))
-              "`analyze-mutation' notices fitness improvement"))))))
+    (evaluate *test* *hello-world*)
+    (is (numberp (fitness *hello-world*)))
+    (let ((variant (copy *hello-world*))
+          (op (make-instance 'clang-insert
+                :targets '((:stmt1 . 1)
+                           (:literal1 . "/* nothing */")))))
+      (apply-mutation variant op)
+      (is (null (fitness variant))
+          "Fitness is null after `apply-mutation'")
+      (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
+      (is (not (null (fitness variant)))
+          "`analyze-mutation' calculates fitness when missing")
+      (let ((stats-alist (hash-table-alist *mutation-stats*)))
+        (is (= (length stats-alist) 1) "Single element in stats")
+        (is (equal :better (second (second (first stats-alist))))
+            "`analyze-mutation' notices fitness improvement")))))
 
 (deftest mutation-stats-notices-worsening ()
   (with-fixture hello-world-clang-w-fitness
-    (without-helpers
-      (evaluate *test* *hello-world*)
-      (is (numberp (fitness *hello-world*)))
-      (let ((variant (copy *hello-world*))
-            (op (make-instance 'clang-cut :targets '((:stmt1 . 2)))))
-        (apply-mutation variant op)
-        (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
-        (is (equal :worse (second (second (first (hash-table-alist
-                                                  *mutation-stats*)))))
-            "`analyze-mutation' notices worse improvement")))))
+    (evaluate *test* *hello-world*)
+    (is (numberp (fitness *hello-world*)))
+    (let ((variant (copy *hello-world*))
+          (op (make-instance 'clang-cut :targets '((:stmt1 . 2)))))
+      (apply-mutation variant op)
+      (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
+      (is (equal :worse (second (second (first (hash-table-alist
+                                                *mutation-stats*)))))
+          "`analyze-mutation' notices worse improvement"))))
 
 (deftest mutation-stats-notices-same ()
   (with-fixture hello-world-clang-w-fitness
-    (without-helpers
-      (evaluate *test* *hello-world*)
-      (is (numberp (fitness *hello-world*)))
-      (let ((variant (copy *hello-world*))
-            (op (make-instance 'clang-swap
-                               :targets '((:stmt1 . 2) (:stmt2 . 2)))))
-        (setf (fitness variant) nil)
-        (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
-        (is (equal :same (second (second (first (hash-table-alist
-                                                 *mutation-stats*)))))
-            "`analyze-mutation' notices no change: ~S"
-            (hash-table-alist *mutation-stats*))))))
+    (evaluate *test* *hello-world*)
+    (is (numberp (fitness *hello-world*)))
+    (let ((variant (copy *hello-world*))
+          (op (make-instance 'clang-swap
+                :targets '((:stmt1 . 2) (:stmt2 . 2)))))
+      (setf (fitness variant) nil)
+      (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
+      (is (equal :same (second (second (first (hash-table-alist
+                                               *mutation-stats*)))))
+          "`analyze-mutation' notices no change: ~S"
+          (hash-table-alist *mutation-stats*)))))
 
 
 ;;; Diff tests
@@ -1108,28 +1075,25 @@
 (deftest some-diff-cut-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
-      (without-helpers
-        (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
-                        '(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
-        (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
-                        '(((:CODE 1)) ((:CODE 4)))))
-        (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
-                        '(((:CODE 1)))))))))
+      (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
+                      '(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
+      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
+                      '(((:CODE 1)) ((:CODE 4)))))
+      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
+                      '(((:CODE 1))))))))
 
 (deftest some-diff-insert-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
-      (without-helpers
-        (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
-                        '(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
-                          ((:CODE 3)) ((:CODE 4)))))))))
+      (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
+                      '(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
+                        ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest some-diff-swap-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
-      (without-helpers
-        (is (tree-equal (genome (apply-mutation *soft* '(:swap 0 2)))
-                        '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4)))))))))
+      (is (tree-equal (genome (apply-mutation *soft* '(:swap 0 2)))
+                      '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 (deftest diff-copy ()
   (with-fixture diff (is (typep (copy *soft*) 'diff))))
@@ -1157,28 +1121,25 @@
 (deftest some-diff-array-cut-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
-      (without-helpers
-        (is (equalp (genome (apply-mutation *soft* '(:cut 2)))
-                    #(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
-        (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
-                    #(((:CODE 1)) ((:CODE 4)))))
-        (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
-                    #(((:CODE 1)))))))))
+      (is (equalp (genome (apply-mutation *soft* '(:cut 2)))
+                  #(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
+      (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
+                  #(((:CODE 1)) ((:CODE 4)))))
+      (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
+                  #(((:CODE 1))))))))
 
 (deftest some-diff-array-insert-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
-      (without-helpers
-        (is (equalp (genome (apply-mutation *soft* '(:insert 0 2)))
-                    #(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
-                      ((:CODE 3)) ((:CODE 4)))))))))
+      (is (equalp (genome (apply-mutation *soft* '(:insert 0 2)))
+                  #(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
+                    ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest some-diff-array-swap-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
-      (without-helpers
-        (is (equalp (genome (apply-mutation *soft* '(:swap 0 2)))
-                    #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4)))))))))
+      (is (equalp (genome (apply-mutation *soft* '(:swap 0 2)))
+                  #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 
 ;;; Population tests
@@ -1263,16 +1224,15 @@
 
 (deftest swap-can-recontextualize ()
   (with-fixture huf-clang
-    (without-helpers
-        (let ((variant (copy *huf*)))
-          (apply-mutation variant
-            (cons 'clang-swap
-                  (list (cons :stmt1 (stmt-with-text variant "n > 0"))
-                        (cons :stmt2 (stmt-with-text variant "bc=0")))))
-          (multiple-value-bind (result exit)
-              (phenome variant)
-            (declare (ignorable result))
-            (is (= 0 exit)))))))
+    (let ((variant (copy *huf*)))
+      (apply-mutation variant
+        (cons 'clang-swap
+              (list (cons :stmt1 (stmt-with-text variant "n > 0"))
+                    (cons :stmt2 (stmt-with-text variant "bc=0")))))
+      (multiple-value-bind (result exit)
+          (phenome variant)
+        (declare (ignorable result))
+        (is (= 0 exit))))))
 
 (defun diff-strings (original modified diff-region)
   "Convert a diff-region to a list of contents in ORIGINAL and MODIFIED."
@@ -1295,81 +1255,78 @@ Useful for printing or returning differences in the REPL."
 
 (deftest swap-makes-expected-change ()
   (with-fixture huf-clang
-    (without-helpers
-        (let ((variant (copy *huf*))
-              (text-1 "n > 0")
-              (text-2 "bc=0"))
-          ;; Apply the swap mutation.
-          (apply-mutation variant
-                          (cons 'clang-swap
-                                (list (cons :stmt1
-                                            (stmt-with-text variant text-1))
-                                      (cons :stmt2
-                                            (stmt-with-text variant text-2)))))
-          ;; Each element should contain the text of one of the swapped pieces.
-          (every-is {scan (create-scanner (list :alternation text-1 text-2))}
-                    (remove-if
-                     (<or> {string= ""} {string= *clang-genome-separator*})
-                     (mapcar [{apply #'concatenate 'string}
-                             {mapcar {apply #'concatenate 'string}}]
-                             ;; Collect the differences between the
-                             ;; original and the variant.
-                             (mapcar {diff-strings (lines *huf*) (lines variant)}
-                                     (remove-if-not
-                                      [{equal 'diff:modified-diff-region} #'type-of]
-                                      (diff::compute-raw-seq-diff
-                                       (lines *huf*)
-                                       (lines variant)))))))))))
+    (let ((variant (copy *huf*))
+          (text-1 "n > 0")
+          (text-2 "bc=0"))
+      ;; Apply the swap mutation.
+      (apply-mutation variant
+        (cons 'clang-swap
+              (list (cons :stmt1
+                          (stmt-with-text variant text-1))
+                    (cons :stmt2
+                          (stmt-with-text variant text-2)))))
+      ;; Each element should contain the text of one of the swapped pieces.
+      (every-is {scan (create-scanner (list :alternation text-1 text-2))}
+                (remove-if
+                 (<or> {string= ""} {string= *clang-genome-separator*})
+                 (mapcar [{apply #'concatenate 'string}
+                          {mapcar {apply #'concatenate 'string}}]
+                         ;; Collect the differences between the
+                         ;; original and the variant.
+                         (mapcar {diff-strings (lines *huf*) (lines variant)}
+                                 (remove-if-not
+                                  [{equal 'diff:modified-diff-region} #'type-of]
+                                  (diff::compute-raw-seq-diff
+                                   (lines *huf*)
+                                   (lines variant))))))))))
 
 (deftest insert-can-recontextualize ()
   (with-fixture huf-clang
-    (without-helpers
-        (let ((variant (copy *huf*)))
-          (apply-mutation variant
-                          (cons 'clang-insert
-                                (list (cons :stmt1
-                                            (stmt-with-text variant "bc=0"))
-                                      (cons :stmt2
-                                            (stmt-with-text variant "n > 0")))))
-          (multiple-value-bind (result exit)
-              (phenome variant)
-            (declare (ignorable result))
-            (is (= 0 exit)))))))
+    (let ((variant (copy *huf*)))
+      (apply-mutation variant
+        (cons 'clang-insert
+              (list (cons :stmt1
+                          (stmt-with-text variant "bc=0"))
+                    (cons :stmt2
+                          (stmt-with-text variant "n > 0")))))
+      (multiple-value-bind (result exit)
+          (phenome variant)
+        (declare (ignorable result))
+        (is (= 0 exit))))))
 
 (deftest insert-makes-expected-change ()
   (with-fixture huf-clang
-    (without-helpers
-        (let ((variant (copy *huf*)))
-          (apply-mutation variant
-                          (cons 'clang-insert
-                                (list (cons :stmt1 (stmt-with-text variant "bc=0"))
-                                      (cons :stmt2 (stmt-with-text variant "n > 0")))))
-          ;; Original and modified strings of the difference.
-          (destructuring-bind (original modified)
-              (mapcar {apply #'concatenate 'string}
-                      (first (remove-if
-                              [{string= *clang-genome-separator*}
-                              #'cadadr]
-                              (mapcar {diff-strings (lines *huf*) (lines variant)}
-                                      (remove-if-not
-                                       [{equal 'diff:modified-diff-region}
-                                       #'type-of]
-                                       (diff::compute-raw-seq-diff
-                                        (lines *huf*)
-                                        (lines variant)))))))
-            (let ((size-o (length original))
-                  (size-m (length modified))
-                  (non-whitespace-orig
-                   (multiple-value-bind (match-p matches)
-                       (scan-to-strings "^(\\s*)(\\S.*)" original)
-                     (declare (ignorable match-p))
-                     (aref matches 1))))
-              ;; Modified should be longer.
-              (is (> size-m size-o))
-              ;; End of modified should be the original.
-              (is (string= non-whitespace-orig
-                           (subseq modified
-                                   (- size-m (length non-whitespace-orig)))))))))))
+    (let ((variant (copy *huf*)))
+      (apply-mutation variant
+        (cons 'clang-insert
+              (list (cons :stmt1 (stmt-with-text variant "bc=0"))
+                    (cons :stmt2 (stmt-with-text variant "n > 0")))))
+      ;; Original and modified strings of the difference.
+      (destructuring-bind (original modified)
+          (mapcar {apply #'concatenate 'string}
+                  (first (remove-if
+                          [{string= *clang-genome-separator*}
+                           #'cadadr]
+                          (mapcar {diff-strings (lines *huf*) (lines variant)}
+                                  (remove-if-not
+                                   [{equal 'diff:modified-diff-region}
+                                    #'type-of]
+                                   (diff::compute-raw-seq-diff
+                                    (lines *huf*)
+                                    (lines variant)))))))
+        (let ((size-o (length original))
+              (size-m (length modified))
+              (non-whitespace-orig
+               (multiple-value-bind (match-p matches)
+                   (scan-to-strings "^(\\s*)(\\S.*)" original)
+                 (declare (ignorable match-p))
+                 (aref matches 1))))
+          ;; Modified should be longer.
+          (is (> size-m size-o))
+          ;; End of modified should be the original.
+          (is (string= non-whitespace-orig
+                       (subseq modified
+                               (- size-m (length non-whitespace-orig))))))))))
 
 ;; Check that the ASTLister traversal and the ASTMutate traversal see
 ;; the same number of ASTs.
