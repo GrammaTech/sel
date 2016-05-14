@@ -25,8 +25,6 @@
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
    (asts :initarg :asts :initform nil :copier :direct)
-   (ancestors :initarg :ancestors :accessor ancestors
-              :initform nil :copier :direct)
    (prototypes :initarg :functions :initform nil :copier :direct)
    (headers :initarg :headers :accessor headers :copier copy-seq
             :initform nil :type (list string *)
@@ -338,19 +336,9 @@ restrictions. For use by targeter functions/execute picks."
                                       (list (cons old-var new-var)))))))))
 
 
-(defvar *ancestor-logging* nil
-  "Enable ancestor logging")
-
-(defvar *next-ancestry-id* 0
-  "Unique identifier for ancestry.")
-
+;;; Clang methods
 (defvar *clang-max-json-size* 104857600
   "Maximum size of output accepted from `clang-mutate'.")
-
-(defun get-fresh-ancestry-id ()
-  (let ((id *next-ancestry-id*))
-    (incf *next-ancestry-id*)
-    id))
 
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
@@ -426,8 +414,7 @@ software object"))
 (defmethod from-file ((obj clang) path)
   (setf (ext obj) (pathname-type (pathname path)))
   (from-string obj (file-to-string path))
-  (when *ancestor-logging*
-    (setf (aget :base (ancestors obj)) path)))
+  obj)
 
 (defgeneric from-string-exactly (software string)
   (:documentation
@@ -437,10 +424,6 @@ but no parsing will occur."))
 
 (defmethod from-string-exactly ((obj clang) string)
   (setf (genome-string obj) string)
-  (when *ancestor-logging*
-    (setf (ancestors obj) (list (alist :base string
-                                       :how 'from-string-exactly
-                                       :id (get-fresh-ancestry-id)))))
   obj)
 
 (defgeneric ast-type-p (ast)
@@ -457,7 +440,6 @@ but no parsing will occur."))
   ;; Load the raw string and generate a json database
   (from-string-exactly obj string)
   (let ((json-db (clang-mutate obj (list :json))))
-
     ;; Program header.
     (mapc {add-type obj } (remove-if-not #'ast-type-p json-db))    ; Types.
     ;; TODO: This requires actual macro capture by clang-mutate, not
@@ -465,7 +447,6 @@ but no parsing will occur."))
     ;;       the `clang-headers-parsed-in-order' test.
     (mapc [{mapc {apply #'add-macro obj}} {aget :macros}] json-db) ; Macros.
     (mapc [{mapc {add-include obj}} {aget :includes}] json-db)     ; Includes.
-
     ;; Program body.
     ;;
     ;; Generate the bulk of the program text by joining all global
@@ -481,12 +462,6 @@ but no parsing will occur."))
                                  (< (second x) (second y)))))
                       :key «{aget :begin-src-line} {aget :begin-src-col}»)
                      (string #\Newline))))
-
-  (when *ancestor-logging*
-    (setf (ancestors obj) (list (alist :base string
-                                       :how 'from-string
-                                       :id (get-fresh-ancestry-id)))))
-
   obj)
 
 (defmethod asts ((obj clang))
@@ -699,16 +674,12 @@ already in scope, it will keep that name.")
 
 (defmethod apply-mutation :around ((obj clang) op)
   ;; TODO: another :ids :list :json special case removed here
-  (multiple-value-call (lambda (variant &rest rest)
-                         (when *ancestor-logging*
-                             (push (alist :mutant op
-                                          :id (get-fresh-ancestry-id))
-                                   (ancestors obj)))
-                         (when (random-bool :bias
-                                    *clang-format-after-mutation-chance*)
-                           (clang-format obj))
-                         (update-asts obj)
-                         (apply #'values variant rest))
+  (multiple-value-call
+      (lambda (variant &rest rest)
+        (when (random-bool :bias *clang-format-after-mutation-chance*)
+          (clang-format obj))
+        (update-asts obj)
+        (apply #'values variant rest))
     (call-next-method)))
 
 (defmethod mutation-key ((obj clang) op)
@@ -1493,7 +1464,7 @@ VARIABLE-NAME should be declared in AST."))
                                               infinity
                        depth (full-stmt-successors b b-begin t))))
     ;; Now generate text for the recontextualized b-snippet.
-    (update-mito-from-snippet a b-snippet (mitochondria b))
+    (update-headers-from-snippet a b-snippet b)
     (multiple-value-bind (text replacements)
         (bind-free-vars a b-snippet a-begin)
       (alist :src-text text
@@ -1700,7 +1671,7 @@ VARIABLE-NAME should be declared in AST."))
            :types (aget :types b-snippet)
            :unbound-vals (aget :unbound-vals tail)
            :unbound-funs (aget :unbound-funs tail))))
-    (update-mito-from-snippet a snippet (mitochondria b))
+    (update-headers-from-snippet a snippet b)
     (alist :src-text (aget :src-text snippet)
            :stmt1 (aget :stmt1 a-snippet)
            :stmt2 (aget :stmt2 tail))))
@@ -1915,11 +1886,6 @@ VARIABLE-NAME should be declared in AST."))
         (multiple-value-bind (crossed a-point b-point changedp)
             (intraprocedural-2pt-crossover
              a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
-          (when (and changedp *ancestor-logging*)
-            (push (alist :cross-with (ancestors b)
-                         :crossover '2pt
-                         :id (get-fresh-ancestry-id))
-                  (ancestors crossed)))
           (if changedp
               (values crossed a-point b-point)
               (values crossed nil nil)))
@@ -1946,14 +1912,10 @@ VARIABLE-NAME should be declared in AST."))
   ;; TODO: Print all header material sorted as organized in the
   ;;       original.
   (with-output-to-string (str)
-    (mapc [{format (or stream str) "#include ~a~%"} #'se::format-include]
-          (headers obj))
-    (mapc {format (or stream str) "#define ~a~%"}
-          (mapcar #'cdr (macros obj)))
-    (mapc [{format (or stream str) "~a~%"} #'cdr]
-          (reverse (types obj)))
-    (mapc {format (or stream str) "~a~%"}
-          (mapcar #'cdr (globals obj)))
+    (mapc {format (or stream str) "#include ~a~%"} (headers obj))
+    (mapc {format (or stream str) "#define ~a~%"} (mapcar #'cdr (macros obj)))
+    (mapc [{format (or stream str) "~a~%"} #'cdr] (types obj))
+    (mapc {format (or stream str) "~a~%"} (mapcar #'cdr (globals obj)))
     (format (or stream str) "~a~%~a" *clang-genome-separator* (genome obj))))
 
 (defmethod clang-tidy ((clang clang))

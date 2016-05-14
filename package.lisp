@@ -40,6 +40,7 @@
    :macros
    :types
    :globals
+   :ancestral
    :ancestors
    :pick
    :pick-good
@@ -141,7 +142,6 @@
    :declaration-of
    :declared-type
    :type-of-var
-   :get-fresh-ancestry-id
    :random-function-name
    :replace-fields-in-ast
    ;; global variables
@@ -168,7 +168,6 @@
    :weighted-pick
    :find-types
    :sorted-snippets
-   :*ancestor-logging*
    :*clang-max-json-size*
    :*clang-full-stmt-bias*
    :*clang-same-class-bias*
