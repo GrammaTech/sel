@@ -117,8 +117,9 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [24/31]
-** TODO pre-process source before loading into clang
+* Tasks [25/31]
+** DONE pre-process source before loading into clang
+   CLOSED: [2016-05-16 Mon 11:34]
 Specifically to split single-line multi-variable declarations onto
 multiple lines.
 

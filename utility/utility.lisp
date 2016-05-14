@@ -443,7 +443,9 @@ is replaced with replacement."
 (defun apply-replacements (list str)
   (if (null list)
       str
-      (let ((new-str (replace-all str (caar list) (cdar list))))
+      (let ((new-str (if (cdar list)
+                         (replace-all str (caar list) (cdar list))
+                         str)))
         (apply-replacements (cdr list) new-str))))
 
 ;;  Helper function for removing tags identifying DeclRefs
@@ -797,13 +799,14 @@ that function may be declared.")
     (declare (ignorable stderr errno))
     (split-sequence #\Newline stdout :remove-empty-subseqs t)))
 
-(defun resolve-function-headers (func)
+(defun resolve-function-includes (func)
   (let ((headers (gethash func *resolved-header-files* 'not-found)))
-    (if (eq headers 'not-found)
-        (setf (gethash func *resolved-header-files*)
-              (or (headers-in-manpage 3 func)
-                  (headers-in-manpage 2 func)))
-        headers)))
+    (mapcar {format nil "<~a>"}
+            (if (eq headers 'not-found)
+                (setf (gethash func *resolved-header-files*)
+                      (or (headers-in-manpage 3 func)
+                          (headers-in-manpage 2 func)))
+                headers))))
 
 (defun unlines (lines)
   (format nil "~{~a~^~%~}" lines))
@@ -884,7 +887,4 @@ that function may be declared.")
 
 ;;; Iteration helpers
 (defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))
-  `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
-
-(defmacro-clause (CONCATENATE expr &optional INTO var INITIAL-VALUE (val ""))
   `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
