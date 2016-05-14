@@ -40,6 +40,7 @@
 (defvar *soft*        nil "Software used in tests.")
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
+(defvar *headers*     nil "Holds the headers software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *huf*         nil "Holds the huf software object.")
 (defvar *scopes*      nil "Holds the scopes software object.")
@@ -61,6 +62,10 @@
       :test #'equalp
       :documentation "Path to directory holding gcd.")
 
+    (define-constant +headers-dir+ (append +etc-dir+ (list "headers"))
+      :test #'equalp
+      :documentation "Path to directory holding headers.")
+
     (define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
       :test #'equalp
       :documentation "Location of the hello world example directory")
@@ -81,6 +86,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +gcd-dir+))
+
+(defun headers-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +headers-dir+))
 
 (defun hello-world-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -187,6 +197,18 @@
    (setf *gcd*
          (from-file (make-instance 'clang :compiler "clang-3.7")
                     (gcd-dir "gcd-wo-curlies.c"))))
+  (:teardown
+   (setf *hello-world* nil)))
+
+(defixture headers-clang
+  (:setup
+   (setf *headers*
+         (from-file (make-instance 'clang
+                      :compiler "clang-3.7"
+                      :flags (list "-I" (namestring
+                                         (make-pathname
+                                          :directory +headers-dir+))))
+                    (headers-dir "main.c"))))
   (:teardown
    (setf *hello-world* nil)))
 
@@ -567,6 +589,17 @@
                 (peel-bananas (aget :src-text full-parent))))
       (is (string= original-text (genome-string *gcd*))
           "No change should be made to the original program text."))))
+
+(deftest clang-headers-parsed-in-order ()
+  (with-fixture headers-clang
+    ;; TODO: Include "first.c" before include "third.c".
+
+    ;; TODO: Ensure "MAIN" is present.  Presently MAIN is not present
+    ;; because it is not used in the immediate source.
+
+    ;; TODO: Ensure "ANOTHER" is not present.  It is defined in
+    ;; another file.
+    ))
 
 
 ;;; Detailed clang mutation tests
