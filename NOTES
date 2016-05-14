@@ -117,7 +117,27 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [24/28]
+* Tasks [24/31]
+** TODO pre-process source before loading into clang
+Specifically to split single-line multi-variable declarations onto
+multiple lines.
+
+** TODO don't include source text in ASTs
+We have the original string/file including line and column
+information.  We can get the text easily from there using the
+begin/end line/col fields of the ASTs.  Otherwise we are just parsing
+a *ton* of text which we'll for the most part never use.
+
+** TODO don't parse clang ASTs until required
+Most individuals will just need to read a string, and then dump that
+string for compilation.  This should be completely doable by
+initializing the genome with =from-file-exactly= (or
+=from-string-exactly=) and then dumping that genome with
+=genome-string=.
+
+Only when the =asts= field is originally accessed should we actually
+bother requesting and parsing the json and building up the asts list.
+
 ** TODO remove unnecessary functions
 - list->ht
 - ht-intersect
