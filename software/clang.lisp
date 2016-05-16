@@ -32,9 +32,9 @@
                 "Association List of header ASTs.")
    (prototypes :initarg :functions :initform nil :copier :direct)
    (includes :initarg :includes :accessor includes :copier copy-seq
-            :initform nil :type (list string *)
-            :documentation "Names of included includes.")
-   (types :initarg :types :accessor types :copier copy-seq
+             :initform nil :type (list string *)
+             :documentation "Names of included includes.")
+   (types :initarg :types :copier copy-seq
           :initform nil :type (list (cons number string) *)
           :documentation "Association list of types keyed by HASH id.")
    (macros :initarg :macros :accessor macros :copier copy-seq
@@ -49,7 +49,7 @@
 (defgeneric add-type (software type)
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 (defmethod add-type ((obj clang) type)
-  (unless (member type (types obj) :key #'car)
+  (unless (member (car type) (mapcar #'car (types obj)))
     (setf (genome-string obj)
           (concatenate 'string
             (format nil "~a~&" (cdr type))
@@ -409,16 +409,14 @@ software object"))
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
-  '(:protos)
+  '(:protos :types :decls)
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod (setf genome) :before (new (obj clang))
   (with-slots (asts) obj (setf asts nil)))
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  ;; TODO: Set `types' on instantiation, figure out exactly what we're
-  ;;       doing with type hashes.
-  (with-slots (asts header-asts prototypes genome) obj
+  (with-slots (asts types header-asts prototypes genome) obj
     ;; incorporate ASTs.
     (iter (for ast in (handler-case
                           (clang-mutate obj
@@ -432,13 +430,15 @@ software object"))
                           (declare (ignorable err))
                           (warn "Couldn't parse due to error.")
                           '((:counter . 0) (:ast-class "Failure")))))
-          (if (aget :counter ast)
-              (collect ast into body)
-              (collect ast into head))
-          (when (aget :body ast)
-            (collect ast into protos))
+          (cond
+            ((aget :counter ast) (collect ast into body))
+            ((ast-type-p ast) (collect (cons (aget :hash ast)
+                                             (aget :type ast)) into m-type))
+            ((aget :body ast) (collect ast into protos))
+            (:otherwise (collect ast into head)))
           (finally (setf asts (coerce body 'vector)
                          header-asts head
+                         types m-type
                          prototypes (coerce protos 'vector)))))
   obj)
 
@@ -527,9 +527,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod ast-type-p ((ast list))
   (and (assoc :hash ast)
        (assoc :reqs ast)
-       (assoc :type ast)
-       (or (assoc :include ast)
-           (assoc :decl ast))))
+       (assoc :type ast)))
 
 (defmethod from-string ((obj clang) string)
   ;; Load the raw string and generate a json database
@@ -558,6 +556,14 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (with-slots (asts prototypes) obj
     (unless asts (update-asts obj))
     (coerce prototypes 'list)))
+
+(defmethod types ((obj clang))
+  (with-slots (asts types) obj
+    (unless asts (update-asts obj))
+    types))
+
+(defmethod (setf types) (new (obj clang))
+  (with-slots (types) obj (setf types new)))
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
@@ -1224,7 +1230,7 @@ statement was added to create a full statement."))
                 (dolist (decl (aget :declares stmt))
                   (pushnew decl decls :test #'string=))
                 (dolist (type (aget :types stmt))
-                  (pushnew type types :test #'string=))
+                  (pushnew type types))
                 (dolist (macro (aget :macros stmt))
                   (pushnew macro macros :test #'string=))
                 (dolist (func (aget :unbound-funs stmt))
@@ -1259,7 +1265,8 @@ statement was added to create a full statement."))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet type-database)
   (mapc {add-include clang} (aget :includes snippet))
-  (mapc [{add-type clang} {find-types type-database :hash}]
+  (mapc [{add-type clang}
+         (lambda (hash) (cons hash (find-types type-database :hash hash)))]
         (aget :types snippet))
   (mapc {apply #'add-macro clang} (aget :macros snippet))
   snippet)
