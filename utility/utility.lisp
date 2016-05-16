@@ -823,54 +823,6 @@ that function may be declared.")
                      (keep-after (cdr lines))))))
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
 
-(defun ht-intersect (a b &key with)
-  (let ((ht (make-hash-table :test 'equal)))
-    (labels ((merge-fn (x y) (if with (funcall with x y) (cons x y))))
-      (loop :for key :being :the :hash-keys :of a
-         :using (hash-value value-a)
-         :do (let ((value-b (gethash key b)))
-               (when value-b
-                 (setf (gethash key ht) (merge-fn value-a value-b))))))
-    ht))
-
-(defun ht-copy (ht)
-  (let ((new-ht (make-hash-table
-                 :test (hash-table-test ht)
-                 :rehash-size (hash-table-rehash-size ht)
-                 :rehash-threshold (hash-table-rehash-threshold ht)
-                 :size (hash-table-size ht))))
-    (loop :for key :being :each :hash-key :of ht
-       :using (hash-value value)
-       :do (setf (gethash key new-ht) value)
-       :finally (return new-ht))))
-
-(defun ht-keys (ht)
-  (loop :for key :being :the :hash-keys :of ht :collect key))
-
-(defun ht-fold (f ht accum
-                &key (key-sort nil))
-  (cond ((= 0 (hash-table-count ht)) accum)
-        (t (let ((k (if key-sort
-                        (extremum (ht-keys ht) key-sort)
-                        (random-elt (ht-keys ht)))))
-             (ht-fold f
-                      (remhash-non-destructive k ht)
-                      (funcall f (gethash k ht) accum)
-                      :key-sort key-sort)))))
-
-(defun ht-take-rand (ht n)
-  (let ((new-ht (ht-copy ht)))
-    (loop :for i :below (if (< 0 (- (length (ht-keys ht)) n))
-                            (- (length (ht-keys ht)) n)
-                            0)
-       :do (remhash (random-hash-table-key new-ht) new-ht)
-       :finally (return new-ht))))
-
-(defun remhash-non-destructive(k ht)
-  (let ((ht-copy (ht-copy ht)))
-    (remhash k ht-copy)
-    ht-copy))
-
 (defun <not> (f)
   (lambda (x) (not (funcall f x))))
 
