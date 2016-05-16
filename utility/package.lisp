@@ -95,15 +95,6 @@
    :unlines
    :keep-lines-after-matching
    :resolve-function-includes
-   ;; hash tables
-   :list->ht
-   :merge-hash-tables
-   :ht-intersect
-   :ht-copy
-   :ht-keys
-   :ht-fold
-   :ht-take-rand
-   :remhash-non-destructive
    ;; debugging
    :*note-level*
    :*note-out*
