@@ -128,7 +128,8 @@
                                "*" "")
                            (aget :type (type-of-var obj var)))))
             (when (member c-type +c-numeric-types+ :test #'string=)
-              (concatenating (format nil " (:~a . ~a)" var (fmt-code c-type))
+              (concatenating (format nil " (:~a ~a ~a)"
+                                     var c-type (fmt-code c-type))
                              into format initial-value "(:V")
               (collect var into vars)))
           (finally (return (cons (concatenate 'string format ")") vars))))))
@@ -189,7 +190,7 @@
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
         path out-dir name type trace-file out-file save-original
-        points functions)
+        points functions print-strings)
     (when (or (not args)
               (< (length args) 1)
               (string= (subseq (car args) 0 2) "-h")
@@ -198,19 +199,20 @@
  Instrument SOURCE along OPTIONS.
 
 Options:
- -c,--compiler CC ---------- use CC as the C compiler
-                             (default to CC env. variable or clang)
- -F,--flags FLAGS ---------- comma-separated list of compiler flags
-                             (default to CFLAGS env. variable)
- -o,--out-file FILE -------- write mutated source to FILE
-                             (default STDOUT)
- -O,--orig ----------------- also save a copy of the original
- -p,--point NUM,STRING ----- instrument to print STRING at ast NUM
- -q,--quiet ---------------- set verbosity level to 0
- -t,--trace-file FILE ------ instrumented to write trace to fILE
-                             (default to STDERR)
- -v,--variables ------------ write numeric variables to trace
- -V,--verbose NUM ---------- verbosity level 0-4
+ -c,--compiler CC ------- use CC as the C compiler
+                          (default to CC env. variable or clang)
+ -F,--flags FLAGS ------- comma-separated list of compiler flags
+                          (default to CFLAGS env. variable)
+ -o,--out-file FILE ----- write mutated source to FILE
+                          (default STDOUT)
+ -O,--orig -------------- also save a copy of the original
+ -p,--point NUM,STRING -- instrument to print STRING at ast NUM
+ -q,--quiet ------------- set verbosity level to 0
+ -s,--strings ----------- trace string variable values, DANGEROUS
+ -t,--trace-file FILE --- instrumented to write trace to fILE
+                          (default to STDERR)
+ -v,--variables --------- write numeric variables to trace
+ -V,--verbose NUM ------- verbosity level 0-4
 
 Built with ~a version ~a.~%"
               self (lisp-implementation-type) (lisp-implementation-version))
@@ -234,11 +236,16 @@ Built with ~a version ~a.~%"
                         (pushnew string (aget (parse-integer counter) points)
                                  :test #'string=)))
       ("-q" "--quiet" (setf *note-level* 0))
+      ("-s" "--strings" (setf print-strings t))
       ("-t" "--trace-file" (setf trace-file (pop args)))
-      ("-v" "--variables" (push {unbound-var-instrument original} functions))
+      ("-v" "--variables" (push 'trace-vars functions))
       ("-V" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
                             (setf *note-level* lvl))))
+
+    ;; Set the functions.
+    (setf (nth (position 'trace-vars functions) functions)
+          (lambda (ast) (unbound-var-instrument original ast print-strings)))
 
     ;; Save original.
     (when save-original
