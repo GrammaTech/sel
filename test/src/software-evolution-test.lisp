@@ -1837,3 +1837,25 @@ Useful for printing or returning differences in the REPL."
               "Variable list in every trace element.")
           (is (> (length trace) (count-if {aget :v} trace))
               "Variable list not populated in every trace element."))))))
+
+
+;;; Tests of type database on clang objects
+(deftest huf-knows-types ()
+  (with-fixture huf-clang
+    (is (and (listp (types *huf*)) (not (null (types *huf*))))
+        "Huf software objects has a type database.")
+    (is (= 6 (count-if {aget :pointer} (types *huf*)))
+        "Huf has six pointer types.")
+    (is (= 3 (count-if [#'not #'emptyp {aget :array}] (types *huf*)))
+        "Huf has three array types.")
+    (is (= 3 (count-if [{string= "int"} {aget :type}] (types *huf*)))
+        "Huf has three different \"int\" types (some are array and pointer).")))
+
+(deftest huf-finds-type-info-for-variables ()
+  (with-fixture huf-clang
+    (let ((type (type-of-var *huf* "strbit")))
+      (is type "Found type for \"strbit\" in huf.")
+      (is (string= "[*]" (aget :array type))
+          "Variable \"strbit\" in huf is a dynamically sized array.")
+      (is (not (aget :pointer type))
+          "Variable \"strbit\" in huf is not a pointer."))))
