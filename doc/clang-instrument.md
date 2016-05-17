@@ -82,6 +82,29 @@ directory to a test script.
 
         ./foo
 
+The following example shell code may be used to directly compress
+trace output before it hits the disk.  This is often useful as trace
+can produce large volumes of highly repetitive output.
+
+    #!/bin/sh
+    PROG=$1
+    PIPE=$PROG.trace
+
+    mkfifo $PIPE
+    { cat $PIPE|xz > $PIPE.xz; } &
+    PID=$!
+
+    run_it() {
+        ./limit ./$PROG $@
+        EXIT=$?
+        while kill -0 "$PID" >/dev/null 2>/dev/null;do sleep 0.1; done
+        rm $PIPE;
+        exit $EXIT; }
+
+    # [...]
+
+    run_it [args];
+
 # SEE ALSO
 
 `clang-mutate` (1).
