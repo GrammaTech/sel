@@ -35,7 +35,7 @@
              :initform nil :type (list string *)
              :documentation "Names of included includes.")
    (types :initarg :types :copier copy-seq
-          :initform nil :type (list (cons number string) *)
+          :initform nil :type (list (cons keyword *) *)
           :documentation "Association list of types keyed by HASH id.")
    (macros :initarg :macros :accessor macros :copier copy-seq
            :initform nil :type (list (cons string string) *)
@@ -49,16 +49,21 @@
 (defgeneric add-type (software type)
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 (defmethod add-type ((obj clang) type)
-  (unless (member (car type) (mapcar #'car (types obj)))
+  (unless (or (null type) (member type (types obj) :key {aget :hash}))
     (setf (genome-string obj)
           (concatenate 'string
-            (format nil "~a~&" (cdr type))
+            (aget :decl type)
             (genome-string obj)))
     (push type (types obj)))
   obj)
 
 (defmethod find-types ((obj clang) &key hash)
-  (if hash (aget hash (types obj)) (mapcar #'cdr (types obj))))
+  ;; TODO: Would like to change this here and on fodder to return the
+  ;;       whole association list.  Also, I don't like functions which
+  ;;       could return either a list or an atom.
+  (if hash
+      (find-if {= hash} (types obj) :key {aget :hash})
+      (types obj)))
 
 (defgeneric add-macro (software name body)
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
@@ -432,22 +437,19 @@ software object"))
                           '((:counter . 0) (:ast-class "Failure")))))
           (cond
             ((aget :counter ast) (collect ast into body))
-            ((ast-type-p ast) (collect (cons (aget :hash ast)
-                                             (aget :type ast)) into m-type))
+            ((ast-type-p ast) (collect ast into m-types))
             ((aget :body ast) (collect ast into protos))
             (:otherwise (collect ast into head)))
           (finally (setf asts (coerce body 'vector)
                          header-asts head
-                         types m-type
+                         types m-types
                          prototypes (coerce protos 'vector)))))
   obj)
 
 (defmethod update-header ((obj clang) &key)
   (with-slots (asts header-asts) obj
     ;; Program header.
-    (mapc (lambda (ast)                      ; Types.
-            (add-type obj (cons (aget :hash ast) (aget :src-text ast))))
-          (remove-if-not #'ast-type-p header-asts))
+    (mapc {add-type obj} (remove-if-not #'ast-type-p header-asts)) ; Types.
     ;; TODO: This requires actual macro capture by clang-mutate, not
     ;;       simply grabbing macros from ASTs.  For reasons why see
     ;;       the `clang-headers-parsed-in-order' test.
@@ -1265,8 +1267,7 @@ statement was added to create a full statement."))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet type-database)
   (mapc {add-include clang} (aget :includes snippet))
-  (mapc [{add-type clang}
-         (lambda (hash) (cons hash (find-types type-database :hash hash)))]
+  (mapc [{add-type clang} {find-types type-database :hash}]
         (aget :types snippet))
   (mapc {apply #'add-macro clang} (aget :macros snippet))
   snippet)
@@ -1474,8 +1475,12 @@ VARIABLE-NAME should be declared in AST."))
   (let ((declaration-ast (declaration-of obj variable-name)))
     ;; (assert declaration-ast (obj variable-name)
     ;;         "Can't find declaration of ~a in ~a." variable-name obj)
-    (warn "Can't find declaration of ~a in ~a." variable-name obj)
-    (declared-type declaration-ast variable-name)))
+    (if declaration-ast
+        (find-types obj
+                    :hash (nth (position-if {string= variable-name}
+                                            (aget :declares declaration-ast))
+                               (aget :types declaration-ast)))
+        (warn "Can't find declaration of ~a in ~a." variable-name obj))))
 
 
 ;;; Crossover functions
