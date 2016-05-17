@@ -69,7 +69,7 @@ directory to a test script.
 2.  Instrument the program to write to this new named pipe.  Then
     compile the resulting program.
 
-        clang-instrument foo.c -f /tmp/log-pipe
+        clang-instrument foo.c -t /tmp/log-pipe
 
 3.  In one window, or in an asynchronous process in a shell script,
     read from the named pipe.
