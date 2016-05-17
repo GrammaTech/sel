@@ -40,6 +40,7 @@
 (defvar *soft*        nil "Software used in tests.")
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
+(defvar *binary-search* nil "Holds the binary_search software object.")
 (defvar *headers*     nil "Holds the headers software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *huf*         nil "Holds the huf software object.")
@@ -184,13 +185,28 @@
                             (gcd-dir "gcd")))))
   (:teardown (setf *gcd* nil)))
 
+(defixture binary-search-clang
+  (:setup
+   (setf *binary-search*
+         (from-file
+          (make-instance 'clang
+            :flags (list
+                    "-I"
+                    (namestring (make-pathname :directory +etc-dir+))))
+          (make-pathname
+           :name "binary_search"
+           :type "c"
+           :directory +etc-dir+))))
+  (:teardown
+   (setf *binary-search* nil)))
+
 (defixture gcd-clang
   (:setup
    (setf *gcd*
          (from-file (make-instance 'clang :compiler "clang-3.7")
                     (gcd-dir "gcd.c"))))
   (:teardown
-   (setf *hello-world* nil)))
+   (setf *gcd* nil)))
 
 (defixture gcd-wo-curlies-clang
   (:setup
@@ -198,7 +214,7 @@
          (from-file (make-instance 'clang :compiler "clang-3.7")
                     (gcd-dir "gcd-wo-curlies.c"))))
   (:teardown
-   (setf *hello-world* nil)))
+   (setf *gcd* nil)))
 
 (defixture headers-clang
   (:setup
@@ -1837,6 +1853,12 @@ Useful for printing or returning differences in the REPL."
               "Variable list in every trace element.")
           (is (> (length trace) (count-if {aget :v} trace))
               "Variable list not populated in every trace element."))))))
+
+(deftest instrumentation-handles-binary-search ()
+  (with-fixture binary-search-clang
+    (handler-bind ((warning #'muffle-warning))
+      (instrument *binary-search*
+        :functions (list {unbound-var-instrument *binary-search*})))))
 
 
 ;;; Tests of type database on clang objects
