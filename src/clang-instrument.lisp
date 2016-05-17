@@ -114,7 +114,7 @@
              ("long double" "%LG"))))
     (iter (for var in (mapcar [#'peel-bananas #'car]
                               (aget :unbound-vals ast)))
-          (let ((c-type (type-of-var obj var)))
+          (let ((c-type (aget :type (type-of-var obj var))))
             (when (member c-type +c-numeric-types+ :test #'string=)
               (concatenating (format nil " (:~a . ~a)" var (fmt-code c-type))
                              into format initial-value "(:V")
