@@ -810,6 +810,9 @@ already in scope, it will keep that name.")
 (defmethod clang-mutate ((obj clang) op
                          &key script
                          &aux value1-file value2-file)
+  (assert (ext obj) (obj)
+          "Software object ~a has no extension, required by clang-mutate."
+          obj)
   (with-temp-file-of (src-file (ext obj)) (genome-string obj)
     (labels ((command-opt (command)
                (ecase command
