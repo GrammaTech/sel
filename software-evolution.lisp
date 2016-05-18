@@ -47,7 +47,14 @@
   (:documentation "Genotype of the software."))
 
 (defgeneric phenome (software &key bin)
-  (:documentation "Phenotype of the software."))
+  (:documentation
+   "Phenotype of the software.
+Returns multiple values holding in order; (1) the binary path to which
+the executable was compiled, (2) the errno, or a numeric indication of
+success, of the compilation process, (3) STDERR of the compilation
+process, or a string holding error output relevant to phenome
+generation, (4) STDOUT of the compilation process, or a string holding
+non-error output relevant to phenome generation. "))
 
 (defgeneric evaluate (function software)
   (:documentation "Evaluate the software returning a numerical fitness."))

@@ -41,18 +41,16 @@
              :copier :none)))
 
 (defmethod phenome ((obj ast) &key bin)
+  (declare (values string fixnum string string))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
     (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (stdout stderr exit)
+      (multiple-value-bind (stdout stderr errno)
           (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
-        (declare (ignorable stdout))
-        (values (if (zerop exit) bin stderr) exit src)))))
+        (values bin errno stderr stdout)))))
 
 (defmethod compile-p ((obj ast))
   (with-temp-file (bin)
-    (multiple-value-bind (out errno) (phenome obj :bin bin)
-      (declare (ignorable out))
-      (zerop errno))))
+    (zerop (second (multiple-value-list (phenome obj :bin bin))))))
 
 (defmethod genome-string ((ast ast) &optional stream)
   (write-string (or (genome ast) "") stream))

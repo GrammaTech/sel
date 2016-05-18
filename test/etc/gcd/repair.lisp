@@ -19,7 +19,7 @@
 
 (defun test-suite (ast)
   (with-temp-file (bin)
-    (if (phenome ast :bin bin)
+    (if (zerop (second (multiple-value-list (phenome ast :bin bin))))
         (count t (loop :for num :upto 10 :collect
                     (multiple-value-bind (output err-output exit)
                         (shell "~a ~a ~a" *test* bin num)

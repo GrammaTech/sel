@@ -1291,10 +1291,7 @@
         (cons 'clang-swap
               (list (cons :stmt1 (stmt-with-text variant "n > 0"))
                     (cons :stmt2 (stmt-with-text variant "bc=0")))))
-      (multiple-value-bind (result exit)
-          (phenome variant)
-        (declare (ignorable result))
-        (is (= 0 exit))))))
+      (is (zerop (second (multiple-value-list (phenome variant))))))))
 
 (defun diff-strings (original modified diff-region)
   "Convert a diff-region to a list of contents in ORIGINAL and MODIFIED."
@@ -1352,10 +1349,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text variant "bc=0"))
                     (cons :stmt2
                           (stmt-with-text variant "n > 0")))))
-      (multiple-value-bind (result exit)
-          (phenome variant)
-        (declare (ignorable result))
-        (is (= 0 exit))))))
+      (is (zerop (second (multiple-value-list (phenome variant))))))))
 
 (deftest insert-makes-expected-change ()
   (with-fixture huf-clang
@@ -1733,19 +1727,18 @@ Useful for printing or returning differences in the REPL."
               (count-fullable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-          (declare (ignorable out))
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
           (is (zerop errno))
-          (is (probe-file bin))
-          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-            (declare (ignorable stdout))
-            (is (zerop errno))
-            (let ((trace (read-trace stderr)))
-              (is (listp trace))
-              (is (= (length trace)
-                     (length (split-sequence
-                                 #\Newline stderr
-                                 :remove-empty-subseqs t)))))))))))
+          (let ((trace (read-trace stderr)))
+            (is (listp trace))
+            (is (= (length trace)
+                   (length (split-sequence
+                               #\Newline stderr
+                               :remove-empty-subseqs t))))))))))
 
 (deftest instrumentation-insertion-w-points-test ()
   (with-fixture gcd-clang
@@ -1762,19 +1755,18 @@ Useful for printing or returning differences in the REPL."
               (count-fullable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-          (declare (ignorable out))
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
           (is (zerop errno))
-          (is (probe-file bin))
-          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-            (declare (ignorable stdout))
-            (is (zerop errno))
-            (let ((trace (read-trace stderr)))
-              (is (listp trace))
-              (is (= (length trace)
-                     (length (split-sequence
-                                 #\Newline stderr
-                                 :remove-empty-subseqs t)))))))))))
+          (let ((trace (read-trace stderr)))
+            (is (listp trace))
+            (is (= (length trace)
+                   (length (split-sequence
+                               #\Newline stderr
+                               :remove-empty-subseqs t))))))))))
 
 (deftest instrumentation-insertion-w-trace-file-test ()
   (with-fixture gcd-clang
@@ -1783,14 +1775,13 @@ Useful for printing or returning differences in the REPL."
         (let ((instrumented
                (instrument (copy *gcd*) :trace-file trace)))
           (is (scan (quote-meta-chars trace) (genome-string instrumented)))
-          (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-            (declare (ignorable out))
+          (is (zerop (second (multiple-value-list
+                              (phenome instrumented :bin bin)))))
+          (is (probe-file bin))
+          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+            (declare (ignorable stdout stderr))
             (is (zerop errno))
-            (is (probe-file bin))
-            (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-              (declare (ignorable stdout stderr))
-              (is (zerop errno))
-              (is (probe-file trace)))))))))
+            (is (probe-file trace))))))))
 
 (deftest instrumentation-handles-missing-curlies-test ()
   (with-fixture gcd-wo-curlies-clang
@@ -1805,14 +1796,13 @@ Useful for printing or returning differences in the REPL."
                     (nth (+ 2 location) (lines instrumented))))))
       ;; Finally, lets be sure we still compile.
       (with-temp-file (bin)
-        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-          (declare (ignorable out))
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
           (is (zerop errno))
-          (is (probe-file bin))
-          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-            (declare (ignorable stdout))
-            (is (zerop errno))
-            (is (listp (read-trace stderr)))))))))
+          (is (listp (read-trace stderr))))))))
 
 (deftest instrumentation-insertion-w-points-and-added-blocks-test ()
   (with-fixture gcd-wo-curlies-clang
@@ -1825,14 +1815,13 @@ Useful for printing or returning differences in the REPL."
       (is (scan (quote-meta-chars coookie) (genome-string instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (multiple-value-bind (out errno) (phenome instrumented :bin bin)
-          (declare (ignorable out))
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
           (is (zerop errno))
-          (is (probe-file bin))
-          (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-            (declare (ignorable stdout))
-            (is (zerop errno))
-            (is (scan (quote-meta-chars coookie) stderr))))))))
+          (is (scan (quote-meta-chars coookie) stderr)))))))
 
 (deftest instrumentation-print-in-scope-vars ()
   (with-fixture gcd-clang
@@ -1841,7 +1830,8 @@ Useful for printing or returning differences in the REPL."
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:V") (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (phenome *gcd* :bin bin)
+      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+          "Successfully compiled instrumented GCD.")
       (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
         (declare (ignorable stdout))
         (is (zerop errno))
