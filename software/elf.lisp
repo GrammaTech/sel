@@ -34,10 +34,10 @@ and applies the changed data in `genome' of ELF."))
   elf)
 
 (defmethod phenome ((elf elf) &key (bin (temp-file-name)))
-  (declare (values string fixnum string string))
+  (declare (values string fixnum string string string))
   (write-elf (elf elf) bin)
   (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~a" bin)
-    (values bin errno stderr stdout)))
+    (values bin errno stderr stdout bin)))
 
 (defmethod pick-good ((elf elf)) (random (length (genome elf))))
 (defmethod pick-bad ((elf elf)) (random (length (genome elf))))

@@ -54,7 +54,8 @@ the executable was compiled, (2) the errno, or a numeric indication of
 success, of the compilation process, (3) STDERR of the compilation
 process, or a string holding error output relevant to phenome
 generation, (4) STDOUT of the compilation process, or a string holding
-non-error output relevant to phenome generation. "))
+non-error output relevant to phenome generation, (5) the source file
+name used during compilation. "))
 
 (defgeneric evaluate (function software)
   (:documentation "Evaluate the software returning a numerical fitness."))

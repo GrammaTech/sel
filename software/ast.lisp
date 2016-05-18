@@ -41,12 +41,12 @@
              :copier :none)))
 
 (defmethod phenome ((obj ast) &key bin)
-  (declare (values string fixnum string string))
+  (declare (values string fixnum string string string))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr errno)
           (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
-        (values bin errno stderr stdout)))))
+        (values bin errno stderr stdout src)))))
 
 (defmethod compile-p ((obj ast))
   (with-temp-file (bin)
