@@ -245,7 +245,8 @@ Built with ~a version ~a.~%"
 
     ;; Set the functions.
     (setf (nth (position 'trace-vars functions) functions)
-          (lambda (ast) (unbound-var-instrument original ast print-strings)))
+          (lambda (ast)
+            (unbound-var-instrument original ast :print-strings print-strings)))
 
     ;; Save original.
     (when save-original
