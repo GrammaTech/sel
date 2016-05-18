@@ -37,12 +37,12 @@ expression match.")
   (loop :for attempt :below max-attempts :do
      ;; Compile
      (with-temp-file (bin)
-       (multiple-value-bind (out errno) (phenome obj :bin bin)
+       (multiple-value-bind (bin errno stderr) (phenome obj :bin bin)
          (when (zerop errno)
            (return))
          ;; Dispatch on the first compiler warnings.
          (block fix
-           (loop :for line :in (split-sequence #\Newline out) :do
+           (loop :for line :in (split-sequence #\Newline stderr) :do
               (loop :for fixer :in *compilation-fixers*
                  :when (setf matches
                              (multiple-value-bind (matchp match-data)

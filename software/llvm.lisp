@@ -62,16 +62,18 @@
                src
                (string-downcase (symbol-name (car op)))
                (mapconcat [{format nil "~a"} #'1+] (cdr op) ","))
+      (declare (ignorable stdout stderr))
       (unless (zerop exit)
         (error (make-condition 'mutate
                  :text "llvm-mutate" :obj llvm :op op)))
       llvm)))
 
 (defmethod phenome ((llvm llvm) &key bin)
+  (declare (values string fixnum string string))
   (with-temp-file-of (src (ext llvm)) (genome llvm)
     (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (stdout stderr exit)
+      (multiple-value-bind (stdout stderr errno)
           (shell "cat ~a|~a|~a ~{~a~^ ~} -x assembler - -o ~a"
                  src (compiler llvm) (linker llvm) (flags llvm) bin)
         (declare (ignorable stdout stderr))
-        (values (if (zerop exit) bin stderr) exit)))))
+        (values bin errno stderr stdout)))))

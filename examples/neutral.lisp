@@ -97,8 +97,8 @@ Options:
              ;; Return numerical fitness printed to STDOUT by SCRIPT or zero.
              (with-temp-file (bin)
                (or (ignore-errors
-                     (and (multiple-value-bind (info exit) (phenome asm :bin bin)
-                            (declare (ignorable info)) (zerop exit))
+                     (and (multiple-value-bind (bin exit) (phenome asm :bin bin)
+                            (declare (ignorable bin)) (zerop exit))
                           (multiple-value-bind (out err errno) (shell script bin)
                             (declare (ignorable err))
                             (and (zerop errno) (parse-number out)))))
