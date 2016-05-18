@@ -63,12 +63,12 @@
   forth)
 
 (defmethod phenome ((forth forth) &key bin)
-  (declare (values string fixnum string string))
+  (declare (values string fixnum string string string))
   (let ((bin (or bin (temp-file-name))))
     (string-to-file (format nil "~a~%~a" (shebang forth) (genome-string forth))
                     bin)
     (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~s" bin)
-      (values bin errno stderr stdout))))
+      (values bin errno stderr stdout bin))))
 
 (declaim (inline genome-string))
 (defmethod genome-string ((forth forth) &optional stream)

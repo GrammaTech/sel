@@ -35,14 +35,14 @@
 (defvar *asm-linker* "gcc")
 
 (defmethod phenome ((asm asm) &key bin)
-  (declare (values string fixnum string string))
+  (declare (values string fixnum string string string))
   (with-temp-file-of (src "s") (genome-string asm)
     (let ((bin (or bin (temp-file-name))))
       (multiple-value-bind (stdout stderr errno)
           (shell "~a -o ~a ~a ~{~a~^ ~}"
                  (or (linker asm) *asm-linker*) bin src (flags asm))
         (declare (ignorable stdout ))
-        (values bin errno stderr stdout)))))
+        (values bin errno stderr stdout src)))))
 
 
 ;;; incorporation of oprofile samples
