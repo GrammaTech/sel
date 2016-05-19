@@ -19,29 +19,32 @@
                              (warn "Point ~d doesn't match traceable AST."
                                    counter))))
                      points)))))
-    (flet ((instrument-ast (ast orig-counter formats-w-args trace-strings)
-             ;; Given an AST and list of TRACE-STRINGS, return
-             ;; instrumented source.
-             (format nil "~{~a~}fputs(\")\\n\", ~a);~%~a~%"
-                     (append
-                      (cons
-                       (format nil      ; Start up alist w/counter.
-                               "fputs(\"((:C . ~d) \", ~a);~%"
-                               orig-counter log-var)
-                       (when trace-strings
-                         (list
-                          (format nil   ; Points instrumentation.
-                                  "fputs(\"(~{~a~^ ~})\", ~a);~%"
-                                  trace-strings log-var))))
-                      (mapcar
-                       {format nil      ; Functions instrumentation.
-                               (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
-                                       log-var)}
-                       (mapcar #'car formats-w-args)
-                       (mapcar #'cdr formats-w-args)))
-                     log-var
-                     ;; Text of instrumented statement.
-                     (peel-bananas (aget :src-text ast)))))
+    (labels
+        ((escape (string)
+           (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
+         (instrument-ast (ast orig-counter formats-w-args trace-strings)
+           ;; Given an AST and list of TRACE-STRINGS, return
+           ;; instrumented source.
+           (format nil "~{~a~}fputs(\")\\n\", ~a);~%~a~%"
+                   (append
+                    (cons
+                     (format nil      ; Start up alist w/counter.
+                             "fputs(\"((:C . ~d) \", ~a);~%"
+                             orig-counter log-var)
+                     (when trace-strings
+                       (list
+                        (format nil   ; Points instrumentation.
+                                "fputs(\"(~{~a ~})\", ~a);~%"
+                                (mapcar #'escape trace-strings) log-var))))
+                    (mapcar
+                     {format nil      ; Functions instrumentation.
+                             (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
+                                     log-var)}
+                     (mapcar #'car formats-w-args)
+                     (mapcar #'cdr formats-w-args)))
+                   log-var
+                   ;; Text of instrumented statement.
+                   (peel-bananas (aget :src-text ast)))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
             (mapcar {aget :counter})
