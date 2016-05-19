@@ -1116,6 +1116,10 @@ statement was added to create a full statement."))
      (let* ((parent (get-parent-ast obj ast))
             (index (position-if [{= (aget :counter ast)} {aget :counter}]
                                 (get-immediate-children obj parent))))
+       (assert index (obj parent ast)
+               (concatenate 'string
+                 "Parent should have ast as child in obj.~%"
+                 "Ensure the `clang-mutate' executable is working correctly."))
        (setf obj (wrap-child obj parent index))
        (values
         (first (get-immediate-children ; Only child of new CompoundStmt.
