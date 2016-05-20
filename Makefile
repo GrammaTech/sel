@@ -69,7 +69,7 @@ $(MANIFEST_FILE): $(wildcard $(QUICK_LISP)/local-projects/*/*.asd)
           --eval "#+sbcl (exit) #+ccl (quit)"
 	touch $@
 
-bin/clang-instrument: src/clang-instrument.lisp $(LOADED_LIBS) $(MANIFEST_FILE)
+bin/clang-instrument: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST_FILE)
 	CC=$(CC) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se:clang-instrument"
 
 
