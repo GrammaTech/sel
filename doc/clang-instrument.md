@@ -46,12 +46,19 @@ collection during dynamic execution.
 -q,--quiet
 :   Set verbosity level to 0
 
+-s,--strings
+:   Print string variable values to traces.  Could be dangerous.
+
+-S,--scope
+:   Instrument program to write values of all variables in scope at
+    every instrumentation point.
+
 -t,--trace-file *FILE*
 :   Instrument program to write instrumentation to *FILE*.  By default
     instrumentation is written to `STDERR`.
 
 -v,--variables
-:   Instrument program to write values of numeric variables at every
+:   Instrument program to write values of unbound variables at every
     instrumentation point.
 
 -V,--verbose *NUM*

@@ -101,11 +101,15 @@
     (clang-format obj)
     obj))
 
-(defgeneric unbound-var-instrument (software ast &key print-strings)
+(defgeneric var-instrument (software label key ast &key print-strings)
   (:documentation
-   "Return a format string and variable list for variable instrumentation."))
+   "Return a format string and variable list for variable instrumentation.
+KEY should be a function used to pull the variable list out of AST in
+SOFTWARE.  The result of KEY will appear behind LABEL in the trace
+output."))
 
-(defmethod unbound-var-instrument ((obj clang) (ast list) &key print-strings)
+(defmethod var-instrument
+    ((obj clang) label key (ast list) &key print-strings)
   (flet ((fmt-code (c-type)
            (eswitch (c-type :test #'string=)
              ("char"          "%c")
@@ -121,9 +125,8 @@
              ("double"        "%G")
              ("*double"       "%p")
              ("long double"   "%LG")
-             ("*long double"  "%p")))) 
-    (iter (for var in (mapcar [#'peel-bananas #'car]
-                              (aget :unbound-vals ast)))
+             ("*long double"  "%p"))))
+    (iter (for var in (funcall key ast))
           (let* ((type (type-of-var obj var))
                  (c-type (concatenate 'string
                            (if (or (aget :pointer type)
@@ -133,7 +136,8 @@
             (when (member c-type +c-numeric-types+ :test #'string=)
               (concatenating (format nil " (:~a ~a ~a)"
                                      var c-type (fmt-code c-type))
-                             into format initial-value "(:V")
+                             into format
+                             initial-value (format nil "(~s" label))
               (collect var into vars)))
           (finally (return (cons (concatenate 'string format ")") vars))))))
 
@@ -212,9 +216,10 @@ Options:
  -p,--point NUM,STRING -- instrument to print STRING at ast NUM
  -q,--quiet ------------- set verbosity level to 0
  -s,--strings ----------- trace string variable values, DANGEROUS
+ -S,--scope ------------- write in-scope variables to trace
  -t,--trace-file FILE --- instrumented to write trace to fILE
                           (default to STDERR)
- -v,--variables --------- write numeric variables to trace
+ -v,--variables --------- write unbound variables to trace
  -V,--verbose NUM ------- verbosity level 0-4
 
 Built with ~a version ~a.~%"
@@ -240,16 +245,28 @@ Built with ~a version ~a.~%"
                                  :test #'string=)))
       ("-q" "--quiet" (setf *note-level* 0))
       ("-s" "--strings" (setf print-strings t))
+      ("-S" "--scope" (push 'trace-scope-vars functions))
       ("-t" "--trace-file" (setf trace-file (pop args)))
-      ("-v" "--variables" (push 'trace-vars functions))
+      ("-v" "--variables" (push 'trace-unbound-vars functions))
       ("-V" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
                             (setf *note-level* lvl))))
 
     ;; Set the functions.
-    (setf (nth (position 'trace-vars functions) functions)
-          (lambda (ast)
-            (unbound-var-instrument original ast :print-strings print-strings)))
+    (when-let ((position (position 'trace-unbound-vars functions)))
+      (setf (nth position functions)
+            (lambda (ast)
+              (var-instrument
+               original :unbound-vals
+               [{mapcar [#'peel-bananas #'car]} {aget :unbound-vals}] ast
+               :print-strings print-strings))))
+    (when-let ((position (position 'trace-scope-vars functions)))
+      (setf (nth position functions)
+            (lambda (ast)
+              (var-instrument
+               original :scopes
+               [{apply #'append} {aget :scopes}] ast
+               :print-strings print-strings))))
 
     ;; Save original.
     (when save-original
@@ -270,9 +287,9 @@ Built with ~a version ~a.~%"
                      :type type)))
           (instrumented
            (handler-bind ((warning  ; Muffle warnings at low verbosity.
-                          (if (> *note-level* 2)
-                              #'identity
-                              #'muffle-warning)))
+                           (if (> *note-level* 2)
+                               #'identity
+                               #'muffle-warning)))
              (clang-format
               (instrument original :trace-file trace-file
                           :points points

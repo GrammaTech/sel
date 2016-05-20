@@ -1641,7 +1641,7 @@ Useful for printing or returning differences in the REPL."
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
     (when-let* ((it (stmt-with-text *scopes* "int f, g"))
-                (ast (get-ast *scopes* id)))
+                (ast (get-ast *scopes* it)))
       (is (= 2 (length (aget :declares ast)))))))
 
 (deftest delete-decl-stmts-works ()
@@ -1748,8 +1748,8 @@ Useful for printing or returning differences in the REPL."
                :points
                (iter (for i below (size *gcd*))
                      (if (evenp i)
-                         (collect (list i ":even"))
-                         (collect (list i ":odd"))))))))
+                         (collect (list i :even))
+                         (collect (list i :odd))))))))
       ;; Do we insert the right number of printf statements?
       (is (<= (* 3 (count-fullable *gcd*))
               (count-fullable instrumented)))
@@ -1806,13 +1806,16 @@ Useful for printing or returning differences in the REPL."
 
 (deftest instrumentation-insertion-w-points-and-added-blocks-test ()
   (with-fixture gcd-wo-curlies-clang
-    (let* ((coookie "TEST-COOKIE")
+    (let* ((cookie :test-cookie)
            (instrumented
             (instrument (copy *gcd*)
               :points
-              `((,(aget :counter (ast-with-text *gcd* "b - a")) ,coookie)))))
+              `((,(aget :counter (ast-with-text *gcd* "b - a")) ,cookie)))))
       ;; Instrumented program holds the TEST-COOKIE line.
-      (is (scan (quote-meta-chars coookie) (genome-string instrumented)))
+      (is (scan (quote-meta-chars (string cookie))
+                (genome-string instrumented))
+          "The point trace string ~S appears in the instrumented program text."
+          (string cookie))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (is (zerop (second (multiple-value-list
@@ -1821,13 +1824,21 @@ Useful for printing or returning differences in the REPL."
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout))
           (is (zerop errno))
-          (is (scan (quote-meta-chars coookie) stderr)))))))
+          (is (scan (quote-meta-chars (string cookie)) stderr)
+              "The point trace string ~S appears in the program output."
+              (string cookie)))))))
 
-(deftest instrumentation-print-in-scope-vars ()
+(defparameter unbound-vals-fn
+  [{mapcar [#'peel-bananas #'car]} {aget :unbound-vals}]
+  "Function to pull unbound variables from an AST for use in `var-instrument'.")
+
+(deftest instrumentation-print-unbound-vars ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
-      (instrument *gcd* :functions (list {unbound-var-instrument *gcd*})))
-    (is (scan (quote-meta-chars "fprintf(stderr, \"(:V") (genome-string *gcd*))
+      (instrument *gcd* :functions
+                  (list {var-instrument *gcd* :unbound-vals unbound-vals-fn})))
+    (is (scan (quote-meta-chars "fprintf(stderr, \"(:UNBOUND-VALS")
+              (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
       (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
@@ -1839,16 +1850,44 @@ Useful for printing or returning differences in the REPL."
           (is (listp trace) "We got a trace.")
           (is (= (length trace) (count-if {assoc :c} trace))
               "Counter in every trace element.")
-          (is (= (length trace) (count-if {assoc :v} trace))
+          (is (= (length trace) (count-if {assoc :UNBOUND-VALS} trace))
               "Variable list in every trace element.")
-          (is (> (length trace) (count-if {aget :v} trace))
+          (is (> (length trace) (count-if {aget :UNBOUND-VALS} trace))
               "Variable list not populated in every trace element."))))))
+
+(deftest instrumentation-print-in-scope-vars ()
+  (with-fixture gcd-clang
+    (handler-bind ((warning #'muffle-warning))
+      (instrument *gcd* :functions
+                  (list {var-instrument *gcd* :scopes
+                                        [{apply #'append} {aget :scopes}]})))
+    (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
+              (genome-string *gcd*))
+        "We find code to print unbound variables in the instrumented source.")
+    (with-temp-file (bin)
+      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+          "Successfully compiled instrumented GCD.")
+      (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+        (declare (ignorable stdout))
+        (is (zerop errno))
+        (let ((trace (read-trace stderr)))
+          (is (listp trace) "We got a trace.")
+          (is (= (length trace) (count-if {assoc :c} trace))
+              "Counter in every trace element.")
+          (is (= (length trace) (count-if {assoc :SCOPES} trace))
+              "Variable list in every trace element.")
+          (is (> (length trace) (count-if {aget :SCOPES} trace))
+              "Variable list not populated in every trace element.")
+          (is (not (null (mappend {aget :SCOPES} trace)))
+              "Variable list not always empty."))))))
 
 (deftest instrumentation-handles-binary-search ()
   (with-fixture binary-search-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *binary-search*
-        :functions (list {unbound-var-instrument *binary-search*})))))
+        :functions
+        (list
+         {var-instrument *binary-search* :unbound-vals unbound-vals-fn})))))
 
 
 ;;; Tests of type database on clang objects

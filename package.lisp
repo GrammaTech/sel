@@ -259,7 +259,7 @@
    :disasm
    :addresses
    :instrument
-   :unbound-var-instrument
+   :var-instrument
    :add-include
    :add-type
    :add-macro
