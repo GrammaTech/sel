@@ -23,6 +23,7 @@
    :with-temp-file
    :with-temp-file-of
    :with-temp-file-of-bytes
+   :ensure-path-is-string
    ;; :from-bytes
    ;; :to-bytes
    :*work-dir*

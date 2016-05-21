@@ -127,6 +127,12 @@ and an optional extension."
 (defun to-bytes (software)
   (with-temp-file (tmp) (store software tmp) (file-to-bytes tmp)))
 
+(defun ensure-path-is-string (path)
+  (cond
+    ((stringp path) path)
+    ((pathnamep path) (namestring path))
+    (:otherwise (error "Path not string ~S." path))))
+
 (defvar *work-dir* nil)
 
 (defvar *shell-debug* nil
