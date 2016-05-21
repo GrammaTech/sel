@@ -40,13 +40,13 @@
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none)))
 
-(defmethod phenome ((obj ast) &key bin)
+(defmethod phenome ((obj ast) &key (bin (temp-file-name)))
   (declare (values string fixnum string string string))
+  (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
-    (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (stdout stderr errno)
-          (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
-        (values bin errno stderr stdout src)))))
+    (multiple-value-bind (stdout stderr errno)
+        (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
+      (values bin errno stderr stdout src))))
 
 (defmethod compile-p ((obj ast))
   (with-temp-file (bin)

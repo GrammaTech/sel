@@ -68,12 +68,12 @@
                  :text "llvm-mutate" :obj llvm :op op)))
       llvm)))
 
-(defmethod phenome ((llvm llvm) &key bin)
+(defmethod phenome ((llvm llvm) &key (bin (temp-file-name)))
   (declare (values string fixnum string string string))
+  (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext llvm)) (genome llvm)
-    (let ((bin (or bin (temp-file-name))))
-      (multiple-value-bind (stdout stderr errno)
-          (shell "cat ~a|~a|~a ~{~a~^ ~} -x assembler - -o ~a"
-                 src (compiler llvm) (linker llvm) (flags llvm) bin)
-        (declare (ignorable stdout stderr))
-        (values bin errno stderr stdout src)))))
+    (multiple-value-bind (stdout stderr errno)
+        (shell "cat ~a|~a|~a ~{~a~^ ~} -x assembler - -o ~a"
+               src (compiler llvm) (linker llvm) (flags llvm) bin)
+      (declare (ignorable stdout stderr))
+      (values bin errno stderr stdout src))))
