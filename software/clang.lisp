@@ -1873,7 +1873,7 @@ VARIABLE-NAME should be declared in AST."))
                                          (car a-out) (cdr a-out)
                                          (car b-out) (cdr b-out))))
              (inward-snippet
-              (if (and (null (cdr a-in)) (null (cdr b-in)))
+              (if (or (null (cdr a-in)) (null (cdr b-in)))
                   (alist :src-text "") ; No corresponding text from b
                   (crossover-2pt-inward
                    variant b a-in b-in
