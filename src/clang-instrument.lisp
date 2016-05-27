@@ -141,7 +141,7 @@ output."))
                            (aget :type type)))
                  (stripped-c-type (regex-replace "\\*?(unsigned )?" c-type "")))
             (when (member stripped-c-type +c-numeric-types+ :test #'string=)
-              (concatenating (format nil " (:~a \\\"~a\\\" ~a)"
+              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
                                      var c-type (fmt-code c-type))
                              into format
                              initial-value (format nil "(~s" label))
