@@ -10,88 +10,68 @@
         ;; will not appear in the output.
         (points
          (remove nil
-           (let ((inc 0))
-             (mapcar (lambda-bind ((counter . value))
-                       (multiple-value-bind (parent madep)
-                           (get-make-parent-full-stmt obj (+ inc counter))
-                         (when madep (incf inc))
-                         (if parent (cons (aget :counter parent) value)
-                             (warn "Point ~d doesn't match traceable AST."
-                                   counter))))
-                     points)))))
+           (mapcar (lambda-bind ((counter . value))
+                    (let ((parent (enclosing-traceable-stmt obj counter)))
+                      (if parent (cons (aget :counter parent) value)
+                          (warn "Point ~d doesn't match traceable AST."
+                                counter))))
+                   points))))
     (labels
         ((escape (string)
            (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
-         (instrument-ast (ast orig-counter formats-w-args trace-strings)
+         (instrument-ast (ast counter formats-w-args trace-strings)
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
-           (format nil "~{~a~}fputs(\")\\n\", ~a);~%~a~%"
-                   (append
-                    (cons
-                     (format nil      ; Start up alist w/counter.
-                             "fputs(\"((:C . ~d) \", ~a);~%"
-                             orig-counter log-var)
-                     (when trace-strings
-                       (list
-                        (format nil   ; Points instrumentation.
-                                "fputs(\"(~{~a ~})\", ~a);~%"
-                                (mapcar #'escape trace-strings) log-var))))
-                    (mapcar
-                     {format nil      ; Functions instrumentation.
-                             (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
-                                     log-var)}
-                     (mapcar #'car formats-w-args)
-                     (mapcar #'cdr formats-w-args)))
-                   log-var
-                   ;; Text of instrumented statement.
-                   (peel-bananas (aget :src-text ast)))))
+           (let ((wrap (and (not (aget :full-stmt ast))
+                            (can-be-made-full-p obj ast))))
+             (append
+              ;; Closing brace after the statement
+              (when wrap
+                `((:insert-value-after (:stmt1 . ,counter)
+                                       (:value1 . "}"))))
+              ;; Opening brace and instrumentation code before
+              `((:insert-value
+                 (:stmt1 . ,counter)
+                 (:value1 .
+                  ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%"
+                        wrap
+                        (append
+                         (cons
+                          (format nil ; Start up alist w/counter.
+                                  "fputs(\"((:C . ~d) \", ~a);~%"
+                                  counter log-var)
+                          (when trace-strings
+                            (list
+                             (format nil ; Points instrumentation.
+                                     "fputs(\"(~{~a ~})\", ~a);~%"
+                                     (mapcar #'escape trace-strings) log-var))))
+                         (mapcar
+                          {format nil ; Functions instrumentation.
+                                  (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
+                                          log-var)}
+                          (mapcar #'car formats-w-args)
+                          (mapcar #'cdr formats-w-args)))
+                        log-var))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
             (mapcar {aget :counter})
             ;; Bottom up ensure earlier insertions don't invalidate
             ;; later counters.
             (sort <> #'>)
-            ;; Setup to hold (updated-value . original-value) to
-            ;; accommodate inserted CompoundStmts.
-            (mapcar (lambda (counter) (cons counter counter)))
-            ;; Collect/create parents, when needed update counters.
-            (reduce (lambda-bind (acc (counter . orig-counter))
-                      (multiple-value-bind (parent madep)
-                          (get-make-parent-full-stmt obj counter)
-                        ;; As we add CompoundStmts, we increment
-                        ;; all subsequent pointers...
-                        (when madep
-                          (setf points
-                                (mapcar (lambda-bind ((p . rest))
-                                          (cons (if (>= p counter)
-                                                    (1+ p) p)
-                                                rest))
-                                        points)))
-                        (cons (cons (aget :counter parent) orig-counter)
-                              ;; and counters.
-                              (if madep
-                                  (mapcar (lambda-bind ((counter . orig-counter))
-                                            (cons (1+ counter) orig-counter))
-                                          acc)
-                                  acc))))
-                    <> :initial-value '())
-            (nreverse) ; The prior reduce reverses the order, this fixes that.
-            (mapc      ; Actually insert the instrumentation.
-             (lambda-bind ((counter . orig-counter))
-               (setf
-                (genome obj)
-                (clang-mutate obj
-                  `(:set (:stmt1 . ,counter)
-                         ,(cons :value1
-                                (let ((ast (get-ast obj counter)))
-                                  (instrument-ast
-                                   ast
-                                   orig-counter
-                                   (mapcar {funcall _ ast} functions)
-                                   (aget counter points)))))))
-               (setf (aget counter points) nil)
-               (update-asts obj)
-               obj))))
+            (mapcar (lambda (counter)
+                      (prog1
+                          (let ((ast (get-ast obj counter)))
+                            (instrument-ast
+                             ast
+                             counter
+                             (mapcar {funcall _ ast} functions)
+                             (aget counter points)))
+                        (setf (aget counter points) nil))))
+            ;; Each AST generates a list of operations. Flatten them
+            ;; to a single level.
+            (apply #'append)
+            (apply-mutation-ops obj)))
+
     ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))

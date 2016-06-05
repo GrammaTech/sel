@@ -726,22 +726,27 @@ already in scope, it will keep that name.")
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
 
+(defun apply-mutation-ops (software ops)
+  "Run clang-mutate with a list of mutation operations, and update the
+genome."
+
+  ;; If we multiplex multiple software objects onto one
+  ;; clang-mutate invocation, they will need to track their own TU
+  ;; ids.  With one software object, it will always be TU 0.
+  (let ((tu 0))
+    (setf (genome software)
+          (clang-mutate software '(:scripted) :script
+                        (format nil "reset ~a; ~{~a; ~}preview ~a"
+                                tu
+                                (mapcar {mutation-op-to-cmd tu} ops)
+                                tu)))
+    software))
+
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
   (restart-case
-      ;; If we multiplex multiple software objects onto one
-      ;; clang-mutate invocation, they will need to track their own TU
-      ;; ids.  With one software object, it will always be TU 0.
-      (let ((tu 0))
-        (setf (genome software)
-              (clang-mutate software '(:scripted) :script
-                            (format nil "reset ~a; ~{~a; ~}preview ~a"
-                                    tu
-                                    (mapcar {mutation-op-to-cmd tu}
-                                            (recontextualize-mutation software
-                                                                      mutation))
-                                    tu)))
-        software)
+      (apply-mutation-ops software
+                          (recontextualize-mutation software mutation))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -779,6 +784,8 @@ already in scope, it will keep that name.")
                (ast :stmt1) (ast :stmt2)))
       (:insert-value
        (format nil "before ~a ~a" (ast :stmt1) (str :value1)))
+      (:insert-value-after
+       (format nil "after ~a ~a" (ast :stmt1) (str :value1)))
       (:swap
        (format nil "swap ~a ~a" (ast :stmt1) (ast :stmt2)))
       (:set
@@ -1122,6 +1129,21 @@ statement was added to create a full statement."))
                                 obj (aget :counter parent)))))
         t)))
     (ast (get-make-parent-full-stmt obj (get-parent-ast obj ast)))
+    (:otherwise (values nil nil))))
+
+(defgeneric enclosing-traceable-stmt (software ast)
+  (:documentation
+   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
+If a statement is reached which is not itself full, but which could be
+made full by wrapping with curly braces, return that."))
+
+(define-ast-number-or-nil-default-dispatch enclosing-traceable-stmt)
+(defmethod enclosing-traceable-stmt ((obj clang) (ast list))
+  (cond
+    ((aget :full-stmt ast) ast)
+    ;; Wrap AST in a CompoundStmt to make it full.
+    ((can-be-made-full-p obj ast) ast)
+    (ast (enclosing-traceable-stmt obj (get-parent-ast obj ast)))
     (:otherwise (values nil nil))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
