@@ -54,6 +54,8 @@
                         log-var))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
+            (remove-if {aget :in-macro-expansion})
+            (remove-if [{string= "NullStmt"} {aget :ast-class}])
             (mapcar {aget :counter})
             ;; Bottom up ensure earlier insertions don't invalidate
             ;; later counters.

@@ -410,7 +410,8 @@ software object"))
      :guard-stmt        :full-stmt         :begin-src-line
      :end-src-line      :begin-src-col     :end-src-col
      :begin-addr        :end-addr          :includes
-     :declares          :scopes            :is-decl)
+     :declares          :scopes            :is-decl
+     :in-macro-expansion)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -892,7 +893,8 @@ genome."
                  (:binary-contents "binary_contents")
                  (:base-type "base_type")
                  (:bit-field-width "bit_field_width")
-                 (:array-length "array_length")))
+                 (:array-length "array_length")
+                 (:in-macro-expansion "in_macro_expansion")))
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
