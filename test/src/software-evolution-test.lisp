@@ -591,28 +591,9 @@
       (is (string= "BinaryOperator"     ; Else
                    (aget :ast-class (ast-with-text *gcd* "b = b - a")))))))
 
-(deftest get-make-full-parent-works-when-making-new-parent-test ()
-  (with-fixture gcd-wo-curlies-clang
-    (let ((full-parent (get-make-parent-full-stmt
-                        *gcd* (ast-with-text *gcd* "a = a - b"))))
-      (is (aget :full-stmt full-parent))
-      (is (scan (quote-meta-chars "a = a - b")
-                (peel-bananas (aget :src-text full-parent)))))))
-
 (deftest split-multi-var-decls-on-clang ()
   (with-fixture gcd-clang
     (is (not (scan "double a,b,c;" (genome-string *gcd*))))))
-
-(deftest get-make-full-parent-works-when-not-making-new-parent-test ()
-  (with-fixture gcd-clang
-    (let ((original-text (copy-seq (genome-string *gcd*)))
-          (full-parent (get-make-parent-full-stmt
-                        *gcd* (ast-with-text *gcd* "a = a - b"))))
-      (is (aget :full-stmt full-parent))
-      (is (scan (quote-meta-chars "a = a - b")
-                (peel-bananas (aget :src-text full-parent))))
-      (is (string= original-text (genome-string *gcd*))
-          "No change should be made to the original program text."))))
 
 (deftest clang-headers-parsed-in-order ()
   (with-fixture headers-clang

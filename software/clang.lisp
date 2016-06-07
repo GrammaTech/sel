@@ -1101,36 +1101,6 @@ Returns nil if no full-stmt parent is found."))
           (member (aget :ast-class parent) +clang-wrapable-parents+
                   :test #'string=)))))
 
-(defgeneric get-make-parent-full-stmt (software ast)
-  (:documentation
-   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
-If a statement is reached which is not itself full, but which could be
-made full wrap it in a block.  Second return value indicates if a
-statement was added to create a full statement."))
-
-(define-ast-number-or-nil-default-dispatch get-make-parent-full-stmt)
-(defmethod get-make-parent-full-stmt ((obj clang) (ast list))
-  (cond
-    ((aget :full-stmt ast) (values ast nil))
-    ;; Wrap AST in a CompoundStmt to make it full.
-    ((can-be-made-full-p obj ast)
-     ;; Get this ASTs child index, to find after the change.
-     (let* ((parent (get-parent-ast obj ast))
-            (index (position-if [{= (aget :counter ast)} {aget :counter}]
-                                (get-immediate-children obj parent))))
-       (assert index (obj parent ast)
-               (concatenate 'string
-                 "Parent should have ast as child in obj.~%"
-                 "Ensure the `clang-mutate' executable is working correctly."))
-       (setf obj (wrap-child obj parent index))
-       (values
-        (first (get-immediate-children ; Only child of new CompoundStmt.
-                obj (nth index (get-immediate-children ; Index child of parent.
-                                obj (aget :counter parent)))))
-        t)))
-    (ast (get-make-parent-full-stmt obj (get-parent-ast obj ast)))
-    (:otherwise (values nil nil))))
-
 (defgeneric enclosing-traceable-stmt (software ast)
   (:documentation
    "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
