@@ -133,6 +133,8 @@ and an optional extension."
     ((pathnamep path) (namestring path))
     (:otherwise (error "Path not string ~S." path))))
 
+
+;;; Shell and system command helpers
 (defvar *work-dir* nil)
 
 (defvar *shell-debug* nil
@@ -200,6 +202,68 @@ and an optional extension."
                                                      :command cmd))
                   (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
+
+(defmacro write-shell-file
+    ((stream-var file shell &optional args) &rest body)
+  "Executes BODY with STREAM-VAR passing through SHELL to FILE."
+  #-sbcl (error "`WRITE-SHELL-FILE' unimplemented for non-SBCL lisps.")
+  (let ((proc-sym (gensym))
+        (thread-sym (gensym))
+        (byte-sym (gensym))
+        (file-var (gensym)))
+    `(let* ((,proc-sym (sb-ext:run-program ,shell ,args :search t
+                                           :output :stream
+                                           :input :stream
+                                           :wait nil))
+            (,thread-sym
+             (sb-thread:make-thread ; Thread connecting shell output to file.
+              (lambda ()
+                (with-open-file (,file-var ,file :direction :output
+                                           :if-exists :supersede
+                                           :element-type 'unsigned-byte)
+                  (loop :for ,byte-sym = (read-byte
+                                          (sb-ext:process-output ,proc-sym)
+                                          nil :eof)
+                     :until (eql ,byte-sym :eof)
+                     :do (write-byte ,byte-sym ,file-var))
+                  (close (sb-ext:process-output ,proc-sym)))))))
+       (unwind-protect
+            (with-open-stream (,stream-var (sb-ext:process-input ,proc-sym))
+              ,@body)
+         (sb-thread:join-thread ,thread-sym)))))
+
+(defmacro read-shell-file
+    ((stream-var file shell &optional args) &rest body)
+  "Executes BODY with STREAM-VAR passing through SHELL from FILE."
+  #-sbcl (error "`READ-SHELL-FILE' unimplemented for non-SBCL lisps.")
+  (let ((proc-sym (gensym))
+        (thread-sym (gensym))
+        (byte-sym (gensym))
+        (file-var (gensym)))
+    `(let* ((,proc-sym (sb-ext:run-program ,shell ,args :search t
+                                           :output :stream
+                                           :input :stream
+                                           :wait nil))
+            (,thread-sym
+             (sb-thread:make-thread ; Thread connecting file to shell input.
+              (lambda ()
+                (with-open-file (,file-var ,file :direction :input
+                                           :if-exists :supersede
+                                           :element-type 'unsigned-byte)
+                  (loop :for ,byte-sym = (read-byte ,file-var nil :eof)
+                     :until (eql ,byte-sym :eof) :do
+                     (write-byte ,byte-sym (sb-ext:process-input ,proc-sym)))
+                  (close (sb-ext:process-input ,proc-sym)))))))
+       (unwind-protect
+            (with-open-stream (,stream-var (sb-ext:process-output ,proc-sym))
+              ,@body)
+         (sb-thread:join-thread ,thread-sym)))))
+
+(defmacro xz-pipe ((in-stream in-file) (out-stream out-file) &rest body)
+  "Executes BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
+  `(read-shell-file (,in-stream ,in-file "unxz")
+     (write-shell-file (,out-stream ,out-file "xz")
+       ,@body)))
 
 (defun parse-number (string)
   "Parse the number located at the front of STRING or return an error."
