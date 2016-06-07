@@ -1,4 +1,5 @@
 (defpackage :software-evolution-utility
+  (:nicknames :se-utility)
   (:use
    :common-lisp
    :alexandria
