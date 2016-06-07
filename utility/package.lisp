@@ -33,6 +33,9 @@
    :shell-command-failed
    :shell
    :shell-with-input
+   :write-shell-file
+   :read-shell-file
+   :xz-pipe
    :parse-number
    :parse-numbers
    ;; forensic
