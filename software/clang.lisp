@@ -426,7 +426,7 @@ software object"))
     ;; incorporate ASTs.
     (iter (for ast in (handler-case
                           (clang-mutate obj
-                            (list* :json
+                            (list* :sexp
                                    (cons :fields *clang-json-required-fields*)
                                    (cons :aux *clang-json-required-aux*)
                                    clang-mutate-args))
@@ -804,7 +804,7 @@ genome."
        (format nil "ids ~a" tu))
       (:list
        (format nil "list ~a" tu))
-      (:json
+      (:sexp
        (let ((aux (if (aget :aux (cdr op))
                       (format nil "aux=~{~a~^,~}" (aget :aux (cdr op)))
                       ""))
@@ -812,8 +812,9 @@ genome."
                          (format nil "fields=~{~a~^,~}" (aget :fields (cdr op)))
                          "")))
          (if (aget :stmt1 (cdr op))
+             ;; FIXME: this will output JSON
              (format nil "ast ~a ~a" (ast :stmt1) fields)
-             (format nil "json ~a ~a ~a" (ast :stmt1) fields aux)))))))
+             (format nil "sexp ~a ~a ~a" (ast :stmt1) fields aux)))))))
 
 (defmethod clang-mutate ((obj clang) op
                          &key script
@@ -834,7 +835,7 @@ genome."
                  (:set-func  "-set-func")
                  (:ids "-ids")
                  (:list "-list")
-                 (:json "-json")
+                 (:sexp "-sexp")
                  (:scripted "-interactive -silent")))
              (option-opt (pair)
                (let ((option (car pair))
@@ -937,14 +938,9 @@ genome."
                        :obj obj :op op))))
           (values
            (case (car op)
-             (:json
-              (handler-case (json:decode-json-from-source
-                              (file-to-string clang-mutate-outfile))
-                (end-of-file (err)
-                  (declare (ignorable err))
-                  (error (make-condition 'mutate
-                           :text "JSON decode error"
-                           :obj obj :op op)))))
+             (:sexp
+              (with-open-file (clang-mutate-out clang-mutate-outfile)
+                (read clang-mutate-out)))
              ((:ids :list) (file-to-string clang-mutate-outfile))
              (t (file-to-string clang-mutate-outfile)))
            exit))
