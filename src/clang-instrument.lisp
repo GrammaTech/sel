@@ -189,8 +189,10 @@ output."))
         points functions print-strings)
     (when (or (not args)
               (< (length args) 1)
-              (string= (subseq (car args) 0 2) "-h")
-              (string= (subseq (car args) 0 3) "--h"))
+              (string= (subseq (car args) 0 (min 2 (length (car args))))
+                       "-h")
+              (string= (subseq (car args) 0 (min 3 (length (car args))))
+                       "--h"))
       (format t "Usage: ~a SOURCE [OPTIONS]
  Instrument SOURCE along OPTIONS.
 
@@ -225,7 +227,7 @@ Built with ~a version ~a.~%"
     ;; Options.
     (getopts
       ("-c" "--compiler" (setf (compiler original) (pop args)))
-      ("-F" "--flags" (setf (flags original) (pop args)))
+      ("-F" "--flags" (setf (flags original) (split-sequence #\, (pop args))))
       ("-o" "--out-file" (setf out-file (pop args)))
       ("-O" "--orig" (setf save-original t))
       ("-p" "--point" (destructuring-bind (counter string)
