@@ -3,7 +3,7 @@
 
 
 ;;;; Instrumentation
-(defmethod instrument ((obj clang) &key points functions trace-file)
+(defmethod instrument ((obj clang) &key points functions trace-file print-argv)
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
@@ -78,6 +78,8 @@
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
+    (when print-argv
+      (setf obj (print-program-input obj log-var)))
     (when trace-file
       (setf obj (log-to-filename obj log-var trace-file)))
     (clang-format obj)
@@ -93,27 +95,21 @@ output."))
 (defmethod var-instrument
     ((obj clang) label key (ast list) &key print-strings)
   (flet ((fmt-code (c-type)
-           (eswitch (c-type :test #'string=)
+           (switch (c-type :test #'string=)
              ("char"            "%c")
              ("*char"           (if print-strings "\"%s\"" "%p"))
              ("short"           "%hi")
-             ("*short"          "%p")
              ("unsigned short"  "%hu")
-             ("*unsigned short" "%p")
              ("int"             "%i")
-             ("*int"            "%p")
              ("unsigned int"    "%u")
-             ("*unsigned int"   "%p")
              ("long"            "%li")
-             ("*long"           "%p")
              ("unsigned long"   "%lu")
-             ("*unsigned long"  "%p")
              ("float"           "%f")
-             ("*float"          "%p")
              ("double"          "%G")
-             ("*double"         "%p")
              ("long double"     "%LG")
-             ("*long double"    "%p"))))
+             (t (if (starts-with "*" c-type :test #'string=)
+                    "%p"
+                    (error "Unrecognized C type ~S" c-type))))))
     (iter (for var in (funcall key ast))
           (let* ((type (type-of-var obj var))
                  (c-type (concatenate 'string
@@ -121,7 +117,7 @@ output."))
                                    (not (emptyp (aget :array type))))
                                "*" "")
                            (aget :type type)))
-                 (stripped-c-type (regex-replace "\\*?(unsigned )?" c-type "")))
+                 (stripped-c-type (regex-replace "\\**(unsigned )?" c-type "")))
             (when (member stripped-c-type +c-numeric-types+ :test #'string=)
               (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
                                      var c-type (fmt-code c-type))
@@ -155,6 +151,32 @@ output."))
          (:value1 . ,(concatenate 'string "{" ast old-text))))))
   obj)
 
+(defmethod print-program-input ((obj clang) log-variable)
+  (let* ((entry (get-entry obj))
+         (entry-ast (get-ast obj entry))
+         (scope-vars (aget :scopes entry-ast)))
+    (flet ((deeper-string-search (i ls)
+             (member i ls :test #'string=)))
+      (when (and (member "argc" scope-vars :test #'deeper-string-search)
+                 (member "argv" scope-vars :test #'deeper-string-search))
+        (setf
+         obj
+         (insert-at-entry
+          obj
+          (concatenate
+           'string
+           (format nil "fprintf(~a, \"((:INPUT \");~%" log-variable)
+           (format nil "int __bi_mut_i_var;~%")
+           (format
+            nil
+            "for(__bi_mut_i_var = 0; __bi_mut_i_var < argc; ++__bi_mut_i_var) {~%")
+           (format nil
+                   "fprintf(~a, \"\\\"%s\\\" \", argv[__bi_mut_i_var]);~%"
+                   log-variable)
+           (format nil "}~%")
+           (format nil "fputs(\"))\\n\", ~a);" log-variable)))))
+      obj)))
+
 (defmethod log-to-filename ((obj clang) log-variable filename)
   (setf obj
         (insert-at-entry obj (format nil "~a = fopen(~s, \"a\");~%"
@@ -186,7 +208,7 @@ output."))
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
         path out-dir name type trace-file out-file save-original
-        points functions print-strings)
+        points functions print-strings print-argv)
     (when (or (not args)
               (< (length args) 1)
               (string= (subseq (car args) 0 (min 2 (length (car args))))
@@ -197,6 +219,7 @@ output."))
  Instrument SOURCE along OPTIONS.
 
 Options:
+ -a,--print-argv -------- print program inputs (contents of argv) when present
  -c,--compiler CC ------- use CC as the C compiler
                           (default to CC env. variable or clang)
  -F,--flags FLAGS ------- comma-separated list of compiler flags
@@ -226,6 +249,7 @@ Built with ~a version ~a.~%"
 
     ;; Options.
     (getopts
+      ("-a" "--print-argv" (setf print-argv t))
       ("-c" "--compiler" (setf (compiler original) (pop args)))
       ("-F" "--flags" (setf (flags original) (split-sequence #\, (pop args))))
       ("-o" "--out-file" (setf out-file (pop args)))
@@ -284,7 +308,8 @@ Built with ~a version ~a.~%"
              (clang-format
               (instrument original :trace-file trace-file
                           :points points
-                          :functions functions)))))
+                          :functions functions
+                          :print-argv print-argv)))))
       (note 1 "Writing instrumented to ~a." dest)
       (with-open-file
           (out dest :direction :output :if-exists :supersede)

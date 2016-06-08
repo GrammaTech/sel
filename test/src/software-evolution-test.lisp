@@ -1862,6 +1862,27 @@ Useful for printing or returning differences in the REPL."
           (is (not (null (mappend {aget :SCOPES} trace)))
               "Variable list not always empty."))))))
 
+(deftest instrumentation-print-argv ()
+  (with-fixture gcd-clang
+    (handler-bind ((warning #'muffle-warning))
+      (genome (instrument *gcd* :print-argv t)))
+    (is (scan (quote-meta-chars "fprintf(stderr, \"((:INPUT")
+              (genome-string *gcd*))
+        "We find code to print input in the instrumented source.")
+    (with-temp-file (bin)
+      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+          "Successfully compiled instrumented GCD.")
+      (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+        (declare (ignorable stdout))
+        (is (zerop errno))
+        (let ((trace (read-trace stderr)))
+          (is (listp trace) "We got a trace.")
+          (is (= 1 (count-if {assoc :input} trace))
+              "Input shown once in trace.")
+          (is (car (mapcar [{= 3} {length} {aget :input}]
+                           (remove-if-not {aget :input} trace)))
+              "GCD has 3 inputs."))))))
+
 (deftest instrumentation-handles-binary-search ()
   (with-fixture binary-search-clang
     (handler-bind ((warning #'muffle-warning))
