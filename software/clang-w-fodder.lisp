@@ -70,7 +70,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
   (let* ((bad   (pick-bad  software))
          (bad-stmt  (if (full-stmt-p software bad) bad
                         (enclosing-full-stmt software bad)))
-         (value (update-mito-from-snippet software
+         (value (update-headers-from-snippet software
                  (cond
                    (same-class
                     (pick-snippet software
