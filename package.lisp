@@ -231,6 +231,7 @@
    :run-swap-decls
    :run-rename-variable
    :common-ancestor
+   :ancestor-of
    :scopes-between
    :nesting-depth
    :get-ast-text
