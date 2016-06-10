@@ -812,7 +812,6 @@ genome."
                          (format nil "fields=~{~a~^,~}" (aget :fields (cdr op)))
                          "")))
          (if (aget :stmt1 (cdr op))
-             ;; FIXME: this will output JSON
              (format nil "ast ~a ~a" (ast :stmt1) fields)
              (format nil "sexp ~a ~a ~a" (ast :stmt1) fields aux)))))))
 
