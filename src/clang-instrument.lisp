@@ -3,7 +3,8 @@
 
 
 ;;;; Instrumentation
-(defmethod instrument ((obj clang) &key points functions trace-file print-argv)
+(defmethod instrument ((obj clang) &key points functions trace-file
+                                     print-argv instrument-exit)
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
@@ -19,21 +20,71 @@
     (labels
         ((escape (string)
            (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
+         (outer-parent (stmt function)
+           ;; Outermost ancestor of stmt, not including the function body.
+           (let ((parent (aget :parent-counter (get-ast obj stmt))))
+             (if (eq parent (aget :body function))
+                 stmt
+                 (outer-parent parent function))))
+         (last-traceable-stmt (proto)
+           (enclosing-traceable-stmt obj
+                                     (second (aget :stmt-range proto))))
+         (first-traceable-stmt (proto)
+           (first (get-immediate-children obj (aget :body proto))))
          (instrument-ast (ast counter formats-w-args trace-strings)
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
-           (let ((wrap (and (not (aget :full-stmt ast))
-                            (can-be-made-full-p obj ast))))
+           (let* ((function (function-containing-ast obj counter))
+                  (wrap (and (not (aget :full-stmt ast))
+                             (can-be-made-full-p obj ast)))
+                  (return-void (aget :void-ret function))
+                  (skip (or (aget :in-macro-expansion ast)
+                            (string= "NullStmt" (aget :ast-class ast)))))
+             ;; Insertions in bottom-up order
              (append
+              ;; Function exit instrumentation
+              (when (and instrument-exit
+                         (eq ast (last-traceable-stmt function)))
+                `((:insert-value-after
+                   (:stmt1 . ,(outer-parent counter function))
+                   (:value1 .
+                        ,(format nil
+                                 "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
+                                 (aget :body function) log-var
+                                 (if return-void "" "return _inst_ret;"))))))
               ;; Closing brace after the statement
-              (when wrap
+              (when (and wrap (not skip))
                 `((:insert-value-after (:stmt1 . ,counter)
                                        (:value1 . "}"))))
+              ;; Temp variable for return value
+              (when (and instrument-exit
+                         (eq ast (first-traceable-stmt function))
+                         (not return-void))
+                `((:insert-value
+                   (:stmt1 . ,counter)
+                   (:value1 .
+                      ,(let ((type (find-types obj :hash (aget :ret function))))
+                            (format nil "~a~@[*~] _inst_ret"
+                                    (aget :type type)
+                                    (aget :pointer type)))))))
+              ;; Transform return statement to temp assignment/goto
+              (when (and instrument-exit
+                         (string= (aget :ast-class ast) "ReturnStmt"))
+                (let ((ret (unless return-void
+                             (peel-bananas
+                              (aget :src-text
+                                   (first (get-immediate-children obj ast)))))))
+                  `((:set
+                     (:stmt1 . ,counter)
+                     (:value1 .
+                              ,(format nil "~@[_inst_ret = ~a;~] goto inst_exit;"
+                                       ret))))))
               ;; Opening brace and instrumentation code before
-              `((:insert-value
-                 (:stmt1 . ,counter)
-                 (:value1 .
-                  ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%"
+              (unless skip
+                `((:insert-value
+                   (:stmt1 . ,counter)
+                   (:value1 .
+                     ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%"
                         wrap
                         (append
                          (cons
@@ -52,11 +103,9 @@
                           (mapcar #'car formats-w-args)
                           (mapcar #'cdr formats-w-args))
                          (list (format nil "fflush(~a);~%" log-var)))
-                        log-var))))))))
+                              log-var)))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
-            (remove-if {aget :in-macro-expansion})
-            (remove-if [{string= "NullStmt"} {aget :ast-class}])
             (mapcar {aget :counter})
             ;; Bottom up ensure earlier insertions don't invalidate
             ;; later counters.
@@ -207,7 +256,7 @@ fputs(\"))\\n\", ~a);"
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
         path out-dir name type trace-file out-file save-original
-        points functions print-strings print-argv)
+        points functions print-strings print-argv instrument-exit)
     (when (or (not args)
               (< (length args) 1)
               (string= (subseq (car args) 0 (min 2 (length (car args))))
@@ -221,6 +270,7 @@ Options:
  -a,--print-argv -------- print program inputs (contents of argv) when present
  -c,--compiler CC ------- use CC as the C compiler
                           (default to CC env. variable or clang)
+ -e,--exit -------------- instrument function exit
  -F,--flags FLAGS ------- comma-separated list of compiler flags
                           (default to CFLAGS env. variable)
  -o,--out-file FILE ----- write mutated source to FILE
@@ -250,6 +300,7 @@ Built with ~a version ~a.~%"
     (getopts
       ("-a" "--print-argv" (setf print-argv t))
       ("-c" "--compiler" (setf (compiler original) (pop args)))
+      ("-e" "--exit" (setf instrument-exit t))
       ("-F" "--flags" (setf (flags original) (split-sequence #\, (pop args))))
       ("-o" "--out-file" (setf out-file (pop args)))
       ("-O" "--orig" (setf save-original t))
@@ -308,7 +359,8 @@ Built with ~a version ~a.~%"
               (instrument original :trace-file trace-file
                           :points points
                           :functions functions
-                          :print-argv print-argv)))))
+                          :print-argv print-argv
+                          :instrument-exit instrument-exit)))))
       (note 1 "Writing instrumented to ~a." dest)
       (with-open-file
           (out dest :direction :output :if-exists :supersede)
