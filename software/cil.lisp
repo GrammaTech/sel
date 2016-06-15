@@ -54,7 +54,7 @@
       (setf (genome cil) stdout)))
   cil)
 
-(defmethod instrument ((cil cil) &key points functions trace-file)
+(defmethod instrument ((cil cil) &key points functions trace-file print-argv)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
   (unless (null points)

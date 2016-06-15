@@ -281,7 +281,7 @@ Define an :around method on this function to record crossovers."))
 (defgeneric two-point-crossover (software-a software-b)
   (:documentation "Crossover between two points."))
 
-(defgeneric instrument (software &key points functions trace-file)
+(defgeneric instrument (software &key points functions trace-file print-argv)
   (:documentation
    "Instrument SOFTWARE to produce runtime execution information.
 Keyword argument POINTS may hold an alist keyed by program points and
@@ -366,7 +366,7 @@ Also, ensures MUTATION is a member of superclasses"
 
 (defmethod apply-mutation :before ((obj software) (mut mutation))
   ;; Mutation removes previously calculated fitness values.
-  (declare (ignorable mutation))
+  (declare (ignorable mut))
   (setf (fitness obj) nil))
 
 (defmethod apply-all-mutations ((obj software) (mut mutation))
