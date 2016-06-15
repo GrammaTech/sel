@@ -329,6 +329,12 @@ Also, ensures MUTATION is a member of superclasses"
             :documentation "A calculated target set."))
   (:documentation "The base class of all software mutations."))
 
+(defgeneric targeter (mutation)
+  (:documentation "Return all targets at which MUTATION could be applied."))
+
+(defgeneric picker (mutation)
+  (:documentation "Return a random target at which MUTATION could be applied."))
+
 (defmethod print-object ((mut mutation) stream)
   (print-unreadable-object (mut stream :type t)
     (prin1 (object mut) stream)
