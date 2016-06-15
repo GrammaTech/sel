@@ -52,6 +52,7 @@
    :build-op
    :apply-mutation
    :apply-all-mutations
+   :apply-picked-mutations
    :text
    :obj
    :op
@@ -98,6 +99,7 @@
    :define-mutation
    :object
    :targeter
+   :picker
    :targets
    :get-targets
    :at-targets

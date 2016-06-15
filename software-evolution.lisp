@@ -259,6 +259,11 @@ Define an :around method on this function to record mutations."))
 Returns the resulting software objects.  Returns a list of the applied
 mutations as an optional second value."))
 
+(defgeneric apply-picked-mutations (software mutation n)
+  (:documentation "Apply MUTATION to N randomly selected targets in SOFTWARE.
+Returns the resulting software objects.  Returns a list of the applied
+mutations as an optional second value."))
+
 (defgeneric crossover (software-a software-b)
   (:documentation "Crossover two software objects.
 Define an :around method on this function to record crossovers."))
@@ -370,6 +375,14 @@ Also, ensures MUTATION is a member of superclasses"
         (collect targeted into mutations)
         (collect (apply-mutation (copy obj) targeted) into results)
         (finally (return (values results mutations)))))
+
+(defmethod apply-picked-mutations ((obj software) (mut mutation) n)
+  (setf (object mut) obj)
+  (iter (for i from 0 to n)
+        (let ((targeted (at-targets mut (picker mut))))
+          (collect targeted into mutations)
+          (collect (apply-mutation (copy obj) targeted) into results)
+          (finally (return (values results mutations))))))
 
 
 ;;; Evolution
