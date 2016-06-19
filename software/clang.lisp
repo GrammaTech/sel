@@ -424,18 +424,15 @@ software object"))
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
   (with-slots (asts types header-asts prototypes genome) obj
     ;; incorporate ASTs.
-    (iter (for ast in (handler-case
+    (iter (for ast in (restart-case
                           (clang-mutate obj
                             (list* :sexp
                                    (cons :fields *clang-json-required-fields*)
                                    (cons :aux *clang-json-required-aux*)
                                    clang-mutate-args))
-                        ;; If clang-mutate errors return a dummy
-                        ;; failure AST.
-                        (mutate (err)
-                          (declare (ignorable err))
-                          (warn "Couldn't parse due to error.")
-                          '((:counter . 0) (:ast-class "Failure")))))
+                        (dummy-asts ()
+                          :report "Return dummy ASTs"
+                          '(((:counter . 0) (:ast-class "Failure"))))))
           (cond
             ((aget :counter ast) (collect ast into body))
             ((ast-type-p ast) (collect ast into m-types))
