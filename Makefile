@@ -83,6 +83,9 @@ TEST_LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
 bin/se-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
 	CC=$(CC) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
 
+bin/se-testbot-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
+	CC=$(CC) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:testbot-test"
+
 
 ## Documentation
 doc:
@@ -101,6 +104,9 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd.s
 
 check: bin/se-test $(TEST_ARTIFACTS)
+	@./$<
+
+testbot-check: bin/se-testbot-test $(TEST_ARTIFACTS)
 	@./$<
 
 # Makefile target to support automated testing.

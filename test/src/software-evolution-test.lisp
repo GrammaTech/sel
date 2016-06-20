@@ -33,6 +33,21 @@
                      failures))
         (format *error-output* "SUCCESS~%"))))
 
+;;; Run all tests, printing test name and either pass or fail to error output.
+;;; Intended to be used for sending results to datamanager
+(defun testbot-test (&optional args)
+  (declare (ignorable args))
+  (let* ((*print-test-run-progress* nil)
+         (test-results (without-debugging (test))))
+    (maphash
+     (lambda (k v)
+       (format *error-output* "~a ~a~%"
+               (stefil::name-of k)
+               (if (zerop (stefil::number-of-added-failure-descriptions-of v))
+                   "pass"
+                   "fail")))
+     (stefil::run-tests-of test-results))))
+
 (defsuite test)
 (in-suite test)
 
