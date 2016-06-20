@@ -14,4 +14,4 @@
    :software-evolution
    :software-evolution-utility)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
-  (:export :test :batch-test))
+  (:export :test :batch-test :testbot-test))
