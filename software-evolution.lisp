@@ -379,10 +379,12 @@ Also, ensures MUTATION is a member of superclasses"
 (defmethod apply-picked-mutations ((obj software) (mut mutation) n)
   (setf (object mut) obj)
   (iter (for i from 0 to n)
-        (let ((targeted (at-targets mut (picker mut))))
+        (for picked = (picker mut))
+        (while picked)
+        (let ((targeted (at-targets mut picked)))
           (collect targeted into mutations)
-          (collect (apply-mutation (copy obj) targeted) into results)
-          (finally (return (values results mutations))))))
+          (collect (apply-mutation (copy obj) targeted) into results))
+        (finally (return (values results mutations)))))
 
 
 ;;; Evolution
