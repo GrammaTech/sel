@@ -37,16 +37,14 @@
 ;;; Intended to be used for sending results to datamanager
 (defun testbot-test (&optional args)
   (declare (ignorable args))
-  (let* ((*print-test-run-progress* nil)
-         (test-results (without-debugging (test))))
-    (maphash
-     (lambda (k v)
-       (format *error-output* "~a ~a~%"
-               (stefil::name-of k)
-               (if (zerop (stefil::number-of-added-failure-descriptions-of v))
-                   "pass"
-                   "fail")))
-     (stefil::run-tests-of test-results))))
+  (let ((*print-test-run-progress* nil))
+    (->> (hash-table-alist (stefil::run-tests-of (without-debugging (test))))
+         (mapcar (lambda-bind ((test . run))
+                   (list (if (zerop (stefil::number-of-added-failure-descriptions-of run))
+                             :pass
+                             :fail)
+                         (stefil::name-of test))))
+         (format *error-output* "~{~{~a~^ ~}~%~}"))))
 
 (defsuite test)
 (in-suite test)
