@@ -39,11 +39,13 @@
   (declare (ignorable args))
   (let ((*print-test-run-progress* nil))
     (->> (hash-table-alist (stefil::run-tests-of (without-debugging (test))))
-         (mapcar (lambda-bind ((test . run))
-                   (list (if (zerop (stefil::number-of-added-failure-descriptions-of run))
-                             :pass
-                             :fail)
-                         (stefil::name-of test))))
+         (mapcar
+          (lambda-bind ((test . run))
+            (list
+             (if (zerop (stefil::number-of-added-failure-descriptions-of run))
+                 :pass
+                 :fail)
+             (stefil::name-of test))))
          (format *error-output* "~{~{~a~^ ~}~%~}"))))
 
 (defsuite test)
