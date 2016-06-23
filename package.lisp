@@ -85,7 +85,7 @@
    :crossover-2pt-outward
    :intraprocedural-2pt-crossover
    :select-crossover-points
-   :prototype-containing-ast
+   :function-containing-ast
    :function-body-p
    :random-point-in-function
    :select-intraprocedural-pair
@@ -105,6 +105,7 @@
    :at-targets
    :compiler
    :prototypes
+   :functions
    :asts
    :stmts
    :good-stmts

@@ -131,7 +131,7 @@ output."))
 
 (defmethod get-entry ((obj clang))
   (first (aget :stmt-range
-               (find-if [{string= "main"} {aget :name}] (prototypes obj)))))
+               (find-if [{string= "main"} {aget :name}] (functions obj)))))
 
 (defgeneric insert-at-entry (software ast)
   (:documentation "Insert AST at the entry point to SOFTWARE."))

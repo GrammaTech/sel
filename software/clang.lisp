@@ -30,7 +30,10 @@
    (header-asts :initarg :header-asts :initform nil :copier :direct
                 :type (list (cons keyword *) *) :documentation
                 "Association List of header ASTs.")
-   (prototypes :initarg :functions :initform nil :copier :direct)
+   (functions :initarg :functions :initform nil :copier :direct
+               :documentation "Complete functions with bodies.")
+   (prototypes :initarg :prototypes :initform nil :copier :direct
+               :documentation "Function prototypes.")
    (includes :initarg :includes :accessor includes :copier copy-seq
              :initform nil :type (list string *)
              :documentation "Names of included includes.")
@@ -415,14 +418,14 @@ software object"))
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
-  '(:protos :types :decls)
+  '(:asts :types :decls)
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod (setf genome) :before (new (obj clang))
   (with-slots (asts) obj (setf asts nil)))
 
 (defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (with-slots (asts types header-asts prototypes genome) obj
+  (with-slots (asts types header-asts functions prototypes genome) obj
     ;; incorporate ASTs.
     (iter (for ast in (restart-case
                           (clang-mutate obj
@@ -436,12 +439,16 @@ software object"))
           (cond
             ((aget :counter ast) (collect ast into body))
             ((ast-type-p ast) (collect ast into m-types))
-            ((aget :body ast) (collect ast into protos))
             (:otherwise (collect ast into head)))
+          (when (aget :body ast) (collect ast into funs))
+          (when (string= "Function" (aget :ast-class ast))
+            (collect ast into protos))
+
           (finally (setf asts (coerce body 'vector)
                          header-asts head
                          types m-types
-                         prototypes (coerce protos 'vector)))))
+                         functions funs
+                         prototypes protos))))
   obj)
 
 (defmethod update-header ((obj clang) &key)
@@ -552,10 +559,15 @@ declarations onto multiple lines to ease subsequent decl mutations."))
     (unless asts (update-asts obj))
     header-asts))
 
+(defmethod functions ((obj clang))
+  (with-slots (asts functions) obj
+    (unless asts (update-asts obj))
+    functions))
+
 (defmethod prototypes ((obj clang))
   (with-slots (asts prototypes) obj
     (unless asts (update-asts obj))
-    (coerce prototypes 'list)))
+    prototypes))
 
 (defmethod types ((obj clang))
   (with-slots (asts types) obj
@@ -895,7 +907,7 @@ genome."
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
-                 (:protos "protos")
+                 (:asts "asts")
                  (:decls "decls")
                  (:none "none"))))
     (let ((clang-mutate-outfile (temp-file-name))
@@ -1332,7 +1344,7 @@ free variables.")
              (lambda-bind ((fun . fun-info))
                (cons fun
                      (or (random-function-name
-                          (prototypes clang)
+                          (function-decls clang)
                           :original-name (peel-bananas fun)
                           :arity (third fun-info))
                          "/* no functions? */")))
@@ -1915,7 +1927,7 @@ VARIABLE-NAME should be declared in AST."))
   ;; Select a statement uniformly first, then another statement from the
   ;; same function. Selecting the function first would bias crossover
   ;; towards ASTs in smaller functions.
-  (let ((proto (random-elt (prototypes clang))))
+  (let ((proto (random-elt (functions clang))))
     (values (random-point-in-function clang proto)
             (random-point-in-function clang proto)
             proto)))
@@ -1949,15 +1961,15 @@ VARIABLE-NAME should be declared in AST."))
         ;; Could not find crossover point
         (values a nil nil))))
 
-(defmethod prototype-containing-ast ((clang clang) stmt)
+(defmethod function-containing-ast ((clang clang) stmt)
   (let ((body (aget :counter
                 (car (last (remove-if-not
                             [{equal "CompoundStmt"} {aget :ast-class}]
                             (get-parent-asts clang (get-ast clang stmt))))))))
-    (car (remove-if-not [{= body} {aget :body}] (prototypes clang)))))
+    (car (remove-if-not [{= body} {aget :body}] (functions clang)))))
 
 (defmethod function-body-p ((clang clang) stmt)
-  (find-if [{= stmt} {aget :body}] (prototypes clang)))
+  (find-if [{= stmt} {aget :body}] (functions clang)))
 
 
 ;;; Clang methods
