@@ -1390,7 +1390,7 @@ Useful for printing or returning differences in the REPL."
 (deftest finds-function-binding ()
   (with-fixture huf-clang
     (is (string= "inttobits"
-                 (random-function-name (prototypes *huf*)
+                 (random-function-name (functions *huf*)
                                        :original-name "foo"
                                        :arity 3)))))
 
