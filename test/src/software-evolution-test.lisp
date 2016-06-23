@@ -1378,6 +1378,20 @@ Useful for printing or returning differences in the REPL."
                        (subseq modified
                                (- size-m (length non-whitespace-orig))))))))))
 
+;; When recontextualizing, function should be considered defined even
+;; if its body is not present.
+(deftest bodyless-function-is-not-recontextualized ()
+  (let* ((obj (make-instance 'clang
+                  :genome "void test(int x);
+                          int main(int argc, char **argv) {
+                            test(0); return 0;
+                           }"))
+         (stmt (stmt-with-text obj "test(0)"))
+        (*matching-free-function-retains-name-bias* 1.0))
+    (apply-mutation obj
+                    `(clang-replace (:stmt1 . ,stmt) (:stmt2 . ,stmt)))
+    (is (eq stmt (stmt-with-text obj "test(0)")))))
+
 ;; Check that the ASTLister traversal and the ASTMutate traversal see
 ;; the same number of ASTs.
 (deftest ast-lister-finds-same-number-of-ids ()
