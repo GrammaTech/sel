@@ -1344,7 +1344,7 @@ free variables.")
              (lambda-bind ((fun . fun-info))
                (cons fun
                      (or (random-function-name
-                          (function-decls clang)
+                          (prototypes clang)
                           :original-name (peel-bananas fun)
                           :arity (third fun-info))
                          "/* no functions? */")))
