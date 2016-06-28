@@ -152,30 +152,25 @@ output."))
   obj)
 
 (defmethod print-program-input ((obj clang) log-variable)
-  (let* ((entry (get-entry obj))
-         (entry-ast (get-ast obj entry))
-         (scope-vars (aget :scopes entry-ast)))
-    (flet ((deeper-string-search (i ls)
-             (member i ls :test #'string=)))
-      (when (and (member "argc" scope-vars :test #'deeper-string-search)
-                 (member "argv" scope-vars :test #'deeper-string-search))
-        (setf
-         obj
-         (insert-at-entry
-          obj
-          (concatenate
-           'string
-           (format nil "fprintf(~a, \"((:INPUT \");~%" log-variable)
-           (format nil "int __bi_mut_i_var;~%")
-           (format
-            nil
-            "for(__bi_mut_i_var = 0; __bi_mut_i_var < argc; ++__bi_mut_i_var) {~%")
-           (format nil
-                   "fprintf(~a, \"\\\"%s\\\" \", argv[__bi_mut_i_var]);~%"
-                   log-variable)
-           (format nil "}~%")
-           (format nil "fputs(\"))\\n\", ~a);" log-variable)))))
-      obj)))
+  ;; Return a version of OBJ instrumented to print program input.
+  (or (flet ((deeper-string-search (i ls)
+               (member i ls :test #'string=)))
+        (when-let* ((entry (get-entry obj))
+                    (entry-ast (get-ast obj entry))
+                    (scope-vars (aget :scopes entry-ast)))
+          (when (and (member "argc" scope-vars :test #'deeper-string-search)
+                     (member "argv" scope-vars :test #'deeper-string-search))
+            (insert-at-entry obj
+                             (format nil
+                                     "fprintf(~a, \"((:INPUT \");
+int __bi_mut_i_var;
+for(__bi_mut_i_var = 0; __bi_mut_i_var < argc; ++__bi_mut_i_var) {
+  fprintf(~a, \"\\\"%s\\\" \", argv[__bi_mut_i_var]);
+}
+fputs(\"))\\n\", ~a);"
+                                     log-variable log-variable log-variable)))
+          obj))
+      (prog1 obj (warn "Unable to instrument program to print input."))))
 
 (defmethod log-to-filename ((obj clang) log-variable filename)
   (setf obj
