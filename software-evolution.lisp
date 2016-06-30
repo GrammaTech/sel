@@ -322,10 +322,16 @@ Also, ensures MUTATION is a member of superclasses"
           (list :initarg :targeter :reader 'targeter
                 :initform '(function pick-bad) :type 'function
                 :documentation "A function from software -> targets.")))
-      ,@(remove-if [{eql 'targeter} #'car] slots))
+      (picker
+       ,@(plist-merge
+          (cdr (assoc 'picker slots))
+          (list :initarg :picker :reader 'picker
+                :initform '(compose #'random-elt #'pick-bad) :type 'function
+                :documentation "A function from software -> random target.")))
+      ,@(remove-if {member _ '(targeter picker)} slots :key #'car))
      ,@options))
 
-(define-mutation mutation ()
+(defclass mutation ()
   ((object :initarg :object :accessor object :initform nil
            :type software
            :documentation "The software object to be mutated.")
@@ -333,12 +339,6 @@ Also, ensures MUTATION is a member of superclasses"
             :type (list * *)
             :documentation "A calculated target set."))
   (:documentation "The base class of all software mutations."))
-
-(defgeneric targeter (mutation)
-  (:documentation "Return all targets at which MUTATION could be applied."))
-
-(defgeneric picker (mutation)
-  (:documentation "Return a random target at which MUTATION could be applied."))
 
 (defmethod print-object ((mut mutation) stream)
   (print-unreadable-object (mut stream :type t)
@@ -378,8 +378,8 @@ Also, ensures MUTATION is a member of superclasses"
 
 (defmethod apply-picked-mutations ((obj software) (mut mutation) n)
   (setf (object mut) obj)
-  (iter (for i from 0 to n)
-        (for picked = (picker mut))
+  (iter (for i below n)
+        (for picked = (funcall (picker mut) obj))
         (while picked)
         (let ((targeted (at-targets mut picked)))
           (collect targeted into mutations)
