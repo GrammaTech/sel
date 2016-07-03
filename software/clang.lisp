@@ -961,7 +961,8 @@ genome."
                    (:bin (format nil "-binary=~a" value))
                    (:dwarf-src-file-path
                     (format nil "-dwarf-filepath-mapping=~a=~a"
-                            value src-file)))))
+                            value src-file))
+                   (:cfg "-cfg"))))
              (field-opt (field)
                (ecase field
                  (:counter "counter")
@@ -989,6 +990,7 @@ genome."
                  (:includes "includes")
                  (:opcode "opcode")
                  (:children "children")
+                 (:successors "successors")
                  (:begin-off "begin_off")
                  (:end-off "end_off")
                  (:begin-norm-off "begin_norm_off")
