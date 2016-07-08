@@ -95,6 +95,7 @@
    :update-headers-from-snippet
    :to-file
    :apply-path
+   :expression
    :mutation
    :define-mutation
    :object
