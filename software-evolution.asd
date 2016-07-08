@@ -46,6 +46,7 @@ techniques."
              (:file "ast")
              (:file "cil" :depends-on ("ast"))
              (:file "clang" :depends-on ("ast"))
+             (:file "clang-expression" :depends-on ("clang"))
              (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "llvm" :depends-on ("ast"))))
    (:module src

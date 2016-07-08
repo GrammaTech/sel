@@ -407,14 +407,14 @@ software object"))
     (length asts)))
 
 (defvar *clang-json-required-fields*
-  '( :ast-class         :counter           :unbound-vals
-     :unbound-funs      :types             :stmt-list
-     :src-text          :parent-counter    :macros
-     :guard-stmt        :full-stmt         :begin-src-line
-     :end-src-line      :begin-src-col     :end-src-col
-     :begin-addr        :end-addr          :includes
-     :declares          :scopes            :is-decl
-     :in-macro-expansion)
+  '(:ast-class          :counter           :unbound-vals
+    :unbound-funs       :types             :stmt-list
+    :src-text           :parent-counter    :macros
+    :guard-stmt         :full-stmt         :begin-src-line
+    :end-src-line       :begin-src-col     :end-src-col
+    :begin-addr         :end-addr          :includes
+    :declares           :scopes            :is-decl
+    :in-macro-expansion :opcode)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*

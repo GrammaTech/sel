@@ -308,6 +308,9 @@ will be written to STDERR."))
 (defgeneric apply-path (software key PATH) ; TODO: is this used?
   (:documentation "Apply the execution trace PATH behind KEY in SOFTWARE."))
 
+(defgeneric expression (software what)
+  (:documentation "Return WHAT in SOFTWARE as a lisp expression."))
+
 
 ;;; Mutation object
 (defmacro define-mutation (class-name superclasses slots &rest options)
