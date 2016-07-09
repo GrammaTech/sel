@@ -414,7 +414,7 @@ software object"))
     :end-src-line       :begin-src-col     :end-src-col
     :begin-addr         :end-addr          :includes
     :declares           :scopes            :is-decl
-    :in-macro-expansion :opcode)
+    :in-macro-expansion :opcode            :children)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
