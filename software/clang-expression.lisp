@@ -1,14 +1,16 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
 (in-package :software-evolution)
 
-(defun string-symbol (string)
+(defun expression-intern (string)
+  "Intern STRING for symbolic use in an expression.
+This is used to intern string names by `expression'."
   (make-keyword (string-upcase string)))
 
 #+(or )                ; NOTE: Looks like this isn't really necessary.
 (defun clang-expression-opcode (raw-opcode)
   (switch (raw-opcode :test #'string=)
     ("=" :=!)
-    (t (string-symbol raw-opcode))))
+    (t (expression-intern raw-opcode))))
 
 (defmethod expression ((obj clang) (id integer))
   (expression obj (get-ast obj id)))
@@ -26,8 +28,8 @@
          (only-child ()
            (expression obj (first (aget :children ast)))))
     (switch ((aget :ast-class ast) :test #'string=)
-      ("BinaryOperator" (over-children (string-symbol (aget :opcode ast))))
-      ("DeclRefExpr" (string-symbol (peel-bananas (aget :src-text ast))))
+      ("BinaryOperator" (over-children (expression-intern (aget :opcode ast))))
+      ("DeclRefExpr" (expression-intern (peel-bananas (aget :src-text ast))))
       ("ImplicitCastExpr" (only-child))
       ("IntegerLiteral" (parse-integer (aget :src-text ast)))
       ("ParenExpr" (only-child))
@@ -47,7 +49,7 @@
              (multiple-value-bind (matchp matches)
                  (scan-to-strings "\\(([^\\)]+)\\)" src)
                (if matchp
-                   (list operator (string-symbol (aref matches 0)))
+                   (list operator (expression-intern (aref matches 0)))
                    (error "Unmatched UnaryOperator ~s." src))))))
       ("UnaryOperator"
        (over-children (let ((src (aget :src-text ast)))
@@ -60,7 +62,7 @@
            (if (first match-data)
                (list :->
                      (expression obj (first (aget :children ast)))
-                     (string-symbol (subseq src
+                     (expression-intern (subseq src
                                             (aref (third match-data) 0)
                                             (aref (fourth match-data) 0))))
                (error "Unmatched MemberExpr ~S." src)))))
