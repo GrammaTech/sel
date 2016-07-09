@@ -96,6 +96,7 @@
    :to-file
    :apply-path
    :expression
+   :expression-intern
    :mutation
    :define-mutation
    :object
