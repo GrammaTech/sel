@@ -40,7 +40,8 @@
 
 
 ;;; Lisp software object
-(defclass lisp (simple) ())
+(define-software lisp (simple)
+  ((genome :initarg :genome :accessor genome :initform nil :copier copy-tree)))
 
 (defmethod from-file ((lisp lisp) file)
   (with-open-file (in file)
