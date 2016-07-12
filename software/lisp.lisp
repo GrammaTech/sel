@@ -30,11 +30,18 @@
         (descend (cdr tree))
         (values nil index))))
 
+(defun find-subtree-if (predicate tree)
+  (when (and tree (listp tree))
+    (if (funcall predicate tree)
+        tree
+        (or (find-subtree-if predicate (car tree))
+            (find-subtree-if predicate (cdr tree))))))
+
 (defmacro set-subtree (tree index new)
   "Feels like some heuristics here (why `rplaca' instead of `rplacd')."
   `(if (zerop ,index)
        (setf ,tree ,new)
-       (rplaca (subtree ,tree (1- ,index)) ,new)))
+       (rplaca (subtree ,tree ,index) ,new)))
 
 (defsetf subtree set-subtree)
 
@@ -61,32 +68,61 @@
 
 (defmethod size ((lisp lisp)) (tree-size (genome lisp)))
 
+
+;;; Mutations
+(defun pick-bad-good-lisp (lisp)
+  (list (pick-bad lisp) (pick-good lisp)))
+
+(define-mutation lisp-cut (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(define-mutation lisp-replace (mutation)
+  ((targeter :initform #'pick-bad-good-lisp)))
+
+(define-mutation lisp-swap (mutation)
+  ((targeter :initform #'pick-bad-good-lisp)))
+
+(defvar *lisp-mutation-types*
+  '(lisp-cut lisp-replace lisp-swap))
+
 (defmethod mutate ((lisp lisp))
   (unless (> (size lisp) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj lisp)))
-  (let ((op (case (random-elt '(cut insert swap))
-              (cut    `(:cut    ,(pick-bad lisp)))
-              (insert `(:insert ,(pick-bad lisp) ,(pick-good lisp)))
-              (swap   `(:swap   ,(pick-bad lisp) ,(pick-good lisp))))))
-    (apply-mutation lisp op)
-    (values lisp op)))
+  (let ((mutation (make-instance (random-elt *lisp-mutation-types*)
+                                 :object lisp)))
+    (apply-mutation lisp mutation)
+    (values lisp mutation)))
 
-(defmethod apply-mutation ((lisp lisp) mutation)
-  (let ((op (first mutation))
-        (s1 (second mutation))
-        (s2 (third mutation)))
+(defmethod apply-mutation ((lisp lisp) (mutation lisp-cut))
+  (with-slots (genome) lisp
+    (let* ((s1 (targets mutation))
+           (st (subtree genome s1)))
+      (let ((prev (find-subtree-if [{eq st} #'cdr] genome)))
+        (if prev
+            ;; Middle of a subtree: snap cdr to remove
+            (setf (cdr prev) (cdr st))
+            ;; Beginning of a subtree.
+            (setf (subtree genome s1)
+                  (copy-tree (cdr (subtree genome s1))))))))
+  lisp)
+
+(defmethod apply-mutation ((lisp lisp) (mutation lisp-replace))
+  (bind (((s1 s2) (targets mutation)))
     (with-slots (genome) lisp
-      (case op
-        (:cut    (setf (subtree genome s1)
-                       (copy-tree (cdr (subtree genome s1)))))
-        (:insert (setf (cdr (subtree genome s1))
-                       (cons (copy-tree (subtree genome s1))
-                             (copy-tree (cdr (subtree genome s1))))))
-        (:swap (let ((left  (copy-tree (subtree genome s1)))
-                     (right (copy-tree (subtree genome s2))))
-                 (setf (subtree genome s1) right)
-                 (setf (subtree genome s2) left)))))
-    lisp))
+      (setf (subtree genome s1)
+            (copy-tree (car (subtree genome s2))))))
+  lisp)
+
+(defmethod apply-mutation ((lisp lisp) (mutation lisp-swap))
+  (bind (((s1 s2) (targets mutation)))
+    (let ((s1 (max s1 s2))
+          (s2 (min s1 s2)))
+      (with-slots (genome) lisp
+        (let ((left  (car (subtree genome s1)))
+              (right (car (subtree genome s2))))
+          (setf (subtree genome s1) (copy-tree right))
+          (setf (subtree genome s2) (copy-tree left))))))
+  lisp)
 
 (defmethod crossover ((a lisp) (b lisp))
   (let ((range (min (size a) (size b))))
