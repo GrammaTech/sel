@@ -313,4 +313,7 @@
    :pick-bad-good
    :pick-bad-bad
    :pick-bad-only
+   :lisp-cut
+   :lisp-replace
+   :lisp-swap
    ))
