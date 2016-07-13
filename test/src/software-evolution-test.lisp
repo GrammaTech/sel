@@ -2096,3 +2096,40 @@ Useful for printing or returning differences in the REPL."
     (apply-mutation *clang-expr*
                     (make-instance 'subtract-add :targets 2))
     (is (equal (genome *clang-expr*) '(:+ 1 (:+ (:- (:* 2 (:- 3 :y)) 1) 1))))))
+
+
+;; Evaluation of clang expressions in Lisp form
+(deftest eval-number ()
+  (is (= (evaluate-expression 1 nil) 1)))
+
+(deftest eval-var ()
+  (is (= (evaluate-expression :a '((:a . 1))) 1)))
+
+(deftest eval-function ()
+  (is (= (evaluate-expression '(:+ 1 :a) '((:a . 2))) 3)))
+
+(deftest eval-division-truncates ()
+  (is (= (evaluate-expression '(:/ 3 2) nil) 1))
+  (is (= (evaluate-expression '(:/ -3 2) nil) -1)))
+
+(deftest eval-interior-max ()
+  (multiple-value-bind (result interior-max)
+      (evaluate-expression '(:- (:* 2 :a) 2) '((:a . 3)))
+    (is (= result 4))
+    (is (= interior-max 6))))
+
+(deftest eval-signals-on-undefined-variable ()
+  (signals eval-error
+    (evaluate-expression :a nil)))
+
+(deftest eval-signals-on-unknown-type ()
+  (signals eval-error
+    (evaluate-expression "test" nil)))
+
+(deftest eval-signals-on-unknown-function ()
+  (signals type-error
+    (evaluate-expression '(:test 1 2) nil)))
+
+(deftest eval-signals-on-wrong-arity ()
+  (signals eval-error
+    (evaluate-expression '(:+ 1 2 3) nil)))
