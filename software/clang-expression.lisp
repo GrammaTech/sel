@@ -68,9 +68,46 @@ This is used to intern string names by `expression'."
                (error "Unmatched MemberExpr ~S." src)))))
       (t :unimplemented))))
 
-(defvar *math-operators* '(:+ :- :* :/))
+
+;; Evaluation
+
+(define-condition eval-error (error) ())
+
+(defun operator-to-function (operator)
+  (ecase operator
+    (:+ #'+)
+    (:- #'-)
+    (:/ #'truncate) ; assume integer division
+    (:* #'*)))
+
+(defun evaluate-expression (expression free-vars)
+  (multiple-value-bind (result interior-max)
+      (cond
+        ((listp expression)
+         (let ((args (mapcar (lambda (a)
+                               (multiple-value-list
+                                (evaluate-expression a free-vars)))
+                             (cdr expression))))
+           ;; TODO: support functions/operators with different arity
+           (unless (= (length args) 2)
+             (error (make-condition 'eval-error
+                                    "Wrong number of arguments. Expected 2, got ~a"
+                                    (length args))))
+           (values (apply (operator-to-function (car expression))
+                          (mapcar #'first args))
+                   (apply #'max (mapcar #'second args)))))
+        ((numberp expression) expression)
+        ((symbolp expression)
+         (or (aget expression free-vars)
+             (error (make-condition 'eval-error
+                                    "Undefined variable: ~s" expression))))
+        (t (error (make-condition 'eval-error
+                                  "Unrecognized expression: ~s" expression))))
+    (values result
+            (max result (or interior-max 0)))))
 
 ;; Operator replacement
+(defvar *math-operators* '(:+ :- :* :/))
 (define-mutation change-operator (mutation)
   ((targeter :initform (lambda (lisp)
                          (list (random-elt (operator-subtrees lisp))
