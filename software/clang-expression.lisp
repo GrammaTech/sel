@@ -77,8 +77,8 @@ This is used to intern string names by `expression'."
                                (random-elt *math-operators*))))))
 
 (defmethod operator-subtrees ((lisp lisp))
-  (remove-if-not [{member _ *math-operators*} #'car {subtree (genome lisp)}]
-                 (range 0 (1- (size lisp)))))
+  (filter-subtrees [{member _ *math-operators*} #'car]
+                   lisp))
 
 (defmethod apply-mutation ((lisp lisp) (mutation change-operator))
   (bind (((tree operator) (targets mutation)))
@@ -86,6 +86,29 @@ This is used to intern string names by `expression'."
       (rplaca (subtree genome tree) operator)))
   lisp)
 
-      (with-slots (genome) lisp
-        (rplaca (subtree genome tree) operator)))
+;; Constant replacement
+(define-mutation change-constant (mutation)
+  ((targeter :initform (lambda (lisp)
+                         (list (random-elt (constant-subtrees lisp))
+                               (random-elt '(:double :half :negate
+                                             :increment :decrement
+                                             :one :zero :negative-one)))))))
+
+(defmethod constant-subtrees ((lisp lisp))
+  (filter-subtrees [#'numberp #'car] lisp))
+
+(defmethod apply-mutation ((lisp lisp) (mutation change-constant))
+  (bind (((tree transformation) (targets mutation)))
+    (with-slots (genome) lisp
+        (rplaca (subtree genome tree)
+                (let ((value (car (subtree genome tree))))
+                  (ecase transformation
+                    (:double (* 2 value))
+                    (:half (/ value 2))
+                    (:negate (* -1 value))
+                    (:increment (+ value 1))
+                    (:decrement (- value 1))
+                    (:one 1)
+                    (:zero 0)
+                    (:negative-one -1))))))
     lisp)
