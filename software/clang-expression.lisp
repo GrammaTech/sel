@@ -90,7 +90,7 @@ This is used to intern string names by `expression'."
 (define-mutation change-constant (mutation)
   ((targeter :initform (lambda (lisp)
                          (list (random-elt (constant-subtrees lisp))
-                               (random-elt '(:double :half :negate
+                               (random-elt '(:double :halve :negate
                                              :increment :decrement
                                              :one :zero :negative-one)))))))
 
@@ -104,7 +104,7 @@ This is used to intern string names by `expression'."
                 (let ((value (car (subtree genome tree))))
                   (ecase transformation
                     (:double (* 2 value))
-                    (:half (/ value 2))
+                    (:halve (floor value 2))
                     (:negate (* -1 value))
                     (:increment (+ value 1))
                     (:decrement (- value 1))
@@ -112,3 +112,34 @@ This is used to intern string names by `expression'."
                     (:zero 0)
                     (:negative-one -1))))))
     lisp)
+
+;; Semantics preserving mutations
+(define-mutation mult-divide (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((lisp lisp) (mutation mult-divide))
+  (let ((s (targets mutation)))
+    (with-slots (genome) lisp
+      (setf (subtree genome s)
+            `(:/ (:* ,(copy-tree (car (subtree genome s))) 2) 2))))
+  lisp)
+
+(define-mutation add-subtract (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((lisp lisp) (mutation add-subtract))
+  (let ((s (targets mutation)))
+    (with-slots (genome) lisp
+      (setf (subtree genome s)
+            `(:- (:+ ,(copy-tree (car (subtree genome s))) 1) 1))))
+  lisp)
+
+(define-mutation subtract-add (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((lisp lisp) (mutation subtract-add))
+  (let ((s (targets mutation)))
+    (with-slots (genome) lisp
+      (setf (subtree genome s)
+            `(:+ (:- ,(copy-tree (car (subtree genome s))) 1) 1))))
+  lisp)
