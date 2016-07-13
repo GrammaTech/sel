@@ -316,4 +316,9 @@
    :lisp-cut
    :lisp-replace
    :lisp-swap
+   :change-operator
+   :change-constant
+   :mult-divide
+   :add-subtract
+   :subtract-add
    ))
