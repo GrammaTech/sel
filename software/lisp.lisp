@@ -68,6 +68,10 @@
 
 (defmethod size ((lisp lisp)) (tree-size (genome lisp)))
 
+(defmethod filter-subtrees (predicate (lisp lisp))
+  (remove-if-not [predicate {subtree (genome lisp)}]
+                 (range 0 (1- (size lisp)))))
+
 
 ;;; Mutations
 (defun pick-bad-good-lisp (lisp)
