@@ -67,3 +67,25 @@ This is used to intern string names by `expression'."
                                             (aref (fourth match-data) 0))))
                (error "Unmatched MemberExpr ~S." src)))))
       (t :unimplemented))))
+
+(defvar *math-operators* '(:+ :- :* :/))
+
+;; Operator replacement
+(define-mutation change-operator (mutation)
+  ((targeter :initform (lambda (lisp)
+                         (list (random-elt (operator-subtrees lisp))
+                               (random-elt *math-operators*))))))
+
+(defmethod operator-subtrees ((lisp lisp))
+  (remove-if-not [{member _ *math-operators*} #'car {subtree (genome lisp)}]
+                 (range 0 (1- (size lisp)))))
+
+(defmethod apply-mutation ((lisp lisp) (mutation change-operator))
+  (bind (((tree operator) (targets mutation)))
+    (with-slots (genome) lisp
+      (rplaca (subtree genome tree) operator)))
+  lisp)
+
+      (with-slots (genome) lisp
+        (rplaca (subtree genome tree) operator)))
+    lisp)
