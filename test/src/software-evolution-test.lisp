@@ -1973,3 +1973,126 @@ Useful for printing or returning differences in the REPL."
           "Variable \"strbit\" in huf is a dynamically sized array.")
       (is (not (aget :pointer type))
           "Variable \"strbit\" in huf is not a pointer."))))
+
+
+
+;; Lisp representation
+(defvar *clang-expr*  nil "The clang expression (lisp) software object.")
+(defixture clang-expr
+  (:setup
+    (setf *clang-expr*
+          (make-instance 'lisp :genome (copy-tree '(:+ 1 (:* 2 (:- 3 :y)))))))
+  (:teardown
+   (setf *clang-expr* nil)))
+
+(deftest lisp-cut-first ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 0))
+    (is (equal (genome *clang-expr*) '(1 (:* 2 (:- 3 :y)))))))
+
+(deftest lisp-cut-leaf ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 1))
+    (is (equal (genome *clang-expr*) '(:+ (:* 2 (:- 3 :y)))))))
+
+(deftest lisp-cut-subtree ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 2))
+    (is (equal (genome *clang-expr*) '(:+ 1)))))
+
+;; FIXME: this doesn't work as expected
+(deftest lisp-cut-function ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 3))
+    (is (equal (genome *clang-expr*) '(:+ 1 (2 (:- 3 :y)))))))
+
+(deftest lisp-swap-leaves ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(1 4)))
+    (is (equal (genome *clang-expr*) '(:+ 2 (:* 1 (:- 3 :y)))))))
+
+(deftest lisp-swap-leaf-subtree ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(1 5)))
+    (is (equal (genome *clang-expr*) '(:+ (:- 3 :y) (:* 2 1))))))
+
+(deftest lisp-swap-functions ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(3 6)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:* 3 :y)))))))
+
+;; FIXME: what is the correct behavior here?
+(deftest lisp-swap-parent-child ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(2 5)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:- 3 :y))))))
+
+(deftest lisp-replace-leaves ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(1 4)))
+    (is (equal (genome *clang-expr*) '(:+ 2 (:* 2 (:- 3 :y)))))))
+
+(deftest lisp-replace-leaf-subtree ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(1 5)))
+    (is (equal (genome *clang-expr*) '(:+ (:- 3 :y) (:* 2 (:- 3 :y)))))))
+
+(deftest lisp-replace-parent-child ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(2 5)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:- 3 :y))))))
+
+(deftest lisp-replace-function ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(3 6)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:- 3 :y)))))))
+
+
+;; Mutations of clang expressions in Lisp form
+(deftest change-operator-first ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'change-operator :targets '(0 :-)))
+    (is (equal (genome *clang-expr*) '(:- 1 (:* 2 (:- 3 :y)))))))
+
+(deftest change-operator-subtree ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'change-operator :targets '(3 :+)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:+ 2 (:- 3 :y)))))))
+
+(deftest double-constant ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'change-constant :targets '(7 :double)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:* 2 (:- 6 :y)))))))
+
+(deftest halve-constant ()
+  (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'change-constant :targets '(7 :halve)))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:* 2 (:- 1 :y)))))))
+
+(deftest mult-divide-leaf ()
+        (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'mult-divide :targets 4))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:* (:/ (:* 2 2) 2) (:- 3 :y)))))))
+
+(deftest mult-divide-subtree ()
+        (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'mult-divide :targets 2))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:/ (:* (:* 2 (:- 3 :y)) 2) 2))))))
+
+(deftest add-subtract-subtree ()
+        (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'add-subtract :targets 2))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:- (:+ (:* 2 (:- 3 :y)) 1) 1))))))
+
+(deftest subtract-add-subtree ()
+        (with-fixture clang-expr
+    (apply-mutation *clang-expr*
+                    (make-instance 'subtract-add :targets 2))
+    (is (equal (genome *clang-expr*) '(:+ 1 (:+ (:- (:* 2 (:- 3 :y)) 1) 1))))))
