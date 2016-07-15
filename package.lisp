@@ -97,6 +97,7 @@
    :apply-path
    :expression
    :expression-intern
+   :expression-to-c
    :mutation
    :define-mutation
    :object

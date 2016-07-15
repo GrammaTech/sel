@@ -68,6 +68,17 @@ This is used to intern string names by `expression'."
                (error "Unmatched MemberExpr ~S." src)))))
       (t :unimplemented))))
 
+(defun expression-to-c (expression)
+  (cond
+    ((listp expression)
+     (assert (= 3 (length expression)))
+     (format nil "(~a ~a ~a)"
+             (expression-to-c (second expression))
+             (symbol-name (car expression))
+             (expression-to-c (third expression))))
+    ((numberp expression) (format nil "~a" expression))
+    ((symbolp expression) (symbol-name expression))))
+
 
 ;; Evaluation
 
