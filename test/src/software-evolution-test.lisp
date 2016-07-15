@@ -2100,23 +2100,23 @@ Useful for printing or returning differences in the REPL."
 
 ;; Evaluation of clang expressions in Lisp form
 (deftest eval-number ()
-  (is (= (evaluate-expression 1 nil) 1)))
+  (is (equal (evaluate-expression 1 nil) '(1 "int"))))
 
 (deftest eval-var ()
-  (is (= (evaluate-expression :a '((:a . 1))) 1)))
+  (is (equal (evaluate-expression :a '((:a 1 "int"))) '(1 "int"))))
 
 (deftest eval-function ()
-  (is (= (evaluate-expression '(:+ 1 :a) '((:a . 2))) 3)))
+  (is (equal (evaluate-expression '(:+ 1 :a) '((:a 2 "int"))) '(3 "int"))))
 
 (deftest eval-division-truncates ()
-  (is (= (evaluate-expression '(:/ 3 2) nil) 1))
-  (is (= (evaluate-expression '(:/ -3 2) nil) -1)))
+  (is (equal (evaluate-expression '(:/ 3 2) nil) '(1 "int")))
+  (is (equal (evaluate-expression '(:/ -3 2) nil) '(-1 "int"))))
 
 (deftest eval-interior-max ()
   (multiple-value-bind (result interior-max)
-      (evaluate-expression '(:- (:* 2 :a) 2) '((:a . 3)))
-    (is (= result 4))
-    (is (= interior-max 6))))
+      (evaluate-expression '(:- (:* 2 :a) 2) '((:a 3 "int")))
+    (is (equal result '(4 "int")))
+    (is (equal interior-max 6))))
 
 (deftest eval-signals-on-undefined-variable ()
   (signals eval-error
@@ -2127,9 +2127,15 @@ Useful for printing or returning differences in the REPL."
     (evaluate-expression "test" nil)))
 
 (deftest eval-signals-on-unknown-function ()
-  (signals type-error
+  (signals eval-error
     (evaluate-expression '(:test 1 2) nil)))
 
 (deftest eval-signals-on-wrong-arity ()
   (signals eval-error
     (evaluate-expression '(:+ 1 2 3) nil)))
+
+(deftest eval-signals-on-illegal-pointer-ops ()
+  (signals eval-error
+    (evaluate-expression '(:* 2 (:+ :ptr 1)) '((:ptr 1234 "*char"))))
+  (signals eval-error
+    (evaluate-expression '(:/ 2 (:+ :ptr 1)) '((:ptr 1234 "*char")))))
