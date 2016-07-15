@@ -153,17 +153,20 @@ This is used to intern string names by `expression'."
 (defvar *math-operators* '(:+ :- :* :/))
 (define-mutation change-operator (mutation)
   ((targeter :initform (lambda (lisp)
-                         (list (random-elt (operator-subtrees lisp))
-                               (random-elt *math-operators*))))))
+                         (let ((operators (operator-subtrees lisp)))
+                           (when operators
+                             (list (random-elt operators)
+                                   (random-elt *math-operators*))))))))
 
 (defmethod operator-subtrees ((lisp lisp))
   (filter-subtrees [{member _ *math-operators*} #'car]
                    lisp))
 
 (defmethod apply-mutation ((lisp lisp) (mutation change-operator))
-  (bind (((tree operator) (targets mutation)))
-    (with-slots (genome) lisp
-      (rplaca (subtree genome tree) operator)))
+  (when (targets mutation)
+    (bind (((tree operator) (targets mutation)))
+      (with-slots (genome) lisp
+        (rplaca (subtree genome tree) operator))))
   lisp)
 
 ;; Constant replacement
