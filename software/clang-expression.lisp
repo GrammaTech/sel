@@ -74,11 +74,34 @@ This is used to intern string names by `expression'."
 (define-condition eval-error (error) ())
 
 (defun operator-to-function (operator)
-  (ecase operator
-    (:+ #'+)
-    (:- #'-)
-    (:/ #'truncate) ; assume integer division
-    (:* #'*)))
+  (labels
+      ((pointerp (val)
+         (eq (char (second val) 0) #\*))
+       (operator (op a b)
+         (let ((ta (second a))
+               (tb (second b)))
+           (list (funcall op (car a) (car b))
+                 ;; Highly approximate type propagation
+                 ;; We really only care if values are pointers or not.
+                 (cond
+                   ((string= ta tb) ta) ; preserve equal types
+                   ((pointerp a) ta)
+                   ((pointerp b) tb)
+                   (t "int")))))
+       (operator-no-pointers (op a b)
+         (if (or (pointerp a) (pointerp b))
+             (error (make-condition 'eval-error
+                                    "Not allowed on pointer values."))
+             (operator op a b))))
+
+   (case operator
+     (:+ {operator #'+})
+     (:- {operator #'-})
+     (:/ {operator-no-pointers #'truncate}) ; assume integer division
+     (:* {operator-no-pointers #'*})
+     (otherwise
+      (error (make-condition 'eval-error
+                             "Unknown operator: ~s" operator))))))
 
 (defun evaluate-expression (expression free-vars)
   (multiple-value-bind (result interior-max)
@@ -96,7 +119,7 @@ This is used to intern string names by `expression'."
            (values (apply (operator-to-function (car expression))
                           (mapcar #'first args))
                    (apply #'max (mapcar #'second args)))))
-        ((numberp expression) expression)
+        ((numberp expression) (list expression "int"))
         ((symbolp expression)
          (or (aget expression free-vars)
              (error (make-condition 'eval-error
@@ -104,7 +127,16 @@ This is used to intern string names by `expression'."
         (t (error (make-condition 'eval-error
                                   "Unrecognized expression: ~s" expression))))
     (values result
-            (max result (or interior-max 0)))))
+            (max (car result) (or interior-max 0)))))
+
+(defun expression-unbound-vars (expression)
+  (cond
+    ((listp expression)
+     (remove-duplicates (apply #'append
+                               (mapcar #'expression-unbound-vars
+                                       (cdr expression)))))
+    ((symbolp expression) (list expression))
+    (t nil)))
 
 ;; Operator replacement
 (defvar *math-operators* '(:+ :- :* :/))
