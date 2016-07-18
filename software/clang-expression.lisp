@@ -63,8 +63,8 @@ This is used to intern string names by `expression'."
                (list :->
                      (expression obj (first (aget :children ast)))
                      (expression-intern (subseq src
-                                            (aref (third match-data) 0)
-                                            (aref (fourth match-data) 0))))
+                                                (aref (third match-data) 0)
+                                                (aref (fourth match-data) 0))))
                (error "Unmatched MemberExpr ~S." src)))))
       (t :unimplemented))))
 
@@ -80,8 +80,7 @@ This is used to intern string names by `expression'."
     ((symbolp expression) (symbol-name expression))))
 
 
-;; Evaluation
-
+;;;; Evaluation
 (define-condition eval-error (error) ())
 
 (defun operator-to-function (operator)
@@ -125,8 +124,8 @@ This is used to intern string names by `expression'."
            ;; TODO: support functions/operators with different arity
            (unless (= (length args) 2)
              (error (make-condition 'eval-error
-                                    "Wrong number of arguments. Expected 2, got ~a"
-                                    (length args))))
+                      "Wrong number of arguments. Expected 2, got ~a"
+                      (length args))))
            (values (apply (operator-to-function (car expression))
                           (mapcar #'first args))
                    (apply #'max (mapcar #'second args)))))
@@ -134,9 +133,9 @@ This is used to intern string names by `expression'."
         ((symbolp expression)
          (or (aget expression free-vars)
              (error (make-condition 'eval-error
-                                    "Undefined variable: ~s" expression))))
+                      "Undefined variable: ~s" expression))))
         (t (error (make-condition 'eval-error
-                                  "Unrecognized expression: ~s" expression))))
+                    "Unrecognized expression: ~s" expression))))
     (values result
             (max (car result) (or interior-max 0)))))
 
@@ -149,7 +148,8 @@ This is used to intern string names by `expression'."
     ((symbolp expression) (list expression))
     (t nil)))
 
-;; Operator replacement
+
+;;;; Targeted mutations
 (defvar *math-operators* '(:+ :- :* :/))
 (define-mutation change-operator (mutation)
   ((targeter :initform (lambda (lisp)
@@ -169,7 +169,7 @@ This is used to intern string names by `expression'."
         (rplaca (subtree genome tree) operator))))
   lisp)
 
-;; Constant replacement
+;;; Constant replacement
 (define-mutation change-constant (mutation)
   ((targeter :initform (lambda (lisp)
                          (list (random-elt (constant-subtrees lisp))
