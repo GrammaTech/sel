@@ -500,6 +500,115 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
+;; Check our temporary hack to split multi-variable declarations.
+(deftest split-multi-variable-declarations ()
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a,b;
+}")))))
+      "Splits a simple single-line declaration.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a,
+         b;
+}")))))
+      "Splits a multi-line declaration.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a = 4,
+         b = 68;
+}")))))
+      "Splits a multi-line declaration with initialization.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a = 4,b = 68;
+}")))))
+      "Splits a single-line declaration with initialization.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a=4,b=68;
+}")))))
+      "Splits another single-line declaration with initialization.")
+  (is (= 2 (count-if {scan "double\\*"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double* a=4,b=68;
+}")))))
+      "Handles pointer type.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double *a=4,b=68;
+}")))))
+      "Handles first variable is pointer.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a=4,*b=68;
+}")))))
+      "Handles second variable is pointer.")
+  (is (= 2 (count-if {scan "double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  double a=fopen(one, two), b;
+}")))))
+      "Handles initialization with commas.")
+  (is (= 2 (count-if {scan "const double"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  const double a,b;
+}")))))
+      "Retains a modifier declaration.")
+  (is (= 2 (count-if {scan "register int"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  register int a,b;
+}")))))
+      "Retains another modifier declaration.")
+  (is (= 2 (count-if {scan "static unsigned int"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  static unsigned int a,b;
+}")))))
+      "Retains two modifiers in declaration.")
+  (is (= 2 (count-if {scan "struct dfamust"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             "void int main(void) {
+  struct dfamust *dm, *ndm;
+}")))))
+      "Another with a modifier."))
+
 ;; Check if the two AST lists differ. Do a smoke test with
 ;; the list lengths; if they match, use the :src-text
 ;; field as a proxy for equality. Strict equality isn't

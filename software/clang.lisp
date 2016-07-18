@@ -144,6 +144,12 @@
   :test #'equalp
   :documentation "C pointer operators on one arguments.")
 
+(define-constant +c-variable-modifiers+
+    '("const" "enum" "extern" "long" "register" "short" "signed"
+      "static" "struct" "unsigned" "volatile")
+  :test #'equalp
+  :documentation "C variable modifiers.")
+
 
 ;; Targeting functions
 (defun restrict-targets (software full-stmt same-class)
@@ -501,31 +507,95 @@ processing.
 Currently the only such transformation is to split variable
 declarations onto multiple lines to ease subsequent decl mutations."))
 
+(defun balanced-parens (pos &aux (deep 0))
+  (iter (while (< pos (length ppcre::*string*)))
+        (as char = (aref ppcre::*string* pos))
+        (case char
+          (#\( (incf deep))
+          (#\) (when (zerop deep) (return-from balanced-parens nil))
+               (decf deep))
+          (#\,
+           (when (zerop deep) (return-from balanced-parens pos)))
+          (#\;
+           (return-from balanced-parens pos)))
+        (incf pos))
+  (if (zerop deep) pos nil))
+
+(defun split-balanced-parens (string &aux (start 0) (str-len (length string)))
+  (->> (iter (for (values match-start match-end match-begs match-ends)
+                  = (scan '(:register (:filter balanced-parens)) string
+                          :start start))
+             (declare (ignorable match-start))
+             (while (and match-end (< start str-len)))
+             (collecting (subseq string (aref match-begs 0)
+                                 (aref match-ends 0)))
+             (if (< start match-end)
+                 (setf start match-end)
+                 (incf start)))
+       (remove-if [#'zerop #'length])))
+
 (defmethod from-string-exactly ((obj clang) string &aux (index 0))
   ;; TODO: Improve clang-mutate so we no longer need this hack.
   ;; Find every probable multi-variable declaration, then split.
-  (let ((regex "[{};]\\s*\\n\\s*(\\w+\\s+)([\\w\\s]+,[\\w\\s,]+);\\s*\\n"))
+  (let ((regex
+         (create-scanner
+          `(:sequence                   ; Preceding newline.
+            (:char-class #\{ #\} #\;)
+            (:greedy-repetition 0 nil :whitespace-char-class) #\newline
+            (:register                  ; Type name.
+             (:sequence
+              (:greedy-repetition 0 nil :whitespace-char-class)
+              (:greedy-repetition
+               0 nil
+               (:sequence               ; Type name modifiers.
+                (:alternation ,@+c-variable-modifiers+)
+                :whitespace-char-class))
+              (:greedy-repetition 1 nil :word-char-class)
+              (:greedy-repetition 0 1 #\*)
+              (:greedy-repetition 1 nil :whitespace-char-class)))
+            (:register                  ; All variables.
+             (:sequence
+              (:greedy-repetition       ; First variable.
+               1 nil
+               (:char-class #\* :whitespace-char-class :word-char-class))
+              (:greedy-repetition
+               0 1
+               (:register               ; Optional initialization.
+                (:sequence #\=
+                           (:greedy-repetition 0 nil :whitespace-char-class)
+                           (:filter balanced-parens))))
+              #\, (:greedy-repetition 1 nil (:inverted-char-class #\;))
+              (:greedy-repetition       ; Subsequent variables.
+               0 1
+               (:register
+                (:sequence #\=          ; Optional initialization.
+                           (:greedy-repetition 0 nil :whitespace-char-class)
+                           (:filter balanced-parens))))))
+            #\; (:greedy-repetition 0 nil :whitespace-char-class) #\newline))))
     (iter (for (values match-start match-end match-type match-vars)
                = (scan regex string :start index))
           (while match-end)
           ;; C has strict limits on valid strings, so we don't have to
-          ;; worry about being in side of a string.
+          ;; worry about being inside of a string.
           (concatenating
            (concatenate 'string
              (subseq string index (aref match-type 0))
-             (let ((type
-                    (subseq string
-                            (aref match-type 0)
-                            (aref match-type 1))))
-               (mapconcat {concatenate 'string type " "}
-                          (split-sequence #\Comma
-                            (subseq string (aref match-vars 0)
-                                    (aref match-vars 1)))
+             (let* ((type
+                     (string-right-trim (list #\Space #\Tab #\Newline)
+                                        (subseq string
+                                                (aref match-type 0)
+                                                (aref match-type 1)))))
+               (mapconcat [{concatenate 'string type " "}
+                           {string-left-trim (list #\Space #\Tab #\Newline)}]
+                          (split-balanced-parens
+                           (subseq string (aref match-vars 0)
+                                   (aref match-vars 1)))
                           (coerce (list #\Semicolon #\Newline) 'string))))
            into out-str)
           (setf index (aref match-vars 1))
           (finally (setf (genome-string obj)
-                         (concatenate 'string out-str (subseq string index))))))
+                         (concatenate 'string
+                           out-str (subseq string index))))))
   obj)
 
 (defgeneric ast-type-p (ast)
