@@ -183,20 +183,63 @@ This is used to intern string names by `expression'."
 (defmethod apply-mutation ((lisp lisp) (mutation change-constant))
   (bind (((tree transformation) (targets mutation)))
     (with-slots (genome) lisp
-        (rplaca (subtree genome tree)
-                (let ((value (car (subtree genome tree))))
-                  (ecase transformation
-                    (:double (* 2 value))
-                    (:halve (floor value 2))
-                    (:negate (* -1 value))
-                    (:increment (+ value 1))
-                    (:decrement (- value 1))
-                    (:one 1)
-                    (:zero 0)
-                    (:negative-one -1))))))
-    lisp)
+      (rplaca (subtree genome tree)
+              (let ((value (car (subtree genome tree))))
+                (ecase transformation
+                  (:double (* 2 value))
+                  (:halve (floor value 2))
+                  (:negate (* -1 value))
+                  (:increment (+ value 1))
+                  (:decrement (- value 1))
+                  (:one 1)
+                  (:zero 0)
+                  (:negative-one -1))))))
+  lisp)
 
-;; Semantics preserving mutations
+;;; Specialized mutations
+(defgeneric pick-bad-binop-left (software)
+  (:documentation
+   "Pick a binary operation for demotion via `demote-binop-left'."))
+
+(defmethod pick-bad-binop-left ((obj lisp))
+  (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
+    (->> (genome obj)
+         (remove-if-not (lambda (subtree)
+                          (and (binopp subtree) (binopp (second subtree)))))
+         (random-elt))))
+
+(defgeneric pick-bad-binop-right (software)
+  (:documentation
+   "Pick a binary operation for demotion via `demote-binop-right'."))
+
+(defmethod pick-bad-binop-right ((obj lisp))
+  (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
+    (->> (genome obj)
+         (remove-if-not (lambda (subtree)
+                          (and (binopp subtree) (binopp (third subtree)))))
+         (random-elt))))
+
+(define-mutation demote-binop-left (mutation)
+  ((targeter :initform #'pick-bad-binop-left)))
+
+(defmethod apply-mutation ((lisp lisp) (mutation demote-binop-left))
+  (destructuring-bind (op (l-op l-left l-right) right) (targets mutation)
+    (with-slots (genome) lisp
+      (setf (subtree genome (targets mutation))
+            (list l-op (list op l-left right) l-right))))
+  lisp)
+
+(define-mutation demote-binop-right (mutation)
+  ((targeter :initform #'pick-bad-binop-right)))
+
+(defmethod apply-mutation ((lisp lisp) (mutation demote-binop-right))
+  (destructuring-bind (op left (r-op r-left r-right)) (targets mutation)
+    (with-slots (genome) lisp
+      (setf (subtree genome (targets mutation))
+            (list r-op r-left (list op r-right left)))))
+  lisp)
+
+;;; Semantics preserving mutations
 (define-mutation mult-divide (mutation)
   ((targeter :initform #'pick-bad)))
 
@@ -225,4 +268,16 @@ This is used to intern string names by `expression'."
     (with-slots (genome) lisp
       (setf (subtree genome s)
             `(:+ (:- ,(copy-tree (car (subtree genome s))) 1) 1))))
+  lisp)
+
+(define-mutation double-half (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((lisp lisp) (mutation double-half))
+  (let ((s (targets mutation)))
+    (with-slots (genome) lisp
+      (setf (subtree genome s)
+            `(:- (:+ ,(copy-tree (car (subtree genome s)))
+                     ,(copy-tree (car (subtree genome s))))
+                 ,(copy-tree (car (subtree genome s)))))))
   lisp)
