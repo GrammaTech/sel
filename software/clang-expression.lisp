@@ -270,6 +270,32 @@ This is used to intern string names by `expression'."
             `(:+ (:- ,(copy-tree (car (subtree genome s))) 1) 1))))
   lisp)
 
+(define-mutation add-subtract-tree (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((obj lisp) (mutation add-subtract-tree))
+  (let ((s (targets mutation))
+        (r (pick-good obj)))
+    (with-slots (genome) obj
+      (setf (subtree genome s)
+            `(:- (:+ ,(copy-tree (car (subtree genome s)))
+                     ,(copy-tree (subtree genome r)))
+                 ,(copy-tree (subtree genome r))))))
+  obj)
+
+(define-mutation subtract-add-tree (mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((obj lisp) (mutation add-subtract-tree))
+  (let ((s (targets mutation))
+        (r (pick-good obj)))
+    (with-slots (genome) obj
+      (setf (subtree genome s)
+            `(:+ (:- ,(copy-tree (car (subtree genome s)))
+                     ,(copy-tree (subtree genome r)))
+                 ,(copy-tree (subtree genome r))))))
+  obj)
+
 (define-mutation double-half (mutation)
   ((targeter :initform #'pick-bad)))
 
