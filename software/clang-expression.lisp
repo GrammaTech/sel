@@ -81,7 +81,12 @@ This is used to intern string names by `expression'."
 
 
 ;;;; Evaluation
-(define-condition eval-error (error) ())
+(define-condition eval-error (error)
+  ((text :initarg :text :initform nil :reader text)
+   (expr :initarg :expr :initform nil :reader expr))
+  (:report (lambda (condition stream)
+             (format stream "Eval error ~a on ~a"
+                     (text condition) (expr condition)))))
 
 (defun operator-to-function (operator)
   (labels
@@ -97,21 +102,23 @@ This is used to intern string names by `expression'."
                    ((string= ta tb) ta) ; preserve equal types
                    ((pointerp a) ta)
                    ((pointerp b) tb)
-                   (t "int")))))
+                   (t "literal")))))
        (operator-no-pointers (op a b)
          (if (or (pointerp a) (pointerp b))
              (error (make-condition 'eval-error
-                                    "Not allowed on pointer values."))
+                      :text "Not allowed on pointer values."
+                      :expr operator))
              (operator op a b))))
 
-   (case operator
-     (:+ {operator #'+})
-     (:- {operator #'-})
-     (:/ {operator-no-pointers #'truncate}) ; assume integer division
-     (:* {operator-no-pointers #'*})
-     (otherwise
-      (error (make-condition 'eval-error
-                             "Unknown operator: ~s" operator))))))
+    (case operator
+      (:+ {operator #'+})
+      (:- {operator #'-})
+      (:/ {operator-no-pointers #'truncate}) ; assume integer division
+      (:* {operator-no-pointers #'*})
+      (otherwise
+       (error (make-condition 'eval-error
+                :text "Unknown operator"
+                :expr operator))))))
 
 (defun evaluate-expression (expression free-vars)
   (multiple-value-bind (result interior-max)
@@ -123,14 +130,24 @@ This is used to intern string names by `expression'."
                     :text (format nil
                                   "Wrong number of arguments. Expected 2 got ~a"
                                   (1- (length expression)))
-                    :expr expression))))
-        ((numberp expression) (list expression "int"))
+                    :expr expression)))
+         (let ((args (mapcar (lambda (a)
+                               (multiple-value-list
+                                (evaluate-expression a free-vars)))
+                             (cdr expression))))
+           (values (apply (operator-to-function (car expression))
+                          (mapcar #'first args))
+                   (apply #'max (mapcar #'second args)))))
+        ((numberp expression)
+         (list expression "int"))
         ((symbolp expression)
          (or (aget expression free-vars)
              (error (make-condition 'eval-error
-                      "Undefined variable: ~s" expression))))
+                      :text "Undefined variable:"
+                      :expr expression))))
         (t (error (make-condition 'eval-error
-                    "Unrecognized expression: ~s" expression))))
+                    :text "Unrecognized expression:"
+                    :expr expression))))
     (values result
             (max (car result) (or interior-max 0)))))
 
