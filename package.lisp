@@ -322,6 +322,8 @@
    :mult-divide
    :add-subtract
    :subtract-add
+   :add-subtract-tree
+   :subtract-add-tree
    :evaluate-expression
    :eval-error
    ))
