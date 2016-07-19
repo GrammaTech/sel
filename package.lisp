@@ -319,11 +319,14 @@
    :lisp-swap
    :change-operator
    :change-constant
+   :clang-expression
+   :scope
    :mult-divide
    :add-subtract
    :subtract-add
    :add-subtract-tree
    :subtract-add-tree
+   :add-subtract-scope
    :evaluate-expression
    :eval-error
    ))
