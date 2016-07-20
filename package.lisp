@@ -314,6 +314,7 @@
    :pick-bad-good
    :pick-bad-bad
    :pick-bad-only
+   :*lisp-mutation-types*
    :lisp-cut
    :lisp-replace
    :lisp-swap
@@ -328,5 +329,7 @@
    :subtract-add-tree
    :add-subtract-scope
    :evaluate-expression
+   :demote-binop-left
+   :demote-binop-right
    :eval-error
    ))

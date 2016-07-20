@@ -202,8 +202,10 @@ This is used to intern string names by `expression'."
 
 (defmethod pick-bad-binop-left ((obj clang-expression))
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
-    (->> (genome obj)
-         (remove-if-not (lambda (subtree)
+    (&>> (iter (for i below (size obj))
+               (collect (list i (subtree (genome obj) i))))
+         (remove-if-not (lambda-bind ((i subtree))
+                          (declare (ignorable i))
                           (and (binopp subtree) (binopp (second subtree)))))
          (random-elt))))
 
@@ -213,29 +215,36 @@ This is used to intern string names by `expression'."
 
 (defmethod pick-bad-binop-right ((obj clang-expression))
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
-    (->> (genome obj)
-         (remove-if-not (lambda (subtree)
+    (&>> (iter (for i below (size obj))
+               (collect (list i (subtree (genome obj) i))))
+         (remove-if-not (lambda-bind ((i subtree))
+                          (declare (ignorable i))
                           (and (binopp subtree) (binopp (third subtree)))))
          (random-elt))))
 
+;; TODO: Combine with `demote-binop-right' implementation.
 (define-mutation demote-binop-left (mutation)
   ((targeter :initform #'pick-bad-binop-left)))
 
 (defmethod apply-mutation ((obj clang-expression) (mutation demote-binop-left))
-  (destructuring-bind (op (l-op l-left l-right) right) (targets mutation)
-    (with-slots (genome) obj
-      (setf (subtree genome (targets mutation))
-            (list l-op (list op l-left right) l-right))))
+  (with-slots (targets) mutation
+    (when targets
+      (destructuring-bind (subtree-id (op (l-op l-left l-right) right)) targets
+        (with-slots (genome) obj
+          (setf (subtree genome (1+ subtree-id))
+                (list l-op (list op l-left right) l-right))))))
   obj)
 
 (define-mutation demote-binop-right (mutation)
   ((targeter :initform #'pick-bad-binop-right)))
 
 (defmethod apply-mutation ((obj clang-expression) (mutation demote-binop-right))
-  (destructuring-bind (op left (r-op r-left r-right)) (targets mutation)
-    (with-slots (genome) obj
-      (setf (subtree genome (targets mutation))
-            (list r-op r-left (list op r-right left)))))
+  (with-slots (targets) mutation
+    (when targets
+      (destructuring-bind (subtree-id (op left (r-op r-left r-right))) targets
+        (with-slots (genome) obj
+          (setf (subtree genome (1+ subtree-id))
+                (list r-op r-left (list op r-right left)))))))
   obj)
 
 ;;; Semantics preserving mutations
