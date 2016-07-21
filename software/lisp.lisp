@@ -87,7 +87,8 @@
   ((targeter :initform #'pick-bad-good-lisp)))
 
 (defvar *lisp-mutation-types*
-  '(lisp-cut lisp-replace lisp-swap))
+  ;; TODO: Fix `lisp-cut' before adding back to this list.
+  '(lisp-replace lisp-swap))
 
 (defmethod mutate ((lisp lisp))
   (unless (> (size lisp) 0)
@@ -98,6 +99,7 @@
     (values lisp mutation)))
 
 (defmethod apply-mutation ((lisp lisp) (mutation lisp-cut))
+  ;; TODO: Fix.
   (with-slots (genome) lisp
     (let* ((s1 (targets mutation))
            (st (subtree genome s1)))
