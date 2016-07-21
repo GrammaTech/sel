@@ -47,7 +47,6 @@
    :count-cons
    ;; simple utility
    :repeatedly
-   :range
    :indexed
    :different-it
    :plist-get

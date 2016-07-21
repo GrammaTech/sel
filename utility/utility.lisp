@@ -360,12 +360,6 @@ Optional argument OUT specifies an output stream."
   (let ((ignored (gensym)))
     `(loop :for ,ignored :below ,times :collect ,@body)))
 
-(defun range (from &optional to)
-  (unless to (setf to from from 0))
-  (if (>= to from)
-      (loop :for i :from from :to to :collect i)
-      (loop :for i :from from :downto to :collect i)))
-
 (defun indexed (list)
   (loop :for element :in list :as i :from 0 :collect (list i element)))
 

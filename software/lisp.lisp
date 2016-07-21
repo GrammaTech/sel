@@ -70,7 +70,7 @@
 
 (defmethod filter-subtrees (predicate (lisp lisp))
   (remove-if-not [predicate {subtree (genome lisp)}]
-                 (range 0 (1- (size lisp)))))
+                 (iter (for i below (size lisp)) (collect i))))
 
 
 ;;; Mutations
