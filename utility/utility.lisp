@@ -259,6 +259,21 @@ and an optional extension."
               ,@body)
          (sb-thread:join-thread ,thread-sym)))))
 
+(defvar *bash-shell* "/bin/bash"
+  "Bash shell for use in `read-shell'.")
+
+(defmacro read-shell ((stream-var shell) &rest body)
+  "Executes BODY with STREAM-VAR holding the output of SHELL.
+The SHELL command is executed with `*bash-shell*'."
+  #-sbcl (error "`READ-SHELL-FILE' unimplemented for non-SBCL lisps.")
+  (let ((proc-sym (gensym)))
+    `(let* ((,proc-sym (sb-ext:run-program *bash-shell*
+                                           (list "-c" ,shell) :search t
+                                           :output :stream
+                                           :wait nil)))
+       (with-open-stream (,stream-var (sb-ext:process-output ,proc-sym))
+         ,@body))))
+
 (defmacro xz-pipe ((in-stream in-file) (out-stream out-file) &rest body)
   "Executes BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
   `(read-shell-file (,in-stream ,in-file "unxz")

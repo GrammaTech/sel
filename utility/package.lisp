@@ -36,6 +36,8 @@
    :shell-with-input
    :write-shell-file
    :read-shell-file
+   :*bash-shell*
+   :read-shell
    :xz-pipe
    :parse-number
    :parse-numbers
