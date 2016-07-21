@@ -50,7 +50,8 @@
                                   (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
                                           log-var)}
                           (mapcar #'car formats-w-args)
-                          (mapcar #'cdr formats-w-args)))
+                          (mapcar #'cdr formats-w-args))
+                         (list (format nil "fflush(~a);~%" log-var)))
                         log-var))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
