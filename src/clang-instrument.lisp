@@ -4,7 +4,17 @@
 
 ;;;; Instrumentation
 (defmethod instrument ((obj clang) &key points functions trace-file
-                                     print-argv instrument-exit)
+                                     print-argv instrument-exit (entry-obj obj))
+  "Instrument OBJ to print AST counter before each full statement.
+option
+Keyword arguments are as follows:
+  POINTS ----------- alist of additional strings to print at specific points
+  FUNCTIONS -------- functions to generate additional instrumentation at each point
+  TRACE-FILE ------- file for trace output
+  PRINT-ARGV ------- print program arguments on startup
+  INSTRUMENT-EXIT -- print counter of function body before exit
+  ENTRY-OBJ -------- object containing main function
+"
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
@@ -129,10 +139,12 @@
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
     (when print-argv
-      (setf obj (print-program-input obj log-var)))
+      (print-program-input entry-obj log-var))
     (when trace-file
-      (setf obj (log-to-filename obj log-var trace-file)))
+      (log-to-filename obj entry-obj log-var trace-file))
     (clang-format obj)
+    (unless (eq obj entry-obj)
+      (clang-format entry-obj))
     obj))
 
 (defgeneric var-instrument (software label key ast &key print-strings)
@@ -225,14 +237,20 @@ fputs(\"))\\n\", ~a);"
           obj))
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
-(defmethod log-to-filename ((obj clang) log-variable filename)
-  (setf obj
-        (insert-at-entry obj (format nil "~a = fopen(~s, \"a\");~%"
-                                     log-variable (namestring filename))))
+(defmethod log-to-filename ((obj clang) entry-obj log-variable filename)
+  (setf entry-obj
+        (insert-at-entry entry-obj (format nil "~a = fopen(~s, \"a\");~%"
+                                           log-variable (namestring filename))))
   (setf (genome obj)
         (concatenate 'string
-          (format nil "#include <stdio.h>~%FILE *~a;~%" log-variable)
-          (genome obj)))
+                     (format nil "#include <stdio.h>~%FILE *~a;~%" log-variable)
+                     (genome obj)))
+  (unless (eq obj entry-obj)
+    (setf (genome entry-obj)
+          (concatenate 'string
+                       (format nil "#include <stdio.h>~%extern FILE *~a;~%"
+                               log-variable)
+                       (genome entry-obj))))
   obj)
 
 
