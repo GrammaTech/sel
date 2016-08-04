@@ -117,7 +117,25 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [25/31]
+* Tasks [25/32]
+** TODO probably bugs in clang-instrument
+#+begin_quote Zak Fry
+https://git.grammatech.com/brass/evo-rings/blob/master/test/instrumentation_compile_failures.zip
+
+These aren't exactly unit tests, but as I mentioned, they're instances
+where mutants have been instrumented and it appears to affect
+compilation.  Not all errors will be due to instrumentation (i.e.,
+mutation itself breaks programs, of course), but I saw at least a few
+upon cursory glances.  Notably there was at least one place where a
+call to fputs(...) was wrapped around a very large block of code,
+which doesn't even seem like a thing instrumentation should do (e.g.,
+it CAN sometimes stick fputs in weird spots, but not wrap them around
+existing code).
+
+hope that helps, let me know if you need more examples or the rest of
+the code or tips on building this example.
+#+end_quote
+
 ** DONE pre-process source before loading into clang
    CLOSED: [2016-05-16 Mon 11:34]
 Specifically to split single-line multi-variable declarations onto
