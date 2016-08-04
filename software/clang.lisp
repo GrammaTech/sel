@@ -40,6 +40,10 @@
    (types :initarg :types :copier copy-seq
           :initform nil :type (list (cons keyword *) *)
           :documentation "Association list of types keyed by HASH id.")
+   (declarations :initarg :declarations :copier :direct
+                 :initform (make-hash-table :test #'equal) :type hash-table
+                 :documentation
+                 "Hash of variable declarations keyed by variable name.")
    (macros :initarg :macros :accessor macros :copier copy-seq
            :initform nil :type (list (cons string string) *)
            :documentation "Association list of Names and values of macros.")
@@ -430,8 +434,11 @@ software object"))
 (defmethod (setf genome) :before (new (obj clang))
   (with-slots (asts) obj (setf asts nil)))
 
-(defmethod update-asts ((obj clang) &key clang-mutate-args)
-  (with-slots (asts types header-asts functions prototypes genome) obj
+(defmethod update-asts ((obj clang)
+                        &key clang-mutate-args
+                        &aux (decls (make-hash-table :test #'equal)))
+  (with-slots (asts types header-asts functions prototypes declarations genome)
+      obj
     ;; incorporate ASTs.
     (iter (for ast in (restart-case
                           (clang-mutate obj
@@ -442,6 +449,10 @@ software object"))
                         (dummy-asts ()
                           :report "Return dummy ASTs"
                           '(((:counter . 0) (:ast-class "Failure"))))))
+          ;; NOTE: Relies on the invariant that the ASTs returned by
+          ;; clang-mutate are in sorted order.
+          (mapc (lambda (var) (nconcf (gethash var decls nil) (list ast)))
+                (ast-declares ast))
           (cond
             ((aget :counter ast) (collect ast into body))
             ((ast-type-p ast) (collect ast into m-types))
@@ -454,7 +465,8 @@ software object"))
                          header-asts head
                          types m-types
                          functions funs
-                         prototypes protos))))
+                         prototypes protos
+                         declarations decls))))
   obj)
 
 (defmethod update-header ((obj clang) &key)
@@ -646,6 +658,14 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 
 (defmethod (setf types) (new (obj clang))
   (with-slots (types) obj (setf types new)))
+
+(defmethod declarations ((obj clang))
+  (with-slots (asts declarations) obj
+    (unless asts (update-asts obj))
+    declarations))
+
+(defmethod (setf declarations) (new (obj clang))
+  (with-slots (declarations) obj (setf declarations new)))
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
@@ -1511,20 +1531,30 @@ variables to replace use of the variables declared in stmt ID."))
   (:documentation "Return the names of the variables that AST declares."))
 
 (defmethod ast-declares ((ast list))
+  ;; TODO: This should be updated to return the range and the type of
+  ;;       the declaration.  This will simplify the implementation and
+  ;;       improve the correctness of `declaration-of' and
+  ;;       `type-of-var' down the line.
   (cond
     ((string= (aget :ast-class ast) "Var") ; Global variable.
      (list (caar (aget :scopes ast))))
     ((string= (aget :ast-class ast) "DeclStmt") ; Sub-function declaration.
      (aget :declares ast))
+    ((string= (aget :ast-class ast) "Function") ; Sub-function declaration.
+     (mapcar #'car (aget :args ast)))
     (:otherwise nil)))
 
-(defgeneric declaration-of (software variable-name)
-  (:documentation "Return the AST in SOFTWARE which declares VARIABLE-NAME."))
+(defgeneric declaration-of (software variable-name &optional line-number)
+  (:documentation "Return the AST in SOFTWARE which declares VARIABLE-NAME.
+Optionally supply a LINE-NUMBER to return the preceding declaration
+closest to LINE-NUMBER."))
 
-(defmethod declaration-of ((obj clang) (variable-name string))
-  (find-if (lambda (ast)
-             (member variable-name (ast-declares ast) :test #'string=))
-           (asts obj)))
+(defmethod declaration-of ((obj clang) (variable-name string)
+                           &optional line-number)
+  (let ((decls (gethash variable-name (declarations obj))))
+    (if line-number
+        (lastcar (take-while [{< _ line-number} {aget :begin-src-line}] decls))
+        (car decls))))
 
 (defgeneric declared-type (ast variable-name)
   (:documentation "Guess the type of the VARIABLE-NAME in AST.
@@ -1548,9 +1578,13 @@ VARIABLE-NAME should be declared in AST."))
     ;;         "Can't find declaration of ~a in ~a." variable-name obj)
     (if declaration-ast
         (find-types obj
-                    :hash (nth (position-if {string= variable-name}
-                                            (aget :declares declaration-ast))
-                               (aget :types declaration-ast)))
+                    :hash
+                    (if (string= "Function" (aget :ast-class declaration-ast))
+                        (cdr (aget variable-name (aget :args declaration-ast)
+                                   :test #'equal))
+                        (nth (position-if {string= variable-name}
+                                          (aget :declares declaration-ast))
+                             (aget :types declaration-ast))))
         (warn "Can't find declaration of ~a in ~a." variable-name obj))))
 
 
