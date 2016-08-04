@@ -2062,7 +2062,23 @@ Useful for printing or returning differences in the REPL."
          {var-instrument *binary-search* :unbound-vals unbound-vals-fn})))))
 
 
-;;; Tests of type database on clang objects
+;;; Tests of declaration and type databases on clang objects
+(deftest binary-search-collects-types ()
+  (with-fixture binary-search-clang
+    (let ((collected-vars (mapcar #'car (hash-table-alist
+                                         (declarations *binary-search*))))
+          ;; TODO: Add "argv" to this list once the outstanding issue
+          ;;       with char* types in clang-mutate is resolved.
+          (variables (list "haystack" "i" "argc")))
+      (mapc (lambda (var)
+              (is (member var collected-vars :test #'equal)
+                  "Includes ~s variable in the `declarations' hash." var))
+            variables)
+      (mapc (lambda (var)
+              (is (type-of-var *binary-search* var)
+                  "Includes ~s variable in the `declarations' hash." var))
+            variables))))
+
 (deftest huf-knows-types ()
   (with-fixture huf-clang
     (is (and (listp (types *huf*)) (not (null (types *huf*))))
@@ -2082,7 +2098,6 @@ Useful for printing or returning differences in the REPL."
           "Variable \"strbit\" in huf is a dynamically sized array.")
       (is (not (aget :pointer type))
           "Variable \"strbit\" in huf is not a pointer."))))
-
 
 
 ;; Lisp representation

@@ -39,6 +39,7 @@
    :headers
    :macros
    :types
+   :declarations
    :globals
    :ancestral
    :ancestors
