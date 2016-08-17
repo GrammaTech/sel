@@ -237,6 +237,8 @@
    :run-rename-variable
    :common-ancestor
    :ancestor-of
+   :get-fresh-ancestry-id
+   :save-ancestry
    :scopes-between
    :nesting-depth
    :get-ast-text
