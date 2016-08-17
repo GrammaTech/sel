@@ -52,9 +52,9 @@ techniques."
             :depends-on (base software)
             :pathname "src"
             :components
-            ((:file "lexicase")
-             (:file "fix-compilation")
+            ((:file "ancestral")
              (:file "clang-instrument")
+             (:file "fix-compilation")
              (:file "fodder-database")
              (:file "json-fodder-database" :depends-on ("fodder-database"))
              (:file "lexicase")
