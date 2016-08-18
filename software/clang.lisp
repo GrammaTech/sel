@@ -1413,14 +1413,19 @@ free variables.")
             (mapcar
              (lambda-bind ((var index))
                (cons var
-                     ;; If the variable's original name matches the
-                     ;; name of a variable in scope, keep the original
-                     ;; name with probability equal to
-                     ;; *matching-free-var-retains-name-bias*
                      (let ((in-scope
+                            ;; NOTE: The :RESPECT-DEPTH field is
+                            ;; populated by crossover and is
+                            ;; presumably used for specific crossover
+                            ;; purposes. In the crossover case the
+                            ;; snippet is not arbitrary.
                             (if (aget :respect-depth snippet)
                                 (nth index scope-vars)
-                                (apply #'append (drop index scope-vars)))))
+                                (apply #'append scope-vars))))
+                       ;; If the variable's original name matches the
+                       ;; name of a variable in scope, keep the original
+                       ;; name with probability equal to
+                       ;; *matching-free-var-retains-name-bias*
                        (or (when (and (< (random 1.0)
                                          *matching-free-var-retains-name-bias*)
                                       (find (peel-bananas var) in-scope

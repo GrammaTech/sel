@@ -1477,6 +1477,40 @@ Useful for printing or returning differences in the REPL."
                                    (lines *huf*)
                                    (lines variant))))))))))
 
+(deftest swap-at-different-levels-can-recontextualize ()
+  (with-fixture huf-clang
+    (let ((variant (copy *huf*))
+          (text-1 "n > 0")
+          (text-2 "bn++"))
+      ;; Apply the swap mutation.
+      (apply-mutation variant
+        (cons 'clang-swap
+              (list (cons :stmt1
+                          (stmt-with-text variant text-1))
+                    (cons :stmt2
+                          (stmt-with-text variant text-2)))))
+      (let ((string-diffs
+             (remove-if
+              {string= ""}
+              (mapcar [{apply #'concatenate 'string}
+                       {mapcar {apply #'concatenate 'string}}]
+                      ;; Collect the differences between the
+                      ;; original and the variant.
+                      (mapcar {diff-strings (lines *huf*) (lines variant)}
+                              (remove-if-not
+                               [{equal 'diff:modified-diff-region} #'type-of]
+                               (diff::compute-raw-seq-diff
+                                (lines *huf*)
+                                (lines variant))))))))
+        ;; Each element should contain the text of one of the swapped
+        ;; pieces with possibly different variable names.
+        (every-is {scan (create-scanner (list :alternation text-1 text-2))}
+                  string-diffs)
+        ;; Variables should not fail to be rebound due to no bound vars in
+        ;; scope
+        (every-is [{not} {scan "\/\* no bound vars in scope \/\*"}]
+                  string-diffs)))))
+
 (deftest insert-can-recontextualize ()
   (with-fixture huf-clang
     (let ((variant (copy *huf*)))
