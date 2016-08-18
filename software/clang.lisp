@@ -1421,6 +1421,19 @@ free variables.")
                             ;; snippet is not arbitrary.
                             (if (aget :respect-depth snippet)
                                 (nth index scope-vars)
+                                ;; NOTE: Previously this took
+                                ;; successive cdr's of scope-vars,
+                                ;; which may be required for
+                                ;; crossovers which increasingly lose
+                                ;; nested scopes.  E.g., so that x in
+                                ;; the following snippet
+                                ;;
+                                ;;             foo(x); }
+                                ;;         bar(x); }
+                                ;;     }
+                                ;;
+                                ;; isn't bound to a variable in the
+                                ;; inner-most scope.
                                 (apply #'append scope-vars))))
                        ;; If the variable's original name matches the
                        ;; name of a variable in scope, keep the original
