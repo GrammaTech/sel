@@ -2117,8 +2117,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture huf-clang
     (is (and (listp (types *huf*)) (not (null (types *huf*))))
         "Huf software objects has a type database.")
-    (is (= 6 (count-if {aget :pointer} (types *huf*)))
-        "Huf has six pointer types.")
+    (is (= 7 (count-if {aget :pointer} (types *huf*)))
+        "Huf has seven pointer types.")
     (is (= 3 (count-if [#'not #'emptyp {aget :array}] (types *huf*)))
         "Huf has three array types.")
     (is (= 3 (count-if [{string= "int"} {aget :type}] (types *huf*)))
