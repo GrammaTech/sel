@@ -26,7 +26,7 @@ selection. The same individual may be selected multiple times."
 
     (dotimes (n max-size new-pop)
       (push (lexicase-select-one population
-                                 (shuffle (range (- fitness-length 1))))
+                                 (shuffle (iota (- fitness-length 1))))
             new-pop))))
 
 (defun lexicase-select-one (population order)
