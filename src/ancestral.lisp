@@ -12,20 +12,26 @@
   (1- (incf *next-ancestry-id*)))
 
 (defmethod from-file :before ((obj ancestral) path)
-  (setf (ancestors obj) (list (list :base path
-                                    :how 'from-file
-                                    :id (get-fresh-ancestry-id)))))
+  (if (null (ancestors obj))
+      (setf (ancestors obj) (list (list :base path
+                                        :how 'from-file
+                                        :id (get-fresh-ancestry-id))))
+      (ancestors obj)))
 
 (defmethod from-string :before ((obj ancestral) string)
-  (setf (ancestors obj) (list (list :base string
-                                    :how 'from-string-exactly
-                                    :id (get-fresh-ancestry-id)))))
+  (if (null (ancestors obj))
+      (setf (ancestors obj) (list (list :base string
+                                        :how 'from-string-exactly
+                                        :id (get-fresh-ancestry-id))))
+      (ancestors obj)))
 
 (defmethod apply-mutation :around ((obj ancestral) op)
   (multiple-value-call
       (lambda (variant &rest rest)
-        (push (list :mutant op :id (get-fresh-ancestry-id))
-              (ancestors obj)))
+        (push (list :mutant (type-of op)
+                    :id (get-fresh-ancestry-id))
+              (ancestors obj))
+        (values variant rest))
     (call-next-method)))
 
 (defmethod crossover :around ((a ancestral) (b ancestral))
@@ -36,6 +42,14 @@
                   :id (get-fresh-ancestry-id))
             (ancestors crossed)))
     (values crossed a-point b-point)))
+
+(defmethod (setf fitness-extra-data) :around (extra-data (obj ancestral))
+  (when (ancestors obj)
+    (setf (car (ancestors obj))
+          (append (car (ancestors obj))
+                  (list :fitness (funcall (fitness-scalar-fn obj)
+                                          (fitness obj))))))
+  (call-next-method))
 
 (defmethod save-ancestry ((obj ancestral) dirname filename)
   (let ((dot (make-pathname :directory dirname

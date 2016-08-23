@@ -1248,6 +1248,56 @@
           "`analyze-mutation' notices no change: ~S"
           (hash-table-alist *mutation-stats*)))))
 
+;; Ancestry tests
+(defclass clang-w-ancestry (clang ancestral) ())
+
+(defixture hello-world-clang-w-ancestry
+  (:setup
+   (setf software-evolution::*next-ancestry-id* 0
+         *hello-world*
+         (from-file (make-instance 'clang-w-ancestry :compiler "clang-3.7"
+                                   :flags '("-g -m32 -O0"))
+                    (hello-world-dir "hello_world.c"))
+         *test* [#'length #'genome])
+   (evaluate *test* *hello-world*))
+  (:teardown
+   (setf *hello-world* nil
+         *test* nil
+         software-evolution::*next-ancestry-id* 0)))
+
+(deftest apply-mutation-logs-ancestry ()
+  (with-fixture hello-world-clang-w-ancestry
+    (let* ((op (make-instance 'clang-cut
+                 :object *hello-world*
+                 :targets `((:stmt1 . ,(stmt-with-text *hello-world*
+                                                       "return 0")))))
+           (variant (apply-mutation *hello-world* op)))
+      (evaluate *test* variant)
+
+      (is (< 1 (length (ancestors variant))))
+
+      (is (= 1 (plist-get :id (first (ancestors variant)))))
+      (is (not (null (plist-get :fitness (first (ancestors variant))))))
+      (is (equal (type-of op)
+                 (plist-get :mutant (first (ancestors variant)))))
+
+      (is (= 0 (plist-get :id (second (ancestors variant)))))
+      (is (equal 'from-file
+                 (plist-get :how (second (ancestors variant))))))))
+
+(deftest crossover-logs-ancestry ()
+  (with-fixture hello-world-clang-w-ancestry
+    (let ((crossed (crossover *hello-world* *hello-world*)))
+      (is (< 1 (length (ancestors crossed))))
+
+      (is (not (null (plist-get :crossover (first (ancestors crossed))))))
+      (is (= 0 (plist-get :id
+                          (first (plist-get :cross-with
+                                            (first (ancestors crossed)))))))
+      (is (equal 'from-file
+                 (plist-get :how
+                            (first (plist-get :cross-with
+                                              (first (ancestors crossed))))))))))
 
 ;;; Diff tests
 (defmacro with-static-reference (software &rest body)
