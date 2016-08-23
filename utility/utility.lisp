@@ -555,14 +555,6 @@ is replaced with replacement."
                        (setf ,access-form (acons ,item ,store ,access-form)))))
               `(aget ,item ,access-form :test ,test)))))
 
-(defun alist (key value &rest rest)
-  "Create an association list from the alternating keys and values."
-  (acons key value (if (null rest) nil (apply #'alist rest))))
-
-(defun alist-merge (alist-1 alist-2)
-  "Merge arguments into a single alist with unique keys, prefer ALIST-1 items."
-  (mapcar (lambda-bind ((key . value)) (cons key (or (aget key alist-1) value))) alist-2))
-
 (defun getter (key)
   "Return a function which gets KEY from an association list."
   (lambda (it) (aget key it)))

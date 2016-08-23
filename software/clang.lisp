@@ -1337,24 +1337,24 @@ made full by wrapping with curly braces, return that."))
           (finally
            (return
              (let ((declared (mapcar {format nil "(|~a|)"} decls)))
-               (alist :src-text
-                      (apply-replacements
-                       (append replacements
-                               (mapcar (lambda (d) (cons d (peel-bananas d)))
-                                       declared))
-                       (format nil "~{~a~^~%}~%~}"
-                               (mapcar
-                                [#'unlines {mapcar #'process-full-stmt-text}]
-                                scopes)))
-                      :unbound-vals ; TODO: Switch :unbound-vals to alist.
-                      (mapcar
-                       (lambda-bind ((a . b)) (list a b))
-                       (remove-if [{find _ declared :test #'string=} #'car]
-                                  vars))
-                      :unbound-funs funcs
-                      :types types
-                      :macros macros
-                      :stmts stmts)))))))
+               `((:src-text
+                  . ,(apply-replacements
+                      (append replacements
+                              (mapcar (lambda (d) (cons d (peel-bananas d)))
+                                      declared))
+                      (format nil "~{~a~^~%}~%~}"
+                              (mapcar
+                               [#'unlines {mapcar #'process-full-stmt-text}]
+                               scopes))))
+                 (:unbound-vals ; TODO: Switch :unbound-vals to alist.
+                  . ,(mapcar
+                      (lambda-bind ((a . b)) (list a b))
+                      (remove-if [{find _ declared :test #'string=} #'car]
+                                 vars)))
+                 (:unbound-funs . ,funcs)
+                 (:types . ,types)
+                 (:macros . ,macros)
+                 (:stmts . ,stmts))))))))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet type-database)
   (mapc {add-include clang} (aget :includes snippet))
@@ -1614,7 +1614,7 @@ VARIABLE-NAME should be declared in AST."))
                       (remove-if [{>= end} {aget :counter}]
                                  (nth depth full-seq)))))
     (if (and (equal (length full-seq) 1) (null last-seq))
-        (alist :stmt2 end :src-text "")
+        `((:stmt2 . ,end) (:src-text . ""))
         (let* ((initial-seq (loop :for scope :in full-seq
                                :for i :from 0 :to (1- depth)
                                :collecting scope))
@@ -1626,7 +1626,7 @@ VARIABLE-NAME should be declared in AST."))
                         :for i :from 1 :to tail-size
                         :collecting stmt)))
           (if (null init)
-              (alist :stmt2 end :src-text "")
+              `((:stmt2 . ,end) (:src-text . ""))
               (acons   :stmt1 (aget :counter init)
                 (acons :stmt2 (if (= 0 tail-size)
                                   (if (= 0 depth)
@@ -1658,10 +1658,10 @@ VARIABLE-NAME should be declared in AST."))
     (update-headers-from-snippet a b-snippet b)
     (multiple-value-bind (text replacements)
         (bind-free-vars a b-snippet a-begin)
-      (alist :src-text text
-             :replacements replacements
-             :stmt1 a-begin
-             :stmt2 a-end))))
+      (list (cons :src-text text)
+            (cons :replacements replacements)
+            (cons :stmt1 a-begin)
+            (cons :stmt2 a-end)))))
 
 (defmethod select-before ((clang clang) depth pt)
   (let ((the-block (enclosing-block clang
@@ -1695,28 +1695,27 @@ VARIABLE-NAME should be declared in AST."))
 
 (defmethod create-inward-snippet ((clang clang) stmt1 stmt2 &optional replacements)
   (if (or (null stmt1) (null stmt2))
-      (alist :stmt1 stmt1
-             :stmt2 stmt2
-             :scope-adjustments (list nil)
-             :src-text "")
+      `((:stmt1             . ,stmt1)
+        (:stmt2             . ,stmt2)
+        (:scope-adjustments . ,(list nil))
+        (:src-text          . ,""))
       (let ((compound-stmt1-p (equal (get-ast-class clang stmt1)
                                      "CompoundStmt")))
         (multiple-value-bind (text defns vals funs macros includes types)
             (prepare-inward-snippet clang stmt1 stmt2 '() 0)
-          (alist
-           :stmt1 (enclosing-full-stmt-or-block clang stmt1)
-           :stmt2 (enclosing-full-stmt clang stmt2)
-           :src-text (apply-replacements replacements text)
-           :macros (remove-duplicates macros :test #'equal :key #'car)
-           :includes (remove-duplicates includes :test #'equal)
-           :types (remove-duplicates types :test #'equal)
-           :unbound-vals (remove-duplicates vals :test #'equal :key #'car)
-           :unbound-funs (remove-duplicates funs :test #'equal :key #'car)
-           :scope-adjustments
-           (loop :for scoped-defns :on (reverse (if compound-stmt1-p
-                                                    (cons '() defns)
-                                                    defns))
-              :collecting (apply #'append scoped-defns)))))))
+          `((:stmt1        . ,(enclosing-full-stmt-or-block clang stmt1))
+            (:stmt2        . ,(enclosing-full-stmt clang stmt2))
+            (:src-text     . ,(apply-replacements replacements text))
+            (:macros . ,(remove-duplicates macros :test #'equal :key #'car))
+            (:includes     . ,(remove-duplicates includes :test #'equal))
+            (:types        . ,(remove-duplicates types :test #'equal))
+            (:unbound-vals . ,(remove-duplicates vals :test #'equal :key #'car))
+            (:unbound-funs . ,(remove-duplicates funs :test #'equal :key #'car))
+            (:scope-adjustments
+             . ,(loop :for scoped-defns :on (reverse (if compound-stmt1-p
+                                                         (cons '() defns)
+                                                         defns))
+                   :collecting (apply #'append scoped-defns))))))))
 
 (defmethod prepare-inward-snippet
     ((clang clang) stmt1 stmt2 defns recursion-throttle)
@@ -1850,22 +1849,21 @@ VARIABLE-NAME should be declared in AST."))
                     (cons (cdar succ) (cdr succ))
                     (cdr b-data))))))
          (snippet
-          (alist
-           :src-text
-           (format nil "~a~%~a"
-                   (car b-data)
-                   (bind-free-vars a
-                                   tail
-                                   (aget :stmt2 a-snippet)))
-           :macros (aget :macros b-snippet)
-           :includes (aget :includes b-snippet)
-           :types (aget :types b-snippet)
-           :unbound-vals (aget :unbound-vals tail)
-           :unbound-funs (aget :unbound-funs tail))))
+          `((:src-text
+             . ,(format nil "~a~%~a"
+                        (car b-data)
+                        (bind-free-vars a
+                                        tail
+                                        (aget :stmt2 a-snippet))))
+            (:macros       . ,(aget :macros b-snippet))
+            (:includes     . ,(aget :includes b-snippet))
+            (:types        . ,(aget :types b-snippet))
+            (:unbound-vals . ,(aget :unbound-vals tail))
+            (:unbound-funs . ,(aget :unbound-funs tail)))))
     (update-headers-from-snippet a snippet b)
-    (alist :src-text (aget :src-text snippet)
-           :stmt1 (aget :stmt1 a-snippet)
-           :stmt2 (aget :stmt2 tail))))
+    `((:src-text . ,(aget :src-text snippet))
+      (:stmt1    . ,(aget :stmt1 a-snippet))
+      (:stmt2    . ,(aget :stmt2 tail)))))
 
 (defmethod common-ancestor ((clang clang) x y)
   (let* ((x-ancestry
@@ -1983,13 +1981,13 @@ VARIABLE-NAME should be declared in AST."))
                        b (cons b-begin b-end))
       (let* ((outward-snippet
               (if (null b-out)
-                  (alist :src-text "") ; No corresponding text from b
+                  '((:src-text . ""))   ; No corresponding text from b
                   (crossover-2pt-outward variant b
                                          (car a-out) (cdr a-out)
                                          (car b-out) (cdr b-out))))
              (inward-snippet
               (if (or (null (cdr a-in)) (null (cdr b-in)))
-                  (alist :src-text "") ; No corresponding text from b
+                  '((:src-text . ""))   ; No corresponding text from b
                   (crossover-2pt-inward
                    variant b a-in b-in
                    (aget :replacements outward-snippet)))))
