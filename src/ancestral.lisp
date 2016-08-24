@@ -1,8 +1,12 @@
 ;;; ancestral --- class adding ancestry tracking to software
 (in-package :se)
 
-(defclass ancestral ()
-  ((ancestors :initarg :ancestors :accessor ancestors :initform nil))
+(define-software ancestral ()
+  ((ancestors :initarg :ancestors :accessor ancestors :initform nil)
+   (fitness-scalar-fn :initarg :fitness-scalar-fn
+                      :accessor fitness-scalar-fn
+                      :initform #'fitness
+                      :copier :direct))
   (:documentation "Class adding ancestry tracking to software."))
 
 (defvar *next-ancestry-id* 0
@@ -47,8 +51,7 @@
   (when (ancestors obj)
     (setf (car (ancestors obj))
           (append (car (ancestors obj))
-                  (list :fitness (funcall (fitness-scalar-fn obj)
-                                          (fitness obj))))))
+                  (list :fitness (funcall (fitness-scalar-fn obj) obj)))))
   (call-next-method))
 
 (defmethod save-ancestry ((obj ancestral) directory filename)
