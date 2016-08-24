@@ -13,9 +13,10 @@
 
 (defmethod from-file :before ((obj ancestral) path)
   (if (null (ancestors obj))
-      (setf (ancestors obj) (list (list :base path
-                                        :how 'from-file
-                                        :id (get-fresh-ancestry-id))))
+      (setf (ancestors obj)
+            `((:base ,path
+                     :how from-file
+                     :id ,(get-fresh-ancestry-id))))
       (ancestors obj)))
 
 (defmethod from-string :before ((obj ancestral) string)
@@ -25,14 +26,13 @@
                                         :id (get-fresh-ancestry-id))))
       (ancestors obj)))
 
-(defmethod apply-mutation :around ((obj ancestral) op)
-  (multiple-value-call
-      (lambda (variant &rest rest)
-        (push (list :mutant (type-of op)
-                    :id (get-fresh-ancestry-id))
-              (ancestors obj))
-        (values variant rest))
-    (call-next-method)))
+(defmethod apply-mutation :before ((obj ancestral) op)
+  (unless (member (type-of op)
+                  ;; Inhibited operations.  E.g., we don't care about
+                  ;; clang-set-range which is applied by crossover.
+                  '(clang-set-range cons))
+    (push (list :mutant (type-of op) :id (get-fresh-ancestry-id))
+          (ancestors obj))))
 
 (defmethod crossover :around ((a ancestral) (b ancestral))
   (multiple-value-bind (crossed a-point b-point) (call-next-method)
@@ -51,11 +51,11 @@
                                           (fitness obj))))))
   (call-next-method))
 
-(defmethod save-ancestry ((obj ancestral) dirname filename)
-  (let ((dot (make-pathname :directory dirname
+(defmethod save-ancestry ((obj ancestral) directory filename)
+  (let ((dot (make-pathname :directory directory
                             :name filename
                             :type "dot"))
-        (svg (make-pathname :directory dirname
+        (svg (make-pathname :directory directory
                             :name filename
                             :type "svg")))
     (with-open-file (*standard-output* dot
@@ -73,7 +73,7 @@
      (list (list :ancestry x-parent
                  :id (plist-get :id (car x-parent))
                  :graphviz (list :label (format nil "~(~a~)"
-                                                (car (plist-get :mutant x)))))))
+                                                (plist-get :mutant x))))))
     ((plist-get :crossover x)
      (list (list :ancestry x-parent
                  :id (plist-get :id (car x-parent))
@@ -110,31 +110,28 @@
    :parents (node-parents x x-parent)))
 
 (defun ancestry-graph (history &key (with-nodes nil) (with-edges nil))
-  ;; Gather the ancestor graph
+  "Gather the ancestor graph."
   (let ((edges (or with-edges (make-hash-table :test #'equal)))
         (nodes (or with-nodes (make-hash-table :test #'equal))))
     (labels ((add-edge (x y e)
-               (let ((x-out-edges (gethash x edges)))
-                 (setf (gethash x edges) (cons (cons y e) x-out-edges)))))
+                       (let ((x-out-edges (gethash x edges)))
+                         (setf (gethash x edges) (cons (cons y e) x-out-edges)))))
       (loop :for (item . rest) :on history
-         :do (let ((descr (to-node-descr item rest)))
-               (when (not (gethash (plist-get :id descr) nodes))
-                 (loop :for parent :in (cdr (plist-get :parents descr))
-                    :do (ancestry-graph (plist-get :ancestry parent)
-                                        :with-nodes nodes
-                                        :with-edges edges))
-                 (assert (plist-get :id descr))
-                 (setf (gethash (plist-get :id descr) nodes)
-                       (plist-get :graphviz descr))
-                 (loop :for parent :in (plist-get :parents descr)
-                    :do (add-edge (plist-get :id parent)
-                                  (plist-get :id descr)
-                                  (plist-get :graphviz parent)))))))
+            :do (let ((descr (to-node-descr item rest)))
+                  (when (not (gethash (plist-get :id descr) nodes))
+                    (loop :for parent :in (cdr (plist-get :parents descr))
+                          :do (ancestry-graph (plist-get :ancestry parent)
+                                              :with-nodes nodes
+                                              :with-edges edges))
+                    (assert (plist-get :id descr))
+                    (setf (gethash (plist-get :id descr) nodes)
+                          (plist-get :graphviz descr))
+                    (loop :for parent :in (plist-get :parents descr)
+                          :do (add-edge (plist-get :id parent)
+                                        (plist-get :id descr)
+                                        (plist-get :graphviz parent)))))))
     ;; Back at top level of recursion, return the graph data
     (when (not with-nodes) (values nodes edges))))
-
-(defun print-attr (stream kv colonp atsignp)
-  (format stream "~(~a~)=\"~a\"" (car kv) (cdr kv)))
 
 (defun graphviz (nodes edges &key (name "G") (stream t) (rankdir 'LR))
   "Generate graphviz code to render a graph.
@@ -143,10 +140,14 @@ The values in NODES are plists of graphviz attribute/value pairs.  The
 values in EDGES are pairs of the target node id and a plist of
 attribute/value pair"
   (format stream "digraph ~a {~%    rankdir=~a;~%" name rankdir)
-  (loop for x being the hash-keys in nodes using (hash-value attrs)
-     do (format stream "    n~a [~{~/se:print-attr/~^,~}];~%" x attrs))
-  (loop for x being the hash-keys in edges using (hash-value out-edges)
-     do (loop for (y . attrs) in out-edges
-           do (format stream "    n~a -> n~a [~{~/se:print-attr/~^,~}];~%"
-                      x y attrs)))
-  (format stream "}~%"))
+  (flet ((to-attr-string (attrs)
+           (mapcar (lambda-bind ((key . value))
+                     (format nil "~(~a~)=\"~a\"" key value))
+                   (plist-alist attrs))))
+    (loop for x being the hash-keys in nodes using (hash-value attrs)
+       do (format stream "    n~a [~{~a~^,~}];~%" x (to-attr-string attrs)))
+    (loop for x being the hash-keys in edges using (hash-value out-edges)
+       do (loop for (y . attrs) in out-edges
+             do (format stream "    n~a -> n~a [~{~a~^,~}];~%"
+                        x y (to-attr-string attrs))))
+    (format stream "}~%")))
