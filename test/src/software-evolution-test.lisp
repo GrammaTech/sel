@@ -1267,23 +1267,23 @@
 
 (deftest apply-mutation-logs-ancestry ()
   (with-fixture hello-world-clang-w-ancestry
-    (let* ((op (make-instance 'clang-cut
-                 :object *hello-world*
-                 :targets `((:stmt1 . ,(stmt-with-text *hello-world*
-                                                       "return 0")))))
-           (variant (apply-mutation *hello-world* op)))
-      (evaluate *test* variant)
+    (let ((op (make-instance 'clang-cut
+                :object *hello-world*
+                :targets `((:stmt1 . ,(stmt-with-text *hello-world*
+                                                      "return 0"))))))
+      (apply-mutation *hello-world* op)
+      (evaluate *test* *hello-world*)
 
-      (is (< 1 (length (ancestors variant))))
+      (is (< 1 (length (ancestors *hello-world*))))
 
-      (is (= 1 (plist-get :id (first (ancestors variant)))))
-      (is (not (null (plist-get :fitness (first (ancestors variant))))))
+      (is (= 1 (plist-get :id (first (ancestors *hello-world*)))))
+      (is (not (null (plist-get :fitness (first (ancestors *hello-world*))))))
       (is (equal (type-of op)
-                 (plist-get :mutant (first (ancestors variant)))))
+                 (plist-get :mutant (first (ancestors *hello-world*)))))
 
-      (is (= 0 (plist-get :id (second (ancestors variant)))))
+      (is (= 0 (plist-get :id (second (ancestors *hello-world*)))))
       (is (equal 'from-file
-                 (plist-get :how (second (ancestors variant))))))))
+                 (plist-get :how (second (ancestors *hello-world*))))))))
 
 (deftest crossover-logs-ancestry ()
   (with-fixture hello-world-clang-w-ancestry
@@ -1294,10 +1294,32 @@
       (is (= 0 (plist-get :id
                           (first (plist-get :cross-with
                                             (first (ancestors crossed)))))))
-      (is (equal 'from-file
-                 (plist-get :how
-                            (first (plist-get :cross-with
-                                              (first (ancestors crossed))))))))))
+      (is (equal
+           'from-file
+           (plist-get :how
+                      (first (plist-get :cross-with
+                                        (first (ancestors crossed))))))))))
+
+(deftest graphing-ancestry ()
+  (with-fixture hello-world-clang-w-ancestry
+    (let ((crossed (crossover *hello-world* *hello-world*))
+          (op (make-instance 'clang-cut
+                :object *hello-world*
+                :targets `((:stmt1 . ,(stmt-with-text *hello-world*
+                                                      "return 0"))))))
+      (apply-mutation crossed op)
+      (with-temp-file (save-base)
+        (multiple-value-bind (stdout stderr errno)
+            (save-ancestry crossed
+                           (pathname-directory save-base)
+                           (pathname-name save-base))
+          (declare (ignorable stdout stderr))
+          (let ((svg (make-pathname :directory (pathname-directory save-base)
+                                    :name (pathname-name save-base)
+                                    :type "svg")))
+            (when (probe-file svg) (delete-file svg)))
+          (is (zerop errno)))))))
+
 
 ;;; Diff tests
 (defmacro with-static-reference (software &rest body)
