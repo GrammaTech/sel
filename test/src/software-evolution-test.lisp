@@ -7,7 +7,7 @@
 ;;; Code:
 (in-package :software-evolution-test)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros))
+  (enable-curry-compose-reader-macros :include-utf8))
 
 ;; Disable clang-format and any other helpers
 (defmacro every-is (function &rest lists)
