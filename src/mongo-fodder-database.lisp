@@ -107,6 +107,10 @@
 
 
 ;;; Utility functions
+(defun documents (results) (second results))
+
+(defun cursor (results) (the integer (sixth (first results))))
+
 (defun document-alist (document)
   (hash-table-alist (cl-mongo::elements document)))
 
