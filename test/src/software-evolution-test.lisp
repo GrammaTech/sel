@@ -16,8 +16,8 @@
              (is (apply ,function ,args-sym)))
            ,@lists)))
 
-;;; Run tests is "batch" mode printing results as a string.
 (defun batch-test (&optional args)
+  "Run tests in 'batch' mode, printing results as a string."
   (declare (ignorable args))
 
   (let* ((*test-progress-print-right-margin* (expt 2 20))
@@ -33,20 +33,66 @@
                      failures))
         (format *error-output* "SUCCESS~%"))))
 
-;;; Run all tests, printing test name and either pass or fail to error output.
-;;; Intended to be used for sending results to datamanager
 (defun testbot-test (&optional args)
+  "Run tests in 'testbot' mode, pushing the results to datamanager"
   (declare (ignorable args))
-  (let ((*print-test-run-progress* nil))
-    (->> (hash-table-alist (stefil::run-tests-of (without-debugging (test))))
-         (mapcar
-          (lambda-bind ((test . run))
-            (list
-             (if (zerop (stefil::number-of-added-failure-descriptions-of run))
-                 :pass
-                 :fail)
-             (stefil::name-of test))))
-         (format *error-output* "~{~{~a~^ ~}~%~}"))))
+  (when (null (getenv "GTHOME"))
+    (error "$GTHOME must be defined prior to datamanager submission"))
+
+  (let ((*print-test-run-progress* nil)
+        (current-time (get-universal-time))
+        (batch-id (uuid:make-v4-uuid))
+        (test-results (without-debugging (test))))
+    (maphash
+     (lambda (test run)
+       (with-temp-file (xml-file-path)
+         (with-open-file (xml-out-stream xml-file-path
+                                         :direction :output
+                                         :if-does-not-exist :create
+                                         :element-type '(unsigned-byte 8))
+           (cxml:with-xml-output (cxml:make-octet-stream-sink xml-out-stream)
+             (let ((failures (stefil::number-of-added-failure-descriptions-of
+                              run)))
+               (cxml:with-element "test_run"
+                 (cxml:with-element "name"
+                   (cxml:text (string-downcase
+                               (format nil "~a" (stefil::name-of test)))))
+                 (cxml:with-element "host"
+                   (cxml:text (machine-instance)))
+                 (cxml:with-element "branch"
+                   (cxml:text "master"))
+                 (cxml:with-element "project"
+                   (cxml:text (string-downcase (package-name :se))))
+                 (cxml:with-element "genus"
+                   (cxml:text "regressions"))
+                 (multiple-value-bind (sec minute hour day month year)
+                     (decode-universal-time current-time)
+                   (cxml:with-element "date_time"
+                     (cxml:text
+                      (format nil "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0d"
+                              year month day hour minute sec))))
+                 (cxml:with-element "key_value"
+                   (cxml:with-element "key"
+                     (cxml:text "BatchID"))
+                   (cxml:with-element "text"
+                     (cxml:text (with-output-to-string (str)
+                                  (print-object batch-id str)))))
+                 (cxml:with-element "key_value"
+                   (cxml:with-element "key"
+                     (cxml:text "User"))
+                   (cxml:with-element "text"
+                     (cxml:text (getenv "USER"))))
+                 (cxml:with-element "key_value"
+                   (cxml:with-element "key"
+                     (cxml:text "Result"))
+                   (cxml:with-element "text"
+                     (cxml:text (if (zerop failures) "Pass" "Fail")))
+                   (cxml:with-element "number"
+                     (cxml:text (if (zerop failures) "5" "1"))))))))
+         (shell "python ~a/gtr/scons/tools/gtnetcat.py datamanager 55555 ~a"
+                (getenv "GTHOME")
+                xml-file-path)))
+     (stefil::run-tests-of test-results))))
 
 (defsuite test)
 (in-suite test)

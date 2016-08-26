@@ -3,14 +3,16 @@
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
-               metabang-bind
-               curry-compose-reader-macros
                cl-arrows
+               curry-compose-reader-macros
+               cxml
                iterate
+               metabang-bind
+               software-evolution
+               software-evolution-utility
                split-sequence
                stefil
-               software-evolution
-               software-evolution-utility)
+               uuid)
   :components
   ((:module test
             :pathname "test/src"
