@@ -90,15 +90,16 @@
                               json-stored-db-path)))
         (json:decode-json-from-source (json-stream db)))))
 
-(defmethod find-snippets ((db json-database) &key classes full-stmt limit)
-  (let ((snippets (cond (classes
-                         (mappend
-                          (lambda (class)
-                            (gethash class (ast-database-ht db)))
-                          classes))
-                        (full-stmt
-                         (ast-database-full-stmt-list db))
-                        (t (ast-database-list db)))))
+(defmethod find-snippets ((db json-database) &key classes full-stmt decls limit)
+  (let ((snippets (->> (cond (classes
+                              (mappend
+                               (lambda (class)
+                                 (gethash class (ast-database-ht db)))
+                               classes))
+                             (full-stmt
+                              (ast-database-full-stmt-list db))
+                             (t (ast-database-list db)))
+                       (remove-if (if decls #'null {aget :is-decl})))))
     (if (and limit (< limit (length snippets)))
         (let ((start (random (- (length snippets) limit))))
           (subseq snippets start (+ start limit)))

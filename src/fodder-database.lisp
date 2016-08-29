@@ -4,11 +4,12 @@
 
 (defclass fodder-database () ())
 
-(defgeneric find-snippets (database &key classes full-stmt limit)
+(defgeneric find-snippets (database &key classes full-stmt decls limit)
   (:documentation "Find snippets in the fodder database DATABASE.
 
 :CLASSES --- AST class all snippets should match
 :FULL-STMT - Limit results to full statements if non-nil.
+:DECLS ----- Include decls in result if non-nil.
 :LIMIT ----- Limit to N randomly drawn snippets"))
 
 (defgeneric find-types (type-database &key hash)
@@ -18,11 +19,6 @@ matching the keyword parameter HASH"))
 (defgeneric weighted-pick
     (database predicate weight
      &key target key limit classes filter limit-considered)
-  ;; NOTE: This function is largely only present so that classes like
-  ;;       MONGO-MIDDLE-FODDER-DATABASE can provide optimized access
-  ;;       to single results for sorted queries without having to
-  ;;       retrieve and return all of the documents in the sorted
-  ;;       results.
   (:documentation
    "Perform a random pick weighted by weight from `sorted-snippets'.
 All other arguments are passed through to sorted snippets."))
