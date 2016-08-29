@@ -32,7 +32,7 @@
     (format stream "~a@~a:~d" (db obj) (host obj) (port obj))))
 
 (defmethod find-snippets ((obj mongo-database)
-                          &key full-stmt classes limit
+                          &key full-stmt classes decls limit
                           &aux (pred (if (random-bool) #'< #'>=))
                                (rnd (random 1.0)))
   (flet ((add-random ()
@@ -65,6 +65,13 @@
                    kv)
                (when full-stmt
                  (kv "full_stmt" t))))
+         (add-decls (kv)
+           (if kv
+               (if decls
+                   kv
+                   (kv (kv "is_decl" nil) kv))
+               (unless decls
+                   (kv "is_decl" nil))))
          (find-snippets-kv (kv limit)
            (with-mongo-connection (:db (db obj)
                                    :host (host obj)
@@ -81,7 +88,11 @@
                        (and limit (>= (length documents) limit)))
                    (mapcar #'document-cljson documents))))))
     (let* ((snippets (find-snippets-kv
-                       (or (add-full-stmt (add-classes (add-random))) :all)
+                       (or (-> (add-random)
+                               (add-classes)
+                               (add-full-stmt)
+                               (add-decls))
+                           :all)
                        limit)))
       (if (and limit (< (length snippets) limit))
           (take (or limit infinity)

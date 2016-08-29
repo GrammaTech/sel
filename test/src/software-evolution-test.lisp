@@ -2007,6 +2007,57 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
+;;; Database tests
+(defixture json-database
+  (:setup
+    (setf *database*
+          (with-open-file (in (make-pathname :name "euler-example.json"
+                                             :directory +etc-dir+))
+            (make-instance 'json-database :json-stream in))))
+  (:teardown
+    (setf *database* nil)))
+
+(defixture mongo-database
+  (:setup
+    (setf *database* (make-instance 'mongo-database
+                                    :db "euler_test_clang_O0_no_pic"
+                                    :host "dog"
+                                    :port 27017)))
+  (:teardown
+    (setf *database* nil)))
+
+(deftest json-database-find-snippet-respects-class ()
+  (with-fixture json-database
+    (is (null (-<>> (find-snippets *database* :classes '("CompoundStmt"))
+                    (remove "CompoundStmt" <> :test #'string=
+                                              :key {aget :ast-class}))))))
+
+(deftest json-database-find-snippet-respects-decl ()
+  (with-fixture json-database
+    (is (null (->> (find-snippets *database* :decls nil)
+                   (remove-if-not {aget :is-decl}))))))
+
+(deftest json-database-find-snippet-respects-full-stmt ()
+  (with-fixture json-database
+    (is (null (->> (find-snippets *database* :full-stmt t)
+                   (remove-if {aget :full-stmt}))))))
+
+(deftest mongo-database-find-snippet-respects-class ()
+  (with-fixture mongo-database
+    (is (null (-<>> (find-snippets *database* :classes '("CompoundStmt"))
+                    (remove "CompoundStmt" <> :test #'string=
+                                               :key {aget :ast-class}))))))
+
+(deftest mongo-database-find-snippet-respects-decl ()
+  (with-fixture mongo-database
+    (is (null (->> (find-snippets *database* :decls nil)
+                   (remove-if-not {aget :is-decl}))))))
+
+(deftest mongo-database-find-snippet-respects-full-stmt ()
+  (with-fixture mongo-database
+    (is (null (->> (find-snippets *database* :full-stmt t)
+                   (remove-if {aget :full-stmt}))))))
+
 
 ;;; Instrumentation tests
 (defun count-fullable (obj)
