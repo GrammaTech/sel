@@ -31,7 +31,7 @@
                :documentation "Complete functions with bodies.")
    (prototypes :initarg :prototypes :initform nil :copier :direct
                :documentation "Function prototypes.")
-   (includes :initarg :includes :accessor includes :copier copy-seq
+   (includes :initarg :includes :copier copy-seq
              :initform nil :type (list string *)
              :documentation "Names of included includes.")
    (types :initarg :types :copier copy-seq
@@ -41,7 +41,7 @@
                  :initform (make-hash-table :test #'equal) :type hash-table
                  :documentation
                  "Hash of variable declarations keyed by variable name.")
-   (macros :initarg :macros :accessor macros :copier copy-seq
+   (macros :initarg :macros :copier copy-seq
            :initform nil :type (list (cons string string) *)
            :documentation "Association list of Names and values of macros.")
    (globals :initarg :globals :accessor globals :copier copy-seq
@@ -639,6 +639,22 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (with-slots (asts prototypes) obj
     (unless asts (update-asts obj))
     prototypes))
+
+(defmethod includes ((obj clang))
+  (with-slots (asts includes) obj
+    (unless asts (update-asts obj))
+    includes))
+
+(defmethod (setf includes) (new (obj clang))
+  (with-slots (includes) obj (setf includes new)))
+
+(defmethod macros ((obj clang))
+  (with-slots (asts macros) obj
+    (unless asts (update-asts obj))
+    macros))
+
+(defmethod (setf macros) (new (obj clang))
+  (with-slots (macros) obj (setf macros new)))
 
 (defmethod types ((obj clang))
   (with-slots (asts types) obj
