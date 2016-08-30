@@ -73,7 +73,6 @@
    :from-string
    :from-string-exactly
    :ext
-   :genome-string-without-separator
    :get-vars-in-scope
    :bind-free-vars
    :prepare-sequence-snippet
