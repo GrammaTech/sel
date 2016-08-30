@@ -53,7 +53,8 @@
     (zerop (second (multiple-value-list (phenome obj :bin bin))))))
 
 (defmethod genome-string ((ast ast) &optional stream)
-  (write-string (or (genome ast) "") stream))
+  (let ((genome (or (genome ast) "")))
+    (if stream (write-string genome stream) genome)))
 
 (defmethod from-file ((ast ast) path)
   (setf (genome ast) (file-to-string path))
@@ -100,6 +101,9 @@
 
 (defgeneric select-crossover-points (a b)
   (:documentation "Select suitable crossover points in A and B."))
+
+(defmethod (setf genome-string) (text (obj ast))
+  (setf (genome obj) text))
 
 (defmethod lines ((ast ast))
   (split-sequence #\Newline (genome ast)))

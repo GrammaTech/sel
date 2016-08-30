@@ -57,10 +57,10 @@
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 (defmethod add-type ((obj clang) type)
   (unless (or (null type) (member type (types obj) :key {aget :hash}))
-    (setf (genome-string obj)
+    (setf (genome obj)
           (concatenate 'string
             (aget :decl type)
-            (genome-string obj)))
+            (genome obj)))
     (push type (types obj)))
   obj)
 
@@ -76,10 +76,10 @@
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
 (defmethod add-macro ((obj clang) (name string) (body string))
   (unless (member name (macros obj) :test #'string= :key #'car)
-    (setf (genome-string obj)
+    (setf (genome obj)
           (concatenate 'string
             (format nil "#define ~a~&" body)
-            (genome-string obj)))
+            (genome obj)))
     (push (cons name body) (macros obj)))
   obj)
 
@@ -87,12 +87,11 @@
   (:documentation "Add an #include directive for a INCLUDE to SOFTWARE."))
 (defmethod add-include ((obj clang) (include string))
   (unless (member include (includes obj) :test #'string=)
-    ;; Add to genome-string but don't (setf genome) which would
-    ;; nullify the asts.
-    (setf (genome-string obj)
-          (concatenate 'string
-            (format nil "#include ~a~&" include)
-            (genome-string obj)))
+    ;; Add to genome but don't (setf genome) which would nullify asts.
+    (with-slots (genome) obj
+      (setf genome (concatenate 'string
+                     (format nil "#include ~a~&" include)
+                     (genome obj))))
     (push include (includes obj)))
   obj)
 
@@ -432,7 +431,9 @@ software object"))
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod (setf genome) :before (new (obj clang))
-  (with-slots (asts) obj (setf asts nil)))
+  (with-slots (asts fitness) obj
+    (setf asts nil
+          fitness nil)))
 
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
@@ -485,7 +486,7 @@ software object"))
   ;; Generate the bulk of the program text by joining all global
   ;; declarations (including functions) together in the same order
   ;; they originally appeared.
-  (setf (genome-string obj)
+  (setf (genome obj)
         (mapconcat {aget :decl-text}
                    (sort
                     (remove-if-not {aget :decl-text} (asts obj))
@@ -605,7 +606,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
                           (coerce (list #\Semicolon #\Newline) 'string))))
            into out-str)
           (setf index (aref match-vars 1))
-          (finally (setf (genome-string obj)
+          (finally (setf (genome obj)
                          (concatenate 'string
                            out-str (subseq string index))))))
   obj)
@@ -920,7 +921,7 @@ genome."
   (assert (ext obj) (obj)
           "Software object ~a has no extension, required by clang-mutate."
           obj)
-  (with-temp-file-of (src-file (ext obj)) (genome-string obj)
+  (with-temp-file-of (src-file (ext obj)) (genome obj)
     (labels ((command-opt (command)
                (ecase command
                  (:cut "-cut")
@@ -1076,7 +1077,7 @@ genome."
     (remove-if-not [{intersects range} #'ast-to-source-range] (asts obj))))
 
 (defmethod line-breaks ((clang clang))
-  (cons 0 (loop :for char :in (coerce (genome-string clang) 'list) :as index
+  (cons 0 (loop :for char :in (coerce (genome clang) 'list) :as index
                 :from 0
                 :when (equal char #\Newline) :collect index)))
 
@@ -2093,28 +2094,12 @@ VARIABLE-NAME should be declared in AST."))
 
 
 ;;; Clang methods
-(defmethod genome-string ((obj clang) &optional stream)
-  ;; TODO: Print all header material sorted as organized in the
-  ;;       original.
-  (with-output-to-string (str)
-    ;; For now, just don't print any of the header information, it
-    ;; will all still be in the original genome.  At some point,
-    ;; update the add-(include|macro|type) functions, s.t., when the
-    ;; new top-level element *is* new, it is immediately added to the
-    ;; genome.
-    ;;
-    ;; (mapc {format (or stream str) "#include ~a~&"} (headers obj))
-    ;; (mapc {format (or stream str) "#define ~a~&"} (mapcar #'cdr (macros obj)))
-    ;; (mapc [{format (or stream str) "~a~&"} #'cdr] (types obj))
-    ;; (mapc {format (or stream str) "~a~&"} (mapcar #'cdr (globals obj)))
-    (format (or stream str) "~a~&" (genome obj))))
-
 (defgeneric clang-tidy (software)
   (:documentation "Apply the software fixing command line, part of Clang."))
 
 (defmethod clang-tidy ((clang clang) &aux errno)
-  (setf (genome-string clang)
-        (with-temp-file-of (src (ext clang)) (genome-string clang)
+  (setf (genome clang)
+        (with-temp-file-of (src (ext clang)) (genome clang)
           (multiple-value-bind (stdout stderr exit)
               (shell
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
@@ -2139,12 +2124,12 @@ VARIABLE-NAME should be declared in AST."))
                (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
             (setf errno exit)
-            (if (zerop exit) (file-to-string src) (genome-string clang)))))
+            (if (zerop exit) (file-to-string src) (genome clang)))))
   (values clang errno))
 
 (defmethod clang-format ((obj clang) &optional style &aux errno)
-  (setf (genome-string obj)
-        (with-temp-file-of (src (ext obj)) (genome-string obj)
+  (setf (genome obj)
+        (with-temp-file-of (src (ext obj)) (genome obj)
           (multiple-value-bind (stdout stderr exit)
               (shell "clang-format ~a ~a"
                      (if style
@@ -2159,22 +2144,8 @@ VARIABLE-NAME should be declared in AST."))
                      src)
             (declare (ignorable stderr))
             (setf errno exit)
-            (if (zerop exit) stdout (genome-string obj)))))
+            (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
-
-(defmethod (setf genome-string) (text (clang clang))
-  (setf (genome clang) text))
-
-(defmethod (setf genome-string) :around (text (obj clang))
-  (prog1 (call-next-method)
-    (setf (fitness obj) nil
-          (asts obj) nil)))
-
-(defmethod lines ((obj clang))
-  (split-sequence '#\Newline (genome-string obj)))
-
-(defmethod (setf lines) (new (obj clang))
-  (setf (genome-string obj) (format nil "~{~a~^~%~}" new)))
 
 (defun replace-fields-in-ast (ast field-replacement-pairs)
   "Given an AST and an association list in the form ((:field . <value>))
