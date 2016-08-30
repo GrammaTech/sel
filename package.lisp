@@ -37,6 +37,7 @@
    :genome-string
    :headers
    :macros
+   :includes
    :types
    :declarations
    :globals
