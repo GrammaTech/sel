@@ -776,6 +776,40 @@
     ;; another file.
     ))
 
+(deftest clang-includes-initialized ()
+  (with-fixture headers-clang
+    (let ((includes (includes *headers*)))
+      (is (listp includes))
+      (is (= 2 (length includes)))
+      (is (member "\"first.c\"" includes :test #'equal))
+      (is (member "\"third.c\"" includes :test #'equal)))))
+
+(deftest clang-macros-initialized ()
+  (with-fixture headers-clang
+    (let ((macros (macros *headers*)))
+      (is (listp macros))
+      (is (= 1 (length macros)))
+      (is (equal (aget "ANOTHER" macros :test #'equal)
+                 "ANOTHER 2")))))
+
+(deftest clang-types-initialized ()
+  (with-fixture headers-clang
+    (let ((types (types *headers*)))
+      (is (listp types))
+      (is (equal (list "bar" "char" "char*" "foo" "int")
+                 (sort (mapcar {aget :type} types) #'string<))))))
+
+(deftest update-asts-doesnt-duplicate-includes ()
+  (with-fixture headers-clang
+    (iter (for incl in (includes *headers*))
+          ;; each include in the includes list only appears once in the genome
+          ;; (all-matches includes start/end so length is double the number of
+          ;; occurrences)
+          (is (= 2 (length
+                    (all-matches
+                     (format nil "#include\\w* ~a" incl)
+                     (genome *headers*))))))))
+
 (deftest clang-expression-test ()
   (flet ((test-conversion (obj pair)
            (destructuring-bind (text expected-expression) pair
