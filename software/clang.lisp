@@ -170,9 +170,9 @@ restrictions. For use by targeter functions/execute picks."
                              (asts software))))
                      (lambda (stmt asts) (declare (ignorable stmt)) asts)))
            (good (lambda () (or (filter (good-stmts software))
-                           (asts software))))
+                                (stmts software))))
            (bad  (lambda () (or (filter (bad-stmts software))
-                           (asts software)))))
+                                (stmts software)))))
       (list good bad then))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
@@ -293,7 +293,7 @@ restrictions. For use by targeter functions/execute picks."
   (let ((decls (with-class-filter "DeclStmt" (asts clang))))
     (if (not decls)
         'did-nothing
-        `((:stmt1 . ,(random-stmt decls))))))
+        `((:stmt1 . ,(random-ast decls))))))
 
 (defmethod build-op ((mutation cut-decl) clang)
   (if (not (eq (targets mutation) 'did-nothing))
@@ -344,14 +344,14 @@ restrictions. For use by targeter functions/execute picks."
                    (multiple-value-bind (stmt1 stmt2) (pick-two decls)
                      `((:stmt1 . ,stmt1) (:stmt2 . ,stmt2))))))))
     (pick-from-block (enclosing-block clang
-                                      (random-stmt (bad-stmts clang))))))
+                                      (random-ast (bad-stmts clang))))))
 
 ;;; Rename variable
 (define-mutation rename-variable (clang-mutation)
   ((targeter :initform #'pick-rename-variable)))
 
 (defun pick-rename-variable (clang)
-  (let* ((stmt (random-stmt (bad-stmts clang)))
+  (let* ((stmt (random-ast (bad-stmts clang)))
          (used (get-used-variables clang stmt)))
     (if used
         (let* ((old-var (random-elt used))
@@ -696,24 +696,24 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod bad-stmts ((clang clang))
   (stmts clang))
 
-(defun random-stmt (asts)
+(defun random-ast (asts)
   (aget :counter (random-elt asts)))
 
 (defmethod pick-good ((clang clang))
-  (random-stmt (good-stmts clang)))
+  (random-ast (good-stmts clang)))
 
 (defmethod pick-bad ((clang clang))
-  (random-stmt (bad-stmts clang)))
+  (random-ast (bad-stmts clang)))
 
 (defmethod get-ast-class ((clang clang) stmt)
   (aget :ast-class (get-ast clang stmt)))
 
 (defun execute-picks (get-asts1 &optional connector get-asts2)
   (let* ((stmt1 (when get-asts1
-                  (random-stmt (funcall get-asts1))))
+                  (random-ast (funcall get-asts1))))
          (stmt2 (when get-asts2
-                  (random-stmt (funcall connector stmt1
-                                        (funcall get-asts2))))))
+                  (random-ast (funcall connector stmt1
+                                       (funcall get-asts2))))))
     (acons :stmt1 stmt1
        (if stmt2 (acons :stmt2 stmt2 nil) nil))))
 
