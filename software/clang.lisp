@@ -72,6 +72,14 @@
       (find-if {= hash} (types obj) :key {aget :hash})
       (types obj)))
 
+(defgeneric push-macro (software name body)
+  (:documentation "Add the macro to the list of macros in SOFTWARE.
+Does not update the genome."))
+(defmethod push-macro ((obj clang) (name string) (body string))
+  (unless (member name (macros obj) :test #'string= :key #'car)
+    (push (cons name body) (macros obj)))
+  obj)
+
 (defgeneric add-macro (software name body)
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
 (defmethod add-macro ((obj clang) (name string) (body string))
@@ -83,11 +91,18 @@
     (push (cons name body) (macros obj)))
   obj)
 
+(defgeneric push-include (software include)
+  (:documentation "Add an INCLUDE to the list of includes in SOFTWARE.
+Does not update the genome."))
+(defmethod push-include ((obj clang) (include string))
+  (unless (member include (includes obj) :test #'string=)
+    (push include (includes obj)))
+  obj)
+
 (defgeneric add-include (software include)
   (:documentation "Add an #include directive for a INCLUDE to SOFTWARE."))
 (defmethod add-include ((obj clang) (include string))
   (unless (member include (includes obj) :test #'string=)
-    ;; Add to genome but don't (setf genome) which would nullify asts.
     (with-slots (genome) obj
       (setf genome (concatenate 'string
                      (format nil "#include ~a~&" include)
@@ -435,6 +450,15 @@ software object"))
     (setf asts nil
           fitness nil)))
 
+(defmethod update-header ((obj clang) &key)
+  ;; Program header.
+  (mapc {add-type obj} (remove-if-not #'ast-type-p (header-asts obj))) ; Types.
+  ;; TODO: This requires actual macro capture by clang-mutate, not
+  ;;       simply grabbing macros from ASTs.  For reasons why see
+  ;;       the `clang-headers-parsed-in-order' test.
+  (mapc [{mapc {apply #'push-macro obj}} {aget :macros}] (asts obj)) ; Macros.
+  (mapc [{mapc {push-include obj}} {aget :includes}] (asts obj))) ; Includes.
+
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
@@ -468,17 +492,8 @@ software object"))
                          functions funs
                          prototypes protos
                          declarations decls))))
+  (update-header obj)
   obj)
-
-(defmethod update-header ((obj clang) &key)
-  (with-slots (asts header-asts) obj
-    ;; Program header.
-    (mapc {add-type obj} (remove-if-not #'ast-type-p header-asts)) ; Types.
-    ;; TODO: This requires actual macro capture by clang-mutate, not
-    ;;       simply grabbing macros from ASTs.  For reasons why see
-    ;;       the `clang-headers-parsed-in-order' test.
-    (mapc [{mapc {apply #'add-macro obj}} {aget :macros}] asts) ; Macros.
-    (mapc [{mapc {add-include obj}} {aget :includes}] asts))) ; Includes.
 
 (defmethod update-body ((obj clang) &key)
   ;; Program body.
