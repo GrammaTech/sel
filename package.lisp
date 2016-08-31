@@ -87,6 +87,7 @@
    :select-crossover-points
    :function-containing-ast
    :function-body-p
+   :adjust-stmt-range
    :random-point-in-function
    :select-intraprocedural-pair
    :clang-tidy
