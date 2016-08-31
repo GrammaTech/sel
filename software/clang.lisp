@@ -2029,9 +2029,13 @@ VARIABLE-NAME should be declared in AST."))
           (aget :text func)
           (get-ast-text clang (aget :body func))))
 
-(defmethod reorder-crossover-points ((clang clang) x y)
-  (let ((stmt1 (enclosing-full-stmt-or-block clang x))
-        (stmt2 (enclosing-full-stmt-or-block clang y)))
+(defmethod adjust-stmt-range ((clang clang) start end)
+  "Adjust START and END so that they represent a valid range for set-range.
+The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
+full statements, and the end point of STMT2 in the source is greater than or
+equal to the end point of STMT1."
+  (let ((stmt1 (enclosing-full-stmt-or-block clang start))
+        (stmt2 (enclosing-full-stmt-or-block clang end)))
     (when (and stmt1 stmt2)
       (cond ((or (ancestor-of clang stmt1 stmt2)
                  (ancestor-of clang stmt2 stmt1))
@@ -2066,11 +2070,13 @@ VARIABLE-NAME should be declared in AST."))
 
 (defmethod select-crossover-points-with-corrections ((a clang) (b clang))
   (multiple-value-bind (a-pt1 a-pt2 b-pt1 b-pt2)
+      ;; choose crossover points
       (select-crossover-points a b)
     (multiple-value-bind (a-stmt1 a-stmt2)
-        (reorder-crossover-points a a-pt1 a-pt2)
+        ;; adjust ranges to be valid for use with set-range
+        (adjust-stmt-range a a-pt1 a-pt2)
       (multiple-value-bind (b-stmt1 b-stmt2)
-          (reorder-crossover-points b b-pt1 b-pt2)
+          (adjust-stmt-range b b-pt1 b-pt2)
         (values a-stmt1 a-stmt2 b-stmt1 b-stmt2)))))
 
 (defmethod crossover ((a clang) (b clang))
