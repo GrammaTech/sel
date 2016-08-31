@@ -122,7 +122,6 @@
    :asts-intersecting-source-range
    :ast-to-source-range
    :get-ast
-   :header-asts
    :get-parent-ast
    :get-parent-asts
    :parent-ast-p

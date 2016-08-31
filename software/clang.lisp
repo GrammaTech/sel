@@ -27,9 +27,6 @@
    (asts :initarg :asts :initform nil :copier :direct
          :type (list (cons keyword *) *) :documentation
          "Association List of body ASTs.")
-   (header-asts :initarg :header-asts :initform nil :copier :direct
-                :type (list (cons keyword *) *) :documentation
-                "Association List of header ASTs.")
    (functions :initarg :functions :initform nil :copier :direct
                :documentation "Complete functions with bodies.")
    (prototypes :initarg :prototypes :initform nil :copier :direct
@@ -72,14 +69,6 @@
       (find-if {= hash} (types obj) :key {aget :hash})
       (types obj)))
 
-(defgeneric push-macro (software name body)
-  (:documentation "Add the macro to the list of macros in SOFTWARE.
-Does not update the genome."))
-(defmethod push-macro ((obj clang) (name string) (body string))
-  (unless (member name (macros obj) :test #'string= :key #'car)
-    (push (cons name body) (macros obj)))
-  obj)
-
 (defgeneric add-macro (software name body)
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
 (defmethod add-macro ((obj clang) (name string) (body string))
@@ -89,14 +78,6 @@ Does not update the genome."))
             (format nil "#define ~a~&" body)
             (genome obj)))
     (push (cons name body) (macros obj)))
-  obj)
-
-(defgeneric push-include (software include)
-  (:documentation "Add an INCLUDE to the list of includes in SOFTWARE.
-Does not update the genome."))
-(defmethod push-include ((obj clang) (include string))
-  (unless (member include (includes obj) :test #'string=)
-    (push include (includes obj)))
   obj)
 
 (defgeneric add-include (software include)
@@ -393,9 +374,6 @@ restrictions. For use by targeter functions/execute picks."
 (defvar *clang-max-json-size* 104857600
   "Maximum size of output accepted from `clang-mutate'.")
 
-(defgeneric update-header (software &key)
-  (:documentation "Update SOFTWARE header from ASTs."))
-
 (defgeneric update-body (software &key)
   (:documentation "Update SOFTWARE body from ASTs."))
 
@@ -450,19 +428,11 @@ software object"))
     (setf asts nil
           fitness nil)))
 
-(defmethod update-header ((obj clang) &key)
-  ;; Program header.
-  (mapc {add-type obj} (remove-if-not #'ast-type-p (header-asts obj))) ; Types.
-  ;; TODO: This requires actual macro capture by clang-mutate, not
-  ;;       simply grabbing macros from ASTs.  For reasons why see
-  ;;       the `clang-headers-parsed-in-order' test.
-  (mapc [{mapc {apply #'push-macro obj}} {aget :macros}] (asts obj)) ; Macros.
-  (mapc [{mapc {push-include obj}} {aget :includes}] (asts obj))) ; Includes.
-
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
-  (with-slots (asts types header-asts functions prototypes declarations genome)
+  (with-slots
+        (asts macros includes types functions prototypes declarations genome)
       obj
     ;; incorporate ASTs.
     (iter (for ast in (restart-case
@@ -481,18 +451,26 @@ software object"))
           (cond
             ((aget :counter ast) (collect ast into body))
             ((ast-type-p ast) (collect ast into m-types))
-            (:otherwise (collect ast into head)))
+            ((aget :decl-name ast)
+             (nconcf (gethash (aget :decl-name ast) decls nil) (list ast)))
+            (:otherwise (error "Unrecognized ast.~%~S" ast)))
           (when (aget :body ast) (collect ast into funs))
           (when (string= "Function" (aget :ast-class ast))
             (collect ast into protos))
-
+          (mapc (lambda (macro)
+                  (adjoining (cons (first macro) (second macro)) into m-macros
+                             test (lambda (a b) (string= (car a) (car b)))))
+                (aget :macros ast))
+          (mapc (lambda (include)
+                  (adjoining include into m-includes test #'string=))
+                (aget :includes ast))
           (finally (setf asts (coerce body 'vector)
-                         header-asts head
                          types m-types
+                         macros m-macros
+                         includes m-includes
                          functions funs
                          prototypes protos
                          declarations decls))))
-  (update-header obj)
   obj)
 
 (defmethod update-body ((obj clang) &key)
@@ -651,11 +629,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (with-slots (asts) obj
     (unless asts (update-asts obj))
     (aref asts (1- id))))
-
-(defmethod header-asts ((obj clang))
-  (with-slots (asts header-asts) obj
-    (unless asts (update-asts obj))
-    header-asts))
 
 (defmethod functions ((obj clang))
   (with-slots (asts functions) obj
