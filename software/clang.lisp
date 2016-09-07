@@ -1561,7 +1561,8 @@ variables to replace use of the variables declared in stmt ID."))
   ;;       improve the correctness of `declaration-of' and
   ;;       `type-of-var' down the line.
   (cond
-    ((string= (aget :ast-class ast) "Var") ; Global variable.
+    ((member (aget :ast-class ast) '("Var" "ParmVar")
+             :test #'string=) ; Global variable or function arg.
      (list (caar (aget :scopes ast))))
     ((string= (aget :ast-class ast) "DeclStmt") ; Sub-function declaration.
      (aget :declares ast))
