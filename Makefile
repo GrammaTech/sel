@@ -78,7 +78,7 @@ TEST_LISP_DEPS=$(wildcard test/src/*.lisp)
 TEST_LISP_LIBS+= software-evolution-test uuid cxml
 TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(TEST_LISP_LIBS))
-TEST_LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)
+TEST_LOADED_LIBS:=$(TEST_LOADED_LIBS_TMP:=.loaded)
 
 bin/se-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
 	CC=$(CC) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
