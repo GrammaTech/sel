@@ -40,7 +40,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
                                                  (full-stmt-p
                                                   clang-w-fodder
                                                   pt)))
-                                        :classes (if class (list class) nil)
+                                        :ast-class (if class class nil)
                                         :limit 1))))
     (if (not snippet)
         (error (make-condition 'mutate

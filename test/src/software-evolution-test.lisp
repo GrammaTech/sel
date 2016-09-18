@@ -1099,10 +1099,10 @@
 
 (deftest pick-snippet-json-db-respects-class-argument ()
   (with-fixture hello-world-clang-w-fodder
-    (dolist (class '("StringLiteral" "ReturnStmt" "CompoundStmt"))
-      (is (string= class
+    (dolist (ast-class '("StringLiteral" "ReturnStmt" "CompoundStmt"))
+      (is (string= ast-class
                    (aget :ast-class
-                         (pick-snippet *hello-world* :class class)))))))
+                         (pick-snippet *hello-world* :class ast-class)))))))
 
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
@@ -2069,7 +2069,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest json-database-find-snippet-respects-class ()
   (with-fixture json-database
-    (is (null (-<>> (find-snippets *database* :classes '("CompoundStmt"))
+    (is (null (-<>> (find-snippets *database* :ast-class "CompoundStmt")
                     (remove "CompoundStmt" <> :test #'string=
                                               :key {aget :ast-class}))))))
 
@@ -2086,7 +2086,7 @@ Useful for printing or returning differences in the REPL."
 (deftest mongo-database-find-snippet-respects-class ()
   (with-fixture mongo-database
     (when *database*
-      (is (null (-<>> (find-snippets *database* :classes '("CompoundStmt"))
+      (is (null (-<>> (find-snippets *database* :ast-class "CompoundStmt")
                       (remove "CompoundStmt" <> :test #'string=
                               :key {aget :ast-class})))))))
 

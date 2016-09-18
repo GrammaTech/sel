@@ -166,13 +166,14 @@
    :elapsed-time
    ;; clang / clang-w-fodder global variables
    :fodder-database
+   :json-database
    :mongo-database
+   :pliny-database
    :db :host :port
    :source-collection :cache-collection :middle-host :middle-port
-   :json-database
    :find-snippets
    :weighted-pick
-   :find-types
+   :find-type
    :sorted-snippets
    :*clang-max-json-size*
    :*clang-full-stmt-bias*
