@@ -92,12 +92,9 @@
                               json-stored-db-path)))
         (json:decode-json-from-source (json-stream db)))))
 
-(defmethod find-snippets ((db json-database) &key classes full-stmt decls limit)
-  (let ((snippets (->> (cond (classes
-                              (mappend
-                               (lambda (class)
-                                 (gethash class (ast-database-ht db)))
-                               classes))
+(defmethod find-snippets ((db json-database) &key ast-class full-stmt decls limit)
+  (let ((snippets (->> (cond (ast-class
+                              (gethash ast-class (ast-database-ht db)))
                              (full-stmt
                               (ast-database-full-stmt-list db))
                              (t (ast-database-list db)))
@@ -107,12 +104,8 @@
           (subseq snippets start (+ start limit)))
         snippets)))
 
-(defmethod find-types ((db json-database) &key hash)
-  (if hash
-      (list (gethash hash (type-database-ht db)))
-      (loop :for k :being :the :hash-keys :of (type-database-ht db)
-         :using (hash-value v)
-         :collecting v)))
+(defmethod find-type ((db json-database) hash)
+  (list (gethash hash (type-database-ht db))))
 
 (defun se-json-identifier-name-to-key (json-identifier)
   (make-keyword (string-upcase (regex-replace-all "--" json-identifier "-"))))

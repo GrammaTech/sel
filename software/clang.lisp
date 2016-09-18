@@ -61,13 +61,8 @@
     (push type (types obj)))
   obj)
 
-(defmethod find-types ((obj clang) &key hash)
-  ;; TODO: Would like to change this here and on fodder to return the
-  ;;       whole association list.  Also, I don't like functions which
-  ;;       could return either a list or an atom.
-  (if hash
-      (find-if {= hash} (types obj) :key {aget :hash})
-      (types obj)))
+(defmethod find-type ((obj clang) hash)
+  (find-if {= hash} (types obj) :key {aget :hash}))
 
 (defgeneric add-macro (software name body)
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
@@ -1365,7 +1360,7 @@ made full by wrapping with curly braces, return that."))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet type-database)
   (mapc {add-include clang} (aget :includes snippet))
-  (mapc [{add-type clang} {find-types type-database :hash}]
+  (mapc [{add-type clang} {find-type type-database}]
         (aget :types snippet))
   (mapc {apply #'add-macro clang} (aget :macros snippet))
   snippet)
@@ -1603,14 +1598,13 @@ VARIABLE-NAME should be declared in AST."))
     ;; (assert declaration-ast (obj variable-name)
     ;;         "Can't find declaration of ~a in ~a." variable-name obj)
     (if declaration-ast
-        (find-types obj
-                    :hash
-                    (if (string= "Function" (aget :ast-class declaration-ast))
-                        (cdr (aget variable-name (aget :args declaration-ast)
-                                   :test #'equal))
-                        (nth (position-if {string= variable-name}
-                                          (aget :declares declaration-ast))
-                             (aget :types declaration-ast))))
+        (find-type obj
+                   (if (string= "Function" (aget :ast-class declaration-ast))
+                       (cdr (aget variable-name (aget :args declaration-ast)
+                                  :test #'equal))
+                       (nth (position-if {string= variable-name}
+                                         (aget :declares declaration-ast))
+                            (aget :types declaration-ast))))
         (warn "Can't find declaration of ~a in ~a." variable-name obj))))
 
 

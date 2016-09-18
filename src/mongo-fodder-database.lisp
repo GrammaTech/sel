@@ -31,10 +31,10 @@
 
 (defmethod print-object ((obj mongo-database) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "~a@~a:~d" (db obj) (host obj) (port obj))))
+    (format stream "~a:~d/~a" (host obj) (port obj) (db obj))))
 
 (defmethod find-snippets ((obj mongo-database)
-                          &key full-stmt classes decls limit
+                          &key full-stmt ast-class decls limit
                           &aux (pred (if (random-bool) #'< #'>=))
                                (rnd (random 1.0)))
   (flet ((add-random ()
@@ -53,13 +53,13 @@
                    ((equal pred #'>=) ($<  "random" rnd))
                    ((equal pred #'>)  ($<= "random" rnd))
                    (t nil))))
-         (add-classes (kv)
+         (add-class (kv)
            (if kv
-               (if classes
-                   (kv ($in "ast_class" classes) kv)
+               (if ast-class
+                   (kv ($ "ast_class" ast-class) kv)
                    kv)
-               (when classes
-                 ($in "ast_class" classes))))
+               (when ast-class
+                 ($ "ast_class" ast-class))))
          (add-full-stmt (kv)
            (if kv
                (if full-stmt
@@ -91,7 +91,7 @@
                    (mapcar #'document-cljson documents))))))
     (let* ((snippets (find-snippets-kv
                        (or (-> (add-random)
-                               (add-classes)
+                               (add-class)
                                (add-full-stmt)
                                (add-decls))
                            :all)
@@ -100,17 +100,14 @@
           (take (or limit infinity)
                 (append snippets
                   (find-snippets-kv
-                    (or (add-full-stmt (add-classes (add-random-compliment)))
+                    (or (add-full-stmt (add-class (add-random-compliment)))
                         :all)
                     (- limit (length snippets)))))
           (take (or limit infinity) snippets)))))
 
-(defmethod find-types ((mongo-database mongo-database) &key hash)
-  (find-types-kv mongo-database (if hash (kv "hash" hash) :all)))
-
-(defmethod find-types-kv ((obj mongo-database) kv)
+(defmethod find-type ((obj mongo-database) hash)
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
-    (do* ((result (db.find "types" kv)
+    (do* ((result (db.find "types" (kv "hash" hash))
                   (db.next "types" cursor))
           (cursor (cursor result)
                   (cursor result))

@@ -37,7 +37,9 @@ expression match.")
   (loop :for attempt :below max-attempts :do
      ;; Compile
      (with-temp-file (bin)
-       (multiple-value-bind (bin errno stderr) (phenome obj :bin bin)
+       (multiple-value-bind (bin errno stderr)
+         (phenome obj :bin bin)
+         (declare (ignorable bin))
          (when (zerop errno)
            (return))
          ;; Dispatch on the first compiler warnings.
@@ -107,7 +109,7 @@ expression match.")
               (random-elt
                (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
                               (find-snippets *database*
-                                :classes (list "BinaryOperator")
+                                :ast-class "BinaryOperator"
                                 :limit 512))))
              ;; Find the "assigned-to" free-variable.
              (assigned-variable
@@ -186,15 +188,15 @@ expression match.")
            (recontextualize
              obj
              (find-snippets *database*
-                            :classes '("FloatingLiteral"
-                                       "IntegerLiteral"
-                                       "CharacterLiteral"
-                                       "StringLiteral"
-                                       "ParenExpr"
-                                       "DeclRefExpr"
-                                       "UnaryExprOrTypeTraitExpr"
-                                       "ImplicitCastExpr"
-                                       "CStyleCastExpr")
+                            :ast-class (random-elt '("FloatingLiteral"
+                                                     "IntegerLiteral"
+                                                     "CharacterLiteral"
+                                                     "StringLiteral"
+                                                     "ParenExpr"
+                                                     "DeclRefExpr"
+                                                     "UnaryExprOrTypeTraitExpr"
+                                                     "ImplicitCastExpr"
+                                                     "CStyleCastExpr"))
                             :limit 1)
             (aget :counter
                   (lastcar (asts-containing-source-location
