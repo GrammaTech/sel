@@ -1600,8 +1600,8 @@ VARIABLE-NAME should be declared in AST."))
     (if declaration-ast
         (find-type obj
                    (if (string= "Function" (aget :ast-class declaration-ast))
-                       (cdr (aget variable-name (aget :args declaration-ast)
-                                  :test #'equal))
+                       (second (find variable-name (aget :args declaration-ast)
+                                     :key #'car :test #'equal))
                        (nth (position-if {string= variable-name}
                                          (aget :declares declaration-ast))
                             (aget :types declaration-ast))))
