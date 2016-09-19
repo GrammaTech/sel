@@ -2274,8 +2274,8 @@ Useful for printing or returning differences in the REPL."
               "Counter in every trace element.")
           (is (= (length trace) (count-if {assoc :SCOPES} trace))
               "Variable list in every trace element.")
-          (is (> (length trace) (count-if {aget :SCOPES} trace))
-              "Variable list not populated in every trace element.")
+          (is (= (length trace) (count-if {aget :SCOPES} trace))
+              "Variable list populated in every trace element.")
           (is (not (null (mappend {aget :SCOPES} trace)))
               "Variable list not always empty."))))))
 
