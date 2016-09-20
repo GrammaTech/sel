@@ -2138,6 +2138,29 @@ Useful for printing or returning differences in the REPL."
                                #\Newline stderr
                                :remove-empty-subseqs t))))))))))
 
+(deftest instrumentation-insertion-w-filter-test ()
+  (with-fixture gcd-clang
+    (let ((instrumented (instrument (copy *gcd*)
+                                    :filter {remove-if-not
+                                             [{eq 93} {aget :counter}]})))
+      ;; Do we insert the right number of printf statements?
+      (is (eq (+ 3 (count-fullable *gcd*))
+              (count-fullable instrumented)))
+      ;; Instrumented compiles and runs.
+      (with-temp-file (bin)
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
+          (is (zerop errno))
+          (let ((trace (read-trace stderr)))
+            (is (listp trace))
+            (is (= (length trace)
+                   (length (split-sequence
+                               #\Newline stderr
+                               :remove-empty-subseqs t))))))))))
+
 (deftest instrumentation-insertion-w-function-exit-test ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)

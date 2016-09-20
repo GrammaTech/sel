@@ -5,7 +5,8 @@
 ;;;; Instrumentation
 
 (defgeneric instrument (obj &key points functions trace-file
-                              print-argv instrument-exit entry-obj)
+                              print-argv instrument-exit entry-obj
+                              filter)
   (:documentation
    "Instrument OBJ to print AST counter before each full statement.
 option
@@ -16,11 +17,13 @@ Keyword arguments are as follows:
   PRINT-ARGV ------- print program arguments on startup
   INSTRUMENT-EXIT -- print counter of function body before exit
   ENTRY-OBJ -------- object containing main function
+  FILTER ----------- function to select a subset of ASTs for instrumentation
 "))
 
 
 (defmethod instrument ((obj clang) &key points functions trace-file
-                                     print-argv instrument-exit (entry-obj obj))
+                                     print-argv instrument-exit (entry-obj obj)
+                                     (filter #'identity))
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
@@ -122,6 +125,7 @@ Keyword arguments are as follows:
                               log-var)))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-full-p obj})
+            (funcall filter)
             (mapcar {aget :counter})
             ;; Bottom up ensure earlier insertions don't invalidate
             ;; later counters.
