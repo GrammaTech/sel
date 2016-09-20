@@ -68,7 +68,9 @@
           (let ((type-id (aget :hash snippet)))
             (when type-id
               (setf (gethash type-id (type-database-ht db)) snippet))))))
-  (setf (slot-value db 'size) (length (ast-database-list db))))
+  (setf (slot-value db 'size) (length (ast-database-list db)))
+  (when (zerop (size db))
+    (error "JSON database ~a does not contain fodder snippets." db)))
 
 (defmethod load-json-with-caching ((db json-database))
   (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
