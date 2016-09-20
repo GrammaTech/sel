@@ -20,7 +20,9 @@
    (size :reader size :type integer)))
 
 (defmethod initialize-instance :after ((db mongo-database) &key)
-  (update-size db))
+  (update-size db)
+  (when (zerop (size db))
+    (error "Mongo database ~a does not contain fodder snippets." db)))
 
 (defmethod update-size ((obj mongo-database))
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
