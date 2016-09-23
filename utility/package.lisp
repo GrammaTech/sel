@@ -10,6 +10,7 @@
    :trivial-shell
    :cl-ppcre
    :cl-store
+   :cl-dot
    :diff)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:export
@@ -118,7 +119,12 @@
    :samples-from-oprofile-file
    :samples-from-tracer-file
    ;; iterate helpers
-   :concatenating))
+   :concatenating
+   ;; Profiling helpers
+   :*profile-dot-min-ratio*
+   :profile-to-dot
+   :profile-to-flame-graph
+   ))
 
 #+allegro
 (set-dispatch-macro-character #\# #\_

@@ -11,6 +11,7 @@
                trivial-shell
                cl-ppcre
                cl-store
+               cl-dot
                diff)
   :components
   ((:module utility
