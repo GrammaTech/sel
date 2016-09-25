@@ -2138,6 +2138,34 @@ Useful for printing or returning differences in the REPL."
                                #\Newline stderr
                                :remove-empty-subseqs t))))))))))
 
+(deftest instrumentation-insertion-w-function-exit-test ()
+  (with-fixture gcd-clang
+    (let ((instrumented (instrument (copy *gcd*)
+                                    :instrument-exit t)))
+      ;; Do we insert the right number of printf statements?
+      (is (<= (* 2 (count-fullable *gcd*))
+              (count-fullable instrumented)))
+
+      ;; Is function exit instrumented?
+      (is (stmt-with-text instrumented
+                          (format nil "fputs(\"((:C . ~a)) \", stderr)"
+                                  (aget :body (first (functions *gcd*))))))
+
+      ;; Instrumented compiles and runs.
+      (with-temp-file (bin)
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
+          (is (zerop errno))
+          (let ((trace (read-trace stderr)))
+            (is (listp trace))
+            (is (= (length trace)
+                   (length (split-sequence
+                               #\Newline stderr
+                               :remove-empty-subseqs t))))))))))
+
 (deftest instrumentation-insertion-w-points-test ()
   (with-fixture gcd-clang
     (let ((instrumented

@@ -79,7 +79,7 @@ Keyword arguments are as follows:
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                      ,(let ((type (find-types obj :hash (aget :ret function))))
+                      ,(let ((type (find-type obj (aget :ret function))))
                             (format nil "~a~@[*~] _inst_ret"
                                     (aget :type type)
                                     (aget :pointer type)))))))
