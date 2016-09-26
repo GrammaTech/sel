@@ -3,9 +3,11 @@
 
 
 ;;;; Instrumentation
-(defmethod instrument ((obj clang) &key points functions trace-file
-                                     print-argv instrument-exit (entry-obj obj))
-  "Instrument OBJ to print AST counter before each full statement.
+
+(defgeneric instrument (obj &key points functions trace-file
+                              print-argv instrument-exit entry-obj)
+  (:documentation
+   "Instrument OBJ to print AST counter before each full statement.
 option
 Keyword arguments are as follows:
   POINTS ----------- alist of additional strings to print at specific points
@@ -14,7 +16,11 @@ Keyword arguments are as follows:
   PRINT-ARGV ------- print program arguments on startup
   INSTRUMENT-EXIT -- print counter of function body before exit
   ENTRY-OBJ -------- object containing main function
-"
+"))
+
+
+(defmethod instrument ((obj clang) &key points functions trace-file
+                                     print-argv instrument-exit (entry-obj obj))
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
