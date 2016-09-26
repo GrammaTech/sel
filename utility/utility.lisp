@@ -924,6 +924,10 @@ that function may be declared.")
   "Minimum percentage ratio to include a node in the profile dot graph.")
 
 #+sbcl
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :sb-sprof))
+
+#+sbcl
 (defmethod cl-dot:graph-object-node
     ((graph sb-sprof::call-graph) (object sb-sprof::node))
   (flet ((ratio->color (ratio)
