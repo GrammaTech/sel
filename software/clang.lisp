@@ -995,7 +995,8 @@ genome."
                  (:base-type "base_type")
                  (:bit-field-width "bit_field_width")
                  (:array-length "array_length")
-                 (:in-macro-expansion "in_macro_expansion")))
+                 (:in-macro-expansion "in_macro_expansion")
+                 (:expr-type "expr_type")))
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
