@@ -108,6 +108,8 @@
 (defvar *scopes*      nil "Holds the scopes software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
+(defvar *intraprocedural-2pt-crossover-bug-obj* nil
+  "Holds software object for testing intraprocedural crossover bug")
 
 (handler-bind ((error (lambda (e) (declare (ignorable e)) (invoke-restart 'ignore))))
   (progn
@@ -142,7 +144,11 @@
 
     (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
       :test #'equalp
-      :documentation "Location of the scopes example directory")))
+      :documentation "Location of the scopes example directory")
+    (define-constant +clang-crossover-dir+
+                     (append +etc-dir+ (list "clang-crossover"))
+      :test #'equalp
+      :documentation "Location of clang crossover example directory")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -173,6 +179,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +scopes-dir+))
+
+(defun clang-crossover-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +clang-crossover-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -297,6 +308,16 @@
                  (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
+
+(defixture intraprocedural-2pt-crossover-bug-clang
+  (:setup
+    (setf *intraprocedural-2pt-crossover-bug-obj*
+      (from-file (make-instance 'clang :compiler "clang-3.7"
+                                       :flags '("-g -m32 -O0"))
+                 (clang-crossover-dir
+                  "intraprocedural-2pt-crossover-bug.c"))))
+  (:teardown
+    (setf *intraprocedural-2pt-crossover-bug-obj* nil)))
 
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
@@ -722,9 +743,18 @@
       (is (= (size variant)
              (size *hello-world*))))))
 
-(deftest crossover-clang-software-object-do-not-crash()
+(deftest crossover-clang-software-object-does-not-crash()
   (with-fixture hello-world-clang
     (let* ((variant (crossover (copy *hello-world*) (copy *hello-world*))))
+      (is (string/= (genome variant)
+                    "")))))
+
+(deftest intraprocedural-2pt-crossover-does-not-crash ()
+  (with-fixture intraprocedural-2pt-crossover-bug-clang
+    (let ((variant (intraprocedural-2pt-crossover
+                     (copy *intraprocedural-2pt-crossover-bug-obj*)
+                     (copy *intraprocedural-2pt-crossover-bug-obj*)
+                     27 42 27 42)))
       (is (string/= (genome variant)
                     "")))))
 
