@@ -70,20 +70,39 @@ CLANG-W-FODDER in a method-dependent fashion."))
   (let* ((bad   (pick-bad  software))
          (bad-stmt  (if (full-stmt-p software bad) bad
                         (enclosing-full-stmt software bad)))
-         (value (update-headers-from-snippet software
-                 (cond
-                   (same-class
-                    (pick-snippet software
-                                  :pt bad
-                                  :class
-                                  (get-ast-class software bad)))
-                   (full-stmt-p
-                    (pick-snippet software :pt bad :full t))
-                   (t
-                    (pick-snippet software)))
-                 *database*))
+         (value (cond (same-class
+                        (pick-snippet software
+                                      :pt bad
+                                      :class (get-ast-class software bad)))
+                      (full-stmt-p
+                        (pick-snippet software :pt bad :full t))
+                      (t
+                        (pick-snippet software))))
          (stmt (if full-stmt-p bad-stmt bad)))
     (list (cons :stmt1 stmt) (cons :value1 value))))
+
+(defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
+  (if (member (type-of mutation) *fodder-mutation-types*)
+      (destructuring-bind (op . properties)
+          (first (build-op mutation obj))
+        (declare (ignorable op))
+        (let ((stmt1 (aget :stmt1 properties))
+              (snippet (aget :value1 properties)))
+          ;; Add includes/types/macros for the snippets to be inserted.
+          ;; NOTE: If we insert a macro or type which causes
+          ;; compilation errors, the number of ASTs in the software
+          ;; object may change (decrease).
+          (update-headers-from-snippet obj
+                                       snippet
+                                       *database*)
+          ;; Ensure stmt1 is still in range if compilation errors are
+          ;; introduced.
+          (call-next-method obj
+                            (at-targets mutation
+                                        (list (cons :stmt1 (min stmt1
+                                                                (size obj)))
+                                              (cons :value1 snippet))))))
+      (call-next-method)))
 
 ;; Fodder mutation classes
 (define-mutation insert-fodder (clang-insert)

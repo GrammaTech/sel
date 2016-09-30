@@ -398,6 +398,11 @@ object as well as their relative probabilities"))
   (:documentation "Pick the type of mutation to be performed by the CLANG
 software object"))
 
+(defgeneric recontextualize-mutation (clang mutation)
+  (:documentation "Bind free variables and functions in the mutation to concrete
+values.  Additionally perform any updates to the software object required
+for successful mutation (e.g. adding includes/types/macros)"))
+
 (defmethod size ((obj clang))
   (with-slots (asts) obj
     (unless asts (update-asts obj))
@@ -821,7 +826,7 @@ already in scope, it will keep that name.")
                                   (recontextualize clang
                                                    (if stmt2
                                                        (get-ast clang stmt2)
-                                                     value1)
+                                                       value1)
                                                    stmt1))))))))
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
