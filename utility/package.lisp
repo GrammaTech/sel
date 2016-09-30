@@ -21,6 +21,7 @@
    :string-to-file
    :bytes-to-file
    :getenv
+   :*temp-dir*
    :temp-file-name
    :with-temp-file
    :with-temp-file-of
