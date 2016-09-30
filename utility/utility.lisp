@@ -85,15 +85,24 @@
                        :direction :output :if-exists if-exists)
     (write-sequence bytes out)))
 
+(defvar *temp-dir* nil
+  "Set to non-nil for a custom temporary directory.")
+
 (defun temp-file-name (&optional ext)
   (let ((base #+clisp
           (let ((stream (gensym)))
-            (eval `(with-open-stream (,stream (ext:mkstemp nil))
+            (eval `(with-open-stream
+                     (,stream (ext:mkstemp
+                                (if *temp-dir*
+                                    (namestring (make-pathname
+                                                  :directory *temp-dir*
+                                                  :name "XXXXXX"))
+                                    nil)))
                      (pathname ,stream))))
           #+(or sbcl ccl)
-          (tempnam nil nil)
+          (tempnam *temp-dir* nil)
           #+allegro
-          (system:make-temp-file-name)
+          (system:make-temp-file-name nil *temp-dir*)
           #-(or sbcl clisp ccl allegro)
           (error "no temporary file backend for this lisp.")))
     (if ext
