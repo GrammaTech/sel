@@ -712,16 +712,12 @@ and 0 otherwise."
        (>= (end a-range) (end b-range))))
 
 (defmethod intersects ((a-range source-range) (b-range source-range))
-  (or (and (source-<= (begin a-range) (begin b-range))
-           (source->  (end a-range) (begin b-range)))
-      (and (source->= (end a-range) (end b-range))
-           (source-<  (begin a-range) (end b-range)))))
+  (and (source-<= (begin a-range) (end b-range))
+       (source->= (end a-range) (begin b-range))))
 
 (defmethod intersects ((a-range range) (b-range range))
-  (or (and (<= (begin a-range) (begin b-range))
-           (>  (end a-range) (begin b-range)))
-      (and (>= (end a-range) (end b-range))
-           (<  (begin a-range) (end b-range)))))
+  (and (<= (begin a-range) (end b-range))
+       (>= (end a-range) (begin b-range))))
 
 
 ;;; debugging helpers
