@@ -111,7 +111,8 @@
    :prototypes
    :functions
    :asts
-   :stmts
+   :stmt-asts
+   :global-asts
    :good-stmts
    :bad-stmts
    :update-asts
@@ -226,7 +227,6 @@
    :clang-w-fodder-and-binary
    :bytes
    :diff-data
-   :do-not-filter
    :class-filter
    :recontextualize
    :rebind-uses
