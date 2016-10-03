@@ -688,10 +688,10 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (remove-if-not {aget :is-decl} (get-parent-asts clang ast)))
 
 (defmethod stmts ((clang clang))
-  "Remove each AST which is a decl or has a non-function parent decl"
+  "Remove each AST which is a decl or has a non-function parent decl."
   (remove-if (lambda (ast)
                (or (aget :is-decl ast)
-                   (remove-if [{equal "Function"}{aget :ast-class}]
+                   (remove-if [{string= "Function"} {aget :ast-class}]
                               (get-parent-decls clang ast))))
              (asts clang)))
 
