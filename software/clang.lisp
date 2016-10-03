@@ -26,9 +26,15 @@
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
    (asts :initarg :asts :initform nil :copier :direct
          :type (list (cons keyword *) *) :documentation
-         "Association List of body ASTs.")
+         "Vector of all ASTs in the software.")
+   (stmt-asts :initarg :stmt-asts :initform nil :copier :direct
+              :type (list (cons keyword *) *) :documentation
+              "List of statement ASTs which exist within a function body.")
+   (global-asts :initarg :global-asts :initform nil :copier :direct
+                :type (list (cons keyword *) *) :documentation
+                "List of global AST which live outside of any function.")
    (functions :initarg :functions :initform nil :copier :direct
-               :documentation "Complete functions with bodies.")
+              :documentation "Complete functions with bodies.")
    (prototypes :initarg :prototypes :initform nil :copier :direct
                :documentation "Function prototypes.")
    (includes :initarg :includes :copier copy-seq
@@ -277,7 +283,7 @@ Keyword arguments may be used to restrict selections."
   ((targeter :initform #'pick-cut-decl)))
 
 (defun pick-cut-decl (clang)
-  (let ((decls (class-filter "DeclStmt" (non-stmt-asts clang))))
+  (let ((decls (class-filter "DeclStmt" (stmt-asts clang))))
     (if (not decls)
         'did-nothing
         `((:stmt1 . ,(random-ast decls))))))
@@ -429,10 +435,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
-  (with-slots
-        (asts macros includes types functions prototypes declarations genome)
-      obj
-    ;; incorporate ASTs.
+  (with-slots (asts stmt-asts global-asts macros includes types
+                    functions prototypes declarations genome) obj
+    ;; Incorporate ASTs.
     (iter (for ast in (restart-case
                           (clang-mutate obj
                             (list* :sexp
@@ -452,7 +457,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
             ((aget :decl-name ast)
              (nconcf (gethash (aget :decl-name ast) decls nil) (list ast)))
             (:otherwise (error "Unrecognized ast.~%~S" ast)))
-          (when (aget :body ast) (collect ast into funs))
+          (when (aget :body ast)
+            (collect ast into funs)
+            (collect (ast-to-source-range ast) into fn-ranges))
           (when (string= "Function" (aget :ast-class ast))
             (collect ast into protos))
           (mapc (lambda (macro)
@@ -462,13 +469,22 @@ for successful mutation (e.g. adding includes/types/macros)"))
           (mapc (lambda (include)
                   (adjoining include into m-includes test #'string=))
                 (aget :includes ast))
-          (finally (setf asts (coerce body 'vector)
-                         types m-types
-                         macros m-macros
-                         includes m-includes
-                         functions funs
-                         prototypes protos
-                         declarations decls))))
+          (finally
+           (let (my-stmts my-non-stmts)
+             (mapc (lambda (ast)
+                     (if (some {contains _ (ast-to-source-range ast)} fn-ranges)
+                         (push ast my-stmts)
+                         (push ast my-non-stmts)))
+                   body)
+             (setf asts (coerce body 'vector)
+                   stmt-asts my-stmts
+                   global-asts my-non-stmts
+                   types m-types
+                   macros m-macros
+                   includes m-includes
+                   functions funs
+                   prototypes protos
+                   declarations decls)))))
   obj)
 
 (defmethod update-body ((obj clang) &key)
@@ -479,13 +495,12 @@ for successful mutation (e.g. adding includes/types/macros)"))
   ;; they originally appeared.
   (setf (genome obj)
         (mapconcat {aget :decl-text}
-                   (sort
-                    (remove-if-not {aget :decl-text} (asts obj))
-                    (lambda (x y)
-                      (or (< (first x) (first y))
-                          (and (= (first x) (first y))
-                               (< (second x) (second y)))))
-                    :key «{aget :begin-src-line} {aget :begin-src-col}»)
+                   (sort (global-asts obj)
+                         (lambda (x y)
+                           (or (< (first x) (first y))
+                               (and (= (first x) (first y))
+                                    (< (second x) (second y)))))
+                         :key «{aget :begin-src-line} {aget :begin-src-col}»)
                    (string #\Newline))))
 
 (defgeneric from-file-exactly (software path)
@@ -628,6 +643,16 @@ declarations onto multiple lines to ease subsequent decl mutations."))
     (unless asts (update-asts obj))
     (aref asts (1- id))))
 
+(defmethod stmt-asts ((obj clang))
+  (with-slots (asts stmt-asts) obj
+    (unless asts (update-asts obj))
+    stmt-asts))
+
+(defmethod global-asts ((obj clang))
+  (with-slots (asts global-asts) obj
+    (unless asts (update-asts obj))
+    global-asts))
+
 (defmethod functions ((obj clang))
   (with-slots (asts functions) obj
     (unless asts (update-asts obj))
@@ -676,39 +701,32 @@ declarations onto multiple lines to ease subsequent decl mutations."))
         (format nil "~a~%" (add-semicolon-if-needed text))
         (format nil "~a" text))))
 
-(defun do-not-filter ()
-  (lambda (asts) asts))
-
 (defun class-filter (class asts)
   (remove-if-not [{equal class} {aget :ast-class } ] asts))
 
 (defmethod get-parent-decls ((clang clang) ast)
   (remove-if-not {aget :is-decl} (get-parent-asts clang ast)))
 
-(defmethod stmts ((clang clang))
-  "Remove each AST which is a decl or has a non-function parent decl."
-  (remove-if (lambda (ast)
-               (or (aget :is-decl ast)
-                   (remove-if [{string= "Function"} {aget :ast-class}]
-                              (get-parent-decls clang ast))))
-             (asts clang)))
-
 (defmethod good-stmts ((clang clang))
-  (asts clang))
+  (stmt-asts clang))
 
 (defmethod bad-stmts ((clang clang))
-  (asts clang))
+  (stmt-asts clang))
 
 (defun random-ast (asts)
   (aget :counter (random-elt asts)))
 
 (defmethod pick-good ((clang clang))
-  (random-ast (good-stmts clang)))
+  (random-elt (good-stmts clang)))
 
 (defmethod pick-bad ((clang clang))
-  (random-ast (bad-stmts clang)))
+  (random-elt (bad-stmts clang)))
 
-(defmethod get-ast-class ((clang clang) stmt)
+(defmethod get-ast-class ((clang clang) (stmt list))
+  (declare (ignorable clang))
+  (aget :ast-class stmt))
+
+(defmethod get-ast-class ((clang clang) (stmt number))
   (aget :ast-class (get-ast clang stmt)))
 
 (defun execute-picks (get-asts1 &optional connector get-asts2)
@@ -800,7 +818,7 @@ already in scope, it will keep that name.")
   (random-pick (cdf (mutation-types-clang clang))))
 
 (defmethod mutate ((clang clang))
-  (unless (> (length (stmts clang)) 0)
+  (unless (stmt-asts clang)
     (error (make-condition 'mutate :text "No valid statements" :obj clang)))
 
   (let ((mutation (make-instance (pick-mutation-type clang) :object clang)))

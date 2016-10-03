@@ -676,6 +676,16 @@
 }")))))
       "Another with a modifier."))
 
+(deftest splits-global-and-stmt-asts ()
+  (with-fixture huf-clang
+    (is (find-if [{string= "\"this is an example for huffman encoding\""}
+                  {aget :src-text}]
+                 (global-asts *huf*))
+        "Ensure known global is in `globals'.")
+    (is (find-if [{string= "int i"} {aget :src-text}]
+                 (stmt-asts *huf*))
+        "Ensure known local variable is in `stmts'.")))
+
 ;; Check if the two AST lists differ. Do a smoke test with
 ;; the list lengths; if they match, use the :src-text
 ;; field as a proxy for equality. Strict equality isn't
