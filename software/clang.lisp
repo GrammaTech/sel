@@ -280,7 +280,7 @@ restrictions. For use by targeter functions/execute picks."
   ((targeter :initform #'pick-cut-decl)))
 
 (defun pick-cut-decl (clang)
-  (let ((decls (with-class-filter "DeclStmt" (asts clang))))
+  (let ((decls (class-filter "DeclStmt" (non-stmt-asts clang))))
     (if (not decls)
         'did-nothing
         `((:stmt1 . ,(random-ast decls))))))
@@ -325,10 +325,11 @@ restrictions. For use by targeter functions/execute picks."
              'did-nothing
              (let ((decls
                     (mapcar {aget :counter}
-                            (with-class-filter "DeclStmt"
-                              (mapcar {get-ast clang}
-                                      (aget :stmt-list
-                                            (get-ast clang the-block)))))))
+                            (class-filter
+                             "DeclStmt"
+                             (mapcar {get-ast clang}
+                                     (aget :stmt-list
+                                           (get-ast clang the-block)))))))
                (if (> 2 (length decls))
                    (pick-from-block (enclosing-block clang the-block))
                    (multiple-value-bind (stmt1 stmt2) (pick-two decls)
@@ -681,7 +682,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defun do-not-filter ()
   (lambda (asts) asts))
 
-(defun with-class-filter (class asts)
+(defun class-filter (class asts)
   (remove-if-not [{equal class} {aget :ast-class } ] asts))
 
 (defmethod get-parent-decls ((clang clang) ast)
@@ -696,10 +697,10 @@ declarations onto multiple lines to ease subsequent decl mutations."))
              (asts clang)))
 
 (defmethod good-stmts ((clang clang))
-  (stmts clang))
+  (asts clang))
 
 (defmethod bad-stmts ((clang clang))
-  (stmts clang))
+  (asts clang))
 
 (defun random-ast (asts)
   (aget :counter (random-elt asts)))

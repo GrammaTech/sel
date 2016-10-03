@@ -227,7 +227,7 @@
    :bytes
    :diff-data
    :do-not-filter
-   :with-class-filter
+   :class-filter
    :recontextualize
    :rebind-uses
    :rebind-uses-in-snippet
