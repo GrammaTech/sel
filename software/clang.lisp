@@ -146,44 +146,41 @@
 
 
 ;; Targeting functions
-(defun restrict-targets (software full-stmt same-class)
-  "Return good, bad, then callbacks with full-stmt/same-class
-restrictions. For use by targeter functions/execute picks."
-  (labels ((filter (asts) (if full-stmt
-                              (remove-if-not {aget :full-stmt} asts)
-                              asts)))
-    (let* ((then (if same-class
-                     (lambda (stmt asts)
-                       (or (with-class-filter (get-ast-class software stmt)
-                             asts)
-                           (with-class-filter (get-ast-class software stmt)
-                             (asts software))))
-                     (lambda (stmt asts) (declare (ignorable stmt)) asts)))
-           (good (lambda () (or (filter (good-stmts software))
-                                (stmts software))))
-           (bad  (lambda () (or (filter (bad-stmts software))
-                                (stmts software)))))
-      (list good bad then))))
+(defun pick-general
+    (software first-pool &key second-pool full-stmt same-class)
+  "Pick ASTs from FIRST-POOL and optionally SECOND-POOL.
+Keyword arguments may be used to restrict selections."
+  (labels ((maybe-only-full (asts)
+             (if full-stmt
+                 (remove-if-not {aget :full-stmt} asts)
+                 asts)))
+    (let ((first-pick (random-ast (maybe-only-full first-pool))))
+      (acons :stmt1 first-pick
+             (when second-pool
+               (list
+                (cons :stmt2
+                      (random-ast
+                       (maybe-only-full
+                        (if same-class
+                            (class-filter (get-ast-class software first-pick)
+                                          second-pool)
+                            second-pool))))))))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
   "Pick a bad AST, then a good one."
-  (destructuring-bind (good bad then)
-      (restrict-targets software full-stmt same-class)
-    (execute-picks bad then good)))
+  (pick-general software (bad-stmts software)
+                :second-pool (good-stmts software)
+                :full-stmt full-stmt :same-class same-class))
 
 (defun pick-bad-bad (software &optional full-stmt same-class)
   "Pick a bad AST, then another bad one."
-  (destructuring-bind (good bad then)
-      (restrict-targets software full-stmt same-class)
-    (declare (ignorable good))
-    (execute-picks bad then bad)))
+  (pick-general software (bad-stmts software)
+                :second-pool (bad-stmts software)
+                :full-stmt full-stmt :same-class same-class))
 
 (defun pick-bad-only (software &optional full-stmt)
   "Pick a bad AST."
-  (destructuring-bind (good bad then)
-      (restrict-targets software full-stmt nil)
-    (declare (ignorable good then))
-    (execute-picks bad)))
+  (pick-general software (bad-stmts software) :full-stmt full-stmt))
 
 
 ;;; Mutations
