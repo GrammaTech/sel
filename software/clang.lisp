@@ -2090,7 +2090,13 @@ equal to the end point of STMT1."
         ;; Could not find crossover point
         (values a nil nil))))
 
-(defmethod function-containing-ast ((clang clang) stmt)
+(defgeneric function-containing-ast (object ast)
+  (:documentation "Return the ast for the function containing AST in OBJECT."))
+
+(defmethod function-containing-ast ((clang clang) (stmt list))
+  (function-containing-ast clang (aget :counter stmt)))
+
+(defmethod function-containing-ast ((clang clang) (stmt number))
   (let ((body (aget :counter
                 (car (last (remove-if-not
                             [{equal "CompoundStmt"} {aget :ast-class}]
