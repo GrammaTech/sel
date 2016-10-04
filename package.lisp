@@ -209,6 +209,8 @@
    :original
    :asm
    :*asm-linker*
+   :assembled-asm
+   :*isa-nbits*
    :elf
    :elf-cisc
    :elf-csurf
@@ -259,6 +261,9 @@
    :llvm
    :linker
    :flags
+   :assembler
+   :asm-flags
+   :spec-file
    :elf-risc-max-displacement
    :ops                      ; <- might want to fold this into `lines'
    ;; software backend specific methods
