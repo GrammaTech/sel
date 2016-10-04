@@ -278,6 +278,17 @@ Keyword arguments may be used to restrict selections."
 (define-mutation clang-cut-full-same (clang-cut-full)
   ((targeter :initform {pick-bad-only _ t})))
 
+;;; TODO: Cut global
+;; (define-mutation cut-global (clang-mutation)
+;;   ((targeter :initform #'pick-global)))
+;;
+;; (defun pick-global (clang)
+;;   `((:stmt1 . ,(random-ast (global-asts clang)))))
+;;
+;; (defmethod build-op ((mutation cut-global) clang)
+;;   ;; TODO: Implement.
+;;   )
+
 ;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
   ((targeter :initform #'pick-cut-decl)))
