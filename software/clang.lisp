@@ -168,8 +168,10 @@ Keyword arguments may be used to restrict selections."
                       (random-ast
                        (maybe-only-full
                         (if same-class
-                            (class-filter (get-ast-class software first-pick)
-                                          second-pool)
+                            (remove-if-not
+                             [{string= (get-ast-class software first-pick)}
+                              {aget :ast-class}]
+                             second-pool)
                             second-pool))))))))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
@@ -294,10 +296,10 @@ Keyword arguments may be used to restrict selections."
   ((targeter :initform #'pick-cut-decl)))
 
 (defun pick-cut-decl (clang)
-  (let ((decls (class-filter "DeclStmt" (stmt-asts clang))))
-    (if (not decls)
-        'did-nothing
-        `((:stmt1 . ,(random-ast decls))))))
+  (if-let ((decls (remove-if-not [{string= "DeclStmt"} {aget :ast-class}]
+                                 (stmt-asts clang))))
+    `((:stmt1 . ,(random-ast decls)))
+    'did-nothing))
 
 (defmethod build-op ((mutation cut-decl) clang)
   (if (not (eq (targets mutation) 'did-nothing))
@@ -338,12 +340,10 @@ Keyword arguments may be used to restrict selections."
          (if (equal the-block 0)
              'did-nothing
              (let ((decls
-                    (mapcar {aget :counter}
-                            (class-filter
-                             "DeclStmt"
-                             (mapcar {get-ast clang}
-                                     (aget :stmt-list
-                                           (get-ast clang the-block)))))))
+                    (->> (aget :stmt-list (get-ast clang the-block))
+                         (mapcar {get-ast clang})
+                         (remove-if-not [{string= "DeclStmt"} {aget :ast-class}])
+                         (mapcar {aget :counter}))))
                (if (> 2 (length decls))
                    (pick-from-block (enclosing-block clang the-block))
                    (multiple-value-bind (stmt1 stmt2) (pick-two decls)
@@ -711,9 +711,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
     (if (full-stmt-p clang pt)
         (format nil "~a~%" (add-semicolon-if-needed text))
         (format nil "~a" text))))
-
-(defun class-filter (class asts)
-  (remove-if-not [{equal class} {aget :ast-class } ] asts))
 
 (defmethod get-parent-decls ((clang clang) ast)
   (remove-if-not {aget :is-decl} (get-parent-asts clang ast)))
