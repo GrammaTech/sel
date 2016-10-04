@@ -38,6 +38,7 @@ techniques."
              (:file "simple")
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
+             (:file "assembled-asm" :depends-on ("asm"))
              (:file "elf"  :depends-on ("diff"))
              (:file "elf-cisc" :depends-on ("elf"))
              (:file "elf-risc" :depends-on ("elf"))
