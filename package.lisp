@@ -227,7 +227,6 @@
    :clang-w-fodder-and-binary
    :bytes
    :diff-data
-   :class-filter
    :recontextualize
    :rebind-uses
    :rebind-uses-in-snippet
