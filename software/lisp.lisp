@@ -90,10 +90,13 @@
   ;; TODO: Fix `lisp-cut' before adding back to this list.
   '(lisp-replace lisp-swap))
 
+(defmethod pick-mutation-type ((obj lisp))
+  (random-elt *lisp-mutation-types*))
+
 (defmethod mutate ((lisp lisp))
   (unless (> (size lisp) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj lisp)))
-  (let ((mutation (make-instance (random-elt *lisp-mutation-types*)
+  (let ((mutation (make-instance (pick-mutation-type lisp)
                                  :object lisp)))
     (apply-mutation lisp mutation)
     (values lisp mutation)))

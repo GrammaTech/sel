@@ -125,6 +125,9 @@ Used to target mutation."))
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 
+(defgeneric pick-mutation-type (software)
+  (:documentation "Select a type of mutation to apply to SOFTWARE."))
+
 (defvar *mutation-stats* (make-hash-table
                           :test #'equal
                           #+sbcl :synchronized #+sbcl t

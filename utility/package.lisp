@@ -62,7 +62,9 @@
    :random-elt-with-decay
    :random-hash-table-key
    :uniform-probability
-   :cdf
+   :normalize-probabilities
+   :cumulative-distribution
+   :un-cumulative-distribution
    :random-pick
    :random-subseq
    :apply-replacements

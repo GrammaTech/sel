@@ -83,7 +83,6 @@ expression match.")
            (random-elt ; TODO: More types.
             (mappend (lambda (type)
                        (list type type (concatenate 'string type "* ")))
-                     
                      +c-numeric-types+))))
     ;; TODO: For now we'll just synthesize a random instantiation, in
     ;;       the future we should pull variable names from DeclStmt's,
