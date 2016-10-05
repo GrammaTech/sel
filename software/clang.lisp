@@ -260,14 +260,6 @@ Keyword arguments may be used to restrict selections."
 (define-mutation clang-cut-full (clang-cut)
   ((targeter :initform {pick-bad-only _ t})))
 
-(define-mutation clang-cut-same (clang-cut)
-  ;; Same as clang-cut.
-  ((targeter :initform #'pick-bad-only)))
-
-(define-mutation clang-cut-full-same (clang-cut-full)
-  ;; Same as clang-cut-full.
-  ((targeter :initform {pick-bad-only _ t})))
-
 ;;; Set Range
 (define-mutation clang-set-range (clang-mutation) ())
 
@@ -465,14 +457,6 @@ Keyword arguments may be used to restrict selections."
 
 (defgeneric get-ast (software id)
   (:documentation "Return the statement in SOFTWARE indicated by ID."))
-
-(defgeneric mutation-types-clang (clang)
-  (:documentation "Return a list of mutation types for the CLANG software
-object as well as their relative probabilities"))
-
-(defgeneric pick-mutation-type (clang)
-  (:documentation "Pick the type of mutation to be performed by the CLANG
-software object"))
 
 (defgeneric recontextualize-mutation (clang mutation)
   (:documentation "Bind free variables and functions in the mutation to concrete
@@ -807,22 +791,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
     (acons :stmt1 stmt1
        (if stmt2 (acons :stmt2 stmt2 nil) nil))))
 
-(defvar *clang-full-stmt-bias* 0.75
-  "The probability that a mutation will operate on a full statement.")
-
-(defvar *clang-same-class-bias* 0.75
-  "The probability that a mutation uses AST class matching.")
-
-(defvar *decl-mutation-bias* 0.1
-  "The probability that a mutation will target a variable declaration.")
-
-(defvar *clang-mutation-types*
-  `(clang-cut      clang-cut-same     clang-cut-full      clang-cut-full-same
-    clang-insert   clang-insert-same  clang-insert-full   clang-insert-full-same
-    clang-swap     clang-swap-same    clang-swap-full     clang-swap-full-same
-    clang-replace  clang-replace-same clang-replace-full  clang-replace-full-same
-    cut-decl swap-decls rename-variable))
-
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
 
@@ -837,54 +805,31 @@ already in scope, it will keep that name.")
 (defvar *crossover-function-probability* 0.25
   "The probability of crossing a function during whole-program crossover.")
 
-(defun combine-with-bias (bias heads tails)
-  (append
-   (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) bias))) heads)
-   (mapcar (lambda (pair) (cons (car pair) (* (cdr pair) (- 1 bias)))) tails)))
+(defvar *clang-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((cut-decl                . 4)
+      (swap-decls              . 4)
+      (rename-variable         . 4)
+      (clang-promote-guarded   . 4)
+      (clang-cut               . 2)
+      (clang-cut-full          . 2)
+      (clang-insert            . 1)
+      (clang-insert-same       . 1)
+      (clang-insert-full       . 1)
+      (clang-insert-full-same  . 1)
+      (clang-swap              . 1)
+      (clang-swap-same         . 1)
+      (clang-swap-full         . 1)
+      (clang-swap-full-same    . 1)
+      (clang-replace           . 1)
+      (clang-replace-same      . 1)
+      (clang-replace-full      . 1)
+      (clang-replace-full-same . 1))))
+  "Cumulative distribution of normalized probabilities of weighted mutations.")
 
-(defmethod decl-mutation-types-clang ((clang clang))
-  (uniform-probability '(cut-decl swap-decls rename-variable)))
-
-(defmethod basic-mutation-types-clang ((clang clang))
-  (let* ((weights
-          (remove-if #'null
-           (loop :for mutation-type :in *clang-mutation-types*
-              :collecting
-                (cond ((member mutation-type
-                               `(clang-cut-full-same clang-insert-full-same
-                                 clang-swap-full-same clang-replace-full-same))
-                       (cons mutation-type
-                             (* *clang-full-stmt-bias*
-                                *clang-same-class-bias*)))
-                      ((member mutation-type
-                               `(clang-cut-full  clang-insert-full
-                                 clang-swap-full clang-replace-full))
-                       (cons mutation-type
-                             (* *clang-full-stmt-bias*
-                                (- 1 *clang-same-class-bias*))))
-                      ((member mutation-type
-                               `(clang-cut-same  clang-insert-same
-                                 clang-swap-same clang-replace-same))
-                       (cons mutation-type
-                             (* *clang-same-class-bias*
-                                (- 1 *clang-full-stmt-bias*))))
-                      ((member mutation-type
-                               `(clang-cut clang-insert
-                                 clang-swap clang-replace))
-                       (cons mutation-type
-                             (* (- 1 *clang-same-class-bias*)
-                                (- 1 *clang-full-stmt-bias*))))
-                      (t nil)))))
-         (total-weight (reduce #'+ weights :key #'cdr)))
-    (mapc (lambda (w) (setf (cdr w) (/ (cdr w) total-weight))) weights)))
-
-(defmethod mutation-types-clang ((clang clang))
-  (combine-with-bias *decl-mutation-bias*
-                     (decl-mutation-types-clang clang)
-                     (basic-mutation-types-clang clang)))
-
-(defmethod pick-mutation-type ((clang clang))
-  (random-pick (cdf (mutation-types-clang clang))))
+(defmethod pick-mutation-type ((obj software))
+  (random-pick *clang-mutation-types*))
 
 (defmethod mutate ((clang clang))
   (unless (stmt-asts clang)

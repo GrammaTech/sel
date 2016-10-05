@@ -10,14 +10,6 @@
 (defvar *database* nil
   "Database utilized for fodder selection")
 
-(defvar *fodder-selection-bias* 0.5
-  "The probability that a clang-w-fodder mutation will use the code database.")
-
-(defvar *fodder-mutation-types*
-  '(replace-fodder-same replace-fodder-full
-    insert-fodder       insert-fodder-full)
-  "Types of valid fodder mutations")
-
 (define-software clang-w-fodder (clang) ())
 
 (defmethod from-string :before ((obj clang-w-fodder) string)
@@ -47,23 +39,30 @@ CLANG-W-FODDER in a method-dependent fashion."))
                  :text (format nil "No valid snippet found")))
         snippet)))
 
+(defvar *clang-w-fodder-new-mutation-types*
+  '(replace-fodder-same replace-fodder-full insert-fodder insert-fodder-full))
+
+(defvar *clang-w-fodder-mutation-types*
+  (let ((orig-types (un-cumulative-distribution *clang-mutation-types*)))
+    (cumulative-distribution
+     (normalize-probabilities
+      (append orig-types
+              (mapcar {cons _ (/ (reduce #'+ (mapcar #'cdr orig-types))
+                                 (length *clang-w-fodder-new-mutation-types*))}
+                      *clang-w-fodder-new-mutation-types*)))))
+  "Cumulative distribution of normalized probabilities of weighted mutations.
+By default the weights are assigned so that half of all mutations will
+be fodder mutations.")
+
+(defmethod pick-mutation-type ((obj clang-w-fodder))
+  (random-pick *clang-w-fodder-mutation-types*))
+
 (defmethod mutate ((clang-w-fodder clang-w-fodder))
   (unless *database*
     (error (make-condition 'mutate
              :text "No valid Mongo database for fodder"
              :obj clang-w-fodder)))
   (call-next-method))
-
-(defmethod mutation-types-clang ((clang-w-fodder clang-w-fodder))
-  (let ((existing-mutation-types (call-next-method)))
-    (append (loop :for mutation-type :in *fodder-mutation-types*
-               :collecting (cons mutation-type
-                                 (/ *fodder-selection-bias*
-                                    (length *fodder-mutation-types*))))
-            (loop :for mutation-type :in existing-mutation-types
-               :collecting (cons (car mutation-type)
-                                 (* (- 1 *fodder-selection-bias*)
-                                    (cdr mutation-type)))))))
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet"
@@ -82,7 +81,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
     (list (cons :stmt1 stmt) (cons :value1 value))))
 
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
-  (if (member (type-of mutation) *fodder-mutation-types*)
+  (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
       (destructuring-bind (op . properties)
           (first (build-op mutation obj))
         (declare (ignorable op))

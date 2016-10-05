@@ -49,7 +49,7 @@
    :pick-snippet
    :pick-guarded-compound
    :mutate
-   :mutation-types-clang
+   :pick-mutation-type
    :clang-mutation
    :build-op
    :apply-mutation
@@ -178,12 +178,9 @@
    :find-type
    :sorted-snippets
    :*clang-max-json-size*
-   :*clang-full-stmt-bias*
-   :*clang-same-class-bias*
-   :*decl-mutation-bias*
    :*crossover-function-probability*
-   :*fodder-selection-bias*
-   :*clang-mutation-cdf*
+   :*clang-mutation-types*
+   :*clang-w-fodder-mutation-types*
    :*free-var-decay-rate*
    :*matching-free-var-retains-name-bias*
    :*matching-free-function-retains-name-bias*
