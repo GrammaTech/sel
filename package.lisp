@@ -47,6 +47,7 @@
    :pick-good
    :pick-bad
    :pick-snippet
+   :pick-guarded-compound
    :mutate
    :mutation-types-clang
    :clang-mutation
@@ -308,6 +309,7 @@
    :clang-replace-full
    :clang-replace-full-same
    :clang-set-range
+   :clang-promote-guarded
    :clang-nop
    :clang-instrument
    :cut-decl
