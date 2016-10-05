@@ -260,6 +260,14 @@ Keyword arguments may be used to restrict selections."
 (define-mutation clang-cut-full (clang-cut)
   ((targeter :initform {pick-bad-only _ t})))
 
+(define-mutation clang-cut-same (clang-cut)
+  ;; Same as clang-cut.
+  ((targeter :initform #'pick-bad-only)))
+
+(define-mutation clang-cut-full-same (clang-cut-full)
+  ;; Same as clang-cut-full.
+  ((targeter :initform {pick-bad-only _ t})))
+
 ;;; Set Range
 (define-mutation clang-set-range (clang-mutation) ())
 
@@ -272,13 +280,66 @@ Keyword arguments may be used to restrict selections."
 (defmethod build-op ((mutation clang-nop) software)
   nil)
 
-;; The -same variants only exist for symmetry (which makes it easier to
-;; build the CDF). Since cut only picks one AST the same-class
-;; constraint has no effect.
-(define-mutation clang-cut-same (clang-cut)
-  ((targeter :initform #'pick-bad-only)))
-(define-mutation clang-cut-full-same (clang-cut-full)
-  ((targeter :initform {pick-bad-only _ t})))
+;;; Promote guarded compound statement.
+(define-mutation clang-promote-guarded (clang-mutation)
+  ((targeter :initform #'pick-guarded-compound)))
+
+(defgeneric pick-guarded-compound (software)
+  (:documentation "Pick a guarded compound statement in SOFTWARE."))
+
+(defmethod pick-guarded-compound ((obj clang))
+  (let ((guarded-classes (list "WhileStmt" "IfStmt" "ForStmt" "DoStmt")))
+    (&>> (stmt-asts obj)
+         (remove-if-not [{member _ guarded-classes :test #'string=}
+                         {aget :ast-class}])
+         (random-elt))))
+
+(defmethod build-op ((mutation clang-promote-guarded) software
+                     &aux (guarded (targets mutation)))
+  (flet ((compose-children (ast)
+           (mapconcat [#'peel-bananas {aget ::src-text}]
+                      (get-immediate-children software ast)
+                      (coerce (list #\Semicolon #\Newline) 'string))))
+    `((:set
+       ,(cons :stmt1 (aget :counter guarded))
+       ,(cons :literal1
+              (switch ((aget :ast-class guarded) :test #'string=)
+                ("DoStmt"
+                 (compose-children
+                  (first (get-immediate-children software guarded))))
+                ("WhileStmt"
+                 (compose-children
+                  (second (get-immediate-children software guarded))))
+                ("ForStmt"
+                 (compose-children
+                  (fourth (get-immediate-children software guarded))))
+                ("IfStmt"
+                 (let ((children (get-immediate-children software guarded)))
+                   (if (= 2 (length children))
+                       ;; If with only one branch.
+                       (compose-children (second children))
+                       ;; If with both branches.
+                       (cond
+                         ((null         ; Then branch is empty.
+                           (get-immediate-children software (second children)))
+                          (compose-children (third children)))
+                         ((null         ; Else branch is empty.
+                           (get-immediate-children software (third children)))
+                          (compose-children (second children)))
+                         (t             ; Both branches are populated.
+                          (if (random-bool) ; Both or just one.
+                              (mapconcat {aget ::src-text} ; Both.
+                                         (append
+                                          (get-immediate-children
+                                           software (second children))
+                                          (get-immediate-children
+                                           software (third children)))
+                                         ";\n")
+                              (if (random-bool) ; Pick a branch randomly.
+                                  (compose-children (second children))
+                                  (compose-children (third children)))))))))
+                (t (error "`clang-promote-guarded' unimplemented for ~a"
+                          (aget :ast-class guarded)))))))))
 
 ;;; TODO: Cut global
 ;; (define-mutation cut-global (clang-mutation)
