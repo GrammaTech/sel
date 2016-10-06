@@ -467,7 +467,7 @@ Keyword argument FRAC will return fractions instead of raw counts."
     (random-elt (mapcar #'car (remove-if-not [{= (apply #'max scores)} #'second]
                                              (indexed scores))))))
 
-(defun random-bool (&key bias)
+(defun random-bool (&optional bias)
   (> (or bias 0.5) (random 1.0)))
 
 (defun uniform-probability (list)
