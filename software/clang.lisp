@@ -320,7 +320,7 @@ Keyword arguments may be used to restrict selections."
                           (compose-children (second children)))
                          (t             ; Both branches are populated.
                           (if (random-bool) ; Both or just one.
-                              (mapconcat {aget ::src-text} ; Both.
+                              (mapconcat {aget :src-text} ; Both.
                                          (append
                                           (get-immediate-children
                                            software (second children))
