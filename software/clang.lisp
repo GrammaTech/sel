@@ -1319,17 +1319,32 @@ made full by wrapping with curly braces, return that."))
           (values index child-index)
           (enclosing-block clang (aget :parent-counter ast) index)))))
 
-(defmethod full-stmt-p ((clang clang) stmt)
-  ;; NOTE: This assumes that the :full-stmt tag is always populated.
-  (aget :full-stmt (get-ast clang stmt)))
+(defgeneric full-stmt-p (software statement)
+  (:documentation "Check if STATEMENT is a full statement in SOFTWARE."))
 
-(defmethod enclosing-full-stmt ((clang clang) index &optional child-index)
-  (if (or (null index) (= index 0)) nil
-    (let* ((ast (get-ast clang index))
-           (blockp (equal (aget :ast-class ast) "CompoundStmt")))
-      (if (and blockp child-index)
+(defmethod full-stmt-p ((obj clang) (stmt number))
+  (aget :full-stmt (get-ast obj stmt)))
+
+(defmethod full-stmt-p ((obj clang) (stmt list))
+  (declare (ignorable obj))
+  (aget :full-stmt stmt))
+
+(defgeneric enclosing-full-stmt (software stmt &optional child-stmt)
+  (:documentation
+   "Return the first full statement in SOFTWARE holding STMT.
+Optional argument CHILD-INDEX is used by recursive calls to return the
+most recent child when a compound statement is reached."))
+
+(defmethod enclosing-full-stmt
+    ((obj clang) (index number) &optional child-index)
+  (unless (or (null index) (zerop index))
+    (let ((stmt (get-ast obj index)))
+      (if (and (equal (aget :ast-class stmt) "CompoundStmt") child-index)
           child-index
-          (enclosing-full-stmt clang (aget :parent-counter ast) index)))))
+          (enclosing-full-stmt obj (aget :parent-counter stmt) index)))))
+
+(defmethod enclosing-full-stmt ((obj clang) (stmt list) &optional child-index)
+  (enclosing-full-stmt obj (aget :counter stmt) child-index))
 
 (defun get-entry-after (item list)
   (cond ((null list) nil)

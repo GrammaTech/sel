@@ -67,7 +67,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet"
-  (let* ((bad   (pick-bad  software))
+  (let* ((bad (aget :counter (pick-bad software)))
          (bad-stmt  (if (full-stmt-p software bad) bad
                         (enclosing-full-stmt software bad)))
          (value (cond (same-class
