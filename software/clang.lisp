@@ -24,35 +24,36 @@
 
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
-   (asts :initarg :asts :initform nil :copier :direct
-         :type (list (cons keyword *) *) :documentation
+   (asts :initarg :asts :initform nil
+         :copier :direct :type (list (cons keyword *) *) :documentation
          "Vector of all ASTs in the software.")
-   (stmt-asts :initarg :stmt-asts :initform nil :copier :direct
-              :type (list (cons keyword *) *) :documentation
+   (stmt-asts :initarg :stmt-asts :accessor stmt-asts :initform nil
+              :copier :direct :type (list (cons keyword *) *) :documentation
               "List of statement ASTs which exist within a function body.")
-   (global-asts :initarg :global-asts :initform nil :copier :direct
-                :type (list (cons keyword *) *) :documentation
+   (global-asts :initarg :global-asts :accessor global-asts :initform nil
+                :copier :direct :type (list (cons keyword *) *) :documentation
                 "List of global AST which live outside of any function.")
-   (functions :initarg :functions :initform nil :copier :direct
-              :documentation "Complete functions with bodies.")
-   (prototypes :initarg :prototypes :initform nil :copier :direct
-               :documentation "Function prototypes.")
-   (includes :initarg :includes :copier copy-seq
-             :initform nil :type (list string *)
-             :documentation "Names of included includes.")
-   (types :initarg :types :copier copy-seq
-          :initform nil :type (list (cons keyword *) *)
-          :documentation "Association list of types keyed by HASH id.")
-   (declarations :initarg :declarations :copier :direct
-                 :initform (make-hash-table :test #'equal) :type hash-table
-                 :documentation
+   (functions :initarg :functions :accessor functions :initform nil
+              :copier :direct :type (list (cons keyword *) *) :documentation
+              "Complete functions with bodies.")
+   (prototypes :initarg :prototypes :accessor prototypes :initform nil
+               :copier :direct :type (list (cons keyword *) *) :documentation
+               "Function prototypes.")
+   (includes :initarg :includes :accessor includes :initform nil
+             :copier :direct :type (list string *) :documentation
+             "Names of included includes.")
+   (types :initarg :types :accessor types :initform nil
+          :copier :direct :type (list (cons keyword *) *) :documentation
+          "Association list of types keyed by HASH id.")
+   (declarations :initarg :declarations :accessor declarations :initform nil
+                 :copier :direct :type hash-table :documentation
                  "Hash of variable declarations keyed by variable name.")
-   (macros :initarg :macros :copier copy-seq
-           :initform nil :type (list (cons string string) *)
-           :documentation "Association list of Names and values of macros.")
-   (globals :initarg :globals :accessor globals :copier copy-seq
-            :initform nil :type (list (cons string string) *)
-            :documentation "Association list of names and values of globals.")))
+   (macros :initarg :macros :accessor macros :initform nil
+           :copier :direct :type (list (cons string string) *) :documentation
+           "Association list of Names and values of macros.")
+   (globals :initarg :globals :accessor globals :initform nil
+            :copier :direct :type (list (cons string string) *) :documentation
+            "Association list of names and values of globals.")))
 
 
 ;;; Handling header information (formerly "Michondria")
@@ -686,70 +687,27 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (from-string-exactly obj string)
   obj)
 
-(defmethod asts ((obj clang))
-  (with-slots (asts) obj
-    (unless asts (update-asts obj))
-    (coerce asts 'list)))
+(defmethod update-asts-if-necessary ((obj clang))
+  (with-slots (asts) obj (unless asts (update-asts obj))))
 
-(defmethod (setf asts) (new (obj clang))
-  (with-slots (asts) obj (setf asts new)))
+(defmethod         asts :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod    stmt-asts :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod  global-asts :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod    functions :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod   prototypes :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod     includes :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod        types :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod declarations :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod       macros :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod      globals :before ((obj clang)) (update-asts-if-necessary obj))
+
+(defmethod asts ((obj clang))
+  (with-slots (asts) obj (coerce asts 'list)))
 
 (defmethod get-ast ((obj clang) (id integer))
   (with-slots (asts) obj
     (unless asts (update-asts obj))
     (aref asts (1- id))))
-
-(defmethod stmt-asts ((obj clang))
-  (with-slots (asts stmt-asts) obj
-    (unless asts (update-asts obj))
-    stmt-asts))
-
-(defmethod global-asts ((obj clang))
-  (with-slots (asts global-asts) obj
-    (unless asts (update-asts obj))
-    global-asts))
-
-(defmethod functions ((obj clang))
-  (with-slots (asts functions) obj
-    (unless asts (update-asts obj))
-    functions))
-
-(defmethod prototypes ((obj clang))
-  (with-slots (asts prototypes) obj
-    (unless asts (update-asts obj))
-    prototypes))
-
-(defmethod includes ((obj clang))
-  (with-slots (asts includes) obj
-    (unless asts (update-asts obj))
-    includes))
-
-(defmethod (setf includes) (new (obj clang))
-  (with-slots (includes) obj (setf includes new)))
-
-(defmethod macros ((obj clang))
-  (with-slots (asts macros) obj
-    (unless asts (update-asts obj))
-    macros))
-
-(defmethod (setf macros) (new (obj clang))
-  (with-slots (macros) obj (setf macros new)))
-
-(defmethod types ((obj clang))
-  (with-slots (asts types) obj
-    (unless asts (update-asts obj))
-    types))
-
-(defmethod (setf types) (new (obj clang))
-  (with-slots (types) obj (setf types new)))
-
-(defmethod declarations ((obj clang))
-  (with-slots (asts declarations) obj
-    (unless asts (update-asts obj))
-    declarations))
-
-(defmethod (setf declarations) (new (obj clang))
-  (with-slots (declarations) obj (setf declarations new)))
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
