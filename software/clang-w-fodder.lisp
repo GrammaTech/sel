@@ -57,13 +57,6 @@ be fodder mutations.")
 (defmethod pick-mutation-type ((obj clang-w-fodder))
   (random-pick *clang-w-fodder-mutation-types*))
 
-(defmethod mutate ((clang-w-fodder clang-w-fodder))
-  (unless *database*
-    (error (make-condition 'mutate
-             :text "No valid Mongo database for fodder"
-             :obj clang-w-fodder)))
-  (call-next-method))
-
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet"
   (let* ((bad (aget :counter (pick-bad software)))
