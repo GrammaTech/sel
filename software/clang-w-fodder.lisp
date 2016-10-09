@@ -39,16 +39,30 @@ CLANG-W-FODDER in a method-dependent fashion."))
                  :text (format nil "No valid snippet found")))
         snippet)))
 
+(define-constant +fodder-mutation-chance+ 0.4
+  :documentation "Probability of attempting a fodder mutation on a ~
+                  software object")
+
 (defvar *clang-w-fodder-new-mutation-types*
-  '(replace-fodder-same replace-fodder-full insert-fodder insert-fodder-full))
+  '(replace-fodder-same
+    replace-fodder-full
+    insert-fodder
+    insert-fodder-full)
+  "Fodder mutation types.")
 
 (defvar *clang-w-fodder-mutation-types*
   (let ((orig-types (un-cumulative-distribution *clang-mutation-types*)))
     (cumulative-distribution
      (normalize-probabilities
-      (append orig-types
-              (mapcar {cons _ (/ (reduce #'+ (mapcar #'cdr orig-types))
-                                 (length *clang-w-fodder-new-mutation-types*))}
+      (append (mapcar (lambda (mutation-type)
+                        (cons (car mutation-type)
+                              (* (- 1 +fodder-mutation-chance+)
+                                 (cdr mutation-type))))
+                      orig-types)
+              (mapcar (lambda (mutation-type)
+                        (cons mutation-type
+                              (/ +fodder-mutation-chance+
+                                 (length *clang-w-fodder-new-mutation-types*))))
                       *clang-w-fodder-new-mutation-types*)))))
   "Cumulative distribution of normalized probabilities of weighted mutations.
 By default the weights are assigned so that half of all mutations will
