@@ -40,18 +40,14 @@
   (flet ((add-random ()
            ;; Only use random draws if a limit is specified
            (when limit
-             (cond ((equal pred #'<=) ($<= "random" rnd))
-                   ((equal pred #'<)  ($<  "random" rnd))
+             (cond ((equal pred #'<)  ($<  "random" rnd))
                    ((equal pred #'>=) ($>= "random" rnd))
-                   ((equal pred #'>)  ($>  "random" rnd))
                    (t nil))))
          (add-random-compliment ()
            ;; Only use random draws if a limit is specified
            (when limit
-             (cond ((equal pred #'<=) ($> "random" rnd))
-                   ((equal pred #'<)  ($>= "random" rnd))
+             (cond ((equal pred #'<)  ($>= "random" rnd))
                    ((equal pred #'>=) ($<  "random" rnd))
-                   ((equal pred #'>)  ($<= "random" rnd))
                    (t nil))))
          (add-class (kv)
            (if kv
@@ -80,7 +76,8 @@
                                    :port (port obj))
              (do* ((result
                     (db.sort (source-collection obj) kv :limit (or limit 0)
-                                                        :field "random")
+                                                        :field "random"
+                                                        :asc (equal pred #'>=))
                     (db.next (source-collection obj) cursor))
                    (cursor (cursor result)
                            (cursor result))
@@ -100,7 +97,10 @@
           (take (or limit infinity)
                 (append snippets
                   (find-snippets-kv
-                    (or (add-full-stmt (add-class (add-random-compliment)))
+                    (or (-> (add-random-compliment)
+                            (add-class)
+                            (add-full-stmt)
+                            (add-decls))
                         :all)
                     (- limit (length snippets)))))
           (take (or limit infinity) snippets)))))
