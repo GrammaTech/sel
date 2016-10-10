@@ -17,14 +17,22 @@
 
 (define-condition pliny-query-failed (error)
   ((command :initarg :command :initform nil :reader command)
+   (stdout :initarg :stdout :initform nil :reader stdout)
+   (stderr :initarg :stderr :initform nil :reader stderr)
    (exit-code :initarg :exit-code :initform nil :reader exit-code))
   (:report (lambda (condition stream)
-             (format stream "Shell command failed with status ~a: \"~a\""
-                     (exit-code condition) (command condition)))))
+             (format stream "Shell command failed with status ~a: \"~a\"~%~
+                             stdout: ~a~%~
+                             stderr: ~a~%"
+                     (exit-code condition) (command condition)
+                     (stdout condition) (stderr condition)))))
 
 (defmethod initialize-instance :after ((obj pliny-database) &key)
-  (when (not (listp (find-snippets obj :limit 1)))
-    (error "Pliny database ~a does not contain fodder snippets." obj)))
+  (handler-case
+    (when (not (listp (find-snippets obj :limit 1)))
+      (error "Pliny database ~a does not contain fodder snippets." obj))
+    (pliny-query-failed (e)
+      (error "Pliny database ~a does not contain fodder snippets." obj))))
 
 (defmethod print-object ((obj pliny-database) stream)
   (print-unreadable-object (obj stream :type t)
@@ -91,12 +99,13 @@
           (cl-json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
       (multiple-value-bind (stdout stderr errno)
           (shell query-command)
-        (declare (ignorable stderr))
         (if (zerop errno)
             (reverse (cl-json:decode-json-from-string stdout))
-            (make-condition 'shell-command-failed
-              :exit-code errno
-              :command query-command))))))
+            (error (make-condition 'pliny-query-failed
+                     :exit-code errno
+                     :command query-command
+                     :stdout stdout
+                     :stderr stderr)))))))
 
 (defmethod features-to-weights (features)
   (mapcar (lambda (feature) (cons (car feature) (/ 1 (length features))))
