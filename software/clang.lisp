@@ -296,7 +296,10 @@ Keyword arguments may be used to restrict selections."
            (mapconcat [#'peel-bananas {aget ::src-text}]
                       (get-immediate-children software ast)
                       (coerce (list #\Semicolon #\Newline) 'string))))
-    `((:set
+    (when (null guarded) ; No guarded statements to promote, do a cut-full.
+      (return-from build-op
+        (build-op (make-instance 'clang-cut-full) software)))
+    `((:set                             ; Promote guard mutation
        ,(cons :stmt1 (aget :counter guarded))
        ,(cons :literal1
               (switch ((aget :ast-class guarded) :test #'string=)
@@ -334,8 +337,8 @@ Keyword arguments may be used to restrict selections."
                               (if (random-bool) ; Pick a branch randomly.
                                   (compose-children (second children))
                                   (compose-children (third children)))))))))
-                (t (error "`clang-promote-guarded' unimplemented for ~a"
-                          (aget :ast-class guarded)))))))))
+                (t (warn 1 "`clang-promote-guarded' unimplemented for ~a"
+                         (aget :ast-class guarded)))))))))
 
 ;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
