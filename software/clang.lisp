@@ -172,10 +172,11 @@ Keyword arguments may be used to restrict selections."
                       (random-ast
                        (maybe-only-full
                         (if same-class
-                            (remove-if-not
-                             [{string= (get-ast-class software first-pick)}
-                              {aget :ast-class}]
-                             second-pool)
+                            (or (remove-if-not ; Try to filter by ast-class.
+                                 [{string= (get-ast-class software first-pick)}
+                                  {aget :ast-class}]
+                                 second-pool)
+                                second-pool) ; Fall back if no AST class match.
                             second-pool))))))))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
