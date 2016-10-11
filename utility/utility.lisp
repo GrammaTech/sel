@@ -997,6 +997,9 @@ The resulting file may be fed directly to the flamegraph tool as follows.
 
 See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
   #-sbcl (error "`PROFILE-TO-flame-graph' unimplemented for non-SBCL lisps.")
+  (unless sb-sprof::*samples*
+    (warn "; `profile-to-flame-graph': No samples to report.")
+    (return-from profile-to-flame-graph))
   (let ((samples (sb-sprof::samples-vector sb-sprof::*samples*))
         (counts (make-hash-table :test #'equal)))
 
@@ -1016,8 +1019,6 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
                                (format stream "~A;"
                                        (sb-sprof::node-name node)))))))
                (incf (gethash key counts 0)))))
-
-    (format t "HASH:~S~%" counts)
 
     (maphash (lambda (trace count)
                (format stream "~A ~D~%" trace count))
