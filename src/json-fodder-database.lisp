@@ -48,6 +48,23 @@
       (format stream "~a:" (pathname (json-stream db))))
     (prin1 (length (ast-database-list db)) stream)))
 
+(defun json-fodder-database-prepare-results (results filter predicate key)
+  (sort (remove-if filter results) predicate :key key))
+
+(memoize #'json-fodder-database-prepare-results :if-memoized :replace)
+
+(defmethod sorted-snippets ((db json-database) predicate
+                            &key target key ast-class limit
+                              (filter #'null)
+                              (limit-considered infinity))
+  (declare (ignorable target))
+  (let ((base (json-fodder-database-prepare-results
+               (find-snippets db
+                 :ast-class ast-class :full-stmt (not ast-class)
+                 :limit limit-considered)
+               filter predicate key)))
+    (if limit (take limit base) base)))
+
 (defmethod initialize-instance :after ((db json-database) &key)
   ;; Initialize (load) a new json database.
   (dolist (snippet (shuffle (load-json-with-caching db)))
