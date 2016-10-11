@@ -699,7 +699,7 @@
   (with-fixture huf-clang
     (is (find-if [{string= "\"this is an example for huffman encoding\""}
                   {aget :src-text}]
-                 (global-asts *huf*))
+                 (non-stmt-asts *huf*))
         "Ensure known global is in `globals'.")
     (is (find-if [{string= "int i"} {aget :src-text}]
                  (stmt-asts *huf*))
