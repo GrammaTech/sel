@@ -113,7 +113,7 @@
    :functions
    :asts
    :stmt-asts
-   :global-asts
+   :non-stmt-asts
    :good-stmts
    :bad-stmts
    :update-asts

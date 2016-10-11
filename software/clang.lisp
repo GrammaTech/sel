@@ -30,9 +30,12 @@
    (stmt-asts :initarg :stmt-asts :accessor stmt-asts :initform nil
               :copier :direct :type (list (cons keyword *) *) :documentation
               "List of statement ASTs which exist within a function body.")
-   (global-asts :initarg :global-asts :accessor global-asts :initform nil
-                :copier :direct :type (list (cons keyword *) *) :documentation
-                "List of global AST which live outside of any function.")
+   ;; TODO: We should split non-statement ASTs into typedefs,
+   ;;       structs/classes, and global variables, all of which should
+   ;;       have different mutation types defined.  This needs more design.
+   (non-stmt-asts :initarg :non-stmt-asts :accessor non-stmt-asts :initform nil
+                  :copier :direct :type (list (cons keyword *) *) :documentation
+                  "List of global AST which live outside of any function.")
    (functions :initarg :functions :accessor functions :initform nil
               :copier :direct :type (list (cons keyword *) *) :documentation
               "Complete functions with bodies.")
@@ -334,17 +337,6 @@ Keyword arguments may be used to restrict selections."
                 (t (error "`clang-promote-guarded' unimplemented for ~a"
                           (aget :ast-class guarded)))))))))
 
-;;; TODO: Cut global
-;; (define-mutation cut-global (clang-mutation)
-;;   ((targeter :initform #'pick-global)))
-;;
-;; (defun pick-global (clang)
-;;   `((:stmt1 . ,(random-ast (global-asts clang)))))
-;;
-;; (defmethod build-op ((mutation cut-global) clang)
-;;   ;; TODO: Implement.
-;;   )
-
 ;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
   ((targeter :initform #'pick-cut-decl)))
@@ -492,7 +484,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
-  (with-slots (asts stmt-asts global-asts macros includes types
+  (with-slots (asts stmt-asts non-stmt-asts macros includes types
                     functions prototypes declarations genome) obj
     ;; Incorporate ASTs.
     (iter (for ast in (restart-case
@@ -530,12 +522,14 @@ for successful mutation (e.g. adding includes/types/macros)"))
            (let (my-stmts my-non-stmts)
              (mapc (lambda (ast)
                      (if (some {contains _ (ast-to-source-range ast)} fn-ranges)
-                         (push ast my-stmts)
+                         (unless (or (string= "ParmVar" (aget :ast-class ast))
+                                     (string= "Function" (aget :ast-class ast)))
+                           (push ast my-stmts))
                          (push ast my-non-stmts)))
                    body)
              (setf asts (coerce body 'vector)
-                   stmt-asts my-stmts
-                   global-asts my-non-stmts
+                   stmt-asts (nreverse my-stmts)
+                   non-stmt-asts (nreverse my-non-stmts)
                    types m-types
                    macros m-macros
                    includes m-includes
@@ -552,7 +546,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
   ;; they originally appeared.
   (setf (genome obj)
         (mapconcat {aget :decl-text}
-                   (sort (global-asts obj)
+                   (sort (asts obj)
                          (lambda (x y)
                            (or (< (first x) (first y))
                                (and (= (first x) (first y))
@@ -690,16 +684,16 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod update-asts-if-necessary ((obj clang))
   (with-slots (asts) obj (unless asts (update-asts obj))))
 
-(defmethod         asts :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod    stmt-asts :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod  global-asts :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod    functions :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod   prototypes :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod     includes :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod        types :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod declarations :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod       macros :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod      globals :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod          asts :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod     stmt-asts :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod non-stmt-asts :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod     functions :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod    prototypes :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod      includes :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod         types :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod  declarations :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod        macros :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod       globals :before ((obj clang)) (update-asts-if-necessary obj))
 
 (defmethod asts ((obj clang))
   (with-slots (asts) obj (coerce asts 'list)))
