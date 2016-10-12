@@ -125,7 +125,7 @@
    :concatenating
    ;; Profiling helpers
    :*profile-dot-min-ratio*
-   :profile-to-dot
+   :profile-to-dot-graph
    :profile-to-flame-graph
    ))
 
