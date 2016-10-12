@@ -970,6 +970,9 @@ that function may be declared.")
 (defun profile-to-dot-graph (stream)
   "Write profile to STREAM."
   #-sbcl (error "`PROFILE-TO-DOT-GRAPH' unimplemented for non-SBCL lisps.")
+  (unless sb-sprof::*samples*
+    (warn "; `profile-to-dot-graph': No samples to report.")
+    (return-from profile-to-dot-graph))
   (let ((call-graph (sb-sprof::make-call-graph most-positive-fixnum)))
     (cl-dot:print-graph
      (cl-dot:generate-graph-from-roots
