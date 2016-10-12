@@ -954,29 +954,31 @@ that function may be declared.")
              (logior (ash red 16) (ash green 8) (ash blue 0)))))
     (let ((ratio (/ (sb-sprof::node-count object)
                     (sb-sprof::call-graph-nsamples graph))))
-      (unless (and *profile-dot-min-ratio*
-                   (< ratio *profile-dot-min-ratio*))
-        (make-instance 'cl-dot:node
-          :attributes `(:label     ,(format nil "~A\\n~,2,2F %"
-                                            (sb-sprof::node-name object) ratio)
-                                   :shape     :rectangle
-                                   :style     :filled
-                                   :fillcolor ,(format nil "#~6,'0X"
-                                                       (ratio->color ratio))))))))
+      (make-instance 'cl-dot:node
+        :attributes `(:label ,(format nil "~A\\n~,2,2F %"
+                                      (sb-sprof::node-name object) ratio)
+                             :shape     :box
+                             :style     :filled
+                             :fillcolor ,(format nil "#~6,'0X"
+                                                 (ratio->color ratio)))))))
 
 #+sbcl
 (defmethod cl-dot:graph-object-pointed-to-by
     ((graph sb-sprof::call-graph) (object sb-sprof::node))
   (sb-sprof::node-callers object))
 
-(defun profile-to-dot (stream)
-  "Write profile to DOT-FILE."
-  #-sbcl (error "`PROFILE-TO-DOT' unimplemented for non-SBCL lisps.")
+(defun profile-to-dot-graph (stream)
+  "Write profile to STREAM."
+  #-sbcl (error "`PROFILE-TO-DOT-GRAPH' unimplemented for non-SBCL lisps.")
   (let ((call-graph (sb-sprof::make-call-graph most-positive-fixnum)))
-    ;; (sb-sprof::reduce-graph call-graph) ; TODO: <- causes problems.
-    (cl-dot:print-graph (cl-dot:generate-graph-from-roots
-                         call-graph (sb-sprof::call-graph-vertices call-graph))
-                        :stream stream)))
+    (cl-dot:print-graph
+     (cl-dot:generate-graph-from-roots
+      call-graph
+      (remove-if [{> *profile-dot-min-ratio*}
+                  {/ _ (sb-sprof::call-graph-nsamples call-graph)}
+                  #'sb-sprof::node-count]
+                 (sb-sprof::call-graph-vertices call-graph)))
+     :stream stream)))
 
 ;; FlameGraph implementation from
 ;; http://paste.lisp.org/display/326901.
@@ -996,7 +998,7 @@ The resulting file may be fed directly to the flamegraph tool as follows.
     shell$ profile.data|flamegraph > profile.svg
 
 See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
-  #-sbcl (error "`PROFILE-TO-flame-graph' unimplemented for non-SBCL lisps.")
+  #-sbcl (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps.")
   (unless sb-sprof::*samples*
     (warn "; `profile-to-flame-graph': No samples to report.")
     (return-from profile-to-flame-graph))
