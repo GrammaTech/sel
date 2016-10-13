@@ -687,24 +687,30 @@ Keyword arguments are as follows:
 
 (defun simple-reproduce (population)
   (let (children mutations)
-    (loop :for parent in population
-          :do (restart-case
-               (multiple-value-bind (child info)
-                   (new-individual parent (random-elt population))
-                 (push child children)
-                 (push info mutations))
-               (ignore-failed-mutation ()
-                 :report
-                 "Ignore failed mutation and continue evolution")))
+    (iter (for parent in population)
+          (restart-case
+              (multiple-value-bind (child info)
+                  (new-individual parent (random-elt population))
+                (push child children)
+                (push info mutations))
+            (ignore-failed-mutation ()
+              :report
+              "Ignore failed mutation and continue evolution")))
     (values children mutations)))
 
 (defun simple-evaluate (test new-children)
   (mapc (lambda (child)
           (incf *fitness-evals*)
-          (evaluate test child))
+          (restart-case
+              (evaluate test child)
+            (worse-for-failed-fitness-evaluation ()
+              :report
+              "Assign `worst-numeric-fitness' for failed fitness evaluation.")))
         new-children))
 
 (defun simple-select (population max-size &aux new-pop)
-  (declare (ignorable population))      ; tournament uses global *population*
-  (dotimes (n max-size new-pop)
-    (push (tournament) new-pop)))
+  (declare (ignorable population)) ; tournament uses global *population*
+  (iter (until (= max-size (length new-pop)))
+        (restart-case (push (tournament) new-pop)
+          (ignore-failed-selection ()
+            :report "Ignore failed `tournament' selection."))))
