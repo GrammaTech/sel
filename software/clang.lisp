@@ -817,21 +817,18 @@ already in scope, it will keep that name.")
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
 
-(defun apply-mutation-ops (software ops)
-  "Run clang-mutate with a list of mutation operations, and update the
-genome."
-
-  ;; If we multiplex multiple software objects onto one
-  ;; clang-mutate invocation, they will need to track their own TU
-  ;; ids.  With one software object, it will always be TU 0.
-  (let ((tu 0))
-    (setf (genome software)
-          (clang-mutate software '(:scripted) :script
-                        (format nil "reset ~a; ~{~a; ~}preview ~a"
-                                tu
-                                (mapcar {mutation-op-to-cmd tu} ops)
-                                tu)))
-    software))
+(defun apply-mutation-ops (software ops &aux (tu 0))
+  "Run clang-mutate with a list of mutation operations, and update the genome."
+  ;; If we multiplex multiple software objects onto one clang-mutate
+  ;; invocation, they will need to track their own TU ids.  With one
+  ;; software object, it will always be TU 0.
+  (setf (genome software)
+        (clang-mutate software '(:scripted) :script
+                      (format nil "reset ~a; ~{~a; ~}preview ~a"
+                              tu
+                              (mapcar {mutation-op-to-cmd tu} ops)
+                              tu)))
+  software)
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
