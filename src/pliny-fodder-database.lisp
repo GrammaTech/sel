@@ -74,6 +74,7 @@
    (server-thread :reader server-thread)))
 
 (defmethod from-file ((obj pliny-database) db)
+  "Create a Pliny database using the contents of DB"
   (note 1 "Starting Pliny Database")
   (start-server obj)
   (sleep 2.5)
@@ -90,16 +91,27 @@
   (warning "Unsupported lisp; please cleanup Pliny ~
             server instance manually upon exit")
 
+  obj)
+
+(defmethod from-string ((obj pliny-database) arg)
+  "Parse a database argument in the form \"<HOST|FILE>:PORT\""
+  (register-groups-bind (file-or-host-arg port-arg)
+    ("^([^\0]+):(\\d+)" arg)
+    (when (and file-or-host-arg port-arg)
+      (with-slots (host port) obj
+        (setf host file-or-host-arg
+              port (parse-integer port-arg)))
+      (when (probe-file file-or-host-arg)
+        (setf (slot-value obj 'host) "localhost")
+        (from-file obj file-or-host-arg))))
+  obj)
+
+(defmethod empty ((obj pliny-database))
   (handler-case
-    (when (null (find-snippets obj :limit 1))
-      (shutdown-server obj)
-      (error "Pliny database ~a does not contain fodder snippets." obj))
+      (null (find-snippets obj :limit 1))
     (pliny-query-failed (e)
       (declare (ignorable e))
-      (shutdown-server obj)
-      (error "Pliny database ~a does not contain fodder snippets." obj)))
-
-  obj)
+      t)))
 
 (defmethod start-server ((obj pliny-database))
   (with-slots (host port catalog frontend-log backend-log ipc-file
