@@ -174,6 +174,7 @@
    :mongo-database
    :pliny-database
    :db :host :port
+   :empty
    :source-collection :cache-collection :middle-host :middle-port
    :find-snippets
    :weighted-pick

@@ -48,6 +48,9 @@
       (format stream "~a:" (pathname (json-stream db))))
     (prin1 (length (ast-database-list db)) stream)))
 
+(defmethod empty ((db json-database))
+  (zerop (size db)))
+
 (defun json-fodder-database-prepare-results (results filter predicate key)
   (sort (remove-if filter results) predicate :key key))
 
@@ -85,9 +88,7 @@
           (let ((type-id (aget :hash snippet)))
             (when type-id
               (setf (gethash type-id (type-database-ht db)) snippet))))))
-  (setf (slot-value db 'size) (length (ast-database-list db)))
-  (when (zerop (size db))
-    (error "JSON database ~a does not contain fodder snippets." db)))
+  (setf (slot-value db 'size) (length (ast-database-list db))))
 
 (defmethod load-json-with-caching ((db json-database))
   (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))

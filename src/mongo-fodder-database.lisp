@@ -20,9 +20,22 @@
    (size :reader size :type integer)))
 
 (defmethod initialize-instance :after ((db mongo-database) &key)
-  (update-size db)
-  (when (zerop (size db))
-    (error "Mongo database ~a does not contain fodder snippets." db)))
+  (update-size db))
+
+(defmethod from-string ((obj mongo-database) arg)
+  "Parse a database argument in the form \"HOST:PORT/DB\""
+  (register-groups-bind (host-arg port-arg db-arg)
+    ("^(\\w+):(\\d+)/(\\w+)" arg)
+    (when (and host-arg port-arg db-arg)
+      (with-slots (host port db) obj
+        (setf (host obj) host-arg
+              (port obj) (parse-integer port-arg)
+              (db obj) db-arg))
+      (update-size obj)))
+  obj)
+
+(defmethod empty ((obj mongo-database))
+  (zerop (size obj)))
 
 (defmethod update-size ((obj mongo-database))
   (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
