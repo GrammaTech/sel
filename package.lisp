@@ -49,6 +49,7 @@
    :pick-snippet
    :pick-guarded-compound
    :mutate
+   :no-mutation-targets
    :pick-mutation-type
    :clang-mutation
    :build-op
@@ -275,6 +276,7 @@
    :add-type
    :add-macro
    :ignore-failed-mutation
+   :try-another-mutation
    :fix-compilation
    :generational-evolve
    :simple-reproduce
