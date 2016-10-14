@@ -2,20 +2,21 @@
 (defpackage :software-evolution
   (:nicknames :se)
   (:use
-   :common-lisp
    :alexandria
-   :metabang-bind
-   :curry-compose-reader-macros
+   :bordeaux-threads
+   :common-lisp
    :cl-arrows
-   :iterate
-   :split-sequence
-   :cl-ppcre
    :cl-mongo
-   :usocket
+   :cl-ppcre
+   :curry-compose-reader-macros
    :diff
    :elf
+   :iterate
    :memoize
-   :software-evolution-utility)
+   :metabang-bind
+   :split-sequence
+   :software-evolution-utility
+   :usocket)
   (:shadow :elf :size :type :magic-number :diff :insert)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:export
