@@ -3,17 +3,32 @@
 
 (in-package :software-evolution)
 
-(defvar *pliny-default-host* "localhost"
-  "Default Pliny database host")
+;; Constants
+(define-constant +pliny-default-host+ "localhost"
+  :test #'equalp
+  :documentation "Default Pliny database host")
 
-(defvar *pliny-default-port* 10005
-  "Default Pliny database port")
+(define-constant +pliny-default-port+ 10005
+  :documentation "Default Pliny database port")
 
-(defclass pliny-database (fodder-database)
-  ((host :initarg :host :accessor host
-         :initform *pliny-default-host* :type simple-string)
-   (port :initarg :port :accessor port
-         :initform *pliny-default-port* :type integer)))
+(define-constant +server-frontend-num-threads+ 4
+  :documentation "Number of threads for the database front-end")
+
+(define-constant +server-backend-num-threads+ 4
+  :documentation "Number of threads for the database back-end")
+
+(define-constant +server-memory-per-thread+ 436207616
+  :documentation "Amount of memory to allocate for each thread")
+
+;; Helpers
+(defclass json-false ()
+  ())
+
+(defmethod cl-json:encode-json ((object json-false) &optional stream)
+  (princ "false" stream)
+  nil)
+
+(defvar *json-false* (make-instance 'json-false))
 
 (define-condition pliny-query-failed (error)
   ((command :initarg :command :initform nil :reader command)
@@ -27,12 +42,111 @@
                      (exit-code condition) (command condition)
                      (stdout condition) (stderr condition)))))
 
-(defmethod initialize-instance :after ((obj pliny-database) &key)
+(defmethod features-to-weights (features)
+  (mapcar (lambda (feature) (cons (car feature) (/ 1 (length features))))
+          features))
+
+;; Pliny Database
+(defclass pliny-database (fodder-database)
+  ((host :initarg :host
+         :reader host
+         :initform +pliny-default-host+
+         :type simple-string)
+   (port :initarg :port
+         :reader port
+         :initform +pliny-default-port+
+         :type integer)
+   (catalog       :initform (temp-file-name)
+                  :reader catalog
+                  :type simple-string)
+   (storage       :initform (temp-file-name)
+                  :reader storage
+                  :type simple-string)
+   (frontend-log  :initform (temp-file-name)
+                  :reader frontend-log
+                  :type simple-string)
+   (backend-log   :initform (temp-file-name)
+                  :reader backend-log
+                  :type simple-string)
+   (ipc-file      :initform (temp-file-name)
+                  :reader ipc-file
+                  :type simple-string)
+   (server-thread :reader server-thread)))
+
+(defmethod from-file ((obj pliny-database) db)
+  (note 1 "Starting Pliny Database")
+  (start-server obj)
+  (sleep 2.5)
+
+  (note 1 "Loading Pliny Database from ~a. ~
+           This could take several minutes." db)
+  (load-server obj db)
+
+  #+sbcl
+  (push {shutdown-server obj} sb-ext:*exit-hooks*)
+  #+ccl
+  (push {shutdown-server obj} ccl:*lisp-cleanup-functions*)
+  #-(or sbcl ccl)
+  (warning "Unsupported lisp; please cleanup Pliny ~
+            server instance manually upon exit")
+
   (handler-case
-    (when (not (listp (find-snippets obj :limit 1)))
+    (when (null (find-snippets obj :limit 1))
+      (shutdown-server obj)
       (error "Pliny database ~a does not contain fodder snippets." obj))
     (pliny-query-failed (e)
-      (error "Pliny database ~a does not contain fodder snippets." obj))))
+      (declare (ignorable e))
+      (shutdown-server obj)
+      (error "Pliny database ~a does not contain fodder snippets." obj)))
+
+  obj)
+
+(defmethod start-server ((obj pliny-database))
+  (with-slots (host port catalog frontend-log backend-log ipc-file
+               server-thread) obj
+    (setf host "localhost")
+    (setf server-thread
+          (make-thread (lambda()
+                        (shell "GTServer ~a ~d ~a ~d ~d ~d ~a ~a"
+                               catalog
+                               port
+                               ipc-file
+                               +server-frontend-num-threads+
+                               +server-backend-num-threads+
+                               +server-memory-per-thread+
+                               frontend-log
+                               backend-log))
+                       :name (format nil "GTServerThread:~a" port)))))
+
+(defmethod load-server ((obj pliny-database) db)
+  (with-temp-file (logfile)
+    (shell "GTLoader ~a ~d ~a --storage ~a --logfile ~a"
+           (host obj) (port obj) db (storage obj) logfile)))
+
+(defmethod shutdown-server ((obj pliny-database))
+  (or (or (null (host obj)) (null (port obj)))
+      (with-temp-file (logfile)
+        (shell "GTServerShutdown ~a ~d --logfile ~a"
+               (host obj) (port obj) logfile)))
+  (or (null (server-thread obj)) (join-thread (server-thread obj)))
+  (or (null (catalog obj)) (delete-file (catalog obj)))
+  (or (null (storage obj)) (delete-file (storage obj)))
+  (or (null (ipc-file obj)) (delete-file (ipc-file obj)))
+  (or (null (frontend-log obj)) (delete-file (frontend-log obj)))
+  (or (null (backend-log obj)) (delete-file (backend-log obj)))
+
+  (with-slots (host port server-thread catalog storage ipc-file
+               frontend-log backend-log) obj
+    (setf host nil
+          port nil
+          server-thread nil
+          catalog nil
+          storage nil
+          ipc-file nil
+          frontend-log nil
+          backend-log nil))
+
+  nil)
 
 (defmethod print-object ((obj pliny-database) stream)
   (print-unreadable-object (obj stream :type t)
@@ -93,29 +207,18 @@
 
 (defmethod execute-query ((obj pliny-database) query limit)
   (with-temp-file-of (query-file "json")
-      (cl-json:encode-json-to-string query)
-    (let ((query-command (format nil "GTQuery ~a ~D ~D ~a"
-                                 (host obj) (port obj) limit query-file))
-          (cl-json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
-      (multiple-value-bind (stdout stderr errno)
-          (shell query-command)
-        (if (zerop errno)
-            (reverse (cl-json:decode-json-from-string stdout))
-            (error (make-condition 'pliny-query-failed
-                     :exit-code errno
-                     :command query-command
-                     :stdout stdout
-                     :stderr stderr)))))))
-
-(defmethod features-to-weights (features)
-  (mapcar (lambda (feature) (cons (car feature) (/ 1 (length features))))
-          features))
-
-(defclass json-false ()
-  ())
-
-(defmethod cl-json:encode-json ((object json-false) &optional stream)
-  (princ "false" stream)
-  nil)
-
-(defvar *json-false* (make-instance 'json-false))
+    (cl-json:encode-json-to-string query)
+    (with-temp-file (log-file)
+      (let ((query-command (format nil "GTQuery ~a ~D ~D ~a --logfile ~a"
+                                   (host obj) (port obj) limit
+                                   query-file log-file))
+            (cl-json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
+        (multiple-value-bind (stdout stderr errno)
+            (shell query-command)
+          (if (zerop errno)
+              (reverse (cl-json:decode-json-from-string stdout))
+              (error (make-condition 'pliny-query-failed
+                       :exit-code errno
+                       :command query-command
+                       :stdout stdout
+                       :stderr stderr))))))))

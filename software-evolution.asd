@@ -10,19 +10,20 @@ techniques."
   :licence "GPL V3"
   ;; :homepage "http://eschulte.github.io/software-evolution/index.html"
   :depends-on (alexandria
-               metabang-bind
-               curry-compose-reader-macros
+               bordeaux-threads
                cl-arrows
-               iterate
-               split-sequence
                cl-json
-               cl-ppcre
                cl-mongo
-               usocket
+               cl-ppcre
+               curry-compose-reader-macros
                diff
                elf
+               iterate
                memoize
-               software-evolution-utility)
+               metabang-bind
+               software-evolution-utility
+               split-sequence
+               usocket)
   :in-order-to ((test-op (test-op software-evolution-test)))
   :components
   ((:module base
