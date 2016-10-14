@@ -349,10 +349,10 @@ Keyword arguments may be used to restrict selections."
   (if-let ((decls (remove-if-not [{string= "DeclStmt"} {aget :ast-class}]
                                  (stmt-asts clang))))
     `((:stmt1 . ,(random-ast decls)))
-    'did-nothing))
+    '(did-nothing)))
 
 (defmethod build-op ((mutation cut-decl) clang)
-  (if (not (eq (targets mutation) 'did-nothing))
+  (if (not (equalp (targets mutation) '(did-nothing)))
       (let* ((decl (aget :stmt1 (targets mutation)))
              (the-block (enclosing-block clang decl))
              (old-names (aget :declares (get-ast clang decl)))
@@ -374,7 +374,7 @@ Keyword arguments may be used to restrict selections."
   ((targeter :initform #'pick-swap-decls)))
 
 (defmethod build-op :around ((mutation swap-decls) software)
-  (if (not (eq (targets mutation) 'did-nothing))
+  (if (not (equalp (targets mutation) '(did-nothing)))
       (call-next-method)))
 
 (defun pick-two (things)
@@ -388,7 +388,7 @@ Keyword arguments may be used to restrict selections."
   (labels
       ((pick-from-block (the-block)
          (if (equal the-block 0)
-             'did-nothing
+             '(did-nothing)
              (let ((decls
                     (->> (aget :stmt-list (get-ast clang the-block))
                          (mapcar {get-ast clang})
@@ -416,10 +416,10 @@ Keyword arguments may be used to restrict selections."
                              (list old-var))))
                (stmt1 (enclosing-full-stmt-or-block clang stmt)))
           `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var)))
-        'did-nothing)))
+        '(did-nothing))))
 
 (defmethod build-op ((mutation rename-variable) software)
-  (if (not (eq (targets mutation) 'did-nothing))
+  (if (not (equalp (targets mutation) '(did-nothing)))
       (let ((stmt1 (aget :stmt1 (targets mutation)))
             (old-var (aget :old-var (targets mutation)))
             (new-var (aget :new-var (targets mutation))))
