@@ -253,6 +253,17 @@ elements.")
                  (format stream "Mutation error ~a on ~S"
                          (text condition) (obj condition))))))
 
+(define-condition no-mutation-targets (error)
+  ((text :initarg :text :initform nil :reader text)
+   (obj  :initarg :obj  :initform nil :reader obj)
+   (op   :initarg :op   :initform nil :reader op))
+  (:report (lambda (condition stream)
+             (if (op condition)
+                 (format stream "No targets error ~a applying ~S to ~S"
+                         (text condition) (op condition) (obj condition))
+                 (format stream "No targets error ~a on ~S"
+                         (text condition) (obj condition))))))
+
 (defgeneric apply-mutation (software mutation)
   (:documentation "Apply MUTATION to SOFTWARE, return the resulting software.
 Define an :around method on this function to record mutations."))

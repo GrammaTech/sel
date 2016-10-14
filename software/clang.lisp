@@ -349,33 +349,30 @@ Keyword arguments may be used to restrict selections."
   (if-let ((decls (remove-if-not [{string= "DeclStmt"} {aget :ast-class}]
                                  (stmt-asts clang))))
     `((:stmt1 . ,(random-ast decls)))
-    '(did-nothing)))
+    (error (make-condition 'no-mutation-targets
+             :text "No decls to cut"
+             :obj clang))))
 
 (defmethod build-op ((mutation cut-decl) clang)
-  (if (not (equalp (targets mutation) '(did-nothing)))
-      (let* ((decl (aget :stmt1 (targets mutation)))
-             (the-block (enclosing-block clang decl))
-             (old-names (aget :declares (get-ast clang decl)))
-             (uses (mappend (lambda (x) (get-children-using clang x the-block))
-                            old-names))
-             (vars (remove-if {find _ old-names :test #'equal}
-                              (get-vars-in-scope clang
-                                (if uses (car uses) the-block))))
-             (var (mapcar (lambda (old-name)
-                            (declare (ignorable old-name))
-                            (if vars
-                                (random-elt vars)
-                                "/* no vars before first use of cut-decl */"))
-                          old-names)))
-        (delete-decl-stmts clang the-block `((,decl . ,var))))))
+  (let* ((decl (aget :stmt1 (targets mutation)))
+         (the-block (enclosing-block clang decl))
+         (old-names (aget :declares (get-ast clang decl)))
+         (uses (mappend (lambda (x) (get-children-using clang x the-block))
+                        old-names))
+         (vars (remove-if {find _ old-names :test #'equal}
+                          (get-vars-in-scope clang
+                            (if uses (car uses) the-block))))
+         (var (mapcar (lambda (old-name)
+                        (declare (ignorable old-name))
+                        (if vars
+                            (random-elt vars)
+                            "/* no vars before first use of cut-decl */"))
+                      old-names)))
+    (delete-decl-stmts clang the-block `((,decl . ,var)))))
 
 ;;; Swap Decls
 (define-mutation swap-decls (clang-swap)
   ((targeter :initform #'pick-swap-decls)))
-
-(defmethod build-op :around ((mutation swap-decls) software)
-  (if (not (equalp (targets mutation) '(did-nothing)))
-      (call-next-method)))
 
 (defun pick-two (things)
   (let ((this (random-elt things))
@@ -387,17 +384,19 @@ Keyword arguments may be used to restrict selections."
 (defun pick-swap-decls (clang)
   (labels
       ((pick-from-block (the-block)
-         (if (equal the-block 0)
-             '(did-nothing)
-             (let ((decls
-                    (->> (aget :stmt-list (get-ast clang the-block))
-                         (mapcar {get-ast clang})
-                         (remove-if-not [{string= "DeclStmt"} {aget :ast-class}])
-                         (mapcar {aget :counter}))))
-               (if (> 2 (length decls))
-                   (pick-from-block (enclosing-block clang the-block))
-                   (multiple-value-bind (stmt1 stmt2) (pick-two decls)
-                     `((:stmt1 . ,stmt1) (:stmt2 . ,stmt2))))))))
+         (when (equal the-block 0)
+           (error (make-condition 'no-mutation-targets
+                    :text "No decls to swap"
+                    :obj clang)))
+         (let ((decls
+                (->> (aget :stmt-list (get-ast clang the-block))
+                     (mapcar {get-ast clang})
+                     (remove-if-not [{string= "DeclStmt"} {aget :ast-class}])
+                     (mapcar {aget :counter}))))
+           (if (> 2 (length decls))
+               (pick-from-block (enclosing-block clang the-block))
+               (multiple-value-bind (stmt1 stmt2) (pick-two decls)
+                 `((:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))))))
     (pick-from-block (enclosing-block clang
                                       (random-ast (bad-stmts clang))))))
 
@@ -408,26 +407,27 @@ Keyword arguments may be used to restrict selections."
 (defun pick-rename-variable (clang)
   (let* ((stmt (random-ast (bad-stmts clang)))
          (used (get-used-variables clang stmt)))
-    (if used
-        (let* ((old-var (random-elt used))
-               (new-var (random-elt
-                         (or (remove-if {equal old-var}
-                                        (get-vars-in-scope clang stmt))
-                             (list old-var))))
-               (stmt1 (enclosing-full-stmt-or-block clang stmt)))
-          `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var)))
-        '(did-nothing))))
+    (unless used
+      (error (make-condition 'no-mutation-targets
+               :text "No variables to rename"
+               :obj clang)))
+    (let* ((old-var (random-elt used))
+           (new-var (random-elt
+                     (or (remove-if {equal old-var}
+                                    (get-vars-in-scope clang stmt))
+                         (list old-var))))
+           (stmt1 (enclosing-full-stmt-or-block clang stmt)))
+      `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var)))))
 
 (defmethod build-op ((mutation rename-variable) software)
-  (if (not (equalp (targets mutation) '(did-nothing)))
-      (let ((stmt1 (aget :stmt1 (targets mutation)))
-            (old-var (aget :old-var (targets mutation)))
-            (new-var (aget :new-var (targets mutation))))
-        `((:set
-           (:stmt1 . ,stmt1)
-           (:literal1 . ,(rebind-uses software
-                                      stmt1
-                                      (list (cons old-var new-var)))))))))
+  (let ((stmt1 (aget :stmt1 (targets mutation)))
+        (old-var (aget :old-var (targets mutation)))
+        (new-var (aget :new-var (targets mutation))))
+    `((:set
+       (:stmt1 . ,stmt1)
+       (:literal1 . ,(rebind-uses software
+                                  stmt1
+                                  (list (cons old-var new-var))))))))
 
 
 ;;; Clang methods
@@ -790,10 +790,14 @@ already in scope, it will keep that name.")
 (defmethod mutate ((clang clang))
   (unless (stmt-asts clang)
     (error (make-condition 'mutate :text "No valid statements" :obj clang)))
-
-  (let ((mutation (make-instance (pick-mutation-type clang) :object clang)))
-    (apply-mutation clang mutation)
-    (values clang mutation)))
+  (restart-case
+      (let ((mutation
+             (make-instance (pick-mutation-type clang) :object clang)))
+        (apply-mutation clang mutation)
+        (values clang mutation))
+    (try-another-mutation ()
+      :report "Try another mutation"
+      (mutate clang))))
 
 (defmethod recontextualize-mutation ((clang clang) mutation)
   (loop :for (op . properties) :in (build-op mutation clang)
