@@ -3,23 +3,6 @@
 
 (in-package :software-evolution)
 
-;; Constants
-(define-constant +pliny-default-host+ "localhost"
-  :test #'equalp
-  :documentation "Default Pliny database host")
-
-(define-constant +pliny-default-port+ 10005
-  :documentation "Default Pliny database port")
-
-(define-constant +server-frontend-num-threads+ 4
-  :documentation "Number of threads for the database front-end")
-
-(define-constant +server-backend-num-threads+ 4
-  :documentation "Number of threads for the database back-end")
-
-(define-constant +server-memory-per-thread+ 436207616
-  :documentation "Amount of memory to allocate for each thread")
-
 ;; Helpers
 (defclass json-false ()
   ())
@@ -50,28 +33,64 @@
 (defclass pliny-database (fodder-database)
   ((host :initarg :host
          :reader host
-         :initform +pliny-default-host+
-         :type simple-string)
+         :initform "localhost"
+         :type simple-string
+         :documentation "Pliny database host")
    (port :initarg :port
          :reader port
-         :initform +pliny-default-port+
-         :type integer)
-   (catalog       :initform (temp-file-name)
-                  :reader catalog
-                  :type simple-string)
-   (storage       :initform (temp-file-name)
-                  :reader storage
-                  :type simple-string)
-   (frontend-log  :initform (temp-file-name)
-                  :reader frontend-log
-                  :type simple-string)
-   (backend-log   :initform (temp-file-name)
-                  :reader backend-log
-                  :type simple-string)
-   (ipc-file      :initform (temp-file-name)
-                  :reader ipc-file
-                  :type simple-string)
-   (server-thread :reader server-thread)))
+         :initform 10005
+         :type integer
+         :documentation "Pliny database port")
+   (storage :initform (temp-file-name)
+            :reader storage
+            :type simple-string
+            :documentation "Database storage file")
+   (catalog :initform (temp-file-name)
+            :reader catalog
+            :type simple-string
+            :documentation "File with database storage locations")
+   (ipc-file :initform (temp-file-name)
+             :reader ipc-file
+             :type simple-string
+             :documentation "Unix domain socket file")
+   (frontend-num-threads :initform 4
+                         :reader frontend-num-threads
+                         :type integer
+                         :documentation "Number of database front-end threads")
+   (backend-num-threads :initform 4
+                        :reader backend-num-threads
+                        :type integer
+                        :documentation "Number of database back-end threads")
+   (memory-per-thread :initform 436207616
+                      :reader memory-per-thread
+                      :type integer
+                      :documentation "Memory per database thread")
+   (frontend-log :initform (temp-file-name)
+                 :reader frontend-log
+                 :type simple-string
+                 :documentation "Database front-end log")
+   (backend-log  :initform (temp-file-name)
+                 :reader backend-log
+                 :type simple-string
+                 :documentation "Database back-end log")
+   (server-bin   :initform "GTServer"
+                 :reader server-bin
+                 :type simple-string
+                 :documentation "Database server creation binary")
+   (shutdown-bin :initform "GTServerShutdown"
+                 :reader shutdown-bin
+                 :type simple-string
+                 :documentation "Database server shutdown binary")
+   (loader-bin   :initform "GTLoader"
+                 :reader loader-bin
+                 :type simple-string
+                 :documentation "Database loader binary")
+   (query-bin    :initform "GTQuery"
+                 :reader query-bin
+                 :type simple-string
+                 :documentation "Database query binary")
+   (server-thread :reader server-thread
+                  :documentation "Thread running the GTServer")))
 
 (defmethod from-file ((obj pliny-database) db)
   "Create a Pliny database using the contents of DB"
@@ -84,6 +103,10 @@
   (load-server obj db)
 
   #+sbcl
+  ;; sb-ext:finalize will not be called during a normal exit of SBCL.
+  ;; Further, it does not appear to be reliably called during a full
+  ;; garbage collection.  Use exit hooks to cleanup GTServer instances
+  ;; created during processing instead of 'destructors'.
   (push {shutdown-server obj} sb-ext:*exit-hooks*)
   #+ccl
   (push {shutdown-server obj} ccl:*lisp-cleanup-functions*)
@@ -96,7 +119,7 @@
 (defmethod from-string ((obj pliny-database) arg)
   "Parse a database argument in the form \"<HOST|FILE>:PORT\""
   (register-groups-bind (file-or-host-arg port-arg)
-    ("^([^\0]+):(\\d+)" arg)
+    ("^(.*):(\\d+)" arg)
     (when (and file-or-host-arg port-arg)
       (with-slots (host port) obj
         (setf host file-or-host-arg
@@ -114,32 +137,31 @@
       t)))
 
 (defmethod start-server ((obj pliny-database))
-  (with-slots (host port catalog frontend-log backend-log ipc-file
-               server-thread) obj
-    (setf host "localhost")
-    (setf server-thread
-          (make-thread (lambda()
-                        (shell "GTServer ~a ~d ~a ~d ~d ~d ~a ~a"
-                               catalog
-                               port
-                               ipc-file
-                               +server-frontend-num-threads+
-                               +server-backend-num-threads+
-                               +server-memory-per-thread+
-                               frontend-log
-                               backend-log))
-                       :name (format nil "GTServerThread:~a" port)))))
+  (setf (slot-value obj 'host) "localhost")
+  (setf (slot-value obj 'server-thread)
+        (make-thread (lambda()
+                      (shell "~a ~a ~d ~a ~d ~d ~d ~a ~a"
+                             (server-bin obj)
+                             (catalog obj)
+                             (port obj)
+                             (ipc-file obj)
+                             (frontend-num-threads obj)
+                             (backend-num-threads obj)
+                             (memory-per-thread obj)
+                             (frontend-log obj)
+                             (backend-log obj)))
+                     :name (format nil "GTServerThread:~a" (port obj)))))
 
 (defmethod load-server ((obj pliny-database) db)
   (with-temp-file (logfile)
-    (shell "GTLoader ~a ~d ~a --storage ~a --logfile ~a"
-           (host obj) (port obj) db (storage obj) logfile)))
+    (shell "~a ~a ~d ~a --storage ~a --logfile ~a"
+           (loader-bin obj) (host obj) (port obj) db (storage obj) logfile)))
 
 (defmethod shutdown-server ((obj pliny-database))
   (or (or (null (host obj)) (null (port obj)))
       (with-temp-file (logfile)
-        (shell "GTServerShutdown ~a ~d --logfile ~a"
-               (host obj) (port obj) logfile)))
+        (shell "~a ~a ~d --logfile ~a"
+               (shutdown-bin obj) (host obj) (port obj) logfile)))
   (or (null (server-thread obj)) (join-thread (server-thread obj)))
   (or (null (catalog obj)) (delete-file (catalog obj)))
   (or (null (storage obj)) (delete-file (storage obj)))
@@ -221,8 +243,8 @@
   (with-temp-file-of (query-file "json")
     (cl-json:encode-json-to-string query)
     (with-temp-file (log-file)
-      (let ((query-command (format nil "GTQuery ~a ~D ~D ~a --logfile ~a"
-                                   (host obj) (port obj) limit
+      (let ((query-command (format nil "~a ~a ~D ~D ~a --logfile ~a"
+                                   (query-bin obj) (host obj) (port obj) limit
                                    query-file log-file))
             (cl-json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
         (multiple-value-bind (stdout stderr errno)
