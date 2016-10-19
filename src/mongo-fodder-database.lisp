@@ -34,7 +34,7 @@
       (update-size obj)))
   obj)
 
-(defmethod empty ((obj mongo-database))
+(defmethod database-emptyp ((obj mongo-database))
   (zerop (size obj)))
 
 (defmethod update-size ((obj mongo-database))

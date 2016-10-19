@@ -106,7 +106,7 @@
         (from-file obj file-or-host-arg))))
   obj)
 
-(defmethod empty ((obj pliny-database))
+(defmethod database-emptyp ((obj pliny-database))
   (handler-case
       (null (find-snippets obj :limit 1))
     (pliny-query-failed (e)

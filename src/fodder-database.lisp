@@ -4,7 +4,7 @@
 
 (defclass fodder-database () ())
 
-(defgeneric empty (database)
+(defgeneric database-emptyp (database)
   (:documentation "Return t if the database is empty, nil otherwise"))
 
 (defgeneric find-snippets (database &key ast-class full-stmt decls limit)
