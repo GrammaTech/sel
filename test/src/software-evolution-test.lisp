@@ -1514,8 +1514,12 @@
           (declare (ignorable stdout stderr))
           (let ((svg (make-pathname :directory (pathname-directory save-base)
                                     :name (pathname-name save-base)
-                                    :type "svg")))
-            (when (probe-file svg) (delete-file svg)))
+                                    :type "svg"))
+                (dot (make-pathname :directory (pathname-directory save-base)
+                                    :name (pathname-name save-base)
+                                    :type "dot")))
+            (when (probe-file svg) (delete-file svg))
+            (when (probe-file dot) (delete-file dot)))
           (is (zerop errno)))))))
 
 
@@ -1702,7 +1706,7 @@
         (cons 'clang-swap
               (list (cons :stmt1 (stmt-with-text variant "n > 0"))
                     (cons :stmt2 (stmt-with-text variant "bc=0")))))
-      (is (zerop (second (multiple-value-list (phenome variant))))))))
+      (is (compile-p variant)))))
 
 (defun diff-strings (original modified diff-region)
   "Convert a diff-region to a list of contents in ORIGINAL and MODIFIED."
@@ -1794,7 +1798,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text variant "bc=0"))
                     (cons :stmt2
                           (stmt-with-text variant "n > 0")))))
-      (is (zerop (second (multiple-value-list (phenome variant))))))))
+      (is (compile-p variant)))))
 
 (deftest insert-makes-expected-change ()
   (with-fixture huf-clang
