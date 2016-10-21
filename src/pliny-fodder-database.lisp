@@ -49,30 +49,18 @@
             :reader catalog
             :type simple-string
             :documentation "File with database storage locations")
-   (ipc-file :initform (temp-file-name)
-             :reader ipc-file
-             :type simple-string
-             :documentation "Unix domain socket file")
-   (frontend-num-threads :initform 4
-                         :reader frontend-num-threads
-                         :type integer
-                         :documentation "Number of database front-end threads")
-   (backend-num-threads :initform 4
-                        :reader backend-num-threads
-                        :type integer
-                        :documentation "Number of database back-end threads")
+   (num-threads :initform 5
+                :reader num-threads
+                :type integer
+                :documentation "Number of database front-end threads")
    (memory-per-thread :initform 436207616
                       :reader memory-per-thread
                       :type integer
                       :documentation "Memory per database thread")
-   (frontend-log :initform (temp-file-name)
-                 :reader frontend-log
-                 :type simple-string
-                 :documentation "Database front-end log")
-   (backend-log  :initform (temp-file-name)
-                 :reader backend-log
-                 :type simple-string
-                 :documentation "Database back-end log")
+   (server-log :initform (temp-file-name)
+               :reader server-log
+               :type simple-string
+               :documentation "Database server log")
    (server-bin   :initform "GTServer"
                  :reader server-bin
                  :type simple-string
@@ -140,16 +128,13 @@
   (setf (slot-value obj 'host) "localhost")
   (setf (slot-value obj 'server-thread)
         (make-thread (lambda()
-                      (shell "~a ~a ~d ~a ~d ~d ~d ~a ~a"
+                      (shell "~a ~a ~d ~d ~d ~a"
                              (server-bin obj)
                              (catalog obj)
                              (port obj)
-                             (ipc-file obj)
-                             (frontend-num-threads obj)
-                             (backend-num-threads obj)
+                             (num-threads obj)
                              (memory-per-thread obj)
-                             (frontend-log obj)
-                             (backend-log obj)))
+                             (server-log obj)))
                      :name (format nil "GTServerThread:~a" (port obj)))))
 
 (defmethod load-server ((obj pliny-database) db)
@@ -165,20 +150,16 @@
   (or (null (server-thread obj)) (join-thread (server-thread obj)))
   (or (null (catalog obj)) (delete-file (catalog obj)))
   (or (null (storage obj)) (delete-file (storage obj)))
-  (or (null (ipc-file obj)) (delete-file (ipc-file obj)))
-  (or (null (frontend-log obj)) (delete-file (frontend-log obj)))
-  (or (null (backend-log obj)) (delete-file (backend-log obj)))
+  (or (null (server-log obj)) (delete-file (server-log obj)))
 
-  (with-slots (host port server-thread catalog storage ipc-file
-               frontend-log backend-log) obj
+  (with-slots (host port server-thread catalog storage
+               server-log) obj
     (setf host nil
           port nil
           server-thread nil
           catalog nil
           storage nil
-          ipc-file nil
-          frontend-log nil
-          backend-log nil))
+          server-log nil))
 
   nil)
 
