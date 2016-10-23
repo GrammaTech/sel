@@ -195,6 +195,8 @@
    ;; evolution functions
    :incorporate
    :evict
+   :default-select-one
+   :*tournament-selector*
    :tournament
    :mutant
    :crossed
@@ -289,7 +291,7 @@
    :worst-numeric-fitness
    :worst-numeric-fitness-p
    :lexicase-select
-   :*lexicase-predicate*
+   :lexicase-select-one
    :*lexicase-key*
    :mutation
    :targets

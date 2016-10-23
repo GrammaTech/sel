@@ -9,38 +9,31 @@
 
 (in-package :software-evolution)
 
-(defvar *lexicase-predicate* #'>
-  "Function to compare individual scores in the test vector.")
-
 (defvar *lexicase-key* nil
   "Optional key function for components of test vector.")
 
-(defun lexicase-select (population max-size &aux new-pop)
-  "Choose max-size individuals from the population by lexicase
-selection. The same individual may be selected multiple times."
+(defun lexicase-select (population max-size)
+  "Choose max-size individuals from the population by lexicase selection.
+The same individual may be selected multiple times."
+  (assert
+   (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
+   (population)
+   "All fitness vectors must be the same length.")
+  (iter (for n below max-size) (collect (lexicase-select-one population))))
 
-  (let ((fitness-length (length (fitness (first population)))))
-    ;; All fitness vectors must be the same length
-    (loop :for p :in population
-       :do (assert (eq (length (fitness p)) fitness-length)))
-
-    (dotimes (n max-size new-pop)
-      (push (lexicase-select-one population
-                                 (shuffle (iota (- fitness-length 1))))
-            new-pop))))
-
-(defun lexicase-select-one (population order)
-  "Choose a single individual by lexicase selection."
-  (loop :for which-test :in order
-     :do
-     (let ((best (extremum
-                  (mapcar [{elt _ which-test} #'fitness] population)
-                  *lexicase-predicate* :key *lexicase-key*)))
-       ;; Pick individuals with the highest score on the current test.
-       (setf population
-             (remove-if-not [{= best} {elt _ which-test} #'fitness]
-                            population :key *lexicase-key*))
-       ;; Stop when we get down to one individual
-       (when (not (cdr population)) (return))))
+(defun lexicase-select-one (group &key (predicate *fitness-predicate*))
+  "Choose a single individual by lexicase selection.
+Set the value of `*tournament-selector*' to `lexicase-select-one' to
+use lexicase-style selection in tournament selection."
+  (iter (for which in (shuffle (iota (1- (length (fitness (first group)))))))
+        (setf group
+              ;; Keep individuals with the highest score on the current test.
+              (remove-if-not
+               [{= (extremum (mapcar [{elt _ which} #'fitness] group)
+                             predicate :key *lexicase-key*)}
+                {elt _ which} #'fitness]
+               group :key *lexicase-key*))
+        ;; Stop when we get down to one individual
+        (until (not (cdr group))))
   ;; If there's still a tie after all tests, choose randomly.
-  (random-elt population))
+  (random-elt group))

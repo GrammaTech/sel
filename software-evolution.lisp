@@ -146,7 +146,7 @@ Used to target mutation."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
-(defun worst-numeric-fitness()
+(defun worst-numeric-fitness ()
   (cond ((equal #'< *fitness-predicate*) infinity)
         ((equal #'> *fitness-predicate*) 0)
         (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
@@ -183,47 +183,59 @@ argument TEST must be supplied."))
   (destructuring-bind (mutation software-a cross-point-a
                                 crossed software-b cross-point-b)
       mutation-info
-   (labels ((safe-eval (object)
-             (or (fitness object)
-                 (progn
-                   (assert test (object test)
-                           "TEST is mandatory if objects have no fitness")
-                   (evaluate test object))))
-           (note (string)
-             (when *analyze-mutation-verbose-stream*
-               (format *analyze-mutation-verbose-stream* string)))
-           (classify (new old &optional old-2)
-             (let ((fit (safe-eval new))
-                   (old-fit (if (and old-2 *fitness-predicate*)
-                                (extremum (list (safe-eval old)
-                                                (safe-eval old-2))
-                                          *fitness-predicate*)
-                                (safe-eval old))))
-               (values
-                (cond
-                  ((not *fitness-predicate*) (note "?") :non-comparable)
-                  ((funcall *worst-fitness-p* new) (note "_") :dead)
-                  ((and (not (funcall *fitness-predicate* fit old-fit))
-                        (not (funcall *fitness-predicate* old-fit fit)))
+    (labels ((safe-eval (object)
+               (or (fitness object)
+                   (progn
+                     (assert test (object test)
+                             "TEST is mandatory if objects have no fitness")
+                     (evaluate test object))))
+             (fitness-better-p (fitness-a fitness-b)
+               (cond
+                 ((and (numberp fitness-a) (numberp fitness-b))
+                  (funcall *fitness-predicate* fitness-a fitness-b))
+                 ((and (= (length fitness-a) (length fitness-b)))
+                  (every (lambda (a b)
+                           (or (funcall *fitness-predicate* a b)
+                               (= a b)))
+                         fitness-a fitness-b)
+                  (some *fitness-predicate* fitness-a fitness-b))
+                 (:otherwise (error "Can't compare fitness ~a and fitness ~a"
+                                    fitness-a fitness-b))))
+             (note (string)
+               (when *analyze-mutation-verbose-stream*
+                 (format *analyze-mutation-verbose-stream* string)))
+             (classify (new old &optional old-2)
+               (let ((fit (safe-eval new))
+                     (old-fit (if (and old-2 *fitness-predicate*)
+                                  (extremum (list (safe-eval old)
+                                                  (safe-eval old-2))
+                                            #'fitness-better-p)
+                                  (safe-eval old))))
+                 (values
+                  (cond
+                    ((not *fitness-predicate*) (note "?") :non-comparable)
+                    ((funcall *worst-fitness-p* new) (note "_") :dead)
+                    ((and (not (fitness-better-p fit old-fit))
+                          (not (fitness-better-p old-fit fit)))
                      (note "=") :same)
-                  ((funcall (complement *fitness-predicate*) fit old-fit)
-                   (note "-") :worse)
-                  ((funcall *fitness-predicate* fit old-fit)
-                   (note "+") :better))
-                fit old-fit))))
-    ;; Add information on the mutation to `*mutation-stats*`.
-    (multiple-value-bind (effect fit old-fit)
-        (classify obj crossed)
-      (push (setf result (list mutation effect *fitness-evals* fit old-fit))
-            (gethash (mutation-key crossed mutation) *mutation-stats*)))
-    ;; Add information on the crossover to `*crossover-stats*`.
-    (when cross-point-a
-      (let ((effect (classify crossed software-a software-b)))
-        (push (list mutation effect *fitness-evals*)
-              (gethash (mutation-key crossed mutation) *crossover-stats*)))))
-  (values
-   obj mutation software-a cross-point-a crossed software-b cross-point-b
-   (first result) (second result) (third result))))
+                    ((funcall (complement #'fitness-better-p) fit old-fit)
+                     (note "-") :worse)
+                    ((fitness-better-p fit old-fit)
+                     (note "+") :better))
+                  fit old-fit))))
+      ;; Add information on the mutation to `*mutation-stats*`.
+      (multiple-value-bind (effect fit old-fit)
+          (classify obj crossed)
+        (push (setf result (list mutation effect *fitness-evals* fit old-fit))
+              (gethash (mutation-key crossed mutation) *mutation-stats*)))
+      ;; Add information on the crossover to `*crossover-stats*`.
+      (when cross-point-a
+        (let ((effect (classify crossed software-a software-b)))
+          (push (list mutation effect *fitness-evals*)
+                (gethash (mutation-key crossed mutation) *crossover-stats*)))))
+    (values
+     obj mutation software-a cross-point-a crossed software-b cross-point-b
+     (first result) (second result) (third result))))
 
 (defgeneric mutation-key (software mutation)
   (:documentation "Key used to organize mutations in *mutation-stats*."))
@@ -455,9 +467,18 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
     (setf *population* (remove loser *population* :count 1))
     loser))
 
+(defun default-select-one (group &key (predicate *fitness-predicate*))
+  "Return the member of GROUP with most PREDICATE fitness.
+Default selection function for `tournament'."
+  (extremum group predicate :key #'fitness))
+
+(defvar *tournament-selector* #'default-select-one
+  "Function used to select a winner of a tournament.
+Should take a group ")
+
 (defun tournament
     (&key (predicate *fitness-predicate*) (size *tournament-size*))
-  "Select an individual from *POPULATION* with a tournament of size NUMBER."
+  "Select an individual from *POPULATION* with a tournament."
   (flet ((verify (it)
            (assert (typep it 'software) (it)
                    "Population member is not software object")
@@ -465,9 +486,10 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                    "Population member with no fitness")
            it))
     (assert *population* (*population*) "Empty population.")
-    (car (sort (loop :for i :below size
-                  :collect (verify (random-elt *population*)))
-               predicate :key #'fitness))))
+    (funcall *tournament-selector*
+             (iter (for i below size)
+                   (collect (verify (random-elt *population*))))
+             :predicate predicate)))
 
 (defun mutant (&optional (new (copy (tournament))))
   "Generate a new mutant from a *POPULATION*."
