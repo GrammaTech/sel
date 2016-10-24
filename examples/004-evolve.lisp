@@ -7,4 +7,8 @@
 (setf *population*
       (loop :for i :below 100 :collect (copy *orig*))) ; (1)
 
-(evolve #'test :max-evals 100 :target 11) ; (3)
+(let ((*target-fitness-p*
+       (lambda (obj)
+         (or (= 11 (fitness obj))
+             (funcall *fitness-predicate* (fitness obj) 11)))))
+  (evolve #'test :max-evals 100))       ; (3)

@@ -1666,7 +1666,11 @@
              (incf counter)
              (if (= counter 5) 2 1)))
       (with-fixture population
-        (evolve #'test :target 2)
+        (let ((*target-fitness-p*
+               (lambda (obj)
+                 (or (= 2 (fitness obj))
+                     (funcall *fitness-predicate* (fitness obj) 2)))))
+          (evolve #'test))
         (is (= *fitness-evals* 5))))))
 
 
