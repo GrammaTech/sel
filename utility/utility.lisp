@@ -50,6 +50,23 @@
       #+ccl  (uiop/os:getenv name)
       default))
 
+(defun current-git-commit (directory)
+  (labels ((recur (dir)
+             (when (< (length directory) 2)
+               (error "Pathname ~a does not appear in a git repository."
+                      directory))
+             (let ((git-dir (make-pathname
+                             :directory (append directory (list ".git")))))
+               (if (probe-file git-dir)
+                   (with-open-file
+                       (in (merge-pathnames
+                            (with-open-file (in ".git/HEAD")
+                              (second (split-sequence #\Space (read-line in))))
+                            git-dir))
+                     (subseq (read-line in) 0 7))
+                   (recur (butlast directory))))))
+    (recur directory)))
+
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
   (sb-alien:define-alien-routine (#-win32 "tempnam" #+win32 "_tempnam" tempnam)
