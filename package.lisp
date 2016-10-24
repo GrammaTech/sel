@@ -20,6 +20,7 @@
   (:shadow :elf :size :type :magic-number :diff :insert)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:export
+   :+software-evolution-version+
    ;; software objects
    :software
    :define-software
