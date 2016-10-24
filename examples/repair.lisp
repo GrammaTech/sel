@@ -30,7 +30,6 @@
 (defvar *path*    nil         "Path to Assembly file.")
 (defvar *rep*     'range      "Program representation to use.")
 (defvar *res-dir* nil         "Directory in which to save results.")
-(defvar *target-fitness* nil  "The target fitness value (usually the number of tests)")
 (defvar *script*  nil         "The shell script fitness function")
 (setf *max-population-size* (expt 2 9)
       *fitness-predicate* #'>
@@ -76,7 +75,12 @@ Options:
       ("-v" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
                             (setf *note-level* lvl)))
-      ("-t" "--target"    (setf *target-fitness* (pop args)))
+      ("-t" "--target"    (let ((target (parse-number (pop args))))
+                            (setf *target-fitness-p*
+                                  (lambda (obj)
+                                    (or (= target (fitness obj))
+                                        (funcall *fitness-predicate*
+                                                 (fitness obj) target))))))
       ("-w" "--work-dir"  (setf *work-dir*       (pop args))))
 
     ;; check command line arguments
@@ -138,7 +142,7 @@ Options:
                             :collect (copy *orig*))))
 
     ;; run repair
-    (evolve #'run :max-evals *evals* :target *target-fitness*)
+    (evolve #'run :max-evals *evals*)
 
     ;; finish up
     (note 1 "done after ~a fitness evaluations~%" *fitness-evals*)

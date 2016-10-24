@@ -201,11 +201,11 @@ argument TEST must be supplied."))
                  ((and (numberp fitness-a) (numberp fitness-b))
                   (funcall *fitness-predicate* fitness-a fitness-b))
                  ((and (= (length fitness-a) (length fitness-b)))
-                  (every (lambda (a b)
-                           (or (funcall *fitness-predicate* a b)
-                               (= a b)))
-                         fitness-a fitness-b)
-                  (some *fitness-predicate* fitness-a fitness-b))
+                  (and (every (lambda (a b)
+                                (or (funcall *fitness-predicate* a b)
+                                    (= a b)))
+                              fitness-a fitness-b)
+                       (some *fitness-predicate* fitness-a fitness-b)))
                  (:otherwise (error "Can't compare fitness ~a and fitness ~a"
                                     fitness-a fitness-b))))
              (note (string)
@@ -526,12 +526,12 @@ Should take a group ")
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination."
-  (destructuring-bind (variant f max-evals max-time target pd pd-fn
+  (destructuring-bind (variant f max-evals max-time pd pd-fn
                                every-pre-fn every-post-fn
                                filter running fitness-counter
                                collect-mutation-stats)
       specs
-    (let* ((time (gensym)) (fit-var (gensym))
+    (let* ((time (gensym))
            (main
             `(progn
                (setq ,running t)
@@ -576,38 +576,34 @@ Should take a group ")
                           ,@(if filter
                                 `((when (funcall ,filter ,variant) ,@body))
                                 body)
-                          ,@(when target
-                                  `((when (let ((,fit-var (fitness ,variant)))
-                                            (or (equal ,fit-var ,target)
-                                                (funcall *fitness-predicate*
-                                                         ,fit-var ,target)))
-                                      (setq ,running nil)
-                                      (return ,variant))))))
+                          (when (and *target-fitness-p*
+                                     (funcall *target-fitness-p* ,variant))
+                            (setq ,running nil)
+                            (return-from target-reached ,variant))))
                         (ignore-failed-mutation ()
                           :report
                           "Ignore failed mutation and continue evolution")))
                (setq ,running nil))))
-      (when target
-        (setf main `(block nil ,main)))
+      (setf main `(block target-reached ,main))
       (when max-time
         (setf main `(let ((,time (get-internal-real-time))) ,main)))
       main)))
 
-(defmacro mcmc
-    (original test
-     &key accept-fn max-evals max-time target period period-fn
-       every-pre-fn every-post-fn
-       filter
-       (running '*running*)
-       (fitness-evals '*fitness-evals*)
-       mutation-stats)
+(defmacro mcmc (original test
+                &key accept-fn max-evals max-time period period-fn
+                  every-pre-fn every-post-fn
+                  filter
+                  (running '*running*)
+                  (fitness-evals '*fitness-evals*)
+                  mutation-stats)
   "MCMC search from ORIGINAL until an optional stopping criterion is met.
+
+Use `*target-fitness-p*' to set a target fitness.
 
 Keyword arguments are as follows.
   ACCEPT-FN ------- function of current and new fitness, returns acceptance
   MAX-EVALS ------- stop after this many fitness evaluations
   MAX-TIME -------- stop after this many seconds
-  TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
   EVERY-PRE-FN ---- function to run before every fitness evaluation
@@ -616,7 +612,7 @@ Keyword arguments are as follows.
   (let* ((curr (gensym))
          (body
           `(let ((,curr ,original))
-             (-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
+             (-search (new ,test ,max-evals ,max-time ,period ,period-fn
                            ,every-pre-fn ,every-post-fn ,filter
                            ,running ,fitness-evals ,mutation-stats)
                       (mcmc-step ,curr)
@@ -631,28 +627,29 @@ Keyword arguments are as follows.
                          (if (> new curr) (/ curr new) (/ new curr)))))))
            ,body))))
 
-(defmacro evolve
-    (test &key max-evals max-time target period period-fn
-            every-pre-fn every-post-fn
-            filter
-            (population '*population*)
-            (max-population-size '*max-population-size*)
-            (running '*running*)
-            (fitness-evals '*fitness-evals*)
-            mutation-stats)
+(defmacro evolve (test
+                  &key max-evals max-time period period-fn
+                    every-pre-fn every-post-fn
+                    filter
+                    (population '*population*)
+                    (max-population-size '*max-population-size*)
+                    (running '*running*)
+                    (fitness-evals '*fitness-evals*)
+                    mutation-stats)
   "Evolves `*population*' until an optional stopping criterion is met.
+
+Use `*target-fitness-p*' to set a target fitness.
 
 Keyword arguments are as follows.
   MAX-EVALS ------- stop after this many fitness evaluations
   MAX-TIME -------- stop after this many seconds
-  TARGET ---------- stop when an individual passes TARGET-FIT
   PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
   PERIOD-FN ------- function to run every PERIOD fitness evaluations
   EVERY-PRE-FN ---- function to run before every fitness evaluation
   EVERY-POST-FN --- function to run after every fitness evaluation
   FILTER ---------- only include individual for which FILTER returns true
   MUTATION-STATS -- set to non-nil to collect mutation statistics"
-  `(-search (new ,test ,max-evals ,max-time ,target ,period ,period-fn
+  `(-search (new ,test ,max-evals ,max-time ,period ,period-fn
                  ,every-pre-fn ,every-post-fn
                  ,filter ,running ,fitness-evals ,mutation-stats)
             #'new-individual
