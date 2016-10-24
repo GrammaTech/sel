@@ -13,6 +13,13 @@
 
 
 ;;; Software Object
+(define-constant +software-evolution-version+
+    (eval-when (:compile-toplevel :load-toplevel :execute)
+      (current-git-commit (pathname-directory *default-pathname-defaults*)))
+  :test #'equalp
+  :documentation
+  "Current version of the SOFTWARE-EVOLUTION library.")
+
 (defclass software ()
   ((fitness :initarg :fitness :accessor fitness :initform nil)))
 
