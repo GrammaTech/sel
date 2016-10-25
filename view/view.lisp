@@ -7,6 +7,9 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-curry-compose-reader-macros))
 
+(defvar *view-stream* t
+  "Dynamically bind to use modify.")
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; AFL, forgive me this.
   (mapc (lambda-bind ((name value documentation))
@@ -51,41 +54,41 @@
           (+color-BRI+   "[1;37m" "Color BRI.")
           (+color-RST+   "[0m"    "Color RST."))))
 
-(defun clear-terminal (stream)
-  (format stream "~a" +term-clear+))
+(defun clear-terminal ()
+  (format *view-stream* "~a" +term-clear+))
 
-(defun hide-cursor (stream)
-  (format stream "~a" +cursor-hide+))
+(defun hide-cursor ()
+  (format *view-stream* "~a" +cursor-hide+))
 
-(defun show-cursor (stream)
-  (format stream "~a" +cursor-show+))
+(defun show-cursor ()
+  (format *view-stream* "~a" +cursor-show+))
 
-(defmacro with-line-printing (stream &rest body)
+(defmacro with-line-printing (&rest body)
   `(unwind-protect
-        (progn (format ,stream "~a" +set-G1+)
-               (format ,stream "~a" +b-start+)
+        (progn (format ,*view-stream* "~a" +set-G1+)
+               (format ,*view-stream* "~a" +b-start+)
                ,@body)
-     (format ,stream "~a" +b-stop+)
-     (format ,stream "~a" +reset-G1+)
-     (force-output ,stream)))
+     (format ,*view-stream* "~a" +b-stop+)
+     (format ,*view-stream* "~a" +reset-G1+)
+     (force-output ,*view-stream*)))
 
-(defmacro with-color-printing (stream color &rest body)
+(defmacro with-color-printing (color &rest body)
   `(unwind-protect
-        (progn (format ,stream "~a" ,color) ,@body)
-     (format ,stream "~a" +color-RST+)
-     (force-output ,stream)))
+        (progn (format ,*view-stream* "~a" ,color) ,@body)
+     (format ,*view-stream* "~a" +color-RST+)
+     (force-output ,*view-stream*)))
 
 (make-thread
  (lambda ()
-   (clear-terminal *standard-output*)
-   (hide-cursor *standard-output*)
-   (with-color-printing *standard-output* +color-GRA+
-                        (with-line-printing *standard-output*
-                          (format *standard-output* "~a"
-                                  (concatenate 'string +b-lt+ +b-h+ +b-h+))))
+   (clear-terminal)
+   (hide-cursor)
+   (with-color-printing +color-GRA+
+     (with-line-printing
+         (format *standard-output* "~a"
+                 (concatenate 'string +b-lt+ +b-h+ +b-h+))))
    (format *standard-output* " example ")
-   (with-color-printing *standard-output* +color-GRA+
-                        (with-line-printing *standard-output*
-                          (format *standard-output* "~a"
-                                  (concatenate 'string +b-h+ +b-h+ +b-rt+))))
+   (with-color-printing +color-GRA+
+     (with-line-printing
+         (format *standard-output* "~a"
+                 (concatenate 'string +b-h+ +b-h+ +b-rt+))))
    (format *standard-output* "~%")))
