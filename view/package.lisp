@@ -3,7 +3,6 @@
   (:use
    :common-lisp
    :alexandria
-   :cl-interpol
    :metabang-bind
    :curry-compose-reader-macros
    :iterate
@@ -13,7 +12,8 @@
    :cl-store
    :cl-dot
    :diff
-   :bordeaux-threads)
+   :bordeaux-threads
+   :software-evolution)
   (:export :view))
 
 #+allegro
