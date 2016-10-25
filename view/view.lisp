@@ -80,13 +80,15 @@
      (format ,*view-stream* "~a" +color-RST+)
      (force-output ,*view-stream*)))
 
-(defun label-line-print (length label &key (left +b-lt+) (right +b-rt+)
-                                        (balance (- 1 +golden-ratio+))
-                                        (color +color-GRA+)
-                                        (filler +b-h+))
-  (let ((left-l (1- (floor (* (- length (length label)) balance))))
-        (right-l (1- (ceiling (* (- length (length label)) (- 1 balance))))))
-    (assert (and (> left-l 0) (> right-l 0)))
+(defun label-line-print (length &key (label "") (left +b-lt+) (right +b-rt+)
+                                  (balance (- 1 +golden-ratio+))
+                                  (color +color-GRA+)
+                                  (filler +b-h+))
+  (let ((left-l (floor (* (- length (+ 2 (length label))) balance)))
+        (right-l (ceiling (* (- length (+ 2 (length label))) (- 1 balance)))))
+    (assert (and (>= left-l 0) (>= right-l 0))
+            (left-l right-l)
+            "Padding on one side is negative (~a,~a)" left-l right-l)
     (with-color-printing color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
@@ -102,9 +104,16 @@
                                        (string right)))))
     (format *view-stream* "~%")))
 
-(make-thread
- (lambda ()
-   (let ((*view-stream* *standard-output*))
-     (clear-terminal)
-     (hide-cursor)
-     (label-line-print 65 " example "))))
+(eval-when (:execute)
+  (make-thread
+   (lambda ()
+     (let ((*view-stream* *standard-output*))
+       (clear-terminal)
+       (hide-cursor)
+       (label-line-print 65 :label " example ")
+       (label-line-print 65 :label " lorem ipsum "
+                         :balance 0 :filler #\Space :left +b-v+ :right +b-v+)
+       (label-line-print 65 :label " example2 " :left +b-vr+ :right +b-vl+)
+       (label-line-print 65 :label " lorem ipsum "
+                         :balance 0 :filler #\Space :left +b-v+ :right +b-v+)
+       (label-line-print 65 :left +b-lb+ :right +b-rb+)))))
