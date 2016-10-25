@@ -19,17 +19,17 @@
           (+reset-G1+    ")B"     "Reset G1 to ASCII")
           (+b-start+     ""       "Enter G1 drawing mode")
           (+b-stop+      ""       "Leave G1 drawing mode")
-          (+b-h+         "q"        "Horizontal line")
-          (+b-v+         "x"        "Vertical line")
-          (+b-lt+        "l"        "Left top corner")
-          (+b-rt+        "k"        "Right top corner")
-          (+b-lb+        "m"        "Left bottom corner")
-          (+b-rb+        "j"        "Right bottom corner")
-          (+b-x+         "n"        "Cross")
-          (+b-vr+        "t"        "Vertical, branch right")
-          (+b-vl+        "u"        "Vertical, branch left")
-          (+b-ht+        "v"        "Horizontal, branch top")
-          (+b-hb+        "w"        "Horizontal, branch bottom")
+          (+b-h+         #\q        "Horizontal line")
+          (+b-v+         #\x        "Vertical line")
+          (+b-lt+        #\l        "Left top corner")
+          (+b-rt+        #\k        "Right top corner")
+          (+b-lb+        #\m        "Left bottom corner")
+          (+b-rb+        #\j        "Right bottom corner")
+          (+b-x+         #\n        "Cross")
+          (+b-vr+        #\t        "Vertical, branch right")
+          (+b-vl+        #\u        "Vertical, branch left")
+          (+b-ht+        #\v        "Horizontal, branch top")
+          (+b-hb+        #\w        "Horizontal, branch bottom")
           (+term-home+   "[H"     "Set terminal back to home (top left).")
           (+term-clear+  "[H[2J" "Clear terminal.")
           (+ceol+        "[0K"    "Clear to end of line.")
@@ -78,17 +78,28 @@
      (format ,*view-stream* "~a" +color-RST+)
      (force-output ,*view-stream*)))
 
+(defun label-line-print (length label &key (left +b-lt+) (right +b-rt+))
+  (let ((left-length (1- (floor (/ (- length (length label)) 2))))
+        (right-length (1- (ceiling (/ (- length (length label)) 2)))))
+    (assert (and (> left-length 0) (> right-length 0)))
+    (with-color-printing +color-GRA+
+      (with-line-printing
+          (format *view-stream* "~a" (concatenate 'string
+                                       (string left)
+                                       (make-string left-length
+                                                    :initial-element +b-h+)))))
+    (format *view-stream* label)
+    (with-color-printing +color-GRA+
+      (with-line-printing
+          (format *view-stream* "~a" (concatenate 'string
+                                       (make-string right-length
+                                                    :initial-element +b-h+)
+                                       (string right)))))
+    (format *view-stream* "~%")))
+
 (make-thread
  (lambda ()
-   (clear-terminal)
-   (hide-cursor)
-   (with-color-printing +color-GRA+
-     (with-line-printing
-         (format *standard-output* "~a"
-                 (concatenate 'string +b-lt+ +b-h+ +b-h+))))
-   (format *standard-output* " example ")
-   (with-color-printing +color-GRA+
-     (with-line-printing
-         (format *standard-output* "~a"
-                 (concatenate 'string +b-h+ +b-h+ +b-rt+))))
-   (format *standard-output* "~%")))
+   (let ((*view-stream* *standard-output*))
+     (clear-terminal)
+     (hide-cursor)
+     (label-line-print 65 " example "))))
