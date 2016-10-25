@@ -83,6 +83,7 @@
 (defun label-line-print (length &key (label "") (left +b-lt+) (right +b-rt+)
                                   (balance (- 1 +golden-ratio+))
                                   (color +color-GRA+)
+                                  (label-color +color-RST+)
                                   (filler +b-h+))
   (let ((left-l (floor (* (- length (+ 2 (length label))) balance)))
         (right-l (ceiling (* (- length (+ 2 (length label))) (- 1 balance)))))
@@ -95,7 +96,7 @@
                                        (string left)
                                        (make-string left-l
                                                     :initial-element filler)))))
-    (format *view-stream* label)
+    (with-color-printing label-color (format *view-stream* label))
     (with-color-printing color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
@@ -110,10 +111,11 @@
      (let ((*view-stream* *standard-output*))
        (clear-terminal)
        (hide-cursor)
-       (label-line-print 65 :label " example ")
+       (label-line-print 65 :label " example " :label-color +color-CYA+)
        (label-line-print 65 :label " lorem ipsum "
                          :balance 0 :filler #\Space :left +b-v+ :right +b-v+)
-       (label-line-print 65 :label " example2 " :left +b-vr+ :right +b-vl+)
+       (label-line-print 65 :label " example2 " :label-color +color-CYA+
+                         :left +b-vr+ :right +b-vl+)
        (label-line-print 65 :label " lorem ipsum "
                          :balance 0 :filler #\Space :left +b-v+ :right +b-v+)
        (label-line-print 65 :left +b-lb+ :right +b-rb+)))))
