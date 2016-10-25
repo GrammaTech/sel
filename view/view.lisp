@@ -10,6 +10,8 @@
 (defvar *view-stream* t
   "Dynamically bind to use modify.")
 
+(define-constant +golden-ratio+ 21/34)
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; AFL, forgive me this.
   (mapc (lambda-bind ((name value documentation))
@@ -78,22 +80,25 @@
      (format ,*view-stream* "~a" +color-RST+)
      (force-output ,*view-stream*)))
 
-(defun label-line-print (length label &key (left +b-lt+) (right +b-rt+))
-  (let ((left-length (1- (floor (/ (- length (length label)) 2))))
-        (right-length (1- (ceiling (/ (- length (length label)) 2)))))
-    (assert (and (> left-length 0) (> right-length 0)))
-    (with-color-printing +color-GRA+
+(defun label-line-print (length label &key (left +b-lt+) (right +b-rt+)
+                                        (balance (- 1 +golden-ratio+))
+                                        (color +color-GRA+)
+                                        (filler +b-h+))
+  (let ((left-l (1- (floor (* (- length (length label)) balance))))
+        (right-l (1- (ceiling (* (- length (length label)) (- 1 balance))))))
+    (assert (and (> left-l 0) (> right-l 0)))
+    (with-color-printing color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
                                        (string left)
-                                       (make-string left-length
-                                                    :initial-element +b-h+)))))
+                                       (make-string left-l
+                                                    :initial-element filler)))))
     (format *view-stream* label)
-    (with-color-printing +color-GRA+
+    (with-color-printing color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
-                                       (make-string right-length
-                                                    :initial-element +b-h+)
+                                       (make-string right-l
+                                                    :initial-element filler)
                                        (string right)))))
     (format *view-stream* "~%")))
 
