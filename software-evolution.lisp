@@ -528,62 +528,62 @@ Should take a group ")
   "Perform a search loop with early termination."
   (destructuring-bind (variant f max-evals max-time pd pd-fn
                                every-pre-fn every-post-fn
-                               filter running fitness-counter
+                               time filter running fitness-counter
                                collect-mutation-stats)
       specs
-    (let* ((time (gensym))
-           (main
-            `(progn
-               (setq ,running t)
-               (loop :until
-                  ,(if (or max-time max-evals)
-                       `(or (not ,running)
-                            ,@(when max-evals
-                                    `((> ,fitness-counter ,max-evals)))
-                            ,@(when max-time
-                                    `((> (/ (- (get-internal-real-time) ,time)
-                                            internal-time-units-per-second)
-                                         ,max-time))))
-                       `(not ,running))
-                  :do (restart-case
-                      (,(if collect-mutation-stats 'handler-bind 'progn)
-                        ,@(when collect-mutation-stats
-                                `(((mutate
-                                    (lambda (err)
-                                      (when (and (op err) (obj err))
-                                        (push (list (op err) :error)
-                                              (gethash
-                                               (mutation-key (obj err) (op err))
-                                               *mutation-stats*))))))))
-                        (multiple-value-bind (,variant mutation-info)
-                            (funcall ,step)
-                          ,@(unless collect-mutation-stats
-                                    `((declare (ignorable mutation-info))))
-                          ,@(when every-pre-fn
-                                  `((funcall ,every-pre-fn ,variant)))
-                          (evaluate ,f ,variant)
-                          ,@(when collect-mutation-stats
-                                  `((funcall #'analyze-mutation
-                                             ,variant mutation-info ,f)))
-                          ,@(when every-post-fn
-                                  `((funcall ,every-post-fn ,variant)))
-                          (incf ,fitness-counter)
-                          ,@(when (and pd pd-fn)
-                                  `((when (zerop (mod ,fitness-counter ,pd))
-                                      (funcall ,pd-fn))))
-                          (assert (fitness ,variant) (,variant)
-                                  "Variant with no fitness")
-                          ,@(if filter
-                                `((when (funcall ,filter ,variant) ,@body))
-                                body)
-                          (when (and *target-fitness-p*
-                                     (funcall *target-fitness-p* ,variant))
-                            (setq ,running nil)
-                            (return-from target-reached ,variant))))
-                        (ignore-failed-mutation ()
-                          :report
-                          "Ignore failed mutation and continue evolution")))
-               (setq ,running nil))))
+    (let ((main
+           `(progn
+              (setq ,time (get-internal-real-time))
+              (setq ,running t)
+              (loop :until
+                 ,(if (or max-time max-evals)
+                      `(or (not ,running)
+                           ,@(when max-evals
+                               `((> ,fitness-counter ,max-evals)))
+                           ,@(when max-time
+                               `((> (/ (- (get-internal-real-time) ,time)
+                                       internal-time-units-per-second)
+                                    ,max-time))))
+                      `(not ,running))
+                 :do (restart-case
+                         (,(if collect-mutation-stats 'handler-bind 'progn)
+                           ,@(when collect-mutation-stats
+                               `(((mutate
+                                   (lambda (err)
+                                     (when (and (op err) (obj err))
+                                       (push (list (op err) :error)
+                                             (gethash
+                                              (mutation-key (obj err) (op err))
+                                              *mutation-stats*))))))))
+                           (multiple-value-bind (,variant mutation-info)
+                               (funcall ,step)
+                             ,@(unless collect-mutation-stats
+                                 `((declare (ignorable mutation-info))))
+                             ,@(when every-pre-fn
+                                 `((funcall ,every-pre-fn ,variant)))
+                             (evaluate ,f ,variant)
+                             ,@(when collect-mutation-stats
+                                 `((funcall #'analyze-mutation
+                                            ,variant mutation-info ,f)))
+                             ,@(when every-post-fn
+                                 `((funcall ,every-post-fn ,variant)))
+                             (incf ,fitness-counter)
+                             ,@(when (and pd pd-fn)
+                                 `((when (zerop (mod ,fitness-counter ,pd))
+                                     (funcall ,pd-fn))))
+                             (assert (fitness ,variant) (,variant)
+                                     "Variant with no fitness")
+                             ,@(if filter
+                                   `((when (funcall ,filter ,variant) ,@body))
+                                   body)
+                             (when (and *target-fitness-p*
+                                        (funcall *target-fitness-p* ,variant))
+                               (setq ,running nil)
+                               (return-from target-reached ,variant))))
+                       (ignore-failed-mutation ()
+                         :report
+                         "Ignore failed mutation and continue evolution")))
+              (setq ,running nil))))
       (setf main `(block target-reached ,main))
       (when max-time
         (setf main `(let ((,time (get-internal-real-time))) ,main)))
@@ -593,6 +593,7 @@ Should take a group ")
                 &key accept-fn max-evals max-time period period-fn
                   every-pre-fn every-post-fn
                   filter
+                  (time '*start-time*)
                   (running '*running*)
                   (fitness-evals '*fitness-evals*)
                   mutation-stats)
@@ -613,7 +614,7 @@ Keyword arguments are as follows.
          (body
           `(let ((,curr ,original))
              (-search (new ,test ,max-evals ,max-time ,period ,period-fn
-                           ,every-pre-fn ,every-post-fn ,filter
+                           ,every-pre-fn ,every-post-fn ,filter ,time
                            ,running ,fitness-evals ,mutation-stats)
                       (mcmc-step ,curr)
                       (when (funcall accept-fn (fitness ,curr) (fitness new))
@@ -633,6 +634,7 @@ Keyword arguments are as follows.
                     filter
                     (population '*population*)
                     (max-population-size '*max-population-size*)
+                    (time '*start-time*)
                     (running '*running*)
                     (fitness-evals '*fitness-evals*)
                     mutation-stats)
@@ -651,7 +653,7 @@ Keyword arguments are as follows.
   MUTATION-STATS -- set to non-nil to collect mutation statistics"
   `(-search (new ,test ,max-evals ,max-time ,period ,period-fn
                  ,every-pre-fn ,every-post-fn
-                 ,filter ,running ,fitness-evals ,mutation-stats)
+                 ,filter ,time ,running ,fitness-evals ,mutation-stats)
             #'new-individual
             (incorporate new ,population ,max-population-size)))
 
