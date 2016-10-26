@@ -136,11 +136,11 @@
     (label-line-print
      :balance 0
      :colors (append
-              (list +color-CYA+ +color-GRA+ +color-RST+ +color-GRA+ +color-RST+)
+              (list +color-PIN+ +color-GRA+ +color-RST+ +color-GRA+ +color-RST+)
               (list +color-GRA+ +color-RST+ +color-GRA+ +color-RST+))
      :values (append
               (list
-               " fitness : "
+               " fitness"
                " best: " (format nil "~f" (extremum fits *fitness-predicate*))
                " med: " (format nil "~f" (median fits)))
               (when vectorp
@@ -161,12 +161,12 @@
   (let ((lengths (mapcar [#'length #'lines] *population*)))
     (label-line-print
      :balance 0
-     :colors (list +color-CYA+
+     :colors (list +color-PIN+
                    +color-GRA+ +color-RST+
                    +color-GRA+ +color-RST+
                    +color-GRA+ +color-RST+)
      :values (list
-               "  length : "
+               "  length"
                " max: " (format nil "~f" (apply #'max lengths))
                " med: " (format nil "~f" (median lengths))
                " min: " (format nil "~f" (apply #'min lengths))) 
@@ -189,8 +189,7 @@
        (runtime-print)
        (label-line-print :value " population " :color +color-CYA+
                          :balance (/ (- 1 +golden-ratio+) 2)
-                         :left +b-lt+ :right +b-rt+)
+                         :left +b-vr+ :right +b-vl+)
        (fitness-data-print)
-       ;; (label-line-print :left +b-vr+ :right +b-vl+)
        (genome-data-print)
        (label-line-print :left +b-lb+ :right +b-rb+)))))
