@@ -28,6 +28,7 @@
    :fitness
    :fitness-extra-data
    :mutation-stats
+   :*mutation-improvements*
    :genome
    :phenome
    :compile-p

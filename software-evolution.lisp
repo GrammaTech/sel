@@ -141,6 +141,12 @@ Used to target mutation."))
                           #+ccl :shared #+ccl :lock-free)
   "Variable to hold mutation statistics.")
 
+(defvar *max-saved-mutation-improvements* 24
+  "Maximum number of mutation improvements to hold on to.")
+
+(defvar *mutation-improvements* nil
+  "List of recent mutation improvements cons'd with *fitness-evals*.")
+
 (defvar *crossover-stats* (make-hash-table
                            :test #'equal
                            #+sbcl :synchronized #+sbcl t
@@ -228,7 +234,15 @@ argument TEST must be supplied."))
                     ((funcall (complement #'fitness-better-p) fit old-fit)
                      (note "-") :worse)
                     ((fitness-better-p fit old-fit)
-                     (note "+") :better))
+                     (note "+")
+                     (push (cons (mutation-key crossed mutation)
+                                 *fitness-evals*)
+                           *mutation-improvements*)
+                     (when (>= (length *mutation-improvements*)
+                               *max-saved-mutation-improvements*)
+                       (setf *mutation-improvements*
+                             (butlast *mutation-improvements*)))
+                     :better))
                   fit old-fit))))
       ;; Add information on the mutation to `*mutation-stats*`.
       (multiple-value-bind (effect fit old-fit)
