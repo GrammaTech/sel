@@ -114,6 +114,19 @@
                                        (string right)))))
     (format *view-stream* "~%")))
 
+(defun runtime-print ()
+  (let ((lengths (mapcar [#'length #'lines] *population*)))
+    (label-line-print
+     :balance 0
+     :colors (list +color-GRA+ +color-RST+
+                   +color-GRA+ +color-RST+
+                   +color-GRA+ +color-RST+)
+     :values (list
+              " runtime: " "????"
+              " evals: " (format nil "~f" *fitness-evals*)
+              " last improv: " "????") 
+     :filler #\Space :left +b-v+ :right +b-v+)))
+
 (defun fitness-data-print ()
   (let* ((vectorp (not (numberp (car *population*))))
          (fits (mapcar (if vectorp
@@ -127,7 +140,7 @@
               (list +color-GRA+ +color-RST+ +color-GRA+ +color-RST+))
      :values (append
               (list
-               " fitness "
+               " fitness : "
                " best: " (format nil "~f" (extremum fits *fitness-predicate*))
                " med: " (format nil "~f" (median fits)))
               (when vectorp
@@ -144,6 +157,21 @@
                                         (reduce #'+)))))) 
      :filler #\Space :left +b-v+ :right +b-v+)))
 
+(defun genome-data-print ()
+  (let ((lengths (mapcar [#'length #'lines] *population*)))
+    (label-line-print
+     :balance 0
+     :colors (list +color-CYA+
+                   +color-GRA+ +color-RST+
+                   +color-GRA+ +color-RST+
+                   +color-GRA+ +color-RST+)
+     :values (list
+               "  length : "
+               " max: " (format nil "~f" (apply #'max lengths))
+               " med: " (format nil "~f" (median lengths))
+               " min: " (format nil "~f" (apply #'min lengths))) 
+     :filler #\Space :left +b-v+ :right +b-v+)))
+
 (eval-when (:execute)
   (make-thread
    (lambda ()
@@ -155,8 +183,14 @@
         :colors (list +color-YEL+ +color-CYA+)
         :balance 1/2
         :filler #\Space :left #\Space :right #\Space)
-       (label-line-print :value " performance " :color +color-CYA+
+       (label-line-print :value " timing " :color +color-CYA+
+                         :balance (/ (- 1 +golden-ratio+) 2)
+                         :left +b-lt+ :right +b-rt+)
+       (runtime-print)
+       (label-line-print :value " population " :color +color-CYA+
                          :balance (/ (- 1 +golden-ratio+) 2)
                          :left +b-lt+ :right +b-rt+)
        (fitness-data-print)
+       ;; (label-line-print :left +b-vr+ :right +b-vl+)
+       (genome-data-print)
        (label-line-print :left +b-lb+ :right +b-rb+)))))
