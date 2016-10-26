@@ -2220,6 +2220,13 @@ Useful for printing or returning differences in the REPL."
     (is (null (->> (find-snippets *database* :full-stmt t)
                    (remove-if {aget :full-stmt}))))))
 
+(deftest json-database-find-snippet-is-random ()
+  (with-fixture json-database
+    (let ((picks (loop :for i :from 0 :to 5
+                       :collect (aget :hash (find-snippets *database*
+                                                           :limit 1)))))
+      (equal picks (remove-duplicates picks)))))
+
 (deftest mongo-database-find-snippet-respects-class ()
   (with-fixture mongo-database
     (when *database*
@@ -2239,6 +2246,13 @@ Useful for printing or returning differences in the REPL."
       (is (null (->> (find-snippets *database* :full-stmt t)
                      (remove-if {aget :full-stmt})))))))
 
+(deftest mongo-database-find-snippet-is-random ()
+  (with-fixture mongo-database
+    (when *database*
+      (let ((picks (loop :for i :from 0 :to 5
+                         :collect (aget :hash (find-snippets *database*
+                                                             :limit 1)))))
+        (equal picks (remove-duplicates picks))))))
 
 ;;; Instrumentation tests
 (defun count-fullable (obj)
