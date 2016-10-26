@@ -13,6 +13,9 @@
 (defvar *view-length* 65
   "Dynamically bind to use modify.")
 
+(defvar *view-running* nil
+  "Set to nil to terminate the view thread.")
+
 (define-constant +golden-ratio+ 21/34)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -74,14 +77,12 @@
                (format ,*view-stream* "~a" +b-start+)
                ,@body)
      (format ,*view-stream* "~a" +b-stop+)
-     (format ,*view-stream* "~a" +reset-G1+)
-     (force-output ,*view-stream*)))
+     (format ,*view-stream* "~a" +reset-G1+)))
 
 (defmacro with-color-printing (color &rest body)
   `(unwind-protect
         (progn (format ,*view-stream* "~a" ,color) ,@body)
-     (format ,*view-stream* "~a" +color-RST+)
-     (force-output ,*view-stream*)))
+     (format ,*view-stream* "~a" +color-RST+)))
 
 (defun label-line-print (&key (value "") (values)
                            (color +color-RST+) (colors)
@@ -172,24 +173,29 @@
                " min: " (format nil "~f" (apply #'min lengths))) 
      :filler #\Space :left +b-v+ :right +b-v+)))
 
-(eval-when (:execute)
-  (make-thread
-   (lambda ()
-     (let ((*view-stream* *standard-output*))
-       (clear-terminal)
-       (hide-cursor)
-       (label-line-print
-        :values (list " BED " +software-evolution-version+)
-        :colors (list +color-YEL+ +color-CYA+)
-        :balance 1/2
-        :filler #\Space :left #\Space :right #\Space)
-       (label-line-print :value " timing " :color +color-CYA+
-                         :balance (/ (- 1 +golden-ratio+) 2)
-                         :left +b-lt+ :right +b-rt+)
-       (runtime-print)
-       (label-line-print :value " population " :color +color-CYA+
-                         :balance (/ (- 1 +golden-ratio+) 2)
-                         :left +b-vr+ :right +b-vl+)
-       (fitness-data-print)
-       (genome-data-print)
-       (label-line-print :left +b-lb+ :right +b-rb+)))))
+(defun view-status ()
+  (clear-terminal)
+  (hide-cursor)
+  (label-line-print
+   :values (list " BED " +software-evolution-version+)
+   :colors (list +color-YEL+ +color-CYA+)
+   :balance 1/2
+   :filler #\Space :left #\Space :right #\Space)
+  (label-line-print :value " timing " :color +color-CYA+
+                    :balance (/ (- 1 +golden-ratio+) 2)
+                    :left +b-lt+ :right +b-rt+)
+  (runtime-print)
+  (label-line-print :value " population " :color +color-CYA+
+                    :balance (/ (- 1 +golden-ratio+) 2)
+                    :left +b-vr+ :right +b-vl+)
+  (fitness-data-print)
+  (genome-data-print)
+  (label-line-print :left +b-lb+ :right +b-rb+)
+  (force-output *view-stream*))
+
+(defun view-start (&key (delay 2))
+  "Start a viewing thread regularly updating `view-status'."
+  (setf *view-running* t)
+  (make-thread (lambda ()
+                 (iter (while *view-running*) (view-status) (sleep delay)))
+               :name "view"))

@@ -15,7 +15,11 @@
    :diff
    :bordeaux-threads
    :software-evolution)
-  (:export :view))
+  (:export :*view-running*
+           :*view-length*
+           :*view-stream*
+           :view-status
+           :view-start))
 
 #+allegro
 (set-dispatch-macro-character #\# #\_
