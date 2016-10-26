@@ -116,86 +116,93 @@
     (format *view-stream* "~%")))
 
 (defun runtime-print ()
-  (let ((lengths (mapcar [#'length #'lines] *population*)))
-    (label-line-print
-     :balance 0
-     :colors (list +color-GRA+ +color-RST+
-                   +color-GRA+ +color-RST+
-                   +color-GRA+ +color-RST+)
-     :values (list
-              " runtime: " "????"
-              " evals: " (format nil "~f" *fitness-evals*)
-              " last improv: " "????") 
-     :filler #\Space :left +b-v+ :right +b-v+)))
+  (label-line-print
+   :balance 0
+   :colors (list +color-GRA+ +color-RST+
+                 +color-GRA+ +color-RST+
+                 +color-GRA+ +color-RST+)
+   :values (list
+            " runtime: " "????"
+            " evals: " (format nil "~f" *fitness-evals*)
+            " last improv: " "????") 
+   :filler #\Space :left +b-v+ :right +b-v+))
 
-(defun fitness-data-print ()
-  (let* ((vectorp (not (numberp (car *population*))))
+(defun fitness-data-print (best med &optional uniq union)
+  (label-line-print
+   :balance 0
+   :colors (append
+            (list +color-PIN+ +color-GRA+ +color-RST+ +color-GRA+ +color-RST+)
+            (list +color-GRA+ +color-RST+ +color-GRA+ +color-RST+))
+   :values (append
+            (list
+             " fitness"
+             " best: " best
+             " med: " med)
+            (when (and uniq union)
+              (list
+               " uniq: " uniq
+               " union: " union))) 
+   :filler #\Space :left +b-v+ :right +b-v+))
+
+(defun genome-data-print (max med min)
+  (label-line-print
+   :balance 0
+   :colors (list +color-PIN+
+                 +color-GRA+ +color-RST+
+                 +color-GRA+ +color-RST+
+                 +color-GRA+ +color-RST+)
+   :values (list "  length" " max: " max " med: " med " min: " min) 
+   :filler #\Space :left +b-v+ :right +b-v+))
+
+(defun view-status ()
+  (let* (;; Fitness metrics
+         (vectorp (not (numberp (car *population*))))
          (fits (mapcar (if vectorp
                            [{reduce #'+} #'fitness]
                            #'fitness)
-                       *population*)))
+                       *population*))
+         (best (format nil "~f" (extremum fits *fitness-predicate*)))
+         (fit-med (format nil "~f" (median fits)))
+         (fit-uniq (when vectorp
+                     (format nil "~d"
+                             (/ (length (remove-duplicates
+                                         (mapcar #'fitness *population*)
+                                         :test #'equalp))
+                                (length *population*)))))
+         (fit-union (when vectorp
+                      (format nil "~f"
+                              (->> *population*
+                                   (mapcar [{coerce _ 'list} #'fitness])
+                                   (apply #'mapcar [{apply #'min} #'list])
+                                   (reduce #'+)))))
+         ;; Genomic calculations.
+         (lengths (mapcar [#'length #'lines] *population*))
+         (len-min (format nil "~f" (apply #'min lengths)))
+         (len-med (format nil "~f" (median lengths)))
+         (len-max (format nil "~f" (apply #'max lengths))))
+    (clear-terminal)
+    (hide-cursor)
     (label-line-print
-     :balance 0
-     :colors (append
-              (list +color-PIN+ +color-GRA+ +color-RST+ +color-GRA+ +color-RST+)
-              (list +color-GRA+ +color-RST+ +color-GRA+ +color-RST+))
-     :values (append
-              (list
-               " fitness"
-               " best: " (format nil "~f" (extremum fits *fitness-predicate*))
-               " med: " (format nil "~f" (median fits)))
-              (when vectorp
-                (list
-                 " uniq: " (format nil "~d"
-                                   (/ (length (remove-duplicates
-                                               (mapcar #'fitness *population*)
-                                               :test #'equalp))
-                                      (length *population*)))
-                 " union: " (format nil "~f"
-                                   (->> *population*
-                                        (mapcar [{coerce _ 'list} #'fitness])
-                                        (apply #'mapcar [{apply #'min} #'list])
-                                        (reduce #'+)))))) 
-     :filler #\Space :left +b-v+ :right +b-v+)))
-
-(defun genome-data-print ()
-  (let ((lengths (mapcar [#'length #'lines] *population*)))
-    (label-line-print
-     :balance 0
-     :colors (list +color-PIN+
-                   +color-GRA+ +color-RST+
-                   +color-GRA+ +color-RST+
-                   +color-GRA+ +color-RST+)
-     :values (list
-               "  length"
-               " max: " (format nil "~f" (apply #'max lengths))
-               " med: " (format nil "~f" (median lengths))
-               " min: " (format nil "~f" (apply #'min lengths))) 
-     :filler #\Space :left +b-v+ :right +b-v+)))
-
-(defun view-status ()
-  (clear-terminal)
-  (hide-cursor)
-  (label-line-print
-   :values (list " BED " +software-evolution-version+)
-   :colors (list +color-YEL+ +color-CYA+)
-   :balance 1/2
-   :filler #\Space :left #\Space :right #\Space)
-  (label-line-print :value " timing " :color +color-CYA+
-                    :balance (/ (- 1 +golden-ratio+) 2)
-                    :left +b-lt+ :right +b-rt+)
-  (runtime-print)
-  (label-line-print :value " population " :color +color-CYA+
-                    :balance (/ (- 1 +golden-ratio+) 2)
-                    :left +b-vr+ :right +b-vl+)
-  (fitness-data-print)
-  (genome-data-print)
-  (label-line-print :left +b-lb+ :right +b-rb+)
-  (force-output *view-stream*))
+     :values (list " BED " +software-evolution-version+)
+     :colors (list +color-YEL+ +color-CYA+)
+     :balance 1/2
+     :filler #\Space :left #\Space :right #\Space)
+    (label-line-print :value " timing " :color +color-CYA+
+                      :balance (/ (- 1 +golden-ratio+) 2)
+                      :left +b-lt+ :right +b-rt+)
+    (runtime-print)
+    (label-line-print :value " population " :color +color-CYA+
+                      :balance (/ (- 1 +golden-ratio+) 2)
+                      :left +b-vr+ :right +b-vl+)
+    (fitness-data-print best fit-med fit-uniq fit-union)
+    (genome-data-print len-min len-med len-max)
+    (label-line-print :left +b-lb+ :right +b-rb+)
+    (force-output *view-stream*)))
 
 (defun view-start (&key (delay 2))
   "Start a viewing thread regularly updating `view-status'."
   (setf *view-running* t)
   (make-thread (lambda ()
-                 (iter (while *view-running*) (view-status) (sleep delay)))
+                 (let ((*view-stream* *standard-output*))
+                   (iter (while *view-running*) (view-status) (sleep delay))))
                :name "view"))
