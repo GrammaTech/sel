@@ -83,15 +83,19 @@
      (format ,*view-stream* "~a" +color-RST+)
      (force-output ,*view-stream*)))
 
-(defun label-line-print (&key (label "") (left +b-lt+) (right +b-rt+)
+(defun label-line-print (&key (label "") (value "")
+                           (left +b-lt+) (right +b-rt+)
                            (balance (- 1 +golden-ratio+))
                            (color +color-GRA+)
                            (label-color +color-RST+)
+                           (value-color +color-RST+)
                            (filler +b-h+))
   (let ((left-l
-         (floor (* (- *view-length* (+ 2 (length label))) balance)))
+         (floor (* (- *view-length* (+ 2 (+ (length label) (length value))))
+                   balance)))
         (right-l
-         (ceiling (* (- *view-length* (+ 2 (length label))) (- 1 balance)))))
+         (ceiling (* (- *view-length* (+ 2 (+ (length label) (length value))))
+                     (- 1 balance)))))
     (assert (and (>= left-l 0) (>= right-l 0))
             (left-l right-l)
             "Padding on one side is negative (~a,~a)" left-l right-l)
@@ -102,6 +106,7 @@
                                        (make-string left-l
                                                     :initial-element filler)))))
     (with-color-printing label-color (format *view-stream* label))
+    (with-color-printing value-color (format *view-stream* value))
     (with-color-printing color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
@@ -110,15 +115,21 @@
                                        (string right)))))
     (format *view-stream* "~%")))
 
-(defun fitnesss-data ()
+(defun fitness-data-print ()
   (let ((fits (mapcar (if (numberp (car *population*))
                           #'fitness
                           [{reduce #'+} #'fitness])
                       *population*)))
-    (list "fitness"
-          (extremum fits #'<)
-          (median fits)
-          (extremum fits #'>))))
+    (label-line-print
+     :label " fitness : " :balance 0
+     :label-color +color-GRA+
+     :value
+     (format nil "~{~a~^, ~}"
+             (mapcar #'float
+                     (list (extremum fits *fitness-predicate*)
+                           (median fits)
+                           (extremum fits (complement *fitness-predicate*)))))
+     :filler #\Space :left +b-v+ :right +b-v+)))
 
 (eval-when (:execute)
   (make-thread
@@ -129,4 +140,7 @@
        (label-line-print :label " example " :label-color +color-CYA+)
        (label-line-print :label " lorem ipsum "
                          :balance 0 :filler #\Space :left +b-v+ :right +b-v+)
+       (label-line-print :label " fitness " :label-color +color-CYA+
+                         :left +b-vr+ :right +b-vl+)
+       (fitness-data-print)
        (label-line-print :left +b-lb+ :right +b-rb+)))))
