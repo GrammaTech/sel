@@ -135,7 +135,9 @@ For example a description of the evolution target.")
                 (format nil "~dh ~2,'0dm ~2,'0ds" hours minutes
                         (floor (* remainder 60)))))
             " evals: " (format nil "~f" *fitness-evals*)
-            " last-improv: " "????")
+            " last-improv: "
+            (format nil "~d" (- *fitness-evals*
+                                (cdadr *mutation-improvements*))))
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun fitness-data-print (best med &optional uniq union)
