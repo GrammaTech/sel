@@ -17,9 +17,10 @@
    :software-evolution
    :flexi-streams
    :cl-interpol)
-  (:export :*view-running*
+  (:export :*view-stream*
            :*view-length*
-           :*view-stream*
+           :*view-running*
+           :*view-run-name*
            :view-status
            :view-start))
 
