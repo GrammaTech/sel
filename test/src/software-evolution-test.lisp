@@ -2691,3 +2691,20 @@ Useful for printing or returning differences in the REPL."
     (evaluate-expression '(:* 2 (:+ :ptr 1)) '((:ptr 1234 "*char"))))
   (signals eval-error
     (evaluate-expression '(:/ 2 (:+ :ptr 1)) '((:ptr 1234 "*char")))))
+
+
+;; Utility tests
+(deftest intersects-does-not-include-endpoints ()
+  (is (not (intersects (make-instance 'range :begin 0 :end 1)
+                       (make-instance 'range :begin 1 :end 2))))
+  (is (not (intersects (make-instance 'source-range
+                          :begin (make-instance 'source-location :line 1
+                                                                 :column 0)
+                          :end   (make-instance 'source-location :line 2
+                                                                 :column 0))
+                       (make-instance 'source-range
+                         :begin  (make-instance 'source-location :line 2
+                                                                 :column 0)
+                         :end    (make-instance 'source-location :line 3
+                                                                 :column 0))))))
+
