@@ -83,31 +83,30 @@
      (format ,*view-stream* "~a" +color-RST+)
      (force-output ,*view-stream*)))
 
-(defun label-line-print (&key (label "") (value "")
-                           (left +b-lt+) (right +b-rt+)
+(defun label-line-print (&key (value "") (values)
+                           (color +color-RST+) (colors)
                            (balance (- 1 +golden-ratio+))
-                           (color +color-GRA+)
-                           (label-color +color-RST+)
-                           (value-color +color-RST+)
-                           (filler +b-h+))
-  (let ((left-l
-         (floor (* (- *view-length* (+ 2 (+ (length label) (length value))))
-                   balance)))
-        (right-l
-         (ceiling (* (- *view-length* (+ 2 (+ (length label) (length value))))
-                     (- 1 balance)))))
+                           (filler-color +color-GRA+) (filler +b-h+)
+                           (left +b-lt+) (right +b-rt+))
+  (let* ((values (or values (list value)))
+         (colors (or colors (list color)))
+         (remainder-length
+          (- *view-length* (+ 2 (reduce #'+ (mapcar #'length values)))))
+         (left-l (floor (* remainder-length balance)))
+         (right-l (ceiling (* remainder-length (- 1 balance)))))
     (assert (and (>= left-l 0) (>= right-l 0))
             (left-l right-l)
             "Padding on one side is negative (~a,~a)" left-l right-l)
-    (with-color-printing color
+    (with-color-printing filler-color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
                                        (string left)
                                        (make-string left-l
                                                     :initial-element filler)))))
-    (with-color-printing label-color (format *view-stream* label))
-    (with-color-printing value-color (format *view-stream* value))
-    (with-color-printing color
+    (mapc (lambda (value color)
+            (with-color-printing color (format *view-stream* value)))
+          values colors)
+    (with-color-printing filler-color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
                                        (make-string right-l
@@ -116,19 +115,33 @@
     (format *view-stream* "~%")))
 
 (defun fitness-data-print ()
-  (let ((fits (mapcar (if (numberp (car *population*))
-                          #'fitness
-                          [{reduce #'+} #'fitness])
-                      *population*)))
+  (let* ((vectorp (not (numberp (car *population*))))
+         (fits (mapcar (if vectorp
+                           [{reduce #'+} #'fitness]
+                           #'fitness)
+                       *population*)))
     (label-line-print
-     :label " fitness : " :balance 0
-     :label-color +color-GRA+
-     :value
-     (format nil "~{~a~^, ~}"
-             (mapcar #'float
-                     (list (extremum fits *fitness-predicate*)
-                           (median fits)
-                           (extremum fits (complement *fitness-predicate*)))))
+     :balance 0
+     :colors (append
+              (list +color-CYA+ +color-GRA+ +color-RST+ +color-GRA+ +color-RST+)
+              (list +color-GRA+ +color-RST+ +color-GRA+ +color-RST+))
+     :values (append
+              (list
+               " fitness "
+               " best: " (format nil "~f" (extremum fits *fitness-predicate*))
+               " med: " (format nil "~f" (median fits)))
+              (when vectorp
+                (list
+                 " uniq: " (format nil "~d"
+                                   (/ (length (remove-duplicates
+                                               (mapcar #'fitness *population*)
+                                               :test #'equalp))
+                                      (length *population*)))
+                 " union: " (format nil "~f"
+                                   (->> *population*
+                                        (mapcar [{coerce _ 'list} #'fitness])
+                                        (apply #'mapcar [{apply #'min} #'list])
+                                        (reduce #'+)))))) 
      :filler #\Space :left +b-v+ :right +b-v+)))
 
 (eval-when (:execute)
@@ -138,11 +151,11 @@
        (clear-terminal)
        (hide-cursor)
        (label-line-print
-        :label " BED " :label-color +color-YEL+
-        :value +software-evolution-version+ :value-color +color-CYA+
+        :values (list " BED " +software-evolution-version+)
+        :colors (list +color-YEL+ +color-CYA+)
         :balance 1/2
         :filler #\Space :left #\Space :right #\Space)
-       (label-line-print :label " fitness " :label-color +color-CYA+
+       (label-line-print :value " performance " :color +color-CYA+
                          :balance (/ (- 1 +golden-ratio+) 2)
                          :left +b-lt+ :right +b-rt+)
        (fitness-data-print)
