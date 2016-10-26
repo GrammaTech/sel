@@ -265,6 +265,16 @@ argument TEST must be supplied."))
   ;; Default to using the mutation op.
   (declare (ignorable obj)) (car mutation))
 
+(defun summarize-mutation-stats (&aux results)
+  (maphash (lambda (key vals)
+             (mapc (lambda (result)
+                     (if (aget result (aget (car key) results))
+                         (incf (aget result (aget (car key) results)))
+                         (setf (aget result (aget (car key) results)) 1)))
+                   (mapcar #'second vals)))
+           *mutation-stats*)
+  results)
+
 (defgeneric mcmc-step (software)
   (:documentation "Change software in a way amenable to MCMC.
 Specifically every step should be reversible, and the resulting walk

@@ -67,6 +67,7 @@
    :*analyze-mutation-verbose-stream*
    :analyze-mutation
    :mutation-key
+   :summarize-mutation-stats
    :crossover
    :one-point-crossover
    :two-point-crossover
