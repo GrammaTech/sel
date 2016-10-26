@@ -154,55 +154,88 @@
    :values (list "  length" " max: " max " med: " med " min: " min) 
    :filler #\Space :left +b-v+ :right +b-v+))
 
-(defun view-status ()
-  (let* (;; Fitness metrics
-         (vectorp (not (numberp (car *population*))))
-         (fits (mapcar (if vectorp
-                           [{reduce #'+} #'fitness]
-                           #'fitness)
-                       *population*))
-         (best (format nil "~f" (extremum fits *fitness-predicate*)))
-         (fit-med (format nil "~f" (median fits)))
-         (fit-uniq (when vectorp
-                     (format nil "~d"
-                             (/ (length (remove-duplicates
-                                         (mapcar #'fitness *population*)
-                                         :test #'equalp))
-                                (length *population*)))))
-         (fit-union (when vectorp
-                      (format nil "~f"
-                              (->> *population*
-                                   (mapcar [{coerce _ 'list} #'fitness])
-                                   (apply #'mapcar [{apply #'min} #'list])
-                                   (reduce #'+)))))
-         ;; Genomic calculations.
-         (lengths (mapcar [#'length #'lines] *population*))
-         (len-min (format nil "~f" (apply #'min lengths)))
-         (len-med (format nil "~f" (median lengths)))
-         (len-max (format nil "~f" (apply #'max lengths))))
-    (clear-terminal)
-    (hide-cursor)
-    (label-line-print
-     :values (list " BED " +software-evolution-version+)
-     :colors (list +color-YEL+ +color-CYA+)
-     :balance 1/2
-     :filler #\Space :left #\Space :right #\Space)
-    (label-line-print :value " timing " :color +color-CYA+
-                      :balance (/ (- 1 +golden-ratio+) 2)
-                      :left +b-lt+ :right +b-rt+)
-    (runtime-print)
-    (label-line-print :value " population " :color +color-CYA+
-                      :balance (/ (- 1 +golden-ratio+) 2)
-                      :left +b-vr+ :right +b-vl+)
-    (fitness-data-print best fit-med fit-uniq fit-union)
-    (genome-data-print len-min len-med len-max)
-    (label-line-print :left +b-lb+ :right +b-rb+)
-    (force-output *view-stream*)))
+(defun subtree-starting-with (token tree &key (test #'equalp))
+  (if (funcall test token (car tree)) tree
+      (car (remove nil (mapcar {subtree-starting-with token}
+                               (remove-if-not #'listp tree))))))
+
+(defun replace-subtree-starting-with (token replace tree &key (test #'equalp))
+  (mapcar (lambda (subtree)
+            (if (and (listp subtree) (car subtree))
+                (if (funcall test token (car subtree))
+                    replace
+                    (replace-subtree-starting-with token replace subtree))
+                subtree))
+          tree))
+
+(defmacro with-delayed-invocation (function &rest body)
+  "Take a form with one function marked as DELAYED.
+Rewrite into a form which calculates all arguments and returns a
+lambda calling the delayed function on the arguments."
+  (let ((syms-and-args (mapcar (lambda (arg) (list (gensym) arg))
+                               (cdr (subtree-starting-with function body)))))
+    (replace-subtree-starting-with
+     function
+     `(let ,syms-and-args
+        (lambda () (,function ,@(mapcar #'car syms-and-args))))
+     `(progn ,@body))))
+
+(defun view-status (&rest args)
+  (clear-terminal)
+  (hide-cursor)
+  (label-line-print
+   :values (list " BED " +software-evolution-version+)
+   :colors (list +color-YEL+ +color-CYA+)
+   :balance 1/2
+   :filler #\Space :left #\Space :right #\Space)
+  (label-line-print :value " timing " :color +color-CYA+
+                    :balance (/ (- 1 +golden-ratio+) 2)
+                    :left +b-lt+ :right +b-rt+)
+  (runtime-print)
+  (label-line-print :value " population " :color +color-CYA+
+                    :balance (/ (- 1 +golden-ratio+) 2)
+                    :left +b-vr+ :right +b-vl+)
+  ;; funcs
+  (mapcar #'funcall args)
+  (label-line-print :left +b-lb+ :right +b-rb+)
+  (force-output *view-stream*))
 
 (defun view-start (&key (delay 2))
   "Start a viewing thread regularly updating `view-status'."
   (setf *view-running* t)
-  (make-thread (lambda ()
-                 (let ((*view-stream* *standard-output*))
-                   (iter (while *view-running*) (view-status) (sleep delay))))
-               :name "view"))
+  (make-thread
+   (lambda ()
+     (let ((*view-stream* *standard-output*))
+       (iter
+         (while *view-running*)
+         (view-status
+          ;; Fitness data informaion (pre-calculated).
+          (with-delayed-invocation fitness-data-print
+            (let* ((vectorp (not (numberp (car *population*))))
+                   (fits (mapcar (if vectorp
+                                     [{reduce #'+} #'fitness]
+                                     #'fitness)
+                                 *population*)))
+              (fitness-data-print
+               (format nil "~f" (extremum fits *fitness-predicate*))
+               (format nil "~f" (median fits))
+               (when vectorp
+                 (format nil "~d"
+                         (/ (length (remove-duplicates
+                                     (mapcar #'fitness *population*)
+                                     :test #'equalp))
+                            (length *population*))))
+               (when vectorp
+                 (format nil "~f"
+                         (->> *population*
+                              (mapcar [{coerce _ 'list} #'fitness])
+                              (apply #'mapcar [{apply #'min} #'list])
+                              (reduce #'+)))))))
+          ;; Genomic data informaion (pre-calculated).
+          (with-delayed-invocation genome-data-print
+            (let ((lengths (mapcar [#'length #'lines] *population*)))
+              (genome-data-print (format nil "~f" (apply #'min lengths))
+                                 (format nil "~f" (median lengths))
+                                 (format nil "~f" (apply #'max lengths))))))
+         (sleep delay))))
+   :name "view"))
