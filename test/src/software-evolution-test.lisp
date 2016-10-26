@@ -150,10 +150,16 @@
     (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
       :test #'equalp
       :documentation "Location of the scopes example directory")
+
     (define-constant +clang-crossover-dir+
                      (append +etc-dir+ (list "clang-crossover"))
       :test #'equalp
-      :documentation "Location of clang crossover example directory")))
+      :documentation "Location of clang crossover example directory")
+
+    (define-constant +lisp-bugs-dir+
+                     (append +etc-dir+ (list "lisp-bugs"))
+      :test #'equalp
+      :documentation "Location of the lisp bugs directory")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -194,6 +200,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +clang-crossover-dir+))
+
+(defun lisp-bugs-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +lisp-bugs-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -908,6 +919,15 @@
                 (:= (:-> :heap :h)
                  (:realloc (:-> :heap :h) (:+ (:-> :heap :s)
                                               (:-> :heap :cs)))))))))))
+
+(deftest clang-pick-general-same-class-no-matching-test ()
+  "Ensure calling pick-general with the :same-class flag set to true does not
+fail when a second statement with the same AST class is not to be found"
+  (let ((obj (from-file (make-instance 'clang)
+                        (lisp-bugs-dir "pick-general-same-class.c"))))
+    (is (not (null (se::pick-general obj (good-stmts obj)
+                                         :second-pool (bad-stmts obj)
+                                         :same-class t))))))
 
 
 ;;; Detailed clang mutation tests
