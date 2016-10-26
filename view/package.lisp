@@ -15,12 +15,15 @@
    :diff
    :bordeaux-threads
    :software-evolution
+   :software-evolution-utility
    :flexi-streams
    :cl-interpol)
   (:export :*view-stream*
            :*view-length*
            :*view-running*
            :*view-run-name*
+           :*view-mutation-show-header*n
+           :*view-max-mutations*
            :view-status
            :view-start))
 

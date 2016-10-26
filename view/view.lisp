@@ -21,6 +21,12 @@
   "Set the name of the current run.
 For example a description of the evolution target.")
 
+(defvar *view-mutation-show-header* t
+  "Show headers of mutation stats.")
+
+(defvar *view-max-mutations* infinity
+  "Maximum number of mutations to show.")
+
 (define-constant +golden-ratio+ 21/34)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -93,7 +99,8 @@ For example a description of the evolution target.")
                            (color +color-RST+) (colors)
                            (balance (- 1 +golden-ratio+))
                            (filler-color +color-GRA+) (filler +b-h+)
-                           (left +b-lt+) (right +b-rt+))
+                           (left +b-lt+) (right +b-rt+)
+                           (inhibit-newline))
   (let* ((values (or values (list value)))
          (colors (or colors (list color)))
          (remainder-length
@@ -103,6 +110,7 @@ For example a description of the evolution target.")
     (assert (and (>= left-l 0) (>= right-l 0))
             (left-l right-l)
             "Padding on one side is negative (~a,~a)" left-l right-l)
+    (unless inhibit-newline (format *view-stream* "~&"))
     (with-color-printing filler-color
       (with-line-printing
           (format *view-stream* "~a" (concatenate 'string
@@ -117,8 +125,7 @@ For example a description of the evolution target.")
           (format *view-stream* "~a" (concatenate 'string
                                        (make-string right-l
                                                     :initial-element filler)
-                                       (string right)))))
-    (format *view-stream* "~%")))
+                                       (string right)))))))
 
 (defun runtime-print ()
   (label-line-print
@@ -167,6 +174,36 @@ For example a description of the evolution target.")
    :values (list "  length" " min: " max " med: " med " max: " min)
    :filler #\Space :left +b-v+ :right +b-v+))
 
+(defun mutation-stats-print (stats)
+  (let ((longest (extremum (mapcar [#'length #'symbol-name #'car] stats) #'>))
+        (keys '(:better :same :worse :dead)))
+    (when *view-mutation-show-header*
+      (label-line-print
+       :balance 0
+       :colors (mapcar (constantly +color-PIN+) (append (list 1 2 3) keys))
+       :values (append (cons (format nil " ~V@a " longest "MUTATION")
+                             (mapcar (lambda (key) (format nil " ~6@a" key)) keys))
+                       (list " /" " total"))
+       :filler #\Space :left +b-v+ :right +b-v+))
+    (mapc (lambda (mut)
+            (label-line-print
+             :balance 0
+             :colors
+             (append (cons +color-GRA+
+                           (mapcar (constantly +color-RST+) keys))
+                     (list +color-GRA+ +color-RST+))
+             :values
+             (append (list (format nil " ~V@a:" longest (car mut)))
+                     (mapcar (lambda (key)
+                               (format nil " ~6d"
+                                       (or (aget key (cdr mut)) 0)))
+                             keys)
+                     (list " / "
+                           (format nil "~d"
+                                   (reduce #'+ (mapcar #'cdr (cdr mut))))))
+             :filler #\Space :left +b-v+ :right +b-v+))
+          stats)))
+
 (defun subtree-starting-with (token tree &key (test #'equalp))
   (if (funcall test token (car tree)) tree
       (car (remove nil (mapcar {subtree-starting-with token}
@@ -187,6 +224,8 @@ Rewrite into a form which calculates all arguments and returns a
 lambda calling the delayed function on the arguments."
   (let ((syms-and-args (mapcar (lambda (arg) (list (gensym) arg))
                                (cdr (subtree-starting-with function body)))))
+    (assert syms-and-args (function body)
+            "Couldn't find instance of ~a in ~a" function body)
     (replace-subtree-starting-with
      function
      `(let ,syms-and-args
@@ -197,19 +236,13 @@ lambda calling the delayed function on the arguments."
   (clear-terminal)
   (hide-cursor)
   (label-line-print
-   :values (append (list " BED " +software-evolution-version+)
+   :values (append (list " SEL " +software-evolution-version+)
                    (when *view-run-name*
                      (list (format nil " (~a)" *view-run-name*))))
    :colors (list +color-YEL+ +color-CYA+ +color-LGN+)
    :balance 1/2
+   :inhibit-newline t
    :filler #\Space :left #\Space :right #\Space)
-  (label-line-print :value " timing " :color +color-CYA+
-                    :balance (/ (- 1 +golden-ratio+) 2)
-                    :left +b-lt+ :right +b-rt+)
-  (runtime-print)
-  (label-line-print :value " population " :color +color-CYA+
-                    :balance (/ (- 1 +golden-ratio+) 2)
-                    :left +b-vr+ :right +b-vl+)
   ;; funcs
   (mapcar #'funcall args)
   (label-line-print :left +b-lb+ :right +b-rb+)
@@ -224,6 +257,15 @@ lambda calling the delayed function on the arguments."
        (iter
          (while *view-running*)
          (view-status
+          (lambda ()
+            (label-line-print :value " timing " :color +color-CYA+
+                              :balance (/ (- 1 +golden-ratio+) 2)
+                              :left +b-lt+ :right +b-rt+)
+            (runtime-print))
+          (lambda ()
+            (label-line-print :value " population " :color +color-CYA+
+                              :balance (/ (- 1 +golden-ratio+) 2)
+                              :left +b-vr+ :right +b-vl+))
           ;; Fitness data informaion (pre-calculated).
           (with-delayed-invocation fitness-data-print
             (let* ((vectorp (not (numberp (car *population*))))
@@ -251,6 +293,18 @@ lambda calling the delayed function on the arguments."
             (let ((lengths (mapcar [#'length #'lines] *population*)))
               (genome-data-print (format nil "~d" (apply #'min lengths))
                                  (format nil "~d" (median lengths))
-                                 (format nil "~d" (apply #'max lengths))))))
+                                 (format nil "~d" (apply #'max lengths)))))
+          ;; Mutations
+          (lambda ()
+            (label-line-print :value " mutations " :color +color-CYA+
+                              :balance (/ (- 1 +golden-ratio+) 2)
+                              :left +b-vr+ :right +b-vl+))
+          (with-delayed-invocation mutation-stats-print
+            (mutation-stats-print
+             (take *view-max-mutations*
+                   (sort (summarize-mutation-stats) #'>
+                         :key (lambda (mut)
+                                (/ (or (aget :better (cdr mut)) 0)
+                                   (reduce #'+ (mapcar #'cdr (cdr mut))))))))))
          (sleep delay))))
    :name "view"))
