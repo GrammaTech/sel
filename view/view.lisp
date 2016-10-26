@@ -17,6 +17,10 @@
 (defvar *view-running* nil
   "Set to nil to terminate the view thread.")
 
+(defvar *view-run-name* nil
+  "Set the name of the current run.
+For example a description of the evolution target.")
+
 (define-constant +golden-ratio+ 21/34)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -128,10 +132,10 @@
                   (hours remainder) (floor (/ (elapsed-time) 3600))
               (multiple-value-bind
                     (minutes remainder) (floor (/ (* remainder 3600) 60))
-                (format nil "~dh ~dm ~ds" hours minutes
+                (format nil "~dh ~2,'0dm ~2,'0ds" hours minutes
                         (floor (* remainder 60)))))
             " evals: " (format nil "~f" *fitness-evals*)
-            " last improv: " "????") 
+            " last-improv: " "????")
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun fitness-data-print (best med &optional uniq union)
@@ -148,7 +152,7 @@
             (when (and uniq union)
               (list
                " uniq: " uniq
-               " union: " union))) 
+               " union: " union)))
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun genome-data-print (max med min)
@@ -158,7 +162,7 @@
                  +color-GRA+ +color-RST+
                  +color-GRA+ +color-RST+
                  +color-GRA+ +color-RST+)
-   :values (list "  length" " min: " max " med: " med " max: " min) 
+   :values (list "  length" " min: " max " med: " med " max: " min)
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun subtree-starting-with (token tree &key (test #'equalp))
@@ -191,8 +195,10 @@ lambda calling the delayed function on the arguments."
   (clear-terminal)
   (hide-cursor)
   (label-line-print
-   :values (list " BED " +software-evolution-version+)
-   :colors (list +color-YEL+ +color-CYA+)
+   :values (append (list " BED " +software-evolution-version+)
+                   (when *view-run-name*
+                     (list (format nil " (~a)" *view-run-name*))))
+   :colors (list +color-YEL+ +color-CYA+ +color-LGN+)
    :balance 1/2
    :filler #\Space :left #\Space :right #\Space)
   (label-line-print :value " timing " :color +color-CYA+
@@ -227,7 +233,7 @@ lambda calling the delayed function on the arguments."
                (format nil "~f" (extremum fits *fitness-predicate*))
                (format nil "~f" (median fits))
                (when vectorp
-                 (format nil "~d"
+                 (format nil "0~4f"
                          (/ (length (remove-duplicates
                                      (mapcar #'fitness *population*)
                                      :test #'equalp))
@@ -241,8 +247,8 @@ lambda calling the delayed function on the arguments."
           ;; Genomic data informaion (pre-calculated).
           (with-delayed-invocation genome-data-print
             (let ((lengths (mapcar [#'length #'lines] *population*)))
-              (genome-data-print (format nil "~f" (apply #'min lengths))
-                                 (format nil "~f" (median lengths))
-                                 (format nil "~f" (apply #'max lengths))))))
+              (genome-data-print (format nil "~d" (apply #'min lengths))
+                                 (format nil "~d" (median lengths))
+                                 (format nil "~d" (apply #'max lengths))))))
          (sleep delay))))
    :name "view"))
