@@ -14,7 +14,8 @@
    :cl-dot
    :diff
    :bordeaux-threads
-   :software-evolution)
+   :software-evolution
+   :flexi-streams)
   (:export :*view-running*
            :*view-length*
            :*view-stream*
