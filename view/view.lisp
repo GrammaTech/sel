@@ -158,7 +158,7 @@
                  +color-GRA+ +color-RST+
                  +color-GRA+ +color-RST+
                  +color-GRA+ +color-RST+)
-   :values (list "  length" " max: " max " med: " med " min: " min) 
+   :values (list "  length" " min: " max " med: " med " max: " min) 
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun subtree-starting-with (token tree &key (test #'equalp))
