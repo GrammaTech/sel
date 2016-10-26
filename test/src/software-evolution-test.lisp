@@ -703,7 +703,15 @@
         "Ensure known global is in `globals'.")
     (is (find-if [{string= "int i"} {aget :src-text}]
                  (stmt-asts *huf*))
-        "Ensure known local variable is in `stmts'.")))
+        "Ensure known local variable is in `stmts'.")
+    (is (null (find "ParmVar" (stmt-asts *huf*)
+                    :key {aget :ast-class} :test #'string=))
+        "Ensure no ParmVar statement ASTs")
+    (is (null (find "Function" (stmt-asts *huf*)
+                    :key {aget :ast-class} :test #'string=))
+        "Ensure no Function statement ASTs")
+    (is (apply #'< (mapcar {aget :counter} (stmt-asts *huf*)))
+        "Ensure statement ASTs ordered by increasing counter")))
 
 ;; Check if the two AST lists differ. Do a smoke test with
 ;; the list lengths; if they match, use the :src-text
