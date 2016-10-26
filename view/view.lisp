@@ -137,10 +137,13 @@
      (let ((*view-stream* *standard-output*))
        (clear-terminal)
        (hide-cursor)
-       (label-line-print :label " example " :label-color +color-CYA+)
-       (label-line-print :label " lorem ipsum "
-                         :balance 0 :filler #\Space :left +b-v+ :right +b-v+)
+       (label-line-print
+        :label " BED " :label-color +color-YEL+
+        :value +software-evolution-version+ :value-color +color-CYA+
+        :balance 1/2
+        :filler #\Space :left #\Space :right #\Space)
        (label-line-print :label " fitness " :label-color +color-CYA+
-                         :left +b-vr+ :right +b-vl+)
+                         :balance (/ (- 1 +golden-ratio+) 2)
+                         :left +b-lt+ :right +b-rt+)
        (fitness-data-print)
        (label-line-print :left +b-lb+ :right +b-rb+)))))
