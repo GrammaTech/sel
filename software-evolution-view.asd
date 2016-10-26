@@ -13,7 +13,8 @@
                cl-dot
                diff
                bordeaux-threads
-               flexi-streams)
+               flexi-streams
+               cl-interpol)
   :components
   ((:module view
             :pathname "view"

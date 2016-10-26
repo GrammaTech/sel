@@ -15,7 +15,8 @@
    :diff
    :bordeaux-threads
    :software-evolution
-   :flexi-streams)
+   :flexi-streams
+   :cl-interpol)
   (:export :*view-running*
            :*view-length*
            :*view-stream*
