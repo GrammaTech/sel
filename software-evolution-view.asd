@@ -12,7 +12,8 @@
                cl-store
                cl-dot
                diff
-               bordeaux-threads)
+               bordeaux-threads
+               flexi-streams)
   :components
   ((:module view
             :pathname "view"
