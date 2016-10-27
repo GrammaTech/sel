@@ -340,6 +340,13 @@
   (:teardown
     (setf *intraprocedural-2pt-crossover-bug-obj* nil)))
 
+(defixture no-mutation-targets-clang
+  (:setup
+   (setf *soft* (from-file (make-instance 'clang)
+                (lisp-bugs-dir "no-mutation-targets.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
@@ -806,6 +813,9 @@
       (is (string/= (genome variant)
                     "")))))
 
+
+;;; Misc. clang tests
+
 (deftest able-to-wrap-statements-in-blocks ()
   (with-fixture gcd-wo-curlies-clang
     (let ((var (copy *gcd*)))
@@ -928,6 +938,30 @@ fail when a second statement with the same AST class is not to be found"
     (is (not (null (se::pick-general obj (good-stmts obj)
                                          :second-pool (bad-stmts obj)
                                          :same-class t))))))
+
+(deftest clang-promote-guarded-throws-error-if-no-targets-test ()
+  (with-fixture no-mutation-targets-clang
+    (handler-case
+      (progn
+        (build-op (make-instance 'clang-promote-guarded :object *soft*) *soft*)
+        (is nil "build-op should have thrown no-mutation-targets error"))
+      (error (e)
+        (is (equal (type-of e) 'no-mutation-targets)
+            "build-op should have thrown no-mutation-targets error")))))
+
+
+
+(deftest pick-cut-decl-throws-error-if-no-targets-test ()
+  (with-fixture no-mutation-targets-clang
+    (signals no-mutation-targets (se::pick-cut-decl *soft*))))
+
+(deftest pick-swap-decls-throws-error-if-no-targets-test ()
+  (with-fixture no-mutation-targets-clang
+    (signals no-mutation-targets (se::pick-swap-decls *soft*))))
+
+(deftest pick-rename-variable-throws-error-if-no-targets-test ()
+  (with-fixture no-mutation-targets-clang
+    (signals no-mutation-targets (se::pick-rename-variable *soft*))))
 
 
 ;;; Detailed clang mutation tests
