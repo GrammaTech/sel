@@ -297,9 +297,10 @@ Keyword arguments may be used to restrict selections."
            (mapconcat [#'peel-bananas {aget ::src-text}]
                       (get-immediate-children software ast)
                       (coerce (list #\Semicolon #\Newline) 'string))))
-    (when (null guarded) ; No guarded statements to promote, do a cut-full.
-      (return-from build-op
-        (build-op (make-instance 'clang-cut-full) software)))
+    (when (null guarded) ; No guarded statements to promote, throw an error
+      (error (make-condition 'no-mutation-targets
+               :text "No guarded statements to promote"
+               :obj software)))
     `((:set                             ; Promote guard mutation
        ,(cons :stmt1 (aget :counter guarded))
        ,(cons :literal1
