@@ -64,10 +64,11 @@
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 (defmethod add-type ((obj clang) type)
   (unless (or (null type) (member type (types obj) :key {aget :hash}))
-    (setf (genome obj)
-          (concatenate 'string
-            (aget :decl type)
-            (genome obj)))
+    (with-slots (genome) obj
+      (setf genome
+            (concatenate 'string
+              (aget :decl type)
+              (genome obj))))
     (push type (types obj)))
   obj)
 
@@ -78,10 +79,11 @@
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
 (defmethod add-macro ((obj clang) (name string) (body string))
   (unless (member name (macros obj) :test #'string= :key #'car)
-    (setf (genome obj)
-          (concatenate 'string
-            (format nil "#define ~a~&" body)
-            (genome obj)))
+    (with-slots (genome) obj
+      (setf genome
+            (concatenate 'string
+              (format nil "#define ~a~&" body)
+              (genome obj))))
     (push (cons name body) (macros obj)))
   obj)
 

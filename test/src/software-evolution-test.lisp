@@ -935,6 +935,26 @@
                      (format nil "#include\\w* ~a" incl)
                      (genome *headers*))))))))
 
+(deftest add-bad-include-doesnt-change-number-of-asts ()
+  (with-fixture hello-world-clang
+    (let ((orig-num-asts (size *hello-world*)))
+      (se::add-include *hello-world* "<garbage.h>")
+      (is (equal orig-num-asts (size *hello-world*))))))
+
+(deftest add-bad-type-doesnt-change-number-of-asts ()
+  (with-fixture hello-world-clang
+    (let ((orig-num-asts (size *hello-world*)))
+      (se::add-type *hello-world*
+                    `((:decl . "struct printf { chocolate cake; }")))
+      (is (equal orig-num-asts (size *hello-world*))))))
+
+(deftest add-bad-macro-doesnt-change-number-of-asts ()
+  (with-fixture hello-world-clang
+    (let ((orig-num-asts (size *hello-world*)))
+      (se::add-macro *hello-world*
+                     "GARBAGE" "#ifndef GARBAGE DO_SOMETHING_FORGET_ENDIF()")
+      (is (equal orig-num-asts (size *hello-world*))))))
+
 (deftest clang-expression-test ()
   (flet ((test-conversion (obj pair)
            (destructuring-bind (text expected-expression) pair
