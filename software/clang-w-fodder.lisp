@@ -82,27 +82,16 @@ be fodder mutations.")
     (list (cons :stmt1 stmt) (cons :value1 value))))
 
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
-  (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
-      (destructuring-bind (op . properties)
-          (first (build-op mutation obj))
-        (declare (ignorable op))
-        (let ((stmt1 (aget :stmt1 properties))
-              (snippet (aget :value1 properties)))
-          ;; Add includes/types/macros for the snippets to be inserted.
-          ;; NOTE: If we insert a macro or type which causes
-          ;; compilation errors, the number of ASTs in the software
-          ;; object may change (decrease).
-          (update-headers-from-snippet obj
-                                       snippet
-                                       *database*)
-          ;; Ensure stmt1 is still in range if compilation errors are
-          ;; introduced.
-          (call-next-method obj
-                            (at-targets mutation
-                                        (list (cons :stmt1 (min stmt1
-                                                                (size obj)))
-                                              (cons :value1 snippet))))))
-      (call-next-method)))
+  (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
+    (destructuring-bind (op . properties)
+        (first (build-op mutation obj))
+      (declare (ignorable op))
+      (let ((snippet (aget :value1 properties)))
+        ;; Add includes/types/macros for the snippets to be inserted.
+        (update-headers-from-snippet obj
+                                     snippet
+                                     *database*))))
+  (call-next-method))
 
 ;; Fodder mutation classes
 (define-mutation insert-fodder (clang-insert)
