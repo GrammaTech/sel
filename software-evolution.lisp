@@ -557,7 +557,7 @@ Should take a group ")
       specs
     (let ((main
            `(progn
-              (setq ,time (get-internal-real-time))
+              (unless ,time (setq ,time (get-internal-real-time)))
               (setq ,running t)
               (loop :until
                  ,(if (or max-time max-evals)
@@ -609,15 +609,13 @@ Should take a group ")
                          "Ignore failed mutation and continue evolution")))
               (setq ,running nil))))
       (setf main `(block target-reached ,main))
-      (when max-time
-        (setf main `(let ((,time (get-internal-real-time))) ,main)))
       main)))
 
 (defmacro mcmc (original test
                 &key accept-fn max-evals max-time period period-fn
                   every-pre-fn every-post-fn
-                  filter
                   (time '*start-time*)
+                  filter
                   (running '*running*)
                   (fitness-evals '*fitness-evals*)
                   mutation-stats)
@@ -638,7 +636,7 @@ Keyword arguments are as follows.
          (body
           `(let ((,curr ,original))
              (-search (new ,test ,max-evals ,max-time ,period ,period-fn
-                           ,every-pre-fn ,every-post-fn ,filter ,time
+                           ,every-pre-fn ,every-post-fn ,time ,filter
                            ,running ,fitness-evals ,mutation-stats)
                       (mcmc-step ,curr)
                       (when (funcall accept-fn (fitness ,curr) (fitness new))
@@ -677,7 +675,7 @@ Keyword arguments are as follows.
   MUTATION-STATS -- set to non-nil to collect mutation statistics"
   `(-search (new ,test ,max-evals ,max-time ,period ,period-fn
                  ,every-pre-fn ,every-post-fn
-                 ,filter ,time ,running ,fitness-evals ,mutation-stats)
+                 ,time ,filter ,running ,fitness-evals ,mutation-stats)
             #'new-individual
             (incorporate new ,population ,max-population-size)))
 
