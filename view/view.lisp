@@ -8,8 +8,9 @@
   (enable-curry-compose-reader-macros)
   (enable-interpol-syntax))
 
-(defvar *view-stream* t
-  "Dynamically bind to use modify.")
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *view-stream* t
+    "Dynamically bind to use modify."))
 
 (defvar *view-length* 65
   "Dynamically bind to use modify.")
@@ -204,19 +205,21 @@ For example a description of the evolution target.")
              :filler #\Space :left +b-v+ :right +b-v+))
           stats)))
 
-(defun subtree-starting-with (token tree &key (test #'equalp))
-  (if (funcall test token (car tree)) tree
-      (car (remove nil (mapcar {subtree-starting-with token}
-                               (remove-if-not #'listp tree))))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun subtree-starting-with (token tree &key (test #'equalp))
+    (if (funcall test token (car tree)) tree
+        (car (remove nil (mapcar {subtree-starting-with token}
+                                 (remove-if-not #'listp tree)))))))
 
-(defun replace-subtree-starting-with (token replace tree &key (test #'equalp))
-  (mapcar (lambda (subtree)
-            (if (and (listp subtree) (car subtree))
-                (if (funcall test token (car subtree))
-                    replace
-                    (replace-subtree-starting-with token replace subtree))
-                subtree))
-          tree))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun replace-subtree-starting-with (token replace tree &key (test #'equalp))
+    (mapcar (lambda (subtree)
+              (if (and (listp subtree) (car subtree))
+                  (if (funcall test token (car subtree))
+                      replace
+                      (replace-subtree-starting-with token replace subtree))
+                  subtree))
+            tree)))
 
 (defmacro with-delayed-invocation (function &rest body)
   "Take a form with one function marked as DELAYED.
