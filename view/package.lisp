@@ -8,7 +8,6 @@
    :cl-arrows
    :iterate
    :split-sequence
-   :trivial-shell
    :cl-ppcre
    :cl-store
    :cl-dot
@@ -18,6 +17,7 @@
    :software-evolution-utility
    :flexi-streams
    :cl-interpol)
+  (:shadow :diff)
   (:export :*view-stream*
            :*view-length*
            :*view-running*
