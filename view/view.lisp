@@ -25,7 +25,7 @@ For example a description of the evolution target.")
 (defvar *view-mutation-show-header* t
   "Show headers of mutation stats.")
 
-(defvar *view-max-mutations* infinity
+(defvar *view-max-mutations* 0
   "Maximum number of mutations to show.")
 
 (define-constant +golden-ratio+ 21/34)
@@ -299,15 +299,20 @@ lambda calling the delayed function on the arguments."
                                  (format nil "~d" (apply #'max lengths)))))
           ;; Mutations
           (lambda ()
-            (label-line-print :value " mutations " :color +color-CYA+
-                              :balance (/ (- 1 +golden-ratio+) 2)
-                              :left +b-vr+ :right +b-vl+))
-          (with-delayed-invocation mutation-stats-print
-            (mutation-stats-print
-             (take *view-max-mutations*
-                   (sort (summarize-mutation-stats) #'>
-                         :key (lambda (mut)
-                                (/ (or (aget :better (cdr mut)) 0)
-                                   (reduce #'+ (mapcar #'cdr (cdr mut))))))))))
+            (unless (zerop *view-max-mutations*)
+              (label-line-print :value " mutations " :color +color-CYA+
+                                :balance (/ (- 1 +golden-ratio+) 2)
+                                :left +b-vr+ :right +b-vl+)))
+          (lambda ()
+            (unless (zerop *view-max-mutations*)
+              (funcall
+               (with-delayed-invocation mutation-stats-print
+                 (mutation-stats-print
+                  (take *view-max-mutations*
+                        (sort (summarize-mutation-stats) #'>
+                              :key (lambda (mut)
+                                     (/ (or (aget :better (cdr mut)) 0)
+                                        (reduce #'+ (mapcar
+                                                     #'cdr (cdr mut)))))))))))))
          (sleep delay))))
    :name "view"))
