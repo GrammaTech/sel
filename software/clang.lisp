@@ -164,7 +164,8 @@
 Keyword arguments may be used to restrict selections."
   (labels ((maybe-only-full (asts)
              (if full-stmt
-                 (remove-if-not {aget :full-stmt} asts)
+                 (or (remove-if-not {aget :full-stmt} asts)
+                     asts)
                  asts)))
     (let ((first-pick (random-ast (maybe-only-full first-pool))))
       (acons :stmt1 first-pick
