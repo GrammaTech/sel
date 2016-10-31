@@ -15,7 +15,10 @@
 ;;; Software Object
 (define-constant +software-evolution-version+
     (eval-when (:compile-toplevel :load-toplevel :execute)
-      (current-git-commit (pathname-directory *default-pathname-defaults*)))
+      (current-git-commit (pathname-directory
+                           #.(or *compile-file-truename*
+                                 *load-truename*
+                                 *default-pathname-defaults*))))
   :test #'equalp
   :documentation
   "Current version of the SOFTWARE-EVOLUTION library.")
