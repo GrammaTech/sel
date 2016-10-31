@@ -987,6 +987,15 @@
                  (:realloc (:-> :heap :h) (:+ (:-> :heap :s)
                                               (:-> :heap :cs)))))))))))
 
+(deftest clang-pick-general-full-stmt-no-matching-test ()
+  "Ensure calling pick-general with the :full-stmt flag set to true
+does not fail when there are no full stmts (e.g. after a bad crossover)"
+  (with-fixture hello-world-clang
+    (is (not (null (se::pick-general *hello-world*
+                                     (remove-if {aget :full-stmt}
+                                                (stmt-asts *hello-world*))
+                                     :full-stmt t))))))
+
 (deftest clang-pick-general-same-class-no-matching-test ()
   "Ensure calling pick-general with the :same-class flag set to true does not
 fail when a second statement with the same AST class is not to be found"
