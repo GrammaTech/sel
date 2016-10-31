@@ -171,6 +171,10 @@
    :*running*
    :*start-time*
    :elapsed-time
+   ;; simple / asm global variables
+   :*simple-mutation-types*
+   :*asm-linker*
+   :*asm-mutation-types*
    ;; clang / clang-w-fodder global variables
    :fodder-database
    :json-database
@@ -214,8 +218,7 @@
    :diff
    :original
    :asm
-   :*asm-linker*
-   :assembled-asm
+   :csurf-asm
    :*isa-nbits*
    :elf
    :elf-cisc
@@ -269,7 +272,8 @@
    :flags
    :assembler
    :asm-flags
-   :spec-file
+   :redirect-file
+   :weak-symbols
    :elf-risc-max-displacement
    :ops                      ; <- might want to fold this into `lines'
    ;; software backend specific methods
@@ -298,6 +302,12 @@
    :*lexicase-key*
    :mutation
    :targets
+   :simple-cut
+   :simple-insert
+   :simple-swap
+   :asm-replace-operand
+   :asm-nth-instruction
+   :asm-split-instruction
    :clang-cut
    :clang-cut-same
    :clang-cut-full

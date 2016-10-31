@@ -785,7 +785,7 @@ already in scope, it will keep that name.")
       (clang-replace-full-same . 11))))
   "Cumulative distribution of normalized probabilities of weighted mutations.")
 
-(defmethod pick-mutation-type ((obj software))
+(defmethod pick-mutation-type ((obj clang))
   (random-pick *clang-mutation-types*))
 
 (defmethod mutate ((clang clang))
