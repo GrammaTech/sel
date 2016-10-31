@@ -453,26 +453,63 @@
 (deftest asm-cut-actually-shortens ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
-      (apply-mutation variant '(:cut 4))
+      (apply-mutation variant (make-instance 'simple-cut :targets 4))
       (is (< (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-insertion-actually-lengthens ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
-      (apply-mutation variant '(:insert 4 8))
+      (apply-mutation variant (make-instance 'simple-insert
+                                             :targets (list 4 8)))
       (is (> (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-swap-maintains-length ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
-      (apply-mutation variant '(:swap 4 8))
+      (apply-mutation variant (make-instance 'simple-swap
+                                             :targets (list 4 8)))
       (is (not (tree-equal (genome variant) (genome *gcd*))))
       (is (= (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-replace-operand-maintains-length ()
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant (make-instance 'asm-replace-operand
+                                             :targets (list 13 18)))
+      (is (not (tree-equal (genome variant) (genome *gcd*))))
+      (is (= (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-replace-operand-changes-operand ()
+  (with-fixture gcd-asm
+    (let ((variant (copy *gcd*)))
+      (is (equal '((:CODE . "	movq	%rsp, %rbp"))
+                 (elt (genome variant) 13))
+          "Test failure due to altered assembly instruction in gcd-asm.")
+      (is (equal '((:CODE . "	movl	%edi, -8(%rbp)"))
+                 (elt (genome variant) 18))
+          "Test failure due to altered assembly instruction in gcd-asm.")
+      (apply-mutation variant (make-instance 'asm-replace-operand
+                                             :targets (list 13 18)))
+      (is (member (cdr (assoc :code (elt (genome variant) 13)))
+                  '("	movq	%edi, %rbp"
+                    "	movq	%rsp, %edi"
+                    "	movq	-8(%rbp), %rbp"
+                    "	movq	%rsp, -8(%rbp)")
+                  :test #'equal)))))
+
+(deftest asm-split-instruction-has-correct-length ()
+  (let ((test1 (asm-split-instruction  "	movq	%rsp, %rbp"))
+        (test2 (asm-split-instruction "	movl	$0  , -4(%rbp)   ")))
+    (is (= 3 (length test1)))
+    (is (equal (list "movq" "%rsp" "%rbp") test1))
+    (is (= 3 (length test2)))
+    (is (equal (list "movl" "$0" "-4(%rbp)") test2))))
+
 
 (deftest simple-crossover-test ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
-      (apply-mutation variant '(:cut 0))
+      (apply-mutation variant (make-instance 'simple-cut :targets 0))
       ;; (push '(:cut 0) (edits variant))
       (let ((new (crossover variant *gcd*)))
         (is (not (tree-equal (genome new) (genome *gcd*))))
@@ -1395,31 +1432,52 @@ fail when a second statement with the same AST class is not to be found"
 
 (deftest some-range-cut-mutations ()
   (with-fixture range
-    (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
+    (is (tree-equal (genome (apply-mutation
+                             *soft*
+                             (make-instance 'simple-cut :targets 2)))
                     '((0 . 1) (1 . 1) (1 . 2))))
-    (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
+    (is (tree-equal (genome (apply-mutation
+                             *soft*
+                             (make-instance 'simple-cut :targets 2)))
                     '((0 . 1) (2 . 2))))
-    (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
+    (is (tree-equal (genome (apply-mutation
+                             *soft*
+                             (make-instance 'simple-cut :targets 1)))
                     '((0 . 0) (2 . 2))))
-    (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
+    (is (tree-equal (genome (apply-mutation
+                             *soft*
+                             (make-instance 'simple-cut :targets 1)))
                     '((0 . 0))))
-    (is (null (genome (apply-mutation *soft* '(:cut 0)))))))
+    (is (null (genome (apply-mutation
+                       *soft*
+                       (make-instance 'simple-cut :targets 0)))))))
 
 (deftest some-range-insert-mutations ()
   (with-fixture range
-    (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
-                    '((2 . 2) (0 . 2) (1 . 1) (1 . 2))))
-    (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 1)))
-                    '((2 . 2) (0 . 2) (1 . 1) (0 . 0) (1 . 2))))
-    (is (tree-equal (genome (apply-mutation *soft* '(:insert 5 2)))
-                    '((2 . 2) (0 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))
     (is (tree-equal
-         (genome (apply-mutation *soft* '(:insert 2 1)))
+         (genome (apply-mutation
+                  *soft*
+                  (make-instance 'simple-insert :targets (list 0 2))))
+         '((2 . 2) (0 . 2) (1 . 1) (1 . 2))))
+    (is (tree-equal
+         (genome (apply-mutation
+                  *soft*
+                  (make-instance 'simple-insert :targets (list 5 1))))
+         '((2 . 2) (0 . 2) (1 . 1) (0 . 0) (1 . 2))))
+    (is (tree-equal
+         (genome (apply-mutation
+                  *soft*
+                  (make-instance 'simple-insert :targets (list 5 2))))
+         '((2 . 2) (0 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))
+    (is (tree-equal
+         (genome (apply-mutation
+                  *soft*
+                  (make-instance 'simple-insert :targets (list 2 1))))
          '((2 . 2) (0 . 0) (0 . 0) (1 . 2) (1 . 1) (1 . 1) (0 . 0) (1 . 2))))))
 
 (deftest some-range-swap-mutations ()
   (with-fixture range
-    (apply-mutation *soft* '(:swap 0 2))
+    (apply-mutation *soft* (make-instance 'simple-swap :targets (list 0 2)))
     (is (tree-equal (lines *soft*)
                     '("three" "two" "one" "two" "two" "three")
                     :test #'string=))))
@@ -1610,25 +1668,40 @@ fail when a second statement with the same AST class is not to be found"
 (deftest some-diff-cut-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
-      (is (tree-equal (genome (apply-mutation *soft* '(:cut 2)))
-                      '(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
-                      '(((:CODE 1)) ((:CODE 4)))))
-      (is (tree-equal (genome (apply-mutation *soft* '(:cut 1)))
-                      '(((:CODE 1))))))))
+      (is (tree-equal
+           (genome (apply-mutation
+                    *soft*
+                    (make-instance 'simple-cut :targets 2)))
+           '(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
+      (is (tree-equal
+           (genome (apply-mutation
+                    *soft*
+                    (make-instance 'simple-cut :targets 1)))
+           '(((:CODE 1)) ((:CODE 4)))))
+      (is (tree-equal
+           (genome (apply-mutation
+                    *soft*
+                    (make-instance 'simple-cut :targets 1)))
+           '(((:CODE 1))))))))
 
 (deftest some-diff-insert-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
-      (is (tree-equal (genome (apply-mutation *soft* '(:insert 0 2)))
-                      '(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
-                        ((:CODE 3)) ((:CODE 4))))))))
+      (is (tree-equal
+           (genome (apply-mutation
+                    *soft*
+                    (make-instance 'simple-insert :targets (list 0 2))))
+           '(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
+             ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest some-diff-swap-mutations ()
   (with-fixture diff
     (with-static-reference *soft*
-      (is (tree-equal (genome (apply-mutation *soft* '(:swap 0 2)))
-                      '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
+      (is (tree-equal
+           (genome (apply-mutation
+                    *soft*
+                    (make-instance 'simple-swap :targets (list 0 2))))
+           '(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 (deftest diff-copy ()
   (with-fixture diff (is (typep (copy *soft*) 'diff))))
@@ -1656,24 +1729,34 @@ fail when a second statement with the same AST class is not to be found"
 (deftest some-diff-array-cut-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
-      (is (equalp (genome (apply-mutation *soft* '(:cut 2)))
+      (is (equalp (genome (apply-mutation
+                           *soft*
+                           (make-instance 'simple-cut :targets 2)))
                   #(((:CODE 1)) ((:CODE 2)) ((:CODE 4)))))
-      (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
+      (is (equalp (genome (apply-mutation
+                           *soft*
+                           (make-instance 'simple-cut :targets 1)))
                   #(((:CODE 1)) ((:CODE 4)))))
-      (is (equalp (genome (apply-mutation *soft* '(:cut 1)))
+      (is (equalp (genome (apply-mutation
+                           *soft*
+                           (make-instance 'simple-cut :targets 1)))
                   #(((:CODE 1))))))))
 
 (deftest some-diff-array-insert-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
-      (is (equalp (genome (apply-mutation *soft* '(:insert 0 2)))
+      (is (equalp (genome (apply-mutation
+                           *soft*
+                           (make-instance 'simple-insert :targets (list 0 2))))
                   #(((:CODE 3)) ((:CODE 1)) ((:CODE 2))
                     ((:CODE 3)) ((:CODE 4))))))))
 
 (deftest some-diff-array-swap-mutations ()
   (with-fixture diff-array
     (with-static-reference *soft*
-      (is (equalp (genome (apply-mutation *soft* '(:swap 0 2)))
+      (is (equalp (genome (apply-mutation
+                           *soft*
+                           (make-instance 'simple-swap :targets (list 0 2))))
                   #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 

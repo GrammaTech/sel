@@ -14,8 +14,8 @@
    (redirect-file :initarg :redirect-file :accessor redirect-file :initform nil
                   :documentation
                   "CodeSurfer redirect file to redirect elf copy relocations.")
-   (weak-symbols :initarg :weak-symbols :accessor weak-symbols :copier :direct
-                 :documentation
+   (weak-symbols :initarg :weak-symbols :accessor weak-symbols :initform nil
+                 :copier :direct :documentation
                  "Symbols to weaken with `elf-weaken-gmon-start'.")))
 
 (defun elf-weaken-gmon-start (elf-objfile symbols)

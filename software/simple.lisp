@@ -90,41 +90,83 @@
       (with-open-file (out file :direction :output :if-exists :supersede)
         (genome-string simple out))))
 
+(defvar *simple-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((simple-cut    . 1)
+      (simple-insert . 1)
+      (simple-swap   . 1)))))
+
+(defmethod pick-mutation-type ((obj simple))
+  (random-pick *simple-mutation-types*))
+
 (defmethod mutate ((simple simple))
   (unless (> (size simple) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj simple)))
-  (let ((op (case (random-elt '(cut insert swap))
-              (cut    `(:cut    ,(pick-bad simple)))
-              (insert `(:insert ,(pick-bad simple) ,(pick-good simple)))
-              (swap   `(:swap   ,(pick-bad simple) ,(pick-good simple))))))
-    (apply-mutation simple op)
-    (values simple op)))
+  (restart-case
+      (let ((mutation (make-instance (pick-mutation-type simple)
+                                     :object simple)))
+        (apply-mutation simple mutation)
+        (values simple mutation))
+    (try-another-mutation ()
+      :report "Try another mutation"
+      (mutate simple))))
 
-(defmethod apply-mutation ((simple simple) mutation)
-  (let ((op (first mutation))
-        (s1 (second mutation))
-        (s2 (third mutation)))
-    ;; NOTE: it is important here that elements of genome are not
-    ;;       changed, rather the genome should *only* be changed by
-    ;;       setting the genome *accessor* directly.  I.e., avoid
-    ;;       forms like the following as they will change the
-    ;;       reference value of diff objects (see diff.lisp).
-    ;;
-    ;;           (setf (car (genome simple)) ...)
-    (let ((genome (genome simple)))
+(defclass simple-mutation (mutation) ())
+
+(defun pick-bad-good-simple (simple)
+  (list (pick-bad simple) (pick-good simple)))
+
+(define-mutation simple-cut (simple-mutation)
+  ((targeter :initform #'pick-bad)))
+
+(defmethod apply-mutation ((simple simple) (mutation simple-cut))
+  ;; NOTE: it is important here that elements of genome are not
+  ;;       changed, rather the genome should *only* be changed by
+  ;;       setting the genome *accessor* directly.  I.e., avoid
+  ;;       forms like the following as they will change the
+  ;;       reference value of diff objects (see diff.lisp).
+  ;;
+  ;;           (setf (car (genome simple)) ...)
+  (let ((cut (targets mutation))
+        (genome (genome simple)))
+    (setf (genome simple)
+          (concatenate (class-of genome)
+                       (subseq genome 0 cut)
+                       (subseq genome (1+ cut))))
+    simple))
+
+(define-mutation simple-insert (simple-mutation)
+  ((targeter :initform #'pick-bad-good-simple)))
+
+(defmethod apply-mutation ((simple simple) (mutation simple-insert))
+  (let ((bad-good (targets mutation))
+        (genome (genome simple)))
+    (assert (listp bad-good) (mutation)
+            "Requires mutations targets to be a list of two elements.")
+    (let ((insertion-pt (first bad-good))
+          (copy-pt (second bad-good)))
       (setf (genome simple)
-            (case op
-              (:cut (concatenate (class-of genome)
-                      (subseq genome 0 s1)
-                      (subseq genome (1+ s1))))
-              (:insert (concatenate (class-of genome)
-                         (subseq genome 0 s1)
-                         (list (elt genome s2))
-                         (subseq genome s1)))
-              (:swap (let ((tmp (copy-seq genome)))
-                       (setf (elt tmp s1) (elt genome s2))
-                       (setf (elt tmp s2) (elt genome s1))
-                       tmp))))
+            (concatenate (class-of genome)
+                         (subseq genome 0 insertion-pt)
+                         (list (elt genome copy-pt))
+                         (subseq genome insertion-pt)))
+      simple)))
+
+(define-mutation simple-swap (simple-mutation)
+  ((targeter :initform #'pick-bad-good-simple)))
+
+(defmethod apply-mutation ((simple simple) (mutation simple-swap))
+  (let ((bad-good (targets mutation))
+        (genome (genome simple)))
+    (assert (listp bad-good) (mutation)
+            "Requires mutations targets to be a list of two elements.")
+    (let ((pt1 (first bad-good))
+          (pt2 (second bad-good))
+          (tmp (copy-seq genome)))
+      (setf (elt tmp pt1) (elt genome pt2))
+      (setf (elt tmp pt2) (elt genome pt1))
+      (setf (genome simple) tmp)
       simple)))
 
 (defmethod mcmc-step ((simple simple))
@@ -396,18 +438,34 @@ and use this to initialize the RANGE object."))
               (prog1 (list range) (if s1 (decf s1 size))))))
       genome))))
 
-(defmethod apply-mutation ((range sw-range) mutation)
-  (let ((op (first mutation))
-        (s1 (second mutation))
-        (s2 (third mutation)))
-    (with-slots (genome) range
-      (setf genome (case op
-                     (:cut    (range-cut    genome s1))
-                     (:insert (range-insert genome s1 (range-nth s2 genome)))
-                     (:swap   (range-swap   genome s1 s2
-                                            (range-nth s1 genome)
-                                            (range-nth s2 genome)))))
-      range)))
+(defmethod apply-mutation ((range sw-range) (mutation simple-cut))
+  (with-slots (genome) range
+    (setf genome (range-cut genome (targets mutation)))
+    range))
+
+(defmethod apply-mutation ((range sw-range) (mutation simple-insert))
+  (let ((bad-good (targets mutation)))
+    (assert (listp bad-good) (mutation)
+            "Requires mutations targets to be a list of two elements.")
+    (let ((insertion-pt (first bad-good))
+          (copy-pt (second bad-good)))
+      (with-slots (genome) range
+        (setf genome
+              (range-insert genome insertion-pt (range-nth copy-pt genome)))
+        range))))
+
+(defmethod apply-mutation ((range sw-range) (mutation simple-swap))
+  (let ((bad-good (targets mutation)))
+    (assert (listp bad-good) (mutation)
+            "Requires mutations targets to be a list of two elements.")
+    (let ((pt1 (first bad-good))
+          (pt2 (second bad-good)))
+      (with-slots (genome) range
+        (setf genome
+              (range-swap genome pt1 pt2
+                          (range-nth pt1 genome)
+                          (range-nth pt2 genome)))
+        range))))
 
 (defun range-subseq (range start &optional end)
   (flet ((from (c range)
