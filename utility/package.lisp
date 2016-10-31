@@ -109,6 +109,7 @@
    ;; debugging
    :*note-level*
    :*note-out*
+   :replace-stdout-in-note-targets
    :note
    :trace-memory
    :*shell-count*

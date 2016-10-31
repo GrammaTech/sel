@@ -753,6 +753,17 @@ and 0 otherwise."
 (defvar *note-level* 0 "Enables execution notes.")
 (defvar *note-out* '(t) "Targets of notation.")
 
+(defun replace-stdout-in-note-targets (&optional (targets *note-out*))
+  "Replace `t' which is a place holder for `*standard-output*'.
+Ideally we would like to set the value of `*note-out*' to a list
+holding `*standard-output*', however in compiled binaries the value of
+`*standard-output*' changes each time the binary is launched.  So
+instead we use `t' as a place-holder, and provide this function for
+performing the replacement on the fly when `note' is called.  To
+specify a particular value for `*standard-output*' the user may
+replace `t' in the `*note-out*' list."
+  (mapcar (lambda (s) (if (eq s t) *standard-output* s)) targets))
+
 (defun print-time (&optional (out t))
   (multiple-value-bind
         (second minute hour date month year day-of-week dst-p tz)
@@ -767,9 +778,11 @@ and 0 otherwise."
       (mapcar
        #'finish-output
        (mapc
-        {format _ "~&;; ~a: ~a~%"
-                (print-time nil) (apply #'format nil format-args)}
-        *note-out*))))
+        {write-sequence
+         (concatenate 'string ";;" (print-time nil) ": "
+                      (apply #'format nil format-args)
+                      (list #\Newline))}
+        (replace-stdout-in-note-targets)))))
   ;; Always return nil.
   nil)
 
