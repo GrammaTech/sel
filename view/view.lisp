@@ -267,19 +267,27 @@ For example a description of the evolution target.")
                   subtree))
             tree)))
 
-(defmacro with-delayed-invocation (function &rest body)
-  "Take a form with one function marked as DELAYED.
-Rewrite into a form which calculates all arguments and returns a
-lambda calling the delayed function on the arguments."
-  (let ((syms-and-args (mapcar (lambda (arg) (list (gensym) arg))
-                               (cdr (subtree-starting-with function body)))))
+(defmacro with-delayed-invocation (spec &rest body)
+  "Take a form with a function marked as DELAYED.
+Argument SPEC should be a list holding a function name, and optionally
+a form to evaluation to determine if the invocation should be
+run (otherwise an empty function is returned).  Rewrite into a form
+which calculates all arguments and returns a lambda calling the
+delayed function on the arguments."
+  (let* ((function (first spec))
+         (conditional (second spec))
+         (syms-and-args (mapcar (lambda (arg) (list (gensym) arg))
+                                (cdr (subtree-starting-with function body)))))
     (assert syms-and-args (function body)
             "Couldn't find instance of ~a in ~a" function body)
-    (replace-subtree-starting-with
-     function
-     `(let ,syms-and-args
-        (lambda () (,function ,@(mapcar #'car syms-and-args))))
-     `(progn ,@body))))
+    (let ((body (replace-subtree-starting-with
+                 function
+                 `(let ,syms-and-args
+                    (lambda () (,function ,@(mapcar #'car syms-and-args))))
+                 `(progn ,@body))))
+      (if conditional
+          `(if ,conditional ,body (lambda ()))
+          body))))
 
 (defun view-status (&rest args)
   (clear-terminal)
@@ -331,78 +339,68 @@ Optional argument DELAY controls the rate at which the view refreshes."
                               :balance (/ (- 1 +golden-ratio+) 2)
                               :left +b-vr+ :right +b-vl+))
           ;; Fitness data informaion (pre-calculated).
-          (lambda ()
-            (when *population*
-              (funcall
-               (with-delayed-invocation fitness-data-print
-                 (let* ((vectorp (not (numberp (car *population*))))
-                        (fits (mapcar (if vectorp
-                                          [{reduce #'+} #'fitness]
-                                          #'fitness)
-                                      *population*)))
-                   (fitness-data-print
-                    (format nil "~f" (extremum fits *fitness-predicate*))
-                    (format nil "~f" (median fits))
-                    (when vectorp
-                      (format nil "0~4f"
-                              (/ (length (remove-duplicates
-                                          (mapcar #'fitness *population*)
-                                          :test #'equalp))
-                                 (length *population*))))
-                    (when vectorp
-                      (format nil "~f"
-                              (->> *population*
-                                   (mapcar [{coerce _ 'list} #'fitness])
-                                   (apply #'mapcar [{apply #'min} #'list])
-                                   (reduce #'+))))))))))
+          (with-delayed-invocation (fitness-data-print *population*)
+            (let* ((vectorp (not (numberp (car *population*))))
+                   (fits (mapcar (if vectorp
+                                     [{reduce #'+} #'fitness]
+                                     #'fitness)
+                                 *population*)))
+              (fitness-data-print
+               (format nil "~f" (extremum fits *fitness-predicate*))
+               (format nil "~f" (median fits))
+               (when vectorp
+                 (format nil "0~4f"
+                         (/ (length (remove-duplicates
+                                     (mapcar #'fitness *population*)
+                                     :test #'equalp))
+                            (length *population*))))
+               (when vectorp
+                 (format nil "~f"
+                         (->> *population*
+                              (mapcar [{coerce _ 'list} #'fitness])
+                              (apply #'mapcar [{apply #'min} #'list])
+                              (reduce #'+)))))))
           ;; Genomic data informaion (pre-calculated).
-          (lambda ()
-            (when *population*
-              (funcall
-               (with-delayed-invocation genome-data-print
-                 (let ((lengths (mapcar [#'length #'lines] *population*)))
-                   (genome-data-print (format nil "~d" (apply #'min lengths))
-                                      (format nil "~d" (median lengths))
-                                      (format nil "~d" (apply #'max lengths))))))))
+          (with-delayed-invocation (genome-data-print *population*)
+            (let ((lengths (mapcar [#'length #'lines] *population*)))
+              (genome-data-print (format nil "~d" (apply #'min lengths))
+                                 (format nil "~d" (median lengths))
+                                 (format nil "~d" (apply #'max lengths)))))
           ;; Mutations
           (lambda ()
-            (unless (or (zerop *view-max-mutations*)
-                        (zerop (hash-table-count *mutation-stats*)))
+            (when (and (> *view-max-mutations* 0)
+                       (> (hash-table-count *mutation-stats*) 0))
               (label-line-print :value " mutations " :color +color-CYA+
                                 :balance (/ (- 1 +golden-ratio+) 2)
                                 :left +b-vr+ :right +b-vl+)))
-          (lambda ()
-            (unless (or (zerop *view-max-mutations*)
-                        (zerop (hash-table-count *mutation-stats*)))
-              (funcall
-               (with-delayed-invocation mutation-stats-print
-                 (mutation-stats-print
-                  (take *view-max-mutations*
-                        (sort (summarize-mutation-stats) #'>
-                              :key (lambda (mut)
-                                     (/ (or (aget :better (cdr mut)) 0)
-                                        (reduce #'+ (mapcar
-                                                     #'cdr (cdr mut))))))))))))
+          (with-delayed-invocation
+              (mutation-stats-print
+               (and (> *view-max-mutations* 0)
+                    (> (hash-table-count *mutation-stats*) 0)))
+            (mutation-stats-print
+             (take *view-max-mutations*
+                   (sort (summarize-mutation-stats) #'>
+                         :key (lambda (mut)
+                                (/ (or (aget :better (cdr mut)) 0)
+                                   (reduce #'+ (mapcar
+                                                #'cdr (cdr mut)))))))))
           ;; Notes.
           (lambda ()
-            (unless (zerop *view-max-note-lines*)
+            (when (> *view-max-note-lines* 0)
               (label-line-print :value " notes " :color +color-CYA+
                                 :balance (/ (- 1 +golden-ratio+) 2)
                                 :left +b-vr+ :right +b-vl+)))
-          (lambda ()
-            (unless (zerop *view-max-note-lines*)
-              (funcall
-               (with-delayed-invocation notes-print
-                 (notes-print
-                  (setf *view-cached-note-lines*
-                        (-<>> *note-out*
-                              (find-if #'string-output-stream-p)
-                              (get-output-stream-string)
-                              (split-sequence #\Newline <>
-                                              :remove-empty-subseqs t)
-                              (mapcar {view-truncate _ 6})
-                              (reverse)
-                              (append <> *view-cached-note-lines*)
-                              (take *view-max-note-lines*)))))))))
+          (with-delayed-invocation (notes-print (> *view-max-note-lines* 0))
+            (notes-print
+             (setf *view-cached-note-lines*
+                   (-<>> *note-out*
+                         (find-if #'string-output-stream-p)
+                         (get-output-stream-string)
+                         (split-sequence #\Newline <>
+                                         :remove-empty-subseqs t)
+                         (mapcar {view-truncate _ 6})
+                         (reverse)
+                         (append <> *view-cached-note-lines*)
+                         (take *view-max-note-lines*))))))
          (sleep *view-delay*))))
    :name "view"))
