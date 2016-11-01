@@ -15,7 +15,6 @@
                software-evolution
                software-evolution-utility
                bordeaux-threads
-               flexi-streams
                cl-interpol)
   :components
   ((:module view

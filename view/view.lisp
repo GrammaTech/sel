@@ -2,6 +2,26 @@
 
 ;;; Commentary:
 
+;; The SOFTWARE-EVOLUTION-VIEW (SE-VIEW) library provides a live
+;; status view which is continually updated during the course of an
+;; evolutionary run.  Currently the interface is maintained on STDOUT
+;; of the process running the SE library.  This view includes
+;; information on the progress and timing of the evolutionary run, the
+;; mutations used over the course of the run and their efficacy, and a
+;; summary of the `note' output printed during the run.
+;;
+;; To use SE-VIEW simply include it into your package, and then call
+;; `start-view' to begin maintain a status view on STDOUT.  The
+;; following global variables of the SE-VIEW package may be used to
+;; customize the appearance of the view output.
+;;
+;; *view-run-name* ----------- controls the title of the run
+;; *view-length* ------------- controls the maximum width of the printed view
+;; *view-delay* -------------- control the refresh rate of the view in seconds
+;; *view-mutation-header-p* -- show headers of mutation view columns
+;; *view-max-mutations* ------ number of top mutations to show
+;; *view-max-note-lines* ----- number of notes lines to display
+
 ;;; Code:
 (in-package :software-evolution-view)
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -15,6 +35,9 @@
 (defvar *view-length* 65
   "Dynamically bind to use modify.")
 
+(defvar *view-delay* 2
+  "Seconds to wait between updating the view.")
+
 (defvar *view-running* nil
   "Set to nil to terminate the view thread.")
 
@@ -22,11 +45,17 @@
   "Set the name of the current run.
 For example a description of the evolution target.")
 
-(defvar *view-mutation-show-header* t
+(defvar *view-mutation-header-p* t
   "Show headers of mutation stats.")
 
 (defvar *view-max-mutations* 0
   "Maximum number of mutations to show.")
+
+(defvar *view-max-note-lines* 12
+  "Maximum number of lines of notes to show.")
+
+(defvar *view-cached-note-lines* nil
+  "Holds cached note lines for continued display.")
 
 (define-constant +golden-ratio+ 21/34)
 
@@ -178,7 +207,7 @@ For example a description of the evolution target.")
 (defun mutation-stats-print (stats)
   (let ((longest (extremum (mapcar [#'length #'symbol-name #'car] stats) #'>))
         (keys '(:better :same :worse :dead)))
-    (when *view-mutation-show-header*
+    (when *view-mutation-header-p*
       (label-line-print
        :balance 0
        :colors (mapcar (constantly +color-PIN+) (append (list 1 2 3) keys))
@@ -204,6 +233,12 @@ For example a description of the evolution target.")
                                    (reduce #'+ (mapcar #'cdr (cdr mut))))))
              :filler #\Space :left +b-v+ :right +b-v+))
           stats)))
+
+(defun notes-print (lines)
+  (mapc (lambda (line)
+          (label-line-print :value line :color +color-GRA+ :balance 0
+                            :filler #\Space :left +b-v+ :right +b-v+))
+        lines))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun subtree-starting-with (token tree &key (test #'equalp))
@@ -251,9 +286,24 @@ lambda calling the delayed function on the arguments."
   (label-line-print :left +b-lb+ :right +b-rb+)
   (force-output *view-stream*))
 
-(defun view-start (&key (delay 2))
-  "Start a viewing thread regularly updating `view-status'."
+(defun string-output-stream-p (stream)
+  (typep stream
+         #+sbcl 'sb-impl::string-output-stream
+         #-sbcl (error "`string-output-stream-p' only supported for SBCL.")))
+
+(defun view-truncate (line &optional (less 6))
+  (if (> (length line) (- *view-length* less))
+      (subseq line 0 (- *view-length* less))
+      line))
+
+(defun view-start ()
+  "Start a viewing thread regularly updating `view-status'.
+Optional argument DELAY controls the rate at which the view refreshes."
   (setf *view-running* t)
+  (unless
+      (or (zerop *view-max-note-lines*) ; If we want to show notes,
+          (some #'string-output-stream-p *note-out*)) ; and need string stream.
+    (push (make-string-output-stream) *note-out*))
   (make-thread
    (lambda ()
      (let ((*view-stream* *standard-output*))
@@ -299,12 +349,14 @@ lambda calling the delayed function on the arguments."
                                  (format nil "~d" (apply #'max lengths)))))
           ;; Mutations
           (lambda ()
-            (unless (zerop *view-max-mutations*)
+            (unless (or (zerop *view-max-mutations*)
+                        (zerop (hash-table-count *mutation-stats*)))
               (label-line-print :value " mutations " :color +color-CYA+
                                 :balance (/ (- 1 +golden-ratio+) 2)
                                 :left +b-vr+ :right +b-vl+)))
           (lambda ()
-            (unless (zerop *view-max-mutations*)
+            (unless (or (zerop *view-max-mutations*)
+                        (zerop (hash-table-count *mutation-stats*)))
               (funcall
                (with-delayed-invocation mutation-stats-print
                  (mutation-stats-print
@@ -313,6 +365,27 @@ lambda calling the delayed function on the arguments."
                               :key (lambda (mut)
                                      (/ (or (aget :better (cdr mut)) 0)
                                         (reduce #'+ (mapcar
-                                                     #'cdr (cdr mut)))))))))))))
-         (sleep delay))))
+                                                     #'cdr (cdr mut))))))))))))
+          ;; Notes.
+          (lambda ()
+            (unless (zerop *view-max-note-lines*)
+              (label-line-print :value " notes " :color +color-CYA+
+                                :balance (/ (- 1 +golden-ratio+) 2)
+                                :left +b-vr+ :right +b-vl+)))
+          (lambda ()
+            (unless (zerop *view-max-note-lines*)
+              (funcall
+               (with-delayed-invocation notes-print
+                 (notes-print
+                  (setf *view-cached-note-lines*
+                        (-<>> *note-out*
+                              (find-if #'string-output-stream-p)
+                              (get-output-stream-string)
+                              (split-sequence #\Newline <>
+                                              :remove-empty-subseqs t)
+                              (mapcar {view-truncate _ 6})
+                              (reverse)
+                              (append <> *view-cached-note-lines*)
+                              (take *view-max-note-lines*)))))))))
+         (sleep *view-delay*))))
    :name "view"))
