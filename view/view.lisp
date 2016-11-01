@@ -158,24 +158,35 @@ For example a description of the evolution target.")
                                        (string right)))))))
 
 (defun runtime-print ()
-  (label-line-print
-   :balance 0
-   :colors (list +color-GRA+ +color-RST+
-                 +color-GRA+ +color-RST+
-                 +color-GRA+ +color-RST+)
-   :values (list
-            " runtime: "
-            (multiple-value-bind
-                  (hours remainder) (floor (/ (elapsed-time) 3600))
-              (multiple-value-bind
-                    (minutes remainder) (floor (/ (* remainder 3600) 60))
-                (format nil "~dh ~2,'0dm ~2,'0ds" hours minutes
-                        (floor (* remainder 60)))))
-            " evals: " (format nil "~f" *fitness-evals*)
-            " last-improv: "
-            (format nil "~d" (- *fitness-evals*
-                                (cdadr *mutation-improvements*))))
-   :filler #\Space :left +b-v+ :right +b-v+))
+  (if *start-time*
+      (label-line-print
+       :balance 0
+       :colors (list +color-GRA+ +color-RST+
+                     +color-GRA+ +color-RST+
+                     +color-GRA+ +color-RST+)
+       :values (remove nil
+                 (list
+                  " runtime: "
+                  (multiple-value-bind
+                        (hours remainder) (floor (/ (elapsed-time) 3600))
+                    (multiple-value-bind
+                          (minutes remainder) (floor (/ (* remainder 3600) 60))
+                      (format nil "~dh ~2,'0dm ~2,'0ds" hours minutes
+                              (floor (* remainder 60)))))
+                  " evals: "
+                  (format nil "~f" *fitness-evals*)
+                  (when (and *fitness-evals* (cdadr *mutation-improvements*))
+                    " last-improv: ")
+                  (when (and *fitness-evals* (cdadr *mutation-improvements*))
+                    (format nil "~d"
+                            (- *fitness-evals*
+                               (cdadr *mutation-improvements*))))))
+       :filler #\Space :left +b-v+ :right +b-v+)
+      (label-line-print
+       :balance 0
+       :value "No run started."
+       :color +color-GRA+
+       :filler #\Space :left +b-v+ :right +b-v+)))
 
 (defun fitness-data-print (best med &optional uniq union)
   (label-line-print
