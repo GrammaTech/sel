@@ -320,33 +320,39 @@ Optional argument DELAY controls the rate at which the view refreshes."
                               :balance (/ (- 1 +golden-ratio+) 2)
                               :left +b-vr+ :right +b-vl+))
           ;; Fitness data informaion (pre-calculated).
-          (with-delayed-invocation fitness-data-print
-            (let* ((vectorp (not (numberp (car *population*))))
-                   (fits (mapcar (if vectorp
-                                     [{reduce #'+} #'fitness]
-                                     #'fitness)
-                                 *population*)))
-              (fitness-data-print
-               (format nil "~f" (extremum fits *fitness-predicate*))
-               (format nil "~f" (median fits))
-               (when vectorp
-                 (format nil "0~4f"
-                         (/ (length (remove-duplicates
-                                     (mapcar #'fitness *population*)
-                                     :test #'equalp))
-                            (length *population*))))
-               (when vectorp
-                 (format nil "~f"
-                         (->> *population*
-                              (mapcar [{coerce _ 'list} #'fitness])
-                              (apply #'mapcar [{apply #'min} #'list])
-                              (reduce #'+)))))))
+          (lambda ()
+            (when *population*
+              (funcall
+               (with-delayed-invocation fitness-data-print
+                 (let* ((vectorp (not (numberp (car *population*))))
+                        (fits (mapcar (if vectorp
+                                          [{reduce #'+} #'fitness]
+                                          #'fitness)
+                                      *population*)))
+                   (fitness-data-print
+                    (format nil "~f" (extremum fits *fitness-predicate*))
+                    (format nil "~f" (median fits))
+                    (when vectorp
+                      (format nil "0~4f"
+                              (/ (length (remove-duplicates
+                                          (mapcar #'fitness *population*)
+                                          :test #'equalp))
+                                 (length *population*))))
+                    (when vectorp
+                      (format nil "~f"
+                              (->> *population*
+                                   (mapcar [{coerce _ 'list} #'fitness])
+                                   (apply #'mapcar [{apply #'min} #'list])
+                                   (reduce #'+))))))))))
           ;; Genomic data informaion (pre-calculated).
-          (with-delayed-invocation genome-data-print
-            (let ((lengths (mapcar [#'length #'lines] *population*)))
-              (genome-data-print (format nil "~d" (apply #'min lengths))
-                                 (format nil "~d" (median lengths))
-                                 (format nil "~d" (apply #'max lengths)))))
+          (lambda ()
+            (when *population*
+              (funcall
+               (with-delayed-invocation genome-data-print
+                 (let ((lengths (mapcar [#'length #'lines] *population*)))
+                   (genome-data-print (format nil "~d" (apply #'min lengths))
+                                      (format nil "~d" (median lengths))
+                                      (format nil "~d" (apply #'max lengths))))))))
           ;; Mutations
           (lambda ()
             (unless (or (zerop *view-max-mutations*)
