@@ -1949,7 +1949,14 @@ VARIABLE-NAME should be declared in AST."))
        (values (cons x stmt)
                (cons (block-successor clang stmt) y))))))
 
-(defmethod enclosing-full-stmt-or-block ((clang clang) stmt)
+(defgeneric enclosing-full-stmt-or-block (software stmt)
+  (:documentation
+   "Return the first full statement or block in SOFTWARE holding STMT."))
+
+(defmethod enclosing-full-stmt-or-block ((obj clang) (stmt list))
+  (enclosing-full-stmt-or-block obj (aget :counter stmt)))
+
+(defmethod enclosing-full-stmt-or-block ((clang clang) (stmt number))
   (cond ((= 0 stmt) 0)
         ((and (full-stmt-p clang stmt)
               (equal (get-ast-class clang stmt) "CompoundStmt")) stmt)
@@ -1967,7 +1974,8 @@ VARIABLE-NAME should be declared in AST."))
          (yps (cons (enclosing-full-stmt-or-block b
                       (aget :parent-counter (get-ast b (car ys))))
                     (enclosing-full-stmt-or-block b
-                                         (aget :parent-counter (get-ast b (cdr ys)))))))
+                                         (aget :parent-counter
+                                               (get-ast b (cdr ys)))))))
     ;; If nesting relations don't match, replace one of the points with
     ;; its parent's enclosing full statement and try again.
     (cond
@@ -2055,6 +2063,9 @@ equal to the end point of STMT1."
              (values stmt1 stmt2))))))
 
 (defmethod random-point-in-function ((clang clang) proto)
+  ;; TODO: In some cases this is returning points 1 past the end of
+  ;;       the object's AST vector.  Specifically, this occurs for
+  ;;       software objects which consist of just an empty main.
   (let* ((first (1+ (first (aget :stmt-range proto))))
          (last  (if (< (second (aget :stmt-range proto)) first)
                     first

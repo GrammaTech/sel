@@ -21,6 +21,8 @@
 ;; *view-mutation-header-p* -- show headers of mutation view columns
 ;; *view-max-mutations* ------ number of top mutations to show
 ;; *view-max-note-lines* ----- number of notes lines to display
+;; TODO: *view-best-genome-lines* --- show lines of the best genome
+;; TODO: control thread using `read-char' from `*standard-input*'
 
 ;;; Code:
 (in-package :software-evolution-view)
@@ -243,7 +245,16 @@ For example a description of the evolution target.")
                            (format nil "~d"
                                    (reduce #'+ (mapcar #'cdr (cdr mut))))))
              :filler #\Space :left +b-v+ :right +b-v+))
-          stats)))
+          (append stats
+                  (list
+                   (cons :total
+                         (mapcar (lambda (key)
+                                   (cons key
+                                         (->> stats
+                                              (mapcar [{aget key} #'cdr])
+                                              (remove nil)
+                                              (reduce #'+))))
+                                 (list :better :dead :same :worse))))))))
 
 (defun notes-print (lines)
   (mapc (lambda (line)
@@ -315,6 +326,89 @@ delayed function on the arguments."
       (subseq line 0 (- *view-length* less))
       line))
 
+(defun run-view-status ()
+  (view-status
+   (lambda ()
+     (label-line-print :value " timing " :color +color-CYA+
+                       :balance (/ (- 1 +golden-ratio+) 2)
+                       :left +b-lt+ :right +b-rt+)
+     (runtime-print))
+   (lambda ()
+     (label-line-print :value " population " :color +color-CYA+
+                       :balance (/ (- 1 +golden-ratio+) 2)
+                       :left +b-vr+ :right +b-vl+))
+   ;; Fitness data informaion (pre-calculated).
+   (with-delayed-invocation (fitness-data-print *population*)
+     (let* ((vectorp (not (numberp (car *population*))))
+            (fits (mapcar (if vectorp
+                              [{reduce #'+} #'fitness]
+                              #'fitness)
+                          *population*)))
+       (fitness-data-print
+        (format nil "~f" (extremum fits *fitness-predicate*))
+        (format nil "~f" (median fits))
+        (when vectorp
+          (format nil "0~4f"
+                  (/ (length (remove-duplicates
+                              (mapcar #'fitness *population*)
+                              :test #'equalp))
+                     (length *population*))))
+        (when vectorp
+          (format nil "~f"
+                  (->> *population*
+                       (mapcar [{coerce _ 'list} #'fitness])
+                       (apply #'mapcar [{apply #'min} #'list])
+                       (reduce #'+)))))))
+   ;; Genomic data informaion (pre-calculated).
+   (with-delayed-invocation (genome-data-print *population*)
+     (let ((lengths (mapcar [#'length #'lines] *population*)))
+       (genome-data-print (format nil "~d" (apply #'min lengths))
+                          (format nil "~d" (median lengths))
+                          (format nil "~d" (apply #'max lengths)))))
+   ;; Mutations
+   (lambda ()
+     (when (and (> *view-max-mutations* 0)
+                (> (hash-table-count *mutation-stats*) 0))
+       (label-line-print :value " mutations " :color +color-CYA+
+                         :balance (/ (- 1 +golden-ratio+) 2)
+                         :left +b-vr+ :right +b-vl+)))
+   (with-delayed-invocation
+       (mutation-stats-print
+        (and (> *view-max-mutations* 0)
+             (> (hash-table-count *mutation-stats*) 0)))
+     (mutation-stats-print
+      (take *view-max-mutations*
+            (sort (summarize-mutation-stats) #'>
+                  :key (lambda (mut)
+                         (/ (or (aget :better (cdr mut)) 0)
+                            (reduce #'+ (mapcar
+                                         #'cdr (cdr mut)))))))))
+   ;; Notes.
+   (lambda ()
+     (when (> *view-max-note-lines* 0)
+       (label-line-print :value " notes " :color +color-CYA+
+                         :balance (/ (- 1 +golden-ratio+) 2)
+                         :left +b-vr+ :right +b-vl+)))
+   (with-delayed-invocation (notes-print (> *view-max-note-lines* 0))
+     (notes-print
+      (setf *view-cached-note-lines*
+            (-<>> *note-out*
+                  (find-if #'string-output-stream-p)
+                  (get-output-stream-string)
+                  (split-sequence #\Newline <>
+                                  :remove-empty-subseqs t)
+                  (mapcar
+                   (lambda (line)
+                     (multiple-value-bind (start end)
+                         (scan "^;;\\d\\d\\d\\d.\\d\\d.\\d\\d." line)
+                       (if start
+                           (subseq line end)
+                           line))))
+                  (mapcar {view-truncate _ 6})
+                  (reverse)
+                  (append <> *view-cached-note-lines*)
+                  (take *view-max-note-lines*)))))))
+
 (defun view-start ()
   "Start a viewing thread regularly updating `view-status'.
 Optional argument DELAY controls the rate at which the view refreshes."
@@ -328,79 +422,6 @@ Optional argument DELAY controls the rate at which the view refreshes."
      (let ((*view-stream* *standard-output*))
        (iter
          (while *view-running*)
-         (view-status
-          (lambda ()
-            (label-line-print :value " timing " :color +color-CYA+
-                              :balance (/ (- 1 +golden-ratio+) 2)
-                              :left +b-lt+ :right +b-rt+)
-            (runtime-print))
-          (lambda ()
-            (label-line-print :value " population " :color +color-CYA+
-                              :balance (/ (- 1 +golden-ratio+) 2)
-                              :left +b-vr+ :right +b-vl+))
-          ;; Fitness data informaion (pre-calculated).
-          (with-delayed-invocation (fitness-data-print *population*)
-            (let* ((vectorp (not (numberp (car *population*))))
-                   (fits (mapcar (if vectorp
-                                     [{reduce #'+} #'fitness]
-                                     #'fitness)
-                                 *population*)))
-              (fitness-data-print
-               (format nil "~f" (extremum fits *fitness-predicate*))
-               (format nil "~f" (median fits))
-               (when vectorp
-                 (format nil "0~4f"
-                         (/ (length (remove-duplicates
-                                     (mapcar #'fitness *population*)
-                                     :test #'equalp))
-                            (length *population*))))
-               (when vectorp
-                 (format nil "~f"
-                         (->> *population*
-                              (mapcar [{coerce _ 'list} #'fitness])
-                              (apply #'mapcar [{apply #'min} #'list])
-                              (reduce #'+)))))))
-          ;; Genomic data informaion (pre-calculated).
-          (with-delayed-invocation (genome-data-print *population*)
-            (let ((lengths (mapcar [#'length #'lines] *population*)))
-              (genome-data-print (format nil "~d" (apply #'min lengths))
-                                 (format nil "~d" (median lengths))
-                                 (format nil "~d" (apply #'max lengths)))))
-          ;; Mutations
-          (lambda ()
-            (when (and (> *view-max-mutations* 0)
-                       (> (hash-table-count *mutation-stats*) 0))
-              (label-line-print :value " mutations " :color +color-CYA+
-                                :balance (/ (- 1 +golden-ratio+) 2)
-                                :left +b-vr+ :right +b-vl+)))
-          (with-delayed-invocation
-              (mutation-stats-print
-               (and (> *view-max-mutations* 0)
-                    (> (hash-table-count *mutation-stats*) 0)))
-            (mutation-stats-print
-             (take *view-max-mutations*
-                   (sort (summarize-mutation-stats) #'>
-                         :key (lambda (mut)
-                                (/ (or (aget :better (cdr mut)) 0)
-                                   (reduce #'+ (mapcar
-                                                #'cdr (cdr mut)))))))))
-          ;; Notes.
-          (lambda ()
-            (when (> *view-max-note-lines* 0)
-              (label-line-print :value " notes " :color +color-CYA+
-                                :balance (/ (- 1 +golden-ratio+) 2)
-                                :left +b-vr+ :right +b-vl+)))
-          (with-delayed-invocation (notes-print (> *view-max-note-lines* 0))
-            (notes-print
-             (setf *view-cached-note-lines*
-                   (-<>> *note-out*
-                         (find-if #'string-output-stream-p)
-                         (get-output-stream-string)
-                         (split-sequence #\Newline <>
-                                         :remove-empty-subseqs t)
-                         (mapcar {view-truncate _ 6})
-                         (reverse)
-                         (append <> *view-cached-note-lines*)
-                         (take *view-max-note-lines*))))))
+         (run-view-status)
          (sleep *view-delay*))))
    :name "view"))
