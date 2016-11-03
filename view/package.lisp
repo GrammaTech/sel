@@ -27,6 +27,7 @@
            :*view-mutation-header-p*
            :*view-max-mutations*
            :*view-max-note-lines*
+           :*view-max-best-lines*
            :view-truncate
            :view-status
            :view-start))

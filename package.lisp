@@ -165,6 +165,8 @@
    :*tournament-size*
    :*tournament-eviction-size*
    :*fitness-predicate*
+   :fitness-better-p
+   :fitness-equal-p
    :*cross-chance*
    :*mut-rate*
    :*fitness-evals*
