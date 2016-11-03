@@ -506,6 +506,12 @@ for successful mutation (e.g. adding includes/types/macros)"))
     (setf asts nil
           fitness nil)))
 
+(defun function-decl-p (ast)
+  "Is AST a function (or method/constructor/destructor) decl?"
+  (member (aget :ast-class ast)
+          '("Function" "CXXMethod" "CXXConstructor" "CXXDestructor")
+          :test #'string=))
+
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
@@ -534,7 +540,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
           (when (aget :body ast)
             (collect ast into funs)
             (collect (ast-to-source-range ast) into fn-ranges))
-          (when (string= "Function" (aget :ast-class ast))
+          (when (function-decl-p ast)
             (collect ast into protos))
           (mapc (lambda (macro)
                   (adjoining (cons (first macro) (second macro)) into m-macros
@@ -548,7 +554,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
              (mapc (lambda (ast)
                      (if (some {contains _ (ast-to-source-range ast)} fn-ranges)
                          (unless (or (string= "ParmVar" (aget :ast-class ast))
-                                     (string= "Function" (aget :ast-class ast)))
+                                     (function-decl-p ast))
                            (push ast my-stmts))
                          (push ast my-non-stmts)))
                    body)
@@ -1197,14 +1203,11 @@ Returns nil if no full-stmt parent is found."))
 (defmethod can-be-made-full-p ((obj clang) (ast list))
   (or (and (aget :full-stmt ast)
            (not (zerop (aget :parent-counter ast)))
-           (not (member (aget :ast-class ast) '("Function")
-                        :test #'string=))
-           (let ((parent-class (aget :ast-class (get-parent-ast obj ast))))
-             (and
-              ;; NOTE: Work around clang-mutate bug in which the
-              ;; "CompoundStmt" holding a full function body are both
-              ;; considered to be full statements.
-              (not (string= "Function" parent-class)))))
+           (not (function-decl-p ast))
+           ;; NOTE: Work around clang-mutate bug in which the
+           ;; "CompoundStmt" holding a full function body are both
+           ;; considered to be full statements.
+           (not (function-decl-p (get-parent-ast obj ast))))
       (unless (or (aget :guard-stmt ast)  ; Don't wrap guard statements.
                   (string= "CompoundStmt" ; Don't wrap CompoundStmts.
                            (aget :ast-class ast)))
@@ -1590,7 +1593,7 @@ variables to replace use of the variables declared in stmt ID."))
      (list (caar (aget :scopes ast))))
     ((string= (aget :ast-class ast) "DeclStmt") ; Sub-function declaration.
      (aget :declares ast))
-    ((string= (aget :ast-class ast) "Function") ; Sub-function declaration.
+    ((function-decl-p ast)                      ; Sub-function declaration.
      (mapcar #'car (aget :args ast)))
     (:otherwise nil)))
 
@@ -1628,7 +1631,7 @@ VARIABLE-NAME should be declared in AST."))
     ;;         "Can't find declaration of ~a in ~a." variable-name obj)
     (if declaration-ast
         (find-type obj
-                   (if (string= "Function" (aget :ast-class declaration-ast))
+                   (if (function-decl-p declaration-ast)
                        (second (find variable-name (aget :args declaration-ast)
                                      :key #'car :test #'equal))
                        (nth (position-if {string= variable-name}
