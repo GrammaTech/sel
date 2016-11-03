@@ -351,12 +351,13 @@ delayed function on the arguments."
                        :left +b-lt+ :right +b-rt+)
      (runtime-print))
    (lambda ()
-     (when *population*
+     (when (and *population* (every #'fitness *population*))
        (label-line-print :value " population " :color +color-CYA+
                          :balance (/ (- 1 +golden-ratio+) 2)
                          :left +b-vr+ :right +b-vl+)))
    ;; Fitness data informaion (pre-calculated).
-   (with-delayed-invocation (fitness-data-print *population*)
+   (with-delayed-invocation (fitness-data-print
+                             (and *population* (every #'fitness *population*)))
      (let* ((vectorp (not (numberp (car *population*))))
             (fits (mapcar (if vectorp
                               [{reduce #'+} #'fitness]
@@ -403,12 +404,15 @@ delayed function on the arguments."
                                          #'cdr (cdr mut)))))))))
    ;; Best genome lines.
    (lambda ()
-     (when (and (> *view-max-best-lines* 0) *population*)
+     (when (and (> *view-max-best-lines* 0)
+                *population*
+                (every #'fitness *population*))
        (label-line-print :value " best " :color +color-CYA+
                          :balance (/ (- 1 +golden-ratio+) 2)
                          :left +b-vr+ :right +b-vl+)))
    (with-delayed-invocation (best-print (and (> *view-max-best-lines* 0)
-                                             *population*))
+                                             *population*
+                                             (every #'fitness *population*)))
      (best-print (-<>> (lines (extremum *population* #'fitness-better-p
                                         :key #'fitness))
                        (mapcar #'view-truncate)
