@@ -39,10 +39,6 @@ CLANG-W-FODDER in a method-dependent fashion."))
                  :text (format nil "No valid snippet found")))
         snippet)))
 
-(define-constant +fodder-mutation-chance+ 0.4
-  :documentation "Probability of attempting a fodder mutation on a ~
-                  software object")
-
 (defvar *clang-w-fodder-new-mutation-types*
   '(replace-fodder-same
     replace-fodder-full
@@ -51,16 +47,37 @@ CLANG-W-FODDER in a method-dependent fashion."))
   "Fodder mutation types.")
 
 (defvar *clang-w-fodder-mutation-types*
-  (let ((orig-types (un-cumulative-distribution *clang-mutation-types*)))
-    (cumulative-distribution
-     (normalize-probabilities
-      (append orig-types
-              (mapcar {cons _ (/ (reduce #'+ (mapcar #'cdr orig-types))
-                                 (length *clang-w-fodder-new-mutation-types*))}
-                      *clang-w-fodder-new-mutation-types*)))))
+  (cumulative-distribution
+   (normalize-probabilities
+    '((cut-decl                . 10)    ; All values are /200 total.
+      (swap-decls              . 10)
+      (rename-variable         . 10)
+      (clang-promote-guarded   . 10)
+      (clang-cut               . 10)
+      (clang-cut-full          . 25)
+      (clang-insert            .  1)
+      (clang-insert-same       .  2)
+      (clang-insert-full       .  2)
+      (clang-insert-full-same  . 10)
+      (clang-swap              .  1)
+      (clang-swap-same         .  2)
+      (clang-swap-full         .  2)
+      (clang-swap-full-same    . 10)
+      (clang-replace           .  1)
+      (clang-replace-same      .  2)
+      (clang-replace-full      .  2)
+      (clang-replace-full-same . 10)
+      (replace-fodder-same     . 25)
+      (replace-fodder-full     . 15)
+      (insert-fodder           . 25)
+      (insert-fodder-full      . 15))))
   "Cumulative distribution of normalized probabilities of weighted mutations.
-By default the weights are assigned so that half of all mutations will
-be fodder mutations.")
+Currently the weights are assigned so that we roughly preserve the
+total fraction of decl, swap, and cut mutations from
+`*clang-mutation-types*'.  By contrast the fraction of insert, swap,
+and replace mutations are decreased precipitously to make room for the
+new fodder mutations.  Fodder mutations make up 2/5 of all
+mutations.")
 
 (defmethod pick-mutation-type ((obj clang-w-fodder))
   (random-pick *clang-w-fodder-mutation-types*))
