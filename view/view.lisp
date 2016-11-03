@@ -355,7 +355,7 @@ delayed function on the arguments."
         (format nil "~f" (extremum fits *fitness-predicate*))
         (format nil "~f" (median fits))
         (when vectorp
-          (format nil "0~4f"
+          (format nil "~d"
                   (/ (length (remove-duplicates
                               (mapcar #'fitness *population*)
                               :test #'equalp))
