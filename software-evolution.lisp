@@ -162,6 +162,24 @@ Used to target mutation."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
+(defun fitness-better-p (fitness-a fitness-b)
+  "Check if FITNESS-A is strictly better than FITNESS-B."
+  (cond
+    ((and (numberp fitness-a) (numberp fitness-b))
+     (funcall *fitness-predicate* fitness-a fitness-b))
+    ((and (= (length fitness-a) (length fitness-b)))
+     (and (every (lambda (a b)
+                   (or (funcall *fitness-predicate* a b)
+                       (= a b)))
+                 fitness-a fitness-b)
+          (some *fitness-predicate* fitness-a fitness-b)))
+    (:otherwise (error "Can't compare fitness ~a and fitness ~a"
+                       fitness-a fitness-b))))
+
+(defun fitness-equal-p (fitness-a fitness-b)
+  "Return true if FITNESS-A and FITNESS-B are equal"
+  (equalp fitness-a fitness-b))
+
 (defun worst-numeric-fitness ()
   (cond ((equal #'< *fitness-predicate*) infinity)
         ((equal #'> *fitness-predicate*) 0)

@@ -21,7 +21,8 @@
 ;; *view-mutation-header-p* -- show headers of mutation view columns
 ;; *view-max-mutations* ------ number of top mutations to show
 ;; *view-max-note-lines* ----- number of notes lines to display
-;; TODO: *view-best-genome-lines* --- show lines of the best genome
+;; *view-best-genome-lines* -- show lines of the best genome
+;;
 ;; TODO: control thread using `read-char' from `*standard-input*'
 
 ;;; Code:
@@ -64,6 +65,9 @@ For example a description of the evolution target.")
 
 (defvar *view-cached-note-lines* nil
   "Holds cached note lines for continued display.")
+
+(defvar *view-max-best-lines* 0
+  "Number of lines of the best candidate to show.")
 
 (define-constant +golden-ratio+ 21/34)
 
@@ -196,7 +200,7 @@ For example a description of the evolution target.")
        :color +color-GRA+
        :filler #\Space :left +b-v+ :right +b-v+)))
 
-(defun fitness-data-print (best med &optional uniq union)
+(defun fitness-data-print (best med &optional union uniq)
   (label-line-print
    :balance 0
    :colors (append
@@ -209,8 +213,8 @@ For example a description of the evolution target.")
              " med: " med)
             (when (and uniq union)
               (list
-               " uniq: " uniq
-               " union: " union)))
+               " union: " union
+               " uniq: " uniq)))
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun genome-data-print (max med min)
@@ -265,6 +269,12 @@ For example a description of the evolution target.")
 (defun notes-print (lines)
   (mapc (lambda (line)
           (label-line-print :value line :color +color-GRA+ :balance 0
+                            :filler #\Space :left +b-v+ :right +b-v+))
+        lines))
+
+(defun best-print (lines)
+  (mapc (lambda (line)
+          (label-line-print :value line :color +color-RST+ :balance 0
                             :filler #\Space :left +b-v+ :right +b-v+))
         lines))
 
@@ -328,7 +338,7 @@ delayed function on the arguments."
          #+sbcl 'sb-impl::string-output-stream
          #-sbcl (error "`string-output-stream-p' only supported for SBCL.")))
 
-(defun view-truncate (line &optional (less 6))
+(defun view-truncate (line &optional (less 2))
   (if (> (length line) (- *view-length* less))
       (subseq line 0 (- *view-length* less))
       line))
@@ -341,9 +351,10 @@ delayed function on the arguments."
                        :left +b-lt+ :right +b-rt+)
      (runtime-print))
    (lambda ()
-     (label-line-print :value " population " :color +color-CYA+
-                       :balance (/ (- 1 +golden-ratio+) 2)
-                       :left +b-vr+ :right +b-vl+))
+     (when *population*
+       (label-line-print :value " population " :color +color-CYA+
+                         :balance (/ (- 1 +golden-ratio+) 2)
+                         :left +b-vr+ :right +b-vl+)))
    ;; Fitness data informaion (pre-calculated).
    (with-delayed-invocation (fitness-data-print *population*)
      (let* ((vectorp (not (numberp (car *population*))))
@@ -355,17 +366,17 @@ delayed function on the arguments."
         (format nil "~f" (extremum fits *fitness-predicate*))
         (format nil "~f" (median fits))
         (when vectorp
-          (format nil "~d"
-                  (/ (length (remove-duplicates
-                              (mapcar #'fitness *population*)
-                              :test #'equalp))
-                     (length *population*))))
-        (when vectorp
           (format nil "~f"
                   (->> *population*
                        (mapcar [{coerce _ 'list} #'fitness])
                        (apply #'mapcar [{apply #'min} #'list])
-                       (reduce #'+)))))))
+                       (reduce #'+))))
+        (when vectorp
+          (format nil "~d"
+                  (/ (length (remove-duplicates
+                              (mapcar #'fitness *population*)
+                              :test #'equalp))
+                     (length *population*)))))))
    ;; Genomic data informaion (pre-calculated).
    (with-delayed-invocation (genome-data-print *population*)
      (let ((lengths (mapcar [#'length #'lines] *population*)))
@@ -390,6 +401,20 @@ delayed function on the arguments."
                          (/ (or (aget :better (cdr mut)) 0)
                             (reduce #'+ (mapcar
                                          #'cdr (cdr mut)))))))))
+   ;; Best genome lines.
+   (lambda ()
+     (when (and (> *view-max-best-lines* 0) *population*)
+       (label-line-print :value " best " :color +color-CYA+
+                         :balance (/ (- 1 +golden-ratio+) 2)
+                         :left +b-vr+ :right +b-vl+)))
+   (with-delayed-invocation (best-print (and (> *view-max-best-lines* 0)
+                                             *population*))
+     (best-print (-<>> (lines (extremum *population* #'fitness-better-p
+                                        :key #'fitness))
+                       (mapcar #'view-truncate)
+                       (append <> (make-list *view-max-best-lines*
+                                             :initial-element ""))
+                       (take *view-max-best-lines*))))
    ;; Notes.
    (lambda ()
      (when (> *view-max-note-lines* 0)
@@ -411,7 +436,7 @@ delayed function on the arguments."
                        (if start
                            (subseq line end)
                            line))))
-                  (mapcar {view-truncate _ 6})
+                  (mapcar #'view-truncate)
                   (reverse)
                   (append <> *view-cached-note-lines*)
                   (take *view-max-note-lines*)))))))
