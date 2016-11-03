@@ -507,8 +507,7 @@ Default selection function for `tournament'."
   (extremum group predicate :key #'fitness))
 
 (defvar *tournament-selector* #'default-select-one
-  "Function used to select a winner of a tournament.
-Should take a group ")
+  "Function used to select a winner of a tournament.")
 
 (defun tournament
     (&key (predicate *fitness-predicate*) (size *tournament-size*))
