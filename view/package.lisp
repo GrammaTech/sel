@@ -21,6 +21,8 @@
            :*view-length*
            :*view-delay*
            :*view-running*
+           :*view-application-name*
+           :*view-application-version*
            :*view-run-name*
            :*view-mutation-header-p*
            :*view-max-mutations*
