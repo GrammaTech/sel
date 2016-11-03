@@ -43,6 +43,12 @@
 (defvar *view-running* nil
   "Set to nil to terminate the view thread.")
 
+(defvar *view-application-name* "SEL"
+  "Name of the application using the view.")
+
+(defvar *view-application-version* +software-evolution-version+
+  "Version string of the application using the view.")
+
 (defvar *view-run-name* nil
   "Set the name of the current run.
 For example a description of the evolution target.")
@@ -304,7 +310,8 @@ delayed function on the arguments."
   (clear-terminal)
   (hide-cursor)
   (label-line-print
-   :values (append (list " SEL " +software-evolution-version+)
+   :values (append (list (format nil " ~a " *view-application-name*)
+                         *view-application-version*)
                    (when *view-run-name*
                      (list (format nil " (~a)" *view-run-name*))))
    :colors (list +color-YEL+ +color-CYA+ +color-LGN+)
