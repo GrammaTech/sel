@@ -230,7 +230,7 @@
    :elf-risc
    :elf-mips
    :genome-bytes
-   :pad
+   :pad-nops
    :nop-p
    :forth
    :lisp

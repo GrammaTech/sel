@@ -24,7 +24,7 @@
 ;; instruction, which means we treat it as CISC here.
 (defclass elf-arm (elf-cisc) ())
 
-(defgeneric pad (elf num-bytes)
+(defgeneric pad-nops (elf num-bytes)
   (:documentation "Return NOP(s) sufficient to fill num-bytes"))
 
 (defgeneric nop-p (elf bytes)
@@ -32,7 +32,7 @@
 
 (defvar x86-nop (list #x90))
 
-(defmethod pad ((elf elf-x86) num-bytes)
+(defmethod pad-nops ((elf elf-x86) num-bytes)
   (loop :for i :below num-bytes :collect x86-nop))
 
 (defvar arm-nops
@@ -46,7 +46,7 @@
                 width)
                'list))))
 
-(defmethod pad ((elf elf-arm) num-bytes)
+(defmethod pad-nops ((elf elf-arm) num-bytes)
   ;; Pad an ARM elf file with appropriately sized nops.
   (flet ((arm-nop-for-width (width)
            (car (remove-if-not {= width} arm-nops :key #'length))))
@@ -134,7 +134,7 @@
   (let ((flags (remove :code (copy-tree flags) :key #'car)))
     (append
      (subseq genome 0 place)
-     (mapcar [{append flags} #'list {cons :code}] (pad elf num-bytes))
+     (mapcar [{append flags} #'list {cons :code}] (pad-nops elf num-bytes))
      (subseq genome place))))
 
 (defun elf-strip (elf genome place num-bytes)
