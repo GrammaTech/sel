@@ -989,21 +989,26 @@
 
 (deftest clang-pick-general-full-stmt-no-matching-test ()
   "Ensure calling pick-general with the :full-stmt flag set to true
-does not fail when there are no full stmts (e.g. after a bad crossover)"
-  (with-fixture hello-world-clang
-    (is (not (null (se::pick-general *hello-world*
-                                     (remove-if {aget :full-stmt}
-                                                (stmt-asts *hello-world*))
-                                     :full-stmt t))))))
+throws a no-mutation-targets error when there are no full stmts,
+e.g. after a bad crossover"
+  (with-fixture no-mutation-targets-clang
+    (signals no-mutation-targets
+      (se::pick-general *soft*
+                        (remove-if {aget :full-stmt}
+                                   (stmt-asts *soft*))
+                        :full-stmt t))))
 
 (deftest clang-pick-general-same-class-no-matching-test ()
-  "Ensure calling pick-general with the :same-class flag set to true does not
-fail when a second statement with the same AST class is not to be found"
-  (let ((obj (from-file (make-instance 'clang)
-                        (lisp-bugs-dir "pick-general-same-class.c"))))
-    (is (not (null (se::pick-general obj (good-stmts obj)
-                                         :second-pool (bad-stmts obj)
-                                         :same-class t))))))
+  "Ensure calling pick-general with the :same-class flag set to true throws
+a no-mutation-targets error when a second statement with the same AST class
+is not to be found"
+  (with-fixture no-mutation-targets-clang
+    (signals no-mutation-targets
+      (se::pick-general *soft*
+                        (stmt-asts *soft*)
+                        :second-pool `(((:ast-class . "Nothing")
+                                        (:full-stmt . nil)))
+                        :same-class t))))
 
 (deftest clang-promote-guarded-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
