@@ -2896,3 +2896,9 @@ Useful for printing or returning differences in the REPL."
                          :end    (make-instance 'source-location :line 3
                                                                  :column 0))))))
 
+(deftest pad-list-expand-to-requisite-length ()
+  (is (equal '(1 2 3 3) (pad '(1 2) 4 3))))
+
+(deftest pad-list-already-of-requisite-length ()
+  (is (equal '(1 2 3) (pad '(1 2 3) 3))))
+

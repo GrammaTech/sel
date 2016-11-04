@@ -84,6 +84,7 @@
    :take
    :take-while
    :take-until
+   :pad
    :chunks
    :binary-search
    :<and>

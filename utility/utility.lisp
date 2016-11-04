@@ -636,6 +636,12 @@ is replaced with replacement."
 (defun take-until (pred seq)
   (take-while (complement pred) seq))
 
+(defun pad (list n &optional (elem nil))
+  "Pad LIST to a length of N with ELEM"
+  (if (>= (length list) n)
+      list
+      (append list (make-list (- n (length list))
+                              :initial-element elem))))
 (defun chunks (list size)
   "Return subsequent chunks of LIST of size SIZE."
   (loop :for i :below (1+ (- (length list) size)) :by size :collect
