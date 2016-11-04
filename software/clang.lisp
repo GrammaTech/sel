@@ -164,22 +164,28 @@
 Keyword arguments may be used to restrict selections."
   (labels ((maybe-only-full (asts)
              (if full-stmt
-                 (or (remove-if-not {aget :full-stmt} asts)
-                     asts)
-                 asts)))
-    (let ((first-pick (random-ast (maybe-only-full first-pool))))
+                 (remove-if-not {aget :full-stmt} asts)
+                 asts))
+           (random-ast-or-ex (asts)
+             (if asts
+                 (random-ast asts)
+                 (error (make-condition 'no-mutation-targets
+                          :obj software
+                          :text (format nil "Could not find ASTs matching ~
+                                             full-stmt: ~a, same-class: ~a"
+                                            full-stmt same-class))))))
+    (let ((first-pick (random-ast-or-ex (maybe-only-full first-pool))))
       (acons :stmt1 first-pick
              (when second-pool
                (list
                 (cons :stmt2
-                      (random-ast
+                      (random-ast-or-ex
                        (maybe-only-full
                         (if same-class
-                            (or (remove-if-not ; Try to filter by ast-class.
-                                 [{string= (get-ast-class software first-pick)}
-                                  {aget :ast-class}]
-                                 second-pool)
-                                second-pool) ; Fall back if no AST class match.
+                            (remove-if-not ; Try to filter by ast-class.
+                              [{string= (get-ast-class software first-pick)}
+                               {aget :ast-class}]
+                              second-pool)
                             second-pool))))))))))
 
 (defun pick-bad-good (software &optional full-stmt same-class)
