@@ -58,12 +58,17 @@
              (let ((git-dir (make-pathname
                              :directory (append dir (list ".git")))))
                (if (probe-file git-dir)
-                   (with-open-file
-                       (in (merge-pathnames
-                            (with-open-file (in ".git/HEAD")
-                              (second (split-sequence #\Space (read-line in))))
-                            git-dir))
-                     (subseq (read-line in) 0 7))
+                   (with-open-file (git-head-in (merge-pathnames
+                                                  "HEAD" git-dir))
+                     (let ((git-head (read-line git-head-in)))
+                       (if (scan "ref:" git-head)
+                           (with-open-file (ref-in (merge-pathnames
+                                                     (second (split-sequence
+                                                               #\Space
+                                                               git-head))
+                                                     git-dir))
+                             (subseq (read-line ref-in) 0 7)) ; attached head
+                           (subseq git-head 0 7)))) ; detached head
                    (recur (butlast dir))))))
     (recur directory)))
 
