@@ -28,6 +28,7 @@
    :with-temp-file
    :with-temp-file-of
    :with-temp-file-of-bytes
+   :with-temp-files
    :ensure-path-is-string
    ;; :from-bytes
    ;; :to-bytes

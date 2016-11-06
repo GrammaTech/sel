@@ -156,6 +156,19 @@ and an optional extension."
      (unwind-protect (progn (bytes-to-file ,bytes ,(car spec)) ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
+(defmacro with-temp-files (specs &rest body)
+  (labels ((expander (specs body)
+             (let ((s (car specs)))
+               `(let ((,(car s) (temp-file-name ,(second s))))
+                  (unwind-protect
+                       ,(if (cdr specs)
+                            (expander (cdr specs) body)
+                            `(progn ,@body))
+                    (when (probe-file ,(car s)) (delete-file ,(car s))))))))
+    (expander (mapcar (lambda (s)
+                        (if (listp s) s (list s)))
+                      specs) body)))
+
 (defun from-bytes (bytes)
   (with-temp-file (tmp) (bytes-to-file bytes tmp) (restore tmp)))
 
