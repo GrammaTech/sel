@@ -414,10 +414,10 @@ Also, ensures MUTATION is a member of superclasses"
 
 (defclass mutation ()
   ((object :initarg :object :accessor object :initform nil
-           :type software
+           :type (or software null)
            :documentation "The software object to be mutated.")
    (targets :initarg :targets :reader get-targets :initform nil
-            :type (list * *)
+            :type (or list fixnum)
             :documentation "A calculated target set."))
   (:documentation "The base class of all software mutations."))
 
