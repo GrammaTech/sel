@@ -25,37 +25,39 @@
 (define-software clang (ast)
   ((compiler :initarg :compiler :accessor compiler :initform "clang")
    (asts :initarg :asts :initform nil
-         :copier :direct :type (list (cons keyword *) *) :documentation
-         "Vector of all ASTs in the software.")
+         :copier :direct :type (or (array (cons keyword *) *) null)
+         :documentation "Vector of all ASTs in the software.")
    (stmt-asts :initarg :stmt-asts :accessor stmt-asts :initform nil
-              :copier :direct :type (list (cons keyword *) *) :documentation
+              :copier :direct :type list
+              :documentation
               "List of statement ASTs which exist within a function body.")
    ;; TODO: We should split non-statement ASTs into typedefs,
    ;;       structs/classes, and global variables, all of which should
    ;;       have different mutation types defined.  This needs more design.
    (non-stmt-asts :initarg :non-stmt-asts :accessor non-stmt-asts :initform nil
-                  :copier :direct :type (list (cons keyword *) *) :documentation
+                  :copier :direct :type list :documentation
                   "List of global AST which live outside of any function.")
    (functions :initarg :functions :accessor functions :initform nil
-              :copier :direct :type (list (cons keyword *) *) :documentation
+              :copier :direct :type list :documentation
               "Complete functions with bodies.")
    (prototypes :initarg :prototypes :accessor prototypes :initform nil
-               :copier :direct :type (list (cons keyword *) *) :documentation
+               :copier :direct :type list :documentation
                "Function prototypes.")
    (includes :initarg :includes :accessor includes :initform nil
-             :copier :direct :type (list string *) :documentation
+             :copier :direct :type list :documentation
              "Names of included includes.")
    (types :initarg :types :accessor types :initform nil
-          :copier :direct :type (list (cons keyword *) *) :documentation
+          :copier :direct :type list :documentation
           "Association list of types keyed by HASH id.")
-   (declarations :initarg :declarations :accessor declarations :initform nil
+   (declarations :initarg :declarations :accessor declarations
+                 :initform (make-hash-table :test #'equal)
                  :copier :direct :type hash-table :documentation
                  "Hash of variable declarations keyed by variable name.")
    (macros :initarg :macros :accessor macros :initform nil
-           :copier :direct :type (list (cons string string) *) :documentation
+           :copier :direct :type list :documentation
            "Association list of Names and values of macros.")
    (globals :initarg :globals :accessor globals :initform nil
-            :copier :direct :type (list (cons string string) *) :documentation
+            :copier :direct :type list :documentation
             "Association list of names and values of globals.")))
 
 
@@ -305,7 +307,7 @@ Keyword arguments may be used to restrict selections."
   (flet ((compose-children (ast)
            (mapconcat [#'peel-bananas {aget ::src-text}]
                       (get-immediate-children software ast)
-                      (coerce (list #\Semicolon #\Newline) 'string))))
+                      (coerce (list #\; #\Newline) 'string))))
     (when (null guarded) ; No guarded statements to promote, throw an error
       (error (make-condition 'no-mutation-targets
                :text "No guarded statements to promote"
@@ -674,7 +676,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
                           (split-balanced-parens
                            (subseq string (aref match-vars 0)
                                    (aref match-vars 1)))
-                          (coerce (list #\Semicolon #\Newline) 'string))))
+                          (coerce (list #\; #\Newline) 'string))))
            into out-str)
           (setf index (aref match-vars 1))
           (finally (setf (genome obj)
@@ -2170,23 +2172,25 @@ equal to the end point of STMT1."
   (values clang errno))
 
 (defmethod clang-format ((obj clang) &optional style &aux errno)
-  (setf (genome obj)
-        (with-temp-file-of (src (ext obj)) (genome obj)
-          (multiple-value-bind (stdout stderr exit)
-              (shell "clang-format ~a ~a"
-                     (if style
-                         (format nil "-style=~a" style)
-                         (format nil
-                                 "-style='{BasedOnStyle: Google,~
-                                AllowShortBlocksOnASingleLine: false,~
-                                AllowShortCaseLabelsOnASingleLine: false,~
-                                AllowShortFunctionsOnASingleLine: false,~
-                                AllowShortIfStatementsOnASingleLine: false,~
-                                AllowShortLoopsOnASingleLine: false}'"))
-                     src)
-            (declare (ignorable stderr))
-            (setf errno exit)
-            (if (zerop exit) stdout (genome obj)))))
+  (with-temp-file-of (src (ext obj)) (genome obj)
+    (with-temp-file-of (out (ext obj))
+      (setf (genome obj)
+            (multiple-value-bind (stdout stderr exit)
+                (shell "clang-format ~a ~a > ~a"
+                       (if style
+                           (format nil "-style=~a" style)
+                           (format nil
+                                   "-style='{BasedOnStyle: Google,~
+                                  AllowShortBlocksOnASingleLine: false,~
+                                  AllowShortCaseLabelsOnASingleLine: false,~
+                                  AllowShortFunctionsOnASingleLine: false,~
+                                  AllowShortIfStatementsOnASingleLine: false,~
+                                  AllowShortLoopsOnASingleLine: false}'"))
+                       src
+                       out)
+              (declare (ignorable stdout stderr))
+              (setf errno exit)
+              (if (zerop exit) (file-to-string out) (genome obj))))))
   (values obj errno))
 
 (defun replace-fields-in-ast (ast field-replacement-pairs)

@@ -50,6 +50,10 @@
       #+ccl  (uiop/os:getenv name)
       default))
 
+(defun quit (&optional (errno 0))
+  #+sbcl (sb-ext:exit :code errno)
+  #+ccl  (ccl:quit errno))
+
 (defun current-git-commit (directory)
   (labels ((recur (dir)
              (when (< (length dir) 2)
@@ -216,8 +220,13 @@ and an optional extension."
         ;; native shell execution
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input input)
-            #+ccl (progn (warn "shell-command may hang if output is large")
-                         (shell-command cmd :input ""))
+            #+ccl
+            (let* ((*shell-search-paths* ; workaround trivial-shell bug with CCL
+                     (if (zerop (position #\/ (string-trim '(#\Space) cmd)))
+                         nil ;absolute path to command given, don't search $PATH
+                         *shell-search-paths*)))
+              (note 5 "shell-command may hang if output is large")
+              (shell-command cmd :input input))
             #+allegro
             (multiple-value-bind (out-lines err-lines errno)
                 (excl.osi:command-output cmd)
@@ -238,6 +247,7 @@ and an optional extension."
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL to FILE."
   #-sbcl (error "`WRITE-SHELL-FILE' unimplemented for non-SBCL lisps.")
+  #+sbcl
   (let ((proc-sym (gensym))
         (thread-sym (gensym))
         (byte-sym (gensym))
@@ -267,6 +277,7 @@ and an optional extension."
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL from FILE."
   #-sbcl (error "`READ-SHELL-FILE' unimplemented for non-SBCL lisps.")
+  #+sbcl
   (let ((proc-sym (gensym))
         (thread-sym (gensym))
         (byte-sym (gensym))
@@ -297,6 +308,7 @@ and an optional extension."
   "Executes BODY with STREAM-VAR holding the output of SHELL.
 The SHELL command is executed with `*bash-shell*'."
   #-sbcl (error "`READ-SHELL-FILE' unimplemented for non-SBCL lisps.")
+  #+sbcl
   (let ((proc-sym (gensym)))
     `(let* ((,proc-sym (sb-ext:run-program *bash-shell*
                                            (list "-c" ,shell) :search t
@@ -1011,18 +1023,20 @@ that function may be declared.")
 (defun profile-to-dot-graph (stream)
   "Write profile to STREAM."
   #-sbcl (error "`PROFILE-TO-DOT-GRAPH' unimplemented for non-SBCL lisps.")
-  (unless sb-sprof::*samples*
-    (warn "; `profile-to-dot-graph': No samples to report.")
-    (return-from profile-to-dot-graph))
-  (let ((call-graph (sb-sprof::make-call-graph most-positive-fixnum)))
-    (cl-dot:print-graph
-     (cl-dot:generate-graph-from-roots
-      call-graph
-      (remove-if [{> *profile-dot-min-ratio*}
-                  {/ _ (sb-sprof::call-graph-nsamples call-graph)}
-                  #'sb-sprof::node-count]
-                 (sb-sprof::call-graph-vertices call-graph)))
-     :stream stream)))
+  #+sbcl
+  (progn
+    (unless sb-sprof::*samples*
+      (warn "; `profile-to-dot-graph': No samples to report.")
+      (return-from profile-to-dot-graph))
+    (let ((call-graph (sb-sprof::make-call-graph most-positive-fixnum)))
+      (cl-dot:print-graph
+       (cl-dot:generate-graph-from-roots
+        call-graph
+        (remove-if [{> *profile-dot-min-ratio*}
+                    {/ _ (sb-sprof::call-graph-nsamples call-graph)}
+                    #'sb-sprof::node-count]
+                   (sb-sprof::call-graph-vertices call-graph)))
+       :stream stream))))
 
 ;; FlameGraph implementation from
 ;; http://paste.lisp.org/display/326901.
@@ -1043,29 +1057,31 @@ The resulting file may be fed directly to the flamegraph tool as follows.
 
 See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
   #-sbcl (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps.")
-  (unless sb-sprof::*samples*
-    (warn "; `profile-to-flame-graph': No samples to report.")
-    (return-from profile-to-flame-graph))
-  (let ((samples (sb-sprof::samples-vector sb-sprof::*samples*))
-        (counts (make-hash-table :test #'equal)))
+  #+sbcl
+  (progn
+    (unless sb-sprof::*samples*
+      (warn "; `profile-to-flame-graph': No samples to report.")
+      (return-from profile-to-flame-graph))
+    (let ((samples (sb-sprof::samples-vector sb-sprof::*samples*))
+          (counts (make-hash-table :test #'equal)))
 
-    (sb-sprof::with-lookup-tables ()
-      (loop :for start = 0 :then end
-         :while (< start (length samples))
-         :for end = (or (position 'sb-sprof::trace-start samples
-                                  :start (1+ start))
-                        (return))
-         :do (let ((key
-                    (sb-sprof::with-output-to-string (stream)
-                      (loop :for i :from (- end 2) :downto (+ start 2) :by 2
-                         :for node = (sb-sprof::lookup-node
-                                      (aref samples i))
-                         :when node
-                         :do (let ((*print-pretty* nil))
-                               (format stream "~A;"
-                                       (sb-sprof::node-name node)))))))
-               (incf (gethash key counts 0)))))
+      (sb-sprof::with-lookup-tables ()
+        (loop :for start = 0 :then end
+           :while (< start (length samples))
+           :for end = (or (position 'sb-sprof::trace-start samples
+                                    :start (1+ start))
+                          (return))
+           :do (let ((key
+                      (sb-sprof::with-output-to-string (stream)
+                        (loop :for i :from (- end 2) :downto (+ start 2) :by 2
+                           :for node = (sb-sprof::lookup-node
+                                        (aref samples i))
+                           :when node
+                           :do (let ((*print-pretty* nil))
+                                 (format stream "~A;"
+                                         (sb-sprof::node-name node)))))))
+                 (incf (gethash key counts 0)))))
 
-    (maphash (lambda (trace count)
-               (format stream "~A ~D~%" trace count))
-             counts)))
+      (maphash (lambda (trace count)
+                 (format stream "~A ~D~%" trace count))
+               counts))))

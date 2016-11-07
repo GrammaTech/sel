@@ -21,6 +21,7 @@
    :string-to-file
    :bytes-to-file
    :getenv
+   :quit
    :current-git-commit
    :*temp-dir*
    :temp-file-name

@@ -315,7 +315,7 @@ Options:
 
 Built with ~a version ~a.~%"
               self (lisp-implementation-type) (lisp-implementation-version))
-      (sb-ext:exit))
+      (quit))
 
     ;; Mandatory arguments.
     (setf path (pop args)
@@ -333,7 +333,7 @@ Built with ~a version ~a.~%"
       ("-o" "--out-file" (setf out-file (pop args)))
       ("-O" "--orig" (setf save-original t))
       ("-p" "--point" (destructuring-bind (counter string)
-                          (split-sequence #\Comma (pop args))
+                          (split-sequence #\, (pop args))
                         (pushnew string (aget (parse-integer counter) points)
                                  :test #'string=)))
       ("-q" "--quiet" (setf *note-level* 0))
