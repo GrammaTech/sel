@@ -27,38 +27,47 @@
    (asts :initarg :asts :initform nil
          :copier :direct :type (or (array (cons keyword *) *) null)
          :documentation "Vector of all ASTs in the software.")
-   (stmt-asts :initarg :stmt-asts :accessor stmt-asts :initform nil
-              :copier :direct :type list
+   (stmt-asts :initarg :stmt-asts :initform nil
+              :accessor stmt-asts :copier :direct
+              :type #+sbcl (list (cons keyword *) *) #+ccl list
               :documentation
               "List of statement ASTs which exist within a function body.")
    ;; TODO: We should split non-statement ASTs into typedefs,
    ;;       structs/classes, and global variables, all of which should
    ;;       have different mutation types defined.  This needs more design.
-   (non-stmt-asts :initarg :non-stmt-asts :accessor non-stmt-asts :initform nil
-                  :copier :direct :type list :documentation
+   (non-stmt-asts :initarg :non-stmt-asts :accessor non-stmt-asts
+                  :initform nil :copier :direct
+                  :type #+sbcl (list (cons keyword *) *) #+ccl list
+                  :documentation
                   "List of global AST which live outside of any function.")
-   (functions :initarg :functions :accessor functions :initform nil
-              :copier :direct :type list :documentation
-              "Complete functions with bodies.")
-   (prototypes :initarg :prototypes :accessor prototypes :initform nil
-               :copier :direct :type list :documentation
-               "Function prototypes.")
-   (includes :initarg :includes :accessor includes :initform nil
-             :copier :direct :type list :documentation
-             "Names of included includes.")
-   (types :initarg :types :accessor types :initform nil
-          :copier :direct :type list :documentation
-          "Association list of types keyed by HASH id.")
+   (functions :initarg :functions :accessor functions
+              :initform nil :copier :direct
+              :type #+sbcl (list (cons keyword *) *) #+ccl list
+              :documentation "Complete functions with bodies.")
+   (prototypes :initarg :prototypes :accessor prototypes
+               :initform nil :copier :direct
+               :type #+sbcl (list (cons keyword *) *) #+ccl list
+               :documentation "Function prototypes.")
+   (includes :initarg :includes :accessor includes
+             :initform nil :copier :direct
+             :type #+sbcl (list string *) #+ccl list
+             :documentation "Names of included includes.")
+   (types :initarg :types :accessor types
+          :initform nil :copier :direct
+          :type #+sbcl (list (cons keyword *) *) #+ccl list
+          :documentation "Association list of types keyed by HASH id.")
    (declarations :initarg :declarations :accessor declarations
                  :initform (make-hash-table :test #'equal)
                  :copier :direct :type hash-table :documentation
                  "Hash of variable declarations keyed by variable name.")
-   (macros :initarg :macros :accessor macros :initform nil
-           :copier :direct :type list :documentation
-           "Association list of Names and values of macros.")
-   (globals :initarg :globals :accessor globals :initform nil
-            :copier :direct :type list :documentation
-            "Association list of names and values of globals.")))
+   (macros :initarg :macros :accessor macros
+           :initform nil :copier :direct
+           :type #+sbcl (list (cons string string) *) #+ccl list
+           :documentation "Association list of Names and values of macros.")
+   (globals :initarg :globals :accessor globals
+            :initform nil :copier :direct
+            :type #+sbcl (list (cons string string) *) #+ccl list
+            :documentation "Association list of names and values of globals.")))
 
 
 ;;; Handling header information (formerly "Michondria")
