@@ -224,19 +224,16 @@
   (with-temp-file-of (query-file "json")
     (cl-json:encode-json-to-string query)
     (with-temp-file (log-file)
-      (with-temp-file (results-file)
-        (let ((query-command (format nil "~a ~a ~D ~D ~a --logfile ~a > ~a"
-                                     (query-bin obj) (host obj) (port obj) limit
-                                     query-file log-file results-file))
-              (cl-json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
-          (multiple-value-bind (stdout stderr errno)
-              (shell query-command)
-            (declare (ignorable stdout))
-            (if (zerop errno)
-                (with-open-file (in results-file)
-                  (reverse (cl-json:decode-json-from-source in)))
-                (error (make-condition 'pliny-query-failed
-                         :exit-code errno
-                         :command query-command
-                         :stdout stdout
-                         :stderr stderr)))))))))
+      (let ((query-command (format nil "~a ~a ~D ~D ~a --logfile ~a"
+                                   (query-bin obj) (host obj) (port obj) limit
+                                   query-file log-file))
+            (cl-json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
+        (multiple-value-bind (stdout stderr errno)
+            (shell query-command)
+          (if (zerop errno)
+              (reverse (cl-json:decode-json-from-string stdout))
+              (error (make-condition 'pliny-query-failed
+                       :exit-code errno
+                       :command query-command
+                       :stdout stdout
+                       :stderr stderr))))))))

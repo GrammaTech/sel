@@ -234,12 +234,20 @@ and an optional extension."
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input input)
             #+ccl
-            (let* ((*shell-search-paths* ; workaround trivial-shell bug with CCL
-                     (if (zerop (position #\/ (string-trim '(#\Space) cmd)))
-                         nil ;absolute path to command given, don't search $PATH
-                         *shell-search-paths*)))
-              (note 5 "shell-command may hang if output is large")
-              (shell-command cmd :input input))
+            (with-temp-file (stdout-file)
+              (with-temp-file (stderr-file)
+                (let* ((*shell-search-paths* ; workaround trivial-shell bug with CCL
+                         (if (zerop (position #\/ (string-trim '(#\Space) cmd)))
+                             nil ;absolute path to command given, don't search $PATH
+                             *shell-search-paths*)))
+                  (multiple-value-bind (stdout stderr errno)
+                      (shell-command (format nil "~a >~a 2>~a"
+                                                 cmd stdout-file stderr-file)
+                                     :input input)
+                    (declare (ignorable stdout stderr))
+                    (values (file-to-string stdout-file)
+                            (file-to-string stderr-file)
+                            errno)))))
             #+allegro
             (multiple-value-bind (out-lines err-lines errno)
                 (excl.osi:command-output cmd)
