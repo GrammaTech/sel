@@ -1022,18 +1022,16 @@ already in scope, it will keep that name.")
                  (:asts "asts")
                  (:decls "decls")
                  (:none "none"))))
-    (let ((clang-mutate-outfile (temp-file-name))
-          (json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
+    (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
       (unwind-protect
         (multiple-value-bind (stdout stderr exit)
             (shell-with-input script
-                              "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~} > ~a"
+                              "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
                               (command-opt (car op))
                               (mapcar #'option-opt (cdr op))
                               src-file
-                              (flags obj)
-                              clang-mutate-outfile)
-          (declare (ignorable stdout stderr))
+                              (flags obj))
+          (declare (ignorable stderr))
           ;; NOTE: The clang-mutate executable will sometimes produce
           ;;       usable output even on a non-zero exit, e.g., usable
           ;;       json or successful mutations but an exit of 1
@@ -1050,23 +1048,16 @@ already in scope, it will keep that name.")
           ;; but is actually meaningless.  This tends to happen with array
           ;; initialization forms (e.g { 254, 255, 256 ... }) being inserted
           ;; and interpreted as a block.  Throw an error to clear the genome.
-          (with-open-file (clang-mutate-out clang-mutate-outfile
-                           :element-type '(unsigned-byte 8))
-            (when (> (file-length clang-mutate-out) *clang-max-json-size*)
-              (error (make-condition 'mutate
-                       :text (format nil "clang-mutate output exceeds 100 MB.")
-                       :obj obj :op op))))
+          (when (> (length stdout) *clang-max-json-size*)
+            (error (make-condition 'mutate
+                     :text (format nil "clang-mutate output exceeds 100 MB.")
+                     :obj obj :op op)))
           (values
            (case (car op)
-             (:sexp
-              (with-open-file (clang-mutate-out clang-mutate-outfile)
-                (read clang-mutate-out)))
-             ((:ids :list) (file-to-string clang-mutate-outfile))
-             (t (file-to-string clang-mutate-outfile)))
+             (:sexp (read-from-string stdout))
+             (t stdout))
            exit))
       ;; Cleanup forms.
-      (when (probe-file clang-mutate-outfile)
-        (delete-file clang-mutate-outfile))
       (when (and value1-file (probe-file value1-file))
         (delete-file value1-file))
       (when (and value2-file (probe-file value2-file))
@@ -2187,24 +2178,22 @@ equal to the end point of STMT1."
 
 (defmethod clang-format ((obj clang) &optional style &aux errno)
   (with-temp-file-of (src (ext obj)) (genome obj)
-    (with-temp-file-of (out (ext obj))
-      (setf (genome obj)
-            (multiple-value-bind (stdout stderr exit)
-                (shell "clang-format ~a ~a > ~a"
-                       (if style
-                           (format nil "-style=~a" style)
-                           (format nil
-                                   "-style='{BasedOnStyle: Google,~
-                                  AllowShortBlocksOnASingleLine: false,~
-                                  AllowShortCaseLabelsOnASingleLine: false,~
-                                  AllowShortFunctionsOnASingleLine: false,~
-                                  AllowShortIfStatementsOnASingleLine: false,~
-                                  AllowShortLoopsOnASingleLine: false}'"))
-                       src
-                       out)
-              (declare (ignorable stdout stderr))
-              (setf errno exit)
-              (if (zerop exit) (file-to-string out) (genome obj))))))
+    (setf (genome obj)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "clang-format ~a ~a"
+                     (if style
+                         (format nil "-style=~a" style)
+                         (format nil
+                                 "-style='{BasedOnStyle: Google,~
+                                AllowShortBlocksOnASingleLine: false,~
+                                AllowShortCaseLabelsOnASingleLine: false,~
+                                AllowShortFunctionsOnASingleLine: false,~
+                                AllowShortIfStatementsOnASingleLine: false,~
+                                AllowShortLoopsOnASingleLine: false}'"))
+                     src)
+            (declare (ignorable stderr))
+            (setf errno exit)
+            (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
 
 (defun replace-fields-in-ast (ast field-replacement-pairs)
