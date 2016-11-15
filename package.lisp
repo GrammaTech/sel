@@ -358,4 +358,15 @@
    :demote-binop-left
    :demote-binop-right
    :eval-error
-   ))
+   :project
+   :current-file
+   :with-current-file
+   :evolve-files
+   :other-files
+   :all-files
+   :write-genome-to-files
+   :with-build-dir
+   :with-temp-build-dir
+   :make-build-dir
+   :full-path
+   :*build-dir*))

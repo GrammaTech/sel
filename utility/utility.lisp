@@ -256,6 +256,36 @@ and an optional extension."
                   (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
 
+(defun shell-with-env (env command-format &rest format-args)
+  "Run a shell command with environment variables set. ENV should be a
+list of (name value) pairs."
+
+  ;; Quotes embedded in the command will screw up our quoting
+  ;; below. We could try to escape them, not bothering for now.
+  (let ((command (apply {format nil command-format} format-args)))
+    (assert (not (find #\" command)))
+    (multiple-value-prog1 (shell "~{~a ~}sh -c \"~a\""
+                                 (mapcar {apply {format nil "~a=~a"}} env)
+                                 command))))
+
+(defun shell-check (&rest args)
+  "Run shell command and raise error on non-zero exit"
+  (multiple-value-bind (stdout stderr exit)
+      (apply #'shell args)
+    (if (zerop exit)
+        (values stdout stderr exit)
+        (error "shell command '~a' failed: ~a ~a"
+               (apply #'format nil args)
+               stdout stderr))))
+
+
+(defun cp-file (from to)
+  "copy file using 'cp'
+
+  Unlike alexandria's copy-file, this keeps permissions. "
+  (shell-check "cp ~a ~a" from to)
+  to)
+
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL to FILE."
