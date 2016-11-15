@@ -2143,7 +2143,9 @@ equal to the end point of STMT1."
                 (car (last (remove-if-not
                             [{equal "CompoundStmt"} {aget :ast-class}]
                             (get-parent-asts clang (get-ast clang stmt))))))))
-    (car (remove-if-not [{= body} {aget :body}] (functions clang)))))
+    ;; If statement is not within a function, return NIL.
+    (and body
+         (car (remove-if-not [{= body} {aget :body}] (functions clang))))))
 
 (defmethod function-body-p ((clang clang) stmt)
   (find-if [{= stmt} {aget :body}] (functions clang)))
