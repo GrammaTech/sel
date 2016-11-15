@@ -62,4 +62,5 @@ techniques."
              (:file "json-fodder-database" :depends-on ("fodder-database"))
              (:file "lexicase")
              (:file "mongo-fodder-database" :depends-on ("fodder-database"))
-             (:file "pliny-fodder-database" :depends-on ("fodder-database"))))))
+             (:file "pliny-fodder-database" :depends-on ("fodder-database"))
+             (:file "test-suite")))))

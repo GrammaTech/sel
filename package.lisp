@@ -369,4 +369,8 @@
    :with-temp-build-dir
    :make-build-dir
    :full-path
-   :*build-dir*))
+   :*build-dir*
+   :test-suite
+   :test-cases
+   :run-test
+   :case-fitness))
