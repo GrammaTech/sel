@@ -373,4 +373,15 @@
    :test-suite
    :test-cases
    :run-test
-   :case-fitness))
+   :case-fitness
+   :instrumentation-exprs
+   :synthesize-condition
+   :build
+   :build-failed
+   :add-condition
+   :tighten-condition
+   :loosen-condition
+   :valid-targets
+   :if-to-while
+   :if-to-while-tighten-condition
+   :insert-else-if))
