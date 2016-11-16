@@ -590,36 +590,34 @@ Default selection function for `tournament'."
                                     ,max-time))))
                       `(not ,running))
                  :do (restart-case
-                         (,(if collect-mutation-stats 'handler-bind 'progn)
-                           ,@(when collect-mutation-stats
-                               `(((mutate
-                                   (lambda (err)
-                                     (when (and (op err) (obj err))
-                                       (push (list (op err) :error)
-                                             (gethash
-                                              (mutation-key (obj err) (op err))
-                                              *mutation-stats*))))))))
+                         (handler-bind
+                             ((mutate
+                               (lambda (err)
+                                 (when (and ,collect-mutation-stats
+                                            (op err) (obj err))
+                                   (push (list (op err) :error)
+                                         (gethash
+                                          (mutation-key (obj err) (op err))
+                                          *mutation-stats*))))))
                            (multiple-value-bind (,variant mutation-info)
                                (funcall ,step)
-                             ,@(unless collect-mutation-stats
-                                 `((declare (ignorable mutation-info))))
-                             ,@(when every-pre-fn
-                                 `((funcall ,every-pre-fn ,variant)))
+                             (when ,every-pre-fn
+                               (funcall ,every-pre-fn ,variant))
                              (evaluate ,f ,variant)
-                             ,@(when collect-mutation-stats
-                                 `((funcall #'analyze-mutation
-                                            ,variant mutation-info ,f)))
-                             ,@(when every-post-fn
-                                 `((funcall ,every-post-fn ,variant)))
+                             (when ,collect-mutation-stats
+                               (funcall #'analyze-mutation
+                                        ,variant mutation-info ,f))
+                             (when ,every-post-fn
+                               (funcall ,every-post-fn ,variant))
                              (incf ,fitness-counter)
-                             ,@(when (and pd pd-fn)
-                                 `((when (zerop (mod ,fitness-counter ,pd))
-                                     (funcall ,pd-fn))))
+                             (when (and ,pd ,pd-fn
+                                        (zerop (mod ,fitness-counter ,pd)))
+                               (funcall ,pd-fn))
                              (assert (fitness ,variant) (,variant)
                                      "Variant with no fitness")
-                             ,@(if filter
-                                   `((when (funcall ,filter ,variant) ,@body))
-                                   body)
+                             (if ,filter
+                                 (when (funcall ,filter ,variant) ,@body)
+                                 ,@body)
                              (when (and *target-fitness-p*
                                         (funcall *target-fitness-p* ,variant))
                                (setq ,running nil)
