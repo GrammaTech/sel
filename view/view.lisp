@@ -217,14 +217,14 @@ For example a description of the evolution target.")
                " uniq: " uniq)))
    :filler #\Space :left +b-v+ :right +b-v+))
 
-(defun genome-data-print (max med min)
+(defun genome-data-print (min med max)
   (label-line-print
    :balance 0
    :colors (list +color-PIN+
                  +color-GRA+ +color-RST+
                  +color-GRA+ +color-RST+
                  +color-GRA+ +color-RST+)
-   :values (list "  length" " min: " max " med: " med " max: " min)
+   :values (list "  length" " min: " min " med: " med " max: " max)
    :filler #\Space :left +b-v+ :right +b-v+))
 
 (defun mutation-stats-print (stats)
