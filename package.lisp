@@ -178,6 +178,7 @@
    :*asm-linker*
    :*asm-mutation-types*
    ;; clang / clang-w-fodder global variables
+   :searchable
    :fodder-database
    :in-memory-database
    :json-database
