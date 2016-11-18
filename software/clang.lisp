@@ -524,9 +524,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
                                    (cons :fields *clang-json-required-fields*)
                                    (cons :aux *clang-json-required-aux*)
                                    clang-mutate-args))
-                        (dummy-asts ()
-                          :report "Return dummy ASTs"
-                          '(((:counter . 0) (:ast-class "Failure"))))))
+                        (nullify-asts ()
+                          :report "Nullify the clang software object."
+                          nil)))
           ;; NOTE: Relies on the invariant that the ASTs returned by
           ;; clang-mutate are in sorted order.
           (mapc (lambda (var) (nconcf (gethash var decls nil) (list ast)))
