@@ -288,6 +288,7 @@
    :add-include
    :add-type
    :add-macro
+   :nullify-asts
    :ignore-failed-mutation
    :try-another-mutation
    :fix-compilation
