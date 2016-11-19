@@ -1,55 +1,19 @@
 ;;; Concrete implementation of the database interface
-;;; for an external JSON fodder database.
+;;; for an external JSON fodder database parsed and stored
+;;; entirely within the current LISP image
 (in-package :software-evolution)
 
-(defclass json-database (fodder-database)
-  ;; The current implementation of the database
-  ;; has redundant data, trading space for query time.
-  ;; It is assumed that all JSON databases will be fairly small;
-  ;; otherwise, Mongo should be utilized.
-
-  ;; TODO: We could potentially support all query types in a smaller
-  ;; memory footprint by stable sorting the ast-database-list first by
-  ;; full-stmt and then by AST class.  We could keep an index where the full
-  ;; statements end.  Additionally, we could keep indexes where each AST
-  ;; class begins and ends.
+(defclass json-database (in-memory-database)
   ((json-stream
     :initarg :json-stream :accessor json-stream
     :initform (error "JSON-STREAM field is required for DATABASE.")
-    :documentation "Stream of incoming JSON.")
-   (ast-database-ht
-    :initarg :ast-database-ht
-    :accessor ast-database-ht
-    :initform (make-hash-table :test 'equal)
-    :documentation
-    "The database of source code snippets, grouped by AST class name.")
-   (ast-database-list
-    :initarg :ast-database-list
-    :accessor ast-database-list
-    :initform nil
-    :documentation "The database of source code snippets as a raw list.")
-   (ast-database-full-stmt-list
-    :initarg :ast-database-full-stmt-list
-    :accessor ast-database-full-stmt-list
-    :initform nil
-    :documentation
-    "The database of source code snippets which are full statements.")
-   (type-database-ht
-    :initarg :type-database-ht
-    :accessor type-database-ht
-    :initform (make-hash-table :test 'equal)
-    :documentation
-    "An auxillary database of type snippets, grouped by hash-code")
-   (size :reader size :type integer)))
+    :documentation "Stream of incoming JSON.")))
 
 (defmethod print-object ((db json-database) stream)
   (print-unreadable-object (db stream :type t)
     (when (subtypep (type-of (json-stream db)) 'file-stream)
       (format stream "~a:" (pathname (json-stream db))))
     (prin1 (length (ast-database-list db)) stream)))
-
-(defmethod database-emptyp ((db json-database))
-  (zerop (size db)))
 
 (defmethod initialize-instance :after ((db json-database) &key)
   ;; Initialize (load) a new json database.
@@ -70,8 +34,7 @@
           ;; This entry describes a type, perhaps
           (let ((type-id (aget :hash snippet)))
             (when type-id
-              (setf (gethash type-id (type-database-ht db)) snippet))))))
-  (setf (slot-value db 'size) (length (ast-database-list db))))
+              (setf (gethash type-id (type-database-ht db)) snippet)))))))
 
 (defmethod load-json-with-caching ((db json-database))
   (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
@@ -93,20 +56,3 @@
                               json-stored-db-path)))
         (json:decode-json-from-source (json-stream db)))))
 
-(defmethod find-snippets ((db json-database) &key ast-class full-stmt decls limit)
-  (let ((snippets (->> (cond (ast-class
-                              (gethash ast-class (ast-database-ht db)))
-                             (full-stmt
-                              (ast-database-full-stmt-list db))
-                             (t (ast-database-list db)))
-                       (remove-if (if decls #'null {aget :is-decl})))))
-    (if (and limit (< limit (length snippets)))
-        (let ((start (random (- (length snippets) limit))))
-          (subseq snippets start (+ start limit)))
-        snippets)))
-
-(defmethod find-type ((db json-database) hash)
-  (list (gethash hash (type-database-ht db))))
-
-(defun se-json-identifier-name-to-key (json-identifier)
-  (make-keyword (string-upcase (regex-replace-all "--" json-identifier "-"))))
