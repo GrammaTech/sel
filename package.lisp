@@ -179,12 +179,18 @@
    :*asm-mutation-types*
    ;; clang / clang-w-fodder global variables
    :fodder-database
+   :in-memory-database
    :json-database
    :mongo-database
    :pliny-database
-   :db :host :port
+   :db
+   :host
+   :port
    :database-emptyp
-   :source-collection :cache-collection :middle-host :middle-port
+   :source-collection
+   :cache-collection
+   :middle-host
+   :middle-port
    :find-snippets
    :weighted-pick
    :find-type
