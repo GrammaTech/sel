@@ -1050,7 +1050,9 @@ already in scope, it will keep that name.")
           ;; and interpreted as a block.  Throw an error to clear the genome.
           (when (> (length stdout) *clang-max-json-size*)
             (error (make-condition 'mutate
-                     :text (format nil "clang-mutate output exceeds 100 MB.")
+                     :text (format nil "clang-mutate output exceeds ~a MB."
+                                   (floor (/ *clang-max-json-size*
+                                             1048576)))
                      :obj obj :op op)))
           (values
            (case (car op)
