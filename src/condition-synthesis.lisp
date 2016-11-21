@@ -26,6 +26,24 @@
 *************************************************************************************
 |#
 
+#|
+
+To use condition synthesis, first create an instance of one of the
+synthesis mutations defined below, and choose a target location to
+apply it.
+
+Then call synthesize-condition, passing a software object, the
+mutation, and a test suite. This will run the synthesis algorithm,
+returning a mutated program, or NIL if no condition can be found which
+improves synthesis.
+
+Synthesis uses comparisons between integer (or std::string) variables
+and constants. Other types can be used by providing a comparison
+function and calling instrumentation-exprs to generate extra
+instrumentation.
+
+|#
+
 (in-package :software-evolution)
 
 
