@@ -364,10 +364,10 @@ delayed function on the arguments."
                               #'fitness)
                           *population*)))
        (fitness-data-print
-        (format nil "~f" (extremum fits *fitness-predicate*))
-        (format nil "~f" (median fits))
+        (format nil "~6f" (extremum fits *fitness-predicate*))
+        (format nil "~6f" (median fits))
         (when vectorp
-          (format nil "~f"
+          (format nil "~6f"
                   (->> *population*
                        (mapcar [{coerce _ 'list} #'fitness])
                        (apply #'mapcar [{apply #'min} #'list])
