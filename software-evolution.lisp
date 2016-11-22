@@ -503,15 +503,12 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 (defun elapsed-time () (/ (- (get-internal-real-time) *start-time*)
                           internal-time-units-per-second))
 
-(defmacro incorporate (software &optional
-                                  (population '*population*)
-                                  (max-population-size '*max-population-size*))
+(defun incorporate (software)
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
-  `(progn
-     (push ,software ,population)
-     (loop :while (and ,max-population-size
-                       (> (length ,population) ,max-population-size))
-        :do (evict))))
+  (push software *population*)
+  (loop :while (and *max-population-size*
+                    (> (length *population*) *max-population-size*))
+     :do (evict)))
 
 (defun evict ()
   (let ((loser (tournament :predicate (complement *fitness-predicate*)
@@ -569,140 +566,136 @@ Default selection function for `tournament'."
               (list mutation a a-point crossed b b-point)))))
 
 (defmacro -search (specs step &rest body)
-  "Perform a search loop with early termination."
-  (destructuring-bind (variant f max-evals max-time pd pd-fn
-                               every-pre-fn every-post-fn
-                               time filter running fitness-counter
-                               collect-mutation-stats)
-      specs
-    (let ((main
-           `(progn
-              (unless ,time (setq ,time (get-internal-real-time)))
-              (setq ,running t)
-              (loop :until
-                 ,(if (or max-time max-evals)
-                      `(or (not ,running)
-                           ,@(when max-evals
-                               `((> ,fitness-counter ,max-evals)))
-                           ,@(when max-time
-                               `((> (/ (- (get-internal-real-time) ,time)
+  "Perform a search loop with early termination.
+
+SPECS should be a list of the following elements.
+
+  (VARIANT MUT-INFO) -- Symbols for variant and mut-info resulting from STEP
+  TEST ---------------- Test function used to `evaluate' every VARIANT.
+  MAX-EVALS ----------- Maximum number of evaluations to perform.
+  MAX-TIME ------------ Maximum time to run.
+  PERIOD -------------- Period (in evals) at which to call PERIOD-FN.
+  PERIOD-FN ----------- Function to call every Period evals.
+  EVERY-PRE-FN -------- Function to call before every evaluation.
+  EVERY-POST-FN ------- Function to call after every evaluation.
+  FILTER -------------- Function to filter variants from BODY.
+  MUTATION-STATS ------ Indicates whether to collect mutation stats.
+
+The following global variables are implicitly updated by this function
+and should be dynamically bound to perform multiple different
+simultaneous searches, `*running*', `*start-time*', `*fitness-evals*'.
+The global variable `*target-fitness-p*' implicitly defines a stopping
+criteria for this search."
+  (destructuring-bind (variant mutation-info) (car specs)
+    ;; Outside the returned code let-bind unevaluated elements of SPECS.
+    (with-gensyms ((test test)
+                   (max-evals max-evals)
+                   (max-time max-time)
+                   (period period)
+                   (period-fn period-fn)
+                   (every-pre-fn every-pre-fn)
+                   (every-post-fn every-post-fn)
+                   (filter filter)
+                   (collect-mutation-stats collect-mutation-stats))
+      ;; Inside the returned code let-bind evaluated elements of SPECS.
+      `(let ((,test ,(nth 1 specs))
+             (,max-evals ,(nth 2 specs))
+             (,max-time ,(nth 3 specs))
+             (,period ,(nth 4 specs))
+             (,period-fn ,(nth 5 specs))
+             (,every-pre-fn ,(nth 6 specs))
+             (,every-post-fn ,(nth 7 specs))
+             (,filter ,(nth 8 specs))
+             (,collect-mutation-stats ,(nth 9 specs)))
+         (block search-target-reached
+           (unless *start-time* (setq *start-time* (get-internal-real-time)))
+           (setq *running* t)
+           (loop :until (or (not *running*)
+                            (and ,max-evals
+                                 (> *fitness-evals* ,max-evals))
+                            (and ,max-time
+                                 (> (/ (- (get-internal-real-time) *start-time*)
                                        internal-time-units-per-second)
-                                    ,max-time))))
-                      `(not ,running))
-                 :do (restart-case
-                         (handler-bind
-                             ((mutate
-                               (lambda (err)
-                                 (when (and ,collect-mutation-stats
-                                            (op err) (obj err))
-                                   (push (list (op err) :error)
-                                         (gethash
-                                          (mutation-key (obj err) (op err))
-                                          *mutation-stats*))))))
-                           (multiple-value-bind (,variant mutation-info)
-                               (funcall ,step)
-                             (when ,every-pre-fn
-                               (funcall ,every-pre-fn ,variant))
-                             (evaluate ,f ,variant)
-                             (when ,collect-mutation-stats
-                               (funcall #'analyze-mutation
-                                        ,variant mutation-info ,f))
-                             (when ,every-post-fn
-                               (funcall ,every-post-fn ,variant))
-                             (incf ,fitness-counter)
-                             (when (and ,pd ,pd-fn
-                                        (zerop (mod ,fitness-counter ,pd)))
-                               (funcall ,pd-fn))
-                             (assert (fitness ,variant) (,variant)
-                                     "Variant with no fitness")
-                             (if ,filter
-                                 (when (funcall ,filter ,variant) ,@body)
-                                 ,@body)
-                             (when (and *target-fitness-p*
-                                        (funcall *target-fitness-p* ,variant))
-                               (setq ,running nil)
-                               (return-from target-reached ,variant))))
-                       (ignore-failed-mutation ()
-                         :report
-                         "Ignore failed mutation and continue evolution")))
-              (setq ,running nil))))
-      (setf main `(block target-reached ,main))
-      main)))
+                                    ,max-time))) :do
+              (restart-case
+                  (handler-bind
+                      ((mutate
+                        (lambda (err)
+                          (when (and ,collect-mutation-stats (op err) (obj err))
+                            (push (list (op err) :error)
+                                  (gethash (mutation-key (obj err) (op err))
+                                           *mutation-stats*))))))
+                    (multiple-value-bind (,variant ,mutation-info)
+                        (funcall ,step)
+                      (when ,every-pre-fn
+                        (funcall ,every-pre-fn ,variant))
+                      (evaluate ,test ,variant)
+                      (when ,collect-mutation-stats
+                        (analyze-mutation ,variant ,mutation-info ,test))
+                      (when ,every-post-fn
+                        (funcall ,every-post-fn ,variant))
+                      (incf *fitness-evals*)
+                      (when (and ,period ,period-fn
+                                 (zerop (mod *fitness-evals* ,period)))
+                        (funcall ,period-fn))
+                      (assert (fitness ,variant) (,variant)
+                              "Variant with no fitness")
+                      (when (or (not ,filter) (funcall ,filter ,variant))
+                        ,@body)
+                      (when (and *target-fitness-p*
+                                 (funcall *target-fitness-p* ,variant))
+                        (return-from search-target-reached ,variant))))
+                (ignore-failed-mutation ()
+                  :report
+                  "Ignore failed mutation and continue evolution"))))
+         (setq *running* nil)))))
 
 (defmacro mcmc (original test
-                &key accept-fn max-evals max-time period period-fn
-                  every-pre-fn every-post-fn
-                  (time '*start-time*)
-                  filter
-                  (running '*running*)
-                  (fitness-evals '*fitness-evals*)
-                  mutation-stats)
-  "MCMC search from ORIGINAL until an optional stopping criterion is met.
+                &key
+                  accept-fn max-evals max-time period period-fn
+                  every-pre-fn every-post-fn filter mutation-stats)
+  "MCMC search from ORIGINAL using `mcmc-step' and TEST.
+If keyword argument ACCEPT-FN is given it is used to determine when a
+newly found candidate replaces the current candidate.  If ACCEPT-FN is
+not supplied MCMC defaults to using Metropolis Hastings.
 
-Use `*target-fitness-p*' to set a target fitness.
-
-Keyword arguments are as follows.
-  ACCEPT-FN ------- function of current and new fitness, returns acceptance
-  MAX-EVALS ------- stop after this many fitness evaluations
-  MAX-TIME -------- stop after this many seconds
-  PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
-  PERIOD-FN ------- function to run every PERIOD fitness evaluations
-  EVERY-PRE-FN ---- function to run before every fitness evaluation
-  EVERY-POST-FN --- function to run after every fitness evaluation
-  MUTATION-STATS -- set to non-nil to collect mutation statistics"
+Other keyword arguments are used as defined in the `-search' function."
   (let* ((curr (gensym))
          (body
           `(let ((,curr ,original))
-             (-search (new ,test ,max-evals ,max-time ,period ,period-fn
-                           ,every-pre-fn ,every-post-fn ,time ,filter
-                           ,running ,fitness-evals ,mutation-stats)
+             (-search ((new mut-info)
+                       ,test ,max-evals ,max-time ,period ,period-fn
+                       ,every-pre-fn ,every-post-fn ,filter ,mutation-stats)
                       (mcmc-step ,curr)
                       (when (funcall accept-fn (fitness ,curr) (fitness new))
                         (setf ,curr new))))))
     (if accept-fn
         body
         `(let ((accept-fn
-                (lambda (curr new) ;; default to Metropolis Hastings
+                (lambda (curr new) ;; Default to Metropolis Hastings.
                   (or (funcall *fitness-predicate* new curr)
-                      (< (random 1.0) ;; assumes numeric fitness
+                      (< (random 1.0) ;; Assume a numeric fitness.
                          (if (> new curr) (/ curr new) (/ new curr)))))))
            ,body))))
 
 (defmacro evolve (test
-                  &key max-evals max-time period period-fn
-                    every-pre-fn every-post-fn
-                    filter
-                    (population '*population*)
-                    (max-population-size '*max-population-size*)
-                    (time '*start-time*)
-                    (running '*running*)
-                    (fitness-evals '*fitness-evals*)
-                    mutation-stats)
-  "Evolves `*population*' until an optional stopping criterion is met.
-
-Use `*target-fitness-p*' to set a target fitness.
-
-Keyword arguments are as follows.
-  MAX-EVALS ------- stop after this many fitness evaluations
-  MAX-TIME -------- stop after this many seconds
-  PERIOD ---------- interval of fitness evaluations to run PERIOD-FN
-  PERIOD-FN ------- function to run every PERIOD fitness evaluations
-  EVERY-PRE-FN ---- function to run before every fitness evaluation
-  EVERY-POST-FN --- function to run after every fitness evaluation
-  FILTER ---------- only include individual for which FILTER returns true
-  MUTATION-STATS -- set to non-nil to collect mutation statistics"
-  `(-search (new ,test ,max-evals ,max-time ,period ,period-fn
-                 ,every-pre-fn ,every-post-fn
-                 ,time ,filter ,running ,fitness-evals ,mutation-stats)
+                  &key
+                    max-evals max-time period period-fn
+                    every-pre-fn every-post-fn filter mutation-stats)
+  "Evolves `*population*' using `new-individual' and TEST.
+Keyword arguments are used as defined in the `-search' function."
+  `(-search ((new mut-info)
+             ,test ,max-evals ,max-time ,period ,period-fn
+             ,every-pre-fn ,every-post-fn ,filter ,mutation-stats)
             #'new-individual
-            (incorporate new ,population ,max-population-size)))
+            (incorporate new)))
 
 (defun generational-evolve
     (reproduce evaluate select
      &key
        every-pre-fn every-post-fn mutation-stats test period period-fn
        max-generations max-evals max-time filter)
-  "Evolves `*population*' until an optional stopping criterion is met.
+  "Evolves `*population*' using REPRODUCE EVALUATE and SELECT.
 
 Required arguments are as follows:
   REPRODUCE -------- create new individuals from the current population
@@ -721,47 +714,36 @@ Keyword arguments are as follows:
   FILTER ----------- remove individuals for which FILTER returns false"
 
   (setq *running* t)
+  (setq *generations* 0)
   (setq *start-time* (get-internal-real-time))
   (flet
-      ((check-max (current max) (or (not max)
-                                    (not current)
-                                    (< current max))))
+      ((check-max (current max)
+         (or (not max) (not current) (< current max))))
     (prog1
-        (loop
-         :while (and *running*
-                     (check-max *generations* max-generations)
-                     (check-max *fitness-evals* max-evals)
-                     (check-max (elapsed-time) max-time))
-         :do
-         (setf *generations* (+ 1 (or *generations* 0)))
-         (multiple-value-bind (children mutation-info)
-             (funcall reproduce *population*)
-
-           (if every-pre-fn (mapc every-pre-fn children))
-
-           (funcall evaluate children)
-
-           (if every-post-fn (mapc {funcall every-post-fn} children))
-
-           (if filter (setq children (delete-if-not filter children)))
-           (setq *population* (append children *population*))
-
-           (if mutation-stats
-               (mapcar (lambda (c info) (analyze-mutation c info test))
-                       children mutation-info))
-
-           (loop :for child :in children
-              :when (funcall *target-fitness-p* child)
-              :do
-              (setf *running* nil)
-              (return-from generational-evolve child)))
-
-         (setq *population*
-               (funcall select *population* *max-population-size*))
-         (assert (<= (length *population*) *max-population-size*))
-
-         (if (and period period-fn (zerop (mod *generations* period)))
-             (funcall period-fn)))
+        (loop :while (and *running*
+                          (check-max *generations* max-generations)
+                          (check-max *fitness-evals* max-evals)
+                          (check-max (elapsed-time) max-time)) :do
+           (incf *generations*)
+           (multiple-value-bind (children mutation-info)
+               (funcall reproduce *population*)
+             (if every-pre-fn (mapc every-pre-fn children))
+             (funcall evaluate children)
+             (if every-post-fn (mapc {funcall every-post-fn} children))
+             (if filter (setq children (delete-if-not filter children)))
+             (setq *population* (append children *population*))
+             (if mutation-stats
+                 (mapcar (lambda (c info) (analyze-mutation c info test))
+                         children mutation-info))
+             (loop :for child :in children
+                :when (funcall *target-fitness-p* child) :do
+                (setf *running* nil)
+                (return-from generational-evolve child)))
+           (setq *population*
+                 (funcall select *population* *max-population-size*))
+           (assert (<= (length *population*) *max-population-size*))
+           (if (and period period-fn (zerop (mod *generations* period)))
+               (funcall period-fn)))
       (setq *running* nil))))
 
 (defun simple-reproduce (population)
