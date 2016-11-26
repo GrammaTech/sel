@@ -55,3 +55,6 @@
               (cl-store:store (json:decode-json-from-source (json-stream db))
                               json-stored-db-path)))
         (json:decode-json-from-source (json-stream db)))))
+
+(defun se-json-identifier-name-to-key (json-identifier)
+  (make-keyword (string-upcase (regex-replace-all "--" json-identifier "-"))))

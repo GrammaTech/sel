@@ -57,6 +57,3 @@
 
 (defmethod find-type ((db in-memory-database) hash)
   (list (gethash hash (type-database-ht db))))
-
-(defun se-json-identifier-name-to-key (json-identifier)
-  (make-keyword (string-upcase (regex-replace-all "--" json-identifier "-"))))
