@@ -330,6 +330,16 @@
   (:teardown
     (setf *hello-world* nil)))
 
+(defixture empty-function-body-crossover-bug-clang
+  (:setup
+    (setf *soft*
+      (from-file (make-instance 'clang :compiler "clang-3.7"
+                                       :flags '("-g -m32 -O0"))
+                 (clang-crossover-dir
+                   "empty-function-body-crossover-bug.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
     (setf *intraprocedural-2pt-crossover-bug-obj*
@@ -839,6 +849,12 @@
   (with-fixture hello-world-clang
     (let* ((variant (crossover (copy *hello-world*) (copy *hello-world*))))
       (is (string/= (genome variant)
+                    "")))))
+
+(deftest empty-function-body-crossover-does-not-crash ()
+  (with-fixture empty-function-body-crossover-bug-clang
+    (let ((crossed (crossover *soft* *soft*)))
+      (is (string/= (genome crossed)
                     "")))))
 
 (deftest intraprocedural-2pt-crossover-does-not-crash ()

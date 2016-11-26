@@ -2130,9 +2130,9 @@ depth)."))
 The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
 full statements, and the end point of STMT2 in the source is greater than or
 equal to the end point of STMT1."
-  (let ((stmt1 (enclosing-full-stmt-or-block clang start))
-        (stmt2 (enclosing-full-stmt-or-block clang end)))
-    (when (and stmt1 stmt2)
+  (when (and start end)
+    (let ((stmt1 (enclosing-full-stmt-or-block clang start))
+          (stmt2 (enclosing-full-stmt-or-block clang end)))
       (cond ((or (ancestor-of clang stmt1 stmt2)
                  (ancestor-of clang stmt2 stmt1))
              (values stmt1 stmt2))
@@ -2142,14 +2142,10 @@ equal to the end point of STMT1."
              (values stmt1 stmt2))))))
 
 (defmethod random-point-in-function ((clang clang) proto)
-  ;; TODO: In some cases this is returning points 1 past the end of
-  ;;       the object's AST vector.  Specifically, this occurs for
-  ;;       software objects which consist of just an empty main.
-  (let* ((first (1+ (first (aget :stmt-range proto))))
-         (last  (if (< (second (aget :stmt-range proto)) first)
-                    first
-                    (second (aget :stmt-range proto)))))
-    (+ first (random (1+ (- last first))))))
+  (let ((first (first (aget :stmt-range proto)))
+        (last  (second (aget :stmt-range proto))))
+    (if (equal first last) nil
+        (+ (1+ first) (random (- last first))))))
 
 (defmethod select-intraprocedural-pair ((clang clang))
   ;; Select a statement uniformly first, then another statement from the
@@ -2189,7 +2185,7 @@ equal to the end point of STMT1."
               (values crossed a-point b-point)
               (values crossed nil nil)))
         ;; Could not find crossover point
-        (values a nil nil))))
+        (values (copy a) nil nil))))
 
 (defgeneric function-containing-ast (object ast)
   (:documentation "Return the ast for the function containing AST in OBJECT."))
