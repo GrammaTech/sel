@@ -195,11 +195,12 @@
                      (:*weights  . ,(features-to-weights features)))
                    limit)))
 
-(defmethod sorted-snippets ((obj pliny-database) predicate
-                            &key target key ast-class limit-considered
+(defmethod sorted-snippets ((obj pliny-database) target
+                            &key predicate metric
+                              key ast-class limit-considered
                               (limit (- (expt 2 32) 1))
                               (filter #'null))
-  (declare (ignorable predicate key limit-considered))
+  (declare (ignorable predicate metric key limit-considered))
   (labels ((add-target-feature ()
              (if (every 'integerp target)
                  `((:binary--contents . ,(format nil "~{~2,'0x~^ ~}" target)))
