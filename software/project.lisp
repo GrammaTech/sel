@@ -190,6 +190,36 @@ copy of the original current file.
        stdout
        (mapcar [#'full-path #'first] (evolve-files obj))))))
 
+(defmethod instrument ((project project) &rest args)
+  "Instrument a project. Arguments are passed through to instrument on
+the underlying software objects."
+
+  (let* ((files (if (current-file project)
+                    (list (current-file project))
+                    (mapcar #'cdr (evolve-files project))))
+         (entry-obj (find-if (lambda (f)
+                               (find-if [{string= "main"} {aget :name}]
+                                        (functions f)))
+                             (mapcar #'cdr (all-files project))))
+         (functions (plist-get :functions args))
+         (other-args (plist-drop :functions args)))
+    (loop
+       for f in files
+       for i upfrom 0
+       do (apply #'instrument f
+                 ;; To avoid inserting setup code into main() multiple
+                 ;; times, use temporary copies of the object which
+                 ;; are then discarded.
+                 :entry-obj (if (= i 0) entry-obj (copy entry-obj))
+                 ;; Print file index at each AST
+                 :functions (cons (lambda (ast)
+                                    (declare (ignorable ast))
+                                    (list (format nil "(:F . ~a)" i)))
+                                  functions)
+                 ;; Pass through other args
+                 other-args)))
+  project)
+
 ;;; Build directory handling.
 
 ;;; Each project needs a build directory which contains copies of the

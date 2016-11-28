@@ -79,6 +79,7 @@
    :aget
    :alist
    :alist-merge
+   :alist-filter
    :getter
    :transpose
    :interleave

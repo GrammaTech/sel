@@ -661,6 +661,10 @@ is replaced with replacement."
                        (setf ,access-form (acons ,item ,store ,access-form)))))
               `(aget ,item ,access-form :test ,test)))))
 
+(defun alist-filter (keep-keys alist)
+  "Remove all keys from ALIST except those in KEEP-KEYS."
+  (remove-if-not [{member _ keep-keys} #'car] alist))
+
 (defun getter (key)
   "Return a function which gets KEY from an association list."
   (lambda (it) (aget key it)))

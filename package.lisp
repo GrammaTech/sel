@@ -391,4 +391,8 @@
    :valid-targets
    :if-to-while
    :if-to-while-tighten-condition
-   :insert-else-if))
+   :insert-else-if
+   :stmts-in-file
+   :error-funcs
+   :rinard
+   :collect-fault-loc-traces))
