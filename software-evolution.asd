@@ -65,4 +65,5 @@ techniques."
              (:file "mongo-fodder-database" :depends-on ("fodder-database"))
              (:file "pliny-fodder-database" :depends-on ("fodder-database"))
              (:file "test-suite")
-             (:file "condition-synthesis")))))
+             (:file "condition-synthesis")
+             (:file "fault-loc")))))
