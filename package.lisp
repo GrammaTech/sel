@@ -200,6 +200,7 @@
    :*crossover-function-probability*
    :*clang-mutation-types*
    :*clang-w-fodder-mutation-types*
+   :*clang-w-fodder-new-mutation-types*
    :*free-var-decay-rate*
    :*matching-free-var-retains-name-bias*
    :*matching-free-function-retains-name-bias*

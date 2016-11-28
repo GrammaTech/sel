@@ -43,7 +43,8 @@ With keyword argument :decl select a declaration."))
   '(replace-fodder-same
     replace-fodder-full
     insert-fodder
-    insert-fodder-full)
+    insert-fodder-full
+    insert-fodder-decl)
   "Fodder mutation types.")
 
 (defvar *clang-w-fodder-mutation-types*
