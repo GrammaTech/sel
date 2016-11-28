@@ -58,7 +58,10 @@ Keyword arguments are as follows:
                              (can-be-made-full-p obj ast)))
                   (return-void (aget :void-ret function))
                   (skip (or (aget :in-macro-expansion ast)
-                            (string= "NullStmt" (aget :ast-class ast)))))
+                            (string= "NullStmt" (aget :ast-class ast))
+                            (when trace-file  ;might be null, short circuit and don't filter if so
+                                 (search (file-open-str log-var trace-file) (aget :src-text ast))))))
+
              ;; Insertions in bottom-up order
              (append
               ;; Function exit instrumentation
@@ -157,6 +160,9 @@ Keyword arguments are as follows:
       (clang-format entry-obj))
     obj))
 
+(defun file-open-str (log-variable filename)
+  (format nil "~a = fopen(~s, \"a\");~%" log-variable (namestring filename)))
+
 (defgeneric var-instrument (software label key ast &key print-strings)
   (:documentation
    "Return a format string and variable list for variable instrumentation.
@@ -249,8 +255,7 @@ fputs(\"))\\n\", ~a);"
 
 (defmethod log-to-filename ((obj clang) entry-obj log-variable filename)
   (setf entry-obj
-        (insert-at-entry entry-obj (format nil "~a = fopen(~s, \"a\");~%"
-                                           log-variable (namestring filename))))
+        (insert-at-entry entry-obj (file-open-str log-variable filename)))
   (setf (genome obj)
         (concatenate 'string
                      (format nil "#include <stdio.h>~%FILE *~a;~%" log-variable)
