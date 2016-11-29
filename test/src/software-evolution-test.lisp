@@ -340,6 +340,16 @@
   (:teardown
     (setf *soft* nil)))
 
+(defixture select-intraprocedural-pair-non-null-clang
+  (:setup
+    (setf *soft*
+      (from-file (make-instance 'clang :compiler "clang-3.7"
+                                       :flags '("-g -m32 -O0"))
+                 (clang-crossover-dir
+                   "select-intraprocedural-pair-non-null.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
     (setf *intraprocedural-2pt-crossover-bug-obj*
@@ -856,6 +866,14 @@
     (let ((crossed (crossover *soft* *soft*)))
       (is (string/= (genome crossed)
                     "")))))
+
+(deftest select-intraprocedural-pair-does-not-return-null ()
+  (with-fixture select-intraprocedural-pair-non-null-clang
+    (loop :for i :from 0 :to 100
+          :do (multiple-value-bind (stmt1 stmt2)
+                  (select-intraprocedural-pair *soft*)
+                (is (not (null stmt1)))
+                (is (not (null stmt2)))))))
 
 (deftest intraprocedural-2pt-crossover-does-not-crash ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang

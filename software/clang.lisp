@@ -2147,7 +2147,7 @@ equal to the end point of STMT1."))
 (defgeneric random-point-in-function (software prototype)
   (:documentation
    "Return the index of a random point in PROTOTYPE in SOFTWARE.
-If PROTOTYPE is empty in SOFTWARE return nil."))
+If PROTOTYPE has an empty function body in SOFTWARE return nil."))
 
 (defmethod random-point-in-function ((clang clang) proto)
   (let ((first (first (aget :stmt-range proto)))
@@ -2157,17 +2157,19 @@ If PROTOTYPE is empty in SOFTWARE return nil."))
 
 (defgeneric select-intraprocedural-pair (software)
   (:documentation
-   "Select a function randomly, then select two points in the function.
-If an empty function is selected it is possible that the returned
-points will be nil."))
+   "Randomly select an AST within a function body and then select
+another point within the same function.  If there are no ASTs
+within a function body, return null."))
 
 (defmethod select-intraprocedural-pair ((clang clang))
-  ;; NOTE: By selecting a function first we're currently biased
-  ;;       towards smaller functions.
-  (let ((proto (random-elt (functions clang))))
-    (values (random-point-in-function clang proto)
-            (random-point-in-function clang proto)
-            proto)))
+  (when-let (stmt1 (&>> (remove-if {function-body-p clang} (stmt-asts clang)
+                                   :key {aget :counter})
+                        (random-elt)
+                        (aget :counter)))
+    (values stmt1
+            (random-point-in-function
+             clang
+             (function-containing-ast clang stmt1)))))
 
 (defmethod select-crossover-points ((a clang) (b clang))
   (multiple-value-bind (a-stmt1 a-stmt2)
