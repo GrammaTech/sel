@@ -2125,11 +2125,14 @@ depth)."))
           (aget :text func)
           (get-ast-text clang (aget :body func))))
 
-(defmethod adjust-stmt-range ((clang clang) start end)
-  "Adjust START and END so that they represent a valid range for set-range.
+(defgeneric adjust-stmt-range (software start end)
+  (:documentation
+   "Adjust START and END so that they represent a valid range for set-range.
 The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
 full statements, and the end point of STMT2 in the source is greater than or
-equal to the end point of STMT1."
+equal to the end point of STMT1."))
+
+(defmethod adjust-stmt-range ((clang clang) start end)
   (when (and start end)
     (let ((stmt1 (enclosing-full-stmt-or-block clang start))
           (stmt2 (enclosing-full-stmt-or-block clang end)))
@@ -2141,16 +2144,26 @@ equal to the end point of STMT1."
             (t
              (values stmt1 stmt2))))))
 
+(defgeneric random-point-in-function (software prototype)
+  (:documentation
+   "Return the index of a random point in PROTOTYPE in SOFTWARE.
+If PROTOTYPE is empty in SOFTWARE return nil."))
+
 (defmethod random-point-in-function ((clang clang) proto)
   (let ((first (first (aget :stmt-range proto)))
         (last  (second (aget :stmt-range proto))))
     (if (equal first last) nil
         (+ (1+ first) (random (- last first))))))
 
+(defgeneric select-intraprocedural-pair (software)
+  (:documentation
+   "Select a function randomly, then select two points in the function.
+If an empty function is selected it is possible that the returned
+points will be nil."))
+
 (defmethod select-intraprocedural-pair ((clang clang))
-  ;; Select a statement uniformly first, then another statement from the
-  ;; same function. Selecting the function first would bias crossover
-  ;; towards ASTs in smaller functions.
+  ;; NOTE: By selecting a function first we're currently biased
+  ;;       towards smaller functions.
   (let ((proto (random-elt (functions clang))))
     (values (random-point-in-function clang proto)
             (random-point-in-function clang proto)

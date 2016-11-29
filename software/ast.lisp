@@ -100,7 +100,8 @@
     (values new (list a-point b-point))))
 
 (defgeneric select-crossover-points (a b)
-  (:documentation "Select suitable crossover points in A and B."))
+  (:documentation "Select suitable crossover points in A and B.
+If no suitable points are found the returned points may be nil."))
 
 (defmethod (setf genome-string) (text (obj ast))
   (setf (genome obj) text))
