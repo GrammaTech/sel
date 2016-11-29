@@ -608,6 +608,13 @@ processing.
 Currently the only such transformation is to split variable
 declarations onto multiple lines to ease subsequent decl mutations."))
 
+(defun balanced-parens-or-curlies (pos)
+  (let ((parens (balanced-parens pos))
+        (curlies (balanced-curlies pos)))
+    (when parens
+      parens
+      curlies)))
+
 (defun balanced-parens (pos &aux (deep 0))
   (iter (while (< pos (length ppcre::*string*)))
         (as char = (aref ppcre::*string* pos))
@@ -621,6 +628,21 @@ declarations onto multiple lines to ease subsequent decl mutations."))
            (return-from balanced-parens pos)))
         (incf pos))
   (if (zerop deep) pos nil))
+
+(defun balanced-curlies (pos &aux (deep 0))
+  (iter (while (< pos (length ppcre::*string*)))
+        (as char = (aref ppcre::*string* pos))
+        (case char
+          (#\{ (incf deep))
+          (#\} (when (zerop deep) (return-from balanced-curlies nil))
+               (decf deep))
+          (#\,
+           (when (zerop deep) (return-from balanced-curlies pos)))
+          (#\;
+           (return-from balanced-curlies pos)))
+        (incf pos))
+  (if (zerop deep) pos nil))
+
 
 (defun split-balanced-parens (string &aux (start 0) (str-len (length string)))
   (->> (iter (for (values match-start match-end match-begs match-ends)
@@ -664,14 +686,14 @@ declarations onto multiple lines to ease subsequent decl mutations."))
                (:register               ; Optional initialization.
                 (:sequence #\=
                            (:greedy-repetition 0 nil :whitespace-char-class)
-                           (:filter balanced-parens))))
+                           (:filter balanced-parens-or-curlies))))
               #\, (:greedy-repetition 1 nil (:inverted-char-class #\;))
               (:greedy-repetition       ; Subsequent variables.
                0 1
                (:register
                 (:sequence #\=          ; Optional initialization.
                            (:greedy-repetition 0 nil :whitespace-char-class)
-                           (:filter balanced-parens))))))
+                           (:filter balanced-parens-or-curlies))))))
             #\; (:greedy-repetition 0 nil :whitespace-char-class) #\newline))))
     (iter (for (values match-start match-end match-type match-vars)
                = (scan regex string :start index))
