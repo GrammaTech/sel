@@ -66,4 +66,5 @@ techniques."
              (:file "pliny-fodder-database" :depends-on ("fodder-database"))
              (:file "test-suite")
              (:file "condition-synthesis")
-             (:file "fault-loc")))))
+             (:file "fault-loc")
+             (:file "generate-helpers")))))

@@ -1654,6 +1654,50 @@ VARIABLE-NAME should be declared in AST."))
                             (aget :types declaration-ast))))
         (warn "Can't find declaration of ~a in ~a." variable-name obj))))
 
+(defgeneric find-decl-in-block (software name block)
+  (:documentation "Find the declaration for variable NAME within BLOCK."))
+(defmethod find-decl-in-block ((software clang) name block)
+  (find-if (lambda (child-ast)
+             (and (eq (aget :parent-counter child-ast) block)
+                  (find name (assoc :declares child-ast)
+                        :test #'equal)))
+           (asts software)))
+
+(defgeneric decl-of-var (software point var)
+  (:documentation
+   "Find the declaration for VAR which is in scope at POINT.
+VAR should be a free variable description (a list of name and
+depth)."))
+
+(defmethod decl-of-var ((software clang) point var)
+  (let ((name (peel-bananas (first var)))
+        (depth (second var))
+        (parent-counter (enclosing-block software point)))
+    ;; Go up to the right scope
+    (dotimes (i depth)
+      (setf parent-counter (enclosing-block software parent-counter)))
+    (if (eq parent-counter 0)
+        ;; Ran out of parent blocks -- try function arguments and
+        ;; global variables
+        (or (find-decl-in-block software name
+                                (aget :counter
+                                      (function-containing-ast software point)))
+            (find-decl-in-block software name 0))
+        (find-decl-in-block software name parent-counter))))
+
+(defgeneric type-of-scoped-var (software point var)
+  (:documentation
+   "Return the type of VAR which is in scope at POINT."))
+
+;; TODO: this should probably be merged with type-of-var.
+(defmethod type-of-scoped-var ((software clang) point var)
+  (when-let ((decl (decl-of-var software point var))
+             (name (peel-bananas (first var))))
+    (find-type software
+               (nth (position-if {string= name}
+                                 (aget :declares decl))
+                    (aget :types decl)))))
+
 
 ;;; Crossover functions
 (defmethod prepare-sequence-snippet ((clang clang) end depth full-seq

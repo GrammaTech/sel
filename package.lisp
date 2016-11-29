@@ -395,4 +395,6 @@
    :stmts-in-file
    :error-funcs
    :rinard
-   :collect-fault-loc-traces))
+   :collect-fault-loc-traces
+   :generate-helpers
+   :type-of-scoped-var))
