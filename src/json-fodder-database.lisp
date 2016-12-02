@@ -17,7 +17,7 @@
 
 (defmethod initialize-instance :after ((db json-database) &key)
   ;; Initialize (load) a new json database.
-  (dolist (snippet (shuffle (load-json-with-caching db)))
+  (dolist (snippet (load-json-with-caching db))
     (let ((ast-class (aget :ast-class snippet)))
       (if ast-class
           ;; This entry describes a code snippet
@@ -55,4 +55,3 @@
               (cl-store:store (json:decode-json-from-source (json-stream db))
                               json-stored-db-path)))
         (json:decode-json-from-source (json-stream db)))))
-
