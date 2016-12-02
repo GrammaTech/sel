@@ -73,6 +73,8 @@
    :un-cumulative-distribution
    :random-pick
    :random-subseq
+   :random-sample-with-replacement
+   :random-sample-without-replacement
    :apply-replacements
    :peel-bananas
    :replace-all
