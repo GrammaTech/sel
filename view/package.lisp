@@ -28,8 +28,53 @@
            :*view-max-mutations*
            :*view-max-note-lines*
            :*view-max-best-lines*
+           :*view-functions*
+           ;; Colors.
+           :+set-G1+
+           :+reset-G1+
+           :+b-start+
+           :+b-stop+
+           :+b-h+
+           :+b-v+
+           :+b-lt+
+           :+b-rt+
+           :+b-lb+
+           :+b-rb+
+           :+b-x+
+           :+b-vr+
+           :+b-vl+
+           :+b-ht+
+           :+b-hb+
+           :+term-home+
+           :+term-clear+
+           :+ceol+
+           :+cursor-hide+
+           :+cursor-show+
+           :+color-BLK+
+           :+color-RED+
+           :+color-GRN+
+           :+color-BRN+
+           :+color-BLU+
+           :+color-MGN+
+           :+color-CYA+
+           :+color-NOR+
+           :+color-GRA+
+           :+color-LRD+
+           :+color-LGN+
+           :+color-YEL+
+           :+color-LBL+
+           :+color-PIN+
+           :+color-LCY+
+           :+color-BRI+
+           :+color-RST+
+           :+golden-ratio+
+           :label-line-print
+           ;; Utility functions.
+           :best-print
+           ;; Interface functions.
+           :with-delayed-invocation
            :view-truncate
-           :view-status
+           :view-setup
            :view-start))
 
 #+allegro
