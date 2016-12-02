@@ -46,8 +46,8 @@
                              (t (ast-database-list db)))
                        (remove-if (if decls #'null {aget :is-decl})))))
     (if (and limit (< limit (length snippets)))
-        (let ((start (random (- (length snippets) limit))))
-          (subseq snippets start (+ start limit)))
+        (mapcar {aref (coerce snippets 'vector)}
+                (random-sample-without-replacement (length snippets) limit))
         snippets)))
 
 (defmethod find-type ((db in-memory-database) hash)

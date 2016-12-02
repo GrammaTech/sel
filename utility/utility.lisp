@@ -598,6 +598,44 @@ transformed from an instant to a cumulative probability."
       nil
       (subseq (shuffle list) 0 size)))
 
+(declaim (inline random-sample-with-replacement))
+(defun random-sample-with-replacement
+    (range size &aux (result (make-array size :element-type 'fixnum)))
+  "Return a random sample of SIZE numbers in RANGE with replacement."
+  (declare (optimize speed))
+  (declare (type fixnum size))
+  (declare (type fixnum range))
+  (dotimes (n size (coerce result 'list))
+    (setf (aref result n) (random range))))
+
+(declaim (inline random-sample-without-replacement))
+(defun random-sample-without-replacement (range size)
+  (declare (optimize speed))
+  (declare (type fixnum size))
+  (declare (type fixnum range))
+  "Return a random sample of SIZE numbers in RANGE without replacement."
+  (cond
+    ((> size range)
+     (error "Can't sample ~a numbers from [0,~a] without replacement"
+            size range))
+    ((= size range)
+     (let ((result (make-array size :element-type 'fixnum)))
+       (dotimes (n range (coerce result 'list))
+         (setf (aref result n) n))))
+    (t
+     ;; TODO: For faster collection implement a skip-list which
+     ;;       increments the value being stored as it passes might be
+     ;;       a better data structure.
+     (labels ((sorted-insert (list value)
+                (declare (type fixnum value))
+                (cond
+                  ((null list) (cons value nil))
+                  ((< value (the fixnum (car list))) (cons value list))
+                  (t (cons (car list) (sorted-insert (cdr list) (1+ value)))))))
+       (let (sorted)
+         (dotimes (n size sorted)
+           (setf sorted (sorted-insert sorted (random (- range n))))))))))
+
 (defun find-hashtable-element (hash-tbl n)
   (maphash
    (lambda (k v)
