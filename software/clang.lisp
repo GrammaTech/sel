@@ -1178,7 +1178,28 @@ Returns nil if no full-stmt parent is found."))
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
 
 (defgeneric wrap-ast (software ast)
-  (:documentation "Wrap AST in SOFTWARE in a block."))
+  (:documentation "Wrap AST in SOFTWARE in a block.
+Known issue with ifdefs -- consider this snippet:
+
+    if (x) {
+      var=1;
+    #ifdef SOMETHING
+    } else if (y) {
+      var=2;
+    #endif
+    }
+
+it will transform this into:
+
+    if (x) {
+      var=1;
+    #ifdef SOMETHING
+    } else {
+        if (y) {
+          var=2;
+    #endif
+        }  // spurious -- now won't compile.
+    }"))
 
 (define-ast-number-or-nil-default-dispatch wrap-ast)
 (defmethod wrap-ast ((obj clang) (ast list))
