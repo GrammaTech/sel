@@ -115,6 +115,9 @@ For example a description of the evolution target.")
           (+color-BRI+   #?"\x1b[1;37m" "Color BRI.")
           (+color-RST+   #?"\x1b[0m"    "Color RST."))))
 
+
+;;; Utility functions
+
 (defun clear-terminal ()
   (format *view-stream* "~a" +term-clear+))
 
@@ -168,6 +171,19 @@ For example a description of the evolution target.")
                                        (make-string right-l
                                                     :initial-element filler)
                                        (string right)))))))
+
+(defun string-output-stream-p (stream)
+  (typep stream
+         #+sbcl 'sb-impl::string-output-stream
+         #-sbcl (error "`string-output-stream-p' only supported for SBCL.")))
+
+(defun view-truncate (line &optional (less 2))
+  (if (> (length line) (- *view-length* less))
+      (subseq line 0 (- *view-length* less))
+      line))
+
+
+;;; View functions.
 
 (defun runtime-print ()
   (if *start-time*
@@ -316,7 +332,23 @@ delayed function on the arguments."
           `(if ,conditional ,body (lambda ()))
           body))))
 
-(defun view-status (&rest args)
+(defvar *view-functions* nil
+  "List of the functions called to populate the view.
+By default populated to the following functions (in order).
+ 1. runtime label and content
+ 2. population label
+ 3. population fitness content
+ 4. population genome content
+ 5. mutation label
+ 6. mutation content
+ 7. best label
+ 8. best content
+ 9. notes label
+10. notes content")
+
+
+;;; Interface functions
+(defun view-status ()
   (clear-terminal)
   (hide-cursor)
   (label-line-print
@@ -329,22 +361,18 @@ delayed function on the arguments."
    :inhibit-newline t
    :filler #\Space :left #\Space :right #\Space)
   ;; funcs
-  (mapcar #'funcall args)
+  (mapcar #'funcall *view-functions*)
   (label-line-print :left +b-lb+ :right +b-rb+)
   (force-output *view-stream*))
 
-(defun string-output-stream-p (stream)
-  (typep stream
-         #+sbcl 'sb-impl::string-output-stream
-         #-sbcl (error "`string-output-stream-p' only supported for SBCL.")))
-
-(defun view-truncate (line &optional (less 2))
-  (if (> (length line) (- *view-length* less))
-      (subseq line 0 (- *view-length* less))
-      line))
-
-(defun run-view-status ()
-  (view-status
+(defun view-setup ()
+  (unless
+      (or (zerop *view-max-note-lines*) ; If we want to show notes,
+          (some #'string-output-stream-p *note-out*)) ; and need string stream.
+    (push (make-string-output-stream) *note-out*))
+  (setf
+   *view-functions*
+   (list
    (lambda ()
      (label-line-print :value " timing " :color +color-CYA+
                        :balance (/ (- 1 +golden-ratio+) 2)
@@ -443,7 +471,7 @@ delayed function on the arguments."
                   (mapcar #'view-truncate)
                   (reverse)
                   (append <> *view-cached-note-lines*)
-                  (take *view-max-note-lines*)))))))
+                  (take *view-max-note-lines*))))))))
 
 (defun view-start ()
   "Start a viewing thread regularly updating `view-status'.
@@ -458,6 +486,6 @@ Optional argument DELAY controls the rate at which the view refreshes."
      (let ((*view-stream* *standard-output*))
        (iter
          (while *view-running*)
-         (run-view-status)
+         (view-status)
          (sleep *view-delay*))))
    :name "view"))
