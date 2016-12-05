@@ -71,10 +71,20 @@
            :label-line-print
            ;; Utility functions.
            :best-print
+           ;; View functions.
+           :timing-view-function
+           :population-label-view-function
+           :fitness-view-function
+           :genome-view-function
+           :mutation-label-view-function
+           :mutation-view-function
+           :best-label-view-function
+           :best-view-function
+           :notes-label-view-function
+           :notes-view-function
            ;; Interface functions.
            :with-delayed-invocation
            :view-truncate
-           :view-setup
            :view-start))
 
 #+allegro
