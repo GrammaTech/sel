@@ -316,7 +316,7 @@ For example a description of the evolution target.")
 (defmacro with-delayed-invocation (spec &rest body)
   "Take a form with a function marked as DELAYED.
 Argument SPEC should be a list holding a function name, and optionally
-a form to evaluation to determine if the invocation should be
+a form to evaluate to determine if the invocation should be
 run (otherwise an empty function is returned).  Rewrite into a form
 which calculates all arguments and returns a lambda calling the
 delayed function on the arguments."
