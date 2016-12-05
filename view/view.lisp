@@ -192,23 +192,26 @@ For example a description of the evolution target.")
        :colors (list +color-GRA+ +color-RST+
                      +color-GRA+ +color-RST+
                      +color-GRA+ +color-RST+)
-       :values (remove nil
-                 (list
-                  " runtime: "
-                  (multiple-value-bind
-                        (hours remainder) (floor (/ (elapsed-time) 3600))
-                    (multiple-value-bind
-                          (minutes remainder) (floor (/ (* remainder 3600) 60))
-                      (format nil "~dh ~2,'0dm ~2,'0ds" hours minutes
-                              (floor (* remainder 60)))))
-                  " evals: "
-                  (format nil "~f" *fitness-evals*)
-                  (when (and *fitness-evals* (cdadr *mutation-improvements*))
-                    " last-improv: ")
-                  (when (and *fitness-evals* (cdadr *mutation-improvements*))
-                    (format nil "~d"
-                            (- *fitness-evals*
-                               (cdadr *mutation-improvements*))))))
+       :values
+       (remove nil
+         (list
+          " runtime: "
+          (multiple-value-bind
+                (days remainder) (floor (/ (elapsed-time) 86400))
+            (multiple-value-bind
+                  (hours remainder) (floor (/ (* remainder 86400) 3600))
+              (multiple-value-bind
+                    (minutes remainder) (floor (/ (* remainder 3600) 60))
+                (format nil "~dd ~dh ~2,'0dm ~2,'0ds" days hours minutes
+                        (floor (* remainder 60))))))
+          " evals: "
+          (format nil "~f" *fitness-evals*)
+          (when (and *fitness-evals* (cdadr *mutation-improvements*))
+            " last-improv: ")
+          (when (and *fitness-evals* (cdadr *mutation-improvements*))
+            (format nil "~d"
+                    (- *fitness-evals*
+                       (cdadr *mutation-improvements*))))))
        :filler #\Space :left +b-v+ :right +b-v+)
       (label-line-print
        :balance 0
