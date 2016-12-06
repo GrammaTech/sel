@@ -1389,6 +1389,25 @@ is not to be found"
                    (aget :ast-class
                          (pick-snippet *hello-world* :class ast-class)))))))
 
+(deftest pick-snippet-json-db-respects-decl-argument ()
+  (with-fixture hello-world-clang-w-fodder
+    (is (aget :is-decl (pick-snippet *hello-world* :decl t))
+        "`pick-snippet' returns a decl when :DECL keyword is given.")
+    (let ((var-decl (pick-snippet *hello-world* :class "Var" :decl t)))
+      (is (and (string= "Var" (aget :ast-class var-decl))
+               (aget :is-decl var-decl))
+          "`pick-snippet' returns a Var decl when asked."))))
+
+(deftest insert-decl-lengthens-a-clang-w-fodder-software-object ()
+  (with-fixture hello-world-clang-w-fodder
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation variant (make-instance 'insert-fodder-decl
+                                :object variant))
+      (is (> (size variant)
+             (size *hello-world*)))
+      (is (string/= (genome variant)
+                    (genome *hello-world*))))))
+
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))

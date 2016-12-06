@@ -342,6 +342,7 @@
    :rename-variable
    :replace-fodder-same
    :replace-fodder-full
+   :insert-fodder-decl
    :insert-fodder
    :insert-fodder-full
    :pick-bad-good

@@ -183,5 +183,24 @@
   "macros": [],
   "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
- }
+ },
+  {"full_stmt": false,
+   "src_file_name": "/tmp/tmpjcK_3q/problem55_6_3.c",
+   "binary_contents": null,
+   "hash": -2609356652971032440,
+   "binary_file_path": null,
+   "ast_class": "Var",
+   "random": 0.20895825426074766,
+   "src_text": "int nPos = 1",
+   "orig_text": "int nPos = 1",
+   "unbound_vals": [],
+   "includes": [],
+   "unbound_funs": [],
+   "macros": [],
+   "guard_stmt": false,
+   "begin_addr": null,
+   "end_addr": null,
+   "disasm": null,
+   "types": [-5849325953548989793],
+   "is_decl": true}
 ]

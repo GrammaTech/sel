@@ -15,7 +15,7 @@
 (defmethod from-string :before ((obj clang-w-fodder) string)
   (assert (not (null *database*))))
 
-(defgeneric pick-snippet (clang-w-fodder &key full class pt)
+(defgeneric pick-snippet (clang-w-fodder &key full class pt decl)
   (:documentation "Return a snippet from the fodder database.
 
 With keyword :FULL t, select a full statement element.
@@ -23,16 +23,16 @@ With keyword :FULL t, select a full statement element.
 With keyword argument :CLASS, select an element of the specified class.
 
 With keyword argument :PT select an element similar to that at :PT in
-CLANG-W-FODDER in a method-dependent fashion."))
-(defmethod pick-snippet ((clang-w-fodder clang-w-fodder) &key full class pt)
+CLANG-W-FODDER in a method-dependent fashion.
+
+With keyword argument :decl select a declaration."))
+
+(defmethod pick-snippet ((obj clang-w-fodder) &key full class pt decl)
   (let* ((snippet (first (find-snippets *database*
                                         :full-stmt
-                                        (or full
-                                            (and pt
-                                                 (full-stmt-p
-                                                  clang-w-fodder
-                                                  pt)))
+                                        (or full (and pt (full-stmt-p obj pt)))
                                         :ast-class (if class class nil)
+                                        :decls (if decl :only nil)
                                         :limit 1))))
     (if (not snippet)
         (error (make-condition 'mutate
@@ -51,6 +51,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
    (normalize-probabilities
     '((cut-decl                . 10)    ; All values are /200 total.
       (swap-decls              . 10)
+      (insert-fodder-decl      . 10)
       (rename-variable         . 10)
       (clang-promote-guarded   . 10)
       (clang-cut               . 10)
@@ -69,7 +70,7 @@ CLANG-W-FODDER in a method-dependent fashion."))
       (clang-replace-full-same . 10)
       (replace-fodder-same     . 25)
       (replace-fodder-full     . 15)
-      (insert-fodder           . 25)
+      (insert-fodder           . 15)
       (insert-fodder-full      . 15))))
   "Cumulative distribution of normalized probabilities of weighted mutations.
 Currently the weights are assigned so that we roughly preserve the
@@ -98,6 +99,20 @@ mutations.")
          (stmt (if full-stmt-p bad-stmt bad)))
     (list (cons :stmt1 stmt) (cons :value1 value))))
 
+(defun pick-decl-fodder (software)
+  (unless (functions software)
+    (error (make-condition 'no-mutation-targets
+             :obj software
+             :text "Could not find any functions.")))
+  (list (cons :stmt1 (->> (random-elt (functions software))
+                          (aget :children)
+                          (first)
+                          (get-ast software)
+                          (aget :children)
+                          (first)))
+        ;; Only return variable declarations from `pick-snippet'.
+        (cons :value1 (pick-snippet software :class "Var" :decl :only))))
+
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
   (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
     (destructuring-bind (op . properties)
@@ -111,6 +126,9 @@ mutations.")
   (call-next-method))
 
 ;; Fodder mutation classes
+(define-mutation insert-fodder-decl (clang-insert)
+  ((targeter :initform #'pick-decl-fodder)))
+
 (define-mutation insert-fodder (clang-insert)
   ((targeter :initform #'pick-bad-fodder)))
 
