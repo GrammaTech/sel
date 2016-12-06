@@ -78,11 +78,14 @@
                  (kv "full_stmt" t))))
          (add-decls (kv)
            (if kv
-               (if decls
-                   kv
-                   (kv (kv "is_decl" nil) kv))
-               (unless decls
-                   (kv "is_decl" nil))))
+               (cond
+                 ((eql decls :only) (kv (kv "is_decl" t) kv))
+                 (decls kv)
+                 (t (kv (kv "is_decl" nil) kv)))
+               (cond
+                 ((eql decls :only) (kv "is_decl" t))
+                 (decls nil)
+                 (t (kv "is_decl" nil)))))
          (find-snippets-kv (kv limit)
            (with-mongo-connection (:db (db obj)
                                    :host (host obj)

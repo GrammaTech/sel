@@ -173,12 +173,18 @@
   (let ((features (cond (ast-class
                          `((:ast--class  . ,ast-class)
                            (:random . ,(random 1.0))))
+                        ((and full-stmt (eql decls :only))
+                         `((:full--stmt . t)
+                           (:is--decl . ,*json-true*)))
                         ((and full-stmt decls)
                          `((:full--stmt . t)
                            (:random . ,(random 1.0))))
                         (full-stmt
                          `((:full--stmt . t)
                            (:is--decl . ,*json-false*)
+                           (:random . ,(random 1.0))))
+                        ((eql decls :only)
+                         `((:is--decl . ,*json-true*)
                            (:random . ,(random 1.0))))
                         ((not decls)
                          `((:is--decl . ,*json-false*)

@@ -13,6 +13,7 @@
 :AST-CLASS - AST class all snippets should match
 :FULL-STMT - Limit results to full statements if non-nil.
 :DECLS ----- Include decls in result if non-nil.
+             Limit results to decls if the keyword :ONLY.
 :LIMIT ----- Limit to N randomly drawn snippets"))
 
 (defgeneric find-type (type-database hash)
