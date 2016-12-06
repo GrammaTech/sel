@@ -44,7 +44,12 @@
                              (full-stmt
                               (ast-database-full-stmt-list db))
                              (t (ast-database-list db)))
-                       (remove-if (if decls #'null {aget :is-decl})))))
+                       (remove-if
+                        (cond
+                          ((eql decls :only)
+                           (complement {aget :is-decl}))
+                          (decls #'null)
+                          (t {aget :is-decl}))))))
     (if (and limit (< limit (length snippets)))
         (mapcar {aref (coerce snippets 'vector)}
                 (random-sample-without-replacement (length snippets) limit))
