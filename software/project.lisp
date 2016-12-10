@@ -197,27 +197,27 @@ the underlying software objects."
   (let* ((files (if (current-file project)
                     (list (current-file project))
                     (mapcar #'cdr (evolve-files project))))
-         (entry-obj (find-if (lambda (f)
-                               (find-if [{string= "main"} {aget :name}]
-                                        (functions f)))
-                             (mapcar #'cdr (all-files project))))
+         (entry-obj (plist-get :entry-obj args))
          (functions (plist-get :functions args))
-         (other-args (plist-drop :functions args)))
+         (other-args (plist-drop :entry-obj
+                                 (plist-drop :functions args))))
     (loop
        for f in files
        for i upfrom 0
        do (apply #'instrument f
-                 ;; To avoid inserting setup code into main() multiple
-                 ;; times, use temporary copies of the object which
-                 ;; are then discarded.
-                 :entry-obj (if (= i 0) entry-obj (copy entry-obj))
                  ;; Print file index at each AST
                  :functions (cons (lambda (ast)
                                     (declare (ignorable ast))
                                     (list (format nil "(:F . ~a)" i)))
                                   functions)
-                 ;; Pass through other args
-                 other-args)))
+                 ;; To avoid inserting setup code multiple times, use
+                 ;; temporary copies of the object which are then
+                 ;; discarded.
+                 (append
+                  (when entry-obj
+                    `(:entry-obj ,(if (= i 0) entry-obj (copy entry-obj))))
+                  ;; Pass through other args
+                  other-args))))
   project)
 
 ;;; Build directory handling.
