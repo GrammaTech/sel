@@ -24,7 +24,7 @@ Keyword arguments are as follows:
 (defmethod instrument ((obj clang) &key points functions trace-file
                                      print-argv instrument-exit (entry-obj obj)
                                      (filter #'identity))
-  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
+  (let ((log-var (if trace-file "__bi_mut_log_file()" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
@@ -254,18 +254,29 @@ fputs(\"))\\n\", ~a);"
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
 (defmethod log-to-filename ((obj clang) entry-obj log-variable filename)
-  (setf entry-obj
-        (insert-at-entry entry-obj (file-open-str log-variable filename)))
-  (setf (genome obj)
+  (setf (genome entry-obj)
         (concatenate 'string
-                     (format nil "#include <stdio.h>~%FILE *~a;~%" log-variable)
-                     (genome obj)))
+                     (format nil "#include <stdio.h>
+#ifdef __cplusplus
+extern \"C\"
+#endif
+FILE *~a {
+  static FILE *f = NULL;
+  if (!f)
+    ~a
+  return f;
+}" log-variable (file-open-str "f" filename))
+                     (genome entry-obj)))
   (unless (eq obj entry-obj)
-    (setf (genome entry-obj)
-          (concatenate 'string
-                       (format nil "#include <stdio.h>~%extern FILE *~a;~%"
-                               log-variable)
-                       (genome entry-obj))))
+      (setf (genome obj)
+         (concatenate 'string
+                      (format nil "#include <stdio.h>
+#ifdef __cplusplus
+extern \"C\"
+#endif
+FILE *~a;~%"
+                              log-variable)
+                      (genome obj))))
   obj)
 
 

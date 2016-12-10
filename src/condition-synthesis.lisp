@@ -251,7 +251,7 @@ int abst_cond() {
         result = *return_vals - '0';
         return_vals++;
     }
-    fprintf(__bi_mut_log_file, \"((:ABST-COND . \\\"%d\\\"))\\n\", result);
+    fprintf(__bi_mut_log_file(), \"((:ABST-COND . \\\"%d\\\"))\\n\", result);
     return result;
 }
 "
