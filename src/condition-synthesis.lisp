@@ -409,6 +409,9 @@ statement(s) in the repair targets."
       ;; Instrument the original object
       (instrument software :trace-file trace-file-name
                   :functions (list inst-reps)
+                  ;; HACK: this only works for RINGS projects
+                  :entry-obj (or (ignore-errors (cdar (other-files software)))
+                                 software)
                   ;; Only instrument within relevant functions
                   :filter {remove-if-not [{member _ inst-functions}
                                           {function-containing-ast software}
