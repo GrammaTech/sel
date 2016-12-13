@@ -195,7 +195,7 @@
                      (:*weights  . ,(features-to-weights features)))
                    limit)))
 
-(defmethod sorted-snippets ((obj pliny-database) target
+(defmethod similar-snippets ((obj pliny-database) target
                             &key predicate metric
                               key ast-class limit-considered
                               (limit (- (expt 2 32) 1))
