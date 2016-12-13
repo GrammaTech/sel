@@ -427,21 +427,25 @@ Keyword arguments may be used to restrict selections."
   (:documentation
    "Replace a variable in a statement with another in scope variable name."))
 
-(defun pick-rename-variable (clang)
+(defvar *pick-rename-variable-tries* 100)
+
+(defun pick-rename-variable (clang &aux stmt used)
   "Pick a statement in CLANG with a variable and replace with another in scope."
-  (let* ((stmt (random-ast (bad-stmts clang)))
-         (used (get-used-variables clang stmt)))
-    (unless used
-      (error (make-condition 'no-mutation-targets
-               :text "no variables to rename"
-               :obj clang)))
-    (let* ((old-var (random-elt used))
-           (new-var (random-elt
-                     (or (remove-if {equal old-var}
-                                    (get-vars-in-scope clang stmt))
-                         (list old-var))))
-           (stmt1 (enclosing-full-stmt-or-block clang stmt)))
-      `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var)))))
+  (iter (for i below *pick-rename-variable-tries*)
+        (setf stmt (random-ast (bad-stmts clang))
+              used (get-used-variables clang stmt))
+        (until (and stmt used)))
+  (unless used
+    (error (make-condition 'no-mutation-targets
+             :text "no variables to rename"
+             :obj clang)))
+  (let* ((old-var (random-elt used))
+         (new-var (random-elt
+                   (or (remove-if {equal old-var}
+                                  (get-vars-in-scope clang stmt))
+                       (list old-var))))
+         (stmt1 (enclosing-full-stmt-or-block clang stmt)))
+    `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var))))
 
 (defmethod build-op ((mutation rename-variable) software)
   (let ((stmt1 (aget :stmt1 (targets mutation)))
