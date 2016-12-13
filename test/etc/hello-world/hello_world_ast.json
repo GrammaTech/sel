@@ -18,7 +18,7 @@
   "end_src_line": 9,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "stmt_list": [
    2,
    8
@@ -37,8 +37,8 @@
   "parent_counter": 1,
   "full_stmt": true,
   "binary_contents": "89 04 24 e8 b5 fe ff ff 31 c9",
-  "binary_file_path": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world",
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "binary_file_path": "software-evolution/test/hello-world/hello_world",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "counter": 2,
   "end_src_col": 26,
   "end_src_line": 6,
@@ -70,7 +70,7 @@
   "end_src_line": 6,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
  },
  {
@@ -92,7 +92,7 @@
   "end_src_line": 6,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
  },
  {
@@ -109,7 +109,7 @@
   "end_src_line": 6,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
  },
  {
@@ -126,7 +126,7 @@
   "end_src_line": 6,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
  },
  {
@@ -143,7 +143,7 @@
   "end_src_line": 6,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
  },
  {
@@ -158,8 +158,8 @@
   "parent_counter": 1,
   "full_stmt": true,
   "binary_contents": "89 45 f8 89 c8 83 c4 18 dd 5d c3",
-  "binary_file_path": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world",
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "binary_file_path": "software-evolution/test/hello-world/hello_world",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "counter": 8,
   "end_src_col": 9,
   "end_src_line": 8,
@@ -181,7 +181,7 @@
   "end_src_line": 8,
   "guard_stmt": false,
   "macros": [],
-  "src_file_name": "/u1/jruchti/quicklisp/local-projects/software-evolution/test/hello-world/hello_world.c",
+  "src_file_name": "software-evolution/test/hello-world/hello_world.c",
   "types": []
  }
 ]
