@@ -193,6 +193,7 @@
    "random": 0.20895825426074766,
    "src_text": "int nPos = 1",
    "orig_text": "int nPos = 1",
+   "declares": [ "nPos" ],
    "unbound_vals": [],
    "includes": [],
    "unbound_funs": [],
