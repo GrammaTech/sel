@@ -387,6 +387,22 @@
     (setf *database* nil)
     (setf *hello-world* nil)))
 
+(defixture gcd-clang-w-fodder
+  (:setup
+   (setf *database*
+         (with-open-file (in (hello-world-dir "hello_world_ast.json"))
+           (make-instance 'json-database :json-stream in)))
+   (setf *gcd*
+         (from-file
+          (make-instance 'clang-w-fodder
+            :flags (list
+                    "-I"
+                    (namestring (make-pathname :directory +etc-dir+))))
+          (gcd-dir "gcd.c"))))
+  (:teardown
+   (setf *database* nil)
+   (setf *gcd* nil)))
+
 (defixture huf-clang
   (:setup
     (setf *huf*
@@ -1407,6 +1423,19 @@ is not to be found"
              (size *hello-world*)))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
+
+(deftest insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder ()
+  (with-fixture gcd-clang-w-fodder
+    (let ((var (copy *gcd*))
+          (mut (make-instance 'insert-fodder-decl-rep :object *gcd*)))
+      (apply-mutation var mut)
+      (is (string/= (genome var) (genome *gcd*))
+          "Genome of *gcd* changed by INSERT-FODDER-DECL-REP.")
+      (is
+       (> (length (split (aget :new-var (aget :rename-variable (targets mut)))
+                         (genome var)))
+          2)
+       "New decl variable appears in more than just the declaring ast."))))
 
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder

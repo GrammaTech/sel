@@ -52,7 +52,8 @@ With keyword argument :decl select a declaration."))
    (normalize-probabilities
     '((cut-decl                . 10)    ; All values are /200 total.
       (swap-decls              . 10)
-      (insert-fodder-decl      . 10)
+      (insert-fodder-decl      . 4)
+      (insert-fodder-decl-rep  . 6)
       (rename-variable         . 10)
       (clang-promote-guarded   . 10)
       (clang-cut               . 10)
@@ -114,6 +115,17 @@ mutations.")
         ;; Only return variable declarations from `pick-snippet'.
         (cons :value1 (pick-snippet software :class "Var" :decl :only))))
 
+(defun pick-decl-fodder-and-rename (software)
+  "Combination of `pick-decl-fodder' and `pick-rename-variable'.
+When the decl picked for insertion provides a new name, update the
+rename target to use this new name."
+  (let ((decl-target (pick-decl-fodder software))
+        (rename-target (pick-rename-variable software)))
+    (when-let ((new-name (car (aget :declares (aget :value1 decl-target)))))
+      (setf (aget :new-var rename-target) new-name))
+    (list (cons :decl-fodder decl-target)
+          (cons :rename-variable rename-target))))
+
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
   (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
     (destructuring-bind (op . properties)
@@ -127,6 +139,49 @@ mutations.")
   (call-next-method))
 
 ;; Fodder mutation classes
+(define-mutation insert-fodder-decl-rep (clang-insert)
+  ((targeter :initform #'pick-decl-fodder-and-rename))
+  (:documentation
+   "First apply `insert-fodder-decl' then `rename-variable' mutations.
+Ensure that the name of the inserted decl is used by
+`rename-variable'."))
+
+(defmethod build-op ((mut insert-fodder-decl-rep) (obj clang-w-fodder))
+  ;; Apply the var op first as it has the higher value of STMT1.
+  (list (cons :rename-variable
+              (build-op (make-instance 'rename-variable
+                          :object obj
+                          :targets (aget :rename-variable (targets mut)))
+                        obj))
+        (cons :decl-fodder
+              (build-op (make-instance 'insert-fodder-decl
+                          :object obj
+                          :targets (aget :decl-fodder (targets mut)))
+                        obj))))
+
+(defmethod apply-mutation ((obj clang) (mut insert-fodder-decl-rep))
+  ;; For `insert-fodder-decl-rep' we recontextualize and apply in two
+  ;; interleaved steps to ensure that the changes from the first
+  ;; mutation are in place before the second mutation is
+  ;; recontextualized.
+  (restart-case
+      (let ((ops (build-op mut obj)))
+        (apply-mutation-ops obj (recontextualize-mutation
+                                 obj (aget :decl-fodder ops)))
+        (apply-mutation-ops obj (recontextualize-mutation
+                                 obj (aget :rename-variable ops))))
+    (skip-mutation ()
+      :report "Skip mutation and return nil"
+      (values nil 1))
+    (tidy ()
+      :report "Call clang-tidy before re-attempting mutation"
+      (clang-tidy obj)
+      (apply-mutation obj mut))
+    (mutate ()
+      :report "Apply another mutation before re-attempting mutations"
+      (mutate obj)
+      (apply-mutation obj mut))))
+
 (define-mutation insert-fodder-decl (clang-insert)
   ((targeter :initform #'pick-decl-fodder)))
 

@@ -345,6 +345,7 @@
    :replace-fodder-same
    :replace-fodder-full
    :insert-fodder-decl
+   :insert-fodder-decl-rep
    :insert-fodder
    :insert-fodder-full
    :pick-bad-good

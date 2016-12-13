@@ -423,14 +423,17 @@ Keyword arguments may be used to restrict selections."
 
 ;;; Rename variable
 (define-mutation rename-variable (clang-mutation)
-  ((targeter :initform #'pick-rename-variable)))
+  ((targeter :initform #'pick-rename-variable))
+  (:documentation
+   "Replace a variable in a statement with another in scope variable name."))
 
 (defun pick-rename-variable (clang)
+  "Pick a statement in CLANG with a variable and replace with another in scope."
   (let* ((stmt (random-ast (bad-stmts clang)))
          (used (get-used-variables clang stmt)))
     (unless used
       (error (make-condition 'no-mutation-targets
-               :text "No variables to rename"
+               :text "no variables to rename"
                :obj clang)))
     (let* ((old-var (random-elt used))
            (new-var (random-elt
