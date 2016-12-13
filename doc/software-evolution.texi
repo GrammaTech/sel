@@ -121,27 +121,40 @@ are given in remainder of this section.
  max-time                | fitness          |         pick-good
  target                  | ...              |         pick-bad
  period                  +------------------+         mutate
- period-func                       |                  crossover
- filter                            |
-               +---------------+---+-----+------+----------------+
-               |               |         |      |                |
-      +---------------+  +-------------+ | +-------------+  +------------+
-      |      AST      |  |     ELF     | | |    lisp     |  |    asm     |
-      |---------------|  |-------------| | |-------------|  |------------|
-      |   Abstract    |  | Executable  | | | lisp source |  |  assembly  |
-      |  Syntax Tree  |  |  Linkable   | | +-------------+  |    code    |
-      +---------------+  |   Format    | |                  +------------+
-              |          +-------------+ +--------+             |
-     +--------------+-------------------+         |   +------------------+
-     |              |                   |         |   |     asm-range    |
-  +-------+  +----------------+   +----------+    |   |------------------|
-  | Clang |  |       CIL      |   |   LLVM   |    |   | memory efficient |
-  |-------|  |----------------|   |----------|    |   +------------------+
-  | C AST |  | C Intermediate |   | LLVM IR  |  +--------------+
-  +-------+  |    Language    |   +----------+  |    forth     |
-             +----------------+                 |--------------|
-                                                | forth source |
-                                                +--------------+
+ period-func                 |     |                  crossover
+ filter      +---------------+     |
+             | +---------------+---+-----+------+----------------+
++------------+ |               |         |      |                |
+|     +---------------+  +-------------+ | +-------------+  +------------+
+|     |      AST      |  |     ELF     | | |    lisp     |  |    asm     |
+|     |---------------|  |-------------| | |-------------|  |------------|
+|     |   Abstract    |  | Executable  | | | lisp source |  |  assembly  |
+|     |  Syntax Tree  |  |  Linkable   | | +-------------+  |    code    |
+|     +---------------+  |   Format    | |                  +------------+
+|             |          +-------------+ +--------+             |
+|    +--------------+-------------------+         |   +------------------+
+|    |              |                   |         |   |     asm-range    |
+| +-------+  +----------------+   +----------+    |   |------------------|
+| | Clang |  |       CIL      |   |   LLVM   |    |   | memory efficient |
+| |-------|  |----------------|   |----------|    |   +------------------+
+| | C AST |  | C Intermediate |   | LLVM IR  |  +--------------+
+| +-------+  |    Language    |   +----------+  |    forth     |
+|    |       +----------------+                 |--------------|
+|    +------------------------------+           | forth source |
++---------------------+             |           +--------------+
+                      |             |
+                +------------+     +-------------------+
+                | Searchable |  +--| Clang with Fodder |
+                +------------+  |  +-------------------+
+                      |   +-----+
+                      |   |
+            +-----------------+  +--------------------+
+         +--| Fodder Database |--| In Memory Database |
+         |  +-----------------+  +--------------------+
+         |            |                    |
+    +----------+ +----------+         +---------+
+    | Pliny DB | | Mongo DB |         | JSON DB |
+    +----------+ +----------+         +---------+
 @end example
 @caption{Software Evolution API.  Exported functions and variables are
 shown along with the software object class hierarchy.}
@@ -283,7 +296,7 @@ value is ``@code{2}''.
 @end defvar
 
 @anchor{*fitness-predicate* }
-@defvar *fitness-predicate* 
+@defvar *fitness-predicate*
 Function to compare two fitness values to select which is preferred.
 Default value is ``@code{#'>}''.
 @end defvar
