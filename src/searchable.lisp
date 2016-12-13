@@ -9,7 +9,7 @@
     (searchable target weight
      &key predicate metric key limit ast-class filter limit-considered)
   (:documentation
-   "Perform a random pick weighted by weight from `sorted-snippets'.
+   "Perform a random pick weighted by weight from `similar-snippets'.
 All other arguments are passed through to sorted snippets."))
 
 (defmethod weighted-pick ((obj searchable) target weight
@@ -19,13 +19,13 @@ All other arguments are passed through to sorted snippets."))
                                (filter #'null)
                                (limit-considered infinity))
   (random-elt-with-decay
-    (sorted-snippets obj target
-                     :predicate predicate :metric metric
-                     :key key :limit limit :ast-class ast-class
-                     :filter filter :limit-considered limit-considered)
+    (similar-snippets obj target
+                      :predicate predicate :metric metric
+                      :key key :limit limit :ast-class ast-class
+                      :filter filter :limit-considered limit-considered)
     weight))
 
-(defgeneric sorted-snippets
+(defgeneric similar-snippets
     (searchable target
      &key predicate metric key limit ast-class limit-considered filter)
   (:documentation
@@ -39,7 +39,7 @@ All other arguments are passed through to sorted snippets."))
 :LIMIT-CONSIDERED - limit search to MANY-CONSIDERED random snippets
 :FILTER ----------- limit search to snippets for which FILTER returns false"))
 
-(defmethod sorted-snippets ((db searchable) target
+(defmethod similar-snippets ((db searchable) target
                             &key key ast-class limit
                                  (predicate #'<)
                                  (metric #'diff-scalar)

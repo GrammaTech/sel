@@ -195,7 +195,7 @@
    :find-snippets
    :weighted-pick
    :find-type
-   :sorted-snippets
+   :similar-snippets
    :*clang-max-json-size*
    :*crossover-function-probability*
    :*clang-mutation-types*
