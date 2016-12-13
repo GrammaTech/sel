@@ -855,8 +855,11 @@ already in scope, it will keep that name.")
       :report "Try another mutation"
       (mutate clang))))
 
-(defmethod recontextualize-mutation ((clang clang) mutation)
-  (loop :for (op . properties) :in (build-op mutation clang)
+(defmethod recontextualize-mutation ((obj clang) (mut mutation))
+  (recontextualize-mutation obj (build-op mut obj)))
+
+(defmethod recontextualize-mutation ((obj clang) (ops list))
+  (loop :for (op . properties) :in ops
      :collecting
      (let ((stmt1  (aget :stmt1  properties))
            (stmt2  (aget :stmt2  properties))
@@ -869,9 +872,9 @@ already in scope, it will keep that name.")
                       (if (or stmt2 value1 literal1)
                           `((:value1 .
                              ,(or literal1
-                                  (recontextualize clang
+                                  (recontextualize obj
                                                    (if stmt2
-                                                       (get-ast clang stmt2)
+                                                       (get-ast obj stmt2)
                                                        value1)
                                                    stmt1))))))))
          ;; Other ops are passed through without changes
