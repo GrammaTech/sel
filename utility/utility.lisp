@@ -395,6 +395,23 @@ The SHELL command is executed with `*bash-shell*'."
   (mapcar #'(lambda (num) (parse-integer num :radix radix))
           (split-sequence delim string :remove-empty-subseqs t)))
 
+(defun make-terminal-raw ()
+  "Place the terminal into 'raw' mode, no echo non canonical.
+This allows characters to be read directly without waiting for a newline.
+See 'man 3 termios' for more information."
+  #+win32 (error "`make-terminal-raw' not implemented for windows.")
+  #-sbcl (error "`make-terminal-raw' not implemented for non-SBCL.")
+  (let ((options (sb-posix:tcgetattr 0)))
+    (setf (sb-posix:termios-lflag options)
+          (logand (sb-posix:termios-lflag options)
+                  (lognot (logior sb-posix:icanon
+                                  sb-posix:echo
+                                  sb-posix:echoe
+                                  sb-posix:echok
+                                  sb-posix:echonl
+                                  sb-posix:echo))))
+    (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
+
 
 ;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)
