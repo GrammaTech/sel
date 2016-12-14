@@ -393,6 +393,50 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
                                       (mapcar [{aget :src-text} {get-ast obj}]))
                                  (aget :src-text advancement)))))))))
 
+(define-mutation coalesce-while-loop (clang-mutation)
+  ((targeter :initform #'pick-while-loop))
+  (:documentation
+   "Select a 'while' loop and coalesce it into a 'for' loop.
+This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
+
+(defgeneric pick-while-loop (software)
+  (:documentation "Pick and return a 'while' loop in SOFTWARE."))
+(defmethod pick-while-loop ((obj clang))
+  (if-let ((while-loops (remove-if-not [{string= "WhileStmt"} {aget :ast-class}]
+                                       (stmt-asts obj))))
+    `((:stmt1 . ,(random-ast while-loops)))
+    (error (make-condition 'no-mutation-targets
+             :text "No 'while' loops found"
+             :obj obj))))
+
+(defmethod build-op ((mutation coalesce-while-loop) (obj clang))
+  (let ((id (aget :stmt1 (targets mutation)))
+        (initialization ""))
+    (destructuring-bind (condition body)
+        (mapcar {get-ast obj} (aget :children (get-ast obj id)))
+      `(;; Possibly consume the preceding full statement.
+        ,@(let ((precedent (get-ast obj (enclosing-full-stmt obj (1- id)))))
+            (when (and precedent
+                       (aget :full-stmt precedent)
+                       (not (string= "CompoundStmt"
+                                     (aget :ast-class precedent))))
+              (setf initialization (aget :src-text precedent))
+              ;; Delete precedent
+              `((:cut (:stmt1 . ,(aget :counter precedent))))))
+          (:set (:stmt1 . ,id)
+                ,(cons :literal1
+                       (peel-bananas
+                        (format nil "for(~a;~a;~a)~%{~%~{~a;~%~}}~%"
+                                initialization
+                                (aget :src-text condition)
+                                (aget :src-text (->> (aget :children body)
+                                                     (lastcar)
+                                                     (get-ast obj)))
+                                (->> (aget :children body)
+                                     (butlast)
+                                     (mapcar
+                                      [{aget :src-text} {get-ast obj}]))))))))))
+
 ;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
   ((targeter :initform #'pick-cut-decl)))
