@@ -102,6 +102,7 @@
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
 (defvar *binary-search* nil "Holds the binary_search software object.")
+(defvar *empty-while* nil "Holds the empty-while software object.")
 (defvar *headers*     nil "Holds the headers software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
 (defvar *huf*         nil "Holds the huf software object.")
@@ -402,6 +403,25 @@
   (:teardown
    (setf *database* nil)
    (setf *gcd* nil)))
+
+(defixture empty-while-clang-w-fodder
+  (:setup
+   (setf *database*
+         (with-open-file (in (hello-world-dir "hello_world_ast.json"))
+           (make-instance 'json-database :json-stream in))
+         *empty-while*
+         (from-file
+          (make-instance 'clang-w-fodder
+            :flags (list
+                    "-I"
+                    (namestring (make-pathname :directory +etc-dir+))))
+          (make-pathname
+           :name "empty-while"
+           :type "c"
+           :directory +etc-dir+))))
+  (:teardown
+   (setf *database* nil
+         *empty-while* nil)))
 
 (defixture huf-clang
   (:setup
@@ -2404,9 +2424,9 @@ Useful for printing or returning differences in the REPL."
     (let ((var (copy *scopes*)))
       (apply-mutation var (make-instance 'coalesce-while-loop :object var))
       (is (not (string= (genome var) (genome *scopes*)))
-          "Exploded while loop changes genome.")
+          "Coalesced while loop changes genome.")
       (is (not (scan (quote-meta-chars "while") (genome var)))
-          "Exploded while loop contains no while loop.")
+          "Coalesced while loop contains no while loop.")
       (flet ((run-and-get-return (obj)
                (with-temp-file (bin)
                  (phenome obj :bin bin)
@@ -2415,7 +2435,14 @@ Useful for printing or returning differences in the REPL."
                    (declare (ignorable stdout stderr))
                    return))))
         (is (= (run-and-get-return var) (run-and-get-return *scopes*))
-            "Exploded while loop doesn't change program behavior.")))))
+            "Coalesced while loop doesn't change program behavior.")))))
+
+(deftest pick-while-loop-works-even-with-empty-body ()
+  (with-fixture empty-while-clang-w-fodder
+    (let ((var (copy *empty-while*)))
+      (apply-mutation var (make-instance 'coalesce-while-loop :object var))
+      (is (not (scan (quote-meta-chars "while") (genome var)))
+          "Coalesced while loop contains no while loop."))))
 
 (deftest delete-decl-stmts-works ()
   (with-fixture scopes-clang
