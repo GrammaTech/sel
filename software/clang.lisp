@@ -533,6 +533,32 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                                   stmt1
                                   (list (cons old-var new-var))))))))
 
+;;; Expand compound assignment
+(define-mutation expand-assignment (clang-replace)
+  ((targeter :initform #'pick-expand-assignment)))
+
+(defun pick-expand-assignment (clang)
+  (let* ((stmt1 (&>> (or (remove-if-not {string= "CompoundAssignOperator"}
+                                        (bad-stmts clang)
+                                        :key {aget :ast-class})
+                         (remove-if-not {string= "CompoundAssignOperator"}
+                                        (stmt-asts clang)
+                                        :key {aget :ast-class}))
+                     (random-elt)
+                     (aget :counter)))
+         (children (and stmt1 (get-immediate-children clang stmt1))))
+    (if (not children)
+        (error (make-condition 'no-mutation-targets
+                 :text "No compound assignment operators to expand"
+                 :obj clang))
+        `((:stmt1 . ,stmt1)
+          (:literal1 .
+           ,(format nil "~a = ~a ~a ~a;~%"
+                    (peel-bananas (aget :src-text (first children)))
+                    (peel-bananas (aget :src-text (first children)))
+                    (string-trim "=" (aget :opcode (get-ast clang stmt1)))
+                    (peel-bananas (aget :src-text (second children)))))))))
+
 
 ;;; Clang methods
 (defvar *clang-max-json-size* 104857600
@@ -901,8 +927,9 @@ already in scope, it will keep that name.")
       (swap-decls              .  5)
       (rename-variable         .  5)
       (clang-promote-guarded   .  2)
-      (explode-for-loop        .  2)
+      (explode-for-loop        .  1)
       (coalesce-while-loop     .  1)
+      (expand-assignment       .  1)
       (clang-cut               .  5)
       (clang-cut-full          . 15)
       (clang-insert            .  1)

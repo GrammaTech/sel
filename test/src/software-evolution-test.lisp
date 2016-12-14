@@ -160,7 +160,12 @@
     (define-constant +lisp-bugs-dir+
                      (append +etc-dir+ (list "lisp-bugs"))
       :test #'equalp
-      :documentation "Location of the lisp bugs directory")))
+      :documentation "Location of the lisp bugs directory")
+
+    (define-constant +expand-assign-mutation-dir+
+                     (append +etc-dir+ (list "expand-assign-mutation"))
+      :test #'equalp
+      :documentation "Location of the expand assignment mutation example dir")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -206,6 +211,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +lisp-bugs-dir+))
+
+(defun expand-assign-mutation-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +expand-assign-mutation-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -2503,6 +2513,32 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
+
+(deftest expand-assignment-throws-error-if-no-compound-assignments ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-assign-mutation-dir "no-compound-assign.c"))))
+    (signals no-mutation-targets
+      (build-op (make-instance 'expand-assignment :object obj) obj))))
+
+(deftest expand-assignment-works-simple-compound-assignment ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-assign-mutation-dir
+                         "simple-compound-assign.c"))))
+    (apply-mutation obj (make-instance 'expand-assignment :object obj))
+    (is (stmt-with-text obj "argc = argc * 2"))))
+
+(deftest expand-assignment-works-complex-compound-assignment ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-assign-mutation-dir
+                         "complex-compound-assign.c"))))
+    (apply-mutation obj (make-instance 'expand-assignment :object obj))
+    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())"))))
 
 
 ;;; Adaptive-mutation tests.
