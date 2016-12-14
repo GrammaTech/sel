@@ -353,6 +353,7 @@
    :cut-decl
    :swap-decls
    :rename-variable
+   :expand-assignment
    :replace-fodder-same
    :replace-fodder-full
    :insert-fodder-decl
