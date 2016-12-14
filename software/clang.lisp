@@ -362,6 +362,37 @@ Keyword arguments may be used to restrict selections."
                 (t (warn 1 "`clang-promote-guarded' unimplemented for ~a"
                          (aget :ast-class guarded)))))))))
 
+;;; Explode and coalescing mutations over for and while loops.
+(define-mutation explode-for-loop (clang-mutation)
+  ((targeter :initform #'pick-for-loop))
+  (:documentation
+   "Select a 'for' loop and explode it into it's component parts.
+This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
+
+(defgeneric pick-for-loop (software)
+  (:documentation "Pick and return a 'for' loop in SOFTWARE."))
+(defmethod pick-for-loop ((obj clang))
+  (if-let ((for-loops (remove-if-not [{string= "ForStmt"} {aget :ast-class}]
+                                     (stmt-asts obj))))
+    `((:stmt1 . ,(random-ast for-loops)))
+    (error (make-condition 'no-mutation-targets
+             :text "No 'for' loops found"
+             :obj obj))))
+
+(defmethod build-op ((mutation explode-for-loop) (obj clang))
+  (let ((id (aget :stmt1 (targets mutation))))
+    (destructuring-bind (initialization condition advancement body)
+        (mapcar {get-ast obj} (aget :children (get-ast obj id)))
+      (list (list :set (cons :stmt1 id)
+                  (cons :literal1
+                        (peel-bananas
+                         (format nil "~a;~%while(~a)~%{~%~{~a;~%~}~a;~%}~%"
+                                 (aget :src-text initialization)
+                                 (aget :src-text condition)
+                                 (->> (aget :children body)
+                                      (mapcar [{aget :src-text} {get-ast obj}]))
+                                 (aget :src-text advancement)))))))))
+
 ;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
   ((targeter :initform #'pick-cut-decl)))
