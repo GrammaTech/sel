@@ -22,8 +22,6 @@
 ;; *view-max-mutations* ------ number of top mutations to show
 ;; *view-max-note-lines* ----- number of notes lines to display
 ;; *view-best-genome-lines* -- show lines of the best genome
-;;
-;; TODO: control thread using `read-char' from `*standard-input*'
 
 ;;; Code:
 (in-package :software-evolution-view)
@@ -68,6 +66,9 @@ For example a description of the evolution target.")
 
 (defvar *view-max-best-lines* 0
   "Number of lines of the best candidate to show.")
+
+(defvar *view-max-best-offset* 0
+  "Offset into the lines of the best candidate to show.")
 
 (define-constant +golden-ratio+ 21/34)
 
@@ -430,6 +431,12 @@ delayed function on the arguments."
     (best-print (-<>> (lines (extremum *population* #'fitness-better-p
                                        :key #'fitness))
                       (mapcar #'view-truncate)
+                      ((lambda (lines) ; Allow scrolling through the best lines.
+                         (drop (max (min *view-max-best-offset*
+                                         (1- (- (length lines)
+                                                *view-max-best-lines*)))
+                                    0)
+                               lines)))
                       (append <> (make-list *view-max-best-lines*
                                             :initial-element ""))
                       (take *view-max-best-lines*)))))
@@ -521,3 +528,37 @@ Optional argument DELAY controls the rate at which the view refreshes."
          (view-status)
          (sleep *view-delay*))))
    :name "view"))
+
+(defun view-help ()
+  (clear-terminal)
+  (label-line-print :value "TODO: HELP" :left +b-lb+ :right +b-rb+))
+
+
+;;; Control functions
+(defun handle-user-input (command-char)
+  ;; TODO: limits on changes to offset
+  ;; TODO: horizontal scrolling
+  ;; TODO: help on ?
+  ;; TODO: signals for refresh, for more responsive commands
+  (case command-char
+    (#\k (decf *view-max-best-offset*))
+    (#\j (incf *view-max-best-offset*))
+    (#\u (decf *view-max-best-offset* *view-max-best-lines*))
+    ((#\Space #\n #\d) (incf *view-max-best-offset* *view-max-best-lines*))
+    (#\g (setf *view-max-best-offset* 0))
+    (#\G (setf *view-max-best-offset* (max 0 (- (length (lines (extremum *population* #'fitness-better-p
+                                                                      :key #'fitness)))
+                                                *view-max-best-lines*))))
+    (#\? (view-help))
+    (otherwise (note 1 "Unknown command char ~S" command-char)))
+  ;; Return nil on q or Q to terminate.
+  (not (or (equal command-char #\q)
+           (equal command-char #\Q))))
+
+(defun view-controller-start ()
+  (make-terminal-raw)
+  (make-thread
+   (lambda ()
+     (iter (for command-char = (read-char))
+           (while (handle-user-input command-char)))
+     :name "view-controller")))
