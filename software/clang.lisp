@@ -429,10 +429,11 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                         (format nil "for(~a;~a;~a)~%{~%~{~a;~%~}}~%"
                                 initialization
                                 (aget :src-text condition)
-                                (aget :src-text (->> (aget :children body)
-                                                     (lastcar)
-                                                     (get-ast obj)))
-                                (->> (aget :children body)
+                                (or (aget :src-text (&>> (aget :children body)
+                                                         (lastcar)
+                                                         (get-ast obj)))
+                                    "")
+                                (&>> (aget :children body)
                                      (butlast)
                                      (mapcar
                                       [{aget :src-text} {get-ast obj}]))))))))))
