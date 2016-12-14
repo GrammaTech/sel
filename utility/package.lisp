@@ -49,6 +49,7 @@
    :xz-pipe
    :parse-number
    :parse-numbers
+   :make-terminal-raw
    ;; forensic
    :show-it
    :equal-it
