@@ -340,6 +340,7 @@
    :clang-nop
    :clang-instrument
    :explode-for-loop
+   :coalesce-while-loop
    :cut-decl
    :swap-decls
    :rename-variable
