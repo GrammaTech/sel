@@ -339,6 +339,7 @@
    :clang-promote-guarded
    :clang-nop
    :clang-instrument
+   :explode-for-loop
    :cut-decl
    :swap-decls
    :rename-variable
