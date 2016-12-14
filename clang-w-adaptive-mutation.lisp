@@ -19,6 +19,16 @@ the last *max-mutation-results-queue-length* mutations")
 (defvar *mutation-results-queue-lock*
   (make-lock "mutation-results-queue"))
 
+(defvar *bias-toward-dynamic-mutation* 1/2
+  "Degree to which dynamic weights are emphasized over default weights.
+See `*bed-default-mutation-types*' and `*bed-mutation-types*'.")
+(defvar *better-bias* 5/4)
+(defvar *same-bias* 1)
+(defvar *worse-bias* 1/10)
+(defvar *dead-bias* 0)
+
+(define-software clang-w-adaptive-mutation (clang-w-binary clang-w-fodder) ())
+
 (defun queue-mutation (type classification)
   (declare (optimize speed))
   (with-lock-held (*mutation-results-queue-lock*)
@@ -30,32 +40,17 @@ the last *max-mutation-results-queue-length* mutations")
              (the fixnum *mutation-results-queue-next*))
       (setf *mutation-results-queue-next* 0))))
 
-(defvar *bias-toward-dynamic-mutation* 1/2
-  "Degree to which dynamic weights are emphasized over default weights.
-See `*bed-default-mutation-types*' and `*bed-mutation-types*'.")
-(defvar *better-bias* 5/4)
-(defvar *same-bias* 1)
-(defvar *worse-bias* 1/10)
-(defvar *dead-bias* 0)
-
-(define-software clang-w-adaptive-mutation (clang-w-binary clang-w-fodder) ())
-
-(defmethod mutate :around ((obj clang-w-adaptive-mutation))
-  (multiple-value-bind (mutant mutation) (call-next-method)
-    (when (not (zerop *bias-toward-dynamic-mutation*))
-      (queue-mutation (type-of mutation) (classify obj mutant)))
-    (values mutant mutation)))
-
-(defun classify (orig mutant)
-  "Classify the mutatation from ORIG to MUTANT as :BETTER, :WORSE, :SAME, or
-:DEAD dependending on the fitness of ORIG and MUTANT"
-  (let ((orig-f   (evaluate *test* orig))
-        (mutant-f (evaluate *test* mutant)))
-    (cond
-      ((equalp mutant-f (worst-fitness)) :dead)
-      ((fitness-equal-p orig-f mutant-f) :same)
-      ((funcall (complement #'fitness-better-p) mutant-f orig-f) :worse)
-      ((fitness-better-p mutant-f orig-f) :better))))
+(defun adaptive-analyze-mutation (obj mutation-info test)
+  "Adaptively update mutation probabilites based on the result of the mutation"
+  (when (not (zerop *bias-toward-dynamic-mutation*))
+    (destructuring-bind (mutation software-a cross-point-a
+                                  crossed software-b cross-point-b)
+        mutation-info
+      (declare (ignorable software-a cross-point-a
+                          software-b cross-point-b))
+      (evaluate test crossed) ; Evaluate for fitness
+      (evaluate test obj)     ; Safety - should have fitness
+      (queue-mutation (type-of mutation) (classify obj crossed)))))
 
 (defun update-mutation-types (mutation-types &aux by-type)
   (flet ((weighted-probability (mutation-results)
