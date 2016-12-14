@@ -28,6 +28,7 @@
            :*view-max-mutations*
            :*view-max-note-lines*
            :*view-max-best-lines*
+           :*view-max-best-offset*
            :*view-functions*
            ;; Colors.
            :+set-G1+
@@ -85,7 +86,8 @@
            ;; Interface functions.
            :with-delayed-invocation
            :view-truncate
-           :view-start))
+           :view-start
+           :view-controller-start))
 
 #+allegro
 (set-dispatch-macro-character #\# #\_
