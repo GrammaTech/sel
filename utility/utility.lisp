@@ -401,6 +401,7 @@ This allows characters to be read directly without waiting for a newline.
 See 'man 3 termios' for more information."
   #+win32 (error "`make-terminal-raw' not implemented for windows.")
   #-sbcl (error "`make-terminal-raw' not implemented for non-SBCL.")
+  #+sbcl
   (let ((options (sb-posix:tcgetattr 0)))
     (setf (sb-posix:termios-lflag options)
           (logand (sb-posix:termios-lflag options)
