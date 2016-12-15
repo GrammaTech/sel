@@ -53,10 +53,10 @@ See `*bed-default-mutation-types*' and `*bed-mutation-types*'.")
       (queue-mutation (type-of mutation) (classify obj crossed)))))
 
 (defun update-mutation-types (mutation-types &aux by-type)
-  (flet ((weighted-probability (mutation-results)
-           ;; Return a new probability of MUTATION-TYPE occurring by
-           ;; examining the results of previous mutations of
-           ;; MUTATION-TYPE in MUTATION-RESULTS
+  (flet ((dynamic-weight (mutation-results)
+           ;; Return a new dynamic mutation probability weight
+           ;; for MUTATION-TYPE by examining the results of previous
+           ;; mutations of MUTATION-TYPE in MUTATION-RESULTS
            (mean (mapcar (lambda-bind ((type . bias))
                            (* (/ (count-if {equal _ type} mutation-results)
                                  (length mutation-results))
@@ -84,7 +84,8 @@ See `*bed-default-mutation-types*' and `*bed-mutation-types*'.")
                           (+ (* (- 1 *bias-toward-dynamic-mutation*)
                                 prior-probability)
                              (* *bias-toward-dynamic-mutation*
-                                (weighted-probability (aget type by-type))))
+                                (dynamic-weight (aget type by-type))
+                                prior-probability))
                           prior-probability))))
              (normalize-probabilities)
              (cumulative-distribution))))))
