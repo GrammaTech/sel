@@ -546,11 +546,11 @@ Optional argument DELAY controls the rate at which the view refreshes."
     (#\u (decf *view-max-best-offset* *view-max-best-lines*))
     ((#\Space #\n #\d) (incf *view-max-best-offset* *view-max-best-lines*))
     (#\g (setf *view-max-best-offset* 0))
-    (#\G (setf *view-max-best-offset* (max 0 (- (length (lines (extremum *population* #'fitness-better-p
-                                                                      :key #'fitness)))
-                                                *view-max-best-lines*))))
+    (#\G (let ((best (extremum *population* #'fitness-better-p :key #'fitness)))
+           (setf *view-max-best-offset* (max 0 (- (length (lines best))
+                                                  *view-max-best-lines*)))))
     (#\? (view-help))
-    (otherwise (note 1 "Unknown command char ~S" command-char)))
+    (otherwise (note 3 "Unknown command char ~S" command-char)))
   ;; Return nil on q or Q to terminate.
   (not (or (equal command-char #\q)
            (equal command-char #\Q))))
