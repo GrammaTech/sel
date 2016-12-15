@@ -1077,9 +1077,6 @@ that function may be declared.")
                      (keep-after (cdr lines))))))
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
 
-(defun <not> (f)
-  (lambda (x) (not (funcall f x))))
-
 (defmacro <or> (&rest fs)
   (let ((args (gensym "args")))
     `(lambda (&rest ,args)
