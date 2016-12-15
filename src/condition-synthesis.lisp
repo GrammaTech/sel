@@ -750,7 +750,7 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                          (not (string= "BinaryOperator" (aget :ast-class a)))
                          ;; Check scope
                          (ancestor-of obj scope (aget :counter a))))
-                  (asts obj))
+                  (stmt-asts obj))
                  :test #'string= :key {aget :src-text})))
     (loop for (a . rest) in (tails exprs)
        appending
