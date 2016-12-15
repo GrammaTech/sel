@@ -1236,11 +1236,13 @@ already in scope, it will keep that name.")
     (and (not (zerop parent-counter)) (get-ast obj parent-counter))))
 
 (defmethod get-parent-asts ((clang clang) (ast list))
-  (cond ((= (aget :parent-counter ast) 0) (list ast))
-        (t  (append (list ast)
-                    (get-parent-asts
-                     clang
-                     (get-ast clang (aget :parent-counter ast)))))))
+  (when (and ast (aget :parent-counter ast))
+    (if (eql (aget :parent-counter ast) 0)
+        (list ast)
+        (append (list ast)
+                (get-parent-asts
+                 clang
+                 (get-ast clang (aget :parent-counter ast)))))))
 
 (defgeneric get-immediate-children (sosftware ast)
   (:documentation "Return the immediate children of AST in SOFTWARE."))
@@ -1387,14 +1389,15 @@ most recent child when a compound statement is reached."))
 
 (defmethod enclosing-full-stmt
     ((obj clang) (index number) &optional child-index)
-  (unless (or (null index) (zerop index))
+  (unless (zerop index)
     (let ((stmt (get-ast obj index)))
       (if (and (equal (aget :ast-class stmt) "CompoundStmt") child-index)
           child-index
           (enclosing-full-stmt obj (aget :parent-counter stmt) index)))))
 
 (defmethod enclosing-full-stmt ((obj clang) (stmt list) &optional child-index)
-  (enclosing-full-stmt obj (aget :counter stmt) child-index))
+  (when stmt
+    (enclosing-full-stmt obj (aget :counter stmt) child-index)))
 
 (defun get-entry-after (item list)
   (cond ((null list) nil)
@@ -2245,7 +2248,15 @@ equal to the end point of STMT1."))
   (when (and start end)
     (let ((stmt1 (enclosing-full-stmt-or-block clang start))
           (stmt2 (enclosing-full-stmt-or-block clang end)))
-      (cond ((or (ancestor-of clang stmt1 stmt2)
+      (cond ((not (and stmt1 stmt2))
+             ;; If either of STMT1 or STMT2 are nil, then most likely
+             ;; START or END aren't valid stmt-asts.  In this case we
+             ;; will imagine that the caller has made a mistake, and
+             ;; simply return STMT1 and STMT2.
+             (warn "Unable to find enclosing full statements for ~a and/or ~a."
+                   start end)
+             (values stmt1 stmt2))
+            ((or (ancestor-of clang stmt1 stmt2)
                  (ancestor-of clang stmt2 stmt1))
              (values stmt1 stmt2))
             ((< stmt2 stmt1)
