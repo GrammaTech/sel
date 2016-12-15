@@ -359,7 +359,7 @@ Keyword arguments may be used to restrict selections."
                               (if (random-bool) ; Pick a branch randomly.
                                   (compose-children (second children))
                                   (compose-children (third children)))))))))
-                (t (warn 1 "`clang-promote-guarded' unimplemented for ~a"
+                (t (warn "`clang-promote-guarded' unimplemented for ~a"
                          (aget :ast-class guarded)))))))))
 
 ;;; Explode and coalescing mutations over for and while loops.
