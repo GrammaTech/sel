@@ -165,7 +165,12 @@
     (define-constant +expand-assign-mutation-dir+
                      (append +etc-dir+ (list "expand-assign-mutation"))
       :test #'equalp
-      :documentation "Location of the expand assignment mutation example dir")))
+      :documentation "Location of the expand assignment mutation example dir")
+
+    (define-constant +explode-for-loop-dir+
+                     (append +etc-dir+ (list "explode-for-loop"))
+      :test #'equalp
+      :documentation "Location of the explode for loop example dir")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -216,6 +221,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +expand-assign-mutation-dir+))
+
+(defun explode-for-loop-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +explode-for-loop-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -2423,6 +2433,53 @@ Useful for printing or returning differences in the REPL."
                    return))))
         (is (= (run-and-get-return var) (run-and-get-return *scopes*))
             "Exploded for loop doesn't change program behavior.")))))
+
+(deftest explode-for-loop-mutation-works ()
+  "Test conversion of for loop variants computing factorials to while loops"
+  (let ((simple-loop       (from-file (make-instance 'clang)
+                                      (explode-for-loop-dir
+                                       "simple-loop.c")))
+        (no-initialization (from-file (make-instance 'clang)
+                                      (explode-for-loop-dir
+                                       "loop-no-initialization.c")))
+        (no-conditional    (from-file (make-instance 'clang)
+                                      (explode-for-loop-dir
+                                       "loop-no-conditional.c")))
+        (no-increment      (from-file (make-instance 'clang)
+                                      (explode-for-loop-dir
+                                       "loop-no-increment.c")))
+        (no-body           (from-file (make-instance 'clang)
+                                      (explode-for-loop-dir
+                                       "loop-no-body.c"))))
+    (apply-mutation simple-loop
+                    (make-instance 'explode-for-loop :object simple-loop))
+    (apply-mutation no-initialization
+                    (make-instance 'explode-for-loop :object no-initialization))
+    (apply-mutation no-conditional
+                    (make-instance 'explode-for-loop :object no-conditional))
+    (apply-mutation no-increment
+                    (make-instance 'explode-for-loop :object no-increment))
+    (apply-mutation no-body
+                    (make-instance 'explode-for-loop :object no-body))
+
+    (flet ((factorial (obj n)
+             (with-temp-file (bin)
+               (phenome obj :bin bin)
+               (multiple-value-bind (stdout stderr exit)
+                   (shell (format nil "~a ~d" bin n))
+                 (declare (ignorable stdout stderr))
+                 exit))))
+
+      (is (= 120 (factorial simple-loop 5)))
+      (is (= 120 (factorial no-initialization 5)))
+      (is (= 120 (factorial no-conditional 5)))
+      (is (= 120 (factorial no-increment 5)))
+      (is (= 120 (factorial no-body 5)))
+      (is (not (scan (quote-meta-chars "for") (genome simple-loop))))
+      (is (not (scan (quote-meta-chars "for") (genome no-initialization))))
+      (is (not (scan (quote-meta-chars "for") (genome no-conditional))))
+      (is (not (scan (quote-meta-chars "for") (genome no-increment))))
+      (is (not (scan (quote-meta-chars "for") (genome no-body)))))))
 
 (deftest pick-while-loop-works ()
   (with-fixture scopes-clang

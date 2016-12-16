@@ -380,18 +380,96 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
              :obj obj))))
 
 (defmethod build-op ((mutation explode-for-loop) (obj clang))
-  (let ((id (aget :stmt1 (targets mutation))))
-    (destructuring-bind (initialization condition advancement body)
-        (mapcar {get-ast obj} (aget :children (get-ast obj id)))
-      (list (list :set (cons :stmt1 id)
-                  (cons :literal1
-                        (peel-bananas
-                         (format nil "~a;~%while(~a)~%{~%~{~a;~%~}~a;~%}~%"
-                                 (aget :src-text initialization)
-                                 (aget :src-text condition)
-                                 (->> (aget :children body)
-                                      (mapcar [{aget :src-text} {get-ast obj}]))
-                                 (aget :src-text advancement)))))))))
+  (labels ((stmt-or-default (ast default)
+             (let ((trimmed (string-trim '(#\Space #\Tab #\Newline)
+                                         (or (aget :src-text ast) ""))))
+               (if (not (emptyp trimmed))
+                   (add-semicolon-if-needed trimmed)
+                   default)))
+           (trim-or-default (ast default)
+             (let ((trimmed (string-trim '(#\Space #\Tab #\Newline)
+                                         (or (aget :src-text ast) ""))))
+               (if (not (emptyp trimmed)) trimmed default)))
+           (is-initialization-ast (ast)
+             (and (equal "BinaryOperator"
+                         (aget :ast-class ast))
+                  (equal "=" (aget :opcode ast))))
+           (is-condition-ast (ast)
+             (and (equal "BinaryOperator"
+                         (aget :ast-class ast))
+                  (not (equal "=" (aget :opcode ast)))))
+           (is-increment-ast (ast)
+             (or (equal "CompoundAssignOperator"
+                        (aget :ast-class ast))
+                 (and (equal "BinaryOperator"
+                             (aget :ast-class ast))
+                      (equal "=" (aget :opcode ast)))
+                 (and (equal "UnaryOperator"
+                             (aget :ast-class ast))
+                      (or (equal "--" (aget :opcode ast))
+                          (equal "++" (aget :opcode ast))))))
+           (destructure-for-loop (id)
+             ;; Return the initialization, conditional, increment, and body
+             ;; ASTS of the for-loop AST identified by ID as VALUES.
+             ;;
+             ;; This is an imperfect solution based on heuristics as to
+             ;; probable ASTs for each part of a for loop.  These heuristics
+             ;; undoubtedly will fail for some cases, and a non-compiling
+             ;; individual will be created as a result.
+             (let ((children (mapcar {get-ast obj}
+                                     (->> (get-ast obj id)
+                                          (aget :children)))))
+               (case (length children)
+                 (4 (values-list children))
+                 (3 (cond ((and (is-initialization-ast (first children))
+                                (is-condition-ast (second children)))
+                           (values (first children)
+                                   (second children)
+                                   nil
+                                   (third children)))
+                          ((and (is-condition-ast (first children))
+                                (is-increment-ast (second children)))
+                           (values nil
+                                   (first children)
+                                   (second children)
+                                   (third children)))
+                          (t
+                           (values (first children)
+                                   nil
+                                   (second children)
+                                   (third children)))))
+                (2 (cond ((is-initialization-ast (first children))
+                          (values (first children)
+                                  nil
+                                  nil
+                                  (second children)))
+                         ((is-condition-ast (first children))
+                          (values nil
+                                  (first children)
+                                  nil
+                                  (second children)))
+                         ((is-increment-ast (first children))
+                          (values nil
+                                  nil
+                                  (first children)
+                                  (second children)))
+                         (t ; Hueristics failed
+                          (values nil nil nil nil))))
+                (1 (values nil nil nil (first children))) ; Always assume body
+                (otherwise (values nil nil nil nil))))))
+    (let ((id (aget :stmt1 (targets mutation))))
+      (multiple-value-bind (initialization condition increment body)
+        (destructure-for-loop id)
+        (list (list :set (cons :stmt1 id)
+                         (cons :literal1
+                               (peel-bananas
+                                (format nil "~a~%while(~a)~%{~%~{~a;~%~}~a~%}~%"
+                                        (stmt-or-default initialization "")
+                                        (trim-or-default condition "1")
+                                        (&>> (aget :children body)
+                                             (mapcar [{aget :src-text}
+                                                      {get-ast obj}]))
+                                        (stmt-or-default increment ""))))))))))
 
 (define-mutation coalesce-while-loop (clang-mutation)
   ((targeter :initform #'pick-while-loop))
