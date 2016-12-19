@@ -1673,7 +1673,7 @@ is not to be found"
           "`analyze-mutation' calculates fitness when missing")
       (let ((stats-alist (hash-table-alist *mutation-stats*)))
         (is (= (length stats-alist) 1) "Single element in stats")
-        (is (equal :better (second (second (first stats-alist))))
+        (is (equal :better (first (second (first stats-alist))))
             "`analyze-mutation' notices fitness improvement")))))
 
 (deftest mutation-stats-notices-worsening ()
@@ -1684,8 +1684,8 @@ is not to be found"
           (op (make-instance 'clang-cut :targets '((:stmt1 . 2)))))
       (apply-mutation variant op)
       (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
-      (is (equal :worse (second (second (first (hash-table-alist
-                                                *mutation-stats*)))))
+      (is (equal :worse (first (second (first (hash-table-alist
+                                               *mutation-stats*)))))
           "`analyze-mutation' notices worse improvement"))))
 
 (deftest mutation-stats-notices-same ()
@@ -1697,8 +1697,8 @@ is not to be found"
                 :targets '((:stmt1 . 2) (:stmt2 . 2)))))
       (setf (fitness variant) nil)
       (analyze-mutation variant (list op nil nil *hello-world* nil nil) *test*)
-      (is (equal :same (second (second (first (hash-table-alist
-                                               *mutation-stats*)))))
+      (is (equal :same (first (second (first (hash-table-alist
+                                              *mutation-stats*)))))
           "`analyze-mutation' notices no change: ~S"
           (hash-table-alist *mutation-stats*)))))
 
@@ -1934,15 +1934,15 @@ is not to be found"
       (with-fixture population
         ;; Should still signal errors.
         (let ((*soft-mutate-errors* t))
-          (signals mutate (evolve #'test :max-evals 20 :mutation-stats t)))
-        (evolve #'test :max-evals 20 :mutation-stats t)
+          (signals mutate (evolve #'test
+                                  :max-evals 20
+                                  :analyze-mutation-fn #'analyze-mutation)))
+        (evolve #'test :max-evals 20 :analyze-mutation-fn #'analyze-mutation)
         (is (equal '(:fake) (hash-table-keys *mutation-stats*)))
-        ;; Error, and 1 more than :max-evals.
-        (is (= 22 (length (gethash :fake *mutation-stats*))))
-        (let ((statuses (mapcar #'cadr (gethash :fake *mutation-stats*))))
+        (is (= 21 (length (gethash :fake *mutation-stats*))))
+        (let ((statuses (mapcar #'car (gethash :fake *mutation-stats*))))
           (is (member :better statuses))
-          (is (member :worse statuses))
-          (is (member :error statuses)))))))
+          (is (member :worse statuses)))))))
 
 (deftest terminate-evolution-on-success ()
   (let ((counter 0))
@@ -2503,6 +2503,67 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
+
+;;;clang-w-adaptive-mutation tests
+(deftest bad-cut-changes-mutation-probability ()
+  (let* ((se::*mutation-results-queue* #((cut . :worse) (cut . :dead)))
+         (muts-0 '((cut . 1/2) (swap . 1)))
+         (muts-1 (update-mutation-types muts-0))
+         (muts-2 (update-mutation-types muts-1)))
+    (is (< (aget 'cut muts-1) (aget 'cut muts-0))
+        "Bad mutations lose probability.")
+    (is (< (aget 'cut muts-2) (aget 'cut muts-1))
+        "Bad mutations continue to lose probability.")))
+
+(deftest mutation-queue-wraps-as-expected ()
+  (let ((se::*mutation-results-queue*
+         (make-array 100
+                     :element-type '(cons symbol symbol)
+                     :initial-element (cons :nothing :nothing)))
+        (se::*mutation-results-queue-next* 0))
+    (dotimes (n 100)
+      (se::queue-mutation 'cut :dead))
+    (is (every [{equal 'cut} #'car] se::*mutation-results-queue*)
+        "`queue-mutation' fills `*mutation-results-queue*' as expected.")
+    (se::queue-mutation 'swap :better)
+    (is (equalp (cons 'swap :better) (aref se::*mutation-results-queue* 0))
+        "`queue-mutation' wraps `*mutation-results-queue*' as expected.")))
+
+(deftest update-mutation-types-returns-list-when-mutation-queue-unpopulated ()
+  "Ensure update-mutation-types returns its first argument when the
+*mutation-results-queue* is unpopulated"
+  (let ((se::*mutation-results-queue*
+          (copy-seq se::+initial-mutation-results-queue+))
+        (se::*mutation-results-queue-next* 0)
+        (mutation-types (copy-seq *clang-mutation-types*)))
+    (is (equalp mutation-types
+                (update-mutation-types mutation-types)))))
+
+(deftest update-mutation-types-returns-list-when-mutation-queue-populated ()
+  "Ensure update-mutation-types returns a list when the
+*mutation-results-queue* is populated"
+  (let ((se::*mutation-results-queue*
+          (copy-seq se::+initial-mutation-results-queue+))
+        (se::*mutation-results-queue-next* 0)
+        (mutation-types (copy-seq *clang-mutation-types*)))
+    (dotimes (n (length se::+initial-mutation-results-queue+))
+      (se::queue-mutation 'cut :dead))
+    (is (listp (update-mutation-types mutation-types)))))
+
+(deftest adaptive-analyze-mutation-updates-results-queue-properly ()
+  (let ((*fitness-predicate* #'<)
+        (se::*mutation-results-queue-next* 0)
+        (se::*mutation-results-queue*
+         (copy-seq se::+initial-mutation-results-queue+))
+        (parent-a (make-instance 'clang :fitness 2))
+        (parent-b (make-instance 'clang :fitness 2))
+        (crossed  (make-instance 'clang :fitness 1))
+        (mutant   (make-instance 'clang :fitness 0)))
+      (adaptive-analyze-mutation mutant
+                                 `(clang-cut ,parent-a 0
+                                   ,crossed ,parent-b 0)
+                                 {fitness})
+      (is (equal :better (cdr (aref se::*mutation-results-queue* 0))))))
 
 ;;; Database tests
 (defixture json-database
