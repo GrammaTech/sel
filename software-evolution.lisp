@@ -194,90 +194,79 @@ Used to target mutation."))
 (defvar *target-fitness-p* nil
   "Predicate indicating whether an individual has reached the target fitness.")
 
-(defgeneric analyze-mutation (software mutation-info
-                              &optional test)
-  (:documentation "Collect statistics from an applied mutation.
-Should return arguments unmodified as values to enable chaining
-against `new-individual' with `multiple-value-call'.  Calculated Stats
-should be added to the `*mutation-stats*' variable.  Calculated stats
-are also returned as additional values.  This method will calculate
-the fitness of SOFTWARE with `evaluate'.  Each mutation will be paired
-with one of the tags; :dead, :same, :worse, :better.
+(defun analyze-mutation (obj mutation-info test &aux result)
+  "Default function to collect statistics from an applied mutation.
 
-If candidate fitness has not already been evaluated, then optional
-argument TEST must be supplied."))
-
-(defvar *analyze-mutation-verbose-stream* nil
-  "Non-nil to print verbose output when analyzing mutations to value.")
-
-(defmethod analyze-mutation ((obj software) mutation-info
-                             &optional test
-                             &aux result)
+This function will calculate the improvements to the fitness of SOFTWARE
+as the result of crossover and mutation using `evaluate' and TEST.
+Each crossover and mutation will be paired with one of the following tags;
+:dead, :same, :worse, or :better.  Calculated stats will be added to the
+*crossover-stats* and *mutation-stats* variables for analysis."
   ;; Mutation info from new-individual
   (destructuring-bind (mutation software-a cross-point-a
                                 crossed software-b cross-point-b)
       mutation-info
-    (labels ((safe-eval (object)
-               (or (fitness object)
-                   (progn
-                     (assert test (object test)
-                             "TEST is mandatory if objects have no fitness")
-                     (evaluate test object))))
-             (fitness-better-p (fitness-a fitness-b)
-               (cond
-                 ((and (numberp fitness-a) (numberp fitness-b))
-                  (funcall *fitness-predicate* fitness-a fitness-b))
-                 ((and (= (length fitness-a) (length fitness-b)))
-                  (and (every (lambda (a b)
-                                (or (funcall *fitness-predicate* a b)
-                                    (= a b)))
-                              fitness-a fitness-b)
-                       (some *fitness-predicate* fitness-a fitness-b)))
-                 (:otherwise (error "Can't compare fitness ~a and fitness ~a"
-                                    fitness-a fitness-b))))
-             (note (string)
-               (when *analyze-mutation-verbose-stream*
-                 (format *analyze-mutation-verbose-stream* string)))
-             (classify (new old &optional old-2)
-               (let ((fit (safe-eval new))
-                     (old-fit (if (and old-2 *fitness-predicate*)
-                                  (extremum (list (safe-eval old)
-                                                  (safe-eval old-2))
-                                            #'fitness-better-p)
-                                  (safe-eval old))))
-                 (values
-                  (cond
-                    ((not *fitness-predicate*) (note "?") :non-comparable)
-                    ((funcall *worst-fitness-p* new) (note "_") :dead)
-                    ((and (not (fitness-better-p fit old-fit))
-                          (not (fitness-better-p old-fit fit)))
-                     (note "=") :same)
-                    ((funcall (complement #'fitness-better-p) fit old-fit)
-                     (note "-") :worse)
-                    ((fitness-better-p fit old-fit)
-                     (note "+")
-                     (push (cons (mutation-key crossed mutation)
-                                 *fitness-evals*)
-                           *mutation-improvements*)
-                     (when (>= (length *mutation-improvements*)
-                               *max-saved-mutation-improvements*)
-                       (setf *mutation-improvements*
-                             (butlast *mutation-improvements*)))
-                     :better))
-                  fit old-fit))))
-      ;; Add information on the mutation to `*mutation-stats*`.
-      (multiple-value-bind (effect fit old-fit)
-          (classify obj crossed)
-        (push (setf result (list mutation effect *fitness-evals* fit old-fit))
-              (gethash (mutation-key crossed mutation) *mutation-stats*)))
-      ;; Add information on the crossover to `*crossover-stats*`.
-      (when cross-point-a
-        (let ((effect (classify crossed software-a software-b)))
-          (push (list mutation effect *fitness-evals*)
-                (gethash (mutation-key crossed mutation) *crossover-stats*)))))
+
+    ;; Evaluate software objects to ensure fitness
+    (when crossed    (evaluate test crossed))    ; Evaluate for fitness
+    (when software-a (evaluate test software-a)) ; Safety - should have fitness
+    (when software-b (evaluate test software-b)) ; Safety - should have fitness
+    (when obj        (evaluate test obj))        ; Safety - should have fitness
+
+    ;; Add information on the mutation to `*mutation-stats*`.
+    (multiple-value-bind (effect fit old-fit)
+        (classify obj crossed)
+      (when (equal effect :better)
+        (push (cons (mutation-key crossed mutation)
+                    *fitness-evals*)
+              *mutation-improvements*)
+        (when (>= (length *mutation-improvements*)
+                  *max-saved-mutation-improvements*)
+          (setf *mutation-improvements*
+                (butlast *mutation-improvements*))))
+      (push (setf result (list effect *fitness-evals* fit old-fit))
+            (gethash (mutation-key crossed mutation) *mutation-stats*)))
+
+    ;; Add information on the crossover to `*crossover-stats*`.
+    (when cross-point-a
+      (let ((effect (classify crossed software-a software-b)))
+        (push (list effect *fitness-evals*)
+              (gethash (mutation-key crossed mutation) *crossover-stats*))))
+
     (values
-     obj mutation software-a cross-point-a crossed software-b cross-point-b
-     (first result) (second result) (third result))))
+     obj mutation
+     software-a cross-point-a crossed software-b cross-point-b
+     (first result))))
+
+(defmethod classify (new &rest old)
+  "Classify the fitness of NEW as :BETTER, :WORSE, :SAME, or :DEAD when
+compared to OLD.  NEW and OLD must have fitness populated."
+  (labels ((fitness-better-p (fitness-a fitness-b)
+             (cond
+               ((and (numberp fitness-a) (numberp fitness-b))
+                (funcall *fitness-predicate* fitness-a fitness-b))
+               ((and (= (length fitness-a) (length fitness-b)))
+                (and (every (lambda (a b)
+                              (or (funcall *fitness-predicate* a b)
+                                  (= a b)))
+                            fitness-a fitness-b)
+                     (some *fitness-predicate* fitness-a fitness-b)))
+               (:otherwise (error "Can't compare fitness ~a and fitness ~a"
+                                  fitness-a fitness-b)))))
+    (let ((fit (fitness new))
+          (old-fit (extremum (mapcar {fitness} old)
+                             #'fitness-better-p)))
+      (values
+       (cond
+         ((funcall *worst-fitness-p* new) :dead)
+         ((and (not (fitness-better-p fit old-fit))
+               (not (fitness-better-p old-fit fit)))
+          :same)
+         ((funcall (complement #'fitness-better-p) fit old-fit)
+          :worse)
+         ((fitness-better-p fit old-fit)
+          :better))
+       fit old-fit))))
 
 (defgeneric mutation-key (software mutation)
   (:documentation "Key used to organize mutations in *mutation-stats*."))
@@ -292,7 +281,7 @@ argument TEST must be supplied."))
                      (if (aget result (aget (car key) results))
                          (incf (aget result (aget (car key) results)))
                          (setf (aget result (aget (car key) results)) 1)))
-                   (mapcar #'second vals)))
+                   (mapcar #'first vals)))
            *mutation-stats*)
   results)
 
@@ -579,7 +568,7 @@ SPECS should be a list of the following elements.
   EVERY-PRE-FN -------- Function to call before every evaluation.
   EVERY-POST-FN ------- Function to call after every evaluation.
   FILTER -------------- Function to filter variants from BODY.
-  MUTATION-STATS ------ Indicates whether to collect mutation stats.
+  ANALYZE-MUTATION-FN - Function to call to analyze mutation results
 
 The following global variables are implicitly updated by this function
 and should be dynamically bound to perform multiple different
@@ -596,7 +585,7 @@ criteria for this search."
                    (every-pre-fn every-pre-fn)
                    (every-post-fn every-post-fn)
                    (filter filter)
-                   (collect-mutation-stats collect-mutation-stats))
+                   (analyze-mutation-fn analyze-mutation-fn))
       ;; Inside the returned code let-bind evaluated elements of SPECS.
       `(let ((,test ,(nth 1 specs))
              (,max-evals ,(nth 2 specs))
@@ -606,7 +595,7 @@ criteria for this search."
              (,every-pre-fn ,(nth 6 specs))
              (,every-post-fn ,(nth 7 specs))
              (,filter ,(nth 8 specs))
-             (,collect-mutation-stats ,(nth 9 specs)))
+             (,analyze-mutation-fn ,(nth 9 specs)))
          (block search-target-reached
            (unless *start-time* (setq *start-time* (get-internal-real-time)))
            (setq *running* t)
@@ -618,33 +607,28 @@ criteria for this search."
                                        internal-time-units-per-second)
                                     ,max-time))) :do
               (restart-case
-                  (handler-bind
-                      ((mutate
-                        (lambda (err)
-                          (when (and ,collect-mutation-stats (op err) (obj err))
-                            (push (list (op err) :error)
-                                  (gethash (mutation-key (obj err) (op err))
-                                           *mutation-stats*))))))
-                    (multiple-value-bind (,variant ,mutation-info)
-                        (funcall ,step)
-                      (when ,every-pre-fn
-                        (funcall ,every-pre-fn ,variant))
-                      (evaluate ,test ,variant)
-                      (when ,collect-mutation-stats
-                        (analyze-mutation ,variant ,mutation-info ,test))
-                      (when ,every-post-fn
-                        (funcall ,every-post-fn ,variant))
-                      (incf *fitness-evals*)
-                      (when (and ,period ,period-fn
-                                 (zerop (mod *fitness-evals* ,period)))
-                        (funcall ,period-fn))
-                      (assert (fitness ,variant) (,variant)
-                              "Variant with no fitness")
-                      (when (or (not ,filter) (funcall ,filter ,variant))
-                        ,@body)
-                      (when (and *target-fitness-p*
-                                 (funcall *target-fitness-p* ,variant))
-                        (return-from search-target-reached ,variant))))
+                  (multiple-value-bind (,variant ,mutation-info)
+                      (funcall ,step)
+                    (when ,every-pre-fn
+                      (funcall ,every-pre-fn ,variant))
+                    (evaluate ,test ,variant)
+                    (when ,analyze-mutation-fn
+                      (funcall ,analyze-mutation-fn ,variant
+                                                    ,mutation-info
+                                                    ,test))
+                    (when ,every-post-fn
+                      (funcall ,every-post-fn ,variant))
+                    (incf *fitness-evals*)
+                    (when (and ,period ,period-fn
+                               (zerop (mod *fitness-evals* ,period)))
+                      (funcall ,period-fn))
+                    (assert (fitness ,variant) (,variant)
+                            "Variant with no fitness")
+                    (when (or (not ,filter) (funcall ,filter ,variant))
+                      ,@body)
+                    (when (and *target-fitness-p*
+                               (funcall *target-fitness-p* ,variant))
+                      (return-from search-target-reached ,variant)))
                 (ignore-failed-mutation ()
                   :report
                   "Ignore failed mutation and continue evolution"))))
@@ -653,7 +637,7 @@ criteria for this search."
 (defmacro mcmc (original test
                 &key
                   accept-fn max-evals max-time period period-fn
-                  every-pre-fn every-post-fn filter mutation-stats)
+                  every-pre-fn every-post-fn filter analyze-mutation-fn)
   "MCMC search from ORIGINAL using `mcmc-step' and TEST.
 If keyword argument ACCEPT-FN is given it is used to determine when a
 newly found candidate replaces the current candidate.  If ACCEPT-FN is
@@ -665,7 +649,8 @@ Other keyword arguments are used as defined in the `-search' function."
           `(let ((,curr ,original))
              (-search ((new mut-info)
                        ,test ,max-evals ,max-time ,period ,period-fn
-                       ,every-pre-fn ,every-post-fn ,filter ,mutation-stats)
+                       ,every-pre-fn ,every-post-fn
+                       ,filter ,analyze-mutation-fn)
                       (mcmc-step ,curr)
                       (when (funcall accept-fn (fitness ,curr) (fitness new))
                         (setf ,curr new))))))
@@ -681,37 +666,37 @@ Other keyword arguments are used as defined in the `-search' function."
 (defmacro evolve (test
                   &key
                     max-evals max-time period period-fn
-                    every-pre-fn every-post-fn filter mutation-stats)
+                    every-pre-fn every-post-fn filter analyze-mutation-fn)
   "Evolves `*population*' using `new-individual' and TEST.
 Keyword arguments are used as defined in the `-search' function."
   `(-search ((new mut-info)
              ,test ,max-evals ,max-time ,period ,period-fn
-             ,every-pre-fn ,every-post-fn ,filter ,mutation-stats)
+             ,every-pre-fn ,every-post-fn ,filter ,analyze-mutation-fn)
             #'new-individual
             (incorporate new)))
 
 (defun generational-evolve
     (reproduce evaluate select
      &key
-       every-pre-fn every-post-fn mutation-stats test period period-fn
+       every-pre-fn every-post-fn analyze-mutation-fn test period period-fn
        max-generations max-evals max-time filter)
   "Evolves `*population*' using REPRODUCE EVALUATE and SELECT.
 
 Required arguments are as follows:
-  REPRODUCE -------- create new individuals from the current population
-  EVALUATE --------- evaluate the entire population
-  SELECT ----------- select best individuals from the population
+  REPRODUCE ----------- create new individuals from the current population
+  EVALUATE ------------ evaluate the entire population
+  SELECT -------------- select best individuals from the population
 Keyword arguments are as follows:
-  MAX-GENERATIONS -- stop after this many generations
-  MAX-EVALS -------- stop after this many fitness evaluations
-  MAX-TIME --------- stop after this many seconds
-  PERIOD ----------- interval of generations evaluations to run PERIOD-FN
-  PERIOD-FN -------- function to run every PERIOD generations
-  EVERY-POST-FN ---- function to run on every new individual before evaluation
-  EVERY-POST-FN ---- function to run on every new individual after evaluation
-  MUTATION-STATS --- set to non-nil to collect mutation statistics
-  TEST ------------- fitness test function for mutation statistics
-  FILTER ----------- remove individuals for which FILTER returns false"
+  MAX-GENERATIONS ----- stop after this many generations
+  MAX-EVALS ----------- stop after this many fitness evaluations
+  MAX-TIME ------------ stop after this many seconds
+  PERIOD -------------- interval of generations evaluations to run PERIOD-FN
+  PERIOD-FN ----------- function to run every PERIOD generations
+  EVERY-PRE-FN -------- function to run on each new individual before evaluation
+  EVERY-POST-FN ------- function to run on each new individual after evaluation
+  ANALYZE-MUTATION-FN - function to call to analyze mutation results
+  TEST ---------------- fitness test function for mutation statistics
+  FILTER -------------- remove individuals for which FILTER returns false"
 
   (setq *running* t)
   (setq *generations* 0)
@@ -732,8 +717,9 @@ Keyword arguments are as follows:
              (if every-post-fn (mapc {funcall every-post-fn} children))
              (if filter (setq children (delete-if-not filter children)))
              (setq *population* (append children *population*))
-             (if mutation-stats
-                 (mapcar (lambda (c info) (analyze-mutation c info test))
+             (if analyze-mutation-fn
+                 (mapcar (lambda (c info)
+                           (funcall analyze-mutation-fn c info test))
                          children mutation-info))
              (loop :for child :in children
                 :when (funcall *target-fitness-p* child) :do

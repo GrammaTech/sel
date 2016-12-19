@@ -64,10 +64,10 @@
    :op
    :*mutation-stats*
    :*crossover-stats*
-   :*analyze-mutation-verbose-stream*
    :analyze-mutation
    :mutation-key
    :summarize-mutation-stats
+   :classify
    :crossover
    :one-point-crossover
    :two-point-crossover
