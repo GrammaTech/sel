@@ -338,7 +338,7 @@ delayed function on the arguments."
 
 
 ;;; View functions
-;;; 
+;;;
 ;;; TODO: Determine how to setup this list with functions s.t. they
 ;;;       are evaluated *first* to populate arguments (previously done
 ;;;       as arguments to view were evaluated) and then second to
@@ -361,30 +361,49 @@ delayed function on the arguments."
                         :balance (/ (- 1 +golden-ratio+) 2)
                         :left +b-vr+ :right +b-vl+))))
 
+(defun filter-population-by-fitness-type (population
+                                          &key
+                                            (type (if (numberp
+                                                       (fitness
+                                                        (first population)))
+                                                      :scalar
+                                                      :vector)))
+  "Filter POPULATION so that all members have TYPE (:VECTOR or :SCALAR) fitness.
+If TYPE is not specified, use the fitness type of the first member of
+the population."
+  (remove-if-not (ecase type
+                   (:scalar #'numberp)
+                   (:vector #'vectorp))
+                 population :key #'fitness))
+
 (defun fitness-view-function ()
-  ;; Fitness data informaion (pre-calculated).
+  ;; Fitness data information (pre-calculated).
   (with-delayed-invocation (fitness-data-print
                             (and *population* (every #'fitness *population*)))
-    (let* ((vectorp (not (numberp (car *population*))))
+    (let* ((vectorp (not (numberp (fitness (car *population*)))))
+           ;; only include variants that have the right type (numeric or vector)
+           (fit-population (filter-population-by-fitness-type
+                            *population*
+                            :type (if vectorp :vector :scalar)))
            (fits (mapcar (if vectorp
                              [{reduce #'+} #'fitness]
                              #'fitness)
-                         *population*)))
+                         fit-population)))
       (fitness-data-print
        (format nil "~6f" (extremum fits *fitness-predicate*))
        (format nil "~6f" (median fits))
        (when vectorp
          (format nil "~6f"
-                 (->> *population*
+                 (->> fit-population
                       (mapcar [{coerce _ 'list} #'fitness])
                       (apply #'mapcar [{apply #'min} #'list])
                       (reduce #'+))))
        (when vectorp
          (format nil "~d"
                  (/ (length (remove-duplicates
-                             (mapcar #'fitness *population*)
+                             (mapcar #'fitness fit-population)
                              :test #'equalp))
-                    (length *population*))))))))
+                    (length fit-population))))))))
 
 (defun genome-view-function ()
   ;; Genomic data informaion (pre-calculated).
@@ -428,8 +447,9 @@ delayed function on the arguments."
   (with-delayed-invocation (best-print (and (> *view-max-best-lines* 0)
                                             *population*
                                             (every #'fitness *population*)))
-    (best-print (-<>> (lines (extremum *population* #'fitness-better-p
-                                       :key #'fitness))
+    (best-print (-<>> (filter-population-by-fitness-type *population*)
+                      (extremum <> #'fitness-better-p :key #'fitness)
+                      (lines)
                       (mapcar #'view-truncate)
                       ((lambda (lines) ; Allow scrolling through the best lines.
                          (drop (max (min *view-max-best-offset*
