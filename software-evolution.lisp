@@ -714,13 +714,13 @@ Keyword arguments are as follows:
                (funcall reproduce *population*)
              (if every-pre-fn (mapc every-pre-fn children))
              (funcall evaluate children)
-             (if every-post-fn (mapc {funcall every-post-fn} children))
-             (if filter (setq children (delete-if-not filter children)))
-             (setq *population* (append children *population*))
              (if analyze-mutation-fn
                  (mapcar (lambda (c info)
                            (funcall analyze-mutation-fn c info test))
                          children mutation-info))
+             (if every-post-fn (mapc {funcall every-post-fn} children))
+             (if filter (setq children (delete-if-not filter children)))
+             (setq *population* (append children *population*))
              (loop :for child :in children
                 :when (funcall *target-fitness-p* child) :do
                 (setf *running* nil)
