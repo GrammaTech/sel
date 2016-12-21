@@ -177,6 +177,15 @@
    :*simple-mutation-types*
    :*asm-linker*
    :*asm-mutation-types*
+   ;; adaptive software
+   :adaptive-mutation
+   :*bias-toward-dynamic-mutation*
+   :*better-bias*
+   :*same-bias*
+   :*worse-bias*
+   :*dead-bias*
+   :adaptive-analyze-mutation
+   :update-mutation-types
    ;; clang / clang-w-fodder global variables
    :searchable
    :fodder-database
