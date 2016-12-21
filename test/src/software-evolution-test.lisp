@@ -2504,7 +2504,8 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
-;;;clang-w-adaptive-mutation tests
+
+;;; Adaptive-mutation tests.
 (deftest bad-cut-changes-mutation-probability ()
   (let* ((se::*mutation-results-queue* #((cut . :worse) (cut . :dead)))
          (muts-0 '((cut . 1/2) (swap . 1)))
@@ -2565,6 +2566,7 @@ Useful for printing or returning differences in the REPL."
                                  {fitness})
       (is (equal :better (cdr (aref se::*mutation-results-queue* 0))))))
 
+
 ;;; Database tests
 (defixture json-database
   (:setup
@@ -2640,6 +2642,7 @@ Useful for printing or returning differences in the REPL."
                          :collect (aget :hash (find-snippets *database*
                                                              :limit 1)))))
         (equal picks (remove-duplicates picks))))))
+
 
 ;;; Instrumentation tests
 (defun count-fullable (obj)

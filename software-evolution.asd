@@ -58,6 +58,7 @@ techniques."
             ((:file "ancestral")
              (:file "clang-instrument")
              (:file "fix-compilation")
+             (:file "adaptive-mutation")
              (:file "searchable")
              (:file "fodder-database" :depends-on ("searchable"))
              (:file "in-memory-fodder-database" :depends-on ("fodder-database"))

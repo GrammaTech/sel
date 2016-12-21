@@ -1,6 +1,5 @@
-;;; clang software object with dynamically adapting mutation
-;;; probabilities based on the results of previous mutations.
-(in-package :bed)
+;;;; software object with dynamically adapting mutation probabilities
+(in-package :software-evolution)
 
 (define-constant +initial-mutation-results-queue+
   (make-array 1024
@@ -20,14 +19,13 @@ the last *max-mutation-results-queue-length* mutations")
   (make-lock "mutation-results-queue"))
 
 (defvar *bias-toward-dynamic-mutation* 1/2
-  "Degree to which dynamic weights are emphasized over default weights.
-See `*bed-default-mutation-types*' and `*bed-mutation-types*'.")
+  "Degree to which dynamic weights are emphasized over default weights.")
 (defvar *better-bias* 5/4)
 (defvar *same-bias* 1)
 (defvar *worse-bias* 1/10)
 (defvar *dead-bias* 0)
 
-(define-software clang-w-adaptive-mutation (clang-w-binary clang-w-fodder) ())
+(define-software adaptive-mutation (software) ())
 
 (defun queue-mutation (type classification)
   (declare (optimize speed))
