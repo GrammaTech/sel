@@ -769,10 +769,13 @@ is replaced with replacement."
       list
       (append list (make-list (- n (length list))
                               :initial-element elem))))
-(defun chunks (list size)
+
+(defun chunks (list size &optional include-remainder-p)
   "Return subsequent chunks of LIST of size SIZE."
-  (loop :for i :below (1+ (- (length list) size)) :by size :collect
-     (subseq list i (+ i size))))
+  (loop :for i :to (if include-remainder-p
+                       (length list)
+                       (- (length list) size))
+     :by size :collect (subseq list i (min (+ i size) (length list)))))
 
 (defun binary-search (value array &key (low 0)
                                        (high (1- (length array)))
