@@ -1081,16 +1081,6 @@ that function may be declared.")
                      (keep-after (cdr lines))))))
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
 
-(defmacro <or> (&rest fs)
-  (let ((args (gensym "args")))
-    `(lambda (&rest ,args)
-       (or ,@(mapcar (lambda (f) `(apply ,f ,args)) fs)))))
-
-(defmacro <and> (&rest fs)
-  (let ((args (gensym "args")))
-    `(lambda (&rest ,args)
-       (and ,@(mapcar (lambda (f) `(apply ,f ,args)) fs)))))
-
 
 ;;; Iteration helpers
 (defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))

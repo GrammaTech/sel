@@ -665,7 +665,8 @@ for successful mutation (e.g. adding includes/types/macros)"))
                            (or (< (first x) (first y))
                                (and (= (first x) (first y))
                                     (< (second x) (second y)))))
-                         :key «{aget :begin-src-line} {aget :begin-src-col}»)
+                         :key
+                         «list {aget :begin-src-line} {aget :begin-src-col}»)
                    (string #\Newline))))
 
 (defgeneric from-file-exactly (software path)
