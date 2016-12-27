@@ -242,32 +242,20 @@ Each crossover and mutation will be paired with one of the following tags;
 (defmethod classify (new &rest old)
   "Classify the fitness of NEW as :BETTER, :WORSE, :SAME, or :DEAD when
 compared to OLD.  NEW and OLD must have fitness populated."
-  (labels ((fitness-better-p (fitness-a fitness-b)
-             (cond
-               ((and (numberp fitness-a) (numberp fitness-b))
-                (funcall *fitness-predicate* fitness-a fitness-b))
-               ((and (= (length fitness-a) (length fitness-b)))
-                (and (every (lambda (a b)
-                              (or (funcall *fitness-predicate* a b)
-                                  (= a b)))
-                            fitness-a fitness-b)
-                     (some *fitness-predicate* fitness-a fitness-b)))
-               (:otherwise (error "Can't compare fitness ~a and fitness ~a"
-                                  fitness-a fitness-b)))))
-    (let ((fit (fitness new))
-          (old-fit (extremum (mapcar {fitness} old)
-                             #'fitness-better-p)))
-      (values
-       (cond
-         ((funcall *worst-fitness-p* new) :dead)
-         ((and (not (fitness-better-p fit old-fit))
-               (not (fitness-better-p old-fit fit)))
-          :same)
-         ((funcall (complement #'fitness-better-p) fit old-fit)
-          :worse)
-         ((fitness-better-p fit old-fit)
-          :better))
-       fit old-fit))))
+  (let ((fit (fitness new))
+        (old-fit (extremum (mapcar {fitness} old)
+                           #'fitness-better-p)))
+    (values
+     (cond
+       ((funcall *worst-fitness-p* new) :dead)
+       ((and (not (fitness-better-p fit old-fit))
+             (not (fitness-better-p old-fit fit)))
+        :same)
+       ((funcall (complement #'fitness-better-p) fit old-fit)
+        :worse)
+       ((fitness-better-p fit old-fit)
+        :better))
+     fit old-fit)))
 
 (defgeneric mutation-key (software mutation)
   (:documentation "Key used to organize mutations in *mutation-stats*."))
