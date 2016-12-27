@@ -96,8 +96,6 @@
    :pad
    :chunks
    :binary-search
-   :<and>
-   :<or>
    ;;; Source and binary locations and ranges
    :source-location
    :line
