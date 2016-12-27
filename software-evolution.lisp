@@ -45,10 +45,11 @@
                          (setf ,accessor
                                (with-slots (,accessor) obj ,accessor)))))
                     (otherwise
-                     `((setf (,accessor copy)
-                             ,(if copier
-                                  `(,copier (,accessor obj))
-                                  `(,accessor obj)))))))
+                     `((with-slots (,accessor) copy
+                         (setf ,accessor
+                               ,(if copier
+                                    `(,copier (,accessor obj))
+                                    `(,accessor obj))))))))
                 (mapcar #'car slots)
                 (mapcar {plist-get :copier} slots))
              copy)))))
