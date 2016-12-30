@@ -388,6 +388,18 @@
   (:teardown
    (setf *soft* nil)))
 
+(defixture no-insert-fodder-decl-mutation-targets-clang
+  (:setup
+   (setf *database*
+         (with-open-file (in (make-pathname :name "euler-example.json"
+                                            :directory +etc-dir+))
+           (make-instance 'json-database :json-stream in)))
+   (setf *soft* (from-file (make-instance 'clang-w-fodder)
+                (lisp-bugs-dir "no-insert-fodder-decl-mutation-targets.c"))))
+  (:teardown
+   (setf *database* nil)
+   (setf *soft* nil)))
+
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
@@ -398,7 +410,8 @@
 (defixture hello-world-clang-w-fodder
   (:setup
    (setf *database*
-         (with-open-file (in (hello-world-dir "hello_world_ast.json"))
+         (with-open-file (in (make-pathname :name "euler-example.json"
+                                            :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *hello-world*
      (from-file (make-instance 'clang-w-fodder :compiler "clang-3.7"
@@ -411,7 +424,8 @@
 (defixture gcd-clang-w-fodder
   (:setup
    (setf *database*
-         (with-open-file (in (hello-world-dir "hello_world_ast.json"))
+         (with-open-file (in (make-pathname :name "euler-example.json"
+                                            :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *gcd*
          (from-file
@@ -424,14 +438,11 @@
    (setf *database* nil)
    (setf *gcd* nil)))
 
-(defixture empty-while-clang-w-fodder
+(defixture empty-while-clang
   (:setup
-   (setf *database*
-         (with-open-file (in (hello-world-dir "hello_world_ast.json"))
-           (make-instance 'json-database :json-stream in))
-         *empty-while*
+   (setf *empty-while*
          (from-file
-          (make-instance 'clang-w-fodder
+          (make-instance 'clang
             :flags (list
                     "-I"
                     (namestring (make-pathname :directory +etc-dir+))))
@@ -440,8 +451,7 @@
            :type "c"
            :directory +etc-dir+))))
   (:teardown
-   (setf *database* nil
-         *empty-while* nil)))
+   (setf *empty-while* nil)))
 
 (defixture huf-clang
   (:setup
@@ -1427,32 +1437,11 @@ is not to be found"
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
 
-(deftest pick-snippet-json-db-returns-a-json-snippet ()
-  (with-fixture hello-world-clang-w-fodder
-    (let ((json (pick-snippet *hello-world*)))
-      (is (numberp (aget :counter json)))
-      (is (stringp (aget :src-text json)))
-      (is (assoc :full-stmt json)))))
-
-(deftest pick-snippet-json-db-respects-full-argument ()
-  (with-fixture hello-world-clang-w-fodder
-    (is (aget :full-stmt (pick-snippet *hello-world* :full t)))))
-
-(deftest pick-snippet-json-db-respects-class-argument ()
-  (with-fixture hello-world-clang-w-fodder
-    (dolist (ast-class '("StringLiteral" "ReturnStmt" "CompoundStmt"))
-      (is (string= ast-class
-                   (aget :ast-class
-                         (pick-snippet *hello-world* :class ast-class)))))))
-
-(deftest pick-snippet-json-db-respects-decl-argument ()
-  (with-fixture hello-world-clang-w-fodder
-    (is (aget :is-decl (pick-snippet *hello-world* :decl t))
-        "`pick-snippet' returns a decl when :DECL keyword is given.")
-    (let ((var-decl (pick-snippet *hello-world* :class "Var" :decl t)))
-      (is (and (string= "Var" (aget :ast-class var-decl))
-               (aget :is-decl var-decl))
-          "`pick-snippet' returns a Var decl when asked."))))
+(deftest insert-fodder-decl-mutation-throws-error-if-no-targets-test ()
+  (with-fixture no-insert-fodder-decl-mutation-targets-clang
+    (signals no-mutation-targets
+      (apply-mutation *soft* (make-instance 'insert-fodder-decl
+                               :object *soft*)))))
 
 (deftest insert-decl-lengthens-a-clang-w-fodder-software-object ()
   (with-fixture hello-world-clang-w-fodder
@@ -1520,8 +1509,8 @@ is not to be found"
                (get-ast *hello-world* (stmt-with-text *hello-world*
                                                        "return 0")))))))
 
-(deftest tidy-a-clang-w-fodder-software-object()
-  (with-fixture hello-world-clang-w-fodder
+(deftest tidy-a-clang-software-object()
+  (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
       (clang-tidy variant)
       (is (= (size variant)
@@ -2505,7 +2494,7 @@ Useful for printing or returning differences in the REPL."
             "Coalesced while loop doesn't change program behavior.")))))
 
 (deftest pick-while-loop-works-even-with-empty-body ()
-  (with-fixture empty-while-clang-w-fodder
+  (with-fixture empty-while-clang
     (let ((var (copy *empty-while*)))
       (apply-mutation var (make-instance 'coalesce-while-loop :object var))
       (is (not (scan (quote-meta-chars "while") (genome var)))
