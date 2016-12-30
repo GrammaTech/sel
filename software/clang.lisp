@@ -1843,17 +1843,12 @@ VARIABLE-NAME should be declared in AST."))
 
 (defmethod type-of-var ((obj clang) (variable-name string))
   (let ((declaration-ast (declaration-of obj variable-name)))
-    ;; (assert declaration-ast (obj variable-name)
-    ;;         "Can't find declaration of ~a in ~a." variable-name obj)
-    (if declaration-ast
-        (find-type obj
-                   (if (function-decl-p declaration-ast)
-                       (second (find variable-name (aget :args declaration-ast)
-                                     :key #'car :test #'equal))
-                       (nth (position-if {string= variable-name}
-                                         (aget :declares declaration-ast))
-                            (aget :types declaration-ast))))
-        (warn "Can't find declaration of ~a in ~a." variable-name obj))))
+    (when declaration-ast
+      (find-type obj
+                 (if (function-decl-p declaration-ast)
+                     (second (find variable-name (aget :args declaration-ast)
+                                   :key #'car :test #'equal))
+                     (first (aget :types declaration-ast)))))))
 
 (defgeneric find-decl-in-block (software name block)
   (:documentation "Find the declaration for variable NAME within BLOCK."))
