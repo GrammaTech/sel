@@ -170,7 +170,12 @@
     (define-constant +explode-for-loop-dir+
                      (append +etc-dir+ (list "explode-for-loop"))
       :test #'equalp
-      :documentation "Location of the explode for loop example dir")))
+      :documentation "Location of the explode for loop example dir")
+
+    (define-constant +coalesce-while-loop-dir+
+                     (append +etc-dir+ (list "coalesce-while-loop"))
+      :test #'equalp
+      :documentation "Location of the coalesce while loop example dir")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -226,6 +231,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +explode-for-loop-dir+))
+
+(defun coalesce-while-loop-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +coalesce-while-loop-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -441,17 +451,18 @@
 (defixture empty-while-clang
   (:setup
    (setf *empty-while*
-         (from-file
-          (make-instance 'clang
-            :flags (list
-                    "-I"
-                    (namestring (make-pathname :directory +etc-dir+))))
-          (make-pathname
-           :name "empty-while"
-           :type "c"
-           :directory +etc-dir+))))
+         (from-file (make-instance 'clang)
+                    (coalesce-while-loop-dir "empty-while.c"))))
   (:teardown
    (setf *empty-while* nil)))
+
+(defixture while-with-no-precedent-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'clang)
+                    (coalesce-while-loop-dir "no-precedent.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (defixture huf-clang
   (:setup
@@ -2496,6 +2507,13 @@ Useful for printing or returning differences in the REPL."
 (deftest pick-while-loop-works-even-with-empty-body ()
   (with-fixture empty-while-clang
     (let ((var (copy *empty-while*)))
+      (apply-mutation var (make-instance 'coalesce-while-loop :object var))
+      (is (not (scan (quote-meta-chars "while") (genome var)))
+          "Coalesced while loop contains no while loop."))))
+
+(deftest pick-while-loop-works-even-with-no-precedent ()
+  (with-fixture while-with-no-precedent-clang
+    (let ((var (copy *soft*)))
       (apply-mutation var (make-instance 'coalesce-while-loop :object var))
       (is (not (scan (quote-meta-chars "while") (genome var)))
           "Coalesced while loop contains no while loop."))))

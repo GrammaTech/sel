@@ -479,7 +479,8 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
     (destructuring-bind (condition body)
         (mapcar {get-ast obj} (aget :children (get-ast obj id)))
       `(;; Possibly consume the preceding full statement.
-        ,@(let ((precedent (get-ast obj (enclosing-full-stmt obj (1- id)))))
+        ,@(let ((precedent (&>> (enclosing-full-stmt obj (1- id))
+                                (get-ast obj))))
             (when (and precedent
                        (aget :full-stmt precedent)
                        (not (string= "CompoundStmt"
