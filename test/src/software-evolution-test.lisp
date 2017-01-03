@@ -3033,7 +3033,7 @@ Useful for printing or returning differences in the REPL."
   (with-fixture huf-clang
     (let ((type (type-of-var *huf* "strbit")))
       (is type "Found type for \"strbit\" in huf.")
-      (is (string= "[*]" (aget :array type))
+      (is (string= "[]" (aget :array type))
           "Variable \"strbit\" in huf is a dynamically sized array.")
       (is (not (aget :pointer type))
           "Variable \"strbit\" in huf is not a pointer."))))
