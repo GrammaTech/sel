@@ -29,9 +29,19 @@ This is used to intern string names by `expression'."
            (expression obj (first (aget :children ast)))))
     (switch ((aget :ast-class ast) :test #'string=)
       ("BinaryOperator" (over-children (expression-intern (aget :opcode ast))))
+      ("CompoundAssignOperator" (->> (aget :opcode ast)
+                                     (expression-intern)
+                                     (over-children)))
       ("DeclRefExpr" (expression-intern (peel-bananas (aget :src-text ast))))
       ("ImplicitCastExpr" (only-child))
-      ("IntegerLiteral" (parse-integer (aget :src-text ast)))
+      ("IntegerLiteral"
+       (handler-bind ((parse-number
+                       (expression-intern (aget :src-text ast))))
+         (parse-number (aget :src-text ast))))
+      ("FloatingLiteral"
+       (handler-bind ((parse-number
+                       (expression-intern (aget :src-text ast))))
+         (parse-number (aget :src-text ast))))
       ("ParenExpr" (only-child))
       ("ArraySubscriptExpr" (over-children :|[]|))
       ("CallExpr" (mapcar {expression obj} (aget :children ast)))

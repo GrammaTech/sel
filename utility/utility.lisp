@@ -374,6 +374,11 @@ The SHELL command is executed with `*bash-shell*'."
      (write-shell-file (,out-stream ,out-file "xz")
        ,@body)))
 
+(define-condition parse-number (error)
+  ((text :initarg :text :initform nil :reader text))
+  (:report (lambda (condition stream)
+             (format stream "Can't parse ~a as a number" (text condition)))))
+
 (defun parse-number (string)
   "Parse the number located at the front of STRING or return an error."
   (let ((number-str
@@ -388,7 +393,8 @@ The SHELL command is executed with `*bash-shell*'."
                                   string)
                (declare (ignorable whole))
                (when matches (concatenate 'string "#" (aref matches 0)))))))
-    (assert number-str (string) "String ~S doesn't specify a number." string)
+    (unless number-str
+      (make-condition 'parse-number :text string))
     (read-from-string number-str)))
 
 (defun parse-numbers (string &key (radix 10) (delim #\Space))
