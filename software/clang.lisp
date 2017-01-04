@@ -538,12 +538,9 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   ((targeter :initform #'pick-expand-assignment)))
 
 (defun pick-expand-assignment (clang)
-  (let* ((stmt1 (&>> (or (remove-if-not {string= "CompoundAssignOperator"}
-                                        (bad-stmts clang)
-                                        :key {aget :ast-class})
-                         (remove-if-not {string= "CompoundAssignOperator"}
-                                        (stmt-asts clang)
-                                        :key {aget :ast-class}))
+  (let* ((stmt1 (&>> (remove-if-not {string= "CompoundAssignOperator"}
+                                    (stmt-asts clang)
+                                    :key {aget :ast-class})
                      (random-elt)
                      (aget :counter)))
          (children (and stmt1 (get-immediate-children clang stmt1))))
