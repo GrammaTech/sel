@@ -395,19 +395,11 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
                          (aget :ast-class ast))
                   (equal "=" (aget :opcode ast))))
            (is-condition-ast (ast)
-             (and (equal "BinaryOperator"
-                         (aget :ast-class ast))
-                  (not (equal "=" (aget :opcode ast)))))
-           (is-increment-ast (ast)
-             (or (equal "CompoundAssignOperator"
+             (or (equal "ImplicitCastExpr"
                         (aget :ast-class ast))
                  (and (equal "BinaryOperator"
                              (aget :ast-class ast))
-                      (equal "=" (aget :opcode ast)))
-                 (and (equal "UnaryOperator"
-                             (aget :ast-class ast))
-                      (or (equal "--" (aget :opcode ast))
-                          (equal "++" (aget :opcode ast))))))
+                      (not (equal "=" (aget :opcode ast))))))
            (destructure-for-loop (id)
              ;; Return the initialization, conditional, increment, and body
              ;; ASTS of the for-loop AST identified by ID as VALUES.
@@ -421,42 +413,36 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
                                           (aget :children)))))
                (case (length children)
                  (4 (values-list children))
-                 (3 (cond ((and (is-initialization-ast (first children))
-                                (is-condition-ast (second children)))
-                           (values (first children)
-                                   (second children)
-                                   nil
-                                   (third children)))
-                          ((and (is-condition-ast (first children))
-                                (is-increment-ast (second children)))
-                           (values nil
-                                   (first children)
-                                   (second children)
-                                   (third children)))
-                          (t
-                           (values (first children)
-                                   nil
-                                   (second children)
-                                   (third children)))))
-                (2 (cond ((is-initialization-ast (first children))
-                          (values (first children)
-                                  nil
-                                  nil
-                                  (second children)))
-                         ((is-condition-ast (first children))
-                          (values nil
-                                  (first children)
-                                  nil
-                                  (second children)))
-                         ((is-increment-ast (first children))
-                          (values nil
-                                  nil
-                                  (first children)
-                                  (second children)))
-                         (t ; Hueristics failed
-                          (values nil nil nil nil))))
-                (1 (values nil nil nil (first children))) ; Always assume body
-                (otherwise (values nil nil nil nil))))))
+                 (3 (if (is-initialization-ast (first children))
+                        (if (is-condition-ast (second children))
+                            (values (first children)
+                                    (second children)
+                                    nil
+                                    (third children))
+                            (values (first children)
+                                    nil
+                                    (second children)
+                                    (third children)))
+                        (values nil
+                                (first children)
+                                (second children)
+                                (third children))))
+                 (2 (if (is-initialization-ast (first children))
+                        (values (first children)
+                                nil
+                                nil
+                                (second children))
+                        (if (is-condition-ast (first children))
+                            (values nil
+                                    (first children)
+                                    nil
+                                    (second children))
+                            (values nil
+                                    nil
+                                    (first children)
+                                    (second children)))))
+                 (1 (values nil nil nil (first children))) ; Always assume body
+                 (otherwise (values nil nil nil nil))))))
     (let ((id (aget :stmt1 (targets mutation))))
       (multiple-value-bind (initialization condition increment body)
         (destructure-for-loop id)
