@@ -117,7 +117,13 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 
-* Tasks [25/32]
+* Tasks [25/33]
+** TODO Should mutations fall back from bad-stmts to all-stmts
+As currently done in [[file:software/clang.lisp::;;;%20Expand%20compound%20assignment][expand-assignments]]? No.
+
+Instead we should add a new restart to the =no-mutation-targets= error
+condition which widens pick-bad-stmt into pick-stmt.
+
 ** TODO probably bugs in clang-instrument
 #+begin_quote Zak Fry
 https://git.grammatech.com/brass/evo-rings/blob/master/test/instrumentation_compile_failures.zip
