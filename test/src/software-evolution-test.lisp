@@ -2462,7 +2462,7 @@ Useful for printing or returning differences in the REPL."
     (apply-mutation no-body
                     (make-instance 'explode-for-loop :object no-body))
 
-    (flet ((factorial (obj n)
+    (flet ((run-factorial (obj n)
              (with-temp-file (bin)
                (phenome obj :bin bin)
                (multiple-value-bind (stdout stderr exit)
@@ -2470,11 +2470,11 @@ Useful for printing or returning differences in the REPL."
                  (declare (ignorable stdout stderr))
                  exit))))
 
-      (is (= 120 (factorial simple-loop 5)))
-      (is (= 120 (factorial no-initialization 5)))
-      (is (= 120 (factorial no-conditional 5)))
-      (is (= 120 (factorial no-increment 5)))
-      (is (= 120 (factorial no-body 5)))
+      (is (= 120 (run-factorial simple-loop 5)))
+      (is (= 120 (run-factorial no-initialization 5)))
+      (is (= 120 (run-factorial no-conditional 5)))
+      (is (= 120 (run-factorial no-increment 5)))
+      (is (= 120 (run-factorial no-body 5)))
       (is (not (scan (quote-meta-chars "for") (genome simple-loop))))
       (is (not (scan (quote-meta-chars "for") (genome no-initialization))))
       (is (not (scan (quote-meta-chars "for") (genome no-conditional))))
