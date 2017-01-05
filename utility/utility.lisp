@@ -146,7 +146,7 @@
 After BODY is executed the temporary file is removed."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
      (unwind-protect (progn ,@body)
-       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+       (when (probe-file ,(car spec)) (shell-check "rm -rf ~a" ,(car spec))))))
 
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file
@@ -277,11 +277,11 @@ list of (name value) pairs."
 
   ;; Quotes embedded in the command will screw up our quoting
   ;; below. We could try to escape them, not bothering for now.
-  (let ((command (apply {format nil command-format} format-args)))
-    (assert (not (find #\" command)))
+  (let* ((command (apply {format nil command-format} format-args))
+         (command_esc (replace-all command "\"" "\\\"")))
     (multiple-value-prog1 (shell "~{~a ~}sh -c \"~a\""
                                  (mapcar {apply {format nil "~a=~a"}} env)
-                                 command))))
+                                 command_esc))))
 
 (defun shell-check (&rest args)
   "Run shell command and raise error on non-zero exit"
@@ -298,7 +298,7 @@ list of (name value) pairs."
   "copy file using 'cp'
 
   Unlike alexandria's copy-file, this keeps permissions. "
-  (shell-check "cp ~a ~a" from to)
+  (shell-check "cp -r ~a ~a" from to)
   to)
 
 (defmacro write-shell-file

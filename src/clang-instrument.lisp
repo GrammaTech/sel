@@ -161,7 +161,7 @@ Keyword arguments are as follows:
     obj))
 
 (defun file-open-str (log-variable filename)
-  (format nil "~a = fopen(~s, \"a\");~%" log-variable (namestring filename)))
+  (format nil "  ~a = fopen(~s, \"a\");~%" log-variable (namestring filename)))
 
 (defgeneric var-instrument (software label key ast &key print-strings)
   (:documentation
@@ -265,6 +265,8 @@ void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
   ~a
 }
 
+unsigned long trace_counter=0;
+
 ~a
 "
                 log-variable
@@ -273,7 +275,8 @@ void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
   (unless (eq obj entry-obj)
     (setf (genome obj)
           (concatenate 'string
-                       (format nil "#include <stdio.h>~%extern FILE *~a;~%"
+                       (format nil "#include <stdio.h>~%extern FILE *~a;
+unsigned long trace_counter;"
                                log-variable)
                        (genome obj))))
   obj)
