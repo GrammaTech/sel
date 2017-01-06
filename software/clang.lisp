@@ -598,37 +598,66 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                                   stmt1
                                   (list (cons old-var new-var))))))))
 
-;;; Expand compound assignment
-(define-mutation expand-assignment (clang-replace)
-  ((targeter :initform #'pick-expand-assignment)))
+;;; Expand compound assignment or increment/decrement
+(define-mutation expand-arithmatic-op (clang-replace)
+  ((targeter :initform #'pick-expand-arithmatic-op)))
 
-(defun pick-expand-assignment (clang)
-  (let* ((stmt1 (&>> (or (remove-if-not {string= "CompoundAssignOperator"}
-                                        (bad-stmts clang)
-                                        :key {aget :ast-class})
+(defun pick-expand-arithmatic-op (clang)
+  (labels ((compound-assign-op (ast) (->> (aget :ast-class ast)
+                                          (string= "CompoundAssignOperator")))
+           (increment-op (ast) (and (->> (aget :ast-class ast)
+                                         (string= "UnaryOperator"))
+                                    (->> (aget :opcode ast)
+                                         (equal "++"))))
+           (decrement-op (ast) (and (->> (aget :ast-class ast)
+                                         (string= "UnaryOperator"))
+                                    (->> (aget :opcode ast)
+                                         (equal "--"))))
+           (add-semicolon (ast text)
+             (if (full-stmt-p clang ast)
+                 (add-semicolon-if-needed text)
+                 text)))
+    (let* ((ast (&>> (or (remove-if-not «or #'compound-assign-op
+                                            #'increment-op
+                                            #'decrement-op»
+                                        (bad-stmts clang))
                          ;; TODO: Regarding this fallback to all
                          ;; statements if not bad statements are
                          ;; found.  This should be changed into a
                          ;; general restart for the
                          ;; no-mutation-targets error.  See the
                          ;; corresponding task in the NOTES file.
-                         (remove-if-not {string= "CompoundAssignOperator"}
-                                        (stmt-asts clang)
-                                        :key {aget :ast-class}))
-                     (random-elt)
-                     (aget :counter)))
-         (children (and stmt1 (get-immediate-children clang stmt1))))
-    (if (not children)
-        (error (make-condition 'no-mutation-targets
-                 :text "No compound assignment operators to expand"
-                 :obj clang))
-        `((:stmt1 . ,stmt1)
-          (:literal1 .
-           ,(format nil "~a = ~a ~a ~a;~%"
-                    (peel-bananas (aget :src-text (first children)))
-                    (peel-bananas (aget :src-text (first children)))
-                    (string-trim "=" (aget :opcode (get-ast clang stmt1)))
-                    (peel-bananas (aget :src-text (second children)))))))))
+                         (remove-if-not «or #'compound-assign-op
+                                            #'increment-op
+                                            #'decrement-op»
+                                        (stmt-asts clang)))
+                     (random-elt))))
+      (if (not ast)
+          (error (make-condition 'no-mutation-targets
+                   :text "No arithmatic operators to expand"
+                   :obj clang))
+          `((:stmt1 . ,(aget :counter ast))
+            (:literal1 .
+             ,(cond
+                ((increment-op ast)
+                 (->> (format nil "~a = ~a + 1"
+                              (peel-bananas (caar (aget :unbound-vals ast)))
+                              (peel-bananas (caar (aget :unbound-vals ast))))
+                      (add-semicolon ast)))
+                ((decrement-op ast)
+                 (->> (format nil "~a = ~a - 1"
+                              (peel-bananas (caar (aget :unbound-vals ast)))
+                              (peel-bananas (caar (aget :unbound-vals ast))))
+                      (add-semicolon ast)))
+                (t (let* ((children (get-immediate-children clang ast))
+                          (lhs (first children))
+                          (rhs (second children)))
+                     (->> (format nil "~a = ~a ~a ~a"
+                                  (peel-bananas (aget :src-text lhs))
+                                  (peel-bananas (aget :src-text lhs))
+                                  (string-trim "=" (aget :opcode ast))
+                                  (peel-bananas (aget :src-text rhs)))
+                          (add-semicolon ast)))))))))))
 
 
 ;;; Clang methods
@@ -1000,7 +1029,7 @@ already in scope, it will keep that name.")
       (clang-promote-guarded   .  2)
       (explode-for-loop        .  1)
       (coalesce-while-loop     .  1)
-      (expand-assignment       .  1)
+      (expand-arithmatic-op    .  1)
       (clang-cut               .  5)
       (clang-cut-full          . 15)
       (clang-insert            .  1)

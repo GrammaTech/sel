@@ -162,10 +162,10 @@
       :test #'equalp
       :documentation "Location of the lisp bugs directory")
 
-    (define-constant +expand-assign-mutation-dir+
-                     (append +etc-dir+ (list "expand-assign-mutation"))
+    (define-constant +expand-arithmatic-op-dir+
+                     (append +etc-dir+ (list "expand-arithmatic-op"))
       :test #'equalp
-      :documentation "Location of the expand assignment mutation example dir")
+      :documentation "Location of the expand arithmatic op example dir")
 
     (define-constant +explode-for-loop-dir+
                      (append +etc-dir+ (list "explode-for-loop"))
@@ -222,10 +222,10 @@
                  :type (pathname-type filename)
                  :directory +lisp-bugs-dir+))
 
-(defun expand-assign-mutation-dir (filename)
+(defun expand-arithmatic-op-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
-                 :directory +expand-assign-mutation-dir+))
+                 :directory +expand-arithmatic-op-dir+))
 
 (defun explode-for-loop-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -2578,31 +2578,47 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
-(deftest expand-assignment-throws-error-if-no-compound-assignments ()
+(deftest expand-arithmatic-op-throws-error-if-no-arithmatic-ops ()
   (let ((obj (from-file (make-instance 'clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
-                        (expand-assign-mutation-dir "no-compound-assign.c"))))
+                        (expand-arithmatic-op-dir "no-compound-assign.c"))))
     (signals no-mutation-targets
-      (build-op (make-instance 'expand-assignment :object obj) obj))))
+      (build-op (make-instance 'expand-arithmatic-op :object obj) obj))))
 
-(deftest expand-assignment-works-simple-compound-assignment ()
+(deftest expand-arithmatic-op-works-simple-compound-assignment ()
   (let ((obj (from-file (make-instance 'clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
-                        (expand-assign-mutation-dir
+                        (expand-arithmatic-op-dir
                          "simple-compound-assign.c"))))
-    (apply-mutation obj (make-instance 'expand-assignment :object obj))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "argc = argc * 2"))))
 
-(deftest expand-assignment-works-complex-compound-assignment ()
+(deftest expand-arithmatic-op-works-complex-compound-assignment ()
   (let ((obj (from-file (make-instance 'clang
                           :compiler "clang"
                           :flags '("-g" "-m32" "-O0"))
-                        (expand-assign-mutation-dir
+                        (expand-arithmatic-op-dir
                          "complex-compound-assign.c"))))
-    (apply-mutation obj (make-instance 'expand-assignment :object obj))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())"))))
+
+(deftest expand-arithmatic-op-works-increment ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-arithmatic-op-dir "increment.c"))))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
+    (is (stmt-with-text obj "i = i + 1"))))
+
+(deftest expand-arithmatic-op-works-decrement ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-arithmatic-op-dir "decrement.c"))))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
+    (is (stmt-with-text obj "argc = argc - 1"))))
 
 
 ;;; Adaptive-mutation tests.
