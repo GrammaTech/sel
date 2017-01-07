@@ -36,6 +36,7 @@ techniques."
             :pathname "software"
             :components
             ((:file "lisp")
+             (:file "expression" :depends-on ("lisp"))
              (:file "simple")
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
@@ -47,7 +48,7 @@ techniques."
              (:file "ast")
              (:file "cil" :depends-on ("ast"))
              (:file "clang" :depends-on ("ast"))
-             (:file "clang-expression" :depends-on ("clang" "lisp"))
+             (:file "clang-expression" :depends-on ("clang" "expression"))
              (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "clang-deduplicate" :depends-on ("clang"))
              (:file "llvm" :depends-on ("ast"))

@@ -251,6 +251,8 @@
    :nop-p
    :forth
    :lisp
+   :constant-fold
+   :random-subtree
    :clang
    :clang-w-fodder
    :clang-w-binary
