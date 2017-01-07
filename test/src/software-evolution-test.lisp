@@ -3179,46 +3179,58 @@ Useful for printing or returning differences in the REPL."
 
 
 ;; Evaluation of clang expressions in Lisp form
-(deftest eval-number ()
-  (is (equal (evaluate-expression 1 nil) '(1 "int"))))
+(deftest eval-number-clang ()
+  (is (equal (evaluate-expression (make-instance 'clang-expression) nil 1)
+             '(1 "int"))))
 
-(deftest eval-var ()
-  (is (equal (evaluate-expression :a '((:a 1 "int"))) '(1 "int"))))
+(deftest eval-var-clang ()
+  (is (equal (evaluate-expression
+              (make-instance 'clang-expression) '((:a 1 "int")) :a)
+             '(1 "int"))))
 
-(deftest eval-function ()
-  (is (equal (evaluate-expression '(:+ 1 :a) '((:a 2 "int"))) '(3 "int"))))
+(deftest eval-function-clang ()
+  (is (equal (evaluate-expression
+              (make-instance 'clang-expression) '((:a 2 "int")) '(:+ 1 :a))
+             '(3 "int"))))
 
-(deftest eval-division-truncates ()
-  (is (equal (evaluate-expression '(:/ 3 2) nil) '(1 "int")))
-  (is (equal (evaluate-expression '(:/ -3 2) nil) '(-1 "int"))))
+(deftest eval-division-truncates-clang ()
+  (is (equal (evaluate-expression
+              (make-instance 'clang-expression) nil '(:/ 3 2)) '(1 "int")))
+  (is (equal (evaluate-expression
+              (make-instance 'clang-expression) nil '(:/ -3 2)) '(-1 "int"))))
 
-(deftest eval-interior-max ()
+(deftest eval-interior-max-clang ()
   (multiple-value-bind (result interior-max)
-      (evaluate-expression '(:- (:* 2 :a) 2) '((:a 3 "int")))
+      (evaluate-expression
+       (make-instance 'clang-expression) '((:a 3 "int"))  '(:- (:* 2 :a) 2))
     (is (equal result '(4 "int")))
     (is (equal interior-max 6))))
 
-(deftest eval-signals-on-undefined-variable ()
+(deftest eval-signals-on-undefined-variable-clang ()
   (signals eval-error
-    (evaluate-expression :a nil)))
+    (evaluate-expression (make-instance 'clang-expression) nil  :a)))
 
-(deftest eval-signals-on-unknown-type ()
+(deftest eval-signals-on-unknown-type-clang ()
   (signals eval-error
-    (evaluate-expression "test" nil)))
+    (evaluate-expression (make-instance 'clang-expression) nil  "test")))
 
-(deftest eval-signals-on-unknown-function ()
+(deftest eval-signals-on-unknown-function-clang ()
   (signals eval-error
-    (evaluate-expression '(:test 1 2) nil)))
+    (evaluate-expression (make-instance 'clang-expression) nil  '(:test 1 2))))
 
-(deftest eval-signals-on-wrong-arity ()
+(deftest eval-signals-on-wrong-arity-clang ()
   (signals eval-error
-    (evaluate-expression '(:+ 1 2 3) nil)))
+    (evaluate-expression (make-instance 'clang-expression) nil  '(:+ 1 2 3))))
 
-(deftest eval-signals-on-illegal-pointer-ops ()
+(deftest eval-signals-on-illegal-pointer-ops-clang ()
   (signals eval-error
-    (evaluate-expression '(:* 2 (:+ :ptr 1)) '((:ptr 1234 "*char"))))
+    (evaluate-expression
+     (make-instance 'clang-expression) '((:ptr 1234 "*char"))
+     '(:* 2 (:+ :ptr 1))))
   (signals eval-error
-    (evaluate-expression '(:/ 2 (:+ :ptr 1)) '((:ptr 1234 "*char")))))
+    (evaluate-expression
+     (make-instance 'clang-expression) '((:ptr 1234 "*char"))
+     '(:/ 2 (:+ :ptr 1)))))
 
 
 ;; Utility tests
@@ -3226,15 +3238,15 @@ Useful for printing or returning differences in the REPL."
   (is (not (intersects (make-instance 'range :begin 0 :end 1)
                        (make-instance 'range :begin 1 :end 2))))
   (is (not (intersects (make-instance 'source-range
-                          :begin (make-instance 'source-location :line 1
-                                                                 :column 0)
-                          :end   (make-instance 'source-location :line 2
-                                                                 :column 0))
+                         :begin (make-instance 'source-location :line 1
+                                               :column 0)
+                         :end   (make-instance 'source-location :line 2
+                                               :column 0))
                        (make-instance 'source-range
                          :begin  (make-instance 'source-location :line 2
-                                                                 :column 0)
+                                                :column 0)
                          :end    (make-instance 'source-location :line 3
-                                                                 :column 0))))))
+                                                :column 0))))))
 
 (deftest pad-list-expand-to-requisite-length ()
   (is (equal '(1 2 3 3) (pad '(1 2) 4 3))))

@@ -91,14 +91,11 @@ This is used to intern string names by `expression'."
 
 
 ;;;; Evaluation
-(define-condition eval-error (error)
-  ((text :initarg :text :initform nil :reader text)
-   (expr :initarg :expr :initform nil :reader expr))
-  (:report (lambda (condition stream)
-             (format stream "Eval error ~a on ~a"
-                     (text condition) (expr condition)))))
+(define-software clang-expression (expression)
+  ((scope :initarg :scope :accessor scope :initform nil :copier :direct
+          :documentation "List of in-scope variable names.")))
 
-(defun operator-to-function (operator)
+(defmethod operator-to-function ((obj clang-expression) operator)
   (labels
       ((pointerp (val)
          (eq (char (second val) 0) #\*))
@@ -130,7 +127,8 @@ This is used to intern string names by `expression'."
                 :text "Unknown operator"
                 :expr operator))))))
 
-(defun evaluate-expression (expression free-vars)
+(defmethod evaluate-expression ((obj clang-expression) free-vars
+                                &optional expression)
   (multiple-value-bind (result interior-max)
       (cond
         ((listp expression)
@@ -143,9 +141,9 @@ This is used to intern string names by `expression'."
                     :expr expression)))
          (let ((args (mapcar (lambda (a)
                                (multiple-value-list
-                                (evaluate-expression a free-vars)))
+                                (evaluate-expression obj free-vars a)))
                              (cdr expression))))
-           (values (apply (operator-to-function (car expression))
+           (values (apply (operator-to-function obj (car expression))
                           (mapcar #'first args))
                    (apply #'max (mapcar #'second args)))))
         ((numberp expression)
@@ -170,188 +168,5 @@ This is used to intern string names by `expression'."
     ((symbolp expression) (list expression))
     (t nil)))
 
-
-;;;; Targeted mutations
-(define-software clang-expression (lisp)
-  ((scope :initarg :scope :accessor scope :initform nil :copier :direct
-          :documentation "List of in-scope variable names.")))
-
-(defvar *math-operators* '(:+ :- :* :/))
-(define-mutation change-operator (mutation)
-  ((targeter :initform (lambda (obj)
-                         (let ((operators (operator-subtrees obj)))
-                           (when operators
-                             (list (random-elt operators)
-                                   (random-elt *math-operators*))))))))
-
-(defmethod operator-subtrees ((obj clang-expression))
-  (filter-subtrees [{member _ *math-operators*} #'car]
-                   obj))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation change-operator))
-  (when (targets mutation)
-    (bind (((tree operator) (targets mutation)))
-      (with-slots (genome) obj
-        (rplaca (subtree genome tree) operator))))
-  obj)
-
-;;; Constant replacement
-(define-mutation change-constant (mutation)
-  ((targeter :initform (lambda (obj)
-                         (list (random-elt (constant-subtrees obj))
-                               (random-elt '(:double :halve :negate
-                                             :increment :decrement
-                                             :one :zero :negative-one)))))))
-
-(defmethod constant-subtrees ((obj clang-expression))
-  (filter-subtrees [#'numberp #'car] obj))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation change-constant))
-  (bind (((tree transformation) (targets mutation)))
-    (with-slots (genome) obj
-      (rplaca (subtree genome tree)
-              (let ((value (car (subtree genome tree))))
-                (ecase transformation
-                  (:double (* 2 value))
-                  (:halve (floor value 2))
-                  (:negate (* -1 value))
-                  (:increment (+ value 1))
-                  (:decrement (- value 1))
-                  (:one 1)
-                  (:zero 0)
-                  (:negative-one -1))))))
-  obj)
-
-;;; Specialized mutations
-(defgeneric pick-bad-binop-left (software)
-  (:documentation
-   "Pick a binary operation for demotion via `demote-binop-left'."))
-
-(defmethod pick-bad-binop-left ((obj clang-expression))
-  (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
-    (&>> (iter (for i below (size obj))
-               (collect (list i (subtree (genome obj) i))))
-         (remove-if-not (lambda-bind ((i subtree))
-                          (declare (ignorable i))
-                          (and (binopp subtree) (binopp (second subtree)))))
-         (random-elt))))
-
-(defgeneric pick-bad-binop-right (software)
-  (:documentation
-   "Pick a binary operation for demotion via `demote-binop-right'."))
-
-(defmethod pick-bad-binop-right ((obj clang-expression))
-  (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
-    (&>> (iter (for i below (size obj))
-               (collect (list i (subtree (genome obj) i))))
-         (remove-if-not (lambda-bind ((i subtree))
-                          (declare (ignorable i))
-                          (and (binopp subtree) (binopp (third subtree)))))
-         (random-elt))))
-
-;; TODO: Combine with `demote-binop-right' implementation.
-(define-mutation demote-binop-left (mutation)
-  ((targeter :initform #'pick-bad-binop-left)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation demote-binop-left))
-  (with-slots (targets) mutation
-    (when targets
-      (destructuring-bind (subtree-id (op (l-op l-left l-right) right)) targets
-        (with-slots (genome) obj
-          (setf (subtree genome (1+ subtree-id))
-                (list l-op (list op l-left right) l-right))))))
-  obj)
-
-(define-mutation demote-binop-right (mutation)
-  ((targeter :initform #'pick-bad-binop-right)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation demote-binop-right))
-  (with-slots (targets) mutation
-    (when targets
-      (destructuring-bind (subtree-id (op left (r-op r-left r-right))) targets
-        (with-slots (genome) obj
-          (setf (subtree genome (1+ subtree-id))
-                (list r-op r-left (list op r-right left)))))))
-  obj)
-
-;;; Semantics preserving mutations
-(define-mutation mult-divide (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation mult-divide))
-  (let ((s (targets mutation)))
-    (with-slots (genome) obj
-      (setf (subtree genome s)
-            `(:/ (:* ,(copy-tree (car (subtree genome s))) 2) 2))))
-  obj)
-
-(define-mutation add-subtract (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation add-subtract))
-  (let ((s (targets mutation)))
-    (with-slots (genome) obj
-      (setf (subtree genome s)
-            `(:- (:+ ,(copy-tree (car (subtree genome s))) 1) 1))))
-  obj)
-
-(define-mutation subtract-add (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation subtract-add))
-  (let ((s (targets mutation)))
-    (with-slots (genome) obj
-      (setf (subtree genome s)
-            `(:+ (:- ,(copy-tree (car (subtree genome s))) 1) 1))))
-  obj)
-
-(define-mutation add-subtract-tree (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation add-subtract-tree))
-  (let ((s (targets mutation))
-        (r (pick-good obj)))
-    (with-slots (genome) obj
-      (setf (subtree genome s)
-            `(:- (:+ ,(copy-tree (car (subtree genome s)))
-                     ,(copy-tree (subtree genome r)))
-                 ,(copy-tree (subtree genome r))))))
-  obj)
-
-(define-mutation add-subtract-scope (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mut add-subtract-scope))
-  (with-slots (genome scope) obj
-    (let ((s (targets mut))
-          (r (random-elt scope)))
-      (setf (subtree genome s)
-            `(:- (:+ ,(copy-tree (car (subtree genome s)))
-                     ,r)
-                 ,r))))
-  obj)
-
-(define-mutation subtract-add-tree (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation add-subtract-tree))
-  (let ((s (targets mutation))
-        (r (pick-good obj)))
-    (with-slots (genome) obj
-      (setf (subtree genome s)
-            `(:+ (:- ,(copy-tree (car (subtree genome s)))
-                     ,(copy-tree (subtree genome r)))
-                 ,(copy-tree (subtree genome r))))))
-  obj)
-
-(define-mutation double-half (mutation)
-  ((targeter :initform #'pick-bad)))
-
-(defmethod apply-mutation ((obj clang-expression) (mutation double-half))
-  (let ((s (targets mutation)))
-    (with-slots (genome) obj
-      (setf (subtree genome s)
-            `(:- (:+ ,(copy-tree (car (subtree genome s)))
-                     ,(copy-tree (car (subtree genome s))))
-                 ,(copy-tree (car (subtree genome s)))))))
-  obj)
+(defmethod operators ((obj clang-expression))
+  '(:+ :- :* :/))
