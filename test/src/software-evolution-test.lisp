@@ -110,8 +110,8 @@
 (defvar *scopes*      nil "Holds the scopes software object.")
 (defvar *range-ref* #("one" "two" "three" "four" "five" "six")
   "Example range software object.")
-(defvar *intraprocedural-2pt-crossover-bug-obj* nil
-  "Holds software object for testing intraprocedural crossover bug")
+(defvar *collatz*     nil "Holds the collatz software object.")
+(defvar *fib*         nil "Holds the fibonacci software object.")
 
 (handler-bind ((error (lambda (e) (declare (ignorable e)) (invoke-restart 'ignore))))
   (progn
@@ -175,7 +175,17 @@
     (define-constant +coalesce-while-loop-dir+
                      (append +etc-dir+ (list "coalesce-while-loop"))
       :test #'equalp
-      :documentation "Location of the coalesce while loop example dir")))
+      :documentation "Location of the coalesce while loop example dir")
+
+    (define-constant +collatz-dir+
+                     (append +etc-dir+ (list "collatz"))
+      :test #'equalp
+      :documentation "Location of the collatz example dir")
+
+    (define-constant +fib-dir+
+                     (append +etc-dir+ (list "fib"))
+      :test #'equalp
+      :documentation "Location of the fib example dir")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -236,6 +246,16 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +coalesce-while-loop-dir+))
+
+(defun collatz-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +collatz-dir+))
+
+(defun fib-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +fib-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -383,13 +403,13 @@
 
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
-    (setf *intraprocedural-2pt-crossover-bug-obj*
+    (setf *soft*
       (from-file (make-instance 'clang :compiler "clang-3.7"
                                        :flags '("-g -m32 -O0"))
                  (clang-crossover-dir
                   "intraprocedural-2pt-crossover-bug.c"))))
   (:teardown
-    (setf *intraprocedural-2pt-crossover-bug-obj* nil)))
+    (setf *soft* nil)))
 
 (defixture no-mutation-targets-clang
   (:setup
@@ -504,6 +524,37 @@
                    *fitness-evals* 0
                    *mutation-stats* nil
                    *crossover-stats* nil)))
+
+(defixture collatz-clang
+  (:setup
+    (setf *collatz*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g" "-c"))
+                     (collatz-dir "collatz.c"))))
+  (:teardown
+    (setf *collatz* nil)))
+
+(defixture fib-clang
+  (:setup
+    (setf *fib*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g" "-c"))
+                     (fib-dir "fib.c"))))
+  (:teardown
+    (setf *fib* nil)))
+
+(defixture crossover-no-compound-stmt-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g"))
+                     (clang-crossover-dir
+                      "crossover-no-compound-stmt.c"))))
+  (:teardown
+    (setf *soft* nil)))
 
 
 ;;; ASM representation
@@ -955,8 +1006,8 @@
 (deftest intraprocedural-2pt-crossover-does-not-crash ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang
     (let ((variant (intraprocedural-2pt-crossover
-                     (copy *intraprocedural-2pt-crossover-bug-obj*)
-                     (copy *intraprocedural-2pt-crossover-bug-obj*)
+                     (copy *soft*)
+                     (copy *soft*)
                      27 42 27 42)))
       (is (string/= (genome variant)
                     "")))))
@@ -2230,6 +2281,892 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p (fix-compilation broken-clang 1)))
       (is (compile-p (fix-compilation broken-gcc 1))))))
 
+(defun select-intraprocedural-pair-with-adjustments-test (obj)
+  (let ((function (first (functions obj))))
+    (loop :for i :from 0 :to 25
+          :do (progn (multiple-value-bind (pt1 pt2)
+                         (select-intraprocedural-pair obj)
+                       (multiple-value-bind (stmt1 stmt2)
+                           (adjust-stmt-range obj pt1 pt2)
+                         (is (<= (1+ (first (aget :stmt-range function)))
+                                 stmt1
+                                 (second (aget :stmt-range function))))
+                         (is (<= (1+ (first (aget :stmt-range function)))
+                                 stmt2
+                                 (second (aget :stmt-range function))))
+                         (is (full-stmt-p obj stmt1))
+                         (is (full-stmt-p obj stmt2))))))))
+
+(deftest select-intraprocedural-pair-with-adjustments-collatz-test ()
+  (with-fixture collatz-clang
+    (select-intraprocedural-pair-with-adjustments-test *collatz*)))
+
+(deftest select-intraprocedural-pair-with-adjustments-fib-test ()
+  (with-fixture fib-clang
+    (select-intraprocedural-pair-with-adjustments-test *fib*)))
+
+(deftest select-intraprocedural-pair-with-adjustments-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (select-intraprocedural-pair-with-adjustments-test *soft*)))
+
+(deftest nesting-relation-same-scope-test ()
+  (with-fixture fib-clang
+    (is (equal '(0 . 0)
+               (nesting-relation *fib*
+                                 (stmt-with-text *fib* "int t = x")
+                                 (stmt-with-text *fib* "x = x + y")))
+        (equal '(0 . 0)
+               (nesting-relation *fib*
+                                 (stmt-with-text *fib* "int t = x")
+                                 (stmt-with-text *fib* "int t = x")))
+        (equal '(0 . 0)
+               (nesting-relation *fib*
+                                 (aget :counter (first (stmt-asts *fib*)))
+                                 (aget :counter (first (stmt-asts *fib*))))))))
+
+(deftest nesting-relation-increasing-scope-fib-test ()
+  (with-fixture fib-clang
+    (is (equal '(0 . 1)
+               (nesting-relation *fib*
+                                 (stmt-with-text *fib* "int x = 0")
+                                 (stmt-with-text *fib* "int t = x"))))))
+
+(deftest nesting-relation-decreasing-scope-fib-test ()
+  (with-fixture fib-clang
+    (is (equal '(1 . 0)
+               (nesting-relation *fib*
+                                 (stmt-with-text *fib* "int t = x")
+                                 (stmt-with-text *fib* "return x"))))))
+
+(deftest nesting-relation-increasing-scope-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal '(0 . 2)
+               (nesting-relation *collatz*
+                                 (stmt-with-text *collatz* "int k = 0")
+                                 (stmt-with-text *collatz* "m /= 2"))))))
+
+(deftest nesting-relation-decreasing-scope-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal '(2 . 0)
+               (nesting-relation *collatz*
+                                 (stmt-with-text *collatz* "m /= 2")
+                                 (stmt-with-text *collatz* "return k"))))))
+
+(deftest nesting-relation-increasing-scope-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal '(0 . 2)
+               (nesting-relation *soft*
+                                 (stmt-with-text *soft* "int i")
+                                 (stmt-with-text *soft*
+                                   "printf(\"%d\\n\", i+j)"))))))
+
+(deftest nesting-relation-decreasing-scope-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal '(2 . 0)
+               (nesting-relation *soft*
+                                 (stmt-with-text *soft*
+                                                 "printf(\"%d\\n\", i+j)")
+                                 (stmt-with-text *soft*
+                                                 "return 0"))))))
+
+(deftest common-ancestor-fib-test ()
+  (with-fixture fib-clang
+    (is (equal (aget :counter (first (stmt-asts *fib*)))
+               (common-ancestor *fib*
+                                (stmt-with-text *fib* "int x = 0")
+                                (stmt-with-text *fib* "int y = 1"))))
+    (is (equal (aget :counter (first (stmt-asts *fib*)))
+               (common-ancestor *fib*
+                                (stmt-with-text *fib* "int x = 0")
+                                (stmt-with-text *fib* "int t = x"))))
+    (is (equal (aget :counter (second (remove-if-not {string= "CompoundStmt"}
+                                                     (stmt-asts *fib*)
+                                                     :key {aget :ast-class})))
+               (common-ancestor *fib*
+                                (stmt-with-text *fib* "int t = x")
+                                (stmt-with-text *fib* "x = x + y"))))))
+
+(deftest common-ancestor-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal (aget :counter (first (stmt-asts *collatz*)))
+               (common-ancestor *collatz*
+                                (stmt-with-text *collatz* "int k = 0")
+                                (stmt-with-text *collatz* "return k"))))
+    (is (equal (aget :counter (first (stmt-asts *collatz*)))
+               (common-ancestor *collatz*
+                                (stmt-with-text *collatz* "int k = 0")
+                                (stmt-with-text *collatz* "m /= 2"))))
+    (is (equal (aget :counter (first (stmt-asts *collatz*)))
+               (common-ancestor *collatz*
+                                (stmt-with-text *collatz* "m /= 2")
+                                (stmt-with-text *collatz* "return k"))))
+    (is (equal (aget :counter (fourth (remove-if-not {aget :full-stmt}
+                                                     (stmt-asts *collatz*))))
+               (common-ancestor *collatz*
+                                (stmt-with-text *collatz* "m /= 2")
+                                (stmt-with-text *collatz* "m = 3*m + 1"))))
+    (is (equal (aget :counter (second (remove-if-not {string= "CompoundStmt"}
+                                                     (stmt-asts *collatz*)
+                                                     :key {aget :ast-class})))
+               (common-ancestor *collatz*
+                                (stmt-with-text *collatz* "m /= 2")
+                                (stmt-with-text *collatz* "++k"))))))
+
+(deftest common-ancestor-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal (aget :counter (first (stmt-asts *soft*)))
+               (common-ancestor *soft*
+                                (stmt-with-text *soft* "int i")
+                                (stmt-with-text *soft* "return 0"))))
+    (is (equal (aget :counter (first (stmt-asts *soft*)))
+               (common-ancestor *soft*
+                                (stmt-with-text *soft*
+                                                "int i")
+                                (stmt-with-text *soft*
+                                                "printf(\"%d\\n\", i+j)"))))
+    (is (equal (aget :counter (first (remove-if-not {string= "ForStmt"}
+                                                    (stmt-asts *soft*)
+                                                    :key {aget :ast-class})))
+               (common-ancestor *soft*
+                                (first (remove-if-not {string= "ForStmt"}
+                                                      (stmt-asts *soft*)
+                                                      :key {aget :ast-class}))
+                                (stmt-with-text *soft*
+                                                "printf(\"%d\\n\", i+j)"))))
+    (is (equal (aget :counter (second (remove-if-not {string= "ForStmt"}
+                                                     (stmt-asts *soft*)
+                                                     :key {aget :ast-class})))
+               (common-ancestor *soft*
+                                (second (remove-if-not {string= "ForStmt"}
+                                                       (stmt-asts *soft*)
+                                                       :key {aget :ast-class}))
+                                (stmt-with-text *soft*
+                                                "printf(\"%d\\n\", i+j)"))))))
+
+(deftest ancestor-after-fib-test ()
+  (with-fixture fib-clang
+    (is (equal (stmt-with-text *fib* "int x = 0")
+               (se::ancestor-after *fib*
+                                   (->> (stmt-asts *fib*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *fib* "int x = 0"))))
+    (is (equal (->> (stmt-asts *fib*)
+                    (remove-if-not [{string= "WhileStmt"}
+                                    {aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (se::ancestor-after *fib*
+                                   (->> (stmt-asts *fib*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *fib* "int t = x"))))
+    (is (equal (stmt-with-text *fib* "x = x + y")
+               (se::ancestor-after *fib*
+                                   (->> (stmt-asts *fib*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (second)
+                                        (aget :counter))
+                                   (stmt-with-text *fib* "x = x + y"))))))
+
+(deftest ancestor-after-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal (stmt-with-text *collatz* "int k = 0")
+               (se::ancestor-after *collatz*
+                                   (->> (stmt-asts *collatz*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *collatz* "int k = 0"))))
+    (is (equal (stmt-with-text *collatz* "return k")
+               (se::ancestor-after *collatz*
+                                   (->> (stmt-asts *collatz*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *collatz* "return k"))))
+    (is (equal (->> (stmt-asts *collatz*)
+                    (remove-if-not [{string= "WhileStmt"}
+                                    {aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (se::ancestor-after *collatz*
+                                   (->> (stmt-asts *collatz*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *collatz* "m /= 2"))))
+    (is (equal (->> (stmt-asts *collatz*)
+                    (remove-if-not [{string= "IfStmt"}
+                                    {aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (se::ancestor-after *collatz*
+                                   (->> (stmt-asts *collatz*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (second)
+                                        (aget :counter))
+                                   (stmt-with-text *collatz* "m /= 2"))))
+    (is (equal (->> (stmt-asts *collatz*)
+                    (remove-if-not [{string= "IfStmt"}
+                                    {aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (se::ancestor-after *collatz*
+                                   (->> (stmt-asts *collatz*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (second)
+                                        (aget :counter))
+                                   (stmt-with-text *collatz* "m = 3*m + 1"))))
+    (is (equal (stmt-with-text *collatz* "++k")
+               (se::ancestor-after *collatz*
+                                   (->> (stmt-asts *collatz*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (second)
+                                        (aget :counter))
+                                   (stmt-with-text *collatz* "++k"))))))
+
+(deftest ancestor-after-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "ForStmt"}
+                                    {aget :ast-class}])
+                    (second)
+                    (aget :counter))
+               (se::ancestor-after *soft*
+                                   (->> (stmt-asts *soft*)
+                                        (remove-if-not [{string= "ForStmt"}
+                                                        {aget :ast-class}])
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *soft*
+                                                   "printf(\"%d\\n\", i+j)"))))
+    (is (equal (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+               (se::ancestor-after *soft*
+                                   (->> (stmt-asts *soft*)
+                                        (remove-if-not [{string= "ForStmt"}
+                                                        {aget :ast-class}])
+                                        (second)
+                                        (aget :counter))
+                                   (stmt-with-text *soft*
+                                                   "printf(\"%d\\n\", i+j)"))))
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "ForStmt"}
+                                    {aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (se::ancestor-after *soft*
+                                   (->> (stmt-asts *soft*)
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *soft*
+                                                   "printf(\"%d\\n\", i+j)"))))
+    (is (equal (stmt-with-text *soft* "return 0")
+               (se::ancestor-after *soft*
+                                   (->> (stmt-asts *soft*)
+                                        (first)
+                                        (aget :counter))
+                                   (stmt-with-text *soft* "return 0"))))))
+
+(deftest full-stmt-successors-fib-test ()
+  (with-fixture fib-clang
+    (is (equal '("DeclStmt" "WhileStmt" "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *fib* "int x = 0")
+                    (full-stmt-successors *fib*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))
+    (is (equal '("BinaryOperator" "BinaryOperator" "CompoundStmt"
+                 "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *fib* "int t = x")
+                    (full-stmt-successors *fib*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))
+    (is (equal '("CompoundStmt")
+               (->> (stmt-with-text *fib* "return x")
+                    (full-stmt-successors *fib*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))))
+
+(deftest full-stmt-successors-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal '("WhileStmt" "CallExpr" "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *collatz* "int k = 0")
+                    (full-stmt-successors *collatz*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))
+    (is (equal '("CompoundStmt" "UnaryOperator" "CompoundStmt"
+                 "CallExpr" "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *collatz* "m /= 2")
+                    (full-stmt-successors *collatz*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))
+    (is (equal '("CompoundStmt")
+               (->> (stmt-with-text *collatz* "return k")
+                    (full-stmt-successors *collatz*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))))
+
+(deftest full-stmt-successors-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal '("DeclStmt" "ForStmt" "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *soft* "int i")
+                    (full-stmt-successors *soft*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))
+    (is (equal '("ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                    (full-stmt-successors *soft*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))))
+
+(deftest enclosing-full-stmt-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal (stmt-with-text *collatz* "m = 3*m + 1")
+               (enclosing-full-stmt *collatz*
+                                    (stmt-with-text *collatz* "3"))))
+    (is (equal (stmt-with-text *collatz* "m = 3*m + 1")
+               (enclosing-full-stmt *collatz*
+                                    (stmt-with-text *collatz*
+                                                    "m = 3*m + 1"))))
+    (is (equal (->> (stmt-asts *collatz*)
+                    (first)
+                    (aget :counter))
+               (enclosing-full-stmt *collatz*
+                                    (->> (stmt-asts *collatz*)
+                                         (first)
+                                         (aget :counter)))))))
+
+(deftest enclosing-full-stmt-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                    (enclosing-full-stmt *soft*))))
+    (is (equal (->> (remove-if-not [{string= "ForStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (first)
+                    (aget :counter))
+               (enclosing-full-stmt *soft*
+                                    (->> (remove-if-not [{string= "ForStmt"}
+                                                         {aget :ast-class}]
+                                                        (stmt-asts *soft*))
+                                         (first)))))
+    (is (equal (->> (remove-if-not [{string= "ForStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (second)
+                    (aget :counter))
+               (enclosing-full-stmt *soft*
+                                    (->> (remove-if-not [{string= "ForStmt"}
+                                                         {aget :ast-class}]
+                                                        (stmt-asts *soft*))
+                                         (second)))))
+    (is (equal (->> (stmt-asts *soft*)
+                    (first)
+                    (aget :counter))
+               (enclosing-full-stmt *soft*
+                                    (->> (stmt-asts *soft*)
+                                         (first)
+                                         (aget :counter)))))))
+
+(deftest enclosing-block-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal (->> (stmt-asts *collatz*)
+                    (remove-if-not [{string= "CompoundStmt"}
+                                    {aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (enclosing-block *collatz* (stmt-with-text *collatz*
+                                                          "int k = 0"))))
+    (is (equal (->> (stmt-asts *collatz*)
+                    (remove-if-not [{string= "CompoundStmt"}
+                                    {aget :ast-class}])
+                    (second)
+                    (aget :counter))
+               (enclosing-block *collatz* (stmt-with-text *collatz* "++k"))))
+    (is (equal (->> (stmt-asts *collatz*)
+                    (remove-if-not [{string= "CompoundStmt"}
+                                    {aget :ast-class}])
+                    (third)
+                    (aget :counter))
+               (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2"))))
+    (is (equal 0
+               (enclosing-block *collatz*
+                                (->> (stmt-asts *collatz*)
+                                     (remove-if-not [{string= "CompoundStmt"}
+                                                     {aget :ast-class}])
+                                     (first)
+                                     (aget :counter)))))))
+
+(deftest enclosing-block-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal (->> (remove-if-not [{string= "ForStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (second)
+                    (aget :counter))
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                    (enclosing-block *soft*))))
+    (is (equal (->> (remove-if-not [{string= "CompoundStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (first)
+                    (aget :counter))
+               (enclosing-block *soft*
+                                (->> (remove-if-not [{string= "ForStmt"}
+                                                     {aget :ast-class}]
+                                                    (stmt-asts *soft*))
+                                     (first)
+                                     (aget :counter)))))
+    (is (equal (->> (remove-if-not [{string= "ForStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (first)
+                    (aget :counter))
+               (enclosing-block *soft*
+                                (->> (remove-if-not [{string= "ForStmt"}
+                                                     {aget :ast-class}]
+                                                    (stmt-asts *soft*))
+                                     (second)
+                                     (aget :counter)))))
+    (is (equal 0
+               (enclosing-block *soft*
+                                (->> (stmt-asts *soft*)
+                                     (first)
+                                     (aget :counter)))))))
+
+(deftest block-p-collatz-test ()
+  (with-fixture collatz-clang
+    (loop :for ast
+          :in (stmt-asts *collatz*)
+          :do (is (equal (string= "CompoundStmt" (aget :ast-class ast))
+                         (block-p *collatz* ast))))))
+
+(deftest block-p-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (loop :for ast
+          :in (stmt-asts *soft*)
+          :do (is (equal (or (string= "CompoundStmt" (aget :ast-class ast))
+                             (string= "ForStmt" (aget :ast-class ast)))
+                         (block-p *soft* ast))))))
+
+(deftest block-successor-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal "WhileStmt"
+               (->> (block-successor *collatz* (stmt-with-text *collatz*
+                                                               "int k = 0"))
+                    (get-ast *collatz*)
+                    (aget :ast-class))))
+    (is (equal "ReturnStmt"
+               (->> (block-successor *collatz*
+                                     (stmt-with-text *collatz*
+                                                     "printf(\"%d\\n\", k)"))
+                    (get-ast *collatz*)
+                    (aget :ast-class))))
+    (is (equal nil
+               (block-successor *collatz* (stmt-with-text *collatz*
+                                                          "m /= 2"))))
+    (is (equal nil
+               (block-successor *collatz* (stmt-with-text *collatz*
+                                                          "++k"))))
+    (is (equal nil
+               (block-successor *collatz* (stmt-with-text *collatz*
+                                                          "return k"))))))
+
+(deftest block-successor-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal nil
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                    (block-successor *soft*))))
+    (is (equal nil
+               (block-successor *soft*
+                                (->> (remove-if-not [{string= "ForStmt"}
+                                                     {aget :ast-class}]
+                                                    (stmt-asts *soft*))
+                                     (second)
+                                     (aget :counter)))))
+    (is (equal (stmt-with-text *soft* "return 0")
+               (block-successor *soft*
+                                (->> (remove-if-not [{string= "ForStmt"}
+                                                     {aget :ast-class}]
+                                                    (stmt-asts *soft*))
+                                     (first)
+                                     (aget :counter)))))))
+
+(deftest block-predeccessor-collatz-test ()
+  (with-fixture collatz-clang
+    (is (equal nil
+               (block-predeccessor *collatz* (stmt-with-text *collatz*
+                                                             "int k = 0"))))
+    (is (equal "WhileStmt"
+               (->> (block-predeccessor *collatz*
+                                     (stmt-with-text *collatz*
+                                                     "printf(\"%d\\n\", k)"))
+                    (get-ast *collatz*)
+                    (aget :ast-class))))
+    (is (equal nil
+               (block-predeccessor *collatz* (stmt-with-text *collatz*
+                                                             "m /= 2"))))
+    (is (equal "IfStmt"
+               (->> (block-predeccessor *collatz* (stmt-with-text *collatz*
+                                                                  "++k"))
+                    (get-ast *collatz*)
+                    (aget :ast-class))))
+    (is (equal "CallExpr"
+               (->> (block-predeccessor *collatz* (stmt-with-text *collatz*
+                                                                  "return k"))
+                    (get-ast *collatz*)
+                    (aget :ast-class))))))
+
+(deftest block-predeccessor-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (is (equal nil
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                    (block-predeccessor *soft*))))
+    (is (equal nil
+               (block-successor *soft*
+                                (->> (remove-if-not [{string= "ForStmt"}
+                                                     {aget :ast-class}]
+                                                    (stmt-asts *soft*))
+                                     (second)
+                                     (aget :counter)))))
+    (is (equal (stmt-with-text *soft* "int j")
+               (block-predeccessor *soft*
+                                   (->> (remove-if-not [{string= "ForStmt"}
+                                                        {aget :ast-class}]
+                                                       (stmt-asts *soft*))
+                                        (first)
+                                        (aget :counter)))))))
+
+(deftest crossover-2pt-outward-fib-test ()
+  (with-fixture fib-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *fib*)
+                                         (copy *fib*)
+                                         (stmt-with-text *fib* "x = x + y")
+                                         (stmt-with-text *fib* "return x")
+                                         (stmt-with-text *fib* "x = x + y")
+                                         (stmt-with-text *fib* "return x"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *fib*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *fib* "x = x + y")
+                         (stmt-with-text *fib* "return x"))
+                   effective-a-pts)))))
+  (with-fixture fib-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *fib*)
+            (copy *fib*)
+            (stmt-with-text *fib* "int t = x")
+            (->> (stmt-asts *fib*)
+                 (remove-if-not [{string= "WhileStmt"}
+                                 {aget :ast-class}])
+                 (first)
+                 (aget :counter))
+            (stmt-with-text *fib* "int t = x")
+            (->> (stmt-asts *fib*)
+                 (remove-if-not [{string= "WhileStmt"}
+                                 {aget :ast-class}])
+                 (first)
+                 (aget :counter)))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *fib*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *fib* "int t = x")
+                         (->> (stmt-asts *fib*)
+                              (remove-if-not [{string= "WhileStmt"}
+                                              {aget :ast-class}])
+                              (first)
+                              (aget :counter)))
+                   effective-a-pts))))))
+
+(deftest crossover-2pt-outward-collatz-test ()
+  (with-fixture collatz-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *collatz*)
+                                         (copy *collatz*)
+                                         (stmt-with-text *collatz* "m /= 2")
+                                         (stmt-with-text *collatz* "++k")
+                                         (stmt-with-text *collatz* "m /= 2")
+                                         (stmt-with-text *collatz* "++k"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (equal (cons (stmt-with-text *collatz* "m /= 2")
+                         (stmt-with-text *collatz* "++k"))
+                   effective-a-pts)))))
+  (with-fixture collatz-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *collatz*)
+                                         (copy *collatz*)
+                                         (stmt-with-text *collatz* "++k")
+                                         (stmt-with-text *collatz* "return k")
+                                         (stmt-with-text *collatz* "++k")
+                                         (stmt-with-text *collatz* "return k"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *collatz*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *collatz* "++k")
+                         (stmt-with-text *collatz* "return k"))
+                   effective-a-pts))))))
+
+(deftest crossover-2pt-outward-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+            (stmt-with-text *soft* "return 0")
+            (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+            (stmt-with-text *soft* "return 0"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                         (stmt-with-text *soft* "return 0"))
+                   effective-a-pts)))))
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (->> (stmt-asts *soft*)
+                 (remove-if-not [{string= "ForStmt"}
+                                 {aget :ast-class}])
+                 (second)
+                 (aget :counter))
+            (stmt-with-text *soft* "return 0")
+            (->> (stmt-asts *soft*)
+                 (remove-if-not [{string= "ForStmt"}
+                                 {aget :ast-class}])
+                 (second)
+                 (aget :counter))
+            (stmt-with-text *soft* "return 0"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (->> (stmt-asts *soft*)
+                              (remove-if-not [{string= "ForStmt"}
+                                              {aget :ast-class}])
+                              (second)
+                              (aget :counter))
+                         (stmt-with-text *soft* "return 0"))
+                   effective-a-pts))))))
+
+
+(deftest crossover-2pt-inward-fib-test ()
+  (with-fixture fib-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *fib*)
+                                         (copy *fib*)
+                                         (stmt-with-text *fib* "int x = 0")
+                                         (stmt-with-text *fib* "return x")
+                                         (stmt-with-text *fib* "int x = 0")
+                                         (stmt-with-text *fib* "return x"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *fib*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *fib* "int x = 0")
+                         (stmt-with-text *fib* "return x"))
+                   effective-a-pts)))))
+  (with-fixture fib-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *fib*)
+                                         (copy *fib*)
+                                         (stmt-with-text *fib* "int x = 0")
+                                         (stmt-with-text *fib* "x = x + y")
+                                         (stmt-with-text *fib* "int x = 0")
+                                         (stmt-with-text *fib* "x = x + y"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *fib*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *fib* "int x = 0")
+                         (stmt-with-text *fib* "x = x + y"))
+                   effective-a-pts))))))
+
+(deftest crossover-2pt-inward-collatz-test ()
+  (with-fixture collatz-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *collatz*)
+                                         (copy *collatz*)
+                                         (stmt-with-text *collatz* "int k = 0")
+                                         (stmt-with-text *collatz* "return k")
+                                         (stmt-with-text *collatz* "int k = 0")
+                                         (stmt-with-text *collatz* "return k"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *collatz*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *collatz* "int k = 0")
+                         (stmt-with-text *collatz* "return k"))
+                   effective-a-pts)))))
+  (with-fixture collatz-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *collatz*)
+                                         (copy *collatz*)
+                                         (stmt-with-text *collatz* "int k = 0")
+                                         (stmt-with-text *collatz*
+                                                         "m = 3*m + 1")
+                                         (stmt-with-text *collatz* "int k = 0")
+                                         (stmt-with-text *collatz*
+                                                         "m = 3*m + 1"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *collatz*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *collatz* "int k = 0")
+                         (stmt-with-text *collatz* "m = 3*m + 1"))
+                   effective-a-pts)))))
+  (with-fixture collatz-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover (copy *collatz*)
+                                         (copy *collatz*)
+                                         (stmt-with-text *collatz* "int k = 0")
+                                         (stmt-with-text *collatz* "++k")
+                                         (stmt-with-text *collatz* "int k = 0")
+                                         (stmt-with-text *collatz* "++k"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *collatz*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *collatz* "int k = 0")
+                         (stmt-with-text *collatz* "++k"))
+                   effective-a-pts))))))
+
+(deftest crossover-2pt-inward-no-compound-stmt-test ()
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "int i")
+            (stmt-with-text *soft* "return 0")
+            (stmt-with-text *soft* "int i")
+            (stmt-with-text *soft* "return 0"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "int i")
+                         (stmt-with-text *soft* "return 0"))
+                   effective-a-pts)))))
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "int i")
+            (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+            (stmt-with-text *soft* "int i")
+            (stmt-with-text *soft* "printf(\"%d\\n\", i+j)"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "int i")
+                         (stmt-with-text *soft* "printf(\"%d\\n\", i+j)"))
+                   effective-a-pts)))))
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "int i")
+            (->> (stmt-asts *soft*)
+                 (remove-if-not [{string= "ForStmt"}
+                                 {aget :ast-class}])
+                 (first)
+                 (aget :counter))
+            (stmt-with-text *soft* "int i")
+            (->> (stmt-asts *soft*)
+                 (remove-if-not [{string= "ForStmt"}
+                                 {aget :ast-class}])
+                 (first)
+                 (aget :counter)))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "int i")
+                         (->> (stmt-asts *soft*)
+                              (remove-if-not [{string= "ForStmt"}
+                                              {aget :ast-class}])
+                              (first)
+                              (aget :counter)))
+                   effective-a-pts)))))
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "int i")
+            (->> (stmt-asts *soft*)
+                 (remove-if-not [{string= "ForStmt"}
+                                 {aget :ast-class}])
+                 (second)
+                 (aget :counter))
+            (stmt-with-text *soft* "int i")
+            (->> (stmt-asts *soft*)
+                 (remove-if-not [{string= "ForStmt"}
+                                 {aget :ast-class}])
+                 (second)
+                 (aget :counter)))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "int i")
+                         (->> (stmt-asts *soft*)
+                              (remove-if-not [{string= "ForStmt"}
+                                              {aget :ast-class}])
+                              (second)
+                              (aget :counter)))
+                   effective-a-pts))))))
+
 (deftest basic-2pt-crossover-works ()
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int d"))
@@ -2761,9 +3698,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Instrumentation tests
-(defun count-fullable (obj)
+(defun count-traceable (obj)
   "Return a count of full statements parented by compound statements"
-  (count-if {can-be-made-full-p obj} (asts obj)))
+  (count-if {can-be-made-traceable-p obj} (asts obj)))
 
 (defun read-trace (string)
   "Read a trace into a lisp objects."
@@ -2778,8 +3715,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*))))
       ;; Do we insert the right number of printf statements?
-      (is (<= (* 2 (count-fullable *gcd*))
-              (count-fullable instrumented)))
+      (is (<= (* 2 (count-traceable *gcd*))
+              (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (is (zerop (second (multiple-value-list
@@ -2801,8 +3738,8 @@ Useful for printing or returning differences in the REPL."
                                     :filter {remove-if-not
                                              [{eq 93} {aget :counter}]})))
       ;; Do we insert the right number of printf statements?
-      (is (eq (+ 3 (count-fullable *gcd*))
-              (count-fullable instrumented)))
+      (is (eq (+ 3 (count-traceable *gcd*))
+              (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (is (zerop (second (multiple-value-list
@@ -2823,8 +3760,8 @@ Useful for printing or returning differences in the REPL."
     (let ((instrumented (instrument (copy *gcd*)
                                     :instrument-exit t)))
       ;; Do we insert the right number of printf statements?
-      (is (<= (* 2 (count-fullable *gcd*))
-              (count-fullable instrumented)))
+      (is (<= (* 2 (count-traceable *gcd*))
+              (count-traceable instrumented)))
 
       ;; Is function exit instrumented?
       (is (stmt-with-text instrumented
@@ -2857,8 +3794,8 @@ Useful for printing or returning differences in the REPL."
                          (collect (list i :even))
                          (collect (list i :odd))))))))
       ;; Do we insert the right number of printf statements?
-      (is (<= (* 3 (count-fullable *gcd*))
-              (count-fullable instrumented)))
+      (is (<= (* 3 (count-traceable *gcd*))
+              (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (is (zerop (second (multiple-value-list

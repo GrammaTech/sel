@@ -54,8 +54,8 @@ Keyword arguments are as follows:
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
            (let* ((function (function-containing-ast obj counter))
-                  (wrap (and (not (aget :full-stmt ast))
-                             (can-be-made-full-p obj ast)))
+                  (wrap (and (not (traceable-stmt-p obj ast))
+                             (can-be-made-traceable-p obj ast)))
                   (return-void (aget :void-ret function))
                   (skip (or (aget :in-macro-expansion ast)
                             (string= "NullStmt" (aget :ast-class ast))
@@ -127,7 +127,7 @@ Keyword arguments are as follows:
                          (list (format nil "fflush(~a);~%" log-var)))
                               log-var)))))))))
       (-<>> (asts obj)
-            (remove-if-not {can-be-made-full-p obj})
+            (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
             (mapcar {aget :counter})
             ;; Bottom up ensure earlier insertions don't invalidate
