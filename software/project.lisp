@@ -177,7 +177,6 @@ copy of the original current file.
 (defmethod instrument ((project project) &rest args)
   "Instrument a project. Arguments are passed through to instrument on
 the underlying software objects."
-
   (let* ((files (if (current-file project)
                     (list (current-file project))
                     (mapcar #'cdr (evolve-files project))))

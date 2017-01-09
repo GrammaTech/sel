@@ -151,13 +151,11 @@ Keyword arguments are as follows:
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
-    (when print-argv
-      (print-program-input entry-obj log-var))
+    (when (and print-argv (eq obj entry-obj))
+       (print-program-input obj log-var))
     (when trace-file
       (log-to-filename obj entry-obj log-var trace-file))
     (clang-format obj)
-    (unless (eq obj entry-obj)
-      (clang-format entry-obj))
     obj))
 
 (defun file-open-str (log-variable filename)
@@ -253,12 +251,14 @@ fputs(\"))\\n\", ~a);"
           obj))
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
+;; Should only be called if you're sure obj is an entry-obj
 (defmethod log-to-filename ((obj clang) entry-obj log-variable filename)
   ;; Use the "constructor" attribute to run this initialization
   ;; function on startup, before main() or C++ static initializers.
-  (setf (genome entry-obj)
-        (format nil
-                "
+  (when (eq obj entry-obj)
+    (setf (genome entry-obj)
+          (format nil
+                  "
 #include <stdio.h>
 FILE *~a;
 void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
@@ -269,9 +269,9 @@ unsigned long trace_counter=0;
 
 ~a
 "
-                log-variable
-                (file-open-str log-variable filename)
-                (genome entry-obj)))
+                  log-variable
+                  (file-open-str log-variable filename)
+                  (genome entry-obj))))
   (unless (eq obj entry-obj)
     (setf (genome obj)
           (concatenate 'string
