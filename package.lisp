@@ -85,8 +85,6 @@
    :prepare-sequence-snippet
    :prepare-inward-snippet
    :create-inward-snippet
-   :apply-fun-body-substitutions
-   :select-before
    :crossover-2pt-inward
    :crossover-2pt-outward
    :intraprocedural-2pt-crossover
@@ -136,7 +134,7 @@
    :get-parent-full-stmt
    :wrap-ast
    :wrap-child
-   :can-be-made-full-p
+   :can-be-made-traceable-p
    :get-make-parent-full-stmt
    :get-immediate-children
    :extend-to-enclosing
@@ -276,10 +274,13 @@
    :nesting-depth
    :get-ast-text
    :full-stmt-p
+   :block-p
+   :guard-p
    :enclosing-full-stmt
    :enclosing-block
    :nesting-relation
    :match-nesting
+   :block-predeccessor
    :block-successor
    :show-full-stmt
    :full-stmt-text
