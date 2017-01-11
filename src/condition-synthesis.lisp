@@ -537,6 +537,16 @@ environments."
 (defun build-with-abst-cond (software repair-mutation bin extra-exprs)
   (apply-mutation software repair-mutation)
   ;; include abst_cond implementation
+
+  ;; for obj, insert instrumentation file opening at entry points
+  (let ((entry-objs (remove-if-not (lambda (f)
+                                     (find-if [{string= "main"} {aget :name}]
+                                              (functions f)))
+                                   (mapcar #'cdr (all-files software)))))
+    ;; __bi_mut_log_file literal is a hack here, but we don't use stderr for RINGS
+    (loop for f in entry-objs
+         do (log-to-filename f t "__bi_mut_log_file" *trace-file*)))
+
   (setf (genome software)
         (concatenate 'string +abst-cond-source+ (genome software)))
   ;; instrument to output in-scope vars at abst_cond() invocations
