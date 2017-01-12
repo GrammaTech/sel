@@ -12,25 +12,25 @@
 ;;; ASTs are stored in a weak hash table, so they can be freed when
 ;;; they are no longer used by the population.
 
-(defvar *ast-table* (make-hash-table :test #'equal
-                                     #+sbcl :weakness #+sbcl :value)
+(defvar *ast-table*
+  (make-hash-table :test #'equal #+sbcl :weakness #+sbcl :value)
   "Set of all unique ASTs.")
-(defvar *ast-lock* (bordeaux-threads:make-lock "ast-table")
-  "Lock for *ast-table*")
+
+(defvar *ast-lock*
+  (bordeaux-threads:make-lock "ast-table")
+  "Lock for `*ast-table*'.")
 
 (defun deduplicate-asts (asts ast-table)
-  "Replace each AST with the equivalent from AST-TABLE. Update
-AST-TABLE with any new ASTs."
+  "Replace each AST with the equivalent from AST-TABLE.
+Update AST-TABLE with any new ASTs."
   (mapcar (lambda (ast)
             (or (gethash ast ast-table)
                 (setf (gethash ast ast-table) ast)))
-       asts))
+          asts))
 
-(defmethod clang-mutate :around ((obj clang-deduplicate) op
-                                 &key script
-                                 &aux value1-file value2-file)
+(defmethod clang-mutate :around ((obj clang-deduplicate) op &key script)
   "Deduplicate ASTs after reading them."
-  (declare (ignorable script) (ignorable value1-file) (ignorable value2-file))
+  (declare (ignorable script))
   (let ((result (call-next-method)))
     (if (eq (car op) :sexp)
         (with-lock-held (*ast-lock*)
