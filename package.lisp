@@ -255,6 +255,7 @@
    :clang-w-fodder
    :clang-w-binary
    :clang-w-fodder-and-binary
+   :clang-deduplicate
    :bytes
    :diff-data
    :recontextualize
