@@ -49,6 +49,7 @@ techniques."
              (:file "clang" :depends-on ("ast"))
              (:file "clang-expression" :depends-on ("clang" "lisp"))
              (:file "clang-w-fodder" :depends-on ("clang"))
+             (:file "clang-deduplicate" :depends-on ("clang"))
              (:file "llvm" :depends-on ("ast"))
              (:file "project")))
    (:module src
