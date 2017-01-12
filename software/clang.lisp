@@ -1969,9 +1969,13 @@ depth)."))
   (when-let ((decl (decl-of-var software point var))
              (name (peel-bananas (first var))))
     (find-type software
-               (nth (position-if {string= name}
-                                 (aget :declares decl))
-                    (aget :types decl)))))
+               ;; FIXME: multi-var decls can have fewer types than
+               ;; decls. We can fall back to using the last one, but
+               ;; this isn't necessarily correct.
+               (or (nth (position-if {string= name}
+                                     (aget :declares decl))
+                        (aget :types decl))
+                   (car (last (aget :types decl)))))))
 
 
 ;;; Crossover functions
