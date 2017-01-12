@@ -629,15 +629,6 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
   (apply-mutation software mutation)
   software)
 
-(defun partition (predicate list)
-  "Partition lists based on a predicate. Return one list of items for
-which the predicate is true, and another of those for which it is
-false."
-  (loop for x in list
-     if (funcall predicate x) collect x into yes
-     else collect x into no
-     finally (return (values yes no))))
-
 (defun collect-tests (software test-suite)
   "Make test suite and divide it into positive and negative cases."
   (with-temp-file (bin)
