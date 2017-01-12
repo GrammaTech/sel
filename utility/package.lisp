@@ -65,6 +65,7 @@
    :plist-merge
    :counts
    :proportional-pick
+   :partition
    :random-bool
    :random-elt-with-decay
    :random-hash-table-key
