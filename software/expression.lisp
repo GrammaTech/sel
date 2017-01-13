@@ -16,7 +16,7 @@
     (:* #'*)
     (:! #'factorial)
     (:c #'choose)
-    (:f #'floot)
+    (:f #'floor)
     (:m #'mod)
     (:n #'min)
     (:x #'max)
