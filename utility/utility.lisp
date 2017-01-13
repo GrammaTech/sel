@@ -576,14 +576,14 @@ Keyword argument FRAC will return fractions instead of raw counts."
     (random-elt (mapcar #'car (remove-if-not [{= (apply #'max scores)} #'second]
                                              (indexed scores))))))
 
-(defun partition (predicate list)
-  "Partition lists based on a predicate. Return one list of items for
-which the predicate is true, and another of those for which it is
-false."
-  (loop for x in list
-     if (funcall predicate x) collect x into yes
-     else collect x into no
-     finally (return (values yes no))))
+(defun partition (test list)
+  "Return a list of lists of elements of LIST which do and do not satisfy TEST.
+The first list holds elements of LIST which satisfy TEST, the second
+holds those which do not."
+  (loop :for x :in list
+     :if (funcall test x) :collect x :into yes
+     :else :collect x :into no
+     :finally (return (list yes no))))
 
 (defun random-bool (&optional bias)
   (> (or bias 0.5) (random 1.0)))
