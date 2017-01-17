@@ -17,6 +17,7 @@
    :infinity
    ;; OS
    :file-to-string
+   :use-encoding
    :file-to-bytes
    :string-to-file
    :bytes-to-file
