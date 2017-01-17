@@ -3254,6 +3254,19 @@ Useful for printing or returning differences in the REPL."
 (deftest pad-list-already-of-requisite-length ()
   (is (equal '(1 2 3) (pad '(1 2 3) 3))))
 
+(deftest file-to-string-restart ()
+  (let ((path (make-pathname :directory +etc-dir+ :defaults "latin-1.c")))
+    (signals stream-error
+      (file-to-string path))
+    (is (string= (handler-bind ((stream-error
+                                 (lambda (c)
+                                   (declare (ignorable c))
+                                   (invoke-restart 'use-encoding :latin-1))))
+               (file-to-string path))
+         "/* Here is a non-ASCII character: § */
+"))))
+
+
 
 ;; project tests
 (in-suite test)

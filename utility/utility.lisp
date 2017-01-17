@@ -89,11 +89,17 @@
     (ccl:get-foreign-namestring
      (ccl:external-call "tempnam" :address base :address prefix :address))))
 
-(defun file-to-string (path)
-  (with-open-file (in path)
-    (let ((seq (make-string (file-length in))))
-      (read-sequence seq in)
-      seq)))
+(defun file-to-string (path &key (external-format :utf-8))
+  (restart-case
+      (let (#+sbcl
+            (sb-impl::*default-external-format* external-format))
+        (with-open-file (in path)
+          (let ((seq (make-string (file-length in))))
+            (read-sequence seq in)
+            seq)))
+    ;; Try a different encoding
+    (use-encoding (encoding)
+                  (file-to-string path :external-format encoding))))
 
 (defun file-to-bytes (path)
   (with-open-file (in path :element-type '(unsigned-byte 8))
