@@ -119,7 +119,12 @@ Stashed away in the VC history.
 
 * Tasks [25/33]
 ** TODO Should mutations fall back from bad-stmts to all-stmts
-As currently done in [[file:software/clang.lisp::;;;%20Expand%20compound%20assignment][expand-assignments]]? No.
+As used to be done in [[file:software/clang.lisp::;;;%20Expand%20compound%20assignment][expand-assignments]] selecting targets with something like:
+
+(or (find-targets-in-bad-stmts)
+    (find-targets-in-stmt-asts))
+
+No.
 
 Instead we should add a new restart to the =no-mutation-targets= error
 condition which widens pick-bad-stmt into pick-stmt.

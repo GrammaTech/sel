@@ -306,7 +306,7 @@ Keyword arguments may be used to restrict selections."
 
 (defmethod pick-guarded-compound ((obj clang))
   (let ((guarded-classes (list "WhileStmt" "IfStmt" "ForStmt" "DoStmt")))
-    (&>> (stmt-asts obj)
+    (&>> (bad-stmts obj)
          (remove-if-not [{member _ guarded-classes :test #'string=}
                          {aget :ast-class}])
          (random-elt))))
@@ -373,7 +373,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
   (:documentation "Pick and return a 'for' loop in SOFTWARE."))
 (defmethod pick-for-loop ((obj clang))
   (if-let ((for-loops (remove-if-not [{string= "ForStmt"} {aget :ast-class}]
-                                     (stmt-asts obj))))
+                                     (bad-stmts obj))))
     `((:stmt1 . ,(random-ast for-loops)))
     (error (make-condition 'no-mutation-targets
              :text "No 'for' loops found"
@@ -467,7 +467,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   (:documentation "Pick and return a 'while' loop in SOFTWARE."))
 (defmethod pick-while-loop ((obj clang))
   (if-let ((while-loops (remove-if-not [{string= "WhileStmt"} {aget :ast-class}]
-                                       (stmt-asts obj))))
+                                       (bad-stmts obj))))
     `((:stmt1 . ,(random-ast while-loops)))
     (error (make-condition 'no-mutation-targets
              :text "No 'while' loops found"
@@ -509,7 +509,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 
 (defun pick-cut-decl (clang)
   (if-let ((decls (remove-if-not [{string= "DeclStmt"} {aget :ast-class}]
-                                 (stmt-asts clang))))
+                                 (bad-stmts clang))))
     `((:stmt1 . ,(random-ast decls)))
     (error (make-condition 'no-mutation-targets
              :text "No decls to cut"
@@ -617,20 +617,10 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
              (if (full-stmt-p clang ast)
                  (add-semicolon-if-needed text)
                  text)))
-    (let* ((ast (&>> (or (remove-if-not «or #'compound-assign-op
-                                            #'increment-op
-                                            #'decrement-op»
-                                        (bad-stmts clang))
-                         ;; TODO: Regarding this fallback to all
-                         ;; statements if not bad statements are
-                         ;; found.  This should be changed into a
-                         ;; general restart for the
-                         ;; no-mutation-targets error.  See the
-                         ;; corresponding task in the NOTES file.
-                         (remove-if-not «or #'compound-assign-op
-                                            #'increment-op
-                                            #'decrement-op»
-                                        (stmt-asts clang)))
+    (let* ((ast (&>> (remove-if-not «or #'compound-assign-op
+                                        #'increment-op
+                                        #'decrement-op»
+                                    (bad-stmts clang))
                      (random-elt))))
       (if (not ast)
           (error (make-condition 'no-mutation-targets
