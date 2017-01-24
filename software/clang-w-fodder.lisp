@@ -91,7 +91,7 @@ mutations.")
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet"
-  (let* ((bad (aget :counter (pick-bad software)))
+  (let* ((bad (ast-counter (pick-bad software)))
          (bad-stmt  (if (full-stmt-p software bad) bad
                         (enclosing-full-stmt software bad)))
          (value (cond (same-class
@@ -107,17 +107,17 @@ mutations.")
 
 (defun pick-decl-fodder (software)
   (let ((function-entry-stmts (->> (functions software)
-                                   (mapcar [{get-ast software}{aget :body}])
-                                   (mapcar {aget :children})
+                                   (mapcar [{get-ast software} #'ast-body])
+                                   (mapcar #'ast-children)
                                    (mapcar {first})
                                    (remove-if #'null))))
     (if (null function-entry-stmts)
         (error (make-condition 'no-mutation-targets
                  :obj software
                  :text "Could not find any functions with non-empty bodies.")))
-        (list (cons :stmt1 (random-elt function-entry-stmts))
-              ;; Only return variable declarations from `pick-snippet'.
-              (cons :value1 (pick-snippet software :class "DeclStmt")))))
+    (list (cons :stmt1 (random-elt function-entry-stmts))
+          ;; Only return variable declarations from `pick-snippet'.
+          (cons :value1 (pick-snippet software :class "DeclStmt")))))
 
 (defun pick-decl-fodder-and-rename (software)
   "Combination of `pick-decl-fodder' and `pick-rename-variable'.

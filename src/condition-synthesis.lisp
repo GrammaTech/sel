@@ -51,16 +51,16 @@ instrumentation.
 
 ;; Helper functions
 (defun guard-statements (software)
-  (remove-if-not {aget :guard-stmt} (bad-stmts software)))
+  (remove-if-not #'ast-guard-stmt (bad-stmts software)))
 
 (defun pick-target-condition (software)
   "Pick a condition to target for refinement."
-  (aget :counter (random-elt (guard-statements software))))
+  (ast-counter (random-elt (guard-statements software))))
 
 (defun pick-if-stmt (software)
-  (let ((stmts (remove-if-not [{equal "IfStmt"} {aget :ast-class } ]
+  (let ((stmts (remove-if-not [{equal "IfStmt"} #'ast-class ]
                               (bad-stmts software))))
-    (and stmts (list (aget :counter (random-elt stmts))))))
+    (and stmts (list (ast-counter (random-elt stmts))))))
 
 ;; refine-condition: add an additional boolean clause to an if condition
 (define-mutation refine-condition (clang-mutation)
@@ -83,11 +83,11 @@ instrumentation.
   (:documentation "List of locations where this mutation can be applied."))
 
 (defmethod valid-targets ((mutation refine-condition) software)
-  (remove-if {aget :in-macro-expansion} (guard-statements software)))
+  (remove-if #'ast-in-macro-expansion (guard-statements software)))
 
 (defun refined-condition (mutation target-ast)
   (format nil "(~a) ~a~a"
-          (peel-bananas (aget :src-text target-ast))
+          (peel-bananas (ast-src-text target-ast))
           (connector mutation)
           (or (abst-cond mutation) "abst_cond()")))
 
@@ -106,12 +106,12 @@ instrumentation.
   ((targeter
     :initform
     (lambda (software)
-      (aget :counter
+      (ast-counter
             (random-elt
              (->> (asts software)
-                  (remove-if-not {aget :full-stmt})
-                  (remove-if [{equal "Function"} {aget :ast-class}])
-                  (remove-if [{equal "DeclStmt"} {aget :ast-class}]))))))
+                  (remove-if-not #'ast-full-stmt)
+                  (remove-if [{equal "Function"} #'ast-class])
+                  (remove-if [{equal "DeclStmt"} #'ast-class]))))))
    (abst-cond :accessor abst-cond :initform nil)))
 
 (defmethod build-op ((mutation add-condition) software)
@@ -124,7 +124,7 @@ instrumentation.
                      ((:src-text . ,(format nil "if (~a) ~a"
                                             abst-cond-expr
                                             (peel-bananas
-                                             (aget :src-text target-ast))))
+                                             (ast-src-text target-ast))))
                       (:includes . "\"abst_cond.h\"")))))))
 
 (defmethod valid-targets ((mutation add-condition) software)
@@ -146,11 +146,11 @@ instrumentation.
   (when (targets mutation)
     (let* ((stmt (targets mutation))
            (ast (get-ast software stmt))
-           (condition-ast (get-ast software (first (aget :children ast))))
+           (condition-ast (get-ast software (first (ast-children ast))))
            (text (replace-one
                   (peel-bananas
-                   (replace-one (aget :src-text ast)
-                                (aget :src-text condition-ast)
+                   (replace-one (ast-src-text ast)
+                                (ast-src-text condition-ast)
                                 (refined-condition mutation
                                                    condition-ast)))
                   "if" "while")))
@@ -181,9 +181,9 @@ is replaced with replacement."
            (ast (get-ast software stmt)))
       `((:set (:stmt1 . ,stmt)
               (:value1 . ,(acons :src-text
-                                 (replace-one (aget :src-text ast)
+                                 (replace-one (ast-src-text ast)
                                               "if" "while")
-                                 ast)))))))
+                                 (ast->snippet ast))))))))
 
 ;; Get second child (then branch), put new else-if text at the end of
 ;; the existing text (with abs_cond as conditional), it SHOULD parse
@@ -192,24 +192,24 @@ is replaced with replacement."
   (when (targets mutation)
     (let* ((if-stmt (targets mutation))
            ;; here we take the "then" branch of the target IfStmt
-           (stmt (second (aget :children (get-ast software if-stmt))))
+           (stmt (second (ast-children (get-ast software if-stmt))))
            (target-ast (get-ast software stmt))
            (abst-cond-expr (or (abst-cond mutation) "abst_cond()")))
       `((:set
          (:stmt1 . ,stmt)
          (:literal1 . ,(format nil "~a else if (~a) { /* empty for now */ }"
-                               (peel-bananas (aget :src-text target-ast))
+                               (peel-bananas (ast-src-text target-ast))
                                abst-cond-expr))
          (:includes . "\"abst_cond.h\""))))))
 
 (defmethod valid-targets ((mutation if-to-while) software)
-  (remove-if {aget :in-macro-expansion}
-             (remove-if-not [{equal "IfStmt"} {aget :ast-class}]
+  (remove-if #'ast-in-macro-expansion
+             (remove-if-not [{equal "IfStmt"} #'ast-class]
                             (bad-stmts software))))
 
 (defmethod valid-targets ((mutation insert-else-if) software)
-  (remove-if {aget :in-macro-expansion}
-             (remove-if-not [{equal "IfStmt"} {aget :ast-class}]
+  (remove-if #'ast-in-macro-expansion
+             (remove-if-not [{equal "IfStmt"} #'ast-class]
                             (bad-stmts software))))
 
 
@@ -301,13 +301,13 @@ abstract condition."))
   "Identify guard statements containing a call to abst_cond(), and return a list
 of lists containing the AST counter along with start and end index of
 abst_cond() in the source text."
-  (let ((asts (remove-if-not {aget :guard-stmt} (asts software))))
+  (let ((asts (remove-if-not #'ast-guard-stmt (asts software))))
     (iter (for ast in asts)
           (multiple-value-bind (match-start match-end reg-start reg-end)
-              (scan "abst_cond\\(\\)" (peel-bananas (aget :src-text ast)))
+              (scan "abst_cond\\(\\)" (peel-bananas (ast-src-text ast)))
             (declare (ignorable reg-start reg-end))
             (when match-start
-              (collect (aget :counter ast) into counters)
+              (collect (ast-counter ast) into counters)
               (collect match-start into starts)
               (collect match-end into ends))
             (finally (return (mapcar #'list counters starts ends)))))))
@@ -318,7 +318,7 @@ abst_cond() in the source text."
                     [{member _ '("IfStmt" "WhileStmt" "ForStmt" "DoStmt"
                                  "SwitchStmt")
                              :test #'string=}
-                     {aget :ast-class}]
+                     #'ast-class]
                     (get-parent-asts clang (get-ast clang guard-counter))))))
     (assert stmt)
     stmt))
@@ -350,14 +350,14 @@ abst_cond() in the source text."
                                (handler-case ; Sometimes fails for weird types.
                                    (cons v (type-of-var obj v))
                                  (error () nil)))
-                             (apply #'append (butlast (aget :scopes ast))))
+                             (apply #'append (butlast (ast-scopes ast))))
                      extra-exprs))))
       (iter (for (var . type) in exprs)
             (let* ((c-type (concatenate 'string
-                             (if (or (aget :pointer type)
-                                     (not (emptyp (aget :array type))))
+                             (if (or (type-pointer type)
+                                     (not (emptyp (type-array type))))
                                  "*" "")
-                             (aget :type type)))
+                             (type-name type)))
                    (stripped-c-type
                     (regex-replace "\\**(unsigned )?" c-type "")))
               (when (or (member stripped-c-type +c-numeric-types+
@@ -382,7 +382,7 @@ abst_cond() in the source text."
 statement(s) in the repair targets."
 
   ;; Look for repair-locs only in the main target (e.g. for clang-project)
-  (let* ((repair-locs (mapcar [{aget :counter}
+  (let* ((repair-locs (mapcar [#'ast-counter
                                {get-parent-control-stmt software}
                                #'car]
                               (get-abst-cond-locs software)))
@@ -399,7 +399,7 @@ statement(s) in the repair targets."
                        (and (full-stmt-p software ast)
                             (some (lambda (loc) (ancestor-of software loc ast))
                                   repair-locs)))
-                     (mapcar {aget :counter} (asts software)))))
+                     (mapcar #'ast-counter (asts software)))))
 
     ;; sometimes inst-locs comes up nil (no full statement children),
     ;; set to enclosing full stmt, if so
@@ -407,7 +407,7 @@ statement(s) in the repair targets."
       (setf inst-locs (mapcar {enclosing-full-stmt software } repair-locs)))
 
     (let ((inst-reps (lambda (ast)
-                       (when (member (aget :counter ast) inst-locs)
+                       (when (member (ast-counter ast) inst-locs)
                          (instrument-values software ast
                                             :print-strings t
                                             :extra-exprs extra-exprs)))))
@@ -417,7 +417,7 @@ statement(s) in the repair targets."
                   ;; Only instrument within relevant functions
                   :filter {remove-if-not [{member _ inst-functions}
                                           {function-containing-ast software}
-                                          {aget :counter}]}))))
+                                          #'ast-counter]}))))
 
 (defun read-abst-conds-and-envs (trace-results-file)
   "For a trace file, read in the environments and recorded abst-cond decisions."
@@ -739,35 +739,38 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                expressions, and the other fields are matched against
                the type DB.
 "
-  (let* ((type-hash (aget :hash (find-if {types-equal type} (types obj))))
+  (let* ((type-hash
+          (when-let ((clang-type (find-if {types-equal type} (types obj))))
+            (type-hash clang-type)))
          ;; FIXME: should only grab expressions that are valid at
          ;; point. But this is tricky with anything beyond simple
          ;; DeclRefs.
-         (scope (aget :body (function-containing-ast obj point)))
+         (scope (ast-body (function-containing-ast obj point)))
          (exprs (remove-duplicates
                  (remove-if-not
                   (lambda (a)
-                    (and (eql type-hash (aget :expr-type a))
+                    (and (eql type-hash (ast-expr-type a))
                          ;; Skip macro bodies
-                         (not (aget :in-macro-expansion a))
+                         (not (ast-in-macro-expansion a))
                          ;; Avoid side effects by excluding calls and
                          ;; assignment operators.
-                         (not (string= "CallExpr" (aget :ast-class a)))
-                         (not (string= "BinaryOperator" (aget :ast-class a)))
+                         (not (string= "CallExpr" (ast-class a)))
+                         (not (string= "BinaryOperator" (ast-class a)))
                          ;; Check scope
-                         (ancestor-of obj scope (aget :counter a))))
+                         (ancestor-of obj scope (ast-counter a))))
                   (stmt-asts obj))
-                 :test #'string= :key {aget :src-text})))
+                 :test #'string= :key #'ast-src-text)))
     (loop for (a . rest) in (tails exprs)
        appending
          (loop for b in rest
             collecting
-              `(,(format nil (aget :compare type)
-                         (peel-bananas (aget :src-text a))
-                         (peel-bananas (aget :src-text b)))
-                 . ((:type . "int")))))))
+              (cons (format nil (aget :compare type)
+                         (peel-bananas (ast-src-text a))
+                         (peel-bananas (ast-src-text b)))
+                    (snippet->ast '((:type . "int") (:hash) (:reqs))))))))
 
-(defun types-equal (a b)
-  (and (string= (aget :type a) (aget :type b))
-       (string= (aget :array a) (aget :array b))
-       (eq (aget :pointer a) (aget :pointer b))))
+(defun types-equal (snippet type)
+  "Does SNIPPET (an alist) represent the same type as TYPE (a type AST)?"
+  (and (string= (aget :type snippet) (type-name type))
+       (string= (aget :array snippet) (type-array type))
+       (eq (aget :pointer snippet) (type-pointer type))))

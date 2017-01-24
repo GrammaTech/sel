@@ -101,7 +101,10 @@ snippets."
 (defun helper-function-from-ngram (obj ngram name)
   "Turn an n-gram snippet into a helper function.
 Returns the text of the function, and a CallExpr AST for calling it."
-  (let* ((body (peel-bananas (aget :src-text (snippet-from-ngram obj ngram))))
+  (let* ((body (->> (snippet-from-ngram obj ngram)
+                    (snippet->ast)
+                    (ast-src-text)
+                    (peel-bananas)))
          (decls (apply #'append
                        (mapcar [{aget :declares} {get-ast obj}] (car ngram))))
          ;; Arguments are unbound vars that aren't declared within the

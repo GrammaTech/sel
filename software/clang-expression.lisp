@@ -15,7 +15,7 @@ This is used to intern string names by `expression'."
 (defmethod expression ((obj clang) (id integer))
   (expression obj (get-ast obj id)))
 
-(defmethod expression ((obj clang) (ast list))
+(defmethod expression ((obj clang) (ast clang-ast))
   ;; TODO: The following AST types currently pull information from the
   ;;        source text.  This conversion may be made more robust by
   ;;        extending more ASTs types with additional information like
@@ -24,36 +24,36 @@ This is used to intern string names by `expression'."
   ;;        - UnaryOperator :: opcode
   ;;        - MemberExpr :: field name
   (flet ((over-children (elt)
-           (cons elt (mapcar {expression obj} (aget :children ast))))
+           (cons elt (mapcar {expression obj} (ast-children ast))))
          (only-child ()
-           (expression obj (first (aget :children ast)))))
-    (switch ((aget :ast-class ast) :test #'string=)
-      ("BinaryOperator" (over-children (expression-intern (aget :opcode ast))))
-      ("CompoundAssignOperator" (->> (aget :opcode ast)
+           (expression obj (first (ast-children ast)))))
+    (switch ((ast-class ast) :test #'string=)
+      ("BinaryOperator" (over-children (expression-intern (ast-opcode ast))))
+      ("CompoundAssignOperator" (->> (ast-opcode ast)
                                      (expression-intern)
                                      (over-children)))
-      ("DeclRefExpr" (expression-intern (peel-bananas (aget :src-text ast))))
+      ("DeclRefExpr" (expression-intern (peel-bananas (ast-src-text ast))))
       ("ImplicitCastExpr" (only-child))
       ("IntegerLiteral"
        (handler-bind ((parse-number
-                       (expression-intern (aget :src-text ast))))
-         (parse-number (aget :src-text ast))))
+                       (expression-intern (ast-src-text ast))))
+         (parse-number (ast-src-text ast))))
       ("FloatingLiteral"
        (handler-bind ((parse-number
-                       (expression-intern (aget :src-text ast))))
-         (parse-number (aget :src-text ast))))
+                       (expression-intern (ast-src-text ast))))
+         (parse-number (ast-src-text ast))))
       ("ParenExpr" (only-child))
       ("ArraySubscriptExpr" (over-children :|[]|))
-      ("CallExpr" (mapcar {expression obj} (aget :children ast)))
+      ("CallExpr" (mapcar {expression obj} (ast-children ast)))
       ("UnaryExprOrTypeTraitExpr"
-       (let* ((src (aget :src-text ast))
+       (let* ((src (ast-src-text ast))
               (operator (cond
                           ((scan "\s*sizeof" src)   :sizeof)
                           ((scan "\s*alignof" src)  :alignof)
                           ((scan "\s*vec_step" src) :vec_step)
                           (t (error
                               "Unmatched UnaryExprOrTypeTraitExpr ~s." src)))))
-         (if (aget :children ast)
+         (if (ast-children ast)
              (over-children operator)
              ;; Otherwise the argument is a type.
              (multiple-value-bind (matchp matches)
@@ -62,16 +62,16 @@ This is used to intern string names by `expression'."
                    (list operator (expression-intern (aref matches 0)))
                    (error "Unmatched UnaryOperator ~s." src))))))
       ("UnaryOperator"
-       (over-children (let ((src (aget :src-text ast)))
+       (over-children (let ((src (ast-src-text ast)))
                         (cond
                           ((scan "\s*\\*" src) :unary-*)
                           (t (error "Unmatched UnaryOperator ~s." src))))))
       ("MemberExpr"
-       (let ((src (aget :src-text ast)))
+       (let ((src (ast-src-text ast)))
          (let ((match-data (multiple-value-list (scan "->([\\w\\a_]+)" src))))
            (if (first match-data)
                (list :->
-                     (expression obj (first (aget :children ast)))
+                     (expression obj (first (ast-children ast)))
                      (expression-intern (subseq src
                                                 (aref (third match-data) 0)
                                                 (aref (fourth match-data) 0))))
