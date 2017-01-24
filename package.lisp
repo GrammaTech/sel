@@ -168,12 +168,12 @@
    :+c-sign-unary-operators+
    :+c-pointer-unary-operators+
    :all-use-of-var
-   :ast-declares
+   :ast-declarations
    :declaration-of
    :declared-type
    :type-of-var
    :random-function-name
-   :replace-fields-in-ast
+   :replace-fields-in-snippet
    ;; global variables
    :*population*
    :*generations*
@@ -447,4 +447,59 @@
    :rinard
    :collect-fault-loc-traces
    :generate-helpers
-   :type-of-scoped-var))
+   :type-of-scoped-var
+   :ast-src-text
+   :clang-ast
+   :ast-args
+   :ast-begin-addr
+   :ast-begin-src-col
+   :ast-begin-src-line
+   :ast-body
+   :ast-children
+   :ast-class
+   :ast-counter
+   :ast-declares
+   :ast-decl-name
+   :ast-decl-text
+   :ast-end-addr
+   :ast-end-src-col
+   :ast-end-src-line
+   :ast-expr-type
+   :ast-full-stmt
+   :ast-guard-stmt
+   :ast-in-macro-expansion
+   :ast-includes
+   :ast-is-decl
+   :ast-macros
+   :ast-name
+   :ast-opcode
+   :ast-parent-counter
+   :ast-ret
+   :ast-scopes
+   :ast-src-text
+   :ast-stmt-list
+   :ast-stmt-range
+   :ast-types
+   :ast-unbound-funs
+   :ast-unbound-vals
+   :ast-varargs
+   :ast-void-ret
+   :ast-array-length
+   :ast-base-type
+   :ast-bit-field-width
+   :clang-type
+   :copy-clang-ast
+   :type-array
+   :type-col
+   :type-decl
+   :type-file
+   :type-hash
+   :type-i-col
+   :type-i-file
+   :type-i-line
+   :type-line
+   :type-pointer
+   :type-reqs
+   :type-name
+   :ast->snippet
+   :snippet->ast))

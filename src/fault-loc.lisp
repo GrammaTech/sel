@@ -72,9 +72,9 @@ not itself faulty, so it's useful to identify their callers instead.
                           (remove-if-not
                            (lambda (y)
                              (let ((cur-node (get-ast obj x)))
-                               (and (string= (aget :ast-class cur-node)
+                               (and (string= (ast-class cur-node)
                                              "CallExpr")
-                                    (search y (aget :src-text cur-node)))))
+                                    (search y (ast-src-text cur-node)))))
                            error-funcs))
                         neg-test-stmts))
        (functions (obj trace)
@@ -84,7 +84,7 @@ not itself faulty, so it's useful to identify their callers instead.
                   ;; duplicate function-containing-ast lookups.
                   (remove-duplicates trace))))
        (find-error-funcs (obj good-stmts bad-stmts)
-         (mapcar {aget :name}
+         (mapcar #'ast-name
                  (set-difference (functions obj bad-stmts)
                                  (functions obj good-stmts)))))
 

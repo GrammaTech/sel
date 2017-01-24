@@ -30,7 +30,7 @@ Keyword arguments are as follows:
          (remove nil
            (mapcar (lambda-bind ((counter . value))
                     (let ((parent (enclosing-traceable-stmt obj counter)))
-                      (if parent (cons (aget :counter parent) value)
+                      (if parent (cons (ast-counter parent) value)
                           (warn "Point ~d doesn't match traceable AST."
                                 counter))))
                    points))))
@@ -39,26 +39,27 @@ Keyword arguments are as follows:
            (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
          (outer-parent (stmt function)
            ;; Outermost ancestor of stmt, not including the function body.
-           (let ((parent (aget :parent-counter (get-ast obj stmt))))
-             (if (eq parent (aget :body function))
+           (let ((parent (ast-parent-counter (get-ast obj stmt))))
+             (if (eq parent (ast-body function))
                  stmt
                  (outer-parent parent function))))
          (last-traceable-stmt (proto)
            (enclosing-traceable-stmt obj
-                                     (second (aget :stmt-range proto))))
+                                     (second (ast-stmt-range proto))))
          (first-traceable-stmt (proto)
-           (first (get-immediate-children obj (aget :body proto))))
+           (first (get-immediate-children obj (ast-body proto))))
          (instrument-ast (ast counter formats-w-args trace-strings)
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
            (let* ((function (function-containing-ast obj counter))
                   (wrap (and (not (traceable-stmt-p obj ast))
                              (can-be-made-traceable-p obj ast)))
-                  (return-void (aget :void-ret function))
-                  (skip (or (aget :in-macro-expansion ast)
-                            (string= "NullStmt" (aget :ast-class ast))
+                  (return-void (ast-void-ret function))
+                  (skip (or (ast-in-macro-expansion ast)
+                            (string= "NullStmt" (ast-class ast))
                             (when trace-file  ;might be null, short circuit and don't filter if so
-                                 (search (file-open-str log-var trace-file) (aget :src-text ast))))))
+                              (search (file-open-str log-var trace-file)
+                                      (ast-src-text ast))))))
 
              ;; Insertions in bottom-up order
              (append
@@ -70,7 +71,7 @@ Keyword arguments are as follows:
                    (:value1 .
                         ,(format nil
                                  "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
-                                 (aget :body function) log-var
+                                 (ast-body function) log-var
                                  (if return-void "" "return _inst_ret;"))))))
               ;; Closing brace after the statement
               (when (and wrap (not skip))
@@ -83,16 +84,16 @@ Keyword arguments are as follows:
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                      ,(let ((type (find-type obj (aget :ret function))))
+                      ,(let ((type (find-type obj (ast-ret function))))
                             (format nil "~a~@[*~] _inst_ret"
-                                    (aget :type type)
-                                    (aget :pointer type)))))))
+                                    (type-name type)
+                                    (type-pointer type)))))))
               ;; Transform return statement to temp assignment/goto
               (when (and instrument-exit
-                         (string= (aget :ast-class ast) "ReturnStmt"))
+                         (string= (ast-class ast) "ReturnStmt"))
                 (let ((ret (unless return-void
                              (peel-bananas
-                              (aget :src-text
+                              (ast-src-text
                                    (first (get-immediate-children obj ast)))))))
                   `((:set
                      (:stmt1 . ,counter)
@@ -127,7 +128,7 @@ Keyword arguments are as follows:
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
-            (mapcar {aget :counter})
+            (mapcar #'ast-counter)
             ;; Bottom up ensure earlier insertions don't invalidate
             ;; later counters.
             (sort <> #'>)
@@ -167,7 +168,7 @@ SOFTWARE.  The result of KEY will appear behind LABEL in the trace
 output."))
 
 (defmethod var-instrument
-    ((obj clang) label key (ast list) &key print-strings)
+    ((obj clang) label key (ast clang-ast) &key print-strings)
   (flet ((fmt-code (c-type)
            (switch (c-type :test #'string=)
              ("char"            "%c")
@@ -189,10 +190,10 @@ output."))
     (iter (for var in (funcall key ast))
           (let* ((type (type-of-var obj var))
                  (c-type (concatenate 'string
-                           (if (or (aget :pointer type)
-                                   (not (emptyp (aget :array type))))
+                           (if (or (type-pointer type)
+                                   (not (emptyp (type-array type))))
                                "*" "")
-                           (aget :type type)))
+                           (type-name type)))
                  (stripped-c-type (regex-replace "\\**(unsigned )?" c-type "")))
             (when (or (member stripped-c-type +c-numeric-types+ :test #'string=)
                       (string= stripped-c-type "size_t"))
@@ -207,8 +208,8 @@ output."))
   (:documentation "Return the counter of the entry AST in SOFTWARE."))
 
 (defmethod get-entry ((obj clang))
-  (first (aget :stmt-range
-               (find-if [{string= "main"} {aget :name}] (functions obj)))))
+  (first (ast-stmt-range
+               (find-if [{string= "main"} {ast-name}] (functions obj)))))
 
 (defgeneric insert-at-entry (software ast)
   (:documentation "Insert AST at the entry point to SOFTWARE."))
@@ -219,7 +220,7 @@ output."))
   ;; insert the new text just after the first "{".
   (let* ((entry (get-entry obj))
          (old-text
-          (peel-bananas (subseq (aget :src-text (get-ast obj entry)) 1))))
+          (peel-bananas (subseq (ast-src-text (get-ast obj entry)) 1))))
     (setf
      (genome obj)
      (clang-mutate obj
@@ -234,7 +235,7 @@ output."))
                (member i ls :test #'string=)))
         (when-let* ((entry (get-entry obj))
                     (entry-ast (get-ast obj entry))
-                    (scope-vars (aget :scopes entry-ast)))
+                    (scope-vars (ast-scopes entry-ast)))
           (when (and (member "argc" scope-vars :test #'deeper-string-search)
                      (member "argv" scope-vars :test #'deeper-string-search))
             (insert-at-entry obj

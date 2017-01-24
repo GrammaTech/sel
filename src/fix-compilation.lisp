@@ -96,14 +96,13 @@ expression match.")
                     (list (format nil "~a ~a;" (random-type) variable-name))
                     (drop (1- line-number) lines)))
       ;; Find the ID of the declaration.
-      (let* ((decl-stmt-id
-              (aget :counter
-                    (find-if (lambda (snippet)
-                               (and (string= (aget :ast-class snippet)
-                                             "DeclStmt")
-                                    (= (aget :begin-src-line snippet)
-                                       line-number)))
-                             (asts obj))))
+      (let* ((decl-stmt (find-if (lambda (snippet)
+                                   (and (string= (ast-class snippet)
+                                                 "DeclStmt")
+                                        (= (ast-begin-src-line snippet)
+                                           line-number)))
+                                 (asts obj)))
+             (decl-stmt-id (when decl-stmt (ast-counter decl-stmt)))
              (binary-assignment-fodder
               (random-elt
                (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
@@ -126,7 +125,7 @@ expression match.")
             (list 'clang-insert
                   (cons :stmt1      ; First full statement after decl.
                         (iter (for i upfrom (1+ decl-stmt-id))
-                              (when (aget :full-stmt (get-ast obj i))
+                              (when (ast-full-stmt (get-ast obj i))
                                 (return i))))
                   (cons :literal1
                         (concatenate 'string
@@ -199,7 +198,7 @@ expression match.")
                                                  (random-elt))
                                  :limit 1)
                   (first))
-            (aget :counter
+            (ast-counter
                   (lastcar (asts-containing-source-location
                             obj (make-instance 'source-location
                                   :line line-number
@@ -260,11 +259,11 @@ expression match.")
         (to-delete (make-hash-table :test 'equal)))
     (loop :for ast :in (asts obj)
        :when (find id
-                   (append (aget :unbound-vals ast)
-                           (aget :unbound-funs ast))
+                   (append (ast-unbound-vals ast)
+                           (ast-unbound-funs ast))
                    :key #'car
                    :test #'string=)
-       :do (setf (gethash (enclosing-full-stmt obj (aget :counter ast))
+       :do (setf (gethash (enclosing-full-stmt obj (ast-counter ast))
                           to-delete) t))
     (-<>> (hash-table-keys to-delete)
           (remove nil)
@@ -288,16 +287,17 @@ expression match.")
     (when variable
       (loop :for ast
             :in (reverse (asts obj))
-            :when (and (string= (aget :ast-class ast) "DeclStmt")
+            :when (and (string= (ast-class ast) "DeclStmt")
                        (scan (concatenate 'string variable "\\s*=")
-                             (aget :src-text ast)))
+                             (ast-src-text ast)))
             :do (let ((pointer-variable (concatenate 'string "*" variable)))
                   (apply-mutation obj
-                    `(clang-replace . ((:stmt1 . ,(aget :counter ast))
-                                       (:value1 . ,(replace-fields-in-ast ast
+                    `(clang-replace . ((:stmt1 . ,(ast-counter ast))
+                                       (:value1 . ,(replace-fields-in-snippet
+                                                    (ast->snippet ast)
                                                 `((:src-text .
                                                   ,(regex-replace variable
-                                                     (aget :src-text ast)
+                                                     (ast-src-text ast)
                                                      pointer-variable))))))))
                   (return obj))))
     obj))

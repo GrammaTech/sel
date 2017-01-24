@@ -13,7 +13,7 @@
 ;;; they are no longer used by the population.
 
 (defvar *ast-table*
-  (make-hash-table :test #'equal #+sbcl :weakness #+sbcl :value)
+  (make-hash-table :test #'equalp #+sbcl :weakness #+sbcl :value)
   "Set of all unique ASTs.")
 
 (defvar *ast-lock*
