@@ -2449,23 +2449,14 @@ within a function body, return null."))
           (multiple-value-bind (stdout stderr exit)
               (shell
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-               '("-cppcore-guidelines-pro-bounds-array-to-pointer-decay"
-                 "-google-build-explicit-make-pair"
-                 "-google-explicit-constructor"
-                 "-google-readability-namespace-comments"
-                 "-google-readability-redundant-smartptr-get"
-                 "-google-readability-runtime-int"
-                 "-google-readability-readability-function-size"
-                 "-llvm-namespace-commant"
-                 "-llvm-include-order"
-                 "-misc-mode-constructor-init"
-                 "-misc-noexcept-move-constructor"
-                 "-misc-uniqueptr-reset-release"
+               '("cppcore-guidelines*"
+                 "misc*"
                  "-modernize*"
-                 "-readability-container-size-empty"
+                 "performance*"
+                 "readability*"
                  "-readability-function-size"
-                 "-readability-redundant-smart-ptr-get"
-                 "-readability-uniqueptr-delete-release")
+                 "-readability-identifier-naming"
+                 "-readability-non-const-parameter")
                src
                (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))

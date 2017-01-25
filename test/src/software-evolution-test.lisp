@@ -185,7 +185,12 @@
     (define-constant +fib-dir+
                      (append +etc-dir+ (list "fib"))
       :test #'equalp
-      :documentation "Location of the fib example dir")))
+      :documentation "Location of the fib example dir")
+
+    (define-constant +clang-tidy-dir+
+                     (append +etc-dir+ (list "clang-tidy"))
+      :test #'equalp
+      :documentation "Location of the clang-tidy example dir")))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -256,6 +261,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +fib-dir+))
+
+(defun clang-tidy-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +clang-tidy-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -553,6 +563,16 @@
                        :flags '("-m32" "-O0" "-g"))
                      (clang-crossover-dir
                       "crossover-no-compound-stmt.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture tidy-adds-braces-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g"))
+                     (clang-tidy-dir "tidy-adds-braces.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -1577,6 +1597,15 @@ is not to be found"
       (clang-tidy variant)
       (is (= (size variant)
              (size *hello-world*))))))
+
+(deftest tidy-adds-braces ()
+  (with-fixture tidy-adds-braces-clang
+    (let ((variant (copy *soft*)))
+      (clang-tidy variant)
+      (is (= 2 (->> (stmt-asts variant)
+                    (remove-if-not [{string= "CompoundStmt"}
+                                    {aget :ast-class}])
+                    (length)))))))
 
 (deftest format-a-clang-software-object ()
   (flet ((run (obj)
