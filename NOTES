@@ -116,7 +116,6 @@ instance. But I don't see why not run all the files separately.
 Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
-
 * Tasks [25/33]
 ** TODO Should mutations fall back from bad-stmts to all-stmts
 As currently done in [[file:software/clang.lisp::;;;%20Expand%20compound%20assignment][expand-assignments]]? No.
@@ -493,3 +492,114 @@ Another option is [[http://gcc-melt.org/][gcc-melt]] with [[https://github.com/b
 *** useful functions, how this will work
 - [[file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::*%20\brief%20Retrieve%20the%20replacement%20information%20for%20a%20given%20fix-it.][file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::* \brief Retrieve the replacement information for a given fix-it.]]
 
+* Meeting
+** Applicative AST refactoring <2017-01-27 Fri>
+Thoughts
+- Might want to start with an applicative rope data structure.
+  - I have one in C, but should be easy in lisp
+
+Notes
+- use defstruct
+- use AST class
+- replace counters with pointers into the ropes
+- first switch to structs before switching to ropes
+- serialization
+  - defmethod for cl-store
+- text representation, how to represent strings "between" the children
+  of an AST
+- places where the ASTs have to know something about the language
+  - free variables
+  - how to resolve types (run up the tree)
+  - how to result field names (find the structure definition)
+  - we'll have to occasionally pass everything through clang to
+    re-type the program
+
+Mitigation for risks that we are losing analysis information to clang
+during rewriting.
+- read through the mutations and think about each one
+- read through the recontextualization implementation
+
+*** Prior Notes
+#+begin_quote
+: > Here are some questions and preliminary ideas to kick off our
+: > discussion tomorrow.
+: >
+: > 1. Should AST become a class?
+: > As more functionality moves into the Lisp code it might be useful to
+: > handle ASTs in a more structured way. On the other hand, we have a lot
+: > of existing code based on the alist representation, and updating it
+: > all could be a lot of work.
+: >
+: 
+: Yes, these should become structures (lighter weight than classes).
+: 
+: >
+: > 2. AST Counters
+: > There's a lot of existing code that passes AST counters around. But
+: > counters won't really work in the applicative representation. Do you
+: > have any thoughts on how to ease that transition?
+: >
+: 
+: I think instead of counters we could pass the ASTs themselves around.
+: We'll have to ensure that we're only passing pointers and not copying
+: ASTs but that should happen for free.
+: 
+: >
+: > 3. Text representation
+: > I've been thinking about how to implement the editing operations, in
+: > particular dealing with the details of semicolons and commas. Right
+: > now I'm thinking it makes sense to embed both the the source text and
+: > the syntactic contexts directly into the AST.
+: >
+: > For example, some code like this:
+: > if (x) {
+: >     foo();
+: >     bar();
+: > }
+: >
+: > Would turn into an AST like this:
+: > ((:ast-class . "IfStmt")
+: >  (:children "if ("
+: >             (:generic-context ((:ast-class . "DeclRefExpr")
+: >                                (:children "(|x|)")))
+: >             ") "
+: >             (:braced-context ((:ast-class . "CompoundStmt")
+: >                               (:children
+: >                                   "{"
+: >                                   (:full-stmt-context
+: >                                       ((:ast-class . "CallExpr")
+: >                                        (:children "foo()"))
+: >                                       ";"
+: >                                       ((:ast-class . "CallExpr")
+: >                                        (:children "bar()"))
+: >                                       ";")
+: >                                   "}")))))
+: >
+: > The strings within the :children list represent pieces of text that
+: > uniquely belong to that AST (rather than to its children). They are
+: > basically the leaves of the rope.
+: >
+: > Representing the syntactic contexts in a hierarchical way, rather than
+: > marking each AST with a context, should make it easier to handle some
+: > of the corner cases (like deleting the list item in a parameter list).
+: >
+: > 4. Mutations that modify (rather than moving) ASTs
+: > The basic mutations mostly move things around, but we have some that
+: > make more significant transformations -- like transform a for into an
+: > equivalent while loop or wrapping a statement in curly braces. I guess
+: > recontextualization falls into this category as well.
+: > 
+: > These can potentially cause farther-reaching changes to the AST
+: > structure, and also change some dependent fields (free variables,
+: > types, syntactic context, ast class).
+: > 
+: > We could require that the mutation code do all these updates and
+: > produce correct ASTs. But that seems like a lot of work, especially
+: > for types.
+: > 
+: > Or we could re-run clang-mutate as needed (hopefully not too often)
+: > and merge the results into the applicative structure.
+: > 
+: > I'm not sure I like either option. Is there a better way?
+: > 
+#+end_quote
