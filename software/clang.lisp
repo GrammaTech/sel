@@ -711,8 +711,19 @@ for successful mutation (e.g. adding includes/types/macros)"))
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod (setf genome) :before (new (obj clang))
-  (with-slots (asts fitness) obj
+  (with-slots (asts stmt-asts non-stmt-asts
+               functions prototypes includes types
+               declarations macros globals fitness) obj
     (setf asts nil
+          stmt-asts nil
+          non-stmt-asts nil
+          functions nil
+          prototypes nil
+          includes nil
+          types nil
+          declarations (make-hash-table :test #'equal)
+          macros nil
+          globals nil
           fitness nil)))
 
 (defun function-decl-p (ast)

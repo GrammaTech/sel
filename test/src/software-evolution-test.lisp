@@ -809,6 +809,22 @@
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
 
+(deftest genome-change-clears-clang-software-object-fields ()
+  (with-fixture hello-world-clang
+    (setf (genome *hello-world*) "")
+    (is (null (asts *hello-world*)))
+    (is (null (stmt-asts *hello-world*)))
+    (is (null (non-stmt-asts *hello-world*)))
+    (is (null (functions *hello-world*)))
+    (is (null (prototypes *hello-world*)))
+    (is (null (includes *hello-world*)))
+    (is (null (types *hello-world*)))
+    (is (null (macros *hello-world*)))
+    (is (null (globals *hello-world*)))
+    (is (null (fitness *hello-world*)))
+    (is (equalp (make-hash-table :test #'equal)
+                (declarations *hello-world*)))))
+
 ;; Check our temporary hack to split multi-variable declarations.
 (deftest split-multi-variable-declarations ()
   (is (= 2 (count-if {scan "double"}
