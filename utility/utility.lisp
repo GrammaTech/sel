@@ -693,6 +693,11 @@ transformed from an instant to a cumulative probability."
 (defun replace-all (string part replacement &key (test #'char=))
   "Returns a new string in which all the occurences of the part
 is replaced with replacement."
+  (assert (and (stringp string)
+               (stringp part)
+               (stringp replacement))
+          (string part replacement)
+          "Arguments to `replace-all' must be strings.")
   (with-output-to-string (out)
     (loop :with part-length := (length part)
        :for old-pos := 0 :then (+ pos part-length)
@@ -708,9 +713,12 @@ is replaced with replacement."
 (defun apply-replacements (list str)
   (if (null list)
       str
-      (let ((new-str (if (cdar list)
-                         (replace-all str (caar list) (cdar list))
-                         str)))
+      (let ((new-str
+             ;; If (caar list) is null then `replace-all' can fall
+             ;; into an infinite loop.
+             (if (and (caar list) (cdar list))
+                 (replace-all str (caar list) (cdar list))
+                 str)))
         (apply-replacements (cdr list) new-str))))
 
 ;;  Helper function for removing tags identifying DeclRefs

@@ -1633,6 +1633,26 @@ is not to be found"
         (is (zerop errno))
         (is (string= (run *hello-world*) (run obj)))))))
 
+(deftest apply-replacements-test ()
+  (is (string= "Hello, world!"
+               (apply-replacements nil
+                                   "Hello, world!")))
+  (is (string= "Hello, world!"
+               (apply-replacements `((nil . nil))
+                                   "Hello, world!")))
+  (is (string= "Hello, world!"
+               (apply-replacements `((nil . "Goodbye"))
+                                   "Hello, world!")))
+  (is (string= "Hello, world!"
+               (apply-replacements `(("Hello" . nil))
+                                   "Hello, world!")))
+  (is (string= "Goodbye, world!"
+               (apply-replacements `(("Hello" . "Goodbye"))
+                                   "Hello, world!")))
+  (is (string= "Goodbye, earth!"
+               (apply-replacements `(("Hello" . "Goodbye") ("world" . "earth"))
+                                   "Hello, world!"))))
+
 
 ;;; Range representation
 (deftest range-size ()
