@@ -321,6 +321,8 @@
    :*worst-fitness-p*
    :worst-numeric-fitness
    :worst-numeric-fitness-p
+   :*fitness-scalar-fn*
+   :fitness-scalar
    :lexicase-select
    :lexicase-select-one
    :*lexicase-key*

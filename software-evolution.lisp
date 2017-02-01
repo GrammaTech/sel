@@ -165,17 +165,9 @@ Used to target mutation."))
 
 (defun fitness-better-p (fitness-a fitness-b)
   "Check if FITNESS-A is strictly better than FITNESS-B."
-  (cond
-    ((and (numberp fitness-a) (numberp fitness-b))
-     (funcall *fitness-predicate* fitness-a fitness-b))
-    ((and (= (length fitness-a) (length fitness-b)))
-     (and (every (lambda (a b)
-                   (or (funcall *fitness-predicate* a b)
-                       (= a b)))
-                 fitness-a fitness-b)
-          (some *fitness-predicate* fitness-a fitness-b)))
-    (:otherwise (error "Can't compare fitness ~a and fitness ~a"
-                       fitness-a fitness-b))))
+  (funcall *fitness-predicate*
+           (funcall *fitness-scalar-fn* fitness-a)
+           (funcall *fitness-scalar-fn* fitness-b)))
 
 (defun fitness-equal-p (fitness-a fitness-b)
   "Return true if FITNESS-A and FITNESS-B are equal"
@@ -190,6 +182,15 @@ Used to target mutation."))
   (= (fitness obj)
      (worst-numeric-fitness)))
 
+(defun fitness-scalar (fitness)
+  (cond ((numberp fitness) fitness)
+        ((or (listp fitness) (vectorp fitness))
+         (reduce #'+ fitness))
+        (:otherwise (error "Can't convert fitness ~a to a scalar"
+                           fitness))))
+
+(defvar *fitness-scalar-fn* #'fitness-scalar
+  "Function to convert fitness to a numeric value")
 (defvar *worst-fitness-p* #'worst-numeric-fitness-p
   "Predicate indicating whether an individual has the worst possible fitness.")
 (defvar *target-fitness-p* nil
