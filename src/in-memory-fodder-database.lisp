@@ -56,4 +56,5 @@
         snippets)))
 
 (defmethod find-type ((db in-memory-database) hash)
-  (list (gethash hash (type-database-ht db))))
+  (let ((type (gethash hash (type-database-ht db))))
+    (when type (list type))))
