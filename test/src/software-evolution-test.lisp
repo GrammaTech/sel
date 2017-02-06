@@ -566,6 +566,17 @@
   (:teardown
     (setf *soft* nil)))
 
+(defixture crossover-switch-stmt-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g"))
+                     (clang-crossover-dir
+                      "crossover-switch-stmt.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
 (defixture tidy-adds-braces-clang
   (:setup
     (setf *soft*
@@ -2374,6 +2385,10 @@ Useful for printing or returning differences in the REPL."
   (with-fixture crossover-no-compound-stmt-clang
     (select-intraprocedural-pair-with-adjustments-test *soft*)))
 
+(deftest select-intraprocedural-pair-with-adjustments-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (select-intraprocedural-pair-with-adjustments-test *soft*)))
+
 (deftest nesting-relation-same-scope-test ()
   (with-fixture fib-clang
     (is (equal '(0 . 0)
@@ -2433,6 +2448,24 @@ Useful for printing or returning differences in the REPL."
                                                  "printf(\"%d\\n\", i+j)")
                                  (stmt-with-text *soft*
                                                  "return 0"))))))
+
+(deftest nesting-relation-increasing-scope-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal '(0 . 2)
+               (nesting-relation *soft*
+                                 (->> "printf(\"%d\\n\", argc)"
+                                      (stmt-with-text *soft*))
+                                 (->> "printf(\"%d\\n\", argc + argc)"
+                                      (stmt-with-text *soft*)))))))
+
+(deftest nesting-relation-decreasing-scope-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal '(2 . 0)
+               (nesting-relation *soft*
+                                 (->> "printf(\"%d\\n\", argc + argc)"
+                                      (stmt-with-text *soft*))
+                                 (->> "return 0"
+                                      (stmt-with-text *soft*)))))))
 
 (deftest common-ancestor-fib-test ()
   (with-fixture fib-clang
@@ -2507,6 +2540,40 @@ Useful for printing or returning differences in the REPL."
                                                        :key {aget :ast-class}))
                                 (stmt-with-text *soft*
                                                 "printf(\"%d\\n\", i+j)"))))))
+
+(deftest common-ancestor-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal (aget :counter (first (stmt-asts *soft*)))
+               (common-ancestor *soft*
+                                (->> "printf(\"%d\\n\", argc)"
+                                     (stmt-with-text *soft*))
+                                (->> "printf(\"%d\\n\", argc + argc)"
+                                     (stmt-with-text *soft*)))))
+    (is (equal (aget :counter (first (stmt-asts *soft*)))
+               (common-ancestor *soft*
+                                (->> "printf(\"%d\\n\", argc + argc)"
+                                     (stmt-with-text *soft*))
+                                (->> "return 0"
+                                     (stmt-with-text *soft*)))))
+    (is (equal (aget :counter (second (remove-if-not {string= "CompoundStmt"}
+                                                     (stmt-asts *soft*)
+                                                     :key {aget :ast-class})))
+               (common-ancestor *soft*
+                                (->> "printf(\"%d\\n\", argc + argc)"
+                                     (stmt-with-text *soft*))
+                                (->> "printf(\"%d\\n\", argc * argc)"
+                                     (stmt-with-text *soft*)))))
+    (is (equal (aget :counter (first (remove-if-not {string= "CaseStmt"}
+                                                    (stmt-asts *soft*)
+                                                    :key {aget :ast-class})))
+               (common-ancestor *soft*
+                                (->> "printf(\"%d\\n\", argc + argc)"
+                                     (stmt-with-text *soft*))
+                                (->> (stmt-asts *soft*)
+                                     (remove-if-not [{string= "CaseStmt"}
+                                                     {aget :ast-class}])
+                                     (first)
+                                     (aget :counter)))))))
 
 (deftest ancestor-after-fib-test ()
   (with-fixture fib-clang
@@ -2644,6 +2711,22 @@ Useful for printing or returning differences in the REPL."
                                         (aget :counter))
                                    (stmt-with-text *soft* "return 0"))))))
 
+(deftest ancestor-after-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CaseStmt"}
+                                    {aget :ast-class}])
+                    (second)
+                    (aget :counter))
+               (se::ancestor-after *soft*
+                                   (->> (stmt-asts *soft*)
+                                        (remove-if-not [{string= "CompoundStmt"}
+                                                        {aget :ast-class}])
+                                        (second)
+                                        (aget :counter))
+                                   (->> "printf(\"%d\\n\", argc * argc)"
+                                        (stmt-with-text *soft*)))))))
+
 (deftest full-stmt-successors-fib-test ()
   (with-fixture fib-clang
     (is (equal '("DeclStmt" "WhileStmt" "ReturnStmt" "CompoundStmt")
@@ -2695,6 +2778,20 @@ Useful for printing or returning differences in the REPL."
                     (apply #'append)
                     (mapcar {aget :ast-class}))))))
 
+(deftest full-stmt-successors-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal '("SwitchStmt" "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                    (full-stmt-successors *soft*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))
+    (is (equal '("CaseStmt" "DefaultStmt" "CompoundStmt"
+                 "ReturnStmt" "CompoundStmt")
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                    (full-stmt-successors *soft*)
+                    (apply #'append)
+                    (mapcar {aget :ast-class}))))))
+
 (deftest enclosing-full-stmt-collatz-test ()
   (with-fixture collatz-clang
     (is (equal (stmt-with-text *collatz* "m = 3*m + 1")
@@ -2740,6 +2837,42 @@ Useful for printing or returning differences in the REPL."
                     (aget :counter))
                (enclosing-full-stmt *soft*
                                     (->> (stmt-asts *soft*)
+                                         (first)
+                                         (aget :counter)))))))
+
+(deftest enclosing-full-stmt-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                    (enclosing-full-stmt *soft*))))
+    (is (equal (->> (remove-if-not [{string= "SwitchStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (first)
+                    (aget :counter))
+               (enclosing-full-stmt *soft*
+                                    (->> (remove-if-not [{string= "SwitchStmt"}
+                                                         {aget :ast-class}]
+                                                        (stmt-asts *soft*))
+                                         (first)
+                                         (aget :counter)))))
+    (is (equal (->> (remove-if-not [{string= "CaseStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (first)
+                    (aget :counter))
+               (enclosing-full-stmt *soft*
+                                    (->> (remove-if-not [{string= "CaseStmt"}
+                                                         {aget :ast-class}]
+                                                        (stmt-asts *soft*))
+                                         (first)
+                                         (aget :counter)))))
+    (is (equal (->> (remove-if-not [{string= "BreakStmt"}{aget :ast-class}]
+                                   (stmt-asts *soft*))
+                    (first)
+                    (aget :counter))
+               (enclosing-full-stmt *soft*
+                                    (->> (remove-if-not [{string= "BreakStmt"}
+                                                         {aget :ast-class}]
+                                                        (stmt-asts *soft*))
                                          (first)
                                          (aget :counter)))))))
 
@@ -2806,6 +2939,27 @@ Useful for printing or returning differences in the REPL."
                                      (first)
                                      (aget :counter)))))))
 
+(deftest enclosing-block-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal (aget :counter (first (stmt-asts *soft*)))
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                    (enclosing-block *soft*))))
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                    (enclosing-block *soft*))))
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CompoundStmt"}{aget :ast-class}])
+                    (second)
+                    (aget :counter))
+               (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (first)
+                    (aget :counter)
+                    (enclosing-block *soft*))))))
+
 (deftest block-p-collatz-test ()
   (with-fixture collatz-clang
     (loop :for ast
@@ -2819,6 +2973,15 @@ Useful for printing or returning differences in the REPL."
           :in (stmt-asts *soft*)
           :do (is (equal (or (string= "CompoundStmt" (aget :ast-class ast))
                              (string= "ForStmt" (aget :ast-class ast)))
+                         (block-p *soft* ast))))))
+
+(deftest block-p-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (loop :for ast
+          :in (stmt-asts *soft*)
+          :do (is (equal (or (string= "CompoundStmt" (aget :ast-class ast))
+                             (string= "CaseStmt" (aget :ast-class ast))
+                             (string= "DefaultStmt" (aget :ast-class ast)))
                          (block-p *soft* ast))))))
 
 (deftest block-successor-collatz-test ()
@@ -2864,6 +3027,21 @@ Useful for printing or returning differences in the REPL."
                                      (first)
                                      (aget :counter)))))))
 
+(deftest block-successor-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal nil
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                    (block-successor *soft*))))
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "DefaultStmt"}{aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (second)
+                    (aget :counter)
+                    (block-successor *soft*))))))
+
 (deftest block-predeccessor-collatz-test ()
   (with-fixture collatz-clang
     (is (equal nil
@@ -2908,6 +3086,21 @@ Useful for printing or returning differences in the REPL."
                                                        (stmt-asts *soft*))
                                         (first)
                                         (aget :counter)))))))
+
+(deftest block-predeccessor-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (is (equal nil
+               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                    (block-predeccessor *soft*))))
+    (is (equal (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (first)
+                    (aget :counter))
+               (->> (stmt-asts *soft*)
+                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (second)
+                    (aget :counter)
+                    (block-predeccessor *soft*))))))
 
 (deftest crossover-2pt-outward-fib-test ()
   (with-fixture fib-clang
@@ -3042,6 +3235,25 @@ Useful for printing or returning differences in the REPL."
                          (stmt-with-text *soft* "return 0"))
                    effective-a-pts))))))
 
+(deftest crossover-2pt-outward-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+            (stmt-with-text *soft* "return 0")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+            (stmt-with-text *soft* "return 0"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                         (stmt-with-text *soft* "return 0"))
+                   effective-a-pts))))))
 
 (deftest crossover-2pt-inward-fib-test ()
   (with-fixture fib-clang
@@ -3230,6 +3442,46 @@ Useful for printing or returning differences in the REPL."
                                               {aget :ast-class}])
                               (second)
                               (aget :counter)))
+                   effective-a-pts))))))
+
+(deftest crossover-2pt-inward-switch-stmt-test ()
+  (with-fixture crossover-switch-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft*
+                                         "printf(\"%d\\n\", argc)")
+                         (stmt-with-text *soft*
+                                         "printf(\"%d\\n\", argc + argc)"))
+                   effective-a-pts)))))
+  (with-fixture crossover-switch-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+            (stmt-with-text *soft* "return 0")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+            (stmt-with-text *soft* "return 0"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                         (stmt-with-text *soft* "return 0"))
                    effective-a-pts))))))
 
 (deftest basic-2pt-crossover-works ()
