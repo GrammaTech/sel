@@ -1542,6 +1542,8 @@ made full by wrapping with curly braces, return that."))
 
 (defmethod block-p ((obj clang) (stmt list))
   (or (equal "CompoundStmt" (aget :ast-class stmt))
+      (equal "CaseStmt" (aget :ast-class stmt))
+      (equal "DefaultStmt" (aget :ast-class stmt))
       (and (member (aget :ast-class stmt) +clang-wrapable-parents+
                    :test #'string=)
            (not (null (->> (mapcar {get-ast obj} (aget :children stmt))
@@ -1580,7 +1582,9 @@ made full by wrapping with curly braces, return that."))
          (block-index (enclosing-block clang index))
          (the-block (if (zerop block-index) nil
                         (get-ast clang block-index)))
-         (the-stmts (aget :stmt-list the-block)))
+         (the-stmts (remove-if-not «or {block-p clang}
+                                       {full-stmt-p clang}»
+                                   (aget :children the-block))))
     (get-entry-after index the-stmts)))
 
 (defmethod block-predeccessor ((clang clang) raw-index)
@@ -1588,7 +1592,9 @@ made full by wrapping with curly braces, return that."))
          (block-index (enclosing-block clang index))
          (the-block (if (zerop block-index) nil
                         (get-ast clang block-index)))
-         (the-stmts (aget :stmt-list the-block)))
+         (the-stmts (remove-if-not «or {block-p clang}
+                                       {full-stmt-p clang}»
+                                   (aget :children the-block))))
     (get-entry-before index the-stmts)))
 
 (defmethod get-ast-text ((clang clang) stmt)
