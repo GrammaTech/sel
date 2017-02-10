@@ -312,6 +312,7 @@
    :ignore-failed-mutation
    :try-another-mutation
    :fix-compilation
+   :add-declaration-and-initialize
    :generational-evolve
    :simple-reproduce
    :simple-evaluate
