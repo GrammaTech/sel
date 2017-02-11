@@ -3874,6 +3874,38 @@ Useful for printing or returning differences in the REPL."
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
     (is (stmt-with-text obj "argc = argc - 1"))))
 
+(deftest expand-arithmatic-op-works-field-increment ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-arithmatic-op-dir "field-increment.c"))))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
+    (is (stmt-with-text obj "t.x = t.x + 1"))))
+
+(deftest expand-arithmatic-op-works-field-decrement ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-arithmatic-op-dir "field-decrement.c"))))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
+    (is (stmt-with-text obj "t.x = t.x - 1"))))
+
+(deftest expand-arithmatic-op-works-class-member-increment ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-arithmatic-op-dir "class-member-increment.cpp"))))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
+    (is (stmt-with-text obj "x = x + 1"))))
+
+(deftest expand-arithmatic-op-works-class-member-decrement ()
+  (let ((obj (from-file (make-instance 'clang
+                          :compiler "clang"
+                          :flags '("-g" "-m32" "-O0"))
+                        (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
+    (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
+    (is (stmt-with-text obj "x = x - 1"))))
+
 
 ;;; Adaptive-mutation tests.
 (deftest bad-cut-changes-mutation-probability ()
