@@ -638,26 +638,26 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                    :obj clang))
           `((:stmt1 . ,(aget :counter ast))
             (:literal1 .
-             ,(cond
-                ((increment-op ast)
-                 (->> (format nil "~a = ~a + 1"
-                              (peel-bananas (caar (aget :unbound-vals ast)))
-                              (peel-bananas (caar (aget :unbound-vals ast))))
-                      (add-semicolon ast)))
-                ((decrement-op ast)
-                 (->> (format nil "~a = ~a - 1"
-                              (peel-bananas (caar (aget :unbound-vals ast)))
-                              (peel-bananas (caar (aget :unbound-vals ast))))
-                      (add-semicolon ast)))
-                (t (let* ((children (get-immediate-children clang ast))
-                          (lhs (first children))
-                          (rhs (second children)))
-                     (->> (format nil "~a = ~a ~a ~a"
-                                  (peel-bananas (aget :src-text lhs))
-                                  (peel-bananas (aget :src-text lhs))
-                                  (string-trim "=" (aget :opcode ast))
-                                  (peel-bananas (aget :src-text rhs)))
-                          (add-semicolon ast)))))))))))
+              ,(let* ((children (get-immediate-children clang ast))
+                      (lhs (first children))
+                      (rhs (second children)))
+                 (cond
+                   ((increment-op ast)
+                    (->> (format nil "~a = ~a + 1"
+                                 (peel-bananas (aget :src-text lhs))
+                                 (peel-bananas (aget :src-text lhs)))
+                         (add-semicolon ast)))
+                   ((decrement-op ast)
+                    (->> (format nil "~a = ~a - 1"
+                                 (peel-bananas (aget :src-text lhs))
+                                 (peel-bananas (aget :src-text lhs)))
+                         (add-semicolon ast)))
+                   (t (->> (format nil "~a = ~a ~a ~a"
+                                   (peel-bananas (aget :src-text lhs))
+                                   (peel-bananas (aget :src-text lhs))
+                                   (string-trim "=" (aget :opcode ast))
+                                   (peel-bananas (aget :src-text rhs)))
+                           (add-semicolon ast)))))))))))
 
 
 ;;; Clang methods
