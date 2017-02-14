@@ -129,7 +129,9 @@
                   (cursor result))
           (documents (documents result)
                      (append documents (documents result))))
-         ((zerop cursor) (mapcar #'document-cljson documents)))))
+         ((zerop cursor) (->> (mapcar #'document-cljson documents)
+                              (first)
+                              (snippet->ast))))))
 
 
 ;;; Utility functions
