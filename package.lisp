@@ -457,10 +457,12 @@
    :ast-body
    :ast-children
    :ast-class
+   :ast-code
    :ast-counter
    :ast-declares
    :ast-decl-name
    :ast-decl-text
+   :ast-disasm
    :ast-end-addr
    :ast-end-src-col
    :ast-end-src-line
