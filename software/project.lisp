@@ -193,13 +193,12 @@ the underlying software objects."
                  ;; To avoid inserting setup code into main() multiple
                  ;; times, use temporary copies of the object which
                  ;; are then discarded.
-                 :entry-obj (if (= i 0) entry-obj (copy entry-obj))
+                 :entry-obj entry-obj
                  ;; Print file index at each AST
                  :functions (cons (lambda (ast)
                                     (declare (ignorable ast))
                                     (list (format nil "(:F . ~a)" i)))
                                   functions)
-                 ;; Pass through other args
                  other-args)))
   project)
 
