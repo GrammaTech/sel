@@ -1542,8 +1542,6 @@ made full by wrapping with curly braces, return that."))
 
 (defmethod block-p ((obj clang) (stmt list))
   (or (equal "CompoundStmt" (aget :ast-class stmt))
-      (equal "CaseStmt" (aget :ast-class stmt))
-      (equal "DefaultStmt" (aget :ast-class stmt))
       (and (member (aget :ast-class stmt) +clang-wrapable-parents+
                    :test #'string=)
            (not (null (->> (mapcar {get-ast obj} (aget :children stmt))
@@ -2065,8 +2063,7 @@ depth)."))
       (:unbound-funs . ,funs)
       (:scope-adjustments
        . ,(loop :for scoped-defns
-                :on (reverse (if (equal (get-ast-class clang stmt1)
-                                        "CompoundStmt")
+                :on (reverse (if (block-p clang stmt1)
                                  (cons '() defns)
                                  defns))
                 :collecting (apply #'append scoped-defns))))))
@@ -2097,16 +2094,15 @@ depth)."))
             (local-macros '())
             (local-includes '())
             (local-types '())
-            (the-block (enclosing-block clang stmt1))
             (full-stmt1 (enclosing-full-stmt clang stmt1))
-            (stmt2-ancestor (ancestor-after clang the-block stmt2))
+            (the-parent (aget :counter (get-parent-ast clang full-stmt1)))
+            (stmt2-ancestor (ancestor-after clang the-parent stmt2))
             (stmts (remove-if-not
                     (lambda (pt) (and (<= full-stmt1 pt)
                                       (< pt stmt2-ancestor)))
-                    (aget :stmt-list (if (= 0 the-block)
-                                         '()
-                                         (get-ast clang the-block))))))
-       (when (= the-block (enclosing-block clang stmt2))
+                    (->> (if (= 0 the-parent) '() (get-ast clang the-parent))
+                         (aget :children)))))
+       (when (= the-parent (aget :counter (get-parent-ast clang stmt2)))
          (appendf stmts (list stmt2)))
        (loop :for stmt :in stmts
           :when (aget :declares (get-ast clang stmt))
@@ -2136,49 +2132,44 @@ depth)."))
                                       (get-ast clang)
                                       (process-full-stmt-text)
                                       (apply-replacements defn-replacements))))
-              (text (if (= the-block (enclosing-block clang stmt2))
+              (text (if (= the-parent
+                           (aget :counter (get-parent-ast clang stmt2)))
                         (unlines stmts-text)
                         (format nil "~{~a~%~}~a"
                                 stmts-text
                                 (->> (ancestor-after clang stmt2-ancestor stmt2)
                                      (stmt-text-minus clang stmt2-ancestor)
                                      (apply-replacements defn-replacements))))))
-         (cond ((= the-block (enclosing-block clang stmt2))
-                (values text
-                        (list local-defns)
-                        (remove-duplicates local-free-vars :test #'equal
-                                                           :key #'car)
-                        (remove-duplicates local-free-funs :test #'equal
-                                                           :key #'car)
-                        (remove-duplicates local-macros :test #'equal
+         (if (= the-parent (aget :counter (get-parent-ast clang stmt2)))
+             (values text
+                     (list local-defns)
+                     (remove-duplicates local-free-vars :test #'equal
                                                         :key #'car)
-                        (remove-duplicates local-includes :test #'equal)
-                        (remove-duplicates local-types :test #'equal)))
-               ((= (ancestor-after clang stmt2-ancestor stmt2) stmt1)
-                (error (make-condition 'mutate
-                         :obj clang
-                         :text (format nil
-                                       "Terminating crossover to avoid ~
-                                          infinite recursion.  stmt1=~a, ~
-                                          stmt2=~a"
-                                       stmt1 stmt2))))
-               (t
-                (multiple-value-bind (more-text more-defns)
-                    (prepare-inward-snippet clang
-                                            (ancestor-after clang
-                                                            stmt2-ancestor
-                                                            stmt2)
-                                            stmt2 defns)
-                  (values (concatenate 'string text more-text)
-                          (cons local-defns more-defns)
-                          (remove-duplicates local-free-vars :test #'equal
-                                                             :key #'car)
-                          (remove-duplicates local-free-funs :test #'equal
-                                                             :key #'car)
-                          (remove-duplicates local-macros :test #'equal
+                     (remove-duplicates local-free-funs :test #'equal
+                                                        :key #'car)
+                     (remove-duplicates local-macros :test #'equal
+                                                     :key #'car)
+                     (remove-duplicates local-includes :test #'equal)
+                     (remove-duplicates local-types :test #'equal))
+             (multiple-value-bind (more-text more-defns)
+                 (prepare-inward-snippet clang
+                                         (ancestor-after clang
+                                                         stmt2-ancestor
+                                                         stmt2)
+                                         stmt2 defns)
+               (values (concatenate 'string text more-text)
+                       (if (block-p clang the-parent)
+                           (cons local-defns more-defns)
+                           (cons (append local-defns (car more-defns))
+                                 (cdr more-defns)))
+                       (remove-duplicates local-free-vars :test #'equal
                                                           :key #'car)
-                          (remove-duplicates local-includes :test #'equal)
-                          (remove-duplicates local-types :test #'equal))))))))))
+                       (remove-duplicates local-free-funs :test #'equal
+                                                          :key #'car)
+                       (remove-duplicates local-macros :test #'equal
+                                                       :key #'car)
+                       (remove-duplicates local-includes :test #'equal)
+                       (remove-duplicates local-types :test #'equal)))))))))
 
 (defmethod crossover-2pt-inward ((a clang) (b clang) a-range b-range
                                  &optional replacements)
