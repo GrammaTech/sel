@@ -2451,7 +2451,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest nesting-relation-increasing-scope-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
-    (is (equal '(0 . 2)
+    (is (equal '(0 . 1)
                (nesting-relation *soft*
                                  (->> "printf(\"%d\\n\", argc)"
                                       (stmt-with-text *soft*))
@@ -2460,7 +2460,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest nesting-relation-decreasing-scope-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
-    (is (equal '(2 . 0)
+    (is (equal '(1 . 0)
                (nesting-relation *soft*
                                  (->> "printf(\"%d\\n\", argc + argc)"
                                       (stmt-with-text *soft*))
@@ -2785,8 +2785,7 @@ Useful for printing or returning differences in the REPL."
                     (full-stmt-successors *soft*)
                     (apply #'append)
                     (mapcar {aget :ast-class}))))
-    (is (equal '("CaseStmt" "DefaultStmt" "CompoundStmt"
-                 "ReturnStmt" "CompoundStmt")
+    (is (equal '("CompoundStmt" "ReturnStmt" "CompoundStmt")
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                     (full-stmt-successors *soft*)
                     (apply #'append)
@@ -2945,8 +2944,8 @@ Useful for printing or returning differences in the REPL."
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                     (enclosing-block *soft*))))
     (is (equal (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
-                    (first)
+                    (remove-if-not [{string= "CompoundStmt"}{aget :ast-class}])
+                    (second)
                     (aget :counter))
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                     (enclosing-block *soft*))))
@@ -2979,9 +2978,7 @@ Useful for printing or returning differences in the REPL."
   (with-fixture crossover-switch-stmt-clang
     (loop :for ast
           :in (stmt-asts *soft*)
-          :do (is (equal (or (string= "CompoundStmt" (aget :ast-class ast))
-                             (string= "CaseStmt" (aget :ast-class ast))
-                             (string= "DefaultStmt" (aget :ast-class ast)))
+          :do (is (equal (string= "CompoundStmt" (aget :ast-class ast))
                          (block-p *soft* ast))))))
 
 (deftest block-successor-collatz-test ()
@@ -3249,8 +3246,8 @@ Useful for printing or returning differences in the REPL."
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
-        (is (= (length (stmt-asts *soft*))
-               (length (stmt-asts variant))))
+        (is (< (length (stmt-asts variant))
+               (length (stmt-asts *soft*))))
         (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                          (stmt-with-text *soft* "return 0"))
                    effective-a-pts))))))
@@ -3451,19 +3448,19 @@ Useful for printing or returning differences in the REPL."
           (intraprocedural-2pt-crossover
             (copy *soft*)
             (copy *soft*)
-            (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
             (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
-            (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
-            (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)"))
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc * argc)")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+            (stmt-with-text *soft* "printf(\"%d\\n\", argc * argc)"))
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
-        (is (= (length (stmt-asts *soft*))
-               (length (stmt-asts variant))))
+        (is (< (length (stmt-asts variant))
+               (length (stmt-asts *soft*))))
         (is (equal (cons (stmt-with-text *soft*
-                                         "printf(\"%d\\n\", argc)")
+                                         "printf(\"%d\\n\", argc + argc)")
                          (stmt-with-text *soft*
-                                         "printf(\"%d\\n\", argc + argc)"))
+                                         "printf(\"%d\\n\", argc * argc)"))
                    effective-a-pts)))))
   (with-fixture crossover-switch-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
