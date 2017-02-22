@@ -127,6 +127,11 @@ instrumentation.
                                              (aget :src-text target-ast))))
                       (:includes . "\"abst_cond.h\"")))))))
 
+(defmethod valid-targets ((mutation add-condition) software)
+  (remove-if «or {aget :in-macro-expansion}
+                 [#'not {full-stmt-p software}]»
+              (bad-stmts software)))
+
 ;; if-to-while
 ;; replace an if statement with a while using the same condition
 (define-mutation if-to-while (clang-mutation)
