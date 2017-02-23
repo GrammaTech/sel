@@ -129,7 +129,7 @@ instrumentation.
 
 (defmethod valid-targets ((mutation add-condition) software)
   (remove-if «or {aget :in-macro-expansion}
-                 [#'not #'full-stmt-p]»
+                 [#'not {full-stmt-p software}]»
               (bad-stmts software)))
 
 ;; if-to-while
