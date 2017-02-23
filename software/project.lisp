@@ -180,10 +180,12 @@ the underlying software objects."
   (let* ((files (if (current-file project)
                     (list (current-file project))
                     (mapcar #'cdr (evolve-files project))))
-         (entry-obj (find-if (lambda (f)
-                               (find-if [{string= "main"} {aget :name}]
-                                        (functions f)))
-                             (mapcar #'cdr (all-files project))))
+         (entry-objs (or (cdar (other-files project))
+                               (remove-if-not
+                                 (lambda (f)
+                                   (find-if [{string= "main"} {aget :name}]
+                                            (functions f)))
+                                   (mapcar #'cdr (all-files project)))))
          (functions (plist-get :functions args))
          (other-args (plist-drop :functions args)))
     (loop
@@ -193,7 +195,9 @@ the underlying software objects."
                  ;; To avoid inserting setup code into main() multiple
                  ;; times, use temporary copies of the object which
                  ;; are then discarded.
-                 :entry-obj entry-obj
+                 :entry-obj (if (member f entry-objs :test #'equal)
+                                f
+                                (first entry-objs))
                  ;; Print file index at each AST
                  :functions (cons (lambda (ast)
                                     (declare (ignorable ast))
