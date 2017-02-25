@@ -27,6 +27,9 @@
 (in-package :software-evolution)
 
 
+(defvar *compilation-timeout* 600
+  "Timeout compilation after this number of seconds has elapsed")
+
 ;;; ast software objects
 (define-software ast (software)
   ((genome   :initarg :genome   :accessor genome   :initform ""
@@ -45,7 +48,12 @@
   (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
     (multiple-value-bind (stdout stderr errno)
-        (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
+      (handler-case
+          (with-timeout (*compilation-timeout*)
+            (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj)))
+        (timeout (e)
+          (declare (ignorable e))
+          (values "" "" 124)))
       (values bin errno stderr stdout src))))
 
 (defmethod compile-p ((obj ast))
