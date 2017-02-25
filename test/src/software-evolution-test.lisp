@@ -973,6 +973,27 @@
                     (string= (aget :src-text x) (aget :src-text y)))
                   this that))))
 
+(deftest can-compile-clang-software-object ()
+  (with-fixture hello-world-clang
+    (with-temp-file (bin)
+      (multiple-value-bind (bin errno stderr stdout src)
+          (phenome *hello-world*)
+        (declare (ignorable stderr stdout src))
+        (is (probe-file bin))
+        (is (= 0 errno))))))
+
+(deftest can-timeout-compiling-clang-software-object ()
+  (with-fixture hello-world-clang
+    ;; NOTE: The very small decimal in the following is required for
+    ;;       Clozure CL to timeout successfully.  On SBCL a simple "0"
+    ;;       will suffice.
+    (let ((se::*compilation-timeout* 0.0000001))
+      (with-temp-file (bin)
+        (multiple-value-bind (bin errno stderr stdout src)
+            (phenome *hello-world*)
+          (declare (ignorable bin stderr stdout src))
+          (is (= 124 errno)))))))
+
 (deftest can-apply-mutation-w-value1 ()
   (with-fixture hello-world-clang
     (let* ((variant (copy *hello-world*))
