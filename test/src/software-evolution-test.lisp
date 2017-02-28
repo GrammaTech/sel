@@ -113,84 +113,82 @@
 (defvar *collatz*     nil "Holds the collatz software object.")
 (defvar *fib*         nil "Holds the fibonacci software object.")
 
-(handler-bind ((error (lambda (e) (declare (ignorable e)) (invoke-restart 'ignore))))
-  (progn
-    (define-constant +etc-dir+
-        (append (butlast (pathname-directory
-                          #.(or *compile-file-truename*
-                                *load-truename*
-                                *default-pathname-defaults*)))
-                (list "etc"))
-      :test #'equalp
-      :documentation "Path to directory holding testing artifacts.")
+(define-constant +etc-dir+
+    (append (butlast (pathname-directory
+                      #.(or *compile-file-truename*
+                            *load-truename*
+                            *default-pathname-defaults*)))
+            (list "etc"))
+  :test #'equalp
+  :documentation "Path to directory holding testing artifacts.")
 
-    (define-constant +gcd-dir+ (append +etc-dir+ (list "gcd"))
-      :test #'equalp
-      :documentation "Path to directory holding gcd.")
+(define-constant +gcd-dir+ (append +etc-dir+ (list "gcd"))
+  :test #'equalp
+  :documentation "Path to directory holding gcd.")
 
-    (define-constant +headers-dir+ (append +etc-dir+ (list "headers"))
-      :test #'equalp
-      :documentation "Path to directory holding headers.")
+(define-constant +headers-dir+ (append +etc-dir+ (list "headers"))
+  :test #'equalp
+  :documentation "Path to directory holding headers.")
 
-    (define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
-      :test #'equalp
-      :documentation "Location of the hello world example directory")
+(define-constant +hello-world-dir+ (append +etc-dir+ (list "hello-world"))
+  :test #'equalp
+  :documentation "Location of the hello world example directory")
 
-    (define-constant +clang-format-dir+ (append +etc-dir+ (list "clang-format"))
-      :test #'equalp
-      :documentation "Location of the clang-format example directory")
+(define-constant +clang-format-dir+ (append +etc-dir+ (list "clang-format"))
+  :test #'equalp
+  :documentation "Location of the clang-format example directory")
 
-    (define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
-      :test #'equalp
-      :documentation "Location of the huf example directory")
+(define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
+  :test #'equalp
+  :documentation "Location of the huf example directory")
 
-    (define-constant +nested-dir+ (append +etc-dir+ (list "nested"))
-      :test #'equalp
-      :documentation "Location of the nested example directory")
+(define-constant +nested-dir+ (append +etc-dir+ (list "nested"))
+  :test #'equalp
+  :documentation "Location of the nested example directory")
 
-    (define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
-      :test #'equalp
-      :documentation "Location of the scopes example directory")
+(define-constant +scopes-dir+ (append +etc-dir+ (list "scopes"))
+  :test #'equalp
+  :documentation "Location of the scopes example directory")
 
-    (define-constant +clang-crossover-dir+
-                     (append +etc-dir+ (list "clang-crossover"))
-      :test #'equalp
-      :documentation "Location of clang crossover example directory")
+(define-constant +clang-crossover-dir+
+    (append +etc-dir+ (list "clang-crossover"))
+  :test #'equalp
+  :documentation "Location of clang crossover example directory")
 
-    (define-constant +lisp-bugs-dir+
-                     (append +etc-dir+ (list "lisp-bugs"))
-      :test #'equalp
-      :documentation "Location of the lisp bugs directory")
+(define-constant +lisp-bugs-dir+
+    (append +etc-dir+ (list "lisp-bugs"))
+  :test #'equalp
+  :documentation "Location of the lisp bugs directory")
 
-    (define-constant +expand-arithmatic-op-dir+
-                     (append +etc-dir+ (list "expand-arithmatic-op"))
-      :test #'equalp
-      :documentation "Location of the expand arithmatic op example dir")
+(define-constant +expand-arithmatic-op-dir+
+    (append +etc-dir+ (list "expand-arithmatic-op"))
+  :test #'equalp
+  :documentation "Location of the expand arithmatic op example dir")
 
-    (define-constant +explode-for-loop-dir+
-                     (append +etc-dir+ (list "explode-for-loop"))
-      :test #'equalp
-      :documentation "Location of the explode for loop example dir")
+(define-constant +explode-for-loop-dir+
+    (append +etc-dir+ (list "explode-for-loop"))
+  :test #'equalp
+  :documentation "Location of the explode for loop example dir")
 
-    (define-constant +coalesce-while-loop-dir+
-                     (append +etc-dir+ (list "coalesce-while-loop"))
-      :test #'equalp
-      :documentation "Location of the coalesce while loop example dir")
+(define-constant +coalesce-while-loop-dir+
+    (append +etc-dir+ (list "coalesce-while-loop"))
+  :test #'equalp
+  :documentation "Location of the coalesce while loop example dir")
 
-    (define-constant +collatz-dir+
-                     (append +etc-dir+ (list "collatz"))
-      :test #'equalp
-      :documentation "Location of the collatz example dir")
+(define-constant +collatz-dir+
+    (append +etc-dir+ (list "collatz"))
+  :test #'equalp
+  :documentation "Location of the collatz example dir")
 
-    (define-constant +fib-dir+
-                     (append +etc-dir+ (list "fib"))
-      :test #'equalp
-      :documentation "Location of the fib example dir")
+(define-constant +fib-dir+
+    (append +etc-dir+ (list "fib"))
+  :test #'equalp
+  :documentation "Location of the fib example dir")
 
-    (define-constant +clang-tidy-dir+
-                     (append +etc-dir+ (list "clang-tidy"))
-      :test #'equalp
-      :documentation "Location of the clang-tidy example dir")))
+(define-constant +clang-tidy-dir+
+    (append +etc-dir+ (list "clang-tidy"))
+  :test #'equalp
+  :documentation "Location of the clang-tidy example dir")
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
