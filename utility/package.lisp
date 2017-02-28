@@ -12,6 +12,7 @@
    :cl-store
    :cl-dot
    :diff)
+  (:shadow :quit)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:export
    :infinity
