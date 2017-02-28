@@ -199,12 +199,13 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 (defmethod print-object ((obj clang-ast) stream)
   (if *print-readably*
       (call-next-method)
-      (format stream "#S(CLANG-AST ~a ~a ~s)"
-              (ast-counter obj) (ast-class obj) (ast-src-text obj))
-      ;; XXX: This prints children semi-nicely. Not sure which I prefer.
-      ;; (format stream "#S(CLANG-AST ~a ~a ~s :C ~:@_~s)"
-      ;;         (ast-counter obj) (ast-class obj) (ast-src-text obj) (ast-children obj))
-      ))
+      (print-unreadable-object (obj stream :type t)
+        (format stream "~a ~a ~s"
+                (ast-counter obj) (ast-class obj) (tree-text obj))
+        ;; XXX: This prints children semi-nicely. Not sure which I prefer.
+        ;; (format stream "~a ~a ~s :C ~:@_~s"
+        ;;         (ast-counter obj) (ast-class obj) (tree-text obj) (ast-children obj))
+        )))
 
 ;; XXX: do string -> keyword conversion up-front
 (defun syn-ctx (ast)
