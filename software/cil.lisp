@@ -60,7 +60,7 @@ Optionally specify the name of the file in which to save trace data."
   (unless (null points)
     (warn
      "Program point instrumentation not support for CIL software objects."))
-  (unless (null function)
+  (unless (null functions)
     (warn
      "Custom function instrumentation not support for CIL software objects."))
   (apply-mutation cil (list :trace trace-file))

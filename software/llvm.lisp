@@ -69,7 +69,7 @@
       llvm)))
 
 (defmethod phenome ((llvm llvm) &key (bin (temp-file-name)))
-  (declare (values string fixnum string string string))
+  #-ccl (declare (values string fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext llvm)) (genome llvm)
     (multiple-value-bind (stdout stderr errno)

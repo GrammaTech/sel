@@ -13,6 +13,15 @@
 
 (defvar *json-false* (make-instance 'json-false))
 
+(defclass json-true ()
+  ())
+
+(defmethod cl-json:encode-json ((object json-true) &optional stream)
+  (princ "true" stream)
+  nil)
+
+(defvar *json-true* (make-instance 'json-true))
+
 (define-condition pliny-query-failed (error)
   ((command :initarg :command :initform nil :reader command)
    (stdout :initarg :stdout :initform nil :reader stdout)
