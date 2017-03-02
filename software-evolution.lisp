@@ -163,15 +163,15 @@ Used to target mutation."))
 (defvar *fitness-predicate* #'>
   "Function to compare two fitness values to select which is preferred.")
 
-(defun fitness-better-p (fitness-a fitness-b)
-  "Check if FITNESS-A is strictly better than FITNESS-B."
-  (funcall *fitness-predicate*
-           (funcall *fitness-scalar-fn* fitness-a)
-           (funcall *fitness-scalar-fn* fitness-b)))
+(defun fitness-scalar (fitness)
+  (cond ((numberp fitness) fitness)
+        ((or (listp fitness) (vectorp fitness))
+         (reduce #'+ fitness))
+        (:otherwise (error "Can't convert fitness ~a to a scalar"
+                           fitness))))
 
-(defun fitness-equal-p (fitness-a fitness-b)
-  "Return true if FITNESS-A and FITNESS-B are equal"
-  (equalp fitness-a fitness-b))
+(defvar *fitness-scalar-fn* #'fitness-scalar
+  "Function to convert fitness to a numeric value")
 
 (defun worst-numeric-fitness ()
   (cond ((equal #'< *fitness-predicate*) infinity)
@@ -182,19 +182,21 @@ Used to target mutation."))
   (= (fitness obj)
      (worst-numeric-fitness)))
 
-(defun fitness-scalar (fitness)
-  (cond ((numberp fitness) fitness)
-        ((or (listp fitness) (vectorp fitness))
-         (reduce #'+ fitness))
-        (:otherwise (error "Can't convert fitness ~a to a scalar"
-                           fitness))))
-
-(defvar *fitness-scalar-fn* #'fitness-scalar
-  "Function to convert fitness to a numeric value")
 (defvar *worst-fitness-p* #'worst-numeric-fitness-p
   "Predicate indicating whether an individual has the worst possible fitness.")
+
 (defvar *target-fitness-p* nil
   "Predicate indicating whether an individual has reached the target fitness.")
+
+(defun fitness-better-p (fitness-a fitness-b)
+  "Check if FITNESS-A is strictly better than FITNESS-B."
+  (funcall *fitness-predicate*
+           (funcall *fitness-scalar-fn* fitness-a)
+           (funcall *fitness-scalar-fn* fitness-b)))
+
+(defun fitness-equal-p (fitness-a fitness-b)
+  "Return true if FITNESS-A and FITNESS-B are equal"
+  (equalp fitness-a fitness-b))
 
 (defun analyze-mutation (obj mutation-info test &aux result)
   "Default function to collect statistics from an applied mutation.
