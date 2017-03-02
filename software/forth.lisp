@@ -63,7 +63,7 @@
   forth)
 
 (defmethod phenome ((forth forth) &key (bin (temp-file-name)))
-  (declare (values string fixnum string string string))
+  #-ccl (declare (values string fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (string-to-file (format nil "~a~%~a" (shebang forth) (genome-string forth))
                   bin)

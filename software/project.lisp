@@ -174,22 +174,6 @@ copy of the original current file.
     ;; Add filenames to crossover points for better stats
     (values new (cons point-a file) (cons point-b file))))
 
-(defmethod phenome ((obj project) &key bin)
-  (write-genome-to-files obj)
-
-  ;; Build the object for fitness testing and copy it to desired location
-  (let ((bin (or bin (temp-file-name))))
-
-    (bind (((:values stdout stderr exit)
-            (shell "cd ~a && ~a ~a" *build-dir*
-                   (build-command obj) (build-target obj))))
-      (values
-       (if (zerop exit) (cp-file (full-path (build-target obj)) bin) bin)
-       exit
-       stderr
-       stdout
-       (mapcar [#'full-path #'first] (evolve-files obj))))))
-
 (defmethod instrument ((project project) &rest args)
   "Instrument a project. Arguments are passed through to instrument on
 the underlying software objects."
@@ -220,6 +204,7 @@ the underlying software objects."
                  other-args)))
   project)
 
+
 ;;; Build directory handling.
 
 ;;; Each project needs a build directory which contains copies of the
@@ -256,3 +241,19 @@ path within BODY."
     `(let ((,build-dir (if ,src-dir (make-build-dir ,src-dir))))
        (unwind-protect (with-build-dir (,build-dir) ,@body)
          (remove-build-dir ,build-dir)))))
+
+(defmethod phenome ((obj project) &key bin)
+  (write-genome-to-files obj)
+
+  ;; Build the object for fitness testing and copy it to desired location
+  (let ((bin (or bin (temp-file-name))))
+
+    (bind (((:values stdout stderr exit)
+            (shell "cd ~a && ~a ~a" *build-dir*
+                   (build-command obj) (build-target obj))))
+      (values
+       (if (zerop exit) (cp-file (full-path (build-target obj)) bin) bin)
+       exit
+       stderr
+       stdout
+       (mapcar [#'full-path #'first] (evolve-files obj))))))

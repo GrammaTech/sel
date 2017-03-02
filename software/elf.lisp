@@ -34,7 +34,7 @@ and applies the changed data in `genome' of ELF."))
   elf)
 
 (defmethod phenome ((elf elf) &key (bin (temp-file-name)))
-  (declare (values string fixnum string string string))
+  #-ccl (declare (values string fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (write-elf (elf elf) bin)
   (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~a" bin)

@@ -215,7 +215,7 @@
 (define-mutation subtract-add-tree (mutation)
   ((targeter :initform #'pick-bad)))
 
-(defmethod apply-mutation ((obj expression) (mutation add-subtract-tree))
+(defmethod apply-mutation ((obj expression) (mutation subtract-add-tree))
   (let ((s (targets mutation))
         (r (pick-good obj)))
     (with-slots (genome) obj
