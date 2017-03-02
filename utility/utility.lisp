@@ -243,7 +243,7 @@ and an optional extension."
             (with-temp-file (stdout-file)
               (with-temp-file (stderr-file)
                 (let* ((*shell-search-paths* ; workaround trivial-shell bug with CCL
-                         (if (zerop (position #\/ (string-trim '(#\Space) cmd)))
+                         (if (equalp #\/ (aref (string-trim '(#\Space) cmd) 0))
                              nil ;absolute path to command given, don't search $PATH
                              *shell-search-paths*)))
                   (multiple-value-bind (stdout stderr errno)
