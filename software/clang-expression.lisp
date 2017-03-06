@@ -159,14 +159,5 @@ This is used to intern string names by `expression'."
     (values result
             (max (car result) (or interior-max 0)))))
 
-(defun expression-unbound-vars (expression)
-  (cond
-    ((listp expression)
-     (remove-duplicates (apply #'append
-                               (mapcar #'expression-unbound-vars
-                                       (cdr expression)))))
-    ((symbolp expression) (list expression))
-    (t nil)))
-
 (defmethod operators ((obj clang-expression))
   '(:+ :- :* :/))
