@@ -85,7 +85,7 @@
 
 #+ccl
 (defun tempnam (dir prefix)
-  (ccl:with-filename-cstrs ((base dir) (prefix prefix))
+  (ccl:with-filename-cstrs ((base dir) (prefix (or prefix "")))
     (ccl:get-foreign-namestring
      (ccl:external-call "tempnam" :address base :address prefix :address))))
 
@@ -146,7 +146,14 @@
 After BODY is executed the temporary file is removed."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
      (unwind-protect (progn ,@body)
-       (when (probe-file ,(car spec)) (shell-check "rm -rf ~a" ,(car spec))))))
+       (let ((probe (probe-file ,(car spec))))
+         (when probe
+           (if (equal (directory-namestring probe)
+                      (namestring probe))
+               (progn
+                 #+sbcl (sb-ext:delete-directory probe :recursive t)
+                 #+ccl (ccl:delete-directory probe))
+               (delete-file ,(car spec))))))))
 
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file
