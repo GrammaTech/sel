@@ -254,18 +254,28 @@ fputs(\"))\\n\", ~a);"
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
 (defmethod log-to-filename ((obj clang) entry-obj log-variable filename)
-  (setf entry-obj
-        (insert-at-entry entry-obj (file-open-str log-variable filename)))
-  (setf (genome obj)
-        (concatenate 'string
-                     (format nil "#include <stdio.h>~%FILE *~a;~%" log-variable)
-                     (genome obj)))
+  ;; Use the "constructor" attribute to run this initialization
+  ;; function on startup, before main() or C++ static initializers.
+  (setf (genome entry-obj)
+        (format nil
+                "
+#include <stdio.h>
+FILE *~a;
+void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
+  ~a
+}
+
+~a
+"
+                log-variable
+                (file-open-str log-variable filename)
+                (genome entry-obj)))
   (unless (eq obj entry-obj)
-    (setf (genome entry-obj)
+    (setf (genome obj)
           (concatenate 'string
                        (format nil "#include <stdio.h>~%extern FILE *~a;~%"
                                log-variable)
-                       (genome entry-obj))))
+                       (genome obj))))
   obj)
 
 
