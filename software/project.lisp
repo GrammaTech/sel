@@ -218,7 +218,14 @@ the underlying software objects."
 
 (defun make-build-dir (src-dir &key path)
   "Create a temporary copy of a build directory for use during evolution."
-  (let ((build-dir (or path (temp-file-name))))
+  (let* ((path (and path (concatenate 'string path "/")))
+         (parent-dir (and path
+                          (make-pathname
+                            :directory (butlast (pathname-directory path)))))
+         (build-dir (or path (temp-file-name))))
+    (when (and parent-dir (not (probe-file parent-dir)))
+      ;; verify parent directory exists, otherwise the copy will fail
+      (shell-check "mkdir -p ~a" parent-dir))
     (shell-check "cp -r ~a ~a" src-dir build-dir)
     build-dir))
 
