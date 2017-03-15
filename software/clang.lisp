@@ -436,30 +436,37 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (mapcar #'copy-ast-tree (cdr tree))))
 
 ;; Note: modifies tree in place
-(defmethod rebind-vars-in-tree ((tree clang-ast) replacements)
-  ;; Replacements looks like:
+(defmethod rebind-vars-in-tree ((tree clang-ast)
+                                var-replacements fun-replacements)
+  ;; var-replacements looks like:
   ;; ( (("(|old-name|)" depth) ("(|new-name|)" depth)) ... )
   ;; These name/depth pairs can come directly from ast-unbound-vals.
 
+  ;; fun-replacements are similar, but the pairs are function info
+  ;; lists taken from ast-unbound-funs.
+
   (setf (ast-children tree)
-        (mapcar {rebind-vars-in-tree _ replacements} (ast-children tree)))
+        (mapcar {rebind-vars-in-tree _ var-replacements fun-replacements}
+                (ast-children tree)))
   (setf (ast-unbound-vals tree)
         (remove-duplicates
          (mapcar (lambda (v)
-                   (or (second (find-if [{equal v} #'car] replacements))
+                   (or (second (find-if [{equal v} #'car] var-replacements))
                        v))
                  (ast-unbound-vals tree))
          :test #'equal))
   (setf (ast-src-text tree) (tree-text tree))
   tree)
 
-(defmethod rebind-vars-in-tree ((tree list) replacements)
-  (setf (cdr tree) (mapcar {rebind-vars-in-tree _ replacements}
+(defmethod rebind-vars-in-tree ((tree list) var-replacements fun-replacements)
+  (setf (cdr tree) (mapcar {rebind-vars-in-tree _ var-replacements
+                                                fun-replacements}
                            (cdr tree)))
   tree)
 
-(defmethod rebind-vars-in-tree ((tree string) replacements)
-  (or (car (second (find-if [{string= tree} #'car #'car] replacements)))
+(defmethod rebind-vars-in-tree ((tree string) var-replacements fun-replacements)
+  (or (car (second (find-if [{string= tree} #'car #'car]
+                            (append var-replacements fun-replacements))))
       tree))
 
 
@@ -1381,6 +1388,9 @@ declarations onto multiple lines to ease subsequent decl mutations."))
         (format nil "~a~%" (add-semicolon-if-needed text))
         (format nil "~a" text))))
 
+(defmethod recontextualize ((clang clang) (ast clang-ast) pt)
+  (bind-free-vars clang ast pt))
+
 (defmethod get-parent-decls ((clang clang) ast)
   (remove-if-not #'ast-is-decl (get-parent-asts clang ast)))
 
@@ -1506,15 +1516,13 @@ already in scope, it will keep that name.")
           (cons op
                 (cons (cons :stmt1 stmt1)
                       (if (or stmt2 value1 literal1)
-                          ;; FIXME: handle literal inserts
-                          `((:value1 . ,(get-ast obj stmt2)
-                             ;; ,(or literal1
-                             ;;      (recontextualize obj
-                             ;;              (if stmt2
-                             ;;                  (ast->snippet (get-ast obj stmt2))
-                             ;;                  value1)
-                             ;;              stmt1))
-                             ))))))
+                          `((:value1 .
+                             ,(or literal1
+                                  (recontextualize obj
+                                          (if stmt2
+                                              (get-ast obj stmt2)
+                                              value1)
+                                          stmt1))))))))
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
 
@@ -2181,6 +2189,19 @@ free variables.")
         original-name
         (random-elt (or matching variadic others '(nil))))))
 
+(defun random-function-info (protos &key original-name arity)
+  "Returns function info in the same format as unbound-funs."
+  (let* ((name (random-function-name protos
+                                     :original-name original-name
+                                     :arity arity))
+         (decl (find-if [{string= name} #'ast-name] protos)))
+             ;; fun is (name, voidp, variadicp, arity)
+    (list (format nil "(|~a|)" (ast-name decl))
+          (ast-void-ret decl)
+          (ast-varargs decl)
+          (length (ast-args decl)))))
+
+
 (defmethod bind-free-vars ((clang clang) snippet pt)
   (let ((scope-vars (ast-scopes (get-ast clang pt))))
 
@@ -2229,6 +2250,43 @@ free variables.")
              (aget :unbound-funs snippet)))))
       (values (apply-replacements replacements (aget :src-text snippet))
               replacements))))
+
+(defmethod bind-free-vars ((clang clang) (ast clang-ast) pt)
+  (let* ((in-scope
+          (iter (for scope in (ast-scopes (get-ast clang pt)))
+                (for i upfrom 0)
+                (appending (mapcar [{list _ i} {format nil "(|~a|)"}]
+                                   scope))))
+         (var-replacements
+          (mapcar
+           (lambda (var)
+             (list var
+                   ;; If the variable's original name matches the
+                   ;; name of a variable in scope, keep the original
+                   ;; name with probability equal to
+                   ;; *matching-free-var-retains-name-bias*
+                   (or (when (and (< (random 1.0)
+                                     *matching-free-var-retains-name-bias*)
+                                  (find var in-scope :test #'equal))
+                         var)
+                       (random-elt-with-decay
+                        in-scope *free-var-decay-rate*)
+                       '("/* no bound vars in scope */" . 0))))
+           (ast-unbound-vals ast)))
+         (fun-replacements
+          (mapcar
+           (lambda (fun)
+             (list fun
+                   (or (random-function-info
+                        (prototypes clang)
+                        :original-name (first fun)
+                        :arity (fourth fun))
+                       '("/* no functions? */" nil nil 0))))
+           (ast-unbound-funs ast))))
+    (values (rebind-vars-in-tree (copy-ast-tree ast)
+                                 var-replacements fun-replacements)
+            var-replacements
+            fun-replacements)))
 
 (defun rebind-uses-in-snippet (snippet renames-list)
   (add-semicolon-if-needed
