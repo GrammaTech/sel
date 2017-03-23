@@ -259,6 +259,17 @@ Keyword arguments may be used to restrict selections."
 (define-mutation clang-swap-full-same (clang-swap)
   ((targeter :initform {pick-bad-bad _ t t})))
 
+;;; Move
+(define-mutation clang-move (clang-mutation)
+  ((targeter :initform #'pick-bad-bad)))
+
+(defmethod build-op ((mutation clang-move) software)
+  ;; Sort in reverse AST order so operations won't step on each other
+  (sort `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
+                   (:stmt2 . ,(aget :stmt2 (targets mutation))))
+          (:cut (:stmt1 . ,(aget :stmt1 (targets mutation)))))
+        #'> :key [{aget :stmt1} #'cdr]))
+
 ;;; Replace
 (define-mutation clang-replace (clang-mutation)
   ((targeter :initform #'pick-bad-good)))
@@ -1050,7 +1061,8 @@ already in scope, it will keep that name.")
       (clang-swap              .  1)
       (clang-swap-same         .  4)
       (clang-swap-full         .  4)
-      (clang-swap-full-same    . 11)
+      (clang-swap-full-same    .  6)
+      (clang-move              .  5)
       (clang-replace           .  1)
       (clang-replace-same      .  4)
       (clang-replace-full      .  4)
