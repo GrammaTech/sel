@@ -346,6 +346,7 @@
    :clang-swap-same
    :clang-swap-full
    :clang-swap-full-same
+   :clang-move
    :clang-replace
    :clang-replace-same
    :clang-replace-full
