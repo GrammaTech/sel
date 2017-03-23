@@ -1892,6 +1892,31 @@ is not to be found"
           "`analyze-mutation' notices no change: ~S"
           (hash-table-alist *mutation-stats*)))))
 
+(deftest able-to-compose-simple-mutations ()
+  (compose-mutations cut-and-swap (clang-cut clang-swap))
+  (finalize-inheritance (find-class 'cut-and-swap))
+  (is (find-class 'cut-and-swap)
+      "`compose-mutations' successfully defines a class")
+  (is (some [{eql 'targeter} #'slot-definition-name]
+            (class-slots (find-class 'cut-and-swap)))
+      "`compose-mutations' defines a class with a targeter")
+  (is (some [{eql 'picker} #'slot-definition-name]
+            (class-slots (find-class 'cut-and-swap)))
+      "`compose-mutations' defines a class with a picker"))
+
+(deftest able-to-apply-composed-mutation ()
+  (compose-mutations swap-and-cut (clang-swap clang-cut))
+  (with-fixture hello-world-clang-w-fitness
+    (let* ((variant (copy *hello-world*))
+           (op (make-instance 'swap-and-cut :object variant)))
+      (apply-mutation variant op)
+      (is (different-asts (asts variant)
+                          (asts *hello-world*)))
+      (is (not (equal (genome variant)
+                      (genome *hello-world*))))
+      (is (< (size variant)
+             (size *hello-world*))))))
+
 ;; Ancestry tests
 (defclass clang-w-ancestry (clang ancestral) ())
 

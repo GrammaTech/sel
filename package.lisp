@@ -3,6 +3,7 @@
   (:nicknames :se)
   (:use
    :alexandria
+   :closer-mop
    :bordeaux-threads
    :common-lisp
    :cl-arrows
@@ -19,6 +20,10 @@
    :usocket)
   (:shadow :elf :size :type :magic-number :diff :insert :project)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
+  (:shadowing-import-from
+   :closer-mop
+   :standard-method :standard-class :standard-generic-function
+   :defmethod :defgeneric)
   (:export
    :+software-evolution-version+
    ;; software objects
@@ -105,6 +110,8 @@
    :expression-to-c
    :mutation
    :define-mutation
+   :compose-mutations
+   :sequence-mutations
    :object
    :targeter
    :picker
