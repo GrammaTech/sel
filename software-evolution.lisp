@@ -393,6 +393,66 @@ Also, ensures MUTATION is a member of superclasses"
       ,@(remove-if {member _ '(targeter picker)} slots :key #'car))
      ,@options))
 
+(defmacro compose-mutations (class-name mutations &rest options)
+  "Define a new mutation named CLASS-NAME composing MUTATIONS.
+MUTATIONS is a list of the names of mutation classes."
+  (with-gensyms ((args args)
+                 (mut mut)
+                 (software software)
+                 (mutation mutation)
+                 (target target))
+    (flet ((slot-initform (slot-name class)
+             (finalize-inheritance (find-class class))
+             (slot-definition-initform
+              (find-if [{eql slot-name} #'slot-definition-name]
+                       (class-slots (find-class class))))))
+      `(prog1
+           (define-mutation ,class-name
+               ,(remove-duplicates
+                 (mappend
+                  (lambda (obj)
+                    (remove-if «or {eql 'standard-object} {eql 'mutation}»
+                               (mapcar #'class-name
+                                       (class-direct-superclasses
+                                        (find-class obj)))))
+                  mutations))
+             ((targeter
+               :initform
+               (lambda (&rest ,args)
+                 (list ,@(mapcar
+                          (lambda (fun) `(apply ,fun ,args))
+                          (mapcar {slot-initform 'targeter} mutations))))
+               :type 'function
+               :documentation
+               ,(format nil "Targeters from ~a." mutations))
+              (picker
+               :initform
+               (lambda (targets)
+                 (mapcar
+                  (lambda (target picker) (funcall picker target))
+                  targets
+                  (list ,@(mapcar {slot-initform 'picker} mutations))))
+               :type 'function
+               :documentation
+               ,(format nil "Pickers from ~a." mutations)))
+             ;; NOTE: Should compose other slots as well.
+             ,@options)
+         (defmethod build-op ((,mut ,class-name) ,software)
+           (mappend
+            (lambda (,mutation ,target)
+              (build-op (make-instance ,mutation :targets ,target)
+                        ,software))
+            ',mutations
+            (targets ,mut)))))))
+
+(defmacro sequence-mutations  (class-name mut-a mut-b &rest options)
+  "Define a new mutation named CLASS-NAME sequencing MUT-A and MUT-B.
+MUT-A and MUT-B are instances of mutations.  Instead of collecting
+targets for A and then targets for B and then applying A and B as done
+by `compose-mutations', `sequence-mutations' first targets and applies A and then targets and applied B."
+  (declare (ignorable class-name mut-a mut-b options))
+  (error "TODO: Implement `sequence-mutations'."))
+
 (defclass mutation ()
   ((object :initarg :object :accessor object :initform nil
            :type (or software null)

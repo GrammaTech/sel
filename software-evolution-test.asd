@@ -3,6 +3,7 @@
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
+               closer-mop
                cl-arrows
                curry-compose-reader-macros
                cxml

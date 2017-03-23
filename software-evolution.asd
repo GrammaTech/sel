@@ -10,6 +10,7 @@ techniques."
   :licence "GPL V3"
   ;; :homepage "http://eschulte.github.io/software-evolution/index.html"
   :depends-on (alexandria
+               closer-mop
                bordeaux-threads
                cl-arrows
                cl-json
