@@ -214,42 +214,27 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 (defun asts->tree (obj)
   (labels
       ((make-children (ast child-asts)
-         (let ((start (ast-begin-off ast))
-               context
-               context-list)
+         (let ((start (ast-begin-off ast)))
            (if child-asts
                ;; Interleave child asts and source text
-               (append (iter (for c in child-asts)
-                             ;; Each context gets a sublist. When context
-                             ;; changes, collect the current list and
-                             ;; start a new one.
-                             (push (subseq (genome obj) start (ast-begin-off c))
-                                   context-list)
-
-                             (when (not (eq (syn-ctx c) context))
-                               ;; (format t "new context ~a, lst ~s~%"
-                               ;;         (syn-ctx c) context-list)
-                               (cond
-                                 ((> (length context-list) 1)
-                                  (collect (reverse context-list)))
-                                 (context-list (collect (car context-list))))
-
-                               (setf context (syn-ctx c))
-                               (setf context-list (list context)))
-
-                             (push c context-list)
-                             (setf start (+ 1 (ast-end-off c))))
-                       (append (when context-list
-                                 (list (reverse context-list)))
-                               (list (subseq (genome obj) start
-                                             (+ 1 (ast-end-off ast))))))
+               (iter (for c in child-asts)
+                     (collect (subseq (genome obj) start (ast-begin-off c))
+                       into children)
+                     (collect c into children)
+                     (setf start (+ 1 (ast-end-off c)))
+                     (finally
+                      (return
+                        (append children
+                                (list (subseq (genome obj) start
+                                              (+ 1 (ast-end-off ast))))))))
                ;; No children: create a single string child with source text
                (list (ast-src-text ast)))))
        (make-tree (ast)
          (let ((new (copy-clang-ast ast)))
            (setf (ast-children new)
                  (make-children new
-                                (mapcar #'make-tree (get-immediate-children obj ast))))
+                                (mapcar #'make-tree
+                                        (get-immediate-children obj ast))))
 
            new)))
     (let ((roots (remove-if-not [{eq 0} #'ast-parent-counter]
@@ -302,41 +287,32 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 
 (defmethod replace-ast ((tree clang-ast) (path list) (replacement clang-ast))
   (destructuring-bind (head . tail) path
-    (replace-ast (nth head (ast-children tree)) tail replacement)))
-
-(defmethod replace-ast ((tree list) (path list) (replacement clang-ast))
-  (bind (((head . tail) path)
-         ((context . children) tree))
-
     (if tail
-        (replace-ast (nth head children) tail replacement)
-        (setf (cdr tree)
-              (nconc (subseq children 0 (max 0 (1- head)))
-                     (replace-fixup context
-                                    (if (positive-integer-p head)
-                                        (nth (1- head) children)
-                                        "")
-                                    replacement
-                                    (nth (1+ head) children))
-                     (nthcdr (+ 2 head) children))))))
+        (replace-ast (nth head (ast-children tree)) tail replacement)
+        (with-slots (children) tree
+          (setf children
+                (nconc (subseq children 0 (max 0 (1- head)))
+                       (replace-fixup (syn-ctx (nth head children))
+                                      (if (positive-integer-p head)
+                                          (nth (1- head) children)
+                                          "")
+                                      replacement
+                                      (nth (1+ head) children))
+                       (nthcdr (+ 2 head) children)))))))
 
 (defmethod remove-ast ((tree clang-ast) (path list))
   (destructuring-bind (head . tail) path
-    (remove-ast (nth head (ast-children tree)) tail)))
-
-(defmethod remove-ast ((tree list) (path list))
-  (bind (((head . tail) path)
-         ((context . children) tree))
     (if tail
-        (remove-ast (nth head children) tail)
-        (setf (cdr tree)
-              (nconc (subseq children 0 (max 0 (1- head)))
-                     (remove-fixup context
-                                   (if (positive-integer-p head)
-                                       (nth (1- head) children)
-                                       "")
-                                   (or (nth (1+ head) children) ""))
-                     (nthcdr (+ 2 head) children))))))
+        (remove-ast (nth head (ast-children tree)) tail)
+        (with-slots (children) tree
+          (setf children
+                (nconc (subseq children 0 (max 0 (1- head)))
+                       (remove-fixup (syn-ctx (nth head children))
+                                     (if (positive-integer-p head)
+                                         (nth (1- head) children)
+                                         "")
+                                     (or (nth (1+ head) children) ""))
+                       (nthcdr (+ 2 head) children)))))))
 
 ;; TODO: ideas for improvement here
 ;; Add a (remove nil ...) in caller, so we can put nils in list to drop things.
@@ -369,7 +345,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (let ((no-change (list before after)))
     (ecase context
       (:generic no-change)
-      (:fullstmt (list before (if (starts-with #\, after)
+      (:fullstmt (list before (if (starts-with #\; after)
                                   (subseq after 1)
                                   after)))
       (:listelt (list before (if (starts-with #\, after)
@@ -400,27 +376,20 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                      no-change
                      add-semicolon)))))
 
-(defgeneric insert-ast (tree path ast))
-
 (defmethod insert-ast ((tree clang-ast) (path list) (ast clang-ast))
   (destructuring-bind (head . tail) path
-    (insert-ast (nth head (ast-children tree)) tail ast)))
-
-(defmethod insert-ast ((tree list) (path list) (ast clang-ast))
-  (bind (((head . tail) path)
-         ((context . children) tree))
-
     (if tail
-        (insert-ast (nth head children) tail ast)
-        (setf (cdr tree)
-              (nconc (subseq children 0 (max 0 (1- head)))
-                     (insert-fixup context
-                                   (if (positive-integer-p head)
-                                       (nth (1- head) children)
-                                       "")
-                                   ast
-                                   (nth head children))
-                     (nthcdr (1+ head) children))))))
+        (insert-ast (nth head (ast-children tree)) tail ast)
+        (with-slots (children) tree
+          (setf children
+                (nconc (subseq children 0 (max 0 (1- head)))
+                       (insert-fixup (syn-ctx (nth head children))
+                                     (if (positive-integer-p head)
+                                         (nth (1- head) children)
+                                         "")
+                                     ast
+                                     (nth head children))
+                       (nthcdr (1+ head) children)))))))
 
 (defmethod copy-ast-tree ((tree clang-ast))
   (let ((tree (copy-clang-ast tree)))
