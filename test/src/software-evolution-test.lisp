@@ -39,6 +39,7 @@
 (defvar *collatz*     nil "Holds the collatz software object.")
 (defvar *fib*         nil "Holds the fibonacci software object.")
 (defvar *variety*     nil "Holds the variety software object.")
+(defvar *contexts*    nil "Holds the syntactic-contexts software object.")
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
@@ -127,6 +128,9 @@
   :test #'equalp
   :documentation "Location of the variety example dir")
 
+(define-constant +contexts-dir+ (append +etc-dir+ (list "syntactic-contexts"))
+  :test #'equalp
+  :documentation "Path to the syntactic-contexts example."))
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -212,6 +216,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +variety-dir+))
+
+(defun contexts-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +contexts-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -402,6 +411,14 @@
   (:teardown
    (setf *database* nil)
    (setf *soft* nil)))
+
+(defixture contexts
+  (:setup
+   (setf *contexts*
+         (from-file (make-instance 'clang :compiler "clang-3.7")
+                    (contexts-dir "contexts.c"))))
+  (:teardown
+   (setf *contexts* nil)))
 
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
@@ -5346,3 +5363,158 @@ Useful for printing or returning differences in the REPL."
                                     (and (string= (car k1) (car k2))
                                          (string< (cdr k1) (cdr k2))))))))
         (is (equal '(1 1) vals))))))
+
+
+;; Tests of basic clang mutation operators
+(defun count-matching-chars-in-stmt (char stmt)
+  (count-if {eq char} (se::tree-text stmt)))
+
+(defun find-function (obj name)
+  (find-if [{string= name} #'ast-name]
+           (functions obj)))
+
+(deftest cut-full-stmt-removes-semicolon ()
+  (with-fixture contexts
+    (se::apply-mutation-ops *contexts*
+                            `((:cut (:stmt1 . ,(stmt-with-text
+                                                *contexts* "int x = 0")))))
+    (is (eq 0
+            (count-matching-chars-in-stmt
+             #\;
+             (find-function *contexts* "full_stmt"))))))
+
+(deftest insert-full-stmt-adds-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int x = 0")))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,target)
+                                         (:stmt2 . ,target)))))
+    (is (eq 2 (count-matching-chars-in-stmt
+             #\;
+             (find-function *contexts* "full_stmt"))))))
+
+(deftest cut-list-elt-removes-comma ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int b")))
+      (se::apply-mutation-ops *contexts*
+                             `((:cut (:stmt1 . ,target)))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\,
+               (find-function *contexts* "list"))))))
+
+(deftest insert-list-elt-removes-comma ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int b")))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,target)
+                                      (:stmt2 . ,target)))))
+    (is (eq 3 (count-matching-chars-in-stmt
+               #\,
+               (find-function *contexts* "list"))))))
+
+;; FIXME: this fails b/c clang-mutate can't remove the comma before the
+;; cut element. Maybe we can do better with direct AST mutations.
+(deftest cut-final-list-elt-removes-comma ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int c")))
+      (se::apply-mutation-ops *contexts*
+                              `((:cut (:stmt1 . ,target)))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\,
+               (find-function *contexts* "list"))))))
+
+(deftest insert-final-list-elt-adds-comma ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int c")))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,target)
+                                         (:stmt2 . ,target)))))
+    (is (eq 3 (count-matching-chars-in-stmt
+               #\,
+               (find-function *contexts* "list"))))))
+
+(deftest replace-braced-adds-braces ()
+  (with-fixture contexts
+    (let ((target
+           (second (get-immediate-children
+                    *contexts*
+                    (car (get-immediate-children
+                          *contexts*
+                          (ast-body (find-function *contexts*
+                                                   "braced_body")))))))
+          (replacement (ast-with-text *contexts* "int x = 0")))
+      (se::apply-mutation-ops *contexts*
+                              `((:set (:stmt1 . ,(ast-counter target))
+                                      (:value1 . ,(text-shim replacement))))))
+    ;; NOTE: this adds braces but no semicolon, which isn't quite
+    ;; right.
+    (let ((function (find-function *contexts* "braced_body")))
+      (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
+      (is (eq 2 (count-matching-chars-in-stmt #\} function))))))
+
+(deftest replace-unbraced-body-adds-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "x = 2")))
+      (se::apply-mutation-ops *contexts*
+                       `((:set (:stmt1 . ,target)
+                               (:value1 . ,(text-shim (get-ast *contexts*
+                                                               target)))))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\;
+               (find-function *contexts* "unbraced_body"))))))
+
+(deftest replace-unbraced-body-with-braced ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "x = 2"))
+          (replacement (ast-body (find-function *contexts*
+                                                "full_stmt"))))
+      (se::apply-mutation-ops *contexts*
+                      `((:set (:stmt1 . ,target)
+                              (:value1 . ,(text-shim (get-ast *contexts*
+                                                              replacement)))))))
+    (let ((function (find-function *contexts* "unbraced_body")))
+      (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
+      (is (eq 2 (count-matching-chars-in-stmt #\} function))))))
+
+(deftest cut-field-removes-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int f1;")))
+      (se::apply-mutation-ops *contexts*
+                              `((:cut (:stmt1 . ,target)))))
+    (let ((struct (get-ast *contexts*
+                           (stmt-starting-with-text *contexts* "struct"))))
+        (is (eq 1
+                (count-matching-chars-in-stmt #\; struct))))))
+
+(deftest insert-field-adds-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int f1;")))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,target)
+                                         (:stmt2 . ,target)))))
+    (let ((struct (get-ast *contexts*
+                           (stmt-starting-with-text *contexts* "struct"))))
+        (is (eq 3
+                (count-matching-chars-in-stmt #\; struct))))))
+
+(deftest insert-toplevel-adds-semicolon ()
+  (with-fixture contexts
+    (let ((location (stmt-starting-with-text *contexts* "struct"))
+          (inserted (stmt-with-text *contexts* "int x = 0"))
+          (semicolons (count-if {eq #\;} (genome *contexts*))))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,inserted)
+                                         (:stmt2 . ,location))))
+      (is (eq (1+ semicolons)
+              (count-if {eq #\;} (genome *contexts*)))))))
+
+(deftest insert-toplevel-braced ()
+  (with-fixture contexts
+    (let ((location (stmt-starting-with-text *contexts* "struct"))
+          (inserted (stmt-starting-with-text *contexts* "void list"))
+          (semicolons (count-if {eq #\;} (genome *contexts*))))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,inserted)
+                                         (:stmt2 . ,location))))
+      (is (eq semicolons
+              (count-if {eq #\;} (genome *contexts*)))))))
