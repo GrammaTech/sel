@@ -1125,6 +1125,18 @@ for successful mutation (e.g. adding includes/types/macros)"))
           globals nil
           fitness nil)))
 
+(defmethod (setf ast-root) :before (new (obj clang))
+  (with-slots (stmt-asts non-stmt-asts functions prototypes
+                         includes macros globals fitness) obj
+    (setf stmt-asts nil
+          non-stmt-asts nil
+          functions nil
+          prototypes nil
+          includes nil
+          macros nil
+          globals nil
+          fitness nil)))
+
 (defun function-decl-p (ast)
   "Is AST a function (or method/constructor/destructor) decl?"
   (and (clang-ast-p ast)
@@ -1135,8 +1147,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
-  (with-slots (asts stmt-asts non-stmt-asts macros includes types
-                    functions prototypes declarations genome) obj
+  (with-slots (asts types declarations) obj
     ;; Incorporate ASTs.
     (iter (for ast in (restart-case
                           (clang-mutate obj
@@ -1161,46 +1172,49 @@ for successful mutation (e.g. adding includes/types/macros)"))
                   ((ast-counter ast) (collect ast into body))
                   ((ast-decl-name ast)
                    (nconcf (gethash (ast-decl-name ast) decls nil) (list ast)))
-                  (:otherwise (error "Unrecognized ast.~%~S" ast)))
-                (when (ast-body ast)
-                  (collect ast into funs)
-                  (collect (ast-to-source-range ast) into fn-ranges))
-                (when (function-decl-p ast)
-                  (collect ast into protos))
-                (mapc (lambda (macro)
-                        (adjoining (cons (first macro) (second macro)) into m-macros
-                                   test (lambda (a b) (string= (car a) (car b)))))
-                      (ast-macros ast))
-                (mapc (lambda (include)
-                        (adjoining include into m-includes test #'string=))
-                      (ast-includes ast))))
+                  (:otherwise (error "Unrecognized ast.~%~S" ast)))))
           (finally
-           (let (my-stmts my-non-stmts)
-             (mapc (lambda (ast)
-                     (if (some {contains _ (ast-to-source-range ast)} fn-ranges)
-                         (unless (or (string= "ParmVar" (ast-class ast))
-                                     (function-decl-p ast))
-                           (push (ast-counter ast) my-stmts))
-                         (push (ast-counter ast) my-non-stmts)))
-                   body)
-             (setf asts (coerce body 'vector)
-                   stmt-asts (nreverse my-stmts)
-                   non-stmt-asts (nreverse my-non-stmts)
-                   types m-types
-                   macros m-macros
-                   includes m-includes
-                   functions funs
-                   prototypes protos
-                   declarations decls)))))
+           (setf asts (coerce body 'vector)
+                 types m-types
+                 declarations decls))))
 
   ;; FIXME: construct tree directly from vector
-  (with-slots (ast-root stmt-asts non-stmt-asts) obj
-    (setf ast-root (asts->tree obj))
-    (setf stmt-asts (remove-if-not [{member _ stmt-asts} #'ast-counter #'car]
-                                   (all-ast-paths ast-root))
-          non-stmt-asts (remove-if-not [{member _ non-stmt-asts}  #'ast-counter #'car]
-                                       (all-ast-paths ast-root))))
+  (with-slots (ast-root) obj
+    (setf ast-root (asts->tree obj)))
 
+  obj)
+
+(defmethod update-caches ((obj clang))
+  (with-slots (stmt-asts non-stmt-asts functions prototypes
+                         macros includes) obj
+    (iter (for ast-path in (all-ast-paths (ast-root obj)))
+          (for (ast . path) = ast-path)
+
+          (when (ast-body ast)
+            (collect ast-path into funs)
+            (collect (ast-to-source-range ast) into fn-ranges))
+          (when (function-decl-p ast)
+            (collect ast-path into protos))
+          (mapc (lambda (macro)
+                  (adjoining (cons (first macro) (second macro)) into m-macros
+                             test (lambda (a b) (string= (car a) (car b)))))
+                (ast-macros ast))
+          (mapc (lambda (include)
+                  (adjoining include into m-includes test #'string=))
+                (ast-includes ast))
+          (if (some {contains _ (ast-to-source-range ast)} fn-ranges)
+              (unless (or (string= "ParmVar" (ast-class ast))
+                          (function-decl-p ast))
+                (collect ast-path into my-stmts))
+              (collect ast-path into my-non-stmts))
+
+          (finally
+           (setf stmt-asts (nreverse my-stmts)
+                 non-stmt-asts (nreverse my-non-stmts)
+                 macros m-macros
+                 includes m-includes
+                 functions funs
+                 prototypes protos))))
   obj)
 
 (defmethod update-body ((obj clang) &key)
@@ -1364,16 +1378,21 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod update-asts-if-necessary ((obj clang))
   (with-slots (asts) obj (unless asts (update-asts obj))))
 
+(defmethod update-caches-if-necessary ((obj clang))
+  (with-slots (stmt-asts) obj (unless stmt-asts (update-caches obj))))
+
 (defmethod          asts :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod     stmt-asts :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod non-stmt-asts :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod     functions :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod    prototypes :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod      includes :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod         types :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod      ast-root :before ((obj clang)) (update-asts-if-necessary obj))
 (defmethod  declarations :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod        macros :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod       globals :before ((obj clang)) (update-asts-if-necessary obj))
+
+(defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod non-stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod     functions :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod    prototypes :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod      includes :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod         types :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod        macros :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod       globals :before ((obj clang)) (update-caches-if-necessary obj))
 
 (defmethod asts ((obj clang))
   (with-slots (asts) obj (coerce asts 'list)))
@@ -1541,19 +1560,18 @@ already in scope, it will keep that name.")
   software)
 
 (defun apply-mutation-ops (software ops)
-  ;; TODO: accessor for ast-root
-  (with-slots (ast-root) software
+  (with-slots (ast-root genome) software
     (iter (for (op . properties) in ops)
           (let ((stmt1 (aget :stmt1 properties))
                 (value1 (aget :value1 properties)))
             (ecase op
               (:set (replace-ast ast-root stmt1 value1))
               (:cut (remove-ast ast-root stmt1))
-              (:insert-value (insert-ast ast-root stmt1 value1))))))
+              (:insert-value (insert-ast ast-root stmt1 value1)))))
 
-  ;; FIXME: get genome by walking tree
-  (setf (genome software) (peel-bananas (tree-text (ast-root software))))
-  software)
+    ;; Update genome without triggering the :before method that
+    ;; clears asts, etc.
+    (setf genome (peel-bananas (tree-text ast-root)))))
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
