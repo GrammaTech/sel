@@ -268,8 +268,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
     (get-ast (nth head (cdr tree))
              tail)))
 
-(defmethod all-ast-paths ((tree clang-ast))
-  "Return (ast . path) for all ASTs within tree."
+(defmethod all-ast-paths ((software clang))
+  "Return (ast . path) for all ASTs in software."
   (labels ((helper (tree path)
            (let* ((children (if (listp tree)
                                 (cdr tree)
@@ -283,7 +283,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                  (cons (cons tree (reverse path))
                        descendants)))))
     ;; Omit the root AST
-    (cdr (helper tree nil))))
+    (cdr (helper (ast-root software) nil))))
 
 (defmethod replace-ast ((tree clang-ast) (path list) (replacement clang-ast))
   (destructuring-bind (head . tail) path
@@ -1156,7 +1156,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod update-caches ((obj clang))
   (with-slots (stmt-asts non-stmt-asts functions prototypes
                          macros includes) obj
-    (iter (for ast-path in (all-ast-paths (ast-root obj)))
+    (iter (for ast-path in (all-ast-paths obj))
           (for (ast . path) = ast-path)
 
           (when (ast-body ast)
@@ -1828,6 +1828,22 @@ already in scope, it will keep that name.")
   (if (member :children *clang-json-required-fields*)
       (mapcar {get-ast clang} (ast-children (get-ast clang ast)))
       (remove-if-not [{= ast} #'ast-parent-counter] (asts clang))))
+
+(defmethod get-immediate-children ((clang clang) (ast-path list))
+  (destructuring-bind (ast . path) ast-path
+    (iter (for child in (ast-children ast))
+          (for i upfrom 0)
+          (when (clang-ast-p child)
+              (collect (cons child (append path (list i))))))))
+
+(defgeneric function-body (software ast-path)
+  (:documentation
+   "If AST-PATH is a function AST, return the AST representing its body."))
+
+(defmethod function-body ((software clang) (ast-path list))
+  (when (ast-body (car ast-path))
+    (find-if [{string= "CompoundStmt"} #'ast-class #'car]
+             (get-immediate-children software ast-path))))
 
 (defgeneric get-parent-full-stmt (software ast)
   (:documentation
