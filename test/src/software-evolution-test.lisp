@@ -5399,36 +5399,71 @@ Useful for printing or returning differences in the REPL."
              #\;
              (find-function *contexts* "full_stmt"))))))
 
+(deftest insert-braced-full-stmt-does-not-add-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int x = 0"))
+          (inserted (se::function-body *contexts*
+                                       (find-function *contexts*
+                                                      "list"))))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,target)
+                                         (:value1 . ,(car inserted))))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\;
+               (find-function *contexts* "full_stmt"))))))
+
+(deftest replace-full-stmt-with-braced-removes-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int x = 0"))
+          (inserted (se::function-body *contexts*
+                                       (find-function *contexts*
+                                                      "list"))))
+      (se::apply-mutation-ops *contexts*
+                              `((:set (:stmt1 . ,target)
+                                         (:value1 . ,(car inserted))))))
+    (is (eq 0 (count-matching-chars-in-stmt
+               #\;
+               (find-function *contexts* "full_stmt"))))))
+
 (deftest cut-list-elt-removes-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b")))
       (se::apply-mutation-ops *contexts*
                              `((:cut (:stmt1 . ,target)))))
-    (is (eq 1 (count-matching-chars-in-stmt
-               #\,
-               (find-function *contexts* "list"))))))
+    (is (starts-with-subseq
+         "void list(int a,  int c)"
+         (se::tree-text (car (find-function *contexts* "list")))))))
 
-(deftest insert-list-elt-removes-comma ()
+(deftest insert-list-elt-adds-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b")))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
                                          (:value1 . ,(get-ast *contexts*
                                                               target))))))
-    (is (eq 3 (count-matching-chars-in-stmt
-               #\,
-               (find-function *contexts* "list"))))))
+    (is (starts-with-subseq
+         "void list(int a, int b,int b, int c)"
+         (se::tree-text (car (find-function *contexts* "list")))))))
 
-;; FIXME: this fails b/c clang-mutate can't remove the comma before the
-;; cut element. Maybe we can do better with direct AST mutations.
+(deftest replace-list-elt-keeps-comma ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int b"))
+          (replacement (ast-with-text *contexts* "int a")))
+      (se::apply-mutation-ops *contexts*
+                              `((:set (:stmt1 . ,target)
+                                      (:value1 . ,replacement)))))
+    (is (starts-with-subseq
+         "void list(int a, int a, int c)"
+         (se::tree-text (car (find-function *contexts* "list")))))))
+
 (deftest cut-final-list-elt-removes-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int c")))
       (se::apply-mutation-ops *contexts*
                               `((:cut (:stmt1 . ,target)))))
-    (is (eq 1 (count-matching-chars-in-stmt
-               #\,
-               (find-function *contexts* "list"))))))
+    (is (starts-with-subseq
+         "void list(int a, int b)"
+         (se::tree-text (car (find-function *contexts* "list")))))))
 
 (deftest insert-final-list-elt-adds-comma ()
   (with-fixture contexts
@@ -5437,11 +5472,22 @@ Useful for printing or returning differences in the REPL."
                               `((:insert (:stmt1 . ,target)
                                          (:value1 . ,(get-ast *contexts*
                                                               target))))))
-    (is (eq 3 (count-matching-chars-in-stmt
-               #\,
-               (find-function *contexts* "list"))))))
+    (is (starts-with-subseq
+         "void list(int a, int b, int c,int c)"
+         (se::tree-text (car (find-function *contexts* "list")))))))
 
-(deftest replace-braced-adds-braces ()
+(deftest replace-final-list-elt-keeps-comma ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int c"))
+          (replacement (ast-with-text *contexts* "int a")))
+      (se::apply-mutation-ops *contexts*
+                              `((:set (:stmt1 . ,target)
+                                      (:value1 . ,replacement)))))
+    (is (starts-with-subseq
+         "void list(int a, int b, int a)"
+         (se::tree-text (car (find-function *contexts* "list")))))))
+
+(deftest replace-braced-adds-braces-and-semicolon ()
   (with-fixture contexts
     (let ((target
            (second (get-immediate-children
@@ -5459,9 +5505,10 @@ Useful for printing or returning differences in the REPL."
     ;; right.
     (let ((function (find-function *contexts* "braced_body")))
       (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
-      (is (eq 2 (count-matching-chars-in-stmt #\} function))))))
+      (is (eq 2 (count-matching-chars-in-stmt #\} function)))
+      (is (eq 1 (count-matching-chars-in-stmt #\; function))))))
 
-(deftest replace-unbraced-body-adds-semicolon ()
+(deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2")))
       (se::apply-mutation-ops *contexts*
@@ -5500,9 +5547,19 @@ Useful for printing or returning differences in the REPL."
                               `((:insert (:stmt1 . ,target)
                                          (:value1 . ,(get-ast *contexts*
                                                               target))))))
-    (setf c *contexts*)
     (let ((struct (ast-starting-with-text *contexts* "struct")))
         (is (eq 3
+                (count-matching-chars-in-stmt #\; struct))))))
+
+(deftest replace-field-keeps-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int f1;"))
+          (replacement (ast-with-text *contexts* "int f2;")))
+      (se::apply-mutation-ops *contexts*
+                              `((:set (:stmt1 . ,target)
+                                      (:value1 . ,replacement)))))
+    (let ((struct (ast-starting-with-text *contexts* "struct")))
+        (is (eq 2
                 (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest insert-toplevel-adds-semicolon ()

@@ -314,30 +314,35 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                      (or (nth (1+ head) children) ""))
                        (nthcdr (+ 2 head) children)))))))
 
-;; TODO: ideas for improvement here
-;; Add a (remove nil ...) in caller, so we can put nils in list to drop things.
-;; Always split trailing comma/semicolon into separate string for easy access.
-;;   - note: have to be careful wi/ finallistelt there
-;; In general, we are kind of reinventing semicolon handling...
-;;   following clang-mutate may be easier.
 (defun replace-fixup (context before ast after)
-  (let ((no-change (list before ast after))
-        (add-semicolon (list before ast ";" after))
-        (add-comma (list before ast "," after)))
+  (labels
+      ((no-change ()
+         (list before ast after))
+       (add-semicolon-if-unbraced ()
+         (if (ends-with #\} (tree-text ast))
+             (if (starts-with #\; after)
+                 (list before ast (subseq after 1))
+                 after)
+             (add-semicolon)))
+       (add-semicolon ()
+         (if (ends-with #\; (tree-text ast))
+             (no-change)
+             (list before ast ";" after))))
     (ecase context
-      (:generic no-change)
-      ;; XXX: wrong, here and in insert. If inserted is braced, don't
-      ;; need trailing semicolon. And there may or may not be one
-      ;; already, depending on the AST we're replacing.
-      (:fullstmt no-change)
-      (:listelt add-comma)
-      (:finallistelt add-comma)
-      (:braced no-change)
-      (:unbracedbody no-change)
-      (:field add-semicolon)
-      (:toplevel (if (ends-with #\} (tree-text ast))
-                     no-change
-                     add-semicolon)))))
+      (:generic (no-change))
+      (:fullstmt (add-semicolon-if-unbraced))
+      (:listelt (no-change))
+      (:finallistelt (no-change))
+      ;; Wrap with braces and also add semicolon -- this never hurts
+      ;; and is sometimes necessary (e.g. for loop bodies).
+      (:braced (let ((text (tree-text ast)))
+                 (if (and (starts-with #\{ text)
+                          (ends-with #\} text))
+                     (no-change)
+                     (list before "{" ast "; }" after))))
+      (:unbracedbody (no-change))
+      (:field (add-semicolon))
+      (:toplevel (add-semicolon-if-unbraced)))))
 
 (defun remove-fixup (context before after)
   (assert (stringp before))
@@ -351,30 +356,35 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
       (:listelt (list before (if (starts-with #\, after)
                                  (subseq after 1)
                                  after)))
-      ;; XXX: wrong, doesn't account for whitespace
-      (:finallistelt (list (if (ends-with #\, after)
-                               (subseq after 0 (1- (length after)))
-                               after)))
+      (:finallistelt (list after))
       (:braced no-change)
       (:unbracedbody no-change)
       (:field no-change)
       (:toplevel no-change))))
 
 (defun insert-fixup (context before ast after)
-  (let ((no-change (list before ast after))
-        (add-semicolon (list before ast ";" after))
-        (add-comma (list before ast "," after)))
+  (labels
+      ((no-change ()
+         (list before ast after))
+       (add-semicolon-if-unbraced ()
+         (if (ends-with #\} (tree-text ast))
+             (no-change)
+             (add-semicolon)))
+       (add-semicolon ()
+         (if (ends-with #\; (tree-text ast))
+             (no-change)
+             (list before ast ";" after)))
+       (add-comma ()
+         (list before ast "," after)))
     (ecase context
-      (:generic no-change)
-      (:fullstmt add-semicolon)
-      (:listelt add-comma)
-      (:finallistelt add-comma)
-      (:braced no-change)
-      (:unbracedbody no-change)
-      (:field add-semicolon)
-      (:toplevel (if (ends-with #\} (tree-text ast))
-                     no-change
-                     add-semicolon)))))
+      (:generic (no-change))
+      (:fullstmt (add-semicolon-if-unbraced))
+      (:listelt (add-comma))
+      (:finallistelt (add-comma))
+      (:braced (no-change))
+      (:unbracedbody (no-change))
+      (:field (add-semicolon))
+      (:toplevel (add-semicolon-if-unbraced)))))
 
 (defmethod insert-ast ((tree clang-ast) (path list) (ast clang-ast))
   (destructuring-bind (head . tail) path
