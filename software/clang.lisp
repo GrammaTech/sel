@@ -603,7 +603,7 @@ pick or false (nil) otherwise."
   ((targeter :initform #'pick-bad-good)))
 
 (defmethod build-op ((mutation clang-insert) software)
-  `((:insert-value . ,(targets mutation))))
+  `((:insert . ,(targets mutation))))
 
 (define-mutation clang-insert-full (clang-insert)
   ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter})))
@@ -1501,7 +1501,7 @@ already in scope, it will keep that name.")
            (value1 (aget :value1 properties))
            (literal1 (aget :literal1 properties)))
        (case op
-         ((:cut :set :insert-value)
+         ((:cut :set :insert)
           (cons op
                 (cons (cons :stmt1 stmt1)
                       (if (or stmt2 value1 literal1)
@@ -1536,7 +1536,7 @@ already in scope, it will keep that name.")
             (ecase op
               (:set (replace-ast ast-root stmt1 value1))
               (:cut (remove-ast ast-root stmt1))
-              (:insert-value (insert-ast ast-root stmt1 value1)))))
+              (:insert (insert-ast ast-root stmt1 value1)))))
 
     ;; Update genome without triggering the :before method that
     ;; clears asts, etc.
