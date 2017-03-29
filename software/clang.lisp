@@ -27,9 +27,6 @@
    (ast-root :initarg :ast-root :initform nil :accessor ast-root
              :copier copy-ast-tree
              :documentation "Root node of AST.")
-   (asts :initarg :asts :initform nil
-         :copier :direct :type (or (array (cons keyword *) *) null)
-         :documentation "Vector of all ASTs in the software.")
    (stmt-asts :initarg :stmt-asts :initform nil
               :accessor stmt-asts :copier :direct
               :type #+sbcl (list (cons keyword *) *) #+ccl list
@@ -217,38 +214,40 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         ;;         (ast-counter obj) (ast-class obj) (tree-text obj) (ast-children obj))
         )))
 
-(defun asts->tree (obj)
-  (labels
-      ((make-children (ast child-asts)
-         (let ((start (ast-begin-off ast)))
-           (if child-asts
-               ;; Interleave child asts and source text
-               (iter (for c in child-asts)
-                     (collect (subseq (genome obj) start (ast-begin-off c))
-                       into children)
-                     (collect c into children)
-                     (setf start (+ 1 (ast-end-off c)))
-                     (finally
-                      (return
-                        (append children
-                                (list (subseq (genome obj) start
-                                              (+ 1 (ast-end-off ast))))))))
-               ;; No children: create a single string child with source text
-               (list (ast-src-text ast)))))
-       (make-tree (ast)
-         (let ((new (copy-clang-ast ast)))
-           (setf (ast-children new)
-                 (make-children new
-                                (mapcar #'make-tree
-                                        (get-immediate-children obj ast))))
+(defun asts->tree (genome asts)
+  (let ((roots (remove-if-not [{eq 0} #'ast-parent-counter] asts))
+        (ast-vector (coerce asts 'vector)))
+   (labels
+       ((get-ast (id)
+          (aref ast-vector (1- id)))
+        (make-children (ast child-asts)
+          (let ((start (ast-begin-off ast)))
+            (if child-asts
+                ;; Interleave child asts and source text
+                (iter (for c in child-asts)
+                      (collect (subseq genome start (ast-begin-off c))
+                        into children)
+                      (collect c into children)
+                      (setf start (+ 1 (ast-end-off c)))
+                      (finally
+                       (return
+                         (append children
+                                 (list (subseq genome start
+                                               (+ 1 (ast-end-off ast))))))))
+                ;; No children: create a single string child with source text
+                (list (ast-src-text ast)))))
+        (make-tree (ast)
+          (let ((new (copy-clang-ast ast)))
+            (setf (ast-children new)
+                  (make-children new
+                                 (mapcar [#'make-tree #'get-ast]
+                                         (ast-children ast))))
 
-           new)))
-    (let ((roots (remove-if-not [{eq 0} #'ast-parent-counter]
-                                (asts obj))))
-      (make-tree (make-clang-ast :class "TopLevel"
-                                 :children (mapcar #'ast-counter roots)
-                                 :begin-off 0
-                                 :end-off (- (length (genome obj)) 1))))))
+            new)))
+     (make-tree (make-clang-ast :class "TopLevel"
+                                :children (mapcar #'ast-counter roots)
+                                :begin-off 0
+                                :end-off (- (length genome) 1))))))
 
 (defmethod tree-text ((tree string))
   tree)
@@ -273,23 +272,6 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (destructuring-bind (head . tail) path
     (get-ast (nth head (cdr tree))
              tail)))
-
-(defmethod all-ast-paths ((software clang))
-  "Return (ast . path) for all ASTs in software."
-  (labels ((helper (tree path)
-           (let* ((children (if (listp tree)
-                                (cdr tree)
-                                (ast-children tree)))
-                  (descendants (iter (for c in children)
-                                     (for i upfrom 0)
-                                     (unless (stringp c)
-                                       (appending (helper c (cons i path)))))))
-             (if (listp tree)
-                 descendants
-                 (cons (cons tree (reverse path))
-                       descendants)))))
-    ;; Omit the root AST
-    (cdr (helper (ast-root software) nil))))
 
 (defun fixup-mutation (operation context before ast after)
   "Adjust mutation result according to syntactic context.
@@ -1080,11 +1062,14 @@ for successful mutation (e.g. adding includes/types/macros)"))
   '(:asts :types :decls)
   "JSON database AuxDB entries required for clang software objects.")
 
+(defmethod genome ((obj clang))
+  (peel-bananas (tree-text (ast-root obj))))
+
 (defmethod (setf genome) :before (new (obj clang))
-  (with-slots (asts stmt-asts non-stmt-asts
+  (with-slots (ast-root stmt-asts non-stmt-asts
                functions prototypes includes types
                declarations macros globals fitness) obj
-    (setf asts nil
+    (setf ast-root nil
           stmt-asts nil
           non-stmt-asts nil
           functions nil
@@ -1118,7 +1103,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
-  (with-slots (asts types declarations) obj
+  (with-slots (asts ast-root types declarations genome) obj
     ;; Incorporate ASTs.
     (iter (for ast in (restart-case
                           (clang-mutate obj
@@ -1145,13 +1130,11 @@ for successful mutation (e.g. adding includes/types/macros)"))
                    (nconcf (gethash (ast-decl-name ast) decls nil) (list ast)))
                   (:otherwise (error "Unrecognized ast.~%~S" ast)))))
           (finally
-           (setf asts (coerce body 'vector)
-                 types m-types
-                 declarations decls))))
 
-  ;; FIXME: construct tree directly from vector
-  (with-slots (ast-root) obj
-    (setf ast-root (asts->tree obj)))
+           (setf ast-root (asts->tree genome body)
+                 types m-types
+                 declarations decls
+                 genome nil))))
 
   obj)
 
@@ -1347,12 +1330,11 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   obj)
 
 (defmethod update-asts-if-necessary ((obj clang))
-  (with-slots (asts) obj (unless asts (update-asts obj))))
+  (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
 (defmethod update-caches-if-necessary ((obj clang))
   (with-slots (stmt-asts) obj (unless stmt-asts (update-caches obj))))
 
-(defmethod          asts :before ((obj clang)) (update-asts-if-necessary obj))
 (defmethod      ast-root :before ((obj clang)) (update-asts-if-necessary obj))
 (defmethod  declarations :before ((obj clang)) (update-asts-if-necessary obj))
 
@@ -1366,12 +1348,25 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod       globals :before ((obj clang)) (update-caches-if-necessary obj))
 
 (defmethod asts ((obj clang))
-  (with-slots (asts) obj (coerce asts 'list)))
+  (all-ast-paths obj))
 
-(defmethod get-ast ((obj clang) (id integer))
-  (with-slots (asts) obj
-    (unless asts (update-asts obj))
-    (aref asts (1- id))))
+;; TODO: remove this method, just use asts everywhere
+(defmethod all-ast-paths ((software clang))
+  "Return (ast . path) for all ASTs in software."
+  (labels ((helper (tree path)
+           (let* ((children (if (listp tree)
+                                (cdr tree)
+                                (ast-children tree)))
+                  (descendants (iter (for c in children)
+                                     (for i upfrom 0)
+                                     (unless (stringp c)
+                                       (appending (helper c (cons i path)))))))
+             (if (listp tree)
+                 descendants
+                 (cons (cons tree (reverse path))
+                       descendants)))))
+    ;; Omit the root AST
+    (cdr (helper (ast-root software) nil))))
 
 (defmethod recontextualize ((clang clang) snippet pt)
   (let ((text (bind-free-vars clang snippet pt)))
@@ -1538,11 +1533,7 @@ already in scope, it will keep that name.")
             (ecase op
               (:set (replace-ast ast-root stmt1 value1))
               (:cut (remove-ast ast-root stmt1))
-              (:insert (insert-ast ast-root stmt1 value1)))))
-
-    ;; Update genome without triggering the :before method that
-    ;; clears asts, etc.
-    (setf genome (peel-bananas (tree-text ast-root)))))
+              (:insert (insert-ast ast-root stmt1 value1)))))))
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
@@ -1622,7 +1613,7 @@ already in scope, it will keep that name.")
   (assert (ext obj) (obj)
           "Software object ~a has no extension, required by clang-mutate."
           obj)
-  (with-temp-file-of (src-file (ext obj)) (genome obj)
+  (with-temp-file-of (src-file (ext obj)) (slot-value obj 'genome)
     (labels ((command-opt (command)
                (ecase command
                  (:cut "-cut")
