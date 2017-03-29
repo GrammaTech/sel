@@ -291,6 +291,60 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
     ;; Omit the root AST
     (cdr (helper (ast-root software) nil))))
 
+(defun fixup-mutation (operation context before ast after)
+  "Adjust mutation result according to syntactic context.
+
+Adds and removes semicolons, commas, and braces. "
+  (when ast
+    (setf (ast-syn-ctx ast) context))
+  (labels
+      ((no-change ()
+         (list before ast after))
+       (add-semicolon-if-unbraced ()
+         (if (or (null ast) (ends-with #\} (tree-text ast)))
+             (if (starts-with #\; after)
+                 (list before ast (subseq after 1))
+                 (no-change))
+             (add-semicolon)))
+       (add-semicolon ()
+         (if (or (ends-with #\; (tree-text ast))
+                 (starts-with #\; after))
+             (no-change)
+             (list before ast ";" after)))
+       (add-comma ()
+         (list before ast "," after)))
+    (remove nil
+            (ecase context
+              (:generic (no-change))
+              (:fullstmt (add-semicolon-if-unbraced))
+              (:listelt (ecase operation
+                          (:before (add-comma))
+                          (:instead (no-change))
+                          (:remove (list before
+                                         (if (starts-with #\, after)
+                                             (subseq after 1)
+                                             after)))))
+              (:finallistelt (ecase operation
+                               (:before (add-comma))
+                               (:instead (no-change))
+                               (:remove (list after))))
+              ;; Wrap with braces and also add semicolon -- this never hurts
+              ;; and is sometimes necessary (e.g. for loop bodies).
+              (:braced (ecase operation
+                         (:before (no-change))
+                         (:remove (no-change))
+                         (:instead (let ((text (tree-text ast)))
+                                     (if (and (starts-with #\{ text)
+                                              (ends-with #\} text))
+                                         (no-change)
+                                         (list before "{" ast "; }" after))))))
+              (:unbracedbody (no-change))
+              (:field (ecase operation
+                        (:before (add-semicolon))
+                        (:instead (add-semicolon))
+                        (:remove (no-change))))
+              (:toplevel (add-semicolon-if-unbraced))))))
+
 (defmethod replace-ast ((tree clang-ast) (path list) (replacement clang-ast))
   (destructuring-bind (head . tail) path
     (if tail
@@ -298,12 +352,13 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (with-slots (children) tree
           (setf children
                 (nconc (subseq children 0 (max 0 (1- head)))
-                       (replace-fixup (ast-syn-ctx (nth head children))
-                                      (if (positive-integer-p head)
-                                          (nth (1- head) children)
-                                          "")
-                                      replacement
-                                      (nth (1+ head) children))
+                       (fixup-mutation :instead
+                                       (ast-syn-ctx (nth head children))
+                                       (if (positive-integer-p head)
+                                           (nth (1- head) children)
+                                           "")
+                                       replacement
+                                       (nth (1+ head) children))
                        (nthcdr (+ 2 head) children)))))))
 
 (defmethod remove-ast ((tree clang-ast) (path list))
@@ -313,84 +368,14 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (with-slots (children) tree
           (setf children
                 (nconc (subseq children 0 (max 0 (1- head)))
-                       (remove-fixup (ast-syn-ctx (nth head children))
-                                     (if (positive-integer-p head)
-                                         (nth (1- head) children)
-                                         "")
-                                     (or (nth (1+ head) children) ""))
+                       (fixup-mutation :remove
+                                       (ast-syn-ctx (nth head children))
+                                       (if (positive-integer-p head)
+                                           (nth (1- head) children)
+                                           "")
+                                       nil
+                                       (or (nth (1+ head) children) ""))
                        (nthcdr (+ 2 head) children)))))))
-
-(defun replace-fixup (context before ast after)
-  (labels
-      ((no-change ()
-         (list before ast after))
-       (add-semicolon-if-unbraced ()
-         (if (ends-with #\} (tree-text ast))
-             (if (starts-with #\; after)
-                 (list before ast (subseq after 1))
-                 after)
-             (add-semicolon)))
-       (add-semicolon ()
-         (if (ends-with #\; (tree-text ast))
-             (no-change)
-             (list before ast ";" after))))
-    (ecase context
-      (:generic (no-change))
-      (:fullstmt (add-semicolon-if-unbraced))
-      (:listelt (no-change))
-      (:finallistelt (no-change))
-      ;; Wrap with braces and also add semicolon -- this never hurts
-      ;; and is sometimes necessary (e.g. for loop bodies).
-      (:braced (let ((text (tree-text ast)))
-                 (if (and (starts-with #\{ text)
-                          (ends-with #\} text))
-                     (no-change)
-                     (list before "{" ast "; }" after))))
-      (:unbracedbody (no-change))
-      (:field (add-semicolon))
-      (:toplevel (add-semicolon-if-unbraced)))))
-
-(defun remove-fixup (context before after)
-  (assert (stringp before))
-  (assert (stringp after))
-  (let ((no-change (list before after)))
-    (ecase context
-      (:generic no-change)
-      (:fullstmt (list before (if (starts-with #\; after)
-                                  (subseq after 1)
-                                  after)))
-      (:listelt (list before (if (starts-with #\, after)
-                                 (subseq after 1)
-                                 after)))
-      (:finallistelt (list after))
-      (:braced no-change)
-      (:unbracedbody no-change)
-      (:field no-change)
-      (:toplevel no-change))))
-
-(defun insert-fixup (context before ast after)
-  (labels
-      ((no-change ()
-         (list before ast after))
-       (add-semicolon-if-unbraced ()
-         (if (ends-with #\} (tree-text ast))
-             (no-change)
-             (add-semicolon)))
-       (add-semicolon ()
-         (if (ends-with #\; (tree-text ast))
-             (no-change)
-             (list before ast ";" after)))
-       (add-comma ()
-         (list before ast "," after)))
-    (ecase context
-      (:generic (no-change))
-      (:fullstmt (add-semicolon-if-unbraced))
-      (:listelt (add-comma))
-      (:finallistelt (add-comma))
-      (:braced (no-change))
-      (:unbracedbody (no-change))
-      (:field (add-semicolon))
-      (:toplevel (add-semicolon-if-unbraced)))))
 
 (defmethod insert-ast ((tree clang-ast) (path list) (ast clang-ast))
   (destructuring-bind (head . tail) path
@@ -399,12 +384,13 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (with-slots (children) tree
           (setf children
                 (nconc (subseq children 0 (max 0 (1- head)))
-                       (insert-fixup (ast-syn-ctx (nth head children))
-                                     (if (positive-integer-p head)
-                                         (nth (1- head) children)
-                                         "")
-                                     ast
-                                     (nth head children))
+                       (fixup-mutation :before
+                                       (ast-syn-ctx (nth head children))
+                                       (if (positive-integer-p head)
+                                           (nth (1- head) children)
+                                           "")
+                                       ast
+                                       (nth head children))
                        (nthcdr (1+ head) children)))))))
 
 (defmethod copy-ast-tree ((tree clang-ast))

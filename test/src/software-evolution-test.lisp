@@ -5412,15 +5412,26 @@ Useful for printing or returning differences in the REPL."
                #\;
                (find-function *contexts* "full_stmt"))))))
 
+(deftest replace-full-stmt-does-not-add-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int x = 0"))
+          (replacement (ast-with-text *contexts* "int x = 1")))
+      (se::apply-mutation-ops *contexts*
+                              `((:set (:stmt1 . ,target)
+                                      (:value1 . ,replacement)))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\;
+               (find-function *contexts* "full_stmt"))))))
+
 (deftest replace-full-stmt-with-braced-removes-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0"))
-          (inserted (se::function-body *contexts*
-                                       (find-function *contexts*
-                                                      "list"))))
+          (replacement (se::function-body *contexts*
+                                          (find-function *contexts*
+                                                         "list"))))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
-                                         (:value1 . ,(car inserted))))))
+                                      (:value1 . ,(car replacement))))))
     (is (eq 0 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "full_stmt"))))))
