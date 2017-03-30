@@ -2354,21 +2354,20 @@ two statements with the same class."
 
 ;;; Helper functions to avoid hard-coded statement numbers.
 (defun stmt-with-text (obj text)
-  (cdr (find-if [{string= text} #'peel-bananas #'se::tree-text #'car]
-                (se::all-ast-paths obj))))
+  (find-if [{string= text} #'peel-bananas #'se::tree-text]
+           (asts obj)))
 
 (defun ast-with-text (obj text)
-  (when-let ((id (stmt-with-text obj text)))
-    (get-ast obj id)))
+  (note 1 "warning: ast-with-text is obsolete")
+  (stmt-with-text obj text))
 
 (defun stmt-starting-with-text (obj text)
-  (cdr (find-if
-        (lambda (snippet)
-          (and snippet
-               (equal 0
-                      (search text
-                              (peel-bananas (se::tree-text (car snippet)))))))
-        (se::all-ast-paths obj))))
+  (find-if (lambda (snippet)
+             (and snippet
+                  (equal 0
+                         (search text
+                                 (peel-bananas (se::tree-text snippet))))))
+           (asts obj)))
 
 (defun ast-starting-with-text (obj text)
   (when-let ((id (stmt-starting-with-text obj text)))
@@ -5375,7 +5374,7 @@ Useful for printing or returning differences in the REPL."
     (count-if {eq char} (se::tree-text ast))))
 
 (defun find-function (obj name)
-  (find-if [{string= name} #'ast-name #'car]
+  (find-if [{string= name} #'ast-name]
            (functions obj)))
 
 (deftest cut-full-stmt-removes-semicolon ()
@@ -5393,8 +5392,7 @@ Useful for printing or returning differences in the REPL."
     (let ((target (stmt-with-text *contexts* "int x = 0")))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
-                                         (:value1 . ,(get-ast *contexts*
-                                                              target))))))
+                                         (:value1 . ,(se::ast-ref-ast target))))))
     (is (eq 2 (count-matching-chars-in-stmt
              #\;
              (find-function *contexts* "full_stmt"))))))
@@ -5407,7 +5405,7 @@ Useful for printing or returning differences in the REPL."
                                                       "list"))))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
-                                         (:value1 . ,(car inserted))))))
+                                         (:value1 . ,(se::ast-ref-ast inserted))))))
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "full_stmt"))))))
@@ -5415,10 +5413,10 @@ Useful for printing or returning differences in the REPL."
 (deftest replace-full-stmt-does-not-add-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0"))
-          (replacement (ast-with-text *contexts* "int x = 1")))
+          (replacement (stmt-with-text *contexts* "int x = 1")))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
-                                      (:value1 . ,replacement)))))
+                                      (:value1 . ,(se::ast-ref-ast replacement))))))
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "full_stmt"))))))
@@ -5431,7 +5429,7 @@ Useful for printing or returning differences in the REPL."
                                                          "list"))))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
-                                      (:value1 . ,(car replacement))))))
+                                      (:value1 . ,(se::ast-ref-ast replacement))))))
     (is (eq 0 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "full_stmt"))))))
@@ -5443,29 +5441,28 @@ Useful for printing or returning differences in the REPL."
                              `((:cut (:stmt1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a,  int c)"
-         (se::tree-text (car (find-function *contexts* "list")))))))
+         (se::tree-text (find-function *contexts* "list"))))))
 
 (deftest insert-list-elt-adds-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b")))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
-                                         (:value1 . ,(get-ast *contexts*
-                                                              target))))))
+                                         (:value1 . ,(se::ast-ref-ast target))))))
     (is (starts-with-subseq
          "void list(int a, int b,int b, int c)"
-         (se::tree-text (car (find-function *contexts* "list")))))))
+         (se::tree-text (find-function *contexts* "list"))))))
 
 (deftest replace-list-elt-keeps-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b"))
-          (replacement (ast-with-text *contexts* "int a")))
+          (replacement (stmt-with-text *contexts* "int a")))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
-                                      (:value1 . ,replacement)))))
+                                      (:value1 . ,(se::ast-ref-ast replacement))))))
     (is (starts-with-subseq
          "void list(int a, int a, int c)"
-         (se::tree-text (car (find-function *contexts* "list")))))))
+         (se::tree-text (find-function *contexts* "list"))))))
 
 (deftest cut-final-list-elt-removes-comma ()
   (with-fixture contexts
@@ -5474,29 +5471,28 @@ Useful for printing or returning differences in the REPL."
                               `((:cut (:stmt1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a, int b)"
-         (se::tree-text (car (find-function *contexts* "list")))))))
+         (se::tree-text (find-function *contexts* "list"))))))
 
 (deftest insert-final-list-elt-adds-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int c")))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
-                                         (:value1 . ,(get-ast *contexts*
-                                                              target))))))
+                                         (:value1 . ,(se::ast-ref-ast target))))))
     (is (starts-with-subseq
          "void list(int a, int b, int c,int c)"
-         (se::tree-text (car (find-function *contexts* "list")))))))
+         (se::tree-text (find-function *contexts* "list"))))))
 
 (deftest replace-final-list-elt-keeps-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int c"))
-          (replacement (ast-with-text *contexts* "int a")))
+          (replacement (stmt-with-text *contexts* "int a")))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
-                                      (:value1 . ,replacement)))))
+                                      (:value1 . ,(se::ast-ref-ast replacement))))))
     (is (starts-with-subseq
          "void list(int a, int b, int a)"
-         (se::tree-text (car (find-function *contexts* "list")))))))
+         (se::tree-text (find-function *contexts* "list"))))))
 
 (deftest replace-braced-adds-braces-and-semicolon ()
   (with-fixture contexts
@@ -5508,10 +5504,10 @@ Useful for printing or returning differences in the REPL."
                           (se::function-body *contexts*
                                              (find-function *contexts*
                                                             "braced_body")))))))
-          (replacement (ast-with-text *contexts* "int x = 0")))
+          (replacement (stmt-with-text *contexts* "int x = 0")))
       (se::apply-mutation-ops *contexts*
-                            `((:set (:stmt1 . ,(cdr target))
-                                    (:value1 . ,replacement)))))
+                              `((:set (:stmt1 . ,target)
+                                      (:value1 . ,(se::ast-ref-ast replacement))))))
     ;; NOTE: this adds braces but no semicolon, which isn't quite
     ;; right.
     (let ((function (find-function *contexts* "braced_body")))
@@ -5524,7 +5520,7 @@ Useful for printing or returning differences in the REPL."
     (let ((target (stmt-with-text *contexts* "x = 2")))
       (se::apply-mutation-ops *contexts*
                        `((:set (:stmt1 . ,target)
-                               (:value1 . ,(get-ast *contexts* target))))))
+                               (:value1 . ,(se::ast-ref-ast target))))))
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "unbraced_body"))))))
@@ -5532,12 +5528,12 @@ Useful for printing or returning differences in the REPL."
 (deftest replace-unbraced-body-with-braced ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2"))
-          (replacement (car (se::function-body *contexts*
-                                               (find-function *contexts*
-                                                              "full_stmt")))))
+          (replacement (se::function-body *contexts*
+                                          (find-function *contexts*
+                                                         "full_stmt"))))
       (se::apply-mutation-ops *contexts*
                       `((:set (:stmt1 . ,target)
-                              (:value1 . ,replacement)))))
+                              (:value1 . ,(se::ast-ref-ast replacement))))))
     (let ((function (find-function *contexts* "unbraced_body")))
       (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
       (is (eq 2 (count-matching-chars-in-stmt #\} function))))))
@@ -5547,7 +5543,7 @@ Useful for printing or returning differences in the REPL."
     (let ((target (stmt-with-text *contexts* "int f1;")))
       (se::apply-mutation-ops *contexts*
                               `((:cut (:stmt1 . ,target)))))
-    (let ((struct (ast-starting-with-text *contexts* "struct")))
+    (let ((struct (stmt-starting-with-text *contexts* "struct")))
         (is (eq 1
                 (count-matching-chars-in-stmt #\; struct))))))
 
@@ -5556,41 +5552,40 @@ Useful for printing or returning differences in the REPL."
     (let ((target (stmt-with-text *contexts* "int f1;")))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
-                                         (:value1 . ,(get-ast *contexts*
-                                                              target))))))
-    (let ((struct (ast-starting-with-text *contexts* "struct")))
+                                         (:value1 . ,(se::ast-ref-ast target))))))
+    (let ((struct (stmt-starting-with-text *contexts* "struct")))
         (is (eq 3
                 (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest replace-field-keeps-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int f1;"))
-          (replacement (ast-with-text *contexts* "int f2;")))
+          (replacement (stmt-with-text *contexts* "int f2;")))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
-                                      (:value1 . ,replacement)))))
-    (let ((struct (ast-starting-with-text *contexts* "struct")))
+                                      (:value1 . ,(se::ast-ref-ast replacement))))))
+    (let ((struct (stmt-starting-with-text *contexts* "struct")))
         (is (eq 2
                 (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest insert-toplevel-adds-semicolon ()
   (with-fixture contexts
     (let ((location (stmt-starting-with-text *contexts* "struct"))
-          (inserted (ast-with-text *contexts* "int x = 0"))
+          (inserted (stmt-with-text *contexts* "int x = 0"))
           (semicolons (count-if {eq #\;} (genome *contexts*))))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,location)
-                                         (:value1 . ,inserted))))
+                                         (:value1 . ,(se::ast-ref-ast inserted)))))
       (is (eq (1+ semicolons)
               (count-if {eq #\;} (genome *contexts*)))))))
 
 (deftest insert-toplevel-braced ()
   (with-fixture contexts
     (let ((location (stmt-starting-with-text *contexts* "struct"))
-          (inserted (ast-starting-with-text *contexts* "void list"))
+          (inserted (stmt-starting-with-text *contexts* "void list"))
           (semicolons (count-if {eq #\;} (genome *contexts*))))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,location)
-                                         (:value1 . ,inserted))))
+                                         (:value1 . ,(se::ast-ref-ast inserted)))))
       (is (eq semicolons
               (count-if {eq #\;} (genome *contexts*)))))))

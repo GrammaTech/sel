@@ -91,11 +91,15 @@ copy of the original current file.
 
 (defmethod no-applicable-method :around (method &rest args)
   "Forward method calls to current-file of projects."
-  (let ((project (car args)))
-    (if (and (typep project 'project)
-             (current-file project))
-        (apply method (current-file project) (cdr args))
-        (call-next-method))))
+  (let ((receiver (car args)))
+    (cond
+      ((and (typep receiver 'project)
+            (current-file receiver))
+       (apply method (current-file receiver) (cdr args)))
+      ;; FIXME: implement wrappers explicitly
+      ((ast-ref-p receiver)
+       (apply method (ast-ref-ast receiver) (cdr args)))
+      (t (call-next-method)))))
 
 (defmethod all-files ((obj project))
   (append (evolve-files obj) (other-files obj)))
