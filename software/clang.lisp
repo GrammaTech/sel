@@ -1042,9 +1042,7 @@ values.  Additionally perform any updates to the software object required
 for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod size ((obj clang))
-  (with-slots (asts) obj
-    (unless asts (update-asts obj))
-    (length asts)))
+  (length (all-ast-paths obj)))
 
 (defvar *clang-json-required-fields*
   '(:ast-class          :counter           :unbound-vals
@@ -1336,6 +1334,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (with-slots (stmt-asts) obj (unless stmt-asts (update-caches obj))))
 
 (defmethod      ast-root :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod          size :before ((obj clang)) (update-asts-if-necessary obj))
 (defmethod  declarations :before ((obj clang)) (update-asts-if-necessary obj))
 
 (defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
