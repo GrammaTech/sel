@@ -60,7 +60,16 @@ instrumentation.
 (defun pick-if-stmt (software)
   (let ((stmts (remove-if-not [{equal "IfStmt"} #'ast-class ]
                               (bad-stmts software))))
-    (and stmts (list (ast-counter (random-elt stmts))))))
+    (and stmts (random-elt stmts))))
+
+(defun or-connector (left right)
+  (make-operator :generic "||" (list left right) :guard-stmt t))
+
+(defun and-not-connector (left right)
+  (make-operator :generic "||"
+                 (list left
+                       (make-operator :generic "!" (list right)))
+                 :guard-stmt t))
 
 ;; refine-condition: add an additional boolean clause to an if condition
 (define-mutation refine-condition (clang-mutation)
@@ -72,12 +81,12 @@ instrumentation.
 (define-mutation tighten-condition (refine-condition)
   ((targeter :initform (lambda (software)
                          (pick-target-condition software)))
-   (connector :reader connector :initform "&& !")))
+   (connector :reader connector :initform #'and-not-connector)))
 
 (define-mutation loosen-condition (refine-condition)
   ((targeter :initform (lambda (software)
                          (pick-target-condition software)))
-   (connector :reader connector :initform "|| ")))
+   (connector :reader connector :initform #'or-connector)))
 
 (defgeneric valid-targets (mutation software)
   (:documentation "List of locations where this mutation can be applied."))
@@ -86,10 +95,20 @@ instrumentation.
   (remove-if #'ast-in-macro-expansion (guard-statements software)))
 
 (defun refined-condition (mutation target-ast)
-  (format nil "(~a) ~a~a"
-          (peel-bananas (ast-src-text target-ast))
-          (connector mutation)
-          (or (abst-cond mutation) "abst_cond()")))
+  (funcall (connector mutation)
+           (ast-ref-ast target-ast)
+           (or (abst-cond mutation)
+               (make-statement
+                "CallExpr" :generic
+                (list
+                 (make-statement
+                  "ImplicitCastExpr" :generic
+                  (list
+                   (make-statement "DeclRefExpr" :generic
+                                   '("(|abst_cond|)")
+                                   :unbound-funs '(("(|abst_cond|)"
+                                                    nil nil 0)))))
+                 "()")))))
 
 (defmethod build-op ((mutation refine-condition) software)
   (bind ((target (targets mutation))
@@ -144,19 +163,18 @@ instrumentation.
 
 (defmethod build-op ((mutation if-to-while-tighten-condition) software)
   (when (targets mutation)
-    (let* ((stmt (targets mutation))
-           (ast (get-ast software stmt))
-           (condition-ast (get-ast software (first (ast-children ast))))
-           (text (replace-one
-                  (peel-bananas
-                   (replace-one (ast-src-text ast)
-                                (ast-src-text condition-ast)
-                                (refined-condition mutation
-                                                   condition-ast)))
-                  "if" "while")))
-      `((:set (:stmt1 . ,stmt)
-              (:value1 . ((:src-text . ,text)
-                          (:includes . "\"abst_cond.h\""))))))))
+    (bind ((ast (targets mutation))
+           (children (get-immediate-children software ast))
+           (replacement (make-statement "WhileStmt" (ast-syn-ctx ast)
+                                        `("while ("
+                                          ,(refined-condition mutation
+                                                              (first children))
+                                          ")"
+                                          ,(second children))
+                                        :full-stmt t
+                                        :scopes (ast-scopes ast))))
+      `((:set (:stmt1 . ,ast)
+              (:literal1 . ,replacement))))))
 
 ;; insert-else-if
 ;; insert an else-if clause for an existing if, insert abstract conditional
@@ -164,6 +182,7 @@ instrumentation.
 (define-mutation insert-else-if (tighten-condition)
   ((targeter :initform #'pick-if-stmt)))
 
+;; FIXME: no longer needed
 (defun replace-one (string part replacement)
   "Returns a new string in which the first occurence of the part
 is replaced with replacement."
@@ -177,13 +196,17 @@ is replaced with replacement."
 
 (defmethod build-op ((mutation if-to-while) software)
   (when (targets mutation)
-    (let* ((stmt (first (targets mutation)))
-           (ast (get-ast software stmt)))
-      `((:set (:stmt1 . ,stmt)
-              (:value1 . ,(acons :src-text
-                                 (replace-one (ast-src-text ast)
-                                              "if" "while")
-                                 (ast->snippet ast))))))))
+    (bind ((ast (targets mutation))
+           (children (get-immediate-children software ast))
+           (replacement (make-statement "WhileStmt" (ast-syn-ctx ast)
+                                        `("while ("
+                                          ,(first children)
+                                          ")"
+                                          ,(second children))
+                                        :full-stmt t
+                                        :scopes (ast-scopes ast))))
+      `((:set (:stmt1 . ,ast)
+              (:literal1 . ,replacement))))))
 
 ;; Get second child (then branch), put new else-if text at the end of
 ;; the existing text (with abs_cond as conditional), it SHOULD parse
