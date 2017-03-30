@@ -222,7 +222,10 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
           (aref ast-vector (1- id)))
         (make-children (ast child-asts)
           (let ((start (ast-begin-off ast)))
-            (if child-asts
+            ;; Don't recurse into macro expansions. Their mapping to
+            ;; source text is sketchy and it's impossible to build a
+            ;; proper hierarchy.
+            (if (and child-asts (not (ast-in-macro-expansion ast)))
                 ;; Interleave child asts and source text
                 (iter (for c in child-asts)
                       (collect (subseq genome start (ast-begin-off c))
