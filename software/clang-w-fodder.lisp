@@ -91,8 +91,8 @@ mutations.")
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet"
-  (let* ((bad (ast-counter (pick-bad software)))
-         (bad-stmt  (if (full-stmt-p software bad) bad
+  (let* ((bad (pick-bad software))
+         (bad-stmt  (if (ast-full-stmt bad) bad
                         (enclosing-full-stmt software bad)))
          (value (cond (same-class
                         (pick-snippet software
@@ -107,8 +107,8 @@ mutations.")
 
 (defun pick-decl-fodder (software)
   (let ((function-entry-stmts (->> (functions software)
-                                   (mapcar [{get-ast software} #'ast-body])
-                                   (mapcar #'ast-children)
+                                   (mapcar {function-body software})
+                                   (mapcar {get-immediate-children software})
                                    (mapcar {first})
                                    (remove-if #'null))))
     (if (null function-entry-stmts)

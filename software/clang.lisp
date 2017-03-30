@@ -282,6 +282,46 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 (defmethod tree-text ((tree list))
   (apply #'concatenate 'string (mapcar #'tree-text (cdr tree))))
 
+(defun make-statement (class syn-ctx children
+                       &key expr-type full-stmt guard-stmt opcode scopes
+                         types unbound-funs unbound-vals)
+  "Create a statement AST.
+
+TYPES, UNBOUND-FUNS, and UNBOUND-VALS will be computed from children
+if not given."
+  (labels
+      ((union-child-vals (function)
+         (remove-duplicates
+          (apply #'append
+                 (mapcar function
+                         (remove-if-not #'clang-ast-p children)))
+          :test #'equal)))
+    (make-clang-ast :class class
+                    :children children
+                    :syn-ctx syn-ctx
+                    :expr-type expr-type
+                    :full-stmt full-stmt
+                    :guard-stmt guard-stmt
+                    :opcode opcode
+                    :scopes scopes
+                    :types (or types (union-child-vals #'ast-types))
+                    :unbound-funs (or unbound-funs
+                                      (union-child-vals #'ast-unbound-funs))
+                    :unbound-vals (or unbound-vals
+                                      (union-child-vals #'ast-unbound-vals)))))
+
+(defun make-operator (syn-ctx opcode child-asts &rest args)
+  "Create a unary or binary operator AST."
+  (destructuring-bind (class . children)
+      (ecase (length child-asts)
+        (1 (cons "UnaryOperator"
+                 (list opcode (car child-asts))))
+        (2 (cons "BinaryOperator"
+                 (list (first child-asts)
+                       (format nil " ~a " opcode)
+                       (second child-asts)))))
+    (apply #'make-statement class syn-ctx children :opcode opcode args)))
+
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
 
@@ -367,7 +407,7 @@ Adds and removes semicolons, commas, and braces. "
                                                 (nth (1- head) children)
                                                 "")
                                             replacement
-                                            (nth (1+ head) children))
+                                            (or (nth (1+ head) children) ""))
                             (nthcdr (+ 2 head) children))))))))
     (helper tree (ast-ref-path location))))
 
@@ -406,7 +446,7 @@ Adds and removes semicolons, commas, and braces. "
                                                 (nth (1- head) children)
                                                 "")
                                             replacement
-                                            (nth head children))
+                                            (or (nth head children) ""))
                             (nthcdr (1+ head) children))))))))
     (helper tree (ast-ref-path location))))
 
@@ -610,6 +650,7 @@ pick or false (nil) otherwise."
   (if first-pick
       (equalp (ast-class ast) (ast-class first-pick))
       t))
+
 
 ;;; Mutations
 (defclass clang-mutation (mutation) ())
@@ -751,7 +792,7 @@ operations.
                       (get-immediate-children software ast)
                       (coerce (list #\; #\Newline) 'string))))
     `((:set                             ; Promote guard mutation
-       ,(cons :stmt1 (ast-counter guarded))
+       ,(cons :stmt1 guarded)
        ,(cons :literal1
               (switch ((ast-class guarded) :test #'string=)
                 ("DoStmt"
@@ -1540,7 +1581,10 @@ already in scope, it will keep that name.")
                       (if (or stmt2 value1 literal1)
                           `((:value1 .
                              ,(or literal1
-                                  (recontextualize obj (ast-ref-ast stmt2)
+                                  (recontextualize obj
+                                                   (if stmt2
+                                                       (ast-ref-ast stmt2)
+                                                       value1)
                                                    stmt1))))))))
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
@@ -1828,19 +1872,15 @@ already in scope, it will keep that name.")
          (declare (ignorable ,@additional-args))
          nil))))
 
-(define-ast-number-or-nil-default-dispatch get-parent-ast)
-(defmethod get-parent-ast ((obj clang) (ast clang-ast))
+(defmethod get-parent-ast ((obj clang) (ast ast-ref))
   (let ((parent-counter (ast-parent-counter ast)))
     (and (not (zerop parent-counter)) (get-ast obj parent-counter))))
 
-(defmethod get-parent-asts ((clang clang) (ast clang-ast))
-  (when (and ast (ast-parent-counter ast))
-    (if (eql (ast-parent-counter ast) 0)
-        (list ast)
-        (append (list ast)
-                (get-parent-asts
-                 clang
-                 (get-ast clang (ast-parent-counter ast)))))))
+(defmethod get-parent-asts ((clang clang) (ast ast-ref))
+  (iter (for p on (reverse (ast-ref-path ast)))
+        (for path = (reverse p))
+        (collect (make-ast-ref :ast (get-ast clang path)
+                               :path path))))
 
 (defgeneric get-immediate-children (sosftware ast)
   (:documentation "Return the immediate children of AST in SOFTWARE."))
@@ -1982,12 +2022,9 @@ made full by wrapping with curly braces, return that."))
         depth
         (nesting-depth clang (enclosing-block clang index) (1+ depth)))))
 
-(defmethod enclosing-block ((clang clang) index &optional child-index)
-  (if (= index 0) (values  0 child-index)
-    (let* ((ast (get-ast clang index)))
-      (if (and (block-p clang ast) child-index)
-          (values index child-index)
-          (enclosing-block clang (ast-parent-counter ast) index)))))
+(defmethod enclosing-block ((clang clang) (ast ast-ref))
+  ;; First parent AST is self, skip over that.
+  (find-if {block-p clang} (cdr (get-parent-asts clang ast))))
 
 (defgeneric full-stmt-p (software statement)
   (:documentation "Check if STATEMENT is a full statement in SOFTWARE."))
@@ -2015,7 +2052,7 @@ made full by wrapping with curly braces, return that."))
 (defmethod block-p ((obj clang) (stmt number))
   (block-p obj (get-ast obj stmt)))
 
-(defmethod block-p ((obj clang) (stmt clang-ast))
+(defmethod block-p ((obj clang) (stmt ast-ref))
   (or (equal "CompoundStmt" (ast-class stmt))
       (and (member (ast-class stmt) +clang-wrapable-parents+
                    :test #'string=)
@@ -2028,16 +2065,8 @@ made full by wrapping with curly braces, return that."))
   (:documentation
    "Return the first full statement in SOFTWARE holding STMT."))
 
-(defmethod enclosing-full-stmt ((obj clang) (index number))
-  (unless (zerop index)
-    (let ((stmt (get-ast obj index)))
-      (if (full-stmt-p obj index)
-          index
-          (enclosing-full-stmt obj (ast-parent-counter stmt))))))
-
-(defmethod enclosing-full-stmt ((obj clang) (stmt clang-ast))
-  (when stmt
-    (enclosing-full-stmt obj (ast-counter stmt))))
+(defmethod enclosing-full-stmt ((obj clang) (stmt ast-ref))
+  (find-if #'ast-full-stmt (get-parent-asts obj stmt)))
 
 (defun get-entry-after (item list)
   (cond ((null list) nil)
@@ -2974,17 +3003,8 @@ within a function body, return null."))
 (defgeneric function-containing-ast (object ast)
   (:documentation "Return the ast for the function containing AST in OBJECT."))
 
-(defmethod function-containing-ast ((clang clang) (stmt clang-ast))
-  (function-containing-ast clang (ast-counter stmt)))
-
-(defmethod function-containing-ast ((clang clang) (stmt number))
-  (let ((body (ast-counter
-                  (car (last (remove-if-not
-                              [{equal "CompoundStmt"} #'ast-class]
-                              (get-parent-asts clang (get-ast clang stmt))))))))
-    ;; If statement is not within a function, return NIL.
-    (and body
-         (car (remove-if-not [{= body} #'ast-body] (functions clang))))))
+(defmethod function-containing-ast ((clang clang) (ast ast-ref))
+  (find-if #'ast-body (get-parent-asts clang ast)))
 
 (defmethod function-body-p ((clang clang) stmt)
   (find-if [{= stmt} #'ast-body] (functions clang)))

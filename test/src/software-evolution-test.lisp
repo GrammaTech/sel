@@ -350,9 +350,9 @@
 (defvar *bad-asts* nil "Control pick-bad")
 (define-software clang-control-picks (clang) ())
 (defmethod good-stmts ((obj clang-control-picks))
-  (or *good-asts* (remove-if {ast-is-decl} (asts obj))))
+  (or *good-asts* (stmt-asts obj)))
 (defmethod bad-stmts ((obj clang-control-picks))
-  (or *bad-asts* (remove-if {ast-is-decl} (asts obj))))
+  (or *bad-asts* (stmt-asts obj)))
 
 (defixture hello-world-clang-control-picks
   (:setup
@@ -956,10 +956,10 @@
 (deftest splits-global-and-stmt-asts ()
   (with-fixture huf-clang
     (is (find-if [{string= "\"this is an example for huffman encoding\""}
-                  #'ast-src-text]
+                  #'se::tree-text]
                  (non-stmt-asts *huf*))
         "Ensure known global is in `globals'.")
-    (is (find-if [{string= "int i"} #'ast-src-text]
+    (is (find-if [{string= "int i"} #'se::tree-text]
                  (stmt-asts *huf*))
         "Ensure known local variable is in `stmts'.")
     (is (null (find "ParmVar" (stmt-asts *huf*)
@@ -967,9 +967,7 @@
         "Ensure no ParmVar statement ASTs")
     (is (null (find "Function" (stmt-asts *huf*)
                     :key #'ast-class :test #'string=))
-        "Ensure no Function statement ASTs")
-    (is (apply #'< (mapcar #'ast-counter (stmt-asts *huf*)))
-        "Ensure statement ASTs ordered by increasing counter")))
+        "Ensure no Function statement ASTs")))
 
 ;; Check if the two AST lists differ. Do a smoke test with
 ;; the list lengths; if they match, use the src-text
@@ -978,7 +976,7 @@
 (defun different-asts (this that)
   (or (not (equal (length this) (length that)))
       (not (every (lambda (x y)
-                    (string= (ast-src-text x) (ast-src-text y)))
+                    (string= (se::tree-text x) (se::tree-text y)))
                   this that))))
 
 (deftest can-compile-clang-software-object ()
@@ -1010,7 +1008,9 @@
       (apply-mutation variant
         `(clang-replace
           (:stmt1 . ,stmt1)
-          (:value1 . ((:src-text . "/* FOO */")))))
+          (:value1 . ,(se::make-statement "IntegerLiteral"
+                                          :fullstmt
+                                          '("0")))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
 
@@ -1365,6 +1365,8 @@ two statements with the same class."
 ;;; apply-mutation, adjusting the good and bad picks to get
 ;;; predictable results. And they check the results of each mutation
 ;;; in as much detail as possible.
+(in-suite test)
+(defsuite* test-clang-mutations)
 
 (defixture gcd-clang-control-picks
   (:setup
@@ -1375,7 +1377,7 @@ two statements with the same class."
    (setf *gcd* nil)))
 
 (defun asts-with-text (obj &rest texts)
-  (mapcar [{get-ast obj} {stmt-with-text obj}] texts))
+  (mapcar {stmt-with-text obj} texts))
 
 (deftest cut-full-removes-full-stmt ()
   (with-fixture hello-world-clang
@@ -1408,7 +1410,7 @@ two statements with the same class."
           (*clang-mutation-types* '((clang-insert . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "printfprintf")))))
+      (is (stmt-starting-with-text variant "printfprintf")))))
 
 (deftest insert-same-adds-same-class ()
   (with-fixture hello-world-clang-control-picks
@@ -1416,7 +1418,7 @@ two statements with the same class."
           (*clang-mutation-types* '((clang-insert-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "00")))))
+      (is (stmt-with-text variant "return 00")))))
 
 (deftest insert-full-same-adds-same-class-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -1466,17 +1468,15 @@ two statements with the same class."
     (let ((*clang-mutation-types* '((clang-replace-full-same . 1)))
           (variant (copy *hello-world*)))
       (multiple-value-bind  (variant mutation) (mutate variant)
-        (is (ast-full-stmt
-                  (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-        (is (ast-full-stmt
-                  (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
+        (is (ast-full-stmt (aget :stmt1 (targets mutation))))
+        (is (ast-full-stmt (aget :stmt2 (targets mutation))))
 
         ;; Not a very interesting test: this can only replace a
         ;; statement with itself, but sometimes there are whitespace
         ;; changes. Just compare AST classes to avoid spurious
         ;; failures.
-        (is (equal (mapcar #'ast-class (asts variant))
-                   (mapcar #'ast-class (asts *hello-world*))))))))
+        (is (equal (mapcar [#'ast-class] (asts variant))
+                   (mapcar [#'ast-class] (asts *hello-world*))))))))
 
 (deftest swap-changes-any-stmts ()
   (with-fixture hello-world-clang-control-picks
@@ -1525,10 +1525,8 @@ two statements with the same class."
       (multiple-value-bind  (variant mutation) (mutate variant)
         ;; We can't predict exactly what will be swapped. Just
         ;; sanity check.
-        (is (ast-full-stmt
-                  (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-        (is (ast-full-stmt
-                  (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
+        (is (ast-full-stmt (aget :stmt1 (targets mutation))))
+        (is (ast-full-stmt (aget :stmt2 (targets mutation))))
         (is (stmt-with-text variant "printf"))
         (is (stmt-with-text variant "return 0"))))))
 
@@ -1537,10 +1535,8 @@ two statements with the same class."
     (let ((*clang-mutation-types* '((clang-swap-full-same . 1)))
           (variant (copy *hello-world*)))
       (multiple-value-bind  (variant mutation) (mutate variant)
-        (is (ast-full-stmt
-                  (get-ast *hello-world* (aget :stmt1 (targets mutation)))))
-        (is (ast-full-stmt
-                  (get-ast *hello-world* (aget :stmt2 (targets mutation)))))
+        (is (ast-full-stmt (aget :stmt1 (targets mutation))))
+        (is (ast-full-stmt (aget :stmt2 (targets mutation))))
 
         ;; Not a very interesting test: this can only swap a
         ;; statement with itself, but sometimes there are whitespace
@@ -1564,12 +1560,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('WHILE')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('WHILE')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* While loop. */"
            "puts('WHILE');")
           "Promotes single-line body from within while loop.")
@@ -1579,12 +1572,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('DO')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('DO')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* Do loop. */"
            "puts('DO');")
           "Promotes single-line body from within do loop.")
@@ -1594,12 +1584,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('FOR')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('FOR')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* For loop. */"
            "puts('FOR');")
           "Promotes single-line body from within for loop.")
@@ -1609,12 +1596,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('IF-1')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('IF-1')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* Single child. */"
            "puts('IF-1');")
           "Promotes single-line sole branch of if.")
@@ -1624,12 +1608,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('IF-2')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('IF-2')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* Empty then. */"
            "puts('IF-2');")
           "Promotes single-line else of if w/o then.")
@@ -1639,12 +1620,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('IF-3')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('IF-3')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* Empty else. */"
            "puts('IF-3');")
           "Promotes single-line then of if w/o else.")
@@ -1654,12 +1632,9 @@ two statements with the same class."
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                             "puts('IF-3')")
-                                             (get-ast *nested*)
-                                             (get-parent-asts *nested*)
-                                             (third)
-                                             (aget :counter))))))))
+                  :targets (->> (stmt-with-text *nested* "puts('IF-3')")
+                                (get-parent-asts *nested*)
+                                (third))))))
            "/* Empty else. */"
            "puts('IF-3');")
           "Promotes single-line then of if w/o else.")
@@ -1669,12 +1644,9 @@ two statements with the same class."
                 (apply-mutation copy
                   (make-instance 'clang-promote-guarded
                     :object copy
-                    :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
-                                                 "puts('MULTILINE')")
-                                               (get-ast *nested*)
-                                               (get-parent-asts *nested*)
-                                               (third)
-                                               (aget :counter))))))))))
+                    :targets (->> (stmt-with-text *nested* "puts('MULTILINE')")
+                                  (get-parent-asts *nested*)
+                                  (third))))))))
         (is (and (subsequent-lines-p genome-string
                                      "/* Multiline loop. */"
                                      "puts('MULTILINE');")
@@ -1688,19 +1660,15 @@ two statements with the same class."
 
 (deftest if-to-while-test ()
   (with-fixture gcd-clang-control-picks
-    (let* ((*clang-mutation-types* '((if-to-while . 1)))
-           (first-if (car (remove-if-not [{string= "IfStmt"}
-                                          #'ast-class]
-                                         (stmt-asts *gcd*))))
-           (*bad-asts* (list first-if))
-           (variant (copy *gcd*)))
-
-      (multiple-value-bind  (variant mutation) (mutate variant)
-        (let ((stmt (get-ast variant (ast-counter first-if))))
-          (is (string= "IfStmt"
-                       (ast-class (get-ast *gcd* (car (targets mutation))))))
-          (is (string= "WhileStmt"
-                       (ast-class stmt))))))))
+    (let ((*clang-mutation-types* '((if-to-while . 1)))
+          (*bad-asts* (list (find-if [{string= "IfStmt"} #'ast-class]
+                                     (stmt-asts *gcd*)))))
+      (multiple-value-bind  (variant mutation) (mutate (copy *gcd*))
+        (is (string= "IfStmt"
+                     (ast-class (targets mutation))))
+        (let ((stmt (stmt-starting-with-text variant "while")))
+          (is stmt)
+          (is (string= "WhileStmt" (ast-class stmt))))))))
 
 
 ;;; Clang w/ mutation fodder representation
