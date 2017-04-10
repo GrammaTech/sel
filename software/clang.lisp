@@ -222,17 +222,21 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a ~a ~s"
-                (ast-counter obj) (ast-class obj) (tree-text obj))
-        ;; XXX: This prints children semi-nicely. Not sure which I prefer.
-        ;; (format stream "~a ~a ~s :C ~:@_~s"
-        ;;         (ast-counter obj) (ast-class obj) (tree-text obj) (ast-children obj))
-        )))
+        (format stream "~a ~a"
+                (ast-counter obj) (ast-class obj)))))
 
 (defstruct (ast-ref)
   "A reference to an AST at a particular location within the tree."
   path
   ast)
+
+(defmethod print-object ((obj ast-ref) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream ":PATH ~s ~:_ :AST ~s ~:_ :TEXT ~s"
+                (ast-ref-path obj) (car (ast-ref-ast obj))
+                (source-text obj)))))
 
 (defun asts->tree (genome asts)
   (let ((roots (remove-if-not [{eq 0} #'ast-parent-counter] asts))
@@ -247,10 +251,11 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
             ;; proper hierarchy.
             (if (and child-asts (not (ast-in-macro-expansion ast)))
                 ;; Interleave child asts and source text
-                (iter (for c in child-asts)
+                (iter (for subtree in child-asts)
+                      (for c = (car subtree))
                       (collect (subseq genome start (ast-begin-off c))
                         into children)
-                      (collect c into children)
+                      (collect subtree into children)
                       (setf start (+ 1 (ast-end-off c)))
                       (finally
                        (return
@@ -258,15 +263,13 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                  (list (subseq genome start
                                                (+ 1 (ast-end-off ast))))))))
                 ;; No children: create a single string child with source text
-                (list (ast-src-text ast)))))
+                (when (not (emptyp (ast-src-text ast)))
+                  (list (ast-src-text ast))))))
         (unbound-vals (ast)
           (mapcar [#'peel-bananas #'car] (ast-unbound-vals ast)))
         (make-tree (ast)
           (let* ((new (copy-clang-ast ast)))
-            (with-slots (types unbound-funs unbound-vals children) new
-              (setf children (make-children new
-                                            (mapcar [#'make-tree #'get-ast]
-                                                    children)))
+            (with-slots (types unbound-funs unbound-vals) new
               ;; clang-mutate aggregates types, unbound-vals, and
               ;; unbound-funs from children into parents. Undo that so
               ;; it's easier to update these properties after mutation.
@@ -283,20 +286,25 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                            unbound-funs (remove-if {member _ child-funs
                                                            :test #'equal}
                                                    unbound-funs)))))
-            new)))
+            (cons new (make-children new
+                                     (mapcar [#'make-tree #'get-ast]
+                                             (ast-children ast)))))))
      (make-tree (make-clang-ast :class "TopLevel"
                                 :children (mapcar #'ast-counter roots)
                                 :begin-off 0
                                 :end-off (- (length genome) 1))))))
 
-(defmethod tree-text ((tree string))
-  tree)
+(defgeneric source-text (ast)
+  (:documentation "Source code corresponding to an AST."))
+(defmethod source-text ((ast ast-ref))
+  (source-text (ast-ref-ast ast)))
 
-(defmethod tree-text ((tree clang-ast))
-  (apply #'concatenate 'string (mapcar #'tree-text (ast-children tree))))
-
-(defmethod tree-text ((tree list))
-  (apply #'concatenate 'string (mapcar #'tree-text (cdr tree))))
+(defmethod source-text ((ast list))
+  (apply #'concatenate 'string
+         (iter (for c in (cdr ast))
+               (collecting (if (stringp c)
+                               c
+                               (source-text c))))))
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
@@ -312,18 +320,23 @@ if not given."
                  (mapcar function
                          (remove-if-not #'clang-ast-p children)))
           :test #'equal)))
-    (make-clang-ast :class class
-                    :children children
-                    :syn-ctx syn-ctx
-                    :expr-type expr-type
-                    :full-stmt full-stmt
-                    :guard-stmt guard-stmt
-                    :opcode opcode
-                    :types (or types (union-child-vals #'ast-types))
-                    :unbound-funs (or unbound-funs
-                                      (union-child-vals #'ast-unbound-funs))
-                    :unbound-vals (or unbound-vals
-                                      (union-child-vals #'ast-unbound-vals)))))
+    (let ((types (or types (union-child-vals #'ast-types)))
+          (unbound-funs (or unbound-funs
+                            (union-child-vals #'ast-unbound-funs)))
+          (unbound-vals (or unbound-vals
+                            (union-child-vals #'ast-unbound-vals))))
+      (make-ast-ref
+       :path nil
+       :ast (cons (make-clang-ast :class class
+                                  :syn-ctx syn-ctx
+                                  :expr-type expr-type
+                                  :full-stmt full-stmt
+                                  :guard-stmt guard-stmt
+                                  :opcode opcode
+                                  :types types
+                                  :unbound-funs unbound-funs
+                                  :unbound-vals unbound-vals)
+                  children)))))
 
 (defun make-operator (syn-ctx opcode child-asts &rest args)
   "Create a unary or binary operator AST."
@@ -340,35 +353,30 @@ if not given."
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
 
-(defmethod get-ast ((tree clang-ast) (path list))
+(defmethod get-ast ((tree list) (path list))
     (if path
         (destructuring-bind (head . tail) path
-          (get-ast (nth head (ast-children tree))
+          (get-ast (nth head (cdr tree))
                    tail))
         tree))
-
-(defmethod get-ast ((tree list) (path list))
-  (destructuring-bind (head . tail) path
-    (get-ast (nth head (cdr tree))
-             tail)))
 
 (defun fixup-mutation (operation context before ast after)
   "Adjust mutation result according to syntactic context.
 
 Adds and removes semicolons, commas, and braces. "
   (when ast
-    (setf (ast-syn-ctx ast) context))
+    (setf (ast-syn-ctx (car ast)) context))
   (labels
       ((no-change ()
          (list before ast after))
        (add-semicolon-if-unbraced ()
-         (if (or (null ast) (ends-with #\} (tree-text ast)))
+         (if (or (null ast) (ends-with #\} (source-text ast)))
              (if (starts-with #\; after)
                  (list before ast (subseq after 1))
                  (no-change))
              (add-semicolon)))
        (add-semicolon ()
-         (if (or (ends-with #\; (tree-text ast))
+         (if (or (ends-with #\; (source-text ast))
                  (starts-with #\; after))
              (no-change)
              (list before ast ";" after)))
@@ -394,7 +402,7 @@ Adds and removes semicolons, commas, and braces. "
               (:braced (ecase operation
                          (:before (no-change))
                          (:remove (no-change))
-                         (:instead (let ((text (tree-text ast)))
+                         (:instead (let ((text (source-text ast)))
                                      (if (and (starts-with #\{ text)
                                               (ends-with #\} text))
                                          (no-change)
@@ -406,81 +414,77 @@ Adds and removes semicolons, commas, and braces. "
                         (:remove (no-change))))
               (:toplevel (add-semicolon-if-unbraced))))))
 
-(defmethod replace-ast ((tree clang-ast) (location ast-ref)
-                        (replacement clang-ast))
+(defmethod replace-ast ((tree list) (location ast-ref)
+                        (replacement ast-ref))
   (labels
-    ((helper (root path)
-       (destructuring-bind (head . tail) path
+    ((helper (tree path)
+       (bind (((head . tail) path)
+              ((_ . children) tree))
          (if tail
-             (helper (nth head (ast-children root)) tail)
-             (with-slots (children) root
-               (setf children
-                     (nconc (subseq children 0 (max 0 (1- head)))
-                            (fixup-mutation :instead
-                                            (ast-syn-ctx (nth head children))
-                                            (if (positive-integer-p head)
-                                                (nth (1- head) children)
-                                                "")
-                                            replacement
-                                            (or (nth (1+ head) children) ""))
-                            (nthcdr (+ 2 head) children))))))))
+             (helper (nth head children) tail)
+             (setf (cdr tree)
+                   (nconc (subseq children 0 (max 0 (1- head)))
+                          (fixup-mutation :instead
+                                          (ast-syn-ctx (car (nth head
+                                                                 children)))
+                                          (if (positive-integer-p head)
+                                              (nth (1- head) children)
+                                              "")
+                                          (ast-ref-ast replacement)
+                                          (or (nth (1+ head) children) ""))
+                          (nthcdr (+ 2 head) children)))))))
     (helper tree (ast-ref-path location))))
 
-(defmethod remove-ast ((tree clang-ast) (location ast-ref))
+(defmethod remove-ast ((tree list) (location ast-ref))
   (labels
-    ((helper (root path)
-       (destructuring-bind (head . tail) path
-         (if tail
-             (helper (nth head (ast-children root)) tail)
-             (with-slots (children) root
-               (setf children
+      ((helper (tree path)
+         (bind (((head . tail) path)
+                ((_ . children) tree))
+           (if tail
+               (helper (nth head children) tail)
+               (setf (cdr tree)
                      (nconc (subseq children 0 (max 0 (1- head)))
                             (fixup-mutation :remove
-                                            (ast-syn-ctx (nth head children))
+                                            (ast-syn-ctx (car (nth head
+                                                                   children)))
                                             (if (positive-integer-p head)
                                                 (nth (1- head) children)
                                                 "")
                                             nil
                                             (or (nth (1+ head) children) ""))
-                            (nthcdr (+ 2 head) children))))))))
+                            (nthcdr (+ 2 head) children)))))))
     (helper tree (ast-ref-path location))))
 
-(defmethod insert-ast ((tree clang-ast) (location ast-ref)
-                       (replacement clang-ast))
+(defmethod insert-ast ((tree list) (location ast-ref)
+                       (replacement ast-ref))
   (labels
-    ((helper (root path)
-       (destructuring-bind (head . tail) path
+    ((helper (tree path)
+       (bind (((head . tail) path)
+              ((_ . children) tree))
          (if tail
-             (helper (nth head (ast-children root)) tail)
-             (with-slots (children) root
-               (setf children
-                     (nconc (subseq children 0 (max 0 (1- head)))
-                            (fixup-mutation :before
-                                            (ast-syn-ctx (nth head children))
-                                            (if (positive-integer-p head)
-                                                (nth (1- head) children)
-                                                "")
-                                            replacement
-                                            (or (nth head children) ""))
-                            (nthcdr (1+ head) children))))))))
+             (helper (nth head children) tail)
+             (setf (cdr tree)
+                   (nconc (subseq children 0 (max 0 (1- head)))
+                          (fixup-mutation :before
+                                          (ast-syn-ctx (car (nth head children)))
+                                          (if (positive-integer-p head)
+                                              (nth (1- head) children)
+                                              "")
+                                          (ast-ref-ast replacement)
+                                          (or (nth head children) ""))
+                          (nthcdr (1+ head) children)))))))
     (helper tree (ast-ref-path location))))
 
-(defmethod copy-ast-tree ((tree clang-ast))
-  (let ((tree (copy-clang-ast tree)))
-    (setf (ast-children tree)
-          (mapcar #'copy-ast-tree (ast-children tree)))
-    tree))
+(defmethod copy-ast-tree ((tree list))
+  (destructuring-bind (node . children) tree
+    (cons (copy-clang-ast node)
+          (mapcar #'copy-ast-tree children))))
 
 (defmethod copy-ast-tree ((tree string))
   ;; Source strings are immutable, no need to copy
   tree)
 
-(defmethod copy-ast-tree ((tree list))
-  (cons (car tree)
-        (mapcar #'copy-ast-tree (cdr tree))))
-
-;; Note: modifies tree in place
-(defmethod rebind-vars-in-tree ((tree clang-ast)
+(defmethod rebind-vars-in-tree ((tree list)
                                 var-replacements fun-replacements)
   ;; var-replacements looks like:
   ;; ( (("(|old-name|)" depth) ("(|new-name|)" depth)) ... )
@@ -489,24 +493,19 @@ Adds and removes semicolons, commas, and braces. "
   ;; fun-replacements are similar, but the pairs are function info
   ;; lists taken from ast-unbound-funs.
 
-  (setf (ast-children tree)
-        (mapcar {rebind-vars-in-tree _ var-replacements fun-replacements}
-                (ast-children tree)))
-  (setf (ast-unbound-vals tree)
-        (remove-duplicates
-         (mapcar (lambda (v)
-                   (or (second (find-if [{equal v} #'car] var-replacements))
-                       v))
-                 (ast-unbound-vals tree))
-         :test #'equal))
-  (setf (ast-src-text tree) (tree-text tree))
-  tree)
+  (destructuring-bind (node . children) tree
+    (let ((new (copy-clang-ast node)))
+      (setf (ast-unbound-vals new)
+            (remove-duplicates
+             (mapcar (lambda (v)
+                       (or (second (find-if [{equal v} #'car] var-replacements))
+                           v))
+                     (ast-unbound-vals new))
+             :test #'equal))
 
-(defmethod rebind-vars-in-tree ((tree list) var-replacements fun-replacements)
-  (setf (cdr tree) (mapcar {rebind-vars-in-tree _ var-replacements
-                                                fun-replacements}
-                           (cdr tree)))
-  tree)
+      (cons new
+            (mapcar {rebind-vars-in-tree _ var-replacements fun-replacements}
+                    children)))))
 
 (defmethod rebind-vars-in-tree ((tree string) var-replacements fun-replacements)
   (or (car (second (find-if [{string= tree} #'car #'car]
@@ -1155,7 +1154,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod genome ((obj clang))
-  (peel-bananas (tree-text (ast-root obj))))
+  (peel-bananas (source-text (ast-root obj))))
 
 (defmethod (setf genome) :before (new (obj clang))
   (with-slots (ast-root stmt-asts non-stmt-asts
@@ -1223,7 +1222,6 @@ for successful mutation (e.g. adding includes/types/macros)"))
                    (nconcf (gethash (ast-decl-name ast) decls nil) (list ast)))
                   (:otherwise (error "Unrecognized ast.~%~S" ast)))))
           (finally
-
            (setf ast-root (asts->tree genome body)
                  types m-types
                  declarations decls
@@ -1446,17 +1444,12 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod all-ast-refs ((software clang))
   "Return (ast . path) for all ASTs in software."
   (labels ((helper (tree path)
-           (let* ((children (if (listp tree)
-                                (cdr tree)
-                                (ast-children tree)))
-                  (descendants (iter (for c in children)
-                                     (for i upfrom 0)
-                                     (unless (stringp c)
-                                       (appending (helper c (cons i path)))))))
-             (if (listp tree)
-                 descendants
-                 (cons (make-ast-ref :ast tree :path (reverse path))
-                       descendants)))))
+             (when (listp tree)
+               (cons (make-ast-ref :ast tree :path (reverse path))
+                     (iter (for c in (cdr tree))
+                           (for i upfrom 0)
+                           (unless (stringp c)
+                             (appending (helper c (cons i path)))))))))
     ;; Omit the root AST
     (cdr (helper (ast-root software) nil))))
 
@@ -1466,7 +1459,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
         (format nil "~a~%" (add-semicolon-if-needed text))
         (format nil "~a" text))))
 
-(defmethod recontextualize ((clang clang) (ast clang-ast) pt)
+(defmethod recontextualize ((clang clang) (ast ast-ref) (pt ast-ref))
   (bind-free-vars clang ast pt))
 
 (defmethod get-parent-decls ((clang clang) ast)
@@ -1592,15 +1585,17 @@ already in scope, it will keep that name.")
        (case op
          ((:cut :set :insert)
           (cons op
-                (cons (cons :stmt1 stmt1)
-                      (if (or stmt2 value1 literal1)
-                          `((:value1 .
-                             ,(or literal1
-                                  (recontextualize obj
-                                                   (if stmt2
-                                                       (ast-ref-ast stmt2)
-                                                       value1)
-                                                   stmt1))))))))
+            (cons (cons :stmt1 stmt1)
+                  (if (or stmt2 value1 literal1)
+                      `((:value1 .
+                            ,(if literal1
+                                 (make-ast-ref :ast (ast-ref-ast literal1))
+                                 (recontextualize
+                                    obj
+                                    (or stmt2
+                                        (make-ast-ref :ast
+                                                      (ast-ref-ast value1)))
+                                    stmt1))))))))
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
 
@@ -1900,21 +1895,11 @@ already in scope, it will keep that name.")
 (defgeneric get-immediate-children (sosftware ast)
   (:documentation "Return the immediate children of AST in SOFTWARE."))
 
-(defmethod get-immediate-children ((clang clang) (ast clang-ast))
-  (if (member :children *clang-json-required-fields*)
-      (mapcar {get-ast clang} (ast-children ast))
-      (get-immediate-children clang (ast-counter ast))))
-
-(defmethod get-immediate-children ((clang clang) (ast integer))
-  (if (member :children *clang-json-required-fields*)
-      (mapcar {get-ast clang} (ast-children (get-ast clang ast)))
-      (remove-if-not [{= ast} #'ast-parent-counter] (asts clang))))
-
 (defmethod get-immediate-children ((clang clang) (ast ast-ref))
   (let ((path (ast-ref-path ast)))
-    (iter (for child in (ast-children ast))
+    (iter (for child in (cdr (ast-ref-ast ast)))
           (for i upfrom 0)
-          (when (clang-ast-p child)
+          (when (listp child)
             (collect (make-ast-ref :ast child :path (append path (list i))))))))
 
 (defgeneric function-body (software ast)
@@ -2426,7 +2411,7 @@ free variables.")
       (values (apply-replacements replacements (aget :src-text snippet))
               replacements))))
 
-(defmethod bind-free-vars ((clang clang) (ast clang-ast) pt)
+(defmethod bind-free-vars ((clang clang) (ast ast-ref) (pt ast-ref))
   (let* ((in-scope
           (iter (for scope in (scopes clang pt))
                 (for i upfrom 0)
@@ -2458,10 +2443,12 @@ free variables.")
                         :arity (fourth fun))
                        '("/* no functions? */" nil nil 0))))
            (get-unbound-funs clang ast))))
-    (values (rebind-vars-in-tree (copy-ast-tree ast)
-                                 var-replacements fun-replacements)
-            var-replacements
-            fun-replacements)))
+    (values
+     (make-ast-ref :path (ast-ref-path ast)
+                   :ast (rebind-vars-in-tree (ast-ref-ast ast)
+                                             var-replacements fun-replacements))
+     var-replacements
+     fun-replacements)))
 
 (defun rebind-uses-in-snippet (snippet renames-list)
   (add-semicolon-if-needed
