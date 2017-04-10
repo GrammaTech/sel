@@ -175,7 +175,6 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   opcode
   parent-counter
   ret
-  scopes
   src-text
   stmt-list
   stmt-range
@@ -260,13 +259,30 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                                (+ 1 (ast-end-off ast))))))))
                 ;; No children: create a single string child with source text
                 (list (ast-src-text ast)))))
+        (unbound-vals (ast)
+          (mapcar [#'peel-bananas #'car] (ast-unbound-vals ast)))
         (make-tree (ast)
-          (let ((new (copy-clang-ast ast)))
-            (setf (ast-children new)
-                  (make-children new
-                                 (mapcar [#'make-tree #'get-ast]
-                                         (ast-children ast))))
-
+          (let* ((new (copy-clang-ast ast)))
+            (with-slots (types unbound-funs unbound-vals children) new
+              (setf children (make-children new
+                                            (mapcar [#'make-tree #'get-ast]
+                                                    children)))
+              ;; clang-mutate aggregates types, unbound-vals, and
+              ;; unbound-funs from children into parents. Undo that so
+              ;; it's easier to update these properties after mutation.
+              (iter (for c in (mapcar #'get-ast (ast-children ast)))
+                    (when (clang-ast-p c)
+                      (appending (ast-types c) into child-types)
+                      (appending (unbound-vals c) into child-vals)
+                      (appending (ast-unbound-funs c) into child-funs))
+                    (finally
+                     (setf types (remove-if {member _ child-types} types)
+                           unbound-vals (remove-if {member _ child-vals
+                                                           :test #'string=}
+                                                   (unbound-vals new))
+                           unbound-funs (remove-if {member _ child-funs
+                                                           :test #'equal}
+                                                   unbound-funs)))))
             new)))
      (make-tree (make-clang-ast :class "TopLevel"
                                 :children (mapcar #'ast-counter roots)
@@ -283,7 +299,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (apply #'concatenate 'string (mapcar #'tree-text (cdr tree))))
 
 (defun make-statement (class syn-ctx children
-                       &key expr-type full-stmt guard-stmt opcode scopes
+                       &key expr-type full-stmt guard-stmt opcode
                          types unbound-funs unbound-vals)
   "Create a statement AST.
 
@@ -303,7 +319,6 @@ if not given."
                     :full-stmt full-stmt
                     :guard-stmt guard-stmt
                     :opcode opcode
-                    :scopes scopes
                     :types (or types (union-child-vals #'ast-types))
                     :unbound-funs (or unbound-funs
                                       (union-child-vals #'ast-unbound-funs))
@@ -1130,9 +1145,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
     :guard-stmt         :full-stmt         :begin-src-line
     :end-src-line       :begin-src-col     :end-src-col
     :begin-addr         :end-addr          :includes
-    :declares           :scopes            :is-decl
-    :in-macro-expansion :opcode            :children
-    :begin-off          :end-off           :syn-ctx)
+    :declares           :is-decl           :in-macro-expansion
+    :opcode             :children          :begin-off
+    :end-off            :syn-ctx)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -2217,6 +2232,107 @@ made full by wrapping with curly braces, return that."))
   (remove-if (lambda (x) (string= x ""))
              (split-sequence #\Newline text)))
 
+(defgeneric begins-scope (ast)
+  (:documentation "True if AST begins a new scope."))
+(defmethod begins-scope ((ast ast-ref))
+  (member (ast-class ast)
+          '("CompoundStmt" "Block" "Captured" "Function")
+          :test #'string=))
+
+(defgeneric enclosing-scope (software ast)
+  (:documentation "Returns enclosing scope of ast."))
+(defmethod enclosing-scope ((software clang) (ast ast-ref))
+  (or (find-if #'begins-scope
+               (cdr (get-parent-asts software ast)))
+      ;; Global scope
+      (make-ast-ref :path nil :ast (ast-root software))))
+
+
+(defgeneric scopes (software ast)
+  (:documentation "Return lists of variables in each enclosing scope."))
+
+(defmethod scopes ((software clang) (ast ast-ref))
+  (when-let ((scope (enclosing-scope software ast))
+             (full (enclosing-full-stmt software ast)))
+    (cons (->> (iter (for c in
+                          (get-immediate-children software scope))
+                     (while (not (equal (ast-ref-path c)
+                                        (ast-ref-path full))))
+                     (collect c))
+               (mapcar #'ast-declarations)
+               (apply #'append)
+               (remove nil)
+               (reverse))
+          (scopes software scope))))
+
+;; FIXME: better names?
+(defgeneric get-ast-types (software ast)
+  (:documentation "Types directly referenced within AST."))
+(defmethod get-ast-types ((software clang) (ast ast-ref))
+  (remove-duplicates (apply #'append (ast-types ast)
+                            (mapcar {get-ast-types software}
+                                    (get-immediate-children software ast)))))
+
+(defgeneric get-unbound-funs (software ast)
+  (:documentation "Functions used (but not defined) within the AST."))
+
+(defmethod get-unbound-funs ((software clang) (ast ast-ref))
+  (remove-duplicates (apply #'append (ast-unbound-funs ast)
+                            (mapcar {get-unbound-funs software}
+                                    (get-immediate-children software ast)))
+                     :test #'equal))
+
+(defmethod get-unbound-funs ((software clang) (ast clang-ast))
+  (declare (ignorable software))
+  (ast-unbound-funs ast))
+
+(defgeneric get-unbound-vals (software ast)
+  (:documentation "Functions used (but not defined) within the AST."))
+(defmethod get-unbound-vals ((software clang) (ast ast-ref))
+  (labels
+      ((in-scope (var scopes)
+         (some (lambda (s) (member var s :test #'string=))
+               scopes))
+       (walk-scope (ast unbound scopes)
+         ;; Enter new scope
+         (when (begins-scope ast)
+           (push nil scopes))
+
+         ;; Add definitions to scope
+         (setf (car scopes)
+               (append (ast-declarations ast) (car scopes)))
+
+         ;; Find unbound values
+         (iter (for name in (ast-unbound-vals ast))
+               (unless (in-scope name scopes)
+                 (push name unbound)))
+
+         ;; Walk children
+         (iter (for c in (get-immediate-children software ast))
+               (multiple-value-bind (new-unbound new-scopes)
+                   (walk-scope c unbound scopes)
+                 (setf unbound new-unbound
+                       scopes new-scopes)))
+
+         ;; Exit scope
+         (when (begins-scope ast)
+           (setf scopes (cdr scopes)))
+
+         (values unbound scopes)))
+    ;; Walk this tree, finding all values which are referenced, but
+    ;; not defined, within it
+    (-<>> (walk-scope ast nil (list nil))
+         (remove-duplicates <> :test #'string=)
+         (mapcar (lambda (name)
+                   (list (format nil "(|~a|)" name)
+                         (position-if (lambda (s)
+                                        (member name s :test #'string=))
+                                      (scopes software ast))))))))
+
+(defmethod get-unbound-vals ((software clang) (ast clang-ast))
+  (declare (ignorable software))
+  (ast-unbound-vals ast))
+
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 (define-ast-number-or-nil-default-dispatch get-vars-in-scope &optional keep-globals)
@@ -2312,7 +2428,7 @@ free variables.")
 
 (defmethod bind-free-vars ((clang clang) (ast clang-ast) pt)
   (let* ((in-scope
-          (iter (for scope in (ast-scopes pt))
+          (iter (for scope in (scopes clang pt))
                 (for i upfrom 0)
                 (appending (mapcar [{list _ i} {format nil "(|~a|)"}]
                                    scope))))
@@ -2331,7 +2447,7 @@ free variables.")
                        (random-elt-with-decay
                         in-scope *free-var-decay-rate*)
                        '("/* no bound vars in scope */" . 0))))
-           (ast-unbound-vals ast)))
+           (get-unbound-vals clang ast)))
          (fun-replacements
           (mapcar
            (lambda (fun)
@@ -2341,7 +2457,7 @@ free variables.")
                         :original-name (first fun)
                         :arity (fourth fun))
                        '("/* no functions? */" nil nil 0))))
-           (ast-unbound-funs ast))))
+           (get-unbound-funs clang ast))))
     (values (rebind-vars-in-tree (copy-ast-tree ast)
                                  var-replacements fun-replacements)
             var-replacements
@@ -2441,12 +2557,11 @@ variables to replace use of the variables declared in stmt ID."))
   ;;       improve the correctness of `declaration-of' and
   ;;       `type-of-var' down the line.
   (cond
-    ((member (ast-class ast) '("Var" "ParmVar")
-             :test #'string=) ; Global variable or function arg.
-     (list (caar (ast-scopes ast))))
-    ((string= (ast-class ast) "DeclStmt") ; Sub-function declaration.
+
+    ((member (ast-class ast) '("Var" "ParmVar" "DeclStmt")
+             :test #'string=)                   ; Variable or function arg
      (ast-declares ast))
-    ((function-decl-p ast)                      ; Sub-function declaration.
+    ((function-decl-p ast)                      ; Function declaration.
      (mapcar #'car (ast-args ast)))
     (:otherwise nil)))
 

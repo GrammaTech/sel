@@ -499,6 +499,15 @@
                                     :compiler "clang" :flags '("-g -m32 -O0"))
                  (scopes-dir "scopes.c"))))
   (:teardown
+   (setf *scopes* nil)))
+
+(defixture scopes2-clang
+  (:setup
+    (setf *scopes*
+          (from-file (make-instance 'clang-control-picks
+                                    :compiler "clang" :flags '("-g -m32 -O0"))
+                 (scopes-dir "scopes2.c"))))
+  (:teardown
     (setf *scopes* nil)))
 
 (defixture population
@@ -5557,3 +5566,159 @@ Useful for printing or returning differences in the REPL."
                                          (:value1 . ,(se::ast-ref-ast inserted)))))
       (is (eq semicolons
               (count-if {eq #\;} (genome *contexts*)))))))
+
+
+(in-suite test)
+(defsuite* clang-scopes-and-types)
+
+(deftest scopes-are-correct ()
+  (with-fixture scopes2-clang
+    (is (equal (se::scopes *scopes* (stmt-with-text *scopes* "int b"))
+               '(nil
+                 ("a")
+                 ("global"))))
+    (is (equal (se::scopes *scopes* (stmt-with-text *scopes* "int c"))
+               '(("b")
+                 ("a")
+                 ("global"))))
+    (is (equal (se::scopes *scopes* (stmt-with-text *scopes* "char d"))
+               '(nil
+                 ("c" "b")
+                 ("a")
+                 ("global"))))))
+
+(deftest types-are-correct ()
+  (with-fixture scopes2-clang
+    (is (equal (mapcar [#'type-name {find-type *scopes*}]
+                       (se::get-ast-types *scopes*
+                                          (stmt-with-text *scopes*
+                                                          "int global")))
+               '("int")))
+    (is (equal (mapcar [#'type-name {find-type *scopes*}]
+                       (se::get-ast-types *scopes*
+                                          (stmt-with-text *scopes*
+                                                          "char d")))
+               '("char")))
+    (is (equal (mapcar [#'type-name {find-type *scopes*}]
+                       (se::get-ast-types *scopes*
+                                          (stmt-starting-with-text *scopes*
+                                                                   "void foo")))
+               '("int" "char")))))
+
+(deftest unbound-vals-are-correct ()
+  (with-fixture scopes2-clang
+    (is (null (se::get-unbound-vals *scopes*
+                                    (stmt-with-text *scopes* "int global"))))
+    (is (equal (se::get-unbound-vals *scopes*
+                                 (stmt-starting-with-text *scopes* "c ="))
+               '(("(|global|)" 2)
+                 ("(|b|)" 0)
+                 ("(|a|)" 1)
+                 ("(|c|)" 0))))
+    (is (equal (se::get-unbound-vals *scopes*
+                                 (stmt-starting-with-text *scopes* "b ="))
+               '(("(|b|)" 0))))
+    (is (equal (se::get-unbound-vals *scopes*
+                                 (stmt-starting-with-text *scopes* "d ="))
+               '(("(|d|)" 0))))
+
+    (is (equal (se::get-unbound-vals *scopes*
+                                 (stmt-starting-with-text *scopes* "void foo"))
+               ;; Note: clang-mutate would have a 1 here, but I think
+               ;; 0 is correct.
+               '(("(|global|)" 0))))))
+
+(deftest unbound-funs-are-correct ()
+  (with-fixture scopes2-clang
+    (is (null (se::get-unbound-funs *scopes*
+                                (stmt-with-text *scopes* "int global"))))
+    (is (equal (se::get-unbound-funs *scopes*
+                                 (stmt-with-text *scopes* "foo(0)"))
+               '(("(|foo|)" t nil 1))))
+    (is (equal (se::get-unbound-funs *scopes*
+                                 (stmt-with-text *scopes* "bar()"))
+               '(("(|bar|)" t nil 0))))
+    (is (equal (se::get-unbound-funs *scopes*
+                                 (stmt-starting-with-text *scopes* "void bar"))
+               '(("(|foo|)" t nil 1)
+                 ("(|bar|)" t nil 0))))))
+
+(deftest move-statement-updates-scopes ()
+  (with-fixture scopes2-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+     (apply-mutation *scopes*
+               `(clang-swap (:stmt1 . ,(stmt-with-text *scopes* "int c"))
+                            (:stmt2 . ,(stmt-with-text *scopes* "b = 0")))))
+    (is (equal (se::scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+               '(("b")
+                 ("a")
+                 ("global"))))))
+
+(deftest cut-decl-updates-scopes ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int global"))))
+    (is (equal (se::scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+               '(("c" "b")
+                 ("a")
+                 nil)))))
+
+(deftest insert-decl-updates-types ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "foo(0)"))
+                               (:stmt2 . ,(stmt-with-text *scopes* "int b"))))
+    (is (equal (mapcar [#'type-name {find-type *scopes*}]
+                       (se::get-ast-types *scopes*
+                                          (stmt-starting-with-text *scopes*
+                                                                   "void bar")))
+               '("int")))))
+
+(deftest cut-statement-updates-unbound-funs ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                    `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "foo(0)"))))
+    (is (equal (se::get-unbound-funs *scopes*
+                                     (stmt-starting-with-text *scopes* "void bar"))
+               '(("(|bar|)" t nil 0))))))
+
+(deftest insert-statement-updates-unbound-funs ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                    `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "int b"))
+                                   (:stmt2 . ,(stmt-with-text *scopes*
+                                                              "bar()"))))
+    (is (equal (se::get-unbound-funs *scopes*
+                                     (stmt-starting-with-text *scopes* "void foo"))
+               '(("(|bar|)" t nil 0))))))
+
+(deftest cut-statement-updates-unbound-vals ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                    `(clang-cut (:stmt1 . ,(stmt-starting-with-text *scopes*
+                                                                    "c ="))))
+    (is (null (se::get-unbound-vals *scopes*
+                                    (stmt-starting-with-text *scopes*
+                                                             "void foo"))))))
+
+(deftest cut-decl-updates-unbound-vals ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                    `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int b"))))
+    (is (equal (se::get-unbound-vals *scopes*
+                                     (stmt-starting-with-text *scopes*
+                                                              "void foo"))
+               '(("(|global|)" 0)
+                 ("(|b|)" nil))))))
+
+(deftest insert-statement-updates-unbound-vals ()
+  (with-fixture scopes2-clang
+    (apply-mutation *scopes*
+                    `(clang-insert (:stmt1 . ,(stmt-with-text *scopes*
+                                                              "foo(0)"))
+                                   (:stmt2 . ,(stmt-with-text *scopes*
+                                                              "b = 0"))))
+    (is (equal (se::get-unbound-vals *scopes*
+                                     (stmt-starting-with-text *scopes*
+                                                              "void bar"))
+               '(("(|b|)" nil))))))

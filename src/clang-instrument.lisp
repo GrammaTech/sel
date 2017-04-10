@@ -231,23 +231,21 @@ output."))
 
 (defmethod print-program-input ((obj clang) log-variable)
   ;; Return a version of OBJ instrumented to print program input.
-  (or (flet ((deeper-string-search (i ls)
-               (member i ls :test #'string=)))
-        (when-let* ((entry (get-entry obj))
-                    (entry-ast (get-ast obj entry))
-                    (scope-vars (ast-scopes entry-ast)))
-          (when (and (member "argc" scope-vars :test #'deeper-string-search)
-                     (member "argv" scope-vars :test #'deeper-string-search))
-            (insert-at-entry obj
-                             (format nil
-                                     "fprintf(~a, \"((:INPUT \");
+  (or (when-let* ((entry (get-entry obj))
+                  (entry-ast (get-ast obj entry))
+                  (scope-vars (get-vars-in-scope obj entry-ast)))
+        (when (and (member "argc" scope-vars :test #'string=)
+                   (member "argv" scope-vars :test #'string=))
+          (insert-at-entry obj
+                           (format nil
+                                   "fprintf(~a, \"((:INPUT \");
 int __bi_mut_i_var;
 for(__bi_mut_i_var = 0; __bi_mut_i_var < argc; ++__bi_mut_i_var) {
   fprintf(~a, \"\\\"%s\\\" \", argv[__bi_mut_i_var]);
 }
 fputs(\"))\\n\", ~a);"
-                                     log-variable log-variable log-variable)))
-          obj))
+                                   log-variable log-variable log-variable)))
+        obj)
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
 ;; Should only be called if you're sure obj is an entry-obj
