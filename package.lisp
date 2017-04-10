@@ -477,7 +477,6 @@
    :ast-opcode
    :ast-parent-counter
    :ast-ret
-   :ast-scopes
    :ast-src-text
    :ast-stmt-list
    :ast-stmt-range

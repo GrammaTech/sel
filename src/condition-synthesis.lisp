@@ -171,8 +171,7 @@ instrumentation.
                                                               (first children))
                                           ")"
                                           ,(second children))
-                                        :full-stmt t
-                                        :scopes (ast-scopes ast))))
+                                        :full-stmt t)))
       `((:set (:stmt1 . ,ast)
               (:literal1 . ,replacement))))))
 
@@ -203,8 +202,7 @@ is replaced with replacement."
                                           ,(first children)
                                           ")"
                                           ,(second children))
-                                        :full-stmt t
-                                        :scopes (ast-scopes ast))))
+                                        :full-stmt t)))
       `((:set (:stmt1 . ,ast)
               (:literal1 . ,replacement))))))
 
@@ -373,7 +371,7 @@ abst_cond() in the source text."
                                (handler-case ; Sometimes fails for weird types.
                                    (cons v (type-of-var obj v))
                                  (error () nil)))
-                             (apply #'append (butlast (ast-scopes ast))))
+                             (get-vars-in-scope obj ast))
                      extra-exprs))))
       (iter (for (var . type) in exprs)
             (let* ((c-type (concatenate 'string
