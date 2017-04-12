@@ -719,6 +719,9 @@ is replaced with replacement."
 (defun peel-bananas (text)
   (apply-replacements '(("(|" . "") ("|)" . "")) text))
 
+(defun unpeel-bananas (text)
+  (concatenate 'string "(|" text "|)"))
+
 (defun aget (item list &key (test #'eql))
   "Get KEY from association list LIST."
   (cdr (assoc item list :test test)))

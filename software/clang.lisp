@@ -182,7 +182,6 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   parent-counter
   ret
   src-text
-  stmt-list
   stmt-range
   (syn-ctx :reader [#'make-keyword #'string-upcase])
   types
@@ -356,6 +355,29 @@ if not given."
                        (second child-asts)))))
     (apply #'make-statement class syn-ctx children :opcode opcode args)))
 
+(defun make-block (children)
+  (make-statement "CompoundStatement" :braced
+                  `(,(format nil "{~%") ,@children ,(format nil "~%}"))
+                  :full-stmt t))
+
+(defun make-while-stmt (syn-ctx condition body)
+  (make-statement "WhileStmt" syn-ctx
+                  `("while ("
+                    ,condition
+                    ") "
+                    ,body)
+                  :full-stmt t))
+
+(defun make-for-stmt (syn-ctx initialization condition update body)
+  (make-statement "ForStmt" syn-ctx
+                  (remove nil
+                          `("for ("
+                            ,initialization "; "
+                            ,condition "; "
+                            ,update ") "
+                            ,body))
+                  :full-stmt t))
+
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
 
@@ -413,7 +435,7 @@ Adds and removes semicolons, commas, and braces. "
                                               (ends-with #\} text))
                                          (no-change)
                                          (list before "{" ast "; }" after))))))
-              (:unbracedbody (no-change))
+              (:unbracedbody (add-semicolon-if-unbraced))
               (:field (ecase operation
                         (:before (add-semicolon))
                         (:instead (add-semicolon))
@@ -423,23 +445,59 @@ Adds and removes semicolons, commas, and braces. "
 (defmethod replace-ast ((tree list) (location ast-ref)
                         (replacement ast-ref))
   (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              ((_ . children) tree))
-         (if tail
-             (helper (nth head children) tail)
-             (setf (cdr tree)
-                   (nconc (subseq children 0 (max 0 (1- head)))
-                          (fixup-mutation :instead
-                                          (ast-syn-ctx (car (nth head
-                                                                 children)))
-                                          (if (positive-integer-p head)
-                                              (nth (1- head) children)
-                                              "")
-                                          (ast-ref-ast replacement)
-                                          (or (nth (1+ head) children) ""))
-                          (nthcdr (+ 2 head) children)))))))
-    (helper tree (ast-ref-path location))))
+    ((non-empty (str)
+       "Return STR only if it's not empty.
+
+asts->tree tends to leave dangling empty strings at the ends of child
+list, and we want to treat them as NIL in most cases.
+"
+       (when (not (emptyp str)) str))
+     (helper (tree path next)
+         (bind (((head . tail) path)
+                ((_ . children) tree))
+           (if tail
+               ;; The insertion may need to modify text farther up the
+               ;; tree. Pass down the next bit of non-empty text and
+               ;; get back a new string.
+               (let ((new-next (helper (nth head children) tail
+                                       (or (non-empty (nth (1+ head) children))
+                                           next))))
+                 (when new-next
+                   (if (non-empty (nth (1+ head) children))
+                       ;; The modified text belongs here. Insert it.
+                       (progn
+                         (setf (nth (1+ head) children) new-next)
+                         nil)
+                       ;; Keep passing it up the tree.
+                       new-next)))
+               (let* ((after (nth (1+ head) children))
+                      (fixed (fixup-mutation :instead
+                                             (ast-syn-ctx (car (nth head
+                                                                    children)))
+                                             (if (positive-integer-p head)
+                                                 (nth (1- head) children)
+                                                 "")
+                                             (ast-ref-ast replacement)
+                                             (or (non-empty after) next))))
+                 (if (non-empty after)
+                     ;; fixup-mutation can change the text after the
+                     ;; insertion (e.g. to remove a semicolon). If
+                     ;; that text is part of this AST, just include it
+                     ;; in the list.
+                     (progn (setf (cdr tree)
+                                  (nconc (subseq children 0 (max 0 (1- head)))
+                                         fixed
+                                         (nthcdr (+ 2 head) children)))
+                            nil)
+                     ;; If the text we need to modify came from
+                     ;; farther up the tree, return it instead of
+                     ;; inserting it here.
+                     (progn (setf (cdr tree)
+                                  (nconc (subseq children 0 (max 0 (1- head)))
+                                         (butlast fixed)
+                                         (nthcdr (+ 2 head) children)))
+                            (lastcar fixed))))))))
+    (helper tree (ast-ref-path location) nil)))
 
 (defmethod remove-ast ((tree list) (location ast-ref))
   (labels
@@ -490,16 +548,25 @@ Adds and removes semicolons, commas, and braces. "
   ;; Source strings are immutable, no need to copy
   tree)
 
-(defmethod rebind-vars-in-tree ((tree list)
-                                var-replacements fun-replacements)
+(defgeneric rebind-vars (ast var-replacements fun-replacements)
+  (:documentation
+   "Replace variable and function references, returning a new AST."))
+
+(defmethod rebind-vars ((ast ast-ref) var-replacements fun-replacements)
+  (make-ast-ref :path (ast-ref-path ast)
+                :ast (rebind-vars (ast-ref-ast ast)
+                                  var-replacements fun-replacements)))
+
+(defmethod rebind-vars ((ast list)
+                        var-replacements fun-replacements)
   ;; var-replacements looks like:
-  ;; ( (("(|old-name|)" depth) ("(|new-name|)" depth)) ... )
+  ;; ( (("(|old-name|)" "(|new-name|)") ... )
   ;; These name/depth pairs can come directly from ast-unbound-vals.
 
   ;; fun-replacements are similar, but the pairs are function info
   ;; lists taken from ast-unbound-funs.
 
-  (destructuring-bind (node . children) tree
+  (destructuring-bind (node . children) ast
     (let ((new (copy-clang-ast node)))
       (setf (ast-unbound-vals new)
             (remove-duplicates
@@ -510,13 +577,13 @@ Adds and removes semicolons, commas, and braces. "
              :test #'equal))
 
       (cons new
-            (mapcar {rebind-vars-in-tree _ var-replacements fun-replacements}
+            (mapcar {rebind-vars _ var-replacements fun-replacements}
                     children)))))
 
-(defmethod rebind-vars-in-tree ((tree string) var-replacements fun-replacements)
-  (or (car (second (find-if [{string= tree} #'car #'car]
-                            (append var-replacements fun-replacements))))
-      tree))
+(defmethod rebind-vars ((ast string) var-replacements fun-replacements)
+  (or (second (find-if [{string= ast} #'car] var-replacements))
+      (car (second (find-if [{string= ast} #'car #'car] fun-replacements)))
+      ast))
 
 
 ;;; Handling header information (formerly "Michondria")
@@ -530,12 +597,9 @@ Adds and removes semicolons, commas, and braces. "
     (unless (member (type-decl type) (types obj)
                     :key #'type-decl
                     :test #'string=)
-      (with-slots (genome) obj
-        (setf genome
-              (concatenate 'string
-                (type-decl type)
-                (format nil "~%")
-                (genome obj)))))
+      ;; FIXME: ideally this would insert an AST for the type decl
+      ;; instead of just adding the text.
+      (prepend-to-genome obj (type-decl type)))
     ;; always add type with new hash to types list
     (push type (types obj)))
   obj)
@@ -545,15 +609,22 @@ Adds and removes semicolons, commas, and braces. "
 (defmethod find-type ((obj clang) hash)
   (find-if {= hash} (types obj) :key #'type-hash))
 
+
+(defun prepend-to-genome (obj text)
+  "Prepend non-AST text to genome.
+
+New text will not be parsed. Only use this for macros, includes, etc which
+don't have corresponding ASTs."
+  (setf (ast-root obj)
+        (destructuring-bind (first . rest) (ast-root obj)
+          (list* first text rest))))
+
 (defgeneric add-macro (software name body)
   (:documentation "Add the macro if NAME is new to SOFTWARE."))
 (defmethod add-macro ((obj clang) (name string) (body string))
+
   (unless (member name (macros obj) :test #'string= :key #'car)
-    (with-slots (genome) obj
-      (setf genome
-            (concatenate 'string
-              (format nil "#define ~a~&" body)
-              (genome obj))))
+    (prepend-to-genome obj (format nil "#define ~a~&" body))
     (push (cons name body) (macros obj)))
   obj)
 
@@ -561,10 +632,7 @@ Adds and removes semicolons, commas, and braces. "
   (:documentation "Add an #include directive for a INCLUDE to SOFTWARE."))
 (defmethod add-include ((obj clang) (include string))
   (unless (member include (includes obj) :test #'string=)
-    (with-slots (genome) obj
-      (setf genome (concatenate 'string
-                     (format nil "#include ~a~&" include)
-                     (genome obj))))
+    (prepend-to-genome obj (format nil "#include ~a~&" include))
     (push include (includes obj)))
   obj)
 
@@ -646,7 +714,7 @@ pick or false (nil) otherwise."
                                                (funcall filter ast first-pick)
                                                t))
                                  :stmt-pool second-pool)
-                               (random-ast)))))))
+                               (random-elt)))))))
 
 (defmethod pick-bad-good ((software clang) &key filter)
   (pick-general software #'bad-stmts
@@ -807,50 +875,48 @@ operations.
 
 (defmethod build-op ((mutation clang-promote-guarded) software
                      &aux (guarded (targets mutation)))
-  (flet ((compose-children (ast)
-           (mapconcat [#'peel-bananas #'ast-src-text]
-                      (get-immediate-children software ast)
-                      (coerce (list #\; #\Newline) 'string))))
-    `((:set                             ; Promote guard mutation
-       ,(cons :stmt1 guarded)
-       ,(cons :literal1
-              (switch ((ast-class guarded) :test #'string=)
-                ("DoStmt"
-                 (compose-children
-                  (first (get-immediate-children software guarded))))
-                ("WhileStmt"
-                 (compose-children
-                  (second (get-immediate-children software guarded))))
-                ("ForStmt"
-                 (compose-children
-                  (fourth (get-immediate-children software guarded))))
-                ("IfStmt"
-                 (let ((children (get-immediate-children software guarded)))
-                   (if (= 2 (length children))
-                       ;; If with only one branch.
-                       (compose-children (second children))
-                       ;; If with both branches.
-                       (cond
-                         ((null         ; Then branch is empty.
-                           (get-immediate-children software (second children)))
-                          (compose-children (third children)))
-                         ((null         ; Else branch is empty.
-                           (get-immediate-children software (third children)))
-                          (compose-children (second children)))
-                         (t             ; Both branches are populated.
-                          (if (random-bool) ; Both or just one.
-                              (mapconcat #'ast-src-text ; Both.
-                                         (append
-                                          (get-immediate-children
-                                           software (second children))
-                                          (get-immediate-children
-                                           software (third children)))
-                                         ";\n")
-                              (if (random-bool) ; Pick a branch randomly.
-                                  (compose-children (second children))
-                                  (compose-children (third children)))))))))
-                (t (warn "`clang-promote-guarded' unimplemented for ~a"
-                         (ast-class guarded)))))))))
+  (let ((children
+         (switch ((ast-class guarded) :test #'string=)
+           ("DoStmt"
+            (get-immediate-children software
+                 (first (get-immediate-children software guarded))))
+           ("WhileStmt"
+            (get-immediate-children software
+                 (second (get-immediate-children software guarded))))
+           ("ForStmt"
+            (get-immediate-children software
+                 (fourth (get-immediate-children software guarded))))
+           ("IfStmt"
+            (let ((children (get-immediate-children software guarded)))
+              (if (= 2 (length children))
+                  ;; If with only one branch.
+                  (get-immediate-children software (second children))
+                  ;; If with both branches.
+                  (cond
+                    ((null         ; Then branch is empty.
+                      (get-immediate-children software (second children)))
+                     (get-immediate-children software (third children)))
+                    ((null         ; Else branch is empty.
+                      (get-immediate-children software (third children)))
+                     (get-immediate-children software (second children)))
+                    (t             ; Both branches are populated.
+                     (if (random-bool) ; Both or just one.
+                         (append (get-immediate-children software
+                                                         (second children))
+                                 (get-immediate-children software
+                                                         (third children)))
+                         (if (random-bool) ; Pick a branch randomly.
+                             (get-immediate-children software
+                                                     (second children))
+                             (get-immediate-children software
+                                                     (third children)))))))))
+           (t (warn "`clang-promote-guarded' unimplemented for ~a"
+                    (ast-class guarded))))))
+
+    (cons `(:set (:stmt1 . ,guarded) (:literal1 . ,(car (reverse children))))
+          (mapcar (lambda (ast)
+                      `(:insert (:stmt1 . ,guarded) (:literal1 . ,ast)))
+                    (cdr (reverse children))))))
 
 ;;; Explode and coalescing mutations over for and while loops.
 (define-mutation explode-for-loop (clang-mutation)
@@ -865,17 +931,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
   (pick-bad-only obj :filter [{string= "ForStmt"} #'ast-class]))
 
 (defmethod build-op ((mutation explode-for-loop) (obj clang))
-  (labels ((stmt-or-default (ast default)
-             (let ((trimmed (string-trim '(#\Space #\Tab #\Newline)
-                                         (if ast (ast-src-text ast) ""))))
-               (if (not (emptyp trimmed))
-                   (add-semicolon-if-needed trimmed)
-                   default)))
-           (trim-or-default (ast default)
-             (let ((trimmed (string-trim '(#\Space #\Tab #\Newline)
-                                         (if ast (ast-src-text ast) ""))))
-               (if (not (emptyp trimmed)) trimmed default)))
-           (is-initialization-ast (ast)
+  (labels ((is-initialization-ast (ast)
              (and (equal "BinaryOperator"
                          (ast-class ast))
                   (equal "=" (ast-opcode ast))))
@@ -885,7 +941,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
                  (and (equal "BinaryOperator"
                              (ast-class ast))
                       (not (equal "=" (ast-opcode ast))))))
-           (destructure-for-loop (id)
+           (destructure-for-loop (ast)
              ;; Return the initialization, conditional, increment, and body
              ;; ASTS of the for-loop AST identified by ID as VALUES.
              ;;
@@ -893,9 +949,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
              ;; probable ASTs for each part of a for loop.  These heuristics
              ;; undoubtedly will fail for some cases, and a non-compiling
              ;; individual will be created as a result.
-             (let ((children (mapcar {get-ast obj}
-                                     (->> (get-ast obj id)
-                                          (ast-children)))))
+             (let ((children (get-immediate-children obj ast)))
                (case (length children)
                  (4 (values-list children))
                  (3 (if (is-initialization-ast (first children))
@@ -928,19 +982,22 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
                                     (second children)))))
                  (1 (values nil nil nil (first children))) ; Always assume body
                  (otherwise (values nil nil nil nil))))))
-    (let ((id (aget :stmt1 (targets mutation))))
+    (let ((ast (aget :stmt1 (targets mutation))))
       (multiple-value-bind (initialization condition increment body)
-        (destructure-for-loop id)
-        (list (list :set (cons :stmt1 id)
-                         (cons :literal1
-                               (peel-bananas
-                                (format nil "~a~%while(~a)~%{~%~{~a;~%~}~a~%}~%"
-                                        (stmt-or-default initialization "")
-                                        (trim-or-default condition "1")
-                                        (&>> (ast-children body)
-                                             (mapcar [#'ast-src-text
-                                                      {get-ast obj}]))
-                                        (stmt-or-default increment ""))))))))))
+        (destructure-for-loop ast)
+        (let* ((condition (or condition
+                             (make-statement "IntegerLiteral" :generic '("1"))))
+               (body (make-block (if increment
+                                     (list body increment ";")
+                                     (list body)))))
+         `((:set (:stmt1 . ,ast)
+                 (:literal1 . ,(make-while-stmt (ast-syn-ctx ast)
+                                                condition
+                                                body)))
+           .
+           ,(when initialization
+                  `((:insert (:stmt1 . ,ast)
+                             (:literal1 . ,initialization))))))))))
 
 (define-mutation coalesce-while-loop (clang-mutation)
   ((targeter :initform #'pick-while-loop))
@@ -954,37 +1011,24 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   (pick-bad-only obj :filter [{string= "WhileStmt"} #'ast-class]))
 
 (defmethod build-op ((mutation coalesce-while-loop) (obj clang))
-  (let ((id (aget :stmt1 (targets mutation)))
-        (initialization ""))
+  (let ((ast (aget :stmt1 (targets mutation))))
     (destructuring-bind (condition body)
-        (mapcar {get-ast obj} (ast-children (get-ast obj id)))
-      `(;; Possibly consume the preceding full statement.
-        ,@(let ((precedent (&>> (enclosing-full-stmt obj (1- id))
-                                (get-ast obj))))
-            (when (and precedent
-                       (ast-full-stmt precedent)
-                       (not (string= "CompoundStmt"
-                                     (ast-class precedent))))
-              (setf initialization (ast-src-text precedent))
-              ;; Delete precedent
-              `((:cut (:stmt1 . ,(ast-counter precedent))))))
-          (:set (:stmt1 . ,id)
-                ,(let ((children (ast-children body)))
-                   (cons :literal1
-                     (peel-bananas
-                      (format nil "for(~a;~a;~a)~%{~%~{~a;~%~}}~%"
-                              initialization
-                              (ast-src-text condition)
-                              (if children
-                                  (ast-src-text (&>> children
-                                                     (lastcar)
-                                                     (get-ast obj)))
-                                  "")
-                              (when children
-                                (&>> children
-                                     (butlast)
-                                     (mapcar
-                                      [#'ast-src-text {get-ast obj}]))))))))))))
+        (get-immediate-children obj ast)
+      (let ((precedent (block-predeccessor obj ast)))
+        `((:set (:stmt1 . ,ast)
+                ,(let ((children (get-immediate-children obj body)))
+                      (cons :literal1
+                            (make-for-stmt (ast-syn-ctx ast)
+                                           precedent
+                                           condition
+                                           (&>> children (lastcar))
+                                           (&>> children
+                                                (butlast)
+                                                (make-block))))))
+          ;; Possibly consume the preceding full statement.
+          ,@(when precedent
+                  ;; Delete precedent
+                  `((:cut (:stmt1 . ,precedent)))))))))
 
 ;;; Cut Decl
 (define-mutation cut-decl (clang-mutation)
@@ -996,7 +1040,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 (defmethod build-op ((mutation cut-decl) clang)
   (let* ((decl (aget :stmt1 (targets mutation)))
          (the-block (enclosing-block clang decl))
-         (old-names (ast-declares (get-ast clang decl)))
+         (old-names (ast-declares decl))
          (uses (mappend (lambda (x) (get-children-using clang x the-block))
                         old-names))
          (vars (remove-if {find _ old-names :test #'equal}
@@ -1019,18 +1063,16 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
     ((is-decl (ast)
        (string= "DeclStmt" (ast-class ast)))
      (pick-another-decl-in-block (ast)
-       (&>> (enclosing-block clang (ast-counter ast))
-            (get-ast clang)
-            (aget :stmt-list)
-            (mapcar {get-ast clang})
+       (&>> (enclosing-block clang ast)
+            (get-immediate-children clang)
             (remove-if-not [{string= "DeclStmt"} #'ast-class])
             (remove-if {equalp ast})
-            (random-ast))))
+            (random-elt))))
     (if-let ((decl (&> (bad-mutation-targets clang
                          :filter «and #'is-decl #'pick-another-decl-in-block»)
                        (random-elt))))
-      `((:stmt1 . ,(ast-counter decl))
-        (:stmt2 . ,(pick-another-decl-in-block decl))))))
+            `((:stmt1 . ,decl)
+              (:stmt2 . ,(pick-another-decl-in-block decl))))))
 
 ;;; Rename variable
 (define-mutation rename-variable (clang-mutation)
@@ -1040,9 +1082,8 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 
 (defun pick-rename-variable (clang)
   "Pick a statement in CLANG with a variable and replace with another in scope."
-  (let* ((stmt (random-ast (bad-mutation-targets clang
-                             :filter [{get-used-variables clang}
-                                      {aget :counter}])))
+  (let* ((stmt (random-elt (bad-mutation-targets clang
+                             :filter {get-used-variables clang})))
          (used (get-used-variables clang stmt))
          (old-var (random-elt used))
          (new-var (random-elt
@@ -1058,9 +1099,10 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
         (new-var (aget :new-var (targets mutation))))
     `((:set
        (:stmt1 . ,stmt1)
-       (:literal1 . ,(rebind-uses software
-                                  stmt1
-                                  (list (cons old-var new-var))))))))
+       (:literal1 . ,(rebind-vars stmt1
+                                  (list (list (unpeel-bananas old-var)
+                                              (unpeel-bananas new-var)))
+                                  nil))))))
 
 ;;; Expand compound assignment or increment/decrement
 (define-mutation expand-arithmatic-op (clang-replace)
@@ -1076,38 +1118,36 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
            (decrement-op (ast) (and (->> (ast-class ast)
                                          (string= "UnaryOperator"))
                                     (->> (ast-opcode ast)
-                                         (equal "--"))))
-           (add-semicolon (ast text)
-             (if (full-stmt-p clang ast)
-                 (add-semicolon-if-needed text)
-                 text)))
+                                         (equal "--")))))
     (let ((ast (&> (bad-mutation-targets clang
                      :filter «or #'compound-assign-op
                                  #'increment-op
                                  #'decrement-op»)
                    (random-elt))))
-      `((:stmt1 . ,(ast-counter ast))
+      `((:stmt1 . ,ast)
         (:literal1 .
-          ,(let* ((children (get-immediate-children clang ast))
-                  (lhs (first children))
-                  (rhs (second children)))
-             (cond
+           ,(let* ((children (get-immediate-children clang ast))
+                   (lhs (first children))
+                   (rhs (second children))
+                   (one (make-statement "IntegerLiteral" :generic '("1"))))
+              (cond
                ((increment-op ast)
-                (->> (format nil "~a = ~a + 1"
-                             (peel-bananas (ast-src-text lhs))
-                             (peel-bananas (ast-src-text lhs)))
-                     (add-semicolon ast)))
+                (make-operator (ast-syn-ctx ast) "="
+                               (list lhs (make-operator (ast-syn-ctx lhs)
+                                                        "+"
+                                                        (list lhs one)))))
                ((decrement-op ast)
-                (->> (format nil "~a = ~a - 1"
-                             (peel-bananas (ast-src-text lhs))
-                             (peel-bananas (ast-src-text lhs)))
-                     (add-semicolon ast)))
-               (t (->> (format nil "~a = ~a ~a ~a"
-                               (peel-bananas (ast-src-text lhs))
-                               (peel-bananas (ast-src-text lhs))
-                               (string-trim "=" (ast-opcode ast))
-                               (peel-bananas (ast-src-text rhs)))
-                       (add-semicolon ast))))))))))
+                (make-operator (ast-syn-ctx ast) "="
+                               (list lhs (make-operator (ast-syn-ctx lhs)
+                                                        "-"
+                                                        (list lhs one)))))
+               (t (make-operator
+                   (ast-syn-ctx ast) "="
+                   (list lhs
+                         (make-operator (ast-syn-ctx rhs)
+                                        (string-trim "="
+                                                     (ast-opcode ast))
+                                        (list lhs rhs))))))))))))
 
 
 ;;; Clang methods
@@ -1145,14 +1185,14 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defvar *clang-json-required-fields*
   '(:ast-class          :counter           :unbound-vals
-    :unbound-funs       :types             :stmt-list
+    :unbound-funs       :types             :syn-ctx
     :src-text           :parent-counter    :macros
     :guard-stmt         :full-stmt         :begin-src-line
     :end-src-line       :begin-src-col     :end-src-col
     :begin-addr         :end-addr          :includes
     :declares           :is-decl           :in-macro-expansion
     :opcode             :children          :begin-off
-    :end-off            :syn-ctx)
+    :end-off)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -1518,9 +1558,6 @@ a 'no-mutation-targets exception if none are available.
             :report "Expand statement pool for filtering to all statement ASTs"
             (mutation-targets clang :filter filter))))))
 
-(defun random-ast (asts)
-  (ast-counter (random-elt asts)))
-
 (defmethod get-ast-class ((clang clang) (stmt clang-ast))
   (declare (ignorable clang))
   (ast-class stmt))
@@ -1600,6 +1637,7 @@ already in scope, it will keep that name.")
             (cons (cons :stmt1 stmt1)
                   (if (or stmt2 value1 literal1)
                       `((:value1 .
+                                 ;; XXX: don't need make-ast-ref here
                             ,(if literal1
                                  (make-ast-ref :ast (ast-ref-ast literal1))
                                  (recontextualize
@@ -1632,7 +1670,8 @@ already in scope, it will keep that name.")
             (ecase op
               (:set (replace-ast ast-root stmt1 value1))
               (:cut (remove-ast ast-root stmt1))
-              (:insert (insert-ast ast-root stmt1 value1)))))))
+              (:insert (insert-ast ast-root stmt1 value1))))))
+  software)
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
@@ -1891,8 +1930,9 @@ already in scope, it will keep that name.")
          nil))))
 
 (defmethod get-parent-ast ((obj clang) (ast ast-ref))
-  (let ((parent-counter (ast-parent-counter ast)))
-    (and (not (zerop parent-counter)) (get-ast obj parent-counter))))
+  (let ((path (butlast (ast-ref-path ast))))
+    (make-ast-ref :ast (get-ast obj path)
+                  :path path)))
 
 (defmethod get-parent-asts ((clang clang) (ast ast-ref))
   (iter (for p on (reverse (ast-ref-path ast)))
@@ -1924,8 +1964,7 @@ already in scope, it will keep that name.")
    "Return the first ancestor of AST in SOFTWARE which is a full stmt.
 Returns nil if no full-stmt parent is found."))
 
-(define-ast-number-or-nil-default-dispatch get-parent-full-stmt)
-(defmethod get-parent-full-stmt ((clang clang) (ast clang-ast))
+(defmethod get-parent-full-stmt ((clang clang) (ast ast-ref))
   (cond ((ast-full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
 
@@ -1953,9 +1992,8 @@ it will transform this into:
         }  // spurious -- now won't compile.
     }"))
 
-(define-ast-number-or-nil-default-dispatch wrap-ast)
-(defmethod wrap-ast ((obj clang) (ast clang-ast))
-  (let* ((old-text (peel-bananas (ast-src-text ast)))
+(defmethod wrap-ast ((obj clang) (ast ast-ref))
+  (let* ((old-text (peel-bananas (source-text ast)))
          (new-text (concatenate 'string
                      "{" old-text
                      ;; Check if a semicolon is needed.
@@ -1975,8 +2013,7 @@ it will transform this into:
 (defgeneric wrap-child (software ast index)
   (:documentation "Wrap INDEX child of AST in SOFTWARE in a compound stmt."))
 
-(define-ast-number-or-nil-default-dispatch wrap-child (index integer))
-(defmethod wrap-child ((obj clang) (ast clang-ast) (index integer))
+(defmethod wrap-child ((obj clang) (ast ast-ref) (index integer))
   (if (member (ast-class ast) +clang-wrapable-parents+
               :test #'string=)
       (wrap-ast obj (nth index (get-immediate-children obj ast)))
@@ -1987,8 +2024,7 @@ it will transform this into:
 (defgeneric can-be-made-traceable-p (software ast)
   (:documentation "Check if AST can be made a traceable statement in SOFTWARE."))
 
-(define-ast-number-or-nil-default-dispatch can-be-made-traceable-p)
-(defmethod can-be-made-traceable-p ((obj clang) (ast clang-ast))
+(defmethod can-be-made-traceable-p ((obj clang) (ast ast-ref))
   (or (traceable-stmt-p obj ast)
       (unless (or (ast-guard-stmt ast) ; Don't wrap guard statements.
                   (string= "CompoundStmt" ; Don't wrap CompoundStmts.
@@ -2004,8 +2040,7 @@ it will transform this into:
 If a statement is reached which is not itself full, but which could be
 made full by wrapping with curly braces, return that."))
 
-(define-ast-number-or-nil-default-dispatch enclosing-traceable-stmt)
-(defmethod enclosing-traceable-stmt ((obj clang) (ast clang-ast))
+(defmethod enclosing-traceable-stmt ((obj clang) (ast ast-ref))
   (cond
     ((traceable-stmt-p obj ast) ast)
     ;; Wrap AST in a CompoundStmt to make it traceable.
@@ -2017,11 +2052,11 @@ made full by wrapping with curly braces, return that."))
   (:documentation
    "Return TRUE if AST is a traceable statement in SOFTWARE."))
 
-(define-ast-number-or-nil-default-dispatch traceable-stmt-p)
-(defmethod traceable-stmt-p ((obj clang) (ast clang-ast))
+(defmethod traceable-stmt-p ((obj clang) (ast ast-ref))
   (and (ast-full-stmt ast)
-       (not (zerop (ast-parent-counter ast)))
        (not (function-decl-p ast))
+       (get-parent-ast obj ast)
+       (get-parent-ast obj ast)
        (equal "CompoundStmt" (ast-class (get-parent-ast obj ast)))))
 
 (defmethod nesting-depth ((clang clang) index &optional orig-depth)
@@ -2040,31 +2075,25 @@ made full by wrapping with curly braces, return that."))
 (defmethod full-stmt-p ((obj clang) (stmt number))
   (ast-full-stmt (get-ast obj stmt)))
 
-(defmethod full-stmt-p ((obj clang) (stmt clang-ast))
+(defmethod full-stmt-p ((obj clang) (stmt ast-ref))
   (declare (ignorable obj))
   (ast-full-stmt stmt))
 
 (defgeneric guard-stmt-p (software statement)
   (:documentation "Check if STATEMENT is a guard statement in SOFTWARE."))
 
-(defmethod guard-stmt-p ((obj clang) (stmt number))
-  (aget :guard-stmt (get-ast obj stmt)))
-
-(defmethod guard-stmt-p ((obj clang) (stmt clang-ast))
+(defmethod guard-stmt-p ((obj clang) (stmt ast-ref))
   (declare (ignorable obj))
   (ast-guard-stmt stmt))
 
 (defgeneric block-p (software statement)
   (:documentation "Check if STATEMENT is a block in SOFTWARE."))
 
-(defmethod block-p ((obj clang) (stmt number))
-  (block-p obj (get-ast obj stmt)))
-
 (defmethod block-p ((obj clang) (stmt ast-ref))
   (or (equal "CompoundStmt" (ast-class stmt))
       (and (member (ast-class stmt) +clang-wrapable-parents+
                    :test #'string=)
-           (not (null (->> (mapcar {get-ast obj} (ast-children stmt))
+           (not (null (->> (get-immediate-children obj stmt)
                            (remove-if «or {guard-stmt-p obj}
                                           [{string= "CompoundStmt"}
                                            #'ast-class]»)))))))
@@ -2078,34 +2107,30 @@ made full by wrapping with curly braces, return that."))
 
 (defun get-entry-after (item list)
   (cond ((null list) nil)
-        ((not (equal (car list) item)) (get-entry-after item (cdr list)))
+        ((not (equalp (car list) item)) (get-entry-after item (cdr list)))
         ((null (cdr list)) nil)
         (t (cadr list))))
 
 (defun get-entry-before (item list &optional saw)
   (cond ((null list) nil)
-        ((equal (car list) item) saw)
+        ((equalp (car list) item) saw)
         (t (get-entry-before item (cdr list) (car list)))))
 
-(defmethod block-successor ((clang clang) raw-index)
-  (let* ((index (enclosing-full-stmt clang raw-index))
-         (block-index (enclosing-block clang index))
-         (the-block (if (zerop block-index) nil
-                        (get-ast clang block-index)))
+(defmethod block-successor ((clang clang) ast)
+  (let* ((full-stmt (enclosing-full-stmt clang ast))
+         (the-block (enclosing-block clang full-stmt))
          (the-stmts (remove-if-not «or {block-p clang}
                                        {full-stmt-p clang}»
-                                   (ast-children the-block))))
-    (get-entry-after index the-stmts)))
+                                   (get-immediate-children clang the-block))))
+    (get-entry-after full-stmt the-stmts)))
 
-(defmethod block-predeccessor ((clang clang) raw-index)
-  (let* ((index (enclosing-full-stmt clang raw-index))
-         (block-index (enclosing-block clang index))
-         (the-block (if (zerop block-index) nil
-                        (get-ast clang block-index)))
+(defmethod block-predeccessor ((clang clang) ast)
+  (let* ((full-stmt (enclosing-full-stmt clang ast))
+         (the-block (enclosing-block clang full-stmt))
          (the-stmts (remove-if-not «or {block-p clang}
                                        {full-stmt-p clang}»
-                                   (ast-children the-block))))
-    (get-entry-before index the-stmts)))
+                                   (get-immediate-children clang the-block))))
+    (get-entry-before full-stmt the-stmts)))
 
 (defmethod get-ast-text ((clang clang) stmt)
   (ast-src-text (get-ast clang stmt)))
@@ -2143,7 +2168,7 @@ made full by wrapping with curly braces, return that."))
                                               (:src-text . "}")
                                               (:ast-class . "CompoundStmt")))))
                    acc))))
-    (if (zerop (enclosing-block clang index))
+    (if (not (enclosing-block clang index))
         ;; We've made it to the top-level scope; return the accumulator.
         (reverse (if (null acc)
                      blocks
@@ -2328,11 +2353,10 @@ made full by wrapping with curly braces, return that."))
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
-(define-ast-number-or-nil-default-dispatch get-vars-in-scope &optional keep-globals)
-(defmethod get-vars-in-scope ((obj clang) (ast clang-ast) &optional keep-globals)
+(defmethod get-vars-in-scope ((obj clang) (ast ast-ref) &optional keep-globals)
   (apply #'append (if keep-globals
-                      (butlast (ast-scopes ast))
-                      (ast-scopes ast))))
+                      (butlast (scopes obj ast))
+                      (scopes obj ast))))
 
 (defvar *allow-bindings-to-globals-bias* 1/5
   "Probability that we consider the global scope when binding
@@ -2420,26 +2444,24 @@ free variables.")
               replacements))))
 
 (defmethod bind-free-vars ((clang clang) (ast ast-ref) (pt ast-ref))
-  (let* ((in-scope
-          (iter (for scope in (scopes clang pt))
-                (for i upfrom 0)
-                (appending (mapcar [{list _ i} {format nil "(|~a|)"}]
-                                   scope))))
+  (let* ((in-scope (mapcar #'unpeel-bananas
+                           (get-vars-in-scope clang pt)))
          (var-replacements
           (mapcar
            (lambda (var)
-             (list var
-                   ;; If the variable's original name matches the
-                   ;; name of a variable in scope, keep the original
-                   ;; name with probability equal to
-                   ;; *matching-free-var-retains-name-bias*
-                   (or (when (and (< (random 1.0)
-                                     *matching-free-var-retains-name-bias*)
-                                  (find var in-scope :test #'equal))
-                         var)
-                       (random-elt-with-decay
-                        in-scope *free-var-decay-rate*)
-                       '("/* no bound vars in scope */" . 0))))
+             (let ((name (car var)))
+               (list name
+                     ;; If the variable's original name matches the
+                     ;; name of a variable in scope, keep the original
+                     ;; name with probability equal to
+                     ;; *matching-free-var-retains-name-bias*
+                     (or (when (and (< (random 1.0)
+                                       *matching-free-var-retains-name-bias*)
+                                    (find name in-scope :test #'string=))
+                           name)
+                         (random-elt-with-decay
+                          in-scope *free-var-decay-rate*)
+                         '("/* no bound vars in scope */" . 0)))))
            (get-unbound-vals clang ast)))
          (fun-replacements
           (mapcar
@@ -2452,33 +2474,9 @@ free variables.")
                        '("/* no functions? */" nil nil 0))))
            (get-unbound-funs clang ast))))
     (values
-     (make-ast-ref :path (ast-ref-path ast)
-                   :ast (rebind-vars-in-tree (ast-ref-ast ast)
-                                             var-replacements fun-replacements))
+     (rebind-vars ast var-replacements fun-replacements)
      var-replacements
      fun-replacements)))
-
-(defun rebind-uses-in-snippet (snippet renames-list)
-  (add-semicolon-if-needed
-   (apply-replacements
-    (mapcar (lambda (it)
-              (let ((peeled (peel-bananas it)))
-                (cons it (or (aget peeled renames-list :test #'string=)
-                             peeled))))
-            (mapcar #'car
-                    (append
-                     (ast-unbound-vals snippet)
-                     (ast-unbound-funs snippet))))
-    (ast-src-text snippet))))
-
-(define-ast-number-or-nil-default-dispatch rebind-uses (renames-list list))
-(defmethod rebind-uses ((obj clang) (ast clang-ast) (renames-list list))
-  (if (string= (ast-class ast) "CompoundStmt")
-      (iter (for id in (ast-stmt-list ast))
-            (concatenating
-             (rebind-uses-in-snippet (get-ast obj id) renames-list))
-            (concatenating (string #\Newline)))
-      (rebind-uses-in-snippet ast renames-list)))
 
 (defgeneric delete-decl-stmts (software block replacements)
   (:documentation
@@ -2486,48 +2484,40 @@ free variables.")
 REPLACEMENTS is a list holding lists of an ID to replace, and the new
 variables to replace use of the variables declared in stmt ID."))
 
-(define-ast-number-or-nil-default-dispatch
-    delete-decl-stmts (replacements list))
-(defmethod delete-decl-stmts ((obj clang) (block clang-ast) (replacements list))
+(defmethod delete-decl-stmts ((obj clang) (block ast-ref) (replacements list))
   (append
-   ;; Remove the declaration.
-   (mapcar [{list :cut} {cons :stmt1} #'car] replacements)
    ;; Rewrite those stmts in the BLOCK which use an old variable.
    (let* ((old->new      ; First collect a map of old-name -> new-name.
            (mappend (lambda-bind ((id . replacements))
-                      (mapcar #'cons
-                              (ast-declares (get-ast obj id))
-                              replacements))
+                      (mapcar #'list
+                              (mapcar #'unpeel-bananas (ast-declares id))
+                              (mapcar #'unpeel-bananas replacements)))
                     replacements))
           (old (mapcar #'car old->new)))
      ;; Collect statements using old
-     (-<>> (ast-stmt-list block)
-           (mapcar {get-ast obj})
+     (-<>> (get-immediate-children obj block)
            (remove-if-not (lambda (ast)      ; Only Statements using old.
                             (intersection
-                             (mapcar [#'peel-bananas #'car]
-                                     (append (ast-unbound-vals ast)
-                                             (ast-unbound-funs ast)))
+                             (mapcar #'car (get-unbound-vals obj ast))
                              old :test #'string=)))
-           (sort <> #'> :key #'ast-counter) ; Bottom up.
+           (sort <> #'ast-later-p) ; Bottom up.
            (mapcar (lambda (ast)
-                     (list :set (cons :stmt1 (ast-counter ast))
+                     (list :set (cons :stmt1 ast)
                            (cons :literal1
-                                 (peel-bananas
-                                  (apply-replacements
-                                   old->new (ast-src-text ast)))))))))))
+                                 (rebind-vars ast old->new nil)))))))
+      ;; Remove the declaration.
+   (mapcar [{list :cut} {cons :stmt1} #'car] replacements)))
 
 (defmethod get-declared-variables ((clang clang) the-block)
-  (mappend [#'ast-declares {get-ast clang}]
-           (ast-stmt-list (get-ast clang the-block))))
+  (mappend #'ast-declares (get-immediate-children clang the-block)))
 
 (defmethod get-used-variables ((clang clang) stmt)
-  (mapcar [#'peel-bananas #'car] (ast-unbound-vals (get-ast clang stmt))))
+  (mapcar [#'peel-bananas #'car] (get-unbound-vals clang stmt)))
 
 (defmethod get-children-using ((clang clang) var the-block)
   (remove-if-not [(lambda (el) (find var el :test #'equal))
                   {get-used-variables clang}]
-                 (ast-stmt-list (get-ast clang the-block))))
+                 (get-immediate-children clang the-block)))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
   (let ((the-block (enclosing-block clang stmt)))
@@ -2710,11 +2700,8 @@ depth)."))
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
 ;; On failure, just return STMT again.
 (defmethod ancestor-after ((clang clang) ancestor stmt)
-  (or (->> (get-ast clang stmt)
-           (get-parent-asts clang)
-           (mapcar #'ast-counter)
-           (remove-if {>= ancestor})
-           (lastcar))
+  (or (->> (get-parent-asts clang stmt)
+           (find-if [{equalp ancestor} {get-parent-ast clang}]))
       stmt))
 
 (defmethod stmt-text-minus ((clang clang) stmt child)
@@ -2895,21 +2882,19 @@ depth)."))
 
 (defmethod common-ancestor ((clang clang) x y)
   (let* ((x-ancestry (->> (enclosing-full-stmt clang x)
-                          (get-ast clang)
                           (get-parent-asts clang)))
          (y-ancestry (->> (enclosing-full-stmt clang y)
-                          (get-ast clang)
                           (get-parent-asts clang)))
          (last 0))
     (loop
-       :for xp :in (mapcar #'ast-counter (reverse x-ancestry))
-       :for yp :in (mapcar #'ast-counter (reverse y-ancestry))
-       :when (equal xp yp)
+       :for xp :in (reverse x-ancestry)
+       :for yp :in (reverse y-ancestry)
+       :when (equalp xp yp)
        :do (setf last xp))
     last))
 
 (defmethod ancestor-of ((clang clang) x y)
-  (= (common-ancestor clang x y) x))
+  (equalp (common-ancestor clang x y) x))
 
 (defmethod scopes-between ((clang clang) stmt ancestor)
   (length (remove-if
