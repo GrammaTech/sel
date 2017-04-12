@@ -1154,7 +1154,10 @@ for successful mutation (e.g. adding includes/types/macros)"))
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod genome ((obj clang))
-  (peel-bananas (source-text (ast-root obj))))
+  ;; If genome string is stored directly, use that. Otherwise,
+  ;; build the genome by walking the AST.
+  (or (slot-value obj 'genome)
+      (peel-bananas (source-text (ast-root obj)))))
 
 (defmethod (setf genome) :before (new (obj clang))
   (with-slots (ast-root stmt-asts non-stmt-asts
@@ -1700,7 +1703,7 @@ already in scope, it will keep that name.")
   (assert (ext obj) (obj)
           "Software object ~a has no extension, required by clang-mutate."
           obj)
-  (with-temp-file-of (src-file (ext obj)) (slot-value obj 'genome)
+  (with-temp-file-of (src-file (ext obj)) (genome obj)
     (labels ((command-opt (command)
                (ecase command
                  (:cut "-cut")
@@ -1862,12 +1865,8 @@ already in scope, it will keep that name.")
    "Check if POSSIBLE-PARENT-AST is a parent of AST in SOFTWARE."))
 
 (defmethod parent-ast-p ((clang clang) possible-parent-ast ast)
-  (cond ((= (ast-counter possible-parent-ast)
-            (ast-counter ast)) t)
-        ((= (ast-parent-counter ast) 0) nil)
-        (t (parent-ast-p clang
-                         possible-parent-ast
-                         (get-ast clang (ast-parent-counter ast))))))
+  (member possible-parent-ast (get-parent-asts clang ast)
+          :test #'equalp))
 
 (defmacro define-ast-number-or-nil-default-dispatch (symbol &rest additional)
   "Define default dispatch for clang ast methods when ast is an integer or nil."
