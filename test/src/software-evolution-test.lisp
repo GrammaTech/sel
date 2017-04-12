@@ -1761,18 +1761,14 @@ two statements with the same class."
 (deftest parent-ast-p-true-test()
   (with-fixture hello-world-clang
     (is (parent-ast-p *hello-world*
-          (get-ast *hello-world* (stmt-with-text *hello-world*
-                                                  "return 0"))
-          (get-ast *hello-world* (stmt-with-text *hello-world*
-                                                  "0"))))))
+                      (stmt-with-text *hello-world* "return 0")
+                      (stmt-with-text *hello-world* "0")))))
 
 (deftest parent-ast-p-false-test()
   (with-fixture hello-world-clang
     (is (not (parent-ast-p *hello-world*
-               (get-ast *hello-world* (stmt-with-text *hello-world*
-                                                       "0"))
-               (get-ast *hello-world* (stmt-with-text *hello-world*
-                                                       "return 0")))))))
+                           (stmt-with-text *hello-world* "0")
+                           (stmt-with-text *hello-world* "return 0"))))))
 
 (deftest tidy-a-clang-software-object()
   (with-fixture hello-world-clang
@@ -2497,14 +2493,8 @@ Useful for printing or returning differences in the REPL."
         (*matching-free-function-retains-name-bias* 1.0))
     (apply-mutation obj
                     `(clang-replace (:stmt1 . ,stmt) (:stmt2 . ,stmt)))
-    (is (eq stmt (stmt-with-text obj "test(0)")))))
-
-;; Check that the ASTLister traversal and the ASTMutate traversal see
-;; the same number of ASTs.
-(deftest ast-lister-finds-same-number-of-ids ()
-  (with-fixture huf-clang
-    (is (= (size *huf*)
-           (count '#\Newline (clang-mutate *huf* '(:list)))))))
+    (is (string= (se::source-text stmt)
+                 (se::source-text (stmt-with-text obj "test(0)"))))))
 
 ;; huf.c only contains one user function with 3 parameters,
 ;; check that random-function-name can find it.
@@ -2585,6 +2575,9 @@ Useful for printing or returning differences in the REPL."
                                    genome)))
       (is (compile-p (fix-compilation broken-clang 1)))
       (is (compile-p (fix-compilation broken-gcc 1))))))
+
+(in-suite test)
+(defsuite* clang-crossover)
 
 (defun select-intraprocedural-pair-with-adjustments-test (obj)
   (let ((function (first (functions obj))))
@@ -3022,171 +3015,122 @@ Useful for printing or returning differences in the REPL."
 
 (deftest enclosing-full-stmt-collatz-test ()
   (with-fixture collatz-clang
-    (is (equal (stmt-with-text *collatz* "m = 3*m + 1")
-               (enclosing-full-stmt *collatz*
-                                    (stmt-with-text *collatz* "3"))))
-    (is (equal (stmt-with-text *collatz* "m = 3*m + 1")
-               (enclosing-full-stmt *collatz*
-                                    (stmt-with-text *collatz*
-                                                    "m = 3*m + 1"))))
-    (is (equal (->> (stmt-asts *collatz*)
-                    (first)
-                    (ast-counter))
-               (enclosing-full-stmt *collatz*
-                                    (->> (stmt-asts *collatz*)
-                                         (first)
-                                         (ast-counter)))))))
+    (is (equalp (stmt-with-text *collatz* "m = 3*m + 1")
+                (enclosing-full-stmt *collatz*
+                                     (stmt-with-text *collatz* "3"))))
+    (is (equalp (stmt-with-text *collatz* "m = 3*m + 1")
+                (enclosing-full-stmt *collatz*
+                                     (stmt-with-text *collatz*
+                                                     "m = 3*m + 1"))))
+    (is (equalp (stmt-with-text *collatz* "int k = 0")
+                (enclosing-full-stmt *collatz*
+                                     (stmt-with-text *collatz* "int k = 0"))))))
 
 (deftest enclosing-full-stmt-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
-    (is (equal (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+    (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
                     (enclosing-full-stmt *soft*))))
-    (is (equal (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
+    (is (equalp (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
                                    (stmt-asts *soft*))
-                    (first)
-                    (ast-counter))
+                    (first))
                (enclosing-full-stmt *soft*
                                     (->> (remove-if-not [{string= "ForStmt"}
                                                          #'ast-class]
                                                         (stmt-asts *soft*))
                                          (first)))))
-    (is (equal (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
+    (is (equalp (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
                                    (stmt-asts *soft*))
-                    (second)
-                    (ast-counter))
+                    (second))
                (enclosing-full-stmt *soft*
                                     (->> (remove-if-not [{string= "ForStmt"}
                                                          #'ast-class]
                                                         (stmt-asts *soft*))
                                          (second)))))
-    (is (equal (->> (stmt-asts *soft*)
-                    (first)
-                    (ast-counter))
+    (is (equalp (stmt-with-text *soft* "int i")
                (enclosing-full-stmt *soft*
-                                    (->> (stmt-asts *soft*)
-                                         (first)
-                                         (ast-counter)))))))
+                                    (stmt-with-text *soft* "int i"))))))
 
 (deftest enclosing-full-stmt-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
-    (is (equal (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
-                    (enclosing-full-stmt *soft*))))
-    (is (equal (->> (remove-if-not [{string= "SwitchStmt"}{aget :ast-class}]
-                                   (stmt-asts *soft*))
-                    (first)
-                    (aget :counter))
-               (enclosing-full-stmt *soft*
-                                    (->> (remove-if-not [{string= "SwitchStmt"}
-                                                         {aget :ast-class}]
-                                                        (stmt-asts *soft*))
-                                         (first)
-                                         (aget :counter)))))
-    (is (equal (->> (remove-if-not [{string= "CaseStmt"}{aget :ast-class}]
-                                   (stmt-asts *soft*))
-                    (first)
-                    (aget :counter))
-               (enclosing-full-stmt *soft*
-                                    (->> (remove-if-not [{string= "CaseStmt"}
-                                                         {aget :ast-class}]
-                                                        (stmt-asts *soft*))
-                                         (first)
-                                         (aget :counter)))))
-    (is (equal (->> (remove-if-not [{string= "BreakStmt"}{aget :ast-class}]
-                                   (stmt-asts *soft*))
-                    (first)
-                    (aget :counter))
-               (enclosing-full-stmt *soft*
-                                    (->> (remove-if-not [{string= "BreakStmt"}
-                                                         {aget :ast-class}]
-                                                        (stmt-asts *soft*))
-                                         (first)
-                                         (aget :counter)))))))
+    (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                     (enclosing-full-stmt *soft*))))
+    (is (equalp (->> (remove-if-not [{string= "SwitchStmt"} #'ast-class]
+                                    (stmt-asts *soft*))
+                     (first))
+                (enclosing-full-stmt *soft*
+                                     (->> (remove-if-not [{string= "SwitchStmt"}
+                                                          #'ast-class]
+                                                         (stmt-asts *soft*))
+                                          (first)))))
+    (is (equalp (->> (remove-if-not [{string= "CaseStmt"} #'ast-class]
+                                    (stmt-asts *soft*))
+                     (first))
+                (enclosing-full-stmt *soft*
+                                     (->> (remove-if-not [{string= "CaseStmt"}
+                                                          #'ast-class]
+                                                         (stmt-asts *soft*))
+                                          (first)))))))
 
 (deftest enclosing-block-collatz-test ()
   (with-fixture collatz-clang
-    (is (equal (->> (stmt-asts *collatz*)
-                    (remove-if-not [{string= "CompoundStmt"}
-                                    #'ast-class])
-                    (first)
-                    (ast-counter))
-               (enclosing-block *collatz* (stmt-with-text *collatz*
-                                                          "int k = 0"))))
-    (is (equal (->> (stmt-asts *collatz*)
-                    (remove-if-not [{string= "CompoundStmt"}
-                                    #'ast-class])
-                    (second)
-                    (ast-counter))
-               (enclosing-block *collatz* (stmt-with-text *collatz* "++k"))))
-    (is (equal (->> (stmt-asts *collatz*)
-                    (remove-if-not [{string= "CompoundStmt"}
-                                    #'ast-class])
-                    (third)
-                    (ast-counter))
-               (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2"))))
-    (is (equal 0
-               (enclosing-block *collatz*
-                                (->> (stmt-asts *collatz*)
-                                     (remove-if-not [{string= "CompoundStmt"}
-                                                     #'ast-class])
-                                     (first)
-                                     (ast-counter)))))))
+    (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
+                     (se::function-body *collatz*))
+                (enclosing-block *collatz* (stmt-with-text *collatz*
+                                                           "int k = 0"))))
+    (is (equalp (->> (stmt-asts *collatz*)
+                     (find-if [{string= "WhileStmt"} #'ast-class])
+                     (get-immediate-children *collatz*)
+                     (second))
+                (enclosing-block *collatz* (stmt-with-text *collatz* "++k"))))
+    (is (equalp (->> (stmt-asts *collatz*)
+                     (find-if [{string= "IfStmt"} #'ast-class])
+                     (get-immediate-children *collatz*)
+                     (second))
+                (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2"))))
+    (is (null (enclosing-block *collatz*
+                               (->> (stmt-asts *collatz*)
+                                    (remove-if-not [{string= "CompoundStmt"}
+                                                    #'ast-class])
+                                    (lastcar)))))))
 
 (deftest enclosing-block-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
-    (is (equal (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
-                                   (stmt-asts *soft*))
-                    (second)
-                    (ast-counter))
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
-                    (enclosing-block *soft*))))
-    (is (equal (->> (remove-if-not [{string= "CompoundStmt"}#'ast-class]
-                                   (stmt-asts *soft*))
-                    (first)
-                    (ast-counter))
-               (enclosing-block *soft*
-                                (->> (remove-if-not [{string= "ForStmt"}
-                                                     #'ast-class]
-                                                    (stmt-asts *soft*))
-                                     (first)
-                                     (ast-counter)))))
-    (is (equal (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
-                                   (stmt-asts *soft*))
-                    (first)
-                    (ast-counter))
-               (enclosing-block *soft*
-                                (->> (remove-if-not [{string= "ForStmt"}
-                                                     #'ast-class]
-                                                    (stmt-asts *soft*))
-                                     (second)
-                                     (ast-counter)))))
-    (is (equal 0
-               (enclosing-block *soft*
-                                (->> (stmt-asts *soft*)
-                                     (first)
-                                     (ast-counter)))))))
+    (is (equalp (stmt-starting-with-text *soft* "for (j = 0")
+                (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                     (enclosing-block *soft*))))
+    (is (equalp (->> (stmt-starting-with-text *soft* "int main")
+                     (se::function-body *soft*))
+                (enclosing-block *soft*
+                                 (stmt-starting-with-text *soft*
+                                                          "for (i = 0"))))
+    (is (equalp (stmt-starting-with-text *soft* "for (i = 0")
+                (enclosing-block *soft*
+                                 (stmt-starting-with-text *soft* "for (j = 0"))))
+    (is (null (enclosing-block *soft*
+                               (->> (stmt-starting-with-text *soft* "int main")
+                                    (se::function-body *soft*)))))))
 
 (deftest enclosing-block-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
-    (is (equal (aget :counter (first (stmt-asts *soft*)))
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
-                    (enclosing-block *soft*))))
-    (is (equal (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CompoundStmt"}{aget :ast-class}])
-                    (second)
-                    (aget :counter))
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
-                    (enclosing-block *soft*))))
-    (is (equal (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CompoundStmt"}{aget :ast-class}])
-                    (second)
-                    (aget :counter))
-               (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
-                    (first)
-                    (aget :counter)
-                    (enclosing-block *soft*))))))
+    (is (equalp (->> (stmt-starting-with-text *soft* "int main")
+                     (se::function-body *soft*))
+                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                     (enclosing-block *soft*))))
+    (is (equalp (->> (stmt-asts *soft*)
+                     (remove-if-not [{string= "CaseStmt"} #'ast-class])
+                     (second))
+                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                     (enclosing-block *soft*))))
+    (is (equalp (->> (stmt-asts *soft*)
+                     (find-if [{string= "SwitchStmt"} #'ast-class])
+                     (get-immediate-children *soft*)
+                     (second))
+                (->> (stmt-asts *soft*)
+                     (remove-if-not [{string= "CaseStmt"} #'ast-class])
+                     (first)
+                     (enclosing-block *soft*))))))
 
 (deftest block-p-collatz-test ()
   (with-fixture collatz-clang
@@ -3259,11 +3203,11 @@ Useful for printing or returning differences in the REPL."
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                     (block-successor *soft*))))
     (is (equal (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "DefaultStmt"}{aget :ast-class}])
+                    (remove-if-not [{string= "DefaultStmt"} #'ast-class])
                     (first)
                     (aget :counter))
                (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (remove-if-not [{string= "CaseStmt"} #'ast-class])
                     (second)
                     (aget :counter)
                     (block-successor *soft*))))))
@@ -3319,11 +3263,11 @@ Useful for printing or returning differences in the REPL."
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                     (block-predeccessor *soft*))))
     (is (equal (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (remove-if-not [{string= "CaseStmt"} #'ast-class])
                     (first)
                     (aget :counter))
                (->> (stmt-asts *soft*)
-                    (remove-if-not [{string= "CaseStmt"}{aget :ast-class}])
+                    (remove-if-not [{string= "CaseStmt"} #'ast-class])
                     (second)
                     (aget :counter)
                     (block-predeccessor *soft*))))))
@@ -3879,23 +3823,22 @@ Useful for printing or returning differences in the REPL."
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
+
+(in-suite test)
+
 (deftest single-decl-works ()
   (with-fixture scopes-clang
-    (let ((ast (get-ast *scopes*
-                        (stmt-with-text *scopes* "int a"))))
-      (is (= 1 (length (ast-declares ast)))))))
+    (is (= 1 (length (ast-declares (stmt-with-text *scopes* "int a")))))))
 
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
-    (when-let* ((it (stmt-with-text *scopes* "int f, g"))
-                (ast (get-ast *scopes* it)))
+    (when-let* ((ast (stmt-with-text *scopes* "int f, g")))
       (is (= 2 (length (ast-declares ast)))))))
 
 (deftest pick-for-loop-works ()
   (with-fixture scopes-clang
     (is (string= "ForStmt" (->> (se::pick-for-loop *scopes*)
                                 (aget :stmt1)
-                                (get-ast *scopes*)
                                 (ast-class)))
         "Simply able to pick a for loop.")
     (let ((var (copy *scopes*)))
