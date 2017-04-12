@@ -23,7 +23,13 @@
 (in-package :software-evolution)
 
 (define-software clang (ast)
-  ((compiler :initarg :compiler :accessor compiler :initform "clang")
+  (;; Don't copy the genome. The copy method calls update-asts on the
+   ;; original, which sets AST-ROOT and discards GENOME, but not
+   ;; before it's been copied. We want the copy to have AST-ROOT set
+   ;; but not GENOME.
+   (genome   :initarg :genome   :accessor genome   :initform ""
+             :copier (lambda (x) (declare (ignorable x)) nil))
+   (compiler :initarg :compiler :accessor compiler :initform "clang")
    (ast-root :initarg :ast-root :initform nil :accessor ast-root
              :copier copy-ast-tree
              :documentation "Root node of AST.")
@@ -1156,8 +1162,11 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod genome ((obj clang))
   ;; If genome string is stored directly, use that. Otherwise,
   ;; build the genome by walking the AST.
-  (or (slot-value obj 'genome)
-      (peel-bananas (source-text (ast-root obj)))))
+  (if-let ((val (slot-value obj 'genome)))
+    (progn (assert (null (slot-value obj 'ast-root)) (obj)
+                   "Software object ~a has both genome and ASTs saved" obj)
+           val)
+    (peel-bananas (source-text (ast-root obj)))))
 
 (defmethod (setf genome) :before (new (obj clang))
   (with-slots (ast-root stmt-asts non-stmt-asts
