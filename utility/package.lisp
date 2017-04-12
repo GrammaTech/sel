@@ -85,6 +85,7 @@
    :random-sample-without-replacement
    :apply-replacements
    :peel-bananas
+   :unpeel-bananas
    :replace-all
    :aget
    :alist

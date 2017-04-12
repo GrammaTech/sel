@@ -279,8 +279,6 @@
    :bytes
    :diff-data
    :recontextualize
-   :rebind-uses
-   :rebind-uses-in-snippet
    :delete-decl-stmts
    :rename-variable-near-use
    :run-cut-decl

@@ -165,13 +165,10 @@ instrumentation.
   (when (targets mutation)
     (bind ((ast (targets mutation))
            (children (get-immediate-children software ast))
-           (replacement (make-statement "WhileStmt" (ast-syn-ctx ast)
-                                        `("while ("
-                                          ,(refined-condition mutation
-                                                              (first children))
-                                          ")"
-                                          ,(second children))
-                                        :full-stmt t)))
+           (replacement (make-while-stmt (ast-syn-ctx ast)
+                                        (refined-condition mutation
+                                                           (first children))
+                                        (second children))))
       `((:set (:stmt1 . ,ast)
               (:literal1 . ,replacement))))))
 
