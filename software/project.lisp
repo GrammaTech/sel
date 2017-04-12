@@ -180,12 +180,11 @@ the underlying software objects."
   (let* ((files (if (current-file project)
                     (list (current-file project))
                     (mapcar #'cdr (evolve-files project))))
-         (entry-objs (or (cdar (other-files project))
-                               (remove-if-not
-                                 (lambda (f)
-                                   (find-if [{string= "main"} {aget :name}]
-                                            (functions f)))
-                                   (mapcar #'cdr (all-files project)))))
+         (entry-objs (remove-if-not
+                       (lambda (f)
+                         (find-if [{string= "main"} {aget :name}]
+                                  (functions f)))
+                         (mapcar #'cdr (all-files project))))
          (functions (plist-get :functions args))
          (other-args (plist-drop :functions args)))
     (loop

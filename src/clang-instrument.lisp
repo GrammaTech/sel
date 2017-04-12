@@ -265,8 +265,6 @@ void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
   ~a
 }
 
-unsigned long trace_counter=0;
-
 ~a
 "
                   log-variable
@@ -275,10 +273,8 @@ unsigned long trace_counter=0;
   (unless (eq obj entry-obj)
     (setf (genome obj)
           (concatenate 'string
-                       (format nil "#include <stdio.h>~%extern FILE *~a;
-unsigned long trace_counter;"
-                               log-variable)
-                       (genome obj))))
+            (format nil "#include <stdio.h>~%extern FILE *~a;~%" log-variable)
+            (genome obj))))
   obj)
 
 
