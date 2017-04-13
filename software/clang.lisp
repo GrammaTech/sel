@@ -523,6 +523,28 @@ list, and we want to treat them as NIL in most cases.
                             (nthcdr (+ 2 head) children)))))))
     (helper tree (ast-ref-path location))))
 
+(defmethod splice-asts ((tree list) (location ast-ref) (new-asts list))
+  "Splice a list directly into the given location, replacing the original AST.
+
+Can insert ASTs and text snippets. Does minimal syntactic fixups, so
+use carefully.
+"
+  (labels
+    ((helper (tree path)
+       (bind (((head . tail) path)
+              ((_ . children) tree))
+         (if tail
+             (helper (nth head children) tail)
+             (let ((after (nth (1+ head) children)))
+               (setf (cdr tree)
+                     (append (subseq children 0 head)
+                             new-asts
+                             (when (not (starts-with #\;  after))
+                               (list ";"))
+                             (nthcdr (1+ head) children))))))))
+    (assert new-asts)
+    (helper tree (ast-ref-path location))))
+
 (defmethod insert-ast ((tree list) (location ast-ref)
                        (replacement ast-ref))
   (labels
@@ -879,48 +901,47 @@ operations.
 
 (defmethod build-op ((mutation clang-promote-guarded) software
                      &aux (guarded (targets mutation)))
-  (let ((children
-         (switch ((ast-class guarded) :test #'string=)
-           ("DoStmt"
-            (get-immediate-children software
-                 (first (get-immediate-children software guarded))))
-           ("WhileStmt"
-            (get-immediate-children software
-                 (second (get-immediate-children software guarded))))
-           ("ForStmt"
-            (get-immediate-children software
-                 (fourth (get-immediate-children software guarded))))
-           ("IfStmt"
-            (let ((children (get-immediate-children software guarded)))
-              (if (= 2 (length children))
-                  ;; If with only one branch.
-                  (get-immediate-children software (second children))
-                  ;; If with both branches.
-                  (cond
-                    ((null         ; Then branch is empty.
-                      (get-immediate-children software (second children)))
-                     (get-immediate-children software (third children)))
-                    ((null         ; Else branch is empty.
-                      (get-immediate-children software (third children)))
-                     (get-immediate-children software (second children)))
-                    (t             ; Both branches are populated.
-                     (if (random-bool) ; Both or just one.
-                         (append (get-immediate-children software
-                                                         (second children))
-                                 (get-immediate-children software
-                                                         (third children)))
-                         (if (random-bool) ; Pick a branch randomly.
-                             (get-immediate-children software
-                                                     (second children))
-                             (get-immediate-children software
-                                                     (third children)))))))))
-           (t (warn "`clang-promote-guarded' unimplemented for ~a"
-                    (ast-class guarded))))))
+  (flet
+      ((compose-children (&rest parents)
+         (-<>> (mappend {get-immediate-children software} parents)
+               (mapcar #'ast-ref-ast)
+               (interleave <>
+                           (coerce (list #\; #\Newline) 'string)))))
 
-    (cons `(:set (:stmt1 . ,guarded) (:literal1 . ,(car (reverse children))))
-          (mapcar (lambda (ast)
-                      `(:insert (:stmt1 . ,guarded) (:literal1 . ,ast)))
-                    (cdr (reverse children))))))
+      (let ((children
+          (switch ((ast-class guarded) :test #'string=)
+            ("DoStmt"
+             (compose-children
+              (first (get-immediate-children software guarded))))
+            ("WhileStmt"
+             (compose-children
+              (second (get-immediate-children software guarded))))
+            ("ForStmt"
+             (compose-children
+              (fourth (get-immediate-children software guarded))))
+            ("IfStmt"
+             (let ((children (get-immediate-children software guarded)))
+               (if (= 2 (length children))
+                   ;; If with only one branch.
+                   (compose-children (second children))
+                   ;; If with both branches.
+                   (cond
+                     ((null             ; Then branch is empty.
+                       (get-immediate-children software (second children)))
+                      (compose-children (third children)))
+                     ((null             ; Else branch is empty.
+                       (get-immediate-children software (third children)))
+                      (compose-children (second children)))
+                     (t                 ; Both branches are populated.
+                      (if (random-bool) ; Both or just one.
+                          (compose-children (second children) (third children))
+                          (if (random-bool) ; Pick a branch randomly.
+                              (compose-children (second children))
+                              (compose-children (third children)))))))))
+            (t (warn "`clang-promote-guarded' unimplemented for ~a"
+                     (ast-class guarded))))))
+
+        `((:splice (:stmt1 . ,guarded) (:value1 . ,children))))))
 
 ;;; Explode and coalescing mutations over for and while loops.
 (define-mutation explode-for-loop (clang-mutation)
@@ -1671,7 +1692,8 @@ already in scope, it will keep that name.")
             (ecase op
               (:set (replace-ast ast-root stmt1 value1))
               (:cut (remove-ast ast-root stmt1))
-              (:insert (insert-ast ast-root stmt1 value1))))))
+              (:insert (insert-ast ast-root stmt1 value1))
+              (:splice (splice-asts ast-root stmt1 value1))))))
   (clear-caches software)
   software)
 

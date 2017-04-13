@@ -5437,6 +5437,29 @@ Useful for printing or returning differences in the REPL."
       (is (eq semicolons
               (count-if {eq #\;} (genome *contexts*)))))))
 
+(deftest splice-asts-and-text ()
+  (with-fixture contexts
+    (let ((location (stmt-with-text *contexts* "int x = 0"))
+          (inserted (list (format nil "/*comment 1*/~%")
+                          (se::ast-ref-ast (stmt-starting-with-text *contexts*
+                                                                   "int x = 1"))
+                          (format nil ";~%/*comment 2*/~%"))))
+      (se::apply-mutation-ops *contexts*
+                              `((:splice (:stmt1 . ,location)
+                                         (:value1 . ,inserted))))
+
+      (is (not (stmt-with-text *contexts* "int x = 0")))
+      (is (stmt-with-text *contexts* "int x = 1"))
+      (is (eq 1
+              (->> (stmt-starting-with-text *contexts* "void full_stmt")
+                   (se::function-body *contexts*)
+                   (get-immediate-children *contexts*)
+                   (remove-if-not #'ast-full-stmt)
+                   (length))))
+      (is (search "comment 1" (genome *contexts*)))
+      (is (search "comment 2" (genome *contexts*))))))
+
+
 
 (in-suite test)
 (defsuite* clang-scopes-and-types)
