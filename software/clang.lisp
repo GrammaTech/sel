@@ -1209,32 +1209,19 @@ for successful mutation (e.g. adding includes/types/macros)"))
     (peel-bananas (source-text (ast-root obj)))))
 
 (defmethod (setf genome) :before (new (obj clang))
-  (with-slots (ast-root stmt-asts non-stmt-asts
-               functions prototypes includes types
-               declarations macros globals fitness) obj
+  (with-slots (ast-root types declarations  globals fitness) obj
     (setf ast-root nil
-          stmt-asts nil
-          non-stmt-asts nil
-          functions nil
-          prototypes nil
-          includes nil
           types nil
           declarations (make-hash-table :test #'equal)
-          macros nil
           globals nil
-          fitness nil)))
+          fitness nil))
+  (clear-caches obj))
 
 (defmethod (setf ast-root) :before (new (obj clang))
-  (with-slots (stmt-asts non-stmt-asts functions prototypes
-                         includes macros globals fitness) obj
-    (setf stmt-asts nil
-          non-stmt-asts nil
-          functions nil
-          prototypes nil
-          includes nil
-          macros nil
-          globals nil
-          fitness nil)))
+  (with-slots (globals fitness) obj
+    (setf globals nil
+          fitness nil))
+  (clear-caches obj))
 
 (defun function-decl-p (ast)
   "Is AST a function (or method/constructor/destructor) decl?"
@@ -1311,6 +1298,16 @@ for successful mutation (e.g. adding includes/types/macros)"))
                  functions funs
                  prototypes protos))))
   obj)
+
+(defmethod clear-caches ((obj clang))
+  (with-slots (stmt-asts non-stmt-asts functions prototypes
+                         macros includes) obj
+    (setf stmt-asts nil
+          non-stmt-asts nil
+          functions nil
+          prototypes nil
+          macros nil
+          includes nil)))
 
 (defmethod update-body ((obj clang) &key)
   ;; Program body.
@@ -1663,7 +1660,7 @@ already in scope, it will keep that name.")
   software)
 
 (defun apply-mutation-ops (software ops)
-  (with-slots (ast-root genome) software
+  (with-slots (ast-root) software
     (iter (for (op . properties) in ops)
           (let ((stmt1 (aget :stmt1 properties))
                 (value1 (aget :value1 properties)))
@@ -1671,6 +1668,7 @@ already in scope, it will keep that name.")
               (:set (replace-ast ast-root stmt1 value1))
               (:cut (remove-ast ast-root stmt1))
               (:insert (insert-ast ast-root stmt1 value1))))))
+  (clear-caches software)
   software)
 
 (defmethod apply-mutation ((software clang)
