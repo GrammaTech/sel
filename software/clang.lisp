@@ -341,7 +341,11 @@ if not given."
                                   :types types
                                   :unbound-funs unbound-funs
                                   :unbound-vals unbound-vals)
-                  children)))))
+                  (mapcar (lambda (c)
+                            (if (ast-ref-p c)
+                                (ast-ref-ast c)
+                                c))
+                          children))))))
 
 (defun make-operator (syn-ctx opcode child-asts &rest args)
   "Create a unary or binary operator AST."
@@ -356,7 +360,7 @@ if not given."
     (apply #'make-statement class syn-ctx children :opcode opcode args)))
 
 (defun make-block (children)
-  (make-statement "CompoundStatement" :braced
+  (make-statement "CompoundStmt" :braced
                   `(,(format nil "{~%") ,@children ,(format nil "~%}"))
                   :full-stmt t))
 
@@ -1991,16 +1995,9 @@ it will transform this into:
     }"))
 
 (defmethod wrap-ast ((obj clang) (ast ast-ref))
-  (let* ((old-text (peel-bananas (source-text ast)))
-         (new-text (concatenate 'string
-                     "{" old-text
-                     ;; Check if a semicolon is needed.
-                     (if (scan "}\\s*$" old-text) "}" ";}"))))
-    (setf (genome obj)
-          (clang-mutate obj
-                        `(:set (:stmt1 . ,(ast-counter ast))
-                               (:value1 . ,new-text)))))
-  (update-asts obj)
+  (apply-mutation obj
+                  `(clang-replace (:stmt1 . ,ast)
+                                  (:literal1 . ,(make-block (list ast ";")))))
   obj)
 
 (define-constant +clang-wrapable-parents+
