@@ -7,8 +7,11 @@
 (defgeneric instrument (obj &key points functions trace-file
                               print-argv instrument-exit filter)
   (:documentation
-   "Instrument OBJ to print AST counter before each full statement.
-option
+   "Instrument OBJ to print AST index before each full statement.
+
+The indices printed here are not clang-mutate counters, but rather the
+position of the ast in (asts obj).
+
 Keyword arguments are as follows:
   POINTS ----------- alist of additional strings to print at specific points
   FUNCTIONS -------- functions to calculate instrumentation at each point
@@ -22,36 +25,40 @@ Keyword arguments are as follows:
 (defmethod instrument ((obj clang) &key points functions trace-file
                                      print-argv instrument-exit
                                      (filter #'identity))
+  ;; Send object through clang-mutate to get accurate counters
+  (update-asts obj)
+
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
         (points
          (remove nil
-           (mapcar (lambda-bind ((counter . value))
-                    (let ((parent (enclosing-traceable-stmt obj counter)))
-                      (if parent (cons (ast-counter parent) value)
-                          (warn "Point ~d doesn't match traceable AST."
-                                counter))))
-                   points))))
+                 (mapcar (lambda-bind ((ast . value))
+                    (let ((parent (enclosing-traceable-stmt obj ast)))
+                      (if parent (cons parent value)
+                          (warn "Point ~s doesn't match traceable AST."
+                                ast))))
+                   points)))
+        (ast-numbers (alist-hash-table
+                      (iter (for ast in (asts obj))
+                            (for i upfrom 0)
+                            (collect (cons ast i)))
+                      :test #'equalp)))
     (labels
         ((escape (string)
            (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
-         (outer-parent (stmt function)
-           ;; Outermost ancestor of stmt, not including the function body.
-           (let ((parent (ast-parent-counter (get-ast obj stmt))))
-             (if (eq parent (ast-body function))
-                 stmt
-                 (outer-parent parent function))))
          (last-traceable-stmt (proto)
-           (enclosing-traceable-stmt obj
-                                     (second (ast-stmt-range proto))))
+           (->> (function-body obj proto)
+                (get-immediate-children obj)
+                (lastcar)
+                (enclosing-traceable-stmt obj)))
          (first-traceable-stmt (proto)
-           (first (get-immediate-children obj (ast-body proto))))
+           (first (get-immediate-children obj (function-body obj proto))))
          (instrument-ast (ast counter formats-w-args trace-strings)
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
-           (let* ((function (function-containing-ast obj counter))
+           (let* ((function (function-containing-ast obj ast))
                   (wrap (and (not (traceable-stmt-p obj ast))
                              (can-be-made-traceable-p obj ast)))
                   (return-void (ast-void-ret function))
@@ -65,13 +72,17 @@ Keyword arguments are as follows:
              (append
               ;; Function exit instrumentation
               (when (and instrument-exit
-                         (eq ast (last-traceable-stmt function)))
+                         (equalp ast (last-traceable-stmt function)))
                 `((:insert-value-after
-                   (:stmt1 . ,(outer-parent counter function))
+                   (:stmt1 . ,(ast-counter
+                               (ancestor-after obj (function-body obj function)
+                                               ast)))
                    (:value1 .
                         ,(format nil
                                  "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
-                                 (ast-body function) log-var
+                                 (gethash (function-body obj function)
+                                          ast-numbers)
+                                 log-var
                                  (if return-void "" "return _inst_ret;"))))))
               ;; Closing brace after the statement
               (when (and wrap (not skip))
@@ -79,7 +90,7 @@ Keyword arguments are as follows:
                                        (:value1 . "}"))))
               ;; Temp variable for return value
               (when (and instrument-exit
-                         (eq ast (first-traceable-stmt function))
+                         (equalp ast (first-traceable-stmt function))
                          (not return-void))
                 `((:insert-value
                    (:stmt1 . ,counter)
@@ -93,7 +104,7 @@ Keyword arguments are as follows:
                          (string= (ast-class ast) "ReturnStmt"))
                 (let ((ret (unless return-void
                              (peel-bananas
-                              (ast-src-text
+                              (source-text
                                    (first (get-immediate-children obj ast)))))))
                   `((:set
                      (:stmt1 . ,counter)
@@ -111,7 +122,7 @@ Keyword arguments are as follows:
                          (cons
                           (format nil ; Start up alist w/counter.
                                   "fputs(\"((:C . ~d) \", ~a);~%"
-                                  counter log-var)
+                                  (gethash ast ast-numbers) log-var)
                           (when trace-strings
                             (list
                              (format nil ; Points instrumentation.
@@ -128,23 +139,17 @@ Keyword arguments are as follows:
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
-            (mapcar #'ast-counter)
             ;; Bottom up ensure earlier insertions don't invalidate
             ;; later counters.
-            (sort <> #'>)
-            (mapcar (lambda (counter)
-                      (prog1
-                          (let ((ast (get-ast obj counter)))
-                            (instrument-ast
-                             ast
-                             counter
-                             (mapcar {funcall _ ast} functions)
-                             (aget counter points)))
-                        (setf (aget counter points) nil))))
-            ;; Each AST generates a list of operations. Flatten them
-            ;; to a single level.
-            (apply #'append)
-            (apply-mutation-ops obj)))
+            (sort <> #'> :key #'ast-counter)
+            (mappend (lambda (ast)
+                       (prog1
+                           (instrument-ast ast
+                                           (ast-counter ast)
+                                           (mapcar {funcall _ ast} functions)
+                                           (aget ast points :test #'equalp))
+                         (setf (aget ast points :test #'equalp) nil))))
+            (apply-clang-mutate-ops obj)))
 
     ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
@@ -168,7 +173,7 @@ SOFTWARE.  The result of KEY will appear behind LABEL in the trace
 output."))
 
 (defmethod var-instrument
-    ((obj clang) label key (ast clang-ast) &key print-strings)
+    ((obj clang) label key (ast ast-ref) &key print-strings)
   (flet ((fmt-code (c-type)
            (switch (c-type :test #'string=)
              ("char"            "%c")
@@ -205,11 +210,11 @@ output."))
           (finally (return (cons (concatenate 'string format ")") vars))))))
 
 (defgeneric get-entry (software)
-  (:documentation "Return the counter of the entry AST in SOFTWARE."))
+  (:documentation "Return the entry AST in SOFTWARE."))
 
 (defmethod get-entry ((obj clang))
-  (first (ast-stmt-range
-               (find-if [{string= "main"} {ast-name}] (functions obj)))))
+  (&>> (find-if [{string= "main"} {ast-name}] (functions obj))
+       (function-body obj)))
 
 (defgeneric insert-at-entry (software ast)
   (:documentation "Insert AST at the entry point to SOFTWARE."))
@@ -220,20 +225,19 @@ output."))
   ;; insert the new text just after the first "{".
   (let* ((entry (get-entry obj))
          (old-text
-          (peel-bananas (subseq (ast-src-text (get-ast obj entry)) 1))))
+          (peel-bananas (subseq (source-text entry) 1))))
     (setf
      (genome obj)
      (clang-mutate obj
        `(:set
-         (:stmt1 . ,entry)
+         (:stmt1 . ,(ast-counter entry))
          (:value1 . ,(concatenate 'string "{" ast old-text))))))
   obj)
 
 (defmethod print-program-input ((obj clang) log-variable)
   ;; Return a version of OBJ instrumented to print program input.
   (or (when-let* ((entry (get-entry obj))
-                  (entry-ast (get-ast obj entry))
-                  (scope-vars (get-vars-in-scope obj entry-ast)))
+                  (scope-vars (get-vars-in-scope obj entry)))
         (when (and (member "argc" scope-vars :test #'string=)
                    (member "argv" scope-vars :test #'string=))
           (insert-at-entry obj

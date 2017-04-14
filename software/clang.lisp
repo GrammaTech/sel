@@ -181,8 +181,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   opcode
   parent-counter
   ret
-  src-text
   stmt-range
+  src-text
   (syn-ctx :reader [#'make-keyword #'string-upcase])
   types
   unbound-funs
@@ -1179,9 +1179,6 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 (defvar *clang-max-json-size* 104857600
   "Maximum size of output accepted from `clang-mutate'.")
 
-(defgeneric update-body (software &key)
-  (:documentation "Update SOFTWARE body from ASTs."))
-
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
 
@@ -1260,6 +1257,10 @@ for successful mutation (e.g. adding includes/types/macros)"))
                         &key clang-mutate-args
                         &aux (decls (make-hash-table :test #'equal)))
   (with-slots (asts ast-root types declarations genome) obj
+    (unless genome     ; get genome from existing ASTs if necessary
+      (setf genome (genome obj)
+            ast-root nil))
+
     ;; Incorporate ASTs.
     (iter (for ast in (restart-case
                           (clang-mutate obj
@@ -1333,23 +1334,6 @@ for successful mutation (e.g. adding includes/types/macros)"))
           prototypes nil
           macros nil
           includes nil)))
-
-(defmethod update-body ((obj clang) &key)
-  ;; Program body.
-  ;;
-  ;; Generate the bulk of the program text by joining all global
-  ;; declarations (including functions) together in the same order
-  ;; they originally appeared.
-  (setf (genome obj)
-        (mapconcat #'ast-decl-text
-                   (sort (asts obj)
-                         (lambda (x y)
-                           (or (< (first x) (first y))
-                               (and (= (first x) (first y))
-                                    (< (second x) (second y)))))
-                         :key
-                         [«list #'ast-begin-src-line #'ast-begin-src-col»])
-                   (string #\Newline))))
 
 (defgeneric from-file-exactly (software path)
   (:documentation
@@ -1527,12 +1511,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
     ;; Omit the root AST
     (cdr (helper (ast-root software) nil))))
 
-(defmethod recontextualize ((clang clang) snippet pt)
-  (let ((text (bind-free-vars clang snippet pt)))
-    (if (full-stmt-p clang pt)
-        (format nil "~a~%" (add-semicolon-if-needed text))
-        (format nil "~a" text))))
-
 (defmethod recontextualize ((clang clang) (ast ast-ref) (pt ast-ref))
   (bind-free-vars clang ast pt))
 
@@ -1671,7 +1649,7 @@ already in scope, it will keep that name.")
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))
 
-(defun apply-mutation-ops-old (software ops &aux (tu 0))
+(defun apply-clang-mutate-ops (software ops &aux (tu 0))
   "Run clang-mutate with a list of mutation operations, and update the genome."
   ;; If we multiplex multiple software objects onto one clang-mutate
   ;; invocation, they will need to track their own TU ids.  With one
@@ -1940,21 +1918,8 @@ already in scope, it will keep that name.")
   (member possible-parent-ast (get-parent-asts clang ast)
           :test #'equalp))
 
-(defmacro define-ast-number-or-nil-default-dispatch (symbol &rest additional)
-  "Define default dispatch for clang ast methods when ast is an integer or nil."
-  (let ((additional-args
-         (mapcar (lambda (a) (if (listp a) (car a) a))
-                 (remove-if {member _ '(&optional &key)} additional))))
-    `(progn
-       (defmethod ,symbol ((obj clang) (ast integer) ,@additional)
-         (unless (zerop ast)
-           (,symbol obj (get-ast obj ast) ,@additional-args)))
-       (defmethod ,symbol ((obj clang) (ast (eql nil)) ,@additional)
-         (declare (ignorable ,@additional-args))
-         nil))))
-
 (defmethod get-parent-ast ((obj clang) (ast ast-ref))
-  (let ((path (butlast (ast-ref-path ast))))
+  (when-let ((path (butlast (ast-ref-path ast))))
     (make-ast-ref :ast (get-ast obj path)
                   :path path)))
 
@@ -2062,8 +2027,9 @@ made full by wrapping with curly braces, return that."))
     ((traceable-stmt-p obj ast) ast)
     ;; Wrap AST in a CompoundStmt to make it traceable.
     ((can-be-made-traceable-p obj ast) ast)
-    (ast (enclosing-traceable-stmt obj (get-parent-ast obj ast)))
-    (:otherwise (values nil nil))))
+    (:otherwise
+     (&>> (get-parent-ast obj ast)
+          (enclosing-traceable-stmt obj)))))
 
 (defgeneric traceable-stmt-p (software ast)
   (:documentation
@@ -2409,56 +2375,6 @@ free variables.")
           (ast-void-ret decl)
           (ast-varargs decl)
           (length (ast-args decl)))))
-
-
-(defmethod bind-free-vars ((clang clang) snippet pt)
-  (let ((scope-vars (ast-scopes (get-ast clang pt))))
-
-    (iter (for (scope vars) in (aget :scope-removals snippet))
-          (setf (nth scope scope-vars)
-                (remove-if {member _ vars :test #'string=}
-                           (nth scope scope-vars))))
-    (iter (for (scope vars) in (aget :scope-additions snippet))
-          (appendf (nth scope scope-vars) vars))
-
-    (let ((replacements
-           (append
-            (mapcar
-             (lambda-bind ((var index))
-                          (cons var
-                                (let ((in-scope
-                                       ;; NOTE: The :RESPECT-DEPTH field is
-                                       ;; populated by crossover and is
-                                       ;; presumably used for specific crossover
-                                       ;; purposes. In the crossover case the
-                                       ;; snippet is not arbitrary.
-                                       (if (aget :respect-depth snippet)
-                                (apply #'append (subseq scope-vars index))
-                                           (apply #'append scope-vars))))
-                                  ;; If the variable's original name matches the
-                                  ;; name of a variable in scope, keep the original
-                                  ;; name with probability equal to
-                                  ;; *matching-free-var-retains-name-bias*
-                                  (or (when (and (< (random 1.0)
-                                                    *matching-free-var-retains-name-bias*)
-                                                 (find (peel-bananas var) in-scope
-                                                       :test #'equal))
-                                        (peel-bananas var))
-                                      (random-elt-with-decay
-                                       in-scope *free-var-decay-rate*)
-                                      "/* no bound vars in scope */"))))
-             (aget :unbound-vals snippet))
-            (mapcar
-             (lambda-bind ((fun . fun-info))
-                          (cons fun
-                                (or (random-function-name
-                                     (prototypes clang)
-                                     :original-name (peel-bananas fun)
-                                     :arity (third fun-info))
-                                    "/* no functions? */")))
-             (aget :unbound-funs snippet)))))
-      (values (apply-replacements replacements (aget :src-text snippet))
-              replacements))))
 
 (defmethod bind-free-vars ((clang clang) (ast ast-ref) (pt ast-ref))
   (let* ((in-scope (mapcar #'unpeel-bananas

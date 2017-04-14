@@ -2336,6 +2336,7 @@ two statements with the same class."
   (find-if [{string= text} #'peel-bananas #'se::source-text]
            (asts obj)))
 
+;; FIXME: remove this method and switch to stmt-with-text everywhere
 (defun ast-with-text (obj text)
   (note 1 "warning: ast-with-text is obsolete")
   (stmt-with-text obj text))
@@ -4132,6 +4133,9 @@ Useful for printing or returning differences in the REPL."
         (equal picks (remove-duplicates picks))))))
 
 
+(in-suite test)
+(defsuite* test-clang-instrumentation)
+
 ;;; Instrumentation tests
 (in-suite test)
 (defsuite* test-instrumentation)
@@ -4204,7 +4208,10 @@ Useful for printing or returning differences in the REPL."
       ;; Is function exit instrumented?
       (is (stmt-with-text instrumented
                           (format nil "fputs(\"((:C . ~a)) \", stderr)"
-                                  (ast-body (first (functions *gcd*))))))
+                                  (-<>> (first (functions *gcd*))
+                                        (se::function-body *gcd*)
+                                        (position <> (asts *gcd*)
+                                                  :test #'equalp)))))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -4227,10 +4234,9 @@ Useful for printing or returning differences in the REPL."
            (handler-bind ((warning #'muffle-warning))
              (instrument (copy *gcd*)
                :points
-               (iter (for i below (size *gcd*))
-                     (if (evenp i)
-                         (collect (list i :even))
-                         (collect (list i :odd))))))))
+               (iter (for ast in (stmt-asts *gcd*))
+                     (for i upfrom 0)
+                     (collect (list ast (if (evenp i) :odd :even))))))))
       ;; Do we insert the right number of printf statements?
       (is (<= (* 3 (count-traceable *gcd*))
               (count-traceable instrumented)))
@@ -4268,7 +4274,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-wo-curlies-clang
     (let ((instrumented (instrument (copy *gcd*))))
       ;; Ensure we were able to instrument an else branch w/o curlies.
-      (let* ((else-counter (stmt-with-text *gcd* "b = b - a"))
+      (let* ((else-counter (position (stmt-with-text *gcd* "b = b - a")
+                                     (asts *gcd*) :test #'equalp))
              (matcher (quote-meta-chars (format nil "(:C . ~d)" else-counter))))
         (is (scan matcher (genome instrumented)))
         ;; The next line (after flushing) should be the else branch.
@@ -4291,7 +4298,7 @@ Useful for printing or returning differences in the REPL."
            (instrumented
             (instrument (copy *gcd*)
               :points
-              `((,(ast-counter (ast-with-text *gcd* "b - a")) ,cookie)))))
+              `((,(stmt-with-text *gcd* "b - a") ,cookie)))))
       ;; Instrumented program holds the TEST-COOKIE line.
       (is (scan (quote-meta-chars (string cookie))
                 (genome-string instrumented))
@@ -4341,7 +4348,7 @@ Useful for printing or returning differences in the REPL."
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions
                   (list {var-instrument *gcd* :scopes
-                                        [{apply #'append} #'ast-scopes]})))
+                                        {get-vars-in-scope *gcd*}})))
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
