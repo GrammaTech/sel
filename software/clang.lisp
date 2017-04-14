@@ -98,6 +98,14 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
            (field-name (field)
              "Raw name of a struct field (e.g. ast-name)"
              (if (listp field) (car field) field))
+           (field-def (field)
+             (if (listp field)
+                 (list* (field-name field) ; name
+                        nil                ; initform
+                        (->> (cdr field)   ; options
+                             (plist-drop :key)
+                             (plist-drop :reader)))
+                 field))
            (field-snippet-name (field)
              "Alist key for accessing a field within a snippet (e.g :name)."
              (or (and (listp field)
@@ -120,7 +128,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
        ;; Struct definition
        (defstruct (,@(cons name (plist-drop :conc-name options)))
          ,doc
-         ,@(mapcar #'field-name fields))
+         ,@(mapcar #'field-def fields))
 
        (defmethod ast->snippet ((ast ,name))
          "Convert AST struct to alist."
@@ -158,21 +166,21 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   begin-off
   end-off
 
-  args
+  (args :type list)
   begin-addr
   begin-src-col
   begin-src-line
   body
   children
-  (class :key :ast-class)
-  counter
+  (class :key :ast-class :type (or string null))
+  (counter :type (or number null))
   declares
   end-addr
   end-src-col
   end-src-line
   expr-type
-  full-stmt
-  guard-stmt
+  (full-stmt :type boolean)
+  (guard-stmt :type boolean)
   in-macro-expansion
   includes
   is-decl
@@ -183,7 +191,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   ret
   stmt-range
   src-text
-  (syn-ctx :reader [#'make-keyword #'string-upcase])
+  (syn-ctx :reader [#'make-keyword #'string-upcase] :type (or symbol null))
   types
   unbound-funs
   unbound-vals
@@ -1203,7 +1211,7 @@ values.  Additionally perform any updates to the software object required
 for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod size ((obj clang))
-  (length (all-ast-refs obj)))
+  (length (asts obj)))
 
 (defvar *clang-json-required-fields*
   '(:ast-class          :counter           :unbound-vals
@@ -1247,11 +1255,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defun function-decl-p (ast)
   "Is AST a function (or method/constructor/destructor) decl?"
-  ;; XXX: why do we need a type check here?
-  (and (or (clang-ast-p ast) (ast-ref-p ast))
-       (member (ast-class ast)
-               '("Function" "CXXMethod" "CXXConstructor" "CXXDestructor")
-               :test #'string=)))
+  (member (ast-class ast)
+          '("Function" "CXXMethod" "CXXConstructor" "CXXDestructor")
+          :test #'string=))
 
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args
@@ -1297,7 +1303,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defmethod update-caches ((obj clang))
   (with-slots (stmt-asts non-stmt-asts functions prototypes
                          macros includes) obj
-    (iter (for ast in (all-ast-refs obj))
+    (iter (for ast in (asts obj))
           (when (ast-body ast)
             (collect ast into funs)
             (collect (ast-to-source-range ast) into fn-ranges))
@@ -1496,10 +1502,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod       globals :before ((obj clang)) (update-caches-if-necessary obj))
 
 (defmethod asts ((obj clang))
-  (all-ast-refs obj))
-
-;; TODO: remove this method, just use asts everywhere
-(defmethod all-ast-refs ((software clang))
   "Return (ast . path) for all ASTs in software."
   (labels ((helper (tree path)
              (when (listp tree)
@@ -1509,7 +1511,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
                            (unless (stringp c)
                              (appending (helper c (cons i path)))))))))
     ;; Omit the root AST
-    (cdr (helper (ast-root software) nil))))
+    (cdr (helper (ast-root obj) nil))))
 
 (defmethod recontextualize ((clang clang) (ast ast-ref) (pt ast-ref))
   (bind-free-vars clang ast pt))
@@ -1637,14 +1639,10 @@ already in scope, it will keep that name.")
             (cons (cons :stmt1 stmt1)
                   (if (or stmt2 value1 literal1)
                       `((:value1 .
-                                 ;; XXX: don't need make-ast-ref here
-                            ,(if literal1
-                                 (make-ast-ref :ast (ast-ref-ast literal1))
+                            ,(if literal1 literal1
                                  (recontextualize
                                     obj
-                                    (or stmt2
-                                        (make-ast-ref :ast
-                                                      (ast-ref-ast value1)))
+                                    (or stmt2 value1)
                                     stmt1))))))))
          ;; Other ops are passed through without changes
          (otherwise (cons op properties))))))

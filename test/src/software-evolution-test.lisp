@@ -2336,11 +2336,6 @@ two statements with the same class."
   (find-if [{string= text} #'peel-bananas #'se::source-text]
            (asts obj)))
 
-;; FIXME: remove this method and switch to stmt-with-text everywhere
-(defun ast-with-text (obj text)
-  (note 1 "warning: ast-with-text is obsolete")
-  (stmt-with-text obj text))
-
 (defun stmt-starting-with-text (obj text)
   (find-if (lambda (snippet)
              (and snippet
