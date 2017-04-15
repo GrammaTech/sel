@@ -1088,15 +1088,6 @@
                 (is (not (null stmt1)))
                 (is (not (null stmt2)))))))
 
-(deftest intraprocedural-2pt-crossover-does-not-crash ()
-  (with-fixture intraprocedural-2pt-crossover-bug-clang
-    (let ((variant (intraprocedural-2pt-crossover
-                     (copy *soft*)
-                     (copy *soft*)
-                     27 42 27 42)))
-      (is (string/= (genome variant)
-                    "")))))
-
 
 ;;; Misc. clang tests
 
@@ -1679,6 +1670,9 @@ two statements with the same class."
 
 
 ;;; Clang w/ mutation fodder representation
+(in-suite test)
+(defsuite* test-clang-w-fodder)
+
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
@@ -2576,7 +2570,7 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p (fix-compilation broken-gcc 1))))))
 
 (in-suite test)
-(defsuite* clang-crossover)
+(defsuite* test-clang-crossover)
 
 (defun select-intraprocedural-pair-with-adjustments-test (obj)
   (let ((function (first (functions obj))))
@@ -2585,14 +2579,16 @@ Useful for printing or returning differences in the REPL."
                          (select-intraprocedural-pair obj)
                        (multiple-value-bind (stmt1 stmt2)
                            (adjust-stmt-range obj pt1 pt2)
-                         (is (<= (1+ (first (ast-stmt-range function)))
+                         (is (<= (1+ (first (se::stmt-range obj function)))
                                  stmt1
-                                 (second (ast-stmt-range function))))
-                         (is (<= (1+ (first (ast-stmt-range function)))
+                                 (second (se::stmt-range obj function))))
+                         (is (<= (1+ (first (se::stmt-range obj function)))
                                  stmt2
-                                 (second (ast-stmt-range function))))
-                         (is (full-stmt-p obj stmt1))
-                         (is (full-stmt-p obj stmt2))))))))
+                                 (second (se::stmt-range obj function))))
+                         (is (full-stmt-p obj
+                                          (se::ast-at-index obj stmt1)))
+                         (is (full-stmt-p obj
+                                          (se::ast-at-index obj stmt2)))))))))
 
 (deftest select-intraprocedural-pair-with-adjustments-collatz-test ()
   (with-fixture collatz-clang
@@ -2969,12 +2965,13 @@ Useful for printing or returning differences in the REPL."
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                     (full-stmt-successors *soft*)
                     (apply #'append)
-                    (mapcar {aget :ast-class}))))
-    (is (equal '("CompoundStmt" "ReturnStmt" "CompoundStmt")
+                    (mapcar #'ast-class))))
+    (is (equal '("CaseStmt" "DefaultStmt" "CompoundStmt"
+                 "ReturnStmt" "CompoundStmt")
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                     (full-stmt-successors *soft*)
                     (apply #'append)
-                    (mapcar {aget :ast-class}))))))
+                    (mapcar #'ast-class))))))
 
 (deftest enclosing-full-stmt-collatz-test ()
   (with-fixture collatz-clang
@@ -3053,10 +3050,8 @@ Useful for printing or returning differences in the REPL."
                      (second))
                 (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2"))))
     (is (null (enclosing-block *collatz*
-                               (->> (stmt-asts *collatz*)
-                                    (remove-if-not [{string= "CompoundStmt"}
-                                                    #'ast-class])
-                                    (lastcar)))))))
+                               (->> (stmt-starting-with-text *collatz* "int collatz")
+                                    (function-body *collatz*)))))))
 
 (deftest enclosing-block-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -3082,7 +3077,8 @@ Useful for printing or returning differences in the REPL."
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                      (enclosing-block *soft*))))
     (is (equalp (->> (stmt-asts *soft*)
-                     (remove-if-not [{string= "CaseStmt"} #'ast-class])
+                     (find-if [{string= "SwitchStmt"} #'ast-class])
+                     (get-immediate-children *soft*)
                      (second))
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                      (enclosing-block *soft*))))
@@ -3217,9 +3213,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *fib* "x = x + y")
-                         (stmt-with-text *fib* "return x"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *fib* "x = x + y")
+                          (stmt-with-text *fib* "return x"))
+                    effective-a-pts)))))
   (with-fixture fib-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3230,25 +3226,22 @@ Useful for printing or returning differences in the REPL."
             (->> (stmt-asts *fib*)
                  (remove-if-not [{string= "WhileStmt"}
                                  #'ast-class])
-                 (first)
-                 (ast-counter))
+                 (first))
             (stmt-with-text *fib* "int t = x")
             (->> (stmt-asts *fib*)
                  (remove-if-not [{string= "WhileStmt"}
                                  #'ast-class])
-                 (first)
-                 (ast-counter)))
+                 (first)))
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *fib* "int t = x")
-                         (->> (stmt-asts *fib*)
-                              (remove-if-not [{string= "WhileStmt"}
-                                              #'ast-class])
-                              (first)
-                              (ast-counter)))
+        (is (equalp (cons (stmt-with-text *fib* "int t = x")
+                          (->> (stmt-asts *fib*)
+                               (remove-if-not [{string= "WhileStmt"}
+                                               #'ast-class])
+                               (first)))
                    effective-a-pts))))))
 
 (deftest crossover-2pt-outward-collatz-test ()
@@ -3264,9 +3257,9 @@ Useful for printing or returning differences in the REPL."
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
-        (is (equal (cons (stmt-with-text *collatz* "m /= 2")
-                         (stmt-with-text *collatz* "++k"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *collatz* "m /= 2")
+                          (stmt-with-text *collatz* "++k"))
+                    effective-a-pts)))))
   (with-fixture collatz-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3281,9 +3274,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *collatz* "++k")
-                         (stmt-with-text *collatz* "return k"))
-                   effective-a-pts))))))
+        (is (equalp (cons (stmt-with-text *collatz* "++k")
+                          (stmt-with-text *collatz* "return k"))
+                    effective-a-pts))))))
 
 (deftest crossover-2pt-outward-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -3301,39 +3294,27 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
-                         (stmt-with-text *soft* "return 0"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
+                          (stmt-with-text *soft* "return 0"))
+                    effective-a-pts)))))
   (with-fixture crossover-no-compound-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
           (intraprocedural-2pt-crossover
             (copy *soft*)
             (copy *soft*)
-            (->> (stmt-asts *soft*)
-                 (remove-if-not [{string= "ForStmt"}
-                                 #'ast-class])
-                 (second)
-                 (ast-counter))
+            (stmt-starting-with-text *soft* "for (j = 0")
             (stmt-with-text *soft* "return 0")
-            (->> (stmt-asts *soft*)
-                 (remove-if-not [{string= "ForStmt"}
-                                 #'ast-class])
-                 (second)
-                 (ast-counter))
+            (stmt-starting-with-text *soft* "for (j = 0")
             (stmt-with-text *soft* "return 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
-        (is (equal (cons (->> (stmt-asts *soft*)
-                              (remove-if-not [{string= "ForStmt"}
-                                              #'ast-class])
-                              (second)
-                              (ast-counter))
-                         (stmt-with-text *soft* "return 0"))
-                   effective-a-pts))))))
+        (is (equalp (cons (stmt-starting-with-text *soft* "for (j = 0")
+                          (stmt-with-text *soft* "return 0"))
+                    effective-a-pts))))))
 
 (deftest crossover-2pt-outward-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
@@ -3349,11 +3330,11 @@ Useful for printing or returning differences in the REPL."
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
-        (is (< (length (stmt-asts variant))
-               (length (stmt-asts *soft*))))
-        (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
-                         (stmt-with-text *soft* "return 0"))
-                   effective-a-pts))))))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equalp (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
+                          (stmt-with-text *soft* "return 0"))
+                    effective-a-pts))))))
 
 (deftest crossover-2pt-inward-fib-test ()
   (with-fixture fib-clang
@@ -3370,9 +3351,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *fib* "int x = 0")
-                         (stmt-with-text *fib* "return x"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *fib* "int x = 0")
+                          (stmt-with-text *fib* "return x"))
+                    effective-a-pts)))))
   (with-fixture fib-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3387,9 +3368,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *fib* "int x = 0")
-                         (stmt-with-text *fib* "x = x + y"))
-                   effective-a-pts))))))
+        (is (equalp (cons (stmt-with-text *fib* "int x = 0")
+                          (stmt-with-text *fib* "x = x + y"))
+                    effective-a-pts))))))
 
 (deftest crossover-2pt-inward-collatz-test ()
   (with-fixture collatz-clang
@@ -3406,9 +3387,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *collatz* "int k = 0")
-                         (stmt-with-text *collatz* "return k"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *collatz* "int k = 0")
+                          (stmt-with-text *collatz* "return k"))
+                    effective-a-pts)))))
   (with-fixture collatz-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3425,9 +3406,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *collatz* "int k = 0")
-                         (stmt-with-text *collatz* "m = 3*m + 1"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *collatz* "int k = 0")
+                          (stmt-with-text *collatz* "m = 3*m + 1"))
+                    effective-a-pts)))))
   (with-fixture collatz-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3442,9 +3423,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *collatz* "int k = 0")
-                         (stmt-with-text *collatz* "++k"))
-                   effective-a-pts))))))
+        (is (equalp (cons (stmt-with-text *collatz* "int k = 0")
+                          (stmt-with-text *collatz* "++k"))
+                    effective-a-pts))))))
 
 (deftest crossover-2pt-inward-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -3462,9 +3443,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *soft* "int i")
-                         (stmt-with-text *soft* "return 0"))
-                   effective-a-pts)))))
+        (is (equalp (cons (stmt-with-text *soft* "int i")
+                          (stmt-with-text *soft* "return 0"))
+                    effective-a-pts)))))
   (with-fixture crossover-no-compound-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3480,8 +3461,26 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *soft* "int i")
-                         (stmt-with-text *soft* "printf(\"%d\\n\", i+j)"))
+        (is (equalp (cons (stmt-with-text *soft* "int i")
+                          (stmt-with-text *soft* "printf(\"%d\\n\", i+j)"))
+                    effective-a-pts)))))
+  (with-fixture crossover-no-compound-stmt-clang
+    (let ((*matching-free-var-retains-name-bias* 1.0))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover
+            (copy *soft*)
+            (copy *soft*)
+            (stmt-with-text *soft* "int i")
+            (stmt-starting-with-text *soft* "for (i = 0")
+            (stmt-with-text *soft* "int i")
+            (stmt-starting-with-text *soft* "for (i = 0"))
+        (declare (ignorable a-pts b-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equalp (cons (stmt-with-text *soft* "int i")
+                          (stmt-starting-with-text *soft* "for (i = 0"))
                    effective-a-pts)))))
   (with-fixture crossover-no-compound-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
@@ -3490,59 +3489,17 @@ Useful for printing or returning differences in the REPL."
             (copy *soft*)
             (copy *soft*)
             (stmt-with-text *soft* "int i")
-            (->> (stmt-asts *soft*)
-                 (remove-if-not [{string= "ForStmt"}
-                                 #'ast-class])
-                 (first)
-                 (ast-counter))
+            (stmt-starting-with-text *soft* "for (j = 0")
             (stmt-with-text *soft* "int i")
-            (->> (stmt-asts *soft*)
-                 (remove-if-not [{string= "ForStmt"}
-                                 #'ast-class])
-                 (first)
-                 (ast-counter)))
+            (stmt-starting-with-text *soft* "for (j = 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *soft* "int i")
-                         (->> (stmt-asts *soft*)
-                              (remove-if-not [{string= "ForStmt"}
-                                              #'ast-class])
-                              (first)
-                              (ast-counter)))
-                   effective-a-pts)))))
-  (with-fixture crossover-no-compound-stmt-clang
-    (let ((*matching-free-var-retains-name-bias* 1.0))
-      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
-          (intraprocedural-2pt-crossover
-            (copy *soft*)
-            (copy *soft*)
-            (stmt-with-text *soft* "int i")
-            (->> (stmt-asts *soft*)
-                 (remove-if-not [{string= "ForStmt"}
-                                 #'ast-class])
-                 (second)
-                 (ast-counter))
-            (stmt-with-text *soft* "int i")
-            (->> (stmt-asts *soft*)
-                 (remove-if-not [{string= "ForStmt"}
-                                 #'ast-class])
-                 (second)
-                 (ast-counter)))
-        (declare (ignorable a-pts b-pts))
-        (is ok)
-        (is (compile-p variant))
-        (is (= (length (stmt-asts *soft*))
-               (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *soft* "int i")
-                         (->> (stmt-asts *soft*)
-                              (remove-if-not [{string= "ForStmt"}
-                                              #'ast-class])
-                              (second)
-                              (ast-counter)))
-                   effective-a-pts))))))
+        (is (equalp (cons (stmt-with-text *soft* "int i")
+                          (stmt-starting-with-text *soft* "for (j = 0"))
+                    effective-a-pts))))))
 
 (deftest crossover-2pt-inward-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
@@ -3558,13 +3515,13 @@ Useful for printing or returning differences in the REPL."
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
-        (is (< (length (stmt-asts variant))
-               (length (stmt-asts *soft*))))
-        (is (equal (cons (stmt-with-text *soft*
-                                         "printf(\"%d\\n\", argc + argc)")
-                         (stmt-with-text *soft*
-                                         "printf(\"%d\\n\", argc * argc)"))
-                   effective-a-pts)))))
+        (is (= (length (stmt-asts *soft*))
+               (length (stmt-asts variant))))
+        (is (equalp (cons (stmt-with-text *soft*
+                                          "printf(\"%d\\n\", argc + argc)")
+                          (stmt-with-text *soft*
+                                          "printf(\"%d\\n\", argc * argc)"))
+                    effective-a-pts)))))
   (with-fixture crossover-switch-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -3580,9 +3537,9 @@ Useful for printing or returning differences in the REPL."
         (is (compile-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
-        (is (equal (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
-                         (stmt-with-text *soft* "return 0"))
-                   effective-a-pts))))))
+        (is (equalp (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
+                          (stmt-with-text *soft* "return 0"))
+                    effective-a-pts))))))
 
 (deftest basic-2pt-crossover-works ()
   (with-fixture scopes-clang
@@ -3598,7 +3555,7 @@ Useful for printing or returning differences in the REPL."
         (declare (ignorable a-pts b-pts))
         (is ok)
         (is (compile-p variant))
-        (is (equal effective-a-pts target-a-pts))))))
+        (is (equalp effective-a-pts target-a-pts))))))
 
 (deftest crossover-can-match-nesting ()
   (with-fixture scopes-clang
@@ -3615,7 +3572,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable variant a-pts b-pts))
         (is ok)
-        (is (equal effective-a-pts target-a-pts)))))
+        (is (equalp effective-a-pts target-a-pts)))))
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
            (a-stmt2 (stmt-with-text *scopes* "int e"))
@@ -3630,7 +3587,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable variant a-pts b-pts))
         (is ok)
-        (is (equal effective-a-pts target-a-pts))))))
+        (is (equalp effective-a-pts target-a-pts))))))
 
 (deftest crossover-can-rebind-text ()
   (with-fixture scopes-clang
@@ -3751,7 +3708,58 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
-               (length (asts variant))))))))
+               (length (asts variant)))))))
+  ;; Replace a single statement with multiple statements
+  (with-fixture scopes-clang
+    (let ((a-stmt (stmt-with-text *scopes* "int b"))
+          (b-stmt1 (stmt-with-text *scopes* "c = 10"))
+          (b-stmt2 (stmt-with-text *scopes* "g = 12")))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt a-stmt
+                                         b-stmt1 b-stmt2)
+        (declare (ignorable a-pts b-pts effective-a-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (> (length (asts variant))
+               (length (asts *scopes*))))
+        ;; a is the only var in scope so all these assignments should
+        ;; be rebound.
+        (is (stmt-with-text variant "a = 10"))
+        (is (stmt-with-text variant "a = 11"))
+        (is (stmt-with-text variant "a = 12"))
+        (is (not (stmt-with-text variant "int b"))))))
+  ;; Replace multiple statements with a single statement
+  (with-fixture scopes-clang
+    (let ((a-stmt1 (stmt-with-text *scopes* "int b"))
+          (a-stmt2 (stmt-with-text *scopes* "b = 1"))
+          (b-stmt (stmt-with-text *scopes* "e = 8")))
+      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
+          (intraprocedural-2pt-crossover *scopes* *scopes*
+                                         a-stmt1 a-stmt2
+                                         b-stmt b-stmt)
+        (declare (ignorable a-pts b-pts effective-a-pts))
+        (is ok)
+        (is (compile-p variant))
+        (is (< (length (asts variant))
+               (length (asts *scopes*))))
+        ;; a is the only var in scope so this assignment should
+        ;; be rebound.
+        (is (stmt-with-text variant "a = 8"))
+        (is (not (stmt-with-text variant "int b")))
+        (is (not (stmt-with-text variant "b = 1")))))))
+
+(deftest intraprocedural-2pt-crossover-does-not-crash ()
+  (with-fixture intraprocedural-2pt-crossover-bug-clang
+    (let ((variant (intraprocedural-2pt-crossover
+                     (copy *soft*)
+                     (copy *soft*)
+                     (stmt-with-text *soft* "printf(\"%d\\n\", argc + 1 < NUM)")
+                     (stmt-with-text *soft* "argc--")
+                     (stmt-with-text *soft* "printf(\"%d\\n\", argc + 1 < NUM)")
+                     (stmt-with-text *soft* "argc--"))))
+      (is (string/= (genome variant)
+                    "")))))
 
 
 (in-suite test)

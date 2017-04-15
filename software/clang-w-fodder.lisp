@@ -97,7 +97,7 @@ mutations.")
          (value (cond (same-class
                         (pick-snippet software
                                       :pt bad
-                                      :class (get-ast-class software bad)))
+                                      :class (ast-class bad)))
                       (full-stmt-p
                         (pick-snippet software :pt bad :full t))
                       (t

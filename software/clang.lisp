@@ -1513,6 +1513,12 @@ declarations onto multiple lines to ease subsequent decl mutations."))
     ;; Omit the root AST
     (cdr (helper (ast-root obj) nil))))
 
+(defmethod ast-at-index ((obj clang) index)
+  (nth index (asts obj)))
+
+(defmethod index-of-ast ((obj clang) (ast ast-ref))
+  (position ast (asts obj) :test #'equalp))
+
 (defmethod recontextualize ((clang clang) (ast ast-ref) (pt ast-ref))
   (bind-free-vars clang ast pt))
 
@@ -1559,13 +1565,6 @@ a 'no-mutation-targets exception if none are available.
           (expand-stmt-pool ()
             :report "Expand statement pool for filtering to all statement ASTs"
             (mutation-targets clang :filter filter))))))
-
-(defmethod get-ast-class ((clang clang) (stmt clang-ast))
-  (declare (ignorable clang))
-  (ast-class stmt))
-
-(defmethod get-ast-class ((clang clang) (stmt number))
-  (ast-class (get-ast clang stmt)))
 
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
@@ -1955,6 +1954,24 @@ Returns nil if no full-stmt parent is found."))
   (cond ((ast-full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
 
+(defgeneric stmt-range (software function)
+  (:documentation
+   "The indices of the first and last statements in a function.
+
+Return as a list of (first-index last-index). Indices are positions in
+the list returned by (asts software)."  ) )
+
+;; XXX: is this used anywhere except tests?
+(defmethod stmt-range ((software clang) (function ast-ref))
+  (labels
+      ((rightmost-child (ast)
+         (if-let ((children (get-immediate-children software ast)))
+           (rightmost-child (lastcar children))
+           ast)))
+    (when-let ((body (function-body software function)))
+      (mapcar {index-of-ast software}
+              (list body (rightmost-child body))))))
+
 (defgeneric wrap-ast (software ast)
   (:documentation "Wrap AST in SOFTWARE in a compound statement.
 Known issue with ifdefs -- consider this snippet:
@@ -2040,11 +2057,11 @@ made full by wrapping with curly braces, return that."))
        (get-parent-ast obj ast)
        (equal "CompoundStmt" (ast-class (get-parent-ast obj ast)))))
 
-(defmethod nesting-depth ((clang clang) index &optional orig-depth)
+(defmethod nesting-depth ((clang clang) stmt &optional orig-depth)
   (let ((depth (or orig-depth 0)))
-    (if (= 0 index)
+    (if (null stmt)
         depth
-        (nesting-depth clang (enclosing-block clang index) (1+ depth)))))
+        (nesting-depth clang (enclosing-block clang stmt) (1+ depth)))))
 
 (defmethod enclosing-block ((clang clang) (ast ast-ref))
   ;; First parent AST is self, skip over that.
@@ -2052,9 +2069,6 @@ made full by wrapping with curly braces, return that."))
 
 (defgeneric full-stmt-p (software statement)
   (:documentation "Check if STATEMENT is a full statement in SOFTWARE."))
-
-(defmethod full-stmt-p ((obj clang) (stmt number))
-  (ast-full-stmt (get-ast obj stmt)))
 
 (defmethod full-stmt-p ((obj clang) (stmt ast-ref))
   (declare (ignorable obj))
@@ -2132,31 +2146,86 @@ made full by wrapping with curly braces, return that."))
   (process-full-stmt-text (get-ast clang
                                    (enclosing-full-stmt clang raw-index))))
 
-(defmethod full-stmt-info ((clang clang) raw-index)
-  (let* ((index (enclosing-full-stmt clang raw-index)))
-    (if (or (null index) (= 0 index))
-        nil
-        (get-ast clang index))))
+;; XXX: we only need the last element of each sublist
+(defmethod full-stmt-predecessors ((clang clang) ast &optional acc blocks)
+  "All full statements and blocks preceeding AST.
+
+Predecessors are listed starting from the beginning of the containing
+function, and grouped by nesting level. The last statement of each
+sublist is the parent of the statements in the next sublist.
+
+Ends with AST.
+"
+
+  (if (not (ast-full-stmt ast))
+      ;; Reached a non-full statement. Go up to the enclosing
+      ;; statement.
+      (full-stmt-predecessors clang
+                              (enclosing-full-stmt clang ast)
+                              nil
+                              (cons (cons ast acc)
+                                    blocks))
+      (if (null (enclosing-block clang ast))
+          ;; We've made it to the top-level scope; return the accumulator
+          (if (null acc)
+              blocks
+              (cons acc blocks))
+          ;; Not at top level yet
+          (let ((prev-stmt (block-predeccessor clang ast))
+                (new-acc (cons ast acc)))
+            (if prev-stmt
+                ;; Middle of block. Accumulate and keep going.
+                (full-stmt-predecessors clang
+                                        prev-stmt
+                                        new-acc
+                                        blocks)
+                ;; Last statement in block. Move up a scope and push
+                ;; the accumulated statements onto the block stack.
+                (full-stmt-predecessors clang
+                                        (enclosing-block clang ast)
+                                        nil
+                                        (cons new-acc blocks)))))))
+
+(defmethod tree-successors ((ast ast-ref) (ancestor ast-ref) &key include-ast)
+  "Find all successors of AST within subtree at ANCESTOR.
+
+Returns ASTs and text snippets, grouped by depth. AST itself is
+included as the first successor."
+  (labels
+      ((successors (tree path)
+         (bind (((head . tail) path)
+                (children (cdr tree)))
+           (if tail
+               (cons (subseq children (1+ head))
+                     (successors (nth head children) tail))
+               (list (subseq children (if include-ast head (1+ head))))))))
+      (let* ((ast-path (ast-ref-path ast))
+          (rel-path (last ast-path
+                          (- (length ast-path)
+                             (length (ast-ref-path ancestor))))))
+        (reverse (successors (ast-ref-ast ancestor) rel-path)))))
 
 (defmethod full-stmt-successors
-    ((clang clang) index &optional do-acc acc blocks)
+    ((clang clang) ast &optional do-acc acc blocks)
   (labels ((add-closing-brace (acc)
-             (let ((block-index (enclosing-block clang index)))
+             (let ((the-block (enclosing-block clang ast)))
                (if (string= "CompoundStmt"
-                            (get-ast-class clang block-index))
-                   (append acc
-                           `(,(snippet->ast `((:counter . ,block-index)
-                                              (:src-text . "}")
-                                              (:ast-class . "CompoundStmt")))))
+                            (ast-class the-block))
+                   (append acc (list the-block)
+                           ;; XXX: this seems like it will be important later
+                           ;; `(,(snippet->ast `((:counter . ,the-block)
+                           ;;                    (:src-text . "}")
+                           ;;                    (:ast-class . "CompoundStmt"))))
+                           )
                    acc))))
-    (if (not (enclosing-block clang index))
+    (if (not (enclosing-block clang ast))
         ;; We've made it to the top-level scope; return the accumulator.
         (reverse (if (null acc)
                      blocks
                      (cons acc blocks)))
         ;; Not at the top-level scope yet; accumulate this statement/block.
-        (let* ((next-stmt (block-successor clang index))
-               (snippet (full-stmt-info clang index))
+        (let* ((next-stmt (block-successor clang ast))
+               (snippet (enclosing-full-stmt clang ast))
                (new-acc (if do-acc (cons snippet acc) acc)))
           (if next-stmt
               ;; We're not the last statement of the block. Accumulate
@@ -2172,27 +2241,27 @@ made full by wrapping with curly braces, return that."))
               (full-stmt-successors clang
                                     (enclosing-full-stmt clang
                                                          (enclosing-block clang
-                                                                          index))
+                                                                          ast))
                                     nil
                                     nil
                                     (cons (->> (reverse new-acc)
                                                (add-closing-brace))
                                           blocks)))))))
 
-(defun create-sequence-snippet (scopes &optional replacements)
+(defun create-sequence-snippet (obj scopes &optional replacements)
   (let (decls stmts types macros funcs vars)
     (iter (for scope in scopes) (as scope-depth from 0)
           (iter (for stmt in scope)
-                (pushnew (ast-counter stmt) stmts)
+                (pushnew stmt stmts)
                 (dolist (decl (ast-declares stmt))
                   (pushnew decl decls :test #'string=))
                 (dolist (type (ast-types stmt))
                   (pushnew type types))
                 (dolist (macro (ast-macros stmt))
                   (pushnew macro macros :test #'string= :key #'car))
-                (dolist (func (ast-unbound-funs stmt))
+                (dolist (func (get-unbound-funs obj stmt))
                   (pushnew func funcs :test #'string= :key #'car))
-                (dolist (var-def (ast-unbound-vals stmt))
+                (dolist (var-def (get-unbound-vals obj stmt))
                   (let* ((v (first var-def))
                          (already-seen (aget v vars)))
                     (when (or (not already-seen)
@@ -2201,7 +2270,12 @@ made full by wrapping with curly braces, return that."))
           (finally
            (return
              (let ((declared (mapcar {format nil "(|~a|)"} decls)))
-               `((:src-text
+               `((:stmts . ,scopes)
+
+                 ;; Old version: apply-replacements here just looks
+                 ;; like it's peeling bananas on variables names? Not
+                 ;; sure why.
+                 (:src-text
                   . ,(apply-replacements
                       (append replacements
                               (mapcar (lambda (d) (cons d (peel-bananas d)))
@@ -2392,7 +2466,7 @@ free variables.")
                            name)
                          (random-elt-with-decay
                           in-scope *free-var-decay-rate*)
-                         '("/* no bound vars in scope */" . 0)))))
+                         "/* no bound vars in scope */"))))
            (get-unbound-vals clang ast)))
          (fun-replacements
           (mapcar
@@ -2573,33 +2647,63 @@ depth)."))
 
 
 ;;; Crossover functions
-(defmethod prepare-sequence-snippet ((clang clang) end depth full-seq
-                                     &optional replacements)
-  (let ((last-seq (if (null end)
-                      nil
-                      (remove-if [{>= end} #'ast-counter]
-                                 (nth depth full-seq)))))
-    (if (and (equal (length full-seq) 1) (null last-seq))
-        `((:stmt2 . ,end) (:src-text . ""))
-        (let* ((initial-seq (loop :for scope :in full-seq
-                               :for i :from 0 :to (1- depth)
-                               :collecting scope))
-               (init (if (null initial-seq)
-                         (car last-seq)
-                         (caar initial-seq))))
-          (if (null init)
-              `((:stmt2 . ,end) (:src-text . ""))
-              (acons   :stmt1 (ast-counter init)
-                (acons :stmt2 (if (= 0 (length last-seq))
-                                  (if (= 0 depth)
-                                      end
-                                      (nth-enclosing-block clang (1- depth)
-                                                           (ast-counter init)))
-                                  (ast-counter (last-elt last-seq)))
-                       (acons :respect-depth t
-                              (create-sequence-snippet
-                               (append initial-seq (list last-seq))
-                               replacements)))))))))
+(defun create-crossover-context (clang outer start &key include-start)
+  "Create the context for a crossover snippet.
+
+Start at the outer AST and proceed forward/inward, copying all
+children before the start point of the crossover. This collects
+everything within the outer AST that will not be replaced by the
+crossover.
+
+Returns a list of parent ASTs from outer to inner, which are bare
+trees (not wrapped in ast-refs).
+"
+  (labels
+      ((copy-predecessors (root statements)
+         (if (eq root start)
+             (values nil (when include-start
+                           (list (ast-ref-ast root))))
+             (bind (((node . children) (ast-ref-ast root))
+                    ;; Last child at this level
+                    (last-child (lastcar (car statements)))
+                    ;; Position of last child in real AST child list
+                    (last-index (position-if {equalp (ast-ref-ast last-child)}
+                                             children))
+                    ((:values stack new-child)
+                     (copy-predecessors last-child (cdr statements)))
+                    (new-ast (cons node
+                                   ;; keep all but last, including text
+                                   (append (subseq children 0 last-index)
+                                           ;; copy last and update children
+                                           new-child))))
+               (values (cons new-ast stack) (list new-ast))))))
+
+    (let ((predecessors (full-stmt-predecessors clang start)))
+      (iter (until (or (some [{equalp outer} {get-parent-ast clang}]
+                             (car predecessors))
+                       (null predecessors)))
+            (pop predecessors))
+      (when predecessors
+        (copy-predecessors outer predecessors)))))
+
+(defun fill-crossover-context (context statements)
+  "Fill in context with ASTs from the other genome.
+
+Each element of CONTEXT is an incomplete AST which is missing some
+trailing children. Each element of STATEMENTS is a corresponding list
+of children.
+
+Returns outermost AST of context.
+"
+  ;; Reverse context so we're proceeding from the innermost AST
+  ;; outward. This ensures that the levels line up.
+  (iter (for parent in (reverse context))
+        (for children in statements)
+        (when children
+          (nconcf parent children)))
+
+  (when context
+    (car context)))
 
 ;; Perform 2-point crossover. The second point will be within the same
 ;; function as the first point, but may be in an enclosing scope.
@@ -2611,205 +2715,135 @@ depth)."))
 ;; Modifies parameter A.
 ;;
 (defmethod crossover-2pt-outward
-    ((a clang) (b clang) a-begin a-end b-begin)
-  (let* ((depth (- (nesting-depth a a-begin) (nesting-depth a a-end)))
-         (b-snippet (prepare-sequence-snippet b
-                                              infinity
-                                              depth
-                                              (full-stmt-successors b
-                                                                    b-begin
-                                                                    t))))
-    ;; Now generate text for the recontextualized b-snippet.
-    (update-headers-from-snippet a b-snippet b)
-    (multiple-value-bind (text replacements)
-        (bind-free-vars a b-snippet a-begin)
-      (list (cons :src-text text)
-            (cons :replacements replacements)
-            (cons :stmt1 a-begin)
-            (cons :stmt2 a-end)))))
+    ((a clang) (b clang) a-begin a-end b-begin b-end)
+  (let* ((outer (common-ancestor a a-begin a-end))
+         (context (create-crossover-context a outer a-begin :include-start nil))
+         (b-stmts (-<>> (common-ancestor b b-begin b-end)
+                       (get-parent-ast b)
+                       (tree-successors b-begin <> :include-ast t)))
+         (value1 (-<>> (fill-crossover-context context b-stmts)
+                       ;; Special case if replacing a single statement
+                       (or <> ( car (car b-stmts)))
+                       (make-ast-ref :ast <>)
+                       (recontextualize a <> a-begin))))
+
+    `((:stmt1  . ,outer)
+      (:value1 . ,value1))))
+
+;; Perform 2-point crossover. The second point will be within the same
+;; function as the first point, but may be in an inner scope. The
+;; number of scopes entered as you go from the first crossover point
+;; to the second crossover point will be matched between a and b.
+;; Free variables are rebound in such a way as to ensure that they are
+;; bound to variables that are declared at each point of use.
+;;
+;; Modifies parameter A.
+;;
+(defmethod crossover-2pt-inward
+    ((a clang) (b clang) a-begin a-end b-begin b-end)
+  (labels
+      ((child-index (parent child)
+         "Position of CHILD within PARENT."
+         (assert (equal (ast-ref-path parent)
+                        (butlast (ast-ref-path child))))
+         (lastcar (ast-ref-path child)))
+       (outer-ast (obj begin end)
+         "AST which strictly encloses BEGIN and END."
+         (let ((ancestor (common-ancestor obj begin end)))
+           (if (equalp ancestor begin)
+               (get-parent-ast obj ancestor)
+               ancestor)))
+       (splice-snippets (a-outer b-outer b-inner b-snippet)
+         ;; Splice b-snippet into a-outer.
+         (bind (((node . children) (ast-ref-ast a-outer))
+                (a-index1 (child-index a-outer a-begin))
+                (a-index2 (1+ (child-index a-outer
+                                           (ancestor-after a a-outer a-end))))
+                (b-index1 (child-index b-outer b-begin))
+                (b-index2 (child-index b-outer b-inner))
+                (tree (cons node
+                            (append
+                             ;; A children before the crossover
+                             (subseq children 0 a-index1)
+                             ;; B children up to the inner snippet
+                             (subseq (cdr (ast-ref-ast b-outer))
+                                     b-index1 (if b-snippet b-index2
+                                                  (1+ b-index2)))
+                             ;; The inner snippet if it exists
+                             (when b-snippet (list b-snippet))
+                             ;; A children after the crossover
+                             (subseq children a-index2)))))
+           (make-ast-ref :path nil :ast tree))))
+    (let* ((a-outer (outer-ast a a-begin a-end))
+           (b-outer (outer-ast b b-begin b-end))
+           (b-inner (ancestor-after b b-outer b-end))
+           (context (create-crossover-context b b-inner b-end :include-start t))
+           (a-stmts (->> (common-ancestor a a-begin a-end)
+                         (get-parent-ast a)
+                         (tree-successors a-end)))
+           ;; Build snippet starting a b-outer.
+           (b-snippet (fill-crossover-context context a-stmts))
+           ;; Splice into a-outer to get complete snippet
+           (whole-snippet (splice-snippets a-outer b-outer b-inner b-snippet)))
+
+      `((:stmt1  . ,a-outer)
+        (:value1 . ,(recontextualize a whole-snippet a-begin))))))
+
+
+(defun combine-snippets (obj inward-snippet outward-snippet)
+  (let* ((outward-stmt1 (aget :stmt1 outward-snippet))
+         (outward-value1 (aget :value1 outward-snippet))
+         (inward-stmt1 (aget :stmt1 inward-snippet))
+         (inward-value1 (aget :value1 inward-snippet)))
+   (flet
+       ((replace-in-snippet (outer-stmt inner-stmt value)
+          (assert (not (equalp outer-stmt inner-stmt)))
+          (let* ((inner-path (ast-ref-path inner-stmt))
+                 (outer-path (ast-ref-path outer-stmt))
+                 (rel-path (last inner-path
+                                 (- (length inner-path) (length outer-path)))))
+            (replace-ast (ast-ref-ast outer-stmt)
+                         (make-ast-ref :path rel-path)
+                         value))))
+
+     (cond
+       ((null inward-snippet) outward-snippet)
+       ((null outward-snippet) inward-snippet)
+       ;; Insert value for outward snippet into inward snippet
+       ((ancestor-of obj inward-stmt1 outward-stmt1)
+        (replace-in-snippet inward-stmt1 outward-stmt1 outward-value1)
+        inward-snippet)
+
+       ;; Insert value for inward snippet into outward snippet
+       ((ancestor-of obj outward-stmt1 inward-stmt1)
+        (replace-in-snippet outward-stmt1 inward-stmt1 inward-value1)
+        outward-snippet)
+
+       (t
+        (let* ((ancestor (common-ancestor obj outward-stmt1 inward-stmt1))
+               (value1 (make-ast-ref :ast (copy-ast-tree (ast-ref-ast ancestor))
+                                     :path (ast-ref-path ancestor))))
+          (replace-in-snippet value1 inward-stmt1 inward-value1)
+          (replace-in-snippet value1 outward-stmt1 outward-value1)
+          `((:stmt1 . ,ancestor) (:value1 . ,value1))))))))
+
+(defmethod update-headers-from-ast ((clang clang) (ast ast-ref) type-database)
+  (labels
+      ((update (tree)
+         (destructuring-bind (ast . children) tree
+           (mapc {add-include clang} (ast-includes ast))
+           (mapc [{add-type clang} {find-type type-database}]
+                 (ast-types ast))
+           (mapc {apply #'add-macro clang} (ast-macros ast))
+           (mapc #'update (remove-if-not #'listp children)))))
+    (update (ast-ref-ast ast))))
 
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
 ;; On failure, just return STMT again.
-(defmethod ancestor-after ((clang clang) ancestor stmt)
+(defmethod ancestor-after ((clang clang) (ancestor ast-ref) (stmt ast-ref))
   (or (->> (get-parent-asts clang stmt)
            (find-if [{equalp ancestor} {get-parent-ast clang}]))
       stmt))
-
-(defmethod stmt-text-minus ((clang clang) stmt child)
-  (let ((haystack (get-ast-text clang stmt))
-        (needle (get-ast-text clang child)))
-    (apply-replacements (list (cons needle "")) haystack)))
-
-(defmethod create-inward-snippet ((clang clang) stmt1 stmt2
-                                  &optional replacements)
-  (multiple-value-bind (text defns vals funs macros includes types)
-      (prepare-inward-snippet clang stmt1 stmt2 '())
-    `((:stmt1        . ,(enclosing-full-stmt clang stmt1))
-      (:stmt2        . ,(enclosing-full-stmt clang stmt2))
-      (:src-text     . ,(apply-replacements replacements text))
-      (:macros       . ,macros)
-      (:includes     . ,includes)
-      (:types        . ,types)
-      (:unbound-vals . ,vals)
-      (:unbound-funs . ,funs)
-      (:scope-adjustments
-       . ,(loop :for scoped-defns
-                :on (reverse (if (block-p clang stmt1)
-                                 (cons '() defns)
-                                 defns))
-                :collecting (apply #'append scoped-defns))))))
-
-(defmethod prepare-inward-snippet
-    ((clang clang) stmt1 stmt2 defns)
-  (cond
-    ((null stmt1)
-     (values "" nil nil nil nil nil nil))
-    ((and (not (= stmt1 stmt2))
-          (equal (get-ast-class clang stmt1) "CompoundStmt"))
-     (multiple-value-bind (text more-defns vals funs macros includes types)
-         (prepare-inward-snippet clang
-                                 (car (ast-stmt-list (get-ast clang stmt1)))
-                                 stmt2
-                                 defns)
-       (values (format nil "{~%~a" text)
-               more-defns
-               vals
-               funs
-               macros
-               includes
-               types)))
-    (t
-     (let* ((local-defns '())
-            (local-free-vars '())
-            (local-free-funs '())
-            (local-macros '())
-            (local-includes '())
-            (local-types '())
-            (full-stmt1 (enclosing-full-stmt clang stmt1))
-            (the-parent (aget :counter (get-parent-ast clang full-stmt1)))
-            (stmt2-ancestor (ancestor-after clang the-parent stmt2))
-            (stmts (remove-if-not
-                    (lambda (pt) (and (<= full-stmt1 pt)
-                                      (< pt stmt2-ancestor)))
-                    (->> (if (= 0 the-parent) '() (get-ast clang the-parent))
-                         (ast-children)))))
-       (when (= the-parent (ast-get :counter (get-parent-ast clang stmt2)))
-         (appendf stmts (list stmt2)))
-       (loop :for stmt :in stmts
-          :when (ast-declares (get-ast clang stmt))
-          :do (loop :for decl :in (ast-declares (get-ast clang stmt))
-                 :do (progn
-                       (push decl defns)
-                       (push decl local-defns))))
-       (loop :for stmt :in (cons stmt2-ancestor stmts)
-          :do (let ((ast (get-ast clang stmt)))
-                (loop :for var :in (ast-unbound-vals ast)
-                   :when (not (find (peel-bananas (car var)) defns
-                                    :test #'equal))
-                   :do (push var local-free-vars))
-                (setf local-free-funs (append local-free-funs
-                                              (ast-unbound-funs ast)))
-                (setf local-macros (append local-macros
-                                           (ast-macros ast)))
-                (setf local-includes (append local-includes
-                                             (ast-includes ast)))
-                (setf local-types (append local-types
-                                          (ast-types ast)))))
-       (let* ((defn-replacements
-               (mapcar (lambda (x) (cons (format nil "(|~a|)" x) x)) defns))
-              (stmts-text (loop :for stmt :in stmts
-                                :collecting
-                                 (->> (enclosing-full-stmt clang stmt)
-                                      (get-ast clang)
-                                      (process-full-stmt-text)
-                                      (apply-replacements defn-replacements))))
-              (text (if (= the-parent
-                           (aget :counter (get-parent-ast clang stmt2)))
-                        (unlines stmts-text)
-                        (format nil "~{~a~%~}~a"
-                                stmts-text
-                                (->> (ancestor-after clang stmt2-ancestor stmt2)
-                                     (stmt-text-minus clang stmt2-ancestor)
-                                     (apply-replacements defn-replacements))))))
-         (if (= the-parent (aget :counter (get-parent-ast clang stmt2)))
-             (values text
-                     (list local-defns)
-                     (remove-duplicates local-free-vars :test #'equal
-                                                        :key #'car)
-                     (remove-duplicates local-free-funs :test #'equal
-                                                        :key #'car)
-                     (remove-duplicates local-macros :test #'equal
-                                                     :key #'car)
-                     (remove-duplicates local-includes :test #'equal)
-                     (remove-duplicates local-types :test #'equal))
-             (multiple-value-bind (more-text more-defns)
-                 (prepare-inward-snippet clang
-                                         (ancestor-after clang
-                                                         stmt2-ancestor
-                                                         stmt2)
-                                         stmt2 defns)
-               (values (concatenate 'string text more-text)
-                       (if (block-p clang the-parent)
-                           (cons local-defns more-defns)
-                           (cons (append local-defns (car more-defns))
-                                 (cdr more-defns)))
-                       (remove-duplicates local-free-vars :test #'equal
-                                                          :key #'car)
-                       (remove-duplicates local-free-funs :test #'equal
-                                                          :key #'car)
-                       (remove-duplicates local-macros :test #'equal
-                                                       :key #'car)
-                       (remove-duplicates local-includes :test #'equal)
-                       (remove-duplicates local-types :test #'equal)))))))))
-
-(defmethod crossover-2pt-inward ((a clang) (b clang) a-range b-range
-                                 &optional replacements)
-  (let* ((a-begin (car a-range))
-         (a-end (cdr a-range))
-         (b-begin (car b-range))
-         (b-end (cdr b-range))
-         (a-snippet (create-inward-snippet a a-begin a-end replacements))
-         (b-snippet (create-inward-snippet b b-begin b-end replacements))
-         (succ (if a-snippet
-                   (full-stmt-successors a
-                                         (aget :stmt2 a-snippet)
-                                         t)
-                   nil))
-         (removals (loop :for vars
-                      :in (aget :scope-adjustments a-snippet)
-                      :for index :from 0
-                      :collecting (list index vars)))
-         (additions (loop :for vars
-                       :in (aget :scope-adjustments b-snippet)
-                       :for index :from 0
-                       :collecting (list index vars)))
-         (b-data (multiple-value-bind (b-text b-repl)
-                     (bind-free-vars a b-snippet (aget :stmt1 a-snippet))
-                   (cons b-text b-repl)))
-         (tail (acons  :scope-removals removals
-                (acons :scope-additions additions
-                  (prepare-sequence-snippet
-                   a
-                   a-end
-                   (1- (length (aget :scope-adjustments b-snippet)))
-                   (cons (cdar succ) (cdr succ))
-                   (cdr b-data)))))
-         (snippet
-          `((:src-text
-             . ,(format nil "~a~%~a"
-                        (car b-data)
-                        (bind-free-vars a
-                                        tail
-                                        (aget :stmt2 a-snippet))))
-            (:macros       . ,(aget :macros b-snippet))
-            (:includes     . ,(aget :includes b-snippet))
-            (:types        . ,(aget :types b-snippet))
-            (:unbound-vals . ,(aget :unbound-vals tail))
-            (:unbound-funs . ,(aget :unbound-funs tail)))))
-    (update-headers-from-snippet a snippet b)
-    `((:src-text . ,(aget :src-text snippet))
-      (:stmt1    . ,(aget :stmt1 a-snippet))
-      (:stmt2    . ,(aget :stmt2 tail)))))
 
 (defmethod common-ancestor ((clang clang) x y)
   (let* ((x-ancestry (get-parent-asts clang x))
@@ -2826,28 +2860,23 @@ depth)."))
   (equalp (common-ancestor clang x y) x))
 
 (defmethod scopes-between ((clang clang) stmt ancestor)
-  (length (remove-if
-           (lambda (ast)
-             (or (>= (ast-counter ast) stmt)
-                 (< (ast-counter ast) ancestor)
-                 (not (block-p clang ast))))
-           (->> (enclosing-full-stmt clang stmt)
-                (get-ast clang)
-                (get-parent-asts clang)))))
+  (iter (for ast in (get-parent-asts clang stmt))
+                (counting (block-p clang ast))
+                (until (equalp ast ancestor))))
 
 (defmethod nesting-relation ((clang clang) x y)
   (if (or (null x) (null y)) nil
       (let* ((ancestor (common-ancestor clang x y)))
         (cond
-          ((= x ancestor) (cons 0 (scopes-between clang y ancestor)))
-          ((= y ancestor) (cons (scopes-between clang x ancestor) 0))
+          ((equalp x ancestor) (cons 0 (scopes-between clang y ancestor)))
+          ((equalp y ancestor) (cons (scopes-between clang x ancestor) 0))
           (t
            ;; If the two crossover points share a CompoundStmt as the
            ;; common ancestor, then you can get from one to the other
            ;; without passing through the final set of braces.  To
            ;; compensate, we subtract one from the number of scopes
            ;; that must be traversed to get from X to Y.
-           (let ((correction (if (equal (get-ast-class clang ancestor)
+           (let ((correction (if (equal (ast-class ancestor)
                                         "CompoundStmt")
                                  1 0)))
              (cons (- (scopes-between clang x ancestor) correction)
@@ -2861,13 +2890,13 @@ depth)."))
   (let* ((ancestor (common-ancestor clang x y))
          (stmt (ancestor-after clang ancestor x)))
     (cond
-      ((= x y)
+      ((equalp x y)
        (values nil (cons x y)))
-      ((= y ancestor)
+      ((equalp y ancestor)
        (values (cons x y) nil))
-      ((= x ancestor)
+      ((equalp x ancestor)
        (values nil (cons x y)))
-      ((= x stmt)
+      ((equalp x stmt)
        (values nil (cons x y)))
       (t
        (values (cons x stmt)
@@ -2878,14 +2907,10 @@ depth)."))
          (x-rel (nesting-relation a (car xs) (cdr xs)))
          (y-rel (nesting-relation b (car ys) (cdr ys)))
          ;; Parent statements of points in xs, ys
-         (xps (cons (enclosing-full-stmt a
-                      (ast-parent-counter (get-ast a (car xs))))
-                    (enclosing-full-stmt a
-                      (ast-parent-counter (get-ast a (cdr xs))))))
-         (yps (cons (enclosing-full-stmt b
-                      (ast-parent-counter (get-ast b (car ys))))
-                    (enclosing-full-stmt b
-                      (ast-parent-counter (get-ast b (cdr ys)))))))
+         (xps (cons (enclosing-full-stmt a (get-parent-ast a (car xs)))
+                    (enclosing-full-stmt a (get-parent-ast a (cdr xs)))))
+         (yps (cons (enclosing-full-stmt b (get-parent-ast b (car ys)))
+                    (enclosing-full-stmt b (get-parent-ast b (cdr ys))))))
     ;; If nesting relations don't match, replace one of the points with
     ;; its parent's enclosing full statement and try again.
     (cond
@@ -2911,28 +2936,28 @@ depth)."))
     (multiple-value-bind (a-out b-out a-in b-in)
         (match-nesting a (cons a-begin a-end)
                        b (cons b-begin b-end))
+
       (let* ((outward-snippet
-              (if (or (null a-out) (null b-out))
-                  '((:src-text . ""))   ; No corresponding text from a or b
-                  (crossover-2pt-outward variant b
-                                         (car a-out) (cdr a-out)
-                                         (car b-out))))
+              (when (and a-out b-out)
+                (crossover-2pt-outward variant b
+                                       (car a-out) (cdr a-out)
+                                       (car b-out) (cdr b-out))))
              (inward-snippet
-              (if (or (null (car a-in)) (null (car b-in)))
-                  '((:src-text . ""))   ; No corresponding text from a or b
-                  (crossover-2pt-inward variant b
-                                        a-in b-in
-                                        (aget :replacements outward-snippet)))))
-        (apply-mutation
+              (when (and (car a-in) (car b-in))
+                (crossover-2pt-inward variant b
+                                       (car a-in) (cdr a-in)
+                                       (car b-in) (cdr b-in))))
+             (complete-snippet (combine-snippets a inward-snippet
+                                                 outward-snippet)))
+
+
+        (update-headers-from-ast a (aget :value1 complete-snippet) b)
+
+        (apply-mutation-ops
          variant
-         `(clang-set-range
-           (:stmt1 . ,(or (aget :stmt1 outward-snippet)
-                          (aget :stmt1 inward-snippet)))
-           (:stmt2 . ,(or (aget :stmt2 inward-snippet)
-                          (aget :stmt2 outward-snippet)))
-           (:value1 . ,(concatenate 'string
-                                    (aget :src-text outward-snippet)
-                                    (aget :src-text inward-snippet)))))
+         `((:set (:stmt1  . ,(aget :stmt1 complete-snippet))
+                 (:value1 . ,(aget :value1 complete-snippet)))))
+
         (values variant
                 (cons a-begin a-end)
                 (cons b-begin b-end)
@@ -2948,8 +2973,10 @@ full statements"))
 
 (defmethod adjust-stmt-range ((clang clang) start end)
   (when (and start end)
-    (let ((stmt1 (enclosing-full-stmt clang start))
-          (stmt2 (enclosing-full-stmt clang end)))
+    (let* ((stmt1 (enclosing-full-stmt clang (ast-at-index clang start)))
+           (stmt2 (enclosing-full-stmt clang (ast-at-index clang end)))
+           (position1 (index-of-ast clang stmt1))
+           (position2 (index-of-ast clang stmt2)))
       (cond ((not (and stmt1 stmt2))
              ;; If either of STMT1 or STMT2 are nil, then most likely
              ;; START or END aren't valid stmt-asts.  In this case we
@@ -2957,23 +2984,22 @@ full statements"))
              ;; simply return STMT1 and STMT2.
              (warn "Unable to find enclosing full statements for ~a and/or ~a."
                    start end)
-             (values stmt1 stmt2))
+             (values position1 position2))
             ((or (ancestor-of clang stmt1 stmt2)
                  (ancestor-of clang stmt2 stmt1))
-             (values stmt1 stmt2))
-            ((< stmt2 stmt1)
-             (values stmt2 stmt1))
+             (values position1 position2))
+            ((< position2 position1)
+             (values position2 position1))
             (t
-             (values stmt1 stmt2))))))
+             (values position1 position2))))))
 
 (defgeneric random-point-in-function (software prototype)
   (:documentation
    "Return the index of a random point in PROTOTYPE in SOFTWARE.
 If PROTOTYPE has an empty function body in SOFTWARE return nil."))
 
-(defmethod random-point-in-function ((clang clang) proto)
-  (let ((first (first (ast-stmt-range proto)))
-        (last  (second (ast-stmt-range proto))))
+(defmethod random-point-in-function ((clang clang) function)
+  (destructuring-bind (first last) (stmt-range clang function)
     (if (equal first last) nil
         (+ (1+ first) (random (- last first))))))
 
@@ -2984,11 +3010,9 @@ another point within the same function.  If there are no ASTs
 within a function body, return null."))
 
 (defmethod select-intraprocedural-pair ((clang clang))
-  (when-let (stmt1 (&>> (remove-if {function-body-p clang} (stmt-asts clang)
-                                   :key #'ast-counter)
-                        (random-elt)
-                        (ast-counter)))
-    (values stmt1
+  (when-let (stmt1 (&>> (remove-if {function-body-p clang} (stmt-asts clang))
+                        (random-elt)))
+    (values (index-of-ast clang stmt1)
             (random-point-in-function
              clang
              (function-containing-ast clang stmt1)))))
@@ -3017,7 +3041,9 @@ within a function body, return null."))
     (if (and a-stmt1 a-stmt2 b-stmt1 b-stmt2)
         (multiple-value-bind (crossed a-point b-point changedp)
             (intraprocedural-2pt-crossover
-             a b a-stmt1 a-stmt2 b-stmt1 b-stmt2)
+             a b
+             (ast-at-index a a-stmt1) (ast-at-index a a-stmt2)
+             (ast-at-index b b-stmt1) (ast-at-index b b-stmt2))
           (if changedp
               (values crossed a-point b-point)
               (values crossed nil nil)))
@@ -3031,7 +3057,7 @@ within a function body, return null."))
   (find-if #'ast-body (get-parent-asts clang ast)))
 
 (defmethod function-body-p ((clang clang) stmt)
-  (find-if [{= stmt} #'ast-body] (functions clang)))
+  (find-if [{equalp stmt} {function-body clang}] (functions clang)))
 
 
 ;;; Clang methods
