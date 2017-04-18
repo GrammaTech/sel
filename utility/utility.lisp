@@ -38,18 +38,6 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
-(defun getenv (name &optional default)
-  #-(or allegro clisp ecl lispworks sbcl ccl)
-  (error "getenv not implemented for ~a"
-         (lisp-implementation-type))
-  (or #+allegro (sys:getenv name)
-      #+clisp (ext:getenv name)
-      #+ecl (si:getenv name)
-      #+lispworks (lispworks:environment-variable name)
-      #+sbcl (sb-ext:posix-getenv name)
-      #+ccl  (uiop/os:getenv name)
-      default))
-
 (defun quit (&optional (errno 0))
   #+sbcl (sb-ext:exit :code errno)
   #+ccl  (ccl:quit errno))
@@ -194,6 +182,16 @@ and an optional extension."
     ((pathnamep path) (namestring path))
     (:otherwise (error "Path not string ~S." path))))
 
+(defun in-directory (directory path)
+  (make-pathname
+   :host (pathname-host directory)
+   :device (pathname-device directory)
+   :directory (append (pathname-directory directory)
+                      (cdr (pathname-directory path)))
+   :name (pathname-name path)
+   :type (pathname-type path)
+   :version (pathname-version path)))
+
 
 ;;; Shell and system command helpers
 (defvar *work-dir* nil)
@@ -299,14 +297,6 @@ list of (name value) pairs."
         (error "shell command '~a' failed: ~a ~a"
                (apply #'format nil args)
                stdout stderr))))
-
-
-(defun cp-file (from to)
-  "copy file using 'cp'
-
-  Unlike alexandria's copy-file, this keeps permissions. "
-  (shell-check "cp -r ~a ~a" from to)
-  to)
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)

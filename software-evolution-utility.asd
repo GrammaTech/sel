@@ -3,6 +3,7 @@
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
+               uiop
                metabang-bind
                curry-compose-reader-macros
                cl-arrows
