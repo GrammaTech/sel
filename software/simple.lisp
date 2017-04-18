@@ -70,13 +70,15 @@
   ;; handle multi-file individuals differently
   (if (assoc :path (car (genome simple)))
       ;; if multi-file, then assume FILE is a directory path
-      (let ((base (unless (equal #\/ (aref file (1- (length file))))
-                    (concatenate 'string file "/")))
+      (let ((base (ensure-directory-pathname file))
             path lines paths)
         (flet ((flush ()
                  (prog1 (push (string-to-file
                                (format nil "~{~a~%~}" (nreverse lines))
-                               (concatenate 'string base path)) paths)
+                               (make-pathname
+                                :directory (pathname-directory base)
+                                :name path))
+                              paths)
                    (setf lines nil path nil))))
           (loop :for el :in (genome simple) :do
              (if (assoc :path el)

@@ -4,6 +4,7 @@
   (:use
    :alexandria
    :closer-mop
+   :uiop
    :bordeaux-threads
    :common-lisp
    :cl-arrows
@@ -18,12 +19,16 @@
    :split-sequence
    :software-evolution-utility
    :usocket)
-  (:shadow :elf :size :type :magic-number :diff :insert :project)
+  (:shadow :elf :size :type :magic-number :diff :insert :project :quit)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
+  (:shadowing-import-from
+   :alexandria
+   :appendf :ensure-list :featurep :emptyp
+   :if-let :ensure-function :ensure-gethash :copy-file)
   (:export
    :+software-evolution-version+
    ;; software objects

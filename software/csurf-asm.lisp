@@ -37,7 +37,8 @@ Redirect ELF COPY relocations and associated symbols, for entries
 described in redirect-file.  Requires GT_HOME environment variable to be
 set."
   (shell "~a -v -s ~a ~a"
-         (concatenate 'string *gt-home* "/libswyx/src/exe_map/elf_copy_redirect")
+         (namestring
+          (in-directory *gt-home* "/libswyx/src/exe_map/elf_copy_redirect"))
          redirect-file elf-file))
 
 (defmethod phenome ((asm csurf-asm) &key (bin (temp-file-name)))

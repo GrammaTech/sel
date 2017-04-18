@@ -3,6 +3,7 @@
   (:use
    :common-lisp
    :alexandria
+   :uiop
    :metabang-bind
    :curry-compose-reader-macros
    :iterate
@@ -14,6 +15,10 @@
    :diff)
   (:shadow :quit)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
+  (:shadowing-import-from
+   :alexandria
+   :appendf :ensure-list :featurep :emptyp
+   :if-let :ensure-function :ensure-gethash :copy-file)
   (:export
    :infinity
    ;; OS
@@ -32,6 +37,7 @@
    :with-temp-file-of-bytes
    :with-temp-files
    :ensure-path-is-string
+   :in-directory
    ;; :from-bytes
    ;; :to-bytes
    :*work-dir*
@@ -43,7 +49,6 @@
    :shell-with-input
    :shell-with-env
    :shell-check
-   :cp-file
    :write-shell-file
    :read-shell-file
    :*bash-shell*

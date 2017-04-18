@@ -215,27 +215,19 @@ the underlying software objects."
 
 (defvar *build-dir* nil "Directory in which to build projects")
 
-(defun make-build-dir (src-dir &key path)
+(defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
-  (let* ((path (and path (concatenate 'string path "/")))
-         (parent-dir (and path
-                          (make-pathname
-                            :directory (butlast (pathname-directory path)))))
-         (build-dir (or path (temp-file-name))))
-    (when (and parent-dir (not (probe-file parent-dir)))
-      ;; verify parent directory exists, otherwise the copy will fail
-      (shell-check "mkdir -p ~a" parent-dir))
-    (shell-check "cp -r ~a ~a" src-dir build-dir)
-    build-dir))
-
-(defun remove-build-dir (build-dir)
-  "Remove a temporary build directory."
-  (shell-check "rm -rf ~a" build-dir))
+  (let ((dir (ensure-directory-pathname path)))
+    ;; Verify parent directory exists, otherwise the copy will fail.
+    (ensure-directories-exist (pathname-parent-directory-pathname dir))
+    ;; Copy from src-dir into path.
+    (shell-check "cp -r ~a ~a" (namestring src-dir) (namestring dir))
+    dir))
 
 (defun full-path (rel-path)
   "Prepend current build directory to a relative path."
   (assert *build-dir*)
-  (concatenate 'string *build-dir* "/" rel-path))
+  (in-directory *build-dir* rel-path))
 
 (defmacro with-build-dir ((build-dir) &body body)
   "Rebind *build-dir* within BODY"
@@ -246,22 +238,23 @@ the underlying software objects."
   "Create a temporary copy of src-dir, and rebind *build-dir* to that
 path within BODY."
   (let ((build-dir (gensym)))
-    `(let ((,build-dir (if ,src-dir (make-build-dir ,src-dir))))
+    `(let ((,build-dir (when ,src-dir (make-build-dir ,src-dir))))
        (unwind-protect (with-build-dir (,build-dir) ,@body)
-         (remove-build-dir ,build-dir)))))
+         (delete-directory-tree ,build-dir)))))
 
-(defmethod phenome ((obj project) &key bin)
+(defmethod phenome ((obj project) &key (bin (temp-file-name)))
   (write-genome-to-files obj)
 
   ;; Build the object for fitness testing and copy it to desired location
-  (let ((bin (or bin (temp-file-name))))
-
-    (bind (((:values stdout stderr exit)
-            (shell "cd ~a && ~a ~a" *build-dir*
-                   (build-command obj) (build-target obj))))
-      (values
-       (if (zerop exit) (cp-file (full-path (build-target obj)) bin) bin)
-       exit
-       stderr
-       stdout
-       (mapcar [#'full-path #'first] (evolve-files obj))))))
+  (multiple-value-bind (stdout stderr exit)
+      (shell "cd ~a && ~a ~a" *build-dir*
+             (build-command obj) (build-target obj))
+    (values
+     (prog1 bin
+       (when (zerop exit)
+         (shell-check "cp -r ~a ~a"
+                      (namestring (full-path (build-target obj))) bin)))
+     exit
+     stderr
+     stdout
+     (mapcar [#'full-path #'first] (evolve-files obj)))))
