@@ -277,16 +277,12 @@ and an optional extension."
             (values stdout stderr errno)))))
 
 (defun shell-with-env (env command-format &rest format-args)
-  "Run a shell command with environment variables set. ENV should be a
-list of (name value) pairs."
-
-  ;; Quotes embedded in the command will screw up our quoting
-  ;; below. We could try to escape them, not bothering for now.
-  (let* ((command (apply {format nil command-format} format-args))
-         (command_esc (replace-all command "\"" "\\\"")))
-    (multiple-value-prog1 (shell "~{~a ~}sh -c \"~a\""
-                                 (mapcar {apply {format nil "~a=~a"}} env)
-                                 command_esc))))
+  "Run a shell command with environment variables set.
+ENV should be a list of (name value) lists."
+  (apply #'shell
+         (concatenate 'string "env ~{~a ~} " command-format)
+         (mapcar {apply {format nil "~a=~a"}} env)
+         format-args))
 
 (defun shell-check (&rest args)
   "Run shell command and raise error on non-zero exit"
