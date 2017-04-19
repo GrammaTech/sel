@@ -190,6 +190,11 @@
   :test #'equalp
   :documentation "Location of the clang-tidy example dir")
 
+(define-constant +type-of-var-dir+
+    (append +etc-dir+ (list "type-of-var"))
+  :test #'equalp
+  :documentation "Location of the type-of-var example dir")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -264,6 +269,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +clang-tidy-dir+))
+
+(defun type-of-var-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +type-of-var-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -582,6 +592,16 @@
                        :compiler "clang"
                        :flags '("-m32" "-O0" "-g"))
                      (clang-tidy-dir "tidy-adds-braces.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture type-of-var-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g"))
+                     (type-of-var-dir "type-of-var.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -1686,6 +1706,34 @@ is not to be found"
       (multiple-value-bind (obj errno) (clang-format (copy *hello-world*))
         (is (zerop errno))
         (is (string= (run *hello-world*) (run obj)))))))
+
+(deftest type-of-var-returns-correct-type ()
+  (with-fixture type-of-var-clang
+    (let ((var-type1 (type-of-var *soft* "a"
+                                  (stmt-with-text *soft* "return 0")))
+          (var-type2 (type-of-var *soft* "a"
+                                  (stmt-with-text *soft* "return 1")))
+          (var-type3 (type-of-var *soft* "a"
+                                  (stmt-with-text *soft* "return 2")))
+          (var-type4 (type-of-var *soft* "a"
+                                  (stmt-with-text *soft* "int a[N][N]")))
+          (var-type5 (type-of-var *soft* "b"
+                                  (stmt-with-text *soft* "int **b"))))
+      (is (equal "[][]" (aget :array var-type1)))
+      (is (equal ""     (aget :array var-type2)))
+      (is (equal "[][]" (aget :array var-type3)))
+      (is (equal "[][]" (aget :array var-type4)))
+      (is (equal ""     (aget :array var-type5)))
+      (is (equal nil    (aget :pointer var-type1)))
+      (is (equal t      (aget :pointer var-type2)))
+      (is (equal nil    (aget :pointer var-type3)))
+      (is (equal nil    (aget :pointer var-type4)))
+      (is (equal t      (aget :pointer var-type5)))
+      (is (equal "int"  (aget :type var-type1)))
+      (is (equal "int"  (aget :type var-type2)))
+      (is (equal "int"  (aget :type var-type3)))
+      (is (equal "int"  (aget :type var-type4)))
+      (is (equal "int*" (aget :type var-type5))))))
 
 (deftest apply-replacements-test ()
   (is (string= "Hello, world!"
