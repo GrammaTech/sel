@@ -177,32 +177,28 @@ copy of the original current file.
 (defmethod instrument ((project project) &rest args)
   "Instrument a project. Arguments are passed through to instrument on
 the underlying software objects."
-  (let* ((files (if (current-file project)
-                    (list (current-file project))
-                    (mapcar #'cdr (evolve-files project))))
-         (entry-objs (remove-if-not
-                       (lambda (f)
-                         (find-if [{string= "main"} {aget :name}]
-                                  (functions f)))
-                         (mapcar #'cdr (all-files project))))
-         (functions (plist-get :functions args))
-         (other-args (plist-drop :functions args)))
+  (let ((files (if (current-file project)
+                   (list (current-file project))
+                   (mapcar #'cdr (evolve-files project))))
+        (functions (plist-get :functions args))
+        (other-args (plist-drop :functions args)))
+    ;; Fully instrument evolve-files
     (loop
        for f in files
        for i upfrom 0
        do (apply #'instrument f
-                 ;; To avoid inserting setup code into main() multiple
-                 ;; times, use temporary copies of the object which
-                 ;; are then discarded.
-                 :entry-obj (if (member f entry-objs :test #'equal)
-                                f
-                                (first entry-objs))
                  ;; Print file index at each AST
                  :functions (cons (lambda (ast)
                                     (declare (ignorable ast))
                                     (list (format nil "(:F . ~a)" i)))
                                   functions)
-                 other-args)))
+                 other-args))
+
+    ;; Insert log setup code in other-files
+    (loop for obj in (mapcar #'cdr (other-files project))
+       do (log-to-filename obj "__bi_mut_log_file"
+                           (plist-get :trace-file args))))
+
   project)
 
 
