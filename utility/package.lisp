@@ -49,7 +49,6 @@
    :shell-command-failed
    :shell
    :shell-with-input
-   :shell-with-env
    :write-shell-file
    :read-shell-file
    :*bash-shell*

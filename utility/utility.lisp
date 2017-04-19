@@ -288,14 +288,6 @@ See the documentation of `shell' for more information."
                 (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
 
-(defun shell-with-env (env command-format &rest format-args)
-  "Run a shell command with environment variables set.
-ENV should be a list of (name value) lists."
-  (apply #'shell
-         (concatenate 'string "env ~{~a ~} " command-format)
-         (mapcar {apply {format nil "~a=~a"}} env)
-         format-args))
-
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL to FILE."
