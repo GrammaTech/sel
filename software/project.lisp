@@ -217,11 +217,26 @@ the underlying software objects."
 
 (defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
+  (restart-case (make-build-dir-aux src-dir path)
+    (retry-make-build-dir ()
+      :report "Retry `make-build-dir' with new temp dir."
+      (make-build-dir src-dir))
+    (new-path (new-path)
+      :report "Retry `make-build-dir' to a new interactively specified path."
+      :interactive (lambda ()
+                     (princ "Path: " *query-io*)
+                     (list (read-line  *query-io*)))
+      (make-build-dir src-dir :path new-path))))
+
+(defun make-build-dir-aux (src-dir path)
   (let ((dir (ensure-directory-pathname path)))
     ;; Verify parent directory exists, otherwise the copy will fail.
     (ensure-directories-exist (pathname-parent-directory-pathname dir))
     ;; Copy from src-dir into path.
-    (shell "cp -r ~a ~a" (namestring src-dir) (namestring dir))
+    (multiple-value-bind (stdout stderr errno)
+        (shell "cp -r ~a ~a" (namestring src-dir) (namestring dir))
+      (declare (ignorable stdout stderr))
+      (assert (zerop errno)))
     dir))
 
 (defun full-path (rel-path)
