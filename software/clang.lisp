@@ -1917,7 +1917,7 @@ closest to LINE-NUMBER."))
                            &optional line-number)
   (let ((decls (gethash variable-name (declarations obj))))
     (if line-number
-        (lastcar (take-while [{< _ line-number} {aget :begin-src-line}] decls))
+        (lastcar (take-while [{<= _ line-number} {aget :begin-src-line}] decls))
         (car decls))))
 
 (defgeneric declared-type (ast variable-name)
@@ -1931,13 +1931,18 @@ VARIABLE-NAME should be declared in AST."))
   (first
    (split-sequence #\Space (aget :src-text ast) :remove-empty-subseqs t)))
 
-(defgeneric type-of-var (software variable-name)
-  ;; TODO: This should search in successive enclosing scopes of a
-  ;;       specified start AST.
-  (:documentation "Return the type of VARIABLE-NAME in SOFTWARE."))
+(defgeneric type-of-var (software variable-name &optional stmt)
+  (:documentation "Return the type of VARIABLE-NAME in SOFTWARE.
+Optionally supply a statement number to return the preceding declaration
+closest to STMT"))
 
-(defmethod type-of-var ((obj clang) (variable-name string))
-  (let ((declaration-ast (declaration-of obj variable-name)))
+(defmethod type-of-var ((obj clang) (variable-name string) &optional stmt)
+  (let ((declaration-ast (declaration-of obj
+                                         variable-name
+                                         (if stmt
+                                             (->> (get-ast obj stmt)
+                                                  (aget :begin-src-line))
+                                             nil))))
     (when declaration-ast
       (find-type obj
                  (if (function-decl-p declaration-ast)
