@@ -221,7 +221,7 @@ the underlying software objects."
     ;; Verify parent directory exists, otherwise the copy will fail.
     (ensure-directories-exist (pathname-parent-directory-pathname dir))
     ;; Copy from src-dir into path.
-    (shell-check "cp -r ~a ~a" (namestring src-dir) (namestring dir))
+    (shell "cp -r ~a ~a" (namestring src-dir) (namestring dir))
     dir))
 
 (defun full-path (rel-path)
@@ -252,8 +252,7 @@ path within BODY."
     (values
      (prog1 bin
        (when (zerop exit)
-         (shell-check "cp -r ~a ~a"
-                      (namestring (full-path (build-target obj))) bin)))
+         (shell "cp -r ~a ~a" (namestring (full-path (build-target obj))) bin)))
      exit
      stderr
      stdout

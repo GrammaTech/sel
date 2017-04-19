@@ -202,6 +202,9 @@ and an optional extension."
 (defvar *shell-error-codes* '(126 127)
   "Raise a condition on these exit codes.")
 
+(defvar *shell-non-error-codes* nil
+  "Raise a condition on any but these exit codes.")
+
 (define-condition shell-command-failed (error)
   ((commmand :initarg :command :initform nil :reader command)
    (exit-code :initarg :exit-code :initform nil :reader exit-code))
@@ -269,11 +272,13 @@ and an optional extension."
             #-(or sbcl ccl allegro) (error "not implemented")
             (when *shell-debug*
               (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr errno))
-            (if (find errno *shell-error-codes*)
-                (restart-case (error (make-condition 'shell-command-failed
-                                                     :exit-code errno
-                                                     :command cmd))
-                  (ignore-shell-error () "Ignore error and continue")))
+            (when (or (and *shell-non-error-codes*
+                           (not (find errno *shell-non-error-codes*)))
+                      (find errno *shell-error-codes*))
+              (restart-case (error (make-condition 'shell-command-failed
+                                     :exit-code errno
+                                     :command cmd))
+                (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
 
 (defun shell-with-env (env command-format &rest format-args)
@@ -283,16 +288,6 @@ ENV should be a list of (name value) lists."
          (concatenate 'string "env ~{~a ~} " command-format)
          (mapcar {apply {format nil "~a=~a"}} env)
          format-args))
-
-(defun shell-check (&rest args)
-  "Run shell command and raise error on non-zero exit"
-  (multiple-value-bind (stdout stderr exit)
-      (apply #'shell args)
-    (if (zerop exit)
-        (values stdout stderr exit)
-        (error "shell command '~a' failed: ~a ~a"
-               (apply #'format nil args)
-               stdout stderr))))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
