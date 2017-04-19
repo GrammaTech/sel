@@ -43,12 +43,12 @@
    :*work-dir*
    :*shell-debug*
    :*shell-error-codes*
+   :*shell-non-error-codes*
    :ignore-shell-error
    :shell-command-failed
    :shell
    :shell-with-input
    :shell-with-env
-   :shell-check
    :write-shell-file
    :read-shell-file
    :*bash-shell*
