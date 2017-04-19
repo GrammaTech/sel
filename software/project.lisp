@@ -240,7 +240,7 @@ path within BODY."
   (let ((build-dir (gensym)))
     `(let ((,build-dir (when ,src-dir (make-build-dir ,src-dir))))
        (unwind-protect (with-build-dir (,build-dir) ,@body)
-         (delete-directory-tree ,build-dir)))))
+         (delete-directory-tree ,build-dir :validate t)))))
 
 (defmethod phenome ((obj project) &key (bin (temp-file-name)))
   (write-genome-to-files obj)
