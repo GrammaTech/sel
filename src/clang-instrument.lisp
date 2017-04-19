@@ -5,8 +5,7 @@
 ;;;; Instrumentation
 
 (defgeneric instrument (obj &key points functions trace-file
-                              print-argv instrument-exit entry-obj
-                              filter)
+                              print-argv instrument-exit filter)
   (:documentation
    "Instrument OBJ to print AST counter before each full statement.
 option
@@ -16,13 +15,12 @@ Keyword arguments are as follows:
   TRACE-FILE ------- file for trace output
   PRINT-ARGV ------- print program arguments on startup
   INSTRUMENT-EXIT -- print counter of function body before exit
-  ENTRY-OBJ -------- object containing main function
   FILTER ----------- function to select a subset of ASTs for instrumentation
 "))
 
 
 (defmethod instrument ((obj clang) &key points functions trace-file
-                                     print-argv instrument-exit (entry-obj obj)
+                                     print-argv instrument-exit
                                      (filter #'identity))
   (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
@@ -151,10 +149,10 @@ Keyword arguments are as follows:
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
-    (when (and print-argv (eq obj entry-obj))
+    (when (and print-argv (get-entry obj))
        (print-program-input obj log-var))
     (when trace-file
-      (log-to-filename obj entry-obj log-var trace-file))
+      (log-to-filename obj log-var trace-file))
     (clang-format obj)
     obj))
 
@@ -252,13 +250,14 @@ fputs(\"))\\n\", ~a);"
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
 ;; Should only be called if you're sure obj is an entry-obj
-(defmethod log-to-filename ((obj clang) entry-obj log-variable filename)
-  ;; Use the "constructor" attribute to run this initialization
-  ;; function on startup, before main() or C++ static initializers.
-  (when (eq obj entry-obj)
-    (setf (genome entry-obj)
-          (format nil
-                  "
+(defmethod log-to-filename ((obj clang) log-variable filename)
+  (if (get-entry obj)
+      ;; Object contains main(). Insert log variable definition and
+      ;; initialization function. Use the "constructor" attribute to
+      ;; run it on startup, before main() or C++ static initializers.
+      (setf (genome obj)
+            (format nil
+                    "
 #include <stdio.h>
 FILE *~a;
 void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
@@ -267,14 +266,16 @@ void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
 
 ~a
 "
-                  log-variable
-                  (file-open-str log-variable filename)
-                  (genome entry-obj))))
-  (unless (eq obj entry-obj)
-    (setf (genome obj)
+                    log-variable
+                    (file-open-str log-variable filename)
+                    (genome obj)))
+
+      ;; Object does not contain main. Insert extern definition of log variable.
+      (setf (genome obj)
           (concatenate 'string
             (format nil "#include <stdio.h>~%extern FILE *~a;~%" log-variable)
             (genome obj))))
+
   obj)
 
 
