@@ -212,11 +212,18 @@ and an optional extension."
              (format stream "Shell command failed with status ~a: \"~a\""
                      (exit-code condition) (command condition)))))
 
-(defun shell (&rest rst)
-  (apply {shell-with-input nil} rst))
+(defun shell (control-string &rest format-arguments)
+  "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
+Return (values stdout stderr errno).  Raise a `shell-command-failed'
+exception depending on the combination of errno with
+`*shell-error-codes*' and `*shell-non-error-codes*'.  Optionally print
+debug information depending on the value of `*shell-debug*'."
+  (apply {shell-with-input nil} control-string format-arguments))
 
-(defun shell-with-input (input &rest rst)
-  (let ((cmd (apply #'format (cons nil rst))))
+(defun shell-with-input (input control-string &rest format-arguments)
+  "Execute CONTROL-STRING applied to FORMAT-ARGUMENTS reading INPUT.
+See the documentation of `shell' for more information."
+  (let ((cmd (apply #'format (list* nil control-string format-arguments))))
     (when *shell-debug*
       (format t "  cmd: ~a~%" cmd)
       (when input
