@@ -133,6 +133,18 @@ Used to target mutation."))
 Used to target mutation."))
 (defmethod pick-bad  ((software software)) (random (size software)))
 
+(defgeneric pick-bad-good (software &key)
+  (:documentation "Pick a 'bad' and a 'good' indexes into a software object.
+Used to target mutation."))
+(defmethod pick-bad-good ((software software) &key)
+  (list (pick-bad software) (pick-good software)))
+
+(defgeneric pick-bad-bad (software &key)
+  (:documentation "Pick two 'bad' indexes into a software object.
+Used to target mutation."))
+(defmethod pick-bad-bad ((software software) &key)
+  (list (pick-bad software) (pick-bad software)))
+
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 

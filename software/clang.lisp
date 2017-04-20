@@ -199,19 +199,17 @@ Keyword arguments may be used to restrict selections."
                               second-pool)
                             second-pool))))))))))
 
-(defun pick-bad-good (software &optional full-stmt same-class)
-  "Pick a bad AST, then a good one."
+(defmethod pick-bad-good ((software clang) &key full-stmt same-class)
   (pick-general software (bad-stmts software)
                 :second-pool (good-stmts software)
                 :full-stmt full-stmt :same-class same-class))
 
-(defun pick-bad-bad (software &optional full-stmt same-class)
-  "Pick a bad AST, then another bad one."
+(defmethod pick-bad-bad ((software clang) &key full-stmt same-class)
   (pick-general software (bad-stmts software)
                 :second-pool (bad-stmts software)
                 :full-stmt full-stmt :same-class same-class))
 
-(defun pick-bad-only (software &optional full-stmt)
+(defun pick-bad-only (software &key full-stmt)
   "Pick a bad AST."
   (pick-general software (bad-stmts software) :full-stmt full-stmt))
 
@@ -230,13 +228,13 @@ Keyword arguments may be used to restrict selections."
   `((:insert-value . ,(targets mutation))))
 
 (define-mutation clang-insert-full (clang-insert)
-  ((targeter :initform {pick-bad-good _ t nil})))
+  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class nil})))
 
 (define-mutation clang-insert-same (clang-insert)
-  ((targeter :initform {pick-bad-good _ nil t})))
+  ((targeter :initform {pick-bad-good _ :full-stmt nil :same-class t})))
 
 (define-mutation clang-insert-full-same (clang-insert)
-  ((targeter :initform {pick-bad-good _ t t})))
+  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class t})))
 
 ;;; Swap
 (define-mutation clang-swap (clang-mutation)
@@ -251,13 +249,13 @@ Keyword arguments may be used to restrict selections."
         #'> :key [{aget :stmt1} #'cdr]))
 
 (define-mutation clang-swap-full (clang-swap)
-  ((targeter :initform {pick-bad-bad _ t nil})))
+  ((targeter :initform {pick-bad-bad _ :full-stmt t :same-class nil})))
 
 (define-mutation clang-swap-same (clang-swap)
-  ((targeter :initform {pick-bad-bad _ nil t})))
+  ((targeter :initform {pick-bad-bad _ :full-stmt nil :same-class t})))
 
 (define-mutation clang-swap-full-same (clang-swap)
-  ((targeter :initform {pick-bad-bad _ t t})))
+  ((targeter :initform {pick-bad-bad _ :full-stmt t :same-class t})))
 
 ;;; Move
 (define-mutation clang-move (clang-mutation)
@@ -278,13 +276,13 @@ Keyword arguments may be used to restrict selections."
   `((:set . ,(targets mutation))))
 
 (define-mutation clang-replace-full (clang-replace)
-  ((targeter :initform {pick-bad-good _ t nil})))
+  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class nil})))
 
 (define-mutation clang-replace-same (clang-replace)
-  ((targeter :initform {pick-bad-good _ nil t})))
+  ((targeter :initform {pick-bad-good _ :full-stmt nil :same-class t})))
 
 (define-mutation clang-replace-full-same (clang-replace)
-  ((targeter :initform {pick-bad-good _ t t})))
+  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class t})))
 
 ;;; Cut
 (define-mutation clang-cut (clang-mutation)
@@ -294,7 +292,7 @@ Keyword arguments may be used to restrict selections."
   `((:cut . ,(targets mutation))))
 
 (define-mutation clang-cut-full (clang-cut)
-  ((targeter :initform {pick-bad-only _ t})))
+  ((targeter :initform {pick-bad-only _ :full-stmt t})))
 
 ;;; Set Range
 (define-mutation clang-set-range (clang-mutation) ())

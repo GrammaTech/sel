@@ -74,17 +74,14 @@
 
 
 ;;; Mutations
-(defun pick-bad-good-lisp (lisp)
-  (list (pick-bad lisp) (pick-good lisp)))
-
 (define-mutation lisp-cut (mutation)
   ((targeter :initform #'pick-bad)))
 
 (define-mutation lisp-replace (mutation)
-  ((targeter :initform #'pick-bad-good-lisp)))
+  ((targeter :initform #'pick-bad-good)))
 
 (define-mutation lisp-swap (mutation)
-  ((targeter :initform #'pick-bad-good-lisp)))
+  ((targeter :initform #'pick-bad-good)))
 
 (defvar *lisp-mutation-types*
   ;; TODO: Fix `lisp-cut' before adding back to this list.
