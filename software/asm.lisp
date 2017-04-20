@@ -76,8 +76,6 @@ address and the cdr is the value."
            (push (list i key val) applied)))))
   (reverse applied))
 
-
-
 (define-mutation asm-replace-operand (simple-mutation)
   ((targeter :initform #'pick-bad-good))
   (:documentation "Select two instructions, and replace an operand in the first

@@ -116,9 +116,6 @@
 
 (defclass simple-mutation (mutation) ())
 
-(defun pick-bad-good-simple (simple)
-  (list (pick-bad simple) (pick-good simple)))
-
 (define-mutation simple-cut (simple-mutation)
   ((targeter :initform #'pick-bad)))
 
@@ -139,7 +136,7 @@
     simple))
 
 (define-mutation simple-insert (simple-mutation)
-  ((targeter :initform #'pick-bad-good-simple)))
+  ((targeter :initform #'pick-bad-good)))
 
 (defmethod apply-mutation ((simple simple) (mutation simple-insert))
   (let ((bad-good (targets mutation))
@@ -156,7 +153,7 @@
       simple)))
 
 (define-mutation simple-swap (simple-mutation)
-  ((targeter :initform #'pick-bad-good-simple)))
+  ((targeter :initform #'pick-bad-good)))
 
 (defmethod apply-mutation ((simple simple) (mutation simple-swap))
   (let ((bad-good (targets mutation))
