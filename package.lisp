@@ -476,11 +476,6 @@
    :ast-parent-counter
    :ast-ret
    :ast-src-text
-   :ast-stmt-list
-   :ast-stmt-range
-   :ast-types
-   :ast-unbound-funs
-   :ast-unbound-vals
    :ast-varargs
    :ast-void-ret
    :ast-array-length
@@ -488,6 +483,7 @@
    :ast-bit-field-width
    :clang-type
    :copy-clang-ast
+   :make-clang-ast
    :type-array
    :type-col
    :type-decl
@@ -501,4 +497,17 @@
    :type-reqs
    :type-name
    :ast->snippet
-   :snippet->ast))
+   :snippet->ast
+   :source-text
+   :function-body
+   :stmt-range
+   :get-ast-types
+   :get-unbound-vals
+   :get-unbound-funs
+   :scopes
+   :make-ast-ref
+   :ast-ref-path
+   :ast-ref-ast
+   :index-of-ast
+   :ast-at-index
+   :ast-later-p))
