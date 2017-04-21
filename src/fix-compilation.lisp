@@ -186,17 +186,19 @@ expression match.")
          (new-expression
            (recontextualize
              obj
-             (find-snippets *database*
-                            :ast-class (random-elt '("FloatingLiteral"
-                                                     "IntegerLiteral"
-                                                     "CharacterLiteral"
-                                                     "StringLiteral"
-                                                     "ParenExpr"
-                                                     "DeclRefExpr"
-                                                     "UnaryExprOrTypeTraitExpr"
-                                                     "ImplicitCastExpr"
-                                                     "CStyleCastExpr"))
-                            :limit 1)
+             (->> (find-snippets *database*
+                                 :ast-class (->> '("FloatingLiteral"
+                                                   "IntegerLiteral"
+                                                   "CharacterLiteral"
+                                                   "StringLiteral"
+                                                   "ParenExpr"
+                                                   "DeclRefExpr"
+                                                   "UnaryExprOrTypeTraitExpr"
+                                                   "ImplicitCastExpr"
+                                                   "CStyleCastExpr")
+                                                 (random-elt))
+                                 :limit 1)
+                  (first))
             (aget :counter
                   (lastcar (asts-containing-source-location
                             obj (make-instance 'source-location

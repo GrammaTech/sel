@@ -679,20 +679,10 @@
 (deftest asm-replace-operand-changes-operand ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
-      (is (equal '((:CODE . "	movq	%rsp, %rbp"))
-                 (elt (genome variant) 13))
-          "Test failure due to altered assembly instruction in gcd-asm.")
-      (is (equal '((:CODE . "	movl	%edi, -8(%rbp)"))
-                 (elt (genome variant) 18))
-          "Test failure due to altered assembly instruction in gcd-asm.")
       (apply-mutation variant (make-instance 'asm-replace-operand
                                              :targets (list 13 18)))
-      (is (member (cdr (assoc :code (elt (genome variant) 13)))
-                  '("	movq	%edi, %rbp"
-                    "	movq	%rsp, %edi"
-                    "	movq	-8(%rbp), %rbp"
-                    "	movq	%rsp, -8(%rbp)")
-                  :test #'equal)))))
+      (is (not (equal (aget :code (elt (genome variant) 13))
+                      (aget :code (elt (genome *gcd*) 13))))))))
 
 (deftest asm-split-instruction-has-correct-length ()
   (let ((test1 (asm-split-instruction  "	movq	%rsp, %rbp"))
