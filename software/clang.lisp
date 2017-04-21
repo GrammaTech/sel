@@ -2812,10 +2812,8 @@ depth)."))
       (:stmt2    . ,(aget :stmt2 tail)))))
 
 (defmethod common-ancestor ((clang clang) x y)
-  (let* ((x-ancestry (->> (enclosing-full-stmt clang x)
-                          (get-parent-asts clang)))
-         (y-ancestry (->> (enclosing-full-stmt clang y)
-                          (get-parent-asts clang)))
+  (let* ((x-ancestry (get-parent-asts clang x))
+         (y-ancestry (get-parent-asts clang y))
          (last 0))
     (loop
        :for xp :in (reverse x-ancestry)

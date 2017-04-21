@@ -2733,7 +2733,15 @@ Useful for printing or returning differences in the REPL."
                      (second))
                 (common-ancestor *collatz*
                                  (stmt-with-text *collatz* "m /= 2")
-                                 (stmt-with-text *collatz* "++k"))))))
+                                 (stmt-with-text *collatz* "++k"))))
+    (is (equalp (->> (stmt-starting-with-text *collatz* "while")
+                     (get-immediate-children *collatz*)
+                     (second))
+                (common-ancestor *collatz*
+                                 (->> (stmt-starting-with-text *collatz* "while")
+                                      (get-immediate-children *collatz*)
+                                      (second))
+                                 (stmt-starting-with-text *collatz* "if"))))))
 
 (deftest common-ancestor-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
