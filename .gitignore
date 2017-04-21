@@ -46,3 +46,12 @@ tests.md
 tests.html
 
 local.mk
+
+# qlot
+qlfile.lock
+quicklisp
+system-index.txt
+
+# loaded libraries
+software-evolution.loaded
+software-evolution-test.loaded

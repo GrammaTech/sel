@@ -1,0 +1,44 @@
+variables:
+  DOCKER_REGISTRY: "docker.grammatech.com:14850"
+  LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
+
+before_script:
+  - docker info
+  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+
+stages:
+  - build
+  - test
+  - tag
+  - cleanup
+
+build_image:
+  stage: build
+  script:
+    - docker pull $DOCKER_REGISTRY/synthesis/cl:latest
+    - make -C docker $CI_PROJECT_NAME
+
+test_image:
+  stage: test
+  script:
+    - docker run $LOCAL_IMAGE_NAME /bin/bash -c "cd sel && make check"
+
+tag_image:
+  stage: tag
+  script:
+    - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
+    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
+
+tag_image_master:
+  stage: tag
+  script:
+    - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest
+    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest
+  only:
+    - master
+
+clean:
+  stage: cleanup
+  script:
+    - docker rmi $LOCAL_IMAGE_NAME
+  when: always
