@@ -965,10 +965,10 @@
 (deftest splits-global-and-stmt-asts ()
   (with-fixture huf-clang
     (is (find-if [{string= "\"this is an example for huffman encoding\""}
-                  #'se::source-text]
+                  #'source-text]
                  (non-stmt-asts *huf*))
         "Ensure known global is in `globals'.")
-    (is (find-if [{string= "int i"} #'se::source-text]
+    (is (find-if [{string= "int i"} #'source-text]
                  (stmt-asts *huf*))
         "Ensure known local variable is in `stmts'.")
     (is (null (find "ParmVar" (stmt-asts *huf*)
@@ -985,7 +985,7 @@
 (defun different-asts (this that)
   (or (not (equal (length this) (length that)))
       (not (every (lambda (x y)
-                    (string= (se::source-text x) (se::source-text y)))
+                    (string= (source-text x) (source-text y)))
                   this that))))
 
 (deftest can-compile-clang-software-object ()
@@ -2327,7 +2327,7 @@ two statements with the same class."
 
 ;;; Helper functions to avoid hard-coded statement numbers.
 (defun stmt-with-text (obj text)
-  (find-if [{string= text} #'peel-bananas #'se::source-text]
+  (find-if [{string= text} #'peel-bananas #'source-text]
            (asts obj)))
 
 (defun stmt-starting-with-text (obj text)
@@ -2335,7 +2335,7 @@ two statements with the same class."
              (and snippet
                   (equal 0
                          (search text
-                                 (peel-bananas (se::source-text snippet))))))
+                                 (peel-bananas (source-text snippet))))))
            (asts obj)))
 
 (defun ast-starting-with-text (obj text)
@@ -2486,8 +2486,8 @@ Useful for printing or returning differences in the REPL."
         (*matching-free-function-retains-name-bias* 1.0))
     (apply-mutation obj
                     `(clang-replace (:stmt1 . ,stmt) (:stmt2 . ,stmt)))
-    (is (string= (se::source-text stmt)
-                 (se::source-text (stmt-with-text obj "test(0)"))))))
+    (is (string= (source-text stmt)
+                 (source-text (stmt-with-text obj "test(0)"))))))
 
 ;; huf.c only contains one user function with 3 parameters,
 ;; check that random-function-name can find it.
@@ -2686,13 +2686,13 @@ Useful for printing or returning differences in the REPL."
 
 (deftest common-ancestor-fib-test ()
   (with-fixture fib-clang
-    (is (equalp (se::function-body *fib*
-                                   (stmt-starting-with-text *fib* "int fib"))
+    (is (equalp (function-body *fib*
+                               (stmt-starting-with-text *fib* "int fib"))
                 (common-ancestor *fib*
                                  (stmt-with-text *fib* "int x = 0")
                                  (stmt-with-text *fib* "int y = 1"))))
-    (is (equalp (se::function-body *fib*
-                                   (stmt-starting-with-text *fib* "int fib"))
+    (is (equalp (function-body *fib*
+                               (stmt-starting-with-text *fib* "int fib"))
                 (common-ancestor *fib*
                                  (stmt-with-text *fib* "int x = 0")
                                  (stmt-with-text *fib* "int t = x"))))
@@ -2706,17 +2706,17 @@ Useful for printing or returning differences in the REPL."
 (deftest common-ancestor-collatz-test ()
   (with-fixture collatz-clang
     (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
-                     (se::function-body *collatz*))
+                     (function-body *collatz*))
                 (common-ancestor *collatz*
                                  (stmt-with-text *collatz* "int k = 0")
                                  (stmt-with-text *collatz* "return k"))))
     (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
-                     (se::function-body *collatz*))
+                     (function-body *collatz*))
                 (common-ancestor *collatz*
                                  (stmt-with-text *collatz* "int k = 0")
                                  (stmt-with-text *collatz* "m /= 2"))))
     (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
-                     (se::function-body *collatz*))
+                     (function-body *collatz*))
                 (common-ancestor *collatz*
                                  (stmt-with-text *collatz* "m /= 2")
                                  (stmt-with-text *collatz* "return k"))))
@@ -2742,12 +2742,12 @@ Useful for printing or returning differences in the REPL."
 (deftest common-ancestor-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
     (is (equalp (->> (stmt-starting-with-text *soft* "int main")
-                     (se::function-body *soft*))
+                     (function-body *soft*))
                 (common-ancestor *soft*
                                  (stmt-with-text *soft* "int i")
                                  (stmt-with-text *soft* "return 0"))))
     (is (equalp (->> (stmt-starting-with-text *soft* "int main")
-                     (se::function-body *soft*))
+                     (function-body *soft*))
                 (common-ancestor *soft*
                                  (stmt-with-text *soft*
                                                  "int i")
@@ -2767,14 +2767,14 @@ Useful for printing or returning differences in the REPL."
 (deftest common-ancestor-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
     (is (equalp (->> (stmt-starting-with-text *soft* "int main")
-                     (se::function-body *soft*))
+                     (function-body *soft*))
                 (common-ancestor *soft*
                                  (->> "printf(\"%d\\n\", argc)"
                                       (stmt-with-text *soft*))
                                  (->> "printf(\"%d\\n\", argc + argc)"
                                       (stmt-with-text *soft*)))))
     (is (equalp (->> (stmt-starting-with-text *soft* "int main")
-                     (se::function-body *soft*))
+                     (function-body *soft*))
                 (common-ancestor *soft*
                                  (->> "printf(\"%d\\n\", argc + argc)"
                                       (stmt-with-text *soft*))
@@ -2800,7 +2800,7 @@ Useful for printing or returning differences in the REPL."
                 (se::ancestor-after *fib*
                                     (->> "int fib"
                                          (stmt-starting-with-text *fib*)
-                                         (se::function-body *fib*))
+                                         (function-body *fib*))
                                     (stmt-with-text *fib* "int x = 0"))))
     (is (equalp (->> (stmt-asts *fib*)
                      (remove-if-not [{string= "WhileStmt"}
@@ -2809,7 +2809,7 @@ Useful for printing or returning differences in the REPL."
                 (se::ancestor-after *fib*
                                     (->> "int fib"
                                          (stmt-starting-with-text *fib*)
-                                         (se::function-body *fib*))
+                                         (function-body *fib*))
                                     (stmt-with-text *fib* "int t = x"))))
     (is (equalp (stmt-with-text *fib* "x = x + y")
                 (se::ancestor-after *fib*
@@ -2825,13 +2825,13 @@ Useful for printing or returning differences in the REPL."
                 (se::ancestor-after *collatz*
                                     (->> "int collatz"
                                          (stmt-starting-with-text *collatz*)
-                                         (se::function-body *collatz*))
+                                         (function-body *collatz*))
                                     (stmt-with-text *collatz* "int k = 0"))))
     (is (equalp (stmt-with-text *collatz* "return k")
                 (se::ancestor-after *collatz*
                                     (->> "int collatz"
                                          (stmt-starting-with-text *collatz*)
-                                         (se::function-body *collatz*))
+                                         (function-body *collatz*))
                                     (stmt-with-text *collatz* "return k"))))
     (is (equalp (->> (stmt-asts *collatz*)
                      (remove-if-not [{string= "WhileStmt"}
@@ -2840,7 +2840,7 @@ Useful for printing or returning differences in the REPL."
                 (se::ancestor-after *collatz*
                                     (->> "int collatz"
                                          (stmt-starting-with-text *collatz*)
-                                         (se::function-body *collatz*))
+                                         (function-body *collatz*))
                                     (stmt-with-text *collatz* "m /= 2"))))
     (is (equalp (->> (stmt-asts *collatz*)
                      (remove-if-not [{string= "IfStmt"}
@@ -2887,14 +2887,14 @@ Useful for printing or returning differences in the REPL."
                 (se::ancestor-after *soft*
                                     (->> "int main"
                                          (stmt-starting-with-text *soft*)
-                                         (se::function-body *soft*))
+                                         (function-body *soft*))
                                     (stmt-with-text *soft*
                                                     "printf(\"%d\\n\", i+j)"))))
     (is (equalp (stmt-with-text *soft* "return 0")
                 (se::ancestor-after *soft*
                                     (->> "int main"
                                          (stmt-starting-with-text *soft*)
-                                         (se::function-body *soft*))
+                                         (function-body *soft*))
                                     (stmt-with-text *soft* "return 0"))))))
 
 (deftest ancestor-after-switch-stmt-test ()
@@ -3036,7 +3036,7 @@ Useful for printing or returning differences in the REPL."
 (deftest enclosing-block-collatz-test ()
   (with-fixture collatz-clang
     (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
-                     (se::function-body *collatz*))
+                     (function-body *collatz*))
                 (enclosing-block *collatz* (stmt-with-text *collatz*
                                                            "int k = 0"))))
     (is (equalp (->> (stmt-asts *collatz*)
@@ -3059,7 +3059,7 @@ Useful for printing or returning differences in the REPL."
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
                      (enclosing-block *soft*))))
     (is (equalp (->> (stmt-starting-with-text *soft* "int main")
-                     (se::function-body *soft*))
+                     (function-body *soft*))
                 (enclosing-block *soft*
                                  (stmt-starting-with-text *soft*
                                                           "for (i = 0"))))
@@ -3068,12 +3068,12 @@ Useful for printing or returning differences in the REPL."
                                  (stmt-starting-with-text *soft* "for (j = 0"))))
     (is (null (enclosing-block *soft*
                                (->> (stmt-starting-with-text *soft* "int main")
-                                    (se::function-body *soft*)))))))
+                                    (function-body *soft*)))))))
 
 (deftest enclosing-block-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
     (is (equalp (->> (stmt-starting-with-text *soft* "int main")
-                     (se::function-body *soft*))
+                     (function-body *soft*))
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                      (enclosing-block *soft*))))
     (is (equalp (->> (stmt-asts *soft*)
@@ -4220,7 +4220,7 @@ Useful for printing or returning differences in the REPL."
       (is (stmt-with-text instrumented
                           (format nil "fputs(\"((:C . ~a)) \", stderr)"
                                   (-<>> (first (functions *gcd*))
-                                        (se::function-body *gcd*)
+                                        (function-body *gcd*)
                                         (position <> (asts *gcd*)
                                                   :test #'equalp)))))
 
@@ -4328,7 +4328,7 @@ Useful for printing or returning differences in the REPL."
               (string cookie)))))))
 
 (defparameter unbound-vals-fn
-  [{mapcar [#'peel-bananas #'car]} #'ast-unbound-vals]
+  [{mapcar [#'peel-bananas #'car]} #'se::ast-unbound-vals]
   "Function to pull unbound variables from an AST for use in `var-instrument'.")
 
 (deftest instrumentation-print-unbound-vars ()
@@ -5235,7 +5235,7 @@ Useful for printing or returning differences in the REPL."
 ;; Tests of basic clang mutation operators
 (defun count-matching-chars-in-stmt (char stmt)
   (let ((ast (if (listp stmt) (car stmt) stmt)))
-    (count-if {eq char} (se::source-text ast))))
+    (count-if {eq char} (source-text ast))))
 
 (defun find-function (obj name)
   (find-if [{string= name} #'ast-name]
@@ -5264,9 +5264,9 @@ Useful for printing or returning differences in the REPL."
 (deftest insert-braced-full-stmt-does-not-add-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0"))
-          (inserted (se::function-body *contexts*
-                                       (find-function *contexts*
-                                                      "list"))))
+          (inserted (function-body *contexts*
+                                   (find-function *contexts*
+                                                  "list"))))
       (se::apply-mutation-ops *contexts*
                               `((:insert (:stmt1 . ,target)
                                          (:value1 . ,inserted)))))
@@ -5288,8 +5288,8 @@ Useful for printing or returning differences in the REPL."
 (deftest replace-full-stmt-with-braced-removes-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0"))
-          (replacement (se::function-body *contexts*
-                                          (find-function *contexts*
+          (replacement (function-body *contexts*
+                                      (find-function *contexts*
                                                          "list"))))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
@@ -5305,7 +5305,7 @@ Useful for printing or returning differences in the REPL."
                              `((:cut (:stmt1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a,  int c)"
-         (se::source-text (find-function *contexts* "list"))))))
+         (source-text (find-function *contexts* "list"))))))
 
 (deftest insert-list-elt-adds-comma ()
   (with-fixture contexts
@@ -5315,7 +5315,7 @@ Useful for printing or returning differences in the REPL."
                                          (:value1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a, int b,int b, int c)"
-         (se::source-text (find-function *contexts* "list"))))))
+         (source-text (find-function *contexts* "list"))))))
 
 (deftest replace-list-elt-keeps-comma ()
   (with-fixture contexts
@@ -5326,7 +5326,7 @@ Useful for printing or returning differences in the REPL."
                                       (:value1 . ,replacement)))))
     (is (starts-with-subseq
          "void list(int a, int a, int c)"
-         (se::source-text (find-function *contexts* "list"))))))
+         (source-text (find-function *contexts* "list"))))))
 
 (deftest cut-final-list-elt-removes-comma ()
   (with-fixture contexts
@@ -5335,7 +5335,7 @@ Useful for printing or returning differences in the REPL."
                               `((:cut (:stmt1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a, int b)"
-         (se::source-text (find-function *contexts* "list"))))))
+         (source-text (find-function *contexts* "list"))))))
 
 (deftest insert-final-list-elt-adds-comma ()
   (with-fixture contexts
@@ -5345,7 +5345,7 @@ Useful for printing or returning differences in the REPL."
                                          (:value1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a, int b, int c,int c)"
-         (se::source-text (find-function *contexts* "list"))))))
+         (source-text (find-function *contexts* "list"))))))
 
 (deftest replace-final-list-elt-keeps-comma ()
   (with-fixture contexts
@@ -5356,7 +5356,7 @@ Useful for printing or returning differences in the REPL."
                                       (:value1 . ,replacement)))))
     (is (starts-with-subseq
          "void list(int a, int b, int a)"
-         (se::source-text (find-function *contexts* "list"))))))
+         (source-text (find-function *contexts* "list"))))))
 
 (deftest replace-braced-adds-braces-and-semicolon ()
   (with-fixture contexts
@@ -5365,9 +5365,9 @@ Useful for printing or returning differences in the REPL."
                     *contexts*
                     (car (get-immediate-children
                           *contexts*
-                          (se::function-body *contexts*
-                                             (find-function *contexts*
-                                                            "braced_body")))))))
+                          (function-body *contexts*
+                                         (find-function *contexts*
+                                                        "braced_body")))))))
           (replacement (stmt-with-text *contexts* "int x = 0")))
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
@@ -5392,9 +5392,9 @@ Useful for printing or returning differences in the REPL."
 (deftest replace-unbraced-body-with-braced ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2"))
-          (replacement (se::function-body *contexts*
-                                          (find-function *contexts*
-                                                         "full_stmt"))))
+          (replacement (function-body *contexts*
+                                      (find-function *contexts*
+                                                     "full_stmt"))))
       (se::apply-mutation-ops *contexts*
                       `((:set (:stmt1 . ,target)
                               (:value1 . ,replacement)))))
@@ -5409,8 +5409,8 @@ Useful for printing or returning differences in the REPL."
       (se::apply-mutation-ops *contexts*
                               `((:cut (:stmt1 . ,target)))))
     (let ((struct (stmt-starting-with-text *contexts* "struct")))
-        (is (eq 1
-                (count-matching-chars-in-stmt #\; struct))))))
+      (is (eq 1
+              (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest insert-field-adds-semicolon ()
   (with-fixture contexts
@@ -5419,8 +5419,8 @@ Useful for printing or returning differences in the REPL."
                               `((:insert (:stmt1 . ,target)
                                          (:value1 . ,target)))))
     (let ((struct (stmt-starting-with-text *contexts* "struct")))
-        (is (eq 3
-                (count-matching-chars-in-stmt #\; struct))))))
+      (is (eq 3
+              (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest replace-field-keeps-semicolon ()
   (with-fixture contexts
@@ -5430,8 +5430,8 @@ Useful for printing or returning differences in the REPL."
                               `((:set (:stmt1 . ,target)
                                       (:value1 . ,replacement)))))
     (let ((struct (stmt-starting-with-text *contexts* "struct")))
-        (is (eq 2
-                (count-matching-chars-in-stmt #\; struct))))))
+      (is (eq 2
+              (count-matching-chars-in-stmt #\; struct))))))
 
 (deftest insert-toplevel-adds-semicolon ()
   (with-fixture contexts
@@ -5460,7 +5460,7 @@ Useful for printing or returning differences in the REPL."
     (let ((location (stmt-with-text *contexts* "int x = 0"))
           (inserted (list (format nil "/*comment 1*/~%")
                           (se::ast-ref-ast (stmt-starting-with-text *contexts*
-                                                                   "int x = 1"))
+                                                                    "int x = 1"))
                           (format nil ";~%/*comment 2*/~%"))))
       (se::apply-mutation-ops *contexts*
                               `((:splice (:stmt1 . ,location)
@@ -5470,7 +5470,7 @@ Useful for printing or returning differences in the REPL."
       (is (stmt-with-text *contexts* "int x = 1"))
       (is (eq 1
               (->> (stmt-starting-with-text *contexts* "void full_stmt")
-                   (se::function-body *contexts*)
+                   (function-body *contexts*)
                    (get-immediate-children *contexts*)
                    (remove-if-not #'ast-full-stmt)
                    (length))))
@@ -5484,15 +5484,15 @@ Useful for printing or returning differences in the REPL."
 
 (deftest scopes-are-correct ()
   (with-fixture scopes2-clang
-    (is (equal (se::scopes *scopes* (stmt-with-text *scopes* "int b"))
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int b"))
                '(nil
                  ("a")
                  ("global"))))
-    (is (equal (se::scopes *scopes* (stmt-with-text *scopes* "int c"))
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int c"))
                '(("b")
                  ("a")
                  ("global"))))
-    (is (equal (se::scopes *scopes* (stmt-with-text *scopes* "char d"))
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "char d"))
                '(nil
                  ("c" "b")
                  ("a")
@@ -5501,39 +5501,39 @@ Useful for printing or returning differences in the REPL."
 (deftest types-are-correct ()
   (with-fixture scopes2-clang
     (is (equal (mapcar [#'type-name {find-type *scopes*}]
-                       (se::get-ast-types *scopes*
-                                          (stmt-with-text *scopes*
-                                                          "int global")))
+                       (get-ast-types *scopes*
+                                      (stmt-with-text *scopes*
+                                                      "int global")))
                '("int")))
     (is (equal (mapcar [#'type-name {find-type *scopes*}]
-                       (se::get-ast-types *scopes*
-                                          (stmt-with-text *scopes*
-                                                          "char d")))
+                       (get-ast-types *scopes*
+                                      (stmt-with-text *scopes*
+                                                      "char d")))
                '("char")))
     (is (equal (mapcar [#'type-name {find-type *scopes*}]
-                       (se::get-ast-types *scopes*
-                                          (stmt-starting-with-text *scopes*
-                                                                   "void foo")))
+                       (get-ast-types *scopes*
+                                      (stmt-starting-with-text *scopes*
+                                                               "void foo")))
                '("int" "char")))))
 
 (deftest unbound-vals-are-correct ()
   (with-fixture scopes2-clang
-    (is (null (se::get-unbound-vals *scopes*
-                                    (stmt-with-text *scopes* "int global"))))
-    (is (equal (se::get-unbound-vals *scopes*
+    (is (null (get-unbound-vals *scopes*
+                                (stmt-with-text *scopes* "int global"))))
+    (is (equal (get-unbound-vals *scopes*
                                  (stmt-starting-with-text *scopes* "c ="))
                '(("(|global|)" 2)
                  ("(|b|)" 0)
                  ("(|a|)" 1)
                  ("(|c|)" 0))))
-    (is (equal (se::get-unbound-vals *scopes*
+    (is (equal (get-unbound-vals *scopes*
                                  (stmt-starting-with-text *scopes* "b ="))
                '(("(|b|)" 0))))
-    (is (equal (se::get-unbound-vals *scopes*
+    (is (equal (get-unbound-vals *scopes*
                                  (stmt-starting-with-text *scopes* "d ="))
                '(("(|d|)" 0))))
 
-    (is (equal (se::get-unbound-vals *scopes*
+    (is (equal (get-unbound-vals *scopes*
                                  (stmt-starting-with-text *scopes* "void foo"))
                ;; Note: clang-mutate would have a 1 here, but I think
                ;; 0 is correct.
@@ -5541,15 +5541,15 @@ Useful for printing or returning differences in the REPL."
 
 (deftest unbound-funs-are-correct ()
   (with-fixture scopes2-clang
-    (is (null (se::get-unbound-funs *scopes*
+    (is (null (get-unbound-funs *scopes*
                                 (stmt-with-text *scopes* "int global"))))
-    (is (equal (se::get-unbound-funs *scopes*
+    (is (equal (get-unbound-funs *scopes*
                                  (stmt-with-text *scopes* "foo(0)"))
                '(("(|foo|)" t nil 1))))
-    (is (equal (se::get-unbound-funs *scopes*
+    (is (equal (get-unbound-funs *scopes*
                                  (stmt-with-text *scopes* "bar()"))
                '(("(|bar|)" t nil 0))))
-    (is (equal (se::get-unbound-funs *scopes*
+    (is (equal (get-unbound-funs *scopes*
                                  (stmt-starting-with-text *scopes* "void bar"))
                '(("(|foo|)" t nil 1)
                  ("(|bar|)" t nil 0))))))
@@ -5557,10 +5557,10 @@ Useful for printing or returning differences in the REPL."
 (deftest move-statement-updates-scopes ()
   (with-fixture scopes2-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
-     (apply-mutation *scopes*
-               `(clang-swap (:stmt1 . ,(stmt-with-text *scopes* "int c"))
-                            (:stmt2 . ,(stmt-with-text *scopes* "b = 0")))))
-    (is (equal (se::scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+      (apply-mutation *scopes*
+                      `(clang-swap (:stmt1 . ,(stmt-with-text *scopes* "int c"))
+                                   (:stmt2 . ,(stmt-with-text *scopes* "b = 0")))))
+    (is (equal (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
                '(("b")
                  ("a")
                  ("global"))))))
@@ -5568,8 +5568,8 @@ Useful for printing or returning differences in the REPL."
 (deftest cut-decl-updates-scopes ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
-                `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int global"))))
-    (is (equal (se::scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+                    `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int global"))))
+    (is (equal (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
                '(("c" "b")
                  ("a")
                  nil)))))
@@ -5577,20 +5577,20 @@ Useful for printing or returning differences in the REPL."
 (deftest insert-decl-updates-types ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
-                `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "foo(0)"))
-                               (:stmt2 . ,(stmt-with-text *scopes* "int b"))))
+                    `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "foo(0)"))
+                                   (:stmt2 . ,(stmt-with-text *scopes* "int b"))))
     (is (equal (mapcar [#'type-name {find-type *scopes*}]
-                       (se::get-ast-types *scopes*
-                                          (stmt-starting-with-text *scopes*
-                                                                   "void bar")))
+                       (get-ast-types *scopes*
+                                      (stmt-starting-with-text *scopes*
+                                                               "void bar")))
                '("int")))))
 
 (deftest cut-statement-updates-unbound-funs ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "foo(0)"))))
-    (is (equal (se::get-unbound-funs *scopes*
-                                     (stmt-starting-with-text *scopes* "void bar"))
+    (is (equal (get-unbound-funs *scopes*
+                                 (stmt-starting-with-text *scopes* "void bar"))
                '(("(|bar|)" t nil 0))))))
 
 (deftest insert-statement-updates-unbound-funs ()
@@ -5599,8 +5599,8 @@ Useful for printing or returning differences in the REPL."
                     `(clang-insert (:stmt1 . ,(stmt-with-text *scopes* "int b"))
                                    (:stmt2 . ,(stmt-with-text *scopes*
                                                               "bar()"))))
-    (is (equal (se::get-unbound-funs *scopes*
-                                     (stmt-starting-with-text *scopes* "void foo"))
+    (is (equal (get-unbound-funs *scopes*
+                                 (stmt-starting-with-text *scopes* "void foo"))
                '(("(|bar|)" t nil 0))))))
 
 (deftest cut-statement-updates-unbound-vals ()
@@ -5608,17 +5608,17 @@ Useful for printing or returning differences in the REPL."
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-starting-with-text *scopes*
                                                                     "c ="))))
-    (is (null (se::get-unbound-vals *scopes*
-                                    (stmt-starting-with-text *scopes*
-                                                             "void foo"))))))
+    (is (null (get-unbound-vals *scopes*
+                                (stmt-starting-with-text *scopes*
+                                                         "void foo"))))))
 
 (deftest cut-decl-updates-unbound-vals ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int b"))))
-    (is (equal (se::get-unbound-vals *scopes*
-                                     (stmt-starting-with-text *scopes*
-                                                              "void foo"))
+    (is (equal (get-unbound-vals *scopes*
+                                 (stmt-starting-with-text *scopes*
+                                                          "void foo"))
                '(("(|global|)" 0)
                  ("(|b|)" nil))))))
 
@@ -5629,7 +5629,7 @@ Useful for printing or returning differences in the REPL."
                                                               "foo(0)"))
                                    (:stmt2 . ,(stmt-with-text *scopes*
                                                               "b = 0"))))
-    (is (equal (se::get-unbound-vals *scopes*
-                                     (stmt-starting-with-text *scopes*
-                                                              "void bar"))
+    (is (equal (get-unbound-vals *scopes*
+                                 (stmt-starting-with-text *scopes*
+                                                          "void bar"))
                '(("(|b|)" nil))))))
