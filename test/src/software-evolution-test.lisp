@@ -365,7 +365,7 @@
 (defixture gcd-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang :compiler "clang")
                     (gcd-dir "gcd.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -373,7 +373,7 @@
 (defixture gcd-wo-curlies-clang
   (:setup
    (setf *gcd*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang :compiler "clang")
                     (gcd-dir "gcd-wo-curlies.c"))))
   (:teardown
    (setf *gcd* nil)))
@@ -382,7 +382,7 @@
   (:setup
    (setf *headers*
          (from-file (make-instance 'clang
-                      :compiler "clang-3.7"
+                      :compiler "clang"
                       :flags (list "-I" (namestring
                                          (make-pathname
                                           :directory +headers-dir+))))
@@ -393,7 +393,7 @@
 (defixture hello-world-clang
   (:setup
     (setf *hello-world*
-      (from-file (make-instance 'clang :compiler "clang-3.7"
+      (from-file (make-instance 'clang :compiler "clang"
                                        :flags '("-g -m32 -O0"))
                  (hello-world-dir "hello_world.c"))))
   (:teardown
@@ -402,7 +402,7 @@
 (defixture empty-function-body-crossover-bug-clang
   (:setup
     (setf *soft*
-      (from-file (make-instance 'clang :compiler "clang-3.7"
+      (from-file (make-instance 'clang :compiler "clang"
                                        :flags '("-g -m32 -O0"))
                  (clang-crossover-dir
                    "empty-function-body-crossover-bug.c"))))
@@ -412,7 +412,7 @@
 (defixture select-intraprocedural-pair-non-null-clang
   (:setup
     (setf *soft*
-      (from-file (make-instance 'clang :compiler "clang-3.7"
+      (from-file (make-instance 'clang :compiler "clang"
                                        :flags '("-g -m32 -O0"))
                  (clang-crossover-dir
                    "select-intraprocedural-pair-non-null.c"))))
@@ -422,7 +422,7 @@
 (defixture intraprocedural-2pt-crossover-bug-clang
   (:setup
     (setf *soft*
-      (from-file (make-instance 'clang :compiler "clang-3.7"
+      (from-file (make-instance 'clang :compiler "clang"
                                        :flags '("-g -m32 -O0"))
                  (clang-crossover-dir
                   "intraprocedural-2pt-crossover-bug.c"))))
@@ -462,7 +462,7 @@
                                             :directory +etc-dir+))
            (make-instance 'json-database :json-stream in)))
    (setf *hello-world*
-     (from-file (make-instance 'clang-w-fodder :compiler "clang-3.7"
+     (from-file (make-instance 'clang-w-fodder :compiler "clang"
                                                :flags '("-g -m32 -O0"))
                 (hello-world-dir "hello_world.c"))))
   (:teardown
@@ -1291,7 +1291,7 @@ is not to be found"
 (defixture hello-world-clang-control-picks
   (:setup
     (setf *hello-world*
-      (from-file (make-instance 'clang-control-picks :compiler "clang-3.7"
+      (from-file (make-instance 'clang-control-picks :compiler "clang"
                                 :flags '("-g -m32 -O0"))
                  (hello-world-dir "hello_world.c"))))
   (:teardown
@@ -1875,7 +1875,7 @@ is not to be found"
 (defixture hello-world-clang-w-fitness
   (:setup
    (setf *hello-world*
-         (from-file (make-instance 'clang :compiler "clang-3.7"
+         (from-file (make-instance 'clang :compiler "clang"
                                    :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))
          *test* [#'length #'genome]
@@ -1962,7 +1962,7 @@ is not to be found"
   (:setup
    (setf software-evolution::*next-ancestry-id* 0
          *hello-world*
-         (from-file (make-instance 'clang-w-ancestry :compiler "clang-3.7"
+         (from-file (make-instance 'clang-w-ancestry :compiler "clang"
                                    :flags '("-g -m32 -O0"))
                     (hello-world-dir "hello_world.c"))
          *test* [#'length #'genome])
@@ -2457,7 +2457,7 @@ Useful for printing or returning differences in the REPL."
                                      :flags '("-m32" "-O0" "-g"))
                                    genome))
           (broken-gcc   (from-file (make-instance 'clang
-                                     :compiler "clang"
+                                     :compiler "gcc"
                                      :flags '("-m32" "-O0" "-g"))
                                    genome)))
       (is (compile-p (fix-compilation broken-clang 1)))

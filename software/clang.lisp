@@ -2483,6 +2483,7 @@ within a function body, return null."))
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
                '("cppcore-guidelines*"
                  "misc*"
+                 "-misc-unused-parameters"
                  "-modernize*"
                  "performance*"
                  "readability*"
