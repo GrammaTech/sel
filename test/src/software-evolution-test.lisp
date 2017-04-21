@@ -30,7 +30,8 @@
                       #'stefil::name-of
                       #'stefil::test-of
                       #'car #'stefil::test-context-backtrace-of]
-                     failures))
+                     failures)
+               (quit 1))
         (format *error-output* "SUCCESS~%"))))
 
 (defun testbot-test (&optional args)

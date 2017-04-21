@@ -50,3 +50,12 @@ CSURF.FILES
 a.out.prj
 
 local.mk
+
+# qlot
+qlfile.lock
+quicklisp
+system-index.txt
+
+# loaded libraries
+software-evolution.loaded
+software-evolution-test.loaded
