@@ -510,4 +510,13 @@
    :ast-ref-ast
    :index-of-ast
    :ast-at-index
-   :ast-later-p))
+   :ast-later-p
+   :make-statement
+   :make-operator
+   :make-block
+   :make-while-stmt
+   :make-for-stmt
+   :make-if-stmt
+   :make-var-reference
+   :make-var-decl
+   :ast-root))

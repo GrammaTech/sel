@@ -372,6 +372,10 @@ if not given."
                   `(,(format nil "{~%") ,@children ,(format nil "~%}"))
                   :full-stmt t))
 
+(defun make-parens (children)
+  (make-statement "ParenExpr" :generic
+                  `("(" ,@children ")")))
+
 (defun make-while-stmt (syn-ctx condition body)
   (make-statement "WhileStmt" syn-ctx
                   `("while ("
@@ -389,6 +393,33 @@ if not given."
                             ,update ") "
                             ,body))
                   :full-stmt t))
+
+(defun make-if-stmt (condition then &optional else)
+  (make-statement "IfStmt" :fullstmt
+                  (append `("if ("
+                            ,condition ") "
+                            ,then)
+                          (unless (or (string= "CompoundStmt" (ast-class then))
+                                      (not else))
+                            '("; "))
+                          (when else
+                            `(" else " ,else)))
+                  :full-stmt t))
+
+(defun make-var-reference (name type)
+  (make-statement "ImplicitCastExpr" :generic
+                  (list (make-statement "DeclRefExpr" :generic
+                                        (list (unpeel-bananas name))
+                                        :expr-type (type-hash type)
+                                        :unbound-vals (list name)))
+                  :expr-type (type-hash type)))
+
+(defun make-var-decl (name type)
+  (make-statement "DeclExpr" :fullstmt
+                  (list (make-statement "Var" :generic
+                                        (list (format nil "~a ~a"
+                                                      (type-name type) name))
+                                        :types (list (type-hash type))))))
 
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
@@ -1305,8 +1336,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
                          macros includes) obj
     (iter (for ast in (asts obj))
           (when (ast-body ast)
-            (collect ast into funs)
-            (collect (ast-to-source-range ast) into fn-ranges))
+            (collect ast into funs))
           (when (function-decl-p ast)
             (collect ast into protos))
           (mapc (lambda (macro)
@@ -1316,15 +1346,15 @@ for successful mutation (e.g. adding includes/types/macros)"))
           (mapc (lambda (include)
                   (adjoining include into m-includes test #'string=))
                 (ast-includes ast))
-          (if (some {contains _ (ast-to-source-range ast)} fn-ranges)
+          (if (function-containing-ast obj ast)
               (unless (or (string= "ParmVar" (ast-class ast))
                           (function-decl-p ast))
                 (collect ast into my-stmts))
               (collect ast into my-non-stmts))
 
           (finally
-           (setf stmt-asts (nreverse my-stmts)
-                 non-stmt-asts (nreverse my-non-stmts)
+           (setf stmt-asts my-stmts
+                 non-stmt-asts my-non-stmts
                  macros m-macros
                  includes m-includes
                  functions funs
@@ -2605,10 +2635,9 @@ closest to STMT"))
   (:documentation "Find the declaration for variable NAME within BLOCK."))
 (defmethod find-decl-in-block ((software clang) name block)
   (find-if (lambda (child-ast)
-             (and (eq (ast-parent-counter child-ast) block)
-                  (find name (ast-declares child-ast)
-                        :test #'equal)))
-           (asts software)))
+             (find name (ast-declares child-ast)
+                   :test #'equal))
+           (get-immediate-children software block)))
 
 (defgeneric decl-of-var (software point var)
   (:documentation
@@ -2618,19 +2647,15 @@ depth)."))
 
 (defmethod decl-of-var ((software clang) point var)
   (let ((name (peel-bananas (first var)))
-        (depth (second var))
-        (parent-counter (enclosing-block software point)))
-    ;; Go up to the right scope
-    (dotimes (i depth)
-      (setf parent-counter (enclosing-block software parent-counter)))
-    (if (eq parent-counter 0)
+        ;; Go up to the right scope
+        (parent-block (nth-enclosing-block software (second var) point)))
+    (if parent-block
+        (find-decl-in-block software name parent-block)
         ;; Ran out of parent blocks -- try function arguments and
         ;; global variables
         (or (find-decl-in-block software name
-                                (ast-counter
-                                      (function-containing-ast software point)))
-            (find-decl-in-block software name 0))
-        (find-decl-in-block software name parent-counter))))
+                                (function-containing-ast software point))
+            (find-decl-in-block software name 0)))))
 
 (defgeneric type-of-scoped-var (software point var)
   (:documentation
@@ -2643,7 +2668,7 @@ depth)."))
     (find-type software
                (nth (position-if {string= name}
                                  (ast-declares decl))
-                    (ast-get :types decl)))))
+                    (get-ast-types decl)))))
 
 
 ;;; Crossover functions

@@ -2338,10 +2338,6 @@ two statements with the same class."
                                  (peel-bananas (source-text snippet))))))
            (asts obj)))
 
-(defun ast-starting-with-text (obj text)
-  (when-let ((id (stmt-starting-with-text obj text)))
-    (get-ast obj id)))
-
 (deftest swap-can-recontextualize ()
   (with-fixture huf-clang
     (let ((variant (copy *huf*)))
