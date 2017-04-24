@@ -66,7 +66,7 @@ instrumentation.
   (make-operator :generic "||" (list left right) :guard-stmt t))
 
 (defun and-not-connector (left right)
-  (make-operator :generic "||"
+  (make-operator :generic "&&"
                  (list left
                        (make-operator :generic "!" (list right)))
                  :guard-stmt t))
@@ -94,31 +94,28 @@ instrumentation.
 (defmethod valid-targets ((mutation refine-condition) software)
   (remove-if #'ast-in-macro-expansion (guard-statements software)))
 
+(defun abst-cond-expr ()
+  (make-statement "CallExpr" :generic
+                  (list
+                   (make-statement
+                    "ImplicitCastExpr" :generic
+                    (list
+                     (make-statement "DeclRefExpr" :generic
+                                     '("(|abst_cond|)")
+                                     :unbound-funs '(("(|abst_cond|)"
+                                                      nil nil 0)))))
+                   "()")))
+
 (defun refined-condition (mutation target-ast)
   (funcall (connector mutation)
-           (ast-ref-ast target-ast)
-           (or (abst-cond mutation)
-               (make-statement
-                "CallExpr" :generic
-                (list
-                 (make-statement
-                  "ImplicitCastExpr" :generic
-                  (list
-                   (make-statement "DeclRefExpr" :generic
-                                   '("(|abst_cond|)")
-                                   :unbound-funs '(("(|abst_cond|)"
-                                                    nil nil 0)))))
-                 "()")))))
+           (make-parens (list target-ast))
+           (or (abst-cond mutation) (abst-cond-expr))))
 
 (defmethod build-op ((mutation refine-condition) software)
-  (bind ((target (targets mutation))
-         (target-ast (get-ast software target))
-         (abst-cond-expr (or (abst-cond mutation) "abst_cond()")))
-    `((:set (:stmt1 . ,target)
-            (:value1 .
-                     ((:src-text . ,(refined-condition mutation
-                                                       target-ast))
-                      (:includes . "\"abst_cond.h\"")))))))
+  (let ((target-ast (targets mutation)))
+    `((:set (:stmt1 . ,target-ast)
+            (:literal1 . ,(refined-condition mutation
+                                             target-ast))))))
 
 ;; add-condition: wrap a statement in an if
 (define-mutation add-condition (clang-mutation)
@@ -134,17 +131,15 @@ instrumentation.
    (abst-cond :accessor abst-cond :initform nil)))
 
 (defmethod build-op ((mutation add-condition) software)
-  (let* ((target (targets mutation))
-         (software (wrap-ast software (get-ast software target)))
-         (target-ast (get-ast software target))
-         (abst-cond-expr (or (abst-cond mutation) "abst_cond()")))
-    `((:set (:stmt1 . ,target)
-            (:value1 .
-                     ((:src-text . ,(format nil "if (~a) ~a"
-                                            abst-cond-expr
-                                            (peel-bananas
-                                             (ast-src-text target-ast))))
-                      (:includes . "\"abst_cond.h\"")))))))
+  (let* ((target-ast (targets mutation))
+         (abst-cond (or (abst-cond mutation) (abst-cond-expr)))
+         (body (if (or (ends-with (source-text target-ast) #\;)
+                       (ends-with (source-text target-ast) #\}))
+                   (list target-ast)
+                   (list target-ast ";"))))
+    `((:set (:stmt1 . ,target-ast)
+            (:literal1 . ,(make-if-stmt abst-cond
+                                        (make-block body)))))))
 
 (defmethod valid-targets ((mutation add-condition) software)
   (remove-if «or {aget :in-macro-expansion}
@@ -194,30 +189,24 @@ is replaced with replacement."
   (when (targets mutation)
     (bind ((ast (targets mutation))
            (children (get-immediate-children software ast))
-           (replacement (make-statement "WhileStmt" (ast-syn-ctx ast)
-                                        `("while ("
-                                          ,(first children)
-                                          ")"
-                                          ,(second children))
-                                        :full-stmt t)))
+           (replacement (make-while-stmt (ast-syn-ctx ast)
+                                         (first children)
+                                         (second children))))
       `((:set (:stmt1 . ,ast)
               (:literal1 . ,replacement))))))
 
-;; Get second child (then branch), put new else-if text at the end of
-;; the existing text (with abs_cond as conditional), it SHOULD parse
-;; out correctly.
 (defmethod build-op ((mutation insert-else-if) software)
   (when (targets mutation)
     (let* ((if-stmt (targets mutation))
-           ;; here we take the "then" branch of the target IfStmt
-           (stmt (second (ast-children (get-ast software if-stmt))))
-           (target-ast (get-ast software stmt))
-           (abst-cond-expr (or (abst-cond mutation) "abst_cond()")))
+           (children (get-immediate-children software if-stmt))
+           (else-if (make-if-stmt (or (abst-cond mutation) (abst-cond-expr))
+                                  (make-block '("/* empty for now */"))
+                                  (third children))))
       `((:set
-         (:stmt1 . ,stmt)
-         (:literal1 . ,(format nil "~a else if (~a) { /* empty for now */ }"
-                               (peel-bananas (ast-src-text target-ast))
-                               abst-cond-expr))
+         (:stmt1 . ,if-stmt)
+         (:literal1 . ,(make-if-stmt (first children)
+                                     (second children)
+                                     else-if))
          (:includes . "\"abst_cond.h\""))))))
 
 (defmethod valid-targets ((mutation if-to-while) software)
@@ -244,8 +233,8 @@ is replaced with replacement."
 /* Return either the next value in _abst_cond_results if there are values
    remaining, or the default abst_cond value.*/
 
-int abst_cond_initialized = 0;
 int abst_cond() {
+    static int abst_cond_initialized = 0;
     static const char *return_vals = NULL;
     static int default_return = 0;
     static int loop_count = -1;
@@ -319,16 +308,15 @@ abstract condition."))
   "Identify guard statements containing a call to abst_cond(), and return a list
 of lists containing the AST counter along with start and end index of
 abst_cond() in the source text."
-  (let ((asts (remove-if-not #'ast-guard-stmt (asts software))))
-    (iter (for ast in asts)
-          (multiple-value-bind (match-start match-end reg-start reg-end)
-              (scan "abst_cond\\(\\)" (peel-bananas (ast-src-text ast)))
-            (declare (ignorable reg-start reg-end))
-            (when match-start
-              (collect (ast-counter ast) into counters)
-              (collect match-start into starts)
-              (collect match-end into ends))
-            (finally (return (mapcar #'list counters starts ends)))))))
+  (iter (for ast in (remove-if-not #'ast-guard-stmt (asts software)))
+        (multiple-value-bind (match-start match-end reg-start reg-end)
+            (scan "abst_cond\\(\\)" (peel-bananas (source-text ast)))
+          (declare (ignorable reg-start reg-end))
+          (when match-start
+            (collect ast into asts)
+            (collect match-start into starts)
+            (collect match-end into ends))
+          (finally (return (mapcar #'list asts starts ends))))))
 
 (defun get-parent-control-stmt (clang guard-counter)
   "Returns the AST structure of the enclosing if statement for a guard."
@@ -337,7 +325,7 @@ abst_cond() in the source text."
                                  "SwitchStmt")
                              :test #'string=}
                      #'ast-class]
-                    (get-parent-asts clang (get-ast clang guard-counter))))))
+                    (get-parent-asts clang guard-counter)))))
     (assert stmt)
     stmt))
 
@@ -365,9 +353,9 @@ abst_cond() in the source text."
     (let ((exprs
            (remove nil
              (append (mapcar (lambda (v)
-                               (handler-case ; Sometimes fails for weird types.
-                                   (cons v (type-of-var obj v))
-                                 (error () nil)))
+                               (ignore-errors ; Sometimes fails for weird types.
+                                 (cons v (or (type-of-var obj v)
+                                             (make-clang-type)))))
                              (get-vars-in-scope obj ast))
                      extra-exprs))))
       (iter (for (var . type) in exprs)
@@ -400,9 +388,7 @@ abst_cond() in the source text."
 statement(s) in the repair targets."
 
   ;; Look for repair-locs only in the main target (e.g. for clang-project)
-  (let* ((repair-locs (mapcar [#'ast-counter
-                               {get-parent-control-stmt software}
-                               #'car]
+  (let* ((repair-locs (mapcar [{get-parent-control-stmt software} #'car]
                               (get-abst-cond-locs software)))
          (inst-functions (mapcar {function-containing-ast software}
                                  repair-locs))
@@ -417,7 +403,7 @@ statement(s) in the repair targets."
                        (and (full-stmt-p software ast)
                             (some (lambda (loc) (ancestor-of software loc ast))
                                   repair-locs)))
-                     (mapcar #'ast-counter (asts software)))))
+                     (asts software))))
 
     ;; sometimes inst-locs comes up nil (no full statement children),
     ;; set to enclosing full stmt, if so
@@ -425,7 +411,7 @@ statement(s) in the repair targets."
       (setf inst-locs (mapcar {enclosing-full-stmt software } repair-locs)))
 
     (let ((inst-reps (lambda (ast)
-                       (when (member (ast-counter ast) inst-locs)
+                       (when (member ast inst-locs :test #'equalp)
                          (instrument-values software ast
                                             :print-strings t
                                             :extra-exprs extra-exprs)))))
@@ -433,9 +419,9 @@ statement(s) in the repair targets."
       (instrument software :trace-file trace-file-name
                   :functions (list inst-reps)
                   ;; Only instrument within relevant functions
-                  :filter {remove-if-not [{member _ inst-functions}
-                                          {function-containing-ast software}
-                                          #'ast-counter]}))))
+                  :filter {remove-if-not [{member _ inst-functions
+                                                  :test #'equalp}
+                                       {function-containing-ast software}]}))))
 
 (defun read-abst-conds-and-envs (trace-results-file)
   "For a trace file, read in the environments and recorded abst-cond decisions."
@@ -636,20 +622,27 @@ recorded decisions and environments."
             (collect envs into env-results))
           (finally (return (values recorded-cond-results env-results))))))
 
-(defun make-source (condition)
+(defun make-source (software condition)
   "Take a condition of the form \(\"x\" \"val\" :eq\) and return the
 corresponding source code condition: \(x == val\) or !\(x == val\)"
   (let* ((base (second condition))
+         (name (first condition))
+         (var (make-var-reference name
+                                  (type-of-var software name)))
          (val (if (stringp base)
-                  (format nil "\"~a\"" base)
-                  base)))
+                  (make-statement "StringLiteral" :generic
+                                  (list (format nil "\"~a\"" base)))
+                  (make-statement "IntegerLiteral" :generic
+                                  (list (format nil "~a" base)))))
+         (eq-op (make-parens
+                 (list (make-operator :generic "==" (list var val))))))
     (case (third condition)
-      (:eq (format nil "\(~a == ~a\)" (first condition) val))
-      (:neq (format nil "!\(~a == ~a\)" (first condition) val))
+      (:eq eq-op)
+      (:neq (make-operator :generic "!" (list eq-op)))
       (t ""))))
 
 (defun apply-best-cond-mutation (software mutation best-condition)
-  (setf (abst-cond mutation) (make-source best-condition))
+  (setf (abst-cond mutation) (make-source software best-condition))
   (apply-mutation software mutation)
   software)
 
@@ -763,7 +756,7 @@ TYPE --------- type description alist (:types :array :pointer :compare)
          ;; FIXME: should only grab expressions that are valid at
          ;; point. But this is tricky with anything beyond simple
          ;; DeclRefs.
-         (scope (ast-body (function-containing-ast obj point)))
+         (scope (function-body obj (function-containing-ast obj point)))
          (exprs (remove-duplicates
                  (remove-if-not
                   (lambda (a)
@@ -775,7 +768,7 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                          (not (string= "CallExpr" (ast-class a)))
                          (not (string= "BinaryOperator" (ast-class a)))
                          ;; Check scope
-                         (ancestor-of obj scope (ast-counter a))))
+                         (ancestor-of obj scope a)))
                   (stmt-asts obj))
                  :test #'string= :key #'ast-src-text)))
     (loop for (a . rest) in (tails exprs)

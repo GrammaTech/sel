@@ -71,22 +71,23 @@ not itself faulty, so it's useful to identify their callers instead.
          (remove-if-not (lambda (x)
                           (remove-if-not
                            (lambda (y)
-                             (let ((cur-node (get-ast obj x)))
+                             (let ((cur-node (ast-at-index obj x)))
                                (and (string= (ast-class cur-node)
                                              "CallExpr")
-                                    (search y (ast-src-text cur-node)))))
+                                    (search y (source-text cur-node)))))
                            error-funcs))
                         neg-test-stmts))
        (functions (obj trace)
          (remove-duplicates
-          (mapcar {function-containing-ast obj}
+          (mapcar [{function-containing-ast obj} {ast-at-index obj}]
                   ;; Not necessary, but this is faster than doing
                   ;; duplicate function-containing-ast lookups.
                   (remove-duplicates trace))))
        (find-error-funcs (obj good-stmts bad-stmts)
          (mapcar #'ast-name
                  (set-difference (functions obj bad-stmts)
-                                 (functions obj good-stmts)))))
+                                 (functions obj good-stmts)
+                                 :test #'equalp))))
 
     ;; Find error functions in each file individually, then append them.
     (let ((good-stmts (apply #'append good-traces))
