@@ -1085,6 +1085,42 @@
       (is (= (size variant)
              (size *hello-world*))))))
 
+(deftest clang-copies-are-independent ()
+  (with-fixture hello-world-clang
+    (let ((orig-genome (genome *hello-world*))
+          (variant (copy *hello-world*)))
+      (apply-mutation
+       variant
+       `(clang-cut (:stmt1 . ,(stmt-with-text variant
+                                              "printf(\"Hello, World!\\n\")"))))
+      (is (string= (genome *hello-world*) orig-genome))
+      (is (not (string= (genome variant) orig-genome))))))
+
+(deftest clang-copy-clears-genome-slot ()
+  (with-fixture hello-world-clang
+    (let ((variant (copy *hello-world*)))
+      (is (null (slot-value (copy *hello-world*) 'genome)))
+
+      (is (string= (genome *hello-world*)
+                   (genome variant))))))
+
+(deftest clang-copies-share-asts ()
+  (with-fixture hello-world-clang
+    (let ((variant (copy *hello-world*)))
+      (is (eq (ast-root *hello-world*)
+              (ast-root variant)))
+      (is (> (size variant) 0)))))
+
+(deftest clang-mutation-preserves-unmodified-subtrees ()
+  (with-fixture hello-world-clang
+    (let ((variant (copy *hello-world*)))
+      (apply-mutation
+       variant
+       `(clang-cut (:stmt1 . ,(stmt-with-text variant
+                                              "printf(\"Hello, World!\\n\")"))))
+      (is (eq (ast-ref-ast (stmt-with-text *hello-world* "return 0"))
+              (ast-ref-ast (stmt-with-text variant "return 0")))))))
+
 (deftest crossover-clang-software-object-does-not-crash()
   (with-fixture hello-world-clang
     (let* ((variant (crossover (copy *hello-world*) (copy *hello-world*))))
@@ -5397,8 +5433,6 @@ Useful for printing or returning differences in the REPL."
       (se::apply-mutation-ops *contexts*
                               `((:set (:stmt1 . ,target)
                                       (:value1 . ,replacement)))))
-    ;; NOTE: this adds braces but no semicolon, which isn't quite
-    ;; right.
     (let ((function (find-function *contexts* "braced_body")))
       (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
