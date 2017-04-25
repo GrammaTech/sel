@@ -31,7 +31,6 @@
              :copier (lambda (x) (declare (ignorable x)) nil))
    (compiler :initarg :compiler :accessor compiler :initform "clang")
    (ast-root :initarg :ast-root :initform nil :accessor ast-root
-             :copier copy-ast-tree
              :documentation "Root node of AST.")
    (asts     :initarg :asts :initform nil
              :accessor asts :copier :direct
@@ -461,7 +460,12 @@ if not given."
 
 Adds and removes semicolons, commas, and braces. "
   (when ast
-    (setf (ast-syn-ctx (car ast)) context))
+    (let ((new (copy-clang-ast (car ast))))
+      ;; Make a new AST with updated values. If anything changed,
+      ;; build a new subtree for it. Otherwise, use the original tree.
+      (setf (ast-syn-ctx new) context)
+      (unless (equalp new (car ast))
+        (setf ast (cons new (cdr ast))))))
   (labels
       ((no-change ()
          (list before ast after))
@@ -510,6 +514,11 @@ Adds and removes semicolons, commas, and braces. "
                         (:remove (no-change))))
               (:toplevel (add-semicolon-if-unbraced))))))
 
+(defun replace-nth-child (ast n replacement)
+  (nconc (subseq ast 0 (+ 1 n))
+         (list replacement)
+         (subseq ast (+ 2 n))))
+
 (defmethod replace-ast ((tree list) (location ast-ref)
                         (replacement ast-ref))
   (labels
@@ -522,22 +531,25 @@ list, and we want to treat them as NIL in most cases.
        (when (not (emptyp str)) str))
      (helper (tree path next)
          (bind (((head . tail) path)
-                ((_ . children) tree))
+                ((node . children) tree))
            (if tail
                ;; The insertion may need to modify text farther up the
                ;; tree. Pass down the next bit of non-empty text and
                ;; get back a new string.
-               (let ((new-next (helper (nth head children) tail
-                                       (or (non-empty (nth (1+ head) children))
-                                           next))))
-                 (when new-next
-                   (if (non-empty (nth (1+ head) children))
-                       ;; The modified text belongs here. Insert it.
-                       (progn
-                         (setf (nth (1+ head) children) new-next)
-                         nil)
-                       ;; Keep passing it up the tree.
-                       new-next)))
+               (multiple-value-bind (child new-next)
+                   (helper (nth head children) tail
+                           (or (non-empty (nth (1+ head) children))
+                               next))
+                 (if (and new-next (non-empty (nth (1+ head) children)))
+                     ;; The modified text belongs here. Insert it.
+                     (values (nconc (subseq tree 0 (+ 1 head))
+                                    (list child new-next)
+                                    (subseq tree (+ 3 head)))
+                             nil)
+
+                     ;; Otherwise keep passing it up the tree.
+                     (values (replace-nth-child tree head child)
+                             new-next)))
                (let* ((after (nth (1+ head) children))
                       (fixed (fixup-mutation :instead
                                              (ast-syn-ctx (car (nth head
@@ -547,34 +559,39 @@ list, and we want to treat them as NIL in most cases.
                                                  "")
                                              (ast-ref-ast replacement)
                                              (or (non-empty after) next))))
+
                  (if (non-empty after)
                      ;; fixup-mutation can change the text after the
                      ;; insertion (e.g. to remove a semicolon). If
                      ;; that text is part of this AST, just include it
                      ;; in the list.
-                     (progn (setf (cdr tree)
-                                  (nconc (subseq children 0 (max 0 (1- head)))
-                                         fixed
-                                         (nthcdr (+ 2 head) children)))
-                            nil)
+                     (values
+                      (cons node (nconc (subseq children 0 (max 0 (1- head)))
+                                        fixed
+                                        (nthcdr (+ 2 head) children)))
+                      nil)
+
                      ;; If the text we need to modify came from
                      ;; farther up the tree, return it instead of
                      ;; inserting it here.
-                     (progn (setf (cdr tree)
-                                  (nconc (subseq children 0 (max 0 (1- head)))
+                     (values
+                      (cons node (nconc (subseq children 0 (max 0 (1- head)))
                                          (butlast fixed)
                                          (nthcdr (+ 2 head) children)))
-                            (lastcar fixed))))))))
+                      (lastcar fixed))))))))
     (helper tree (ast-ref-path location) nil)))
 
 (defmethod remove-ast ((tree list) (location ast-ref))
   (labels
       ((helper (tree path)
          (bind (((head . tail) path)
-                ((_ . children) tree))
+                ((node . children) tree))
            (if tail
-               (helper (nth head children) tail)
-               (setf (cdr tree)
+               ;; Recurse into child
+               (replace-nth-child tree head (helper (nth head children) tail))
+
+               ;; Remove child
+               (cons node
                      (nconc (subseq children 0 (max 0 (1- head)))
                             (fixup-mutation :remove
                                             (ast-syn-ctx (car (nth head
@@ -596,11 +613,14 @@ use carefully.
   (labels
     ((helper (tree path)
        (bind (((head . tail) path)
-              ((_ . children) tree))
+              ((node . children) tree))
          (if tail
-             (helper (nth head children) tail)
+             ;; Recurse into child
+             (replace-nth-child tree head (helper (nth head children) tail))
+
+             ;; Splice into children
              (let ((after (nth (1+ head) children)))
-               (setf (cdr tree)
+               (cons node
                      (append (subseq children 0 head)
                              new-asts
                              (when (not (starts-with #\;  after))
@@ -614,10 +634,13 @@ use carefully.
   (labels
     ((helper (tree path)
        (bind (((head . tail) path)
-              ((_ . children) tree))
+              ((node . children) tree))
          (if tail
-             (helper (nth head children) tail)
-             (setf (cdr tree)
+             ;; Recurse into child
+             (replace-nth-child tree head (helper (nth head children) tail))
+
+             ;; Insert into children
+             (cons node
                    (nconc (subseq children 0 (max 0 (1- head)))
                           (fixup-mutation :before
                                           (ast-syn-ctx (car (nth head children)))
@@ -1719,11 +1742,12 @@ already in scope, it will keep that name.")
     (iter (for (op . properties) in ops)
           (let ((stmt1 (aget :stmt1 properties))
                 (value1 (aget :value1 properties)))
-            (ecase op
-              (:set (replace-ast ast-root stmt1 value1))
-              (:cut (remove-ast ast-root stmt1))
-              (:insert (insert-ast ast-root stmt1 value1))
-              (:splice (splice-asts ast-root stmt1 value1))))))
+            (setf (ast-root software)
+                  (ecase op
+                    (:set (replace-ast ast-root stmt1 value1))
+                    (:cut (remove-ast ast-root stmt1))
+                    (:insert (insert-ast ast-root stmt1 value1))
+                    (:splice (splice-asts ast-root stmt1 value1)))))))
   (clear-caches software)
   software)
 
@@ -2852,9 +2876,10 @@ Returns outermost AST of context.
                  (outer-path (ast-ref-path outer-stmt))
                  (rel-path (last inner-path
                                  (- (length inner-path) (length outer-path)))))
-            (replace-ast (ast-ref-ast outer-stmt)
-                         (make-ast-ref :path rel-path)
-                         value))))
+            (setf (ast-ref-ast outer-stmt)
+                  (replace-ast (ast-ref-ast outer-stmt)
+                                  (make-ast-ref :path rel-path)
+                                  value)))))
 
      (cond
        ((null inward-snippet) outward-snippet)
