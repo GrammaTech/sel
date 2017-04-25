@@ -130,7 +130,11 @@
 
 (define-constant +contexts-dir+ (append +etc-dir+ (list "syntactic-contexts"))
   :test #'equalp
-  :documentation "Path to the syntactic-contexts example."))
+      :documentation "Path to the syntactic-contexts example.")
+
+(define-constant +cpp-strings-dir+ (append +etc-dir+ (list "cpp-strings"))
+  :test #'equalp
+  :documentation "Path to the cpp-strings example.")
 
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -221,6 +225,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +contexts-dir+))
+
+(defun cpp-strings-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cpp-strings-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -419,6 +428,14 @@
                     (contexts-dir "contexts.c"))))
   (:teardown
    (setf *contexts* nil)))
+
+(defixture cpp-strings
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'clang :compiler "clang-3.7")
+                    (cpp-strings-dir "cpp-strings.cpp"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
@@ -1355,6 +1372,18 @@ two statements with the same class."
 (deftest pick-rename-variable-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
     (signals no-mutation-targets (se::pick-rename-variable *soft*))))
+
+(deftest cpp-strings-works ()
+  ;; On this example, clang-mutate generates ASTs that are out of
+  ;; order. Check that asts->tree handles this case correctly.
+  (with-fixture cpp-strings
+    (is *soft*)
+    (let ((stmt (stmt-with-text *soft* "x == \"test\"")))
+      (is stmt)
+      (is (string= "CXXOperatorCallExpr" (ast-class stmt)))
+      (is (every [{string= "ImplicitCastExpr"} #'ast-class]
+                 (get-immediate-children *soft* stmt))))))
+
 
 
 ;;; Detailed clang mutation tests
