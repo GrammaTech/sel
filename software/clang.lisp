@@ -33,6 +33,11 @@
    (ast-root :initarg :ast-root :initform nil :accessor ast-root
              :copier copy-ast-tree
              :documentation "Root node of AST.")
+   (asts     :initarg :asts :initform nil
+             :accessor asts :copier :direct
+             :type #+sbcl (list (cons keyword *) *) #+ccl list
+             :documentation
+             "List of all ASTs.")
    (stmt-asts :initarg :stmt-asts :initform nil
               :accessor stmt-asts :copier :direct
               :type #+sbcl (list (cons keyword *) *) #+ccl list
@@ -1352,9 +1357,20 @@ for successful mutation (e.g. adding includes/types/macros)"))
   obj)
 
 (defmethod update-caches ((obj clang))
-  (with-slots (stmt-asts non-stmt-asts functions prototypes
-                         macros includes) obj
-    (iter (for ast in (asts obj))
+  (with-slots (asts stmt-asts non-stmt-asts functions prototypes
+                   macros includes) obj
+    ;; Collect all ast-refs
+    (labels ((helper (tree path)
+               (when (listp tree)
+                 (cons (make-ast-ref :ast tree :path (reverse path))
+                       (iter (for c in (cdr tree))
+                             (for i upfrom 0)
+                             (unless (stringp c)
+                               (appending (helper c (cons i path)))))))))
+      ;; Omit the root AST
+      (setf asts (cdr (helper (ast-root obj) nil))))
+
+    (iter (for ast in asts)
           (when (ast-body ast)
             (collect ast into funs))
           (when (function-decl-p ast)
@@ -1542,6 +1558,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod          size :before ((obj clang)) (update-asts-if-necessary obj))
 (defmethod  declarations :before ((obj clang)) (update-asts-if-necessary obj))
 
+(defmethod          asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod non-stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     functions :before ((obj clang)) (update-caches-if-necessary obj))
@@ -1550,18 +1567,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod         types :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod        macros :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod       globals :before ((obj clang)) (update-caches-if-necessary obj))
-
-(defmethod asts ((obj clang))
-  "Return (ast . path) for all ASTs in software."
-  (labels ((helper (tree path)
-             (when (listp tree)
-               (cons (make-ast-ref :ast tree :path (reverse path))
-                     (iter (for c in (cdr tree))
-                           (for i upfrom 0)
-                           (unless (stringp c)
-                             (appending (helper c (cons i path)))))))))
-    ;; Omit the root AST
-    (cdr (helper (ast-root obj) nil))))
 
 (defmethod ast-at-index ((obj clang) index)
   (nth index (asts obj)))
