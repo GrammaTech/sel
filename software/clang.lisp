@@ -263,18 +263,38 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
             ;; source text is sketchy and it's impossible to build a
             ;; proper hierarchy.
             (if (and child-asts (not (ast-in-macro-expansion ast)))
-                ;; Interleave child asts and source text
-                (iter (for subtree in child-asts)
-                      (for c = (car subtree))
-                      (collect (subseq genome start (ast-begin-off c))
-                        into children)
-                      (collect subtree into children)
-                      (setf start (+ 1 (ast-end-off c)))
-                      (finally
-                       (return
-                         (append children
-                                 (list (subseq genome start
-                                               (+ 1 (ast-end-off ast))))))))
+                (let ((last-child (car (lastcar child-asts))))
+                  ;; Work around another weird clang-mutate behavior
+                  ;; This happens with array initializers. See BRASS
+                  ;; xhtml tests for an example.
+                  (when (and (> (length child-asts) 1)
+                             (eq (ast-begin-off last-child) (ast-begin-off ast))
+                             (eq (ast-end-off last-child) (ast-end-off ast)))
+                    (setf child-asts (butlast child-asts)))
+
+                  ;; Interleave child asts and source text
+                  ;; In rare cases clang-mutate AST order will not match
+                  ;; order in the source text. Sort the children to work
+                  ;; around this.
+                  (iter (for subtree in (sort child-asts #'<
+                                              :key [#'ast-begin-off #'car]))
+                        (for c = (car subtree))
+                        (if (< (ast-begin-off c) start)
+                            ;; If all else fails, skip ASTs that we
+                            ;; can't deal with. This seems to happen
+                            ;; with "typedef struct ...". See BRASS
+                            ;; xhtml tests for an example.
+                            (warn "skipping bad ast ~s" c)
+                            (progn
+                              (collect (subseq genome start (ast-begin-off c))
+                                into children)
+                              (collect subtree into children)
+                              (setf start (+ 1 (ast-end-off c)))))
+                        (finally
+                         (return
+                           (append children
+                                   (list (subseq genome start
+                                                 (+ 1 (ast-end-off ast)))))))))
                 ;; No children: create a single string child with source text
                 (when (not (emptyp (ast-src-text ast)))
                   (list (ast-src-text ast))))))
