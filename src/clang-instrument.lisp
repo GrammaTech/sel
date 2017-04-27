@@ -66,7 +66,7 @@ Keyword arguments are as follows:
                             (string= "NullStmt" (ast-class ast))
                             (when trace-file  ;might be null, short circuit and don't filter if so
                               (search (file-open-str log-var trace-file)
-                                      (ast-src-text ast))))))
+                                      (source-text ast))))))
 
              ;; Insertions in bottom-up order
              (append

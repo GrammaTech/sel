@@ -107,6 +107,7 @@
    :select-crossover-points
    :function-containing-ast
    :function-body-p
+   :function-decl-p
    :adjust-stmt-range
    :random-point-in-function
    :select-intraprocedural-pair
@@ -167,7 +168,6 @@
    :+c-bitwise-unary-operators+
    :+c-sign-unary-operators+
    :+c-pointer-unary-operators+
-   :all-use-of-var
    :ast-declarations
    :declaration-of
    :declared-type
@@ -275,7 +275,6 @@
    :clang-w-fodder
    :clang-w-binary
    :clang-w-fodder-and-binary
-   :clang-deduplicate
    :bytes
    :diff-data
    :recontextualize
@@ -290,7 +289,6 @@
    :save-ancestry
    :scopes-between
    :nesting-depth
-   :get-ast-text
    :full-stmt-p
    :block-p
    :guard-p
@@ -301,9 +299,7 @@
    :block-predeccessor
    :block-successor
    :show-full-stmt
-   :full-stmt-text
    :full-stmt-info
-   :full-stmt-successors
    :prepare-code-snippet
    :get-children-using
    :get-declared-variables
@@ -450,19 +446,12 @@
    :clang-ast
    :ast-args
    :ast-begin-addr
-   :ast-begin-src-col
-   :ast-begin-src-line
-   :ast-body
    :ast-children
    :ast-class
-   :ast-code
    :ast-counter
    :ast-declares
-   :ast-decl-name
    :ast-disasm
    :ast-end-addr
-   :ast-end-src-col
-   :ast-end-src-line
    :ast-expr-type
    :ast-full-stmt
    :ast-guard-stmt
@@ -472,9 +461,7 @@
    :ast-macros
    :ast-name
    :ast-opcode
-   :ast-parent-counter
    :ast-ret
-   :ast-src-text
    :ast-varargs
    :ast-void-ret
    :ast-array-length
@@ -496,7 +483,8 @@
    :type-reqs
    :type-name
    :ast->snippet
-   :snippet->ast
+   :snippet->clang-ast
+   :snippet->clang-type
    :source-text
    :function-body
    :stmt-range
