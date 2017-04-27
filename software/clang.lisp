@@ -256,24 +256,27 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                 (source-text obj)))))
 
 (defun asts->tree (genome asts)
-  (let ((roots (remove-if-not [{eq 0} #'ast-parent-counter] asts))
+  (let ((roots (mapcar {aget :counter}
+                       (remove-if-not [{eq 0} {aget :parent-counter}] asts)))
         (ast-vector (coerce asts 'vector)))
    (labels
        ((get-ast (id)
           (aref ast-vector (1- id)))
         (make-children (ast child-asts)
-          (let ((start (ast-begin-off ast)))
+          (let ((start (aget :begin-off ast)))
             ;; Don't recurse into macro expansions. Their mapping to
             ;; source text is sketchy and it's impossible to build a
             ;; proper hierarchy.
-            (if (and child-asts (not (ast-in-macro-expansion ast)))
+            (if (and child-asts (not (aget :in-macro-expansion ast)))
                 (let ((last-child (car (lastcar child-asts))))
                   ;; Work around another weird clang-mutate behavior
                   ;; This happens with array initializers. See BRASS
                   ;; xhtml tests for an example.
                   (when (and (> (length child-asts) 1)
-                             (eq (ast-begin-off last-child) (ast-begin-off ast))
-                             (eq (ast-end-off last-child) (ast-end-off ast)))
+                             (eq (aget :begin-off last-child)
+                                 (aget :begin-off ast))
+                             (eq (aget :end-off last-child)
+                                 (aget :end-off ast)))
                     (setf child-asts (butlast child-asts)))
 
                   ;; Interleave child asts and source text
@@ -281,55 +284,64 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                   ;; order in the source text. Sort the children to work
                   ;; around this.
                   (iter (for subtree in (sort child-asts #'<
-                                              :key [#'ast-begin-off #'car]))
+                                              :key [{aget :begin-off} #'car]))
                         (for c = (car subtree))
-                        (if (< (ast-begin-off c) start)
+                        (if (< (aget :begin-off c) start)
                             ;; If all else fails, skip ASTs that we
                             ;; can't deal with. This seems to happen
                             ;; with "typedef struct ...". See BRASS
                             ;; xhtml tests for an example.
                             (warn "skipping bad ast ~s" c)
                             (progn
-                              (collect (subseq genome start (ast-begin-off c))
+                              ;; Collect text
+                              (collect (subseq genome start (aget :begin-off c))
                                 into children)
-                              (collect subtree into children)
-                              (setf start (+ 1 (ast-end-off c)))))
+                              ;; Collect child, converted to AST struct
+                              (collect (cons (snippet->clang-ast c)
+                                             (cdr subtree))
+                                into children)
+                              (setf start (+ 1 (aget :end-off c)))))
                         (finally
                          (return
                            (append children
                                    (list (subseq genome start
-                                                 (+ 1 (ast-end-off ast)))))))))
+                                                 (+ 1 (aget :end-off ast)))))))))
                 ;; No children: create a single string child with source text
-                (when (not (emptyp (ast-src-text ast)))
-                  (list (ast-src-text ast))))))
+                (when (not (emptyp (aget :src-text ast)))
+                  (list (aget :src-text ast))))))
         (unbound-vals (ast)
-          (mapcar [#'peel-bananas #'car] (ast-unbound-vals ast)))
+          (mapcar [#'peel-bananas #'car] (aget :unbound-vals ast)))
         (make-tree (ast)
-          (let* ((new (copy-clang-ast ast)))
-            (with-slots (types unbound-funs unbound-vals) new
-              ;; clang-mutate aggregates types, unbound-vals, and
-              ;; unbound-funs from children into parents. Undo that so
-              ;; it's easier to update these properties after mutation.
-              (iter (for c in (mapcar #'get-ast (ast-children ast)))
-                    (when (clang-ast-p c)
-                      (appending (ast-types c) into child-types)
-                      (appending (unbound-vals c) into child-vals)
-                      (appending (ast-unbound-funs c) into child-funs))
-                    (finally
-                     (setf types (remove-if {member _ child-types} types)
-                           unbound-vals (remove-if {member _ child-vals
-                                                           :test #'string=}
-                                                   (unbound-vals new))
-                           unbound-funs (remove-if {member _ child-funs
-                                                           :test #'equal}
-                                                   unbound-funs)))))
-            (cons new (make-children new
-                                     (mapcar [#'make-tree #'get-ast]
-                                             (ast-children ast)))))))
-     (make-tree (make-clang-ast :class "TopLevel"
-                                :children (mapcar #'ast-counter roots)
-                                :begin-off 0
-                                :end-off (- (length genome) 1))))))
+          ;; clang-mutate aggregates types, unbound-vals, and
+          ;; unbound-funs from children into parents. Undo that so
+          ;; it's easier to update these properties after mutation.
+          (iter (for c in (mapcar #'get-ast (aget :children ast)))
+                (appending (aget :types c) into child-types)
+                (appending (unbound-vals c) into child-vals)
+                (appending (aget :unbound-funs c) into child-funs)
+
+                (finally
+                 (setf (aget :types ast)
+                       (remove-if {member _ child-types} (aget :types ast))
+
+                       (aget :unbound-vals ast)
+                       (remove-if {member _ child-vals :test #'string=}
+                                  (unbound-vals ast))
+
+                       (aget :unbound-funs ast)
+                       (remove-if {member _ child-funs :test #'equalp}
+                                  (aget :unbound-funs ast)))))
+
+          (cons ast (make-children ast
+                                   (mapcar [#'make-tree #'get-ast]
+                                           (aget :children ast))))))
+
+     (destructuring-bind (root . children)
+         (make-tree `((:ast-class . "TopLevel")
+                      (:children . ,roots)
+                      (:begin-off . 0)
+                      (:end-off . ,(- (length genome) 1))))
+       (cons (snippet->clang-ast root) children)))))
 
 (defgeneric source-text (ast)
   (:documentation "Source code corresponding to an AST."))
@@ -1354,12 +1366,14 @@ for successful mutation (e.g. adding includes/types/macros)"))
                         (nullify-asts ()
                           :report "Nullify the clang software object."
                           nil)))
-          (if (clang-type-p ast)
+          (if (and (assoc :hash ast)
+                   (assoc :reqs ast)
+                   (assoc :type ast))
               ;; Types
-              (collect ast into m-types)
+              (collect (snippet->clang-type ast) into m-types)
 
               ;; ASTs
-              (if (ast-counter ast)
+              (if (aget :counter ast)
                   (collect ast into body)
                   (error "Unrecognized ast.~%~S" ast)))
           (finally
@@ -1943,7 +1957,7 @@ already in scope, it will keep that name.")
                      :obj obj :op op)))
           (values
            (case (car op)
-             (:sexp (mapcar #'snippet->ast (read-from-string stdout)))
+             (:sexp (read-from-string stdout))
              (t stdout))
            exit))
       ;; Cleanup forms.
