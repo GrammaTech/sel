@@ -1928,17 +1928,55 @@ already in scope, it will keep that name.")
 
 
 ;;; AST Utility functions
-(defun ast-to-source-range (ast)
+(defun ast-to-source-range (obj ast)
   "Convert AST to pair of SOURCE-LOCATIONS."
-  (when ast
-    (make-instance 'source-range
-      :begin (make-instance 'source-location
-               :line (ast-begin-src-line ast)
-               :column (ast-begin-src-col ast))
-      :end (make-instance 'source-location
-             :line (ast-end-src-line ast)
-             :column (ast-end-src-col ast)))))
+  (labels
+      ((scan-ast (ast line column)
+         "Scan entire AST, updating line and column. Return the new values."
+         (if (stringp ast)
+             ;; String literal
+             (iter (for char in-string ast)
+                   (incf column)
+                   (when (eq char #\newline)
+                     (incf line)
+                     (setf column 1)))
 
+             ;; Subtree
+             (iter (for child in (cdr ast))
+               (multiple-value-setq (line column)
+                 (scan-ast child line column))))
+
+         (values line column))
+       (ast-start (ast path line column)
+         "Scan to the start of an AST, returning line and column."
+         (bind (((head . tail) path)
+                ((_ . children) ast))
+           ;; Scan preceeding ASTs
+           (iter (for child in (subseq children 0 head))
+                 (multiple-value-setq (line column)
+                   (scan-ast child line column)))
+           ;; Recurse into child
+           (when tail
+             (multiple-value-setq (line column)
+               (ast-start (nth head children) tail line column)))
+           (values line column))))
+
+    (when ast
+      (bind (((:values start-line start-col)
+              (ast-start (ast-root obj) (ast-ref-path ast) 1 1))
+             ((:values end-line end-col)
+              (scan-ast (ast-ref-ast ast) start-line start-col)))
+       (make-instance 'source-range
+                      :begin (make-instance 'source-location
+                                            :line start-line
+                                            :column start-col)
+                      :end (make-instance 'source-location
+                                          :line end-line
+                                          :column end-col))))))
+
+;; FIXME: these are inefficient now -- they scan linearly through the
+;; tree for each individual AST. We could do better when ranges are
+;; needed for all ASTs.
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
   (when loc
     (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj))))
