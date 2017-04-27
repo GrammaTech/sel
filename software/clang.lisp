@@ -1305,7 +1305,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
-  '(:asts :types :decls)
+  '(:asts :types)
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod genome ((obj clang))
@@ -1318,10 +1318,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
     (peel-bananas (source-text (ast-root obj)))))
 
 (defmethod (setf genome) :before (new (obj clang))
-  (with-slots (ast-root types declarations  globals fitness) obj
+  (with-slots (ast-root types globals fitness) obj
     (setf ast-root nil
           types nil
-          declarations (make-hash-table :test #'equal)
           globals nil
           fitness nil))
   (clear-caches obj))
@@ -1339,9 +1338,8 @@ for successful mutation (e.g. adding includes/types/macros)"))
           :test #'string=))
 
 (defmethod update-asts ((obj clang)
-                        &key clang-mutate-args
-                        &aux (decls (make-hash-table :test #'equal)))
-  (with-slots (asts ast-root types declarations genome) obj
+                        &key clang-mutate-args)
+  (with-slots (asts ast-root types genome) obj
     (unless genome     ; get genome from existing ASTs if necessary
       (setf genome (genome obj)
             ast-root nil))
@@ -1361,27 +1359,20 @@ for successful mutation (e.g. adding includes/types/macros)"))
               (collect ast into m-types)
 
               ;; ASTs
-              (progn
-                ;; NOTE: Relies on the invariant that the ASTs returned by
-                ;; clang-mutate are in sorted order.
-                (mapc (lambda (var) (nconcf (gethash var decls nil) (list ast)))
-                      (ast-declarations ast))
-                (cond
-                  ((ast-counter ast) (collect ast into body))
-                  ((ast-decl-name ast)
-                   (nconcf (gethash (ast-decl-name ast) decls nil) (list ast)))
-                  (:otherwise (error "Unrecognized ast.~%~S" ast)))))
+              (if (ast-counter ast)
+                  (collect ast into body)
+                  (error "Unrecognized ast.~%~S" ast)))
           (finally
            (setf ast-root (asts->tree genome body)
                  types m-types
-                 declarations decls
                  genome nil))))
 
   obj)
 
-(defmethod update-caches ((obj clang))
+(defmethod update-caches ((obj clang)
+                          &aux (decls (make-hash-table :test #'equal)))
   (with-slots (asts stmt-asts non-stmt-asts functions prototypes
-                   macros includes) obj
+                   declarations macros includes) obj
     ;; Collect all ast-refs
     (labels ((helper (tree path)
                (when (listp tree)
@@ -1394,10 +1385,13 @@ for successful mutation (e.g. adding includes/types/macros)"))
       (setf asts (cdr (helper (ast-root obj) nil))))
 
     (iter (for ast in asts)
-          (when (ast-body ast)
-            (collect ast into funs))
+          (mapc (lambda (var) (nconcf (gethash var decls nil) (list ast)))
+                (ast-declarations ast))
+
           (when (function-decl-p ast)
-            (collect ast into protos))
+            (collect ast into protos)
+            (when (function-body obj ast)
+              (collect ast into funs)))
           (mapc (lambda (macro)
                   (adjoining (cons (first macro) (second macro)) into m-macros
                              test (lambda (a b) (string= (car a) (car b)))))
@@ -1414,6 +1408,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
           (finally
            (setf stmt-asts my-stmts
                  non-stmt-asts my-non-stmts
+                 declarations decls
                  macros m-macros
                  includes m-includes
                  functions funs
@@ -1422,11 +1417,12 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod clear-caches ((obj clang))
   (with-slots (stmt-asts non-stmt-asts functions prototypes
-                         macros includes) obj
+                         declarations macros includes) obj
     (setf stmt-asts nil
           non-stmt-asts nil
           functions nil
           prototypes nil
+          declarations nil
           macros nil
           includes nil)))
 
@@ -1579,11 +1575,11 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 
 (defmethod      ast-root :before ((obj clang)) (update-asts-if-necessary obj))
 (defmethod          size :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod  declarations :before ((obj clang)) (update-asts-if-necessary obj))
 
 (defmethod          asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod non-stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod  declarations :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     functions :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod    prototypes :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod      includes :before ((obj clang)) (update-caches-if-necessary obj))
@@ -2666,18 +2662,17 @@ Optionally supply a statement number to return the preceding declaration
 closest to STMT"))
 
 (defmethod type-of-var ((obj clang) (variable-name string) &optional stmt)
-  (when-let ((declaration-ast
-              (declaration-of obj
-                              variable-name
-                              (if stmt
-                                  (->> (get-ast obj stmt)
-                                       (ast-begin-src-line))
-                                  nil))))
-    (when-let ((declaration-type
-                (if (function-decl-p declaration-ast)
-                    (second (find variable-name (ast-args declaration-ast)
-                                  :key #'car :test #'equal))
-                    (first (ast-types declaration-ast)))))
+  (when-let ((declaration-ast (declaration-of obj
+                                         variable-name
+                                         (if stmt
+                                             (->> (get-ast obj stmt)
+                                                  (aget :begin-src-line))
+                                           nil))))
+    (when-let (declaration-type
+               (if (function-decl-p declaration-ast)
+                   (second (find variable-name (ast-args declaration-ast)
+                                 :key #'car :test #'equal))
+                 (first (get-ast-types obj declaration-ast))))
       (find-type obj declaration-type))))
 
 (defgeneric find-decl-in-block (software name block)

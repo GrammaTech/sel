@@ -459,7 +459,6 @@
    :ast-counter
    :ast-declares
    :ast-decl-name
-   :ast-decl-text
    :ast-disasm
    :ast-end-addr
    :ast-end-src-col
