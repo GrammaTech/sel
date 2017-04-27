@@ -1365,25 +1365,11 @@ statement pick"
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* `(((:ast-class . "Nothing")))))
+    (let ((*bad-asts* (list (snippet->clang-ast '((:ast-class . "Nothing"))))))
       (signals no-mutation-targets
         (se::pick-general *hello-world* #'stmt-asts
                           :filter #'se::same-class-filter
                           :second-pool #'bad-stmts)))))
-
-(deftest clang-pick-general-same-class-test ()
-  "Ensure calling pick-general with a same-class filter returns
-two statements with the same class."
-  (with-fixture hello-world-clang
-    (let ((picks (se::pick-general *hello-world* #'stmt-asts
-                                   :filter #'se::same-class-filter
-                                   :second-pool #'stmt-asts)))
-      (is (equal (->> (aget :stmt1 picks)
-                      (get-ast *hello-world*)
-                      (aget :ast-class))
-                 (->> (aget :stmt2 picks)
-                      (get-ast *hello-world*)
-                      (aget :ast-class)))))))
 
 (deftest clang-promote-guarded-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
@@ -2968,71 +2954,6 @@ Useful for printing or returning differences in the REPL."
                                          (second))
                                     (->> "printf(\"%d\\n\", argc * argc)"
                                          (stmt-with-text *soft*)))))))
-
-(deftest full-stmt-successors-fib-test ()
-  (with-fixture fib-clang
-    (is (equal '("DeclStmt" "WhileStmt" "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *fib* "int x = 0")
-                    (full-stmt-successors *fib*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))
-    (is (equal '("BinaryOperator" "BinaryOperator" "CompoundStmt"
-                 "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *fib* "int t = x")
-                    (full-stmt-successors *fib*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))
-    (is (equal '("CompoundStmt")
-               (->> (stmt-with-text *fib* "return x")
-                    (full-stmt-successors *fib*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))))
-
-(deftest full-stmt-successors-collatz-test ()
-  (with-fixture collatz-clang
-    (is (equal '("WhileStmt" "CallExpr" "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *collatz* "int k = 0")
-                    (full-stmt-successors *collatz*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))
-    (is (equal '("CompoundStmt" "UnaryOperator" "CompoundStmt"
-                 "CallExpr" "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *collatz* "m /= 2")
-                    (full-stmt-successors *collatz*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))
-    (is (equal '("CompoundStmt")
-               (->> (stmt-with-text *collatz* "return k")
-                    (full-stmt-successors *collatz*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))))
-
-(deftest full-stmt-successors-no-compound-stmt-test ()
-  (with-fixture crossover-no-compound-stmt-clang
-    (is (equal '("DeclStmt" "ForStmt" "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *soft* "int i")
-                    (full-stmt-successors *soft*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))
-    (is (equal '("ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
-                    (full-stmt-successors *soft*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))))
-
-(deftest full-stmt-successors-switch-stmt-test ()
-  (with-fixture crossover-switch-stmt-clang
-    (is (equal '("SwitchStmt" "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
-                    (full-stmt-successors *soft*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))
-    (is (equal '("CaseStmt" "DefaultStmt" "CompoundStmt"
-                 "ReturnStmt" "CompoundStmt")
-               (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
-                    (full-stmt-successors *soft*)
-                    (apply #'append)
-                    (mapcar #'ast-class))))))
 
 (deftest enclosing-full-stmt-collatz-test ()
   (with-fixture collatz-clang

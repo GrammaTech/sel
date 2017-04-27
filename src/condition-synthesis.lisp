@@ -778,7 +778,7 @@ TYPE --------- type description alist (:types :array :pointer :compare)
               (cons (format nil (aget :compare type)
                          (peel-bananas (ast-src-text a))
                          (peel-bananas (ast-src-text b)))
-                    (snippet->ast '((:type . "int") (:hash) (:reqs))))))))
+                    (snippet->clang-type '((:type . "int") (:hash) (:reqs))))))))
 
 (defun types-equal (snippet type)
   "Does SNIPPET (an alist) represent the same type as TYPE (a type AST)?"
