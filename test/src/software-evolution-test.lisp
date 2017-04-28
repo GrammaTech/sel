@@ -4657,6 +4657,14 @@ Useful for printing or returning differences in the REPL."
          "/* Here is a non-ASCII character: § */
 "))))
 
+(deftest in-directory-with-trailing-slash ()
+  (is (equal (in-directory #P"/tmp/build/" #P"src/test.c")
+             #P"/tmp/build/src/test.c")))
+
+(deftest in-directory-no-trailing-slash ()
+  (is (equal (in-directory #P"/tmp/build" #P"src/test.c")
+             #P"/tmp/build/src/test.c")))
+
 
 
 ;; project tests
