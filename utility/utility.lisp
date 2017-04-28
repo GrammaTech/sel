@@ -183,14 +183,18 @@ and an optional extension."
     (:otherwise (error "Path not string ~S." path))))
 
 (defun in-directory (directory path)
-  (make-pathname
-   :host (pathname-host directory)
-   :device (pathname-device directory)
-   :directory (append (pathname-directory directory)
-                      (cdr (pathname-directory path)))
-   :name (pathname-name path)
-   :type (pathname-type path)
-   :version (pathname-version path)))
+  "Return PATH based in DIRECTORY.
+Uses `ensure-directory-pathname' to force DIRECTORY to be a directory
+pathname (i.e., ending in a \"/\")."
+  (let ((directory (ensure-directory-pathname directory)))
+    (make-pathname
+     :host (pathname-host directory)
+     :device (pathname-device directory)
+     :directory (append (pathname-directory directory)
+                        (cdr (pathname-directory path)))
+     :name (pathname-name path)
+     :type (pathname-type path)
+     :version (pathname-version path))))
 
 
 ;;; Shell and system command helpers
