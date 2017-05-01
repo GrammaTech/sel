@@ -5388,6 +5388,30 @@ Useful for printing or returning differences in the REPL."
       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
       (is (eq 1 (count-matching-chars-in-stmt #\; function))))))
 
+;; FIXME: this behavior is not implemented, so we can get incorrect
+;; trees in some cases.
+;; (deftest insert-before-unbraced-body-adds-braces ()
+;;   ;; clang-mutate will simply insert at the given location, leading to
+;;   ;; text like
+;;   ;; if (2) int x = 1; x = 2
+
+;;   ;; This is problematic when working directly on the ASTs because
+;;   ;; both statements end up as direct children of the "if". We can fix
+;;   ;; that by wrapping them in braces.
+;;   (with-fixture contexts
+;;     (let ((target (stmt-with-text *contexts* "x = 2"))
+;;           (insert (stmt-with-text *contexts* "int x = 1")))
+;;       (se::apply-mutation-ops *contexts*
+;;                               `((:insert (:stmt1 . ,target)
+;;                                          (:value1 . ,insert)))))
+;;     (let ((function (find-function *contexts* "unbraced_body")))
+;;       (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
+;;       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
+;;       (is (eq 2 (count-matching-chars-in-stmt #\; function)))
+;;       (is (eq 2 (count-if «and [{string= "CompoundStmt"} #'ast-class]
+;;                                {ancestor-of *contexts* function}»
+;;                           (stmt-asts *contexts*)))))))
+
 (deftest cut-field-removes-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int f1;")))
