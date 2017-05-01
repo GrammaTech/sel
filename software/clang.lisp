@@ -2294,6 +2294,10 @@ included as the first successor."
       ;; Global scope
       (make-ast-ref :path nil :ast (ast-root software))))
 
+(defmethod nth-enclosing-scope ((software clang) depth (ast ast-ref))
+  (let ((scope (enclosing-scope software ast)))
+    (if (>= 0 depth) scope
+        (nth-enclosing-scope software (1- depth) scope))))
 
 (defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope."))
@@ -2522,16 +2526,17 @@ variables to replace use of the variables declared in stmt ID."))
 (defmethod ast-declarations ((ast clang-type))
   nil)
 
-(defgeneric declaration-of (software variable-name &optional line-number)
+(defgeneric declaration-of (software variable-name &optional point)
   (:documentation "Return the AST in SOFTWARE which declares VARIABLE-NAME.
-Optionally supply a LINE-NUMBER to return the preceding declaration
-closest to LINE-NUMBER."))
+Optionally supply a POINT to return the preceding declaration
+closest to POINT."))
 
 (defmethod declaration-of ((obj clang) (variable-name string)
-                           &optional line-number)
+                           &optional point)
   (let ((decls (gethash variable-name (declarations obj))))
-    (if line-number
-        (lastcar (take-while [{<= _ line-number} #'ast-begin-src-line] decls))
+    (if point
+        (lastcar (take-while [{<= _ (index-of-ast obj point)}
+                              {index-of-ast obj}] decls))
         (car decls))))
 
 (defgeneric declared-type (ast variable-name)
@@ -2552,11 +2557,8 @@ closest to STMT"))
 
 (defmethod type-of-var ((obj clang) (variable-name string) &optional stmt)
   (when-let ((declaration-ast (declaration-of obj
-                                         variable-name
-                                         (if stmt
-                                             (->> (get-ast obj stmt)
-                                                  (aget :begin-src-line))
-                                           nil))))
+                                              variable-name
+                                              stmt)))
     (when-let (declaration-type
                (if (function-decl-p declaration-ast)
                    (second (find variable-name (ast-args declaration-ast)
@@ -2581,7 +2583,7 @@ depth)."))
 (defmethod decl-of-var ((software clang) point var)
   (let ((name (peel-bananas (first var)))
         ;; Go up to the right scope
-        (parent-block (nth-enclosing-block software (second var) point)))
+        (parent-block (nth-enclosing-scope software (second var) point)))
     (if parent-block
         (find-decl-in-block software name parent-block)
         ;; Ran out of parent blocks -- try function arguments and
