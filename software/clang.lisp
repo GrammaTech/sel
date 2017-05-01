@@ -464,7 +464,16 @@ Adds and removes semicolons, commas, and braces. "
              (no-change)
              (list before ast ";" after)))
        (add-comma ()
-         (list before ast "," after)))
+         (list before ast "," after))
+       (wrap-with-block-if-unbraced ()
+         ;; Wrap in a CompoundStmt and also add semicolon -- this
+         ;; never hurts and is sometimes necessary (e.g. for loop
+         ;; bodies).
+         (let ((text (source-text ast)))
+           (if (and (starts-with #\{ text) (ends-with #\} text))
+               (no-change)
+               (list before (ast-ref-ast (make-block (list ast ";")))
+                     after)))))
     (remove nil
             (ecase context
               (:generic (no-change))
@@ -480,16 +489,11 @@ Adds and removes semicolons, commas, and braces. "
                                (:before (add-comma))
                                (:instead (no-change))
                                (:remove (list after))))
-              ;; Wrap with braces and also add semicolon -- this never hurts
-              ;; and is sometimes necessary (e.g. for loop bodies).
-              (:braced (ecase operation
+              (:braced
+               (ecase operation
                          (:before (no-change))
                          (:remove (no-change))
-                         (:instead (let ((text (source-text ast)))
-                                     (if (and (starts-with #\{ text)
-                                              (ends-with #\} text))
-                                         (no-change)
-                                         (list before "{" ast "; }" after))))))
+                         (:instead (wrap-with-block-if-unbraced))))
               (:unbracedbody (add-semicolon-if-unbraced))
               (:field (ecase operation
                         (:before (add-semicolon))
