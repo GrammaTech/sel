@@ -328,7 +328,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
-                         types unbound-funs unbound-vals)
+                         types unbound-funs unbound-vals declares)
   "Create a statement AST.
 
 TYPES, UNBOUND-FUNS, and UNBOUND-VALS will be computed from children
@@ -354,6 +354,7 @@ if not given."
                                   :guard-stmt guard-stmt
                                   :opcode opcode
                                   :types types
+                                  :declares declares
                                   :unbound-funs unbound-funs
                                   :unbound-vals unbound-vals)
                   (mapcar (lambda (c)
@@ -422,11 +423,12 @@ if not given."
                   :expr-type (type-hash type)))
 
 (defun make-var-decl (name type)
-  (make-statement "DeclExpr" :fullstmt
+  (make-statement "DeclStmt" :fullstmt
                   (list (make-statement "Var" :generic
                                         (list (format nil "~a ~a"
                                                       (type-name type) name))
-                                        :types (list (type-hash type))))))
+                                        :types (list (type-hash type))
+                                        :declares (list name)))))
 
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
