@@ -902,7 +902,7 @@ operations.
   (sort `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
                    (:stmt2 . ,(aget :stmt2 (targets mutation))))
           (:cut (:stmt1 . ,(aget :stmt1 (targets mutation)))))
-        #'> :key [{aget :stmt1} #'cdr]))
+        #'ast-later-p :key [{aget :stmt1} #'cdr]))
 
 ;;; Replace
 (define-mutation clang-replace (clang-mutation)
