@@ -17,7 +17,7 @@ void braced_body()
 
 void unbraced_body(int x)
 {
-    if (1)
+    if (2)
         x = 2;
 }
 
