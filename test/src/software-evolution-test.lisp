@@ -5357,7 +5357,12 @@ Useful for printing or returning differences in the REPL."
     (let ((function (find-function *contexts* "braced_body")))
       (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
-      (is (eq 1 (count-matching-chars-in-stmt #\; function))))))
+      (is (eq 1 (count-matching-chars-in-stmt #\; function)))
+      ;; Braces should be part of a new CompoundStmt AST rather than
+      ;; free-floating text.
+      (is (eq 2 (count-if «and [{string= "CompoundStmt"} #'ast-class]
+                               {ancestor-of *contexts* function}»
+                          (stmt-asts *contexts*)))))))
 
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
