@@ -1705,7 +1705,20 @@ is not to be found"
                  (subsequent-lines-p genome-string ; Ensure peels bananas.
                                      "puts('WHILE-1');"
                                      "j++;"))
-            "Promotes multi-line body from within while loop.")))))
+            "Promotes multi-line body from within while loop.")))
+
+    (with-fixture gcd-wo-curlies-clang
+      (let ((genome-string
+             (let ((copy (copy *gcd*)))
+               (genome
+                (apply-mutation copy
+                  (make-instance 'clang-promote-guarded
+                    :object copy
+                    :targets (stmt-starting-with-text *gcd* "if (a == 0)")))))))
+        (is (and (subsequent-lines-p genome-string
+                                     "printf(\"%g\\n\", b);"
+                                     "while (b != 0)"))
+            "Promotes unbraced then from within if wi/o else.")))))
 
 (deftest if-to-while-test ()
   (with-fixture gcd-clang-control-picks
