@@ -990,7 +990,12 @@ operations.
                      &aux (guarded (targets mutation)))
   (flet
       ((compose-children (&rest parents)
-         (-<>> (mappend {get-immediate-children software} parents)
+         (-<>> (iter (for p in parents)
+                     ;; In case of an unbraced if/loop body, include
+                     ;; the body directly.
+                     (if (string= "CompoundStmt" (ast-class p))
+                         (appending (get-immediate-children software p))
+                         (collecting p)))
                (mapcar #'ast-ref-ast)
                (interleave <>
                            (coerce (list #\; #\Newline) 'string)))))
