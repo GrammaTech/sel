@@ -5364,6 +5364,20 @@ Useful for printing or returning differences in the REPL."
                                {ancestor-of *contexts* function}»
                           (stmt-asts *contexts*)))))))
 
+(deftest cut-unbraced-body-adds-nullstmt ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "x = 2")))
+      (se::apply-mutation-ops *contexts*
+                              `((:cut (:stmt1 . ,target)))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\;
+               (find-function *contexts* "unbraced_body"))))
+    (is (string= "NullStmt"
+                 (&>> (stmt-starting-with-text *contexts* "if (2)")
+                      (get-immediate-children *contexts*)
+                      (second)
+                      (ast-class))))))
+
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2")))
