@@ -485,7 +485,13 @@ Adds and removes semicolons, commas, and braces. "
            (if (and (starts-with #\{ text) (ends-with #\} text))
                (no-change)
                (list before (ast-ref-ast (make-block (list ast ";")))
-                     after)))))
+                     after))))
+       (add-null-stmt ()
+         ;; Note: clang mutate will generate a NullStmt with ";" as
+         ;; its text, but here the semicolon already exists in a
+         ;; parent AST.
+         (list before
+               (ast-ref-ast (make-statement "NullStmt" :unbracedbody nil)))))
     (remove nil
             (ecase context
               (:generic (no-change))
@@ -506,7 +512,11 @@ Adds and removes semicolons, commas, and braces. "
                          (:before (no-change))
                          (:remove (no-change))
                          (:instead (wrap-with-block-if-unbraced))))
-              (:unbracedbody (add-semicolon-if-unbraced))
+              (:unbracedbody
+               (ecase operation
+                 (:before (add-semicolon-if-unbraced))
+                 (:remove (add-null-stmt))
+                 (:instead (add-semicolon-if-unbraced))))
               (:field (ecase operation
                         (:before (add-semicolon))
                         (:instead (add-semicolon))
