@@ -233,8 +233,10 @@
    ;; evolution functions
    :incorporate
    :evict
-   :default-select-one
+   :default-select-best
+   :default-random-winner
    :*tournament-selector*
+   :*tournament-tie-breaker*
    :tournament
    :mutant
    :crossed
@@ -338,7 +340,7 @@
    :*fitness-scalar-fn*
    :fitness-scalar
    :lexicase-select
-   :lexicase-select-one
+   :lexicase-select-best
    :*lexicase-key*
    :mutation
    :targets

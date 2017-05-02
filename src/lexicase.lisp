@@ -19,11 +19,16 @@ The same individual may be selected multiple times."
    (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
    (population)
    "All fitness vectors must be the same length.")
-  (iter (for n below max-size) (collect (lexicase-select-one population))))
+  (iter (for n below max-size)
+        (collect (funcall *tournament-tie-breaker*
+                          (lexicase-select-best population)))))
 
-(defun lexicase-select-one (group &key (predicate *fitness-predicate*))
-  "Choose a single individual by lexicase selection.
-Set the value of `*tournament-selector*' to `lexicase-select-one' to
+(defun lexicase-select-best (group &key (predicate *fitness-predicate*))
+  "Choose best individuals by lexicase selection.
+
+If there is a tie after all tests, return all remaining individuals.
+
+Set the value of `*tournament-selector*' to `lexicase-select-best' to
 use lexicase-style selection in tournament selection."
   (iter (for which in (shuffle (iota (1- (length (fitness (first group)))))))
         (setf group
@@ -35,5 +40,4 @@ use lexicase-style selection in tournament selection."
                group :key *lexicase-key*))
         ;; Stop when we get down to one individual
         (until (not (cdr group))))
-  ;; If there's still a tie after all tests, choose randomly.
-  (random-elt group))
+  group)

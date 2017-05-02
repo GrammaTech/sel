@@ -4844,3 +4844,68 @@ Useful for printing or returning differences in the REPL."
                       '("y"  "4" :neq)
                       '("z"  "2" :neq))
                 :test #'equal))))
+
+
+;;; Selection tests
+(in-suite test)
+(defsuite* test-selection)
+
+(deftest select-best-single-winner ()
+  (let ((group (list (make-instance 'simple :fitness 1.0)
+                     (make-instance 'simple :fitness 0.5)
+                     (make-instance 'simple :fitness 0.1))))
+    (is (equal (list (car group))
+               (default-select-best group)))))
+
+(deftest select-best-multiple-winners ()
+  (let* ((group (list (make-instance 'simple :fitness 0.8)
+                      (make-instance 'simple :fitness 0.5)
+                      (make-instance 'simple :fitness 0.8)))
+         (winners (default-select-best group)))
+    (is (= (length winners) 2))
+    (is (every [{= 0.8} #'fitness] winners))))
+
+(deftest select-best-respects-fitness-predicate ()
+  (let ((group (list (make-instance 'simple :fitness 1.0)
+                     (make-instance 'simple :fitness 0.1)))
+        (*fitness-predicate* #'<))
+    (is (equal (list (lastcar group))
+               (default-select-best group)))))
+
+(deftest lexicase-select-best-single-winner ()
+  (let ((group (list (make-instance 'simple :fitness #(1 1 1))
+                     (make-instance 'simple :fitness #(0 0 0))
+                     (make-instance 'simple :fitness #(0.1 0.1 0.1)))))
+    (is (equal (list (car group))
+               (lexicase-select-best group)))))
+
+(deftest lexicase-select-best-multiple-winners ()
+  (let* ((group (list (make-instance 'simple :fitness #(1 1 1))
+                      (make-instance 'simple :fitness #(1 1 1))
+                      (make-instance 'simple :fitness #(0 0 0))))
+         (winners (lexicase-select-best group)))
+    (is (= (length winners) 2))
+    (is (every [{equalp #(1 1 1)} #'fitness] winners))))
+
+(deftest lexicase-select-best-respects-fitness-predicate ()
+  (let ((group (list (make-instance 'simple :fitness #(1 1 1))
+                     (make-instance 'simple :fitness #(0.1 0.1 0.1))))
+        (*fitness-predicate* #'<))
+    (is (equal (list (lastcar group))
+               (lexicase-select-best group)))))
+
+(deftest lexicase-select-works ()
+  (is (eq 2
+          (-<> (list (make-instance 'simple :fitness #(0 1 1))
+                     (make-instance 'simple :fitness #(0 1 1))
+                     (make-instance 'simple :fitness #(1 1 0))
+                     (make-instance 'simple :fitness #(1 1 0)))
+               (lexicase-select <> 2)
+               (length)))))
+
+(deftest tournament-works ()
+  (let ((*population* (list (make-instance 'simple :fitness 0.1)
+                            (make-instance 'simple :fitness 0.2)
+                            (make-instance 'simple :fitness 0.3)
+                            (make-instance 'simple :fitness 0.4))))
+    (is (member (tournament) *population*))))
