@@ -240,6 +240,16 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
             ;; proper hierarchy.
             (if (and child-asts (not (aget :in-macro-expansion ast)))
                 (let ((last-child (car (lastcar child-asts))))
+                  ;; Handle screwed-up source ranges where parent
+                  ;; doesn't encompass children. Seems to happen with
+                  ;; CXXOperatorCallExpr.
+                  (iter (for subtree in child-asts)
+                        (for end = (aget :end-off (car subtree)))
+                        ;; Note that we modify AST so this change will
+                        ;; propagate up the tree.
+                        (when (> end (aget :end-off ast))
+                          (setf (aget :end-off ast) end)))
+
                   ;; Work around another weird clang-mutate behavior
                   ;; This happens with array initializers. See BRASS
                   ;; xhtml tests for an example.
