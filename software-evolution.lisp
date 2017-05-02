@@ -551,22 +551,39 @@ If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
                     (> (length *population*) *max-population-size*))
      :do (evict)))
 
+(defvar *tie-breaker-predicate* #'>
+  "Function to compare two tie breaker values to select which is preferred.")
+
 (defun evict ()
   (let ((loser (tournament :predicate (complement *fitness-predicate*)
-                           :size *tournament-eviction-size*)))
+                           :size *tournament-eviction-size*
+                           :tie-breaker-predicate
+                              (complement *tie-breaker-predicate*))))
     (setf *population* (remove loser *population* :count 1))
     loser))
 
-(defun default-select-one (group &key (predicate *fitness-predicate*))
-  "Return the member of GROUP with most PREDICATE fitness.
+(defun default-select-best (group &key (predicate *fitness-predicate*))
+  "Return the members of GROUP with most PREDICATE fitness.
 Default selection function for `tournament'."
-  (extremum group predicate :key #'fitness))
+  (remove-if-not [{= (fitness (extremum group predicate :key #'fitness))}
+                  #'fitness]
+                 group))
 
-(defvar *tournament-selector* #'default-select-one
-  "Function used to select a winner of a tournament.")
+(defun default-random-winner (group &key predicate)
+  "Choose a random winner from GROUP."
+  (declare (ignorable predicate))
+  (random-elt group))
+
+(defvar *tournament-selector* #'default-select-best
+  "Function used to select winners of a tournament.")
+
+(defvar *tournament-tie-breaker* #'default-random-winner
+  "Function used to break ties in a tournament.")
 
 (defun tournament
-    (&key (predicate *fitness-predicate*) (size *tournament-size*))
+    (&key (predicate *fitness-predicate*)
+       (tie-breaker-predicate *tie-breaker-predicate*)
+       (size *tournament-size*))
   "Select an individual from *POPULATION* with a tournament."
   (flet ((verify (it)
            (assert (typep it 'software) (it)
@@ -575,10 +592,12 @@ Default selection function for `tournament'."
                    "Population member with no fitness")
            it))
     (assert *population* (*population*) "Empty population.")
-    (funcall *tournament-selector*
-             (iter (for i below size)
-                   (collect (verify (random-elt *population*))))
-             :predicate predicate)))
+    (funcall *tournament-tie-breaker*
+             (funcall *tournament-selector*
+                      (iter (for i below size)
+                            (collect (verify (random-elt *population*))))
+                      :predicate predicate)
+             :predicate tie-breaker-predicate)))
 
 (defun mutant (&optional (new (copy (tournament))))
   "Generate a new mutant from a *POPULATION*."
