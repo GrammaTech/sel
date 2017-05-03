@@ -73,4 +73,5 @@ techniques."
              (:file "test-suite")
              (:file "condition-synthesis")
              (:file "fault-loc")
-             (:file "generate-helpers")))))
+             (:file "generate-helpers")
+             (:file "multi-objective")))))

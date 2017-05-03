@@ -4909,3 +4909,144 @@ Useful for printing or returning differences in the REPL."
                             (make-instance 'simple :fitness 0.3)
                             (make-instance 'simple :fitness 0.4))))
     (is (member (tournament) *population*))))
+
+
+(deftest lexicase-better-p-order ()
+  (let ((a #(0 1 1))
+        (b #(1 1 0)))
+    (is (se::lexicase-better-p '(1 2 0) a b))
+    (is (not (se::lexicase-better-p '(1 2 0) b a)))
+    (is (se::lexicase-better-p '(1 0 2) b a))
+    (is (not (se::lexicase-better-p '(1 0 2) a b)))))
+
+(deftest lexicase-better-p-tie ()
+  (let ((a #(0 1 1))
+        (b #(0 1 1)))
+    (is (not (se::lexicase-better-p '(0 1 2) a b)))
+    (is (not (se::lexicase-better-p '(0 1 2) b a)))))
+
+(deftest dominates-all-trivial-test ()
+  (is (se::dominates-all (list #'>)
+                         (list (make-instance 'simple :fitness '(0))
+                               (make-instance 'simple :fitness '(0)))
+                         (make-instance 'simple :fitness '(1)))))
+
+(deftest pareto-selector-no-winners ()
+  (let ((*population* (list (make-instance 'simple :fitness '(1))
+                            (make-instance 'simple :fitness '(1))
+                            (make-instance 'simple :fitness '(1))))
+        (*pareto-comparison-set-size* 2))
+    ;; No candidates will dominate because all have equal fitness, so
+    ;; all should be selected.
+    (is (equal *population*
+               (pareto-selector *population*)))))
+
+(deftest pareto-selector-choose-winners-maximizing-fitness ()
+  (let ((candidates (list (make-instance 'simple :fitness '(1 0 0))
+                          (make-instance 'simple :fitness '(1 1 0))
+                          (make-instance 'simple :fitness '(1 1 1)))))
+    (is (equalp
+         (last candidates)
+         (pareto-selector candidates :predicate #'>
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(0 0 0))
+                                (make-instance 'simple :fitness '(0 1 1))))))
+    (is (equalp
+         (last candidates 2)
+         (pareto-selector candidates :predicate #'>
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(0 0 0))
+                                (make-instance 'simple :fitness '(0 1 0))))))
+    (is (equalp
+         (last candidates 3)
+         (pareto-selector candidates :predicate #'>
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(0 0 0))))))))
+
+(deftest pareto-selector-choose-losers-maximizing-fitness ()
+  (let ((candidates (list (make-instance 'simple :fitness '(1 1 1))
+                          (make-instance 'simple :fitness '(1 1 0))
+                          (make-instance 'simple :fitness '(1 0 0)))))
+    ;; By complementing :predicate (but leaving *fitness-predicate*
+    ;; unchanged) we choose non-dominating candidates.
+    (is (equalp
+         (last candidates)
+         (pareto-selector candidates :predicate (complement #'>)
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(0 0 0))
+                                (make-instance 'simple :fitness '(1 0 0))))))
+    (is (equalp
+         (last candidates 2)
+         (pareto-selector candidates :predicate (complement #'>)
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(0 0 0))
+                                (make-instance 'simple :fitness '(1 1 0))))))
+    (is (equalp
+         (last candidates 3)
+         (pareto-selector candidates :predicate (complement #'>)
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(1 1 1))))))))
+
+(deftest pareto-selector-choose-winners-minimizing-fitness ()
+  (let ((*fitness-predicate* #'<)       ; lower fitness is better
+        (candidates (list (make-instance 'simple :fitness '(0 1 1))
+                          (make-instance 'simple :fitness '(0 0 1))
+                          (make-instance 'simple :fitness '(0 0 0)))))
+    (is (equalp
+         (last candidates)
+         (pareto-selector candidates :predicate #'<
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(1 1 1))
+                                (make-instance 'simple :fitness '(1 0 0))))))
+    (is (equalp
+         (last candidates 2)
+         (pareto-selector candidates :predicate #'<
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(1 1 1))
+                                (make-instance 'simple :fitness '(1 0 1))))))
+    (is (equalp
+         (last candidates 3)
+         (pareto-selector candidates :predicate #'<
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(1 1 1))))))))
+
+(deftest pareto-selector-choose-losers-minimizing-fitness ()
+  (let ((*fitness-predicate* #'<)       ; lower fitness is better
+        (candidates (list (make-instance 'simple :fitness '(0 0 0))
+                          (make-instance 'simple :fitness '(0 0 1))
+                          (make-instance 'simple :fitness '(0 1 1)))))
+    ;; By complementing :predicate (but leaving *fitness-predicate*
+    ;; unchanged) we choose non-dominating candidates.
+    (is (equalp
+         (last candidates)
+         (pareto-selector candidates :predicate (complement #'<)
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(1 1 1))
+                                (make-instance 'simple :fitness '(0 1 1))))))
+    (is (equalp
+         (last candidates 2)
+         (pareto-selector candidates :predicate (complement #'<)
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(1 1 1))
+                                (make-instance 'simple :fitness '(0 0 1))))))
+    (is (equalp
+         (last candidates 3)
+         (pareto-selector candidates :predicate (complement #'<)
+                          :comparison-set
+                          (list (make-instance 'simple :fitness '(0 0 0))))))))
+
+(deftest pareto-selector-lexicase ()
+  (let ((candidates (list (make-instance 'simple :fitness '(#(0.1 0.1 0.1)))
+                          (make-instance 'simple :fitness '(#(1 1 1)))))
+        (middle (make-instance 'simple :fitness '(#(0.5 0.5 0.5))))
+        (worst (make-instance 'simple :fitness '(#(0 0 0)))))
+    (is (equalp (last candidates)
+                (pareto-selector candidates :predicate #'>
+                                 :comparison-set (list middle))))
+    (is (equalp candidates
+                (pareto-selector candidates :predicate #'>
+                                 :comparison-set (list worst))))))
+
+(deftest multi-objective-scalar-works ()
+  (is (eq 1.0 (multi-objective-scalar '(0.1 0.4 0.5))))
+  (is (eq 1.0 (multi-objective-scalar '(0.1 0.4 #(1 0))))))
