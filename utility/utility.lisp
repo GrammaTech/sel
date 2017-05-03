@@ -295,60 +295,53 @@ See the documentation of `shell' for more information."
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL to FILE."
-  #-sbcl (error "`WRITE-SHELL-FILE' unimplemented for non-SBCL lisps.")
-  #+sbcl
   (let ((proc-sym (gensym))
         (thread-sym (gensym))
         (byte-sym (gensym))
         (file-var (gensym)))
-    `(let* ((,proc-sym (sb-ext:run-program ,shell ,args :search t
-                                           :output :stream
-                                           :input :stream
-                                           :wait nil))
-            (,thread-sym
-             (sb-thread:make-thread ; Thread connecting shell output to file.
-              (lambda ()
-                (with-open-file (,file-var ,file :direction :output
-                                           :if-exists :supersede
-                                           :element-type 'unsigned-byte)
-                  (loop :for ,byte-sym = (read-byte
-                                          (sb-ext:process-output ,proc-sym)
-                                          nil :eof)
-                     :until (eql ,byte-sym :eof)
-                     :do (write-byte ,byte-sym ,file-var))
-                  (close (sb-ext:process-output ,proc-sym)))))))
+    `(let* ((,proc-sym
+             #+sbcl (sb-ext:run-program ,shell ,args :search t
+                                        :output ,file
+                                        :input :stream
+                                        :wait nil)
+             #+ccl (ccl:run-program ,shell ,args :output ,file
+                                    :input :stream
+                                    :wait nil)
+             #-(or sbcl ccl)
+             (error "`WRITE-SHELL-FILE' only implemented for SBCL or CCL.")))
        (unwind-protect
-            (with-open-stream (,stream-var (sb-ext:process-input ,proc-sym))
-              ,@body)
-         (sb-thread:join-thread ,thread-sym)))))
+            (with-open-stream
+                (,stream-var #+sbcl (sb-ext:process-input ,proc-sym)
+                             #+ccl (ccl:external-process-input-stream ,proc-sym)
+                             #-(or sbcl ccl) (error "Only SBCL or CCL."))
+              ,@body)))))
 
 (defmacro read-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL from FILE."
-  #-sbcl (error "`READ-SHELL-FILE' unimplemented for non-SBCL lisps.")
-  #+sbcl
+  
+  #+(or sbcl ccl)
   (let ((proc-sym (gensym))
         (thread-sym (gensym))
         (byte-sym (gensym))
         (file-var (gensym)))
-    `(let* ((,proc-sym (sb-ext:run-program ,shell ,args :search t
-                                           :output :stream
-                                           :input :stream
-                                           :wait nil))
-            (,thread-sym
-             (sb-thread:make-thread ; Thread connecting file to shell input.
-              (lambda ()
-                (with-open-file (,file-var ,file :direction :input
-                                           :if-exists :supersede
-                                           :element-type 'unsigned-byte)
-                  (loop :for ,byte-sym = (read-byte ,file-var nil :eof)
-                     :until (eql ,byte-sym :eof) :do
-                     (write-byte ,byte-sym (sb-ext:process-input ,proc-sym)))
-                  (close (sb-ext:process-input ,proc-sym)))))))
+    `(let* ((,proc-sym
+             #+sbcl (sb-ext:run-program ,shell ,args :search t
+                                        :output :stream
+                                        :input ,file
+                                        :wait nil)
+             #+ccl (ccl:run-program ,shell ,args :output :stream
+                                    :input ,file
+                                    :wait nil)
+             #-(or sbcl ccl)
+             (error "`READ-SHELL-FILE' only implemented for SBCL or CCL.")))
        (unwind-protect
-            (with-open-stream (,stream-var (sb-ext:process-output ,proc-sym))
-              ,@body)
-         (sb-thread:join-thread ,thread-sym)))))
+            (with-open-stream
+                (,stream-var
+                 #+sbcl (sb-ext:process-output ,proc-sym)
+                 #+ccl (ccl:external-process-output-stream ,proc-sym)
+                 #-(or sbcl ccl) (error "Only SBCL or CCL."))
+              ,@body)))))
 
 (defvar *bash-shell* "/bin/bash"
   "Bash shell for use in `read-shell'.")
