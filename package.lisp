@@ -342,6 +342,9 @@
    :lexicase-select
    :lexicase-select-best
    :*lexicase-key*
+   :pareto-selector
+   :*pareto-comparison-set-size*
+   :multi-objective-scalar
    :mutation
    :targets
    :simple-cut

@@ -41,3 +41,14 @@ use lexicase-style selection in tournament selection."
         ;; Stop when we get down to one individual
         (until (not (cdr group))))
   group)
+
+(defun lexicase-better-p (order fitness-a fitness-b)
+  "Compare fitness vectors with a fixed order."
+
+  (iter (for which in order)
+        (let ((a (elt fitness-a which))
+              (b (elt fitness-b which)))
+
+          (cond
+            ((funcall *fitness-predicate* a b) (return t))
+            ((funcall *fitness-predicate* b a) (return nil))))))
