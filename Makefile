@@ -1,16 +1,11 @@
-BASEDIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 SHELL=bash
 
-.PHONY: clang-instrument se-test se-testbot-test check doc clean
+.PHONY: testbot-check check doc clean
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
 include local.mk
 endif
-
-CLANG_INSTRUMENT_BIN = $(BASEDIR)/bin/clang-instrument
-SE_TEST_BIN = $(BASEDIR)/bin/se-test
-SE_TESTBOT_TEST_BIN = $(BASEDIR)/bin/se-testbot-test
 
 # Use buildapp as the lisp compiler.
 LC ?= buildapp
@@ -18,19 +13,16 @@ LC ?= buildapp
 # You can set this as an environment variable to point to an alternate
 # quicklisp install location.  If you do, ensure that it ends in a "/"
 # character, and that you use the $HOME variable instead of ~.
-QUICK_LISP ?= /usr/synth/.quicklisp/
+INSTDIR ?= /usr/synth
+QUICK_LISP ?= $(INSTDIR)/.quicklisp/
 ifeq "$(wildcard $(QUICK_LISP)/setup.lisp)" ""
 $(warning $(QUICK_LISP) does not appear to be a valid quicklisp install)
 $(error Please point QUICK_LISP to your quicklisp installation)
 endif
 
-QLOT_FILE=$(BASEDIR)/qlfile
-QLOT_LOCK_FILE=$(BASEDIR)/qlfile.lock
-
-MANIFEST_FILE=$(BASEDIR)/system-index.txt
 LISP_LIBS+= software-evolution
 LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
-LOADED_LIBS:=$(LISP_LIBS:=.loaded)
+LOADED_LIBS:=$(addprefix quicklisp/local-projects/, $(LISP_LIBS:=.loaded))
 
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
@@ -43,8 +35,8 @@ QUIT=(lambda (error hook-value)
 QUIT+=(declare (ignorable hook-value))
 QUIT+=(format *error-output* \"ERROR: ~a~%\" error)
 QUIT+=\#+sbcl (sb-ext:exit :code 2) \#+ccl (quit 2))
-LCFLAGS=--manifest-file $(MANIFEST_FILE) \
-	--asdf-tree $(QUICK_LISP)/dists/quicklisp/software \
+LCFLAGS=--manifest-file system-index.txt \
+	--asdf-tree quicklisp/dists/quicklisp/software \
 	--eval "(setf *debugger-hook* $(QUIT))"
 
 ifneq ($(LISP_STACK),)
@@ -64,55 +56,44 @@ else
 LISP_FLAGS = --quiet --no-init
 endif
 
-all: $(SE_TEST_BIN) $(CLANG_INSTRUMENT_BIN)
+all: bin/clang-instrument
 
-$(QLOT_LOCK_FILE): $(QLOT_FILE)
+system-index.txt: qlfile
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
-		--eval '(pushnew (truename "$(BASEDIR)") ql:*local-project-directories*)' \
+		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :qlot)' \
 		--eval '(qlot:install :software-evolution)' \
-		--eval '(qlot:update)' \
+		--eval '(qlot:quickload :software-evolution)' \
+		--eval '(qlot:with-local-quicklisp (:software-evolution) (ql:register-local-projects))' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
 
-$(MANIFEST_FILE): $(QLOT_LOCK_FILE) $(wildcard $(QUICK_LISP)/local-projects/*/*.asd)
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
-		--eval '(pushnew (truename "$(BASEDIR)") ql:*local-project-directories*)' \
-		--eval '(ql:register-local-projects)' \
-		--eval '#+sbcl (exit) #+ccl (quit)'
-
-%.loaded: | $(MANIFEST_FILE)
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
-		--eval '(pushnew (truename "$(BASEDIR)") ql:*local-project-directories*)' \
+quicklisp/local-projects/%.loaded: | system-index.txt
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load quicklisp/setup.lisp \
+		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :$(notdir $*))' \
 		--eval "#+sbcl (exit) #+ccl (quit)"
 	touch $@
 
-$(CLANG_INSTRUMENT_BIN): $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST_FILE)
+bin/clang-instrument: $(LISP_DEPS) $(LOADED_LIBS) system-index.txt
 	CC=$(CC) $(LISP_HOME) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se:clang-instrument"
 
-clang-instrument: $(CLANG_INSTRUMENT_BIN)
+
+## Documentation
+doc:
+	make -C doc
 
 
 # Test executable
 TEST_LISP_DEPS=$(wildcard test/src/*.lisp)
 TEST_LISP_LIBS+= software-evolution-test
 TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
-TEST_LOADED_LIBS:=$(TEST_LISP_LIBS:=.loaded)
+TEST_LOADED_LIBS:=$(addprefix quicklisp/local-projects/, $(TEST_LISP_LIBS:=.loaded))
 
-$(SE_TEST_BIN): $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
+bin/se-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) system-index.txt
 	CC=$(CC) $(LISP_HOME) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
 
-se-test: $(SE_TEST_BIN)
-
-$(SE_TESTBOT_TEST_BIN): $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST_FILE)
+bin/se-testbot-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) system-index.txt
 	CC=$(CC) $(LISP_HOME) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:testbot-test"
-
-se-testbot-test: $(SE_TESTBOT_TEST_BIN)
-
-
-## Documentation
-doc:
-	make -C doc
 
 
 ## Testing
@@ -126,19 +107,41 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-check: $(SE_TEST_BIN) $(TEST_ARTIFACTS)
+check: bin/se-test $(TEST_ARTIFACTS)
 	@$<
 
-testbot-check: $(SE_TESTBOT_TEST_BIN) $(TEST_ARTIFACTS)
+testbot-check: bin/se-testbot-test $(TEST_ARTIFACTS)
 	@$<
+
+
+## Interactive testing
+SWANK_PORT ?= 4005
+swank: quicklisp/setup.lisp
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
+	--load $<						\
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :swank)'				\
+	--eval '(ql:quickload :software-evolution)'		\
+	--eval '(in-package :software-evolution)'		\
+	--eval '(swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)'
+
+swank-test: quicklisp/setup.lisp $(TEST_ARTIFACTS)
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
+	--load $<						\
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :swank)'				\
+	--eval '(ql:quickload :software-evolution)'		\
+	--eval '(ql:quickload :software-evolution-test)'	\
+	--eval '(in-package :software-evolution-test)'		\
+	--eval '(swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)'
 
 clean:
-	@find . -type f -name "*.fasl" -exec rm {} \+
-	@rm -f $(SE_TEST_BIN) $(SE_TESTBOT_TEST_BIN) $(CLANG_INSTRUMENT_BIN) $(TEST_ARTIFACTS)
-	@rm -f $(TEST_ARTIFACTS)
+	find . -type f -name "*.fasl" -exec rm {} \+
+	find . -type f -name "*.lx32fsl" -exec rm {} \+
+	rm -f bin/se-test bin/se-testbot-test bin/clang-instrument
+	rm -f $(TEST_ARTIFACTS)
 
 real-clean: clean
-	@find . -type f -name "*.loaded" -exec rm {} \+
-	@rm -f $(BASEDIR)/qlfile.lock
-	@rm -f $(MANIFEST_FILE)
-	@rm -rf $(BASEDIR)/quicklisp
+	find . -type f -name "*.loaded" -exec rm {} \+
+	rm -f qlfile.lock system-index.txt
+	rm -rf quicklisp
