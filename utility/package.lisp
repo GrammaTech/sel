@@ -18,7 +18,8 @@
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
-   :if-let :ensure-function :ensure-gethash :copy-file)
+   :if-let :ensure-function :ensure-gethash :copy-file
+   :parse-body :simple-style-warning)
   (:export
    :infinity
    ;; OS
