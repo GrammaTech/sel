@@ -5293,6 +5293,20 @@ Useful for printing or returning differences in the REPL."
                #\;
                (find-function *contexts* "full_stmt"))))))
 
+(deftest insert-non-full-stmt-into-fullstmt-context-makes-full ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int x"))
+          (location (stmt-starting-with-text *contexts* "if (1)")))
+      (se::apply-mutation-ops *contexts*
+                              `((:insert (:stmt1 . ,location)
+                                         (:value1 . ,target))))
+      (is (not (ast-full-stmt target))))
+    (is (->> (find-function *contexts* "braced_body")
+             (function-body *contexts*)
+             (get-immediate-children *contexts*)
+             (first)
+             (ast-full-stmt)))))
+
 (deftest cut-list-elt-removes-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b")))
