@@ -5050,3 +5050,36 @@ Useful for printing or returning differences in the REPL."
 (deftest multi-objective-scalar-works ()
   (is (eq 1.0 (multi-objective-scalar '(0.1 0.4 0.5))))
   (is (eq 1.0 (multi-objective-scalar '(0.1 0.4 #(1 0))))))
+
+(deftest crowding-distance-works ()
+  (let ((*population* (list (make-instance 'simple :fitness '(0.5 0.5 0.5))
+                            (make-instance 'simple :fitness '(0 0 1))
+                            (make-instance 'simple :fitness '(0.6 1 0.1)))))
+
+    (is (equal (+ 0.6 1 0.9)
+               (se::crowding-distance (first *population*))))
+    (is (equal infinity
+               (se::crowding-distance (second *population*))))
+    (is (equal infinity
+               (se::crowding-distance (third *population*))))))
+
+(deftest crowding-distance-lexicase-works ()
+  (let ((*population*
+         (list (make-instance 'simple :fitness '(#(1 0) #(1 1 0 0)))
+               (make-instance 'simple :fitness '(#(0.5 0.5) #(0.5 0.5 0.5 0.5)))
+               (make-instance 'simple :fitness '(#(0 1) #(0 0 1 1))))))
+
+    (is (equal infinity
+               (se::crowding-distance (first *population*))))
+    (is (equal 2
+               (se::crowding-distance (second *population*))))
+    (is (equal infinity
+               (se::crowding-distance (third *population*))))))
+
+(deftest pick-least-crowded-works ()
+  (let ((*population* (list (make-instance 'simple :fitness '(0.5 0.5 0.5))
+                            (make-instance 'simple :fitness '(0.1 0.1 0.2))
+                            (make-instance 'simple :fitness '(0 0 1))
+                            (make-instance 'simple :fitness '(0.6 1 0.1)))))
+    (is (equal (first *population*)
+               (pick-least-crowded (subseq *population* 0 2))))))
