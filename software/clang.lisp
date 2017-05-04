@@ -1427,7 +1427,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
           non-stmt-asts nil
           functions nil
           prototypes nil
-          declarations nil
+          declarations (make-hash-table :test #'equal)
           macros nil
           includes nil)))
 
