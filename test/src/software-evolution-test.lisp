@@ -112,6 +112,7 @@
   "Example range software object.")
 (defvar *collatz*     nil "Holds the collatz software object.")
 (defvar *fib*         nil "Holds the fibonacci software object.")
+(defvar *variety*     nil "Holds the variety software object.")
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
@@ -195,6 +196,12 @@
   :test #'equalp
   :documentation "Location of the type-of-var example dir")
 
+(define-constant +variety-dir+
+    (append +etc-dir+ (list "variety"))
+  :test #'equalp
+  :documentation "Location of the variety example dir")
+
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -274,6 +281,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +type-of-var-dir+))
+
+(defun variety-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +variety-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -614,6 +626,16 @@
                     (type-of-var-dir "missing-decl-type.c"))))
   (:teardown
    (setf *soft* nil)))
+
+(defixture variety-clang
+  (:setup
+    (setf *variety*
+          (from-file (make-instance 'clang
+                       :compiler "clang"
+                       :flags '("-m32" "-O0" "-g"))
+          (variety-dir "variety.c"))))
+  (:teardown
+    (setf *variety* nil)))
 
 
 ;;; ASM representation
