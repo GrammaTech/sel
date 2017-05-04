@@ -1935,18 +1935,19 @@ Optionally supply a statement number to return the preceding declaration
 closest to STMT"))
 
 (defmethod type-of-var ((obj clang) (variable-name string) &optional stmt)
-  (let ((declaration-ast (declaration-of obj
-                                         variable-name
-                                         (if stmt
-                                             (->> (get-ast obj stmt)
-                                                  (aget :begin-src-line))
-                                             nil))))
-    (when declaration-ast
-      (find-type obj
-                 (if (function-decl-p declaration-ast)
-                     (second (find variable-name (aget :args declaration-ast)
-                                   :key #'car :test #'equal))
-                     (first (aget :types declaration-ast)))))))
+  (when-let ((declaration-ast
+              (declaration-of obj
+                              variable-name
+                              (if stmt
+                                  (->> (get-ast obj stmt)
+                                       (aget :begin-src-line))
+                                  nil))))
+    (when-let ((declaration-type
+                (if (function-decl-p declaration-ast)
+                    (second (find variable-name (aget :args declaration-ast)
+                                  :key #'car :test #'equal))
+                    (first (aget :types declaration-ast)))))
+      (find-type obj declaration-type))))
 
 (defgeneric find-decl-in-block (software name block)
   (:documentation "Find the declaration for variable NAME within BLOCK."))
