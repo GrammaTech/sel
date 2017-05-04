@@ -459,6 +459,7 @@ Adds and removes semicolons, commas, and braces. "
       ;; Make a new AST with updated values. If anything changed,
       ;; build a new subtree for it. Otherwise, use the original tree.
       (setf (ast-syn-ctx new) context)
+      (setf (ast-full-stmt new) (eq context :fullstmt))
       (unless (equalp new (car ast))
         (setf ast (cons new (cdr ast))))))
   (labels
