@@ -88,8 +88,9 @@
 Form is similar to DEFSTRUCT, but each field can be described by a
 single symbol, or a list containing a name and options.
 
-The only field option at the moment is :KEY, which overrides the key
-used for storing the field in alists.
+Field options:
+KEY ------------- override the key used for storing field in alists
+READER ---------- call this function to transform values read from alists
 
 This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 "
@@ -2245,7 +2246,6 @@ made full by wrapping with curly braces, return that."))
                                    (get-immediate-children clang the-block))))
     (get-entry-before full-stmt the-stmts)))
 
-;; XXX: we only need the last element of each sublist
 (defmethod full-stmt-predecessors ((clang clang) ast &optional acc blocks)
   "All full statements and blocks preceeding AST.
 
