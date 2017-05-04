@@ -606,6 +606,16 @@
   (:teardown
     (setf *soft* nil)))
 
+(defixture type-of-var-missing-decl-type-clang
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'clang
+                      :compiler "clang"
+                      :flags '("-m32" "-O0" "-g"))
+                    (type-of-var-dir "missing-decl-type.c"))))
+  (:teardown
+   (setf *soft* nil)))
+
 
 ;;; ASM representation
 (deftest simple-read ()
@@ -1725,6 +1735,10 @@ is not to be found"
       (is (equal "int"  (aget :type var-type3)))
       (is (equal "int"  (aget :type var-type4)))
       (is (equal "int*" (aget :type var-type5))))))
+
+(deftest type-of-var-handles-missing-declaration-type ()
+  (with-fixture type-of-var-missing-decl-type-clang
+    (is (null (type-of-var *soft* "dirs")))))
 
 (deftest apply-replacements-test ()
   (is (string= "Hello, world!"

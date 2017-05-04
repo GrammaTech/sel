@@ -11,7 +11,7 @@
 option
 Keyword arguments are as follows:
   POINTS ----------- alist of additional strings to print at specific points
-  FUNCTIONS -------- functions to generate additional instrumentation at each point
+  FUNCTIONS -------- functions to calculate instrumentation at each point
   TRACE-FILE ------- file for trace output
   PRINT-ARGV ------- print program arguments on startup
   INSTRUMENT-EXIT -- print counter of function body before exit
