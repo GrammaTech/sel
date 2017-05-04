@@ -43,6 +43,7 @@ A copy of the license is included in the section entitled
 @menu
 * Introduction::                What's it for?
 * Implementation::              How's it implemented?
+* Components::                  What's it provide?
 * Usage::                       How's it used?
 
 Appendices
@@ -328,7 +329,7 @@ True when a search process is running, set this variable to nil to
 stop a running search.
 @end defvar
 
-@node Search Functions, Usage, Global Variables, Implementation
+@node Search Functions, Components, Global Variables, Implementation
 @section Search Functions
 @cindex search functions
 
@@ -382,6 +383,30 @@ keyword argument which when specified only includes individual for
 which @code{FILTER} returns true, and the @code{mcmc} function takes
 an optional @code{accept-fn} keyword argument which is a function of
 current and new fitness that returns acceptance.
+
+@node Components, Multi-objective Fitness, Implementation, Top
+@chapter Components
+@cindex components
+
+The Software Evolution library is implemented in Common Lisp and is
+intended for use in Common Lisp programs.  @ref{fig:overview} provides
+an overview of the Software Evolution system, the specifics of which
+are given in remainder of this section.
+
+@menu
+* Multi-objective Fitness::     TODO: Description
+* Camouflage::                  TODO: Deskription
+@end menu
+
+@node Multi-objective Fitness, Camouflage, Components, Components
+@section Multi-objective Fitness
+@cindex multi-objective fitness
+@include multi-objective-fitness.texi
+
+@node Camouflage, Usage, Multi-objective Fitness, Components
+@section Camouflage
+@cindex camouflage
+@include camouflage.texi
 
 @node Usage, Mutation, Implementation, Top
 @chapter Usage
