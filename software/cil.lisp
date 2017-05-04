@@ -54,7 +54,8 @@
       (setf (genome cil) stdout)))
   cil)
 
-(defmethod instrument ((cil cil) &key points functions trace-file print-argv)
+(defmethod instrument ((cil cil) &key points functions trace-file print-argv
+                                   instrument-exit filter)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
   (unless (null points)
@@ -63,5 +64,11 @@ Optionally specify the name of the file in which to save trace data."
   (unless (null functions)
     (warn
      "Custom function instrumentation not support for CIL software objects."))
+  (unless (null instrument-exit)
+    (warn
+     "Custom instrument-exit not supported for CIL software objects."))
+  (unless (null filter)
+    (warn
+     "Custom filter not supported for CIL software objects."))
   (apply-mutation cil (list :trace trace-file))
   cil)

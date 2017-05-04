@@ -170,12 +170,6 @@ and an optional extension."
                         (if (listp s) s (list s)))
                       specs) body)))
 
-(defun from-bytes (bytes)
-  (with-temp-file (tmp) (bytes-to-file bytes tmp) (restore tmp)))
-
-(defun to-bytes (software)
-  (with-temp-file (tmp) (store software tmp) (file-to-bytes tmp)))
-
 (defun ensure-path-is-string (path)
   (cond
     ((stringp path) path)

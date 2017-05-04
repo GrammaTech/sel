@@ -39,8 +39,6 @@
    :with-temp-files
    :ensure-path-is-string
    :in-directory
-   ;; :from-bytes
-   ;; :to-bytes
    :*work-dir*
    :*shell-debug*
    :*shell-error-codes*

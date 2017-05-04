@@ -352,18 +352,6 @@ Define an :around method on this function to record crossovers."))
 (defgeneric two-point-crossover (software-a software-b)
   (:documentation "Crossover between two points."))
 
-(defgeneric instrument (software &key points functions trace-file print-argv)
-  (:documentation
-   "Instrument SOFTWARE to produce runtime execution information.
-Keyword argument POINTS may hold an alist keyed by program points and
-valued with strings to print when that point is executed.  When
-present, keyword argument FUNCTIONS will hold a list of functions
-which will be called on every instrumented AST returning a fprintf
-format string and optional list of variable arguments to fprintf.
-Keyword argument TRACE-FILE should hold a string file path to which
-the trace will be written.  If TRACE-FILE is not supplied the trace
-will be written to STDERR."))
-
 (defgeneric from-string (software string)
   (:documentation "Initialize SOFTWARE with contents of STRING."))
 
