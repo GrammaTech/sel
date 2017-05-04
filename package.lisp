@@ -345,6 +345,7 @@
    :pareto-selector
    :*pareto-comparison-set-size*
    :multi-objective-scalar
+   :pick-least-crowded
    :mutation
    :targets
    :simple-cut

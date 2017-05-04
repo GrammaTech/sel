@@ -76,3 +76,42 @@ tournaments."
                 (collecting c)))
         ;; If there are no winners, choose all candidates.
         candidates)))
+
+(defun crowding-distance (software)
+  "Compute crowding distance for SOFTWARE by comparing with whole population."
+  (labels
+      ((summed-distance (key group)
+         (iter (for f in (coerce (funcall key software) 'list))
+               (for i upfrom 0)
+
+               (cond
+                 ;; Numeric objectives
+                 ((numberp f)
+                  (setf group (sort group #'< :key [{elt _ i} key]))
+                  (let ((index (position software group)))
+                    (sum
+                     (if (or (zerop index) (eq index (1- (length group))))
+                         ;; Boundary solutions have infinite distance
+                         infinity
+                         ;; Otherwise, use distance between nearest neighbors
+                         (- (elt (funcall key (nth (1+ index) group)) i)
+                            (elt (funcall key (nth (1- index) group)) i))))))
+                   ;; Lexicase objectives. Average distance across all
+                   ;; components.
+                 ((vectorp f)
+                  (sum (/ (summed-distance [{nth i} key] group)
+                          (length f))))))))
+    (summed-distance #'fitness (copy-seq *population*))))
+
+(defun pick-least-crowded (candidates &key (predicate *tie-breaker-predicate*))
+  "Pick candidate with the greatest crowding distance.
+
+Crowding distance is a fitness sharing metric adapted from NSGA-II. For each
+fitness component, it sums the distance between an individual and its nearest
+neighbors. Individuals with the greater crowding distance are in sparse areas of
+the fitness landscape and should be preferred."
+
+  ;; TODO: This is fairly inefficient because it sorts the population
+  ;; for each candidate. If we computed crowding distance for all
+  ;; candidates at once we could avoid the extra sorts.
+  (extremum candidates predicate :key #'crowding-distance))
