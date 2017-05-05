@@ -63,6 +63,9 @@
    :pick-bad
    :pick-snippet
    :pick-guarded-compound
+   :mutation-targets
+   :good-mutation-targets
+   :bad-mutation-targets
    :mutate
    :no-mutation-targets
    :pick-mutation-type
@@ -326,6 +329,7 @@
    :add-type
    :add-macro
    :nullify-asts
+   :expand-stmt-pool
    :ignore-failed-mutation
    :try-another-mutation
    :fix-compilation
@@ -390,6 +394,8 @@
    :pick-bad-good
    :pick-bad-bad
    :pick-bad-only
+   :full-stmt-filter
+   :same-class-filter
    :*lisp-mutation-types*
    :lisp-cut
    :lisp-replace

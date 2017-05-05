@@ -411,6 +411,23 @@
   (:teardown
     (setf *hello-world* nil)))
 
+(defvar *good-asts* nil "Control pick-good")
+(defvar *bad-asts* nil "Control pick-bad")
+(define-software clang-control-picks (clang) ())
+(defmethod good-stmts ((obj clang-control-picks))
+  (or *good-asts* (remove-if {aget :is-decl} (asts obj))))
+(defmethod bad-stmts ((obj clang-control-picks))
+  (or *bad-asts* (remove-if {aget :is-decl} (asts obj))))
+
+(defixture hello-world-clang-control-picks
+  (:setup
+    (setf *hello-world*
+      (from-file (make-instance 'clang-control-picks :compiler "clang-3.7"
+                                :flags '("-g -m32 -O0"))
+                 (hello-world-dir "hello_world.c"))))
+  (:teardown
+   (setf *hello-world* nil)))
+
 (defixture empty-function-body-crossover-bug-clang
   (:setup
     (setf *soft*
@@ -1265,28 +1282,99 @@
                  (:realloc (:-> :heap :h) (:+ (:-> :heap :s)
                                               (:-> :heap :cs)))))))))))
 
+(deftest clang-mutation-targets-default-test ()
+  "Ensure mutation-targets returns all stmt asts by default"
+  (with-fixture hello-world-clang
+    (is (equalp (stmt-asts *hello-world*)
+                (mutation-targets *hello-world*)))))
+
+(deftest clang-mutation-targets-filter-test ()
+  "Ensure the filter parameter to mutation-targets works as anticipated"
+  (with-fixture hello-world-clang
+    (is (equalp (remove-if-not #'se::full-stmt-filter
+                               (stmt-asts *hello-world*))
+                (mutation-targets *hello-world*
+                                  :filter #'se::full-stmt-filter)))))
+
+(deftest clang-mutation-targets-stmt-pool-test ()
+  "Ensure the stmt-pool parameter to mutation-targets works as anticipated"
+  (with-fixture hello-world-clang-control-picks
+    (let ((*bad-asts* (remove-if-not #'se::full-stmt-filter
+                                     (stmt-asts *hello-world*))))
+      (is (equalp (remove-if-not #'se::full-stmt-filter
+                                 (stmt-asts *hello-world*))
+                  (mutation-targets *hello-world*
+                                    :stmt-pool #'bad-stmts))))))
+
+(deftest clang-mutation-targets-expand-stmt-pool-restart-test ()
+  "Ensure the expand-stmt-pool restart works as intended"
+  (with-fixture hello-world-clang-control-picks
+    (let ((*bad-asts* (remove-if-not #'se::full-stmt-filter
+                                     (stmt-asts *hello-world*))))
+      ;; Before invoking the 'expand-stmt-pool filter, the
+      ;; stmt pool does not include any full statements.
+      ;; After its invocation, all full statements are returned.
+      (is (equalp (remove-if-not #'se::full-stmt-filter
+                                 (stmt-asts *hello-world*))
+                  (->> (handler-bind
+                         ((no-mutation-targets
+                           (lambda (c)
+                             (declare (ignorable c))
+                             (invoke-restart 'expand-stmt-pool))))
+                       (mutation-targets *hello-world*
+                                         :filter #'se::full-stmt-filter
+                                         :stmt-pool #'bad-stmts))))))))
+
+(deftest clang-pick-general-does-not-throw-test ()
+  "Ensure calling pick-general does not throw an exception"
+  (with-fixture hello-world-clang
+    (is (not (null (se::pick-general *hello-world* #'stmt-asts))))))
+
 (deftest clang-pick-general-full-stmt-no-matching-test ()
-  "Ensure calling pick-general with the :full-stmt flag set to true
+  "Ensure calling pick-general with a full-stmt filter
 throws a no-mutation-targets error when there are no full stmts,
 e.g. after a bad crossover"
-  (with-fixture no-mutation-targets-clang
-    (signals no-mutation-targets
-      (se::pick-general *soft*
-                        (remove-if {aget :full-stmt}
-                                   (stmt-asts *soft*))
-                        :full-stmt t))))
+  (with-fixture hello-world-clang-control-picks
+    (let ((*bad-asts* (remove-if #'se::full-stmt-filter
+                                 (stmt-asts *hello-world*))))
+      (signals no-mutation-targets
+        (se::pick-general *hello-world* #'bad-stmts
+                          :filter #'se::full-stmt-filter)))))
+
+(deftest clang-pick-general-full-stmt-test ()
+  "Ensure calling pick-general with a full-stmt filter returns a full
+statement pick"
+  (with-fixture hello-world-clang-control-picks
+    (let ((pick (se::pick-general *hello-world* #'stmt-asts
+                                  :filter #'se::full-stmt-filter)))
+      (is (->> (aget :stmt1 pick)
+               (get-ast *hello-world*)
+               (aget :full-stmt))))))
 
 (deftest clang-pick-general-same-class-no-matching-test ()
-  "Ensure calling pick-general with the :same-class flag set to true throws
+  "Ensure calling pick-general with a same-class filter throws
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
-  (with-fixture no-mutation-targets-clang
-    (signals no-mutation-targets
-      (se::pick-general *soft*
-                        (stmt-asts *soft*)
-                        :second-pool `(((:ast-class . "Nothing")
-                                        (:full-stmt . nil)))
-                        :same-class t))))
+  (with-fixture hello-world-clang-control-picks
+    (let ((*bad-asts* `(((:ast-class . "Nothing")))))
+      (signals no-mutation-targets
+        (se::pick-general *hello-world* #'stmt-asts
+                          :filter #'se::same-class-filter
+                          :second-pool #'bad-stmts)))))
+
+(deftest clang-pick-general-same-class-test ()
+  "Ensure calling pick-general with a same-class filter returns
+two statements with the same class."
+  (with-fixture hello-world-clang
+    (let ((picks (se::pick-general *hello-world* #'stmt-asts
+                                   :filter #'se::same-class-filter
+                                   :second-pool #'stmt-asts)))
+      (is (equal (->> (aget :stmt1 picks)
+                      (get-ast *hello-world*)
+                      (aget :ast-class))
+                 (->> (aget :stmt2 picks)
+                      (get-ast *hello-world*)
+                      (aget :ast-class)))))))
 
 (deftest clang-promote-guarded-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
@@ -1319,23 +1407,6 @@ is not to be found"
 ;;; apply-mutation, adjusting the good and bad picks to get
 ;;; predictable results. And they check the results of each mutation
 ;;; in as much detail as possible.
-
-(defvar *good-asts* nil "Control pick-good")
-(defvar *bad-asts* nil "Control pick-bad")
-(define-software clang-control-picks (clang) ())
-(defmethod good-stmts ((obj clang-control-picks))
-  (or *good-asts* (remove-if {aget :is-decl} (asts obj))))
-(defmethod bad-stmts ((obj clang-control-picks))
-  (or *bad-asts* (remove-if {aget :is-decl} (asts obj))))
-
-(defixture hello-world-clang-control-picks
-  (:setup
-    (setf *hello-world*
-      (from-file (make-instance 'clang-control-picks :compiler "clang"
-                                :flags '("-g -m32 -O0"))
-                 (hello-world-dir "hello_world.c"))))
-  (:teardown
-   (setf *hello-world* nil)))
 
 (defun asts-with-text (obj &rest texts)
   (mapcar [{get-ast obj} {stmt-with-text obj}] texts))
@@ -1527,10 +1598,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('WHILE')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('WHILE')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* While loop. */"
            "puts('WHILE');")
           "Promotes single-line body from within while loop.")
@@ -1540,10 +1613,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('DO')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('DO')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* Do loop. */"
            "puts('DO');")
           "Promotes single-line body from within do loop.")
@@ -1553,10 +1628,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('FOR')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('FOR')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* For loop. */"
            "puts('FOR');")
           "Promotes single-line body from within for loop.")
@@ -1566,10 +1643,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('IF-1')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('IF-1')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* Single child. */"
            "puts('IF-1');")
           "Promotes single-line sole branch of if.")
@@ -1579,10 +1658,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('IF-2')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('IF-2')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* Empty then. */"
            "puts('IF-2');")
           "Promotes single-line else of if w/o then.")
@@ -1592,10 +1673,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('IF-3')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('IF-3')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* Empty else. */"
            "puts('IF-3');")
           "Promotes single-line then of if w/o else.")
@@ -1605,10 +1688,12 @@ is not to be found"
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('IF-3')")
-                                (get-ast *nested*)
-                                (get-parent-asts *nested*)
-                                (third))))))
+                  :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                             "puts('IF-3')")
+                                             (get-ast *nested*)
+                                             (get-parent-asts *nested*)
+                                             (third)
+                                             (aget :counter))))))))
            "/* Empty else. */"
            "puts('IF-3');")
           "Promotes single-line then of if w/o else.")
@@ -1618,10 +1703,12 @@ is not to be found"
                 (apply-mutation copy
                   (make-instance 'clang-promote-guarded
                     :object copy
-                    :targets (->> (stmt-with-text *nested* "puts('MULTILINE')")
-                                  (get-ast *nested*)
-                                  (get-parent-asts *nested*)
-                                  (third))))))))
+                    :targets `((:stmt1 . ,(->> (stmt-with-text *nested*
+                                                 "puts('MULTILINE')")
+                                               (get-ast *nested*)
+                                               (get-parent-asts *nested*)
+                                               (third)
+                                               (aget :counter))))))))))
         (is (and (subsequent-lines-p genome-string
                                      "/* Multiline loop. */"
                                      "puts('MULTILINE');")
@@ -3964,18 +4051,6 @@ Useful for printing or returning differences in the REPL."
           (*bad-asts*
            (list (get-ast *scopes*
                           (stmt-with-text *scopes* "int a")))))
-      (apply-mutation variant
-                      (make-instance 'swap-decls :object variant))
-      (is (compile-p variant))
-      (is (not (equal (genome-string *scopes*)
-                      (genome-string variant)))))
-    ;; Check if swap-decls works when only one decl is in the
-    ;; selected scope. The expected behavior is to crawl up to
-    ;; the first enclosing scope with at least two decls.
-    (let ((variant (copy *scopes*))
-          (*bad-asts*
-           (list (get-ast *scopes*
-                          (stmt-with-text *scopes* "int d")))))
       (apply-mutation variant
                       (make-instance 'swap-decls :object variant))
       (is (compile-p variant))
