@@ -169,49 +169,48 @@
 
 
 ;; Targeting functions
-(defun pick-general
-    (software first-pool &key second-pool full-stmt same-class)
-  "Pick ASTs from FIRST-POOL and optionally SECOND-POOL.
-Keyword arguments may be used to restrict selections."
-  (labels ((maybe-only-full (asts)
-             (if full-stmt
-                 (remove-if-not {aget :full-stmt} asts)
-                 asts))
-           (random-ast-or-ex (asts)
-             (if asts
-                 (random-ast asts)
-                 (error (make-condition 'no-mutation-targets
-                          :obj software
-                          :text (format nil "Could not find ASTs matching ~
-                                             full-stmt: ~a, same-class: ~a"
-                                            full-stmt same-class))))))
-    (let ((first-pick (random-ast-or-ex (maybe-only-full first-pool))))
-      (acons :stmt1 first-pick
-             (when second-pool
-               (list
-                (cons :stmt2
-                      (random-ast-or-ex
-                       (maybe-only-full
-                        (if same-class
-                            (remove-if-not ; Try to filter by ast-class.
-                              [{string= (get-ast-class software first-pick)}
-                               {aget :ast-class}]
-                              second-pool)
-                            second-pool))))))))))
+(defun pick-general (software first-pool &key second-pool filter)
+  "Pick ASTs from FIRST-POOL and optionally SECOND-POOL, where FIRST-POOL and
+SECOND-POOL are methods on SOFTWARE which return a list of ASTs.  An
+optional filter function having the signature 'f ast &optional first-pick',
+may be passed, returning true if the given AST should be included as a possible
+pick or false (nil) otherwise."
+  (let ((first-pick (&> (mutation-targets software :filter filter
+                                                   :stmt-pool first-pool)
+                        (random-elt))))
+    (if (null second-pool)
+        (list (cons :stmt1 (aget :counter first-pick)))
+        (list (cons :stmt1 (aget :counter first-pick))
+              (cons :stmt2 (&> (mutation-targets software
+                                 :filter (lambda (ast)
+                                           (if filter
+                                               (funcall filter ast first-pick)
+                                               t))
+                                 :stmt-pool second-pool)
+                               (random-ast)))))))
 
-(defmethod pick-bad-good ((software clang) &key full-stmt same-class)
-  (pick-general software (bad-stmts software)
-                :second-pool (good-stmts software)
-                :full-stmt full-stmt :same-class same-class))
+(defmethod pick-bad-good ((software clang) &key filter)
+  (pick-general software #'bad-stmts
+                :second-pool #'good-stmts
+                :filter filter))
 
-(defmethod pick-bad-bad ((software clang) &key full-stmt same-class)
-  (pick-general software (bad-stmts software)
-                :second-pool (bad-stmts software)
-                :full-stmt full-stmt :same-class same-class))
+(defmethod pick-bad-bad ((software clang) &key filter)
+  (pick-general software #'bad-stmts
+                :second-pool #'bad-stmts
+                :filter filter))
 
-(defun pick-bad-only (software &key full-stmt)
-  "Pick a bad AST."
-  (pick-general software (bad-stmts software) :full-stmt full-stmt))
+(defmethod pick-bad-only ((software clang) &key filter)
+  (pick-general software #'bad-stmts :filter filter))
+
+;; Filters for use with Targetting functions
+(defun full-stmt-filter (ast &optional first-pick)
+  (declare (ignorable first-pick))
+  (aget :full-stmt ast))
+
+(defun same-class-filter (ast &optional first-pick)
+  (if first-pick
+      (equalp (aget :ast-class ast) (aget :ast-class first-pick))
+      t))
 
 
 ;;; Mutations
@@ -228,13 +227,14 @@ Keyword arguments may be used to restrict selections."
   `((:insert-value . ,(targets mutation))))
 
 (define-mutation clang-insert-full (clang-insert)
-  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class nil})))
+  ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter})))
 
 (define-mutation clang-insert-same (clang-insert)
-  ((targeter :initform {pick-bad-good _ :full-stmt nil :same-class t})))
+  ((targeter :initform {pick-bad-good _ :filter #'same-class-filter})))
 
 (define-mutation clang-insert-full-same (clang-insert)
-  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class t})))
+  ((targeter :initform {pick-bad-good _ :filter «and #'full-stmt-filter
+                                                     #'same-class-filter»})))
 
 ;;; Swap
 (define-mutation clang-swap (clang-mutation)
@@ -249,13 +249,14 @@ Keyword arguments may be used to restrict selections."
         #'> :key [{aget :stmt1} #'cdr]))
 
 (define-mutation clang-swap-full (clang-swap)
-  ((targeter :initform {pick-bad-bad _ :full-stmt t :same-class nil})))
+  ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter})))
 
 (define-mutation clang-swap-same (clang-swap)
-  ((targeter :initform {pick-bad-bad _ :full-stmt nil :same-class t})))
+  ((targeter :initform {pick-bad-bad _ :filter #'same-class-filter})))
 
 (define-mutation clang-swap-full-same (clang-swap)
-  ((targeter :initform {pick-bad-bad _ :full-stmt t :same-class t})))
+  ((targeter :initform {pick-bad-good _ :filter «and #'full-stmt-filter
+                                                     #'same-class-filter»})))
 
 ;;; Move
 (define-mutation clang-move (clang-mutation)
@@ -276,13 +277,14 @@ Keyword arguments may be used to restrict selections."
   `((:set . ,(targets mutation))))
 
 (define-mutation clang-replace-full (clang-replace)
-  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class nil})))
+  ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter})))
 
 (define-mutation clang-replace-same (clang-replace)
-  ((targeter :initform {pick-bad-good _ :full-stmt nil :same-class t})))
+  ((targeter :initform {pick-bad-good _ :filter #'same-class-filter})))
 
 (define-mutation clang-replace-full-same (clang-replace)
-  ((targeter :initform {pick-bad-good _ :full-stmt t :same-class t})))
+  ((targeter :initform {pick-bad-good _ :filter «and #'full-stmt-filter
+                                                     #'same-class-filter»})))
 
 ;;; Cut
 (define-mutation clang-cut (clang-mutation)
@@ -292,7 +294,7 @@ Keyword arguments may be used to restrict selections."
   `((:cut . ,(targets mutation))))
 
 (define-mutation clang-cut-full (clang-cut)
-  ((targeter :initform {pick-bad-only _ :full-stmt t})))
+  ((targeter :initform {pick-bad-only _ :filter #'full-stmt-filter})))
 
 ;;; Set Range
 (define-mutation clang-set-range (clang-mutation) ())
@@ -313,63 +315,62 @@ Keyword arguments may be used to restrict selections."
 (defgeneric pick-guarded-compound (software)
   (:documentation "Pick a guarded compound statement in SOFTWARE."))
 
-(defmethod pick-guarded-compound ((obj clang))
-  (let ((guarded-classes (list "WhileStmt" "IfStmt" "ForStmt" "DoStmt")))
-    (&>> (stmt-asts obj)
-         (remove-if-not [{member _ guarded-classes :test #'string=}
-                         {aget :ast-class}])
-         (random-elt))))
+(define-constant +clang-guarded-classes+
+    '("IfStmt" "ForStmt" "WhileStmt" "DoStmt")
+  :test #'equalp
+  :documentation "Statement classes with guards")
 
-(defmethod build-op ((mutation clang-promote-guarded) software
-                     &aux (guarded (targets mutation)))
+(defmethod pick-guarded-compound ((obj clang))
+  (pick-bad-only obj :filter [{member _ +clang-guarded-classes+
+                                      :test #'string=}
+                              {aget :ast-class}]))
+
+(defmethod build-op ((mutation clang-promote-guarded) software)
   (flet ((compose-children (ast)
            (mapconcat [#'peel-bananas {aget ::src-text}]
                       (get-immediate-children software ast)
                       (coerce (list #\; #\Newline) 'string))))
-    (when (null guarded) ; No guarded statements to promote, throw an error
-      (error (make-condition 'no-mutation-targets
-               :text "No guarded statements to promote"
-               :obj software)))
-    `((:set                             ; Promote guard mutation
-       ,(cons :stmt1 (aget :counter guarded))
-       ,(cons :literal1
-              (switch ((aget :ast-class guarded) :test #'string=)
-                ("DoStmt"
-                 (compose-children
-                  (first (get-immediate-children software guarded))))
-                ("WhileStmt"
-                 (compose-children
-                  (second (get-immediate-children software guarded))))
-                ("ForStmt"
-                 (compose-children
-                  (fourth (get-immediate-children software guarded))))
-                ("IfStmt"
-                 (let ((children (get-immediate-children software guarded)))
-                   (if (= 2 (length children))
-                       ;; If with only one branch.
-                       (compose-children (second children))
-                       ;; If with both branches.
-                       (cond
-                         ((null         ; Then branch is empty.
-                           (get-immediate-children software (second children)))
-                          (compose-children (third children)))
-                         ((null         ; Else branch is empty.
-                           (get-immediate-children software (third children)))
-                          (compose-children (second children)))
-                         (t             ; Both branches are populated.
-                          (if (random-bool) ; Both or just one.
-                              (mapconcat {aget :src-text} ; Both.
-                                         (append
-                                          (get-immediate-children
-                                           software (second children))
-                                          (get-immediate-children
-                                           software (third children)))
-                                         ";\n")
-                              (if (random-bool) ; Pick a branch randomly.
-                                  (compose-children (second children))
-                                  (compose-children (third children)))))))))
-                (t (warn "`clang-promote-guarded' unimplemented for ~a"
-                         (aget :ast-class guarded)))))))))
+    (let ((id (aget :stmt1 (targets mutation))))
+      `((:set                             ; Promote guard mutation
+         ,(cons :stmt1 id)
+         ,(cons :literal1
+                (switch ((get-ast-class software id) :test #'string=)
+                  ("DoStmt"
+                   (compose-children
+                    (first (get-immediate-children software id))))
+                  ("WhileStmt"
+                   (compose-children
+                    (second (get-immediate-children software id))))
+                  ("ForStmt"
+                   (compose-children
+                    (fourth (get-immediate-children software id))))
+                  ("IfStmt"
+                   (let ((children (get-immediate-children software id)))
+                     (if (= 2 (length children))
+                         ;; If with only one branch.
+                         (compose-children (second children))
+                         ;; If with both branches.
+                         (cond
+                           ((null         ; Then branch is empty.
+                             (get-immediate-children software (second children)))
+                            (compose-children (third children)))
+                           ((null         ; Else branch is empty.
+                             (get-immediate-children software (third children)))
+                            (compose-children (second children)))
+                           (t             ; Both branches are populated.
+                            (if (random-bool) ; Both or just one.
+                                (mapconcat {aget :src-text} ; Both.
+                                           (append
+                                            (get-immediate-children
+                                             software (second children))
+                                            (get-immediate-children
+                                             software (third children)))
+                                           ";\n")
+                                (if (random-bool) ; Pick a branch randomly.
+                                    (compose-children (second children))
+                                    (compose-children (third children)))))))))
+                  (t (warn "`clang-promote-guarded' unimplemented for ~a"
+                           (get-ast-class software id))))))))))
 
 ;;; Explode and coalescing mutations over for and while loops.
 (define-mutation explode-for-loop (clang-mutation)
@@ -381,12 +382,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
 (defgeneric pick-for-loop (software)
   (:documentation "Pick and return a 'for' loop in SOFTWARE."))
 (defmethod pick-for-loop ((obj clang))
-  (if-let ((for-loops (remove-if-not [{string= "ForStmt"} {aget :ast-class}]
-                                     (stmt-asts obj))))
-    `((:stmt1 . ,(random-ast for-loops)))
-    (error (make-condition 'no-mutation-targets
-             :text "No 'for' loops found"
-             :obj obj))))
+  (pick-bad-only obj :filter [{string= "ForStmt"}{aget :ast-class}]))
 
 (defmethod build-op ((mutation explode-for-loop) (obj clang))
   (labels ((stmt-or-default (ast default)
@@ -475,12 +471,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 (defgeneric pick-while-loop (software)
   (:documentation "Pick and return a 'while' loop in SOFTWARE."))
 (defmethod pick-while-loop ((obj clang))
-  (if-let ((while-loops (remove-if-not [{string= "WhileStmt"} {aget :ast-class}]
-                                       (stmt-asts obj))))
-    `((:stmt1 . ,(random-ast while-loops)))
-    (error (make-condition 'no-mutation-targets
-             :text "No 'while' loops found"
-             :obj obj))))
+  (pick-bad-only obj :filter [{string= "WhileStmt"}{aget :ast-class}]))
 
 (defmethod build-op ((mutation coalesce-while-loop) (obj clang))
   (let ((id (aget :stmt1 (targets mutation)))
@@ -517,12 +508,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   ((targeter :initform #'pick-cut-decl)))
 
 (defun pick-cut-decl (clang)
-  (if-let ((decls (remove-if-not [{string= "DeclStmt"} {aget :ast-class}]
-                                 (stmt-asts clang))))
-    `((:stmt1 . ,(random-ast decls)))
-    (error (make-condition 'no-mutation-targets
-             :text "No decls to cut"
-             :obj clang))))
+  (pick-bad-only clang :filter [{string= "DeclStmt"}{aget :ast-class}]))
 
 (defmethod build-op ((mutation cut-decl) clang)
   (let* ((decl (aget :stmt1 (targets mutation)))
@@ -545,31 +531,22 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 (define-mutation swap-decls (clang-swap)
   ((targeter :initform #'pick-swap-decls)))
 
-(defun pick-two (things)
-  (let ((this (random-elt things))
-        (that (random-elt things)))
-    (if (equal this that)
-        (pick-two things)
-        (values this that))))
-
 (defun pick-swap-decls (clang)
   (labels
-      ((pick-from-block (the-block)
-         (when (equal the-block 0)
-           (error (make-condition 'no-mutation-targets
-                    :text "No decls to swap"
-                    :obj clang)))
-         (let ((decls
-                (->> (aget :stmt-list (get-ast clang the-block))
-                     (mapcar {get-ast clang})
-                     (remove-if-not [{string= "DeclStmt"} {aget :ast-class}])
-                     (mapcar {aget :counter}))))
-           (if (> 2 (length decls))
-               (pick-from-block (enclosing-block clang the-block))
-               (multiple-value-bind (stmt1 stmt2) (pick-two decls)
-                 `((:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))))))
-    (pick-from-block (enclosing-block clang
-                                      (random-ast (bad-stmts clang))))))
+    ((is-decl (ast)
+       (string= "DeclStmt" (aget :ast-class ast)))
+     (pick-another-decl-in-block (ast)
+       (&>> (enclosing-block clang (aget :counter ast))
+            (get-ast clang)
+            (aget :stmt-list)
+            (mapcar {get-ast clang})
+            (remove-if-not [{string= "DeclStmt"} {aget :ast-class}])
+            (random-ast))))
+    (if-let ((decl (&> (bad-mutation-targets clang
+                         :filter «and #'is-decl #'pick-another-decl-in-block»)
+                       (random-elt))))
+      `((:stmt1 . ,(aget :counter decl))
+        (:stmt2 . ,(pick-another-decl-in-block decl))))))
 
 ;;; Rename variable
 (define-mutation rename-variable (clang-mutation)
@@ -577,19 +554,13 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   (:documentation
    "Replace a variable in a statement with another in scope variable name."))
 
-(defvar *pick-rename-variable-tries* 100)
-
-(defun pick-rename-variable (clang &aux stmt used)
+(defun pick-rename-variable (clang)
   "Pick a statement in CLANG with a variable and replace with another in scope."
-  (iter (for i below *pick-rename-variable-tries*)
-        (setf stmt (random-ast (bad-stmts clang))
-              used (get-used-variables clang stmt))
-        (until (and stmt used)))
-  (unless used
-    (error (make-condition 'no-mutation-targets
-             :text "no variables to rename"
-             :obj clang)))
-  (let* ((old-var (random-elt used))
+  (let* ((stmt (random-ast (bad-mutation-targets clang
+                             :filter [{get-used-variables clang}
+                                      {aget :counter}])))
+         (used (get-used-variables clang stmt))
+         (old-var (random-elt used))
          (new-var (random-elt
                    (or (remove-if {equal old-var}
                                   (get-vars-in-scope clang stmt))
@@ -626,47 +597,33 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
              (if (full-stmt-p clang ast)
                  (add-semicolon-if-needed text)
                  text)))
-    (let* ((ast (&>> (or (remove-if-not «or #'compound-assign-op
-                                            #'increment-op
-                                            #'decrement-op»
-                                        (bad-stmts clang))
-                         ;; TODO: Regarding this fallback to all
-                         ;; statements if not bad statements are
-                         ;; found.  This should be changed into a
-                         ;; general restart for the
-                         ;; no-mutation-targets error.  See the
-                         ;; corresponding task in the NOTES file.
-                         (remove-if-not «or #'compound-assign-op
-                                            #'increment-op
-                                            #'decrement-op»
-                                        (stmt-asts clang)))
-                     (random-elt))))
-      (if (not ast)
-          (error (make-condition 'no-mutation-targets
-                   :text "No arithmatic operators to expand"
-                   :obj clang))
-          `((:stmt1 . ,(aget :counter ast))
-            (:literal1 .
-              ,(let* ((children (get-immediate-children clang ast))
-                      (lhs (first children))
-                      (rhs (second children)))
-                 (cond
-                   ((increment-op ast)
-                    (->> (format nil "~a = ~a + 1"
-                                 (peel-bananas (aget :src-text lhs))
-                                 (peel-bananas (aget :src-text lhs)))
-                         (add-semicolon ast)))
-                   ((decrement-op ast)
-                    (->> (format nil "~a = ~a - 1"
-                                 (peel-bananas (aget :src-text lhs))
-                                 (peel-bananas (aget :src-text lhs)))
-                         (add-semicolon ast)))
-                   (t (->> (format nil "~a = ~a ~a ~a"
-                                   (peel-bananas (aget :src-text lhs))
-                                   (peel-bananas (aget :src-text lhs))
-                                   (string-trim "=" (aget :opcode ast))
-                                   (peel-bananas (aget :src-text rhs)))
-                           (add-semicolon ast)))))))))))
+    (let ((ast (&> (bad-mutation-targets clang
+                     :filter «or #'compound-assign-op
+                                 #'increment-op
+                                 #'decrement-op»)
+                   (random-elt))))
+      `((:stmt1 . ,(aget :counter ast))
+        (:literal1 .
+          ,(let* ((children (get-immediate-children clang ast))
+                  (lhs (first children))
+                  (rhs (second children)))
+             (cond
+               ((increment-op ast)
+                (->> (format nil "~a = ~a + 1"
+                             (peel-bananas (aget :src-text lhs))
+                             (peel-bananas (aget :src-text lhs)))
+                     (add-semicolon ast)))
+               ((decrement-op ast)
+                (->> (format nil "~a = ~a - 1"
+                             (peel-bananas (aget :src-text lhs))
+                             (peel-bananas (aget :src-text lhs)))
+                     (add-semicolon ast)))
+               (t (->> (format nil "~a = ~a ~a ~a"
+                               (peel-bananas (aget :src-text lhs))
+                               (peel-bananas (aget :src-text lhs))
+                               (string-trim "=" (aget :opcode ast))
+                               (peel-bananas (aget :src-text rhs)))
+                       (add-semicolon ast))))))))))
 
 
 ;;; Clang methods
@@ -1001,14 +958,43 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod bad-stmts ((clang clang))
   (stmt-asts clang))
 
-(defun random-ast (asts)
-  (aget :counter (random-elt asts)))
-
 (defmethod pick-good ((clang clang))
-  (random-elt (good-stmts clang)))
+  (random-elt (good-mutation-targets clang)))
 
 (defmethod pick-bad ((clang clang))
-  (random-elt (bad-stmts clang)))
+  (random-elt (bad-mutation-targets clang)))
+
+(defmethod good-mutation-targets ((clang clang) &key filter)
+  (mutation-targets clang :filter filter :stmt-pool #'good-stmts))
+
+(defmethod bad-mutation-targets ((clang clang) &key filter)
+  (mutation-targets clang :filter filter :stmt-pool #'bad-stmts))
+
+(defmethod mutation-targets ((clang clang) &key (filter nil)
+                                                (stmt-pool #'stmt-asts))
+  "Return a list of target ASTs from STMT-POOL for mutation, throwing
+a 'no-mutation-targets exception if none are available.
+
+:FILTER ------ filter AST from consideration when this function returns nil
+:STMT-POOL --- method on CLANG returning a list of ASTs"
+  (labels ((do-mutation-targets ()
+             (if-let ((target-stmts
+                        (if filter
+                            (remove-if-not filter (funcall stmt-pool clang))
+                            (funcall stmt-pool clang))))
+                target-stmts
+                (error (make-condition 'no-mutation-targets
+                         :obj clang :text "No stmts match the given filter")))))
+    (if (equalp stmt-pool #'stmt-asts)
+        (do-mutation-targets)
+        (restart-case
+            (do-mutation-targets)
+          (expand-stmt-pool ()
+            :report "Expand statement pool for filtering to all statement ASTs"
+            (mutation-targets clang :filter filter))))))
+
+(defun random-ast (asts)
+  (aget :counter (random-elt asts)))
 
 (defmethod get-ast-class ((clang clang) (stmt list))
   (declare (ignorable clang))
@@ -1016,15 +1002,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 
 (defmethod get-ast-class ((clang clang) (stmt number))
   (aget :ast-class (get-ast clang stmt)))
-
-(defun execute-picks (get-asts1 &optional connector get-asts2)
-  (let* ((stmt1 (when get-asts1
-                  (random-ast (funcall get-asts1))))
-         (stmt2 (when get-asts2
-                  (random-ast (funcall connector stmt1
-                                       (funcall get-asts2))))))
-    (acons :stmt1 stmt1
-       (if stmt2 (acons :stmt2 stmt2 nil) nil))))
 
 (defvar *free-var-decay-rate* 0.3
   "The decay rate for choosing variable bindings.")
