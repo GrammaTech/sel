@@ -90,21 +90,6 @@ for hash-table key equality."))
 (defmethod ast-node-types ((clang clang) (asts list))
   (uni-grams asts :key {aget :ast-class} :test #'equal))
 
-;; (defgeneric ast-node-type-tf (software node-type asts)
-;;   (:documentation "Count the number of nodes with type NODE-TYPE in the list
-;; of ASTS in SOFTWARE."))
-
-;; (defmethod ast-node-type-tf ((clang clang) (node-type string) asts)
-;;   (declare (ignorable clang))
-;;   (if (member ))
-;;   (count-if {string= node-type} asts :key {aget :ast-class}))
-
-;; (defmethod ast-node-type-tf-extractor ((clang clang))
-;;   (iter (for node-type in *clang-c-ast-classes*)
-;;         (collect (ast-node-type-tf clang node-type (asts clang))
-;;           into node-type-tfs)
-;;         (finally (return (coerce node-type-tfs 'vector)))))
-
 (defmethod ast-node-type-tf-extractor ((clang clang))
   (-<>> (ast-node-types clang (asts clang))
         (uni-grams-hashtable-to-feature clang <> *clang-c-ast-classes*)))
@@ -272,6 +257,11 @@ cons pairs)."))
 
 
 ;; Feature extraction
+(defparameter *feature-extractors*
+  '(ast-node-type-tf-extractor max-depth-ast-extractor
+    avg-depth-ast-extractor ast-full-stmt-bi-grams-extractor
+    ast-bi-grams-extractor ast-keyword-tf-extractor))
+
 (defgeneric extract-features (software extractors &key &allow-other-keys)
   (:documentation "For a SOFTWARE object, apply a list of feature EXTRACTORS and
 return a feature vector. Each extractor should be a function from a software
