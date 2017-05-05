@@ -240,9 +240,13 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
           (aref ast-vector (1- id)))
         (make-children (ast child-asts)
           (let ((start (aget :begin-off ast)))
-            ;; Don't recurse into macro expansions. Their mapping to
-            ;; source text is sketchy and it's impossible to build a
-            ;; proper hierarchy.
+            ;; In macro expansions, the mapping to source text is sketchy and
+            ;; it's impossible to build a proper hierarchy. So don't recurse
+            ;; into them. And change the ast-class so other code won't get
+            ;; confused by the lack of children.
+            (when (aget :in-macro-expansion ast)
+              (setf (aget :ast-class ast) "MacroExpansion"))
+
             (if (and child-asts (not (aget :in-macro-expansion ast)))
                 (let ((last-child (car (lastcar child-asts))))
                   ;; Handle screwed-up source ranges where parent
