@@ -1,1 +1,31 @@
-Contents of the Multi-objective Fitness section.
+The following code will enable multi-objective optimization:
+
+@verbatiminclude ../examples/005-multi-objective.lisp
+
+@code{#'pareto-selector} compares each candidate against a random
+comparison set, preferring candidates which dominate the comparison
+set. This will select for individuals along the Pareto front of the
+population.
+
+Because dominance is a partial order, @code{#'pareto-selector} will
+often produce multiple winners. @code{#'pick-least-crowded} breaks
+those ties based on @dfn{crowding distance}, a fitness-sharing metric
+which promotes diversity by selecting individuals that are farther
+from their neighbors in fitness space.
+
+Multi-objective fitness scores should be lists with one value for each
+objective. These lists must be the same length across the entire
+population. The same @code{*fitness-predicate*} applies to all
+objectives. It is not possible to maximize some objectives while
+minimizing others.
+
+@heading Lexicase Selection
+Lexicase selection is a form of multi-objective optimization which
+prioritizes objectives in a different order for each selection
+event. It can be enabled by setting @code{*tournament-selector*} to
+@code{#'lexicase-select-best}.
+
+Lexicase fitness scores are vectors of numeric values.
+
+@code{#'pareto-selector} also supports lexicase selection for
+individual objectives.
