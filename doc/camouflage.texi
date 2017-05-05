@@ -1,1 +1,54 @@
-Contents of the Camouflage section.
+In order to make synthesized code fit more naturally into the surrounding code,
+we use the Code Stylometry feature set (see @cite{De-anonymizing Programmers via
+Code Stylometry} at @url{https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-caliskan-islam.pdf}).
+
+This works by first extracting a set of features into a feature vector, which
+can be used as a fitness vector with the lexicase evolution strategy. To extract
+the set of feature vectors from a software object, use `extract-features',
+providing a software object and a list of feature extractor functions.
+
+Each feature extractor function is expected to operate on a clang object and
+return a vector containing the values for that feature. These vectors are
+concatenated in order into one large vector by extract-features.
+
+As a naming convention, each feature extractor function name ends with
+``-extractor''. The available feature extractors are also listed in the
+parameter `*feature-extractors*'.
+
+@heading Clang Feature Extractors
+
+The following are the available AST-related feature extractors for clang
+software objects, i.e., features derived from properties of a clang AST.
+
+@itemize
+@item ast-node-type-tf-extractor - number of nodes of each different ast-class
+(e.g., IfStmt or DeclStmt) in the AST. The resulting feature vector will have
+one entry for each ast-class listed in `*clang-c-ast-classes*'.
+
+@item max-depth-ast-extractor - maximum depth of any node in the AST. The
+feature vector will have one entry.
+
+@item avg-depth-ast-extractor - for each ast-class, the average depth of nodes
+of that type in the AST. The resulting feature vector will have one entry for
+each ast-class in `*clang-c-ast-classes*'.
+
+@item ast-full-stmt-bi-grams-extractor - considering the ast-class of only the
+full statements in the AST, the number of occurrences of each ast-class bi-gram
+in the AST.
+
+@item ast-bi-grams-extractor - considering the ast-class of each AST node, the
+number of occurrences of each ast-class bi-gram in the AST.
+
+@item ast-keyword-tf-extractor - for each C keyword, the number of occurrences
+of that keyword in the AST. The resulting feature vector will have one entry for
+each keyword listed in `*clang-c-keywords*'.
+@end itemize
+
+
+@heading Utilities
+
+Generic methods for counting uni-grams or bi-grams in a list are provided. Refer
+to the documentation for `uni-grams' and `bi-grams' for descriptions of usage.
+
+Unit tests are included with the suite of tests for the software-evolution
+library. Running ``make se-check'' will build and run all SEL tests.
