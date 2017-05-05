@@ -296,6 +296,25 @@ Number of individuals to participate in eviction tournaments.  Default
 value is ``@code{2}''.
 @end defvar
 
+@anchor{*tournament-selector*}
+@defvar *tournament-selector*
+Function used to select winners of a tournament. Returns a list of the
+best candidates.  Default  value is ``@code{#'default-select-best}''.
+@end defvar
+
+@anchor{*tournament-tie-breaker*}
+@defvar *tournament-tie-breaker*
+Function used to break ties when a tournament has multiple
+winners. Returns a single winner.  Default value is
+``@code{#'default-random-winner}''.
+@end defvar
+
+@anchor{*tie-breaker-predicate*}
+@defvar *tie-breaker-predicate*
+Function to compare two tie breaker values to select which is
+preferred.  Default value is ``@code{#'>}''.
+@end defvar
+
 @anchor{*fitness-predicate* }
 @defvar *fitness-predicate*
 Function to compare two fitness values to select which is preferred.
@@ -394,7 +413,7 @@ an overview of the Software Evolution system, the specifics of which
 are given in remainder of this section.
 
 @menu
-* Multi-objective Fitness::     TODO: Description
+* Multi-objective Fitness::     Optimizing multiple objectives
 * Camouflage::                  TODO: Deskription
 @end menu
 
