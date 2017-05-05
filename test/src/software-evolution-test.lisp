@@ -5125,3 +5125,170 @@ Useful for printing or returning differences in the REPL."
     ;; All candidates have equal fitness. This should force the tie
     ;; breaker to be called.
     (is (tournament :size 3))))
+
+
+;; Camouflage tests
+(in-suite test)
+(defsuite* test-camouflage)
+
+(deftest avg-depth-function-asts-is-0 ()
+  (with-fixture variety-clang
+    (let ((asts (functions *variety*)))
+      (is (= 4 (length asts)))
+      ;; depths of all function asts are 0 (all top-level)
+      (is (every #'zerop (mapcar {se::ast-depth *variety*} asts)))
+      ;; average depth of all function asts is 0
+      (is (= 0 (se::avg-depth-asts *variety* asts))))))
+
+(deftest avg-depth-deeper-asts-correct ()
+  (with-fixture variety-clang
+    (let* ((add3-fun (get-ast *variety* (stmt-starting-with-text
+                                         *variety*
+                                         "int add3")))
+           (stmts (aget :stmt-range add3-fun))
+           (ctrs (iota (1+ (- (second stmts)
+                              (first stmts)))
+                       :start (first stmts)))
+           (asts (mapcar {get-ast *variety*} ctrs))
+           (depths (mapcar {se::ast-depth *variety*} asts)))
+      (is (= (/ (reduce #'+ depths) (length depths)))
+          (se::avg-depth-asts *variety* asts)))))
+
+(deftest avg-depth-ast-node-type-function-is-0 ()
+  (with-fixture variety-clang
+    (is (zerop (se::avg-depth-ast-node-type *variety* "Function")))))
+
+(deftest avg-depth-ast-node-type-return-stmts ()
+  (with-fixture variety-clang
+    (is (= 2 (se::avg-depth-ast-node-type *variety* "ReturnStmt")))))
+
+(deftest node-type-counts ()
+  (with-fixture variety-clang
+    ;; list of (ast-class, occurrences)
+    (let ((ast-counts
+           (mapcar #'cons
+                   se::*clang-c-ast-classes*
+                   (coerce (se::ast-node-type-tf-extractor *variety*) 'list))))
+      ;; for each ast-class, verify occurrence count is correct
+      (iter (for (type . count) in ast-counts)
+            (is (= count
+                   (count-if [{equal type} {aget :ast-class}]
+                             (asts *variety*))))
+            (finally (return t))))))
+
+(deftest ast-keywords-auto-counts ()
+  (with-fixture variety-clang
+    (let ((auto-counts
+           (iter (for keyword in se::*clang-c-keywords*)
+                 (collect
+                     (cons (reduce #'+ (mapcar {se::auto-count-keyword keyword}
+                                               (asts *variety*)))
+                           keyword)
+                   into counts)
+                 (finally (return counts)))))
+      (is (equal
+           auto-counts
+           '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case")
+             (0 . "char") (0 . "const") (1 . "continue") (1 . "default")
+             (1 . "do") (0 . "double") (0 . "else") (1 . "enum")
+             (0 . "extern") (0 . "float") (1 . "for") (3 . "goto") (1 . "if")
+             (0 . "inline") (0 . "int") (0 . "long") (0 . "register")
+             (0 . "restrict") (4 . "return") (0 . "short") (0 . "signed")
+             (0 . "sizeof") (0 . "static") (0 . "struct") (1 . "switch")
+             (2 . "typedef") (0 . "union") (0 . "unsigned") (0 . "void")
+             (0 . "volatile") (2 . "while")))))))
+
+(deftest ast-keywords-search-counts ()
+  (with-fixture variety-clang
+    (let ((search-counts
+           (iter (for keyword in se::*clang-c-keywords*)
+                 (collect
+                     (cons (reduce #'+ (mapcar {se::search-keyword keyword}
+                                               (asts *variety*)))
+                           keyword)
+                   into counts)
+                 (finally (return counts)))))
+      (is (equal
+           search-counts
+           '((0 . "alignof") (0 . "auto") (0 . "break") (0 . "case")
+             (1 . "char") (1 . "const") (0 . "continue") (0 . "default")
+             (0 . "do") (3 . "double") (1 . "else") (1 . "enum")
+             (0 . "extern") (0 . "float") (0 . "for") (0 . "goto") (0 . "if")
+             (0 . "inline") (10 . "int") (0 . "long") (0 . "register")
+             (0 . "restrict") (0 . "return") (0 . "short") (0 . "signed")
+             (1 . "sizeof") (0 . "static") (1 . "struct") (0 . "switch")
+             (0 . "typedef") (1 . "union") (0 . "unsigned") (1 . "void")
+             (0 . "volatile") (0 . "while")))))))
+
+(deftest ast-keyword-tf-extractor-correct ()
+  (with-fixture variety-clang
+    (is (equal
+         (mapcar #'cons
+                 (coerce (se::ast-keyword-tf-extractor *variety*) 'list)
+                 se::*clang-c-keywords*)
+         '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
+           (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
+           (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
+           (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (10 . "int")
+           (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
+           (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
+           (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
+           (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while"))))))
+
+(deftest small-bi-grams-count-example ()
+  (let* ((ls (list "the" "tortoise" "and" "the" "hare" "and" "the" "race"))
+         (bi-grams (se::bi-grams ls :key #'identity :test #'equal))
+         (keys (hash-table-keys bi-grams))
+         (vals (hash-table-values bi-grams))
+         (sorted-keys (list (cons "and" "the")
+                            (cons "hare" "and")
+                            (cons "the" "hare")
+                            (cons "the" "race")
+                            (cons "the" "tortoise")
+                            (cons "tortoise" "and"))))
+    ;; correct number of keys/values
+    (is (= 6 (length keys) (length vals)))
+    ;; correct set of keys
+    (is (equal sorted-keys
+               (sort keys (lambda (k1 k2)
+                            (or (string< (car k1) (car k2))
+                                (and (string= (car k1) (car k2))
+                                     (string< (cdr k1) (cdr k2))))))))
+    ;; correct set of values (all 1 except "and the" which is 2)
+    (iter (for key in sorted-keys)
+          (if (equal key (cons "and" "the"))
+              (is (= 2 (gethash key bi-grams 0)))
+              (is (= 1 (gethash key bi-grams 0)))))))
+
+(deftest function-bi-grams-count ()
+  "For a list containing N Function ASTs, there are N-1 bi-grams, all
+(Function, Function)."
+  (with-fixture variety-clang
+    (let* ((functions (functions *variety*))
+           (bi-grams (se::bi-grams functions :key {aget :ast-class}))
+           (keys (hash-table-keys bi-grams))
+           (vals (hash-table-values bi-grams)))
+      (is (= 1 (length keys) (length vals)))
+      (is (equal (car keys) (cons "Function" "Function")))
+      (is (= (1- (length functions)) (car vals))))))
+
+(deftest small-ast-bigrams-count-example ()
+  (with-fixture variety-clang
+    (flet ((asts-by-type (type)
+             (remove-if-not [{equal type} {aget :ast-class}]
+                            (asts *variety*))))
+      (let* ((asts (list (first (asts-by-type "Function"))
+                         (first (asts-by-type "IntegerLiteral"))
+                         (first (asts-by-type "DeclStmt"))))
+             (bi-grams (se::bi-grams asts :key {aget :ast-class}))
+             (keys (hash-table-keys bi-grams))
+             (vals (hash-table-values bi-grams))
+             (sorted-keys (list (cons "Function" "IntegerLiteral")
+                                (cons "IntegerLiteral" "DeclStmt"))))
+        (is (= 2 (length keys) (length vals)))
+        (is (equal sorted-keys
+                   (sort keys (lambda (k1 k2)
+                                (or (string< (car k1) (car k2))
+                                    (and (string= (car k1) (car k2))
+                                         (string< (cdr k1) (cdr k2))))))))
+        (is (equal '(1 1) vals))))))
