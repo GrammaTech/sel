@@ -5083,3 +5083,24 @@ Useful for printing or returning differences in the REPL."
                             (make-instance 'simple :fitness '(0.6 1 0.1)))))
     (is (equal (first *population*)
                (pick-least-crowded (subseq *population* 0 2))))))
+
+(deftest pareto-tournament-works ()
+  (let ((*population* (list (make-instance 'simple :fitness '(1 1 1))
+                            (make-instance 'simple :fitness '(0 0 0))
+                            (make-instance 'simple :fitness '(0 0 0))))
+        (*pareto-comparison-set-size* 3)
+        (*tournament-selector* #'pareto-selector))
+
+    (is (equal (first *population*)
+               (tournament :size 3)))))
+
+(deftest pareto-tie-breaker-works ()
+  (let ((*population* (list (make-instance 'simple :fitness '(1))
+                            (make-instance 'simple :fitness '(1))
+                            (make-instance 'simple :fitness '(1))))
+        (*pareto-comparison-set-size* 3)
+        (*tournament-selector* #'pareto-selector)
+        (*tournament-tie-breaker* #'pick-least-crowded))
+    ;; All candidates have equal fitness. This should force the tie
+    ;; breaker to be called.
+    (is (tournament :size 3))))
