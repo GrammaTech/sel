@@ -262,50 +262,22 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
               (setf (aget :ast-class ast) "MacroExpansion"))
 
             (if (and child-asts (not (aget :in-macro-expansion ast)))
-                (let ((last-child (car (lastcar child-asts))))
-                  ;; Handle screwed-up source ranges where parent
-                  ;; doesn't encompass children. Seems to happen with
-                  ;; CXXOperatorCallExpr.
-                  (iter (for subtree in child-asts)
-                        (for end = (aget :end-off (car subtree)))
-                        ;; Note that we modify AST so this change will
-                        ;; propagate up the tree.
-                        (when (> end (aget :end-off ast))
-                          (setf (aget :end-off ast) end)))
-
-                  ;; Work around another weird clang-mutate behavior
-                  ;; This happens with array initializers. See BRASS
-                  ;; xhtml tests for an example.
-                  (when (and (> (length child-asts) 1)
-                             (eq (aget :begin-off last-child)
-                                 (aget :begin-off ast))
-                             (eq (aget :end-off last-child)
-                                 (aget :end-off ast)))
-                    (setf child-asts (butlast child-asts)))
-
-                  ;; Interleave child asts and source text
-                  (iter (for subtree in child-asts)
-                        (for c = (car subtree))
-                        (if (< (aget :begin-off c) start)
-                            ;; If all else fails, skip ASTs that we
-                            ;; can't deal with. This seems to happen
-                            ;; with "typedef struct ...". See BRASS
-                            ;; xhtml tests for an example.
-                            (warn "skipping bad ast ~s" c)
-                            (progn
-                              ;; Collect text
-                              (collect (subseq genome start (aget :begin-off c))
-                                into children)
-                              ;; Collect child, converted to AST struct
-                              (collect (cons (snippet->clang-ast c)
-                                             (cdr subtree))
-                                into children)
-                              (setf start (+ 1 (aget :end-off c)))))
-                        (finally
-                         (return
-                           (append children
-                                   (list (subseq genome start
-                                                 (+ 1 (aget :end-off ast)))))))))
+                ;; Interleave child asts and source text
+                (iter (for subtree in child-asts)
+                      (for c = (car subtree))
+                      ;; Collect text
+                      (collect (subseq genome start (aget :begin-off c))
+                        into children)
+                      ;; Collect child, converted to AST struct
+                      (collect (cons (snippet->clang-ast c)
+                                     (cdr subtree))
+                        into children)
+                      (setf start (+ 1 (aget :end-off c)))
+                      (finally
+                       (return
+                         (append children
+                                 (list (subseq genome start
+                                               (+ 1 (aget :end-off ast))))))))
                 ;; No children: create a single string child with source text
                 (when (not (emptyp (aget :src-text ast)))
                   (list (aget :src-text ast))))))
