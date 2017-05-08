@@ -238,6 +238,20 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
    (labels
        ((get-ast (id)
           (aref ast-vector (1- id)))
+        (collect-children (ast)
+          ;; Find child ASTs and sort them in textual order.
+          (let ((children (sort (mapcar #'get-ast (aget :children ast))
+                                #'<
+                                :key {aget :begin-off})))
+            ;; clang-mutate can produce siblings with overlapping source
+            ;; ranges. In this case, move one sibling into the child list of the
+            ;; other. See the typedef-workaround test for an example.
+            (iter (for c in children)
+                  (for prev previous c)
+                  (if (and prev
+                           (< (aget :begin-off c) (aget :end-off prev)))
+                      (push (aget :counter c) (aget :children prev))
+                      (collect c)))))
         (make-children (ast child-asts)
           (let ((start (aget :begin-off ast)))
             ;; In macro expansions, the mapping to source text is sketchy and
@@ -270,11 +284,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                     (setf child-asts (butlast child-asts)))
 
                   ;; Interleave child asts and source text
-                  ;; In rare cases clang-mutate AST order will not match
-                  ;; order in the source text. Sort the children to work
-                  ;; around this.
-                  (iter (for subtree in (sort child-asts #'<
-                                              :key [{aget :begin-off} #'car]))
+                  (iter (for subtree in child-asts)
                         (for c = (car subtree))
                         (if (< (aget :begin-off c) start)
                             ;; If all else fails, skip ASTs that we
@@ -305,26 +315,25 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
           ;; clang-mutate aggregates types, unbound-vals, and
           ;; unbound-funs from children into parents. Undo that so
           ;; it's easier to update these properties after mutation.
-          (iter (for c in (mapcar #'get-ast (aget :children ast)))
-                (appending (aget :types c) into child-types)
-                (appending (unbound-vals c) into child-vals)
-                (appending (aget :unbound-funs c) into child-funs)
+          (let ((children (collect-children ast)))
+            (iter (for c in children)
+                  (appending (aget :types c) into child-types)
+                  (appending (unbound-vals c) into child-vals)
+                  (appending (aget :unbound-funs c) into child-funs)
 
-                (finally
-                 (setf (aget :types ast)
-                       (remove-if {member _ child-types} (aget :types ast))
+                  (finally
+                   (setf (aget :types ast)
+                         (remove-if {member _ child-types} (aget :types ast))
 
-                       (aget :unbound-vals ast)
-                       (remove-if {member _ child-vals :test #'string=}
-                                  (unbound-vals ast))
+                         (aget :unbound-vals ast)
+                         (remove-if {member _ child-vals :test #'string=}
+                                    (unbound-vals ast))
 
-                       (aget :unbound-funs ast)
-                       (remove-if {member _ child-funs :test #'equalp}
-                                  (aget :unbound-funs ast)))))
+                         (aget :unbound-funs ast)
+                         (remove-if {member _ child-funs :test #'equalp}
+                                    (aget :unbound-funs ast)))))
 
-          (cons ast (make-children ast
-                                   (mapcar [#'make-tree #'get-ast]
-                                           (aget :children ast))))))
+            (cons ast (make-children ast (mapcar #'make-tree children))))))
 
      (destructuring-bind (root . children)
          (make-tree `((:ast-class . "TopLevel")
