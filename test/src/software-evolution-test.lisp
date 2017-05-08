@@ -136,6 +136,10 @@
   :test #'equalp
   :documentation "Path to the cpp-strings example.")
 
+(define-constant +typedef-dir+ (append +etc-dir+ (list "typedef"))
+  :test #'equalp
+  :documentation "Path to the typedef example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -230,6 +234,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +cpp-strings-dir+))
+
+(defun typedef-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +typedef-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -428,6 +437,14 @@
                     (contexts-dir "contexts.c"))))
   (:teardown
    (setf *contexts* nil)))
+
+(defixture typedef
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'clang :compiler "clang-3.7")
+                    (typedef-dir "typedef.c"))))
+  (:teardown
+   (setf *soft* nil)))
 
 (defixture cpp-strings
   (:setup
@@ -1406,6 +1423,14 @@ is not to be found"
       (is (every [{string= "ImplicitCastExpr"} #'ast-class]
                  (get-immediate-children *soft* stmt))))))
 
+(deftest typedef-workaround ()
+  (with-fixture typedef
+    (let ((typedef (stmt-starting-with-text *soft* "typedef")))
+      (is typedef)
+      (is (not (null (get-immediate-children *soft* typedef))))
+      (is (equal '("Record")
+                 (mapcar #'ast-class
+                         (get-immediate-children *soft* typedef)))))))
 
 
 ;;; Detailed clang mutation tests
