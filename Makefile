@@ -14,7 +14,8 @@ LC ?= buildapp
 # quicklisp install location.  If you do, ensure that it ends in a "/"
 # character, and that you use the $HOME variable instead of ~.
 INSTDIR ?= /usr/synth
-QUICK_LISP ?= $(INSTDIR)/.quicklisp/
+QUICK_LISP ?= $(INSTDIR)/quicklisp/
+
 ifeq "$(wildcard $(QUICK_LISP)/setup.lisp)" ""
 $(warning $(QUICK_LISP) does not appear to be a valid quicklisp install)
 $(error Please point QUICK_LISP to your quicklisp installation)
@@ -31,13 +32,8 @@ LISP_DEPS =				\
 	$(wildcard utility/*.lisp)
 
 # Flags to buildapp
-QUIT=(lambda (error hook-value)
-QUIT+=(declare (ignorable hook-value))
-QUIT+=(format *error-output* \"ERROR: ~a~%\" error)
-QUIT+=\#+sbcl (sb-ext:exit :code 2) \#+ccl (quit 2))
 LCFLAGS=--manifest-file system-index.txt \
-	--asdf-tree quicklisp/dists/quicklisp/software \
-	--eval "(setf *debugger-hook* $(QUIT))"
+	--asdf-tree quicklisp/dists/quicklisp/software
 
 ifneq ($(LISP_STACK),)
 LCFLAGS+= --dynamic-space-size $(LISP_STACK)
@@ -75,7 +71,7 @@ quicklisp/local-projects/%.loaded: | system-index.txt
 	touch $@
 
 bin/clang-instrument: $(LISP_DEPS) $(LOADED_LIBS) system-index.txt
-	CC=$(CC) $(LISP_HOME) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se:clang-instrument"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "se:clang-instrument"
 
 
 ## Documentation
@@ -90,10 +86,10 @@ TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS:=$(addprefix quicklisp/local-projects/, $(TEST_LISP_LIBS:=.loaded))
 
 bin/se-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) system-index.txt
-	CC=$(CC) $(LISP_HOME) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
 
 bin/se-testbot-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) system-index.txt
-	CC=$(CC) $(LISP_HOME) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:testbot-test"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:testbot-test"
 
 
 ## Testing
@@ -136,12 +132,14 @@ swank-test: quicklisp/setup.lisp $(TEST_ARTIFACTS)
 	--eval '(swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)'
 
 clean:
-	find . -type f -name "*.fasl" -exec rm {} \+
-	find . -type f -name "*.lx32fsl" -exec rm {} \+
 	rm -f bin/se-test bin/se-testbot-test bin/clang-instrument
 	rm -f $(TEST_ARTIFACTS)
 
-real-clean: clean
+more-clean: clean
+	find . -type f -name "*.fasl" -exec rm {} \+
+	find . -type f -name "*.lx32fsl" -exec rm {} \+
+
+real-clean: more-clean
 	find . -type f -name "*.loaded" -exec rm {} \+
 	rm -f qlfile.lock system-index.txt
 	rm -rf quicklisp
