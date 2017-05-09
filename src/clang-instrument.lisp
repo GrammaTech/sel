@@ -40,10 +40,15 @@ Keyword arguments are as follows:
                           (warn "Point ~s doesn't match traceable AST."
                                 ast))))
                    points)))
+        ;; Hash table mapping ASTs to indices. Values are the same as
+        ;; index-of-ast, but without the linear search. Use
+        ;; ast-ref-path for the key: it will be unique within a single
+        ;; genome and is faster than doing equalp comparisons on whole
+        ;; ASTs.
         (ast-numbers (alist-hash-table
                       (iter (for ast in (asts obj))
                             (for i upfrom 0)
-                            (collect (cons ast i)))
+                            (collect (cons (ast-ref-path ast) i)))
                       :test #'equalp)))
     (labels
         ((escape (string)
@@ -80,7 +85,8 @@ Keyword arguments are as follows:
                    (:value1 .
                         ,(format nil
                                  "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
-                                 (gethash (function-body obj function)
+                                 (gethash (ast-ref-path
+                                           (function-body obj function))
                                           ast-numbers)
                                  log-var
                                  (if return-void "" "return _inst_ret;"))))))
@@ -122,7 +128,8 @@ Keyword arguments are as follows:
                          (cons
                           (format nil ; Start up alist w/counter.
                                   "fputs(\"((:C . ~d) \", ~a);~%"
-                                  (gethash ast ast-numbers) log-var)
+                                  (gethash (ast-ref-path ast) ast-numbers)
+                                  log-var)
                           (when trace-strings
                             (list
                              (format nil ; Points instrumentation.
