@@ -618,6 +618,9 @@
 
 
 ;;; ASM representation
+(in-suite test)
+(defsuite* test-asm)
+
 (deftest simple-read ()
   (with-fixture gcd-asm
     (is (equal 'asm (type-of *gcd*)))))
@@ -718,6 +721,8 @@
 
 ;;; ELF representation
 #| ;; TODO: Currently failing because we're not populating the .text section.
+(in-suite test)
+(defsuite* test-elf)
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 
@@ -835,6 +840,9 @@
 
 
 ;;; Clang representation
+(in-suite test)
+(defsuite* test-clang)
+
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang
     (is (not (null *hello-world*)))))
@@ -1762,6 +1770,9 @@ is not to be found"
 
 
 ;;; Range representation
+(in-suite test)
+(defsuite* test-range)
+
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))
 
@@ -1885,6 +1896,9 @@ is not to be found"
 
 
 ;;; Mutation analysis and statistics collection tests
+(in-suite test)
+(defsuite* test-mutation-analysis)
+
 (defvar *test* nil "Variable to hold evaluation function for tests.")
 
 (defixture hello-world-clang-w-fitness
@@ -2048,6 +2062,9 @@ is not to be found"
 
 
 ;;; Diff tests
+(in-suite test)
+(defsuite* test-diff)
+
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))
     `(let ((,ref-sym (copy-tree (reference ,software))))
@@ -2165,6 +2182,9 @@ is not to be found"
 
 
 ;;; Population tests
+(in-suite test)
+(defsuite* test-population)
+
 (deftest evict-population ()
   (with-fixture population
     (let ((before (length *population*)))
@@ -2412,6 +2432,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Fix compilation tests.
+(in-suite test)
+(defsuite* test-fix-compilation)
+
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")
 
@@ -4026,6 +4049,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Adaptive-mutation tests.
+(in-suite test)
+(defsuite* test-adaptive-mutation)
+
 (deftest bad-cut-changes-mutation-probability ()
   (let* ((se::*mutation-results-queue* #((cut . :worse) (cut . :dead)))
          (muts-0 '((cut . 1/2) (swap . 1)))
@@ -4088,6 +4114,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Database tests
+(in-suite test)
+(defsuite* test-database)
+
 (defixture json-database
   (:setup
     (setf *database*
@@ -4165,6 +4194,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;; Instrumentation tests
+(in-suite test)
+(defsuite* test-instrumentation)
+
 (defun count-traceable (obj)
   "Return a count of full statements parented by compound statements"
   (count-if {can-be-made-traceable-p obj} (asts obj)))
@@ -4460,6 +4492,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;; Lisp representation
+(in-suite test)
+(defsuite* test-lisp)
+
 (defvar *clang-expr*  nil "The clang expression (lisp) software object.")
 (defixture clang-expr
   (:setup
@@ -4533,6 +4568,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;; Mutations of clang expressions in Lisp form
+(in-suite test)
+(defsuite* test-clang-expression)
+
 (deftest change-operator-first ()
   (with-fixture clang-expr
     (apply-mutation *clang-expr*
@@ -4638,6 +4676,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;; Utility tests
+(in-suite test)
+(defsuite* test-utility)
+
 (deftest intersects-does-not-include-endpoints ()
   (is (not (intersects (make-instance 'range :begin 0 :end 1)
                        (make-instance 'range :begin 1 :end 2))))
@@ -4735,6 +4776,8 @@ Useful for printing or returning differences in the REPL."
       ;; copies of the project.
       (is (null (current-file copy))))))
 
+
+;;; Condition synthesis tests
 (in-suite test)
 (defsuite* test-condition-synthesis)
 
