@@ -541,6 +541,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
             (aget :stmt-list)
             (mapcar {get-ast clang})
             (remove-if-not [{string= "DeclStmt"} {aget :ast-class}])
+            (remove-if {equalp ast})
             (random-ast))))
     (if-let ((decl (&> (bad-mutation-targets clang
                          :filter «and #'is-decl #'pick-another-decl-in-block»)
