@@ -5181,14 +5181,13 @@ Useful for printing or returning differences in the REPL."
                (pick-least-crowded (subseq *population* 0 2))))))
 
 (deftest pareto-tournament-works ()
-  (let ((*population* (list (make-instance 'simple :fitness '(1 1 1))
-                            (make-instance 'simple :fitness '(0 0 0))
-                            (make-instance 'simple :fitness '(0 0 0))))
-        (*pareto-comparison-set-size* 3)
-        (*tournament-selector* #'pareto-selector))
+  (let* ((*population* (list (make-instance 'simple :fitness '(1 1 1))
+                             (make-instance 'simple :fitness '(0 0 0))
+                             (make-instance 'simple :fitness '(0 0 0))))
+         (*pareto-comparison-set-size* 3))
 
-    (is (equal (first *population*)
-               (tournament :size 3)))))
+    (is (equalp (first *population*)
+                (first (pareto-selector *population*))))))
 
 (deftest pareto-tie-breaker-works ()
   (let ((*population* (list (make-instance 'simple :fitness '(1))
