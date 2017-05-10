@@ -376,14 +376,14 @@ Built with ~a version ~a.~%"
             (lambda (ast)
               (var-instrument
                original :unbound-vals
-               [{mapcar [#'peel-bananas #'car]} {aget :unbound-vals}] ast
+               [{mapcar [#'peel-bananas #'car]} {get-unbound-vals original}] ast
                :print-strings print-strings))))
     (when-let ((position (position 'trace-scope-vars functions)))
       (setf (nth position functions)
             (lambda (ast)
               (var-instrument
                original :scopes
-               [{apply #'append} {aget :scopes}] ast
+               [{apply #'append} {scopes original}] ast
                :print-strings print-strings))))
 
     ;; Save original.
