@@ -1,6 +1,6 @@
 SHELL=bash
 
-.PHONY: testbot-check check doc clean
+.PHONY: check-testbot check doc clean
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
@@ -54,13 +54,16 @@ endif
 
 all: bin/clang-instrument
 
+# In this target we require :software-evolution-utility instead of
+# :software-evolution because the later depends on the former causing
+# an error if :se-utility is not found.
 system-index.txt: qlfile
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
 		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :qlot)' \
-		--eval '(qlot:install :software-evolution)' \
-		--eval '(qlot:quickload :software-evolution)' \
-		--eval '(qlot:with-local-quicklisp (:software-evolution) (ql:register-local-projects))' \
+		--eval '(qlot:install :software-evolution-utility)' \
+		--eval '(qlot:quickload :software-evolution-utility)' \
+		--eval '(qlot:with-local-quicklisp (:software-evolution-utility) (ql:register-local-projects))' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
 
 quicklisp/local-projects/%.loaded: | system-index.txt
@@ -106,7 +109,7 @@ TEST_ARTIFACTS = \
 check: bin/se-test $(TEST_ARTIFACTS)
 	@$<
 
-testbot-check: bin/se-testbot-test $(TEST_ARTIFACTS)
+check-testbot: bin/se-testbot-test $(TEST_ARTIFACTS)
 	@$<
 
 

@@ -1,44 +1,31 @@
 variables:
   DOCKER_REGISTRY: "docker.grammatech.com:14850"
-  LOCAL_IMAGE_NAME: '$CI_BUILD_REF_NAME-$CI_PIPELINE_ID'
+  LOCAL_IMAGE_NAME: '$CI_PROJECT_PATH-$CI_PIPELINE_ID'
 
 before_script:
-  - docker info
   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
-  - build
-  - test
-  - tag
-  - cleanup
+  - build-test-and-tag
 
-build_image:
-  stage: build
+run-everything:
+  stage: build-test-and-tag
   script:
     - docker pull $DOCKER_REGISTRY/synthesis/cl:latest
-    - make -C docker $CI_PROJECT_NAME
+    - cat Dockerfile|sed "s/CI_COMMIT_SHA/$CI_COMMIT_SHA/" > Dockerfile.tmp
+    - docker build -f Dockerfile.tmp -t $LOCAL_IMAGE_NAME .
 
-test_image:
-  stage: test
-  script:
-    - docker run $LOCAL_IMAGE_NAME /bin/bash -c "cd sel && make check"
+    # If on master branch, push test results to DataManager and push
+    # up a new "latest" image, otherwise, run locally.
+    - if [ "$CI_BUILD_REF_NAME" = "master" ];
+      then
+          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check-testbot";
+          docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+          docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+      else
+          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check";
+      fi
 
-tag_image:
-  stage: tag
-  script:
-    - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
-    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
-
-tag_image_master:
-  stage: tag
-  script:
-    - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest
-    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest
-  only:
-    - master
-
-clean:
-  stage: cleanup
-  script:
-    - docker rmi $LOCAL_IMAGE_NAME
-  when: always
+    # Cleanup local image.
+    - docker rmi -f $LOCAL_IMAGE_NAME
+    # TODO: Trigger dependency rebuilds

@@ -5,6 +5,7 @@
   :depends-on (alexandria
                closer-mop
                cl-arrows
+               cl-fad
                curry-compose-reader-macros
                cxml
                iterate
