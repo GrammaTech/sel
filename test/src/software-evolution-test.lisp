@@ -1432,6 +1432,32 @@ is not to be found"
                  (mapcar #'ast-class
                          (get-immediate-children *soft* typedef)))))))
 
+(deftest replace-in-ast-subtree ()
+  (let ((subtree '(:sub 1 2)))
+    (equalp (replace-in-ast `(:root (:left 3 4) ,subtree)
+                            `((,subtree (:right 5 6))))
+            '(:root (:left 3 4) (:right 5 6)))))
+
+(deftest replace-in-ast-string ()
+  (equalp (replace-in-ast '(:root (:left "left") (:right "right"))
+                          '(("right" "replacement"))
+                          :test #'equal)
+          '(:root (:left "left") (:right "replacement"))))
+
+(deftest find-or-add-type-finds-existing-type ()
+  (with-fixture gcd-clang
+    (is (eq (find-if [{string= "int"} #'type-name] (types *gcd*))
+            (find-or-add-type *gcd* "int")))))
+
+(deftest find-or-add-type-adds-new-type ()
+  (with-fixture gcd-clang
+    (is (null (find-if [{string= "float"} #'type-name] (types *gcd*))))
+    (let ((new-type (find-or-add-type *gcd* "int")))
+      (is new-type "New type created.")
+      (is (find new-type (types *gcd*)) "New type is added to software.")
+      (is (eq new-type (find-or-add-type *gcd* "int"))
+          "Repeated call finds same type."))))
+
 
 ;;; Detailed clang mutation tests
 ;;;
