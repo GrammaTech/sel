@@ -422,13 +422,26 @@ if not given."
                                         :unbound-vals (list name)))
                   :expr-type (type-hash type)))
 
-(defun make-var-decl (name type)
-  (make-statement "DeclStmt" :fullstmt
-                  (list (make-statement "Var" :generic
-                                        (list (format nil "~a ~a"
-                                                      (type-name type) name))
-                                        :types (list (type-hash type))
-                                        :declares (list name)))))
+(defun make-var-decl (name type &optional initializer)
+  (make-statement
+   "DeclStmt" :fullstmt
+   (list (make-statement "Var" :generic
+                         (if initializer
+                             (list (format nil "~a ~a =" (type-name type) name)
+                                   initializer)
+                             (list (format nil "~a ~a" (type-name type) name)))
+                         :types (list (type-hash type))
+                         :declares (list name)))))
+
+(defun make-array-subscript-expr (array-expr subscript-expr)
+  (make-statement "ArraySubscriptExpr" :generic
+                  (list array-expr "[" subscript-expr "]")))
+
+(defun make-cast-expr (type child)
+  (make-statement "CStyleCastExpr" :generic
+                  (list (format nil "(~a)" (type-name type))
+                        child)
+                  :types (list (type-hash type))))
 
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
@@ -689,6 +702,29 @@ use carefully.
       (car (second (find-if [{string= ast} #'car #'car] fun-replacements)))
       ast))
 
+(defgeneric replace-in-ast (ast replacements &key test)
+  (:documentation
+   "Make arbitrary replacements within AST, returning a new AST."))
+
+(defmethod replace-in-ast ((ast ast-ref) replacements &key (test #'eq))
+  (make-ast-ref :path (ast-ref-path ast)
+                :ast (replace-in-ast (ast-ref-ast ast) replacements
+                                     :test test)))
+
+(defmethod replace-in-ast ((ast list) replacements &key (test #'eq))
+  (or
+   ;; If replacement found, return it
+   (cdr (find ast replacements :key #'car :test test))
+   ;; Otherwise recurse into children
+   (destructuring-bind (node . children) ast
+     (cons node
+           (mapcar {replace-in-ast _ replacements :test test}
+                   children)))))
+
+(defmethod replace-in-ast (ast replacements &key (test #'eq))
+  (or (cdr (find ast replacements :key #'car :test test))
+      ast))
+
 
 ;;; Handling header information (formerly "Michondria")
 (defgeneric add-type (software type)
@@ -713,6 +749,20 @@ use carefully.
 (defmethod find-type ((obj clang) hash)
   (find-if {= hash} (types obj) :key #'type-hash))
 
+(defmethod find-or-add-type ((obj clang) name &optional pointer (array ""))
+  "Find the type with given properties, or add it to the type DB."
+  (or (find-if «and [{string= name} #'type-name]
+                    [{string= array} #'type-array]
+                    [{eq pointer} #'type-pointer]»
+               (types obj))
+      (let ((newtype
+             (make-clang-type :name name
+                              :array array
+                              :pointer pointer
+                              :hash (1+ (apply #'max (mapcar #'type-hash
+                                                             (types obj)))))))
+        (add-type obj newtype)
+        newtype)))
 
 (defun prepend-to-genome (obj text)
   "Prepend non-AST text to genome.

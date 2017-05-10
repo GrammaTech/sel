@@ -322,6 +322,7 @@
    :var-instrument
    :add-include
    :add-type
+   :find-or-add-type
    :add-macro
    :nullify-asts
    :expand-stmt-pool
@@ -442,7 +443,6 @@
    :collect-fault-loc-traces
    :generate-helpers
    :type-of-scoped-var
-   :ast-src-text
    :clang-ast
    :ast-args
    :ast-begin-addr
@@ -450,7 +450,6 @@
    :ast-class
    :ast-counter
    :ast-declares
-   :ast-disasm
    :ast-end-addr
    :ast-expr-type
    :ast-full-stmt
@@ -462,11 +461,14 @@
    :ast-name
    :ast-opcode
    :ast-ret
+   :ast-syn-ctx
    :ast-varargs
    :ast-void-ret
    :ast-array-length
    :ast-base-type
    :ast-bit-field-width
+   :ast-code
+   :ast-disasm
    :clang-type
    :copy-clang-ast
    :make-clang-ast
@@ -482,6 +484,7 @@
    :type-pointer
    :type-reqs
    :type-name
+   :make-clang-type
    :ast->snippet
    :snippet->clang-ast
    :snippet->clang-type
@@ -501,9 +504,13 @@
    :make-statement
    :make-operator
    :make-block
+   :make-parens
    :make-while-stmt
    :make-for-stmt
    :make-if-stmt
    :make-var-reference
    :make-var-decl
-   :ast-root))
+   :make-cast-expr
+   :make-array-subscript-expr
+   :ast-root
+   :replace-in-ast))
