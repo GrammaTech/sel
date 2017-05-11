@@ -13,7 +13,8 @@
    :stefil
    :cl-ppcre
    :software-evolution
-   :software-evolution-utility)
+   :software-evolution-utility
+   :testbot)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop

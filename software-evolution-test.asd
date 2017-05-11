@@ -13,7 +13,8 @@
                software-evolution-utility
                split-sequence
                stefil
-               uuid)
+               uuid
+               testbot)
   :components
   ((:module test
             :pathname "test/src"

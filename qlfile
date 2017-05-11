@@ -2,3 +2,4 @@ git curry-compose-reader-macros https://github.com/eschulte/curry-compose-reader
 git cl-arrows git@git.grammatech.com:research/cl-arrows.git
 git elf git@git.grammatech.com:research/elf.git
 git memoize git@git.grammatech.com:research/memoize.git
+git testbot git@git.grammatech.com:synthesis/testbot.git
