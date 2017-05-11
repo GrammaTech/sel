@@ -89,10 +89,10 @@ TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS:=$(addprefix quicklisp/local-projects/, $(TEST_LISP_LIBS:=.loaded))
 
 bin/se-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) system-index.txt
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:batch-test"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:run-batch"
 
 bin/se-testbot-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) system-index.txt
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:testbot-test"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "se-test:run-testbot"
 
 
 ## Testing
