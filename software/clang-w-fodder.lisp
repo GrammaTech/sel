@@ -200,3 +200,47 @@ Ensure that the name of the inserted decl is used by
 
 (define-mutation replace-fodder-full (clang-replace)
   ((targeter :initform {pick-bad-fodder _ t nil})))
+
+(defun parse-source-snippet (snippet unbound-vals includes &key top-level)
+  "Build ASTs for SNIPPET, returning a list of root ast-refs.
+
+UNBOUND-VALS should have the form ((name type) ... )
+
+INCLUDES is a list of files to include.
+
+SNIPPET may include one or more full statements. It should compile in
+a context where all UNBOUND-VALS are defined and all INCLUDES are
+included.
+
+TOP-LEVEL indicates that the snippet is a construct which can exist
+outside a function body, such as a type or function declaration.
+"
+  (let* ((preamble  (format nil "
+/* generated includes */
+~{#include ~a~&~}
+/* generated declarations */
+~:{~a ~a;~%~}~%
+"
+                            includes (mapcar «list #'second #'first»
+                                             unbound-vals)))
+         (wrapped (format nil
+                          (if top-level
+                              "int __snippet_marker;~%~a~%"
+                              "void main() {int __snippet_marker; ~a;}")
+                          snippet))
+         (obj (make-instance 'clang :genome (concatenate 'string
+                                                         preamble wrapped)))
+         (block-children (if top-level
+                             (->> (make-ast-ref :ast (ast-root obj))
+                                  (get-immediate-children obj))
+                             (->> (functions obj)
+                              (first)
+                              (function-body obj)
+                              (get-immediate-children obj)))))
+    (mapc (lambda (ast)
+            ;; These ASTs are not part of any genome so clear their paths
+            (setf (ast-ref-path ast) nil))
+          (subseq block-children
+                  (1+ (position-if [{string= "__snippet_marker"} #'car
+                                    #'ast-declares]
+                                   block-children))))))
