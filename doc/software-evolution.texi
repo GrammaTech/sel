@@ -414,18 +414,18 @@ are given in remainder of this section.
 
 @menu
 * Multi-objective Fitness::     Optimizing multiple objectives
-* Camouflage::                  TODO: Deskription
+* Style Features::              Extracting source code features
 @end menu
 
-@node Multi-objective Fitness, Camouflage, Components, Components
+@node Multi-objective Fitness, Style Features, Components, Components
 @section Multi-objective Fitness
 @cindex multi-objective fitness
 @include multi-objective-fitness.texi
 
-@node Camouflage, Usage, Multi-objective Fitness, Components
-@section Camouflage
-@cindex camouflage
-@include camouflage.texi
+@node Style Features, Usage, Multi-objective Fitness, Components
+@section Style Features
+@cindex style-features
+@include style-features.texi
 
 @node Usage, Mutation, Implementation, Top
 @chapter Usage
