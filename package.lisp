@@ -513,4 +513,5 @@
    :make-cast-expr
    :make-array-subscript-expr
    :ast-root
-   :replace-in-ast))
+   :replace-in-ast
+   :parse-source-snippet))

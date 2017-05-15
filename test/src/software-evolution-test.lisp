@@ -1788,6 +1788,36 @@ is not to be found"
 (in-suite test)
 (defsuite* test-clang-w-fodder)
 
+(deftest parse-source-snippet-body-statement ()
+  (let ((asts (parse-source-snippet "x + y" '(("x" "int") ("y" "char")) nil)))
+    (is (eq 1 (length asts)))
+    (is (string= "BinaryOperator" (ast-class (car asts))))
+    (is (equalp '(("(|y|)" NIL) ("(|x|)" NIL))
+                (get-unbound-vals (make-instance 'clang) (car asts))))))
+
+(deftest parse-source-snippet-handles-includes ()
+  (let ((asts (parse-source-snippet "printf(\"hello\")"
+                                    nil '("<stdio.h>"))))
+    (is (eq 1 (length asts)))
+    (is (string= "CallExpr" (ast-class (car asts))))
+    (is (equalp '("<stdio.h>")
+                (ast-includes (car asts))))))
+
+(deftest parse-source-snippet-multiple-statements ()
+  (let ((asts (parse-source-snippet "x = 1; y = 1"
+                                    '(("x" "int") ("y" "char")) nil)))
+    (is (eq 2 (length asts)))
+    (is (string= "BinaryOperator" (ast-class (first asts))))
+    (is (string= "BinaryOperator" (ast-class (second asts))))))
+
+(deftest parse-source-snippet-top-level ()
+  (let ((asts (parse-source-snippet "int foo() { return 1; }" nil nil
+                                    :top-level t)))
+    (is (eq 1 (length asts)))
+    (is (string= "Function" (ast-class (car asts))))
+    (is (string= "CompoundStmt" (ast-class (function-body (make-instance 'clang)
+                                                          (car asts)))))))
+
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
