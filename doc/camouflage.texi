@@ -1,11 +1,12 @@
-In order to make synthesized code fit more naturally into the surrounding code,
-we use the Code Stylometry feature set (see @cite{De-anonymizing Programmers via
-Code Stylometry} at @url{https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-caliskan-islam.pdf}).
+The Style Features component offers the ability to extract a set of features
+from a software object into a feature vector. We use the Code Stylometry
+Feature Set (CSFS) described in @cite{De-anonymizing Programmers via Code
+Stylometry} at
+@url{https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-caliskan-islam.pdf}).
 
-This works by first extracting a set of features into a feature vector, which
-can be used as a fitness vector with the lexicase evolution strategy. To extract
-the set of feature vectors from a software object, use `extract-features',
-providing a software object and a list of feature extractor functions.
+To extract the set of feature vectors from a software object, use
+`extract-features', providing a software object and a list of feature extractor
+functions.
 
 Each feature extractor function is expected to operate on a clang object and
 return a vector containing the values for that feature. These vectors are
@@ -14,6 +15,10 @@ concatenated in order into one large vector by extract-features.
 As a naming convention, each feature extractor function name ends with
 ``-extractor''. The available feature extractors are also listed in the
 parameter `*feature-extractors*'.
+
+The resulting feature vector can be used as a fitness vector with the lexicase
+evolution strategy. One application is to drive evolution towards solutions
+which better match the features of the surrounding source code.
 
 @heading Clang Feature Extractors
 
