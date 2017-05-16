@@ -5153,9 +5153,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest avg-depth-deeper-asts-correct ()
   (with-fixture variety-clang
-    (let* ((add3-fun (get-ast *variety* (stmt-starting-with-text
-                                         *variety*
-                                         "int add3")))
+    (let* ((add3-fun (stmt-starting-with-text *variety* "int add3"))
            (stmts (aget :stmt-range add3-fun))
            (ctrs (iota (1+ (- (second stmts)
                               (first stmts)))
@@ -5183,7 +5181,7 @@ Useful for printing or returning differences in the REPL."
       ;; for each ast-class, verify occurrence count is correct
       (iter (for (type . count) in ast-counts)
             (is (= count
-                   (count-if [{equal type} {aget :ast-class}]
+                   (count-if [{equal type} #'ast-class]
                              (asts *variety*))))
             (finally (return t))))))
 
@@ -5214,7 +5212,8 @@ Useful for printing or returning differences in the REPL."
     (let ((search-counts
            (iter (for keyword in se::*clang-c-keywords*)
                  (collect
-                     (cons (reduce #'+ (mapcar {se::search-keyword keyword}
+                     (cons (reduce #'+ (mapcar {se::search-keyword *variety*
+                                                                   keyword}
                                                (asts *variety*)))
                            keyword)
                    into counts)
@@ -5276,7 +5275,7 @@ Useful for printing or returning differences in the REPL."
 (Function, Function)."
   (with-fixture variety-clang
     (let* ((functions (functions *variety*))
-           (bi-grams (se::bi-grams functions :key {aget :ast-class}))
+           (bi-grams (se::bi-grams functions :key #'ast-class))
            (keys (hash-table-keys bi-grams))
            (vals (hash-table-values bi-grams)))
       (is (= 1 (length keys) (length vals)))
@@ -5286,12 +5285,12 @@ Useful for printing or returning differences in the REPL."
 (deftest small-ast-bigrams-count-example ()
   (with-fixture variety-clang
     (flet ((asts-by-type (type)
-             (remove-if-not [{equal type} {aget :ast-class}]
+             (remove-if-not [{equal type} #'ast-class]
                             (asts *variety*))))
       (let* ((asts (list (first (asts-by-type "Function"))
                          (first (asts-by-type "IntegerLiteral"))
                          (first (asts-by-type "DeclStmt"))))
-             (bi-grams (se::bi-grams asts :key {aget :ast-class}))
+             (bi-grams (se::bi-grams asts :key #'ast-class))
              (keys (hash-table-keys bi-grams))
              (vals (hash-table-values bi-grams))
              (sorted-keys (list (cons "Function" "IntegerLiteral")

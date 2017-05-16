@@ -88,7 +88,7 @@ for hash-table key equality."))
     feature-vec))
 
 (defmethod ast-node-types ((clang clang) (asts list))
-  (uni-grams asts :key {aget :ast-class} :test #'equal))
+  (uni-grams asts :key #'ast-class :test #'equal))
 
 (defmethod ast-node-type-tf-extractor ((clang clang))
   (-<>> (ast-node-types clang (asts clang))
@@ -100,12 +100,12 @@ for hash-table key equality."))
 (defgeneric ast-depth (software ast)
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
-(defmethod ast-depth ((clang clang) (ast list))
+(defmethod ast-depth ((clang clang) (ast ast-ref))
   (1- (length (get-parent-asts clang ast))))
 
 
 (defvar *ast-depths-cache* (make-hash-table :test #'equal))
-(defmethod ast-depth :around ((clang clang) (ast list))
+(defmethod ast-depth :around ((clang clang) (ast ast-ref))
   (let* ((result (gethash ast *ast-depths-cache* (call-next-method))))
     (setf (gethash ast *ast-depths-cache*)
           result)))
@@ -127,7 +127,7 @@ for hash-table key equality."))
   (avg-depth-asts clang
                   (remove-if-not {string= node-type}
                                  (asts clang)
-                                 :key {aget :ast-class})))
+                                 :key #'ast-class)))
 
 (defmethod avg-depth-ast-extractor ((clang clang))
   (vector (avg-depth-asts clang (asts clang))))
@@ -139,7 +139,7 @@ of ASTS in SOFTWARE."))
 
 (defmethod ast-node-type-avg-depth ((clang clang) (node-type string) asts)
   (bind ((node-asts (remove-if-not {string= node-type} asts
-                                   :key {aget :ast-class}))
+                                   :key #'ast-class))
          (depths (mapcar {ast-depth clang} node-asts)))
     (mean depths)))
 
@@ -169,13 +169,13 @@ cons pairs)."))
     bi-grams))
 
 (defmethod ast-full-stmt-bi-grams ((clang clang))
-  (let ((full-stmts (remove-if-not {aget :full-stmt} (asts clang)))
-        (key-fn {aget :ast-class}))
+  (let ((full-stmts (remove-if-not #'ast-full-stmt (asts clang)))
+        (key-fn #'ast-class))
     (bi-grams full-stmts :key key-fn)))
 
 (defmethod ast-bi-grams ((clang clang))
   (let ((stmts (asts clang))
-        (key-fn {aget :ast-class}))
+        (key-fn #'ast-class))
     (bi-grams stmts :key key-fn)))
 
 (defmethod bi-grams-hashtable-to-feature ((clang clang) (bi-grams hash-table))
@@ -210,16 +210,16 @@ cons pairs)."))
 
 
 ;; Keyword feature extractors
-(defmethod auto-count-keyword ((keyword string) (ast list))
+(defmethod auto-count-keyword ((keyword string) (ast ast-ref))
   (if (member keyword
-             (aget (aget :ast-class ast) *clang-c-ast-keywords-auto-count*
-                   :test #'string=)
+              (aget (ast-class ast) *clang-c-ast-keywords-auto-count*
+                    :test #'string=)
              :test #'string=)
       1
       0))
 
-(defmethod search-keyword ((keyword string) (ast list))
-  (let ((ast-class (aget :ast-class ast)))
+(defmethod search-keyword ((clang clang) (keyword string) (ast ast-ref))
+  (let ((ast-class (ast-class ast)))
     (if (not (member keyword
                      (aget ast-class *clang-c-ast-keywords-search-count*
                            :test #'string=)
@@ -228,25 +228,25 @@ cons pairs)."))
         (switch (ast-class :test (lambda (str ls)
                                    (some {string= str} ls)))
           ('("DeclStmt" "Field") ;; count if keyword is in src-text
-           (if (scan keyword (aget :src-text ast))
+           (if (scan keyword (source-text ast))
                1
                0))
           ('("IfStmt") ;; count if keyword is "else" and ast has 3 children
-           (if (= 3 (length (aget :children ast)))
+           (if (= 3 (length (get-immediate-children clang ast)))
                1
                0))
           ('("UnaryExprOrTypeTraitExpr" "Record")
            ;; only count if src-text begins with alignof, sizeof, struct, union
             (if (starts-with-subseq keyword
                                     (string-trim (list #\Space #\Tab #\Newline)
-                                                 (aget :src-text ast)))
+                                                 (source-text ast)))
                 1
                 0))
           (t 0)))))
 
 (defmethod ast-keyword-tf ((clang clang) (keyword string) ast)
   (+ (auto-count-keyword keyword ast)
-     (search-keyword keyword ast)))
+     (search-keyword clang keyword ast)))
 
 (defmethod ast-keyword-tf-extractor ((clang clang))
   (iter (for keyword in *clang-c-keywords*)
