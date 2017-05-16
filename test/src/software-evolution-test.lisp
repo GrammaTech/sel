@@ -5125,9 +5125,9 @@ Useful for printing or returning differences in the REPL."
     (is (tournament :size 3))))
 
 
-;; Camouflage tests
+;; Style features tests
 (in-suite test)
-(defsuite* test-camouflage)
+(defsuite* test-style-features)
 
 (deftest avg-depth-function-asts-is-0 ()
   (with-fixture variety-clang
