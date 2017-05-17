@@ -16,7 +16,7 @@
               :copier copy-seq)))
 
 (define-software elf-csurf (elf-cisc)
-  ((project :initarg :project :accessor project :initform nil)))
+  ((sw-project :initarg :sw-project :accessor sw-project :initform nil)))
 
 (define-software elf-x86 (elf-cisc) ())
 
@@ -103,7 +103,7 @@
 
 (defmethod from-file ((elf elf-csurf) path)
   (setf (base elf) (read-elf path 'csurf))
-  (setf (project (base elf)) (project elf))
+  (setf (sw-project (base elf)) (sw-project elf))
   (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
     (setf (addresses elf) addresses)
     (setf (genome elf) genome))
