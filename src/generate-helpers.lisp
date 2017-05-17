@@ -92,7 +92,7 @@ snippets."
                    ,(format nil "{~%~{~a~^~%~}~%}~%"
                             (mapcar #'se::process-full-stmt-text snippet)))))))
 
-(defun clang-type-name (type)
+(defun type->string (type)
   "The name of a type, as it will appear in C source code."
   (if (aget :pointer type)
       (format nil "~a* const" (aget :type type))
@@ -124,7 +124,7 @@ Returns the text of the function, and a CallExpr AST for calling it."
      (format nil "static void ~a(~{~a~^, ~})~%~a~%"
              name
              (mapcar {format nil "~a ~a"}
-                     (mapcar [#'clang-type-name #'cdr] args)
+                     (mapcar [#'type->string #'cdr] args)
                      (mapcar #'car args))
              body)
      ;; Function call
