@@ -19,7 +19,7 @@
    :split-sequence
    :software-evolution-utility
    :usocket)
-  (:shadow :elf :size :type :magic-number :diff :insert :project)
+  (:shadow :elf :size :type :magic-number :diff :insert)
   (:shadowing-import-from :software-evolution-utility :quit)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
