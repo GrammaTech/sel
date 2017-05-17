@@ -1252,8 +1252,8 @@
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
       (se::add-type *hello-world*
-          (se::snippet->clang-type
-                  `((:decl . "struct printf { chocolate cake; }"))))
+          (make-clang-type :decl "struct printf { chocolate cake; }"
+                           :array "" :hash 0 :name "struct printf"))
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest add-new-type-changes-genome-and-types ()
@@ -1262,7 +1262,8 @@
           (orig-num-types (length (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
       (se::add-type *hello-world*
-          (se::snippet->clang-type `((:decl . ,struct-str))))
+          (make-clang-type :decl struct-str
+                           :array "" :hash 0 :name "struct printf"))
       ;; new type gets added to genome
       (is (= (+ orig-genome-length (length struct-str)
                 (length (genome *hello-world*)))))
