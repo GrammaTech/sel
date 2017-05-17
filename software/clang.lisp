@@ -241,8 +241,15 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (collect-children (ast)
           ;; Find child ASTs and sort them in textual order.
           (let ((children (sort (mapcar #'get-ast (aget :children ast))
-                                #'<
-                                :key {aget :begin-off})))
+                                (lambda (a b)
+                                  (let ((a-begin (aget :begin-off a))
+                                        (b-begin (aget :begin-off b)))
+                                    ;; If ASTs start at the same place, put the
+                                    ;; larger one first so parent-child munging
+                                    ;; below works nicely.
+                                    (if (= a-begin b-begin)
+                                        (> (aget :end-off a) (aget :end-off b))
+                                        (< a-begin b-begin)))))))
             ;; clang-mutate can produce siblings with overlapping source
             ;; ranges. In this case, move one sibling into the child list of the
             ;; other. See the typedef-workaround test for an example.
