@@ -23,6 +23,16 @@
   :documentation
   "Current version of the SOFTWARE-EVOLUTION library.")
 
+(define-constant +software-evolution-branch+
+    (eval-when (:compile-toplevel :load-toplevel :execute)
+      (current-git-branch (pathname-directory
+                           #.(or *compile-file-truename*
+                                 *load-truename*
+                                 *default-pathname-defaults*))))
+  :test #'equalp
+  :documentation
+  "Current branch of the SOFTWARE-EVOLUTION library.")
+
 (defclass software ()
   ((fitness :initarg :fitness :accessor fitness :initform nil)))
 

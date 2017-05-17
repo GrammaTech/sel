@@ -33,6 +33,7 @@
    :parse-body :simple-style-warning)
   (:export
    :+software-evolution-version+
+   :+software-evolution-branch+
    ;; software objects
    :software
    :define-software

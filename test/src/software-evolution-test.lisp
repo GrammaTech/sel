@@ -15,7 +15,9 @@
              (is (apply ,function ,args-sym)))
            ,@lists)))
 
-(defun run-testbot (&rest a) (declare (ignorable a)) (testbot-test #'test "SEL"))
+(defun run-testbot (&rest a)
+  (declare (ignorable a))
+  (testbot-test #'test "SEL" +software-evolution-branch+))
 (defun run-batch (&rest a) (declare (ignorable a)) (batch-test #'test))
 
 (defsuite test)
