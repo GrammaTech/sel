@@ -445,12 +445,10 @@
    :type-of-scoped-var
    :clang-ast
    :ast-args
-   :ast-begin-addr
    :ast-children
    :ast-class
    :ast-counter
    :ast-declares
-   :ast-end-addr
    :ast-expr-type
    :ast-full-stmt
    :ast-guard-stmt
@@ -467,8 +465,6 @@
    :ast-array-length
    :ast-base-type
    :ast-bit-field-width
-   :ast-code
-   :ast-disasm
    :clang-type
    :copy-clang-ast
    :make-clang-ast
