@@ -31,6 +31,7 @@
    :getenv
    :quit
    :current-git-commit
+   :current-git-branch
    :*temp-dir*
    :temp-file-name
    :with-temp-file
