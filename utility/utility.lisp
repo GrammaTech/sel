@@ -51,16 +51,30 @@
                              :directory (append dir (list ".git")))))
                (if (probe-file git-dir)
                    (with-open-file (git-head-in (merge-pathnames
-                                                  "HEAD" git-dir))
+                                                 "HEAD" git-dir))
                      (let ((git-head (read-line git-head-in)))
                        (if (scan "ref:" git-head)
                            (with-open-file (ref-in (merge-pathnames
-                                                     (second (split-sequence
-                                                               #\Space
-                                                               git-head))
-                                                     git-dir))
+                                                    (second (split-sequence
+                                                                #\Space
+                                                              git-head))
+                                                    git-dir))
                              (subseq (read-line ref-in) 0 7)) ; attached head
                            (subseq git-head 0 7)))) ; detached head
+                   (recur (butlast dir))))))
+    (recur directory)))
+
+(defun current-git-branch (directory)
+  (labels ((recur (dir)
+             (when (< (length dir) 2)
+               (error "Pathname ~a does not appear in a git repository."
+                      directory))
+             (let ((git-dir (make-pathname
+                             :directory (append dir (list ".git")))))
+               (if (probe-file git-dir)
+                   (with-open-file
+                       (git-head-in (merge-pathnames "HEAD" git-dir))
+                     (lastcar (split-sequence #\/ (read-line git-head-in))))
                    (recur (butlast dir))))))
     (recur directory)))
 
