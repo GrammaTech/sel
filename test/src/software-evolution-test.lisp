@@ -1590,7 +1590,6 @@ is not to be found"
 
 (deftest move-changes-any-stmts ()
   (with-fixture hello-world-clang-control-picks
-    (flet ((count-matches ())))
     (let* ((bad-1 "printf(\"Hello, World!\\n\")")
            (bad-2 "return 0")
            (*bad-asts* (asts-with-text *hello-world* bad-1 bad-2))

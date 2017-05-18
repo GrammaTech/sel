@@ -2629,7 +2629,7 @@ VARIABLE-NAME should be declared in AST."))
   ;; declarations which are "weird" in any way.
   (declare (ignorable variable-name))
   (first
-   (split-sequence #\Space (ast-src-text ast) :remove-empty-subseqs t)))
+   (split-sequence #\Space (source-text ast) :remove-empty-subseqs t)))
 
 (defgeneric type-of-var (software variable-name &optional stmt)
   (:documentation "Return the type of VARIABLE-NAME in SOFTWARE.

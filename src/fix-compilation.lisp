@@ -289,7 +289,7 @@ expression match.")
             :in (reverse (asts obj))
             :when (and (string= (ast-class ast) "DeclStmt")
                        (scan (concatenate 'string variable "\\s*=")
-                             (ast-src-text ast)))
+                             (source-text ast)))
             :do (let ((pointer-variable (concatenate 'string "*" variable)))
                   (apply-mutation obj
                     `(clang-replace . ((:stmt1 . ,(ast-counter ast))
@@ -297,7 +297,7 @@ expression match.")
                                                     (ast->snippet ast)
                                                 `((:src-text .
                                                   ,(regex-replace variable
-                                                     (ast-src-text ast)
+                                                     (source-text ast)
                                                      pointer-variable))))))))
                   (return obj))))
     obj))

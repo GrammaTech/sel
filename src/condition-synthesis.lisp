@@ -770,15 +770,15 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                          ;; Check scope
                          (ancestor-of obj scope a)))
                   (stmt-asts obj))
-                 :test #'string= :key #'ast-src-text)))
+                 :test #'string= :key #'source-text)))
     (loop for (a . rest) in (tails exprs)
        appending
          (loop for b in rest
             collecting
               (cons (format nil (aget :compare type)
-                         (peel-bananas (ast-src-text a))
-                         (peel-bananas (ast-src-text b)))
-                    (snippet->clang-type '((:type . "int") (:hash) (:reqs))))))))
+                         (peel-bananas (source-text a))
+                         (peel-bananas (source-text b)))
+                    (make-clang-type :name "int" :array "" :hash 0))))))
 
 (defun types-equal (snippet type)
   "Does SNIPPET (an alist) represent the same type as TYPE (a type AST)?"
