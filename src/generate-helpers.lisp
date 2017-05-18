@@ -94,16 +94,16 @@ snippets."
 
 (defun type->string (type)
   "The name of a type, as it will appear in C source code."
-  (if (aget :pointer type)
-      (format nil "~a* const" (aget :type type))
-      (format nil "const ~a" (aget :type type))))
+  (if (type-pointer type)
+      (format nil "~a* const" (type-name type))
+      (format nil "const ~a" (type-name type))))
 
 (defun helper-function-from-ngram (obj ngram name)
   "Turn an n-gram snippet into a helper function.
 Returns the text of the function, and a CallExpr AST for calling it."
   (let* ((body (->> (snippet-from-ngram obj ngram)
                     (snippet->ast)
-                    (ast-src-text)
+                    (source-text)
                     (peel-bananas)))
          (decls (apply #'append
                        (mapcar [{aget :declares} {get-ast obj}] (car ngram))))
