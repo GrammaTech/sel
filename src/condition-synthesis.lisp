@@ -355,7 +355,10 @@ abst_cond() in the source text."
              (append (mapcar (lambda (v)
                                (ignore-errors ; Sometimes fails for weird types.
                                  (cons v (or (type-of-var obj v)
-                                             (make-clang-type)))))
+                                             (make-clang-type
+                                              :array ""
+                                              :hash 0
+                                              :name "fake")))))
                              (get-vars-in-scope obj ast))
                      extra-exprs))))
       (iter (for (var . type) in exprs)

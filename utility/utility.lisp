@@ -23,8 +23,7 @@
 
 ;;; Code:
 (in-package :software-evolution-utility)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros))
+(enable-curry-compose-reader-macros)
 
 (defvar infinity
   #+sbcl
@@ -303,10 +302,7 @@ See the documentation of `shell' for more information."
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL to FILE."
-  (let ((proc-sym (gensym))
-        (thread-sym (gensym))
-        (byte-sym (gensym))
-        (file-var (gensym)))
+  (let ((proc-sym (gensym)))
     `(let* ((,proc-sym
              #+sbcl (sb-ext:run-program ,shell ,args :search t
                                         :output ,file
@@ -327,12 +323,8 @@ See the documentation of `shell' for more information."
 (defmacro read-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL from FILE."
-  
   #+(or sbcl ccl)
-  (let ((proc-sym (gensym))
-        (thread-sym (gensym))
-        (byte-sym (gensym))
-        (file-var (gensym)))
+  (let ((proc-sym (gensym)))
     `(let* ((,proc-sym
              #+sbcl (sb-ext:run-program ,shell ,args :search t
                                         :output :stream
@@ -1013,11 +1005,9 @@ region."
   (remove nil
     (mapcar
      (lambda (line)
-       (declare (string line))
-       (register-groups-bind (addr offset)
-           ("[\\s]*0x([\\S]+)[\\s]*<([\\S]+)>:.*" line)
-         (declare (ignorable offset) (string addr))
-         (parse-integer addr :radix 16)))
+       (multiple-value-bind (matchp strings)
+           (scan-to-strings "[\\s]*0x([\\S]+)[\\s]*<([\\S]+)>:.*" line)
+         (when matchp (parse-integer (aref strings 0) :radix 16))))
      (split-sequence #\Newline (gdb-disassemble phenome function)))))
 
 (defun function-lines (lines)
