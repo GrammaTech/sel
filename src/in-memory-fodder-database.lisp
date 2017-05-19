@@ -57,4 +57,4 @@
 
 (defmethod find-type ((db in-memory-database) hash)
   (let ((type (gethash hash (type-database-ht db))))
-    (when type (snippet->ast (first type)))))
+    (when type (snippet->clang-type (first type)))))

@@ -2499,11 +2499,11 @@ free variables.")
 
 (defun random-function-info (protos &key original-name arity)
   "Returns function info in the same format as unbound-funs."
-  (let* ((name (random-function-name protos
-                                     :original-name original-name
-                                     :arity arity))
-         (decl (find-if [{string= name} #'ast-name] protos)))
-             ;; fun is (name, voidp, variadicp, arity)
+  (when-let* ((name (random-function-name protos
+                                          :original-name original-name
+                                          :arity arity))
+              (decl (find-if [{string= name} #'ast-name] protos)))
+    ;; fun is (name, voidp, variadicp, arity)
     (list (format nil "(|~a|)" (ast-name decl))
           (ast-void-ret decl)
           (ast-varargs decl)
