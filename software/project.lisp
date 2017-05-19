@@ -69,11 +69,13 @@ copy of the original current file.
   (let ((orig-file (gensym))
         (new-name (gensym)))
     `(let ((,orig-file (car (current-file-name ,project)))
-           (,new-name (if (stringp ,file) ,file
-                          (car (find ,file (all-files ,project)
-                                     :key #'cdr)))))
-       (assert ,new-name
-               nil "~s is not a file of project ~s." ,file ,project)
+           (,new-name ,(if (stringp file)
+                           file
+                           `(car (find ,file (all-files ,project)
+                                       :key #'cdr)))))
+       ,@(unless (stringp file)
+           `((assert ,new-name
+                     nil "~s is not a file of project ~s." ,file ,project)))
        (unwind-protect
             ;; Set current-file-name to a single-element list
             ;; containing the file name. Storing the name rather than
