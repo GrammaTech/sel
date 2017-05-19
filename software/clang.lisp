@@ -27,7 +27,7 @@
    ;; original, which sets AST-ROOT and discards GENOME, but not
    ;; before it's been copied. We want the copy to have AST-ROOT set
    ;; but not GENOME.
-   (genome   :initarg :genome   :accessor genome   :initform ""
+   (genome   :initarg :genome :initform ""
              :copier (lambda (x) (declare (ignorable x)) nil))
    (compiler :initarg :compiler :accessor compiler :initform "clang")
    (ast-root :initarg :ast-root :initform nil :accessor ast-root
@@ -907,6 +907,7 @@ pick or false (nil) otherwise."
   ((targeter :initform #'pick-bad-good)))
 
 (defmethod build-op ((mutation clang-insert) software)
+  (declare (ignorable software))
   `((:insert . ,(targets mutation))))
 
 (define-mutation clang-insert-full (clang-insert)
@@ -946,6 +947,7 @@ operations.
     (path-later-p (ast-ref-path ast-a) (ast-ref-path ast-b))))
 
 (defmethod build-op ((mutation clang-swap) software)
+  (declare (ignorable software))
   (sort `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
                 (:stmt2 . ,(aget :stmt2 (targets mutation))))
           (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
@@ -968,6 +970,7 @@ operations.
 
 (defmethod build-op ((mutation clang-move) software)
   ;; Sort in reverse AST order so operations won't step on each other
+  (declare (ignorable software))
   (sort `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
                    (:stmt2 . ,(aget :stmt2 (targets mutation))))
           (:cut (:stmt1 . ,(aget :stmt1 (targets mutation)))))
@@ -978,6 +981,7 @@ operations.
   ((targeter :initform #'pick-bad-good)))
 
 (defmethod build-op ((mutation clang-replace) software)
+  (declare (ignorable software))
   `((:set . ,(targets mutation))))
 
 (define-mutation clang-replace-full (clang-replace)
@@ -995,6 +999,7 @@ operations.
   ((targeter :initform #'pick-bad-only)))
 
 (defmethod build-op ((mutation clang-cut) software)
+  (declare (ignorable software))
   `((:cut . ,(targets mutation))))
 
 (define-mutation clang-cut-full (clang-cut)
@@ -1004,12 +1009,14 @@ operations.
 (define-mutation clang-set-range (clang-mutation) ())
 
 (defmethod build-op ((mutation clang-set-range) software)
+  (declare (ignorable software))
   `((:set-range . ,(targets mutation))))
 
 ;;; Nop
 (define-mutation clang-nop (clang-mutation) ())
 
 (defmethod build-op ((mutation clang-nop) software)
+  (declare (ignorable software mutation))
   nil)
 
 ;;; Promote guarded compound statement.
@@ -1254,6 +1261,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
     `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var))))
 
 (defmethod build-op ((mutation rename-variable) software)
+  (declare (ignorable software))
   (let ((stmt1 (aget :stmt1 (targets mutation)))
         (old-var (aget :old-var (targets mutation)))
         (new-var (aget :new-var (targets mutation))))
@@ -1364,6 +1372,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
     (peel-bananas (source-text (ast-root obj)))))
 
 (defmethod (setf genome) :before (new (obj clang))
+  (declare (ignorable new))
   (with-slots (ast-root types globals fitness) obj
     (setf ast-root nil
           types nil
@@ -1372,6 +1381,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
   (clear-caches obj))
 
 (defmethod (setf ast-root) :before (new (obj clang))
+  (declare (ignorable new))
   (with-slots (globals fitness) obj
     (setf globals nil
           fitness nil))
@@ -1586,6 +1596,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
             #\; (:greedy-repetition 0 nil :whitespace-char-class) #\newline))))
     (iter (for (values match-start match-end match-type match-vars)
                = (scan regex string :start index))
+          (declare (ignorable match-start))
           (while match-end)
           ;; C has strict limits on valid strings, so we don't have to
           ;; worry about being inside of a string.
@@ -2679,7 +2690,7 @@ depth)."))
     (find-type software
                (nth (position-if {string= name}
                                  (ast-declares decl))
-                    (get-ast-types decl)))))
+                    (get-ast-types software decl)))))
 
 
 ;;; Crossover functions
