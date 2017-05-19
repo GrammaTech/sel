@@ -1853,9 +1853,11 @@ is not to be found"
 
 (deftest insert-value-lengthens-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
-    (let ((variant (copy *hello-world*)))
-      (apply-mutation variant '(clang-insert (:stmt1 . 3)
-                                (:literal1 . "int i = 0;")))
+    (let ((variant (copy *hello-world*))
+          (target (stmt-with-text *hello-world* "return 0")))
+      (apply-mutation variant
+                      `(clang-insert (:stmt1 . ,target)
+                                     (:value1 . ,target)))
       (is (> (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -1866,12 +1868,28 @@ is not to be found"
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant
         `(clang-replace
-          (:stmt1 . ,(stmt-with-text variant "\"Hello, World!\\n\""))
-          (:literal1 . "\"Hello, mutate!\"")))
+          (:stmt1 . ,(find-if [{string= "StringLiteral"} #'ast-class]
+                              (asts variant)))
+          (:literal1 . ,(make-statement "StringLiteral" :generic
+                                        '("\"Hello, mutate!\"")))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
+
+(deftest insert-fodder-lengthens-a-clang-w-fodder-software-object ()
+  (with-fixture gcd-clang-w-fodder
+    (let ((variant (copy *gcd*)))
+      (handler-case
+          (progn (apply-mutation variant (make-instance 'insert-fodder
+                                                        :object variant))
+                 (is (> (size variant) (size *gcd*)))
+                 (is (string/= (genome variant) (genome *gcd*))))
+
+        (mutate (e)
+          ;; Fodder mutations may fail when bad variable bindings make
+          ;; the snippet unparseable.
+          (is (search "Failed to parse fodder" (text e))))))))
 
 (deftest pick-bad-fodder-works ()
   (with-fixture hello-world-clang-w-fodder

@@ -44,7 +44,8 @@ With keyword argument :decl select a declaration."))
     replace-fodder-full
     insert-fodder
     insert-fodder-full
-    insert-fodder-decl)
+    insert-fodder-decl
+    insert-fodder-decl-rep)
   "Fodder mutation types.")
 
 (defvar *clang-w-fodder-mutation-types*
@@ -103,7 +104,8 @@ mutations.")
                       (t
                         (pick-snippet software))))
          (stmt (if full-stmt-p bad-stmt bad)))
-    (list (cons :stmt1 stmt) (cons :value1 value))))
+    (list (cons :stmt1 stmt)
+          (cons :value1 value))))
 
 (defun pick-decl-fodder (software)
   (let ((function-entry-stmts (->> (functions software)
@@ -130,17 +132,66 @@ rename target to use this new name."
     (list (cons :decl-fodder decl-target)
           (cons :rename-variable rename-target))))
 
+(defun bind-vars-in-snippet (obj snippet pt)
+  "Bind free variables in SNIPPET to in-scope vars at PT.
+
+Returns modified text, and names of bound variables.
+"
+  (let* ((in-scope (mapcar #'unpeel-bananas
+                           (get-vars-in-scope obj pt)))
+         (var-replacements
+          (mapcar
+           (lambda-bind ((var index))
+              (declare (ignorable index))
+              (cons var (binding-for-var obj in-scope (peel-bananas var))))
+           (aget :unbound-vals snippet)))
+         (replacements
+          (append var-replacements
+                  (mapcar
+                   (lambda-bind ((fun . fun-info))
+                     (cons fun
+                           (car (binding-for-function obj
+                                                      (prototypes obj)
+                                                      (peel-bananas fun)
+                                                      (third fun-info)))))
+                   (aget :unbound-funs snippet)))))
+    (values (peel-bananas
+             (apply-replacements replacements (aget :src-text snippet)))
+            (mapcar [#'peel-bananas #'cdr] var-replacements))))
+
+(defun prepare-fodder-op (obj op)
+  (flet
+      ((var-type-string (pt var-name)
+         (let ((type (type-of-var obj var-name pt)))
+           (format nil "~a~a" (type-name type)
+                   (if (type-pointer type) "*" "")))))
+    (destructuring-bind (kind . properties) op
+      (if-let ((snippet (aget :value1 properties))
+               (pt (aget :stmt1 properties)))
+        ;; When :value1 is present, rebind variables and parse the
+        ;; resulting code to generate an AST.
+        (multiple-value-bind (text vars)
+            (bind-vars-in-snippet obj snippet pt)
+          (if-let ((asts
+                    (parse-source-snippet
+                     text
+                     ;; Variable and type names
+                     (mapcar #'list
+                             vars
+                             (mapcar {var-type-string pt} vars))
+                     (aget :includes snippet))))
+            (cons kind (acons :value1 (car asts) properties))
+            (error (make-condition 'mutate
+                                   :text "Failed to parse fodder"
+                                   :obj obj))))
+        ;; Otherwise return the original OP
+        op))))
+
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
-  (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
-    (destructuring-bind (op . properties)
-        (first (build-op mutation obj))
-      (declare (ignorable op))
-      (let ((snippet (aget :value1 properties)))
-        ;; Add includes/types/macros for the snippets to be inserted.
-        (update-headers-from-snippet obj
-                                     snippet
-                                     *database*))))
-  (call-next-method))
+  (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
+      (recontextualize-mutation obj (mapcar {prepare-fodder-op obj}
+                                            (build-op mutation obj)))
+      (call-next-method)))
 
 ;; Fodder mutation classes
 (define-mutation insert-fodder-decl-rep (clang-insert)
@@ -152,39 +203,23 @@ Ensure that the name of the inserted decl is used by
 
 (defmethod build-op ((mut insert-fodder-decl-rep) (obj clang-w-fodder))
   ;; Apply the var op first as it has the higher value of STMT1.
-  (list (cons :rename-variable
-              (build-op (make-instance 'rename-variable
-                          :object obj
-                          :targets (aget :rename-variable (targets mut)))
-                        obj))
-        (cons :decl-fodder
-              (build-op (make-instance 'insert-fodder-decl
-                          :object obj
-                          :targets (aget :decl-fodder (targets mut)))
-                        obj))))
 
-(defmethod apply-mutation ((obj clang) (mut insert-fodder-decl-rep))
-  ;; For `insert-fodder-decl-rep' we recontextualize and apply in two
-  ;; interleaved steps to ensure that the changes from the first
-  ;; mutation are in place before the second mutation is
-  ;; recontextualized.
-  (restart-case
-      (let ((ops (build-op mut obj)))
-        (apply-mutation-ops obj (recontextualize-mutation
-                                 obj (aget :decl-fodder ops)))
-        (apply-mutation-ops obj (recontextualize-mutation
-                                 obj (aget :rename-variable ops))))
-    (skip-mutation ()
-      :report "Skip mutation and return nil"
-      (values nil 1))
-    (tidy ()
-      :report "Call clang-tidy before re-attempting mutation"
-      (clang-tidy obj)
-      (apply-mutation obj mut))
-    (mutate ()
-      :report "Apply another mutation before re-attempting mutations"
-      (mutate obj)
-      (apply-mutation obj mut))))
+  (sort
+   (append (build-op (make-instance 'rename-variable
+                                    :object obj
+                                    :targets (aget :rename-variable (targets mut)))
+                     obj)
+           (build-op (make-instance 'insert-fodder-decl
+                                    :object obj
+                                    :targets (aget :decl-fodder (targets mut)))
+                     obj))
+   #'ast-later-p :key [{aget :stmt1} #'cdr]))
+
+(defmethod apply-mutation :after ((obj clang-w-fodder) mutation)
+  (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
+    (when-let ((snippet (aget :value1 (cdr (targets mutation)))))
+      ;; Add includes/types/macros for the snippets inserted.
+      (update-headers-from-snippet obj snippet *database*))))
 
 (define-mutation insert-fodder-decl (clang-insert)
   ((targeter :initform #'pick-decl-fodder)))
