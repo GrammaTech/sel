@@ -29,16 +29,19 @@ tag_image:
     - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
     - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
 
-tag_image_master:
-  stage: tag
+    # Cleanup local image.
+    - docker rmi -f $LOCAL_IMAGE_NAME
+
+trigger_bed:
+  stage: dependents
   script:
-    - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest
-    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest
+    - "curl -X POST -F token=53072adf26824b62fe4bd75f81a816 -F ref=master https://git.grammatech.com/api/v4/projects/209/trigger/pipeline"
   only:
     - master
 
-clean:
-  stage: cleanup
+trigger_bug-injector:
+  stage: dependents
   script:
-    - docker rmi $LOCAL_IMAGE_NAME
-  when: always
+    - "curl -X POST -F token=ff71369e488f933f0fb4c531e11d8f -F ref=master https://git.grammatech.com/api/v4/projects/57/trigger/pipeline"
+  only:
+    - master
