@@ -2509,35 +2509,44 @@ free variables.")
           (ast-varargs decl)
           (length (ast-args decl)))))
 
+(defun binding-for-var (obj in-scope name)
+  ;; If the variable's original name matches the name of a variable in scope,
+  ;; keep the original name with probability equal to
+  ;; *matching-free-var-retains-name-bias*
+  (or (when (and (< (random 1.0)
+                    *matching-free-var-retains-name-bias*)
+                 (find name in-scope :test #'string=))
+        name)
+      (random-elt-with-decay
+       in-scope *free-var-decay-rate*)
+      (error (make-condition 'mutate
+                             :text "No bound vars in scope."
+                             :obj obj))))
+
+(defun binding-for-function (obj functions name arity)
+  (or (random-function-info functions
+                            :original-name name
+                            :arity arity)
+      (error (make-condition 'mutate
+                             :text "No bound vars in scope."
+                             :obj obj))))
+
 (defmethod bind-free-vars ((clang clang) (ast ast-ref) (pt ast-ref))
   (let* ((in-scope (mapcar #'unpeel-bananas
                            (get-vars-in-scope clang pt)))
          (var-replacements
-          (mapcar
-           (lambda (var)
-             (let ((name (car var)))
-               (list name
-                     ;; If the variable's original name matches the
-                     ;; name of a variable in scope, keep the original
-                     ;; name with probability equal to
-                     ;; *matching-free-var-retains-name-bias*
-                     (or (when (and (< (random 1.0)
-                                       *matching-free-var-retains-name-bias*)
-                                    (find name in-scope :test #'string=))
-                           name)
-                         (random-elt-with-decay
-                          in-scope *free-var-decay-rate*)
-                         "/* no bound vars in scope */"))))
-           (get-unbound-vals clang ast)))
+          (mapcar (lambda (var)
+                    (let ((name (car var)))
+                      (list name (binding-for-var clang in-scope name))))
+                  (get-unbound-vals clang ast)))
          (fun-replacements
           (mapcar
            (lambda (fun)
              (list fun
-                   (or (random-function-info
-                        (prototypes clang)
-                        :original-name (first fun)
-                        :arity (fourth fun))
-                       '("/* no functions? */" nil nil 0))))
+                   (binding-for-function clang
+                                         (prototypes clang)
+                                         (first fun)
+                                         (fourth fun))))
            (get-unbound-funs clang ast))))
     (values
      (rebind-vars ast var-replacements fun-replacements)
