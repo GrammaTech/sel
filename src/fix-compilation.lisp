@@ -50,7 +50,8 @@ expression match.")
                              (multiple-value-bind (matchp match-data)
                                  (scan-to-strings (car fixer) line)
                                (when matchp match-data)))
-                 :do (when (funcall (cdr fixer) obj matches)
+                 :do
+                 (when (funcall (cdr fixer) obj matches)
                        (return-from fix))))))))
   obj)
 
@@ -99,11 +100,13 @@ expression match.")
       (let* ((decl-stmt (find-if (lambda (snippet)
                                    (and (string= (ast-class snippet)
                                                  "DeclStmt")
-                                        (= (ast-begin-src-line snippet)
+                                        (= (->> snippet
+                                                (ast-to-source-range obj)
+                                                (begin)
+                                                (line))
                                            line-number)))
                                  (asts obj)))
-             (decl-stmt-id (when decl-stmt (ast-counter decl-stmt)))
-             (binary-assignment-fodder
+             (fodder
               (random-elt
                (remove-if-not [{scan "\\(\\|\\w+\\|\\) = "} {aget :src-text}]
                               (find-snippets *database*
@@ -113,37 +116,36 @@ expression match.")
              (assigned-variable
               (multiple-value-bind (matchp match-data)
                   (scan-to-strings "(\\(\\|\\w+\\|\\)) = "
-                                   (aget :src-text binary-assignment-fodder))
-                (assert matchp (binary-assignment-fodder)
+                                   (aget :src-text fodder))
+                (assert matchp (fodder)
                         "Assignment fodder should assign to a free variable.")
                 (aref match-data 0)))
-             (scope-vars (get-vars-in-scope obj decl-stmt-id)))
+             (scope-vars (get-vars-in-scope obj decl-stmt)))
         ;; Insert a BinaryOperator assignment after the DeclStmt binding
         ;; its first free variable to the newly declared variable.
-        (when decl-stmt-id
-          (apply-mutation obj
-            (list 'clang-insert
-                  (cons :stmt1      ; First full statement after decl.
-                        (iter (for i upfrom (1+ decl-stmt-id))
-                              (when (ast-full-stmt (get-ast obj i))
-                                (return i))))
-                  (cons :literal1
-                        (concatenate 'string
-                          (apply-replacements
-                           (cons
-                            (cons assigned-variable variable-name)
-                            (mapcar
-                             (lambda (val-scope-pair)
-                               (cons (car val-scope-pair)
-                                     (or (random-elt-with-decay scope-vars 0.5)
-                                         "/* no bound vars */")))
-                             (remove-if [{string= assigned-variable} #'car]
-                                        (aget :unbound-vals
-                                              binary-assignment-fodder))))
-                           (aget :src-text binary-assignment-fodder))
-                          (string #+ccl #\;
-                                  #-ccl #\Semicolon)
-                          (string #\Newline))))))))))
+        (when decl-stmt
+          (let* ((unbound (remove-if [{string= assigned-variable} #'car]
+                                     (aget :unbound-vals fodder)))
+                 (replacements (cons
+                                (cons assigned-variable variable-name)
+                                (mapcar
+                                 (lambda (val-scope-pair)
+                                   (cons (car val-scope-pair)
+                                         (or (random-elt-with-decay scope-vars
+                                                                    0.5)
+                                             "/* no bound vars */")))
+                                 unbound)))
+                 (text (apply-replacements replacements
+                                           (aget :src-text fodder)))
+                 ;; First full statement after decl.
+                 (stmt1 (find-if «and #'ast-full-stmt
+                                      {ast-later-p _ decl-stmt}»
+                                 (asts obj))))
+
+            (apply-clang-mutate-ops obj
+                          `((:insert-value (:stmt1 . ,(ast-counter stmt1))
+                                           (:value1 . ,text)))))))))
+  obj)
 
 ;; For clang software objects with no fodder database,
 ;; just delete the offending line.
@@ -183,7 +185,7 @@ expression match.")
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (1- (parse-integer (aref match-data 1))))
          (new-expression
-           (recontextualize
+           (bind-vars-in-snippet
              obj
              (->> (find-snippets *database*
                                  :ast-class (->> '("FloatingLiteral"
@@ -198,11 +200,10 @@ expression match.")
                                                  (random-elt))
                                  :limit 1)
                   (first))
-            (ast-counter
-                  (lastcar (asts-containing-source-location
-                            obj (make-instance 'source-location
-                                  :line line-number
-                                  :column col-number))))))
+             (lastcar (asts-containing-source-location
+                       obj (make-instance 'source-location
+                                          :line line-number
+                                          :column col-number)))))
          (lines (lines obj))
          (orig (nth (1- line-number) lines)))
     (setf (lines obj)
@@ -263,7 +264,7 @@ expression match.")
                            (ast-unbound-funs ast))
                    :key #'car
                    :test #'string=)
-       :do (setf (gethash (enclosing-full-stmt obj (ast-counter ast))
+       :do (setf (gethash (enclosing-full-stmt obj ast)
                           to-delete) t))
     (-<>> (hash-table-keys to-delete)
           (remove nil)
@@ -285,20 +286,18 @@ expression match.")
          (*matching-free-var-retains-name-bias* 1)
          (*matching-free-function-retains-name-bias* 1))
     (when variable
+      ;; Run through clang-mutate to get accurate counters
+      (update-asts obj)
       (loop :for ast
             :in (reverse (asts obj))
             :when (and (string= (ast-class ast) "DeclStmt")
                        (scan (concatenate 'string variable "\\s*=")
                              (source-text ast)))
-            :do (let ((pointer-variable (concatenate 'string "*" variable)))
-                  (apply-mutation obj
-                    `(clang-replace . ((:stmt1 . ,(ast-counter ast))
-                                       (:value1 . ,(replace-fields-in-snippet
-                                                    (ast->snippet ast)
-                                                `((:src-text .
-                                                  ,(regex-replace variable
-                                                     (source-text ast)
-                                                     pointer-variable))))))))
+            :do (let ((text (regex-replace variable (source-text ast)
+                                           (concatenate 'string "*" variable))))
+                  (apply-clang-mutate-ops obj
+                    `((:set . ((:stmt1 . ,(ast-counter ast))
+                               (:value1 . ,text)))))
                   (return obj))))
     obj))
 
