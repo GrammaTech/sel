@@ -2064,15 +2064,15 @@ already in scope, it will keep that name.")
 ;; needed for all ASTs.
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
   (when loc
-    (remove-if-not [{contains _ loc} #'ast-to-source-range] (asts obj))))
+    (remove-if-not [{contains _ loc} {ast-to-source-range obj}] (asts obj))))
 
 (defmethod asts-contained-in-source-range ((obj clang) (range source-range))
   (when range
-    (remove-if-not [{contains range} #'ast-to-source-range] (asts obj))))
+    (remove-if-not [{contains range} {ast-to-source-range obj}] (asts obj))))
 
 (defmethod asts-intersecting-source-range ((obj clang) (range source-range))
   (when range
-    (remove-if-not [{intersects range} #'ast-to-source-range] (asts obj))))
+    (remove-if-not [{intersects range} {ast-to-source-range obj}] (asts obj))))
 
 (defmethod line-breaks ((clang clang))
   (cons 0 (loop :for char :in (coerce (genome clang) 'list) :as index
