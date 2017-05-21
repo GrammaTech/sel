@@ -1459,6 +1459,30 @@ is not to be found"
       (is (eq new-type (find-or-add-type *gcd* "int"))
           "Repeated call finds same type."))))
 
+(deftest var-decl-has-correct-types ()
+  (let ((obj (make-instance 'clang
+                            :genome "int x = sizeof(int);")))
+    ;; A var decl should always directly reference the type of its
+    ;; declaration. This is tricky due to the de-aggregating of types
+    ;; done by asts->tree.
+
+    ;; FIXME: if the RHS were "sizeof(int) + sizeof(char)" the decl
+    ;; would reference both types, which is incorrect but probably
+    ;; harmless.
+    (is (equalp '("int")
+                (mapcar [#'type-name {find-type obj}]
+                        (se::ast-types (first (asts obj))))))))
+
+(deftest macro-expansion-has-correct-types ()
+  ;; Types inside a macro expansion should be visible. This is trick
+  ;; due to the de-aggregating of types done by asts->tree.
+  (let ((obj (make-instance 'clang
+                            :genome "#define CHARSIZE (sizeof (char))
+int x = CHARSIZE;")))
+    (is (equalp '("int" "char")
+                (mapcar [#'type-name {find-type obj}]
+                        (get-ast-types obj (first (asts obj))))))))
+
 
 ;;; Detailed clang mutation tests
 ;;;
