@@ -260,8 +260,8 @@ expression match.")
         (to-delete (make-hash-table :test 'equal)))
     (loop :for ast :in (asts obj)
        :when (find id
-                   (append (ast-unbound-vals ast)
-                           (ast-unbound-funs ast))
+                   (append (get-unbound-vals ast)
+                           (get-unbound-funs ast))
                    :key #'car
                    :test #'string=)
        :do (setf (gethash (enclosing-full-stmt obj ast)
