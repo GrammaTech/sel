@@ -7,10 +7,8 @@ before_script:
   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
-  - build
-  - test
-  - tag
-  - cleanup
+  - build-test-and-tag
+  - dependents
 
 build_image:
   stage: build
