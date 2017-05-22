@@ -7,6 +7,7 @@ before_script:
 
 stages:
   - build-test-and-tag
+  - dependents
 
 run-everything:
   stage: build-test-and-tag
