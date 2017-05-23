@@ -5196,11 +5196,7 @@ Useful for printing or returning differences in the REPL."
 (deftest avg-depth-deeper-asts-correct ()
   (with-fixture variety-clang
     (let* ((add3-fun (stmt-starting-with-text *variety* "int add3"))
-           (stmts (aget :stmt-range add3-fun))
-           (ctrs (iota (1+ (- (second stmts)
-                              (first stmts)))
-                       :start (first stmts)))
-           (asts (mapcar {get-ast *variety*} ctrs))
+           (asts (remove-if-not {ancestor-of *variety* add3-fun} (asts *variety*)))
            (depths (mapcar {se::ast-depth *variety*} asts)))
       (is (= (/ (reduce #'+ depths) (length depths)))
           (se::avg-depth-asts *variety* asts)))))
