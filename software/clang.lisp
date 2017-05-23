@@ -928,35 +928,12 @@ pick or false (nil) otherwise."
 (define-mutation clang-swap (clang-mutation)
   ((targeter :initform #'pick-bad-bad)))
 
-(defun ast-later-p (ast-a ast-b)
-  "Is AST-A later in the genome than AST-B?
-
-Use this to sort AST asts for mutations that perform multiple
-operations.
-"
-  (labels
-      ((path-later-p (a b)
-         (cond
-           ;; Consider longer asts to be later, so in case of nested ASTs we
-           ;; will sort inner one first. Mutating the outer AST could
-           ;; invalidate the inner ast.
-           ((null a) nil)
-           ((null b) t)
-           (t (bind (((head-a . tail-a) a)
-                     ((head-b . tail-b) b))
-                (cond
-                  ((> head-a head-b) t)
-                  ((> head-b head-a) nil)
-                  (t (path-later-p tail-a tail-b))))))))
-    (path-later-p (ast-ref-path ast-a) (ast-ref-path ast-b))))
-
 (defmethod build-op ((mutation clang-swap) software)
   (declare (ignorable software))
-  (sort `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
-                (:stmt2 . ,(aget :stmt2 (targets mutation))))
-          (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
-                (:stmt2 . ,(aget :stmt1 (targets mutation)))))
-        #'ast-later-p :key [{aget :stmt1} #'cdr]))
+  `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
+          (:stmt2 . ,(aget :stmt2 (targets mutation))))
+    (:set (:stmt1 . ,(aget :stmt2 (targets mutation)))
+          (:stmt2 . ,(aget :stmt1 (targets mutation))))))
 
 (define-mutation clang-swap-full (clang-swap)
   ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter})))
@@ -973,12 +950,10 @@ operations.
   ((targeter :initform #'pick-bad-bad)))
 
 (defmethod build-op ((mutation clang-move) software)
-  ;; Sort in reverse AST order so operations won't step on each other
   (declare (ignorable software))
-  (sort `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
-                   (:stmt2 . ,(aget :stmt2 (targets mutation))))
-          (:cut (:stmt1 . ,(aget :stmt1 (targets mutation)))))
-        #'ast-later-p :key [{aget :stmt1} #'cdr]))
+  `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
+             (:stmt2 . ,(aget :stmt2 (targets mutation))))
+    (:cut (:stmt1 . ,(aget :stmt1 (targets mutation))))))
 
 ;;; Replace
 (define-mutation clang-replace (clang-mutation)
@@ -1759,6 +1734,28 @@ already in scope, it will keep that name.")
       :report "Try another mutation"
       (mutate clang))))
 
+(defun ast-later-p (ast-a ast-b)
+  "Is AST-A later in the genome than AST-B?
+
+Use this to sort AST asts for mutations that perform multiple
+operations.
+"
+  (labels
+      ((path-later-p (a b)
+         (cond
+           ;; Consider longer asts to be later, so in case of nested ASTs we
+           ;; will sort inner one first. Mutating the outer AST could
+           ;; invalidate the inner ast.
+           ((null a) nil)
+           ((null b) t)
+           (t (bind (((head-a . tail-a) a)
+                     ((head-b . tail-b) b))
+                (cond
+                  ((> head-a head-b) t)
+                  ((> head-b head-a) nil)
+                  (t (path-later-p tail-a tail-b))))))))
+    (path-later-p (ast-ref-path ast-a) (ast-ref-path ast-b))))
+
 (defmethod recontextualize-mutation ((obj clang) (mut mutation))
   (recontextualize-mutation obj (build-op mut obj)))
 
@@ -1814,7 +1811,10 @@ already in scope, it will keep that name.")
                            (mutation clang-mutation))
   (restart-case
       (apply-mutation-ops software
-                          (recontextualize-mutation software mutation))
+                          ;; Sort operations latest-first so they
+                          ;; won't step on each other.
+                          (sort (recontextualize-mutation software mutation)
+                                #'ast-later-p :key [{aget :stmt1} #'cdr]))
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -2579,7 +2579,6 @@ variables to replace use of the variables declared in stmt ID."))
                             (intersection
                              (mapcar #'car (get-unbound-vals obj ast))
                              old :test #'string=)))
-           (sort <> #'ast-later-p) ; Bottom up.
            (mapcar (lambda (ast)
                      (list :set (cons :stmt1 ast)
                            (cons :literal1
