@@ -2398,9 +2398,9 @@ included as the first successor."
                      (while (not (equal (ast-ref-path c)
                                         (ast-ref-path full))))
                      (collect c))
-               (mapcar #'ast-declarations)
-               (apply #'append)
-               (remove nil)
+               (remove-if #'function-decl-p) ; we only want var decls
+               (mappend #'ast-declares)
+               (remove-if #'emptyp)     ; drop nils and empty strings
                (reverse))
           (scopes software scope))))
 
