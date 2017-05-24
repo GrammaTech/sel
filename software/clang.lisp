@@ -286,30 +286,33 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (unbound-vals (ast)
           (mapcar [#'peel-bananas #'car] (aget :unbound-vals ast)))
         (make-tree (ast)
-          ;; clang-mutate aggregates types, unbound-vals, and
-          ;; unbound-funs from children into parents. Undo that so
-          ;; it's easier to update these properties after mutation.
           (let ((children (collect-children ast)))
-            (unless (aget :in-macro-expansion ast)
-              (iter (for c in children)
-                    (appending (aget :types c) into child-types)
-                    (appending (unbound-vals c) into child-vals)
-                    (appending (aget :unbound-funs c) into child-funs)
+            (if (aget :in-macro-expansion ast)
+                ;; Remove depth from unbound-vals, keeping only names
+                (setf (aget :unbound-vals ast) (unbound-vals ast))
 
-                    (finally
-                     (unless (member (aget :ast-class ast) '("Var" "ParmVar")
-                                     :test #'string=)
-                       (setf (aget :types ast)
-                             (remove-if {member _ child-types}
-                                        (aget :types ast))))
+                ;; clang-mutate aggregates types, unbound-vals, and unbound-funs
+                ;; from children into parents. Undo that so it's easier to
+                ;; update these properties after mutation.
+                (iter (for c in children)
+                      (appending (aget :types c) into child-types)
+                      (appending (unbound-vals c) into child-vals)
+                      (appending (aget :unbound-funs c) into child-funs)
 
-                     (setf (aget :unbound-vals ast)
-                           (remove-if {member _ child-vals :test #'string=}
-                                      (unbound-vals ast))
+                      (finally
+                       (unless (member (aget :ast-class ast) '("Var" "ParmVar")
+                                       :test #'string=)
+                         (setf (aget :types ast)
+                               (remove-if {member _ child-types}
+                                          (aget :types ast))))
 
-                           (aget :unbound-funs ast)
-                           (remove-if {member _ child-funs :test #'equalp}
-                                      (aget :unbound-funs ast))))))
+                       (setf (aget :unbound-vals ast)
+                             (remove-if {member _ child-vals :test #'string=}
+                                        (unbound-vals ast))
+
+                             (aget :unbound-funs ast)
+                             (remove-if {member _ child-funs :test #'equalp}
+                                        (aget :unbound-funs ast))))))
 
             (cons ast (make-children ast (mapcar #'make-tree children))))))
 
