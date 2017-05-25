@@ -8,8 +8,7 @@
 
 ;;; Code:
 (in-package :software-evolution)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros :include-utf8))
+(enable-curry-compose-reader-macros :include-utf8)
 
 
 ;;; Software Object
