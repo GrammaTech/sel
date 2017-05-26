@@ -74,4 +74,5 @@ techniques."
              (:file "fault-loc")
              (:file "generate-helpers")
              (:file "style-features")
-             (:file "multi-objective")))))
+             (:file "multi-objective")
+             (:file "clang-tokens")))))

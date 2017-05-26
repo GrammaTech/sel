@@ -55,6 +55,7 @@
    :xz-pipe
    :parse-number
    :parse-numbers
+   :trim-whitespace
    :make-terminal-raw
    ;; forensic
    :show-it

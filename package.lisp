@@ -51,6 +51,7 @@
    :lines
    :line-breaks
    :genome-string
+   :tokenize
    :headers
    :macros
    :includes
