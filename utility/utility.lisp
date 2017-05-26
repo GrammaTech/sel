@@ -392,6 +392,10 @@ The SHELL command is executed with `*bash-shell*'."
   (mapcar #'(lambda (num) (parse-integer num :radix radix))
           (split-sequence delim string :remove-empty-subseqs t)))
 
+(defun trim-whitespace (str)
+  (string-trim '(#\Space #\Tab #\Newline #\Linefeed)
+               str))
+
 (defun make-terminal-raw ()
   "Place the terminal into 'raw' mode, no echo non canonical.
 This allows characters to be read directly without waiting for a newline.
