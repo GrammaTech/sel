@@ -5801,3 +5801,122 @@ Useful for printing or returning differences in the REPL."
                                  (stmt-starting-with-text *scopes*
                                                           "void bar"))
                '(("(|b|)" nil))))))
+
+
+;; Clang tokenizer tests
+(in-suite test)
+(defsuite* test-clang-tokenizer)
+
+(deftest do-while-tokens ()
+  (with-fixture variety-clang
+    (let* ((root (stmt-starting-with-text *variety* "do {"))
+           (tokens (tokenize (get-ast *variety* root) (asts *variety*))))
+      (is (equal tokens
+                 ;; do {
+                 (list :do :l-brace
+                       ;; run.foo++
+                       :identifier :. :identifier :++
+                       ;; } while (run.foo
+                       :r-brace :while :l-paren :identifier :. :identifier
+                       ;; < 8)
+                       :< :int-literal :r-paren))))))
+
+(deftest designatedinitexpr-tokens ()
+  (with-fixture variety-clang
+    (let* ((roots (remove-if-not [{equal "DesignatedInitExpr"}
+                                  {aget :ast-class}]
+                                 (asts *variety*)))
+           (test-roots (list (nth 0 roots)
+                             (nth 1 roots)
+                             (nth 3 roots)))
+           (token-lists (iter (for root in test-roots)
+                              (collect (tokenize root (asts *variety*))
+                                into token-lists)
+                              (finally (return token-lists)))))
+      (is (= 3 (length token-lists)))
+      (is (equal (nth 0 token-lists)
+                 ;; [0 ... 1 ].y = 1.0
+                 (list :l-square :int-literal :... :int-literal :r-square
+                       :. :identifier := :float-literal)))
+      (is (equal (nth 1 token-lists)
+                 ;; [1].x = 2.0
+                 (list :l-square :int-literal :r-square :. :identifier
+                       := :float-literal)))
+      (is (equal (nth 2 token-lists)
+                 ;; .y = 2.0
+                 (list :. :identifier := :float-literal))))))
+
+(deftest function-tokens ()
+  (with-fixture variety-clang
+    (let* ((root (stmt-starting-with-text *variety* "int add3"))
+           (tokens (tokenize (get-ast *variety* root) (asts *variety*))))
+      (is (equal
+           tokens
+           ;; int add3(int x) {
+           (list (intern "int") :identifier :l-paren (intern "int") :identifier
+                 :r-paren :l-brace
+                 ;; printf("...", __func__)
+                 :identifier :l-paren :string-literal :comma (intern "__func__")
+                 :r-paren
+                 ;; return x + 3 }
+                 :return :identifier :+ :int-literal :r-brace))))))
+
+(deftest mixed-tokens ()
+  (with-fixture variety-clang
+    (let* ((root (stmt-starting-with-text *variety* "tun->foo"))
+           (tokens (tokenize (get-ast *variety* root) (asts *variety*))))
+      (is
+       (equal
+        tokens
+        (list
+         ;; tun -> foo = _Generic(
+         :identifier :-> :identifier := :generic :l-paren
+         ;; tun -> foo, int: 12
+         :identifier :-> :identifier :comma (intern "int") :colon :int-literal
+         ;; , char: 'q')
+         :comma (intern "char") :colon :char-literal :r-paren))))))
+
+(deftest memberexpr-tokens ()
+  (with-fixture variety-clang
+    (let* ((roots (remove-if-not [{equal "MemberExpr"} {aget :ast-class}]
+                                 (asts *variety*)))
+           (token-lists (iter (for root in roots)
+                              (collect (tokenize root (asts *variety*))
+                                into token-lists)
+                              (finally (return token-lists)))))
+      (is (every [{<= 3} #'length] token-lists))
+      (is (every (lambda (ls)
+                   (or (equal ls (list :identifier :. :identifier))
+                       (equal ls (list :identifier :-> :identifier))
+                       (equal ls (list :identifier :l-square :int-literal
+                                       :r-square :. :identifier))))
+                 token-lists)))))
+
+(deftest parenexpr-tokens ()
+  (with-fixture variety-clang
+    (let* ((roots (remove-if-not [{equal "ParenExpr"} {aget :ast-class}]
+                                 (asts *variety*)))
+           (token-lists (iter (for root in roots)
+                              (collect (tokenize root (asts *variety*))
+                                into token-lists)
+                              (finally (return token-lists)))))
+      (is (= 2 (length token-lists)))
+      (is (every [{<= 3} #'length] token-lists))
+      (is (every [{eql :l-paren} #'first] token-lists))
+      (is (every [{eql :r-paren} #'lastcar] token-lists)))))
+
+(deftest parmvar-tokens ()
+  (with-fixture variety-clang
+    (let* ((parmvars (remove-if-not [{equal "ParmVar"} {aget :ast-class}]
+                                    (asts *variety*)))
+           (token-lists (iter (for root in parmvars)
+                              (collect (tokenize root nil)
+                                into token-lists)
+                              (finally (return token-lists))))
+           (argv-tokens (list (intern "char") :* :*
+                              :identifier))
+           (int-tokens (list (intern "int") :identifier)))
+      (is (= 5 (length token-lists)))
+      (is (every [{<= 2} #'length] token-lists))
+      (is (member int-tokens token-lists :test #'equal))
+      (is (member argv-tokens token-lists :test #'equal)))))
