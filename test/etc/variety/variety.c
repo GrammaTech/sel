@@ -26,10 +26,11 @@ int sub3(int x) {
 }
 
 int variadic_sum(int num_args, ...) {
-  int sum = 0;
   int next = 0;
   // VAArgExprs
   va_list nums;
+  int sum;
+  sum = 0;
   va_start(nums, num_args);
   while((next = va_arg(nums, int)) && num_args > 0) {
     sum += next;
@@ -41,12 +42,14 @@ int variadic_sum(int num_args, ...) {
 
 int main(int argc, char** argv) {
   enum traffic light = RED;
-  test_union run, sun, tun;
+  test_union run, sun;
+  test_union* tun;
+  // CompoundLiteralExpr
   run.foo = (int) {5};
   sun.bar = 'a';
 
   // GenericSelectionExpr
-  tun.foo = _Generic(tun.foo, int: 12, char: 'q');
+  tun->foo = _Generic(tun->foo, int: 12, char: 'q');
   double complex z = 4.0 + 8.0 * I;
   int total = variadic_sum(4, 8, 1, 4, 2);
   printf("total: %d\n", total);
@@ -56,9 +59,10 @@ int main(int argc, char** argv) {
   printf("stmt_expr: %d\n", stmt_expr);
 
   // DesignatedInitExpr
-  point pts[2] = { [1].y = 1.0, [1].x = 2.0, [0].x = 3.0 };
+  point pts[2] = { [0 ... 1].y = 1.0, [1].x = 2.0, [0].x = 3.0 };
   // InitListExpr
   point origin = { 0.0, 0.0 };
+  point one_two = { .y=2.0, .x = 1.0 };
 
   printf("point 0: (%lf, %lf)\n", pts[1].x, pts[1].y);
   // OffsetOfExpr
