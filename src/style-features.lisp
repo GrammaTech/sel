@@ -10,11 +10,11 @@
     "EnumConstant" "Field" "FloatingLiteral" "ForStmt" "Function"
     "GenericSelectionExpr" "GotoStmt" "IfStmt" "ImaginaryLiteral"
     "ImplicitCastExpr" "ImplicitValueInitExpr" "IndirectGotoStmt" "InitListExpr"
-    "IntegerLiteral" "LabelStmt" "MemberExpr" "NullStmt" "OffsetOfExpr"
-    "OpaqueValueExpr" "ParenExpr" "ParenListExpr" "ParmVar" "PredefinedExpr"
-    "PseudoObjectExpr" "Record" "ReturnStmt" "StmtExpr" "StringLiteral"
-    "SwitchStmt" "Typedef" "UnaryExprOrTypeTraitExpr" "UnaryOperator"
-    "VAArgExpr" "Var" "WhileStmt")
+    "IntegerLiteral" "LabelStmt" "MacroExpansion" "MemberExpr" "NullStmt"
+    "OffsetOfExpr" "OpaqueValueExpr" "ParenExpr" "ParenListExpr" "ParmVar"
+    "PredefinedExpr" "PseudoObjectExpr" "Record" "ReturnStmt" "StmtExpr"
+    "StringLiteral" "SwitchStmt" "Typedef" "UnaryExprOrTypeTraitExpr"
+    "UnaryOperator" "VAArgExpr" "Var" "WhileStmt")
   "List of clang C ast-class types.")
 
 (defparameter *clang-c-keywords*
