@@ -5810,7 +5810,7 @@ Useful for printing or returning differences in the REPL."
 (deftest do-while-tokens ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "do {"))
-           (tokens (tokenize (get-ast *variety* root) (asts *variety*))))
+           (tokens (tokenize root *variety*)))
       (is (equal tokens
                  ;; do {
                  (list :do :l-brace
@@ -5823,14 +5823,14 @@ Useful for printing or returning differences in the REPL."
 
 (deftest designatedinitexpr-tokens ()
   (with-fixture variety-clang
-    (let* ((roots (remove-if-not [{equal "DesignatedInitExpr"}
-                                  {aget :ast-class}]
-                                 (asts *variety*)))
+    (let* ((roots (remove-if-not {equal "DesignatedInitExpr"}
+                                 (asts *variety*)
+                                 :key #'ast-class))
            (test-roots (list (nth 0 roots)
                              (nth 1 roots)
                              (nth 3 roots)))
            (token-lists (iter (for root in test-roots)
-                              (collect (tokenize root (asts *variety*))
+                              (collect (tokenize root *variety*)
                                 into token-lists)
                               (finally (return token-lists)))))
       (is (= 3 (length token-lists)))
@@ -5849,7 +5849,7 @@ Useful for printing or returning differences in the REPL."
 (deftest function-tokens ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "int add3"))
-           (tokens (tokenize (get-ast *variety* root) (asts *variety*))))
+           (tokens (tokenize root *variety*)))
       (is (equal
            tokens
            ;; int add3(int x) {
@@ -5864,7 +5864,7 @@ Useful for printing or returning differences in the REPL."
 (deftest mixed-tokens ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "tun->foo"))
-           (tokens (tokenize (get-ast *variety* root) (asts *variety*))))
+           (tokens (tokenize root *variety*)))
       (is
        (equal
         tokens
@@ -5878,10 +5878,11 @@ Useful for printing or returning differences in the REPL."
 
 (deftest memberexpr-tokens ()
   (with-fixture variety-clang
-    (let* ((roots (remove-if-not [{equal "MemberExpr"} {aget :ast-class}]
-                                 (asts *variety*)))
+    (let* ((roots (remove-if-not {equal "MemberExpr"}
+                                 (asts *variety*)
+                                 :key #'ast-class))
            (token-lists (iter (for root in roots)
-                              (collect (tokenize root (asts *variety*))
+                              (collect (tokenize root *variety*)
                                 into token-lists)
                               (finally (return token-lists)))))
       (is (every [{<= 3} #'length] token-lists))
@@ -5894,23 +5895,25 @@ Useful for printing or returning differences in the REPL."
 
 (deftest parenexpr-tokens ()
   (with-fixture variety-clang
-    (let* ((roots (remove-if-not [{equal "ParenExpr"} {aget :ast-class}]
-                                 (asts *variety*)))
+    (let* ((roots (remove-if-not {equal "ParenExpr"}
+                                 (asts *variety*)
+                                 :key #'ast-class))
            (token-lists (iter (for root in roots)
-                              (collect (tokenize root (asts *variety*))
+                              (collect (tokenize root *variety*)
                                 into token-lists)
                               (finally (return token-lists)))))
-      (is (= 2 (length token-lists)))
+      (is (= 1 (length token-lists)))
       (is (every [{<= 3} #'length] token-lists))
       (is (every [{eql :l-paren} #'first] token-lists))
       (is (every [{eql :r-paren} #'lastcar] token-lists)))))
 
 (deftest parmvar-tokens ()
   (with-fixture variety-clang
-    (let* ((parmvars (remove-if-not [{equal "ParmVar"} {aget :ast-class}]
-                                    (asts *variety*)))
+    (let* ((parmvars (remove-if-not {equal "ParmVar"}
+                                    (asts *variety*)
+                                    :key #'ast-class))
            (token-lists (iter (for root in parmvars)
-                              (collect (tokenize root nil)
+                              (collect (tokenize root *variety*)
                                 into token-lists)
                               (finally (return token-lists))))
            (argv-tokens (list (intern "char") :* :*
