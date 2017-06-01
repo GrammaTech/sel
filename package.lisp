@@ -466,6 +466,7 @@
    :ast-array-length
    :ast-base-type
    :ast-bit-field-width
+   :ast-aux-data
    :clang-type
    :copy-clang-ast
    :make-clang-ast
