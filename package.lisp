@@ -482,6 +482,7 @@
    :type-reqs
    :type-name
    :make-clang-type
+   :roots
    :ast->snippet
    :snippet->clang-ast
    :snippet->clang-type

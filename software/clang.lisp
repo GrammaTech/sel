@@ -226,6 +226,15 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (format stream "~a ~a"
                 (ast-counter obj) (ast-class obj)))))
 
+(defgeneric roots (software)
+  (:documentation "Return all top-level ASTs in SOFTWARE."))
+
+(defmethod roots ((obj clang))
+  (roots (asts obj)))
+
+(defmethod roots ((asts list))
+  (remove-if-not [{= 1} #'length #'ast-ref-path] asts))
+
 (defun asts->tree (genome asts)
   (let ((roots (mapcar {aget :counter}
                        (remove-if-not [{eq 0} {aget :parent-counter}] asts)))
