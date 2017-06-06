@@ -237,7 +237,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 
 (defun asts->tree (genome asts)
   (let ((roots (mapcar {aget :counter}
-                       (remove-if-not [{eq 0} {aget :parent-counter}] asts)))
+                       (remove-if-not [#'zerop {aget :parent-counter}] asts)))
         (ast-vector (coerce asts 'vector)))
    (labels
        ((get-ast (id)
