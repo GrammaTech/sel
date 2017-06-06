@@ -5802,8 +5802,8 @@ Useful for printing or returning differences in the REPL."
                                                           "void bar"))
                '(("(|b|)" nil))))))
 
-
-;; Clang tokenizer tests
+
+;;;; Clang tokenizer tests
 (in-suite test)
 (defsuite* test-clang-tokenizer)
 
