@@ -46,6 +46,11 @@ A copy of the license is included in the section entitled
 * Components::                  What's it provide?
 * Usage::                       How's it used?
 
+Included Libraries
+* Utility::                     Utility functions.
+* View::                        Interactive user interface.
+* Test::                        Unit tests.
+
 Appendices
 
 * Copying::                     The GNU General Public License gives
@@ -566,7 +571,7 @@ Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
 @verbatiminclude ../examples/003-neutral.lisp
 
-@node Repair, Copying, Neutral Variants, Usage
+@node Repair, Utility, Neutral Variants, Usage
 @section Repair
 @cindex repair
 
@@ -649,7 +654,25 @@ with the following.
 @c @section Memoize Fitness
 @c @cindex memoize fitness
 
-@node Copying, GNU Free Documentation License, Usage, Top
+@node Utility, View, Usage, Top
+@section Utility
+@cindex utility
+
+@include utility.texi
+
+@node View, Test, Utility, Top
+@section View
+@cindex view
+
+@include view.texi
+
+@node Test, Copying, View, Top
+@section Test
+@cindex test
+
+@include test.texi
+
+@node Copying, GNU Free Documentation License, Test, Top
 @appendix GNU GENERAL PUBLIC LICENSE
 @include gpl.texi
 
