@@ -1021,11 +1021,11 @@
     (is (find-if [{string= "int i"} #'source-text]
                  (stmt-asts *huf*))
         "Ensure known local variable is in `stmts'.")
-    (is (null (find "ParmVar" (stmt-asts *huf*)
-                    :key #'ast-class :test #'string=))
+    (is (null (find :ParmVar (stmt-asts *huf*)
+                    :key #'ast-class))
         "Ensure no ParmVar statement ASTs")
-    (is (null (find "Function" (stmt-asts *huf*)
-                    :key #'ast-class :test #'string=))
+    (is (null (find :Function (stmt-asts *huf*)
+                    :key #'ast-class))
         "Ensure no Function statement ASTs")))
 
 ;; Check if the two AST lists differ. Do a smoke test with
@@ -1067,9 +1067,9 @@
       (apply-mutation variant
         `(clang-replace
           (:stmt1 . ,stmt1)
-          (:value1 . ,(se::make-statement "IntegerLiteral"
-                                          :fullstmt
-                                          '("0")))))
+          (:value1 . ,(make-statement :IntegerLiteral
+                                      :fullstmt
+                                      '("0")))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
 
@@ -1181,11 +1181,11 @@
   (with-fixture gcd-wo-curlies-clang
     (let ((var (copy *gcd*)))
       ;; Setup, ensure everything is what we thing it should be.
-      (is (string= "BinaryOperator"     ; Guard
+      (is (eq :BinaryOperator     ; Guard
                    (ast-class (stmt-with-text var "a > b"))))
-      (is (string= "BinaryOperator"     ; Then
+      (is (eq :BinaryOperator     ; Then
                    (ast-class (stmt-with-text var "a = a - b"))))
-      (is (string= "BinaryOperator"     ; Else
+      (is (eq :BinaryOperator     ; Else
                    (ast-class (stmt-with-text var "b = b - a"))))
       ;; Wrap children and ensure changes are made.
 
@@ -1193,20 +1193,20 @@
                             1))
       (setf var (wrap-child var (stmt-starting-with-text var "if (a > b)")
                             2))
-      (is (string= "BinaryOperator"     ; Guard
+      (is (eq :BinaryOperator     ; Guard
                    (ast-class (stmt-with-text var "a > b"))))
-      (is (string= "CompoundStmt"       ; Then
+      (is (eq :CompoundStmt       ; Then
                    (ast-class (get-parent-ast var
                                               (stmt-with-text var "a = a - b")))))
-      (is (string= "CompoundStmt"       ; Then
+      (is (eq :CompoundStmt       ; Then
                    (ast-class (get-parent-ast var
                                               (stmt-with-text var "b = b - a")))))
       ;; Ensure gcd remains unchanged.
-      (is (string= "BinaryOperator"     ; Guard
+      (is (eq :BinaryOperator     ; Guard
                    (ast-class (stmt-with-text *gcd* "a > b"))))
-      (is (string= "BinaryOperator"     ; Then
+      (is (eq :BinaryOperator     ; Then
                    (ast-class (stmt-with-text *gcd* "a = a - b"))))
-      (is (string= "BinaryOperator"     ; Else
+      (is (eq :BinaryOperator     ; Else
                    (ast-class (stmt-with-text *gcd* "b = b - a")))))))
 
 (deftest split-multi-var-decls-on-clang ()
@@ -1399,7 +1399,7 @@ statement pick"
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (list (snippet->clang-ast '((:ast-class . "Nothing"))))))
+    (let ((*bad-asts* (list (snippet->clang-ast '((:ast-class . :Nothing))))))
       (signals no-mutation-targets
         (se::pick-general *hello-world* #'stmt-asts
                           :filter #'se::same-class-filter
@@ -1436,8 +1436,8 @@ is not to be found"
     (is *soft*)
     (let ((stmt (stmt-with-text *soft* "x == \"test\"")))
       (is stmt)
-      (is (string= "CXXOperatorCallExpr" (ast-class stmt)))
-      (is (every [{string= "ImplicitCastExpr"} #'ast-class]
+      (is (eq :CXXOperatorCallExpr (ast-class stmt)))
+      (is (every [{eq :ImplicitCastExpr} #'ast-class]
                  (get-immediate-children *soft* stmt))))))
 
 (deftest typedef-workaround ()
@@ -1445,7 +1445,7 @@ is not to be found"
     (let ((typedef (stmt-starting-with-text *soft* "typedef")))
       (is typedef)
       (is (not (null (get-immediate-children *soft* typedef))))
-      (is (equal '("Record")
+      (is (equal '(:Record)
                  (mapcar #'ast-class
                          (get-immediate-children *soft* typedef)))))))
 
@@ -1567,9 +1567,9 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-insert-full-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (> (count-if [{equal "ReturnStmt"} #'ast-class]
+      (is (> (count-if [{eq :ReturnStmt} #'ast-class]
                        (asts variant))
-             (count-if [{equal "ReturnStmt"} #'ast-class]
+             (count-if [{eq :ReturnStmt} #'ast-class]
                        (asts *hello-world*)))))))
 
 (deftest replace-changes-any-stmt ()
@@ -1589,9 +1589,9 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace-full . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (> (count-if [{equal "CallExpr"} #'ast-class]
+      (is (> (count-if [{eq :CallExpr} #'ast-class]
                        (asts variant))
-             (count-if [{equal "CallExpr"} #'ast-class]
+             (count-if [{eq :CallExpr} #'ast-class]
                        (asts *hello-world*)))))))
 
 (deftest replace-same-changes-same-class ()
@@ -1656,8 +1656,7 @@ int x = CHARSIZE;")))
   (with-fixture hello-world-clang-control-picks
     (let ((*clang-mutation-types* '((clang-swap-full . 1)))
           ;; Avoid swapping the function body
-          (*bad-asts* (remove-if [{member _  '("CompoundStmt" "Function")
-                                          :test #'string=}
+          (*bad-asts* (remove-if [{member _  '(:CompoundStmt :Function)}
                                   #'ast-class]
                                  (asts *hello-world*)))
           (variant (copy *hello-world*)))
@@ -1814,14 +1813,14 @@ int x = CHARSIZE;")))
 (deftest if-to-while-test ()
   (with-fixture gcd-clang-control-picks
     (let ((*clang-mutation-types* '((if-to-while . 1)))
-          (*bad-asts* (list (find-if [{string= "IfStmt"} #'ast-class]
+          (*bad-asts* (list (find-if [{eq :IfStmt} #'ast-class]
                                      (stmt-asts *gcd*)))))
       (multiple-value-bind  (variant mutation) (mutate (copy *gcd*))
-        (is (string= "IfStmt"
-                     (ast-class (targets mutation))))
+        (is (eq :IfStmt
+                (ast-class (targets mutation))))
         (let ((stmt (stmt-starting-with-text variant "while")))
           (is stmt)
-          (is (string= "WhileStmt" (ast-class stmt))))))))
+          (is (eq :WhileStmt (ast-class stmt))))))))
 
 
 ;;; Clang w/ mutation fodder representation
@@ -1831,7 +1830,7 @@ int x = CHARSIZE;")))
 (deftest parse-source-snippet-body-statement ()
   (let ((asts (parse-source-snippet "x + y" '(("x" "int") ("y" "char")) nil)))
     (is (eq 1 (length asts)))
-    (is (string= "BinaryOperator" (ast-class (car asts))))
+    (is (eq :BinaryOperator (ast-class (car asts))))
     (is (equalp '(("(|y|)" NIL) ("(|x|)" NIL))
                 (get-unbound-vals (make-instance 'clang) (car asts))))))
 
@@ -1839,7 +1838,7 @@ int x = CHARSIZE;")))
   (let ((asts (parse-source-snippet "printf(\"hello\")"
                                     nil '("<stdio.h>"))))
     (is (eq 1 (length asts)))
-    (is (string= "CallExpr" (ast-class (car asts))))
+    (is (eq :CallExpr (ast-class (car asts))))
     (is (equalp '("<stdio.h>")
                 (ast-includes (car asts))))))
 
@@ -1847,15 +1846,15 @@ int x = CHARSIZE;")))
   (let ((asts (parse-source-snippet "x = 1; y = 1"
                                     '(("x" "int") ("y" "char")) nil)))
     (is (eq 2 (length asts)))
-    (is (string= "BinaryOperator" (ast-class (first asts))))
-    (is (string= "BinaryOperator" (ast-class (second asts))))))
+    (is (eq :BinaryOperator (ast-class (first asts))))
+    (is (eq :BinaryOperator (ast-class (second asts))))))
 
 (deftest parse-source-snippet-top-level ()
   (let ((asts (parse-source-snippet "int foo() { return 1; }" nil nil
                                     :top-level t)))
     (is (eq 1 (length asts)))
-    (is (string= "Function" (ast-class (car asts))))
-    (is (string= "CompoundStmt" (ast-class (function-body (make-instance 'clang)
+    (is (eq :Function (ast-class (car asts))))
+    (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
                                                           (car asts)))))))
 
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
@@ -1908,9 +1907,9 @@ int x = CHARSIZE;")))
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant
         `(clang-replace
-          (:stmt1 . ,(find-if [{string= "StringLiteral"} #'ast-class]
+          (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
                               (asts variant)))
-          (:literal1 . ,(make-statement "StringLiteral" :generic
+          (:literal1 . ,(make-statement :StringLiteral :generic
                                         '("\"Hello, mutate!\"")))))
       (is (= (size variant)
              (size *hello-world*)))
@@ -1977,8 +1976,7 @@ int x = CHARSIZE;")))
     (let ((variant (copy *soft*)))
       (clang-tidy variant)
       (is (= 2 (->> (stmt-asts variant)
-                    (remove-if-not [{string= "CompoundStmt"}
-                                    #'ast-class])
+                    (remove-if-not [{eq :CompoundStmt} #'ast-class])
                     (length)))))))
 
 (deftest format-a-clang-software-object ()
@@ -2197,8 +2195,8 @@ int x = CHARSIZE;")))
            (op (make-instance 'clang-insert
                  :targets `((:stmt1 . ,(stmt-starting-with-text variant
                                                                 "printf"))
-                            (:literal1 . ,(se::make-statement "IntegerLiteral"
-                                                         :fullstmt '("0")))))))
+                            (:literal1 . ,(make-statement :IntegerLiteral
+                                                          :fullstmt '("0")))))))
       (apply-mutation variant op)
       (is (null (fitness variant))
           "Fitness is null after `apply-mutation'")
@@ -3002,8 +3000,7 @@ Useful for printing or returning differences in the REPL."
                                          (function-body *fib*))
                                     (stmt-with-text *fib* "int x = 0"))))
     (is (equalp (->> (stmt-asts *fib*)
-                     (remove-if-not [{string= "WhileStmt"}
-                                     #'ast-class])
+                     (remove-if-not [{eq :WhileStmt} #'ast-class])
                      (first))
                 (se::ancestor-after *fib*
                                     (->> "int fib"
@@ -3033,8 +3030,7 @@ Useful for printing or returning differences in the REPL."
                                          (function-body *collatz*))
                                     (stmt-with-text *collatz* "return k"))))
     (is (equalp (->> (stmt-asts *collatz*)
-                     (remove-if-not [{string= "WhileStmt"}
-                                     #'ast-class])
+                     (remove-if-not [{eq :WhileStmt} #'ast-class])
                      (first))
                 (se::ancestor-after *collatz*
                                     (->> "int collatz"
@@ -3042,8 +3038,7 @@ Useful for printing or returning differences in the REPL."
                                          (function-body *collatz*))
                                     (stmt-with-text *collatz* "m /= 2"))))
     (is (equalp (->> (stmt-asts *collatz*)
-                     (remove-if-not [{string= "IfStmt"}
-                                     #'ast-class])
+                     (remove-if-not [{eq :IfStmt} #'ast-class])
                      (first))
                 (se::ancestor-after *collatz*
                                     (->> "while"
@@ -3052,8 +3047,7 @@ Useful for printing or returning differences in the REPL."
                                          (second))
                                     (stmt-with-text *collatz* "m /= 2"))))
     (is (equalp (->> (stmt-asts *collatz*)
-                     (remove-if-not [{string= "IfStmt"}
-                                     #'ast-class])
+                     (remove-if-not [{eq :IfStmt} #'ast-class])
                      (first))
                 (se::ancestor-after *collatz*
                                     (->> "while"
@@ -3125,19 +3119,19 @@ Useful for printing or returning differences in the REPL."
     (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
                (->> (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
                     (enclosing-full-stmt *soft*))))
-    (is (equalp (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
+    (is (equalp (->> (remove-if-not [{eq :ForStmt} #'ast-class]
                                    (stmt-asts *soft*))
                     (first))
                (enclosing-full-stmt *soft*
-                                    (->> (remove-if-not [{string= "ForStmt"}
+                                    (->> (remove-if-not [{eq :ForStmt}
                                                          #'ast-class]
                                                         (stmt-asts *soft*))
                                          (first)))))
-    (is (equalp (->> (remove-if-not [{string= "ForStmt"}#'ast-class]
+    (is (equalp (->> (remove-if-not [{eq :ForStmt} #'ast-class]
                                    (stmt-asts *soft*))
                     (second))
                (enclosing-full-stmt *soft*
-                                    (->> (remove-if-not [{string= "ForStmt"}
+                                    (->> (remove-if-not [{eq :ForStmt}
                                                          #'ast-class]
                                                         (stmt-asts *soft*))
                                          (second)))))
@@ -3150,19 +3144,19 @@ Useful for printing or returning differences in the REPL."
     (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                      (enclosing-full-stmt *soft*))))
-    (is (equalp (->> (remove-if-not [{string= "SwitchStmt"} #'ast-class]
+    (is (equalp (->> (remove-if-not [{eq :SwitchStmt} #'ast-class]
                                     (stmt-asts *soft*))
                      (first))
                 (enclosing-full-stmt *soft*
-                                     (->> (remove-if-not [{string= "SwitchStmt"}
+                                     (->> (remove-if-not [{eq :SwitchStmt}
                                                           #'ast-class]
                                                          (stmt-asts *soft*))
                                           (first)))))
-    (is (equalp (->> (remove-if-not [{string= "CaseStmt"} #'ast-class]
+    (is (equalp (->> (remove-if-not [{eq :CaseStmt} #'ast-class]
                                     (stmt-asts *soft*))
                      (first))
                 (enclosing-full-stmt *soft*
-                                     (->> (remove-if-not [{string= "CaseStmt"}
+                                     (->> (remove-if-not [{eq :CaseStmt}
                                                           #'ast-class]
                                                          (stmt-asts *soft*))
                                           (first)))))))
@@ -3174,12 +3168,12 @@ Useful for printing or returning differences in the REPL."
                 (enclosing-block *collatz* (stmt-with-text *collatz*
                                                            "int k = 0"))))
     (is (equalp (->> (stmt-asts *collatz*)
-                     (find-if [{string= "WhileStmt"} #'ast-class])
+                     (find-if [{eq :WhileStmt} #'ast-class])
                      (get-immediate-children *collatz*)
                      (second))
                 (enclosing-block *collatz* (stmt-with-text *collatz* "++k"))))
     (is (equalp (->> (stmt-asts *collatz*)
-                     (find-if [{string= "IfStmt"} #'ast-class])
+                     (find-if [{eq :IfStmt} #'ast-class])
                      (get-immediate-children *collatz*)
                      (second))
                 (enclosing-block *collatz* (stmt-with-text *collatz* "m /= 2"))))
@@ -3211,17 +3205,17 @@ Useful for printing or returning differences in the REPL."
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
                      (enclosing-block *soft*))))
     (is (equalp (->> (stmt-asts *soft*)
-                     (find-if [{string= "SwitchStmt"} #'ast-class])
+                     (find-if [{eq :SwitchStmt} #'ast-class])
                      (get-immediate-children *soft*)
                      (second))
                 (->> (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
                      (enclosing-block *soft*))))
     (is (equalp (->> (stmt-asts *soft*)
-                     (find-if [{string= "SwitchStmt"} #'ast-class])
+                     (find-if [{eq :SwitchStmt} #'ast-class])
                      (get-immediate-children *soft*)
                      (second))
                 (->> (stmt-asts *soft*)
-                     (remove-if-not [{string= "CaseStmt"} #'ast-class])
+                     (remove-if-not [{eq :CaseStmt} #'ast-class])
                      (first)
                      (enclosing-block *soft*))))))
 
@@ -3229,35 +3223,35 @@ Useful for printing or returning differences in the REPL."
   (with-fixture collatz-clang
     (loop :for ast
           :in (stmt-asts *collatz*)
-          :do (is (equal (string= "CompoundStmt" (ast-class ast))
+          :do (is (equal (eq :CompoundStmt (ast-class ast))
                          (block-p *collatz* ast))))))
 
 (deftest block-p-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
     (loop :for ast
           :in (stmt-asts *soft*)
-          :do (is (equal (or (string= "CompoundStmt" (ast-class ast))
-                             (string= "ForStmt" (ast-class ast)))
+          :do (is (equal (or (eq :CompoundStmt (ast-class ast))
+                             (eq :ForStmt (ast-class ast)))
                          (block-p *soft* ast))))))
 
 (deftest block-p-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
     (loop :for ast
           :in (stmt-asts *soft*)
-          :do (is (equal (string= "CompoundStmt" (ast-class ast))
+          :do (is (equal (eq :CompoundStmt (ast-class ast))
                          (block-p *soft* ast))))))
 
 (deftest block-successor-collatz-test ()
   (with-fixture collatz-clang
-    (is (equal "WhileStmt"
-               (->> (block-successor *collatz* (stmt-with-text *collatz*
-                                                               "int k = 0"))
-                    (ast-class))))
-    (is (equal "ReturnStmt"
-               (->> (block-successor *collatz*
-                                     (stmt-with-text *collatz*
-                                                     "printf(\"%d\\n\", k)"))
-                    (ast-class))))
+    (is (eq :WhileStmt
+            (->> (block-successor *collatz* (stmt-with-text *collatz*
+                                                            "int k = 0"))
+                 (ast-class))))
+    (is (eq :ReturnStmt
+            (->> (block-successor *collatz*
+                                  (stmt-with-text *collatz*
+                                                  "printf(\"%d\\n\", k)"))
+                 (ast-class))))
     (is (equal nil
                (block-successor *collatz* (stmt-with-text *collatz*
                                                           "m /= 2"))))
@@ -3294,22 +3288,22 @@ Useful for printing or returning differences in the REPL."
     (is (equal nil
                (block-predeccessor *collatz* (stmt-with-text *collatz*
                                                              "int k = 0"))))
-    (is (equal "WhileStmt"
-               (->> (block-predeccessor *collatz*
+    (is (eq :WhileStmt
+            (->> (block-predeccessor *collatz*
                                      (stmt-with-text *collatz*
                                                      "printf(\"%d\\n\", k)"))
-                    (ast-class))))
+                 (ast-class))))
     (is (equal nil
                (block-predeccessor *collatz* (stmt-with-text *collatz*
                                                              "m /= 2"))))
-    (is (equal "IfStmt"
-               (->> (block-predeccessor *collatz* (stmt-with-text *collatz*
-                                                                  "++k"))
-                    (ast-class))))
-    (is (equal "CallExpr"
-               (->> (block-predeccessor *collatz* (stmt-with-text *collatz*
-                                                                  "return k"))
-                    (ast-class))))))
+    (is (eq :IfStmt
+            (->> (block-predeccessor *collatz* (stmt-with-text *collatz*
+                                                               "++k"))
+                 (ast-class))))
+    (is (eq :CallExpr
+            (->> (block-predeccessor *collatz* (stmt-with-text *collatz*
+                                                               "return k"))
+                 (ast-class))))))
 
 (deftest block-predeccessor-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
@@ -3358,12 +3352,12 @@ Useful for printing or returning differences in the REPL."
             (copy *fib*)
             (stmt-with-text *fib* "int t = x")
             (->> (stmt-asts *fib*)
-                 (remove-if-not [{string= "WhileStmt"}
+                 (remove-if-not [{eq :WhileStmt}
                                  #'ast-class])
                  (first))
             (stmt-with-text *fib* "int t = x")
             (->> (stmt-asts *fib*)
-                 (remove-if-not [{string= "WhileStmt"}
+                 (remove-if-not [{eq :WhileStmt}
                                  #'ast-class])
                  (first)))
         (declare (ignorable a-pts b-pts))
@@ -3373,7 +3367,7 @@ Useful for printing or returning differences in the REPL."
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *fib* "int t = x")
                           (->> (stmt-asts *fib*)
-                               (remove-if-not [{string= "WhileStmt"}
+                               (remove-if-not [{eq :WhileStmt}
                                                #'ast-class])
                                (first)))
                    effective-a-pts))))))
@@ -3909,9 +3903,9 @@ Useful for printing or returning differences in the REPL."
 
 (deftest pick-for-loop-works ()
   (with-fixture scopes-clang
-    (is (string= "ForStmt" (->> (se::pick-for-loop *scopes*)
-                                (aget :stmt1)
-                                (ast-class)))
+    (is (eq :ForStmt (->> (se::pick-for-loop *scopes*)
+                          (aget :stmt1)
+                          (ast-class)))
         "Simply able to pick a for loop.")
     (let ((var (copy *scopes*)))
       (apply-mutation var (make-instance 'explode-for-loop :object var))
@@ -3978,9 +3972,9 @@ Useful for printing or returning differences in the REPL."
 
 (deftest pick-while-loop-works ()
   (with-fixture scopes-clang
-    (is (string= "WhileStmt" (->> (se::pick-while-loop *scopes*)
-                                  (aget :stmt1)
-                                  (ast-class)))
+    (is (eq :WhileStmt (->> (se::pick-while-loop *scopes*)
+                            (aget :stmt1)
+                            (ast-class)))
         "Simply able to pick a while loop.")
     (let ((var (copy *scopes*)))
       (apply-mutation var (make-instance 'coalesce-while-loop :object var))
@@ -5265,11 +5259,11 @@ Useful for printing or returning differences in the REPL."
 
 (deftest avg-depth-ast-node-type-function-is-0 ()
   (with-fixture variety-clang
-    (is (zerop (se::avg-depth-ast-node-type *variety* "Function")))))
+    (is (zerop (se::avg-depth-ast-node-type *variety* :Function)))))
 
 (deftest avg-depth-ast-node-type-return-stmts ()
   (with-fixture variety-clang
-    (is (= 2 (se::avg-depth-ast-node-type *variety* "ReturnStmt")))))
+    (is (= 2 (se::avg-depth-ast-node-type *variety* :ReturnStmt)))))
 
 (deftest node-type-counts ()
   (with-fixture variety-clang
@@ -5379,22 +5373,22 @@ Useful for printing or returning differences in the REPL."
            (keys (hash-table-keys bi-grams))
            (vals (hash-table-values bi-grams)))
       (is (= 1 (length keys) (length vals)))
-      (is (equal (car keys) (cons "Function" "Function")))
+      (is (equal (car keys) (cons :Function :Function)))
       (is (= (1- (length functions)) (car vals))))))
 
 (deftest small-ast-bigrams-count-example ()
   (with-fixture variety-clang
     (flet ((asts-by-type (type)
-             (remove-if-not [{equal type} #'ast-class]
+             (remove-if-not [{eq type} #'ast-class]
                             (asts *variety*))))
-      (let* ((asts (list (first (asts-by-type "Function"))
-                         (first (asts-by-type "IntegerLiteral"))
-                         (first (asts-by-type "DeclStmt"))))
+      (let* ((asts (list (first (asts-by-type :Function))
+                         (first (asts-by-type :IntegerLiteral))
+                         (first (asts-by-type :DeclStmt))))
              (bi-grams (se::bi-grams asts :key #'ast-class))
              (keys (hash-table-keys bi-grams))
              (vals (hash-table-values bi-grams))
-             (sorted-keys (list (cons "Function" "IntegerLiteral")
-                                (cons "IntegerLiteral" "DeclStmt"))))
+             (sorted-keys (list (cons :Function :IntegerLiteral)
+                                (cons :IntegerLiteral :DeclStmt))))
         (is (= 2 (length keys) (length vals)))
         (is (equal sorted-keys
                    (sort keys (lambda (k1 k2)
@@ -5567,7 +5561,7 @@ Useful for printing or returning differences in the REPL."
       (is (eq 1 (count-matching-chars-in-stmt #\; function)))
       ;; Braces should be part of a new CompoundStmt AST rather than
       ;; free-floating text.
-      (is (eq 2 (count-if «and [{string= "CompoundStmt"} #'ast-class]
+      (is (eq 2 (count-if «and [{eq :CompoundStmt} #'ast-class]
                                {ancestor-of *contexts* function}»
                           (stmt-asts *contexts*)))))))
 
@@ -5579,11 +5573,11 @@ Useful for printing or returning differences in the REPL."
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
                (find-function *contexts* "unbraced_body"))))
-    (is (string= "NullStmt"
-                 (&>> (stmt-starting-with-text *contexts* "if (2)")
-                      (get-immediate-children *contexts*)
-                      (second)
-                      (ast-class))))))
+    (is (eq :NullStmt
+            (&>> (stmt-starting-with-text *contexts* "if (2)")
+                 (get-immediate-children *contexts*)
+                 (second)
+                 (ast-class))))))
 
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
@@ -5900,7 +5894,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest designatedinitexpr-tokens ()
   (with-fixture variety-clang
-    (let* ((roots (remove-if-not {equal "DesignatedInitExpr"}
+    (let* ((roots (remove-if-not {eq :DesignatedInitExpr}
                                  (asts *variety*)
                                  :key #'ast-class))
            (test-roots (list (nth 0 roots)
@@ -5959,7 +5953,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest memberexpr-tokens ()
   (with-fixture variety-clang
-    (let* ((roots (remove-if-not {equal "MemberExpr"}
+    (let* ((roots (remove-if-not {eq :MemberExpr}
                                  (asts *variety*)
                                  :key #'ast-class))
            (token-lists (mapcar [{tokens *variety*} #'list] roots)))
@@ -5976,7 +5970,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest parenexpr-tokens ()
   (with-fixture variety-clang
-    (let* ((roots (remove-if-not {equal "ParenExpr"}
+    (let* ((roots (remove-if-not {eq :ParenExpr}
                                  (asts *variety*)
                                  :key #'ast-class))
            (token-lists (mapcar [{tokens *variety*} #'list] roots)))
@@ -5987,7 +5981,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest parmvar-tokens ()
   (with-fixture variety-clang
-    (let* ((parmvars (remove-if-not {equal "ParmVar"}
+    (let* ((parmvars (remove-if-not {eq :ParmVar}
                                     (asts *variety*)
                                     :key #'ast-class))
            (token-lists (mapcar [{tokens *variety*} #'list] parmvars))
@@ -6002,7 +5996,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest record-tokens ()
   (with-fixture variety-clang
-    (let* ((records (remove-if-not {equal "Record"}
+    (let* ((records (remove-if-not {eq :Record}
                                    (asts *variety*)
                                    :key #'ast-class))
            (token-lists (mapcar [{tokens *variety*} #'list] records))
@@ -6020,7 +6014,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest while-tokens ()
   (with-fixture variety-clang
-    (let* ((root (remove-if-not {equal "WhileStmt"}
+    (let* ((root (remove-if-not {eq :WhileStmt}
                                 (asts *variety*)
                                 :key #'ast-class))
            (tokens (tokens *variety* root))

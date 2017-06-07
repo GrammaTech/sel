@@ -58,7 +58,7 @@ instrumentation.
   (ast-counter (random-elt (guard-statements software))))
 
 (defun pick-if-stmt (software)
-  (let ((stmts (remove-if-not [{equal "IfStmt"} #'ast-class ]
+  (let ((stmts (remove-if-not [{eq :IfStmt} #'ast-class ]
                               (bad-stmts software))))
     (and stmts (random-elt stmts))))
 
@@ -95,12 +95,12 @@ instrumentation.
   (remove-if #'ast-in-macro-expansion (guard-statements software)))
 
 (defun abst-cond-expr ()
-  (make-statement "CallExpr" :generic
+  (make-statement :CallExpr :generic
                   (list
                    (make-statement
-                    "ImplicitCastExpr" :generic
+                    :ImplicitCastExpr :generic
                     (list
-                     (make-statement "DeclRefExpr" :generic
+                     (make-statement :DeclRefExpr :generic
                                      '("(|abst_cond|)")
                                      :unbound-funs '(("(|abst_cond|)"
                                                       nil nil 0)))))
@@ -126,8 +126,8 @@ instrumentation.
             (random-elt
              (->> (asts software)
                   (remove-if-not #'ast-full-stmt)
-                  (remove-if [{equal "Function"} #'ast-class])
-                  (remove-if [{equal "DeclStmt"} #'ast-class]))))))
+                  (remove-if [{eq :Function} #'ast-class])
+                  (remove-if [{eq :DeclStmt} #'ast-class]))))))
    (abst-cond :accessor abst-cond :initform nil)))
 
 (defmethod build-op ((mutation add-condition) software)
@@ -211,12 +211,12 @@ is replaced with replacement."
 
 (defmethod valid-targets ((mutation if-to-while) software)
   (remove-if #'ast-in-macro-expansion
-             (remove-if-not [{equal "IfStmt"} #'ast-class]
+             (remove-if-not [{eq :IfStmt} #'ast-class]
                             (bad-stmts software))))
 
 (defmethod valid-targets ((mutation insert-else-if) software)
   (remove-if #'ast-in-macro-expansion
-             (remove-if-not [{equal "IfStmt"} #'ast-class]
+             (remove-if-not [{eq :IfStmt} #'ast-class]
                             (bad-stmts software))))
 
 
@@ -321,9 +321,8 @@ abst_cond() in the source text."
 (defun get-parent-control-stmt (clang guard-counter)
   "Returns the AST structure of the enclosing if statement for a guard."
   (let ((stmt (car (remove-if-not
-                    [{member _ '("IfStmt" "WhileStmt" "ForStmt" "DoStmt"
-                                 "SwitchStmt")
-                             :test #'string=}
+                    [{member _ '(:IfStmt :WhileStmt :ForStmt :DoStmt
+                                 :SwitchStmt)}
                      #'ast-class]
                     (get-parent-asts clang guard-counter)))))
     (assert stmt)
@@ -633,9 +632,9 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
          (var (make-var-reference name
                                   (type-of-var software name)))
          (val (if (stringp base)
-                  (make-statement "StringLiteral" :generic
+                  (make-statement :StringLiteral :generic
                                   (list (format nil "\"~a\"" base)))
-                  (make-statement "IntegerLiteral" :generic
+                  (make-statement :IntegerLiteral :generic
                                   (list (format nil "~a" base)))))
          (eq-op (make-parens
                  (list (make-operator :generic "==" (list var val))))))
@@ -768,8 +767,8 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                          (not (ast-in-macro-expansion a))
                          ;; Avoid side effects by excluding calls and
                          ;; assignment operators.
-                         (not (string= "CallExpr" (ast-class a)))
-                         (not (string= "BinaryOperator" (ast-class a)))
+                         (not (eq :CallExpr (ast-class a)))
+                         (not (eq :BinaryOperator (ast-class a)))
                          ;; Check scope
                          (ancestor-of obj scope a)))
                   (stmt-asts obj))

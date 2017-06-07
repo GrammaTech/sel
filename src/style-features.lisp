@@ -2,19 +2,19 @@
 
 
 (defparameter *clang-c-ast-classes*
-  '("AddrLabelExpr" "ArraySubscriptExpr" "AsTypeExpr" "AttributedStmt"
-    "BinaryOperator" "BlockExpr" "BreakStmt" "CallExpr" "CaseStmt"
-    "CharacterLiteral" "CompoundAssignOperator" "CompoundLiteralExpr"
-    "CompoundStmt" "ConditionalOperator" "ContinueStmt" "CStyleCastExpr"
-    "DeclRefExpr" "DeclStmt" "DefaultStmt" "DesignatedInitExpr" "DoStmt" "Enum"
-    "EnumConstant" "Field" "FloatingLiteral" "ForStmt" "Function"
-    "GenericSelectionExpr" "GotoStmt" "IfStmt" "ImaginaryLiteral"
-    "ImplicitCastExpr" "ImplicitValueInitExpr" "IndirectGotoStmt" "InitListExpr"
-    "IntegerLiteral" "LabelStmt" "MacroExpansion" "MemberExpr" "NullStmt"
-    "OffsetOfExpr" "OpaqueValueExpr" "ParenExpr" "ParenListExpr" "ParmVar"
-    "PredefinedExpr" "PseudoObjectExpr" "Record" "ReturnStmt" "StmtExpr"
-    "StringLiteral" "SwitchStmt" "Typedef" "UnaryExprOrTypeTraitExpr"
-    "UnaryOperator" "VAArgExpr" "Var" "WhileStmt")
+  '(:AddrLabelExpr :ArraySubscriptExpr :AsTypeExpr :AttributedStmt
+    :BinaryOperator :BlockExpr :BreakStmt :CallExpr :CaseStmt
+    :CharacterLiteral :CompoundAssignOperator :CompoundLiteralExpr
+    :CompoundStmt :ConditionalOperator :ContinueStmt :CStyleCastExpr
+    :DeclRefExpr :DeclStmt :DefaultStmt :DesignatedInitExpr :DoStmt :Enum
+    :EnumConstant :Field :FloatingLiteral :ForStmt :Function
+    :GenericSelectionExpr :GotoStmt :IfStmt :ImaginaryLiteral
+    :ImplicitCastExpr :ImplicitValueInitExpr :IndirectGotoStmt :InitListExpr
+    :IntegerLiteral :LabelStmt :MacroExpansion :MemberExpr :NullStmt
+    :OffsetOfExpr :OpaqueValueExpr :ParenExpr :ParenListExpr :ParmVar
+    :PredefinedExpr :PseudoObjectExpr :Record :ReturnStmt :StmtExpr
+    :StringLiteral :SwitchStmt :Typedef :UnaryExprOrTypeTraitExpr
+    :UnaryOperator :VAArgExpr :Var :WhileStmt)
   "List of clang C ast-class types.")
 
 (defparameter *clang-c-keywords*
@@ -25,35 +25,35 @@
   "List of clang C keywords")
 
 (defparameter *clang-c-ast-keywords-auto-count*
-  '(("SwitchStmt" . ("switch"))
-    ("CaseStmt" . ("case"))
-    ("BreakStmt" . ("break"))
-    ("DefaultStmt" . ("default"))
-    ("ContinueStmt" . ("continue"))
-    ("DoStmt" . ("do" "while"))
-    ("IfStmt" . ("if"))
-    ("Enum" . ("enum"))
-    ("ForStmt" . ("for"))
-    ("GotoStmt" . ("goto"))
-    ("IndirectGotoStmt" . ("goto"))
-    ("ReturnStmt" . ("return"))
-    ("Typedef" . ("typedef"))
-    ("WhileStmt" . ("while")))
+  '((:SwitchStmt . ("switch"))
+    (:CaseStmt . ("case"))
+    (:BreakStmt . ("break"))
+    (:DefaultStmt . ("default"))
+    (:ContinueStmt . ("continue"))
+    (:DoStmt . ("do" "while"))
+    (:IfStmt . ("if"))
+    (:Enum . ("enum"))
+    (:ForStmt . ("for"))
+    (:GotoStmt . ("goto"))
+    (:IndirectGotoStmt . ("goto"))
+    (:ReturnStmt . ("return"))
+    (:Typedef . ("typedef"))
+    (:WhileStmt . ("while")))
   "Map AST classes to C keywords whose use is implied by the AST class (e.g.,
 an IfStmt must include an if in its src-text, but it will not necessarily
 include an else).")
 
 (defparameter *clang-c-ast-keywords-search-count*
-  '(("DeclStmt" . ("auto" "char" "const" "double" "enum" "extern" "float"
-                   "inline" "int" "long" "register" "restrict" "short" "signed"
-                   "static" "struct" "unsigned" "void" "volatile"))
+  '((:DeclStmt . ("auto" "char" "const" "double" "enum" "extern" "float"
+                  "inline" "int" "long" "register" "restrict" "short" "signed"
+                  "static" "struct" "unsigned" "void" "volatile"))
     ;; roughly same list as DeclStmt, except for extern, inline
-    ("Field" . ("auto" "char" "const" "double" "enum" "float"
-                   "int" "long" "register" "restrict" "short" "signed"
-                   "static" "struct" "unsigned" "void" "volatile"))
-    ("IfStmt" . ("else")) ;; found else if "IfStmt" has 3 children
-    ("UnaryExprOrTypeTraitExpr" . ("alignof" "sizeof"))
-    ("Record" . ("struct" "union")))
+    (:Field . ("auto" "char" "const" "double" "enum" "float"
+               "int" "long" "register" "restrict" "short" "signed"
+               "static" "struct" "unsigned" "void" "volatile"))
+    (:IfStmt . ("else")) ;; found else if "IfStmt" has 3 children
+    (:UnaryExprOrTypeTraitExpr . ("alignof" "sizeof"))
+    (:Record . ("struct" "union")))
   "Map AST classes to C keywords that may occur within them (e.g., an IfStmt
 may or may not include an else clause).")
 
@@ -88,7 +88,7 @@ for hash-table key equality."))
     feature-vec))
 
 (defmethod ast-node-types ((clang clang) (asts list))
-  (uni-grams asts :key #'ast-class :test #'equal))
+  (uni-grams asts :key #'ast-class))
 
 (defmethod ast-node-type-tf-extractor ((clang clang))
   (-<>> (ast-node-types clang (asts clang))
@@ -123,9 +123,9 @@ for hash-table key equality."))
 (defmethod avg-depth-asts ((clang clang) asts)
   (mean (mapcar {ast-depth clang} asts)))
 
-(defmethod avg-depth-ast-node-type ((clang clang) (node-type string))
+(defmethod avg-depth-ast-node-type ((clang clang) (node-type symbol))
   (avg-depth-asts clang
-                  (remove-if-not {string= node-type}
+                  (remove-if-not {eq node-type}
                                  (asts clang)
                                  :key #'ast-class)))
 
@@ -137,8 +137,8 @@ for hash-table key equality."))
   (:documentation "Average depth of nodes with type NODE-TYPE in the list
 of ASTS in SOFTWARE."))
 
-(defmethod ast-node-type-avg-depth ((clang clang) (node-type string) asts)
-  (bind ((node-asts (remove-if-not {string= node-type} asts
+(defmethod ast-node-type-avg-depth ((clang clang) (node-type symbol) asts)
+  (bind ((node-asts (remove-if-not {eq node-type} asts
                                    :key #'ast-class))
          (depths (mapcar {ast-depth clang} node-asts)))
     (mean depths)))
@@ -212,8 +212,7 @@ cons pairs)."))
 ;; Keyword feature extractors
 (defmethod auto-count-keyword ((keyword string) (ast ast-ref))
   (if (member keyword
-              (aget (ast-class ast) *clang-c-ast-keywords-auto-count*
-                    :test #'string=)
+              (aget (ast-class ast) *clang-c-ast-keywords-auto-count*)
              :test #'string=)
       1
       0))
@@ -225,17 +224,17 @@ cons pairs)."))
                            :test #'string=)
                      :test #'string=))
         0
-        (switch (ast-class :test (lambda (str ls)
-                                   (some {string= str} ls)))
-          ('("DeclStmt" "Field") ;; count if keyword is in src-text
+        (switch (ast-class :test (lambda (class ls)
+                                   (some {eq class} ls)))
+          ('(:DeclStmt :Field) ;; count if keyword is in src-text
            (if (scan keyword (source-text ast))
                1
                0))
-          ('("IfStmt") ;; count if keyword is "else" and ast has 3 children
+          ('(:IfStmt) ;; count if keyword is "else" and ast has 3 children
            (if (= 3 (length (get-immediate-children clang ast)))
                1
                0))
-          ('("UnaryExprOrTypeTraitExpr" "Record")
+          ('(:UnaryExprOrTypeTraitExpr :Record)
            ;; only count if src-text begins with alignof, sizeof, struct, union
             (if (starts-with-subseq keyword
                                     (string-trim (list #\Space #\Tab #\Newline)

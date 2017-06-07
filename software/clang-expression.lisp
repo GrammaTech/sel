@@ -25,25 +25,25 @@ This is used to intern string names by `expression'."
                              (get-immediate-children obj ast))))
          (only-child ()
            (expression obj (first (get-immediate-children obj ast)))))
-    (switch ((ast-class ast) :test #'string=)
-      ("BinaryOperator" (over-children (expression-intern (ast-opcode ast))))
-      ("CompoundAssignOperator" (->> (ast-opcode ast)
-                                     (expression-intern)
-                                     (over-children)))
-      ("DeclRefExpr" (expression-intern (peel-bananas (source-text ast))))
-      ("ImplicitCastExpr" (only-child))
-      ("IntegerLiteral"
+    (switch ((ast-class ast))
+      (:BinaryOperator (over-children (expression-intern (ast-opcode ast))))
+      (:CompoundAssignOperator (->> (ast-opcode ast)
+                                    (expression-intern)
+                                    (over-children)))
+      (:DeclRefExpr (expression-intern (peel-bananas (source-text ast))))
+      (:ImplicitCastExpr (only-child))
+      (:IntegerLiteral
        (handler-bind ((parse-number
                        (expression-intern (source-text ast))))
          (parse-number (source-text ast))))
-      ("FloatingLiteral"
+      (:FloatingLiteral
        (handler-bind ((parse-number
                        (expression-intern (source-text ast))))
          (parse-number (source-text ast))))
-      ("ParenExpr" (only-child))
-      ("ArraySubscriptExpr" (over-children :|[]|))
-      ("CallExpr" (mapcar {expression obj} (get-immediate-children obj ast)))
-      ("UnaryExprOrTypeTraitExpr"
+      (:ParenExpr (only-child))
+      (:ArraySubscriptExpr (over-children :|[]|))
+      (:CallExpr (mapcar {expression obj} (get-immediate-children obj ast)))
+      (:UnaryExprOrTypeTraitExpr
        (let* ((src (source-text ast))
               (operator (cond
                           ((scan "\s*sizeof" src)   :sizeof)
@@ -59,12 +59,12 @@ This is used to intern string names by `expression'."
                (if matchp
                    (list operator (expression-intern (aref matches 0)))
                    (error "Unmatched UnaryOperator ~s." src))))))
-      ("UnaryOperator"
+      (:UnaryOperator
        (over-children (let ((src (source-text ast)))
                         (cond
                           ((scan "\s*\\*" src) :unary-*)
                           (t (error "Unmatched UnaryOperator ~s." src))))))
-      ("MemberExpr"
+      (:MemberExpr
        (let ((src (source-text ast)))
          (let ((match-data (multiple-value-list (scan "->([\\w\\a_]+)" src))))
            (if (first match-data)
