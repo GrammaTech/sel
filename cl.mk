@@ -11,7 +11,7 @@
 # LISP_DEPS ---------- Packages require to build CL package
 # TEST_LISP_DEPS ----- Packages require to build CL test package
 
-.PHONY: check-testbot check clean more-clean real-clean
+.PHONY: test-artifacts check-testbot check clean more-clean real-clean
 
 .SECONDARY:
 
@@ -123,7 +123,9 @@ bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LI
 ## Testing
 TEST_ARTIFACTS ?=
 
-check: bin/$(PACKAGE_NICKNAME)-test $(TEST_ARTIFACTS)
+test-artifacts: $(TEST_ARTIFACTS)
+
+check: bin/$(PACKAGE_NICKNAME)-test test-artifacts
 	@$<
 
 check-testbot: bin/$(PACKAGE_NICKNAME)-testbot $(TEST_ARTIFACTS)
