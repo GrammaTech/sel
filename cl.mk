@@ -128,7 +128,7 @@ test-artifacts: $(TEST_ARTIFACTS)
 check: bin/$(PACKAGE_NICKNAME)-test test-artifacts
 	@$<
 
-check-testbot: bin/$(PACKAGE_NICKNAME)-testbot $(TEST_ARTIFACTS)
+check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts
 	@$<
 
 
@@ -143,7 +143,7 @@ swank: $(USER_QUICK_LISP)/setup.lisp
 	--eval '(in-package :$(PACKAGE_NAME))'			\
 	--eval '(swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)'
 
-swank-test: $(USER_QUICK_LISP)/setup.lisp $(TEST_ARTIFACTS)
+swank-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
