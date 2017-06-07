@@ -72,8 +72,8 @@ not itself faulty, so it's useful to identify their callers instead.
                           (remove-if-not
                            (lambda (y)
                              (let ((cur-node (ast-at-index obj x)))
-                               (and (string= (ast-class cur-node)
-                                             "CallExpr")
+                               (and (eq (ast-class cur-node)
+                                        :CallExpr)
                                     (search y (source-text cur-node)))))
                            error-funcs))
                         neg-test-stmts))

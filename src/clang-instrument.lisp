@@ -69,7 +69,7 @@ Keyword arguments are as follows:
                              (can-be-made-traceable-p obj ast)))
                   (return-void (ast-void-ret function))
                   (skip (or (ast-in-macro-expansion ast)
-                            (string= "NullStmt" (ast-class ast))
+                            (eq :NullStmt (ast-class ast))
                             (when trace-file  ;might be null, short circuit and don't filter if so
                               (search (file-open-str log-var trace-file)
                                       (source-text ast))))))
@@ -108,7 +108,7 @@ Keyword arguments are as follows:
                                     (type-pointer type)))))))
               ;; Transform return statement to temp assignment/goto
               (when (and instrument-exit
-                         (string= (ast-class ast) "ReturnStmt"))
+                         (eq (ast-class ast) :ReturnStmt))
                 (let ((ret (unless return-void
                              (peel-bananas
                               (source-text
