@@ -1,0 +1,34 @@
+The Tokenizer component offers the ability to construct a sequence of tokens that
+represent a software object. The @code{tokens} function takes as input a software object
+and an optional list of roots indicating the elements which should be tokenized. The
+result is a list of symbols representing the tokens of each of the roots, concatenated
+together.
+
+@heading Clang C Tokenizer
+The Clang C tokenizer uses the following conventions:
+
+@table @code
+@item identifiers
+are represented by the interned string ``identifier''
+
+@item special characters
+such as operators, parentheses, braces, etc. are represented by the interned
+strings of the special character. E.g., @code{(intern "+")}
+
+@item primitive types
+are represented by the interned strings for those types.
+E.g., @code{(intern "int")}
+
+@item keywords
+are represented by the interned strings for those keywords.
+E.g., @code{(intern "if")}
+
+@item macros
+are generally not expanded in the AST, so when a macro is encountered the whole
+thing is simply represented as the interned string ``macro''
+
+@item literals
+character, float, imaginary, integer, and string literals are all represented
+by following interned strings, respectively: ``char-literal'', ``float-literal'',
+``i-literal'', ``int-literal'', and ``string-literal''
+@end table
