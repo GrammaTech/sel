@@ -21,16 +21,6 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
   (labels
       ((tokenize-children (children)
          (mappend #'tokenize children))
-       (tokenize-nth-child (children n)
-         (let ((nth-child (nth n children)))
-           (if nth-child
-               (tokenize nth-child)
-               (error (make-condition
-                          'tokenization-failure
-                        :text (format
-                               nil
-                               "Expected to find ~a children in ROOT."
-                               (1+ n)))))))
        (split-tokens (str &optional (start 0) (end (length str)))
          (remove-if #'emptyp
                     (split "\\s+|(\\W)" str
@@ -38,7 +28,8 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                            :omit-unmatched-p t
                            :start start
                            :end end)))
-       ;; In a list of lists, append a comma at the end of each list.
+       ;; In a list of lists, insert a comma between each pair of lists
+       ;; (prepend a comma to each list, then drop the leading comma)
        (comma-sep (ls)
          (cdr (mappend {cons :comma} ls)))
        (idents (clang ast)
@@ -48,9 +39,12 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                   (get-unbound-funs clang ast)
                   (get-unbound-vals clang ast))
           :test #'equal))
+       ;; replace occurrences of a list of identifiers with the string
+       ;; "identifier"
        (replace-identifiers (identifiers str)
          (iter (for i in identifiers)
-               (setf str (replace-all str i "identifier"))
+               (unless (emptyp i)
+                 (setf str (replace-all str i "identifier")))
                (finally (return str))))
        (token-from-string (str)
          (switch (str :test #'equal)
@@ -66,36 +60,35 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
               (list :&& :identifier))
              ("ArraySubscriptExpr"
               (assert (= 2 (length children)))
-              (append (tokenize-nth-child children 0)
+              (append (tokenize (first children))
                       (list :l-square)
-                      (tokenize-nth-child children 1)
+                      (tokenize (second children))
                       (list :r-square)))
              ;; no tokens, just proceed to children
              ("AttributedStmt" (tokenize-children children))
              ("BinaryOperator"
               (assert (= 2 (length children)))
-              (append (tokenize-nth-child children 0)
+              (append (tokenize (first children))
                       (list (token-from-string (ast-opcode root)))
-                      (tokenize-nth-child children 1)))
+                      (tokenize (second children))))
              ("BreakStmt" (list :break))
              ("CallExpr"
-              (append (tokenize-nth-child children 0)
+              (append (tokenize (first children))
                       (list :l-paren)
-                      ;; separate by commas then remove trailing comma
-                      (comma-sep (mapcar {tokenize-nth-child children}
-                                         (iota (1- (length children)) :start 1)))
+                      ;; tokenize children and comma-separate
+                      (comma-sep (mapcar #'tokenize (cdr children)))
                       ;; right paren
                       (list :r-paren)))
              ("CaseStmt" (append (list :case)
-                                 (tokenize-nth-child children 0)
+                                 (tokenize (first children))
                                  (list :colon)
                                  (tokenize-children (cdr children))))
              ("CharacterLiteral" (list :char-literal))
              ("CompoundAssignOperator"
               (assert (= 2 (length children)))
-              (append (tokenize-nth-child children 0)
+              (append (tokenize (first children))
                       (list (token-from-string (ast-opcode root)))
-                      (tokenize-nth-child children 1)))
+                      (tokenize (second children))))
              ;; TODO: need to pull out the cast part and tokenize the
              ;; children, but some children seem to be duplicated
              ("CompoundLiteralExpr"
@@ -105,7 +98,6 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                               (1+ l-paren)
                                               r-paren)))
                 (append (list :l-paren)
-                        ;; TODO: write string->token function
                         (mapcar #'token-from-string cast-expr)
                         (list :r-paren)
                         (tokenize-children children))))
@@ -114,11 +106,11 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                      (list :r-brace)))
              ("ConditionalOperator"
               (assert (= 3 (length children)))
-              (append (tokenize-nth-child children 0)
+              (append (tokenize (first children))
                       (list :question)
-                      (tokenize-nth-child children 1)
+                      (tokenize (second children))
                       (list :colon)
-                      (tokenize-nth-child children 2)))
+                      (tokenize (third children))))
              ("ContinueStmt" (list :continue))
              ("CStyleCastExpr"
               (let* ((l-paren (position #\( (source-text root)))
@@ -149,7 +141,7 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                          (#\[ (appending (list :l-square) into tokens))
                          ;; #\] collect left child
                          (#\] (appending
-                               (append (tokenize-nth-child children child)
+                               (append (tokenize (nth child children))
                                        (list :r-square))
                                into tokens)
                               (incf child))
@@ -160,7 +152,7 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                   ;; (right child handled by #\] case)
                                   (progn
                                     (appending
-                                     (append (tokenize-nth-child children child)
+                                     (append (tokenize (nth child children))
                                              (list :...))
                                      into tokens)
                                     (incf child)
@@ -172,21 +164,20 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                        (finally (return tokens)))
                  (list :=)
                  ;; initializer is the last child
-                 (tokenize-nth-child children (1- (length children))))))
+                 (tokenize (lastcar children)))))
              ("DoStmt"
               (assert (= 2 (length children)))
               (append (list :do)
-                      (tokenize-nth-child children 0)
+                      (tokenize (first children))
                       (list :while :l-paren)
-                      (tokenize-nth-child children 1)
+                      (tokenize (second children))
                       (list :r-paren)))
              ("Enum"
               (let ((has-ident (not (emptyp (first (ast-declares root))))))
                 (append (list :enum)
                         (when has-ident (list :identifier))
                         (list :l-brace)
-                        (comma-sep (mapcar {tokenize-nth-child children}
-                                           (iota (length children))))
+                        (comma-sep (mapcar #'tokenize children))
                         (list :r-brace))))
              ("EnumConstant" (list :identifier))
              ("Field" (let* ((src (replace-identifiers (idents clang root)
@@ -196,10 +187,9 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
              ("FloatingLiteral" (list :float-literal))
              ("ForStmt"
               (append (list :for :l-paren)
-                      (mappend {tokenize-nth-child children}
-                               (iota (1- (length children))))
+                      (mappend #'tokenize (butlast children))
                       (list :r-paren)
-                      (tokenize-nth-child children (1- (length children)))))
+                      (tokenize (lastcar children))))
 
              ("Function"
               (let* ((sig (take-until
@@ -210,10 +200,9 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                 (append (mapcar #'token-from-string sig)
                         (list :l-paren)
                         ;; comma-separated ParmVars (all but last child)
-                        (comma-sep (mapcar {tokenize-nth-child children}
-                                           (iota (1- (length children)))))
+                        (comma-sep (mapcar #'tokenize (butlast children)))
                         (list :r-paren)
-                        (tokenize-nth-child children (1- (length children))))))
+                        (tokenize (lastcar children)))))
              ;; _Generic(child0, type: child1, type: child2, ...)
              ("GenericSelectionExpr"
               (let* ((comma (position #\, (source-text root)))
@@ -227,22 +216,23 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                      (types-children (iota (length types) :start 1)))
                 (assert (= (length types) (1- (length children))))
                 (append (list :generic :l-paren)
-                        (tokenize-nth-child children 0)
+                        (tokenize (first children))
                         (mappend (lambda (type toks)
                                    (append (list :comma type :colon)
                                            toks))
                                  types
-                                 (mapcar {tokenize-nth-child children}
-                                         types-children))
+                                 (mapcar #'tokenize
+                                         (take (length types)
+                                               (cdr children))))
                         (list :r-paren))))
              ("GotoStmt" (list :goto :identifier))
              ("IfStmt" (append (list :if :l-paren)
-                               (tokenize-nth-child children 0)
+                               (tokenize (first children))
                                (list :r-paren)
-                               (tokenize-nth-child children 1)
+                               (tokenize (second children))
                                (when (= 3 (length children))
                                  (cons :else
-                                       (tokenize-nth-child children 2)))))
+                                       (tokenize (third children))))))
              ("ImaginaryLiteral" (list :i-literal))
              ;; Just tokenize children
              ("ImplicitCastExpr" (tokenize-children children))
@@ -252,8 +242,7 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
              ;; child that duplicates the whole InitListExpr?
              ("InitListExpr"
               (append (list :l-brace)
-                      (comma-sep (mapcar {tokenize-nth-child children}
-                                         (iota (length children))))
+                      (comma-sep (mapcar #'tokenize children))
                       (list :r-brace)))
              ("IntegerLiteral" (list :int-literal))
              ("LabelStmt" (append (list :identifier :colon)
@@ -270,7 +259,7 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                    (list :->)
                                    (list :.))))
                 (assert (= 1 (length children)))
-                (append (tokenize-nth-child children 0)
+                (append (tokenize (first children))
                         dash-dot
                         (list :identifier))))
              ("NullStmt" nil)
@@ -311,10 +300,11 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
              ("SwitchStmt"
               (assert (= 2 (length children)))
               (append (list :switch :l-paren)
-                      (tokenize-nth-child children 0)
+                      (tokenize (first children))
                       (list :r-paren)
-                      (tokenize-nth-child children 1)))
-             ;; NOTE: typedef always appears after struct, has no children in tree
+                      (tokenize (second children))))
+             ;; NOTE: typedef always appears after struct, has no children in
+             ;; tree
              ("Typedef" (list :typedef))
              ("UnaryExprOrTypeTraitExpr"
               (assert (or (starts-with-subseq "sizeof" (source-text root))
@@ -350,14 +340,14 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                  (->> (replace-identifiers idents item)
                                       (split-tokens)
                                       (mapcar #'token-from-string))
-                                 (prog1 (tokenize-nth-child children child)
+                                 (prog1 (tokenize (nth child children))
                                    (incf child)))))))
              ("WhileStmt"
               (assert (= 2 (length children)))
               (append (list :while :l-paren)
-                      (tokenize-nth-child children 0)
+                      (tokenize (first children))
                       (list :r-paren)
-                      (tokenize-nth-child children 1)))
+                      (tokenize (second children))))
              (t (error
                  (make-condition
                      'unhandled-token-class
