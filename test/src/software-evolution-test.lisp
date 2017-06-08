@@ -5807,19 +5807,34 @@ Useful for printing or returning differences in the REPL."
 (in-suite test)
 (defsuite* test-clang-tokenizer)
 
+(deftest case-tokens ()
+  (with-fixture variety-clang
+    (let* ((root (stmt-starting-with-text *variety* "case 1"))
+           (tokens (tokens *variety* (list root)))
+           (switch-tokens
+            (mapcar #'make-keyword
+                    ;; case 1:
+                    (list "case" "int-literal" ":"
+                          ;; printf("%d\n", argc
+                          "identifier" "(" "string-literal" "," "identifier"
+                          ;; + argc);
+                          "+" "identifier" ")"))))
+      (is (equal tokens switch-tokens)))))
+
 (deftest do-while-tokens ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "do {"))
-           (tokens (tokenize root *variety*)))
+           (tokens (tokens *variety* (list root))))
       (is (equal tokens
                  ;; do {
-                 (list :do :l-brace
-                       ;; run.foo++
-                       :identifier :. :identifier :++
-                       ;; } while (run.foo
-                       :r-brace :while :l-paren :identifier :. :identifier
-                       ;; < 8)
-                       :< :int-literal :r-paren))))))
+                 (mapcar #'make-keyword
+                         (list "do" "{"
+                               ;; run.foo++
+                               "identifier" "." "identifier" "++"
+                               ;; } while (run.foo
+                               "}" "while" "(" "identifier" "." "identifier"
+                               ;; < 8)
+                               "<" "int-literal" ")")))))))
 
 (deftest designatedinitexpr-tokens ()
   (with-fixture variety-clang
@@ -5830,67 +5845,71 @@ Useful for printing or returning differences in the REPL."
                              (nth 1 roots)
                              (nth 3 roots)))
            (token-lists (iter (for root in test-roots)
-                              (collect (tokenize root *variety*)
+                              (collect (tokens *variety* (list root))
                                 into token-lists)
                               (finally (return token-lists)))))
       (is (= 3 (length token-lists)))
       (is (equal (nth 0 token-lists)
                  ;; [0 ... 1 ].y = 1.0
-                 (list :l-square :int-literal :... :int-literal :r-square
-                       :. :identifier := :float-literal)))
+                 (mapcar #'make-keyword
+                         (list "[" "int-literal" "..." "int-literal" "]"
+                               "." "identifier" "=" "float-literal"))))
       (is (equal (nth 1 token-lists)
                  ;; [1].x = 2.0
-                 (list :l-square :int-literal :r-square :. :identifier
-                       := :float-literal)))
+                 (mapcar #'make-keyword
+                         (list "[" "int-literal" "]" "." "identifier"
+                               "=" "float-literal"))))
       (is (equal (nth 2 token-lists)
                  ;; .y = 2.0
-                 (list :. :identifier := :float-literal))))))
+                 (mapcar #'make-keyword
+                         (list "." "identifier" "=" "float-literal")))))))
 
 (deftest function-tokens ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "int add3"))
-           (tokens (tokenize root *variety*)))
+           (tokens (tokens *variety* (list root))))
       (is (equal
            tokens
            ;; int add3(int x) {
-           (list (intern "int") :identifier :l-paren (intern "int") :identifier
-                 :r-paren :l-brace
-                 ;; printf("...", __func__)
-                 :identifier :l-paren :string-literal :comma (intern "__func__")
-                 :r-paren
-                 ;; return x + 3 }
-                 :return :identifier :+ :int-literal :r-brace))))))
+           (mapcar #'make-keyword
+                   (list "int" "identifier" "(" "int" "identifier"
+                         ")" "{"
+                         ;; printf("...", __func__)
+                         "identifier" "(" "string-literal" "," "__func__" ")"
+                         ;; return x + 3 }
+                         "return" "identifier" "+" "int-literal" "}")))))))
 
 (deftest mixed-tokens ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "tun->foo"))
-           (tokens (tokenize root *variety*)))
+           (tokens (tokens *variety* (list root))))
       (is
        (equal
         tokens
-        (list
-         ;; tun -> foo = _Generic(
-         :identifier :-> :identifier := :generic :l-paren
-         ;; tun -> foo, int: 12
-         :identifier :-> :identifier :comma (intern "int") :colon :int-literal
-         ;; , char: 'q')
-         :comma (intern "char") :colon :char-literal :r-paren))))))
+        (mapcar #'make-keyword
+                (list
+                 ;; tun -> foo = _Generic(
+                 "identifier" "->" "identifier" "=" "generic" "("
+                 ;; tun -> foo, int: 12
+                 "identifier" "->" "identifier" "," "int" ":" "int-literal"
+                 ;; , char: 'q')
+                 "," "char" ":" "char-literal" ")")))))))
 
 (deftest memberexpr-tokens ()
   (with-fixture variety-clang
     (let* ((roots (remove-if-not {equal "MemberExpr"}
                                  (asts *variety*)
                                  :key #'ast-class))
-           (token-lists (iter (for root in roots)
-                              (collect (tokenize root *variety*)
-                                into token-lists)
-                              (finally (return token-lists)))))
+           (token-lists (mapcar [{tokens *variety*} #'list] roots)))
       (is (every [{<= 3} #'length] token-lists))
       (is (every (lambda (ls)
-                   (or (equal ls (list :identifier :. :identifier))
-                       (equal ls (list :identifier :-> :identifier))
-                       (equal ls (list :identifier :l-square :int-literal
-                                       :r-square :. :identifier))))
+                   (or (equal ls (mapcar #'make-keyword
+                                         (list "identifier" "." "identifier")))
+                       (equal ls (mapcar #'make-keyword
+                                         (list "identifier" "->" "identifier")))
+                       (equal ls (mapcar #'make-keyword
+                                         (list "identifier" "[" "int-literal"
+                                               "]" "." "identifier")))))
                  token-lists)))))
 
 (deftest parenexpr-tokens ()
@@ -5898,28 +5917,59 @@ Useful for printing or returning differences in the REPL."
     (let* ((roots (remove-if-not {equal "ParenExpr"}
                                  (asts *variety*)
                                  :key #'ast-class))
-           (token-lists (iter (for root in roots)
-                              (collect (tokenize root *variety*)
-                                into token-lists)
-                              (finally (return token-lists)))))
+           (token-lists (mapcar [{tokens *variety*} #'list] roots)))
       (is (= 1 (length token-lists)))
       (is (every [{<= 3} #'length] token-lists))
-      (is (every [{eql :l-paren} #'first] token-lists))
-      (is (every [{eql :r-paren} #'lastcar] token-lists)))))
+      (is (every [{eql (make-keyword "(")} #'first] token-lists))
+      (is (every [{eql (make-keyword ")")} #'lastcar] token-lists)))))
 
 (deftest parmvar-tokens ()
   (with-fixture variety-clang
     (let* ((parmvars (remove-if-not {equal "ParmVar"}
                                     (asts *variety*)
                                     :key #'ast-class))
-           (token-lists (iter (for root in parmvars)
-                              (collect (tokenize root *variety*)
-                                into token-lists)
-                              (finally (return token-lists))))
-           (argv-tokens (list (intern "char") :* :*
-                              :identifier))
-           (int-tokens (list (intern "int") :identifier)))
+           (token-lists (mapcar [{tokens *variety*} #'list] parmvars))
+           (argv-tokens (mapcar #'make-keyword
+                                (list "char" "*" "*" "identifier")))
+           (int-tokens (mapcar #'make-keyword
+                               (list "int" "identifier"))))
       (is (= 5 (length token-lists)))
       (is (every [{<= 2} #'length] token-lists))
       (is (member int-tokens token-lists :test #'equal))
       (is (member argv-tokens token-lists :test #'equal)))))
+
+(deftest record-tokens ()
+  (with-fixture variety-clang
+    (let* ((records (remove-if-not {equal "Record"}
+                                   (asts *variety*)
+                                   :key #'ast-class))
+           (token-lists (mapcar [{tokens *variety*} #'list] records))
+           (union-tokens (mapcar #'make-keyword
+                                 (list "union" "{"
+                                       "int" "identifier"
+                                       "char" "identifier" "}")))
+           (struct-tokens (mapcar #'make-keyword
+                                  (list "struct" "identifier" "{"
+                                        "double" "identifier"
+                                        "double" "identifier" "}"))))
+      (is (= 2 (length token-lists)))
+      (is (member union-tokens token-lists :test #'equal))
+      (is (member struct-tokens token-lists :test #'equal)))))
+
+(deftest while-tokens ()
+  (with-fixture variety-clang
+    (let* ((root (remove-if-not {equal "WhileStmt"}
+                                (asts *variety*)
+                                :key #'ast-class))
+           (tokens (tokens *variety* root))
+           (while-tokens
+            (mapcar #'make-keyword
+                    ;; while((next = va_arg(nums, int))
+                    (list "while" "(" "(" "identifier" "=" "macro" ")"
+                          ;; && num_args > 0) {
+                          "&&" "identifier" ">" "int-literal" ")" "{"
+                          ;; sum += next
+                          "identifier" "+=" "identifier"
+                          ;; num_args-- }
+                          "identifier" "--" "}"))))
+      (is (equal tokens while-tokens)))))
