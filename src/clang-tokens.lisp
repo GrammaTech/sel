@@ -10,13 +10,11 @@
   (:documentation "Return a list of tokens in SOFTWARE.
 Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
 
-;; For reference, list of tokens:
-;; :&& :identifier :l-brace :r-brace :l-paren :r-paren :l-square :r-square
-;; (opcodes) := :break :continue :case :switch :default :comma :colon :question
-;; :if :else :while :do :typedef :-> :. :va-arg :return :goto :for
-;; :offset-of :generic :sizeof :alignof :struct :union
-;; :char-literal :int-literal :string-literal :float-literal :i-literal
-;; :... :macro
+;;;; For reference, list of tokens explicitly introduced:
+;;;; && identifier { } ( ) [ ] = break continue case switch default , : ?
+;;;; if else while do typedef -> . va-arg return goto for offset-of
+;;;; generic sizeof alignof struct union char-literal int-literal string-literal
+;;;; float-literal i-literal ... macro
 (defmethod tokens ((clang clang) &optional (roots (roots clang)))
   (labels
       ((tokenize-children (children)
@@ -31,7 +29,7 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
        ;; In a list of lists, insert a comma between each pair of lists
        ;; (prepend a comma to each list, then drop the leading comma)
        (comma-sep (ls)
-         (cdr (mappend {cons :comma} ls)))
+         (cdr (mappend {cons (token-from-string ",")} ls)))
        (idents (clang ast)
          (remove-duplicates
           (append (ast-declares ast)
@@ -57,13 +55,13 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
            (switch ((ast-class root) :test #'equal)
              ("AddrLabelExpr"
               (assert (<= 2 (length (source-text root))))
-              (list :&& :identifier))
+              (list (token-from-string "&&") (token-from-string "identifier")))
              ("ArraySubscriptExpr"
               (assert (= 2 (length children)))
               (append (tokenize (first children))
-                      (list :l-square)
+                      (list (token-from-string "["))
                       (tokenize (second children))
-                      (list :r-square)))
+                      (list (token-from-string "]"))))
              ;; no tokens, just proceed to children
              ("AttributedStmt" (tokenize-children children))
              ("BinaryOperator"
@@ -71,19 +69,19 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
               (append (tokenize (first children))
                       (list (token-from-string (ast-opcode root)))
                       (tokenize (second children))))
-             ("BreakStmt" (list :break))
+             ("BreakStmt" (list (token-from-string "break")))
              ("CallExpr"
               (append (tokenize (first children))
-                      (list :l-paren)
+                      (list (token-from-string "("))
                       ;; tokenize children and comma-separate
                       (comma-sep (mapcar #'tokenize (cdr children)))
                       ;; right paren
-                      (list :r-paren)))
-             ("CaseStmt" (append (list :case)
+                      (list (token-from-string ")"))))
+             ("CaseStmt" (append (list (token-from-string "case"))
                                  (tokenize (first children))
-                                 (list :colon)
+                                 (list (token-from-string ":"))
                                  (tokenize-children (cdr children))))
-             ("CharacterLiteral" (list :char-literal))
+             ("CharacterLiteral" (list (token-from-string "char-literal")))
              ("CompoundAssignOperator"
               (assert (= 2 (length children)))
               (append (tokenize (first children))
@@ -97,35 +95,36 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                      (cast-expr (split-tokens (source-text root)
                                               (1+ l-paren)
                                               r-paren)))
-                (append (list :l-paren)
+                (append (list (token-from-string "("))
                         (mapcar #'token-from-string cast-expr)
-                        (list :r-paren)
+                        (list (token-from-string ")"))
                         (tokenize-children children))))
-             ("CompoundStmt" (append (list :l-brace)
+             ("CompoundStmt" (append (list (token-from-string "{"))
                                      (tokenize-children children)
-                                     (list :r-brace)))
+                                     (list (token-from-string "}"))))
              ("ConditionalOperator"
               (assert (= 3 (length children)))
               (append (tokenize (first children))
-                      (list :question)
+                      (list (token-from-string "?"))
                       (tokenize (second children))
-                      (list :colon)
+                      (list (token-from-string ":"))
                       (tokenize (third children))))
-             ("ContinueStmt" (list :continue))
+             ("ContinueStmt" (list (token-from-string "continue")))
              ("CStyleCastExpr"
               (let* ((l-paren (position #\( (source-text root)))
                      (r-paren (position #\) (source-text root)))
                      (cast-expr (split-tokens (source-text root)
                                               (1+ l-paren)
                                               r-paren)))
-                (append (list :l-paren)
+                (append (list (token-from-string "("))
                         ;; TODO: write string->token function
                         (mapcar #'token-from-string cast-expr)
-                        (list :r-paren)
+                        (list (token-from-string ")"))
                         (tokenize-children children))))
-             ("DeclRefExpr" (list :identifier))
+             ("DeclRefExpr" (list (token-from-string "identifier")))
              ("DeclStmt" (tokenize-children children))
-             ("DefaultStmt" (append (list :default :colon)
+             ("DefaultStmt" (append (list (token-from-string "default")
+                                          (token-from-string ":"))
                                     (tokenize-children children)))
              ;; [const or range] = init , last child is init, rest are for array
              ;; .field-ident = init , child is init (none for field)
@@ -138,11 +137,12 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                  (iter (for i from 0 below eq-index)
                        (with child = 0)
                        (switch ((char src i))
-                         (#\[ (appending (list :l-square) into tokens))
+                         (#\[ (appending (list (token-from-string "["))
+                                         into tokens))
                          ;; #\] collect left child
                          (#\] (appending
                                (append (tokenize (nth child children))
-                                       (list :r-square))
+                                       (list (token-from-string "]")))
                                into tokens)
                               (incf child))
                          (#\. (if (and (< i (- eq-index 2))
@@ -153,42 +153,46 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                   (progn
                                     (appending
                                      (append (tokenize (nth child children))
-                                             (list :...))
+                                             (list (token-from-string "...")))
                                      into tokens)
                                     (incf child)
                                     (setf i (+ i 2)))
                                   ;; field: .identifier
-                                  (progn (appending (list :. :identifier)
-                                                    into tokens))))
+                                  (appending
+                                   (list (token-from-string ".")
+                                         (token-from-string "identifier"))
+                                   into tokens)))
                          (t nil))
                        (finally (return tokens)))
-                 (list :=)
+                 (list (token-from-string "="))
                  ;; initializer is the last child
                  (tokenize (lastcar children)))))
              ("DoStmt"
               (assert (= 2 (length children)))
-              (append (list :do)
+              (append (list (token-from-string "do"))
                       (tokenize (first children))
-                      (list :while :l-paren)
+                      (list (token-from-string "while")
+                            (token-from-string "("))
                       (tokenize (second children))
-                      (list :r-paren)))
+                      (list (token-from-string ")"))))
              ("Enum"
               (let ((has-ident (not (emptyp (first (ast-declares root))))))
-                (append (list :enum)
-                        (when has-ident (list :identifier))
-                        (list :l-brace)
+                (append (list (token-from-string "enum"))
+                        (when has-ident (list (token-from-string "identifier")))
+                        (list (token-from-string "["))
                         (comma-sep (mapcar #'tokenize children))
-                        (list :r-brace))))
-             ("EnumConstant" (list :identifier))
+                        (list (token-from-string "]")))))
+             ("EnumConstant" (list (token-from-string "identifier")))
              ("Field" (let* ((src (replace-identifiers (idents clang root)
                                                        (source-text root)))
                              (src (remove #\; src)))
                         (mapcar #'token-from-string (split-tokens src))))
-             ("FloatingLiteral" (list :float-literal))
+             ("FloatingLiteral" (list (token-from-string "float-literal")))
              ("ForStmt"
-              (append (list :for :l-paren)
+              (append (list (token-from-string "for")
+                            (token-from-string "("))
                       (mappend #'tokenize (butlast children))
-                      (list :r-paren)
+                      (list (token-from-string ")"))
                       (tokenize (lastcar children))))
 
              ("Function"
@@ -198,10 +202,10 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                             (replace-identifiers (idents clang root)
                                                  (source-text root))))))
                 (append (mapcar #'token-from-string sig)
-                        (list :l-paren)
+                        (list (token-from-string "("))
                         ;; comma-separated ParmVars (all but last child)
                         (comma-sep (mapcar #'tokenize (butlast children)))
-                        (list :r-paren)
+                        (list (token-from-string ")"))
                         (tokenize (lastcar children)))))
              ;; _Generic(child0, type: child1, type: child2, ...)
              ("GenericSelectionExpr"
@@ -215,39 +219,46 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                      ;; indices of children to tokenize
                      (types-children (iota (length types) :start 1)))
                 (assert (= (length types) (1- (length children))))
-                (append (list :generic :l-paren)
+                (append (list (token-from-string "generic")
+                              (token-from-string "("))
                         (tokenize (first children))
                         (mappend (lambda (type toks)
-                                   (append (list :comma type :colon)
+                                   (append (list (token-from-string ",")
+                                                 type
+                                                 (token-from-string ":"))
                                            toks))
                                  types
                                  (mapcar #'tokenize
                                          (take (length types)
                                                (cdr children))))
-                        (list :r-paren))))
-             ("GotoStmt" (list :goto :identifier))
-             ("IfStmt" (append (list :if :l-paren)
+                        (list (token-from-string ")")))))
+             ("GotoStmt" (list (token-from-string "goto")
+                               (token-from-string "identifier")))
+             ("IfStmt" (append (list (token-from-string "if")
+                                     (token-from-string "("))
                                (tokenize (first children))
-                               (list :r-paren)
+                               (list (token-from-string ")"))
                                (tokenize (second children))
                                (when (= 3 (length children))
-                                 (cons :else
+                                 (cons (token-from-string "else")
                                        (tokenize (third children))))))
-             ("ImaginaryLiteral" (list :i-literal))
+             ("ImaginaryLiteral" (list (token-from-string "i-literal")))
              ;; Just tokenize children
              ("ImplicitCastExpr" (tokenize-children children))
-             ("IndirectGotoStmt" (append (list :goto :*)
+             ("IndirectGotoStmt" (append (list (token-from-string "goto")
+                                               (token-from-string "*"))
                                          (tokenize-children children)))
              ;; TODO might be broken: seems that some InitListExprs have a
              ;; child that duplicates the whole InitListExpr?
              ("InitListExpr"
-              (append (list :l-brace)
+              (append (list (token-from-string "{"))
                       (comma-sep (mapcar #'tokenize children))
-                      (list :r-brace)))
-             ("IntegerLiteral" (list :int-literal))
-             ("LabelStmt" (append (list :identifier :colon)
+                      (list (token-from-string "}"))))
+             ("IntegerLiteral" (list (token-from-string "int-literal")))
+             ("LabelStmt" (append (list (token-from-string "identifier")
+                                        (token-from-string ":"))
                                   (tokenize-children children)))
-             ("MacroExpansion" (list :macro))
+             ("MacroExpansion" (list (token-from-string "macro")))
              ;; x.y or x->y (one child for leftof ->/.)
              ("MemberExpr"
               ;; find start of rightmost -> or .
@@ -256,22 +267,20 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                      ;; identify (rightmost) -> or .
                      (dash-dot (if (or (and dash dot (= dash (max dash dot)))
                                        (not dot))
-                                   (list :->)
-                                   (list :.))))
+                                   (list (token-from-string "->"))
+                                   (list (token-from-string ".")))))
                 (assert (= 1 (length children)))
                 (append (tokenize (first children))
                         dash-dot
-                        (list :identifier))))
+                        (list (token-from-string "identifier")))))
              ("NullStmt" nil)
-             ("OffsetOfExpr" (list :offset-of
-                                   :l-paren
-                                   :identifier
-                                   :comma
-                                   :identifier
-                                   :r-paren))
-             ("ParenExpr" (append (list :l-paren)
+             ("OffsetOfExpr" (mapcar #'token-from-string
+                                     (list "offset-of" "("
+                                           "identifier" ","
+                                           "identifier" ")")))
+             ("ParenExpr" (append (list (token-from-string "("))
                                   (tokenize-children children)
-                                  (list :r-paren)))
+                                  (list (token-from-string ")"))))
              ("ParmVar" (->> (replace-identifiers (idents clang root)
                                                   (source-text root))
                              (split-tokens)
@@ -287,25 +296,26 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                 (append (mapcar #'token-from-string
                                 (split-tokens src 0 (or end (length src))))
                         (when end
-                          (append (list :l-brace)
+                          (append (list (token-from-string "{"))
                                   (tokenize-children children)
-                                  (list :r-brace))))))
-             ("ReturnStmt" (cons :return
+                                  (list (token-from-string "}")))))))
+             ("ReturnStmt" (cons (token-from-string "return")
                                  (tokenize-children children)))
              ;; parenthesized CompoundStmt
-             ("StmtExpr" (append (list :l-paren)
+             ("StmtExpr" (append (list (token-from-string "("))
                                  (tokenize-children children)
-                                 (list :r-paren)))
-             ("StringLiteral" (list :string-literal))
+                                 (list (token-from-string ")"))))
+             ("StringLiteral" (list (token-from-string "string-literal")))
              ("SwitchStmt"
               (assert (= 2 (length children)))
-              (append (list :switch :l-paren)
+              (append (list (token-from-string "switch")
+                            (token-from-string "("))
                       (tokenize (first children))
-                      (list :r-paren)
+                      (list (token-from-string ")"))
                       (tokenize (second children))))
              ;; NOTE: typedef always appears after struct, has no children in
              ;; tree
-             ("Typedef" (list :typedef))
+             ("Typedef" (list (token-from-string "typedef")))
              ("UnaryExprOrTypeTraitExpr"
               (assert (or (starts-with-subseq "sizeof" (source-text root))
                           (starts-with-subseq "alignof" (source-text root))))
@@ -327,9 +337,11 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                      (type (split-tokens (source-text root)
                                          (1+ comma)
                                          r-paren)))
-                (append (list :va-arg :l-paren :identifier)
+                (append (list (token-from-string "va-arg")
+                              (token-from-string "(")
+                              (token-from-string "identifier"))
                         (mapcar #'token-from-string type)
-                        (list :r-paren))))
+                        (list (token-from-string ")")))))
              ;; get all tokens from children
              ("Var" (let ((ast-ls (ast-ref-ast root))
                           (idents (idents clang root)))
@@ -344,9 +356,10 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
                                    (incf child)))))))
              ("WhileStmt"
               (assert (= 2 (length children)))
-              (append (list :while :l-paren)
+              (append (list (token-from-string "while")
+                            (token-from-string "("))
                       (tokenize (first children))
-                      (list :r-paren)
+                      (list (token-from-string ")"))
                       (tokenize (second children))))
              (t (error
                  (make-condition
