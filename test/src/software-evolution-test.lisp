@@ -4498,6 +4498,26 @@ Useful for printing or returning differences in the REPL."
           (is (not (null (mappend {aget :SCOPES} trace)))
               "Variable list not always empty."))))))
 
+(deftest instrumentation-print-vars-after ()
+  (with-fixture gcd-clang
+    (handler-bind ((warning #'muffle-warning))
+      (instrument *gcd* :functions-after
+                  (list {var-instrument *gcd* :scopes
+                                        {get-vars-in-scope *gcd*}})))
+    (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
+              (genome-string *gcd*))
+        "We find code to print unbound variables in the instrumented source.")
+    (with-temp-file (bin)
+      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+          "Successfully compiled instrumented GCD.")
+      (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+        (declare (ignorable stdout))
+        (is (zerop errno))
+        (let ((trace (read-trace stderr)))
+          (is (listp trace) "We got a trace.")
+          (is (not (null (mappend {aget :SCOPES} trace)))
+              "Variable list not always empty."))))))
+
 (deftest instrumentation-print-argv ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
