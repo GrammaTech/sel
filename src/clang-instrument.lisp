@@ -4,7 +4,7 @@
 
 ;;;; Instrumentation
 
-(defgeneric instrument (obj &key points functions trace-file
+(defgeneric instrument (obj &key points functions functions-after trace-file
                               print-argv instrument-exit filter)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
@@ -22,8 +22,8 @@ Keyword arguments are as follows:
 "))
 
 
-(defmethod instrument ((obj clang) &key points functions trace-file
-                                     print-argv instrument-exit
+(defmethod instrument ((obj clang) &key points functions functions-after
+                                     trace-file print-argv instrument-exit
                                      (filter #'identity))
   ;; Send object through clang-mutate to get accurate counters
   (update-asts obj)
@@ -60,7 +60,8 @@ Keyword arguments are as follows:
                 (enclosing-traceable-stmt obj)))
          (first-traceable-stmt (proto)
            (first (get-immediate-children obj (function-body obj proto))))
-         (instrument-ast (ast counter formats-w-args trace-strings)
+         (instrument-ast (ast counter formats-w-args formats-w-args-after
+                              trace-strings)
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
            (let* ((function (function-containing-ast obj ast))
@@ -117,6 +118,25 @@ Keyword arguments are as follows:
                      (:value1 .
                               ,(format nil "~@[_inst_ret = ~a;~] goto inst_exit;"
                                        ret))))))
+
+              (when (and functions-after (not skip))
+                  `((:insert-value-after
+                   (:stmt1 . ,counter)
+                   (:value1 .
+                     ,(format nil "~a~{~a~}~a~%"
+                        (format nil ; Start up alist w/counter.
+                                  "fputs(\"((:C . ~d) \", ~a);~%"
+                                  (gethash (ast-ref-path ast) ast-numbers)
+                                  log-var)
+                        (mapcar
+                          {format nil ; Functions instrumentation.
+                                  (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
+                                          log-var)}
+                          (mapcar #'car formats-w-args-after)
+                          (mapcar #'cdr formats-w-args-after))
+                        (format nil "fputs(\")\", ~a);~% fflush(~a);~%"
+                                log-var log-var))))))
+
               ;; Opening brace and instrumentation code before
               (unless skip
                 `((:insert-value
@@ -154,6 +174,8 @@ Keyword arguments are as follows:
                            (instrument-ast ast
                                            (ast-counter ast)
                                            (mapcar {funcall _ ast} functions)
+                                           (mapcar {funcall _ ast}
+                                                   functions-after)
                                            (aget ast points :test #'equalp))
                          (setf (aget ast points :test #'equalp) nil))))
             (apply-clang-mutate-ops obj)))
