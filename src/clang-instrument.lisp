@@ -221,22 +221,27 @@ output."))
              (t (if (starts-with "*" c-type :test #'string=)
                     "%p"
                     (error "Unrecognized C type ~S" c-type))))))
-    (iter (for var in (funcall key ast))
-          (let* ((type (type-of-var obj var))
-                 (c-type (concatenate 'string
-                           (if (or (type-pointer type)
-                                   (not (emptyp (type-array type))))
-                               "*" "")
-                           (type-name type)))
-                 (stripped-c-type (regex-replace "\\**(unsigned )?" c-type "")))
-            (when (or (member stripped-c-type +c-numeric-types+ :test #'string=)
-                      (string= stripped-c-type "size_t"))
-              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                     var c-type (fmt-code c-type))
-                             into format
-                             initial-value (format nil "(~s" label))
-              (collect var into vars)))
-          (finally (return (cons (concatenate 'string format ")") vars))))))
+    (let ((ast-before (find-if {ast-later-p ast} (asts obj)
+                               :from-end t)))
+        (iter (for var in (funcall key ast))
+           ;; Find the type at the point immediately before this
+           ;; statement. This gives the correct result if AST is a
+           ;; shadowing declaration of VAR.
+           (let* ((type (type-of-var obj var ast-before))
+                  (c-type (concatenate 'string
+                                       (if (or (type-pointer type)
+                                               (not (emptyp (type-array type))))
+                                           "*" "")
+                                       (type-name type)))
+                  (stripped-c-type (regex-replace "\\**(unsigned )?" c-type "")))
+             (when (or (member stripped-c-type +c-numeric-types+ :test #'string=)
+                       (string= stripped-c-type "size_t"))
+               (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
+                                      var c-type (fmt-code c-type))
+                              into format
+                              initial-value (format nil "(~s" label))
+               (collect var into vars)))
+           (finally (return (cons (concatenate 'string format ")") vars)))))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
