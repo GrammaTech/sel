@@ -140,6 +140,10 @@
   :test #'equalp
   :documentation "Path to the typedef example.")
 
+(define-constant +shadow-dir+ (append +etc-dir+ (list "shadow"))
+  :test #'equalp
+  :documentation "Path to the shadow example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -239,6 +243,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +typedef-dir+))
+
+(defun shadow-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +shadow-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -639,6 +648,14 @@
           (variety-dir "variety.c"))))
   (:teardown
     (setf *variety* nil)))
+
+(defixture shadow-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang)
+          (shadow-dir "shadow.c"))))
+  (:teardown
+    (setf *soft* nil)))
 
 
 ;;; ASM representation
@@ -4517,6 +4534,32 @@ Useful for printing or returning differences in the REPL."
           (is (listp trace) "We got a trace.")
           (is (not (null (mappend {aget :SCOPES} trace)))
               "Variable list not always empty."))))))
+
+(deftest instrumentation-print-vars-handles-shadowing ()
+  (with-fixture shadow-clang
+    (handler-bind ((warning #'muffle-warning))
+      (instrument *soft* :functions
+                  (list {var-instrument *soft* :scopes
+                                        {get-vars-in-scope *soft*}})))
+    (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
+              (genome-string *soft*))
+        "We find code to print unbound variables in the instrumented source.")
+    (with-temp-file (bin)
+      (is (zerop (second (multiple-value-list (phenome *soft* :bin bin))))
+          "Successfully compiled instrumented program.")
+      (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+        (declare (ignorable stdout))
+        (is (zerop errno))
+        (let ((trace (read-trace stderr)))
+          (is (every [{eq 1} #'length {aget :scopes}]
+                     trace)
+              "No duplicate variables.")
+
+          (is (every [«or {equal '(("x" "int" 1))}
+                            {equal '(("x" "short" 0))}»
+                      {aget :scopes}]
+                     trace)
+              "Variables have correct type and value."))))))
 
 (deftest instrumentation-print-argv ()
   (with-fixture gcd-clang

@@ -2487,9 +2487,12 @@ included as the first successor."
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 (defmethod get-vars-in-scope ((obj clang) (ast ast-ref) &optional keep-globals)
-  (apply #'append (if keep-globals
-                      (butlast (scopes obj ast))
-                      (scopes obj ast))))
+  ;; Remove duplicate variable names from outer scopes. Only the inner variables
+  ;; are accessible.
+  (remove-duplicates (apply #'append (if keep-globals
+                                         (butlast (scopes obj ast))
+                                         (scopes obj ast)))
+                     :test #'string=))
 
 (defvar *allow-bindings-to-globals-bias* 1/5
   "Probability that we consider the global scope when binding
