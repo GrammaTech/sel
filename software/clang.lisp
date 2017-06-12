@@ -1386,6 +1386,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args)
+  (clear-caches obj)
   (with-slots (asts ast-root types genome) obj
     (unless genome     ; get genome from existing ASTs if necessary
       (setf genome (genome obj)
