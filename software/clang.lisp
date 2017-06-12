@@ -234,6 +234,9 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 (defmethod roots ((asts list))
   (remove-if-not [{= 1} #'length #'ast-ref-path] asts))
 
+(defvar *clang-ast-aux-fields* nil
+  "Extra fields to read to clang-mutate snippets into ast-aux-data.")
+
 (defun asts->tree (genome asts)
   (let ((roots (mapcar {aget :counter}
                        (remove-if-not [#'zerop {aget :parent-counter}] asts)))
@@ -262,6 +265,14 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
           (byte-offset-to-chars (aget :begin-off ast)))
         (end-offset (ast)
           (byte-offset-to-chars (aget :end-off ast)))
+        (snippet->ast (snippet)
+          (let ((ast (snippet->clang-ast snippet)))
+            (setf (ast-aux-data ast)
+                  (mapcar #'cons
+                          *clang-ast-aux-fields*
+                          (mapcar {aget _ snippet}
+                                  *clang-ast-aux-fields*)))
+          ast))
         (collect-children (ast)
           ;; Find child ASTs and sort them in textual order.
           (let ((children (sort (mapcar #'get-ast (aget :children ast))
@@ -300,8 +311,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                       (collect (subseq genome start (begin-offset c))
                         into children)
                       ;; Collect child, converted to AST struct
-                      (collect (cons (snippet->clang-ast c)
-                                     (cdr subtree))
+                      (collect (cons (snippet->ast c) (cdr subtree))
                         into children)
                       (setf start (+ 1 (end-offset c)))
                       (finally
@@ -1418,7 +1428,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
     (iter (for ast in (restart-case
                           (clang-mutate obj
                             (list* :sexp
-                                   (cons :fields *clang-json-required-fields*)
+                                   (cons :fields
+                                         (append *clang-ast-aux-fields*
+                                                 *clang-json-required-fields*))
                                    (cons :aux *clang-json-required-aux*)
                                    clang-mutate-args))
                         (nullify-asts ()
