@@ -235,6 +235,7 @@
    :*allow-bindings-to-globals-bias*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
+   *clang-ast-aux-fields*
    :*database*
    :*mmm-processing-seconds*
    ;; evolution functions
