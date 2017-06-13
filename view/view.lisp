@@ -27,6 +27,7 @@
 (in-package :software-evolution-view)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (enable-interpol-syntax)
   (defvar *view-stream* t
     "Dynamically bind to use modify."))
 
