@@ -23,7 +23,6 @@
 
 ;;; Code:
 (in-package :software-evolution-utility)
-(enable-curry-compose-reader-macros)
 
 (defvar infinity
   #+sbcl

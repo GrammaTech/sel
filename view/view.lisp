@@ -25,9 +25,6 @@
 
 ;;; Code:
 (in-package :software-evolution-view)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros)
-  (enable-interpol-syntax))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *view-stream* t

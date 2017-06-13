@@ -147,7 +147,8 @@
    :profile-to-dot-graph
    :profile-to-flame-graph
    ))
-
+(in-package :software-evolution-utility)
+(enable-curry-compose-reader-macros :include-utf8)
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

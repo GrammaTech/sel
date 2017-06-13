@@ -19,8 +19,7 @@
         :software-evolution-command-line)
   (:export :main))
 (in-package :neutral)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros))
+(enable-curry-compose-reader-macros)
 
 (defvar help "Usage: ~a SCRIPT ORIGINAL [OPTIONS...]
 
