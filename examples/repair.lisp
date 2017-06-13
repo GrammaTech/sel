@@ -20,8 +20,7 @@
         :software-evolution-command-line)
   (:export :main))
 (in-package :repair)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (enable-curry-compose-reader-macros))
+(enable-curry-compose-reader-macros)
 
 
 ;;; Configuration Fitness and Runtime
