@@ -339,6 +339,11 @@ Define an :around method on this function to record mutations."))
 Returns the resulting software objects.  Returns a list of the applied
 mutations as an optional second value."))
 
+(defgeneric apply-mutations (software mutation n)
+  (:documentation "Apply MUTATION to the first N targets in SOFTWARE.
+Returns the resulting software objects.  Returns a list of the applied
+mutations as an optional second value."))
+
 (defgeneric apply-picked-mutations (software mutation n)
   (:documentation "Apply MUTATION to N randomly selected targets in SOFTWARE.
 Returns the resulting software objects.  Returns a list of the applied
@@ -501,8 +506,12 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (setf (fitness obj) nil))
 
 (defmethod apply-all-mutations ((obj software) (mut mutation))
+  (apply-mutations obj mut infinity))
+
+(defmethod apply-mutations ((obj software) (mut mutation) n)
   (setf (object mut) obj)
   (iter (for targeted in (mapcar {at-targets mut} (targets mut)))
+        (for i below n)
         (collect targeted into mutations)
         (collect (apply-mutation (copy obj) targeted) into results)
         (finally (return (values results mutations)))))

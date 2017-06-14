@@ -17,6 +17,7 @@ techniques."
                cl-json
                cl-mongo
                cl-ppcre
+               cl-fad
                curry-compose-reader-macros
                diff
                elf
@@ -55,7 +56,8 @@ techniques."
              (:file "clang-expression" :depends-on ("clang" "expression"))
              (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "llvm" :depends-on ("ast"))
-             (:file "project")))
+             (:file "project")
+             (:file "clang-project" :depends-on ("project" "clang"))))
    (:module src
             :depends-on (base software)
             :pathname "src"

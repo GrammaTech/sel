@@ -55,6 +55,10 @@
   :test #'equalp
   :documentation "Path to directory holding gcd.")
 
+(define-constant +grep-prj-dir+ (append +etc-dir+ (list "grep-prj"))
+  :test #'equalp
+  :documentation "Path to directory holding the grep project.")
+
 (define-constant +headers-dir+ (append +etc-dir+ (list "headers"))
   :test #'equalp
   :documentation "Path to directory holding headers.")
@@ -4549,7 +4553,11 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions
-                  (list {var-instrument *gcd* :unbound-vals unbound-vals-fn})))
+                  (list (lambda (obj ast)
+                          (var-instrument obj
+                                          :unbound-vals
+                                          unbound-vals-fn
+                                          ast)))))
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:UNBOUND-VALS")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
@@ -4572,8 +4580,11 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions
-                  (list {var-instrument *gcd* :scopes
-                                        {get-vars-in-scope *gcd*}})))
+                  (list (lambda (obj ast)
+                          (var-instrument obj
+                                          :scopes
+                                          {get-vars-in-scope obj}
+                                          ast)))))
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
@@ -4598,8 +4609,11 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions-after
-                  (list {var-instrument *gcd* :scopes
-                                        {get-vars-in-scope *gcd*}})))
+                  (list (lambda (obj ast)
+                          (var-instrument obj
+                                          :scopes
+                                          {get-vars-in-scope obj}
+                                          ast)))))
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
@@ -4618,8 +4632,11 @@ Useful for printing or returning differences in the REPL."
   (with-fixture shadow-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *soft* :functions
-                  (list {var-instrument *soft* :scopes
-                                        {get-vars-in-scope *soft*}})))
+                  (list (lambda (obj ast)
+                          (var-instrument obj
+                                          :scopes
+                                          {get-vars-in-scope obj}
+                                          ast)))))
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
@@ -4664,10 +4681,12 @@ Useful for printing or returning differences in the REPL."
 (deftest instrumentation-handles-binary-search ()
   (with-fixture binary-search-clang
     (handler-bind ((warning #'muffle-warning))
-      (instrument *binary-search*
-        :functions
-        (list
-         {var-instrument *binary-search* :unbound-vals unbound-vals-fn})))))
+      (instrument *binary-search* :functions
+                  (list (lambda (obj ast)
+                    (var-instrument obj
+                                    :unbound-vals
+                                    unbound-vals-fn
+                                    ast)))))))
 
 
 ;;;; Traceable tests
@@ -5056,6 +5075,20 @@ Useful for printing or returning differences in the REPL."
       ;; Exiting with-current-file should clear the current file of
       ;; copies of the project.
       (is (null (current-file copy))))))
+
+(deftest clang-project-test ()
+  (let ((project (from-file (make-instance 'clang-project
+                              :build-command "make"
+                              :build-target "grep")
+                            (make-pathname :directory +grep-prj-dir+))))
+    (is (equal "make" (build-command project)))
+    (is (equal "grep" (build-target project)))
+    (is (equal 1 (length (evolve-files project))))
+    (is (equal "grep.c" (car (first (evolve-files project)))))
+    (is (equal "cc" (compiler (cdr (first (evolve-files project))))))
+    (is (equal (list "-I" (namestring (make-pathname :directory +grep-prj-dir+))
+                     "-c" "-o" "grep")
+               (flags (cdr (first (evolve-files project))))))))
 
 
 ;;; Condition synthesis tests
