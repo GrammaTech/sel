@@ -160,33 +160,37 @@ Returns modified text, and names of bound variables.
              (apply-replacements replacements (aget :src-text snippet)))
             (mapcar [#'peel-bananas #'cdr] var-replacements))))
 
-(defun prepare-fodder-op (obj op)
+(defun prepare-fodder (obj snippet pt)
   (flet
       ((var-type-string (pt var-name)
          (let ((type (type-of-var obj var-name pt)))
            (format nil "~a~a" (type-name type)
                    (if (type-pointer type) "*" "")))))
-    (destructuring-bind (kind . properties) op
-      (if-let ((snippet (aget :value1 properties))
-               (pt (aget :stmt1 properties)))
-        ;; When :value1 is present, rebind variables and parse the
-        ;; resulting code to generate an AST.
-        (multiple-value-bind (text vars)
-            (bind-vars-in-snippet obj snippet pt)
-          (if-let ((asts
-                    (parse-source-snippet
-                     text
-                     ;; Variable and type names
-                     (mapcar #'list
-                             vars
-                             (mapcar {var-type-string pt} vars))
-                     (aget :includes snippet))))
-            (cons kind (acons :value1 (car asts) properties))
-            (error (make-condition 'mutate
-                                   :text "Failed to parse fodder"
-                                   :obj obj))))
-        ;; Otherwise return the original OP
-        op))))
+    (multiple-value-bind (text vars)
+        (bind-vars-in-snippet obj snippet pt)
+      (if-let ((asts
+                (parse-source-snippet
+                 text
+                 ;; Variable and type names
+                 (mapcar #'list
+                         vars
+                         (mapcar {var-type-string pt} vars))
+                 (aget :includes snippet))))
+        (car asts)
+        (error (make-condition 'mutate
+                               :text "Failed to parse fodder"
+                               :obj obj))))))
+
+(defun prepare-fodder-op (obj op)
+  (destructuring-bind (kind . properties) op
+    (if-let ((snippet (aget :value1 properties))
+             (pt (aget :stmt1 properties)))
+      ;; When :value1 is present, rebind variables and parse the
+      ;; resulting code to generate an AST.
+      (cons kind (acons :value1 (prepare-fodder obj snippet pt)
+                        properties))
+      ;; Otherwise return the original OP
+      op)))
 
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
   (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)

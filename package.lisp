@@ -518,6 +518,7 @@
    :ast-root
    :replace-in-ast
    :parse-source-snippet
+   :prepare-fodder
    ;; traceable
    :traceable
    :traces
