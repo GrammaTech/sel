@@ -486,6 +486,7 @@
    :type-pointer
    :type-reqs
    :type-name
+   :type-size
    :make-clang-type
    :roots
    :ast->snippet
