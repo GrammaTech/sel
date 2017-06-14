@@ -64,10 +64,10 @@ Optionally specify the name of the file in which to save trace data."
     (warn "Tracing to env variable is not support for CIL software objects."))
   (unless (null points)
     (warn
-     "Program point instrumentation not support for CIL software objects."))
-  (unless (null functions)
+     "Program point instrumentation not supported for CIL software objects."))
+  (unless (and (null functions) (null functions-after))
     (warn
-     "Custom function instrumentation not support for CIL software objects."))
+     "Custom function instrumentation not supported for CIL software objects."))
   (unless (null instrument-exit)
     (warn
      "Custom instrument-exit not supported for CIL software objects."))
