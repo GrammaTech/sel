@@ -22,6 +22,7 @@ position of the ast in (asts obj).
 Keyword arguments are as follows:
   POINTS ----------- alist of additional strings to print at specific points
   FUNCTIONS -------- functions to calculate instrumentation at each point
+  FUNCTIONS-AFTER -- functions to calculate instrumentation after each point
   TRACE-FILE ------- file for trace output
   TRACE-ENV -------- trace output to file specified by ENV variable
   PRINT-ARGV ------- print program arguments on startup
