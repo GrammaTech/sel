@@ -432,7 +432,7 @@ if not given."
 
 (defun make-var-reference (name type)
   (make-statement :ImplicitCastExpr :generic
-                  (list (make-statement "DeclRefExpr" :generic
+                  (list (make-statement :DeclRefExpr :generic
                                         (list (unpeel-bananas name))
                                         :expr-type (type-hash type)
                                         :unbound-vals (list name)))
