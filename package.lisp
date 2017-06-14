@@ -76,6 +76,7 @@
    :clang-mutation
    :build-op
    :apply-mutation
+   :apply-mutations
    :apply-all-mutations
    :apply-picked-mutations
    :text
@@ -416,6 +417,8 @@
    :demote-binop-right
    :eval-error
    :project
+   :build-command
+   :build-target
    :current-file
    :with-current-file
    :evolve-files
@@ -427,6 +430,9 @@
    :make-build-dir
    :full-path
    :*build-dir*
+   :clang-project
+   :project-dir
+   :compilation-database
    :test-suite
    :test-cases
    :run-test

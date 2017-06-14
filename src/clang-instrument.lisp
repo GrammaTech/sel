@@ -196,8 +196,9 @@ Keyword arguments are as follows:
                        (prog1
                            (instrument-ast ast
                                            (ast-counter ast)
-                                           (mapcar {funcall _ ast} functions)
-                                           (mapcar {funcall _ ast}
+                                           (mapcar {funcall _ obj ast}
+                                                   functions)
+                                           (mapcar {funcall _ obj ast}
                                                    functions-after)
                                            (aget ast points :test #'equalp))
                          (setf (aget ast points :test #'equalp) nil))))
@@ -435,17 +436,17 @@ Built with ~a version ~a.~%"
     ;; Set the functions.
     (when-let ((position (position 'trace-unbound-vars functions)))
       (setf (nth position functions)
-            (lambda (ast)
+            (lambda (obj ast)
               (var-instrument
-               original :unbound-vals
-               [{mapcar [#'peel-bananas #'car]} {get-unbound-vals original}] ast
+               obj :unbound-vals
+               [{mapcar [#'peel-bananas #'car]} {get-unbound-vals obj}] ast
                :print-strings print-strings))))
     (when-let ((position (position 'trace-scope-vars functions)))
       (setf (nth position functions)
-            (lambda (ast)
+            (lambda (obj ast)
               (var-instrument
-               original :scopes
-               [{apply #'append} {scopes original}] ast
+               obj :scopes
+               [{apply #'append} {scopes obj}] ast
                :print-strings print-strings))))
 
     ;; Save original.

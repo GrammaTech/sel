@@ -118,11 +118,6 @@ copy of the original current file.
           "Genome setting is only allowed when current-file is set.")
   (setf (genome (current-file project)) text))
 
-(defmethod asts ((obj project))
-  (if (current-file obj)
-      (asts (current-file obj))
-      (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj)))))
-
 (defgeneric write-genome-to-files (obj)
   (:documentation "Overwrite evolved files with current genome."))
 
@@ -164,6 +159,52 @@ copy of the original current file.
         (apply-mutation (aget file (evolve-files obj) :test #'equal)
           mutation))))
 
+(defmethod apply-mutations ((project project) (mut mutation) n)
+  (labels ((apply-mutations-single-file (src-file obj n)
+             (setf (object mut) obj)
+             (iter (for targeted in (mapcar {at-targets mut}
+                                            (targets mut)))
+                   (for i below n)
+                   (collect targeted into mutations)
+                   (collect (->> (apply-mutation (copy obj) targeted)
+                                 (incorporate (copy project) src-file))
+                            into results)
+                   (finally (return (values results mutations)))))
+           (incorporate (project src-file obj)
+             (setf (aget src-file (evolve-files project) :test #'equal) obj)
+             project))
+    (iter (for (src-file . obj) in (if (current-file project)
+                                       (list (current-file project))
+                                       (evolve-files project)))
+          (while (< (length results) n))
+          (multiple-value-bind (single-file-results single-file-mutations)
+              (apply-mutations-single-file src-file obj (- n (length results)))
+            (appending single-file-results into results)
+            (appending single-file-mutations into mutations))
+          (finally (return (values results mutations))))))
+
+(defmethod apply-picked-mutations ((project project) (mut mutation) n)
+  (labels ((apply-mutation-single-file (src-file obj)
+             (setf (object mut) obj)
+             (when-let* ((picked (funcall (picker mut) obj))
+                         (targeted (at-targets mut picked)))
+               (values (->> (apply-mutation (copy obj) targeted)
+                            (incorporate (copy project) src-file))
+                       targeted)))
+           (incorporate (project src-file obj)
+             (setf (aget src-file (evolve-files project) :test #'equal) obj)
+             project))
+    (iter (for i below n)
+          (bind (((src-file . obj) (or (current-file project)
+                                       (nth (pick-file project)
+                                            (evolve-files project))))
+                 ((:values result mutation)
+                  (apply-mutation-single-file src-file obj)))
+            (while (and result mutation))
+            (collect result into results)
+            (collect mutation into mutations))
+          (finally (return (values results mutations))))))
+
 (defmethod crossover ((a project) (b project))
   "Randomly pick one file in a and perform crossover with the corresponding file in b."
 
@@ -176,32 +217,12 @@ copy of the original current file.
     ;; Add filenames to crossover points for better stats
     (values new (cons point-a file) (cons point-b file))))
 
-(defmethod instrument ((project project) &rest args)
-  "Instrument a project. Arguments are passed through to instrument on
-the underlying software objects."
-  (let ((files (if (current-file project)
-                   (list (current-file project))
-                   (mapcar #'cdr (evolve-files project))))
-        (functions (plist-get :functions args))
-        (other-args (plist-drop :functions args)))
-    ;; Fully instrument evolve-files
-    (loop
-       for f in files
-       for i upfrom 0
-       do (apply #'instrument f
-                 ;; Print file index at each AST
-                 :functions (cons (lambda (ast)
-                                    (declare (ignorable ast))
-                                    (list (format nil "(:F . ~a)" i)))
-                                  functions)
-                 other-args))
-
-    ;; Insert log setup code in other-files
-    (loop for obj in (mapcar #'cdr (other-files project))
-       do (log-to-filename obj
-                           (plist-get :trace-file args)
-                           (plist-get :trace-env args))))
-  project)
+(defmethod apply-to-project ((project project) f)
+  (values project
+          (iterate (for file in (if (current-file project)
+                                    (list (current-file project))
+                                    (mapcar #'cdr (all-files project))))
+                   (collect (funcall f file)))))
 
 
 ;;; Build directory handling.
