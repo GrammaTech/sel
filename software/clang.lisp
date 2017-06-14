@@ -216,7 +216,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (i-line :type list)
   (pointer :type boolean)
   (reqs :type list)
-  (name :key :type :type string))
+  (name :key :type :type string)
+  (size :type (or number null)))
 
 (defmethod print-object ((obj clang-ast) stream)
   (if *print-readably*
@@ -1413,7 +1414,8 @@ for successful mutation (e.g. adding includes/types/macros)"))
     :guard-stmt         :full-stmt         :begin-addr
     :end-addr           :includes          :declares
     :is-decl            :opcode            :in-macro-expansion
-    :children           :begin-off         :end-off)
+    :children           :begin-off         :end-off
+    :size)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
@@ -2046,7 +2048,8 @@ operations.
                  (:array-length "array_length")
                  (:in-macro-expansion "in_macro_expansion")
                  (:expr-type "expr_type")
-                 (:syn-ctx "syn_ctx")))
+                 (:syn-ctx "syn_ctx")
+                 (:size "size")))
              (aux-opt (aux)
                (ecase aux
                  (:types "types")
