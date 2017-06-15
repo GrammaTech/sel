@@ -26,7 +26,8 @@ techniques."
                software-evolution-utility
                split-sequence
                usocket
-               trivial-utf-8)
+               trivial-utf-8
+               fast-io)
   :in-order-to ((test-op (test-op software-evolution-test)))
   :components
   ((:module base
@@ -60,6 +61,7 @@ techniques."
             :pathname "src"
             :components
             ((:file "ancestral")
+             (:file "traceable")
              (:file "clang-instrument")
              (:file "fix-compilation")
              (:file "adaptive-mutation")
