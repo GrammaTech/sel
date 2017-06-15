@@ -327,6 +327,7 @@
    :add-include
    :add-type
    :find-or-add-type
+   :type-decl-string
    :add-macro
    :nullify-asts
    :expand-stmt-pool
