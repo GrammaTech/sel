@@ -505,6 +505,7 @@
    :ast-at-index
    :ast-later-p
    :make-statement
+   :make-literal
    :make-operator
    :make-block
    :make-parens

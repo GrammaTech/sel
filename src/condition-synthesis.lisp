@@ -633,10 +633,8 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
          (var (make-var-reference name
                                   (type-of-var software name)))
          (val (if (stringp base)
-                  (make-statement :StringLiteral :generic
-                                  (list (format nil "\"~a\"" base)))
-                  (make-statement :IntegerLiteral :generic
-                                  (list (format nil "~a" base)))))
+                  (make-literal :string base)
+                  (make-literal :integer base)))
          (eq-op (make-parens
                  (list (make-operator :generic "==" (list var val))))))
     (case (third condition)
