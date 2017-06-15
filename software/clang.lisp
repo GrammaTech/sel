@@ -411,6 +411,17 @@ if not given."
                                 c))
                           children))))))
 
+(defun make-literal (kind value)
+  (multiple-value-bind (class text)
+      (ecase kind
+        (:integer (values :IntegerLiteral
+                          (format nil "~a" (round value))))
+        (:float (values :FloatingLiteral
+                        (format nil "~a" value)))
+        (:string (values :StringLiteral
+                         (format nil "~s" value))))
+    (make-statement class :generic (list text))))
+
 (defun make-operator (syn-ctx opcode child-asts &rest args)
   "Create a unary or binary operator AST."
   (destructuring-bind (class . children)
@@ -1171,7 +1182,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
       (multiple-value-bind (initialization condition increment body)
         (destructure-for-loop ast)
         (let* ((condition (or condition
-                             (make-statement :IntegerLiteral :generic '("1"))))
+                             (make-literal :integer 1)))
                (body (make-block (if increment
                                      (list body increment ";")
                                      (list body)))))
@@ -1315,7 +1326,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
            ,(let* ((children (get-immediate-children clang ast))
                    (lhs (first children))
                    (rhs (second children))
-                   (one (make-statement :IntegerLiteral :generic '("1"))))
+                   (one (make-literal :integer 1)))
               (cond
                ((increment-op ast)
                 (make-operator (ast-syn-ctx ast) "="

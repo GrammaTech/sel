@@ -1092,9 +1092,7 @@
       (apply-mutation variant
         `(clang-replace
           (:stmt1 . ,stmt1)
-          (:value1 . ,(make-statement :IntegerLiteral
-                                      :fullstmt
-                                      '("0")))))
+          (:value1 . ,(make-literal :integer 0))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
 
@@ -1946,8 +1944,7 @@ int x = CHARSIZE;")))
         `(clang-replace
           (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
                               (asts variant)))
-          (:literal1 . ,(make-statement :StringLiteral :generic
-                                        '("\"Hello, mutate!\"")))))
+          (:literal1 . ,(make-literal :string "Hello, mutate!"))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -2232,8 +2229,7 @@ int x = CHARSIZE;")))
            (op (make-instance 'clang-insert
                  :targets `((:stmt1 . ,(stmt-starting-with-text variant
                                                                 "printf"))
-                            (:literal1 . ,(make-statement :IntegerLiteral
-                                                          :fullstmt '("0")))))))
+                            (:literal1 . ,(make-literal :integer 0))))))
       (apply-mutation variant op)
       (is (null (fitness variant))
           "Fitness is null after `apply-mutation'")
