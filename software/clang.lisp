@@ -486,9 +486,11 @@ if not given."
    :DeclStmt :fullstmt
    (list (make-statement :Var :generic
                          (if initializer
-                             (list (format nil "~a ~a =" (type-name type) name)
+                             (list (format nil "~a ~a = "
+                                           (type-decl-string type) name)
                                    initializer)
-                             (list (format nil "~a ~a" (type-name type) name)))
+                             (list (format nil "~a ~a"
+                                           (type-decl-string type) name)))
                          :types (list (type-hash type))
                          :declares (list name)))))
 
@@ -823,6 +825,11 @@ use carefully.
                                                              (types obj)))))))
         (add-type obj newtype)
         newtype)))
+
+(defmethod type-decl-string ((type clang-type))
+  "The source text used to declare variables of TYPE."
+  (format nil "~a~a" (type-name type)
+          (if (type-pointer type) " *" "")))
 
 (defun prepend-to-genome (obj text)
   "Prepend non-AST text to genome.
