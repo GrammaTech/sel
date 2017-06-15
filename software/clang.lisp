@@ -622,14 +622,15 @@ list, and we want to treat them as NIL in most cases.
                ;; Remove child
                (cons node
                      (nconc (subseq children 0 (max 0 (1- head)))
-                            (fixup-mutation :remove
-                                            (ast-syn-ctx (car (nth head
-                                                                   children)))
-                                            (if (positive-integer-p head)
-                                                (nth (1- head) children)
-                                                "")
-                                            nil
-                                            (or (nth (1+ head) children) ""))
+                            (fixup-mutation
+                             :remove
+                             (or (ast-syn-ctx (car (nth head children)))
+                                 :toplevel)
+                             (if (positive-integer-p head)
+                                 (nth (1- head) children)
+                                 "")
+                             nil
+                             (or (nth (1+ head) children) ""))
                             (nthcdr (+ 2 head) children)))))))
     (helper tree (ast-ref-path location))))
 
