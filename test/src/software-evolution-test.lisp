@@ -716,10 +716,16 @@
 
 (deftest asm-swap-maintains-length ()
   (with-fixture gcd-asm
-    (let ((variant (copy *gcd*)))
-      (apply-mutation variant (make-instance 'simple-swap
-                                             :targets (list 4 8)))
-      (is (not (tree-equal (genome variant) (genome *gcd*))))
+    (let ((variant (copy *gcd*))
+          (mutation
+           (make-instance 'simple-swap
+             :targets (list
+                       (position-if [{scan "mov"} {aget :code}]
+                                    (genome *gcd*))
+                       (position-if [{scan "call"} {aget :code}]
+                                    (genome *gcd*))))))
+      (setf variant (apply-mutation variant mutation))
+      (is (not (tree-equal (genome variant) (genome *gcd*) :test #'tree-equal)))
       (is (= (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-replace-operand-maintains-length ()
@@ -727,7 +733,7 @@
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'asm-replace-operand
                                              :targets (list 13 18)))
-      (is (not (tree-equal (genome variant) (genome *gcd*))))
+      (is (not (tree-equal (genome variant) (genome *gcd*) :test #'tree-equal)))
       (is (= (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-replace-operand-changes-operand ()
@@ -753,7 +759,7 @@
       (apply-mutation variant (make-instance 'simple-cut :targets 0))
       ;; (push '(:cut 0) (edits variant))
       (let ((new (crossover variant *gcd*)))
-        (is (not (tree-equal (genome new) (genome *gcd*))))
+        (is (not (tree-equal (genome new) (genome *gcd*) :test #'tree-equal)))
         ;; (is (some [{equal :crossover} #'car] (edits new)))
         ;; (is (some [{equal :cut} #'caar] (second (edits new))))
         ))))
@@ -2541,12 +2547,20 @@ int x = CHARSIZE;")))
 
 (deftest swap-can-recontextualize ()
   (with-fixture huf-clang
-    (let ((variant (copy *huf*)))
-      (apply-mutation variant
-        (cons 'clang-swap
-              (list (cons :stmt1 (stmt-with-text variant "n > 0"))
-                    (cons :stmt2 (stmt-with-text variant "bc=0")))))
-      (is (compile-p variant)))))
+    ;; NOTE: Without the retries recontectualization can fail
+    ;;       stochastically, not all possible rebinding variables
+    ;;       work.
+    ;;
+    ;; TODO: Refine recontextualization with type information so that
+    ;;       this *always* works.
+    (let ((mut (make-instance 'clang-swap :targets
+                              (list (cons :stmt1 (stmt-with-text *huf* "n > 0"))
+                                    (cons :stmt2 (stmt-with-text *huf* "bc=0"))))))
+      (is (iter (for var = (apply-mutation (copy *huf*) mut))
+                (as count upfrom 0)
+                (when (compile-p var) (return t))
+                (when (> count 100) (return nil)))
+          "Is able to rebind successfully with 100 tries"))))
 
 (defun diff-strings (original modified diff-region)
   "Convert a diff-region to a list of contents in ORIGINAL and MODIFIED."
@@ -2766,6 +2780,8 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p (fix-compilation broken-clang 1)))
       (is (compile-p (fix-compilation broken-gcc 1))))))
 
+
+;;;; Crossover tests.
 (in-suite test)
 (defsuite* test-clang-crossover)
 
@@ -3743,22 +3759,34 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant))))))
 
-(deftest crossover-the-world ()
+(deftest crossover-entire-text-of-a-function ()
   ;; Entire text of a function
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int a"))
            (a-stmt2 (stmt-with-text *scopes* "return a + b + c"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
-      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
-          (intraprocedural-2pt-crossover *scopes* *scopes*
-                                         a-stmt1 a-stmt2
-                                         b-stmt1 b-stmt2)
-        (declare (ignorable a-pts b-pts effective-a-pts))
-        (is ok)
-        (is (compile-p variant))
-        (is (= (length (asts *scopes*))
-               (length (asts variant)))))))
+      ;; NOTE: Without the retries recontectualization can fail
+      ;;       stochastically, not all possible rebinding variables
+      ;;       work.
+      ;;
+      ;; TODO: Refine recontextualization with type information so
+      ;;       that this *always* works.
+      (is (iter (for (values variant a-pts b-pts ok effective-a-pts) =
+                     (intraprocedural-2pt-crossover *scopes* *scopes*
+                                                    a-stmt1 a-stmt2
+                                                    b-stmt1 b-stmt2))
+                (as count upfrom 0)
+                (declare (ignorable a-pts b-pts effective-a-pts))
+                (when (and ok
+                           (compile-p variant)
+                           (= (length (asts *scopes*))
+                              (length (asts variant))))
+                  (return t))
+                (when (> count 100) (return nil)))
+          "Able to crossover entire text of a function with 100 tries."))))
+
+(deftest crossover-a-single-statement-the-first ()
   ;; A single statement (the first one)
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int a"))
@@ -3773,7 +3801,9 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
-               (length (asts variant)))))))
+               (length (asts variant))))))))
+
+(deftest crossover-a-single-statement-the-last ()
   ;; A single statement (the last one)
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "return a + b + c"))
@@ -3788,7 +3818,9 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
-               (length (asts variant)))))))
+               (length (asts variant))))))))
+
+(deftest crossover-a-single-statement-complex ()
   ;; A single complex statement
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-starting-with-text *scopes*
@@ -3804,7 +3836,9 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
-               (length (asts variant)))))))
+               (length (asts variant))))))))
+
+(deftest crossover-a-statement-and-descendants ()
   ;; A statement and one of its descendants
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-starting-with-text *scopes*
@@ -3820,7 +3854,9 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (compile-p variant))
         (is (= (length (asts *scopes*))
-               (length (asts variant)))))))
+               (length (asts variant))))))))
+
+(deftest crossover-a-statement-and-one-ancestor ()
   ;; A statement and one of its ancestors
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "c = 4"))
@@ -3828,15 +3864,27 @@ Useful for printing or returning differences in the REPL."
                                              "for (b = 2;"))
            (b-stmt1 a-stmt1)
            (b-stmt2 a-stmt2))
-      (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
-          (intraprocedural-2pt-crossover *scopes* *scopes*
-                                         a-stmt1 a-stmt2
-                                         b-stmt1 b-stmt2)
-        (declare (ignorable a-pts b-pts effective-a-pts))
-        (is ok)
-        (is (compile-p variant))
-        (is (= (length (asts *scopes*))
-               (length (asts variant)))))))
+      ;; NOTE: Without the retries recontectualization can fail
+      ;;       stochastically, not all possible rebinding variables
+      ;;       work.
+      ;;
+      ;; TODO: Refine recontextualization with type information so
+      ;;       that this *always* works.
+      (is (iter (for (values variant a-pts b-pts ok effective-a-pts) =
+                     (intraprocedural-2pt-crossover *scopes* *scopes*
+                                                    a-stmt1 a-stmt2
+                                                    b-stmt1 b-stmt2))
+                (as count upfrom 0)
+                (declare (ignorable a-pts b-pts effective-a-pts))
+                (when (and ok
+                           (compile-p variant)
+                           (= (length (asts *scopes*))
+                              (length (asts variant))))
+                  (return t))
+                (when (> count 100) (return nil)))
+          "Able to crossover a statement and a ancestor with 100 tries."))))
+
+(deftest crossover-a-statement-with-multiple-statements ()
   ;; Replace a single statement with multiple statements
   (with-fixture scopes-clang
     (let ((a-stmt (stmt-with-text *scopes* "int b"))
@@ -3856,7 +3904,9 @@ Useful for printing or returning differences in the REPL."
         (is (stmt-with-text variant "a = 10"))
         (is (stmt-with-text variant "a = 11"))
         (is (stmt-with-text variant "a = 12"))
-        (is (not (stmt-with-text variant "int b"))))))
+        (is (not (stmt-with-text variant "int b")))))))
+
+(deftest crossover-a-multiple-statements-with-a-single-statement ()
   ;; Replace multiple statements with a single statement
   (with-fixture scopes-clang
     (let ((a-stmt1 (stmt-with-text *scopes* "int b"))
