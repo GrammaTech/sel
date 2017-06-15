@@ -26,6 +26,7 @@
 (defvar *soft*        nil "Software used in tests.")
 (defvar *tfos*        nil "Another software used in tests.")
 (defvar *gcd*         nil "Holds the gcd software object.")
+(defvar *gcd-trace-path* nil "Holds the file of gcd traces.")
 (defvar *binary-search* nil "Holds the binary_search software object.")
 (defvar *empty-while* nil "Holds the empty-while software object.")
 (defvar *headers*     nil "Holds the headers software object.")
@@ -2297,7 +2298,11 @@ int x = CHARSIZE;")))
       (is (< (size variant)
              (size *hello-world*))))))
 
-;; Ancestry tests
+
+;;;; Ancestry tests
+(in-suite test)
+(defsuite* test-ancestry)
+
 (defclass clang-w-ancestry (clang ancestral) ())
 
 (defixture hello-world-clang-w-ancestry
@@ -4351,10 +4356,7 @@ Useful for printing or returning differences in the REPL."
         (equal picks (remove-duplicates picks))))))
 
 
-(in-suite test)
-(defsuite* test-clang-instrumentation)
-
-;;; Instrumentation tests
+;;;; Instrumentation tests
 (in-suite test)
 (defsuite* test-instrumentation)
 
@@ -4362,7 +4364,7 @@ Useful for printing or returning differences in the REPL."
   "Return a count of full statements parented by compound statements"
   (count-if {can-be-made-traceable-p obj} (asts obj)))
 
-(defun read-trace (string)
+(defun trace-to-lisp (string)
   "Read a trace into a lisp objects."
   (let ((start 0))
     (iter (for (values piece end) =
@@ -4385,7 +4387,7 @@ Useful for printing or returning differences in the REPL."
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout))
           (is (zerop errno))
-          (let ((trace (read-trace stderr)))
+          (let ((trace (trace-to-lisp stderr)))
             (is (listp trace))
             (is (= (length trace)
                    (length (split-sequence
@@ -4408,7 +4410,7 @@ Useful for printing or returning differences in the REPL."
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout))
           (is (zerop errno))
-          (let ((trace (read-trace stderr)))
+          (let ((trace (trace-to-lisp stderr)))
             (is (listp trace))
             (is (= (length trace)
                    (length (split-sequence
@@ -4439,7 +4441,7 @@ Useful for printing or returning differences in the REPL."
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout))
           (is (zerop errno))
-          (let ((trace (read-trace stderr)))
+          (let ((trace (trace-to-lisp stderr)))
             (is (listp trace))
             (is (= (length trace)
                    (length (split-sequence
@@ -4466,7 +4468,7 @@ Useful for printing or returning differences in the REPL."
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout))
           (is (zerop errno))
-          (let ((trace (read-trace stderr)))
+          (let ((trace (trace-to-lisp stderr)))
             (is (listp trace))
             (is (= (length trace)
                    (length (split-sequence
@@ -4508,7 +4510,7 @@ Useful for printing or returning differences in the REPL."
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout))
           (is (zerop errno))
-          (is (listp (read-trace stderr))))))))
+          (is (listp (trace-to-lisp stderr))))))))
 
 (deftest instrumentation-insertion-w-points-and-added-blocks-test ()
   (with-fixture gcd-wo-curlies-clang
@@ -4552,7 +4554,7 @@ Useful for printing or returning differences in the REPL."
       (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
         (declare (ignorable stdout))
         (is (zerop errno))
-        (let ((trace (read-trace stderr)))
+        (let ((trace (trace-to-lisp stderr)))
           (is (listp trace) "We got a trace.")
           (is (= (length trace) (count-if {assoc :c} trace))
               "Counter in every trace element.")
@@ -4576,7 +4578,7 @@ Useful for printing or returning differences in the REPL."
       (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
         (declare (ignorable stdout))
         (is (zerop errno))
-        (let ((trace (read-trace stderr)))
+        (let ((trace (trace-to-lisp stderr)))
           (is (listp trace) "We got a trace.")
           (is (= (length trace) (count-if {assoc :c} trace))
               "Counter in every trace element.")
@@ -4602,7 +4604,7 @@ Useful for printing or returning differences in the REPL."
       (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
         (declare (ignorable stdout))
         (is (zerop errno))
-        (let ((trace (read-trace stderr)))
+        (let ((trace (trace-to-lisp stderr)))
           (is (listp trace) "We got a trace.")
           (is (not (null (mappend {aget :SCOPES} trace)))
               "Variable list not always empty."))))))
@@ -4622,7 +4624,7 @@ Useful for printing or returning differences in the REPL."
       (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
         (declare (ignorable stdout))
         (is (zerop errno))
-        (let ((trace (read-trace stderr)))
+        (let ((trace (trace-to-lisp stderr)))
           (is (every [{eq 1} #'length {aget :scopes}]
                      trace)
               "No duplicate variables.")
@@ -4646,7 +4648,7 @@ Useful for printing or returning differences in the REPL."
       (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
         (declare (ignorable stdout))
         (is (zerop errno))
-        (let ((trace (read-trace stderr)))
+        (let ((trace (trace-to-lisp stderr)))
           (is (listp trace) "We got a trace.")
           (is (= 1 (count-if {assoc :input} trace))
               "Input shown once in trace.")
@@ -4663,7 +4665,52 @@ Useful for printing or returning differences in the REPL."
          {var-instrument *binary-search* :unbound-vals unbound-vals-fn})))))
 
 
-;;; Tests of declaration and type databases on clang objects
+;;;; Traceable tests
+(in-suite test)
+(defsuite* test-traceable)
+
+(defclass clang-traceable (clang traceable) ())
+
+(defixture gcd-with-traces
+  (:setup (setf *gcd-trace-path* (make-pathname
+                                  :name "gcd"
+                                  :type "traces"
+                                  :directory +gcd-dir+)
+                *gcd* (from-file
+                       (make-instance 'clang-traceable
+                         :traces (with-open-file (in *gcd-trace-path*)
+                                   (read in)))
+                       (make-pathname :name "gcd"
+                                      :type "c"
+                                      :directory +gcd-dir+)))))
+
+(defixture traceable-gcd
+  (:setup (setf *gcd* (from-file
+                       (make-instance 'clang-traceable)
+                       (make-pathname :name "gcd"
+                                      :type "c"
+                                      :directory +gcd-dir+)))))
+
+(deftest run-traceable-gcd ()
+  (let ((inputs '("~a 1071 1029"
+                  "~a 555 666"
+                  "~a 678 987"
+                  "~a 8767 653"
+                  "~a 16777216 512"
+                  "~a 16 4"
+                  "~a 315 831"
+                  "~a 513332 91583315"
+                  "~a 112 135"
+                  "~a 310 55"
+                  "~a 0 55")))
+    (with-fixture traceable-gcd
+      )))
+
+
+;;;; Tests of declaration and type databases on clang objects
+(in-suite test)
+(defsuite* test-declaration-type-databases)
+
 (deftest binary-search-collects-types ()
   (with-fixture binary-search-clang
     (let ((collected-vars (mapcar #'car (hash-table-alist
