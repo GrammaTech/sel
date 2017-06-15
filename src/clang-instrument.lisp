@@ -235,7 +235,7 @@ output."))
   (flet ((fmt-code (c-type)
            (switch (c-type :test #'string=)
              ("char"            "%c")
-             ("*char"           (if print-strings "\"%s\"" "%p"))
+             ("*char"           (if print-strings "\"%s\"" "#x%lx"))
              ("unsigned char"   "%u")
              ("short"           "%hi")
              ("unsigned short"  "%hu")
@@ -248,7 +248,10 @@ output."))
              ("long double"     "%LG")
              ("size_t"          "%zu")
              (t (if (starts-with "*" c-type :test #'string=)
-                    "%p"
+                    ;; NOTE: %lx is not guaranteed to be the right size for
+                    ;; pointers. %p would be better, but it will typically print
+                    ;; a leading "0x" which confuses the Lisp reader.
+                    "#x%lx"
                     (error "Unrecognized C type ~S" c-type))))))
     (let ((ast-before (find-if {ast-later-p ast} (asts obj)
                                :from-end t)))
