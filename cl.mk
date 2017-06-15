@@ -165,4 +165,4 @@ more-clean: clean
 real-clean: more-clean
 	find . -type f -name "*.loaded" -exec rm {} \+
 	rm -f qlfile.lock $(MANIFEST)
-	rm -rf quicklisp
+	rm -rf quicklisp system-index.txt
