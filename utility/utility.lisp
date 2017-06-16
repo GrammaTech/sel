@@ -155,6 +155,11 @@ After BODY is executed the temporary file is removed."
                  #+ccl (ccl:delete-directory probe))
                (delete-file ,(car spec))))))))
 
+(defmacro with-temp-fifo (spec &rest body)
+  `(with-temp-file ,spec
+     (mkfifo ,(car spec) (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
+     ,@body))
+
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file
 and an optional extension."

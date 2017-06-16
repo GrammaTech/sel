@@ -4,6 +4,7 @@
    :common-lisp
    :alexandria
    :uiop
+   :osicat-posix
    :metabang-bind
    :curry-compose-reader-macros
    :iterate
@@ -13,13 +14,28 @@
    :cl-store
    :cl-dot
    :diff)
-  (:shadow :quit)
+  (:shadow :quit :read)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
+  (:shadowing-import-from
+   :osicat-posix
+   :write
+   :truncate
+   :open
+   :sleep
+   :chdir
+   :time
+   :col
+   :exit
+   :getcwd
+   :getenv
+   :ftruncate
+   :link
+   :close)
   (:export
    :infinity
    ;; OS
@@ -35,6 +51,7 @@
    :*temp-dir*
    :temp-file-name
    :with-temp-file
+   :with-temp-fifo
    :with-temp-file-of
    :with-temp-file-of-bytes
    :with-temp-files
