@@ -376,7 +376,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
-                         types unbound-funs unbound-vals declares)
+                         types unbound-funs unbound-vals declares
+                         includes)
   "Create a statement AST.
 
 TYPES, UNBOUND-FUNS, and UNBOUND-VALS will be computed from children
@@ -404,7 +405,8 @@ if not given."
                                   :types types
                                   :declares declares
                                   :unbound-funs unbound-funs
-                                  :unbound-vals unbound-vals)
+                                  :unbound-vals unbound-vals
+                                  :includes includes)
                   (mapcar (lambda (c)
                             (if (ast-ref-p c)
                                 (ast-ref-ast c)
@@ -419,7 +421,13 @@ if not given."
         (:float (values :FloatingLiteral
                         (format nil "~a" value)))
         (:string (values :StringLiteral
-                         (format nil "~s" value))))
+                         (format nil "~s" value)))
+        (:quoted-string                 ; already has quotes, use ~a format
+         (assert (and (starts-with #\" value)
+                      (ends-with #\" value))
+                 nil "Expected quotes around string literal ~s" value)
+         (values :StringLiteral
+                                (format nil "~a" value))))
     (make-statement class :generic (list text))))
 
 (defun make-operator (syn-ctx opcode child-asts &rest args)
@@ -503,6 +511,16 @@ if not given."
                   (list (format nil "(~a)" (type-name type))
                         child)
                   :types (list (type-hash type))))
+
+(defun make-call-expr (name args syn-ctx &rest rest)
+  (apply #'make-statement :CallExpr syn-ctx
+         `(,(make-statement :ImplictCastExpr :generic
+                         (list (make-statement :DeclRefExpr :generic
+                                               (list (unpeel-bananas name)))))
+           "("
+           ,@(interleave args ", ")
+           ")")
+         rest))
 
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
