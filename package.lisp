@@ -516,6 +516,7 @@
    :make-var-reference
    :make-var-decl
    :make-cast-expr
+   :make-call-expr
    :make-array-subscript-expr
    :ast-root
    :replace-in-ast
