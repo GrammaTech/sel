@@ -4669,20 +4669,7 @@ Useful for printing or returning differences in the REPL."
 (in-suite test)
 (defsuite* test-traceable)
 
-(defclass clang-traceable (clang traceable) ())
-
-(defixture gcd-with-traces
-  (:setup (setf *gcd-trace-path* (make-pathname
-                                  :name "gcd"
-                                  :type "traces"
-                                  :directory +gcd-dir+)
-                *gcd* (from-file
-                       (make-instance 'clang-traceable
-                         :traces (with-open-file (in *gcd-trace-path*)
-                                   (read in)))
-                       (make-pathname :name "gcd"
-                                      :type "c"
-                                      :directory +gcd-dir+)))))
+(define-software clang-traceable (clang traceable) ())
 
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file
@@ -4691,16 +4678,16 @@ Useful for printing or returning differences in the REPL."
                                       :type "c"
                                       :directory +gcd-dir+)))))
 
-(defvar *gcd-inputs* '("~a 1071 1029"
-                       "~a 555 666"
-                       "~a 678 987"
-                       "~a 8767 653"
-                       "~a 16777216 512"
-                       "~a 16 4"
-                       "~a 315 831"
-                       "~a 513332 91583315"
-                       "~a 112 135"
-                       "~a 310 55")
+(defvar *gcd-inputs* '(("1071" "1029")
+                       ("555" "666")
+                       ("678" "987")
+                       ("8767" "653")
+                       ("16777216" "512")
+                       ("16" "4")
+                       ("315" "831")
+                       ("513332" "91583315")
+                       ("112" "135")
+                       ("310" "55"))
   "Example test inputs for GCD.")
 
 (deftest run-traceable-gcd ()
@@ -4709,6 +4696,27 @@ Useful for printing or returning differences in the REPL."
     (setf (traces *gcd*) (mapcar {collect-trace *gcd*} *gcd-inputs*))
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
+
+(deftest test-reading-trace-file ()
+  (with-fixture traceable-gcd
+    (with-temp-file (trace-path)
+      (with-temp-file (bin)
+        (instrument *gcd* :trace-file trace-path)
+        (phenome *gcd* :bin bin)
+        (shell "~a ~a ~a" bin (caar *gcd-inputs*) (cadar *gcd-inputs*))
+        (let ((trace (read-trace-file trace-path)))
+          (is (and trace (listp trace))
+              "Successfully reads a non-empty trace from file.")
+          (let ((xz-path (make-pathname
+                          :directory (pathname-directory trace-path)
+                          :name (pathname-name trace-path)
+                          :type "xz")))
+            (unwind-protect
+                 (progn
+                   (shell "xz ~a" trace-path)
+                   (is (equalp trace (read-trace-file xz-path))
+                       "Successfully reads a trace from a compressed file."))
+              (when (probe-file xz-path) (delete-file xz-path)))))))))
 
 
 ;;;; Tests of declaration and type databases on clang objects
