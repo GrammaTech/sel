@@ -61,8 +61,8 @@ techniques."
             :pathname "src"
             :components
             ((:file "ancestral")
-             (:file "traceable")
              (:file "clang-instrument")
+             (:file "traceable")
              (:file "fix-compilation")
              (:file "adaptive-mutation")
              (:file "searchable")

@@ -2,6 +2,52 @@ Notes                                                      -*- org -*-
 #+Options: ^:{}
 
 * Notes
+** Fast IO
+#+begin_src lisp
+  ;;; TODO: Consider Conspack
+
+  ;; Would then use libconspack to encode all values.
+  ;; https://github.com/conspack/libconspack
+
+  ;;; Would use `define-index' or `with-index' to define common symbols
+  ;;; to indices.
+
+  ;;; Statistics
+  ;; CL-USER> (with-index (:c :f)
+  ;;            (encode-to-file (with-open-file (in "/tmp/sample_trace_reg")
+  ;;                              (iter (for line = (read in nil :eof))
+  ;;                                    (while (not (eq line :eof)))
+  ;;                                    (collect line)))
+  ;;                            #p"/tmp/sample-trace-reg.cpk"))
+  ;; 16
+  ;; CL-USER> (time (progn (with-open-file (in "/tmp/sample_trace_reg")
+  ;;                         (iter (for line = (read in nil :eof))
+  ;;                               (while (not (eq line :eof)))
+  ;;                               (collect line)))
+  ;;                       :done))
+  ;; Evaluation took:
+  ;;   3.601 seconds of real time
+  ;;   3.589660 seconds of total run time (3.533221 user, 0.056439 system)
+  ;;   [ Run times consist of 0.417 seconds GC time, and 3.173 seconds non-GC time. ]
+  ;;   99.69% CPU
+  ;;   11,929,387,851 processor cycles
+  ;;   224,102,240 bytes consed
+  ;;
+  ;; :DONE
+  ;; CL-USER> (time (with-index (:c :f)
+  ;;                  (progn (decode-file #p"/tmp/sample-trace-reg.cpk")
+  ;;                         :done)))
+  ;; Evaluation took:
+  ;;   1.925 seconds of real time
+  ;;   1.919602 seconds of total run time (1.853061 user, 0.066541 system)
+  ;;   [ Run times consist of 0.424 seconds GC time, and 1.496 seconds non-GC time. ]
+  ;;   99.74% CPU
+  ;;   6,374,467,162 processor cycles
+  ;;   224,162,832 bytes consed
+  ;;
+  ;; :DONE
+
+#+end_src
 ** running from a saved population
 Could use this sort of file as fodder.
 #+begin_src lisp

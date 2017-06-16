@@ -1,4 +1,5 @@
 ;;; traceable --- instrumentable software objects with dynamic traces
+(in-package :software-evolution)
 
 (defclass traceable (software)
   ((traces :initarg :traces :accessor traces :initform nil
@@ -6,41 +7,43 @@
   (:documentation
    "Instrumentable software with support for collecting dynamic traces."))
 
-(defgeneric read-trace (software in)
-  (:documentation "Read trace from IN and apply to SOFTWARE."))
-
-(defmethod read-trace ((obj traceable) (in stream))
-  (push (read-trace-stream in) (traces obj)))
-
-(defmethod read-trace ((obj traceable) (in string))
-  (read-trace obj (pathname in)))
-
-(defmethod read-trace ((obj traceable) (in pathname))
-  (push (read-trace-file in) (traces obj)))
-
 
 ;;; Execution with trace collection.
-(defgeneric collect-traces (software inputs &rest instrument-args)
-  (:documentation "Execute SOFTWARE on INPUTS collecting dynamic traces."))
+(defgeneric collect-trace (software input)
+  (:documentation
+   "Execute instrumented SOFTWARE on INPUT collecting a dynamic trace."))
 
-(defmethod collect-traces
-    ((obj software) (inputs sequence) &rest instrument-args)
-  (iter (for input in inputs)
-        (apply #'collect-trace obj input instrument-args)
-        (finally obj)))
-
-(defgeneric collect-trace (software input &rest instrument-args)
-  (:documentation "Execute SOFTWARE on INPUT collecting a dynamic trace."))
-
-(defmethod collect-trace ((obj software) input &rest instrument-args)
-  (let ((inst (apply #'instrument obj instrument-args)))
-    (with-temp-file (bin)
-      (run-on-input inst input :bin bin))))
-
-(defgeneric run-on-input (software input &key bin)
-  (:documentation "Run SOFTWARE on INPUT."))
-
-(defmethod run-on-input ((obj software) (input string) &key bin)
-  (shell input (if bin
-                   (phenome obj :bin bin)
-                   (phenome obj))))
+(defmethod collect-trace ((obj software) input)
+  (with-temp-file (bin)
+    (with-temp-fifo (pipe)
+      ;; Start run on the input.
+      (let ((proc
+             (let ((components
+                    (split-sequence #\Space
+                      (format nil input (if bin
+                                            (phenome obj :bin bin)
+                                            (phenome obj))))))
+               #+sbcl
+               (sb-ext:run-program (car components) (cdr components)
+                                   :environment
+                                   (cons (concatenate 'string
+                                           *instrument-log-env-name* "=" pipe)
+                                         (sb-ext:posix-environ))
+                                   :wait nil)
+               #+ccl
+               (ccl:run-program (car components) (cdr components)
+                                :env (list (cons *instrument-log-env-name* pipe))
+                                :wait nil)
+               #-(or sbcl ccl)
+               (error "Implement for non-SBCL (requires non-blocking shell)."))))
+        (list (cons :input input)
+              (cons :trace (unwind-protect
+                                ;; Read trace output from fifo.
+                                (with-open-file (in pipe)
+                                  (iter (for obj = (read in nil :eof))
+                                        (until (eq obj :eof))
+                                        (collect obj)))
+                             #+sbcl (sb-ext:process-close proc)
+                             #+ccl (ccl:process-kill proc)
+                             #-(or sbcl ccl)
+                             (error "`collect-trace' needs SBCL or CCL."))))))))
