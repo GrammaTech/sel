@@ -25,7 +25,8 @@ techniques."
                metabang-bind
                software-evolution-utility
                split-sequence
-               usocket)
+               usocket
+               trivial-utf-8)
   :in-order-to ((test-op (test-op software-evolution-test)))
   :components
   ((:module base

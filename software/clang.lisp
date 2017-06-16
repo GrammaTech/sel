@@ -236,10 +236,31 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 (defun asts->tree (genome asts)
   (let ((roots (mapcar {aget :counter}
                        (remove-if-not [#'zerop {aget :parent-counter}] asts)))
-        (ast-vector (coerce asts 'vector)))
+        (ast-vector (coerce asts 'vector))
+        ;; Find all multi-byte characters in the genome for adjusting
+        ;; offsets later.
+        (byte-offsets
+         (iter (for c in-string genome)
+               (with byte = 0)
+               (for length = (->> (make-string 1 :initial-element c)
+                                  (trivial-utf-8:utf-8-byte-length)))
+               (incf byte length)
+               (when (> length 1)
+                 (collecting (cons byte (1- length)))))))
    (labels
        ((get-ast (id)
           (aref ast-vector (1- id)))
+        (byte-offset-to-chars (offset)
+          ;; Find all the multi-byte characters at or before this
+          ;; offset and accumulate the byte->character offset
+          (- offset
+             (iter (for (pos . incr) in byte-offsets)
+                   (while (<= pos offset))
+                   (summing incr))))
+        (begin-offset (ast)
+          (byte-offset-to-chars (aget :begin-off ast)))
+        (end-offset (ast)
+          (byte-offset-to-chars (aget :end-off ast)))
         (collect-children (ast)
           ;; Find child ASTs and sort them in textual order.
           (let ((children (sort (mapcar #'get-ast (aget :children ast))
@@ -262,7 +283,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                       (push (aget :counter c) (aget :children prev))
                       (collect c)))))
         (make-children (ast child-asts)
-          (let ((start (aget :begin-off ast)))
+          (let ((start (begin-offset ast)))
             ;; In macro expansions, the mapping to source text is sketchy and
             ;; it's impossible to build a proper hierarchy. So don't recurse
             ;; into them. And change the ast-class so other code won't get
@@ -275,18 +296,18 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                 (iter (for subtree in child-asts)
                       (for c = (car subtree))
                       ;; Collect text
-                      (collect (subseq genome start (aget :begin-off c))
+                      (collect (subseq genome start (begin-offset c))
                         into children)
                       ;; Collect child, converted to AST struct
                       (collect (cons (snippet->clang-ast c)
                                      (cdr subtree))
                         into children)
-                      (setf start (+ 1 (aget :end-off c)))
+                      (setf start (+ 1 (end-offset c)))
                       (finally
                        (return
                          (append children
                                  (list (subseq genome start
-                                               (+ 1 (aget :end-off ast))))))))
+                                               (+ 1 (end-offset ast))))))))
                 ;; No children: create a single string child with source text
                 (when (not (emptyp (aget :src-text ast)))
                   (list (aget :src-text ast))))))
