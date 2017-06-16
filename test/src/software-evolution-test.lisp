@@ -4691,20 +4691,24 @@ Useful for printing or returning differences in the REPL."
                                       :type "c"
                                       :directory +gcd-dir+)))))
 
+(defvar *gcd-inputs* '("~a 1071 1029"
+                       "~a 555 666"
+                       "~a 678 987"
+                       "~a 8767 653"
+                       "~a 16777216 512"
+                       "~a 16 4"
+                       "~a 315 831"
+                       "~a 513332 91583315"
+                       "~a 112 135"
+                       "~a 310 55")
+  "Example test inputs for GCD.")
+
 (deftest run-traceable-gcd ()
-  (let ((inputs '("~a 1071 1029"
-                  "~a 555 666"
-                  "~a 678 987"
-                  "~a 8767 653"
-                  "~a 16777216 512"
-                  "~a 16 4"
-                  "~a 315 831"
-                  "~a 513332 91583315"
-                  "~a 112 135"
-                  "~a 310 55"
-                  "~a 0 55")))
-    (with-fixture traceable-gcd
-      )))
+  (with-fixture traceable-gcd
+    (instrument *gcd* :trace-env t)
+    (setf (traces *gcd*) (mapcar {collect-trace *gcd*} *gcd-inputs*))
+    (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
+    (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
 
 ;;;; Tests of declaration and type databases on clang objects

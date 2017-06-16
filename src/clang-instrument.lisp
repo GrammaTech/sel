@@ -4,7 +4,14 @@
 
 ;;;; Instrumentation
 
-(defgeneric instrument (obj &key points functions functions-after trace-file
+(defvar *instrument-log-variable-name* "__sel_trace_file"
+  "Variable used for instrumentation.")
+
+(defvar *instrument-log-env-name* "__SEL_TRACE_FILE"
+  "Default environment variable in which to store log file.")
+
+(defgeneric instrument (obj &key points functions functions-after
+                              trace-file trace-env
                               print-argv instrument-exit filter)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
@@ -16,29 +23,37 @@ Keyword arguments are as follows:
   POINTS ----------- alist of additional strings to print at specific points
   FUNCTIONS -------- functions to calculate instrumentation at each point
   TRACE-FILE ------- file for trace output
+  TRACE-ENV -------- trace output to file specified by ENV variable
   PRINT-ARGV ------- print program arguments on startup
   INSTRUMENT-EXIT -- print counter of function body before exit
   FILTER ----------- function to select a subset of ASTs for instrumentation
 "))
 
-
-(defmethod instrument ((obj clang) &key points functions functions-after
-                                     trace-file print-argv instrument-exit
-                                     (filter #'identity))
+(defmethod instrument
+    ((obj clang) &key points functions functions-after
+                   trace-file trace-env print-argv instrument-exit
+                   (filter #'identity))
   ;; Send object through clang-mutate to get accurate counters
   (update-asts obj)
 
-  (let ((log-var (if trace-file "__bi_mut_log_file" "stderr"))
+  ;; Default value for TRACE-ENV is `*instrument-log-env-name*'.  This
+  ;; allows users to specify tracing from the environment without
+  ;; having to export this above value (which we'd prefer not be
+  ;; modified as it's assumed elsewhere).
+  (when (eq trace-env t) (setf trace-env *instrument-log-env-name*))
+  (let ((log-var (if (or trace-file trace-env)
+                     *instrument-log-variable-name*
+                     "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
         (points
          (remove nil
-                 (mapcar (lambda-bind ((ast . value))
-                    (let ((parent (enclosing-traceable-stmt obj ast)))
-                      (if parent (cons parent value)
-                          (warn "Point ~s doesn't match traceable AST."
-                                ast))))
+           (mapcar (lambda-bind ((ast . value))
+                     (let ((parent (enclosing-traceable-stmt obj ast)))
+                       (if parent (cons parent value)
+                           (warn "Point ~s doesn't match traceable AST."
+                                 ast))))
                    points)))
         ;; Hash table mapping ASTs to indices. Values are the same as
         ;; index-of-ast, but without the linear search. Use
@@ -68,11 +83,18 @@ Keyword arguments are as follows:
                   (wrap (and (not (traceable-stmt-p obj ast))
                              (can-be-made-traceable-p obj ast)))
                   (return-void (ast-void-ret function))
-                  (skip (or (ast-in-macro-expansion ast)
-                            (eq :NullStmt (ast-class ast))
-                            (when trace-file  ;might be null, short circuit and don't filter if so
-                              (search (file-open-str log-var trace-file)
-                                      (source-text ast))))))
+                  (skip
+                   (or (ast-in-macro-expansion ast)
+                       (eq :NullStmt (ast-class ast))
+                       ;; Might be null, short circuit and don't
+                       ;; filter if so.
+                       (when (or trace-file trace-env)
+                         ;; TODO: This is gross, we should track that
+                         ;;       this has been inserted instead of
+                         ;;       searching the source for the string.
+                         (search (file-open-str
+                                  log-var :file trace-file :env trace-env)
+                                 (source-text ast))))))
 
              ;; Insertions in bottom-up order
              (append
@@ -84,13 +106,13 @@ Keyword arguments are as follows:
                                (ancestor-after obj (function-body obj function)
                                                ast)))
                    (:value1 .
-                        ,(format nil
-                                 "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
-                                 (gethash (ast-ref-path
-                                           (function-body obj function))
-                                          ast-numbers)
-                                 log-var
-                                 (if return-void "" "return _inst_ret;"))))))
+                            ,(format nil
+                                     "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
+                                     (gethash (ast-ref-path
+                                               (function-body obj function))
+                                              ast-numbers)
+                                     log-var
+                                     (if return-void "" "return _inst_ret;"))))))
               ;; Closing brace after the statement
               (when (and wrap (not skip))
                 `((:insert-value-after (:stmt1 . ,counter)
@@ -102,17 +124,17 @@ Keyword arguments are as follows:
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                      ,(let ((type (find-type obj (ast-ret function))))
-                            (format nil "~a~@[*~] _inst_ret"
-                                    (type-name type)
-                                    (type-pointer type)))))))
+                            ,(let ((type (find-type obj (ast-ret function))))
+                               (format nil "~a~@[*~] _inst_ret"
+                                       (type-name type)
+                                       (type-pointer type)))))))
               ;; Transform return statement to temp assignment/goto
               (when (and instrument-exit
                          (eq (ast-class ast) :ReturnStmt))
                 (let ((ret (unless return-void
                              (peel-bananas
                               (source-text
-                                   (first (get-immediate-children obj ast)))))))
+                               (first (get-immediate-children obj ast)))))))
                   `((:set
                      (:stmt1 . ,counter)
                      (:value1 .
@@ -120,49 +142,49 @@ Keyword arguments are as follows:
                                        ret))))))
 
               (when (and functions-after (not skip))
-                  `((:insert-value-after
+                `((:insert-value-after
                    (:stmt1 . ,counter)
                    (:value1 .
-                     ,(format nil "~a~{~a~}~a~%"
-                        (format nil ; Start up alist w/counter.
-                                  "fputs(\"((:C . ~d) \", ~a);~%"
-                                  (gethash (ast-ref-path ast) ast-numbers)
-                                  log-var)
-                        (mapcar
-                          {format nil ; Functions instrumentation.
-                                  (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
-                                          log-var)}
-                          (mapcar #'car formats-w-args-after)
-                          (mapcar #'cdr formats-w-args-after))
-                        (format nil "fputs(\")\", ~a);~% fflush(~a);~%"
-                                log-var log-var))))))
+                            ,(format nil "~a~{~a~}~a~%"
+                                     (format nil ; Start up alist w/counter.
+                                             "fputs(\"((:C . ~d) \", ~a);~%"
+                                             (gethash (ast-ref-path ast) ast-numbers)
+                                             log-var)
+                                     (mapcar
+                                      {format nil ; Functions instrumentation.
+                                              (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
+                                                      log-var)}
+                                      (mapcar #'car formats-w-args-after)
+                                      (mapcar #'cdr formats-w-args-after))
+                                     (format nil "fputs(\")\", ~a);~% fflush(~a);~%"
+                                             log-var log-var))))))
 
               ;; Opening brace and instrumentation code before
               (unless skip
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                     ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%"
-                        wrap
-                        (append
-                         (cons
-                          (format nil ; Start up alist w/counter.
-                                  "fputs(\"((:C . ~d) \", ~a);~%"
-                                  (gethash (ast-ref-path ast) ast-numbers)
-                                  log-var)
-                          (when trace-strings
-                            (list
-                             (format nil ; Points instrumentation.
-                                     "fputs(\"(~{~a ~})\", ~a);~%"
-                                     (mapcar #'escape trace-strings) log-var))))
-                         (mapcar
-                          {format nil ; Functions instrumentation.
-                                  (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
-                                          log-var)}
-                          (mapcar #'car formats-w-args)
-                          (mapcar #'cdr formats-w-args))
-                         (list (format nil "fflush(~a);~%" log-var)))
-                              log-var)))))))))
+                            ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%"
+                                     wrap
+                                     (append
+                                      (cons
+                                       (format nil ; Start up alist w/counter.
+                                               "fputs(\"((:C . ~d) \", ~a);~%"
+                                               (gethash (ast-ref-path ast) ast-numbers)
+                                               log-var)
+                                       (when trace-strings
+                                         (list
+                                          (format nil ; Points instrumentation.
+                                                  "fputs(\"(~{~a ~})\", ~a);~%"
+                                                  (mapcar #'escape trace-strings) log-var))))
+                                      (mapcar
+                                       {format nil ; Functions instrumentation.
+                                               (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
+                                                       log-var)}
+                                       (mapcar #'car formats-w-args)
+                                       (mapcar #'cdr formats-w-args))
+                                      (list (format nil "fflush(~a);~%" log-var)))
+                                     log-var)))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
@@ -185,14 +207,20 @@ Keyword arguments are as follows:
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
     (when (and print-argv (get-entry obj))
-       (print-program-input obj log-var))
-    (when trace-file
-      (log-to-filename obj log-var trace-file))
+      (print-program-input obj log-var))
+    (when (or trace-file trace-env)
+      (log-to-filename obj trace-file trace-env))
     (clang-format obj)
     obj))
 
-(defun file-open-str (log-variable filename)
-  (format nil "  ~a = fopen(~s, \"a\");~%" log-variable (namestring filename)))
+(defun file-open-str (log-variable &key file env)
+  (cond
+    (file
+     (format nil "  ~a = fopen(~s, \"a\");~%" log-variable (namestring file)))
+    (env
+     (format nil "  ~a = fopen(getenv(~s), \"a\");~%"
+             log-variable (namestring env)))
+    (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
 
 (defgeneric var-instrument (software label key ast &key print-strings)
   (:documentation
@@ -287,7 +315,8 @@ fputs(\"))\\n\", ~a);"
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
 ;; Should only be called if you're sure obj is an entry-obj
-(defmethod log-to-filename ((obj clang) log-variable filename)
+(defun log-to-filename (obj file-name env-name)
+  (assert (typep obj 'clang))
   (if (get-entry obj)
       ;; Object contains main(). Insert log variable definition and
       ;; initialization function. Use the "constructor" attribute to
@@ -296,6 +325,7 @@ fputs(\"))\\n\", ~a);"
             (format nil
                     "
 #include <stdio.h>
+#include <stdlib.h>
 FILE *~a;
 void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
   ~a
@@ -303,15 +333,16 @@ void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
 
 ~a
 "
-                    log-variable
-                    (file-open-str log-variable filename)
+                    *instrument-log-variable-name*
+                    (file-open-str *instrument-log-variable-name* :file file-name :env env-name)
                     (genome obj)))
 
       ;; Object does not contain main. Insert extern definition of log variable.
       (setf (genome obj)
-          (concatenate 'string
-            (format nil "#include <stdio.h>~%extern FILE *~a;~%" log-variable)
-            (genome obj))))
+            (concatenate 'string
+              (format nil "#include <stdio.h>~%#include <stdlib.h>~%extern FILE *~a;~%"
+                      *instrument-log-variable-name*)
+              (genome obj))))
 
   obj)
 

@@ -197,9 +197,9 @@ the underlying software objects."
 
     ;; Insert log setup code in other-files
     (loop for obj in (mapcar #'cdr (other-files project))
-       do (log-to-filename obj "__bi_mut_log_file"
-                           (plist-get :trace-file args))))
-
+       do (log-to-filename obj
+                           :file (plist-get :trace-file args)
+                           :env (plist-get :trace-env args))))
   project)
 
 

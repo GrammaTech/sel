@@ -22,6 +22,7 @@
    :fast-io)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-utility :quit)
+  (:shadowing-import-from :uiop :getenv)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
@@ -517,8 +518,8 @@
    :parse-source-snippet
    ;; traceable
    :traceable
-   :collect-traces
-   :read-trace))
+   :traces
+   :collect-trace))
 (in-package :software-evolution)
 (enable-curry-compose-reader-macros :include-utf8)
 #+allegro
