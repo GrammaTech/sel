@@ -143,6 +143,10 @@
   :test #'equalp
   :documentation "Path to the shadow example.")
 
+(define-constant +unicode-dir+ (append +etc-dir+ (list "unicode"))
+  :test #'equalp
+  :documentation "Path to the unicode example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -247,6 +251,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +shadow-dir+))
+
+(defun unicode-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +unicode-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -653,6 +662,14 @@
     (setf *soft*
           (from-file (make-instance 'clang)
           (shadow-dir "shadow.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture unicode-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang)
+          (unicode-dir "unicode.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -1504,6 +1521,18 @@ int x = CHARSIZE;")))
     (is (equalp '("int" "char")
                 (mapcar [#'type-name {find-type obj}]
                         (get-ast-types obj (first (asts obj))))))))
+
+(deftest able-to-handle-multibyte-characters ()
+  (with-fixture unicode-clang
+    (is (stmt-with-text *soft* "int x = 0"))
+    (is (stmt-with-text *soft* "\"2 bytes: Δ\""))
+    (is (stmt-with-text *soft* "int y = 1"))
+    (let ((source (file-to-string (unicode-dir "unicode.c"))))
+      ;; For some reason file-to-string gives us a trailing " "
+      ;; character for every extra byte in the file. After stripping
+      ;; those the genome should be identical to the original text.
+      (is (string= (genome *soft*)
+                   (subseq source 0 (- (length source) 3)))))))
 
 
 ;;; Detailed clang mutation tests
