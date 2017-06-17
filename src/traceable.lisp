@@ -11,24 +11,28 @@
 ;;; Execution with trace collection.
 (defgeneric collect-trace (software input &key predicate max)
   (:documentation
-   "Execute instrumented SOFTWARE on INPUT collecting a dynamic trace."))
+   "Execute instrumented SOFTWARE on INPUT collecting a dynamic trace.
+INPUT should be a program and sequence of arguments.  The special
+element :BIN in INPUT will be replaced with the name of the compiled
+instrumented binary."))
 
 (defmethod collect-trace
     ((obj software) input &key (predicate #'identity) (max infinity))
   (with-temp-file (bin)
     (assert (phenome obj :bin bin) (obj) "Unable to compile software ~a" obj)
+    (setf input (mapcar (lambda (it) (if (eq :bin it) bin it)) input))
     (with-temp-fifo (pipe)
       ;; Start run on the input.
       (let ((proc
              #+sbcl
-              (sb-ext:run-program bin input
+              (sb-ext:run-program (car input) (cdr input)
                                   :environment
                                   (cons (concatenate 'string
                                           *instrument-log-env-name* "=" pipe)
                                         (sb-ext:posix-environ))
                                   :wait nil)
               #+ccl
-              (ccl:run-program bin input
+              (ccl:run-program (car input) (cdr input)
                                :env (list (cons *instrument-log-env-name* pipe))
                                :wait nil)
               #-(or sbcl ccl)
