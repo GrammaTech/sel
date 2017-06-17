@@ -208,7 +208,7 @@ pathname (i.e., ending in a \"/\")."
      :version (pathname-version path))))
 
 
-;;; Shell and system command helpers
+;;;; Shell and system command helpers
 (defvar *work-dir* nil)
 
 (defvar *shell-debug* nil
@@ -419,7 +419,7 @@ See 'man 3 termios' for more information."
     (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
 
 
-;;; generic forensic functions over arbitrary objects
+;;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)
   #+sbcl
   (sb-mop::slot-definition-name el)
@@ -520,7 +520,7 @@ Optional argument OUT specifies an output stream."
       1))
 
 
-;;; Generic utility functions
+;;;; Generic utility functions
 (defun plist-get (item list &key (test #'eql) &aux last)
   (loop :for element :in list :do
      (cond
@@ -832,7 +832,7 @@ and 0 otherwise."
 
               (t middle)))))
 
-;;; Source and binary locations and ranges.
+;;;; Source and binary locations and ranges.
 (defclass source-location ()
   ((line :initarg :line :accessor line :type 'fixnum)
    (column :initarg :column :accessor column :type 'fixnum)))
@@ -911,7 +911,7 @@ and 0 otherwise."
        (> (end a-range) (begin b-range))))
 
 
-;;; debugging helpers
+;;;; debugging helpers
 (defvar *note-level* 0 "Enables execution notes.")
 (defvar *note-out* '(t) "Targets of notation.")
 
@@ -1047,7 +1047,7 @@ the genome of an ASM object."
     map))
 
 
-;;; Oprofile functions
+;;;; Oprofile functions
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
     (remove nil
@@ -1105,12 +1105,12 @@ that function may be declared.")
     (unlines (keep-after (split-sequence '#\Newline haystack)))))
 
 
-;;; Iteration helpers
+;;;; Iteration helpers
 (defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))
   `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
 
 
-;;; Profiling
+;;;; Profiling
 
 ;; Dot implementation from
 ;; https://techfak.uni-bielefeld.de/~jmoringe/call-graph.html.
