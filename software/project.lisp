@@ -198,8 +198,8 @@ the underlying software objects."
     ;; Insert log setup code in other-files
     (loop for obj in (mapcar #'cdr (other-files project))
        do (log-to-filename obj
-                           :file (plist-get :trace-file args)
-                           :env (plist-get :trace-env args))))
+                           (plist-get :trace-file args)
+                           (plist-get :trace-env args))))
   project)
 
 
