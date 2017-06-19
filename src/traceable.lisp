@@ -9,7 +9,7 @@
 
 
 ;;; Execution with trace collection.
-(defgeneric collect-trace (software input &key predicate max)
+(defgeneric collect-trace (software input &key predicate max bin)
   (:documentation
    "Execute instrumented SOFTWARE on INPUT collecting a dynamic trace.
 INPUT should be a program and sequence of arguments.  The special
@@ -17,36 +17,43 @@ element :BIN in INPUT will be replaced with the name of the compiled
 instrumented binary."))
 
 (defmethod collect-trace
-    ((obj software) input &key (predicate #'identity) (max infinity))
-  (with-temp-file (bin)
-    (assert (phenome obj :bin bin) (obj) "Unable to compile software ~a" obj)
-    (setf input (mapcar (lambda (it) (if (eq :bin it) bin it)) input))
-    (with-temp-fifo (pipe)
-      ;; Start run on the input.
-      (let ((proc
-             #+sbcl
-              (sb-ext:run-program (car input) (cdr input)
-                                  :environment
-                                  (cons (concatenate 'string
-                                          *instrument-log-env-name* "=" pipe)
-                                        (sb-ext:posix-environ))
+    ((obj software) input
+     &key (predicate #'identity) (max infinity) (bin (temp-file-name))
+     &aux (delete-bin-p t))
+  (if (probe-file bin)
+      (setf delete-bin-p nil)
+      (assert (phenome obj :bin bin) (obj)
+              "Unable to compile software ~a" obj))
+  (setf input (mapcar (lambda (it) (if (eq :bin it) bin it)) input))
+  (unwind-protect
+       (with-temp-fifo (pipe)
+         ;; Start run on the input.
+         (let ((proc
+                #+sbcl
+                 (sb-ext:run-program (car input) (cdr input)
+                                     :environment
+                                     (cons (concatenate 'string
+                                             *instrument-log-env-name* "=" pipe)
+                                           (sb-ext:posix-environ))
+                                     :wait nil)
+                 #+ccl
+                 (ccl:run-program (car input) (cdr input)
+                                  :env (list
+                                        (cons *instrument-log-env-name* pipe))
                                   :wait nil)
-              #+ccl
-              (ccl:run-program (car input) (cdr input)
-                               :env (list (cons *instrument-log-env-name* pipe))
-                               :wait nil)
-              #-(or sbcl ccl)
-              (error "Implement for non-SBCL (requires non-blocking shell).")))
-        (list (cons :input input)
-              (cons :trace (unwind-protect
-                                ;; Read trace output from fifo.
-                                (with-open-file (in pipe)
-                                  (read-trace-stream
-                                   in :predicate predicate :max max))
-                             #+sbcl (sb-ext:process-close proc)
-                             #+ccl (ccl:process-kill proc)
-                             #-(or sbcl ccl)
-                             (error "`collect-trace' needs SBCL or CCL."))))))))
+                 #-(or sbcl ccl)
+                 (error "Implement for lisps other than SBCL and CCL.")))
+           (list (cons :input input)
+                 (cons :trace (unwind-protect
+                                   ;; Read trace output from fifo.
+                                   (with-open-file (in pipe)
+                                     (read-trace-stream
+                                      in :predicate predicate :max max))
+                                #+sbcl (sb-ext:process-close proc)
+                                #+ccl (ccl:process-kill proc)
+                                #-(or sbcl ccl)
+                                (error "Needs SBCL or CCL."))))))
+    (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
 
 (defun read-trace-file (file-name &key (predicate #'identity) (max infinity))
   "Read a trace from FILE-NAME with `read-trace-stream'."
