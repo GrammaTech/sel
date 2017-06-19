@@ -520,6 +520,7 @@
    :traceable
    :traces
    :collect-trace
+   :collect-traces
    :read-trace-file
    :read-trace-stream))
 (in-package :software-evolution)
