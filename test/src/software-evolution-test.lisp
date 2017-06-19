@@ -4697,6 +4697,13 @@ Useful for printing or returning differences in the REPL."
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
+(deftest run-traceable-gcd-w/collect-traces ()
+  (with-fixture traceable-gcd
+    (instrument *gcd* :trace-env t)
+    (collect-traces *gcd* *gcd-inputs*)
+    (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
+    (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
+
 (deftest test-reading-trace-file ()
   (with-fixture traceable-gcd
     (with-temp-file (trace-path)

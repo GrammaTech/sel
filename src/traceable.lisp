@@ -9,12 +9,35 @@
 
 
 ;;; Execution with trace collection.
+(defgeneric collect-traces (software inputs &key predicate max bin)
+  (:documentation
+   "Execute instrumented SOFTWARE on INPUTS collecting dynamic traces.
+See the documentation of `collect-trace' for information on the
+PREDICATE MAX and BIN keyword arguments."))
+
+(defmethod collect-traces ((obj software) inputs
+                           &key predicate max (bin (temp-file-name))
+                           &aux (args (list :bin bin)) (delete-bin-p t))
+  (when predicate (setf args (append args (list :predicate predicate))))
+  (when max (setf args (append args (list :max max))))
+  (if (probe-file bin)
+      (setf delete-bin-p nil)
+      (assert (phenome obj :bin bin) (obj)
+              "Unable to compile software ~a" obj))
+  (unwind-protect
+       (setf (traces obj)
+             (mapcar (lambda (input) (apply #'collect-trace obj input args)) inputs))
+    (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
+
 (defgeneric collect-trace (software input &key predicate max bin)
   (:documentation
    "Execute instrumented SOFTWARE on INPUT collecting a dynamic trace.
 INPUT should be a program and sequence of arguments.  The special
 element :BIN in INPUT will be replaced with the name of the compiled
-instrumented binary."))
+instrumented binary.  PREDICATE may be a function in which case only
+trace points for which PREDICATE returns true are recorded.  Max
+specifies the maximum number of trace points to record.  BIN specifies
+the name of an already-compiled binary to use."))
 
 (defmethod collect-trace
     ((obj software) input
