@@ -2717,8 +2717,8 @@ closest to POINT."))
                            &optional point)
   (let ((decls (gethash variable-name (declarations obj))))
     (if point
-        (lastcar (take-while [{<= _ (index-of-ast obj point)}
-                              {index-of-ast obj}] decls))
+        (find-if «or {ast-later-p point} {equalp point}»
+                 decls :from-end t)
         (car decls))))
 
 (defgeneric declared-type (ast variable-name)
