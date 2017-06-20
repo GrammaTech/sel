@@ -48,26 +48,27 @@ the name of an already-compiled binary to use."))
       (setf delete-bin-p nil)
       (assert (phenome obj :bin bin) (obj)
               "Unable to compile software ~a" obj))
-  (setf input (mapcar (lambda (it) (if (eq :bin it) bin it)) input))
   (unwind-protect
        (with-temp-fifo (pipe)
          ;; Start run on the input.
-         (let ((proc
-                #+sbcl
-                 (sb-ext:run-program (car input) (cdr input)
-                                     :environment
-                                     (cons (concatenate 'string
-                                             *instrument-log-env-name* "=" pipe)
-                                           (sb-ext:posix-environ))
-                                     :wait nil)
-                 #+ccl
-                 (ccl:run-program (car input) (cdr input)
-                                  :env (list
-                                        (cons *instrument-log-env-name* pipe))
-                                  :wait nil)
-                 #-(or sbcl ccl)
-                 (error "Implement for lisps other than SBCL and CCL.")))
-           (list (cons :input input)
+         (let* ((real-input (mapcar (lambda (it) (if (eq :bin it) bin it))
+                                    input))
+                (proc
+                 #+sbcl
+                  (sb-ext:run-program (car real-input) (cdr real-input)
+                                      :environment
+                                      (cons (concatenate 'string
+                                                         *instrument-log-env-name* "=" pipe)
+                                            (sb-ext:posix-environ))
+                                      :wait nil)
+                  #+ccl
+                  (ccl:run-program (car real-input) (cdr real-input)
+                                   :env (list
+                                         (cons *instrument-log-env-name* pipe))
+                                   :wait nil)
+                  #-(or sbcl ccl)
+                  (error "Implement for lisps other than SBCL and CCL.")))
+           (list (cons :input input)    ; keep :bin symbol if present
                  (cons :trace (unwind-protect
                                    ;; Read trace output from fifo.
                                    (with-open-file (in pipe)
