@@ -496,6 +496,7 @@
    :get-unbound-vals
    :get-unbound-funs
    :scopes
+   :ast-ref
    :make-ast-ref
    :ast-ref-path
    :ast-ref-ast
