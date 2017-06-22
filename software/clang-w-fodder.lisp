@@ -6,6 +6,7 @@
 ;;; Each AST entry in the Mongo database contains source text and,
 ;;; where applicable, the corresponding binary bytes.
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *database* nil
   "Database utilized for fodder selection")

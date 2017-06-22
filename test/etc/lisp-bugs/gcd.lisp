@@ -1,5 +1,6 @@
 (require :software-evolution)
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (setq *gcd*
       (make-instance 'lisp

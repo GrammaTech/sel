@@ -20,6 +20,7 @@
 ;; extensible mechanism for adding additional fixers.
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *compilation-fixers* nil
   "Alist of compiler warning regular expressions, and associated function.

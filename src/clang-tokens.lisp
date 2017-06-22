@@ -1,4 +1,5 @@
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (define-condition unhandled-token-class (error)
   ((text :initarg :text :initform nil :reader text))

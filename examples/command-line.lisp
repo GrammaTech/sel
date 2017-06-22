@@ -11,6 +11,8 @@
   (:use :common-lisp :metabang-bind)
   (:export :quit :throw-error :getopts))
 (in-package :software-evolution-command-line)
+(enable-curry-compose-reader-macros :include-utf8)
+
 
 (defun quit (&optional (errno 0))
   #+sbcl (sb-ext:exit :code errno)

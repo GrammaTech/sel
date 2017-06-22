@@ -2,6 +2,7 @@
 ;;; similar to a given target.
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defclass searchable () ())
 

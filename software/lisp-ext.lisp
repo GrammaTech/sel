@@ -23,6 +23,7 @@
 
 ;;; Code:
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 
 ;;; the class of lisp software objects

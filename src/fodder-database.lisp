@@ -1,6 +1,7 @@
 ;;;  Interface for all fodder database implementations.
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defclass fodder-database (searchable) ())
 

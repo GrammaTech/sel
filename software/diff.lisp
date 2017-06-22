@@ -19,6 +19,7 @@
 
 ;;; Code:
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defclass diff (simple)
   ;; This doesn't use `define-software' because it requires special

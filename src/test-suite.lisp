@@ -27,6 +27,7 @@
 |#
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defclass test-suite () ())
 

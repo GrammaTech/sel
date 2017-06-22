@@ -39,6 +39,7 @@ based on n-grams extracted from execution traces.
 |#
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 
 ;;; Helper function generation

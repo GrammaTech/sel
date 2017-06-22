@@ -1,5 +1,6 @@
 ;;;; software object with dynamically adapting mutation probabilities
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (define-constant +initial-mutation-results-queue+
   (make-array 1024

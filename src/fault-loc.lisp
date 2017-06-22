@@ -31,6 +31,7 @@
 ;; method.
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defgeneric collect-fault-loc-traces (instrumented-obj test-suite read-trace-fn)
   (:documentation "Run test cases and collect execution traces.

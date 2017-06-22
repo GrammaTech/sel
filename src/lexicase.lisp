@@ -8,6 +8,7 @@
 ;; have their scores in the same order.
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *lexicase-key* nil
   "Optional key function for components of test vector.")
