@@ -51,7 +51,8 @@ the name of an already-compiled binary to use."))
   (unwind-protect
        (with-temp-fifo (pipe)
          ;; Start run on the input.
-         (let* ((real-input (mapcar (lambda (it) (if (eq :bin it) bin it))
+         (let* ((real-input (mapcar (lambda (it)
+                                      (if (eq :bin it) (namestring bin) it))
                                     input))
                 (proc
                  #+sbcl
