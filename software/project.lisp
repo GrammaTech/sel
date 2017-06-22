@@ -27,6 +27,7 @@
 |#
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (define-software project (software)
   ((build-command :initarg :build-command :accessor build-command :initform nil

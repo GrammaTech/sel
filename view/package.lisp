@@ -88,8 +88,6 @@
            :view-truncate
            :view-start
            :view-controller-start))
-(in-package :software-evolution-view)
-(enable-curry-compose-reader-macros :include-utf8)
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

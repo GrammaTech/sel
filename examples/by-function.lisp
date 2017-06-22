@@ -33,6 +33,8 @@
 
 ;;; Code:
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
+
 
 (defmacro defadapt (name args conditions &body body)
   "Define a function with associated meta-data used for evolution."

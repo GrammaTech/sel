@@ -1,4 +1,6 @@
 (in-package :software-evolution-example)
+(enable-curry-compose-reader-macros :include-utf8)
+
 
 ;; gcd.s may be compiled from gcd.c in the test/ directory.
 (let ((orig (from-file (make-instance 'asm) "../test/gcd/gcd.s"))) ; (1)

@@ -21,6 +21,7 @@
 
 ;;; Code:
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (define-software clang (ast)
   ((genome   :initarg :genome :initform nil

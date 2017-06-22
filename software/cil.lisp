@@ -21,6 +21,7 @@
 
 ;;; Code:
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 
 ;;; cil software objects

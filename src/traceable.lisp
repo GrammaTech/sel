@@ -1,5 +1,6 @@
 ;;; traceable --- instrumentable software objects with dynamic traces
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defclass traceable (software)
   ((traces :initarg :traces :accessor traces :initform nil

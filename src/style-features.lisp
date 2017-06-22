@@ -1,4 +1,5 @@
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 
 (defparameter *clang-c-ast-classes*

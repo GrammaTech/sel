@@ -1,4 +1,6 @@
 (in-package :software-evolution-example)
+(enable-curry-compose-reader-macros :include-utf8)
+
 
 (defun test (asm)                       ; (1)
   (ignore-errors

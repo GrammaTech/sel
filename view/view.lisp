@@ -25,6 +25,7 @@
 
 ;;; Code:
 (in-package :software-evolution-view)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (enable-interpol-syntax)

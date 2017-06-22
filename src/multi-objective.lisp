@@ -6,6 +6,7 @@
 ;; have their scores in the same order.
 
 (in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *pareto-comparison-set-size* nil
   "Size of comparison set for Pareto tournaments.")
