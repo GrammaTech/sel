@@ -4095,7 +4095,15 @@ Useful for printing or returning differences in the REPL."
         `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a"))))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
-                      (genome-string variant)))))
+                      (genome-string variant))))
+      (let ((stmt (or (stmt-with-text variant "b = 13")
+                      (stmt-with-text variant "c = 13"))))
+        (is stmt)
+        ;; unbound-vals are updated correctly
+        (is (or (equal (get-unbound-vals variant stmt)
+                       '(("(|b|)" 0)))
+                (equal (get-unbound-vals variant stmt)
+                       '(("(|c|)" 0)))))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
           variant
@@ -5995,10 +6003,11 @@ Useful for printing or returning differences in the REPL."
                                                               "foo(0)"))
                                    (:stmt2 . ,(stmt-with-text *scopes*
                                                               "b = 0"))))
+    ;; "b" is not defined in this context so it will be rebound
     (is (equal (get-unbound-vals *scopes*
                                  (stmt-starting-with-text *scopes*
                                                           "void bar"))
-               '(("(|b|)" nil))))))
+               '(("(|global|)" 0))))))
 
 
 ;;;; Clang tokenizer tests

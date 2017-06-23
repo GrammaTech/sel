@@ -768,7 +768,10 @@ use carefully.
       (setf (ast-unbound-vals new)
             (remove-duplicates
              (mapcar (lambda (v)
-                       (or (second (find-if [{equal v} #'car] var-replacements))
+                       (or (&>> var-replacements
+                             (find-if [{equal v} #'peel-bananas #'car])
+                             (second)
+                             (peel-bananas))
                            v))
                      (ast-unbound-vals new))
              :test #'equal))
