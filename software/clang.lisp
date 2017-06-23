@@ -1090,8 +1090,9 @@ pick or false (nil) otherwise."
   :documentation "Statement classes with guards")
 
 (defmethod pick-guarded-compound ((obj clang))
-  (pick-bad-only obj :filter [{member _ +clang-guarded-classes+}
-                              #'ast-class]))
+  (aget :stmt1
+        (pick-bad-only obj :filter [{member _ +clang-guarded-classes+}
+                                    #'ast-class])))
 
 (defmethod build-op ((mutation clang-promote-guarded) software
                      &aux (guarded (targets mutation)))
