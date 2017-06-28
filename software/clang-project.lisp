@@ -17,8 +17,10 @@
 
 
 (defmethod from-file ((clang-project clang-project) project-dir)
-  (assert (compilation-database clang-project) (clang-project)
-          "Calling `from-file` on a clang-project requires a compilation.")
+  (assert (or (compilation-database clang-project) (which "bear"))
+          (clang-project)
+          "Calling `from-file` on a clang-project requires a compilation ~
+           database or 'bear' installation on your PATH")
   (labels ((create-compilation-database (clang-project)
              (multiple-value-bind (stdout stderr errno)
                  (shell "cd ~a && bear ~a ~a"

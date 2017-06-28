@@ -5020,6 +5020,10 @@ Useful for printing or returning differences in the REPL."
   (is (equal (in-directory #P"/tmp/build" #P"src/test.c")
              #P"/tmp/build/src/test.c")))
 
+(deftest which-test ()
+  (is (null (which "dsjafpoarue")))
+  (is (not (null (which "clang")))))
+
 
 
 ;; project tests
@@ -5077,10 +5081,26 @@ Useful for printing or returning differences in the REPL."
       (is (null (current-file copy))))))
 
 (deftest clang-project-test ()
-  (let ((project (from-file (make-instance 'clang-project
-                              :build-command "make"
-                              :build-target "grep")
-                            (make-pathname :directory +grep-prj-dir+))))
+  (let ((project
+          (-> (make-instance 'clang-project
+                :build-command "make"
+                :build-target "grep"
+                :compilation-database
+                  `(((:file .
+                      ,(-> (make-pathname :directory +grep-prj-dir+
+                                          :name "grep"
+                                          :type "c")
+                           (namestring)))
+                     (:directory .
+                      ,(-> (make-pathname :directory +grep-prj-dir+)
+                           (directory-namestring)))
+                     (:command .
+                      ,(format nil "cc -c -o grep ~a"
+                                   (-> (make-pathname :directory +grep-prj-dir+
+                                                      :name "grep"
+                                                      :type "c")
+                                       (namestring)))))))
+              (from-file (make-pathname :directory +grep-prj-dir+)))))
     (is (equal "make" (build-command project)))
     (is (equal "grep" (build-target project)))
     (is (equal 1 (length (evolve-files project))))
