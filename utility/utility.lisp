@@ -419,6 +419,13 @@ See 'man 3 termios' for more information."
                                   sb-posix:echo))))
     (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
 
+(defun which (file &key (path (getenv "PATH")))
+  (iterate (for dir in (split-sequence #\: path))
+           (let ((fullpath (merge-pathnames file
+                                            (make-pathname :directory dir))))
+             (when (probe-file fullpath)
+               (return fullpath)))))
+
 
 ;;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)

@@ -74,6 +74,7 @@
    :parse-numbers
    :trim-whitespace
    :make-terminal-raw
+   :which
    ;; forensic
    :show-it
    :equal-it
