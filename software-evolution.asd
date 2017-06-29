@@ -22,7 +22,6 @@ techniques."
                diff
                elf
                iterate
-               memoize
                metabang-bind
                software-evolution-utility
                split-sequence

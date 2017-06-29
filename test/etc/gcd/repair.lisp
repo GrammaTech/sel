@@ -1,9 +1,9 @@
 ;; repair using software evolution
-(mapcar #'require '(:software-evolution :memoize :cl-store))
+(mapcar #'require '(:software-evolution :cl-store))
 (defpackage :repair
   (:use :common-lisp :alexandria :metabang-bind :curry-compose-reader-macros
         :software-evolution :software-evolution-utility
-        :split-sequence :memoize :cl-store :cl-ppcre))
+        :split-sequence :cl-store :cl-ppcre))
 (in-package :repair)
 
 ;; reproducibility
