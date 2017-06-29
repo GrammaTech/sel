@@ -14,7 +14,6 @@
    :diff
    :elf
    :iterate
-   :memoize
    :metabang-bind
    :split-sequence
    :software-evolution-utility
