@@ -413,9 +413,9 @@ statement(s) in the repair targets."
     (unless inst-locs
       (setf inst-locs (mapcar {enclosing-full-stmt software } repair-locs)))
 
-    (let ((inst-reps (lambda (ast)
+    (let ((inst-reps (lambda (obj ast)
                        (when (member ast inst-locs :test #'equalp)
-                         (instrument-values software ast
+                         (instrument-values obj ast
                                             :print-strings t
                                             :extra-exprs extra-exprs)))))
       ;; Instrument the original object
