@@ -491,17 +491,19 @@ if not given."
                   :expr-type (type-hash type)))
 
 (defun make-var-decl (name type &optional initializer)
-  (make-statement
-   :DeclStmt :fullstmt
-   (list (make-statement :Var :generic
-                         (if initializer
-                             (list (format nil "~a ~a = "
-                                           (type-decl-string type) name)
-                                   initializer)
-                             (list (format nil "~a ~a"
-                                           (type-decl-string type) name)))
-                         :types (list (type-hash type))
-                         :declares (list name)))))
+  (let ((decls (list name)))
+    (make-statement
+     :DeclStmt :fullstmt
+     (list (make-statement :Var :generic
+                           (if initializer
+                               (list (format nil "~a ~a = "
+                                             (type-decl-string type) name)
+                                     initializer)
+                               (list (format nil "~a ~a"
+                                             (type-decl-string type) name)))
+                           :types (list (type-hash type))
+                           :declares decls))
+     :declares decls)))
 
 (defun make-array-subscript-expr (array-expr subscript-expr)
   (make-statement :ArraySubscriptExpr :generic
