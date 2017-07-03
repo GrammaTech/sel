@@ -1038,7 +1038,7 @@ pick or false (nil) otherwise."
   (declare (ignorable software))
   `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
              (:stmt2 . ,(aget :stmt2 (targets mutation))))
-    (:cut (:stmt1 . ,(aget :stmt1 (targets mutation))))))
+    (:cut (:stmt1 . ,(aget :stmt2 (targets mutation))))))
 
 ;;; Replace
 (define-mutation clang-replace (clang-mutation)
