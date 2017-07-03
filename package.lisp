@@ -435,6 +435,9 @@
    :test-cases
    :run-test
    :case-fitness
+   :scripted-test-suite
+   :make-scripted-test-suite
+   :run-test-script
    :instrumentation-exprs
    :synthesize-condition
    :build

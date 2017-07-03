@@ -346,6 +346,17 @@ See the documentation of `shell' for more information."
                 (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
 
+(defun shell-with-env (env command-format &rest format-args)
+  "Run a shell command with environment variables set. ENV should be a
+list of (name value) pairs."
+  ;; Quotes embedded in the command will screw up our quoting
+  ;; below. We could try to escape them, not bothering for now.
+  (let* ((command (apply {format nil command-format} format-args))
+         (command_esc (replace-all command "\"" "\\\"")))
+    (shell "~{~a ~}sh -c \"~a\""
+           (mapcar {apply {format nil "~a=~a"}} env)
+           command_esc)))
+
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL to FILE."

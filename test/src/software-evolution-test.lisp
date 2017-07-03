@@ -41,6 +41,12 @@
 (defvar *fib*         nil "Holds the fibonacci software object.")
 (defvar *variety*     nil "Holds the variety software object.")
 (defvar *contexts*    nil "Holds the syntactic-contexts software object.")
+(defvar *cs-tiny*     nil "Holds condition synthesis loosen condition object.")
+(defvar *cs-tighten*  nil "Holds condition synthesis tighten condition object.")
+(defvar *cs-add-guard* nil "Holds condition synthesis add guard test object.")
+(defvar *cs-partial*  nil "Holds condition synthesis partial repair object.")
+(defvar *cs-divide*   nil "Holds condition synthesis if to while test object.")
+(defvar *test-suite*  nil "Holds condition synthesis test suite object.")
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
@@ -157,6 +163,36 @@
   :test #'equalp
   :documentation "Path to the switch-macros example.")
 
+(define-constant +condition-synthesis-dir+
+    (append +etc-dir+ (list "condition-synthesis"))
+  :test #'equalp
+  :documentation "Path to condition synthesis examples.")
+
+(define-constant +cs-tiny-dir+ (append +condition-synthesis-dir+
+                                       (list "tiny-test"))
+  :test #'equalp
+  :documentation "Path to condition synthesis tighten-condition example.")
+
+(define-constant +cs-tighten-dir+ (append +condition-synthesis-dir+
+                                          (list "test-tighten"))
+  :test #'equalp
+  :documentation "Path to condition synthesis tighten-condition example.")
+
+(define-constant +cs-add-guard-dir+ (append +condition-synthesis-dir+
+                                            (list "test-add-guard"))
+  :test #'equalp
+  :documentation "Path to condition synthesis add guard example.")
+
+(define-constant +cs-partial-dir+ (append +condition-synthesis-dir+
+                                          (list "test-partial"))
+  :test #'equalp
+  :documentation "Path to condition synthesis partial repair example.")
+
+(define-constant +cs-divide-dir+ (append +condition-synthesis-dir+
+                                         (list "divide"))
+  :test #'equalp
+  :documentation "Path to condition synthesis if to while repair example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -271,6 +307,31 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +switch-macros-dir+))
+
+(defun cs-tiny-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-tiny-dir+))
+
+(defun cs-tighten-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-tighten-dir+))
+
+(defun cs-add-guard-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-add-guard-dir+))
+
+(defun cs-partial-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-partial-dir+))
+
+(defun cs-divide-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +cs-divide-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -697,7 +758,88 @@
           (from-file (make-instance 'clang)
           (unicode-dir "unicode.c"))))
   (:teardown
-    (setf *soft* nil)))
+   (setf *soft* nil)))
+
+(defixture cs-tiny-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang)
+                           (cs-tiny-dir "tiny-test.c")))
+          (setf *test-suite*
+                (make-scripted-test-suite
+                 (lambda (bin args)
+                   (format nil "~a ~a ~{~a~^ ~}"
+                           (namestring (cs-tiny-dir "fitness.py"))
+                           bin
+                           args))
+                 6)))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(defixture cs-tighten-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang)
+                           (cs-tighten-dir "test-tighten.c")))
+          (setf *test-suite*
+                (make-scripted-test-suite
+                 (lambda (bin args)
+                   (format nil "~a ~a ~{~a~^ ~}"
+                           (namestring (cs-tighten-dir "fitness.py"))
+                           bin
+                           args))
+                 6)))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(defixture cs-add-guard-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang)
+                           (cs-add-guard-dir "test-add-guard.c")))
+          (setf *test-suite*
+                (make-scripted-test-suite
+                 (lambda (bin args)
+                   (format nil "~a ~a ~{~a~^ ~}"
+                           (namestring (cs-add-guard-dir "fitness.py"))
+                           bin
+                           args))
+                 8)))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(defixture cs-partial-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang)
+                           (cs-partial-dir "partial.c")))
+          (setf *test-suite*
+                (make-scripted-test-suite
+                 (lambda (bin args)
+                   (format nil "~a ~a ~{~a~^ ~}"
+                           (namestring (cs-partial-dir "fitness.py"))
+                           bin
+                           args))
+                 6)))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
+(defixture cs-divide-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang)
+                           (cs-divide-dir "divide.c")))
+          (setf *test-suite*
+                (make-scripted-test-suite
+                 (lambda (bin args)
+                   (format nil "~a ~a ~{~a~^ ~}"
+                           (namestring (cs-divide-dir "fitness.py"))
+                           bin
+                           args))
+                 5)))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
+
 
 (defixture switch-macros-clang
   (:setup
@@ -5295,6 +5437,103 @@ Useful for printing or returning differences in the REPL."
                       '( :neq "y"  "int" "4")
                       '( :neq "z"  "int" "2"))
                 :test #'equal))))
+
+(deftest tiny-test-repair-works ()
+  (with-fixture cs-tiny-clang
+    (let* ((repair-mut (make-instance 'loosen-condition
+                                      :object *soft*
+                                      :targets (stmt-with-text *soft* "x > 5")))
+           (repaired-prog (se::synthesize-condition *soft*
+                                                    *test-suite*
+                                                    repair-mut)))
+      (is repaired-prog)
+      (is (stmt-with-text repaired-prog "(x > 5) || (x == 5)")))))
+
+(deftest test-tighten-repair ()
+  (with-fixture cs-tighten-clang
+    (let* ((repair-mut (make-instance
+                        'se::tighten-condition
+                        :object *soft*
+                        :targets (stmt-with-text *soft* "x >= 5")))
+           (repaired-prog (se::synthesize-condition *soft* *test-suite*
+                                                    repair-mut)))
+      (is repaired-prog)
+      (is (stmt-with-text repaired-prog "(x >= 5) && !(x == 5)")))))
+
+(deftest test-add-condition-repair-target-24 ()
+  (with-fixture cs-add-guard-clang
+    (let* ((repair-mut
+            (make-instance 'add-condition
+                           :object *soft*
+                           :targets (stmt-starting-with-text *soft*
+                                                             "if (x >= 5)")))
+           (repaired-prog (se::synthesize-condition *soft* *test-suite*
+                                                    repair-mut)))
+      (is repaired-prog)
+      (let ((outer (stmt-starting-with-text repaired-prog "if (!(x == 5))"))
+            (inner (stmt-starting-with-text repaired-prog "if (x >= 5)")))
+        (is outer)
+        (is inner)
+        (is (equalp
+             inner
+             (first
+              (get-immediate-children
+               repaired-prog
+               (second (get-immediate-children repaired-prog outer))))))))))
+
+(deftest test-add-condition-repair-target-30 ()
+  (with-fixture cs-add-guard-clang
+    (let* ((repair-mut (make-instance
+                        'add-condition
+                        :object *soft*
+                        :targets (stmt-starting-with-text
+                                  *soft*
+                                  "printf(\"x is larger")))
+           (repaired-prog (se::synthesize-condition *soft* *test-suite*
+                                                    repair-mut)))
+      (is repaired-prog)
+      (let ((outer (stmt-starting-with-text repaired-prog "if (!(x == 5))"))
+            (inner (stmt-starting-with-text repaired-prog
+                                            "printf(\"x is larger")))
+        (is outer)
+        (is inner)
+        (is (equalp
+             inner
+             (first
+              (get-immediate-children
+               repaired-prog
+               (second (get-immediate-children repaired-prog outer))))))))))
+
+(deftest test-partial-repair ()
+  (with-fixture cs-partial-clang
+    (let* ((repair-mut
+            (make-instance 'tighten-condition
+                           :object *soft*
+                           :targets (stmt-with-text *soft* "x >= 5")))
+           (repaired-prog (se::synthesize-condition *soft* *test-suite*
+                                                    repair-mut)))
+      (is repaired-prog)
+      (is (stmt-with-text repaired-prog "(x >= 5) && !(x == 5)")))))
+
+(deftest test-if-to-while-repair ()
+  (with-fixture cs-divide-clang
+    (let* ((repair-mut
+            (make-instance 'if-to-while-tighten-condition
+                           :object *soft*
+                           :targets (stmt-starting-with-text *soft*
+                                                             "if (x >= 2)")))
+           (repaired-prog (se::synthesize-condition *soft* *test-suite*
+                                                    repair-mut)))
+      (is repaired-prog)
+      (let ((stmt (stmt-starting-with-text repaired-prog "while")))
+        (is stmt)
+        (is (eq :WhileStmt (ast-class stmt)))
+        (is (equal "(x >= 2) && !(x == 2)"
+                   (->> (get-immediate-children repaired-prog stmt)
+                        (first)
+                        (source-text)
+                        (peel-bananas))))))))
+
 
 
 ;;; Selection tests
