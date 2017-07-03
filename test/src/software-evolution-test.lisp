@@ -1673,23 +1673,26 @@ int x = CHARSIZE;")))
     (let* ((bad-1 "printf(\"Hello, World!\\n\")")
            (bad-2 "return 0")
            (*bad-asts* (asts-with-text *hello-world* bad-1 bad-2))
-           (*clang-mutation-types* '((clang-move . 1)))
-           (variant (copy *hello-world*)))
-      (mutate variant)
-      ;; Still exist (> 0).
-      (is (stmt-with-text variant bad-1)
-          "Move doesn't remove \"Hello, World!\\n\".")
-      (is (stmt-with-text variant bad-2)
-          "Move doesn't remove \"0\".")
-      ;; No duplicates (< 2).
-      (is
-       (= 1 (length (all-matches-as-strings (quote-meta-chars bad-1)
-                                            (genome variant))))
-       "Move doesn't duplicate \"Hello, World!\\n\".")
-      (is
-       (= 1 (length (all-matches-as-strings (quote-meta-chars bad-2)
-                                            (genome variant))))
-       "Move doesn't duplicate \"0\"."))))
+           (*clang-mutation-types* '((clang-move . 1))))
+      (multiple-value-bind (variant mut) (mutate (copy *hello-world*))
+        ;; If both targets are the same, genome will not change.
+        (unless (eq (aget :stmt1 (targets mut)) (aget :stmt2 (targets mut)))
+         (is (not (string= (genome *hello-world*) (genome variant)))
+             "Move changes genome."))
+        ;; Still exist (> 0).
+        (is (stmt-with-text variant bad-1)
+            "Move doesn't remove \"Hello, World!\\n\".")
+        (is (stmt-with-text variant bad-2)
+            "Move doesn't remove \"0\".")
+        ;; No duplicates (< 2).
+        (is
+         (= 1 (length (all-matches-as-strings (quote-meta-chars bad-1)
+                                              (genome variant))))
+         "Move doesn't duplicate \"Hello, World!\\n\".")
+        (is
+         (= 1 (length (all-matches-as-strings (quote-meta-chars bad-2)
+                                              (genome variant))))
+         "Move doesn't duplicate \"0\".")))))
 
 (deftest swap-full-changes-full-stmts ()
   (with-fixture hello-world-clang-control-picks
