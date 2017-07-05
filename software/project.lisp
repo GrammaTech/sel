@@ -285,8 +285,8 @@ path within BODY."
       (shell "cd ~a && ~a ~a" *build-dir*
              (build-command obj) (build-target obj))
     (values
-     (prog1 bin
-       (when (zerop exit)
+     (when (zerop exit)
+       (prog1 bin
          (shell "cp -r ~a ~a" (namestring (full-path (build-target obj))) bin)))
      exit
      stderr
