@@ -233,8 +233,12 @@ expression match.")
 (defmethod add-int1-macros ((obj clang) match-data)
   (declare (ignorable match-data))
   (add-include obj "stdint.h")
-  (add-macro   obj "int1_t"  "int1_t int32_t")
-  (add-macro   obj "uint1_t" "uint1_t uint32_t"))
+  (add-macro obj (make-clang-macro :name "int1_t"
+                                   :body "int1_t int32_t"
+                                   :hash 3666623046900672582))
+  (add-macro obj (make-clang-macro :name "uint1_t"
+                                   :body "uint1_t uint32_t"
+                                   :hash 6836836908473106000)))
 
 (register-fixer
  ":(\\d+):(\\d+): error: unknown type name (‘|')(int|uint)1_t(’|')"

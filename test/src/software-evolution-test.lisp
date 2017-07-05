@@ -489,8 +489,11 @@
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
-  (add-macro obj
-             "swap_" "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)")
+  (->> (se::make-clang-macro
+         :name "swap_"
+         :body "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"
+         :hash 1179176719466053316)
+       (add-macro obj))
   (setf (genome-string obj) (genome-string obj)))
 
 (defixture hello-world-clang-w-fodder
@@ -1304,9 +1307,11 @@ else
   (with-fixture headers-clang
     (let ((macros (macros *headers*)))
       (is (listp macros))
-      (is (= 1 (length macros)))
-      (is (equal (aget "ANOTHER" macros :test #'equal)
-                 "ANOTHER 2")))))
+      (is (= 2 (length macros)))
+      (is (member "MAIN" (macros *headers*)
+                  :key #'macro-name :test #'string=))
+      (is (member "ANOTHER" (macros *headers*)
+                  :key #'macro-name :test #'string=)))))
 
 (deftest clang-types-initialized ()
   (with-fixture headers-clang
@@ -1325,6 +1330,21 @@ else
                     (all-matches
                      (format nil "#include\\w* ~a" incl)
                      (genome *headers*))))))))
+
+(deftest add-macro-test ()
+  (with-fixture hello-world-clang
+    (add-macro *hello-world* (make-clang-macro :hash 3656618339188109385
+                                               :name "ONE"
+                                               :body "ONE 1"))
+    (is (equal 1 (length (macros *hello-world*))))
+    (is (not (null (search "#define ONE 1" (genome *hello-world*)))))))
+
+(deftest find-macro-test ()
+  (with-fixture hello-world-clang
+    (add-macro *hello-world* (make-clang-macro :hash 3656618339188109385
+                                               :name "ONE"
+                                               :body "ONE 1"))
+    (is (not (null (find-macro *hello-world* 3656618339188109385))))))
 
 (deftest add-bad-include-doesnt-change-number-of-asts ()
   (with-fixture hello-world-clang
@@ -1359,7 +1379,9 @@ else
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
       (se::add-macro *hello-world*
-                     "GARBAGE" "#ifndef GARBAGE DO_SOMETHING_FORGET_ENDIF()")
+                     (se::make-clang-macro :name "GARBAGE"
+                                           :body "GARBAGE TRASH"
+                                           :hash -4794347995631201955))
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest clang-expression-test ()

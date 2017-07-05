@@ -19,23 +19,31 @@
 (defmethod initialize-instance :after ((db json-database) &key)
   ;; Initialize (load) a new json database.
   (dolist (snippet (load-json-with-caching db))
-    (let ((ast-class (aget :ast-class snippet)))
-      (if ast-class
-          ;; This entry describes a code snippet
-          (progn
-            (setf (ast-database-list db)
-                  (cons snippet (ast-database-list db)))
-            (setf (ast-database-full-stmt-list db)
-                  (if (aget :full-stmt snippet)
-                      (cons snippet (ast-database-full-stmt-list db))
-                      (ast-database-full-stmt-list db)))
-            (let ((cur (gethash ast-class (ast-database-ht db))))
-              (setf (gethash ast-class (ast-database-ht db))
-                    (cons snippet cur))))
-          ;; This entry describes a type, perhaps
-          (let ((type-id (aget :hash snippet)))
-            (when type-id
-              (setf (gethash type-id (type-database-ht db)) snippet)))))))
+    (cond ((and (assoc :hash snippet)
+                (assoc :reqs snippet)
+                (assoc :type snippet))
+           ;; Types
+           (setf (gethash (aget :hash snippet)
+                          (type-database-ht db))
+                 snippet))
+          ((and (assoc :hash snippet)
+                (assoc :name snippet)
+                (assoc :body snippet))
+           ;; Macros
+           (setf (gethash (aget :hash snippet)
+                          (macro-database-ht db))
+                 snippet))
+          (t ;; ASTs
+             (when-let ((ast-class (aget :ast-class snippet)))
+               (setf (ast-database-list db)
+                     (cons snippet (ast-database-list db)))
+               (setf (ast-database-full-stmt-list db)
+                     (if (aget :full-stmt snippet)
+                         (cons snippet (ast-database-full-stmt-list db))
+                         (ast-database-full-stmt-list db)))
+               (setf (gethash ast-class (ast-database-ht db))
+                     (cons snippet
+                           (gethash ast-class (ast-database-ht db)))))))))
 
 (defmethod load-json-with-caching ((db json-database))
   (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
