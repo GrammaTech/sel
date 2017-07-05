@@ -30,7 +30,13 @@
     :accessor type-database-ht
     :initform (make-hash-table :test 'equal)
     :documentation
-    "An auxillary database of type snippets, grouped by hash-code")))
+    "An auxillary database of type snippets, grouped by hash-code")
+   (macro-database-ht
+    :initarg :macro-database-ht
+    :accessor macro-database-ht
+    :initform (make-hash-table :test 'equal)
+    :documentation
+    "An auxillary database of macro snippets, grouped by hash-code")))
 
 (defmethod size ((db in-memory-database))
   (length (ast-database-list db)))
@@ -58,4 +64,9 @@
 
 (defmethod find-type ((db in-memory-database) hash)
   (let ((type (gethash hash (type-database-ht db))))
-    (when type (snippet->clang-type (first type)))))
+    (when type (snippet->clang-type type))))
+
+(defmethod find-macro ((db in-memory-database) hash)
+  (let ((macro (gethash hash (macro-database-ht db))))
+    (when macro (snippet->clang-macro macro))))
+

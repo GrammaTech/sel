@@ -223,6 +223,7 @@
    :find-snippets
    :weighted-pick
    :find-type
+   :find-macro
    :similar-snippets
    :*clang-max-json-size*
    :*crossover-function-probability*
@@ -493,10 +494,15 @@
    :type-name
    :type-size
    :make-clang-type
+   :macro-name
+   :macro-body
+   :macro-hash
+   :make-clang-macro
    :roots
    :ast->snippet
    :snippet->clang-ast
    :snippet->clang-type
+   :snippet->clang-macro
    :source-text
    :function-body
    :stmt-range

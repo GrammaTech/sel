@@ -228,10 +228,19 @@
                                 limit)))))
 
 (defmethod find-type ((obj pliny-database) hash)
-  (first (execute-query obj
-                        `((:*features (:hash . ,hash))
-                          (:*weights (:hash . 1)))
-                        1)))
+  (pliny-find-hash obj hash #'snippet->clang-type))
+
+(defmethod find-macro ((obj pliny-database) hash)
+  ;; FIXME: Update pliny database to support new macro format
+  (pliny-find-hash obj hash #'snippet->clang-macro))
+
+(defun pliny-find-hash (pliny-db hash to-obj-fn)
+  (->> (execute-query pliny-db
+                      `((:*features (:hash . ,hash))
+                        (:*weights (:hash . 1)))
+                      1)
+       (first)
+       (funcall to-obj-fn)))
 
 (defgeneric execute-query (pliny-database query limit)
   (:documentation

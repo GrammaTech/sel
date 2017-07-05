@@ -123,16 +123,25 @@
           (take (or limit infinity) snippets)))))
 
 (defmethod find-type ((obj mongo-database) hash)
-  (with-mongo-connection (:db (db obj) :host (host obj) :port (port obj))
-    (do* ((result (db.find "types" (kv "hash" hash))
-                  (db.next "types" cursor))
+  (mongo-find-hash obj "types" hash #'snippet->clang-type))
+
+(defmethod find-macro ((obj mongo-database) hash)
+  ;; FIXME: Update pliny database to support new macro format
+  (mongo-find-hash obj "macros" hash #'snippet->clang-macro))
+
+(defun mongo-find-hash (mongo-db database-name hash to-obj-fn)
+  (with-mongo-connection (:db (db mongo-db)
+                          :host (host mongo-db)
+                          :port (port mongo-db))
+    (do* ((result (db.find database-name (kv "hash" hash))
+                  (db.next database-name cursor))
           (cursor (cursor result)
                   (cursor result))
           (documents (documents result)
                      (append documents (documents result))))
          ((zerop cursor) (->> (mapcar #'document-cljson documents)
                               (first)
-                              (snippet->ast))))))
+                              (funcall to-obj-fn))))))
 
 
 ;;; Utility functions

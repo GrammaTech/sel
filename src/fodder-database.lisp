@@ -17,6 +17,10 @@
              Limit results to decls if the keyword :ONLY.
 :LIMIT ----- Limit to N randomly drawn snippets"))
 
-(defgeneric find-type (type-database hash)
-  (:documentation "Find the type in the type database
+(defgeneric find-type (database hash)
+  (:documentation "Find the type in the database
+matching the parameter HASH"))
+
+(defgeneric find-macro (database hash)
+  (:documentation "Find the macro in the database
 matching the parameter HASH"))
