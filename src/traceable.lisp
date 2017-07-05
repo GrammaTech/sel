@@ -27,7 +27,11 @@ PREDICATE MAX and BIN keyword arguments."))
               "Unable to compile software ~a" obj))
   (unwind-protect
        (setf (traces obj)
-             (mapcar (lambda (input) (apply #'collect-trace obj input args)) inputs))
+             (mapcar
+               (lambda-bind ((i input))
+                 (note 2 "Collect trace ~a of ~a" (1+ i) (length inputs))
+                 (apply #'collect-trace obj input args))
+               (indexed inputs)))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
 
 (defgeneric collect-trace (software input &key predicate max bin)
