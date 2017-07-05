@@ -55,7 +55,7 @@
         (timeout (e)
           (declare (ignorable e))
           (values "" "" 124)))
-      (values bin errno stderr stdout src))))
+      (values (when (zerop errno) bin) errno stderr stdout src))))
 
 (defmethod compile-p ((obj ast))
   (with-temp-file (bin)
