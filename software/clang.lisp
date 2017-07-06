@@ -577,7 +577,10 @@ Adds and removes semicolons, commas, and braces. "
          ;; its text, but here the semicolon already exists in a
          ;; parent AST.
          (list before
-               (ast-ref-ast (make-statement :NullStmt :unbracedbody nil)))))
+               (ast-ref-ast (make-statement :NullStmt :unbracedbody nil))))
+       (add-null-stmt-and-semicolon ()
+         (list before
+               (ast-ref-ast (make-statement :NullStmt :unbracedbody '(";"))))))
     (remove nil
             (ecase context
               (:generic (no-change))
@@ -596,7 +599,12 @@ Adds and removes semicolons, commas, and braces. "
               (:braced
                (ecase operation
                          (:before (no-change))
-                         (:remove (no-change))
+                         ;; When cutting a free-floating block, we don't need a
+                         ;; semicolon, but it's harmless. When cutting a braced
+                         ;; loop/function body, we do need the semicolon. Since
+                         ;; we can't easily distinguish these case, always add
+                         ;; the semicolon.
+                         (:remove (add-null-stmt-and-semicolon))
                          (:instead (wrap-with-block-if-unbraced))))
               (:unbracedbody
                (ecase operation
