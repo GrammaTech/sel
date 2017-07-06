@@ -17,7 +17,12 @@ void main(void) {
 
     /* For loop. */
     for(i=0;i<k;i++){
-        puts('FOR');
+        puts('FOR-1');
+    }
+
+    /* For loop with empty header. */
+    for(;;) {
+        puts('FOR-2');
     }
 
     /* Single child. */
