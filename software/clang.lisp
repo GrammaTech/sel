@@ -1133,7 +1133,7 @@ pick or false (nil) otherwise."
               (second (get-immediate-children software guarded))))
             (:ForStmt
              (compose-children
-              (fourth (get-immediate-children software guarded))))
+              (lastcar (get-immediate-children software guarded))))
             (:IfStmt
              (let ((children (get-immediate-children software guarded)))
                (if (= 2 (length children))

@@ -1765,12 +1765,24 @@ int x = CHARSIZE;")))
               (apply-mutation copy
                 (make-instance 'clang-promote-guarded
                   :object copy
-                  :targets (->> (stmt-with-text *nested* "puts('FOR')")
+                  :targets (->> (stmt-with-text *nested* "puts('FOR-1')")
                                 (get-parent-asts *nested*)
                                 (third))))))
            "/* For loop. */"
-           "puts('FOR');")
+           "puts('FOR-1');")
           "Promotes single-line body from within for loop.")
+      (is (subsequent-lines-p
+           (let ((copy (copy *nested*)))
+             (genome
+              (apply-mutation copy
+                (make-instance 'clang-promote-guarded
+                  :object copy
+                  :targets (->> (stmt-with-text *nested* "puts('FOR-2')")
+                                (get-parent-asts *nested*)
+                                (third))))))
+           "/* For loop with empty header. */"
+           "puts('FOR-2');")
+          "Promotes single-line body from within for loop 2.")
       (is (subsequent-lines-p
            (let ((copy (copy *nested*)))
              (genome
