@@ -5785,6 +5785,21 @@ Useful for printing or returning differences in the REPL."
                  (second)
                  (ast-class))))))
 
+(deftest cut-braced-body-adds-nullstmt ()
+  (with-fixture contexts
+    (let ((target (->> (stmt-with-text *contexts* "int x = 1")
+                       (get-parent-ast *contexts*))))
+      (se::apply-mutation-ops *contexts*
+                              `((:cut (:stmt1 . ,target)))))
+    (is (eq 1 (count-matching-chars-in-stmt
+               #\;
+               (find-function *contexts* "braced_body"))))
+    (is (eq :NullStmt
+            (&>> (stmt-starting-with-text *contexts* "if (1)")
+                 (get-immediate-children *contexts*)
+                 (second)
+                 (ast-class))))))
+
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2")))
