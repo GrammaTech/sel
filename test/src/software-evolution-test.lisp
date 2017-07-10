@@ -1039,7 +1039,15 @@
                                              "void int main(void) {
   struct dfamust *dm, *ndm;
 }")))))
-      "Another with a modifier."))
+      "Another with a modifier.")
+  (is (= 1 (count-if {scan "static char"}
+                     (split-sequence #\Newline
+                       (genome-string
+                        (from-string-exactly (make-instance 'clang)
+                                             ";
+static char const *all_args_string = \"source,fstype\" ;
+")))))
+      "Doesn't split on commas within a string constant."))
 
 (deftest splits-global-and-stmt-asts ()
   (with-fixture huf-clang
