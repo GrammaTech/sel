@@ -1,3 +1,11 @@
+struct x {
+    int x;
+};
+
+enum y {
+    TEST
+};
+
 int global;
 
 void foo(int a) {
