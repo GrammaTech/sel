@@ -9,6 +9,10 @@ void foo(int a) {
         char d;
         d = 'x';
     }
+
+    if (1)
+        return;
+    int e;
 }
 
 void bar() {

@@ -2494,18 +2494,18 @@ included as the first successor."
   (:documentation "Return lists of variables in each enclosing scope."))
 
 (defmethod scopes ((software clang) (ast ast-ref))
-  (when-let ((scope (enclosing-scope software ast))
-             (full (enclosing-full-stmt software ast)))
-    (cons (->> (iter (for c in
-                          (get-immediate-children software scope))
-                     (while (not (equal (ast-ref-path c)
-                                        (ast-ref-path full))))
-                     (collect c))
-               (remove-if #'function-decl-p) ; we only want var decls
-               (mappend #'ast-declares)
-               (remove-if #'emptyp)     ; drop nils and empty strings
-               (reverse))
-          (scopes software scope))))
+  ;; Stop at the root AST
+  (when (not (eq :TopLevel (ast-class ast)))
+    (let ((scope (enclosing-scope software ast)))
+      (cons (->> (iter (for c in
+                            (get-immediate-children software scope))
+                       (while (ast-later-p ast c))
+                       (collect c))
+                 (remove-if #'function-decl-p) ; we only want var decls
+                 (mappend #'ast-declares)
+                 (remove-if #'emptyp) ; drop nils and empty strings
+                 (reverse))
+            (scopes software scope)))))
 
 (defgeneric get-ast-types (software ast)
   (:documentation "Types directly referenced within AST."))

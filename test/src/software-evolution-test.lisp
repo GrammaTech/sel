@@ -1917,11 +1917,12 @@ int x = CHARSIZE;")))
 (defsuite* test-clang-w-fodder)
 
 (deftest parse-source-snippet-body-statement ()
-  (let ((asts (parse-source-snippet "x + y" '(("x" "int") ("y" "char")) nil)))
-    (is (eq 1 (length asts)))
-    (is (eq :BinaryOperator (ast-class (car asts))))
-    (is (equalp '(("(|y|)" NIL) ("(|x|)" NIL))
-                (get-unbound-vals (make-instance 'clang) (car asts))))))
+  (with-fixture gcd-clang
+    (let ((asts (parse-source-snippet "x + y" '(("x" "int") ("y" "char")) nil)))
+      (is (eq 1 (length asts)))
+      (is (eq :BinaryOperator (ast-class (car asts))))
+      (is (equalp '(("(|y|)" NIL) ("(|x|)" NIL))
+                  (get-unbound-vals *gcd* (car asts)))))))
 
 (deftest parse-source-snippet-handles-includes ()
   (let ((asts (parse-source-snippet "printf(\"hello\")"
@@ -5988,6 +5989,11 @@ Useful for printing or returning differences in the REPL."
                '(nil
                  ("c" "b")
                  ("a")
+                 ("global"))))
+
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "return"))
+               '(("c" "b")
+                 ("a")
                  ("global"))))))
 
 (deftest types-are-correct ()
@@ -6006,7 +6012,7 @@ Useful for printing or returning differences in the REPL."
                        (get-ast-types *scopes*
                                       (stmt-starting-with-text *scopes*
                                                                "void foo")))
-               '("int" "char")))))
+               '("char" "int")))))
 
 (deftest unbound-vals-are-correct ()
   (with-fixture scopes2-clang
