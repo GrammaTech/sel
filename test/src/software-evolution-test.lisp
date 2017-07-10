@@ -153,6 +153,10 @@
   :test #'equalp
   :documentation "Path to the unicode example.")
 
+(define-constant +switch-macros-dir+ (append +etc-dir+ (list "switch-macros"))
+  :test #'equalp
+  :documentation "Path to the switch-macros example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -262,6 +266,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +unicode-dir+))
+
+(defun switch-macros-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +switch-macros-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -676,6 +685,14 @@
     (setf *soft*
           (from-file (make-instance 'clang)
           (unicode-dir "unicode.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture switch-macros-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang)
+          (switch-macros-dir "switch-macros.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -1483,6 +1500,16 @@ is not to be found"
       (is (equal '(:Record)
                  (mapcar #'ast-class
                          (get-immediate-children *soft* typedef)))))))
+
+(deftest overlapping-sibling-asts ()
+  ;; A combination of macros and case statements produces tricky
+  ;; overlapping source ranges. Test that update-asts can handle it
+  ;; correctly.
+  (with-fixture switch-macros-clang
+    (is (equal '(:CharacterLiteral :MacroExpansion)
+               (->> (stmt-starting-with-text *soft* "case 'F'")
+                    (get-immediate-children *soft*)
+                    (mapcar #'ast-class))))))
 
 (deftest replace-in-ast-subtree ()
   (let ((subtree '(:sub 1 2)))

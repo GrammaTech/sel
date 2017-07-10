@@ -293,7 +293,10 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                   (for prev previous c)
                   (if (and prev
                            (< (aget :begin-off c) (aget :end-off prev)))
-                      (push (aget :counter c) (aget :children prev))
+                      (progn
+                        (setf (aget :end-off prev) (max (aget :end-off prev)
+                                                        (aget :end-off c)))
+                        (push (aget :counter c) (aget :children prev)))
                       (collect c)))))
         (make-children (ast child-asts)
           (let ((start (begin-offset ast)))
