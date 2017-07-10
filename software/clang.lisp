@@ -2501,7 +2501,9 @@ included as the first successor."
                             (get-immediate-children software scope))
                        (while (ast-later-p ast c))
                        (collect c))
-                 (remove-if #'function-decl-p) ; we only want var decls
+                  ; remove type and function decls
+                 (remove-if-not [{member _ '(:Var :ParmVar :DeclStmt)}
+                                 #'ast-class])
                  (mappend #'ast-declares)
                  (remove-if #'emptyp) ; drop nils and empty strings
                  (reverse))
