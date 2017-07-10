@@ -1593,17 +1593,25 @@ declarations onto multiple lines to ease subsequent decl mutations."))
       parens
       curlies)))
 
-(defun balanced-parens (pos &aux (deep 0))
+(defun balanced-parens (pos &aux (deep 0) escape in-string)
   (iter (while (< pos (length ppcre::*string*)))
         (as char = (aref ppcre::*string* pos))
-        (case char
-          (#\( (incf deep))
-          (#\) (when (zerop deep) (return-from balanced-parens nil))
-               (decf deep))
-          (#\,
-           (when (zerop deep) (return-from balanced-parens pos)))
-          (#\;
-           (return-from balanced-parens pos)))
+        (cond
+          ;; Last char was a backslash, skip over this one
+          (escape (setf escape nil))
+          ;; Start or end of a quoted string
+          ((eq char #\")
+           (setf in-string (not in-string)))
+          ;; Ignore parens, etc within a quoted string
+          ((not in-string)
+           (case char
+              (#\( (incf deep))
+              (#\) (when (zerop deep) (return-from balanced-parens nil))
+                   (decf deep))
+              (#\,
+               (when (zerop deep) (return-from balanced-parens pos)))
+              (#\;
+               (return-from balanced-parens pos)))))
         (incf pos))
   (if (zerop deep) pos nil))
 
