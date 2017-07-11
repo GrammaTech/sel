@@ -1064,7 +1064,19 @@
                                              ";
 static char const *all_args_string = \"source,fstype\" ;
 ")))))
-      "Doesn't split on commas within a string constant."))
+      "Doesn't split on commas within a string constant.")
+
+  (is (= 1 (count-if {scan "else"}
+                     (split-sequence #\Newline
+                                     (genome-string
+                                      (from-string-exactly (make-instance 'clang)
+                                                           "int a, b;
+if (1)
+    a = 1;
+else
+    a = 1, b = 1;
+")))))
+      "Doesn't match else as a type name.")    )
 
 (deftest splits-global-and-stmt-asts ()
   (with-fixture huf-clang
