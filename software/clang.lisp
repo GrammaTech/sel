@@ -1666,6 +1666,7 @@ declarations onto multiple lines to ease subsequent decl mutations."))
                (:sequence               ; Type name modifiers.
                 (:alternation ,@+c-variable-modifiers+)
                 :whitespace-char-class))
+              (:negative-lookahead "else") ; Blacklist "else" keyword
               (:greedy-repetition 1 nil :word-char-class)
               (:greedy-repetition 0 1 #\*)
               (:greedy-repetition 1 nil :whitespace-char-class)))
