@@ -1566,12 +1566,8 @@ int x = CHARSIZE;")))
     (is (stmt-with-text *soft* "int x = 0"))
     (is (stmt-with-text *soft* "\"2 bytes: Δ\""))
     (is (stmt-with-text *soft* "int y = 1"))
-    (let ((source (file-to-string (unicode-dir "unicode.c"))))
-      ;; For some reason file-to-string gives us a trailing " "
-      ;; character for every extra byte in the file. After stripping
-      ;; those the genome should be identical to the original text.
-      (is (string= (genome *soft*)
-                   (subseq source 0 (- (length source) 3)))))))
+    (is (string= (genome *soft*)
+                 (file-to-string (unicode-dir "unicode.c"))))))
 
 
 ;;; Detailed clang mutation tests

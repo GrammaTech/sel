@@ -256,12 +256,16 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
        ((get-ast (id)
           (aref ast-vector (1- id)))
         (byte-offset-to-chars (offset)
-          ;; Find all the multi-byte characters at or before this
-          ;; offset and accumulate the byte->character offset
-          (- offset
-             (iter (for (pos . incr) in byte-offsets)
-                   (while (<= pos offset))
-                   (summing incr))))
+          (if (eq offset :end)
+              ;; Special case for end of top-level AST.
+              (- (length genome) 1)
+
+              ;; Find all the multi-byte characters at or before this
+              ;; offset and accumulate the byte->character offset
+              (- offset
+                 (iter (for (pos . incr) in byte-offsets)
+                       (while (<= pos offset))
+                       (summing incr)))))
         (begin-offset (ast)
           (byte-offset-to-chars (aget :begin-off ast)))
         (end-offset (ast)
@@ -363,7 +367,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
          (make-tree `((:ast-class . :TopLevel)
                       (:children . ,roots)
                       (:begin-off . 0)
-                      (:end-off . ,(- (length genome) 1))))
+                      (:end-off . :end)))
        (cons (snippet->clang-ast root) children)))))
 
 (defgeneric source-text (ast)
