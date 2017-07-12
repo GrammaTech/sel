@@ -438,6 +438,8 @@
    :scripted-test-suite
    :make-scripted-test-suite
    :run-test-script
+   :command-gen
+   :test-count
    :instrumentation-exprs
    :synthesize-condition
    :build
