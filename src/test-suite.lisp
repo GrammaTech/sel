@@ -56,25 +56,28 @@
   ((command-gen
     :initarg :command-gen :accessor command-gen
     :documentation "Function which generates a shell command to run tests. It
-should take two parameters: the executable and a list of command-line arguments.
-Additionally, the script should accept as a flag '--which N' to run test case
-N.")
+should take two parameters: the executable and a list of command-line
+arguments.")
    (test-count :initarg :test-count :initform nil :accessor test-count
                :documentation "Number of test cases in suite.")
    (fitness :initform nil :accessor fitness
             :documentation "Vector containing fitness for each test case.")))
 
-(defgeneric run-test-script (suite phenome env &rest args)
+(defgeneric run-test-script (suite phenome env &rest input)
   (:documentation "Run a test script in SUITE with shell environment ENV, passing
-PHENOME and ARGS as parameters to the script."))
+PHENOME and INPUT as parameters to the script. Like `collect-trace', the special
+element :BIN in INPUT will be replaced with the namestring of PHENOME."))
 
-(defmethod run-test-script ((suite scripted-test-suite) phenome env &rest args)
-  (multiple-value-bind (stdout stderr exit)
-      (shell-with-env env (funcall (command-gen suite) phenome args))
-    (if (zerop exit)
-        (let ((val (read-from-string stdout)))
-          (if (listp val) (car val) val))
-        (error "test command failed: ~a" stderr))))
+(defmethod run-test-script ((suite scripted-test-suite) phenome env &rest input)
+  (let ((real-input (mapcar (lambda (it)
+                             (if (eq :bin it) (namestring phenome) it))
+                           input)))
+    (multiple-value-bind (stdout stderr exit)
+        (shell-with-env env (funcall (command-gen suite) phenome real-input))
+      (if (zerop exit)
+          (let ((val (read-from-string stdout)))
+            (if (listp val) (car val) val))
+          (error "test command failed: ~a" stderr)))))
 
 (defun make-scripted-test-suite (command-gen test-count)
   (let* ((suite (make-instance 'scripted-test-suite
@@ -84,6 +87,7 @@ PHENOME and ARGS as parameters to the script."))
     suite))
 
 (defmethod run-test ((suite scripted-test-suite) phenome case &key environment)
+  ;; Run the script with an argument indicating the test case number.
   (run-test-script suite phenome environment case))
 
 (defmethod test-cases ((suite scripted-test-suite))
