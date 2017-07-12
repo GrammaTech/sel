@@ -261,11 +261,13 @@ output."))
            ;; statement. This gives the correct result if AST is a
            ;; shadowing declaration of VAR.
            (let* ((type (type-of-var obj var ast-before))
-                  (c-type (concatenate 'string
-                                       (if (or (type-pointer type)
-                                               (not (emptyp (type-array type))))
-                                           "*" "")
-                                       (type-name type)))
+                  (c-type (if type
+                            (concatenate 'string
+                                      (if (or (type-pointer type)
+                                              (not (emptyp (type-array type))))
+                                          "*" "")
+                                      (type-name type))
+                            ""))
                   (stripped-c-type (regex-replace "\\**(unsigned )?" c-type "")))
              (when (or (member stripped-c-type +c-numeric-types+ :test #'string=)
                        (string= stripped-c-type "size_t"))

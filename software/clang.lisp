@@ -690,7 +690,8 @@ list, and we want to treat them as NIL in most cases.
                      (nconc (subseq children 0 (max 0 (1- head)))
                             (fixup-mutation
                              :remove
-                             (or (ast-syn-ctx (car (nth head children)))
+                             (or (&>> (car (nth head children))
+                                      (ast-syn-ctx))
                                  :toplevel)
                              (if (positive-integer-p head)
                                  (nth (1- head) children)
