@@ -97,7 +97,8 @@ copy of the original current file.
   (let ((receiver (car args)))
     (if (and (typep receiver 'project)
              (current-file receiver))
-        (apply method (current-file receiver) (cdr args)))))
+        (apply method (current-file receiver) (cdr args))
+        (call-next-method))))
 
 (defmethod all-files ((obj project))
   (append (evolve-files obj) (other-files obj)))

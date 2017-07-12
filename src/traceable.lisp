@@ -76,7 +76,8 @@ the name of an already-compiled binary to use."))
                                      (read-trace-stream
                                       in :predicate predicate :max max))
                                 #+sbcl (sb-ext:process-close proc)
-                                #+ccl (ccl:process-kill proc)
+                                #+ccl (ccl:signal-external-process proc 15
+                                                          :error-if-exited nil)
                                 #-(or sbcl ccl)
                                 (error "Needs SBCL or CCL."))))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
