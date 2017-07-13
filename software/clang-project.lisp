@@ -89,7 +89,7 @@
           (truename project-dir))
     (cond ((all-files clang-project)
            ;; reload existing files
-           (iter (for (src-file . obj) in (all-files obj))
+           (iter (for (src-file . obj) in (all-files clang-project))
                  (from-file obj (in-directory (project-dir clang-project)
                                               src-file))))
           ((compilation-database clang-project)
@@ -150,3 +150,6 @@ the underlying software objects."
 (defmethod clang-tidy ((clang-project clang-project))
   (apply-to-project clang-project #'clang-tidy)
   clang-project)
+
+(defmethod flags ((obj clang-project))
+  nil)
