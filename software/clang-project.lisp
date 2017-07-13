@@ -137,38 +137,6 @@ the underlying software objects."
 
   clang-project)
 
-(defmethod collect-traces ((clang-project clang-project) inputs
-                           &key predicate max (bin (temp-file-name))
-                           &aux (args (list :bin bin)) (delete-bin-p t))
-  (when predicate (setf args (append args (list :predicate predicate))))
-  (when max (setf args (append args (list :max max))))
-  (if (probe-file bin)
-      (setf delete-bin-p nil)
-      (assert (phenome clang-project :bin bin) (clang-project)
-              "Unable to compile software ~a" clang-project))
-  (unwind-protect
-      (labels
-        ((collect-and-process-trace (clang-project input args)
-           (let ((trace (apply #'collect-trace clang-project input args))
-                 (file-to-points (make-hash-table :test #'equal)))
-             ;; Partition trace points for each file in the project
-             (iter (for point in (aget :trace trace))
-                   (push point (gethash (aget :f point) file-to-points)))
-             ;; Set trace for each file
-             (iter (for (src-file . obj) in (evolve-files clang-project))
-                   (for f upfrom 0)
-                   (appendf (traces obj)
-                            (list (list (cons :input
-                                              (aget :input trace))
-                                        (cons :trace
-                                              (-> (gethash f file-to-points)
-                                                  (reverse))))))))))
-        (map nil
-             (lambda (input)
-               (collect-and-process-trace clang-project input args))
-             inputs))
-    (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
-
 
 (defmethod asts ((obj clang-project))
   (if (current-file obj)
