@@ -2480,7 +2480,7 @@ included as the first successor."
   (:documentation "True if AST begins a new scope."))
 (defmethod begins-scope ((ast ast-ref))
   (member (ast-class ast)
-          '(:CompoundStmt :Block :Captured :Function)))
+          '(:CompoundStmt :Block :Captured :Function :CXXMethod)))
 
 (defgeneric enclosing-scope (software ast)
   (:documentation "Returns enclosing scope of ast."))
