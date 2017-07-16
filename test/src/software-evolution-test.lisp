@@ -576,6 +576,14 @@
   (:teardown
     (setf *scopes* nil)))
 
+(defixture scopes-cxx-clang
+  (:setup
+    (setf *scopes*
+          (from-file (make-instance 'clang-control-picks :compiler "clang")
+                     (scopes-dir "scopes.cxx"))))
+  (:teardown
+    (setf *scopes* nil)))
+
 (defixture population
   (:setup (setf *population* (loop :for i :from 1 :to 9
                                 collect (make-instance 'soft
@@ -6006,6 +6014,23 @@ Useful for printing or returning differences in the REPL."
                '(("c" "b")
                  ("a")
                  ("global"))))))
+
+(deftest cxx-method-scopes-are-correct ()
+  (with-fixture scopes-cxx-clang
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int y"))
+               '(nil
+                 ("x")
+                 nil)))
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int z"))
+               '(nil
+                 ("y")
+                 ("x")
+                 nil)))
+    (is (equal (scopes *scopes* (stmt-with-text *scopes* "y = 0"))
+               '(("z")
+                 ("y")
+                 ("x")
+                 nil)))))
 
 (deftest types-are-correct ()
   (with-fixture scopes2-clang
