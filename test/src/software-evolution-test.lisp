@@ -1119,11 +1119,7 @@ else
     ;;       Clozure CL to timeout successfully.  On SBCL a simple "0"
     ;;       will suffice.
     (let ((se::*compilation-timeout* 0.0000001))
-      (with-temp-file (bin)
-        (multiple-value-bind (bin errno stderr stdout src)
-            (phenome *hello-world*)
-          (declare (ignorable bin stderr stdout src))
-          (is (= 124 errno)))))))
+      (phenome *hello-world*))))
 
 (deftest can-apply-mutation-w-value1 ()
   (with-fixture hello-world-clang
@@ -1575,9 +1571,9 @@ int x = CHARSIZE;")))
 
 (deftest able-to-handle-multibyte-characters ()
   (with-fixture unicode-clang
-    (is (stmt-with-text *soft* "int x = 0"))
-    (is (stmt-with-text *soft* "\"2 bytes: Δ\""))
-    (is (stmt-with-text *soft* "int y = 1"))
+    (is (stmt-with-text *soft* "int x = 0" :no-error))
+    (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
+    (is (stmt-with-text *soft* "int y = 1" :no-error))
     (is (string= (genome *soft*)
                  (file-to-string (unicode-dir "unicode.c"))))))
 
@@ -1641,7 +1637,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-insert-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "return 00")))))
+      (is (stmt-with-text variant "return 00" :no-error)))))
 
 (deftest insert-full-same-adds-same-class-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -1661,7 +1657,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "return printf")))))
+      (is (stmt-with-text variant "return printf" :no-error)))))
 
 (deftest replace-full-changes-full-stmt ()
   (with-fixture hello-world-clang-control-picks
@@ -1684,7 +1680,7 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-replace-same . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "printf(printf)")))))
+      (is (stmt-with-text variant "printf(printf)" :no-error)))))
 
 (deftest replace-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
@@ -1708,8 +1704,8 @@ int x = CHARSIZE;")))
           (*clang-mutation-types* '((clang-swap . 1)))
           (variant (copy *hello-world*)))
       (mutate variant)
-      (is (stmt-with-text variant "\"Hello, World!\\n\""))
-      (is (stmt-with-text variant "0")))))
+      (is (stmt-with-text variant "\"Hello, World!\\n\"" :no-error))
+      (is (stmt-with-text variant "0" :no-error)))))
 
 (deftest move-changes-any-stmts ()
   (with-fixture hello-world-clang-control-picks
@@ -1723,9 +1719,9 @@ int x = CHARSIZE;")))
          (is (not (string= (genome *hello-world*) (genome variant)))
              "Move changes genome."))
         ;; Still exist (> 0).
-        (is (stmt-with-text variant bad-1)
+        (is (stmt-with-text variant bad-1 :no-error)
             "Move doesn't remove \"Hello, World!\\n\".")
-        (is (stmt-with-text variant bad-2)
+        (is (stmt-with-text variant bad-2 :no-error)
             "Move doesn't remove \"0\".")
         ;; No duplicates (< 2).
         (is
@@ -1751,8 +1747,8 @@ int x = CHARSIZE;")))
         ;; sanity check.
         (is (ast-full-stmt (aget :stmt1 (targets mutation))))
         (is (ast-full-stmt (aget :stmt2 (targets mutation))))
-        (is (stmt-with-text variant "printf"))
-        (is (stmt-with-text variant "return 0"))))))
+        (is (stmt-with-text variant "printf" :no-error))
+        (is (stmt-with-text variant "return 0" :no-error))))))
 
 (deftest swap-full-same-changes-same-class-full-stmt ()
   (with-fixture hello-world-clang
@@ -2627,9 +2623,15 @@ int x = CHARSIZE;")))
 
 
 ;;; Helper functions to avoid hard-coded statement numbers.
-(defun stmt-with-text (obj text)
-  (find-if [{string= text} #'peel-bananas #'source-text]
-           (asts obj)))
+(defun stmt-with-text (obj text &optional no-error)
+  "Return the AST in OBJ holding TEXT.
+Unless optional argument NO-ERROR is non-nil an error is raised if no
+AST holding STMT is found."
+  (or (find-if [{string= text} #'peel-bananas #'source-text]
+               (asts obj))
+      (if no-error
+          nil
+          (error "`stmt-with-text' failed to find ~S in ~S" text obj))))
 
 (defun stmt-starting-with-text (obj text)
   (find-if (lambda (snippet)
@@ -3995,10 +3997,10 @@ Useful for printing or returning differences in the REPL."
                (length (asts *scopes*))))
         ;; a is the only var in scope so all these assignments should
         ;; be rebound.
-        (is (stmt-with-text variant "a = 10"))
-        (is (stmt-with-text variant "a = 11"))
-        (is (stmt-with-text variant "a = 12"))
-        (is (not (stmt-with-text variant "int b")))))))
+        (is (stmt-with-text variant "a = 10" :no-error))
+        (is (stmt-with-text variant "a = 11" :no-error))
+        (is (stmt-with-text variant "a = 12" :no-error))
+        (is (not (stmt-with-text variant "int b" :no-error)))))))
 
 (deftest crossover-a-multiple-statements-with-a-single-statement ()
   ;; Replace multiple statements with a single statement
@@ -4017,9 +4019,9 @@ Useful for printing or returning differences in the REPL."
                (length (asts *scopes*))))
         ;; a is the only var in scope so this assignment should
         ;; be rebound.
-        (is (stmt-with-text variant "a = 8"))
-        (is (not (stmt-with-text variant "int b")))
-        (is (not (stmt-with-text variant "b = 1")))))))
+        (is (stmt-with-text variant "a = 8" :no-error))
+        (is (not (stmt-with-text variant "int b" :no-error)))
+        (is (not (stmt-with-text variant "b = 1" :no-error)))))))
 
 (deftest intraprocedural-2pt-crossover-does-not-crash ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang
@@ -4042,7 +4044,8 @@ Useful for printing or returning differences in the REPL."
 
 (deftest multiple-decl-works ()
   (with-fixture scopes-clang
-    (when-let* ((ast (stmt-with-text *scopes* "int f, g")))
+    ;; NOTE: Why isn't this statement reliably found?
+    (when-let* ((ast (stmt-with-text *scopes* "int f, g" :no-error)))
       (is (= 2 (length (ast-declares ast)))))))
 
 (deftest pick-for-loop-works ()
@@ -4159,8 +4162,8 @@ Useful for printing or returning differences in the REPL."
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant))))
-      (let ((stmt (or (stmt-with-text variant "b = 13")
-                      (stmt-with-text variant "c = 13"))))
+      (let ((stmt (or (stmt-with-text variant "b = 13" :no-error)
+                      (stmt-with-text variant "c = 13" :no-error))))
         (is stmt)
         ;; unbound-vals are updated correctly
         (is (or (equal (get-unbound-vals variant stmt)
@@ -4175,7 +4178,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (when-let* ((variant (copy *scopes*))
-                (id (stmt-with-text *scopes* "int f, g")))
+                (id (stmt-with-text *scopes* "int f, g" :no-error)))
       (apply-mutation variant `(cut-decl (:stmt1 . ,id)))
       (is (compile-p variant))
       (is (not (equal (genome-string *scopes*)
@@ -4219,7 +4222,7 @@ Useful for printing or returning differences in the REPL."
                         (expand-arithmatic-op-dir
                          "simple-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc * 2"))))
+    (is (stmt-with-text obj "argc = argc * 2" :no-error))))
 
 (deftest expand-arithmatic-op-works-complex-compound-assignment ()
   (let ((obj (from-file (make-instance 'clang
@@ -4228,7 +4231,7 @@ Useful for printing or returning differences in the REPL."
                         (expand-arithmatic-op-dir
                          "complex-compound-assign.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())"))))
+    (is (stmt-with-text obj "argc = argc + ((argc*4) / rand())" :no-error))))
 
 (deftest expand-arithmatic-op-works-increment ()
   (let ((obj (from-file (make-instance 'clang
@@ -4236,7 +4239,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "i = i + 1"))))
+    (is (stmt-with-text obj "i = i + 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-decrement ()
   (let ((obj (from-file (make-instance 'clang
@@ -4244,7 +4247,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "argc = argc - 1"))))
+    (is (stmt-with-text obj "argc = argc - 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-field-increment ()
   (let ((obj (from-file (make-instance 'clang
@@ -4252,7 +4255,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-increment.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "t.x = t.x + 1"))))
+    (is (stmt-with-text obj "t.x = t.x + 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-field-decrement ()
   (let ((obj (from-file (make-instance 'clang
@@ -4260,7 +4263,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "field-decrement.c"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "t.x = t.x - 1"))))
+    (is (stmt-with-text obj "t.x = t.x - 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-class-member-increment ()
   (let ((obj (from-file (make-instance 'clang
@@ -4268,7 +4271,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "class-member-increment.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "x = x + 1"))))
+    (is (stmt-with-text obj "x = x + 1" :no-error))))
 
 (deftest expand-arithmatic-op-works-class-member-decrement ()
   (let ((obj (from-file (make-instance 'clang
@@ -4276,7 +4279,7 @@ Useful for printing or returning differences in the REPL."
                           :flags '("-g" "-m32" "-O0"))
                         (expand-arithmatic-op-dir "class-member-decrement.cpp"))))
     (apply-mutation obj (make-instance 'expand-arithmatic-op :object obj))
-    (is (stmt-with-text obj "x = x - 1"))))
+    (is (stmt-with-text obj "x = x - 1" :no-error))))
 
 
 ;;; Adaptive-mutation tests.
@@ -4499,7 +4502,7 @@ Useful for printing or returning differences in the REPL."
                                   (-<>> (first (functions *gcd*))
                                         (function-body *gcd*)
                                         (position <> (asts *gcd*)
-                                                  :test #'equalp)))))
+                                                  :test #'equalp))) :no-error))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -5967,8 +5970,8 @@ Useful for printing or returning differences in the REPL."
                               `((:splice (:stmt1 . ,location)
                                          (:value1 . ,inserted))))
 
-      (is (not (stmt-with-text *contexts* "int x = 0")))
-      (is (stmt-with-text *contexts* "int x = 1"))
+      (is (not (stmt-with-text *contexts* "int x = 0" :no-error)))
+      (is (stmt-with-text *contexts* "int x = 1" :no-error))
       (is (eq 1
               (->> (stmt-starting-with-text *contexts* "void full_stmt")
                    (function-body *contexts*)
