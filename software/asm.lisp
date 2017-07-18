@@ -52,7 +52,7 @@ mutations (simple plus asm mutations).")
   (random-pick *asm-mutation-types*))
 
 (defmethod phenome ((asm asm) &key (bin (temp-file-name)))
-  #-ccl (declare (values string fixnum string string string))
+  #-ccl (declare (values t fixnum string string string))
   (defmethod phenome)
   (with-temp-file-of (src "s") (genome-string asm)
     (multiple-value-bind (stdout stderr errno)

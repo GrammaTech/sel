@@ -45,7 +45,7 @@
              :copier :none)))
 
 (defmethod phenome ((obj ast) &key (bin (temp-file-name)))
-  #-ccl (declare (values string fixnum string string string))
+  #-ccl (declare (values t fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
     (multiple-value-bind (stdout stderr errno)
