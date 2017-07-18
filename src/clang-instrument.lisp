@@ -332,6 +332,7 @@ fputs(\"))\\n\", ~a);"
       (setf (genome obj)
             (format nil
                     "
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 FILE *~a;
