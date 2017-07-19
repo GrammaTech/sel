@@ -211,9 +211,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (file :type (or string null))
   (line :type (or number null))
   (hash :type number)
-  (i-col :type list)
-  (i-file :type list)
-  (i-line :type list)
+  (i-file :type (or string null))
   (pointer :type boolean)
   (reqs :type list)
   (name :key :type :type string)
@@ -840,14 +838,18 @@ use carefully.
 
 (defmethod add-type ((obj clang) (type clang-type))
   (unless (member (type-hash type) (types obj) :key #'type-hash)
-    ;; only add to the genome if there isn't a type with the same type-decl
-    ;; already known
-    (unless (member (type-decl type) (types obj)
-                    :key #'type-decl
-                    :test #'string=)
-      ;; FIXME: ideally this would insert an AST for the type decl
-      ;; instead of just adding the text.
-      (prepend-to-genome obj (type-decl type)))
+    (if (type-i-file type)
+      ;; add requisite includes for this type
+      (add-include obj (type-i-file type))
+      ;; only add to the genome if there isn't a type with the same type-decl
+      ;; already known
+      (unless (or (not (type-decl type))
+                  (member (type-decl type) (types obj)
+                          :key #'type-decl
+                          :test #'string=))
+        ;; FIXME: ideally this would insert an AST for the type decl
+        ;; instead of just adding the text.
+        (prepend-to-genome obj (type-decl type))))
     ;; always add type with new hash to types list
     (push type (types obj)))
   obj)
