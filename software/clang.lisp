@@ -332,8 +332,12 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                  (list (subseq genome start
                                                (+ 1 (end-offset ast))))))))
                 ;; No children: create a single string child with source text
-                (when (not (emptyp (aget :src-text ast)))
-                  (list (aget :src-text ast))))))
+                (let ((text (subseq genome (begin-offset ast)
+                                    (+ 1 (end-offset ast)))))
+                  (when (not (emptyp text))
+                    (list (if (string= "DeclRefExpr" (aget :ast-class ast))
+                              (unpeel-bananas text)
+                              text)))))))
         (unbound-vals (ast)
           (mapcar [#'peel-bananas #'car] (aget :unbound-vals ast)))
         (make-tree (ast)
@@ -1445,12 +1449,11 @@ for successful mutation (e.g. adding includes/types/macros)"))
 (defvar *clang-json-required-fields*
   '(:ast-class          :counter           :unbound-vals
     :unbound-funs       :types             :syn-ctx
-    :src-text           :parent-counter    :macros
-    :guard-stmt         :full-stmt         :begin-addr
-    :end-addr           :includes          :declares
-    :is-decl            :opcode            :in-macro-expansion
-    :children           :begin-off         :end-off
-    :size)
+    :parent-counter     :macros            :guard-stmt
+    :full-stmt          :begin-addr        :end-addr
+    :includes           :declares          :is-decl
+    :opcode             :children          :begin-off
+    :end-off            :size              :in-macro-expansion)
   "JSON database entry fields required for clang software objects.")
 
 (defvar *clang-json-required-aux*
