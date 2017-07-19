@@ -1,6 +1,7 @@
 ;;; Base class for all fodder database implementations
 ;;; with data stored entirely in a LISP representation
-(in-package :se)
+(in-package :software-evolution)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defclass in-memory-database (fodder-database)
   ;; The current implementation of the database

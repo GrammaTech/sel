@@ -5,6 +5,7 @@
         :software-evolution :software-evolution-utility
         :split-sequence :cl-store :cl-ppcre))
 (in-package :repair)
+(enable-curry-compose-reader-macros :include-utf8)
 
 ;; reproducibility
 (let ((seed-path "seed"))
