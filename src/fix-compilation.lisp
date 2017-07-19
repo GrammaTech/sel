@@ -269,6 +269,10 @@ expression match.")
                           to-delete) t))
     (-<>> (hash-table-keys to-delete)
           (remove nil)
+          ;; NOTE: Potential bug here where a function is passed nil
+          ;;       which requires a number...  Not easy to reproduce.
+          ;;
+          ;; (mapc (lambda (it) (format t "IT:~S~%" it)))
           (sort <> #'>)
           (remove-if #'zerop)
           (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}]))))
