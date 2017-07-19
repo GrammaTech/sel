@@ -2,6 +2,7 @@
 (require :software-evolution)
 (load #P"test/gcd/repair.lisp")
 (in-package :repair)
+(enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *path*  "test/gcd/gcd.c")
 (defvar *clang* (from-file (make-instance 'clang) *path*))
