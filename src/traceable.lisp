@@ -27,9 +27,10 @@ PREDICATE MAX and BIN keyword arguments."))
               "Unable to compile software ~a" obj))
   (unwind-protect
        (setf (traces obj)
-             (mapcar
+             (mappend
                (lambda-bind ((i input))
-                 (note 2 "Collect trace ~a of ~a" (1+ i) (length inputs))
+                 (note 2 "Collect traces from input ~a of ~a"
+                       (1+ i) (length inputs))
                  (apply #'collect-trace obj input args))
                (indexed inputs)))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
@@ -42,7 +43,11 @@ element :BIN in INPUT will be replaced with the name of the compiled
 instrumented binary.  PREDICATE may be a function in which case only
 trace points for which PREDICATE returns true are recorded.  Max
 specifies the maximum number of trace points to record.  BIN specifies
-the name of an already-compiled binary to use."))
+the name of an already-compiled binary to use.
+
+Returns a list of traces, which may contains multiple elements if
+executing a test script which runs the traceable program multiple
+times."))
 
 (defmethod collect-trace
     ((obj software) input
@@ -73,17 +78,23 @@ the name of an already-compiled binary to use."))
                                    :wait nil)
                   #-(or sbcl ccl)
                   (error "Implement for lisps other than SBCL and CCL.")))
-           (list (cons :input input)    ; keep :bin symbol if present
-                 (cons :trace (unwind-protect
-                                   ;; Read trace output from fifo.
-                                   (with-open-file (in pipe)
-                                     (read-trace-stream
-                                      in :predicate predicate :max max))
-                                #+sbcl (sb-ext:process-close proc)
-                                #+ccl (ccl:signal-external-process proc 15
+           (iter (for in = (open-file-timeout pipe 1))
+                 (while in)
+                 (collect
+                     (list (cons :input input)   ; keep :bin symbol if present
+                           (cons :trace
+                                 (unwind-protect
+                                      (read-trace-stream
+                                       in :predicate predicate :max max)
+                                   (close in))))
+                   into traces)
+                 (finally
+                  #+sbcl (sb-ext:process-close proc)
+                  #+ccl (ccl:signal-external-process proc 15
                                                           :error-if-exited nil)
-                                #-(or sbcl ccl)
-                                (error "Needs SBCL or CCL."))))))
+                  #-(or sbcl ccl)
+                  (error "Needs SBCL or CCL.")
+                  (return traces)))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
 
 (defun read-trace-file (file-name &key (predicate #'identity) (max infinity))

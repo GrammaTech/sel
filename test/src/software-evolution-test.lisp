@@ -5094,6 +5094,21 @@ Useful for printing or returning differences in the REPL."
   (is (null (which "dsjafpoarue")))
   (is (not (null (which "clang")))))
 
+(deftest test-open-file-timeout ()
+  ;; Open succeeds
+  (with-temp-file (file)
+    (let ((stream (open-file-timeout file 0.1 :direction :output)))
+      (is (streamp stream))
+      (close stream)))
+
+  ;; Open fails
+  (with-temp-file (file)
+    (signals error
+      (open-file-timeout file 0.1)))
+
+  ;; Open times out
+  (with-temp-fifo (pipe)
+    (is (null (open-file-timeout pipe 0.1)))))
 
 
 ;; project tests
