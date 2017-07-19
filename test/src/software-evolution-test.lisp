@@ -1346,6 +1346,20 @@ else
                                                :body "ONE 1"))
     (is (not (null (find-macro *hello-world* 3656618339188109385))))))
 
+(deftest add-type-with-include-test ()
+  (with-fixture fib-clang
+    (add-type *fib* (make-clang-type :array ""
+                                     :col 1
+                                     :line 48
+                                     :file "\/usr\/include\/stdio.h"
+                                     :hash 3346600377836954008
+                                     :i-file "<stdio.h>"
+                                     :pointer t
+                                     :reqs nil
+                                     :size 8
+                                     :name "FILE"))
+    (is (equal 1 (length (includes *fib*))))))
+
 (deftest add-bad-include-doesnt-change-number-of-asts ()
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
