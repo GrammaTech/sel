@@ -266,7 +266,7 @@ output."))
                     "#x%lx"
                     (error "Unrecognized C type ~S" c-type))))))
     (iter (for var in (funcall key ast))
-          (let* ((type (find-type obj (aget :type var)))
+          (let* ((type (find-var-type obj var))
                  (name (aget :name var))
                  (c-type (if type
                              (concatenate 'string

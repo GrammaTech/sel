@@ -865,6 +865,22 @@ use carefully.
 
 (defmethod find-or-add-type ((obj clang) name &optional pointer (array ""))
   "Find the type with given properties, or add it to the type DB."
+
+  ;; Handle names like "**char", which show up in traces of instrumented
+  ;; software.
+  (iter (for c in-string name)
+        (for index upfrom 0)
+        (while (eq #\* c))
+        (finally
+         (when (> index 0)
+           (setf pointer t)
+           ;; Remove the first * but put the rest on the end, so
+           ;; "**char" becomes "char*" with pointer = t
+           (setf name
+                 (concatenate 'string
+                              (subseq name index)
+                              (subseq name 0 (1- index)))))))
+
   (or (find-if «and [{string= name} #'type-name]
                     [{string= array} #'type-array]
                     [{eq pointer} #'type-pointer]»
@@ -2805,60 +2821,11 @@ VARIABLE-NAME should be declared in AST."))
   (first
    (split-sequence #\Space (source-text ast) :remove-empty-subseqs t)))
 
-(defgeneric type-of-var (software variable-name &optional stmt)
-  (:documentation "Return the type of VARIABLE-NAME in SOFTWARE.
-Optionally supply a statement number to return the preceding declaration
-closest to STMT"))
-
-(defmethod type-of-var ((obj clang) (variable-name string) &optional stmt)
-  (when-let ((declaration-ast (declaration-of obj
-                                              variable-name
-                                              stmt)))
-    (when-let (declaration-type
-               (if (function-decl-p declaration-ast)
-                   (second (find variable-name (ast-args declaration-ast)
-                                 :key #'car :test #'equal))
-                 (first (get-ast-types obj declaration-ast))))
-      (find-type obj declaration-type))))
-
-(defgeneric find-decl-in-block (software name block)
-  (:documentation "Find the declaration for variable NAME within BLOCK."))
-(defmethod find-decl-in-block ((software clang) name block)
-  (find-if (lambda (child-ast)
-             (find name (ast-declares child-ast)
-                   :test #'equal))
-           (get-immediate-children software block)))
-
-(defgeneric decl-of-var (software point var)
-  (:documentation
-   "Find the declaration for VAR which is in scope at POINT.
-VAR should be a free variable description (a list of name and
-depth)."))
-
-(defmethod decl-of-var ((software clang) point var)
-  (let ((name (peel-bananas (first var)))
-        ;; Go up to the right scope
-        (parent-block (nth-enclosing-scope software (second var) point)))
-    (if parent-block
-        (find-decl-in-block software name parent-block)
-        ;; Ran out of parent blocks -- try function arguments and
-        ;; global variables
-        (or (find-decl-in-block software name
-                                (function-containing-ast software point))
-            (find-decl-in-block software name 0)))))
-
-(defgeneric type-of-scoped-var (software point var)
-  (:documentation
-   "Return the type of VAR which is in scope at POINT."))
-
-;; TODO: this should probably be merged with type-of-var.
-(defmethod type-of-scoped-var ((software clang) point var)
-  (when-let ((decl (decl-of-var software point var))
-             (name (peel-bananas (first var))))
-    (find-type software
-               (nth (position-if {string= name}
-                                 (ast-declares decl))
-                    (get-ast-types software decl)))))
+(defgeneric find-var-type (software variable)
+  (:documentation "Return the type of VARIABLE in SOFTWARE."))
+(defmethod find-var-type ((obj clang) (variable list))
+  (&>> (aget :type variable)
+       (find-type obj)))
 
 
 ;;; Crossover functions

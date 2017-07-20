@@ -174,7 +174,7 @@
    :ast-declarations
    :declaration-of
    :declared-type
-   :type-of-var
+   :find-var-type
    :random-function-name
    :replace-fields-in-snippet
    ;; global variables
@@ -453,7 +453,6 @@
    :rinard
    :collect-fault-loc-traces
    :generate-helpers
-   :type-of-scoped-var
    :clang-ast
    :ast-args
    :ast-children

@@ -1589,6 +1589,15 @@ is not to be found"
       (is (eq new-type (find-or-add-type *gcd* "int"))
           "Repeated call finds same type."))))
 
+(deftest find-or-add-type-parses-pointers ()
+  (with-fixture gcd-clang
+    (is (eq (find-or-add-type *gcd* "*char")
+            (find-or-add-type *gcd* "char" t)))
+    (is (eq (find-or-add-type *gcd* "**char")
+            (find-or-add-type *gcd* "char*" t)))
+    (is (eq (find-or-add-type *gcd* "***char")
+            (find-or-add-type *gcd* "char**" t)))))
+
 (deftest var-decl-has-correct-types ()
   (let ((obj (make-instance 'clang
                             :genome "int x = sizeof(int);")))
@@ -2126,37 +2135,39 @@ int x = CHARSIZE;")))
         (is (zerop errno))
         (is (string= (run *hello-world*) (run obj)))))))
 
-(deftest type-of-var-returns-correct-type ()
-  (with-fixture type-of-var-clang
-    (let ((var-type1 (type-of-var *soft* "a"
-                                  (stmt-with-text *soft* "return 0")))
-          (var-type2 (type-of-var *soft* "a"
-                                  (stmt-with-text *soft* "return 1")))
-          (var-type3 (type-of-var *soft* "a"
-                                  (stmt-with-text *soft* "return 2")))
-          (var-type4 (type-of-var *soft* "a"
-                                  (stmt-with-text *soft* "int a[N][N]")))
-          (var-type5 (type-of-var *soft* "b"
-                                  (stmt-with-text *soft* "return 2"))))
-      (is (equal "[10][10]" (type-array var-type1)))
-      (is (equal ""         (type-array var-type2)))
-      (is (equal "[10][10]" (type-array var-type3)))
-      (is (equal "[10][10]" (type-array var-type4)))
-      (is (equal ""         (type-array var-type5)))
-      (is (equal nil        (type-pointer var-type1)))
-      (is (equal t          (type-pointer var-type2)))
-      (is (equal nil        (type-pointer var-type3)))
-      (is (equal nil        (type-pointer var-type4)))
-      (is (equal t          (type-pointer var-type5)))
-      (is (equal "int"      (type-name var-type1)))
-      (is (equal "int"      (type-name var-type2)))
-      (is (equal "int"      (type-name var-type3)))
-      (is (equal "int"      (type-name var-type4)))
-      (is (equal "int*"     (type-name var-type5))))))
+(deftest find-var-type-returns-correct-type ()
+  (flet
+      ((get-var-type (var stmt-text)
+         (&>> (stmt-with-text *soft* stmt-text)
+              (get-vars-in-scope *soft*)
+              (find-if [{string= var} {aget :name}])
+              (find-var-type *soft*))))
+    (with-fixture type-of-var-clang
+      (let ((var-type1 (get-var-type "a" "return 0"))
+            (var-type2 (get-var-type "a" "return 1"))
+            (var-type3 (get-var-type "a" "return 2"))
+            (var-type4 (get-var-type "a" "int a[N][N]"))
+            (var-type5 (get-var-type "b" "return 2")))
+        (is (null var-type4))
+        (is (equal "[10][10]" (type-array var-type1)))
+        (is (equal ""         (type-array var-type2)))
+        (is (equal "[10][10]" (type-array var-type3)))
+        (is (equal ""         (type-array var-type5)))
+        (is (equal nil        (type-pointer var-type1)))
+        (is (equal t          (type-pointer var-type2)))
+        (is (equal nil        (type-pointer var-type3)))
+        (is (equal t          (type-pointer var-type5)))
+        (is (equal "int"      (type-name var-type1)))
+        (is (equal "int"      (type-name var-type2)))
+        (is (equal "int"      (type-name var-type3)))
+        (is (equal "int*"     (type-name var-type5)))))))
 
-(deftest type-of-var-handles-missing-declaration-type ()
+(deftest find-var-type-handles-missing-declaration-type ()
   (with-fixture type-of-var-missing-decl-type-clang
-    (is (null (type-of-var *soft* "dirs")))))
+    (is (null (&>> (stmt-with-text *soft* "dirs[0] = L")
+                   (get-vars-in-scope *soft*)
+                   (find-if [{string= "dirs"} {aget :name}])
+                   (find-var-type *soft*))))))
 
 (deftest apply-replacements-test ()
   (is (string= "Hello, world!"
@@ -4859,22 +4870,6 @@ Useful for printing or returning differences in the REPL."
 (in-suite test)
 (defsuite* test-declaration-type-databases)
 
-(deftest binary-search-collects-types ()
-  (with-fixture binary-search-clang
-    (let ((collected-vars (mapcar #'car (hash-table-alist
-                                         (declarations *binary-search*))))
-          ;; TODO: Add "argv" to this list once the outstanding issue
-          ;;       with char* types in clang-mutate is resolved.
-          (variables (list "haystack" "i" "argc")))
-      (mapc (lambda (var)
-              (is (member var collected-vars :test #'equal)
-                  "Includes ~s variable in the `declarations' hash." var))
-            variables)
-      (mapc (lambda (var)
-              (is (type-of-var *binary-search* var)
-                  "Includes ~s variable in the `declarations' hash." var))
-            variables))))
-
 (deftest huf-knows-types ()
   (with-fixture huf-clang
     (is (and (listp (types *huf*)) (not (null (types *huf*))))
@@ -4888,7 +4883,10 @@ Useful for printing or returning differences in the REPL."
 
 (deftest huf-finds-type-info-for-variables ()
   (with-fixture huf-clang
-    (let ((type (type-of-var *huf* "strbit")))
+    (let ((type (->> (stmt-with-text *huf* "p = test")
+                     (get-vars-in-scope *huf*)
+                     (find-if [{string= "strbit"} {aget :name}])
+                     (find-var-type *huf*))))
       (is type "Found type for \"strbit\" in huf.")
       (is (string= "[100]" (type-array type))
           "Variable \"strbit\" in huf is a dynamically sized array.")
@@ -5246,24 +5244,24 @@ Useful for printing or returning differences in the REPL."
                    (("x" "int" "15") ("y" "int" "4") ("z" "int" "2"))))
          (synths (se::synthesize-conditions substs)))
     (is (= 12 (length synths)))
-    (is (member '("x" "5" :eq) synths :test #'equal))
-    (is (member '("x" "5" :neq) synths :test #'equal))
-    (is (member '("y" "6" :eq) synths :test #'equal))
-    (is (member '("y" "6" :neq) synths :test #'equal))
-    (is (member '("x" "10" :eq) synths :test #'equal))
-    (is (member '("x" "10" :neq) synths :test #'equal))
-    (is (member '("x" "15" :eq) synths :test #'equal))
-    (is (member '("x" "15" :neq) synths :test #'equal))
-    (is (member '("y" "4" :eq) synths :test #'equal))
-    (is (member '("y" "4" :neq) synths :test #'equal))
-    (is (member '("z" "2" :eq) synths :test #'equal))
-    (is (member '("z" "2" :neq) synths :test #'equal))))
+    (is (member '(:eq "x" "int" "5") synths :test #'equal))
+    (is (member '(:neq "x" "int" "5") synths :test #'equal))
+    (is (member '(:eq "y" "int" "6") synths :test #'equal))
+    (is (member '(:neq "y" "int" "6") synths :test #'equal))
+    (is (member '(:eq "x" "int" "10") synths :test #'equal))
+    (is (member '(:neq "x" "int" "10") synths :test #'equal))
+    (is (member '(:eq "x" "int" "15") synths :test #'equal))
+    (is (member '(:neq "x" "int" "15") synths :test #'equal))
+    (is (member '(:eq "y" "int" "4") synths :test #'equal))
+    (is (member '(:neq "y" "int" "4") synths :test #'equal))
+    (is (member '(:eq "z" "int" "2") synths :test #'equal))
+    (is (member '(:neq "z" "int" "2") synths :test #'equal))))
 
 (deftest entails-eq-works ()
   (let* ((substs '((("x" "int" "5") ("y" "int" "6"))
                    (("x" "int" "10") ("y" "int" "6"))
                    (("x" "int" "15") ("y" "int" "4") ("z" "int" "2"))))
-         (eq-cond '("x" "10" :eq)))
+         (eq-cond '(:eq "x" "int" "10")))
     (is (se::entails (first substs) eq-cond "0"))
     (is (not (se::entails (first substs) eq-cond "1")))
     (is (not (se::entails (second substs) eq-cond "0")))
@@ -5275,7 +5273,7 @@ Useful for printing or returning differences in the REPL."
   (let* ((substs '((("x" "int" "5") ("y" "int" "6"))
                    (("x" "int" "10") ("y" "int" "6"))
                    (("x" "int" "15") ("y" "int" "4") ("z" "int" "2"))))
-         (eq-cond '("x" "10" :neq)))
+         (eq-cond '(:neq "x" "int" "10")))
     (is (se::entails (first substs) eq-cond "1"))
     (is (not (se::entails (first substs) eq-cond "0")))
     (is (not (se::entails (second substs) eq-cond "1")))
@@ -5291,12 +5289,12 @@ Useful for printing or returning differences in the REPL."
          ;; one first
          (synths (se::shuffle (se::synthesize-conditions substs))))
     (is (equal (se::find-best-condition '("1" "0" "1") substs synths)
-               '("x" "10" :neq)))
+               '(:neq "x" "int" "10")))
     (is (member (se::find-best-condition '("1" "1" "0") substs synths)
-                (list '("y"  "6" :eq)
-                      '("x" "15" :neq)
-                      '("y"  "4" :neq)
-                      '("z"  "2" :neq))
+                (list '( :eq "y"  "int" "6")
+                      '( :neq "x" "int" "15")
+                      '( :neq "y"  "int" "4")
+                      '( :neq "z"  "int" "2"))
                 :test #'equal))))
 
 
