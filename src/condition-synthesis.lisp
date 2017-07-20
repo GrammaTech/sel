@@ -353,10 +353,9 @@ abst_cond() in the source text."
     (let ((exprs
            (remove nil
              (append (mapcar (lambda (v)
-                               (ignore-errors ; Sometimes fails for weird types.
-                                 (cons (aget :name v)
-                                       (aget :type v))))
-                             (var-infos-flat obj ast))
+                               (cons (aget :name v)
+                                     (find-var-type obj v)))
+                             (get-vars-in-scope obj ast))
                      extra-exprs))))
       (iter (for (var . type) in exprs)
             (let* ((c-type (concatenate 'string
@@ -454,10 +453,8 @@ where each condition is a triple (\"var\" \"value\" [:eq|:neq])."
   (iter (for env in envs)
         (collect
          (iter (for assmt in env)
-               (collect (list (first assmt) (third assmt) :eq)
-                        into assmts)
-               (collect (list (first assmt) (third assmt) :neq)
-                        into assmts)
+               (collect (cons :eq assmt) into assmts)
+               (collect (cons :neq assmt) into assmts)
                (finally (return assmts)))
          into assmts)
         (finally (return (remove-duplicates
@@ -475,19 +472,21 @@ the value v is consistent with the result . Similarly, the condition
 representing \"!(x == v)\" in an environment where x is assigned the value v is
 consistent with the result ."
   ;; Look up var from condition in the env.
-  (let ((bound-val (second (aget (first condition) env :test #'string=))))
-    (case (third condition)
-      (:eq (if (equal bound-val (second condition))
-               ;; If it's an equality condition matching the env, it's
-               ;; consistent with a result of 1.
-               (equal result "1")
-               (equal result "0")))
-      (:neq (if (not (equal bound-val (second condition)))
-                ;; An inequality condition that is satisfied under the
-                ;; env is consistent with a result of 1.
-                (equal result "1")
-                (equal result "0")))
-      (t nil))))
+  (destructuring-bind (comparison-type name type base) condition
+    (declare (ignorable type))
+    (let ((bound-val (second (aget name env :test #'string=))))
+      (case comparison-type
+        (:eq (if (equal bound-val base)
+                 ;; If it's an equality condition matching the env, it's
+                 ;; consistent with a result of 1.
+                 (equal result "1")
+                 (equal result "0")))
+        (:neq (if (not (equal bound-val base))
+                  ;; An inequality condition that is satisfied under the
+                  ;; env is consistent with a result of 1.
+                  (equal result "1")
+                  (equal result "0")))
+        (t nil)))))
 
 (defun find-best-condition (recorded-results envs conditions)
   "Find the condition which correctly matches the largest number of recorded
@@ -625,16 +624,15 @@ recorded decisions and environments."
 (defun make-source (software condition)
   "Take a condition of the form \(\"x\" \"val\" :eq\) and return the
 corresponding source code condition: \(x == val\) or !\(x == val\)"
-  (let* ((base (second condition))
-         (name (first condition))
+  (bind (((comparison-type name type base) condition)
          (var (make-var-reference name
-                                  (type-of-var software name)))
+                                  (find-or-add-type software type)))
          (val (if (stringp base)
                   (make-literal :string base)
                   (make-literal :integer base)))
          (eq-op (make-parens
                  (list (make-operator :generic "==" (list var val))))))
-    (case (third condition)
+    (case comparison-type
       (:eq eq-op)
       (:neq (make-operator :generic "!" (list eq-op)))
       (t ""))))

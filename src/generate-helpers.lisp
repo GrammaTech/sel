@@ -118,7 +118,7 @@ Returns the text of the function, and a CallExpr AST for calling it."
                                (aget :unbound-vals (get-ast obj counter))
                              collecting
                                (cons (peel-bananas (car var))
-                                     (type-of-scoped-var obj counter var))))
+                                     (find-var-type obj var))))
                      :key #'car :test #'string=))))
     (values
      ;; Function body

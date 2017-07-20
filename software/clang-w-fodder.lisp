@@ -162,24 +162,26 @@ Returns modified text, and names of bound variables.
 
 (defun prepare-fodder (obj snippet pt)
   (flet
-      ((var-type-string (pt var-name)
-         (let ((type (type-of-var obj var-name pt)))
+      ((var-type-string (in-scope var-name)
+         (let ((type (->> (find-if [{string= var-name} {aget :name}] in-scope)
+                          (find-var-type obj))))
            (format nil "~a~a" (type-name type)
                    (if (type-pointer type) "*" "")))))
     (multiple-value-bind (text vars)
         (bind-vars-in-snippet obj snippet pt)
-      (if-let ((asts
-                (parse-source-snippet
-                 text
-                 ;; Variable and type names
-                 (mapcar #'list
-                         vars
-                         (mapcar {var-type-string pt} vars))
-                 (aget :includes snippet))))
-        (car asts)
-        (error (make-condition 'mutate
-                               :text "Failed to parse fodder"
-                               :obj obj))))))
+      (let ((in-scope (get-vars-in-scope obj pt)))
+        (if-let ((asts
+                  (parse-source-snippet
+                   text
+                   ;; Variable and type names
+                   (mapcar #'list
+                           vars
+                           (mapcar {var-type-string in-scope} vars))
+                   (aget :includes snippet))))
+          (car asts)
+          (error (make-condition 'mutate
+                                 :text "Failed to parse fodder"
+                                 :obj obj)))))))
 
 (defun prepare-fodder-op (obj op)
   (destructuring-bind (kind . properties) op
