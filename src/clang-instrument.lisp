@@ -265,34 +265,30 @@ output."))
                     ;; a leading "0x" which confuses the Lisp reader.
                     "#x%lx"
                     (error "Unrecognized C type ~S" c-type))))))
-    (let ((ast-before (find-if {ast-later-p ast} (asts obj)
-                               :from-end t)))
-        (iter (for var in (funcall key ast))
-           ;; Find the type at the point immediately before this
-           ;; statement. This gives the correct result if AST is a
-           ;; shadowing declaration of VAR.
-           (let* ((type (type-of-var obj var ast-before))
-                  (c-type (if type
-                            (concatenate 'string
-                                      (if (or (type-pointer type)
-                                              (not (emptyp (type-array type))))
-                                          "*" "")
-                                      (type-name type))
-                            ""))
-                  (stripped-c-type
-                    (-<>> (regex-replace "\\**(unsigned )?" c-type "")
-                          (regex-replace "uint" <> "int"))))
-             (when (member stripped-c-type
-                           (append +c-numeric-types+
-                                   '("int8_t" "int16_t" "int32_t" "int64_t"
-                                     "wchar_t" "size_t"))
-                           :test #'string=)
-               (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                      var c-type (fmt-code c-type))
-                              into format
-                              initial-value (format nil "(~s" label))
-               (collect var into vars)))
-           (finally (return (cons (concatenate 'string format ")") vars)))))))
+    (iter (for var in (funcall key ast))
+          (let* ((type (find-type obj (aget :type var)))
+                 (name (aget :name var))
+                 (c-type (if type
+                             (concatenate 'string
+                                          (if (or (type-pointer type)
+                                                  (not (emptyp (type-array type))))
+                                              "*" "")
+                                          (type-name type))
+                             ""))
+                 (stripped-c-type
+                  (-<>> (regex-replace "\\**(unsigned )?" c-type "")
+                        (regex-replace "uint" <> "int"))))
+            (when (member stripped-c-type
+                          (append +c-numeric-types+
+                                  '("int8_t" "int16_t" "int32_t" "int64_t"
+                                    "wchar_t" "size_t"))
+                          :test #'string=)
+              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
+                                     name c-type (fmt-code c-type))
+                             into format
+                             initial-value (format nil "(~s" label))
+              (collect name into vars)))
+          (finally (return (cons (concatenate 'string format ")") vars))))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
@@ -322,7 +318,8 @@ output."))
 (defmethod print-program-input ((obj clang) log-variable)
   ;; Return a version of OBJ instrumented to print program input.
   (or (when-let* ((entry (get-entry obj))
-                  (scope-vars (get-vars-in-scope obj entry)))
+                  (scope-vars (mapcar {aget :name}
+                                      (get-vars-in-scope obj entry))))
         (when (and (member "argc" scope-vars :test #'string=)
                    (member "argv" scope-vars :test #'string=))
           (insert-at-entry obj
@@ -456,10 +453,9 @@ Built with ~a version ~a.~%"
     (when-let ((position (position 'trace-unbound-vars functions)))
       (setf (nth position functions)
             (lambda (obj ast)
-              (var-instrument
-               obj :unbound-vals
-               [{mapcar [#'peel-bananas #'car]} {get-unbound-vals obj}] ast
-               :print-strings print-strings))))
+              (var-instrument obj :unbound-vals
+                              {get-unbound-vals obj} ast
+                              :print-strings print-strings))))
     (when-let ((position (position 'trace-scope-vars functions)))
       (setf (nth position functions)
             (lambda (obj ast)

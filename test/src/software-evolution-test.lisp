@@ -1969,7 +1969,7 @@ int x = CHARSIZE;")))
     (let ((asts (parse-source-snippet "x + y" '(("x" "int") ("y" "char")) nil)))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
-      (is (equalp '(("(|y|)" NIL) ("(|x|)" NIL))
+      (is (equalp '(((:name . "y")) ((:name . "x")))
                   (get-unbound-vals *gcd* (car asts)))))))
 
 (deftest parse-source-snippet-handles-includes ()
@@ -4210,10 +4210,9 @@ Useful for printing or returning differences in the REPL."
                       (stmt-with-text variant "c = 13" :no-error))))
         (is stmt)
         ;; unbound-vals are updated correctly
-        (is (or (equal (get-unbound-vals variant stmt)
-                       '(("(|b|)" 0)))
-                (equal (get-unbound-vals variant stmt)
-                       '(("(|c|)" 0)))))))
+        (let ((unbound (mapcar {aget :name} (get-unbound-vals variant stmt))))
+          (is (or (equal unbound '("b"))
+                  (equal unbound '("c")))))))
     (let ((variant (copy *scopes*)))
       (apply-mutation
           variant
@@ -6045,26 +6044,33 @@ Useful for printing or returning differences in the REPL."
 (in-suite test)
 (defsuite* clang-scopes-and-types)
 
+(defun compare-scopes (result expected)
+  (is (equal (mapcar {mapcar {aget :name}} result)
+             expected))
+  (iter (for var-info in (apply #'append result))
+        (is (aget :type var-info))
+        (is (aget :decl var-info))
+        (is (aget :scope var-info))))
+
 (deftest scopes-are-correct ()
   (with-fixture scopes2-clang
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int b"))
-               '(nil
-                 ("a")
-                 ("global"))))
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int c"))
-               '(("b")
-                 ("a")
-                 ("global"))))
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "char d"))
-               '(nil
-                 ("c" "b")
-                 ("a")
-                 ("global"))))
-
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "return"))
-               '(("c" "b")
-                 ("a")
-                 ("global"))))))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "int b"))
+                    '(nil
+                      ("a")
+                      ("global")))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "int c"))
+                    '(("b")
+                      ("a")
+                      ("global")))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "char d"))
+                    '(nil
+                      ("c" "b")
+                      ("a")
+                      ("global")))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "return"))
+                    '(("c" "b")
+                      ("a")
+                      ("global")))))
 
 (deftest cxx-method-scopes-are-correct ()
   (with-fixture scopes-cxx-clang
@@ -6102,27 +6108,32 @@ Useful for printing or returning differences in the REPL."
                '("char" "int")))))
 
 (deftest unbound-vals-are-correct ()
-  (with-fixture scopes2-clang
-    (is (null (get-unbound-vals *scopes*
-                                (stmt-with-text *scopes* "int global"))))
-    (is (equal (get-unbound-vals *scopes*
-                                 (stmt-starting-with-text *scopes* "c ="))
-               '(("(|global|)" 2)
-                 ("(|b|)" 0)
-                 ("(|a|)" 1)
-                 ("(|c|)" 0))))
-    (is (equal (get-unbound-vals *scopes*
-                                 (stmt-starting-with-text *scopes* "b ="))
-               '(("(|b|)" 0))))
-    (is (equal (get-unbound-vals *scopes*
-                                 (stmt-starting-with-text *scopes* "d ="))
-               '(("(|d|)" 0))))
+  (flet
+      ((compare-vals (result expected)
+         (is (equal (mapcar {aget :name} result)
+                    expected))
+         (iter (for var-info in result)
+               (is (aget :type var-info))
+               (is (aget :decl var-info))
+               (is (aget :scope var-info)))))
 
-    (is (equal (get-unbound-vals *scopes*
-                                 (stmt-starting-with-text *scopes* "void foo"))
-               ;; Note: clang-mutate would have a 1 here, but I think
-               ;; 0 is correct.
-               '(("(|global|)" 0))))))
+    (with-fixture scopes2-clang
+      (is (null (get-unbound-vals *scopes*
+                                  (stmt-with-text *scopes* "int global"))))
+      (compare-vals (get-unbound-vals *scopes*
+                                      (stmt-starting-with-text *scopes* "c ="))
+                    '("global" "b" "a" "c"))
+      (compare-vals (get-unbound-vals *scopes*
+                                      (stmt-starting-with-text *scopes* "b ="))
+                    '("b"))
+      (compare-vals (get-unbound-vals *scopes*
+                                      (stmt-starting-with-text *scopes* "d ="))
+                    '("d"))
+
+      (compare-vals (get-unbound-vals *scopes*
+                                      (->> "void foo"
+                                           (stmt-starting-with-text *scopes* )))
+                    '("global")))))
 
 (deftest unbound-funs-are-correct ()
   (with-fixture scopes2-clang
@@ -6145,19 +6156,19 @@ Useful for printing or returning differences in the REPL."
       (apply-mutation *scopes*
                       `(clang-swap (:stmt1 . ,(stmt-with-text *scopes* "int c"))
                                    (:stmt2 . ,(stmt-with-text *scopes* "b = 0")))))
-    (is (equal (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
-               '(("b")
-                 ("a")
-                 ("global"))))))
+    (compare-scopes (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+                    '(("b")
+                      ("a")
+                      ("global")))))
 
 (deftest cut-decl-updates-scopes ()
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int global"))))
-    (is (equal (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
-               '(("c" "b")
-                 ("a")
-                 nil)))))
+    (compare-scopes (scopes *scopes* (stmt-starting-with-text *scopes* "b ="))
+                    '(("c" "b")
+                      ("a")
+                      nil))))
 
 (deftest insert-decl-updates-types ()
   (with-fixture scopes2-clang
@@ -6201,11 +6212,13 @@ Useful for printing or returning differences in the REPL."
   (with-fixture scopes2-clang
     (apply-mutation *scopes*
                     `(clang-cut (:stmt1 . ,(stmt-with-text *scopes* "int b"))))
-    (is (equal (get-unbound-vals *scopes*
-                                 (stmt-starting-with-text *scopes*
-                                                          "void foo"))
-               '(("(|global|)" 0)
-                 ("(|b|)" nil))))))
+    (let ((unbound (get-unbound-vals *scopes*
+                                     (stmt-starting-with-text *scopes*
+                                                              "void foo"))))
+      (is (equal (mapcar {aget :name} unbound) '("global" "b")))
+      (is (aget :decl (find-if [{string= "global"} {aget :name}] unbound)))
+      ;; b is now undeclared
+      (is (not (aget :decl (find-if [{string= "b"} {aget :name}] unbound)))))))
 
 (deftest insert-statement-updates-unbound-vals ()
   (with-fixture scopes2-clang
@@ -6215,10 +6228,15 @@ Useful for printing or returning differences in the REPL."
                                    (:stmt2 . ,(stmt-with-text *scopes*
                                                               "b = 0"))))
     ;; "b" is not defined in this context so it will be rebound
-    (is (equal (get-unbound-vals *scopes*
+    (let ((unbound (get-unbound-vals *scopes*
                                  (stmt-starting-with-text *scopes*
-                                                          "void bar"))
-               '(("(|global|)" 0))))))
+                                                          "void bar"))))
+      (is (eq 1 (length unbound)))
+      (is (string= "global" (aget :name (car unbound))))
+      (is (equalp (stmt-with-text *scopes* "int global")
+                  (aget :decl (car unbound))))
+      (is (eq (ast-root *scopes*) (ast-ref-ast (aget :scope (car unbound)))))
+      (is (aget :type (car unbound))))))
 
 
 ;;;; Clang tokenizer tests

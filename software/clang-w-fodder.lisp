@@ -138,13 +138,13 @@ rename target to use this new name."
 
 Returns modified text, and names of bound variables.
 "
-  (let* ((in-scope (mapcar #'unpeel-bananas
+  (let* ((in-scope (mapcar [#'unpeel-bananas {aget :name}]
                            (get-vars-in-scope obj pt)))
          (var-replacements
           (mapcar
            (lambda-bind ((var index))
               (declare (ignorable index))
-              (cons var (binding-for-var obj in-scope (peel-bananas var))))
+              (cons var (binding-for-var obj in-scope var)))
            (aget :unbound-vals snippet)))
          (replacements
           (append var-replacements

@@ -1309,8 +1309,9 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
          (uses (mappend (lambda (x) (get-children-using clang x the-block))
                         old-names))
          (vars (remove-if {find _ old-names :test #'equal}
-                          (get-vars-in-scope clang
-                            (if uses (car uses) the-block))))
+                          (mapcar {aget :name}
+                                  (get-vars-in-scope clang
+                                    (if uses (car uses) the-block)))))
          (var (mapcar (lambda (old-name)
                         (declare (ignorable old-name))
                         (if vars
@@ -1353,7 +1354,8 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
          (old-var (random-elt used))
          (new-var (random-elt
                    (or (remove-if {equal old-var}
-                                  (get-vars-in-scope clang stmt))
+                                  (mapcar {aget :name}
+                                          (get-vars-in-scope clang stmt)))
                        (list old-var))))
          (stmt1 (enclosing-full-stmt clang stmt)))
     `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var))))
@@ -2519,7 +2521,10 @@ included as the first successor."
         (nth-enclosing-scope software (1- depth) scope))))
 
 (defgeneric scopes (software ast)
-  (:documentation "Return lists of variables in each enclosing scope."))
+  (:documentation "Return lists of variables in each enclosing scope.
+Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
+and :SCOPE.
+"))
 
 (defmethod scopes ((software clang) (ast ast-ref))
   ;; Stop at the root AST
@@ -2532,7 +2537,17 @@ included as the first successor."
                   ; remove type and function decls
                  (remove-if-not [{member _ '(:Var :ParmVar :DeclStmt)}
                                  #'ast-class])
-                 (mappend #'ast-declares)
+                 (mappend
+                  (lambda (ast)
+                    (mapcar
+                     (lambda (name)
+                       `((:name . ,name)
+                         (:decl . ,ast)
+                         (:type . ,(nth (position-if {string= name}
+                                                     (ast-declares ast))
+                                        (get-ast-types software ast)))
+                         (:scope . ,scope)))
+                     (ast-declares ast))))
                  (remove-if #'emptyp) ; drop nils and empty strings
                  (reverse))
             (scopes software scope)))))
@@ -2558,7 +2573,9 @@ included as the first successor."
   (ast-unbound-funs ast))
 
 (defgeneric get-unbound-vals (software ast)
-  (:documentation "Functions used (but not defined) within the AST."))
+  (:documentation "Variables used (but not defined) within the AST.
+
+Each variable is represented by an alist in the same format used by SCOPES."))
 (defmethod get-unbound-vals ((software clang) (ast ast-ref))
   (labels
       ((in-scope (var scopes)
@@ -2592,13 +2609,12 @@ included as the first successor."
          (values unbound scopes)))
     ;; Walk this tree, finding all values which are referenced, but
     ;; not defined, within it
-    (-<>> (walk-scope ast nil (list nil))
-         (remove-duplicates <> :test #'string=)
-         (mapcar (lambda (name)
-                   (list (format nil "(|~a|)" name)
-                         (position-if (lambda (s)
-                                        (member name s :test #'string=))
-                                      (scopes software ast))))))))
+    (let ((in-scope (get-vars-in-scope software ast)))
+      (-<>> (walk-scope ast nil (list nil))
+            (remove-duplicates <> :test #'string=)
+            (mapcar (lambda (name)
+                      (or (find-if [{string= name} {aget :name}] in-scope)
+                          `((:name . ,name)))))))))
 
 (defmethod get-unbound-vals ((software clang) (ast clang-ast))
   (declare (ignorable software))
@@ -2606,13 +2622,17 @@ included as the first successor."
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
-(defmethod get-vars-in-scope ((obj clang) (ast ast-ref) &optional keep-globals)
+(defmethod get-vars-in-scope ((obj clang) (ast ast-ref)
+                                   &optional keep-globals)
   ;; Remove duplicate variable names from outer scopes. Only the inner variables
   ;; are accessible.
-  (remove-duplicates (apply #'append (if keep-globals
-                                         (butlast (scopes obj ast))
-                                         (scopes obj ast)))
-                     :test #'string=))
+  (iter (for var in (apply #'append (if keep-globals
+                                        (butlast (scopes obj ast))
+                                        (scopes obj ast))))
+        (unless (find-if [{string= (aget :name var)} {aget :name}]
+                         vars)
+          (collect var into vars))
+        (finally (return vars))))
 
 (defvar *allow-bindings-to-globals-bias* 1/5
   "Probability that we consider the global scope when binding
@@ -2672,12 +2692,13 @@ free variables.")
                              :obj obj))))
 
 (defmethod bind-free-vars ((clang clang) (ast ast-ref) (pt ast-ref))
-  (let* ((in-scope (mapcar #'unpeel-bananas
-                           (get-vars-in-scope clang pt)))
+  (let* ((in-scope (mapcar {aget :name} (get-vars-in-scope clang pt)))
          (var-replacements
           (mapcar (lambda (var)
-                    (let ((name (car var)))
-                      (list name (binding-for-var clang in-scope name))))
+                    (let ((name (aget :name var)))
+                      (mapcar #'unpeel-bananas
+                              (list name (binding-for-var clang in-scope
+                                                          name)))))
                   (get-unbound-vals clang ast)))
          (fun-replacements
           (mapcar
@@ -2708,12 +2729,12 @@ variables to replace use of the variables declared in stmt ID."))
                               (mapcar #'unpeel-bananas (ast-declares id))
                               (mapcar #'unpeel-bananas replacements)))
                     replacements))
-          (old (mapcar #'car old->new)))
+          (old (mapcar [#'peel-bananas #'car] old->new)))
      ;; Collect statements using old
      (-<>> (get-immediate-children obj block)
            (remove-if-not (lambda (ast)      ; Only Statements using old.
                             (intersection
-                             (mapcar #'car (get-unbound-vals obj ast))
+                             (get-used-variables obj ast)
                              old :test #'string=)))
            (mapcar (lambda (ast)
                      (list :set (cons :stmt1 ast)
@@ -2726,7 +2747,7 @@ variables to replace use of the variables declared in stmt ID."))
   (mappend #'ast-declares (get-immediate-children clang the-block)))
 
 (defmethod get-used-variables ((clang clang) stmt)
-  (mapcar [#'peel-bananas #'car] (get-unbound-vals clang stmt)))
+  (mapcar {aget :name} (get-unbound-vals clang stmt)))
 
 (defmethod get-children-using ((clang clang) var the-block)
   (remove-if-not [(lambda (el) (find var el :test #'equal))
