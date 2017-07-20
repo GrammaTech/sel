@@ -884,9 +884,16 @@ use carefully.
 
 New text will not be parsed. Only use this for macros, includes, etc which
 don't have corresponding ASTs."
-  (setf (ast-root obj)
-        (destructuring-bind (first . rest) (ast-root obj)
-          (list* first text rest))))
+  (labels ((normalize-text (text)
+             (if (not (equalp #\Newline (last-elt text)))
+                 (concatenate 'string text '(#\Newline))
+                 text)))
+    (with-slots (ast-root) obj
+      (setf ast-root
+            (destructuring-bind (first second . rest) (ast-root obj)
+              (list* first
+                     (concatenate 'string second (normalize-text text))
+                     rest))))))
 
 (defgeneric add-macro (software macro)
   (:documentation "Add MACRO to `macros' of SOFTWARE, unique by hash."))
@@ -2481,10 +2488,12 @@ included as the first successor."
         (reverse (successors (ast-ref-ast ancestor) rel-path)))))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet database)
-  (mapc {add-include clang} (aget :includes snippet))
+  (mapc {add-include clang}
+        (reverse (aget :includes snippet)))
+  (mapc [{add-macro clang} {find-macro database}]
+        (reverse (aget :macros snippet)))
   (mapc [{add-type clang} {find-type database}]
-        (aget :types snippet))
-  (mapc [{add-macro clang} {find-macro database}] (aget :macros snippet))
+        (reverse (aget :types snippet)))
   snippet)
 
 (defgeneric begins-scope (ast)
@@ -3014,10 +3023,12 @@ Returns outermost AST of context.
   (labels
       ((update (tree)
          (destructuring-bind (ast . children) tree
-           (mapc {add-include clang} (ast-includes ast))
+           (mapc {add-include clang}
+                 (reverse (ast-includes ast)))
+           (mapc [{add-macro clang} {find-macro database}]
+                 (reverse (ast-macros ast)))
            (mapc [{add-type clang} {find-type database}]
-                 (ast-types ast))
-           (mapc [{add-macro clang} {find-macro database}] (ast-macros ast))
+                 (reverse (ast-types ast)))
            (mapc #'update (remove-if-not #'listp children)))))
     (update (ast-ref-ast ast))))
 
