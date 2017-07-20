@@ -121,7 +121,8 @@ expression match.")
                 (assert matchp (fodder)
                         "Assignment fodder should assign to a free variable.")
                 (aref match-data 0)))
-             (scope-vars (get-vars-in-scope obj decl-stmt)))
+             (scope-vars (mapcar {aget :name}
+                                 (get-vars-in-scope obj decl-stmt))))
         ;; Insert a BinaryOperator assignment after the DeclStmt binding
         ;; its first free variable to the newly declared variable.
         (when decl-stmt
@@ -265,9 +266,8 @@ expression match.")
         (to-delete (make-hash-table :test 'equal)))
     (loop :for ast :in (asts obj)
        :when (find id
-                   (append (get-unbound-vals ast)
-                           (get-unbound-funs ast))
-                   :key #'car
+                   (append (get-used-variables obj ast)
+                           (mapcar #'car (get-unbound-funs obj ast)))
                    :test #'string=)
        :do (setf (gethash (enclosing-full-stmt obj ast)
                           to-delete) t))

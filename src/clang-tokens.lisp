@@ -34,9 +34,9 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
        (idents (clang ast)
          (remove-duplicates
           (append (ast-declares ast)
-                  (apply #'append (scopes clang ast))
+                  (mapcar {aget :name} (get-vars-in-scope clang ast))
                   (get-unbound-funs clang ast)
-                  (get-unbound-vals clang ast))
+                  (mapcar {aget :name} (get-unbound-vals clang ast)))
           :test #'equal))
        ;; replace occurrences of a list of identifiers with the string
        ;; "identifier"
