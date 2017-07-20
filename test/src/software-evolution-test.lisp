@@ -1385,7 +1385,7 @@ else
       ;; new type gets added to genome
       (is (= (+ orig-genome-length (length struct-str)
                 (length (genome *hello-world*)))))
-      (is (starts-with-subseq struct-str (genome *hello-world*)))
+      (is (search struct-str (genome *hello-world*)))
       ;; new type is added to types
       (is (= (1+ orig-num-types) (length (types *hello-world*)))))))
 
