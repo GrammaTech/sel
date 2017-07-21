@@ -225,6 +225,47 @@ Keyword arguments are as follows:
              log-variable (namestring env)))
     (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
 
+(defun type-instrumentation-info (type print-strings)
+  (let* ((c-type (if type
+                     (concatenate 'string
+                                  (when (type-pointer type) "*")
+                                  (when (not (emptyp (type-array type))) "*")
+                                  (type-name type))
+                     ""))
+         (stripped-c-type (regex-replace "\\**(unsigned )?" c-type ""))
+         (fmt-code
+          (switch (c-type :test #'string=)
+            ("char"            "%d")
+            ("int8_t"          "%d")
+            ("wchar_t"         "%d")
+            ("*char"           (if print-strings "\\\"%s\\\""  "#x%lx"))
+            ("*wchar"          (if print-strings "\\\"%ls\\\"" "#x%lx"))
+            ("unsigned char"   "%u")
+            ("uint8_t"         "%u")
+            ("short"           "%hi")
+            ("int16_t"         "%hi")
+            ("unsigned short"  "%hu")
+            ("uint16_t"        "%hu")
+            ("int"             "%i")
+            ("int32_t"         "%i")
+            ("unsigned int"    "%u")
+            ("uint32_t"        "%u")
+            ("long"            "%li")
+            ("int64_t"         "%li")
+            ("unsigned long"   "%lu")
+            ("uint64_t"        "%lu")
+            ("float"           "%f")
+            ("double"          "%G")
+            ("long double"     "%LG")
+            ("size_t"          "%zu")
+            (t (if (starts-with "*" c-type :test #'string=)
+                   ;; NOTE: %lx is not guaranteed to be the right size for
+                   ;; pointers. %p would be better, but it will typically print
+                   ;; a leading "0x" which confuses the Lisp reader.
+                   "#x%lx"
+                   (error "Unrecognized C type ~S" c-type))))))
+    (values c-type stripped-c-type fmt-code)))
+
 (defgeneric var-instrument (software label key ast &key print-strings)
   (:documentation
    "Return a format string and variable list for variable instrumentation.
@@ -234,61 +275,20 @@ output."))
 
 (defmethod var-instrument
     ((obj clang) label key (ast ast-ref) &key print-strings)
-  (flet ((fmt-code (c-type)
-           (switch (c-type :test #'string=)
-             ("char"            "%d")
-             ("int8_t"          "%d")
-             ("wchar_t"         "%d")
-             ("*char"           (if print-strings "\\\"%s\\\""  "#x%lx"))
-             ("*wchar"          (if print-strings "\\\"%ls\\\"" "#x%lx"))
-             ("unsigned char"   "%u")
-             ("uint8_t"         "%u")
-             ("short"           "%hi")
-             ("int16_t"         "%hi")
-             ("unsigned short"  "%hu")
-             ("uint16_t"        "%hu")
-             ("int"             "%i")
-             ("int32_t"         "%i")
-             ("unsigned int"    "%u")
-             ("uint32_t"        "%u")
-             ("long"            "%li")
-             ("int64_t"         "%li")
-             ("unsigned long"   "%lu")
-             ("uint64_t"        "%lu")
-             ("float"           "%f")
-             ("double"          "%G")
-             ("long double"     "%LG")
-             ("size_t"          "%zu")
-             (t (if (starts-with "*" c-type :test #'string=)
-                    ;; NOTE: %lx is not guaranteed to be the right size for
-                    ;; pointers. %p would be better, but it will typically print
-                    ;; a leading "0x" which confuses the Lisp reader.
-                    "#x%lx"
-                    (error "Unrecognized C type ~S" c-type))))))
-    (iter (for var in (funcall key ast))
-          (let* ((type (find-var-type obj var))
-                 (name (aget :name var))
-                 (c-type (if type
-                             (concatenate 'string
-                                          (if (or (type-pointer type)
-                                                  (not (emptyp (type-array type))))
-                                              "*" "")
-                                          (type-name type))
-                             ""))
-                 (stripped-c-type
-                  (-<>> (regex-replace "\\**(unsigned )?" c-type "")
-                        (regex-replace "uint" <> "int"))))
-            (when (member stripped-c-type
-                          (append +c-numeric-types+
-                                  '("int8_t" "int16_t" "int32_t" "int64_t"
-                                    "wchar_t" "size_t"))
-                          :test #'string=)
-              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                     name c-type (fmt-code c-type))
-                             into format
-                             initial-value (format nil "(~s" label))
-              (collect name into vars)))
-          (finally (return (cons (concatenate 'string format ")") vars))))))
+  (iter (for var in (funcall key ast))
+        (multiple-value-bind (c-type stripped-c-type fmt-code)
+            (type-instrumentation-info (find-var-type obj var) print-strings)
+          (when (member stripped-c-type
+                        (append +c-numeric-types+
+                                '("int8_t" "int16_t" "int32_t" "int64_t"
+                                  "wchar_t" "size_t"))
+                        :test #'string=)
+            (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
+                                   (aget :name var) c-type fmt-code)
+                           into format
+                           initial-value (format nil "(~s" label))
+            (collect (aget :name var) into vars)))
+        (finally (return (cons (concatenate 'string format ")") vars)))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
