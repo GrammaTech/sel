@@ -956,9 +956,7 @@
     (is (null (types *hello-world*)))
     (is (null (macros *hello-world*)))
     (is (null (globals *hello-world*)))
-    (is (null (fitness *hello-world*)))
-    (is (equalp (make-hash-table :test #'equal)
-                (declarations *hello-world*)))))
+    (is (null (fitness *hello-world*)))))
 
 ;; Check our temporary hack to split multi-variable declarations.
 (deftest split-multi-variable-declarations ()

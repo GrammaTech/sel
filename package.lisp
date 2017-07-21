@@ -57,7 +57,6 @@
    :macros
    :includes
    :types
-   :declarations
    :globals
    :ancestral
    :ancestors
@@ -172,7 +171,6 @@
    :+c-sign-unary-operators+
    :+c-pointer-unary-operators+
    :ast-declarations
-   :declaration-of
    :declared-type
    :find-var-type
    :random-function-name
