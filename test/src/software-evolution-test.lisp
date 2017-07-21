@@ -6070,20 +6070,20 @@ Useful for printing or returning differences in the REPL."
 
 (deftest cxx-method-scopes-are-correct ()
   (with-fixture scopes-cxx-clang
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int y"))
-               '(nil
-                 ("x")
-                 nil)))
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "int z"))
-               '(nil
-                 ("y")
-                 ("x")
-                 nil)))
-    (is (equal (scopes *scopes* (stmt-with-text *scopes* "y = 0"))
-               '(("z")
-                 ("y")
-                 ("x")
-                 nil)))))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "int y"))
+                    '(nil
+                      ("x")
+                      nil))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "int z"))
+                    '(nil
+                      ("y")
+                      ("x")
+                      nil))
+    (compare-scopes (scopes *scopes* (stmt-with-text *scopes* "y = 0"))
+                    '(("z")
+                      ("y")
+                      ("x")
+                      nil))))
 
 (deftest types-are-correct ()
   (with-fixture scopes2-clang

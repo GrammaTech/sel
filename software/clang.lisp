@@ -2618,7 +2618,7 @@ Each variable is represented by an alist in the same format used by SCOPES."))
       (-<>> (walk-scope ast nil (list nil))
             (remove-duplicates <> :test #'string=)
             (mapcar (lambda (name)
-                      (or (find-if [{string= name} {aget :name}] in-scope)
+                      (or (find name in-scope :test #'string= :key {aget :name})
                           `((:name . ,name)))))))))
 
 (defmethod get-unbound-vals ((software clang) (ast clang-ast))
@@ -2634,8 +2634,8 @@ Each variable is represented by an alist in the same format used by SCOPES."))
   (iter (for var in (apply #'append (if keep-globals
                                         (butlast (scopes obj ast))
                                         (scopes obj ast))))
-        (unless (find-if [{string= (aget :name var)} {aget :name}]
-                         vars)
+        (unless (find (aget :name var) vars
+                      :test #'string= :key {aget :name})
           (collect var into vars))
         (finally (return vars))))
 

@@ -331,56 +331,32 @@ abst_cond() in the source text."
 
 ;; FIXME: mostly copied from var-instrument in clang-instrument.lisp
 (defun instrument-values (obj ast &key print-strings extra-exprs)
-  (flet ((fmt-code (c-type)
-           (switch (c-type :test #'string=)
-             ("char"            "%c")
-             ("*char"           (if print-strings "\\\"%s\\\"" "%p"))
-             ("string"          (if print-strings "\\\"%s\\\"" "%p"))
-             ("unsigned char"   "%u")
-             ("short"           "%hi")
-             ("unsigned short"  "%hu")
-             ("int"             "%i")
-             ("unsigned int"    "%u")
-             ("long"            "%li")
-             ("unsigned long"   "%lu")
-             ("float"           "%f")
-             ("double"          "%G")
-             ("long double"     "%LG")
-             ("size_t"          "%zu")
-             (t (if (starts-with "*" c-type :test #'string=)
-                    "%p"
-                    (error "Unrecognized C type ~S" c-type))))))
-    (let ((exprs
-           (remove nil
-             (append (mapcar (lambda (v)
-                               (cons (aget :name v)
-                                     (find-var-type obj v)))
-                             (get-vars-in-scope obj ast))
-                     extra-exprs))))
-      (iter (for (var . type) in exprs)
-            (let* ((c-type (concatenate 'string
-                             (if (or (type-pointer type)
-                                     (not (emptyp (type-array type))))
-                                 "*" "")
-                             (type-name type)))
-                   (stripped-c-type
-                    (regex-replace "\\**(unsigned )?" c-type "")))
-              (when (or (member stripped-c-type +c-numeric-types+
-                                :test #'string=)
-                        (string= stripped-c-type "size_t"))
-                (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                       var c-type (fmt-code c-type))
-                               into format
-                               initial-value (format nil "(:scopes"))
-                (collect var into vars))
-              (when (and print-strings
-                         (string= stripped-c-type "string"))
-                (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                       var c-type (fmt-code c-type))
-                               into format
-                               initial-value (format nil "(:scopes"))
-                (collect (format nil "~a.c_str()" var) into vars)))
-            (finally (return (cons (concatenate 'string format ")") vars)))))))
+  (let ((exprs
+         (remove nil
+                 (append (mapcar (lambda (v)
+                                   (cons (aget :name v)
+                                         (find-var-type obj v)))
+                                 (get-vars-in-scope obj ast))
+                         extra-exprs))))
+    (iter (for (var . type) in exprs)
+          (multiple-value-bind (c-type stripped-c-type fmt-code)
+              (type-instrumentation-info type print-strings)
+            (when (or (member stripped-c-type +c-numeric-types+
+                              :test #'string=)
+                      (string= stripped-c-type "size_t"))
+              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
+                                     var c-type fmt-code)
+                             into format
+                             initial-value (format nil "(:scopes"))
+              (collect var into vars))
+            (when (and print-strings
+                       (string= stripped-c-type "string"))
+              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
+                                     var c-type fmt-code)
+                             into format
+                             initial-value (format nil "(:scopes"))
+              (collect (format nil "~a.c_str()" var) into vars)))
+          (finally (return (cons (concatenate 'string format ")") vars))))))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
   "Add instrumentation before the enclosing if statement for the guard
