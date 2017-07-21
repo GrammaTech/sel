@@ -63,10 +63,6 @@
           :initform nil :copier :direct
           :type #+sbcl (list (cons keyword *) *) #+ccl list
           :documentation "Association list of types keyed by HASH id.")
-   (declarations :initarg :declarations :accessor declarations
-                 :initform (make-hash-table :test #'equal)
-                 :copier :direct :type hash-table :documentation
-                 "Hash of variable declarations keyed by variable name.")
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
            :type #+sbcl (list clang-macro *) #+ccl list
@@ -1557,10 +1553,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
   obj)
 
-(defmethod update-caches ((obj clang)
-                          &aux (decls (make-hash-table :test #'equal)))
+(defmethod update-caches ((obj clang))
   (with-slots (asts stmt-asts non-stmt-asts functions prototypes
-               declarations includes) obj
+                    includes) obj
     ;; Collect all ast-refs
     (labels ((helper (tree path)
                (when (listp tree)
@@ -1573,9 +1568,6 @@ for successful mutation (e.g. adding includes/types/macros)"))
       (setf asts (cdr (helper (ast-root obj) nil))))
 
     (iter (for ast in asts)
-          (mapc (lambda (var) (nconcf (gethash var decls nil) (list ast)))
-                (ast-declarations ast))
-
           (when (function-decl-p ast)
             (collect ast into protos)
             (when (function-body obj ast)
@@ -1592,7 +1584,6 @@ for successful mutation (e.g. adding includes/types/macros)"))
           (finally
            (setf stmt-asts my-stmts
                  non-stmt-asts my-non-stmts
-                 declarations decls
                  includes m-includes
                  functions funs
                  prototypes protos))))
@@ -1600,12 +1591,11 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod clear-caches ((obj clang))
   (with-slots (stmt-asts non-stmt-asts functions prototypes
-                         declarations includes) obj
+                         includes) obj
     (setf stmt-asts nil
           non-stmt-asts nil
           functions nil
           prototypes nil
-          declarations (make-hash-table :test #'equal)
           includes nil)))
 
 (defgeneric from-file-exactly (software path)
@@ -1765,7 +1755,6 @@ declarations onto multiple lines to ease subsequent decl mutations."))
 (defmethod          asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod non-stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod  declarations :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     functions :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod    prototypes :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod      includes :before ((obj clang)) (update-caches-if-necessary obj))
@@ -2779,10 +2768,6 @@ variables to replace use of the variables declared in stmt ID."))
   (:documentation "Return the names of the variables that AST declares."))
 
 (defmethod ast-declarations ((ast clang-ast))
-  ;; TODO: This should be updated to return the range and the type of
-  ;;       the declaration.  This will simplify the implementation and
-  ;;       improve the correctness of `declaration-of' and
-  ;;       `type-of-var' down the line.
   (cond
     ; Variable or function arg
     ((member (ast-class ast) '(:Var :ParmVar :DeclStmt))
@@ -2796,19 +2781,6 @@ variables to replace use of the variables declared in stmt ID."))
 
 (defmethod ast-declarations ((ast clang-type))
   nil)
-
-(defgeneric declaration-of (software variable-name &optional point)
-  (:documentation "Return the AST in SOFTWARE which declares VARIABLE-NAME.
-Optionally supply a POINT to return the preceding declaration
-closest to POINT."))
-
-(defmethod declaration-of ((obj clang) (variable-name string)
-                           &optional point)
-  (let ((decls (gethash variable-name (declarations obj))))
-    (if point
-        (find-if «or {ast-later-p point} {equalp point}»
-                 decls :from-end t)
-        (car decls))))
 
 (defgeneric declared-type (ast variable-name)
   (:documentation "Guess the type of the VARIABLE-NAME in AST.
