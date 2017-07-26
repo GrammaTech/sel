@@ -29,73 +29,41 @@
 (in-package :software-evolution)
 (enable-curry-compose-reader-macros :include-utf8)
 
-(defclass test-suite () ())
+(defclass test-case ()
+  ((test-runner
+    :initarg :test-runner :initform nil :accessor test-runner
+    :type function
+    :documentation "Function to run the test case. Takes as input a phenome and
+optional environment.")
+   (fitness
+    :initarg nil :initform nil :accessor fitness
+    :documentation "Result from the last time this test case was run."))
+  (:documentation "Test case object."))
 
-(defgeneric test-cases (suite)
-  (:documentation
-   "List of test cases. The type of the test cases themselves is
-    implementation-dependent."))
+(defun make-scripted-test-suite (test-runner-gen test-count)
+  "Create a list of test-case objects. TEST-RUNNER-GEN is a function of two
+arguments (a test ID from 0 to TEST-COUNT and the binary name) which returns a
+command string that will be invoked by `shell-with-env'. The test-case's
+`test-runner' function will run the command and return a result written to
+stdout."
+  (iter (for i below test-count)
+        (let ((test i))
+          (collecting
+           (make-instance
+            'test-case
+            :test-runner
+            (lambda (bin &optional env)
+              (multiple-value-bind (stdout stderr exit)
+                  (shell-with-env env (funcall test-runner-gen test bin))
+                (if (zerop exit)
+                    (let ((val (read-from-string stdout)))
+                      (if (listp val) (car val) val))
+                    (error "test command failed: ~a" stderr)))))))))
 
-(defgeneric run-test (suite phenome case &key environment)
-  (:documentation
-   "Execute a test case, returning a fitness score.
-
-  SUITE --------- The test-suite object.
-  CASE ---------- A test case, as returned by the test-cases method.
-  PHENOME ------- The phenome to test.
-  ENVIRONMENT --- The environment in which to run the test. The type and
-                  interpretation of this argument is implementation-dependent."))
-
-(defgeneric case-fitness (suite case)
-  (:documentation "The saved fitness score for an individual test case."))
-
-(defgeneric (setf case-fitness) (value suite case))
-
-
-(defclass scripted-test-suite (test-suite)
-  ((command-gen
-    :initarg :command-gen :accessor command-gen
-    :documentation "Function which generates a shell command to run tests. It
-should take two parameters: the executable and a list of command-line
-arguments.")
-   (test-count :initarg :test-count :initform nil :accessor test-count
-               :documentation "Number of test cases in suite.")
-   (fitness :initform nil :accessor fitness
-            :documentation "Vector containing fitness for each test case.")))
-
-(defgeneric run-test-script (suite phenome env &rest input)
-  (:documentation "Run a test script in SUITE with shell environment ENV, passing
-PHENOME and INPUT as parameters to the script. Like `collect-trace', the special
-element :BIN in INPUT will be replaced with the namestring of PHENOME."))
-
-(defmethod run-test-script ((suite scripted-test-suite) phenome env &rest input)
-  (let ((real-input (mapcar (lambda (it)
-                             (if (eq :bin it) (namestring phenome) it))
-                           input)))
-    (multiple-value-bind (stdout stderr exit)
-        (shell-with-env env (funcall (command-gen suite) phenome real-input))
-      (if (zerop exit)
-          (let ((val (read-from-string stdout)))
-            (if (listp val) (car val) val))
-          (error "test command failed: ~a" stderr)))))
-
-(defun make-scripted-test-suite (command-gen test-count)
-  (let* ((suite (make-instance 'scripted-test-suite
-                               :command-gen command-gen
-                               :test-count test-count)))
-    (setf (fitness suite) (make-array test-count :initial-element nil))
-    suite))
-
-(defmethod run-test ((suite scripted-test-suite) phenome case &key environment)
-  ;; Run the script with an argument indicating the test case number.
-  (run-test-script suite phenome environment case))
-
-(defmethod test-cases ((suite scripted-test-suite))
-  (iota (test-count suite)))
-
-(defmethod case-fitness ((suite scripted-test-suite) case)
-  (elt (fitness suite) case))
-
-(defmethod (setf case-fitness) (value (suite scripted-test-suite) (case integer))
-  (setf (elt (fitness suite) case)
-        value))
+(defun make-test-suite (test-runner-gen test-count)
+  (iter (for i below test-count)
+        (let ((runner-fun (funcall test-runner-gen i)))
+          (collecting (make-instance
+                       'test-case
+                       :test-runner
+                       runner-fun)))))
