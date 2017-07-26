@@ -766,11 +766,11 @@
                            (cs-tiny-dir "tiny-test.c")))
           (setf *test-suite*
                 (make-scripted-test-suite
-                 (lambda (bin args)
-                   (format nil "~a ~a ~{~a~^ ~}"
+                 (lambda (test-case bin)
+                   (format nil "~a ~a ~a"
                            (namestring (cs-tiny-dir "fitness.py"))
                            bin
-                           args))
+                           test-case))
                  6)))
   (:teardown
    (setf *soft* nil)
@@ -782,11 +782,11 @@
                            (cs-tighten-dir "test-tighten.c")))
           (setf *test-suite*
                 (make-scripted-test-suite
-                 (lambda (bin args)
-                   (format nil "~a ~a ~{~a~^ ~}"
+                 (lambda (test-case bin)
+                   (format nil "~a ~a ~a"
                            (namestring (cs-tighten-dir "fitness.py"))
                            bin
-                           args))
+                           test-case))
                  6)))
   (:teardown
    (setf *soft* nil)
@@ -798,11 +798,11 @@
                            (cs-add-guard-dir "test-add-guard.c")))
           (setf *test-suite*
                 (make-scripted-test-suite
-                 (lambda (bin args)
-                   (format nil "~a ~a ~{~a~^ ~}"
+                 (lambda (test-case bin)
+                   (format nil "~a ~a ~a"
                            (namestring (cs-add-guard-dir "fitness.py"))
                            bin
-                           args))
+                           test-case))
                  8)))
   (:teardown
    (setf *soft* nil)
@@ -814,11 +814,11 @@
                            (cs-partial-dir "partial.c")))
           (setf *test-suite*
                 (make-scripted-test-suite
-                 (lambda (bin args)
-                   (format nil "~a ~a ~{~a~^ ~}"
+                 (lambda (test-case bin)
+                   (format nil "~a ~a ~a"
                            (namestring (cs-partial-dir "fitness.py"))
                            bin
-                           args))
+                           test-case))
                  6)))
   (:teardown
    (setf *soft* nil)
@@ -830,11 +830,11 @@
                            (cs-divide-dir "divide.c")))
           (setf *test-suite*
                 (make-scripted-test-suite
-                 (lambda (bin args)
-                   (format nil "~a ~a ~{~a~^ ~}"
+                 (lambda (test-case bin)
+                   (format nil "~a ~a ~a"
                            (namestring (cs-divide-dir "fitness.py"))
                            bin
-                           args))
+                           test-case))
                  5)))
   (:teardown
    (setf *soft* nil)

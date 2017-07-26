@@ -475,8 +475,7 @@ results when evaluated under the corresponding environment."
                        (for env in envs)
                        (sum (if (entails env condition result) 1 0))))))
 
-(defun run-test-case (test bin test-suite
-                      &key default abst-conds loop-count)
+(defun run-test-case (test bin &key default abst-conds loop-count)
   "Run a test case, returning the fitness score, condition values, and
 environments."
   (ignore-errors (delete-file *trace-file*))
@@ -484,8 +483,7 @@ environments."
                       (when abst-conds `(("ABST_COND_VALUES" ,abst-conds)))
                       (when loop-count `(("ABST_COND_LOOP_COUNT" ,loop-count)))
                       ))
-         (output (run-test test-suite bin test
-                           :environment env))
+         (output  (funcall (test-runner test) bin env))
          ((:values conds envs) (read-abst-conds-and-envs *trace-file*)))
     (values output conds envs)))
 
@@ -526,7 +524,7 @@ environments."
   ;; Build the whole project
   (build software bin))
 
-(defun collect-negative-conds-and-envs (bin neg-tests test-suite loop-condition)
+(defun collect-negative-conds-and-envs (bin neg-tests loop-condition)
   "For each negative test case, try to identify a set of 0/1 values
 for abst_cond() that would improve fitness. If one is found, return the
 recorded decisions and environments."
@@ -555,24 +553,24 @@ recorded decisions and environments."
   (iter (for test in neg-tests)
         (multiple-value-bind (test-result recorded-conds envs)
             ;; Run test, preserving original behavior
-            (run-test-case test bin test-suite
+            (run-test-case test bin
                            :default 0
                            :loop-count (when loop-condition 0))
           (dotimes (count (1+ *abst-cond-attempts*))
             ;; If the test passes, break out of the dotimes
-            (when (> test-result (case-fitness test-suite test))
+            (when (> test-result (fitness test))
               (return))
             (if (and (not loop-condition) (equal count *abst-cond-attempts*))
                 ;; On the last try, run test with all abst_cond() returning 1
                 (multiple-value-bind (tr2 rc2 e2)
                     (run-test-case test bin
-                                   test-suite :default 1)
+                                   :default 1)
                   (setf test-result tr2)
                   (setf recorded-conds rc2)
                   (setf envs e2))
                 ;; Otherwise, try "flipping" the last recorded result
                 (multiple-value-bind (tr2 rc2 e2)
-                    (run-test-case test bin test-suite
+                    (run-test-case test bin
                                    :abst-conds (unless loop-condition
                                                  (flip recorded-conds))
                                    :loop-count (when loop-condition (1+ count)))
@@ -580,19 +578,18 @@ recorded decisions and environments."
                   (setf recorded-conds rc2)
                   (setf envs e2))))
           ;; If the test succeeded, save the recorded conditions and envs
-          (when (> test-result (case-fitness test-suite test))
+          (when (> test-result (fitness test))
             (collect recorded-conds into recorded-cond-results)
             (collect envs into env-results))
           (finally
            (return (values recorded-cond-results env-results))))))
 
-(defun collect-positive-conds-and-envs (bin pos-tests test-suite
-                                        loop-condition)
+(defun collect-positive-conds-and-envs (bin pos-tests loop-condition)
   (iter (for test in pos-tests)
         (multiple-value-bind (test-result recorded-conds envs)
             ;; Run test, setting abst_cond() to preserve original
             ;; behavior, and save the environments.
-            (run-test-case test bin test-suite
+            (run-test-case test bin
                            :default (if loop-condition 1 0))
           (when test-result
             (collect recorded-conds into recorded-cond-results)
@@ -621,13 +618,14 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
   software)
 
 (defun collect-tests (software test-suite)
-  "Make test suite and divide it into positive and negative cases."
+  "Make test suite and divide it into positive and negative cases. TEST-SUITE is
+a list of `test-case' objects."
   (with-temp-file (bin)
     (build software bin)
-    (iter (for case in (test-cases test-suite))
-          (let ((fitness (run-test test-suite bin case)))
-            (setf (case-fitness test-suite case) fitness)
-            (if (>= fitness 1.0)
+    (iter (for case in test-suite)
+          (let ((test-fitness (funcall (test-runner case) bin)))
+            (setf (fitness case) test-fitness)
+            (if (>= test-fitness 1.0)
                 (collect case into positive)
                 (collect case into negative)))
           (finally (return (values positive negative))))))
@@ -635,8 +633,7 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
 (defun improves-fitness (new-fitness test-suite)
   "Are NEW-FITNESS scores and improvement over the current fitness of
 TEST-SUITE?"
-  (let ((orig-fitness (mapcar {case-fitness test-suite}
-                              (test-cases test-suite))))
+  (let ((orig-fitness (mapcar #'fitness test-suite)))
     (and (every (lambda (new old) (>= new old)) new-fitness orig-fitness)
          (some (lambda (new old) (> new old)) new-fitness orig-fitness))))
 
@@ -675,15 +672,10 @@ print at each instrumentation point. It should have the form
               (((:values pos-tests neg-tests)
                 (collect-tests software test-suite))
                ((:values neg-conds neg-envs)
-                (collect-negative-conds-and-envs bin neg-tests
-                                                 test-suite
-                                                 loop-condition))
+                (collect-negative-conds-and-envs bin neg-tests loop-condition))
                ((:values pos-conds pos-envs)
-                (collect-positive-conds-and-envs bin pos-tests
-                                                 test-suite
-                                                 loop-condition))
-               (conditions (synthesize-conditions (append neg-envs
-                                                          pos-envs))))
+                (collect-positive-conds-and-envs bin pos-tests loop-condition))
+               (conditions (synthesize-conditions (append neg-envs pos-envs))))
             (dotimes (count *synth-condition-attempts*)
               (when (not conditions)
                 (return nil))
@@ -695,13 +687,13 @@ print at each instrumentation point. It should have the form
                                    (copy software) repair-mutation best-cond)))
                 (setf conditions (remove best-cond conditions :test #'equal))
                 (build test-repair bin)
-                (let ((new-fitness (mapcar {run-test test-suite bin}
-                                           (test-cases test-suite))))
+                (let ((new-fitness (mapcar [{funcall _ bin} #'test-runner]
+                                           test-suite)))
                   (when (improves-fitness new-fitness test-suite)
                     (setf cur-best test-repair)
-                    (loop for test in (test-cases test-suite)
+                    (loop for test in test-suite
                        for f in new-fitness do
-                         (setf (case-fitness test-suite test) f))
+                         (setf (fitness test) f))
                                         ; repair found
                     (when (every {>= _ 1.0} new-fitness)
                       (return-from synthesize-condition cur-best)))))))
