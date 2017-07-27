@@ -1,6 +1,10 @@
 Table of Contents
 - [Debugging Recommendations](#debugging-recommendations)
+    - [Log all interaction with the system shell `(setq *shell-debug* t)`](#log-all-interaction-with-the-system-shell-setq-shell-debug-t)
+    - [Tracing specific functions](#tracing-specific-functions)
 - [Issues and Solutions](#issues-and-solutions)
+    - [`clang-mutate` is not on my path](#clang-mutate-is-not-on-my-path)
+    - [Dependency on MongoDB](#dependency-on-mongodb)
 
 # Debugging Recommendations
 
