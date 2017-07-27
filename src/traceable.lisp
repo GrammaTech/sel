@@ -94,6 +94,13 @@ times."))
                                                           :error-if-exited nil)
                   #-(or sbcl ccl)
                   (error "Needs SBCL or CCL.")
+                  (restart-case
+                      ;; This usually indicates a problem with the test script
+                      ;; or the instrumentation
+                      (assert (not (emptyp traces)) ()
+                              "No traces collected for input ~s" real-input)
+                    (continue-collecting ()
+                      :report "Ignore and continue collecting traces."))
                   (return traces)))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
 
