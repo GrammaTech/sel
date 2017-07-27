@@ -4,10 +4,7 @@ Basic procedures to contribute code or documentation.
 
 - [Setup](#setup)
     - [User Quicklisp](#user-quicklisp)
-- [Lisp](#lisp)
-    - [Startup](#startup)
-    - [Coding Standards](#coding-standards)
-    - [Additional Resources](#additional-resources)
+- [Coding Standards](#coding-standards)
 - [Testing](#testing)
     - [Unit Tests](#unit-tests)
 - [Git Commit Messages](#commit-messages)
@@ -53,27 +50,7 @@ environment variable to point to your local quicklisp installation
         ...
         (:PROJECT)
 
-## Lisp
-
-### Startup
-
-This [getting started guide](http://cliki.net/Getting+Started) is
-pretty complete.  Use a reasonable editor (e.g., Emacs or VIM with
-[ParEdit](http://emacswiki.org/emacs/ParEdit) or
-[paredit.vim](https://github.com/vim-scripts/paredit.vim)
-respecitvely) makes following these rules trivial.  Really unless you
-have a strong reason you should use Emacs as no other editor has such
-strong integration into the Lisp process (useful for finding function
-definitions, automatically displaying information, compiling,
-highlighting compiler warnings, evaluating, etc...).
-
-Also,
-[Chapter 2](http://www.gigamonkeys.com/book/lather-rinse-repeat-a-tour-of-the-repl.html)
-of [Practical Common Lisp](http://www.gigamonkeys.com/book/) also
-describes getting Emacs and Slide working (and is generally a good
-book).
-
-### Coding Standards
+## Coding Standards
 
 Google's
 [Common Lisp guide](http://google.github.io/styleguide/lispguide.xml)
@@ -122,20 +99,6 @@ following places before implementation of any utility.
       package.
 
    4. Check the "utilities" package of SEL.
-
-### Additional Resources
-
-- The `#lisp` IRC room on the [freenode](https://freenode.net/) irc server
-- [Introduction to Slime](http://www.cliki.net/slime-howto)
-- [Introduction to ParEdit](https://www.emacswiki.org/emacs/ParEdit)
-- [Introduction to Melpa](https://melpa.org/#/getting-started)
-- [Debugging Lisp](http://malisper.me/2015/07/07/debugging-lisp-part-1-recompilation/)
-- [Practical Common Lisp Book](http://www.gigamonkeys.com/book/)
-- [On Lisp](https://www.csee.umbc.edu/courses/331/resources/lisp/onLisp/)
-- [Curry compose reader macros, aka, those weird `[{}]` and `«»` symbols](https://github.com/eschulte/curry-compose-reader-macros)
-- [`loop` vs. `iter`](https://sites.google.com/site/sabraonthehill/loop-v-iter#TOC-Collect). We prefer `iter`.
-- [`iter` in detail](https://common-lisp.net/project/iterate/doc/index.html)
-- [Using `bind`](https://common-lisp.net/project/metabang-bind/user-guide.html)
 
 ## Testing
 
