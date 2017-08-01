@@ -162,7 +162,7 @@ instance. But I don't see why not run all the files separately.
 Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
-* Tasks [25/33]
+* Tasks [24/32]
 ** TODO Should mutations fall back from bad-stmts to all-stmts
 As currently done in [[file:software/clang.lisp::;;;%20Expand%20compound%20assignment][expand-assignments]]? No.
 
@@ -198,7 +198,11 @@ information.  We can get the text easily from there using the
 begin/end line/col fields of the ASTs.  Otherwise we are just parsing
 a *ton* of text which we'll for the most part never use.
 
-** TODO don't parse clang ASTs until required
+** DONE don't parse clang ASTs until required
+   - Note taken on [2017-08-01 Tue 18:31] \\
+     This was done a long time ago, but backed out as part of the
+     Applicative AST refactoring. See [[*Eliminate%20redundant%20clang%20AST%20updates][Eliminate redundant clang AST updates]].
+
 Most individuals will just need to read a string, and then dump that
 string for compilation.  This should be completely doable by
 initializing the genome with =from-file-exactly= (or
@@ -347,11 +351,11 @@ This guy apparently mutates python byte code.
   #+end_src
 
 ** DONE debug cil-mutate
-: 14:11 < stharding> _schulte_: do you have a working example for 
-:                    cil-mutate? when I use the 'cil software 
-:                    object, evolve never makes any progress. i.e. 
-:                    *fitness-evals* never increments past zero 
-:                    and all I get is the output of cil-mutate 
+: 14:11 < stharding> _schulte_: do you have a working example for
+:                    cil-mutate? when I use the 'cil software
+:                    object, evolve never makes any progress. i.e.
+:                    *fitness-evals* never increments past zero
+:                    and all I get is the output of cil-mutate
 :                    dumped to the screen
 
 It turns out cil-mutate had never been implemented, just stubbed out.
@@ -538,6 +542,82 @@ Another option is [[http://gcc-melt.org/][gcc-melt]] with [[https://github.com/b
 *** useful functions, how this will work
 - [[file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::*%20\brief%20Retrieve%20the%20replacement%20information%20for%20a%20given%20fix-it.][file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::* \brief Retrieve the replacement information for a given fix-it.]]
 
+** TODO Eliminate redundant clang AST updates
+Currently there are some cases where we change the genome directly,
+which causes us to call update-asts (and run clang-mutate), but those
+ASTs are never used. This can waste a lot of time.
+
+*** Background
+We used to defer update-asts until ASTs were needed. But this became
+problematic during the AST refactoring. If we were to copy a clang
+object whose ASTs were unset, then we'd need to run update-asts
+separately on each, and they would end up with duplicate ASTs.
+
+I tried to avoid this situation by running update-asts during the copy
+if necessary, but this led to race conditions.
+
+Ultimately, it was simpler to run update-asts immediately when the
+genome changes and then discard the genome string. Direct genome
+changes were expected to be rare, because mutations would operate on
+the ASTs.
+
+*** Problem
+We still change the genome directly in clang-format, clang-tidy, and
+instrument (which is still implemented with clang-mutate). In
+bug-injector, a typical run starts off like this:
+ 1. load the original
+ 2. clang-format
+ 3. clang-tidy
+ 4. instrument
+ 5. collect traces and mutate
+ 6. clang-format the mutants before saving them to disk
+
+Every step except 5 causes an AST update, but only the results of step
+3 are ever used. At every other step, we only care about the genome
+string and the ASTs are redundant.
+
+*** Solutions
+**** Bring back deferred AST updates
+This is the most thorough solution but maybe the most work. We'd
+probably need locking to prevent race conditions. The interaction
+between AST updates and copying has been a source of bugs in the past
+and it will be even more complicated now so this could be hard to get
+right.
+
+Alternatively, we could allow explicit disabling of AST updates. The
+user of this feature would have to ensure that updates were re-enabled
+at the appropriate time. But the implementation would be much easier.
+
+**** clang-format/tidy on strings
+If we had versions of clang-format and clang-tidy that accepted and
+returned strings, we could chain them together without causing
+updates. For example:
+#+BEGIN_SRC lisp
+  (->> (file-to-string path)
+       (clang-format)
+       (clang-tidy)
+       (from-string (make-instance 'clang)))
+#+END_SRC
+
+This doesn't solve all the problems but it will improve performance
+with very little effort.
+
+**** Speeding up instrument
+instrument uses apply-clang-mutate-ops because it works, and
+reimplementing it at the AST level would be a lot of work. That means
+we need to call update-asts before instrumenting to make sure all the
+counters are up to date.
+
+After the initial instrumentation, we directly modify the genome to
+insert the setup code and optionally print program input.
+
+We could return the new genome string from apply-clang-mutate ops,
+modifying that, and then set the object's genome.
+
+Or, if we implemented the ability to disable updates, we could do that
+when instrumenting. In practice we never care about the ASTs of an
+instrumented object, just its phenome.
+
 * Meeting
 ** Applicative AST refactoring <2017-01-27 Fri>
 Thoughts
@@ -576,20 +656,20 @@ during rewriting.
 : > of existing code based on the alist representation, and updating it
 : > all could be a lot of work.
 : >
-: 
+:
 : Yes, these should become structures (lighter weight than classes).
-: 
+:
 : >
 : > 2. AST Counters
 : > There's a lot of existing code that passes AST counters around. But
 : > counters won't really work in the applicative representation. Do you
 : > have any thoughts on how to ease that transition?
 : >
-: 
+:
 : I think instead of counters we could pass the ASTs themselves around.
 : We'll have to ensure that we're only passing pointers and not copying
 : ASTs but that should happen for free.
-: 
+:
 : >
 : > 3. Text representation
 : > I've been thinking about how to implement the editing operations, in
@@ -634,18 +714,18 @@ during rewriting.
 : > make more significant transformations -- like transform a for into an
 : > equivalent while loop or wrapping a statement in curly braces. I guess
 : > recontextualization falls into this category as well.
-: > 
+: >
 : > These can potentially cause farther-reaching changes to the AST
 : > structure, and also change some dependent fields (free variables,
 : > types, syntactic context, ast class).
-: > 
+: >
 : > We could require that the mutation code do all these updates and
 : > produce correct ASTs. But that seems like a lot of work, especially
 : > for types.
-: > 
+: >
 : > Or we could re-run clang-mutate as needed (hopefully not too often)
 : > and merge the results into the applicative structure.
-: > 
+: >
 : > I'm not sure I like either option. Is there a better way?
-: > 
+: >
 #+end_quote
