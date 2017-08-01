@@ -30,7 +30,7 @@ highlighting compiler warnings, evaluating, etc...).
 Also,
 [Chapter 2](http://www.gigamonkeys.com/book/lather-rinse-repeat-a-tour-of-the-repl.html)
 of [Practical Common Lisp](http://www.gigamonkeys.com/book/) also
-describes getting Emacs and Slide working (and is generally a good
+describes getting Emacs and Slime working (and is generally a good
 book).
 
 ### Additional Resources
