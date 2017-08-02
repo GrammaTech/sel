@@ -43,3 +43,10 @@ trigger_bug-injector:
     - "curl -X POST -F token=ff71369e488f933f0fb4c531e11d8f -F ref=master https://git.grammatech.com/api/v4/projects/57/trigger/pipeline"
   only:
     - master
+
+trigger_evo-rings:
+  stage: dependents
+  script:
+    - "curl -X POST -F token=3927540b9948e9eb8d3b1774dd9627 -F ref=master https://git.grammatech.com/api/v4/projects/80/trigger/pipeline"
+  only:
+    - master
