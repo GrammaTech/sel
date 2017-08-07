@@ -163,10 +163,9 @@ Returns modified text, and names of bound variables.
 (defun prepare-fodder (obj snippet pt)
   (flet
       ((var-type-string (in-scope var-name)
-         (let ((type (->> (find-if [{string= var-name} {aget :name}] in-scope)
-                          (find-var-type obj))))
-           (format nil "~a~a" (type-name type)
-                   (if (type-pointer type) "*" "")))))
+         (->> (find-if [{string= var-name} {aget :name}] in-scope)
+              (find-var-type obj)
+              (type-decl-string))))
     (multiple-value-bind (text vars)
         (bind-vars-in-snippet obj snippet pt)
       (let ((in-scope (get-vars-in-scope obj pt)))
