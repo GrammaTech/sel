@@ -56,6 +56,7 @@
    :with-temp-file-of-bytes
    :with-temp-files
    :with-temp-dir
+   :with-cwd
    :open-file-timeout
    :ensure-path-is-string
    :in-directory
