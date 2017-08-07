@@ -161,6 +161,11 @@ After BODY is executed the temporary file is removed."
      (mkfifo ,(car spec) (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
      ,@body))
 
+(defmacro with-temp-dir (spec &rest body)
+  `(with-temp-file ,spec
+     (ensure-directories-exist (ensure-directory-pathname ,(car spec)))
+     ,@body))
+
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file
 and an optional extension."
