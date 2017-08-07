@@ -166,6 +166,14 @@ After BODY is executed the temporary file is removed."
      (ensure-directories-exist (ensure-directory-pathname ,(car spec)))
      ,@body))
 
+(defmacro with-cwd (dir &rest body)
+  "Change the current working directory to dir and execute body"
+  (with-gensyms (orig)
+    `(let ((,orig (getcwd)))
+       (unwind-protect
+         (progn (chdir ,(car dir)) ,@body)
+         (chdir ,orig)))))
+
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file
 and an optional extension."
