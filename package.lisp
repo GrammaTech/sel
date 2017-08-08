@@ -463,6 +463,9 @@
    :stmts-in-file
    :error-funcs
    :rinard
+   :rinard-incremental
+   :rinard-write-out
+   :rinard-read-in
    :collect-fault-loc-traces
    :generate-helpers
    :clang-ast
