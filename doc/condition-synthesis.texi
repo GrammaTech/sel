@@ -1,0 +1,192 @@
+Condition synthesis is a program repair technique that introduces or alters
+guard conditions in source code using a set of passing and failing unit tests
+as a guide and measure of success. This approach is based largely on that
+described in @cite{Staged Program Repair with Condition Synthesis} available at
+@url{http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf}.
+
+At a high level, condition synthesis will:
+@enumerate
+@item Introduce an abstract condition into the source code
+
+@item Run failing unit tests to identify a series of values for the abstract
+condition which would allow the failing tests to pass
+
+@item If a series of values is identified, examine values of variables in
+the environment to determine if a condition of the form @code{(var == value)} or
+@code{!(var == value)} satisfies each value in the series.
+
+@item If a condition is found, replace the abstract condition in the source code
+with the synthesized condition.
+@end enumerate
+
+More details about each of these steps are provided in the following sections.
+
+@heading Introducing Abstract Conditions
+Abstract conditions are represented by a call to the @code{abst_cond()}
+function. Mutations are used to perform the insertion. The current set of
+mutations includes:
+
+@enumerate
+@item @code{tighten-condition} - add an additional Boolean clause using the
+connectives @code{&&} and @code{!}, e.g., @code{if(foo)} becomes
+@code{if(foo && !abst_cond())}.
+
+@item @code{loosen-condition} - add an additional Boolean clause using the
+@code{||} connective, e.g., @code{if(foo)} becomes
+@code{if(foo || abst_cond())}.
+
+@item @code{add-condition} - wrap a statement in an if, e.g., @code{foo;}
+becomes @code{if(abst_cond()) foo;}.
+
+@item @code{if-to-while} - replace an if statement with a while using the same
+condition, e.g., @code{if(foo)} becomes @code{while(foo)}.
+
+@item @code{if-to-while-tighten-condition} - combine if-to-while replacement
+with a tighter condition, e.g., @code{if(foo)} becomes
+@code{while(foo && !abst_cond())}.
+
+@item @code{insert-else-if} - insert an (empty) else-if clause after an existing
+if, e.g., @code{if(foo) bar;} becomes
+@code{if(foo) bar; else if(abst_cond()) ;}.
+
+@end enumerate
+
+@heading Identifying Abstract Condition Values
+The C implementation of @code{abst_cond()} refers to a set of environment
+variables in order to determine which value to return. @code{ABST_COND_DEFAULT}
+indicates that every invocation of @code{abst_cond()} should return the same,
+default value. If not specified, the default is 0. @code{ABST_COND_VALUES} is a
+list of zeroes and ones which should be returned in that order. For example,
+``001'' would indicate that the first two invocations of @code{abst_cond()}
+should return 0, and the third should return 1. If all values in the list are
+consumed, all subsequent invocations will return the default value.
+
+@code{ABST_COND_LOOP_COUNT} is used to control looping behavior. Every Nth
+invocation of @code{abst_cond()} will return 1 and all other invocations return
+the default value.
+
+The implementation of @code{abst_cond()} also records the value returned each
+time the function is invoked.
+
+For non-looping conditions, do the following to identify abstract condition
+values:
+@enumerate
+@item For each failing test, run the test with a default value of 0.
+
+@item If the test continues failing, try ``flipping'' the last 0 to a 1 in the
+series of recorded abstract condition values and re-running the test. This is based on the
+assumption that tests are ``mostly correct,'' and it's only one of the latest
+branching conditions that was incorrect.
+
+@item Do this up to a specified cut-off (defined in
+@code{*abst-cond-attempts*}).
+
+@item If no series is found that causes the unit test to pass, re-run the test
+with a default value of 1 before giving up.
+
+@item If a successful series of abstract condition values is found, record the
+series and the values of in-scope variables at each evaluation of the abstract
+condition.
+@end enumerate
+
+For looping conditions, do the following:
+@enumerate
+@item For each failing test, run the test with a loop-count of 0. This has the
+effect of always returning 1 for each invocation of @code{abst_cond()}.
+
+@item If the test continues failing, try incrementing the loop-count so that
+@code{abst_cond()} only returns 1 periodically for a period of increasing
+length.
+
+@item Do this up to a specified cut-off (defined in
+@code{*abst-cond-attempts*}).
+
+@item If no series is found that causes the unit test to pass, re-run the test
+with a default value of 1 before giving up.
+
+@item If a successful series of abstract condition values is found, record the
+series and the values of in-scope variables at each evaluation of the abstract
+condition.
+@end enumerate
+
+@heading Testing Possible Conditions
+For each test with a satisfying series of values for the abstract condition,
+we have recorded an environment showing the values of in-scope variables at
+the time the condition was evaluated. For each variable, var, that is
+recorded with a value, v, we synthesize two conditions: @code{(var == v)} and
+@code{!(var == v)}.
+
+Then for each condition, we can determine whether it would allow a unit test to
+pass by checking whether it is entailed by that test's series of environments
+and desired abstract condition values.
+
+@heading Condition Selection
+The condition which satisfies the largest number of environment and abstract
+condition value pairs is selected as the ``best'' condition, applied, and
+tested. If this condition repairs all unit tests, it is returned as the
+solution. If it improves the fitness (i.e., causes more unit tests to pass than
+before), then it is retained as the ``current best'' solution. In this case,
+up to @code{*synth-condition-attempts*} other conditions are tested to see if
+they offer additional improvements to the fitness.
+
+@heading API
+@itemize
+@item @code{(synthesize-condition software test-suite mutation
+&key extra-instrumentation-exprs)} - for a software object, a suite of unit
+tests, and a mutation which inserts an abstract condition, attempt to synthesize
+a condition which causes more unit tests to pass than before. Returns an updated
+software object.
+
+@item @code{(valid-targets type software)} - for a particular mutation type and
+a software object, return a list of the valid targets at which that mutation
+could be applied.
+
+@item @code{(instrumentation-exprs software point type)} -
+Generate additional expressions to instrument during condition
+synthesis. Finds all expressions of the given type which are in scope
+at the repair point, and generates comparisons for all of them. These
+expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
+synthesize-condition.
+
+@verbatim
+OBJ ---------- software object
+POINT -------- repair point
+TYPE --------- type description alist (:types :array :pointer :compare)
+               Where :compare is a format template for the comparison
+               expressions, and the other fields are matched against
+               the type DB.
+@end verbatim
+@end itemize
+
+@heading Sample Usage
+@verbatim
+(defun try-synthesis (types variant test-suite)
+  "Attempt condition synthesis for all mutation types and valid
+locations in variant. Return the first successful result result."
+  (let ((obj (copy variant)))
+    (when (bad-stmts obj)
+      (loop
+       for type in '(add-condition
+                     insert-else-if
+                     if-to-while-tighten-condition
+                     loosen-condition
+                     tighten-condition)
+       for valid-targets = (valid-targets (make-instance type)
+                                          obj)
+       do
+       (loop
+        for target in valid-targets
+        for i upfrom 0
+        for mutation = (make-instance type :targets target)
+        for result =
+        (handler-case
+         (synthesize-condition obj test-suite mutation)
+         ;; Build failures can happen if we pick a bad
+         ;; condition to modify. Ignore them and try the
+         ;; next target.
+         (build-failed (err)
+                       (note 1 "~a~%" err)))
+        do (when result
+             (setf (fitness result) (test-fitness result))
+             (return-from try-synthesis result)))))))
+@end verbatim

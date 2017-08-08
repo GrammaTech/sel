@@ -421,6 +421,7 @@ are given in remainder of this section.
 * Multi-objective Fitness::     Optimizing multiple objectives
 * Style Features::              Extracting source code features
 * Tokenizer::                   Tokenize software objects
+* Condition Synthesis::         Repair technique to synthesize guard conditions
 @end menu
 
 @node Multi-objective Fitness, Style Features, Components, Components
@@ -433,10 +434,15 @@ are given in remainder of this section.
 @cindex style-features
 @include style-features.texi
 
-@node Tokenizer, Usage, Style Features, Components
+@node Tokenizer, Condition Synthesis, Style Features, Components
 @section Tokenizer
 @cindex tokenizer
 @include tokenizer.texi
+
+@node Condition Synthesis, Usage, Tokenizer, Components
+@section Condition Synthesis
+@cindex condition-synthesis
+@include condition-synthesis.texi
 
 @node Usage, Mutation, Implementation, Top
 @chapter Usage
