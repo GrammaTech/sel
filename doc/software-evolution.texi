@@ -423,6 +423,7 @@ are given in remainder of this section.
 * Style Features::              Extracting source code features
 * Tokenizer::                   Tokenize software objects
 * Condition Synthesis::         Repair technique to synthesize guard conditions
+* Fault Localization::          Identifying or prioritizing likely-faulty code
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -445,10 +446,15 @@ are given in remainder of this section.
 @cindex tokenizer
 @include tokenizer.texi
 
-@node Condition Synthesis, Usage, Tokenizer, Components
+@node Condition Synthesis, Fault Localization, Tokenizer, Components
 @section Condition Synthesis
 @cindex condition-synthesis
 @include condition-synthesis.texi
+
+@node Fault Localization, Usage, Condition Synthesis, Components
+@section Condition Synthesis
+@cindex fault-localization
+@include fault-localization.texi
 
 @node Usage, Mutation, Implementation, Top
 @chapter Usage

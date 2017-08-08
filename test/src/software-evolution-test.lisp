@@ -158,6 +158,10 @@
   :test #'equalp
   :documentation "Path to the switch-macros example.")
 
+(define-constant +fl-tiny-dir+ (append +etc-dir+ (list "fl-test"))
+  :test #'equalp
+  :documentation "Path to condition fault localization example.")
+
 (define-constant +condition-synthesis-dir+
     (append +etc-dir+ (list "condition-synthesis"))
   :test #'equalp
@@ -301,6 +305,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +switch-macros-dir+))
+
+(defun fl-tiny-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +fl-tiny-dir+))
 
 (defun cs-tiny-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -753,6 +762,22 @@
           (unicode-dir "unicode.c"))))
   (:teardown
    (setf *soft* nil)))
+
+(defixture fl-tiny-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang)
+                           (fl-tiny-dir "tiny-test.c")))
+          (setf *test-suite*
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 6)
+                    (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (fl-tiny-dir "fitness.py"))
+                       :program-args (list :bin (write-to-string i))))))))
+  (:teardown
+   (setf *soft* nil)
+   (setf *test-suite* nil)))
 
 (defixture cs-tiny-clang
   (:setup (setf *soft*
@@ -6973,3 +6998,52 @@ Useful for printing or returning differences in the REPL."
                           ;; num_args-- }
                           "identifier" "--" "}"))))
       (is (equal tokens while-tokens)))))
+
+(deftest rinard-fault-loc ()
+  (with-fixture fl-tiny-clang
+    (with-temp-file (trace-file)
+      (let* ((copy *soft*)
+	     (instrumented
+	      (instrument copy :trace-file trace-file))
+	     ;; pick first test to be "negative", arbitrarily
+	     (made-up-bad-test (list (nth 4 (test-cases *test-suite*))
+				     (nth 5 (test-cases *test-suite*))))
+	     (read-trace-fn
+	      (lambda (accumulated-results is-good-trace &optional test_id)
+		(if (probe-file trace-file)
+		    (with-open-file (trace-stream trace-file)
+		      (prog1 (rinard-incremental
+				      trace-stream
+				      accumulated-results
+				      is-good-trace
+				      test_id)
+		      ;; instrumentation appends to trace file for
+		      ;; some reason. Remove it before each use to
+		      ;; start with an empty trace.
+		      (ignore-errors (delete-file trace-file))))
+		    (error "Something went wrong with trace file: ~a"
+			   trace-file)))))
+	(with-temp-file (bin)
+	  (multiple-value-bind (bin phenome-exit stderr stdout src)
+	      (phenome instrumented)
+	    (declare (ignorable stdout src))
+
+	    (if (zerop phenome-exit)
+		(let* ((trace-results (collect-fault-loc-traces
+				            bin
+					    *test-suite*
+					    read-trace-fn
+					    made-up-bad-test))
+		       ;; Should be only 9 statements, only AST ids.
+                       ;; The first 5 elements are always the same, in
+                       ;; order.  The rest may be in an arbitrary
+                       ;; order.  Compare only the first 5.
+		       (bad-stmts (mapcar #'cdar (rinard 5 instrumented
+                                                         trace-results)))
+		       (gold-set-prefix (list 54 23 12 10 4)))
+		  ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
+		  ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
+		  (is (equal bad-stmts gold-set-prefix)))
+		(progn
+		  (error "Couldn't build phenome: ~a" stderr)
+		  (is nil)))))))))
