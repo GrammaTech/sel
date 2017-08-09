@@ -2,6 +2,9 @@
 (in-package :software-evolution)
 (enable-curry-compose-reader-macros :include-utf8)
 
+(defvar *trace-open-timeout* 2
+  "Timeout (in seconds) when opening pipe to collect traces.")
+
 (defclass traceable (software)
   ((traces :initarg :traces :accessor traces :initform nil
            :documentation "Execution traces from execution of the software."))
@@ -78,7 +81,7 @@ times."))
                                    :wait nil)
                   #-(or sbcl ccl)
                   (error "Implement for lisps other than SBCL and CCL.")))
-           (iter (for in = (open-file-timeout pipe 1))
+           (iter (for in = (open-file-timeout pipe *trace-open-timeout*))
                  (while in)
                  (collect
                      (list (cons :input input)   ; keep :bin symbol if present
