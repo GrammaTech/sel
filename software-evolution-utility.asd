@@ -4,6 +4,7 @@
   :licence "GPL V3"
   :depends-on (alexandria
                uiop
+               babel
                osicat
                metabang-bind
                curry-compose-reader-macros
