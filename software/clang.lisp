@@ -862,20 +862,11 @@ use carefully.
 (defmethod find-or-add-type ((obj clang) name &optional pointer (array ""))
   "Find the type with given properties, or add it to the type DB."
 
-  ;; Handle names like "**char", which show up in traces of instrumented
-  ;; software.
-  (iter (for c in-string name)
-        (for index upfrom 0)
-        (while (eq #\* c))
-        (finally
-         (when (> index 0)
-           (setf pointer t)
-           ;; Remove the first * but put the rest on the end, so
-           ;; "**char" becomes "char*" with pointer = t
-           (setf name
-                 (concatenate 'string
-                              (subseq name index)
-                              (subseq name 0 (1- index)))))))
+  (when (starts-with #\* name)
+    (let ((type (type-from-trace-string name)))
+      (setf name (type-name type)
+            pointer (type-pointer type)
+            array (type-array type))))
 
   (or (find-if «and [{string= name} #'type-name]
                     [{string= array} #'type-array]
@@ -890,10 +881,49 @@ use carefully.
         (add-type obj newtype)
         newtype)))
 
+(defgeneric type-decl-string (type)
+  (:documentation "The source text used to declare variables of TYPE.
+
+This will have stars on the right, e.g. char**. "))
 (defmethod type-decl-string ((type clang-type))
-  "The source text used to declare variables of TYPE."
+
   (format nil "~a~a" (type-name type)
           (if (type-pointer type) " *" "")))
+
+(defgeneric type-trace-string (type)
+  (:documentation "The text used to describe TYPE in an execution trace.
+
+This will have stars on the left, e.g **char."))
+(defmethod type-trace-string ((type clang-type))
+  (concatenate 'string
+               (when (type-pointer type) "*")
+               (when (not (emptyp (type-array type))) "*")
+               (type-name type)))
+
+(defgeneric type-trace-string (type)
+  (:documentation
+   "Create a clang-type from a NAME used in an execution trace.
+
+The resulting type will not be added to any clang object and will not have a
+valid hash."))
+(defmethod type-from-trace-string ((name string))
+  ;; Look for * at the start of the name
+  (iter (for c in-string name)
+        (for index upfrom 0)
+        (while (eq #\* c))
+        (finally
+         (let ((pointer (> index 0)))
+           (return
+             (make-clang-type :pointer pointer
+                              :array ""
+                              :hash 0
+                              ;; Remove the first * but put the rest on the end,
+                              ;; so "**char" becomes "char*"
+                              :name (if pointer
+                                        (concatenate 'string
+                                                     (subseq name index)
+                                                     (subseq name 0 (1- index)))
+                                        name)))))))
 
 (defun prepend-to-genome (obj text)
   "Prepend non-AST text to genome.

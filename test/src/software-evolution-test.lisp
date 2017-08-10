@@ -1973,7 +1973,10 @@ int x = CHARSIZE;")))
 
 (deftest parse-source-snippet-body-statement ()
   (with-fixture gcd-clang
-    (let ((asts (parse-source-snippet "x + y" '(("x" "int") ("y" "char")) nil)))
+    (let ((asts (parse-source-snippet "x + y"
+                                      `(("x" ,(type-from-trace-string "int"))
+                                        ("y" ,(type-from-trace-string "char")))
+                                      nil)))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
       (is (equalp '(((:name . "y")) ((:name . "x")))
@@ -1989,7 +1992,9 @@ int x = CHARSIZE;")))
 
 (deftest parse-source-snippet-multiple-statements ()
   (let ((asts (parse-source-snippet "x = 1; y = 1"
-                                    '(("x" "int") ("y" "char")) nil)))
+                                    `(("x" ,(type-from-trace-string "int"))
+                                      ("y" ,(type-from-trace-string "char")))
+                                    nil)))
     (is (eq 2 (length asts)))
     (is (eq :BinaryOperator (ast-class (first asts))))
     (is (eq :BinaryOperator (ast-class (second asts))))))
@@ -4659,10 +4664,6 @@ Useful for printing or returning differences in the REPL."
               "The point trace string ~S appears in the program output."
               (string cookie)))))))
 
-(defparameter unbound-vals-fn
-  [{mapcar [#'peel-bananas #'car]} #'se::ast-unbound-vals]
-  "Function to pull unbound variables from an AST for use in `var-instrument'.")
-
 (deftest instrumentation-print-unbound-vars ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
@@ -4670,7 +4671,7 @@ Useful for printing or returning differences in the REPL."
                   (list (lambda (obj ast)
                           (var-instrument obj
                                           :unbound-vals
-                                          unbound-vals-fn
+                                          {get-unbound-vals obj}
                                           ast)))))
     (is (scan (quote-meta-chars "fprintf(stderr, \"(:UNBOUND-VALS")
               (genome-string *gcd*))
@@ -4799,7 +4800,7 @@ Useful for printing or returning differences in the REPL."
                   (list (lambda (obj ast)
                     (var-instrument obj
                                     :unbound-vals
-                                    unbound-vals-fn
+                                    {get-unbound-vals obj}
                                     ast)))))))
 
 

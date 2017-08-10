@@ -339,23 +339,25 @@ abst_cond() in the source text."
                                  (get-vars-in-scope obj ast))
                          extra-exprs))))
     (iter (for (var . type) in exprs)
-          (multiple-value-bind (c-type stripped-c-type fmt-code)
+          (multiple-value-bind (c-type fmt-code)
               (type-instrumentation-info type print-strings)
-            (when (or (member stripped-c-type +c-numeric-types+
-                              :test #'string=)
-                      (string= stripped-c-type "size_t"))
+            ;; Special case for C++ strings
+            (when (and print-strings
+                       (string= c-type "string"))
+              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" \\\"%s\\\")"
+                                     var c-type)
+                             into format
+                             initial-value (format nil "(:scopes"))
+              (collect (format nil "~a.c_str()" var) into vars))
+            ;; Standard types
+            (when fmt-code
               (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
                                      var c-type fmt-code)
                              into format
                              initial-value (format nil "(:scopes"))
               (collect var into vars))
-            (when (and print-strings
-                       (string= stripped-c-type "string"))
-              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                     var c-type fmt-code)
-                             into format
-                             initial-value (format nil "(:scopes"))
-              (collect (format nil "~a.c_str()" var) into vars)))
+
+            )
           (finally (return (cons (concatenate 'string format ")") vars))))))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)

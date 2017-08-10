@@ -162,10 +162,9 @@ Returns modified text, and names of bound variables.
 
 (defun prepare-fodder (obj snippet pt)
   (flet
-      ((var-type-string (in-scope var-name)
+      ((var-type (in-scope var-name)
          (->> (find-if [{string= var-name} {aget :name}] in-scope)
-              (find-var-type obj)
-              (type-decl-string))))
+              (find-var-type obj))))
     (multiple-value-bind (text vars)
         (bind-vars-in-snippet obj snippet pt)
       (let ((in-scope (get-vars-in-scope obj pt)))
@@ -175,7 +174,7 @@ Returns modified text, and names of bound variables.
                    ;; Variable and type names
                    (mapcar #'list
                            vars
-                           (mapcar {var-type-string in-scope} vars))
+                           (mapcar {var-type in-scope} vars))
                    (aget :includes snippet))))
           (car asts)
           (error (make-condition 'mutate
@@ -245,7 +244,7 @@ Ensure that the name of the inserted decl is used by
 (defun parse-source-snippet (snippet unbound-vals includes &key top-level)
   "Build ASTs for SNIPPET, returning a list of root ast-refs.
 
-UNBOUND-VALS should have the form ((name type) ... )
+UNBOUND-VALS should have the form ((name clang-type) ... )
 
 INCLUDES is a list of files to include.
 
@@ -262,7 +261,8 @@ outside a function body, such as a type or function declaration.
 /* generated declarations */
 ~:{~a ~a;~%~}~%
 "
-                            includes (mapcar «list #'second #'first»
+                            includes (mapcar «list [#'type-decl-string #'second]
+                                                   #'first»
                                              unbound-vals)))
          (wrapped (format nil
                           (if top-level

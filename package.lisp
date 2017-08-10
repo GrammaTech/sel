@@ -537,7 +537,10 @@
    :collect-trace
    :collect-traces
    :read-trace-file
-   :read-trace-stream))
+   :read-trace-stream
+   :type-decl-string
+   :type-trace-string
+   :type-from-trace-string))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
