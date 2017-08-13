@@ -294,14 +294,15 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
             ;; ranges. In this case, move one sibling into the child list of the
             ;; other. See the typedef-workaround test for an example.
             (iter (for c in children)
-                  (for prev previous c)
+                  (with prev)
                   (if (and prev
                            (< (aget :begin-off c) (aget :end-off prev)))
                       (progn
                         (setf (aget :end-off prev) (max (aget :end-off prev)
                                                         (aget :end-off c)))
                         (push (aget :counter c) (aget :children prev)))
-                      (collect c)))))
+                      (progn (setf prev c)
+                             (collect c))))))
         (make-children (ast child-asts)
           (let ((start (begin-offset ast)))
             ;; In macro expansions, the mapping to source text is sketchy and
