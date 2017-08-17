@@ -70,7 +70,11 @@
    (globals :initarg :globals :accessor globals
             :initform nil :copier :direct
             :type #+sbcl (list (cons string string) *) #+ccl list
-            :documentation "Association list of names and values of globals.")))
+            :documentation "Association list of names and values of globals.")
+   (asts-changed-p :accessor asts-changed-p
+                   :initform t :type boolean
+                   :documentation
+                   "Have ASTs changed since last clang-mutate run?")))
 
 (defgeneric ast->snippet (ast)
   (:documentation "Convert AST to alist representation."))
@@ -1545,6 +1549,10 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args)
+  ;; Avoid updates if ASTs and genome haven't changed
+  (unless (asts-changed-p obj)
+    (return-from update-asts))
+
   (clear-caches obj)
   (with-slots (asts ast-root macros types genome) obj
     (unless genome     ; get genome from existing ASTs if necessary
@@ -1582,6 +1590,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
                  types m-types
                  macros m-macros
                  genome nil))))
+  (setf (asts-changed-p obj) nil)
 
   obj)
 
@@ -1623,12 +1632,13 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod clear-caches ((obj clang))
   (with-slots (stmt-asts non-stmt-asts functions prototypes
-                         includes) obj
+                         includes asts-changed-p) obj
     (setf stmt-asts nil
           non-stmt-asts nil
           functions nil
           prototypes nil
-          includes nil)))
+          includes nil
+          asts-changed-p t)))
 
 (defgeneric from-file-exactly (software path)
   (:documentation
