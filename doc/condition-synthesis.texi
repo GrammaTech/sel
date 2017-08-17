@@ -159,6 +159,9 @@ TYPE --------- type description alist (:types :array :pointer :compare)
 @end itemize
 
 @heading Sample Usage
+An example of a function which will attempt condition synthesis on all valid
+target locations for each of the possible guard mutations described above.
+
 @verbatim
 (defun try-synthesis (types variant test-suite)
   "Attempt condition synthesis for all mutation types and valid
