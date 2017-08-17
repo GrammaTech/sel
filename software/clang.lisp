@@ -897,10 +897,10 @@ This will have stars on the left, e.g **char."))
 (defmethod type-trace-string ((type clang-type))
   (concatenate 'string
                (when (type-pointer type) "*")
-               (when (not (emptyp (type-array type))) "*")
+               (when (not (emptyp (type-array type))) (type-array type))
                (type-name type)))
 
-(defgeneric type-trace-string (type)
+(defgeneric type-from-trace-string (type)
   (:documentation
    "Create a clang-type from a NAME used in an execution trace.
 
@@ -908,22 +908,23 @@ The resulting type will not be added to any clang object and will not have a
 valid hash."))
 (defmethod type-from-trace-string ((name string))
   ;; Look for * at the start of the name
-  (iter (for c in-string name)
-        (for index upfrom 0)
-        (while (eq #\* c))
-        (finally
-         (let ((pointer (> index 0)))
-           (return
-             (make-clang-type :pointer pointer
-                              :array ""
-                              :hash 0
-                              ;; Remove the first * but put the rest on the end,
-                              ;; so "**char" becomes "char*"
-                              :name (if pointer
-                                        (concatenate 'string
-                                                     (subseq name index)
-                                                     (subseq name 0 (1- index)))
-                                        name)))))))
+  (cond ((starts-with #\* name)
+         (make-clang-type :pointer t
+                          :array ""
+                          :hash 0
+                          :name (regex-replace "^\\*(\\**)(.*)" name "\\2\\1")))
+        ((starts-with #\[ name)
+         (make-clang-type :pointer (ends-with #\* name)
+                          :array (scan-to-strings "^\\[\\d*\\]" name)
+                          :hash 0
+                          :size (register-groups-bind (size)
+                                    ("^\\[(\\d+)\\]" name)
+                                  (parse-integer size))
+                          :name (regex-replace "^\\[\\d*\\]" name "")))
+        (t (make-clang-type :pointer nil
+                            :array ""
+                            :hash 0
+                            :name name))))
 
 (defun prepend-to-genome (obj text)
   "Prepend non-AST text to genome.

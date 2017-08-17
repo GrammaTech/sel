@@ -6443,6 +6443,61 @@ Useful for printing or returning differences in the REPL."
       (is (aget :type (car unbound))))))
 
 
+;;;; Types and traces tests
+
+(deftest type-trace-string-test ()
+  (is (equalp "int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "*int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer t
+                                                  :array ""
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "[]int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array "[]"
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "[5]int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array "[5]"
+                                                  :hash 0
+                                                  :reqs nil)))))
+
+(deftest type-from-trace-string-test ()
+  (is (equalp (type-from-trace-string "int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "*int")
+              (make-clang-type :name "int"
+                               :pointer t
+                               :array ""
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "[]int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array "[]"
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "[5]int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array "[5]"
+                               :size 5
+                               :hash 0
+                               :reqs nil))))
+
 ;;;; Clang tokenizer tests
 (in-suite test)
 (defsuite* test-clang-tokenizer)
