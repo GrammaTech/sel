@@ -24,11 +24,10 @@
 (enable-curry-compose-reader-macros :include-utf8)
 
 (define-software clang (ast)
-  ((genome   :initarg :genome :initform nil
-             :copier :direct)
+  ((genome   :initarg :genome :initform "" :copier :direct)
    (compiler :initarg :compiler :accessor compiler :initform "clang")
    (ast-root :initarg :ast-root :initform nil :accessor ast-root
-             :copier :direct :documentation "Root node of AST.")
+             :documentation "Root node of AST.")
    (asts     :initarg :asts :initform nil
              :accessor asts :copier :direct
              :type #+sbcl (list (cons keyword *) *) #+ccl list
@@ -74,7 +73,16 @@
    (asts-changed-p :accessor asts-changed-p
                    :initform t :type boolean
                    :documentation
-                   "Have ASTs changed since last clang-mutate run?")))
+                   "Have ASTs changed since last clang-mutate run?")
+   (copy-lock :initform (bordeaux-threads:make-lock "clang-copy")
+              :copier :none
+              :documentation "Lock while copying clang objects.")))
+
+(defmethod copy :before ((obj clang))
+  ;; Update ASTs before copying to avoid duplicates. Lock to prevent
+  ;; multiple threads from updating concurrently.
+  (bordeaux-threads:with-lock-held ((slot-value obj 'copy-lock))
+    (update-asts obj)))
 
 (defgeneric ast->snippet (ast)
   (:documentation "Convert AST to alist representation."))
@@ -1510,11 +1518,6 @@ for successful mutation (e.g. adding includes/types/macros)"))
   '(:asts :types :macros)
   "JSON database AuxDB entries required for clang software objects.")
 
-(defmethod initialize-instance :after ((obj clang) &rest initargs &key keys)
-  (declare (ignorable initargs keys))
-  (when (slot-value obj 'genome)
-    (update-asts obj)))
-
 (defmethod genome ((obj clang))
   ;; If genome string is stored directly, use that. Otherwise,
   ;; build the genome by walking the AST.
@@ -1524,7 +1527,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
            val)
     (peel-bananas (source-text (ast-root obj)))))
 
-(defmethod (setf genome) :after (new (obj clang))
+(defmethod (setf genome) :before (new (obj clang))
   (declare (ignorable new))
   (with-slots (ast-root types macros globals fitness) obj
     (setf ast-root nil
@@ -1532,8 +1535,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
           macros nil
           globals nil
           fitness nil))
-  (clear-caches obj)
-  (update-asts obj))
+  (clear-caches obj))
 
 (defmethod (setf ast-root) :before (new (obj clang))
   (declare (ignorable new))
@@ -1791,8 +1793,14 @@ declarations onto multiple lines to ease subsequent decl mutations."))
   (from-string-exactly obj string)
   obj)
 
+(defmethod update-asts-if-necessary ((obj clang))
+  (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
+
 (defmethod update-caches-if-necessary ((obj clang))
   (with-slots (stmt-asts) obj (unless stmt-asts (update-caches obj))))
+
+(defmethod      ast-root :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod          size :before ((obj clang)) (update-asts-if-necessary obj))
 
 (defmethod          asts :before ((obj clang)) (update-caches-if-necessary obj))
 (defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
