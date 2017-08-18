@@ -41,11 +41,6 @@
 (defvar *fib*         nil "Holds the fibonacci software object.")
 (defvar *variety*     nil "Holds the variety software object.")
 (defvar *contexts*    nil "Holds the syntactic-contexts software object.")
-(defvar *cs-tiny*     nil "Holds condition synthesis loosen condition object.")
-(defvar *cs-tighten*  nil "Holds condition synthesis tighten condition object.")
-(defvar *cs-add-guard* nil "Holds condition synthesis add guard test object.")
-(defvar *cs-partial*  nil "Holds condition synthesis partial repair object.")
-(defvar *cs-divide*   nil "Holds condition synthesis if to while test object.")
 (defvar *test-suite*  nil "Holds condition synthesis test suite object.")
 
 (define-constant +etc-dir+
@@ -183,11 +178,6 @@
   :test #'equalp
   :documentation "Path to condition synthesis add guard example.")
 
-(define-constant +cs-partial-dir+ (append +condition-synthesis-dir+
-                                          (list "test-partial"))
-  :test #'equalp
-  :documentation "Path to condition synthesis partial repair example.")
-
 (define-constant +cs-divide-dir+ (append +condition-synthesis-dir+
                                          (list "divide"))
   :test #'equalp
@@ -322,11 +312,6 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +cs-add-guard-dir+))
-
-(defun cs-partial-dir (filename)
-  (make-pathname :name (pathname-name filename)
-                 :type (pathname-type filename)
-                 :directory +cs-partial-dir+))
 
 (defun cs-divide-dir (filename)
   (make-pathname :name (pathname-name filename)
@@ -765,13 +750,13 @@
                 (from-file (make-instance 'clang)
                            (cs-tiny-dir "tiny-test.c")))
           (setf *test-suite*
-                (make-scripted-test-suite
-                 (lambda (test-case bin)
-                   (format nil "~a ~a ~a"
-                           (namestring (cs-tiny-dir "fitness.py"))
-                           bin
-                           test-case))
-                 6)))
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 6)
+                    (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-tiny-dir "fitness.py"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
@@ -781,13 +766,13 @@
                 (from-file (make-instance 'clang)
                            (cs-tighten-dir "test-tighten.c")))
           (setf *test-suite*
-                (make-scripted-test-suite
-                 (lambda (test-case bin)
-                   (format nil "~a ~a ~a"
-                           (namestring (cs-tighten-dir "fitness.py"))
-                           bin
-                           test-case))
-                 6)))
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 6)
+                    (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-tighten-dir "fitness.py"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
@@ -797,29 +782,13 @@
                 (from-file (make-instance 'clang)
                            (cs-add-guard-dir "test-add-guard.c")))
           (setf *test-suite*
-                (make-scripted-test-suite
-                 (lambda (test-case bin)
-                   (format nil "~a ~a ~a"
-                           (namestring (cs-add-guard-dir "fitness.py"))
-                           bin
-                           test-case))
-                 8)))
-  (:teardown
-   (setf *soft* nil)
-   (setf *test-suite* nil)))
-
-(defixture cs-partial-clang
-  (:setup (setf *soft*
-                (from-file (make-instance 'clang)
-                           (cs-partial-dir "partial.c")))
-          (setf *test-suite*
-                (make-scripted-test-suite
-                 (lambda (test-case bin)
-                   (format nil "~a ~a ~a"
-                           (namestring (cs-partial-dir "fitness.py"))
-                           bin
-                           test-case))
-                 6)))
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 8)
+                    (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-add-guard-dir "fitness.py"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
@@ -829,13 +798,13 @@
                 (from-file (make-instance 'clang)
                            (cs-divide-dir "divide.c")))
           (setf *test-suite*
-                (make-scripted-test-suite
-                 (lambda (test-case bin)
-                   (format nil "~a ~a ~a"
-                           (namestring (cs-divide-dir "fitness.py"))
-                           bin
-                           test-case))
-                 5)))
+                (make-instance 'test-suite
+                  :test-cases
+                  (iter (for i below 5)
+                    (collecting
+                     (make-instance 'test-case
+                       :program-name (namestring (cs-divide-dir "fitness.py"))
+                       :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
    (setf *test-suite* nil)))
@@ -4971,17 +4940,27 @@ Useful for printing or returning differences in the REPL."
                        (:bin "310" "55"))
   "Example test inputs for GCD.")
 
+(defvar *gcd-test-suite*
+  (make-instance
+   'test-suite
+   :test-cases
+   (iter (for input in *gcd-inputs*)
+     (collecting (make-instance 'test-case
+                   :program-name (car input)
+                   :program-args (cdr input))))))
+
 (deftest run-traceable-gcd ()
   (with-fixture traceable-gcd
     (instrument *gcd* :trace-env t)
-    (setf (traces *gcd*) (mapcar {collect-trace *gcd*} *gcd-inputs*))
+    (setf (traces *gcd*) (mapcar {collect-trace *gcd*}
+                                 (test-cases *gcd-test-suite*)))
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
 (deftest run-traceable-gcd-w/collect-traces ()
   (with-fixture traceable-gcd
     (instrument *gcd* :trace-env t)
-    (collect-traces *gcd* *gcd-inputs*)
+    (collect-traces *gcd* *gcd-test-suite*)
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
@@ -5503,17 +5482,6 @@ Useful for printing or returning differences in the REPL."
               (get-immediate-children
                repaired-prog
                (second (get-immediate-children repaired-prog outer))))))))))
-
-(deftest test-partial-repair ()
-  (with-fixture cs-partial-clang
-    (let* ((repair-mut
-            (make-instance 'tighten-condition
-                           :object *soft*
-                           :targets (stmt-with-text *soft* "x >= 5")))
-           (repaired-prog (se::synthesize-condition *soft* *test-suite*
-                                                    repair-mut)))
-      (is repaired-prog)
-      (is (stmt-with-text repaired-prog "(x >= 5) && !(x == 5)")))))
 
 (deftest test-if-to-while-repair ()
   (with-fixture cs-divide-clang

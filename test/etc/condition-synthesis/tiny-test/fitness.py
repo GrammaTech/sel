@@ -39,3 +39,4 @@ else:
     score = do_test(exe, *tests[args.which])
 
 print(score)
+exit(1 - score)

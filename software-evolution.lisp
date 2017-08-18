@@ -77,13 +77,16 @@ generation, (4) STDOUT of the compilation process, or a string holding
 non-error output relevant to phenome generation, (5) the source file
 name used during compilation. "))
 
-(defgeneric evaluate (function software)
+(defgeneric evaluate (function software &rest extra-keys &key &allow-other-keys)
   (:documentation "Evaluate the software returning a numerical fitness."))
 
-(defmethod evaluate ((test symbol) (obj software))
+
+(defmethod evaluate ((test symbol) (obj software)
+                     &rest extra-keys &key &allow-other-keys)
   (evaluate (symbol-function test) obj))
 
-(defmethod evaluate ((test function) (obj software))
+(defmethod evaluate ((test function) (obj software)
+                     &rest extra-keys &key &allow-other-keys)
   (if (fitness obj)
       (values (fitness obj) (fitness-extra-data obj))
       (multiple-value-bind (fit extra) (funcall test obj)

@@ -45,12 +45,13 @@ instrumentation.
 
 No assumptions are made about the format or contents of the traces."))
 
-(defmethod collect-fault-loc-traces ((instrumented-obj software) test-suite
+(defmethod collect-fault-loc-traces ((instrumented-obj software)
+                                     (test-suite test-suite)
                                      read-trace-fn)
   (with-temp-file (bin)
     (build instrumented-obj bin)
-    (iter (for test in test-suite)
-          (let ((f (funcall (test-runner test) bin))
+    (iter (for test in (test-cases test-suite))
+          (let ((f (evaluate bin test :output :stream :error :stream))
                 (trace (funcall read-trace-fn)))
             (setf (fitness test) f)
             (if (>= f 1.0)

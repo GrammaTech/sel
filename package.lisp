@@ -433,13 +433,21 @@
    :compilation-database
    :test-suite
    :test-cases
+   :test-case
+   :program-name
+   :program-args
+   :process
+   :os-process
+   :process-input-stream
+   :process-output-stream
+   :process-error-stream
+   :process-exit-code
+   :process-status
+   :signal-process
+   :start-test
+   :finish-test
    :run-test
-   :case-fitness
-   :scripted-test-suite
-   :make-scripted-test-suite
-   :run-test-script
-   :command-gen
-   :test-count
+   :stream-to-string
    :instrumentation-exprs
    :synthesize-condition
    :build
