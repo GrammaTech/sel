@@ -4784,8 +4784,10 @@ Useful for printing or returning differences in the REPL."
                                           :unbound-vals
                                           {get-unbound-vals obj}
                                           ast)))))
-    (is (scan (quote-meta-chars "fprintf(stderr, \"(:UNBOUND-VALS")
-              (genome-string *gcd*))
+    (is (and (scan (quote-meta-chars "fprintf(stderr,")
+                   (genome-string *gcd*))
+             (scan (quote-meta-chars "(:UNBOUND-VALS")
+                   (genome-string *gcd*)))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
       (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
@@ -4811,8 +4813,10 @@ Useful for printing or returning differences in the REPL."
                                           :scopes
                                           {get-vars-in-scope obj}
                                           ast)))))
-    (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
-              (genome-string *gcd*))
+    (is (and (scan (quote-meta-chars "fprintf(stderr,")
+                   (genome-string *gcd*))
+             (scan (quote-meta-chars "(:SCOPES")
+                   (genome-string *gcd*)))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
       (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
@@ -4840,8 +4844,10 @@ Useful for printing or returning differences in the REPL."
                                           :scopes
                                           {get-vars-in-scope obj}
                                           ast)))))
-    (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
-              (genome-string *gcd*))
+    (is (and (scan (quote-meta-chars "fprintf(stderr,")
+                   (genome-string *gcd*))
+             (scan (quote-meta-chars "(:SCOPES")
+                   (genome-string *gcd*)))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
       (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
@@ -4863,8 +4869,10 @@ Useful for printing or returning differences in the REPL."
                                           :scopes
                                           {get-vars-in-scope obj}
                                           ast)))))
-    (is (scan (quote-meta-chars "fprintf(stderr, \"(:SCOPES")
-              (genome-string *soft*))
+    (is (and (scan (quote-meta-chars "fprintf(stderr,")
+                   (genome-string *soft*))
+             (scan (quote-meta-chars "(:SCOPES")
+                   (genome-string *soft*)))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
       (is (zerop (second (multiple-value-list (phenome *soft* :bin bin))))
@@ -4887,8 +4895,10 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (genome (instrument *gcd* :print-argv t)))
-    (is (scan (quote-meta-chars "fprintf(stderr, \"((:INPUT")
-              (genome-string *gcd*))
+    (is (and (scan (quote-meta-chars "fprintf(stderr,")
+                   (genome-string *gcd*))
+             (scan (quote-meta-chars "(:INPUT")
+                   (genome-string *gcd*)))
         "We find code to print input in the instrumented source.")
     (with-temp-file (bin)
       (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
