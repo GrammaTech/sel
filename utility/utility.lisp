@@ -109,11 +109,12 @@
       seq)))
 
 (defun stream-to-string (stream)
-  (with-open-stream (in stream)
-    (iter (for byte = (read-byte in nil nil))
-          (while byte)
-          (collect byte into bytes)
-          (finally (return (coerce bytes 'vector))))))
+  (when stream
+    (with-open-stream (in stream)
+      (iter (for char = (read-char in nil nil))
+            (while char)
+            (collect char into chars)
+            (finally (return (coerce chars 'string)))))))
 
 (defun string-to-file (string path &key (if-exists :supersede))
   (with-open-file (out path :direction :output :if-exists if-exists)
