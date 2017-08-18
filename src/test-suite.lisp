@@ -162,14 +162,6 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
             (error "`START-TEST' only supported for SBCL or CCL.")))
       (make-instance 'process :os-process proc))))
 
-(defun stream-to-string (stream)
-  (when stream
-    (with-open-stream (in stream)
-      (iter (for char = (read-char in nil nil))
-            (while char)
-            (collect char into chars)
-            (finally (return (coerce chars 'string)))))))
-
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
   (flet ((running-p (process)
            (eq :runing (process-status process))))
@@ -202,9 +194,7 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
                      &key &allow-other-keys)
-  (multiple-value-bind (stdout stderr exit-code)
-      (finish-test (apply #'start-test phenome test-case extra-keys))
-    (values stdout stderr exit-code)))
+  (finish-test (apply #'start-test phenome test-case extra-keys)))
 
 
 (defmethod evaluate (phenome (test-case test-case) &rest extra-keys

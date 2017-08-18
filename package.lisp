@@ -447,7 +447,6 @@
    :start-test
    :finish-test
    :run-test
-   :stream-to-string
    :instrumentation-exprs
    :synthesize-condition
    :build

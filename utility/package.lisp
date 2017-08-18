@@ -44,6 +44,7 @@
    :file-to-bytes
    :string-to-file
    :bytes-to-file
+   :stream-to-string
    :getenv
    :quit
    :current-git-commit
