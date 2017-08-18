@@ -226,45 +226,57 @@ Keyword arguments are as follows:
     (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
 
 (defun type-instrumentation-info (type print-strings)
-  (let* ((c-type (if type (type-trace-string type) ""))
-         (stripped-c-type (regex-replace "\\**(unsigned )?" c-type ""))
-         (fmt-code
-          (when (member stripped-c-type
-                        (append +c-numeric-types+
-                                '("int8_t" "int16_t" "int32_t" "int64_t"
-                                  "wchar_t" "size_t"))
-                        :test #'string=)
-            (switch (c-type :test #'string=)
-              ("char"            "%d")
-              ("int8_t"          "%d")
-              ("wchar_t"         "%d")
-              ("*char"           (if print-strings "\\\"%s\\\""  "#x%lx"))
-              ("*wchar"          (if print-strings "\\\"%ls\\\"" "#x%lx"))
-              ("unsigned char"   "%u")
-              ("uint8_t"         "%u")
-              ("short"           "%hi")
-              ("int16_t"         "%hi")
-              ("unsigned short"  "%hu")
-              ("uint16_t"        "%hu")
-              ("int"             "%i")
-              ("int32_t"         "%i")
-              ("unsigned int"    "%u")
-              ("uint32_t"        "%u")
-              ("long"            "%li")
-              ("int64_t"         "%li")
-              ("unsigned long"   "%lu")
-              ("uint64_t"        "%lu")
-              ("float"           "%f")
-              ("double"          "%G")
-              ("long double"     "%LG")
-              ("size_t"          "%zu")
-              (t (if (starts-with "*" c-type :test #'string=)
-                     ;; NOTE: %lx is not guaranteed to be the right size for
-                     ;; pointers. %p would be better, but it will typically print
-                     ;; a leading "0x" which confuses the Lisp reader.
-                     "#x%lx"
-                     (error "Unrecognized C type ~S" c-type)))))))
-    (values c-type fmt-code)))
+  (labels ((string-type-p (type)
+             (and ;; char or wchar underlying type
+                  (or (string= (type-name type) "char")
+                      (string= (type-name type) "wchar"))
+                  ;; array or pointer
+                  (or (not (emptyp (type-array type)))
+                      (type-pointer type))
+                  ;; but not array of pointers
+                  (not (and (not (emptyp (type-array type)))
+                            (type-pointer type))))))
+    (let* ((c-type (if type (type-trace-string type) ""))
+           (stripped-c-type (regex-replace "(\\*|\\[\\d*\\])*(unsigned )?"
+                                           c-type ""))
+           (fmt-code
+            (when (member stripped-c-type
+                          (append +c-numeric-types+
+                                  '("int8_t" "int16_t" "int32_t" "int64_t"
+                                    "wchar_t" "size_t"))
+                          :test #'string=)
+              (switch (c-type :test #'string=)
+                ("char"            "%d")
+                ("int8_t"          "%d")
+                ("wchar_t"         "%d")
+                ("unsigned char"   "%u")
+                ("uint8_t"         "%u")
+                ("short"           "%hi")
+                ("int16_t"         "%hi")
+                ("unsigned short"  "%hu")
+                ("uint16_t"        "%hu")
+                ("int"             "%i")
+                ("int32_t"         "%i")
+                ("unsigned int"    "%u")
+                ("uint32_t"        "%u")
+                ("long"            "%li")
+                ("int64_t"         "%li")
+                ("unsigned long"   "%lu")
+                ("uint64_t"        "%lu")
+                ("float"           "%f")
+                ("double"          "%G")
+                ("long double"     "%LG")
+                ("size_t"          "%zu")
+                (t (if (or (starts-with "*" c-type :test #'string=)
+                           (starts-with "[" c-type :test #'string=))
+                       ;; NOTE: %lx is not guaranteed to be the right size for
+                       ;; pointers. %p would be better, but it will typically
+                       ;; print a leading "0x" which confuses the Lisp reader.
+                       (if (string-type-p type)
+                           (if print-strings "\\\"%s\\\"" "#x%lx")
+                           "#x%lx")
+                       (error "Unrecognized C type ~S" c-type)))))))
+      (values c-type fmt-code))))
 
 (defgeneric var-instrument (software label key ast &key print-strings)
   (:documentation
