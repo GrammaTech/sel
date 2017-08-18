@@ -40,3 +40,4 @@ else:
     score = do_test(exe, *tests[args.which])
 
 print(score)
+sys.exit(1 - int(score))

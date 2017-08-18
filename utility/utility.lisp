@@ -108,6 +108,13 @@
       (read-sequence seq in)
       seq)))
 
+(defun stream-to-string (stream)
+  (with-open-stream (in stream)
+    (iter (for byte = (read-byte in nil nil))
+          (while byte)
+          (collect byte into bytes)
+          (finally (return (coerce bytes 'vector))))))
+
 (defun string-to-file (string path &key (if-exists :supersede))
   (with-open-file (out path :direction :output :if-exists if-exists)
     (format out "~a" string))
@@ -345,17 +352,6 @@ See the documentation of `shell' for more information."
                                      :command cmd))
                 (ignore-shell-error () "Ignore error and continue")))
             (values stdout stderr errno)))))
-
-(defun shell-with-env (env command-format &rest format-args)
-  "Run a shell command with environment variables set. ENV should be a
-list of (name value) pairs."
-  ;; Quotes embedded in the command will screw up our quoting
-  ;; below. We could try to escape them, not bothering for now.
-  (let* ((command (apply {format nil command-format} format-args))
-         (command_esc (replace-all command "\"" "\\\"")))
-    (shell "~{~a ~}sh -c \"~a\""
-           (mapcar {apply {format nil "~a=~a"}} env)
-           command_esc)))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)

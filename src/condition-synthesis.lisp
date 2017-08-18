@@ -479,11 +479,15 @@ results when evaluated under the corresponding environment."
   "Run a test case, returning the fitness score, condition values, and
 environments."
   (ignore-errors (delete-file *trace-file*))
-  (bind ((env (append (when default `(("ABST_COND_DEFAULT" ,default)))
-                      (when abst-conds `(("ABST_COND_VALUES" ,abst-conds)))
-                      (when loop-count `(("ABST_COND_LOOP_COUNT" ,loop-count)))
-                      ))
-         (output  (funcall (test-runner test) bin env))
+  (bind ((env (append (when default `(("ABST_COND_DEFAULT" .
+                                       ,(write-to-string default))))
+                      (when abst-conds `(("ABST_COND_VALUES" .
+                                          ,(write-to-string abst-conds))))
+                      (when loop-count `(("ABST_COND_LOOP_COUNT" .
+                                          ,(write-to-string loop-count))))))
+         (output (evaluate bin test :env env
+                           :output :stream
+                           :error :stream))
          ((:values conds envs) (read-abst-conds-and-envs *trace-file*)))
     (values output conds envs)))
 
@@ -500,7 +504,7 @@ environments."
    (stderr :initarg :stderr :initform nil :reader stderr)
    (exit-code :initarg :exit-code :initform nil :reader exit-code))
   (:report (lambda (condition stream)
-             (format stream "Build failed with status ~a: ~%~a~%~a~%"
+             (format stream "Build failed with status ~a: ~%~a~%~a~%~a~%"
                      (exit-code condition) (stdout condition)
                      (stderr condition)))))
 
@@ -618,12 +622,14 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
   software)
 
 (defun collect-tests (software test-suite)
-  "Make test suite and divide it into positive and negative cases. TEST-SUITE is
-a list of `test-case' objects."
+  "Build SOFTWARE and run TEST-SUITE, dividing the test cases into positive and
+negative tests."
   (with-temp-file (bin)
     (build software bin)
-    (iter (for case in test-suite)
-          (let ((test-fitness (funcall (test-runner case) bin)))
+    (iter (for case in (test-cases test-suite))
+          (let ((test-fitness (evaluate bin case
+                                        :output :stream
+                                        :error :stream)))
             (setf (fitness case) test-fitness)
             (if (>= test-fitness 1.0)
                 (collect case into positive)
@@ -631,9 +637,9 @@ a list of `test-case' objects."
           (finally (return (values positive negative))))))
 
 (defun improves-fitness (new-fitness test-suite)
-  "Are NEW-FITNESS scores and improvement over the current fitness of
+  "Are NEW-FITNESS scores an improvement over the current fitness of
 TEST-SUITE?"
-  (let ((orig-fitness (mapcar #'fitness test-suite)))
+  (let ((orig-fitness (mapcar #'fitness (test-cases test-suite))))
     (and (every (lambda (new old) (>= new old)) new-fitness orig-fitness)
          (some (lambda (new old) (> new old)) new-fitness orig-fitness))))
 
@@ -687,11 +693,14 @@ print at each instrumentation point. It should have the form
                                    (copy software) repair-mutation best-cond)))
                 (setf conditions (remove best-cond conditions :test #'equal))
                 (build test-repair bin)
-                (let ((new-fitness (mapcar [{funcall _ bin} #'test-runner]
-                                           test-suite)))
+                (let ((new-fitness (mapcar
+                                    (lambda (test-case)
+                                      (evaluate bin test-case :output :stream
+                                                :error :stream))
+                                    (test-cases test-suite))))
                   (when (improves-fitness new-fitness test-suite)
                     (setf cur-best test-repair)
-                    (loop for test in test-suite
+                    (loop for test in (test-cases test-suite)
                        for f in new-fitness do
                          (setf (fitness test) f))
                                         ; repair found

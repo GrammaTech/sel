@@ -19,7 +19,7 @@
 See the documentation of `collect-trace' for information on the
 PREDICATE MAX and BIN keyword arguments."))
 
-(defmethod collect-traces ((obj software) inputs
+(defmethod collect-traces ((obj software) (test-suite test-suite)
                            &key predicate max (bin (temp-file-name))
                            &aux (args (list :bin bin)) (delete-bin-p t))
   (when predicate (setf args (append args (list :predicate predicate))))
@@ -31,11 +31,11 @@ PREDICATE MAX and BIN keyword arguments."))
   (unwind-protect
        (setf (traces obj)
              (mappend
-               (lambda-bind ((i input))
+               (lambda-bind ((i test-case))
                  (note 2 "Collect traces from input ~a of ~a"
-                       (1+ i) (length inputs))
-                 (apply #'collect-trace obj input args))
-               (indexed inputs)))
+                       (1+ i) (length (test-cases test-suite)))
+                 (apply #'collect-trace obj test-case args))
+               (indexed (test-cases test-suite))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
 
 (defgeneric collect-trace (software input &key predicate max bin)
@@ -53,7 +53,7 @@ executing a test script which runs the traceable program multiple
 times."))
 
 (defmethod collect-trace
-    ((obj software) input
+    ((obj software) (test-case test-case)
      &key (predicate #'identity) (max infinity) (bin (temp-file-name))
      &aux (delete-bin-p t))
   (if (probe-file bin)
@@ -62,29 +62,19 @@ times."))
               "Unable to compile software ~a" obj))
   (unwind-protect
        (with-temp-fifo (pipe)
-         ;; Start run on the input.
-         (let* ((real-input (mapcar (lambda (it)
-                                      (if (eq :bin it) (namestring bin) it))
-                                    input))
-                (proc
-                 #+sbcl
-                  (sb-ext:run-program (car real-input) (cdr real-input)
-                                      :environment
-                                      (cons (concatenate 'string
-                                                         *instrument-log-env-name* "=" pipe)
-                                            (sb-ext:posix-environ))
-                                      :wait nil)
-                  #+ccl
-                  (ccl:run-program (car real-input) (cdr real-input)
-                                   :env (list
-                                         (cons *instrument-log-env-name* pipe))
-                                   :wait nil)
-                  #-(or sbcl ccl)
-                  (error "Implement for lisps other than SBCL and CCL.")))
+         ;; Start running the test case.
+         (let ((proc (start-test bin test-case
+                                 :env (list (cons *instrument-log-env-name*
+                                                  pipe))
+                                 :wait nil)))
            (iter (for in = (open-file-timeout pipe *trace-open-timeout*))
                  (while in)
                  (collect
-                     (list (cons :input input)   ; keep :bin symbol if present
+                     (list
+                      ;; keep :bin symbol if present
+                      (cons :input
+                            (cons (program-name test-case)
+                                  (program-args test-case)))
                            (cons :trace
                                  (unwind-protect
                                       (read-trace-stream
@@ -92,16 +82,12 @@ times."))
                                    (close in))))
                    into traces)
                  (finally
-                  #+sbcl (sb-ext:process-close proc)
-                  #+ccl (ccl:signal-external-process proc 15
-                                                          :error-if-exited nil)
-                  #-(or sbcl ccl)
-                  (error "Needs SBCL or CCL.")
+                  (finish-test proc :kill-signal 15)
                   (restart-case
                       ;; This usually indicates a problem with the test script
                       ;; or the instrumentation
-                      (assert (not (emptyp traces)) ()
-                              "No traces collected for input ~s" real-input)
+                      (assert (not (emptyp traces)) (test-case)
+                              "No traces collected for test case ~s" test-case)
                     (continue-collecting ()
                       :report "Ignore and continue collecting traces."))
                   (return traces)))))
