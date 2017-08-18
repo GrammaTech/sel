@@ -418,13 +418,19 @@ an overview of the Software Evolution system, the specifics of which
 are given in remainder of this section.
 
 @menu
+* Test Suites::                 Running unit tests
 * Multi-objective Fitness::     Optimizing multiple objectives
 * Style Features::              Extracting source code features
 * Tokenizer::                   Tokenize software objects
 * Condition Synthesis::         Repair technique to synthesize guard conditions
 @end menu
 
-@node Multi-objective Fitness, Style Features, Components, Components
+@node Test Suites, Multi-objective Fitness, Components, Components
+@section Test Suites
+@cindex test-suite
+@include test-suite.texi
+
+@node Multi-objective Fitness, Style Features, Test Suites, Components
 @section Multi-objective Fitness
 @cindex multi-objective fitness
 @include multi-objective-fitness.texi
