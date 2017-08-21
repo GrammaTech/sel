@@ -504,7 +504,7 @@ environments."
    (stderr :initarg :stderr :initform nil :reader stderr)
    (exit-code :initarg :exit-code :initform nil :reader exit-code))
   (:report (lambda (condition stream)
-             (format stream "Build failed with status ~a: ~%~a~%~a~%~a~%"
+             (format stream "Build failed with status ~a: ~%~a~%~a~%"
                      (exit-code condition) (stdout condition)
                      (stderr condition)))))
 
