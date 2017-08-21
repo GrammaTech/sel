@@ -146,44 +146,56 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
 
 (defmethod start-test (phenome (test-case test-case) &rest extra-keys
                        &key &allow-other-keys)
-  (bind (((:flet bin-sub (bin it))
-          (if (eq :bin it) bin it))
-         (real-name (bin-sub (namestring phenome) (program-name test-case)))
-         (real-args (mapcar {bin-sub (namestring phenome)}
-                            (program-args test-case))))
-    (when *shell-debug*
-      (format t "  cmd: ~a ~{~a ~}~%" real-name real-args))
-    (let ((proc
-           #+sbcl
-            (apply #'sb-ext:run-program real-name real-args extra-keys)
-            #+ccl
-            (apply #'ccl:run-program real-name real-args extra-keys)
-            #-(or sbcl ccl)
-            (error "`START-TEST' only supported for SBCL or CCL.")))
-      (make-instance 'process :os-process proc))))
+  (flet ((bin-sub (bin it)
+           (if (eq :bin it) bin it)))
+    (let ((real-name (bin-sub (namestring phenome) (program-name test-case)))
+          (real-args (mapcar {bin-sub (namestring phenome)}
+                             (program-args test-case))))
+      (when *shell-debug*
+        (format t "  cmd: ~a ~{~a ~}~%" real-name real-args))
+      (make-instance 'process
+        :os-process
+        #+sbcl
+        (apply #'sb-ext:run-program real-name real-args
+               ;; Ensure environment variable names are keywords,
+               ;; which is what SBCL's `run-program' expects.
+               (let (last)
+                 (mapcar (lambda (el)
+                           (prog1
+                               (if (equal last :env)
+                                   (mapcar (lambda-bind ((key . val))
+                                             (cons (make-keyword key) val))
+                                           el)
+                                   el)
+                             (setf last el)))
+                         extra-keys)))
+        #+ccl
+        (apply #'ccl:run-program real-name real-args extra-keys)
+        #-(or sbcl ccl)
+        (error "`START-TEST' only supported for SBCL or CCL.")))))
 
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
   (flet ((running-p (process)
            (eq :runing (process-status process))))
     (when (and kill-signal (running-p test-process))
-      ;; if process is running and there's a kill signal, send it
+      ;; If process is running and there's a kill signal, send it.
       (signal-process test-process kill-signal))
 
-    ;; if still running and there's a timeout, sleep
+    ;; If still running and there's a timeout, sleep.
     (when (and (running-p test-process)
                (and timeout (>= timeout 0)))
       (sleep timeout))
 
-    ;; if still running, SIGKILL
+    ;; If still running, send SIGKILL.
     (when (running-p test-process)
       (signal-process test-process 9)
-      ;; if it's *still* running warn someone
+      ;; If it's *still* running, warn someone.
       (when (running-p test-process)
         (note 0 "WARNING: Unable to kill process ~a" test-process)))
 
-    ;; Now that we've made every effort to kill it, read the output
+    ;; Now that we've made every effort to kill it, read the output.
     (let* ((stdout (stream-to-string (process-output-stream test-process)))
-           ;; can't read from error stream if it's the same as stdout
+           ;; Can't read from error stream if it's the same as stdout.
            (stderr (unless (eq (process-output-stream test-process)
                                (process-error-stream test-process))
                      (stream-to-string (process-error-stream test-process))))
@@ -196,10 +208,9 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
                      &key &allow-other-keys)
   (finish-test (apply #'start-test phenome test-case extra-keys)))
 
-
-(defmethod evaluate (phenome (test-case test-case) &rest extra-keys
+(defmethod evaluate (phenome (obj test-case) &rest extra-keys
                      &key &allow-other-keys)
   (multiple-value-bind (stdout stderr exit-code)
-      (apply #'run-test phenome test-case extra-keys)
+      (apply #'run-test phenome obj extra-keys)
     (declare (ignorable stdout stderr))
     (if (zerop exit-code) 1 0)))
