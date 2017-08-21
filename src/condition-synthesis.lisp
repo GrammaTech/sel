@@ -113,6 +113,7 @@ instrumentation.
            (or (abst-cond mutation) (abst-cond-expr))))
 
 (defmethod build-op ((mutation refine-condition) software)
+  (declare (ignorable software))
   (let ((target-ast (targets mutation)))
     `((:set (:stmt1 . ,target-ast)
             (:literal1 . ,(refined-condition mutation
@@ -132,6 +133,7 @@ instrumentation.
    (abst-cond :accessor abst-cond :initform nil)))
 
 (defmethod build-op ((mutation add-condition) software)
+  (declare (ignorable software))
   (let* ((target-ast (targets mutation))
          (abst-cond (or (abst-cond mutation) (abst-cond-expr)))
          (body (if (or (ends-with (source-text target-ast) #\;)
