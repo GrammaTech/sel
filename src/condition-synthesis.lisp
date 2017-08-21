@@ -692,20 +692,28 @@ print at each instrumentation point. It should have the form
                      (test-repair (apply-best-cond-mutation
                                    (copy software) repair-mutation best-cond)))
                 (setf conditions (remove best-cond conditions :test #'equal))
-                (build test-repair bin)
-                (let ((new-fitness (mapcar
-                                    (lambda (test-case)
-                                      (evaluate bin test-case :output :stream
-                                                :error :stream))
-                                    (test-cases test-suite))))
-                  (when (improves-fitness new-fitness test-suite)
-                    (setf cur-best test-repair)
-                    (loop for test in (test-cases test-suite)
-                       for f in new-fitness do
-                         (setf (fitness test) f))
+                ;; If the build fails, ignore it and continue to the next
+                ;; condition.
+                (let ((build-result
+                        (handler-case (build test-repair bin)
+                          (build-failed (e)
+                            (note 3 "Build failed (~a) applying condition ~a: ~a"
+                                  (exit-code e) best-cond (stderr e))
+                            nil))))
+                  (when build-result
+                    (let ((new-fitness (mapcar
+                                        (lambda (test-case)
+                                          (evaluate bin test-case :output :stream
+                                                    :error :stream))
+                                        (test-cases test-suite))))
+                      (when (improves-fitness new-fitness test-suite)
+                        (setf cur-best test-repair)
+                        (loop for test in (test-cases test-suite)
+                           for f in new-fitness do
+                             (setf (fitness test) f))
                                         ; repair found
-                    (when (every {>= _ 1.0} new-fitness)
-                      (return-from synthesize-condition cur-best)))))))
+                        (when (every {>= _ 1.0} new-fitness)
+                          (return-from synthesize-condition cur-best)))))))))
           cur-best)))))
 
 (defun tails (lst)
