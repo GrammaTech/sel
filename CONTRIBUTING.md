@@ -7,7 +7,8 @@ Basic procedures to contribute code or documentation.
 - [Coding Standards](#coding-standards)
 - [Testing](#testing)
     - [Unit Tests](#unit-tests)
-- [Git Commit Messages](#commit-messages)
+- [Commit Review and Merge Requests](#commit-review-and-merge-requests)
+    - [Git Commit Messages](#commit-messages)
 
 ## Setup
 
@@ -104,10 +105,31 @@ following places before implementation of any utility.
 
 ### Unit Tests
 
-Every merge request should first pass all unit-tests.  These are
-typically defined in a `PROJECT-test` project within the project
-repository.
+Unit tests are defined and run using
+[Stefil](http://www.cliki.net/Stefil).  See their documentation for
+more information.  Stefil's integration into the REPL makes it a
+comfortable tool for test driven development (meaning defining a test
+of desired behavior before implementing the behavior, and then
+leveraging the test and fixture from the REPL during development).
 
-## Git Commit Messages
+## Commit Review and Merge Requests
+
+All changes should go through a merge request before landing in the
+master branch.  The following should be confirmed before accepting any
+merge request.
+
+- Every merge request should first pass all unit-tests.  These are
+    typically defined in a `PROJECT-test` project within the project
+    repository.  This should be confirmed for both SBCL and CCL.
+
+- All modified files should compile *without warning* for both SBCL
+    and CCL.
+
+- All new code should confirm to these coding standards.
+
+- Every commit message should follow the
+  [Git Commit Messages](#commit-messages) standards.
+
+### Git Commit Messages
 
 Follow [the seven rules of git commit messages](https://chris.beams.io/posts/git-commit/#seven-rules).
