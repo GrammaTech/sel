@@ -43,7 +43,8 @@ Keyword arguments are as follows:
   ;; having to export this above value (which we'd prefer not be
   ;; modified as it's assumed elsewhere).
   (when (eq trace-env t) (setf trace-env *instrument-log-env-name*))
-  (let ((log-var (if (or trace-file trace-env)
+  (let ((entry (get-entry obj))
+        (log-var (if (or trace-file trace-env)
                      *instrument-log-variable-name*
                      "stderr"))
         ;; Promote every counter key in POINTS to the enclosing full
@@ -209,10 +210,10 @@ Keyword arguments are as follows:
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
-    (when (and print-argv (get-entry obj))
+    (when (and print-argv entry)
       (print-program-input obj log-var))
     (when (or trace-file trace-env)
-      (log-to-filename obj trace-file trace-env))
+      (log-to-filename obj trace-file trace-env entry))
     (clang-format obj)
     obj))
 
@@ -342,11 +343,10 @@ fputs(\"))\\n\", ~a);"
         obj)
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
-;; Should only be called if you're sure obj is an entry-obj
-(defun log-to-filename (obj file-name env-name)
+(defun log-to-filename (obj file-name env-name contains-entry)
   (assert (typep obj 'clang))
 
-  (if (get-entry obj)
+  (if contains-entry
       ;; Object contains main(). Insert log variable definition and
       ;; initialization function. Use the "constructor" attribute to
       ;; run it on startup, before main() or C++ static initializers.

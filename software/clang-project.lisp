@@ -133,7 +133,8 @@ the underlying software objects."
     (loop for obj in (mapcar #'cdr (other-files clang-project))
        do (log-to-filename obj
                            (plist-get :trace-file args)
-                           (plist-get :trace-env args))))
+                           (plist-get :trace-env args)
+                           (get-entry obj))))
 
   clang-project)
 
