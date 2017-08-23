@@ -81,8 +81,9 @@
 (defmethod copy :before ((obj clang))
   ;; Update ASTs before copying to avoid duplicates. Lock to prevent
   ;; multiple threads from updating concurrently.
-  (bordeaux-threads:with-lock-held ((slot-value obj 'copy-lock))
-    (update-asts obj)))
+  (unless (slot-value obj 'ast-root)
+    (bordeaux-threads:with-lock-held ((slot-value obj 'copy-lock))
+      (update-asts obj))))
 
 (defgeneric ast->snippet (ast)
   (:documentation "Convert AST to alist representation."))
