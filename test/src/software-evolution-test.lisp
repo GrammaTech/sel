@@ -1069,6 +1069,27 @@
     (is (null (globals *hello-world*)))
     (is (null (fitness *hello-world*)))))
 
+(deftest asts-are-set-lazily ()
+  (with-fixture hello-world-clang
+    (is (null (slot-value *hello-world* 'ast-root))
+        "ast-root is initially null")
+    (is (asts *hello-world*)
+        "ASTs are loaded when needed")
+    (is (slot-value *hello-world* 'ast-root)
+        "ast-root is set after loading ASTS.")))
+
+(deftest asts-are-set-on-copy ()
+  (with-fixture hello-world-clang
+    (let ((new (copy *hello-world*)))
+      (is (slot-value new 'ast-root)
+          "ASTs set on copy")
+      (is (eq (slot-value new 'ast-root) (slot-value *hello-world* 'ast-root))
+          "Copy and original share ASTs")
+
+      (apply-mutation new (make-instance 'clang-swap :object new))
+      (is (eq (slot-value new 'ast-root) (slot-value (copy new) 'ast-root))
+          "Additional copies do not cause updates"))))
+
 ;; Check our temporary hack to split multi-variable declarations.
 (deftest split-multi-variable-declarations ()
   (is (= 2 (count-if {scan "double"}
