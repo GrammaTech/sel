@@ -163,6 +163,98 @@ Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
 * Tasks [24/32]
+** Java Support
+*** clang-mutate for Java
+Assumption: we have an external tool which parses Java and returns
+ASTs which are broadly similar to those produced by clang-mutate. It
+should have a concept of syntactic contexts, which should match
+clang-mutate's contexts as much as possible. Details such as the AST
+classes and structure of ASTs may be different.
+
+If the tool matches clang-mutate closely, we will be able to reuse
+more code and this will reduce implementation and maintenance
+costs in the long term.
+
+*** Class hierarchy
+    :PROPERTIES:
+    :Effort:   6h
+    :END:
+ + Introduce a "c-like" base class from which clang and java classes inherit
+ + Move applicative AST infrastructure and other language-independent
+   code to this base class
+ + Create a parallel hierarchy for asts and (maybe) ast-refs
+
+*** Applicative ASTs
+    :PROPERTIES:
+    :Effort:   12h
+    :END:
+Some of the details of the mutation functions (insert-ast,
+fixup-mutation, etc) are specific to C syntax. But this code only
+depends on syntactic contexts. With luck we can map all Java code to
+the same contexts. If not, we can generalize or add additional
+contexts as needed. In any event, I expect that most of the existing
+code can be reused without changes.
+
+ + Introduce new syntactic contexts as needed
+ + Generalize fixup-mutation
+ + Add tests for various Java contexts
+
+*** Basic Mutations
+    :PROPERTIES:
+    :Effort:   4h
+    :END:
+The basic cut/swap/insert mutations are language-independent and
+should work immediately once the applicative AST representation is
+done. All that's needed here is some testing.
+
+*** Language Abstraction
+    :PROPERTIES:
+    :Effort:   12h
+    :END:
+We already have various functions that abstract over language-specific
+details: e.g. begins-scope, block-p, function-body, etc. These will
+either need to be moved to the c-like class (if the current
+implementation will work for both languages) or reimplemented for
+Java.
+
+We will likely want to introduce new methods to provide further
+abstraction. Consider the clang-promote-guarded mutation. Currently it
+switches on the AST class, and then promotes the first child of
+a :DoStmt, second child of a :WhileStmt, etc. For Java, the names of
+the AST classes and the location of the body AST may differ. By
+introducing methods like, loop-p, loop-body, then-branch, else-branch,
+etc we could generalize this mutation to handle both languages without
+creating a separate java-promote-guarded mutation.
+
+*** Advanced Mutations
+    :PROPERTIES:
+    :Effort:   8h
+    :END:
+Most if not all of the clang mutations will also be applicable to
+Java. But they may need separate implementations, or to have
+language-specific details abstracted into new methods.
+
+ + Port existing tests to Java
+ + Fix/reimplement mutation for Java
+ + Repeat until all mutations work
+
+*** Class and Member Support
+    :PROPERTIES:
+    :Effort:   16h
+    :END:
+Since we've mostly focused on C, our handling of classes and member
+variables/functions is probably lacking. It's hard to assess the
+extent of these problems until we have a working Java backend.
+
+*** Instrumentation
+    :PROPERTIES:
+    :Effort:   12h
+    :END:
+This will likely need to be reimplemented from scratch for Java. If
+our Java parsing tools lacks mutation support, it may be preferable to
+implement this at the applicative AST level. That will also require
+implementing :insert-value-after on applicative ASTs.
+
 ** TODO Should mutations fall back from bad-stmts to all-stmts
 As currently done in [[file:software/clang.lisp::;;;%20Expand%20compound%20assignment][expand-assignments]]? No.
 
