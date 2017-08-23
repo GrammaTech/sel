@@ -162,7 +162,7 @@ instance. But I don't see why not run all the files separately.
 Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
-* Tasks [24/32]
+* Tasks [25/32]
 ** Java Support
 *** clang-mutate for Java
 Assumption: we have an external tool which parses Java and returns
@@ -634,7 +634,8 @@ Another option is [[http://gcc-melt.org/][gcc-melt]] with [[https://github.com/b
 *** useful functions, how this will work
 - [[file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::*%20\brief%20Retrieve%20the%20replacement%20information%20for%20a%20given%20fix-it.][file:/usr/local/src/llvm/tools/clang/include/clang-c/Index.h::* \brief Retrieve the replacement information for a given fix-it.]]
 
-** TODO Eliminate redundant clang AST updates
+** DONE Eliminate redundant clang AST updates
+   CLOSED: [2017-08-23 Wed 08:00]
 Currently there are some cases where we change the genome directly,
 which causes us to call update-asts (and run clang-mutate), but those
 ASTs are never used. This can waste a lot of time.
@@ -668,17 +669,13 @@ Every step except 5 causes an AST update, but only the results of step
 3 are ever used. At every other step, we only care about the genome
 string and the ASTs are redundant.
 
-*** Solutions
-**** Bring back deferred AST updates
-This is the most thorough solution but maybe the most work. We'd
-probably need locking to prevent race conditions. The interaction
-between AST updates and copying has been a source of bugs in the past
-and it will be even more complicated now so this could be hard to get
-right.
+*** Solution: bring back lazy AST updates
+Restore the code that updates ASTs only when necessary. Before
+copying, acquire a lock and update ASTs if they aren't present, to
+avoid the duplicate problem.
 
-Alternatively, we could allow explicit disabling of AST updates. The
-user of this feature would have to ensure that updates were re-enabled
-at the appropriate time. But the implementation would be much easier.
+A few additional tweaks are needed to reduce the number of updates
+during instrumentation.
 
 **** clang-format/tidy on strings
 If we had versions of clang-format and clang-tidy that accepted and
