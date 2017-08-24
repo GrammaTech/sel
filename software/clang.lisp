@@ -1267,7 +1267,7 @@ pick or false (nil) otherwise."
          (-<>> (iter (for p in parents)
                      ;; In case of an unbraced if/loop body, include
                      ;; the body directly.
-                     (if (string= :CompoundStmt (ast-class p))
+                     (if (eq :CompoundStmt (ast-class p))
                          (appending (get-immediate-children software p))
                          (collecting p)))
                (mapcar #'ast-ref-ast)
