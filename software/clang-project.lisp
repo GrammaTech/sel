@@ -48,7 +48,10 @@
              (iter (for entry in (compilation-database clang-project))
                    (collect
                      (cons (replace-all (aget :file entry)
-                                        (-> (if *build-dir*
+                                        (-> (if (and *build-dir*
+                                                     (search
+                                                       (namestring *build-dir*)
+                                                       (aget :file entry)))
                                                 *build-dir*
                                                 (project-dir clang-project))
                                             (cl-fad:pathname-as-directory)
