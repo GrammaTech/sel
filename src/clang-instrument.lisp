@@ -12,8 +12,9 @@
   "Default environment variable in which to store log file.")
 
 (defgeneric instrument (obj &key points functions functions-after
-                              trace-file trace-env
-                              print-argv instrument-exit filter)
+                                 trace-file trace-env
+                                 print-argv instrument-exit
+                                 clang-format filter)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 
@@ -28,13 +29,15 @@ Keyword arguments are as follows:
   TRACE-ENV -------- trace output to file specified by ENV variable
   PRINT-ARGV ------- print program arguments on startup
   INSTRUMENT-EXIT -- print counter of function body before exit
+  CLANG-FORMAT ----- execute clang-format on the instrumented code
   FILTER ----------- function to select a subset of ASTs for instrumentation
 "))
 
 (defmethod instrument
     ((obj clang) &key points functions functions-after
-                   trace-file trace-env print-argv instrument-exit
-                   (filter #'identity))
+                      trace-file trace-env print-argv instrument-exit
+                      (clang-format t)
+                      (filter #'identity))
   ;; Send object through clang-mutate to get accurate counters
   (update-asts obj)
 
@@ -214,7 +217,8 @@ Keyword arguments are as follows:
       (print-program-input obj log-var))
     (when (or trace-file trace-env)
       (log-to-filename obj trace-file trace-env entry))
-    (clang-format obj)
+    (when clang-format
+      (clang-format obj))
     obj))
 
 (defun file-open-str (log-variable &key file env)
