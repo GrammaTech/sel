@@ -1722,11 +1722,7 @@ is not to be found"
 (deftest find-or-add-type-parses-pointers ()
   (with-fixture gcd-clang
     (is (eq (find-or-add-type *gcd* "*char")
-            (find-or-add-type *gcd* "char" t)))
-    (is (eq (find-or-add-type *gcd* "**char")
-            (find-or-add-type *gcd* "char*" t)))
-    (is (eq (find-or-add-type *gcd* "***char")
-            (find-or-add-type *gcd* "char**" t)))))
+            (find-or-add-type *gcd* "char" :pointer t)))))
 
 (deftest var-decl-has-correct-types ()
   (let ((obj (make-instance 'clang
@@ -5025,8 +5021,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture huf-clang
     (is (and (listp (types *huf*)) (not (null (types *huf*))))
         "Huf software objects has a type database.")
-    (is (= 7 (count-if #'type-pointer (types *huf*)))
-        "Huf has seven pointer types.")
+    (is (= 9 (count-if #'type-pointer (types *huf*)))
+        "Huf has nine pointer types.")
     (is (= 6 (count-if [#'not #'emptyp #'type-array] (types *huf*)))
         "Huf has six array types.")
     (is (= 3 (count-if [{string= "int"} #'type-name] (types *huf*)))
@@ -6540,6 +6536,27 @@ Useful for printing or returning differences in the REPL."
                                                   :pointer nil
                                                   :array "[5]"
                                                   :hash 0
+                                                  :reqs nil))))
+  (is (equalp "const int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :const t
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "volatile int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :volatile t
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "*restrict int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer t
+                                                  :array ""
+                                                  :restrict t
+                                                  :hash 0
                                                   :reqs nil)))))
 
 (deftest type-from-trace-string-test ()
@@ -6567,7 +6584,64 @@ Useful for printing or returning differences in the REPL."
                                :array "[5]"
                                :size 5
                                :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "const int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :const t
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "volatile int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :volatile t
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "*restrict int")
+              (make-clang-type :name "int"
+                               :pointer t
+                               :array ""
+                               :restrict t
+                               :hash 0
                                :reqs nil))))
+
+(deftest type-decl-string-test ()
+  (is (equalp "int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "int *"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer t
+                                                 :array ""
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "const int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :const t
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "volatile int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :volatile t
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "restrict int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :restrict t
+                                                 :hash 0
+                                                 :reqs nil)))))
+
 
 ;;;; Clang tokenizer tests
 (in-suite test)
