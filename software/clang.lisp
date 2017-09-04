@@ -222,6 +222,9 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (hash :type number)
   (i-file :type (or string null))
   (pointer :type boolean)
+  (const :type boolean)
+  (volatile :type boolean)
+  (restrict :type boolean)
   (reqs :type list)
   (name :key :type :type string)
   (size :type (or number null)))
@@ -873,35 +876,45 @@ use carefully.
 (defmethod find-type ((obj clang) hash)
   (find-if {= hash} (types obj) :key #'type-hash))
 
-(defmethod find-or-add-type ((obj clang) name &optional pointer (array ""))
+(defmethod find-or-add-type ((obj clang) name &key
+                             (pointer nil pointer-arg-p)
+                             (array "" array-arg-p)
+                             (const nil const-arg-p)
+                             (volatile nil volatile-arg-p)
+                             (restrict nil restrict-arg-p)
+                             &aux (type (type-from-trace-string name)))
   "Find the type with given properties, or add it to the type DB."
-
-  (when (starts-with #\* name)
-    (let ((type (type-from-trace-string name)))
-      (setf name (type-name type)
-            pointer (type-pointer type)
-            array (type-array type))))
-
-  (or (find-if «and [{string= name} #'type-name]
-                    [{string= array} #'type-array]
-                    [{eq pointer} #'type-pointer]»
+  (setf (type-hash type)
+        (1+ (apply #'max (mapcar #'type-hash (types obj)))))
+  (when pointer-arg-p
+    (setf (type-pointer type) pointer))
+  (when array-arg-p
+    (setf (type-array type) array))
+  (when const-arg-p
+    (setf (type-const type) const))
+  (when volatile-arg-p
+    (setf (type-volatile type) volatile))
+  (when restrict-arg-p
+    (setf (type-restrict type) restrict))
+  (or (find-if «and [{string= (type-name type)} #'type-name]
+                    [{string= (type-array type)} #'type-array]
+                    [{eq (type-pointer type)} #'type-pointer]
+                    [{eq (type-const type)} #'type-const]
+                    [{eq (type-volatile type)} #'type-volatile]
+                    [{eq (type-restrict type)} #'type-restrict]»
                (types obj))
-      (let ((newtype
-             (make-clang-type :name name
-                              :array array
-                              :pointer pointer
-                              :hash (1+ (apply #'max (mapcar #'type-hash
-                                                             (types obj)))))))
-        (add-type obj newtype)
-        newtype)))
+      (progn (add-type obj type) type)))
 
 (defgeneric type-decl-string (type)
   (:documentation "The source text used to declare variables of TYPE.
 
 This will have stars on the right, e.g. char**. "))
 (defmethod type-decl-string ((type clang-type))
-
-  (format nil "~a~a" (type-name type)
+  (format nil "~a~a~a~a~a"
+          (if (type-const type) "const " "")
+          (if (type-volatile type) "volatile " "")
+          (if (type-restrict type) "restrict " "")
+          (type-name type)
           (if (type-pointer type) " *" "")))
 
 (defgeneric type-trace-string (type)
@@ -912,6 +925,9 @@ This will have stars on the left, e.g **char."))
   (concatenate 'string
                (when (type-pointer type) "*")
                (when (not (emptyp (type-array type))) (type-array type))
+               (when (type-const type) "const ")
+               (when (type-volatile type) "volatile ")
+               (when (type-restrict type) "restrict ")
                (type-name type)))
 
 (defgeneric type-from-trace-string (type)
@@ -921,24 +937,18 @@ This will have stars on the left, e.g **char."))
 The resulting type will not be added to any clang object and will not have a
 valid hash."))
 (defmethod type-from-trace-string ((name string))
-  ;; Look for * at the start of the name
-  (cond ((starts-with #\* name)
-         (make-clang-type :pointer t
-                          :array ""
-                          :hash 0
-                          :name (regex-replace "^\\*(\\**)(.*)" name "\\2\\1")))
-        ((starts-with #\[ name)
-         (make-clang-type :pointer (ends-with #\* name)
-                          :array (scan-to-strings "^\\[\\d*\\]" name)
-                          :hash 0
-                          :size (register-groups-bind (size)
-                                    ("^\\[(\\d+)\\]" name)
-                                  (parse-integer size))
-                          :name (regex-replace "^\\[\\d*\\]" name "")))
-        (t (make-clang-type :pointer nil
-                            :array ""
-                            :hash 0
-                            :name name))))
+  (make-clang-type
+    :pointer (or (starts-with #\* name) (ends-with #\* name))
+    :array (if (starts-with #\[ name) (scan-to-strings "^\\[\\d*\\]" name) "")
+    :const (not (null (search "const" name)))
+    :volatile (not (null (search "volatile" name)))
+    :restrict (not (null (search "restrict" name)))
+    :hash 0
+    :size (register-groups-bind (size)
+              ("^\\[(\\d+)\\]" name)
+            (parse-integer size))
+    :name (-> "^(\\*|\\[\\d*\\]|const |volatile |restrict |)*"
+              (regex-replace name ""))))
 
 (defun prepend-to-genome (obj text)
   "Prepend non-AST text to genome.

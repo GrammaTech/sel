@@ -499,6 +499,9 @@
    :type-i-line
    :type-line
    :type-pointer
+   :type-const
+   :type-volatile
+   :type-restrict
    :type-reqs
    :type-name
    :type-size

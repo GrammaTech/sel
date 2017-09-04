@@ -242,15 +242,19 @@ Keyword arguments are as follows:
                   (not (and (not (emptyp (type-array type)))
                             (type-pointer type))))))
     (let* ((c-type (if type (type-trace-string type) ""))
-           (stripped-c-type (regex-replace "(\\*|\\[\\d*\\])*(unsigned )?"
-                                           c-type ""))
+           (unqualifed-c-type
+             (-> "(const |volatile |restrict )*"
+                 (regex-replace c-type "")))
+           (stripped-c-type
+             (-> "(\\*|\\[\\d*\\]|const |volatile |restrict |unsigned )*"
+                 (regex-replace c-type "")))
            (fmt-code
             (when (member stripped-c-type
                           (append +c-numeric-types+
                                   '("int8_t" "int16_t" "int32_t" "int64_t"
                                     "wchar_t" "size_t"))
                           :test #'string=)
-              (switch (c-type :test #'string=)
+              (switch (unqualifed-c-type :test #'string=)
                 ("char"            "%d")
                 ("int8_t"          "%d")
                 ("wchar_t"         "%d")
