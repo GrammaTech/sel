@@ -5021,7 +5021,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture huf-clang
     (is (and (listp (types *huf*)) (not (null (types *huf*))))
         "Huf software objects has a type database.")
-    (is (= 9 (count-if #'type-pointer (types *huf*)))
+    (is (= 9 (count-if «and #'type-pointer
+                            [#'not {find #\(} #'type-name]» (types *huf*)))
         "Huf has nine pointer types.")
     (is (= 6 (count-if [#'not #'emptyp #'type-array] (types *huf*)))
         "Huf has six array types.")
