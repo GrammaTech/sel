@@ -299,7 +299,9 @@ output."))
   (iter (for var in (funcall key ast))
         (multiple-value-bind (c-type fmt-code)
             (type-instrumentation-info (find-var-type obj var) print-strings)
-          (when fmt-code
+          (when (and (not (emptyp (aget :name var)))
+                     (not (emptyp c-type))
+                     (not (emptyp fmt-code)))
             (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
                                    (aget :name var) c-type fmt-code)
                            into format
