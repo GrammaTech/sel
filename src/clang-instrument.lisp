@@ -14,7 +14,7 @@
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env
                                  print-argv instrument-exit
-                                 clang-format filter)
+                                 filter postprocess-functions)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 
@@ -22,21 +22,21 @@ The indices printed here are not clang-mutate counters, but rather the
 position of the ast in (asts obj).
 
 Keyword arguments are as follows:
-  POINTS ----------- alist of additional strings to print at specific points
-  FUNCTIONS -------- functions to calculate instrumentation at each point
-  FUNCTIONS-AFTER -- functions to calculate instrumentation after each point
-  TRACE-FILE ------- file for trace output
-  TRACE-ENV -------- trace output to file specified by ENV variable
-  PRINT-ARGV ------- print program arguments on startup
-  INSTRUMENT-EXIT -- print counter of function body before exit
-  CLANG-FORMAT ----- execute clang-format on the instrumented code
-  FILTER ----------- function to select a subset of ASTs for instrumentation
+  POINTS --------------- alist of additional strings to print at specific points
+  FUNCTIONS ------------ functions to calculate instrumentation at each point
+  FUNCTIONS-AFTER ------ functions to calculate instrumentation after each point
+  TRACE-FILE ----------- file for trace output
+  TRACE-ENV ------------ trace output to file specified by ENV variable
+  PRINT-ARGV ----------- print program arguments on startup
+  INSTRUMENT-EXIT ------ print counter of function body before exit
+  FILTER --------------- function to select a subset of ASTs for instrumentation
+  POSTPROCESS-FUNCTIONS  functions to execute after instrumentation
 "))
 
 (defmethod instrument
     ((obj clang) &key points functions functions-after
                       trace-file trace-env print-argv instrument-exit
-                      (clang-format t)
+                      (postprocess-functions (list #'clang-format))
                       (filter #'identity))
   ;; Send object through clang-mutate to get accurate counters
   (update-asts obj)
@@ -217,8 +217,8 @@ Keyword arguments are as follows:
       (print-program-input obj log-var))
     (when (or trace-file trace-env)
       (log-to-filename obj trace-file trace-env entry))
-    (when clang-format
-      (clang-format obj))
+    (when postprocess-functions
+      (mapcar {funcall _ obj} postprocess-functions))
     obj))
 
 (defun file-open-str (log-variable &key file env)
