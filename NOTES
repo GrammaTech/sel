@@ -162,6 +162,33 @@ instance. But I don't see why not run all the files separately.
 Stashed away in the VC history.
 - 29cc873
 - 3cf6b1f
+** Improvements to SEL interface
+*** Pattern matching API
+Given an AST, attempting to find the matching AST in a tree currently
+requires a manual traversal.  Moreover, this may require conversion
+between AST and AST-ref forms to access the underlying AST tree
+(see below).  Additionally, many concepts (e.g. matching variable assignment
+ASTs), are much more easily described via pattern matching then using the
+current SEL interface.
+
+*** AST/AST-ref dichotomy
+Most AST-ref methods also work when given the underlying AST tree
+(and vice-versa).  Conversion between forms to satisfy desparate
+APIs is frustrating.
+
+*** Macros
+Macros are now represented as a single :MacroExpansion AST with no sub-ASTs.
+For instance, the following is considered a single AST "ALLOCA(50*sizeof(char))"
+when the macro "#define ALLOCA alloca" is present.  This makes it difficult
+to parse sub-ASTs of the macro.
+
+*** Projects
+Delegation of undefined methods to a randomly selected 'current file'
+within the project is insufficient for most (almost all?) purposes.
+For instance, when attempting to find a function within the project
+with a given name, we need to examine *all* functions within the
+project, not just those in a randomly selected 'current file.'
+
 * Tasks [25/32]
 ** Java Support
 *** clang-mutate for Java
