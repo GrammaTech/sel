@@ -254,7 +254,7 @@ copy of the original current file.
     (ensure-directories-exist (pathname-parent-directory-pathname dir))
     ;; Copy from src-dir into path.
     (multiple-value-bind (stdout stderr errno)
-        (shell "cp -r ~a ~a" (namestring src-dir) (namestring dir))
+        (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir))
       (declare (ignorable stdout stderr))
       (assert (zerop errno)))
     dir))
