@@ -963,7 +963,7 @@ don't have corresponding ASTs."
       (setf ast-root
             (destructuring-bind (first second . rest) (ast-root obj)
               (list* first
-                     (concatenate 'string second (normalize-text text))
+                     (concatenate 'string (normalize-text text) second)
                      rest))))))
 
 (defgeneric add-macro (software macro)
