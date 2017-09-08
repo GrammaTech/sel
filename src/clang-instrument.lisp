@@ -367,7 +367,7 @@ fputs(\"))\\n\", ~a);"
 #include <stdio.h>
 #include <stdlib.h>
 FILE *~a;
-void __attribute__ (( constructor (101) )) __bi_setup_log_file() {
+void __attribute__((constructor(101))) __bi_setup_log_file() {
   ~a
 }
 
