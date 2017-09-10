@@ -155,5 +155,8 @@ the underlying software objects."
   (apply-to-project clang-project #'clang-tidy)
   clang-project)
 
+(defmethod indent ((clang-project clang-project) &optional style)
+  (apply-to-project clang-project {indent _ style}))
+
 (defmethod flags ((obj clang-project))
   nil)
