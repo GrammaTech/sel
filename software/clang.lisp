@@ -3324,6 +3324,26 @@ within a function body, return null."))
             (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
 
+(defgeneric indent (software &optional style)
+  (:documentation "Apply GNU indent to the software"))
+
+(define-constant +indent-style+
+  "-linux -i2 -ts2 -nut"
+  :test #'string=
+  :documentation "Default style for GNU indent")
+
+(defmethod indent ((obj clang) &optional style &aux errno)
+  (with-temp-file-of (src (ext obj)) (genome obj)
+    (setf (genome obj)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "indent ~a ~a -st" src (or style +indent-style+))
+            (declare (ignorable stderr))
+            (setf errno exit)
+            (if (or (= 0 exit) (= 2 exit))
+                stdout
+                (genome obj)))))
+  (values obj errno))
+
 (defun replace-fields-in-snippet (snippet field-replacement-pairs)
   "Given a snippet and an association list in the form ((:field . <value>))
 replace the entries in the snippet with the given values."
