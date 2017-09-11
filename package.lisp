@@ -325,6 +325,7 @@
    :instrument
    :var-instrument
    :add-include
+   :force-include
    :add-type
    :find-or-add-type
    :type-decl-string

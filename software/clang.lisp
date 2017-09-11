@@ -985,6 +985,15 @@ don't have corresponding ASTs."
     (push include (includes obj)))
   obj)
 
+(defgeneric force-include (software include)
+  (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
+even if such an INCLUDE already exists in SOFTWARE"))
+(defmethod force-include ((obj clang) include)
+  (prepend-to-genome obj (format nil "#include ~a~&" include))
+  (unless (member include (includes obj) :test #'string=)
+    (push include (includes obj)))
+  obj)
+
 
 ;;; Constants
 (define-constant +c-numeric-types+

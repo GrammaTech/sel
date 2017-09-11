@@ -1528,6 +1528,17 @@ else
                                            :hash -4794347995631201955))
       (is (equal orig-num-asts (size *hello-world*))))))
 
+(deftest force-include-test ()
+  (with-fixture hello-world-clang
+    (let ((copy (copy *hello-world*)))
+      (force-include copy "<system.h>")
+      (force-include copy "<system.h>")
+      (is (member "<system.h>" (includes copy) :test #'string=)
+          "<system.h> should have been added the software object's includes")
+      (is (not (equal (search "<system.h>" (genome copy) :from-end nil)
+                      (search "<system.h>" (genome copy) :from-end t)))
+          "<system.h> should have been added twice to the software object"))))
+
 (deftest clang-expression-test ()
   (flet ((test-conversion (obj pair)
            (destructuring-bind (text expected-expression) pair
