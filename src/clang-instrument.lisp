@@ -170,7 +170,7 @@ Keyword arguments are as follows:
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                            ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%"
+                            ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%~a~%"
                                      wrap
                                      (append
                                       (cons
@@ -188,9 +188,9 @@ Keyword arguments are as follows:
                                                (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
                                                        log-var)}
                                        (mapcar #'car formats-w-args)
-                                       (mapcar #'cdr formats-w-args))
-                                      (list (format nil "fflush(~a);~%" log-var)))
-                                     log-var)))))))))
+                                       (mapcar #'cdr formats-w-args)))
+                                     log-var
+                                     (format nil "fflush(~a);~%" log-var))))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
