@@ -5798,38 +5798,52 @@ Useful for printing or returning differences in the REPL."
 (in-suite test)
 (defsuite* test-style-features)
 
-(deftest avg-depth-function-asts-is-0 ()
+(deftest uni-grams-ht-test ()
+  (let* ((sentence (list "the" "quick" "brown" "fox"
+                         "the" "lazy" "brown" "dog"
+                         "the" "quick" "hare"))
+         (ht (se::uni-grams sentence)))
+    (is (= 7 (length (hash-table-keys ht))))
+    (is (= 3 (gethash "the" ht 0)))
+    (is (= 2 (gethash "quick" ht 0)))
+    (is (= 2 (gethash "brown" ht 0)))
+    (is (= 1 (gethash "fox" ht 0)))
+    (is (= 1 (gethash "lazy" ht 0)))
+    (is (= 1 (gethash "dog" ht 0)))
+    (is (= 1 (gethash "hare" ht 0)))))
+
+(deftest to-feature-vector-test ()
+  (let* ((sentence (list "the" "quick" "brown" "fox"
+                         "the" "lazy" "brown" "dog"
+                         "the" "quick" "hare"))
+         (ht (se::uni-grams sentence))
+         (fv (se::to-feature-vector ht (list "the" "quick" "brown" "fox"
+                                             "lazy" "dog" "hare"))))
+    (is (= 7 (length fv)))
+    (is (equalp fv (vector 3 2 2 1 1 1 1)))))
+
+(deftest function-ast-depths-are-zero ()
   (with-fixture variety-clang
     (let ((asts (functions *variety*)))
       (is (= 4 (length asts)))
       ;; depths of all function asts are 0 (all top-level)
-      (is (every #'zerop (mapcar {se::ast-depth *variety*} asts)))
-      ;; average depth of all function asts is 0
-      (is (= 0 (se::avg-depth-asts *variety* asts))))))
-
-(deftest avg-depth-deeper-asts-correct ()
-  (with-fixture variety-clang
-    (let* ((add3-fun (stmt-starting-with-text *variety* "int add3"))
-           (asts (remove-if-not {ancestor-of *variety* add3-fun} (asts *variety*)))
-           (depths (mapcar {se::ast-depth *variety*} asts)))
-      (is (= (/ (reduce #'+ depths) (length depths)))
-          (se::avg-depth-asts *variety* asts)))))
+      (is (every #'zerop (mapcar {se::ast-depth *variety*} asts))))))
 
 (deftest avg-depth-ast-node-type-function-is-0 ()
   (with-fixture variety-clang
-    (is (zerop (se::avg-depth-ast-node-type *variety* :Function)))))
+    (is (zerop (se::ast-node-type-avg-depth *variety* :Function)))))
 
 (deftest avg-depth-ast-node-type-return-stmts ()
   (with-fixture variety-clang
-    (is (= 2 (se::avg-depth-ast-node-type *variety* :ReturnStmt)))))
+    (is (= 2 (se::ast-node-type-avg-depth *variety* :ReturnStmt)))))
 
 (deftest node-type-counts ()
   (with-fixture variety-clang
     ;; list of (ast-class, occurrences)
-    (let ((ast-counts
-           (mapcar #'cons
+    (bind (((:values vec denom) (se::ast-node-type-tf-extractor *variety*))
+           (ast-counts (mapcar #'cons
                    se::*clang-c-ast-classes*
-                   (coerce (se::ast-node-type-tf-extractor *variety*) 'list))))
+                               (mapcar {* denom} (coerce vec 'list)))))
       ;; for each ast-class, verify occurrence count is correct
       (iter (for (type . count) in ast-counts)
             (is (= count
@@ -5884,9 +5898,12 @@ Useful for printing or returning differences in the REPL."
 
 (deftest ast-keyword-tf-extractor-correct ()
   (with-fixture variety-clang
+    (let ((ls-count (-<>> (se::ast-keyword-tf-extractor *variety*)
+                          (coerce <> 'list)
+                          (mapcar {* 44}))))
     (is (equal
          (mapcar #'cons
-                 (coerce (se::ast-keyword-tf-extractor *variety*) 'list)
+                   ls-count
                  se::*clang-c-keywords*)
          '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
            (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
@@ -5895,11 +5912,11 @@ Useful for printing or returning differences in the REPL."
            (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
            (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
            (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
-           (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while"))))))
+           (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
 
 (deftest small-bi-grams-count-example ()
   (let* ((ls (list "the" "tortoise" "and" "the" "hare" "and" "the" "race"))
-         (bi-grams (se::bi-grams ls :key #'identity :test #'equal))
+         (bi-grams (se::bi-grams ls :key #'identity))
          (keys (hash-table-keys bi-grams))
          (vals (hash-table-values bi-grams))
          (sorted-keys (list (cons "and" "the")

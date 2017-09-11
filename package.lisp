@@ -552,7 +552,23 @@
    :read-trace-stream
    :type-decl-string
    :type-trace-string
-   :type-from-trace-string))
+   :type-from-trace-string
+   ;; style features
+   :style-feature
+   :feature-name
+   :extractor-fn
+   :merge-fn
+   :styleable
+   :features
+   :feature-vecs
+   :feature-vec-meta
+   :style-project
+   :define-feature
+   :diff-feature-vectors
+   :extract-features
+   :extract-baseline-features
+   :merge-styleables
+   :merge-feature-vectors))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
