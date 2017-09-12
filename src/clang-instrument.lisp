@@ -40,10 +40,181 @@ Keyword arguments are as follows:
   POSTPROCESS-FUNCTIONS  functions to execute after instrumentation
 "))
 
+(define-constant +write-trace-include+
+  "
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#define WRITE_TRACE_VARIABLE(out, name_index, type_index, var)        \\
+    do {                                                              \\
+        uint16_t val;                                                 \\
+        fputc(VARIABLE, out);                                         \\
+        val = name_index; fwrite(&val, sizeof(val), 1, out);          \\
+        val = type_index; fwrite(&val, sizeof(val), 1, out);          \\
+        fwrite(&var, sizeof(var), 1, out);                            \\
+    } while(0)
+
+#define WRITE_TRACE_BLOB(out, name_index, type_index, size, ptr)        \\
+    do {                                                                \\
+        uint16_t val;                                                   \\
+        fputc(VARIABLE, out);                                           \\
+        val = name_index; fwrite(&val, sizeof(val), 1, out);            \\
+        val = type_index; fwrite(&val, sizeof(val), 1, out);            \\
+        val = size; fwrite(&val, sizeof(val), 1, out);                  \\
+        fwrite(ptr, size, 1, out);                                      \\
+    } while (0)
+
+static void write_trace_id(FILE *out, uint32_t statement_id)
+{
+    fputc(STATEMENT_ID, out);
+    fwrite(&statement_id, sizeof(statement_id), 1, out);
+}
+
+static void write_trace_aux(FILE *out, uint64_t value)
+{
+    fputc(AUXILIARY, out);
+    fwrite(&value, sizeof(value), 1, out);
+}
+
+static void write_end_entry(FILE *out)
+{
+    fputc(END_ENTRY, out);
+    fflush(out);
+}
+"
+  :test #'string=
+  :documentation "C code to include in all instrumented files.")
+
+
+(define-constant +write-trace-impl+
+  "
+enum type_format {
+    UNSIGNED,                   /* unsigned integer */
+    SIGNED,                     /* signed integer */
+    FLOAT,                      /* floating point */
+    POINTER,                    /* unsigned, interpret as address */
+    BLOB,                       /* arbitrary bytes, do not interpret */
+    INVALID_FORMAT
+};
+
+typedef struct {
+    /* Index into the string dictionary which gives the name of the type. */
+    uint16_t name_index;
+    /* Data format */
+    enum type_format format;
+    /* Size in bytes. 0 indicates a variable-sized object. */
+    uint8_t size;
+} type_description;
+
+enum trace_entry_tag {
+    END_ENTRY = 0,
+    STATEMENT_ID,
+    VARIABLE,
+    BUFFER_SIZE,
+    AUXILIARY,
+    TRACE_TAG_ERROR,
+    /* Returned at EOF, should not appear in trace */
+    END_OF_TRACE
+};
+
+void write_trace_header(FILE *out, const char **names, uint16_t n_names,
+                        const type_description *types, uint16_t n_types)
+{
+    /* Dictionary of names, as a sequence of NULL-terminated strings */
+    uint16_t total_size = 0;
+    for (uint16_t i = 0; i < n_names; i++) {
+        total_size += strlen(names[i]) + 1;
+    }
+    fwrite(&total_size, sizeof(total_size), 1, out);
+
+    for (uint16_t i = 0; i < n_names; i++) {
+        fputs(names[i], out);
+        fputc(0, out);
+    }
+
+    /* Dictionary of types */
+    fwrite(&n_types, sizeof(n_types), 1, out);
+    fwrite(types, sizeof(*types), n_types, out);
+}
+"
+  :test #'string=
+  :documentation "C code which implements trace writing.")
+
+(defclass instrumenter ()
+  ((software :accessor software :initarg :software :initform nil)
+   (names :accessor names
+          :initform (make-array 16 :fill-pointer 0 :adjustable t))
+   (types :accessor types
+          :initform (make-array 16 :fill-pointer 0 :adjustable t))
+   (type-descriptions :accessor type-descriptions
+          :initform (make-array 16 :fill-pointer 0 :adjustable t))))
+
+(defmethod get-name-index ((instrumenter instrumenter) name)
+  (or (position name (names instrumenter) :test #'string=)
+      (vector-push-extend name (names instrumenter))))
+
+(defun array-or-pointer-type (type)
+  ;; array or pointer, but not array of pointers
+  (xor (not (emptyp (type-array type)))
+       (type-pointer type)))
+
+(defmethod get-type-index ((instrumenter instrumenter) type print-strings)
+  (labels
+      ((string-type-p (type)
+         (or (string= (type-name type) "string")
+             (and (string= (type-name type) "char")
+                  (array-or-pointer-type type))))
+
+       (type-description-struct (print-strings type)
+         (let* ((c-type (if type (type-trace-string type) ""))
+                (name-index (get-name-index instrumenter c-type)))
+           (cond
+             ;; String
+             ((and print-strings (string-type-p type))
+              (format nil "{~d, BLOB, 0}" name-index))
+             ;; Pointer
+             ;; Use sizeof(void*) in case underlying type is not yet declared.
+             ((or (starts-with "*" c-type :test #'string=)
+                  (starts-with "[" c-type :test #'string=))
+              (format nil "{~d, POINTER, sizeof(void*)}" name-index))
+             ;; Signed integers
+             ((member c-type
+                      '("char" "int8_t" "wchar_t" "short" "int16_t" "int"
+                        "int32_t" "long" "int64_t")
+                      :test #'string=)
+              (format nil "{~d, SIGNED, sizeof(~a)}"
+                      name-index
+                      (type-decl-string type)))
+             ;; Unsigned integers
+             ((member c-type
+                      '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
+                        "unsigned int" "uint32_t" "unsigned long" "uint64_t"
+                        "size_t")
+                      :test #'string=)
+              (format nil "{~d, UNSIGNED, sizeof(~a)}"
+                      name-index
+                      (type-decl-string type)))
+             ((string= c-type "float")
+              (format nil "{~d, FLOAT, sizeof(float)}" name-index))
+             ((string= c-type "double")
+              (format nil "{~d, FLOAT, sizeof(double)}" name-index))
+             ;; Otherwise no instrumentation
+             (t nil)))))
+    (let ((type-id (cons (and print-strings (string-type-p type)) type)))
+      (or (position type-id (types instrumenter) :test #'equal)
+          ;; Adding new type: generate header string
+          (when-let ((description (type-description-struct print-strings type)))
+            (vector-push-extend description (type-descriptions instrumenter))
+            (vector-push-extend type-id (types instrumenter)))))))
+
 (defmethod instrument
     ((obj clang) &key points functions functions-after
                       trace-file trace-env print-argv instrument-exit
                       (postprocess-functions (list #'clang-format))
+                      (instrumenter (make-instance 'instrumenter :software obj))
                       (filter #'identity))
   ;; Send object through clang-mutate to get accurate counters
   (update-asts obj)
@@ -54,9 +225,7 @@ Keyword arguments are as follows:
   ;; modified as it's assumed elsewhere).
   (when (eq trace-env t) (setf trace-env *instrument-log-env-name*))
   (let ((entry (get-entry obj))
-        (log-var (if (or trace-file trace-env)
-                     *instrument-log-variable-name*
-                     "stderr"))
+        (log-var *instrument-log-variable-name*)
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
@@ -88,7 +257,7 @@ Keyword arguments are as follows:
                 (enclosing-traceable-stmt obj)))
          (first-traceable-stmt (proto)
            (first (get-immediate-children obj (function-body obj proto))))
-         (instrument-ast (ast counter formats-w-args formats-w-args-after
+         (instrument-ast (ast counter extra-stmts extra-stmts-after
                               trace-strings)
            ;; Given an AST and list of TRACE-STRINGS, return
            ;; instrumented source.
@@ -98,16 +267,7 @@ Keyword arguments are as follows:
                   (return-void (ast-void-ret function))
                   (skip
                    (or (ast-in-macro-expansion ast)
-                       (eq :NullStmt (ast-class ast))
-                       ;; Might be null, short circuit and don't
-                       ;; filter if so.
-                       (when (or trace-file trace-env)
-                         ;; TODO: This is gross, we should track that
-                         ;;       this has been inserted instead of
-                         ;;       searching the source for the string.
-                         (search (file-open-str
-                                  log-var :file trace-file :env trace-env)
-                                 (source-text ast))))))
+                       (eq :NullStmt (ast-class ast)))))
 
              ;; Insertions in bottom-up order
              (append
@@ -120,7 +280,11 @@ Keyword arguments are as follows:
                                                ast)))
                    (:value1 .
                             ,(format nil
-                                     "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
+                                     "inst_exit:
+write_trace_id(~a, ~d);
+write_end_entry(~a);
+~a"
+                                     log-var
                                      (gethash (function-body obj function)
                                               ast-numbers)
                                      log-var
@@ -159,44 +323,34 @@ Keyword arguments are as follows:
                    (:value1 .
                             ,(format nil "~a~{~a~}~a~%"
                                      (format nil ; Start up alist w/counter.
-                                             "fputs(\"((:C . ~d) \", ~a);~%"
-                                             (gethash ast ast-numbers)
-                                             log-var)
-                                     (mapcar
-                                      {format nil ; Functions instrumentation.
-                                              (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
-                                                      log-var)}
-                                      (mapcar #'car formats-w-args-after)
-                                      (mapcar #'cdr formats-w-args-after))
-                                     (format nil "fputs(\")\", ~a);~% fflush(~a);~%"
-                                             log-var log-var))))))
+                                             "write_trace_id(~a, ~d);~%"
+                                             log-var
+                                             (gethash ast ast-numbers))
+                                     extra-stmts-after
+                                     (format nil "write_end_entry(~a)"
+                                             log-var))))))
 
               ;; Opening brace and instrumentation code before
               (unless skip
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                            ,(format nil "~:[~;{~]~{~a~}fputs(\")\\n\", ~a);~%~a~%"
+                            ,(format nil "~:[~;{~]~{~a~};~%"
                                      wrap
                                      (append
                                       (cons
                                        (format nil ; Start up alist w/counter.
-                                               "fputs(\"((:C . ~d) \", ~a);~%"
-                                               (gethash ast ast-numbers)
-                                               log-var)
+                                               "write_trace_id(~a, ~d);~%"
+                                               log-var
+                                               (gethash ast ast-numbers))
                                        (when trace-strings
                                          (list
                                           (format nil ; Points instrumentation.
                                                   "fputs(\"(~{~a ~})\", ~a);~%"
                                                   (mapcar #'escape trace-strings) log-var))))
-                                      (mapcar
-                                       {format nil ; Functions instrumentation.
-                                               (format nil "fprintf(~a,\"~~a\"~~{,~~a~~});~%"
-                                                       log-var)}
-                                       (mapcar #'car formats-w-args)
-                                       (mapcar #'cdr formats-w-args)))
-                                     log-var
-                                     (format nil "fflush(~a);~%" log-var))))))))))
+                                      extra-stmts
+                                      (list (format nil "write_end_entry(~a)"
+                                                    log-var))))))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
@@ -207,10 +361,10 @@ Keyword arguments are as follows:
                        (prog1
                            (instrument-ast ast
                                            (ast-counter ast)
-                                           (mapcar {funcall _ obj ast}
-                                                   functions)
-                                           (mapcar {funcall _ obj ast}
-                                                   functions-after)
+                                           (mappend {funcall _ instrumenter ast}
+                                                    functions)
+                                           (mappend {funcall _ instrumenter ast}
+                                                    functions-after)
                                            (when points
                                              (aget ast points :test #'equalp)))
                          (when points
@@ -223,98 +377,67 @@ Keyword arguments are as follows:
           (remove-if-not #'cdr points))
     (when (and print-argv entry)
       (print-program-input obj log-var))
-    (when (or trace-file trace-env)
-      (log-to-filename obj trace-file trace-env entry))
+    (initialize-tracing obj trace-file trace-env entry instrumenter)
+    (when entry
+      (prepend-to-genome obj +write-trace-impl+))
+    (prepend-to-genome obj +write-trace-include+)
+
     (when postprocess-functions
       (mapcar {funcall _ obj} postprocess-functions))
+
     obj))
 
-(defun file-open-str (log-variable &key file env)
+(defun file-open-str (&key file env)
   (cond
     (file
-     (format nil "  ~a = fopen(~s, \"a\");~%" log-variable (namestring file)))
+     (format nil "fopen(~s, \"w\")" (namestring file)))
     (env
-     (format nil "  ~a = fopen(getenv(~s), \"a\");~%"
-             log-variable (namestring env)))
+     (format nil "fopen(getenv(~s), \"w\")" env))
     (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
 
-(defun type-instrumentation-info (type print-strings)
-  (labels ((string-type-p (type)
-             (and ;; char or wchar underlying type
-                  (or (string= (type-name type) "char")
-                      (string= (type-name type) "wchar"))
-                  ;; array or pointer
-                  (or (not (emptyp (type-array type)))
-                      (type-pointer type))
-                  ;; but not array of pointers
-                  (not (and (not (emptyp (type-array type)))
-                            (type-pointer type)))))
-           (stripped-c-type (type)
-             (-> (type-name type)
-                 (replace-all "unsigned " ""))))
-    (when type
-      (let* ((c-type (type-trace-string type :qualified t))
-             (unqualified-c-type (type-trace-string type :qualified nil))
-             (stripped-c-type (stripped-c-type type))
-             (fmt-code
-              (when (member stripped-c-type
-                            (append +c-numeric-types+
-                                    '("int8_t" "int16_t" "int32_t" "int64_t"
-                                      "wchar_t" "size_t"))
-                            :test #'string=)
-                (switch (unqualified-c-type :test #'string=)
-                  ("char"            "%d")
-                  ("int8_t"          "%d")
-                  ("wchar_t"         "%d")
-                  ("unsigned char"   "%u")
-                  ("uint8_t"         "%u")
-                  ("short"           "%hi")
-                  ("int16_t"         "%hi")
-                  ("unsigned short"  "%hu")
-                  ("uint16_t"        "%hu")
-                  ("int"             "%i")
-                  ("int32_t"         "%i")
-                  ("unsigned int"    "%u")
-                  ("uint32_t"        "%u")
-                  ("long"            "%li")
-                  ("int64_t"         "%li")
-                  ("unsigned long"   "%lu")
-                  ("uint64_t"        "%lu")
-                  ("size_t"          "%zu")
-                  ("float"           "%f")
-                  ("double"          "%G")
-                  ("long double"     nil)
-                  (t (if (or (starts-with "*" c-type :test #'string=)
-                             (starts-with "[" c-type :test #'string=))
-                         ;; NOTE: %lx is not guaranteed to be the right size for
-                         ;; pointers. %p would be better, but it will typically
-                         ;; print a leading "0x" which confuses the Lisp reader.
-                         (if (string-type-p type)
-                             (if print-strings "\\\"%s\\\"" "#x%lx")
-                             "#x%lx")
-                         (error "Unrecognized C type ~S" c-type)))))))
-        (values c-type fmt-code)))))
-
-(defgeneric var-instrument (software label key ast &key print-strings)
+(defgeneric var-instrument (key instrumenter ast &key print-strings)
   (:documentation
-   "Return a format string and variable list for variable instrumentation.
-KEY should be a function used to pull the variable list out of AST in
-SOFTWARE.  The result of KEY will appear behind LABEL in the trace
-output."))
+   "Return C statements for variable instrumentation.
+INSTRUMENTER contains instrumentation state. KEY should be a function
+used to pull the variable list out of AST."))
 
 (defmethod var-instrument
-    ((obj clang) label key (ast ast-ref) &key print-strings)
+    (key (instrumenter instrumenter) (ast ast-ref) &key print-strings)
   (iter (for var in (funcall key ast))
-        (multiple-value-bind (c-type fmt-code)
-            (type-instrumentation-info (find-var-type obj var) print-strings)
-          (when (and (not (emptyp (aget :name var)))
-                     (not (emptyp c-type))
-                     (not (emptyp fmt-code)))
-            (collect (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                             (aget :name var) c-type fmt-code)
-                     into fmt)
-            (collect (aget :name var) into vars)))
-        (finally (return (cons (format nil "(~s ~{~a~})" label fmt) vars)))))
+        (when-let* ((type (find-var-type (software instrumenter) var))
+                    (type-index (get-type-index instrumenter
+                                                type print-strings)))
+          (for name-index = (get-name-index instrumenter (aget :name var)))
+          (collect
+              (cond
+                ;; C string
+                ((and print-strings
+                      (array-or-pointer-type type)
+                      (string= "char" (type-name type)))
+                 (format nil "WRITE_TRACE_BLOB(~a, ~d, ~d, strlen(~a), ~a);"
+                         *instrument-log-variable-name*
+                         name-index
+                         type-index
+                         (aget :name var)
+                         (aget :name var)))
+
+                ;; C++ string
+                ((string= "string" (type-name type))
+                 (format nil
+                         "WRITE_TRACE_BLOB(~a, ~d, ~d, ~a.length(), ~a.c_str());"
+                         *instrument-log-variable-name*
+                         name-index
+                         type-index
+                         (aget :name var)
+                         (aget :name var)))
+
+                ;; Normal variable
+                (t
+                 (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);"
+                         *instrument-log-variable-name*
+                         name-index
+                         type-index
+                         (aget :name var))))))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
@@ -360,36 +483,41 @@ fputs(\"))\\n\", ~a);"
         obj)
       (prog1 obj (warn "Unable to instrument program to print input."))))
 
-(defun log-to-filename (obj file-name env-name contains-entry)
+(defun initialize-tracing (obj file-name env-name contains-entry
+                           instrumenter)
   (assert (typep obj 'clang))
 
-  (if contains-entry
-      ;; Object contains main(). Insert log variable definition and
-      ;; initialization function. Use the "constructor" attribute to
-      ;; run it on startup, before main() or C++ static initializers.
-      (setf (genome obj)
-            (format nil
-                    "
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
+  (prepend-to-genome
+   obj
+   (if contains-entry
+       ;; Object contains main(). Insert log variable definition and
+       ;; initialization function. Use the "constructor" attribute to
+       ;; run it on startup, before main() or C++ static initializers.
+       (format nil
+               "
 FILE *~a;
 void __attribute__((constructor(101))) __bi_setup_log_file() {
-  ~a
+  ~a = ~a;
+  const char *names[] = {~a};
+  const type_description types[] = {~a};
+  write_trace_header(~a, names, ~d, types, ~d);
 }
-
-~a
 "
-                    *instrument-log-variable-name*
-                    (file-open-str *instrument-log-variable-name* :file file-name :env env-name)
-                    (genome obj)))
+               *instrument-log-variable-name*
+               *instrument-log-variable-name*
+               (if (or file-name env-name)
+                   (file-open-str :file file-name :env env-name)
+                   "stderr")
+               (format nil "~{~s, ~}" (coerce (names instrumenter) 'list))
+               (format nil "~{~a, ~}"
+                       (coerce (type-descriptions instrumenter) 'list))
+               *instrument-log-variable-name*
+               (length (names instrumenter))
+               (length (types instrumenter)))
 
-      ;; Object does not contain main. Insert extern definition of log variable.
-      (setf (genome obj)
-            (concatenate 'string
-              (format nil "#include <stdio.h>~%#include <stdlib.h>~%extern FILE *~a;~%"
-                      *instrument-log-variable-name*)
-              (genome obj))))
+       ;; Object does not contain main. Insert extern definition of log variable.
+       (format nil "extern FILE *~a;~%"
+               *instrument-log-variable-name*)))
 
   obj)
 
@@ -478,17 +606,16 @@ Built with ~a version ~a.~%"
     ;; Set the functions.
     (when-let ((position (position 'trace-unbound-vars functions)))
       (setf (nth position functions)
-            (lambda (obj ast)
-              (var-instrument obj :unbound-vals
-                              {get-unbound-vals obj} ast
+            (lambda (instrumenter ast)
+              (var-instrument {get-unbound-vals (software instrumenter)}
+                              instrumenter ast
                               :print-strings print-strings))))
     (when-let ((position (position 'trace-scope-vars functions)))
       (setf (nth position functions)
-            (lambda (obj ast)
-              (var-instrument
-               obj :scopes
-               [{apply #'append} {scopes obj}] ast
-               :print-strings print-strings))))
+            (lambda (instrumenter ast)
+              (var-instrument {get-vars-in-scope (software instrumenter)}
+                              instrumenter ast
+                              :print-strings print-strings))))
 
     ;; Save original.
     (when save-original

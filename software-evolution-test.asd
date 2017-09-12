@@ -15,7 +15,9 @@
                split-sequence
                stefil
                uuid
-               testbot)
+               testbot
+               libtrace
+               trivial-shell)
   :components
   ((:module test
             :pathname "test/src"
