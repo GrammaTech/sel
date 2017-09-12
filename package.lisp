@@ -553,6 +553,8 @@
    :type-decl-string
    :type-trace-string
    :type-from-trace-string
+   :trace-error
+   :bin
    ;; style features
    :style-feature
    :feature-name
