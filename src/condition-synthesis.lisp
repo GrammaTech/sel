@@ -250,7 +250,7 @@ int abst_cond() {
         result = *return_vals - '0';
         return_vals++;
     }
-    fprintf(__sel_trace_file, \"((:ABST-COND . \\\"%d\\\"))\\n\", result);
+    write_trace_aux(__sel_trace_file, result);
     return result;
 }
 "
@@ -316,35 +316,36 @@ abst_cond() in the source text."
     stmt))
 
 ;; FIXME: mostly copied from var-instrument in clang-instrument.lisp
-(defun instrument-values (obj ast &key print-strings extra-exprs)
-  (let ((exprs
-         (remove nil
-                 (append (mapcar (lambda (v)
-                                   (cons (aget :name v)
-                                         (find-var-type obj v)))
-                                 (get-vars-in-scope obj ast))
-                         extra-exprs))))
+(defun instrument-values (instrumenter ast &key extra-exprs)
+  (let ((exprs (->> (mapcar (lambda (v)
+                              (cons (aget :name v)
+                                    (find-var-type (software instrumenter) v)))
+                            (get-vars-in-scope (software instrumenter) ast))
+                    (append extra-exprs)
+                    (remove nil))))
     (iter (for (var . type) in exprs)
-          (multiple-value-bind (c-type fmt-code)
-              (type-instrumentation-info type print-strings)
-            ;; Special case for C++ strings
-            (when (and print-strings
-                       (string= c-type "string"))
-              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" \\\"%s\\\")"
-                                     var c-type)
-                             into format
-                             initial-value (format nil "(:scopes"))
-              (collect (format nil "~a.c_str()" var) into vars))
-            ;; Standard types
-            (when fmt-code
-              (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                     var c-type fmt-code)
-                             into format
-                             initial-value (format nil "(:scopes"))
-              (collect var into vars))
+          (for name-index = (get-name-index instrumenter var))
+          (for type-index = (get-type-index instrumenter type t))
 
-            )
-          (finally (return (cons (concatenate 'string format ")") vars))))))
+          (collect
+              (cond
+                ;; C string
+                ((and (array-or-pointer-type type)
+                      (string= "char" (type-name type)))
+                 (format nil "WRITE_TRACE_BLOB(~a, ~d, ~d, strlen(~a), ~a);"
+                         *instrument-log-variable-name*
+                         name-index type-index var var))
+
+                ;; C++ string
+                ((string= "string" (type-name type))
+                 (format nil
+                         "WRITE_TRACE_BLOB(~a, ~d, ~d, ~a.length(), ~a.c_str());"
+                         *instrument-log-variable-name*
+                         name-index type-index var var))
+
+                (t (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);"
+                           *instrument-log-variable-name*
+                           name-index type-index var)))))))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
   "Add instrumentation before the enclosing if statement for the guard
@@ -373,10 +374,9 @@ statement(s) in the repair targets."
     (unless inst-locs
       (setf inst-locs (mapcar {enclosing-full-stmt software } repair-locs)))
 
-    (let ((inst-reps (lambda (obj ast)
+    (let ((inst-reps (lambda (instrumenter ast)
                        (when (member ast inst-locs :test #'equalp)
-                         (instrument-values obj ast
-                                            :print-strings t
+                         (instrument-values instrumenter ast
                                             :extra-exprs extra-exprs)))))
       ;; Instrument the original object
       (instrument software :trace-file trace-file-name
@@ -388,24 +388,21 @@ statement(s) in the repair targets."
 
 (defun read-abst-conds-and-envs (trace-results-file)
   "For a trace file, read in the environments and recorded abst-cond decisions."
-  (if (not (probe-file trace-results-file))
-      ;; File doesn't exist
-      (values nil nil)
-      ;; File exists
-      (with-open-file (trace-output trace-results-file)
-        (iter (for sexpr = (ignore-errors (read trace-output)))
-              ;; iter can exhaust the stack on long traces. Bail out
-              ;; before that happens.
-              (for i below *max-trace-length*)
-              (with prev-env = nil)
-              (while sexpr)
-              (when (aget :scopes sexpr)
-                (setf prev-env (aget :scopes sexpr)))
-              (when (aget :abst-cond sexpr)
-                (collect prev-env into envs)
-                (collect (aget :abst-cond sexpr) into abst-conds))
-              (finally (return (values (apply {concatenate 'string} abst-conds)
-                                       (apply #'append envs))))))))
+  (when (probe-file trace-results-file)
+    (iter (for sexpr in (read-trace trace-results-file 1))
+          ;; iter can exhaust the stack on long traces. Bail out
+          ;; before that happens.
+          (for i below *max-trace-length*)
+          (with prev-env = nil)
+          (while sexpr)
+          (when (aget :scopes sexpr)
+            (setf prev-env (aget :scopes sexpr)))
+          (when (aget :aux sexpr)
+            ;; Convert var infos from vectors to lists
+            (collect (mapcar {coerce _ 'list} prev-env) into envs)
+            (collect (aref (aget :aux sexpr) 0) into abst-conds))
+          (finally (return (values (format nil "~{~a~}" abst-conds)
+                                   (apply #'append envs)))))))
 
 (defun synthesize-conditions (envs)
   "For each assignment in each environment, generate conditions representing
@@ -464,7 +461,6 @@ results when evaluated under the corresponding environment."
 (defun run-test-case (test bin &key default abst-conds loop-count)
   "Run a test case, returning the fitness score, condition values, and
 environments."
-  (ignore-errors (delete-file *trace-file*))
   (bind ((env (append (when default `(("ABST_COND_DEFAULT" .
                                        ,(write-to-string default))))
                       (when abst-conds `(("ABST_COND_VALUES" .

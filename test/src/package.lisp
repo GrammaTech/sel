@@ -14,7 +14,9 @@
    :cl-ppcre
    :software-evolution
    :software-evolution-utility
-   :testbot)
+   :testbot
+   :libtrace
+   :trivial-shell)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop

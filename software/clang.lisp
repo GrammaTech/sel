@@ -2940,7 +2940,7 @@ variables to replace use of the variables declared in stmt ID."))
         (nth-enclosing-block clang (1- depth) the-block))))
 
 (defgeneric ast-declarations (ast)
-  (:documentation "Return the names of the variables that AST declares."))
+  (:documentation "Names of the variables or functions that AST declares."))
 
 (defmethod ast-declarations ((ast clang-ast))
   (cond
@@ -2956,6 +2956,12 @@ variables to replace use of the variables declared in stmt ID."))
 
 (defmethod ast-declarations ((ast clang-type))
   nil)
+
+(defgeneric ast-var-declarations (ast)
+  (:documentation "Names of the variables that AST declares."))
+(defmethod ast-var-declarations (ast)
+  (when (member (ast-class ast) '(:Var :ParmVar :DeclStmt))
+    (ast-declares ast)))
 
 (defgeneric declared-type (ast variable-name)
   (:documentation "Guess the type of the VARIABLE-NAME in AST.
