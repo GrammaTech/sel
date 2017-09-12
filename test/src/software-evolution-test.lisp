@@ -183,6 +183,10 @@
   :test #'equalp
   :documentation "Path to condition synthesis if to while repair example.")
 
+(define-constant +assert-dir+ (append +etc-dir+ (list "assert"))
+  :test #'equalp
+  :documentation "Path to assert example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -317,6 +321,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +cs-divide-dir+))
+
+(defun assert-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +assert-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -815,6 +824,14 @@
     (setf *soft*
           (from-file (make-instance 'clang)
           (switch-macros-dir "switch-macros.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture assert-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang)
+                     (assert-dir "assert.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -2330,6 +2347,17 @@ int x = CHARSIZE;")))
   (is (string= "Goodbye, earth!"
                (apply-replacements `(("Hello" . "Goodbye") ("world" . "earth"))
                                    "Hello, world!"))))
+
+(deftest rebind-vars-in-macro-test ()
+  (with-fixture assert-clang
+    (let* ((copy (copy *soft*))
+           (stmt (stmt-with-text copy "assert(argc > 0)")))
+      (is (equalp "assert((|someVal|) > 0)"
+                  (->> (se::rebind-vars stmt
+                                        '(("(|argc|)" "(|someVal|)"))
+                                        nil)
+                       (source-text)))
+          "rebind-vars did not rebind a variable within a macro"))))
 
 
 ;;; Range representation

@@ -348,9 +348,26 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                 (let ((text (subseq genome (begin-offset ast)
                                     (+ 1 (end-offset ast)))))
                   (when (not (emptyp text))
-                    (list (if (string= "DeclRefExpr" (aget :ast-class ast))
-                              (unpeel-bananas text)
-                              text)))))))
+                    (list (cond ((string= "DeclRefExpr"
+                                          (aget :ast-class ast))
+                                 (unpeel-bananas text))
+                                ((string= "MacroExpansion"
+                                          (aget :ast-class ast))
+                                 (reduce
+                                   (lambda (new-text unbound)
+                                     (regex-replace-all
+                                       (format nil "(^|[^A-Za-z0-9_]+)~
+                                                    (~a)~
+                                                    ([^A-Za-z0-9_]+|$)"
+                                               unbound)
+                                       new-text
+                                       (format nil "\\1~a\\3"
+                                               (unpeel-bananas unbound))))
+                                   (append (aget :unbound-vals ast)
+                                           (mapcar [#'peel-bananas #'car]
+                                                   (aget :unbound-funs ast)))
+                                   :initial-value text))
+                                (t text))))))))
         (unbound-vals (ast)
           (mapcar [#'peel-bananas #'car] (aget :unbound-vals ast)))
         (make-tree (ast)
@@ -821,9 +838,14 @@ use carefully.
                     children)))))
 
 (defmethod rebind-vars ((ast string) var-replacements fun-replacements)
-  (or (second (find-if [{string= ast} #'car] var-replacements))
-      (car (second (find-if [{string= ast} #'car #'car] fun-replacements)))
-      ast))
+  (reduce (lambda (new-ast replacement)
+            (replace-all new-ast (first replacement) (second replacement)))
+          (append var-replacements
+                  (mapcar (lambda (fun-replacement)
+                            (list (car (first fun-replacement))
+                                  (car (second fun-replacement))))
+                          fun-replacements))
+          :initial-value ast))
 
 (defgeneric replace-in-ast (ast replacements &key test)
   (:documentation
