@@ -11,6 +11,17 @@
   (:documentation
    "Instrumentable software with support for collecting dynamic traces."))
 
+(define-condition trace-error (error)
+  ((text :initarg :text :initform nil :reader text)
+   (obj  :initarg :obj  :initform nil :reader obj)
+   (bin  :initarg :bin  :initform nil :reader bin))
+  (:report (lambda (condition stream)
+             (if (bin condition)
+                 (format stream "Trace error: ~a while tracing ~S in binary ~S"
+                         (text condition) (obj condition) (bin condition))
+                 (format stream "Trace error: ~a while tracing ~S"
+                         (text condition) (obj condition))))))
+
 
 ;;; Execution with trace collection.
 (defgeneric collect-traces (software inputs &key predicate max bin)
@@ -26,8 +37,11 @@ PREDICATE MAX and BIN keyword arguments."))
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
       (setf delete-bin-p nil)
-      (assert (phenome obj :bin bin) (obj)
-              "Unable to compile software ~a" obj))
+      (unless (phenome obj :bin bin)
+        (error (make-condition 'trace-error
+                               :text "Unable to compile software."
+                               :obj obj
+                               :bin bin))))
   (unwind-protect
        (setf (traces obj)
              (mappend
@@ -58,8 +72,11 @@ times."))
      &aux (delete-bin-p t))
   (if (probe-file bin)
       (setf delete-bin-p nil)
-      (assert (phenome obj :bin bin) (obj)
-              "Unable to compile software ~a" obj))
+      (unless (phenome obj :bin bin)
+        (error (make-condition 'trace-error
+                               :text "Unable to compile software."
+                               :obj obj
+                               :bin bin))))
   (unwind-protect
        (with-temp-fifo (pipe)
          ;; Start running the test case.
