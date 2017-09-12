@@ -37,11 +37,14 @@ PREDICATE MAX and BIN keyword arguments."))
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
       (setf delete-bin-p nil)
-      (unless (phenome obj :bin bin)
-        (error (make-condition 'trace-error
-                               :text "Unable to compile software."
-                               :obj obj
-                               :bin bin))))
+      (restart-case
+          (unless (phenome obj :bin bin)
+            (error (make-condition 'trace-error
+                                  :text "Unable to compile software."
+                                  :obj obj
+                                  :bin bin)))
+        (continue-collecting ()
+          :report "Ignore and continue collecting traces.")))
   (unwind-protect
        (setf (traces obj)
              (mappend
@@ -72,11 +75,14 @@ times."))
      &aux (delete-bin-p t))
   (if (probe-file bin)
       (setf delete-bin-p nil)
-      (unless (phenome obj :bin bin)
-        (error (make-condition 'trace-error
-                               :text "Unable to compile software."
-                               :obj obj
-                               :bin bin))))
+      (restart-case
+          (unless (phenome obj :bin bin)
+            (error (make-condition 'trace-error
+                                   :text "Unable to compile software."
+                                   :obj obj
+                                   :bin bin)))
+        (continue-collecting ()
+          :report "Ignore and continue collecting traces.")))
   (unwind-protect
        (with-temp-fifo (pipe)
          ;; Start running the test case.
