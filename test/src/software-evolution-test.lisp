@@ -1447,7 +1447,7 @@ else
     (let ((includes (includes *headers*)))
       (is (listp includes))
       (is (= 2 (length includes)))
-      (is (member "\"first.c\"" includes :test #'equal))
+      (is (member "\"second.c\"" includes :test #'equal))
       (is (member "\"third.c\"" includes :test #'equal)))))
 
 (deftest clang-macros-initialized ()
@@ -1469,14 +1469,15 @@ else
 
 (deftest update-asts-doesnt-duplicate-includes ()
   (with-fixture headers-clang
-    (iter (for incl in (includes *headers*))
-          ;; each include in the includes list only appears once in the genome
-          ;; (all-matches includes start/end so length is double the number of
-          ;; occurrences)
-          (is (= 2 (length
-                    (all-matches
-                     (format nil "#include\\w* ~a" incl)
-                     (genome *headers*))))))))
+    ;; each include only appears once in the genome
+    ;; (all-matches includes start/end so length is double the number of
+    ;; occurrences)
+    (is (= 2 (->> (genome *headers*)
+                  (all-matches "#include\\w* \"first.c\"")
+                  (length))))
+    (is (= 2 (->> (genome *headers*)
+                  (all-matches "#include\\w* \"third.c\"")
+                  (length))))))
 
 (deftest add-macro-test ()
   (with-fixture hello-world-clang
