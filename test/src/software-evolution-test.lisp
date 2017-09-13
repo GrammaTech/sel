@@ -6558,24 +6558,28 @@ Useful for printing or returning differences in the REPL."
               (type-trace-string (make-clang-type :name "int"
                                                   :pointer nil
                                                   :array ""
+                                                  :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
   (is (equalp "*int"
               (type-trace-string (make-clang-type :name "int"
                                                   :pointer t
                                                   :array ""
+                                                  :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
   (is (equalp "[]int"
               (type-trace-string (make-clang-type :name "int"
                                                   :pointer nil
                                                   :array "[]"
+                                                  :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
   (is (equalp "[5]int"
               (type-trace-string (make-clang-type :name "int"
                                                   :pointer nil
                                                   :array "[5]"
+                                                  :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
   (is (equalp "const int"
@@ -6583,6 +6587,7 @@ Useful for printing or returning differences in the REPL."
                                                   :pointer nil
                                                   :array ""
                                                   :const t
+                                                  :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
   (is (equalp "volatile int"
@@ -6590,6 +6595,7 @@ Useful for printing or returning differences in the REPL."
                                                   :pointer nil
                                                   :array ""
                                                   :volatile t
+                                                  :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
   (is (equalp "*restrict int"
@@ -6597,6 +6603,35 @@ Useful for printing or returning differences in the REPL."
                                                   :pointer t
                                                   :array ""
                                                   :restrict t
+                                                  :storage-class :None
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "auto int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :storage-class :Auto
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "static int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :storage-class :static
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "extern int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :storage-class :extern
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "register int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer nil
+                                                  :array ""
+                                                  :storage-class :register
                                                   :hash 0
                                                   :reqs nil)))))
 
@@ -6605,18 +6640,21 @@ Useful for printing or returning differences in the REPL."
               (make-clang-type :name "int"
                                :pointer nil
                                :array ""
+                               :storage-class :None
                                :hash 0
                                :reqs nil)))
   (is (equalp (type-from-trace-string "*int")
               (make-clang-type :name "int"
                                :pointer t
                                :array ""
+                               :storage-class :None
                                :hash 0
                                :reqs nil)))
   (is (equalp (type-from-trace-string "[]int")
               (make-clang-type :name "int"
                                :pointer nil
                                :array "[]"
+                               :storage-class :None
                                :hash 0
                                :reqs nil)))
   (is (equalp (type-from-trace-string "[5]int")
@@ -6624,6 +6662,7 @@ Useful for printing or returning differences in the REPL."
                                :pointer nil
                                :array "[5]"
                                :size 5
+                               :storage-class :None
                                :hash 0
                                :reqs nil)))
   (is (equalp (type-from-trace-string "const int")
@@ -6631,6 +6670,7 @@ Useful for printing or returning differences in the REPL."
                                :pointer nil
                                :array ""
                                :const t
+                               :storage-class :None
                                :hash 0
                                :reqs nil)))
   (is (equalp (type-from-trace-string "volatile int")
@@ -6638,6 +6678,7 @@ Useful for printing or returning differences in the REPL."
                                :pointer nil
                                :array ""
                                :volatile t
+                               :storage-class :None
                                :hash 0
                                :reqs nil)))
   (is (equalp (type-from-trace-string "*restrict int")
@@ -6645,6 +6686,35 @@ Useful for printing or returning differences in the REPL."
                                :pointer t
                                :array ""
                                :restrict t
+                               :storage-class :None
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "auto int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :storage-class :Auto
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "static int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :storage-class :Static
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "extern int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :storage-class :Extern
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "register int")
+              (make-clang-type :name "int"
+                               :pointer nil
+                               :array ""
+                               :storage-class :Register
                                :hash 0
                                :reqs nil))))
 
@@ -6653,12 +6723,14 @@ Useful for printing or returning differences in the REPL."
               (type-decl-string (make-clang-type :name "int"
                                                  :pointer nil
                                                  :array ""
+                                                 :storage-class :None
                                                  :hash 0
                                                  :reqs nil))))
   (is (equalp "int *"
               (type-decl-string (make-clang-type :name "int"
                                                  :pointer t
                                                  :array ""
+                                                 :storage-class :None
                                                  :hash 0
                                                  :reqs nil))))
   (is (equalp "const int"
@@ -6666,6 +6738,7 @@ Useful for printing or returning differences in the REPL."
                                                  :pointer nil
                                                  :array ""
                                                  :const t
+                                                 :storage-class :None
                                                  :hash 0
                                                  :reqs nil))))
   (is (equalp "volatile int"
@@ -6673,6 +6746,7 @@ Useful for printing or returning differences in the REPL."
                                                  :pointer nil
                                                  :array ""
                                                  :volatile t
+                                                 :storage-class :None
                                                  :hash 0
                                                  :reqs nil))))
   (is (equalp "restrict int"
@@ -6680,8 +6754,38 @@ Useful for printing or returning differences in the REPL."
                                                  :pointer nil
                                                  :array ""
                                                  :restrict t
+                                                 :storage-class :None
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "auto int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :storage-class :Auto
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "static int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :storage-class :Static
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "extern int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :storage-class :Extern
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "register int"
+              (type-decl-string (make-clang-type :name "int"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :storage-class :Register
                                                  :hash 0
                                                  :reqs nil)))))
+
 
 
 ;;;; Clang tokenizer tests

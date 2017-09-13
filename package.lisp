@@ -504,6 +504,7 @@
    :type-const
    :type-volatile
    :type-restrict
+   :type-storage-class
    :type-reqs
    :type-name
    :type-size
