@@ -225,6 +225,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (const :type boolean)
   (volatile :type boolean)
   (restrict :type boolean)
+  (storage-class :reader [#'make-keyword #'string-upcase] :type symbol)
   (reqs :type list)
   (name :key :type :type string)
   (size :type (or number null)))
@@ -904,6 +905,7 @@ use carefully.
                              (const nil const-arg-p)
                              (volatile nil volatile-arg-p)
                              (restrict nil restrict-arg-p)
+                             (storage-class :None storage-class-arg-p)
                              &aux (type (type-from-trace-string name)))
   "Find the type with given properties, or add it to the type DB."
   (setf (type-hash type)
@@ -918,12 +920,15 @@ use carefully.
     (setf (type-volatile type) volatile))
   (when restrict-arg-p
     (setf (type-restrict type) restrict))
+  (when storage-class-arg-p
+    (setf (type-storage-class type) storage-class))
   (or (find-if «and [{string= (type-name type)} #'type-name]
                     [{string= (type-array type)} #'type-array]
                     [{eq (type-pointer type)} #'type-pointer]
                     [{eq (type-const type)} #'type-const]
                     [{eq (type-volatile type)} #'type-volatile]
-                    [{eq (type-restrict type)} #'type-restrict]»
+                    [{eq (type-restrict type)} #'type-restrict]
+                    [{eq (type-storage-class type)} #'type-storage-class]»
                (types obj))
       (progn (add-type obj type) type)))
 
@@ -932,10 +937,15 @@ use carefully.
 
 This will have stars on the right, e.g. char**. "))
 (defmethod type-decl-string ((type clang-type))
-  (format nil "~a~a~a~a~a"
+  (format nil "~a~a~a~a~a~a"
           (if (type-const type) "const " "")
           (if (type-volatile type) "volatile " "")
           (if (type-restrict type) "restrict " "")
+          (if (not (eq :None (type-storage-class type)))
+              (format nil "~a " (->> (type-storage-class type)
+                                     (symbol-name)
+                                     (string-downcase)))
+              "")
           (type-name type)
           (if (type-pointer type) " *" "")))
 
@@ -950,6 +960,10 @@ This will have stars on the left, e.g **char."))
                (when (type-const type) "const ")
                (when (type-volatile type) "volatile ")
                (when (type-restrict type) "restrict ")
+               (when (not (eq :None (type-storage-class type)))
+                 (format nil "~a " (->> (type-storage-class type)
+                                        (symbol-name)
+                                        (string-downcase))))
                (type-name type)))
 
 (defgeneric type-from-trace-string (type)
@@ -965,11 +979,17 @@ valid hash."))
     :const (not (null (search "const" name)))
     :volatile (not (null (search "volatile" name)))
     :restrict (not (null (search "restrict" name)))
+    :storage-class (or (register-groups-bind (storage-class)
+                           ("(extern|static|__private_extern__|auto|register)"
+                            name)
+                         (make-keyword (string-upcase storage-class)))
+                       :None)
     :hash 0
     :size (register-groups-bind (size)
               ("^\\[(\\d+)\\]" name)
             (parse-integer size))
-    :name (-> "^(\\*|\\[\\d*\\]|const |volatile |restrict |)*"
+    :name (-> (format nil "^(\\*|\\[\\d*\\]|const |volatile |restrict |extern |~
+                             static |__private_extern__ |auto |register )*")
               (regex-replace name ""))))
 
 (defun prepend-to-genome (obj text)
