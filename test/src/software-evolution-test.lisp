@@ -5829,6 +5829,29 @@ Useful for printing or returning differences in the REPL."
       ;; depths of all function asts are 0 (all top-level)
       (is (every #'zerop (mapcar {se::ast-depth *variety*} asts))))))
 
+(deftest max-depth-ast-functions-is-0 ()
+  (with-fixture variety-clang
+    (is (zerop (se::max-depth-ast *variety* (functions *variety*))))))
+
+(deftest max-depth-ret-stmts-is-2 ()
+  (with-fixture variety-clang
+    (let ((return-stmts (remove-if-not [{eql :ReturnStmt} #'ast-class]
+                                       (asts *variety*))))
+      (is (= 2 (se::max-depth-ast *variety* return-stmts))))))
+
+(deftest merge-max-picks-larger ()
+  (bind (((:values vec1 meta1) (with-fixture variety-clang
+                                 (se::max-depth-ast-extractor *variety*)))
+         ((:values vec2 meta2) (with-fixture gcd-clang
+                             (se::max-depth-ast-extractor *gcd*)))
+         ((:values vecr _) (se::merge-max vec1 meta1 vec2 meta2)))
+    (is (= 1 (length vec1)))
+    (is (= 1 (length vec2)))
+    (is (= 1 (length vecr)))
+    (is (= (elt vecr 0)
+           (max (elt vec1 0)
+                (elt vec2 0))))))
+
 (deftest avg-depth-ast-node-type-function-is-0 ()
   (with-fixture variety-clang
     (is (zerop (se::ast-node-type-avg-depth *variety* :Function)))))
