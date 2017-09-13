@@ -94,8 +94,7 @@ extracted."))
 (define-software style-project (styleable project) ())
 
 (defmacro define-feature (feature-name feature-desc
-                          (extractor-fn extractor-desc eargs
-                                        &rest ebody)
+                          (extractor-fn eargs extractor-desc &rest ebody)
                           (merge-fn &optional (margs nil margs-p) &rest mbody))
   `(progn
     ;; define merge-fn if args and body are provided
@@ -195,8 +194,8 @@ present in its ASTs."))
 
 (define-feature ast-node-type-tf-feature
     "Term frequency of AST node types."
-  (ast-node-type-tf-extractor "Return a vector with counts of occurrences of
-each possible AST node type." ((clang clang))
+  (ast-node-type-tf-extractor ((clang clang))
+   "Return a vector with counts of occurrences of each possible AST node type."
     (-<>> (ast-node-types clang)
           (uni-grams)
           (to-feature-vector <> *clang-c-ast-classes*)
@@ -231,20 +230,18 @@ each possible AST node type." ((clang clang))
           nil))
 
 (define-feature max-depth-ast-feature "Maximum depth of any node in the AST."
-  (max-depth-ast-extractor
+  (max-depth-ast-extractor ((clang clang))
    "Returns a feature vector of length 1 containing the maximum depth of any AST
 in SOFTWARE."
-   ((clang clang))
    (values (vector (max-depth-ast clang (asts clang)))
            nil))
   (merge-max))
 
 (define-feature avg-depth-ast-feature
     "Average depth of each type of node in the AST."
-  (avg-depth-ast-extractor
+  (avg-depth-ast-extractor ((clang clang))
    "Returns a feature vector of length 1 containing the average depth of ASTs in
 SOFTWARE."
-   ((clang clang))
    (let ((asts (asts clang)))
      (values (vector (mean (mapcar {ast-depth clang} asts)))
              (length asts))))
@@ -283,11 +280,10 @@ SOFTWARE."))
 
 (define-feature ast-node-type-avg-depth-feature
     "Average depth of each possible node type in the AST."
-  (ast-node-type-avg-depth-extractor
+  (ast-node-type-avg-depth-extractor ((clang clang))
    "Returns a feature vector whose length is the number of possible AST node
 types (as determined by `all-ast-node-types') and whose elements indicate the
 average depth of nodes of that type in the AST of SOFTWARE."
-   ((clang clang))
    (iter (for node-type in (all-ast-node-types clang))
          (multiple-value-bind (mean num-items)
              (ast-node-type-avg-depth clang node-type)
@@ -345,10 +341,9 @@ create a key."))
 (define-feature ast-full-stmt-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in each full statement in
 an AST."
-  (ast-full-stmt-bi-grams-extractor
+  (ast-full-stmt-bi-grams-extractor ((clang clang))
    "Return a feature vector containing the number of occurrences of AST node
 type bi-grams for full statement ASTs only."
-   ((clang clang))
    (->> (ast-full-stmt-bi-grams clang)
         (bi-grams-hashtable-to-feature clang)
         (normalize-vector)))
@@ -356,10 +351,9 @@ type bi-grams for full statement ASTs only."
 
 (define-feature ast-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in an AST."
-  (ast-bi-grams-extractor
+  (ast-bi-grams-extractor ((clang clang))
    "Return a feature vector containing the number of occurrences of AST node
 type bi-grams for all ASTs."
-   ((clang clang))
    (->> (ast-bi-grams clang)
         (bi-grams-hashtable-to-feature clang)
         (normalize-vector)))
@@ -413,10 +407,9 @@ SOFTWARE."))
 
 (define-feature ast-keyword-tf-feature
     "Term frequency of keywords in an AST."
-  (ast-keyword-tf-extractor
+  (ast-keyword-tf-extractor ((clang clang))
    "Return a vector containing term frequencies for the set of possible keywords
 used in SOFTWARE (see also `all-keywords')."
-   ((clang clang))
    (iter (for keyword in (all-keywords clang))
          (collect (reduce #'+ (mapcar {ast-keyword-tf clang keyword}
                                       (asts clang)))
