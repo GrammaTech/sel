@@ -428,16 +428,6 @@ used in SOFTWARE (see also `all-keywords')."
 (defmethod diff-feature-vectors ((vec1 vector) (vec2 vector))
   (map 'vector [#'abs #'-] vec1 vec2))
 
-
-(defgeneric merge-feature-vectors (vec1 meta1 vec2 meta2 merge-fn)
-  (:documentation "Use function MERGE-FN to return a new vector and
-meta-information that is the result of merging VEC1 and VEC2 using their
-corresponding meta-information META1 and META2."))
-
-(defmethod merge-feature-vectors ((vec1 vector) meta1 (vec2 vector) meta2
-                                  (merge-fn function))
-  (funcall merge-fn vec1 meta1 vec2 meta2))
-
 (defgeneric merge-styleables (styleable1 styleable2 &key result)
   (:documentation "Merge all feature vectors from STYLEABLE1 with those of
 STYLEABLE2. Returns a new `styleable' object containing the resulting feature
@@ -460,9 +450,9 @@ vectors and meta-information."))
         (for meta2 in (feature-vec-meta style2))
         (for merge-fn in (mapcar #'merge-fn (features style1)))
         (multiple-value-bind (vec meta)
-            (merge-feature-vectors feature-vec1 meta1
-                                   feature-vec2 meta2
-                                   merge-fn)
+            (funcall merge-fn
+                     feature-vec1 meta1
+                     feature-vec2 meta2)
           (collect vec into fvecs)
           (collect meta into fmetas)
           (finally (setf (feature-vecs result)
@@ -517,12 +507,11 @@ return two values: a vector of feature vectors and a vector of meta information
         (iter (for (file . obj) in  (cdr files))
           (declare (ignorable file))
           (multiple-value-bind (vec meta)
-              (merge-feature-vectors
+              (funcall (merge-fn feature)
                (elt (feature-vecs obj) index)
                (elt (feature-vec-meta obj) index)
                (elt (feature-vecs project) index)
-               (elt (feature-vec-meta project) index)
-               (merge-fn feature))
+               (elt (feature-vec-meta project) index))
             (setf (elt (feature-vecs project) index)
                   vec)
             (setf (elt (feature-vec-meta project) index)
