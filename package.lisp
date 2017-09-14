@@ -19,7 +19,8 @@
    :split-sequence
    :software-evolution-utility
    :usocket
-   :fast-io)
+   :fast-io
+   :libtrace)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-utility :quit)
   (:shadowing-import-from :uiop :getenv)

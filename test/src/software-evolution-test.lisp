@@ -4717,7 +4717,7 @@ Useful for printing or returning differences in the REPL."
           (shell-command (format nil "~a 4 8 2>~a" bin trace-file)))
       (declare (ignorable stdout stderr))
       (is (zerop errno))
-      (let ((trace (read-trace trace-file)))
+      (let ((trace (read-trace trace-file 1)))
         (is (listp trace))
         trace))))
 
@@ -5135,27 +5135,6 @@ prints unique counters in the trace"
     (collect-traces *gcd* *gcd-test-suite*)
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
-
-(deftest test-reading-trace-file ()
-  (with-fixture traceable-gcd
-    (with-temp-file (trace-path)
-      (with-temp-file (bin)
-        (instrument *gcd* :trace-file trace-path)
-        (phenome *gcd* :bin bin)
-        (shell "~a ~a ~a" bin (cadar *gcd-inputs*) (caddar *gcd-inputs*))
-        (let ((trace (read-trace-file trace-path)))
-          (is (and trace (listp trace))
-              "Successfully reads a non-empty trace from file.")
-          (let ((xz-path (make-pathname
-                          :directory (pathname-directory trace-path)
-                          :name (pathname-name trace-path)
-                          :type "xz")))
-            (unwind-protect
-                 (progn
-                   (shell "xz ~a" trace-path)
-                   (is (equalp trace (read-trace-file xz-path))
-                       "Successfully reads a trace from a compressed file."))
-              (when (probe-file xz-path) (delete-file xz-path)))))))))
 
 
 ;;;; Tests of declaration and type databases on clang objects

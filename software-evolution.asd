@@ -28,7 +28,8 @@ techniques."
                split-sequence
                usocket
                trivial-utf-8
-               fast-io)
+               fast-io
+               libtrace)
   :in-order-to ((test-op (test-op software-evolution-test)))
   :components
   ((:module base

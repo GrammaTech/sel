@@ -90,19 +90,17 @@ times."))
                                  :env (list (cons *instrument-log-env-name*
                                                   pipe))
                                  :wait nil)))
-           (iter (for in = (open-file-timeout pipe *trace-open-timeout*))
-                 (while in)
+           (iter (for trace = (read-trace pipe *trace-open-timeout*
+                                          :predicate predicate
+                                          :max max))
+                 (while trace)
                  (collect
                      (list
                       ;; keep :bin symbol if present
                       (cons :input
                             (cons (program-name test-case)
                                   (program-args test-case)))
-                           (cons :trace
-                                 (unwind-protect
-                                      (read-trace-stream
-                                       in :predicate predicate :max max)
-                                   (close in))))
+                      (cons :trace trace))
                    into traces)
                  (finally
                   (finish-test proc :kill-signal 15)
@@ -115,27 +113,3 @@ times."))
                       :report "Ignore and continue collecting traces."))
                   (return traces)))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
-
-(defun read-trace-file (file-name &key (predicate #'identity) (max infinity))
-  "Read a trace from FILE-NAME with `read-trace-stream'."
-  (if (equalp (pathname-type file-name) "xz")
-      (read-shell-file (in file-name "unxz")
-        (read-trace-stream in :predicate predicate :max max))
-      (with-open-file (in file-name)
-        (read-trace-stream in :predicate predicate :max max))))
-
-(defun read-trace-stream
-    (in &key (predicate #'identity) (max infinity) &aux (collected 0))
-  "Read a trace from the IN.
-Keyword argument PREDICATE limits collected trace points and MAX
-limits number of trace points to collect."
-  (iter (for trace-point =
-             (restart-case (read in nil :eof)
-               (ignore-rest-of-stream ()
-                 :report "Ignore error and skip remainder of stream"
-                 :eof)))
-        (while (and (not (eq trace-point :eof))
-                    (< collected max)))
-        (when (funcall predicate trace-point)
-          (incf collected)
-          (collect trace-point))))
