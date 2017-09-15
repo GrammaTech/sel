@@ -6784,8 +6784,23 @@ Useful for printing or returning differences in the REPL."
                                                  :array ""
                                                  :storage-class :Register
                                                  :hash 0
+                                                 :reqs nil))))
+  (is (equalp "struct struct_type"
+              (type-decl-string (make-clang-type :name "struct_type"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :storage-class :None
+                                                 :decl "struct struct_type;"
+                                                 :hash 0
+                                                 :reqs nil))))
+  (is (equalp "union union_type"
+              (type-decl-string (make-clang-type :name "union_type"
+                                                 :pointer nil
+                                                 :array ""
+                                                 :storage-class :None
+                                                 :decl "union union_type;"
+                                                 :hash 0
                                                  :reqs nil)))))
-
 
 
 ;;;; Clang tokenizer tests

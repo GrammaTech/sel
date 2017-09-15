@@ -937,7 +937,7 @@ use carefully.
 
 This will have stars on the right, e.g. char**. "))
 (defmethod type-decl-string ((type clang-type))
-  (format nil "~a~a~a~a~a~a"
+  (format nil "~a~a~a~a~a~a~a"
           (if (type-const type) "const " "")
           (if (type-volatile type) "volatile " "")
           (if (type-restrict type) "restrict " "")
@@ -946,6 +946,11 @@ This will have stars on the right, e.g. char**. "))
                                      (symbol-name)
                                      (string-downcase)))
               "")
+          (cond ((equal 0 (search "struct" (type-decl type)))
+                 "struct ")
+                ((equal 0 (search "union" (type-decl type)))
+                 "union ")
+                (t ""))
           (type-name type)
           (if (type-pointer type) " *" "")))
 
