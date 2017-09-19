@@ -12,6 +12,14 @@ recommendations, and solutions to common issues.
 - [Issues and Solutions](#issues-and-solutions)
     - [`clang-mutate` is not on my path](#clang-mutate-is-not-on-my-path)
     - [Dependency on MongoDB](#dependency-on-mongodb)
+    - [Cross compilation](#cross-compilation)
+- [SEL](#sel)
+    - [Adding new software types](#adding-new-software-types)
+    - [Adding new mutations](#adding-new-mutations)
+    - [Trace collection](#trace-collection)
+    - [Terminology](#terminology)
+      - [genome](#genome)
+      - [phenome](#phenome)
 
 ## Lisp
 
@@ -112,3 +120,98 @@ MongoDB installation.
 
 > Perhaps we should move the functionality that requires MongoDB to a
 > new package.
+
+### Cross compilation
+
+SEL builds 32-bit binaries for most unit tests.  To enable
+cross-compilation on 64-bit machines, execute
+`sudo apt-get install gcc-multilib g++-multilib`.
+
+## SEL
+
+### Adding new software object types
+
+SEL software objects should derive from the most-relevant base class.
+For source code based software objects, this is the `ast` class.  To
+define a new software object type from an existing base class, use
+```lisp
+(define-software new-software-type (base-software-type)
+  ())
+```
+
+### Adding new mutations
+
+New mutations should derive from the most-relevant base class.
+To define a new mutation from an existing base class, use
+```lisp
+(define-mutation new-mutation (base-mutation)
+  ())
+```
+
+The mutation may be initialized with two functions; a targeter and
+picker.  The targeter is a function which, given a software object,
+returns a list of mutation targets; this function defaults to `pick-bad`.
+The picker is a function which, given a software object, returns
+a random mutation target; this function defaults to a random element
+returned by `pick-bad`.
+
+After creating a software object and a mutation, use the
+`apply-mutation` method to create a new mutant.
+
+### Trace collection
+
+Software objects which need to support trace collection should
+include an `instrument` method and derive from `traceable`.
+
+The `instrument` method should inject logging into the software object
+before each full statement; to avoid intermingling instrumentation logs
+with program output, the instrumentation should be printed to the
+file given by the `__SEL_TRACE_FILE` environment variable.  At a minimum,
+logging should include an AST counter (:C) and variables in scope at
+the given point (:SCOPES).  Currently, only primitive types are instrumented.
+
+As an example, consider the following program:
+```c
+int main(int argc, char** argv) {
+    printf("Hello, World!");
+    return 0;
+}
+```
+
+The trace returned will contain the following elements:
+
+```lisp
+(((:INPUT :BIN) (:TRACE ((:C . 4)  (:SCOPES ("argc" "int" 1 NIL)))
+                        ((:C . 10) (:SCOPES ("argc" "int" 1 NIL))))))
+```
+
+To collect traces, pass an instrumented version of the software object
+to the `collect-traces` method along with a test suite of test cases
+you wish to execute on the instrumented object.
+
+### Terminology
+
+#### Genome
+
+In biology, the genome is the genetic material (DNA/RNA) of the cell.
+In the software evolution library, this field should contain the
+instructions which define the behavior of a software object. In most
+cases, the code (source or assembly), should be stored on this field.
+
+#### Phenome
+
+A phenome is an expression of all the traits described in the genome.
+In the software evolution library, this is an executable binary.  In
+addition to the executable, this method also returns (2) an errno (a numeric
+indication of compilation success), (3) stderr of the compilation
+process or a string holding error output relevant to phenome generation,
+(4) stdout of the evolution process  or a string holding non-error output
+relevant to phenome generation, (5) the source file name used during
+compilation.
+
+To override the generic phenome method for your software object, use
+the following:
+```lisp
+(defmethod phenome (obj my-class)
+  ())
+```
