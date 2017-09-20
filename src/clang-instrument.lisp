@@ -19,8 +19,7 @@
   :test ast-counters-equal :hash-function ast-counter)
 
 (defgeneric instrument (obj &key points functions functions-after
-                                 trace-file trace-env
-                                 print-argv instrument-exit
+                                 trace-file trace-env instrument-exit
                                  filter postprocess-functions
                                  instrumenter)
   (:documentation
@@ -35,7 +34,6 @@ Keyword arguments are as follows:
   FUNCTIONS-AFTER ------ functions to calculate instrumentation after each point
   TRACE-FILE ----------- file for trace output
   TRACE-ENV ------------ trace output to file specified by ENV variable
-  PRINT-ARGV ----------- print program arguments on startup
   INSTRUMENT-EXIT ------ print counter of function body before exit
   FILTER --------------- function to select a subset of ASTs for instrumentation
   POSTPROCESS-FUNCTIONS  functions to execute after instrumentation
@@ -171,9 +169,8 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
              (and (string= (type-name type) "char")
                   (array-or-pointer-type type))))
 
-       (type-description-struct (print-strings type)
-         (let* ((c-type (if type (type-trace-string type) ""))
-                (name-index (get-name-index instrumenter c-type)))
+       (type-description-struct (print-strings type c-type)
+         (let ((name-index (get-name-index instrumenter c-type)))
            (cond
              ;; String
              ((and print-strings (string-type-p type))
@@ -206,10 +203,12 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
               (format nil "{~d, FLOAT, sizeof(double)}" name-index))
              ;; Otherwise no instrumentation
              (t nil)))))
-    (let ((type-id (cons (and print-strings (string-type-p type)) type)))
+    (let* ((c-type (type-trace-string type))
+           (type-id (cons (and print-strings (string-type-p type)) c-type)))
       (or (position type-id (types instrumenter) :test #'equal)
           ;; Adding new type: generate header string
-          (when-let ((description (type-description-struct print-strings type)))
+          (when-let ((description (type-description-struct print-strings
+                                                           type c-type)))
             (vector-push-extend description (type-descriptions instrumenter))
             (vector-push-extend type-id (types instrumenter)))))))
 
@@ -229,7 +228,7 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
 
 (defmethod instrument
     ((obj clang) &key points functions functions-after
-                      trace-file trace-env print-argv instrument-exit
+                      trace-file trace-env instrument-exit
                       (postprocess-functions (list #'clang-format))
                       (instrumenter (make-instance 'instrumenter :software obj))
                       (filter #'identity))
@@ -382,8 +381,6 @@ write_end_entry(~a);
     (mapc (lambda (point)
             (warn "No insertion point found for pointer ~a." point))
           (remove-if-not #'cdr points))
-    (when (and print-argv entry)
-      (print-program-input obj log-var))
     (initialize-tracing obj trace-file trace-env entry instrumenter)
     (when entry
       (prepend-to-genome obj +write-trace-impl+))
@@ -453,43 +450,6 @@ used to pull the variable list out of AST."))
   (&>> (find-if [{string= "main"} {ast-name}] (functions obj))
        (function-body obj)))
 
-(defgeneric insert-at-entry (software ast)
-  (:documentation "Insert AST at the entry point to SOFTWARE."))
-
-(defmethod insert-at-entry ((obj clang) (ast string))
-  ;; NOTE: The most robust way to perform this calculation is to grab
-  ;; the whole text for the entry AST (i.e., "main"), and then to
-  ;; insert the new text just after the first "{".
-  (let* ((entry (get-entry obj))
-         (old-text
-          (peel-bananas (subseq (source-text entry) 1))))
-    (setf
-     (genome obj)
-     (clang-mutate obj
-       `(:set
-         (:stmt1 . ,(ast-counter entry))
-         (:value1 . ,(concatenate 'string "{" ast old-text))))))
-  obj)
-
-(defmethod print-program-input ((obj clang) log-variable)
-  ;; Return a version of OBJ instrumented to print program input.
-  (or (when-let* ((entry (get-entry obj))
-                  (scope-vars (mapcar {aget :name}
-                                      (get-vars-in-scope obj entry))))
-        (when (and (member "argc" scope-vars :test #'string=)
-                   (member "argv" scope-vars :test #'string=))
-          (insert-at-entry obj
-                           (format nil
-                                   "fprintf(~a, \"((:INPUT \");
-int __bi_mut_i_var;
-for(__bi_mut_i_var = 0; __bi_mut_i_var < argc; ++__bi_mut_i_var) {
-  fprintf(~a, \"\\\"%s\\\" \", argv[__bi_mut_i_var]);
-}
-fputs(\"))\\n\", ~a);"
-                                   log-variable log-variable log-variable)))
-        obj)
-      (prog1 obj (warn "Unable to instrument program to print input."))))
-
 (defun initialize-tracing (obj file-name env-name contains-entry
                            instrumenter)
   (assert (typep obj 'clang))
@@ -549,7 +509,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
         path out-dir name type trace-file out-file save-original
-        points functions print-strings print-argv instrument-exit)
+        points functions print-strings instrument-exit)
     (when (or (not args)
               (< (length args) 1)
               (string= (subseq (car args) 0 (min 2 (length (car args))))
@@ -560,7 +520,6 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
  Instrument SOURCE along OPTIONS.
 
 Options:
- -a,--print-argv -------- print program inputs (contents of argv) when present
  -c,--compiler CC ------- use CC as the C compiler
                           (default to CC env. variable or clang)
  -e,--exit -------------- instrument function exit
@@ -591,7 +550,6 @@ Built with ~a version ~a.~%"
 
     ;; Options.
     (getopts
-      ("-a" "--print-argv" (setf print-argv t))
       ("-c" "--compiler" (setf (compiler original) (pop args)))
       ("-e" "--exit" (setf instrument-exit t))
       ("-F" "--flags" (setf (flags original) (split-sequence #\, (pop args))))
@@ -650,7 +608,6 @@ Built with ~a version ~a.~%"
               (instrument original :trace-file trace-file
                           :points points
                           :functions functions
-                          :print-argv print-argv
                           :instrument-exit instrument-exit)))))
       (note 1 "Writing instrumented to ~a." dest)
       (with-open-file
