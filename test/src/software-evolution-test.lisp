@@ -60,6 +60,10 @@
   :test #'equalp
   :documentation "Path to directory holding the grep project.")
 
+(define-constant +multi-file-dir+ (append +etc-dir+ (list "multi-file"))
+  :test #'equalp
+  :documentation "Path to directory holding the multi-file example.")
+
 (define-constant +headers-dir+ (append +etc-dir+ (list "headers"))
   :test #'equalp
   :documentation "Path to directory holding headers.")
@@ -4760,7 +4764,7 @@ Useful for printing or returning differences in the REPL."
 
       ;; Is function exit instrumented?
       (is (stmt-with-text instrumented
-                          (format nil "write_trace_id(__sel_trace_file, ~a)"
+                          (format nil "write_trace_id(__sel_trace_file, ~du)"
                                   (-<>> (first (functions *gcd*))
                                         (function-body *gcd*)
                                         (position <> (asts *gcd*)
@@ -4822,7 +4826,7 @@ Useful for printing or returning differences in the REPL."
       (let* ((else-counter (index-of-ast *gcd*
                                          (stmt-with-text *gcd* "b = b - a")))
              (matcher (quote-meta-chars
-                       (format nil "write_trace_id(__sel_trace_file, ~d)"
+                       (format nil "write_trace_id(__sel_trace_file, ~du)"
                                else-counter))))
         (is (scan matcher (genome instrumented)))
         ;; The next line (after flushing) should be the else branch.
@@ -5085,6 +5089,65 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter
                                           ast)))))))
+
+(defixture clang-project
+  (:setup
+   (setf *project*
+         (-> (make-instance 'clang-project
+                :build-command "make"
+                :build-target "foo"
+                :compilation-database
+                  `(((:file .
+                      ,(-> (make-pathname :directory +multi-file-dir+
+                                          :name "foo"
+                                          :type "cpp")
+                           (namestring)))
+                     (:directory .
+                      ,(-> (make-pathname :directory +multi-file-dir+)
+                           (directory-namestring)))
+                     (:command . "make"))
+                    ((:file .
+                      ,(-> (make-pathname :directory +multi-file-dir+
+                                          :name "bar"
+                                          :type "cpp")
+                           (namestring)))
+                     (:directory .
+                      ,(-> (make-pathname :directory +multi-file-dir+)
+                           (directory-namestring)))
+                     (:command . "make"))))
+              (from-file (make-pathname :directory +multi-file-dir+)))))
+    (:teardown (setf *project* nil)))
+
+(deftest can-instrument-clang-project ()
+  (with-fixture clang-project
+    (instrument *project* :functions
+                (list (lambda (instrumenter ast)
+                        (var-instrument {get-unbound-vals
+                                         (software instrumenter)}
+                                        instrumenter
+                                        ast))))
+    (print (genome *project*))
+    (with-temp-file (bin)
+      (with-temp-build-dir ((directory-namestring
+                             (make-pathname :directory +multi-file-dir+)))
+        (is (zerop (second (multiple-value-list (phenome *project* :bin bin))))
+            "Successfully compiled instrumented project."))
+      (with-temp-file (trace-file)
+        (multiple-value-bind (stdout stderr errno)
+            (let ((*shell-search-paths* nil))
+              (shell-command (format nil "~a 2>~a" bin trace-file)))
+          (declare (ignorable stdout stderr))
+          (is (zerop errno))
+          (let ((trace (read-trace trace-file 1)))
+            (is (listp trace))
+            (is (not (emptyp trace)))
+            (is (every «and {aget :c} {aget :f}» trace))
+            (is (some «and [{equalp '(#("x" "int" 0))} {aget :scopes}]
+                           [{eq 1} {aget :f}]»
+                    trace))
+            (is (some «and [{equalp '(#("y" "int" 1))} {aget :scopes}]
+                           [{eq 0} {aget :f}]»
+                    trace))))))))
 
 
 ;;;; Traceable tests

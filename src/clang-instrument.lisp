@@ -21,7 +21,8 @@
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env
                                  print-argv instrument-exit
-                                 filter postprocess-functions)
+                                 filter postprocess-functions
+                                 instrumenter)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 
@@ -47,6 +48,17 @@ Keyword arguments are as follows:
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+enum trace_entry_tag {
+    END_ENTRY = 0,
+    STATEMENT_ID,
+    VARIABLE,
+    BUFFER_SIZE,
+    AUXILIARY,
+    TRACE_TAG_ERROR,
+    /* Returned at EOF, should not appear in trace */
+    END_OF_TRACE
+};
 
 #define WRITE_TRACE_VARIABLE(out, name_index, type_index, var)        \\
     do {                                                              \\
@@ -109,16 +121,6 @@ typedef struct {
     uint8_t size;
 } type_description;
 
-enum trace_entry_tag {
-    END_ENTRY = 0,
-    STATEMENT_ID,
-    VARIABLE,
-    BUFFER_SIZE,
-    AUXILIARY,
-    TRACE_TAG_ERROR,
-    /* Returned at EOF, should not appear in trace */
-    END_OF_TRACE
-};
 
 void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                         const type_description *types, uint16_t n_types)
@@ -150,7 +152,8 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
    (types :accessor types
           :initform (make-array 16 :fill-pointer 0 :adjustable t))
    (type-descriptions :accessor type-descriptions
-          :initform (make-array 16 :fill-pointer 0 :adjustable t))))
+          :initform (make-array 16 :fill-pointer 0 :adjustable t))
+   (ast-ids :accessor ast-ids :initform nil)))
 
 (defmethod get-name-index ((instrumenter instrumenter) name)
   (or (position name (names instrumenter) :test #'string=)
@@ -210,6 +213,20 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
             (vector-push-extend description (type-descriptions instrumenter))
             (vector-push-extend type-id (types instrumenter)))))))
 
+(defmethod get-ast-id ((instrumenter instrumenter) ast)
+  (gethash ast (ast-ids instrumenter)))
+
+(defmethod initialize-instance :after ((instance instrumenter) &key)
+  ;; Values are the same as index-of-ast, but without the linear
+  ;; search.
+  (when (software instance)
+    (setf (ast-ids instance)
+          (iter (for ast in (asts (software instance)))
+                (for i upfrom 0)
+                (with ht = (make-ast-ht))
+                (setf (gethash ast ht) i)
+                (finally (return ht))))))
+
 (defmethod instrument
     ((obj clang) &key points functions functions-after
                       trace-file trace-env print-argv instrument-exit
@@ -236,17 +253,7 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                        (if parent (cons parent value)
                            (warn "Point ~s doesn't match traceable AST."
                                  ast))))
-                   points)))
-        ;; Hash table mapping ASTs to indices. Values are the same as
-        ;; index-of-ast, but without the linear search. Use a custom
-        ;; hash table which uses the ast counter for hashing/comparison
-        ;; to improve speed.  NOTE: This assumes that each AST has a unique
-        ;; counter.
-        (ast-numbers (iter (for ast in (asts obj))
-                           (for i upfrom 0)
-                           (with ht = (make-ast-ht))
-                           (setf (gethash ast ht) i)
-                           (finally (return ht)))))
+                   points))))
     (labels
         ((escape (string)
            (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
@@ -281,12 +288,12 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                    (:value1 .
                             ,(format nil
                                      "inst_exit:
-write_trace_id(~a, ~d);
+write_trace_id(~a, ~du);
 write_end_entry(~a);
 ~a"
                                      log-var
-                                     (gethash (function-body obj function)
-                                              ast-numbers)
+                                     (get-ast-id instrumenter
+                                                 (function-body obj function))
                                      log-var
                                      (if return-void "" "return _inst_ret;"))))))
               ;; Closing brace after the statement
@@ -323,9 +330,9 @@ write_end_entry(~a);
                    (:value1 .
                             ,(format nil "~a~{~a~}~a~%"
                                      (format nil ; Start up alist w/counter.
-                                             "write_trace_id(~a, ~d);~%"
+                                             "write_trace_id(~a, ~du);~%"
                                              log-var
-                                             (gethash ast ast-numbers))
+                                             (get-ast-id instrumenter ast))
                                      extra-stmts-after
                                      (format nil "write_end_entry(~a)"
                                              log-var))))))
@@ -340,9 +347,9 @@ write_end_entry(~a);
                                      (append
                                       (cons
                                        (format nil ; Start up alist w/counter.
-                                               "write_trace_id(~a, ~d);~%"
+                                               "write_trace_id(~a, ~du);~%"
                                                log-var
-                                               (gethash ast ast-numbers))
+                                               (get-ast-id instrumenter ast))
                                        (when trace-strings
                                          (list
                                           (format nil ; Points instrumentation.
