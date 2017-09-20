@@ -1,5 +1,5 @@
 %.s: %.cpp
-	g++ -S -o $@ $<
+	g++ -std=c++11 -S -o $@ $<
 
 foo: foo.s bar.s
 	g++ $^ -o $@

@@ -58,13 +58,20 @@ enum trace_entry_tag {
     END_OF_TRACE
 };
 
-#define WRITE_TRACE_VARIABLE(out, name_index, type_index, var)        \\
-    do {                                                              \\
-        uint16_t val;                                                 \\
-        fputc(VARIABLE, out);                                         \\
-        val = name_index; fwrite(&val, sizeof(val), 1, out);          \\
-        val = type_index; fwrite(&val, sizeof(val), 1, out);          \\
-        fwrite(&var, sizeof(var), 1, out);                            \\
+#ifdef __cplusplus
+# define AUTO auto
+#else
+# define AUTO __auto_type
+#endif
+
+#define WRITE_TRACE_VARIABLE(out, name_index, type_index, var) \\
+    do {                                                       \\
+        uint16_t val;                                          \\
+        fputc(VARIABLE, out);                                  \\
+        val = name_index; fwrite(&val, sizeof(val), 1, out);   \\
+        val = type_index; fwrite(&val, sizeof(val), 1, out);   \\
+        AUTO tmp = var;                                        \\
+        fwrite(&tmp, sizeof(tmp), 1, out);                     \\
     } while(0)
 
 #define WRITE_TRACE_BLOB(out, name_index, type_index, size, ptr)        \\
