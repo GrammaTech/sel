@@ -557,7 +557,7 @@
 (defixture c-strings
   (:setup
    (setf *soft*
-         (from-file (make-instance 'clang :compiler "clang-3.7")
+         (from-file (make-instance 'clang)
                     (strings-dir "c-strings.c"))))
   (:teardown
    (setf *soft* nil)))
