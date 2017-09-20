@@ -4779,8 +4779,6 @@ Useful for printing or returning differences in the REPL."
           (is (every {aget :c} trace))
           (is (= 16 (length trace))))))))
 
-;; XXX: fix me
-#+ nil
 (deftest instrumentation-insertion-w-points-test ()
   (with-fixture gcd-clang
     (let ((instrumented
@@ -4789,20 +4787,19 @@ Useful for printing or returning differences in the REPL."
                :points
                (iter (for ast in (stmt-asts *gcd*))
                      (for i upfrom 0)
-                     (collect (list ast (if (evenp i) :odd :even))))))))
-      ;; Do we insert the right number of printf statements?
-      (is (<= (* 3 (count-traceable *gcd*))
-              (count-traceable instrumented)))
+                     (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))))))
+      (is (scan (quote-meta-chars "write_trace_aux(__sel_trace_file")
+              (genome-string instrumented))
+        "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (is (zerop (second (multiple-value-list
                             (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
-          (is (= (length trace)
-                 (length (split-sequence
-                          #\Newline stderr
-                          :remove-empty-subseqs t)))))))))
+          (is (every [«or {equalp #(1 2)} {equalp #(3 4)}»
+                      {aget :aux}]
+                     trace)))))))
 
 (deftest instrumentation-insertion-w-trace-file-test ()
   (with-fixture gcd-clang
@@ -4840,30 +4837,27 @@ Useful for printing or returning differences in the REPL."
         (is (probe-file bin))
         (is (not (emptyp (get-gcd-trace bin))))))))
 
-;; XXX: fixme
-;; (deftest instrumentation-insertion-w-points-and-added-blocks-test ()
-;;   (with-fixture gcd-wo-curlies-clang
-;;     (let* ((cookie :test-cookie)
-;;            (instrumented
-;;             (instrument (copy *gcd*)
-;;               :points
-;;               `((,(stmt-with-text *gcd* "b - a") ,cookie)))))
-;;       ;; Instrumented program holds the TEST-COOKIE line.
-;;       (is (scan (quote-meta-chars (string cookie))
-;;                 (genome-string instrumented))
-;;           "The point trace string ~S appears in the instrumented program text."
-;;           (string cookie))
-;;       ;; Instrumented compiles and runs.
-;;       (with-temp-file (bin)
-;;         (is (zerop (second (multiple-value-list
-;;                             (phenome instrumented :bin bin)))))
-;;         (is (probe-file bin))
-;;         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
-;;           (declare (ignorable stdout))
-;;           (is (zerop errno))
-;;           (is (scan (quote-meta-chars (string cookie)) stderr)
-;;               "The point trace string ~S appears in the program output."
-;;               (string cookie)))))))
+(deftest instrumentation-insertion-w-points-and-added-blocks-test ()
+  (with-fixture gcd-wo-curlies-clang
+    (let* ((cookie 1234)
+           (instrumented
+            (instrument (copy *gcd*)
+              :points
+              `((,(stmt-with-text *gcd* "b - a") ,cookie)))))
+      ;; Instrumented program holds the value 1234.
+      (is (scan (quote-meta-chars (format nil "~d" cookie))
+                (genome-string instrumented))
+          "The point trace value ~S appears in the instrumented program text."
+          cookie)
+      ;; Instrumented compiles and runs.
+      (with-temp-file (bin)
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (let ((trace (get-gcd-trace bin)))
+          (is (find-if [{equalp `#(,cookie)} {aget :aux}]
+                     trace)
+              "The point trace value ~S appears in the trace" cookie))))))
 
 (deftest instrumentation-after-insertion-mutation-test ()
   "Ensure after applying an insert mutation, the instrumented software

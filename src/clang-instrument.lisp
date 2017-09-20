@@ -29,7 +29,7 @@ The indices printed here are not clang-mutate counters, but rather the
 position of the ast in (asts obj).
 
 Keyword arguments are as follows:
-  POINTS --------------- alist of additional strings to print at specific points
+  POINTS --------------- alist of additional values to print at specific points
   FUNCTIONS ------------ functions to calculate instrumentation at each point
   FUNCTIONS-AFTER ------ functions to calculate instrumentation after each point
   TRACE-FILE ----------- file for trace output
@@ -264,9 +264,8 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
          (first-traceable-stmt (proto)
            (first (get-immediate-children obj (function-body obj proto))))
          (instrument-ast (ast counter extra-stmts extra-stmts-after
-                              trace-strings)
-           ;; Given an AST and list of TRACE-STRINGS, return
-           ;; instrumented source.
+                              aux-values)
+           ;; Return clang-mutate ops to instrument AST
            (let* ((function (function-containing-ast obj ast))
                   (wrap (and (not (traceable-stmt-p obj ast))
                              (can-be-made-traceable-p obj ast)))
@@ -349,11 +348,10 @@ write_end_entry(~a);
                                                "write_trace_id(~a, ~du);~%"
                                                log-var
                                                (get-ast-id instrumenter ast))
-                                       (when trace-strings
-                                         (list
-                                          (format nil ; Points instrumentation.
-                                                  "fputs(\"(~{~a ~})\", ~a);~%"
-                                                  (mapcar #'escape trace-strings) log-var))))
+                                       (mapcar {format nil
+                                                       "write_trace_aux(~a, ~a);~%"
+                                                       log-var}
+                                               aux-values))
                                       extra-stmts
                                       (list (format nil "write_end_entry(~a)"
                                                     log-var))))))))))))
@@ -379,7 +377,7 @@ write_end_entry(~a);
 
     ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
-            (warn "No insertion point found for pointer ~a." point))
+            (warn "No insertion point found for point ~a." point))
           (remove-if-not #'cdr points))
     (initialize-tracing obj trace-file trace-env entry instrumenter)
     (when entry
