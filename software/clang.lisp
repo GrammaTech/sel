@@ -365,45 +365,70 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                        (format nil "\\1~a\\3"
                                                (unpeel-bananas unbound))))
                                    (append (aget :unbound-vals ast)
-                                           (mapcar [#'peel-bananas #'car]
-                                                   (aget :unbound-funs ast)))
+                                           (unbound-funs ast))
                                    :initial-value text))
                                 (t text))))))))
         (unbound-vals (ast)
           (mapcar [#'peel-bananas #'car] (aget :unbound-vals ast)))
-        (make-tree (ast)
-          (let ((children (collect-children ast)))
-            (if (aget :in-macro-expansion ast)
-                ;; Remove depth from unbound-vals, keeping only names
-                (setf (aget :unbound-vals ast) (unbound-vals ast))
+        (unbound-funs (ast)
+          (mapcar [#'peel-bananas #'car] (aget :unbound-funs ast)))
+        (unaggregate-ast (ast children)
+          (if (aget :in-macro-expansion ast)
+              ;; Remove depth from unbound-vals, keeping only names
+              (setf (aget :unbound-vals ast) (unbound-vals ast))
 
-                ;; clang-mutate aggregates types, unbound-vals, and unbound-funs
-                ;; from children into parents. Undo that so it's easier to
-                ;; update these properties after mutation.
-                (iter (for c in children)
-                      (appending (aget :types c) into child-types)
-                      (appending (unbound-vals c) into child-vals)
-                      (appending (aget :unbound-funs c) into child-funs)
+              ;; clang-mutate aggregates types, unbound-vals, and unbound-funs
+              ;; from children into parents. Undo that so it's easier to
+              ;; update these properties after mutation.
+              (iter (for c in children)
+                    (appending (aget :types c) into child-types)
+                    (appending (unbound-vals c) into child-vals)
+                    (appending (aget :unbound-funs c) into child-funs)
 
-                      (finally
-                       (unless (member (aget :ast-class ast) '("Var" "ParmVar")
-                                       :test #'string=)
-                         (setf (aget :types ast)
-                               (remove-if {member _ child-types}
-                                          (aget :types ast))))
+                    (finally
+                     (unless (member (aget :ast-class ast) '("Var" "ParmVar")
+                                     :test #'string=)
+                       (setf (aget :types ast)
+                             (remove-if {member _ child-types}
+                                        (aget :types ast))))
 
-                       (setf (aget :unbound-vals ast)
-                             (remove-if {member _ child-vals :test #'string=}
-                                        (unbound-vals ast))
+                     (setf (aget :unbound-vals ast)
+                           (remove-if {member _ child-vals :test #'string=}
+                                      (unbound-vals ast))
 
-                             (aget :unbound-funs ast)
-                             (remove-if {member _ child-funs :test #'equalp}
-                                        (aget :unbound-funs ast))))))
+                           (aget :unbound-funs ast)
+                           (remove-if {member _ child-funs :test #'equalp}
+                                      (aget :unbound-funs ast))))))
+          ast)
+        (make-tree (ast &aux (stack nil))
+          ;; Iterative replacement for the following recursive algorithm.
+          ;; Uses an explicit stack for operations.
+          ;;
+          ;; (make-tree (ast &aux (children (collect-children ast))
+          ;;                         (new-ast (unaggregate-ast ast children)))
+          ;;  (cons new-ast (make-children new-ast
+          ;;                               (mapcar #'make-tree children))))
+          (pushnew (cons nil (list ast)) stack)
 
-            (cons ast (make-children ast (mapcar #'make-tree children))))))
+          (iter (while (or (not (= 1 (length stack)))
+                           (null (first (first stack)))))
+                (let ((top (or (car (cdr (first stack)))
+                               (car (cdr (second stack))))))
+                  (cond ((not (null (cdr (first stack))))
+                         (let ((children (collect-children top)))
+                            (setf top (unaggregate-ast top children))
+                            (push (cons nil children) stack)))
+                        (t
+                         (let ((new-children (reverse (car (pop stack)))))
+                           (push (cons top
+                                       (make-children top new-children))
+                                 (car (first stack)))
+                           (pop  (cdr (first stack)))))))
+                (finally (return (first (first (pop stack))))))))
 
      (destructuring-bind (root . children)
          (make-tree `((:ast-class . :TopLevel)
+                      (:counter . 0)
                       (:children . ,roots)
                       (:begin-off . 0)
                       (:end-off . :end)))
