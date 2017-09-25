@@ -241,11 +241,9 @@ Keyword arguments are as follows:
                   ;; but not array of pointers
                   (not (and (not (emptyp (type-array type)))
                             (type-pointer type))))))
-    (let* ((c-type (if type (type-trace-string type) ""))
+    (let* ((c-type (if type (type-trace-string type :qualified t) ""))
            (unqualified-c-type
-             (-> (format nil "(const |volatile |restrict |extern |static |~
-                               __private_extern__ |auto |register)*")
-                 (regex-replace c-type "")))
+            (if type (type-trace-string type :qualified nil) ""))
            (stripped-c-type
              (-> (format nil "(\\*|\\[\\d*\\]|unsigned )*")
                  (regex-replace unqualified-c-type "")))
