@@ -954,18 +954,19 @@ This will have stars on the right, e.g. char**. "))
           (type-name type)
           (if (type-pointer type) " *" "")))
 
-(defgeneric type-trace-string (type)
+(defgeneric type-trace-string (type &key qualified)
   (:documentation "The text used to describe TYPE in an execution trace.
 
 This will have stars on the left, e.g **char."))
-(defmethod type-trace-string ((type clang-type))
+(defmethod type-trace-string ((type clang-type) &key (qualified t))
   (concatenate 'string
                (when (type-pointer type) "*")
                (when (not (emptyp (type-array type))) (type-array type))
-               (when (type-const type) "const ")
-               (when (type-volatile type) "volatile ")
-               (when (type-restrict type) "restrict ")
-               (when (not (eq :None (type-storage-class type)))
+               (when (and qualified (type-const type)) "const ")
+               (when (and qualified (type-volatile type)) "volatile ")
+               (when (and qualified (type-restrict type)) "restrict ")
+               (when (and qualified
+                          (not (eq :None (type-storage-class type))))
                  (format nil "~a " (->> (type-storage-class type)
                                         (symbol-name)
                                         (string-downcase))))
