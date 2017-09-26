@@ -2375,20 +2375,64 @@ operations.
                                           :line end-line
                                           :column end-col))))))
 
-;; FIXME: these are inefficient now -- they scan linearly through the
-;; tree for each individual AST. We could do better when ranges are
-;; needed for all ASTs.
+(defun ast-source-ranges (obj)
+  "Return (AST . SOURCE-RANGE) for each AST in OBJ."
+  (labels
+      ((source-location (line column)
+         (make-instance 'source-location :line line :column column))
+       (scan-ast (ast path line column)
+         "Scan entire AST, updating line and column. Return the new values."
+         (let* ((begin (source-location line column))
+                (ranges
+                 (if (stringp ast)
+                     ;; String literal
+                     (iter (for char in-string ast)
+                           (incf column)
+                           (when (eq char #\newline)
+                             (incf line)
+                             (setf column 1)))
+
+                     ;; Subtree
+                     (iter (for child in (cdr ast))
+                           (for i upfrom 0)
+                           (appending
+                            (multiple-value-bind
+                                  (ranges new-line new-column)
+                                (scan-ast child (append path (list i))
+                                          line column)
+                              (setf line new-line
+                                    column new-column)
+                              ranges)
+                            into child-ranges)
+                           (finally
+                            (return
+                              (cons (cons (make-ast-ref :path path
+                                                        :ast ast)
+                                          (make-instance 'source-range
+                                                         :begin begin
+                                                         :end (source-location
+                                                               line column)))
+                                    child-ranges)))))))
+
+           (values ranges line column))))
+
+    (cdr (scan-ast (ast-root obj) nil 1 1))))
+
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
   (when loc
-    (remove-if-not [{contains _ loc} {ast-to-source-range obj}] (asts obj))))
+    (mapcar #'car
+            (remove-if-not [{contains _ loc} #'cdr] (ast-source-ranges obj)))))
 
 (defmethod asts-contained-in-source-range ((obj clang) (range source-range))
   (when range
-    (remove-if-not [{contains range} {ast-to-source-range obj}] (asts obj))))
+    (mapcar #'car
+            (remove-if-not [{contains range} #'cdr] (ast-source-ranges obj)))))
 
 (defmethod asts-intersecting-source-range ((obj clang) (range source-range))
   (when range
-    (remove-if-not [{intersects range} {ast-to-source-range obj}] (asts obj))))
+    (mapcar #'car
+            (remove-if-not [{intersects range} #'cdr]
+                           (ast-source-ranges obj)))))
 
 (defmethod line-breaks ((clang clang))
   (cons 0 (loop :for char :in (coerce (genome clang) 'list) :as index
