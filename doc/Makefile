@@ -1,6 +1,9 @@
 PROJECT=software-evolution
 
-all: info html clang-instrument.1.gz
+all: index.html info html clang-instrument.1.gz
+
+index.html: landing.md
+	pandoc $< > $@
 
 info: $(PROJECT).texi
 	makeinfo $<
