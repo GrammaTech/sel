@@ -87,4 +87,10 @@ Once you have SEL and its dependencies set up, have a look at the
 [Getting Started]() guide to try out some of examples or start exploring
 the [API]().
 
+If you have questions, please refer to the
+[FAQ](https://github.com/GrammaTech/software-evolution/tree/master/FAQ.md)
+to make sure your question hasn't already been answered before reporting an
+issue.
+
 [//]: # (TODO: links to Getting Started and API)
+[//]: # (TODO: Confirm we want to use github issues or decide how we'd rather maintain SEL.)
