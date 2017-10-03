@@ -20,6 +20,7 @@ recommendations, and solutions to common issues.
     - [Terminology](#terminology)
       - [genome](#genome)
       - [phenome](#phenome)
+    - [Undefined symbol](#undefined-symbol)
 
 ## Lisp
 
@@ -215,3 +216,14 @@ the following:
 (defmethod phenome (obj my-class)
   ())
 ```
+
+### Undefined Symbol
+
+SEL is a LISP *package*, in essence, a container for symbols allowing
+the creation of seperate namespaces within a program.  By default,
+functions/variables defined within SEL are private to the package;
+to export the symbol for use outside the package, it must be
+added to the `:export` list in package.lisp.  If the symbol is not
+exported and an attempt to utilize it outside the package is made,
+an undefined symbol error will result.
+
