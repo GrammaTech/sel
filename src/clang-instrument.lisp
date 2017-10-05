@@ -414,9 +414,12 @@ used to pull the variable list out of AST."))
     (key (instrumenter instrumenter) (ast ast-ref) &key print-strings)
   (iter (for var in (funcall key ast))
         (when-let* ((type (find-var-type (software instrumenter) var))
+                    (name (aget :name var))
+                    ;; Don't instrument nameless variables
+                    (has-name (not (emptyp name)))
                     (type-index (get-type-index instrumenter
                                                 type print-strings)))
-          (for name-index = (get-name-index instrumenter (aget :name var)))
+          (for name-index = (get-name-index instrumenter name))
           (collect
               (cond
                 ;; C string
@@ -427,8 +430,8 @@ used to pull the variable list out of AST."))
                          *instrument-log-variable-name*
                          name-index
                          type-index
-                         (aget :name var)
-                         (aget :name var)))
+                         name
+                         name))
 
                 ;; C++ string
                 ((string= "string" (type-name type))
@@ -437,8 +440,8 @@ used to pull the variable list out of AST."))
                          *instrument-log-variable-name*
                          name-index
                          type-index
-                         (aget :name var)
-                         (aget :name var)))
+                         name
+                         name))
 
                 ;; Normal variable
                 (t
@@ -446,7 +449,7 @@ used to pull the variable list out of AST."))
                          *instrument-log-variable-name*
                          name-index
                          type-index
-                         (aget :name var))))))))
+                         name)))))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
