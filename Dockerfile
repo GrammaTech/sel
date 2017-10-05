@@ -1,7 +1,7 @@
 FROM docker.grammatech.com:14850/synthesis/cl
 
 RUN apt-get -y update && \
-    apt-get -y install man-db graphviz texinfo pandoc
+    apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev
 
 ENV PATH=/gt/sel/bin:$PATH \
     GT_DOCKER_CHOWN_PATHS=""
