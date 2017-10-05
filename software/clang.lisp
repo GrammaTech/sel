@@ -440,11 +440,11 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (source-text (ast-ref-ast ast)))
 
 (defmethod source-text ((ast list))
-  (apply #'concatenate 'string
-         (iter (for c in (cdr ast))
-               (collecting (if (stringp c)
-                               c
-                               (source-text c))))))
+  (format nil "~{~a~}"
+          (iter (for c in (cdr ast))
+                (collecting (if (stringp c)
+                                c
+                                (source-text c))))))
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
