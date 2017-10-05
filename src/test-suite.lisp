@@ -176,7 +176,7 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
 
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
   (flet ((running-p (process)
-           (eq :runing (process-status process))))
+           (eq :running (process-status process))))
     (when (and kill-signal (running-p test-process))
       ;; If process is running and there's a kill signal, send it.
       (signal-process test-process kill-signal))
