@@ -5118,6 +5118,18 @@ prints unique counters in the trace"
                            [{eq 0} {aget :f}]»
                     trace))))))))
 
+(deftest instrumentation-skips-nameless-variable ()
+  (let ((soft (make-instance 'clang
+                             :genome "int test(int) { return 1; }")))
+    (instrument soft :functions
+                (list (lambda (instrumenter ast)
+                        (var-instrument {get-vars-in-scope
+                                         (software instrumenter)}
+                                        instrumenter
+                                        ast))))
+    (is (not (scan (quote-meta-chars "WRITE_TRACE_VARIABLE(__sel_trace_file")
+               (genome soft)))
+        "We don't find code to print variables in the instrumented source.")))
 
 ;;;; Traceable tests
 (in-suite test)
