@@ -138,52 +138,6 @@
     (write-genome-to-files clang-project)))
 
 
-(defmethod instrument ((clang-project clang-project) &rest args)
-  "Instrument a project. Arguments are passed through to instrument on
-the underlying software objects."
-  (let ((instrumenter (make-instance 'instrumenter))
-        (files (if (current-file clang-project)
-                   (list (current-file clang-project))
-                   (mapcar #'cdr (evolve-files clang-project)))))
-    (flet
-        ((instrument-file (obj index)
-           (setf (software instrumenter) obj)
-
-           ;; Set AST ids for new file
-           (setf (ast-ids instrumenter) (make-hash-table :test #'equal))
-           (iter (for ast in (asts obj))
-                 (for ast-i upfrom 0)
-                 (setf (gethash (ast-ref-path ast) (ast-ids instrumenter))
-                       (logior (ash 1 31)       ; flag bit
-                               (ash index 16)   ; file ID
-                               ast-i)))         ; statement ID
-           (apply #'instrument obj :instrumenter instrumenter args)))
-
-      ;; Fully instrument evolve-files
-      ;; Defer any files with main() to the end, because they need
-      ;; code for trace headers which depends on the instrumentation
-      ;; of other files.
-      (iter (for obj in files)
-            (for i upfrom 0)
-            (unless (get-entry obj) (instrument-file obj i)))
-      (iter (for obj in files)
-            (for i upfrom 0)
-            (when (get-entry obj) (instrument-file obj i))))
-
-    ;; Insert log setup code in other-files
-    (iter (for obj in (mapcar #'cdr (other-files clang-project)))
-          (setf (software instrumenter) obj)
-          (initialize-tracing obj
-                              (plist-get :trace-file args)
-                              (plist-get :trace-env args)
-                              (get-entry obj)
-                              instrumenter)
-          (prepend-to-genome obj +write-trace-impl+)
-          (prepend-to-genome obj +write-trace-include+)))
-
-  clang-project)
-
-
 (defmethod asts ((obj clang-project))
   (if (current-file obj)
       (asts (current-file obj))
