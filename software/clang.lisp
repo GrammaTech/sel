@@ -364,17 +364,17 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                        new-text
                                        (format nil "\\1~a\\3"
                                                (unpeel-bananas unbound))))
-                                   (append (aget :unbound-vals ast)
+                                   (append (unbound-vals ast)
                                            (unbound-funs ast))
                                    :initial-value text))
                                 (t text))))))))
         (unbound-vals (ast)
-          (mapcar [#'peel-bananas #'car] (aget :unbound-vals ast)))
+          (mapcar #'peel-bananas (aget :unbound-vals ast)))
         (unbound-funs (ast)
           (mapcar [#'peel-bananas #'car] (aget :unbound-funs ast)))
         (unaggregate-ast (ast children)
           (if (aget :in-macro-expansion ast)
-              ;; Remove depth from unbound-vals, keeping only names
+              ;; Peel bananas from variable names
               (setf (aget :unbound-vals ast) (unbound-vals ast))
 
               ;; clang-mutate aggregates types, unbound-vals, and unbound-funs
