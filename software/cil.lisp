@@ -57,11 +57,11 @@
 
 (defmethod instrument ((cil cil) &key points functions functions-after
                                       trace-file trace-env
-                                      print-argv instrument-exit filter
+                                      instrument-exit filter
                                       postprocess-functions)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
-  (declare (ignorable print-argv postprocess-functions))
+  (declare (ignorable postprocess-functions))
 
   (unless (null trace-env)
     (warn "Tracing to env variable is not support for CIL software objects."))
