@@ -176,7 +176,7 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
              (and (string= (type-name type) "char")
                   (array-or-pointer-type type))))
 
-       (type-description-struct (print-strings type c-type)
+       (type-description-struct (type c-type print-strings)
          (let ((name-index (get-name-index instrumenter c-type)))
            (cond
              ;; String
@@ -214,8 +214,8 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
            (type-id (cons (and print-strings (string-type-p type)) c-type)))
       (or (position type-id (types instrumenter) :test #'equal)
           ;; Adding new type: generate header string
-          (when-let ((description (type-description-struct print-strings
-                                                           type c-type)))
+          (when-let ((description (type-description-struct type c-type
+                                                           print-strings)))
             (vector-push-extend description (type-descriptions instrumenter))
             (vector-push-extend type-id (types instrumenter)))))))
 
@@ -248,7 +248,6 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
   ;; modified as it's assumed elsewhere).
   (when (eq trace-env t) (setf trace-env *instrument-log-env-name*))
   (let ((entry (get-entry obj))
-        (log-var *instrument-log-variable-name*)
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
@@ -291,16 +290,16 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                                (ancestor-after obj (function-body obj function)
                                                ast)))
                    (:value1 .
-                            ,(format nil
-                                     "inst_exit:
+                         ,(format nil
+                                  "inst_exit:
 write_trace_id(~a, ~du);
 write_end_entry(~a);
 ~a"
-                                     log-var
-                                     (get-ast-id instrumenter
-                                                 (function-body obj function))
-                                     log-var
-                                     (if return-void "" "return _inst_ret;"))))))
+                                  *instrument-log-variable-name*
+                                  (get-ast-id instrumenter
+                                              (function-body obj function))
+                                  *instrument-log-variable-name*
+                                  (if return-void "" "return _inst_ret;"))))))
               ;; Closing brace after the statement
               (when (and wrap (not skip))
                 `((:insert-value-after (:stmt1 . ,counter)
@@ -333,35 +332,36 @@ write_end_entry(~a);
                 `((:insert-value-after
                    (:stmt1 . ,counter)
                    (:value1 .
-                            ,(format nil "~a~{~a~}~a~%"
-                                     (format nil ; Start up alist w/counter.
-                                             "write_trace_id(~a, ~du);~%"
-                                             log-var
-                                             (get-ast-id instrumenter ast))
-                                     extra-stmts-after
-                                     (format nil "write_end_entry(~a)"
-                                             log-var))))))
+                          ,(format nil "~a~{~a~}~a~%"
+                                   (format nil ; Start up alist w/counter.
+                                           "write_trace_id(~a, ~du);~%"
+                                           *instrument-log-variable-name*
+                                           (get-ast-id instrumenter ast))
+                                   extra-stmts-after
+                                   (format nil "write_end_entry(~a)"
+                                           *instrument-log-variable-name*))))))
 
               ;; Opening brace and instrumentation code before
               (unless skip
                 `((:insert-value
                    (:stmt1 . ,counter)
                    (:value1 .
-                            ,(format nil "~:[~;{~]~{~a~};~%"
-                                     wrap
-                                     (append
-                                      (cons
-                                       (format nil ; Start up alist w/counter.
-                                               "write_trace_id(~a, ~du);~%"
-                                               log-var
-                                               (get-ast-id instrumenter ast))
-                                       (mapcar {format nil
-                                                       "write_trace_aux(~a, ~a);~%"
-                                                       log-var}
-                                               aux-values))
-                                      extra-stmts
-                                      (list (format nil "write_end_entry(~a)"
-                                                    log-var))))))))))))
+                      ,(format
+                        nil "~:[~;{~]~{~a~};~%"
+                        wrap
+                        (append
+                         (cons
+                          (format nil ; Start up alist w/counter.
+                                  "write_trace_id(~a, ~du);~%"
+                                  *instrument-log-variable-name*
+                                  (get-ast-id instrumenter ast))
+                          (mapcar {format nil
+                                          "write_trace_aux(~a, ~a);~%"
+                                          *instrument-log-variable-name*}
+                                  aux-values))
+                         extra-stmts
+                         `(,(format nil "write_end_entry(~a)"
+                                    *instrument-log-variable-name*))))))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
