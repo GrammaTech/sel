@@ -404,6 +404,30 @@ write_end_entry(~a);
      (format nil "fopen(getenv(~s), \"w\")" env))
     (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
 
+(defun instrument-c-expr (expr name-index type-index type print-strings)
+  "Generate C code to print the value of EXPR."
+  (cond
+    ;; C string
+    ((and print-strings
+          (array-or-pointer-type type)
+          (string= "char" (type-name type)))
+     (format nil "WRITE_TRACE_BLOB(~a, ~d, ~d, strlen(~a), ~a);"
+             *instrument-log-variable-name*
+             name-index type-index expr expr))
+
+    ;; C++ string
+    ((string= "string" (type-name type))
+     (format nil
+             "WRITE_TRACE_BLOB(~a, ~d, ~d, ~a.length(), ~a.c_str());"
+             *instrument-log-variable-name*
+             name-index type-index expr expr))
+
+    ;; Normal variable
+    (t
+     (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);"
+             *instrument-log-variable-name*
+             name-index type-index expr))))
+
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
   (:documentation
    "Return C statements for variable instrumentation.
@@ -418,38 +442,10 @@ used to pull the variable list out of AST."))
                     ;; Don't instrument nameless variables
                     (has-name (not (emptyp name)))
                     (type-index (get-type-index instrumenter
-                                                type print-strings)))
-          (for name-index = (get-name-index instrumenter name))
-          (collect
-              (cond
-                ;; C string
-                ((and print-strings
-                      (array-or-pointer-type type)
-                      (string= "char" (type-name type)))
-                 (format nil "WRITE_TRACE_BLOB(~a, ~d, ~d, strlen(~a), ~a);"
-                         *instrument-log-variable-name*
-                         name-index
-                         type-index
-                         name
-                         name))
-
-                ;; C++ string
-                ((string= "string" (type-name type))
-                 (format nil
-                         "WRITE_TRACE_BLOB(~a, ~d, ~d, ~a.length(), ~a.c_str());"
-                         *instrument-log-variable-name*
-                         name-index
-                         type-index
-                         name
-                         name))
-
-                ;; Normal variable
-                (t
-                 (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);"
-                         *instrument-log-variable-name*
-                         name-index
-                         type-index
-                         name)))))))
+                                                type print-strings))
+                    (name-index (get-name-index instrumenter name)))
+          (collect (instrument-c-expr name name-index type-index type
+                                      print-strings)))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
