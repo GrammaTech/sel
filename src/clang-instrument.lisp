@@ -20,8 +20,7 @@
 
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env instrument-exit
-                                 filter postprocess-functions
-                                 instrumenter)
+                                 filter postprocess-functions)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 
@@ -159,6 +158,7 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
    (type-descriptions :accessor type-descriptions
           :initform (make-array 16 :fill-pointer 0 :adjustable t))
    (ast-ids :accessor ast-ids :initform nil)))
+(defclass clang-instrumenter (instrumenter) ())
 
 (defmethod get-name-index ((instrumenter instrumenter) name)
   (or (position name (names instrumenter) :test #'string=)
@@ -169,7 +169,7 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
   (xor (not (emptyp (type-array type)))
        (type-pointer type)))
 
-(defmethod get-type-index ((instrumenter instrumenter) type print-strings)
+(defmethod get-type-index ((instrumenter clang-instrumenter) type print-strings)
   (labels
       ((string-type-p (type)
          (or (string= (type-name type) "string")
@@ -233,21 +233,24 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                 (setf (gethash ast ht) i)
                 (finally (return ht))))))
 
+(defmethod instrument ((obj clang) &rest args)
+  (apply #'instrument (make-instance 'clang-instrumenter :software obj)
+         args))
+
 (defmethod instrument
-    ((obj clang) &key points functions functions-after
-                      trace-file trace-env instrument-exit
-                      (postprocess-functions (list #'clang-format))
-                      (instrumenter (make-instance 'instrumenter :software obj))
-                      (filter #'identity))
+    ((instrumenter clang-instrumenter)
+     &key points functions functions-after trace-file trace-env instrument-exit
+       (postprocess-functions (list #'clang-format)) (filter #'identity))
   ;; Send object through clang-mutate to get accurate counters
-  (update-asts obj)
+  (update-asts (software instrumenter))
 
   ;; Default value for TRACE-ENV is `*instrument-log-env-name*'.  This
   ;; allows users to specify tracing from the environment without
   ;; having to export this above value (which we'd prefer not be
   ;; modified as it's assumed elsewhere).
   (when (eq trace-env t) (setf trace-env *instrument-log-env-name*))
-  (let ((entry (get-entry obj))
+  (let* ((obj (software instrumenter))
+         (entry (get-entry obj))
         ;; Promote every counter key in POINTS to the enclosing full
         ;; statement with a CompoundStmt as a parent.  Otherwise they
         ;; will not appear in the output.
@@ -621,7 +624,7 @@ Built with ~a version ~a.~%"
 (defmethod instrument ((clang-project clang-project) &rest args)
   "Instrument a project. Arguments are passed through to instrument on
 the underlying software objects."
-  (let ((instrumenter (make-instance 'instrumenter))
+  (let ((instrumenter (make-instance 'clang-instrumenter))
         (files (if (current-file clang-project)
                    (list (current-file clang-project))
                    (mapcar #'cdr (evolve-files clang-project)))))
@@ -637,7 +640,7 @@ the underlying software objects."
                        (logior (ash 1 31)       ; flag bit
                                (ash index 16)   ; file ID
                                ast-i)))         ; statement ID
-           (apply #'instrument obj :instrumenter instrumenter args)))
+           (apply #'instrument instrumenter args)))
 
       ;; Fully instrument evolve-files
       ;; Defer any files with main() to the end, because they need
