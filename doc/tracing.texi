@@ -1,0 +1,35 @@
+Software objects can be instrumented to trace their
+execution. Instrumentation inserts source code to print program
+locations, variable values, and other information as the program
+runs. Traces can be saved to a file or read over a pipe for immediate
+use.
+
+@heading Instrumenting
+The `instrument' method inserts instrumentation code into a software
+object. By default the instrumentation will print program locations as
+they are executed.
+
+The `:function' argument takes a list of callbacks which are executed
+to generate additional code at each instrumentation point. This
+requires some understanding of the trace format. For the common case
+of instrumenting variables, the `var-instrument' function takes care
+of these details.
+
+@heading Traces
+The trace format can store program locations, variables, and auxiliary
+data represented as integers. Program locations are identified by a
+single integer. For software spanning multiple files (with the
+`project' class), the file and AST identifiers must be packed into
+this integer.
+
+@heading Limitations
+@itemize
+@item Instrumentation of long double variables is not supported,
+because CFFI (which is used to wrap the trace library) does not
+support long doubles.
+
+@item The `:print-strings' option to `var-instrument' does not
+print the contents of wide-character strings.
+
+
+@end itemize
