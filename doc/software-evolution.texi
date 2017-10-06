@@ -424,6 +424,7 @@ are given in remainder of this section.
 * Tokenizer::                   Tokenize software objects
 * Condition Synthesis::         Repair technique to synthesize guard conditions
 * Fault Localization::          Identifying or prioritizing likely-faulty code
+* Tracing::                     Trace execution of software
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -451,10 +452,15 @@ are given in remainder of this section.
 @cindex condition-synthesis
 @include condition-synthesis.texi
 
-@node Fault Localization, Usage, Condition Synthesis, Components
-@section Condition Synthesis
+@node Fault Localization, Tracing, Condition Synthesis, Components
+@section Fault Localization
 @cindex fault-localization
 @include fault-localization.texi
+
+@node Tracing, Usage, Fault Localization, Components
+@section Tracing
+@cindex tracing
+@include tracing.texi
 
 @node Usage, Mutation, Implementation, Top
 @chapter Usage
