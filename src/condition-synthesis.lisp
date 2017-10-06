@@ -315,7 +315,6 @@ abst_cond() in the source text."
     (assert stmt)
     stmt))
 
-;; FIXME: mostly copied from var-instrument in clang-instrument.lisp
 (defun instrument-values (instrumenter ast &key extra-exprs)
   (let ((exprs (->> (mapcar (lambda (v)
                               (cons (aget :name v)
@@ -327,25 +326,8 @@ abst_cond() in the source text."
           (for name-index = (get-name-index instrumenter var))
           (for type-index = (get-type-index instrumenter type t))
 
-          (collect
-              (cond
-                ;; C string
-                ((and (array-or-pointer-type type)
-                      (string= "char" (type-name type)))
-                 (format nil "WRITE_TRACE_BLOB(~a, ~d, ~d, strlen(~a), ~a);"
-                         *instrument-log-variable-name*
-                         name-index type-index var var))
-
-                ;; C++ string
-                ((string= "string" (type-name type))
-                 (format nil
-                         "WRITE_TRACE_BLOB(~a, ~d, ~d, ~a.length(), ~a.c_str());"
-                         *instrument-log-variable-name*
-                         name-index type-index var var))
-
-                (t (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);"
-                           *instrument-log-variable-name*
-                           name-index type-index var)))))))
+          (collect (instrument-c-expr var name-index type-index
+                                      type t)))))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
   "Add instrumentation before the enclosing if statement for the guard
