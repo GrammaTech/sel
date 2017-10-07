@@ -234,6 +234,8 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                 (finally (return ht))))))
 
 (defmethod instrument ((obj clang) &rest args)
+    ;; Send object through clang-mutate to get accurate counters
+  (update-asts obj)
   (apply #'instrument (make-instance 'clang-instrumenter :software obj)
          args))
 
@@ -241,9 +243,6 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
        (postprocess-functions (list #'clang-format)) (filter #'identity))
-  ;; Send object through clang-mutate to get accurate counters
-  (update-asts (software instrumenter))
-
   ;; Default value for TRACE-ENV is `*instrument-log-env-name*'.  This
   ;; allows users to specify tracing from the environment without
   ;; having to export this above value (which we'd prefer not be
@@ -630,6 +629,8 @@ the underlying software objects."
                    (mapcar #'cdr (evolve-files clang-project)))))
     (flet
         ((instrument-file (obj index)
+           ;; Send object through clang-mutate to get accurate counters
+           (update-asts obj)
            (setf (software instrumenter) obj)
 
            ;; Set AST ids for new file
