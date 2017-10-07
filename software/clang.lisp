@@ -59,8 +59,9 @@
              :type #+sbcl (list string *) #+ccl list
              :documentation "Names of included includes.")
    (types :initarg :types :accessor types
-          :initform nil :copier :direct
-          :type #+sbcl (list (cons keyword *) *) #+ccl list
+          :initform (make-hash-table :test 'equal)
+          :copier :direct
+          :type #+sbcl hash-table #+ccl hash-table
           :documentation "Association list of types keyed by HASH id.")
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
@@ -433,6 +434,12 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                       (:begin-off . 0)
                       (:end-off . :end)))
        (cons (snippet->clang-ast root) children)))))
+
+(defun types->hashtable (types)
+  (iter (for type in types)
+        (with hashtable = (make-hash-table :test #'equal))
+        (setf (gethash (type-hash type) hashtable) type)
+        (finally (return hashtable))))
 
 (defgeneric source-text (ast)
   (:documentation "Source code corresponding to an AST."))
@@ -902,27 +909,28 @@ use carefully.
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 
 (defmethod add-type ((obj clang) (type clang-type))
-  (unless (member (type-hash type) (types obj) :key #'type-hash)
+  (unless (gethash (type-hash type) (types obj))
     (if (type-i-file type)
       ;; add requisite includes for this type
       (add-include obj (type-i-file type))
       ;; only add to the genome if there isn't a type with the same type-decl
       ;; already known
       (unless (or (not (type-decl type))
-                  (member (type-decl type) (types obj)
+                  (member (type-decl type)
+                          (hash-table-values (types obj))
                           :key #'type-decl
                           :test #'string=))
         ;; FIXME: ideally this would insert an AST for the type decl
         ;; instead of just adding the text.
         (prepend-to-genome obj (type-decl type))))
-    ;; always add type with new hash to types list
-    (push type (types obj)))
+    ;; always add type with new hash to types hashtable
+    (setf (gethash (type-hash type) (types obj)) type))
   obj)
 (defmethod add-type ((obj clang) (type null))
   nil)
 
 (defmethod find-type ((obj clang) hash)
-  (find-if {= hash} (types obj) :key #'type-hash))
+  (gethash hash (types obj)))
 
 (defmethod find-or-add-type ((obj clang) name &key
                              (pointer nil pointer-arg-p)
@@ -934,7 +942,7 @@ use carefully.
                              &aux (type (type-from-trace-string name)))
   "Find the type with given properties, or add it to the type DB."
   (setf (type-hash type)
-        (1+ (apply #'max (mapcar #'type-hash (types obj)))))
+        (1+ (apply #'max (mapcar #'type-hash (hash-table-values (types obj))))))
   (when pointer-arg-p
     (setf (type-pointer type) pointer))
   (when array-arg-p
@@ -954,7 +962,7 @@ use carefully.
                     [{eq (type-volatile type)} #'type-volatile]
                     [{eq (type-restrict type)} #'type-restrict]
                     [{eq (type-storage-class type)} #'type-storage-class]»
-               (types obj))
+               (hash-table-values (types obj)))
       (progn (add-type obj type) type)))
 
 (defgeneric type-decl-string (type)
@@ -1624,7 +1632,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
   (declare (ignorable new))
   (with-slots (ast-root types macros globals fitness) obj
     (setf ast-root nil
-          types nil
+          types (make-hash-table :test 'equal)
           macros nil
           globals nil
           fitness nil))
@@ -1682,7 +1690,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
                 (t (error "Unrecognized ast.~%~S" ast)))
           (finally
            (setf ast-root (asts->tree genome body)
-                 types m-types
+                 types (types->hashtable m-types)
                  macros m-macros
                  genome nil))))
   (setf (asts-changed-p obj) nil)
