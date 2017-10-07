@@ -720,7 +720,8 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                the type DB.
 "
   (let* ((type-hash
-          (when-let ((clang-type (find-if {types-equal type} (types obj))))
+          (when-let ((clang-type (find-if {types-equal type}
+                                          (hash-table-values (types obj)))))
             (type-hash clang-type)))
          ;; FIXME: should only grab expressions that are valid at
          ;; point. But this is tricky with anything beyond simple

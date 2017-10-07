@@ -1100,16 +1100,16 @@
 (deftest genome-change-clears-clang-software-object-fields ()
   (with-fixture hello-world-clang
     (setf (genome *hello-world*) "")
-    (is (null (asts *hello-world*)))
-    (is (null (stmt-asts *hello-world*)))
-    (is (null (non-stmt-asts *hello-world*)))
-    (is (null (functions *hello-world*)))
-    (is (null (prototypes *hello-world*)))
-    (is (null (includes *hello-world*)))
-    (is (null (types *hello-world*)))
-    (is (null (macros *hello-world*)))
-    (is (null (globals *hello-world*)))
-    (is (null (fitness *hello-world*)))))
+    (is (null  (asts *hello-world*)))
+    (is (null  (stmt-asts *hello-world*)))
+    (is (null  (non-stmt-asts *hello-world*)))
+    (is (null  (functions *hello-world*)))
+    (is (null  (prototypes *hello-world*)))
+    (is (null  (includes *hello-world*)))
+    (is (null  (macros *hello-world*)))
+    (is (null  (globals *hello-world*)))
+    (is (null  (fitness *hello-world*)))
+    (is (zerop (hash-table-count (types *hello-world*))))))
 
 (deftest asts-are-set-lazily ()
   (with-fixture hello-world-clang
@@ -1488,9 +1488,10 @@ else
 (deftest clang-types-initialized ()
   (with-fixture headers-clang
     (let ((types (types *headers*)))
-      (is (listp types))
+      (is (hash-table-p types))
       (is (equal (list "bar" "char" "char*" "foo" "int")
-                 (sort (mapcar #'type-name types) #'string<))))))
+                 (sort (mapcar #'type-name (hash-table-values types))
+                       #'string<))))))
 
 (deftest update-asts-doesnt-duplicate-includes ()
   (with-fixture headers-clang
@@ -1550,7 +1551,7 @@ else
 (deftest add-new-type-changes-genome-and-types ()
   (with-fixture hello-world-clang
     (let ((orig-genome-length (length (genome *hello-world*)))
-          (orig-num-types (length (types *hello-world*)))
+          (orig-num-types (hash-table-count (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
       (se::add-type *hello-world*
           (make-clang-type :decl struct-str
@@ -1560,7 +1561,7 @@ else
                 (length (genome *hello-world*)))))
       (is (search struct-str (genome *hello-world*)))
       ;; new type is added to types
-      (is (= (1+ orig-num-types) (length (types *hello-world*)))))))
+      (is (= (1+ orig-num-types) (hash-table-count (types *hello-world*)))))))
 
 (deftest add-bad-macro-doesnt-change-number-of-asts ()
   (with-fixture hello-world-clang
@@ -1761,15 +1762,18 @@ is not to be found"
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
-    (is (eq (find-if [{string= "int"} #'type-name] (types *gcd*))
+    (is (eq (find-if [{string= "int"} #'type-name]
+                     (hash-table-values (types *gcd*)))
             (find-or-add-type *gcd* "int")))))
 
 (deftest find-or-add-type-adds-new-type ()
   (with-fixture gcd-clang
-    (is (null (find-if [{string= "float"} #'type-name] (types *gcd*))))
+    (is (null (find-if [{string= "float"} #'type-name]
+                       (hash-table-values (types *gcd*)))))
     (let ((new-type (find-or-add-type *gcd* "int")))
       (is new-type "New type created.")
-      (is (find new-type (types *gcd*)) "New type is added to software.")
+      (is (gethash (type-hash new-type) (types *gcd*))
+          "New type is added to software.")
       (is (eq new-type (find-or-add-type *gcd* "int"))
           "Repeated call finds same type."))))
 
@@ -5084,14 +5088,18 @@ Useful for printing or returning differences in the REPL."
 
 (deftest huf-knows-types ()
   (with-fixture huf-clang
-    (is (and (listp (types *huf*)) (not (null (types *huf*))))
-        "Huf software objects has a type database.")
+    (is (and (hash-table-p (types *huf*))
+             (not (zerop (hash-table-count (types *huf*)))))
+        "Huf software object has a type database.")
     (is (= 9 (count-if «and #'type-pointer
-                            [#'not {find #\(} #'type-name]» (types *huf*)))
+                            [#'not {find #\(} #'type-name]»
+                       (hash-table-values (types *huf*))))
         "Huf has nine pointer types.")
-    (is (= 6 (count-if [#'not #'emptyp #'type-array] (types *huf*)))
+    (is (= 6 (count-if [#'not #'emptyp #'type-array]
+                       (hash-table-values (types *huf*))))
         "Huf has six array types.")
-    (is (= 3 (count-if [{string= "int"} #'type-name] (types *huf*)))
+    (is (= 3 (count-if [{string= "int"} #'type-name]
+                       (hash-table-values (types *huf*))))
         "Huf has three different \"int\" types (some are array and pointer).")))
 
 (deftest huf-finds-type-info-for-variables ()
