@@ -14,6 +14,7 @@ techniques."
                uiop
                bordeaux-threads
                cl-arrows
+               cl-custom-hash-table
                cl-json
                cl-mongo
                cl-ppcre
