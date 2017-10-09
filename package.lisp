@@ -8,6 +8,7 @@
    :bordeaux-threads
    :common-lisp
    :cl-arrows
+   :cl-custom-hash-table
    :cl-mongo
    :cl-ppcre
    :curry-compose-reader-macros

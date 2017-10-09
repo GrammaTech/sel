@@ -11,6 +11,13 @@
 (defvar *instrument-log-env-name* "__SEL_TRACE_FILE"
   "Default environment variable in which to store log file.")
 
+(defun ast-counters-equal (ast1 ast2)
+  "Return true if ast1 and ast2 have the same counters"
+  (equal (ast-counter ast1) (ast-counter ast2)))
+
+(define-custom-hash-table-constructor make-ast-ht
+  :test ast-counters-equal :hash-function ast-counter)
+
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env
                                  print-argv instrument-exit
@@ -62,15 +69,15 @@ Keyword arguments are as follows:
                                  ast))))
                    points)))
         ;; Hash table mapping ASTs to indices. Values are the same as
-        ;; index-of-ast, but without the linear search. Use
-        ;; ast-ref-path for the key: it will be unique within a single
-        ;; genome and is faster than doing equalp comparisons on whole
-        ;; ASTs.
-        (ast-numbers (alist-hash-table
-                      (iter (for ast in (asts obj))
-                            (for i upfrom 0)
-                            (collect (cons (ast-ref-path ast) i)))
-                      :test #'equalp)))
+        ;; index-of-ast, but without the linear search. Use a custom
+        ;; hash table which uses the ast counter for hashing/comparison
+        ;; to improve speed.  NOTE: This assumes that each AST has a unique
+        ;; counter.
+        (ast-numbers (iter (for ast in (asts obj))
+                           (for i upfrom 0)
+                           (with ht = (make-ast-ht))
+                           (setf (gethash ast ht) i)
+                           (finally (return ht)))))
     (labels
         ((escape (string)
            (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
@@ -114,8 +121,7 @@ Keyword arguments are as follows:
                    (:value1 .
                             ,(format nil
                                      "inst_exit:~%fputs(\"((:C . ~d)) \", ~a);~%~a"
-                                     (gethash (ast-ref-path
-                                               (function-body obj function))
+                                     (gethash (function-body obj function)
                                               ast-numbers)
                                      log-var
                                      (if return-void "" "return _inst_ret;"))))))
@@ -154,7 +160,7 @@ Keyword arguments are as follows:
                             ,(format nil "~a~{~a~}~a~%"
                                      (format nil ; Start up alist w/counter.
                                              "fputs(\"((:C . ~d) \", ~a);~%"
-                                             (gethash (ast-ref-path ast) ast-numbers)
+                                             (gethash ast ast-numbers)
                                              log-var)
                                      (mapcar
                                       {format nil ; Functions instrumentation.
@@ -176,7 +182,7 @@ Keyword arguments are as follows:
                                       (cons
                                        (format nil ; Start up alist w/counter.
                                                "fputs(\"((:C . ~d) \", ~a);~%"
-                                               (gethash (ast-ref-path ast) ast-numbers)
+                                               (gethash ast ast-numbers)
                                                log-var)
                                        (when trace-strings
                                          (list

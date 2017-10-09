@@ -4861,6 +4861,52 @@ Useful for printing or returning differences in the REPL."
               "The point trace string ~S appears in the program output."
               (string cookie)))))))
 
+(deftest instrumentation-after-insertion-mutation-test ()
+  "Ensure after applying an insert mutation, the instrumented software
+prints unique counters in the trace"
+  (with-fixture gcd-clang
+    (let* ((*matching-free-var-retains-name-bias* 1.0)
+           (variant (copy *gcd*))
+           (instrumented (copy *gcd*))
+           (stmt1 (stmt-with-text variant "a = atoi(argv[1])"))
+           (stmt2 (stmt-with-text variant "a = atoi(argv[1])")))
+      (apply-mutation variant
+        `(clang-insert (:stmt1 . ,stmt1) (:stmt2 . ,stmt2)))
+      (instrument instrumented)
+
+      (with-temp-file (bin)
+        (is (zerop (second (multiple-value-list
+                            (phenome instrumented :bin bin)))))
+        (is (probe-file bin))
+        (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
+          (declare (ignorable stdout))
+          (is (zerop errno))
+          (is (not (equal (find-if [{string= "a = atoi(argv[1])"}
+                                    #'peel-bananas #'source-text]
+                                    (asts variant)
+                                    :from-end nil)
+                          (find-if [{string= "a = atoi(argv[1])"}
+                                    #'peel-bananas #'source-text]
+                                    (asts variant)
+                                    :from-end t)))
+              "a = atoi(argv[1]) was not inserted into the genome")
+          (is (search (format nil "((:C . ~a)"
+                              (->> (find-if [{string= "a = atoi(argv[1])"}
+                                             #'peel-bananas #'source-text]
+                                            (asts variant)
+                                            :from-end nil)
+                                   (index-of-ast variant)))
+                      (genome instrumented))
+              "instrumentation was not added for the inserted statement")
+          (is (search (format nil "((:C . ~a)"
+                              (->> (find-if [{string= "a = atoi(argv[1])"}
+                                             #'peel-bananas #'source-text]
+                                            (asts variant)
+                                            :from-end t)
+                                   (index-of-ast variant)))
+                      (genome instrumented))
+              "instrumentation was not added for the original statement"))))))
+
 (deftest instrumentation-print-unbound-vars ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
