@@ -205,8 +205,10 @@ Keyword arguments are as follows:
                                                    functions)
                                            (mapcar {funcall _ obj ast}
                                                    functions-after)
-                                           (aget ast points :test #'equalp))
-                         (setf (aget ast points :test #'equalp) nil))))
+                                           (when points
+                                             (aget ast points :test #'equalp)))
+                         (when points
+                           (setf (aget ast points :test #'equalp) nil)))))
             (apply-clang-mutate-ops obj)))
 
     ;; Warn about any leftover un-inserted points.
