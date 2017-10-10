@@ -53,6 +53,14 @@ compiled phenome.")
     :documentation "Fitness result last time test-case was run."))
   (:documentation "Test case object."))
 
+(defmethod print-object ((obj test-suite) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "~s" (test-cases obj))))
+
+(defmethod print-object ((obj test-case) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "~a ~{~a ~}" (program-name obj) (program-args obj))))
+
 (defclass process ()
   ((os-process
     :initarg :os-process :initform nil :reader os-process
