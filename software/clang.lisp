@@ -2690,21 +2690,28 @@ and :SCOPE.
                             (get-immediate-children software scope))
                        (while (ast-later-p ast c))
                        (collect c))
-                  ; remove type and function decls
-                 (remove-if-not [{member _ '(:Var :ParmVar :DeclStmt)}
+                 ; expand decl statements
+                 (mappend
+                  (lambda (ast)
+                    (cond ((eq :DeclStmt (ast-class ast))
+                           (get-immediate-children software ast))
+                          (t (list ast)))))
+                 ; remove type and function decls
+                 (remove-if-not [{member _ '(:Var :ParmVar)}
                                  #'ast-class])
+                 ; build result
                  (mappend
                   (lambda (ast)
                     (mapcar
                      (lambda (name)
                        `((:name . ,name)
                          (:decl . ,ast)
-                         (:type . ,(nth (position-if {string= name}
-                                                     (ast-declares ast))
-                                        (get-ast-types software ast)))
+                         (:type . ,(car (ast-types ast)))
                          (:scope . ,scope)))
-                     (ast-declares ast))))
-                 (remove-if #'emptyp) ; drop nils and empty strings
+                     (or (ast-declares ast)
+                         (ast-unbound-vals ast)))))
+                 ; drop nils and empty strings
+                 (remove-if #'emptyp)
                  (reverse))
             (scopes software scope)))))
 
