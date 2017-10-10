@@ -972,16 +972,16 @@ use carefully.
                (hash-table-values (types obj)))
       (progn (add-type obj type) type)))
 
-(defgeneric type-decl-string (type)
+(defgeneric type-decl-string (type &key qualified)
   (:documentation "The source text used to declare variables of TYPE.
 
 This will have stars on the right, e.g. char**. "))
-(defmethod type-decl-string ((type clang-type))
+(defmethod type-decl-string ((type clang-type) &key (qualified t))
   (format nil "~a~a~a~a~a~a~a"
-          (if (type-const type) "const " "")
-          (if (type-volatile type) "volatile " "")
-          (if (type-restrict type) "restrict " "")
-          (if (not (eq :None (type-storage-class type)))
+          (if (and qualified (type-const type)) "const " "")
+          (if (and qualified (type-volatile type)) "volatile " "")
+          (if (and qualified (type-restrict type)) "restrict " "")
+          (if (and qualified (not (eq :None (type-storage-class type))))
               (format nil "~a " (->> (type-storage-class type)
                                      (symbol-name)
                                      (string-downcase)))
