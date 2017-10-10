@@ -177,36 +177,37 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
                   (array-or-pointer-type type))))
 
        (type-description-struct (type c-type print-strings)
-         (let ((name-index (get-name-index instrumenter c-type)))
+         (let ((name-index (get-name-index instrumenter c-type))
+               (unqualified-c-type (type-trace-string type :qualified nil)))
            (cond
              ;; String
              ((and print-strings (string-type-p type))
               (format nil "{~d, BLOB, 0}" name-index))
              ;; Pointer
              ;; Use sizeof(void*) in case underlying type is not yet declared.
-             ((or (starts-with "*" c-type :test #'string=)
-                  (starts-with "[" c-type :test #'string=))
+             ((or (starts-with "*" unqualified-c-type :test #'string=)
+                  (starts-with "[" unqualified-c-type :test #'string=))
               (format nil "{~d, POINTER, sizeof(void*)}" name-index))
              ;; Signed integers
-             ((member c-type
+             ((member unqualified-c-type
                       '("char" "int8_t" "wchar_t" "short" "int16_t" "int"
                         "int32_t" "long" "int64_t")
                       :test #'string=)
               (format nil "{~d, SIGNED, sizeof(~a)}"
                       name-index
-                      (type-decl-string type)))
+                      (type-decl-string type :qualified nil)))
              ;; Unsigned integers
-             ((member c-type
+             ((member unqualified-c-type
                       '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
                         "unsigned int" "uint32_t" "unsigned long" "uint64_t"
                         "size_t")
                       :test #'string=)
               (format nil "{~d, UNSIGNED, sizeof(~a)}"
                       name-index
-                      (type-decl-string type)))
-             ((string= c-type "float")
+                      (type-decl-string type :qualified nil)))
+             ((string= unqualified-c-type "float")
               (format nil "{~d, FLOAT, sizeof(float)}" name-index))
-             ((string= c-type "double")
+             ((string= unqualified-c-type "double")
               (format nil "{~d, FLOAT, sizeof(double)}" name-index))
              ;; Otherwise no instrumentation
              (t nil)))))
@@ -426,7 +427,7 @@ write_end_entry(~a);
 
     ;; Normal variable
     (t
-     (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);"
+     (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);~%"
              *instrument-log-variable-name*
              name-index type-index expr))))
 
