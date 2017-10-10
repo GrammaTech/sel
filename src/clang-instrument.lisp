@@ -309,12 +309,11 @@ output."))
           (when (and (not (emptyp (aget :name var)))
                      (not (emptyp c-type))
                      (not (emptyp fmt-code)))
-            (concatenating (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
-                                   (aget :name var) c-type fmt-code)
-                           into format
-                           initial-value (format nil "(~s" label))
+            (collect (format nil " (\\\"~a\\\" \\\"~a\\\" ~a)"
+                             (aget :name var) c-type fmt-code)
+                     into fmt)
             (collect (aget :name var) into vars)))
-        (finally (return (cons (concatenate 'string format ")") vars)))))
+        (finally (return (cons (format nil "(~s ~{~a~})" label fmt) vars)))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
