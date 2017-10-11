@@ -353,8 +353,14 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                     (list (cond ((string= "DeclRefExpr"
                                           (aget :ast-class ast))
                                  (unpeel-bananas text))
-                                ((string= "MacroExpansion"
-                                          (aget :ast-class ast))
+                                ((and (string= "MacroExpansion"
+                                               (aget :ast-class ast))
+                                      (or (->> (aget :parent-counter ast)
+                                               (zerop))
+                                          (->> (aget :parent-counter ast)
+                                               (get-ast)
+                                               (aget :in-macro-expansion)
+                                               (not))))
                                  (reduce
                                    (lambda (new-text unbound)
                                      (regex-replace-all
