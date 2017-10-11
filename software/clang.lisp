@@ -389,7 +389,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
               ;; update these properties after mutation.
               (iter (for c in children)
                     (appending (aget :types c) into child-types)
-                    (appending (unbound-vals c) into child-vals)
+                    (appending (aget :unbound-vals c) into child-vals)
                     (appending (aget :unbound-funs c) into child-funs)
 
                     (finally
@@ -400,8 +400,9 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                         (aget :types ast))))
 
                      (setf (aget :unbound-vals ast)
-                           (remove-if {member _ child-vals :test #'string=}
-                                      (unbound-vals ast))
+                           (->> (remove-if {member _ child-vals :test #'string=}
+                                           (aget :unbound-vals ast))
+                                (mapcar #'peel-bananas))
 
                            (aget :unbound-funs ast)
                            (remove-if {member _ child-funs :test #'equalp}
