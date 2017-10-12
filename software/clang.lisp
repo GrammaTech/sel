@@ -2397,10 +2397,17 @@ operations.
                   :path path)))
 
 (defmethod get-parent-asts ((clang clang) (ast ast-ref))
-  (iter (for p on (reverse (ast-ref-path ast)))
-        (for path = (reverse p))
-        (collect (make-ast-ref :ast (get-ast clang path)
-                               :path path))))
+  (labels ((get-parent-asts-helper (path tree)
+             (if (null path)
+                 nil
+                 (let ((subtree (nth (car path) (cdr tree)))
+                       (subtree-path (take (- (length (ast-ref-path ast))
+                                              (length (cdr path)))
+                                           (ast-ref-path ast))))
+                   (cons (make-ast-ref :path subtree-path :ast subtree)
+                         (get-parent-asts-helper (cdr path) subtree))))))
+    (-> (get-parent-asts-helper (ast-ref-path ast) (ast-root clang))
+        (reverse))))
 
 (defgeneric get-immediate-children (sosftware ast)
   (:documentation "Return the immediate children of AST in SOFTWARE."))
