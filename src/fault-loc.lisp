@@ -53,7 +53,7 @@ No assumptions are made about the format or contents of the traces."))
                                      &optional fl-neg-test)
   (iter (for test in (test-cases test-suite))
         (note 3 "Begin running test ~a" test)
-        (let* ((f (run-test bin test))
+        (let* ((f (evaluate bin test :output :stream :error :stream))
                ;; Set is-good-trace based on actual outcome, or the
                ;; user-specified "bad test."
                (is-good-trace (cond
