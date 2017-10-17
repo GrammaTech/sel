@@ -63,25 +63,32 @@ enum trace_entry_tag {
 # define AUTO __auto_type
 #endif
 
+static void write_trace_variable(FILE *out, uint16_t name_index,
+                                 uint16_t type_index,uint16_t size,
+                                 const void *var)
+{
+    fputc(VARIABLE, out);
+    fwrite(&name_index, sizeof(name_index), 1, out);
+    fwrite(&type_index, sizeof(type_index), 1, out);
+    fwrite(var, size, 1, out);
+}
+
+static void write_trace_blob(FILE *out, uint16_t name_index, uint16_t type_index,
+                      uint16_t size, const void *var)
+{
+    fputc(VARIABLE, out);
+    fwrite(&name_index, sizeof(name_index), 1, out);
+    fwrite(&type_index, sizeof(type_index), 1, out);
+    fwrite(&size, sizeof(size), 1, out);
+    fwrite(var, size, 1, out);
+}
+
 #define WRITE_TRACE_VARIABLE(out, name_index, type_index, var) \\
     do {                                                       \\
-        uint16_t val;                                          \\
-        fputc(VARIABLE, out);                                  \\
-        val = name_index; fwrite(&val, sizeof(val), 1, out);   \\
-        val = type_index; fwrite(&val, sizeof(val), 1, out);   \\
-        AUTO tmp = var;                                        \\
-        fwrite(&tmp, sizeof(tmp), 1, out);                     \\
+        AUTO _sel_tmp = var;                                   \\
+        write_trace_variable(out, name_index, type_index,      \\
+                             sizeof(_sel_tmp), &_sel_tmp);     \\
     } while(0)
-
-#define WRITE_TRACE_BLOB(out, name_index, type_index, size, ptr)        \\
-    do {                                                                \\
-        uint16_t val;                                                   \\
-        fputc(VARIABLE, out);                                           \\
-        val = name_index; fwrite(&val, sizeof(val), 1, out);            \\
-        val = type_index; fwrite(&val, sizeof(val), 1, out);            \\
-        val = size; fwrite(&val, sizeof(val), 1, out);                  \\
-        fwrite(ptr, size, 1, out);                                      \\
-    } while (0)
 
 static void write_trace_id(FILE *out, uint32_t statement_id)
 {
@@ -414,14 +421,14 @@ write_end_entry(~a);
     ((and print-strings
           (array-or-pointer-type type)
           (string= "char" (type-name type)))
-     (format nil "WRITE_TRACE_BLOB(~a, ~d, ~d, strlen(~a), ~a);"
+     (format nil "write_trace_blob(~a, ~d, ~d, strlen(~a), ~a);"
              *instrument-log-variable-name*
              name-index type-index expr expr))
 
     ;; C++ string
     ((string= "string" (type-name type))
      (format nil
-             "WRITE_TRACE_BLOB(~a, ~d, ~d, ~a.length(), ~a.c_str());"
+             "write_trace_blob(~a, ~d, ~d, ~a.length(), ~a.c_str());"
              *instrument-log-variable-name*
              name-index type-index expr expr))
 
@@ -640,7 +647,7 @@ the underlying software objects."
                  (for ast-i upfrom 0)
                  (setf (gethash (ast-ref-path ast) (ast-ids instrumenter))
                        (logior (ash 1 31)       ; flag bit
-                               (ash index 16)   ; file ID
+                               (ash index 20)   ; file ID
                                ast-i)))         ; statement ID
            (apply #'instrument instrumenter args)))
 

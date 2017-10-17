@@ -4968,7 +4968,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter ast
                                           :print-strings t)))))
-    (is (scan (quote-meta-chars "WRITE_TRACE_BLOB(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_blob(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -4992,7 +4992,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter ast
                                           :print-strings t)))))
-    (is (scan (quote-meta-chars "WRITE_TRACE_BLOB(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_blob(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
