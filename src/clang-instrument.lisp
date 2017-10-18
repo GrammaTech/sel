@@ -642,12 +642,12 @@ the underlying software objects."
            (setf (software instrumenter) obj)
 
            ;; Set AST ids for new file
-           (setf (ast-ids instrumenter) (make-hash-table :test #'equal))
+           (setf (ast-ids instrumenter) (make-ast-ht))
            (iter (for ast in (asts obj))
                  (for ast-i upfrom 0)
                  (assert (< index (ash 1 +trace-id-file-bits+)))
                  (assert (< ast-i (ash 1 +trace-id-statement-bits+)))
-                 (setf (gethash (ast-ref-path ast) (ast-ids instrumenter))
+                 (setf (gethash ast (ast-ids instrumenter))
                        (logior (ash 1 31)                            ; flag bit
                                (ash index +trace-id-statement-bits+) ; file ID
                                ast-i)))                              ; AST ID
