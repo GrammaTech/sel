@@ -667,12 +667,13 @@ the underlying software objects."
     ;; Insert log setup code in other-files
     (iter (for obj in (mapcar #'cdr (other-files clang-project)))
           (setf (software instrumenter) obj)
-          (initialize-tracing obj
-                              (plist-get :trace-file args)
-                              (plist-get :trace-env args)
-                              (get-entry obj)
-                              instrumenter)
-          (prepend-to-genome obj +write-trace-impl+)
-          (prepend-to-genome obj +write-trace-include+)))
+          (when-let ((entry (get-entry obj)))
+            (prepend-to-genome obj +write-trace-impl+)
+            (initialize-tracing obj
+                                (plist-get :trace-file args)
+                                (plist-get :trace-env args)
+                                entry
+                                instrumenter)
+            (prepend-to-genome obj +write-trace-include+))))
 
   clang-project)
