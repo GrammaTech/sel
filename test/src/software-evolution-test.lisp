@@ -7117,51 +7117,52 @@ prints unique counters in the trace"
                           "identifier" "--" "}"))))
       (is (equal tokens while-tokens)))))
 
+#+nil
 (deftest rinard-fault-loc ()
   (with-fixture fl-tiny-clang
     (with-temp-file (trace-file)
       (let* ((copy *soft*)
-	     (instrumented
-	      (instrument copy :trace-file trace-file))
-	     ;; pick first test to be "negative", arbitrarily
-	     (made-up-bad-test (list (nth 4 (test-cases *test-suite*))
-				     (nth 5 (test-cases *test-suite*))))
-	     (read-trace-fn
-	      (lambda (accumulated-results is-good-trace &optional test_id)
-		(if (probe-file trace-file)
-		    (with-open-file (trace-stream trace-file)
-		      (prog1 (rinard-incremental
-				      trace-stream
-				      accumulated-results
-				      is-good-trace
-				      test_id)
-		      ;; instrumentation appends to trace file for
-		      ;; some reason. Remove it before each use to
-		      ;; start with an empty trace.
-		      (ignore-errors (delete-file trace-file))))
-		    (error "Something went wrong with trace file: ~a"
-			   trace-file)))))
-	(with-temp-file (bin)
-	  (multiple-value-bind (bin phenome-exit stderr stdout src)
-	      (phenome instrumented)
-	    (declare (ignorable stdout src))
+             (instrumented
+              (instrument copy :trace-file trace-file))
+             ;; pick first test to be "negative", arbitrarily
+             (made-up-bad-test (list (nth 4 (test-cases *test-suite*))
+                                     (nth 5 (test-cases *test-suite*))))
+             (read-trace-fn
+              (lambda (accumulated-results is-good-trace &optional test_id)
+                (if (probe-file trace-file)
+                    (with-open-file (trace-stream trace-file)
+                      (prog1 (rinard-incremental
+                                      trace-stream
+                                      accumulated-results
+                                      is-good-trace
+                                      test_id)
+                      ;; instrumentation appends to trace file for
+                      ;; some reason. Remove it before each use to
+                      ;; start with an empty trace.
+                      (ignore-errors (delete-file trace-file))))
+                    (error "Something went wrong with trace file: ~a"
+                           trace-file)))))
+        (with-temp-file (bin)
+          (multiple-value-bind (bin phenome-exit stderr stdout src)
+              (phenome instrumented)
+            (declare (ignorable stdout src))
 
-	    (if (zerop phenome-exit)
-		(let* ((trace-results (collect-fault-loc-traces
-				            bin
-					    *test-suite*
-					    read-trace-fn
-					    made-up-bad-test))
-		       ;; Should be only 9 statements, only AST ids.
+            (if (zerop phenome-exit)
+                (let* ((trace-results (collect-fault-loc-traces
+                                            bin
+                                            *test-suite*
+                                            read-trace-fn
+                                            made-up-bad-test))
+                       ;; Should be only 9 statements, only AST ids.
                        ;; The first 5 elements are always the same, in
                        ;; order.  The rest may be in an arbitrary
                        ;; order.  Compare only the first 5.
-		       (bad-stmts (mapcar #'cdar (rinard 5 instrumented
+                       (bad-stmts (mapcar #'cdar (rinard 5 instrumented
                                                          trace-results)))
-		       (gold-set-prefix (list 54 23 12 10 4)))
-		  ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
-		  ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
-		  (is (equal bad-stmts gold-set-prefix)))
-		(progn
-		  (error "Couldn't build phenome: ~a" stderr)
-		  (is nil)))))))))
+                       (gold-set-prefix (list 54 23 12 10 4)))
+                  ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
+                  ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
+                  (is (equal bad-stmts gold-set-prefix)))
+                (progn
+                  (error "Couldn't build phenome: ~a" stderr)
+                  (is nil)))))))))
