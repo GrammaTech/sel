@@ -645,10 +645,12 @@ the underlying software objects."
            (setf (ast-ids instrumenter) (make-hash-table :test #'equal))
            (iter (for ast in (asts obj))
                  (for ast-i upfrom 0)
+                 (assert (< index (ash 1 +trace-id-file-bits+)))
+                 (assert (< ast-i (ash 1 +trace-id-statement-bits+)))
                  (setf (gethash (ast-ref-path ast) (ast-ids instrumenter))
-                       (logior (ash 1 31)       ; flag bit
-                               (ash index 20)   ; file ID
-                               ast-i)))         ; statement ID
+                       (logior (ash 1 31)                            ; flag bit
+                               (ash index +trace-id-statement-bits+) ; file ID
+                               ast-i)))                              ; AST ID
            (apply #'instrument instrumenter args)))
 
       ;; Fully instrument evolve-files
