@@ -63,6 +63,7 @@ enum trace_entry_tag {
 # define AUTO __auto_type
 #endif
 
+__attribute__((unused))
 static void write_trace_variable(FILE *out, uint16_t name_index,
                                  uint16_t type_index,uint16_t size,
                                  const void *var)
@@ -73,6 +74,7 @@ static void write_trace_variable(FILE *out, uint16_t name_index,
     fwrite(var, size, 1, out);
 }
 
+__attribute__((unused))
 static void write_trace_blob(FILE *out, uint16_t name_index, uint16_t type_index,
                       uint16_t size, const void *var)
 {
@@ -90,18 +92,21 @@ static void write_trace_blob(FILE *out, uint16_t name_index, uint16_t type_index
                              sizeof(_sel_tmp), &_sel_tmp);     \\
     } while(0)
 
+__attribute__((unused))
 static void write_trace_id(FILE *out, uint32_t statement_id)
 {
     fputc(STATEMENT_ID, out);
     fwrite(&statement_id, sizeof(statement_id), 1, out);
 }
 
+__attribute__((unused))
 static void write_trace_aux(FILE *out, uint64_t value)
 {
     fputc(AUXILIARY, out);
     fwrite(&value, sizeof(value), 1, out);
 }
 
+__attribute__((unused))
 static void write_end_entry(FILE *out)
 {
     fputc(END_ENTRY, out);
@@ -635,8 +640,11 @@ the underlying software objects."
         (files (if (current-file clang-project)
                    (list (current-file clang-project))
                    (mapcar #'cdr (evolve-files clang-project)))))
-    (flet
-        ((instrument-file (obj index)
+    (labels
+        ((check-ids (file-id ast-id)
+           (assert (< file-id (ash 1 +trace-id-file-bits+)))
+           (assert (< ast-id (ash 1 +trace-id-statement-bits+))))
+         (instrument-file (obj index)
            ;; Send object through clang-mutate to get accurate counters
            (update-asts obj)
            (setf (software instrumenter) obj)
@@ -645,8 +653,7 @@ the underlying software objects."
            (setf (ast-ids instrumenter) (make-ast-ht))
            (iter (for ast in (asts obj))
                  (for ast-i upfrom 0)
-                 (assert (< index (ash 1 +trace-id-file-bits+)))
-                 (assert (< ast-i (ash 1 +trace-id-statement-bits+)))
+                 (check-ids index ast-i)
                  (setf (gethash ast (ast-ids instrumenter))
                        (logior (ash 1 31)                            ; flag bit
                                (ash index +trace-id-statement-bits+) ; file ID
