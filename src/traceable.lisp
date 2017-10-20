@@ -90,9 +90,10 @@ times."))
                                  :env (list (cons *instrument-log-env-name*
                                                   pipe))
                                  :wait nil)))
-           (iter (for trace = (read-trace pipe *trace-open-timeout*
-                                          :predicate predicate
-                                          :max max))
+           (iter (for trace = (and (eq :running (process-status proc))
+                                   (read-trace pipe *trace-open-timeout*
+                                               :predicate predicate
+                                               :max max)))
                  (while trace)
                  (collect
                      (list
