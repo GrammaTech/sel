@@ -2,8 +2,12 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-  double a,b,c;
-  double r1, r2; 
+  double a;
+  double b;
+  double c;
+  double r1;
+  double r2;
+
   a = atoi(argv[1]); 
   b = atoi(argv[2]); 
 

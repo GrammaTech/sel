@@ -1147,12 +1147,6 @@ even if such an INCLUDE already exists in SOFTWARE"))
   :test #'equalp
   :documentation "C pointer operators on one arguments.")
 
-(define-constant +c-variable-modifiers+
-    '("const" "enum" "extern" "long" "register" "short" "signed"
-      "static" "struct" "unsigned" "volatile")
-  :test #'equalp
-  :documentation "C variable modifiers.")
-
 
 ;; Targeting functions
 (defun pick-general (software first-pool &key second-pool filter)
@@ -1766,155 +1760,14 @@ for successful mutation (e.g. adding includes/types/macros)"))
           includes nil
           asts-changed-p t)))
 
-(defgeneric from-file-exactly (software path)
-  (:documentation
-   "Initialize SOFTWARE from PATH as done by `from-string-exactly'."))
-
-(defmethod from-file-exactly ((obj clang) path)
-  (setf (ext obj) (pathname-type (pathname path)))
-  (from-string-exactly obj (file-to-string path)))
-
 (defmethod from-file ((obj clang) path)
   (setf (ext obj) (pathname-type (pathname path)))
   (from-string obj (file-to-string path))
   obj)
 
-(defgeneric from-string-exactly (software string)
-  (:documentation
-   "Create a clang software object from a given C file's string representation.
-The software object's genome will exactly match the input file's
-contents aside from some simple transformations to ease downstream
-processing.
-
-Currently the only such transformation is to split variable
-declarations onto multiple lines to ease subsequent decl mutations."))
-
-(defun balanced-parens-or-curlies (pos)
-  (let ((parens (balanced-parens pos))
-        (curlies (balanced-curlies pos)))
-    (when parens
-      parens
-      curlies)))
-
-(defun balanced-parens (pos &aux (deep 0) escape in-string)
-  (iter (while (< pos (length ppcre::*string*)))
-        (as char = (aref ppcre::*string* pos))
-        (cond
-          ;; Last char was a backslash, skip over this one
-          (escape (setf escape nil))
-          ;; Start or end of a quoted string
-          ((eq char #\")
-           (setf in-string (not in-string)))
-          ;; Ignore parens, etc within a quoted string
-          ((not in-string)
-           (case char
-              (#\( (incf deep))
-              (#\) (when (zerop deep) (return-from balanced-parens nil))
-                   (decf deep))
-              (#\,
-               (when (zerop deep) (return-from balanced-parens pos)))
-              (#\;
-               (return-from balanced-parens pos)))))
-        (incf pos))
-  (if (zerop deep) pos nil))
-
-(defun balanced-curlies (pos &aux (deep 0))
-  (iter (while (< pos (length ppcre::*string*)))
-        (as char = (aref ppcre::*string* pos))
-        (case char
-          (#\{ (incf deep))
-          (#\} (when (zerop deep) (return-from balanced-curlies nil))
-               (decf deep))
-          (#\,
-           (when (zerop deep) (return-from balanced-curlies pos)))
-          (#\;
-           (return-from balanced-curlies pos)))
-        (incf pos))
-  (if (zerop deep) pos nil))
-
-
-(defun split-balanced-parens (string &aux (start 0) (str-len (length string)))
-  (->> (iter (for (values match-start match-end match-begs match-ends)
-                  = (scan '(:register (:filter balanced-parens)) string
-                          :start start))
-             (declare (ignorable match-start))
-             (while (and match-end (< start str-len)))
-             (collecting (subseq string (aref match-begs 0)
-                                 (aref match-ends 0)))
-             (if (< start match-end)
-                 (setf start match-end)
-                 (incf start)))
-       (remove-if [#'zerop #'length])))
-
-(defmethod from-string-exactly ((obj clang) string &aux (index 0))
-  ;; TODO: Improve clang-mutate so we no longer need this hack.
-  ;; Find every probable multi-variable declaration, then split.
-  (let ((regex
-         (create-scanner
-          `(:sequence                   ; Preceding newline.
-            (:char-class #\{ #\} #\;)
-            (:greedy-repetition 0 nil :whitespace-char-class) #\newline
-            (:register                  ; Type name.
-             (:sequence
-              (:greedy-repetition 0 nil :whitespace-char-class)
-              (:greedy-repetition
-               0 nil
-               (:sequence               ; Type name modifiers.
-                (:alternation ,@+c-variable-modifiers+)
-                :whitespace-char-class))
-              (:negative-lookahead "else") ; Blacklist "else" keyword
-              (:greedy-repetition 1 nil :word-char-class)
-              (:greedy-repetition 0 1 #\*)
-              (:greedy-repetition 1 nil :whitespace-char-class)))
-            (:register                  ; All variables.
-             (:sequence
-              (:greedy-repetition       ; First variable.
-               1 nil
-               (:char-class #\* :whitespace-char-class :word-char-class))
-              (:greedy-repetition
-               0 1
-               (:register               ; Optional initialization.
-                (:sequence #\=
-                           (:greedy-repetition 0 nil :whitespace-char-class)
-                           (:filter balanced-parens-or-curlies))))
-              #\, (:greedy-repetition 1 nil (:inverted-char-class #\;))
-              (:greedy-repetition       ; Subsequent variables.
-               0 1
-               (:register
-                (:sequence #\=          ; Optional initialization.
-                           (:greedy-repetition 0 nil :whitespace-char-class)
-                           (:filter balanced-parens-or-curlies))))))
-            #\; (:greedy-repetition 0 nil :whitespace-char-class) #\newline))))
-    (iter (for (values match-start match-end match-type match-vars)
-               = (scan regex string :start index))
-          (declare (ignorable match-start))
-          (while match-end)
-          ;; C has strict limits on valid strings, so we don't have to
-          ;; worry about being inside of a string.
-          (concatenating
-           (concatenate 'string
-             (subseq string index (aref match-type 0))
-             (let* ((type
-                     (string-right-trim (list #\Space #\Tab #\Newline)
-                                        (subseq string
-                                                (aref match-type 0)
-                                                (aref match-type 1)))))
-               (mapconcat [{concatenate 'string type " "}
-                           {string-left-trim (list #\Space #\Tab #\Newline)}]
-                          (split-balanced-parens
-                           (subseq string (aref match-vars 0)
-                                   (aref match-vars 1)))
-                          (coerce (list #\; #\Newline) 'string))))
-           into out-str)
-          (setf index (aref match-vars 1))
-          (finally (setf (genome obj)
-                         (concatenate 'string
-                           out-str (subseq string index))))))
-  obj)
-
 (defmethod from-string ((obj clang) string)
   ;; Load the raw string and generate a json database
-  (from-string-exactly obj string)
+  (setf (genome obj) string)
   obj)
 
 (defmethod update-asts-if-necessary ((obj clang))
