@@ -99,7 +99,6 @@
    :from-file
    :from-file-exactly
    :from-string
-   :from-string-exactly
    :ext
    :get-vars-in-scope
    :bind-free-vars

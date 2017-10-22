@@ -23,7 +23,7 @@
 (defmethod from-string :before ((obj ancestral) string)
   (if (null (ancestors obj))
       (setf (ancestors obj) (list (list :base string
-                                        :how 'from-string-exactly
+                                        :how 'from-string
                                         :id (get-fresh-ancestry-id))))
       (ancestors obj)))
 
