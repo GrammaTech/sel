@@ -6034,7 +6034,7 @@ prints unique counters in the trace"
     ;; list of (ast-class, occurrences)
     (bind (((:values vec denom) (se::ast-node-type-tf-extractor *variety*))
            (ast-counts (mapcar #'cons
-                   se::*clang-c-ast-classes*
+                               se::*clang-c-ast-classes*
                                (mapcar {* denom} (coerce vec 'list)))))
       ;; for each ast-class, verify occurrence count is correct
       (iter (for (type . count) in ast-counts)
@@ -6093,18 +6093,18 @@ prints unique counters in the trace"
     (let ((ls-count (-<>> (se::ast-keyword-tf-extractor *variety*)
                           (coerce <> 'list)
                           (mapcar {* 44}))))
-    (is (equal
-         (mapcar #'cons
+      (is (equal
+           (mapcar #'cons
                    ls-count
-                 se::*clang-c-keywords*)
-         '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
-           (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
-           (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
-           (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (11 . "int")
-           (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
-           (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
-           (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
-           (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
+                   se::*clang-c-keywords*)
+           '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
+             (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
+             (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
+             (1 . "for") (3 . "goto") (1 . "if") (0 . "inline") (11 . "int")
+             (0 . "long") (0 . "register") (0 . "restrict") (4 . "return")
+             (0 . "short") (0 . "signed") (1 . "sizeof") (0 . "static")
+             (1 . "struct") (1 . "switch") (2 . "typedef") (1 . "union")
+             (0 . "unsigned") (1 . "void") (0 . "volatile") (2 . "while")))))))
 
 (deftest small-bi-grams-count-example ()
   (let* ((ls (list "the" "tortoise" "and" "the" "hare" "and" "the" "race"))

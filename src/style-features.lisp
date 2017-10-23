@@ -40,9 +40,9 @@
     (:ReturnStmt . ("return"))
     (:Typedef . ("typedef"))
     (:WhileStmt . ("while")))
-  "Map AST classes to C keywords whose use is implied by the AST class (e.g.,
-an IfStmt must include an if in its src-text, but it will not necessarily
-include an else).")
+  "Map AST classes to C keywords whose use is implied by the AST class.
+E.g., an IfStmt must include an if in its src-text, but it will not necessarily
+include an else.")
 
 (defparameter *clang-c-ast-keywords-search-count*
   '((:DeclStmt . ("auto" "char" "const" "double" "enum" "extern" "float"
@@ -55,8 +55,8 @@ include an else).")
     (:IfStmt . ("else")) ;; found else if "IfStmt" has 3 children
     (:UnaryExprOrTypeTraitExpr . ("alignof" "sizeof"))
     (:Record . ("struct" "union")))
-  "Map AST classes to C keywords that may occur within them (e.g., an IfStmt
-may or may not include an else clause).")
+  "Map AST classes to C keywords that may occur within them.
+E.g., an IfStmt may or may not include an else clause.")
 
 (defclass style-feature ()
   ((feature-name
@@ -78,86 +78,89 @@ returns a new feature vector and updated metadata."))
 accompanying merge function for combining feature vectors."))
 
 (define-software styleable ()
-  ((features :initarg :features :initform nil :accessor features
-             :allocation :class
-             :documentation "Ordered list of style features.")
-   (feature-vecs :initarg :feature-vecs :initform nil :accessor feature-vecs
-                 :documentation "Vector of feature vectors, same length
-as features list.")
-   (feature-vec-meta :initarg :feature-vec-meta :initform nil
-                     :accessor feature-vec-meta
-                     :documentation "Vector of feature vector meta-information,
-used to merge feature vectors."))
-  (:documentation "Type of software objects that can have style features
-extracted."))
+  ((features
+    :initarg :features :initform nil :accessor features
+    :allocation :class
+    :documentation "Ordered list of style features.")
+   (feature-vecs
+    :initarg :feature-vecs :initform nil :accessor feature-vecs
+    :documentation "Vector of feature vectors, same length as features list.")
+   (feature-vec-meta
+    :initarg :feature-vec-meta :initform nil
+    :accessor feature-vec-meta
+    :documentation "Vector of feature vector meta-information."))
+  (:documentation
+   "Type of software objects that can have style features extracted."))
 
 (define-software style-project (styleable project) ())
 
 (defmacro define-feature (feature-name feature-desc
                           (extractor-fn eargs extractor-desc &rest ebody)
-                          (merge-fn &optional (margs nil margs-p) &rest mbody))
+                                                               (merge-fn &optional (margs nil margs-p) &rest mbody))
   `(progn
-    ;; define merge-fn if args and body are provided
-    ;; (otherwise, assume the function is already defined)
-    (when ,margs-p
-      (defun ,merge-fn ,margs ,@mbody))
-    
-    ;; define extractor-fn methods
-    ;; impl. for extractor-fn must be provided, but impl. of merge-fn is optional
-    (defgeneric ,extractor-fn (software)
-      (:documentation ,extractor-desc))
-    (defmethod ,extractor-fn ,eargs ,@ebody)
+     ;; define merge-fn if args and body are provided
+     ;; (otherwise, assume the function is already defined)
+     (when ,margs-p
+       (defun ,merge-fn ,margs ,@mbody))
 
-    ;; define feature so we can use it without warnings in project extractor-fn
-    (defvar ,feature-name
-      (make-instance 'style-feature
-                     :feature-name ',feature-name
-                     :extractor-fn #',extractor-fn
-                     :merge-fn #',merge-fn)
-      ,feature-desc)
-    
-    ;; pre-defined impl for project (uses provided method impl.)
-    (defmethod ,extractor-fn ((project project))
-      (bind (((_ . obj1) (first (all-files project)))
-             (feature-index (position ',feature-name
-                                      (features obj1)
-                                      :key #'name))
-             ((:values prev-vec prev-meta) (extract-feature obj1 ,feature-name)))
-        (iter (for (file . obj) in (cdr (all-files project)))
-              (declare (ignorable file))
-              (bind (((:values vec meta) (extract-feature obj ,feature-name))
-                     ((:values new-vec new-meta)
-                      (funcall #',merge-fn prev-vec prev-meta vec meta)))
-                ;; update prev-vec and prev-meta with merged info
-                (setf prev-vec new-vec)
-                (setf prev-meta new-meta)
-                (finally (setf (elt (feature-vecs project) feature-index)
-                               prev-vec)
-                         (setf (elt (feature-vec-meta project) feature-index)
-                               prev-meta)
-                         (return (values prev-vec prev-meta)))))))))
+     ;; define extractor-fn methods
+     ;; implementation for extractor-fn must be provided
+     (defgeneric ,extractor-fn (software)
+       (:documentation ,extractor-desc))
+     (defmethod ,extractor-fn ,eargs ,@ebody)
+
+     ;; define feature so we can use it without warnings in project extractor-fn
+     (defvar ,feature-name
+       (make-instance 'style-feature
+         :feature-name ',feature-name
+         :extractor-fn #',extractor-fn
+         :merge-fn #',merge-fn)
+       ,feature-desc)
+
+     ;; pre-defined impl for project (uses provided method impl.)
+     (defmethod ,extractor-fn ((project project))
+       (bind (((_ . obj1) (first (all-files project)))
+              (feature-index (position ',feature-name
+                                       (features obj1)
+                                       :key #'name))
+              ((:values prev-vec prev-meta) (extract-feature obj1 ,feature-name)))
+         (iter (for (file . obj) in (cdr (all-files project)))
+               (declare (ignorable file))
+               (bind (((:values vec meta) (extract-feature obj ,feature-name))
+                      ((:values new-vec new-meta)
+                       (funcall #',merge-fn prev-vec prev-meta vec meta)))
+                 ;; update prev-vec and prev-meta with merged info
+                 (setf prev-vec new-vec)
+                 (setf prev-meta new-meta)
+                 (finally (setf (elt (feature-vecs project) feature-index)
+                                prev-vec)
+                          (setf (elt (feature-vec-meta project) feature-index)
+                                prev-meta)
+                          (return (values prev-vec prev-meta)))))))))
 
 
-;; Uni-gram feature extractors
+;;; Uni-gram feature extractors
 (defgeneric uni-grams (items &key key uni-grams-ht)
-  (:documentation "Return a hash-table containing counts of uni-gram occurrences
-in a list of ITEMS. Use KEY to specify a function applied to each item to
-get a value used as the hash-table key, and use UNI-GRAMS-HT to specify the
-hash-table in which to store results."))
+  (:documentation
+   "Update UNI-GRAMS-HT with counts of uni-gram occurrences in ITEMS.
+Use KEY to specify a function applied to each item to generate a value used as
+the hash-table key. The hash-table UNI-GRAMS-HT is both updated and returned as
+the result."))
 
 (defmethod uni-grams ((items list)
                       &key (key #'identity)
                            (uni-grams-ht (make-hash-table :test #'equal)))
-    (mapcar (lambda (item)
-              (let ((key (funcall key item)))
+  (mapcar (lambda (item)
+            (let ((key (funcall key item)))
               (setf (gethash key uni-grams-ht)
                     (1+ (gethash key uni-grams-ht 0)))))
-            items)
+          items)
   uni-grams-ht)
 
 (defgeneric to-feature-vector (feature-values sorted-keys)
-  (:documentation "Convert a set of FEATURE-VALUES into a feature vector
-whose elements are the values corresponding to SORTED-KEYS."))
+  (:documentation
+   "Convert a set of FEATURE-VALUES into a feature vector.
+The elements of the vector are the values corresponding to SORTED-KEYS."))
 
 (defmethod to-feature-vector ((feature-values hash-table) (sorted-keys list))
   (let ((feature-vec (make-array (length sorted-keys) :initial-element nil)))
@@ -173,15 +176,16 @@ whose elements are the values corresponding to SORTED-KEYS."))
             sum)))
 
 (defgeneric ast-node-types (software)
-  (:documentation "For a SOFTWARE object, return a list of the AST node types
-present in its ASTs."))
+  (:documentation
+   "For a SOFTWARE object, return a list of the node types present in its ASTs."))
 
 (defmethod ast-node-types ((clang clang))
   (mapcar #'ast-class (asts clang)))
 
 (defgeneric merge-normalized (s1 denom1 s2 denom2)
-  (:documentation "Merge two structures S1 and S2 whose values have been
- normalized using the denominators DENOM1 and DENOM2, respectively."))
+  (:documentation
+   "Merge two structures S1 and S2 which have been normalized using the
+denominators DENOM1 and DENOM2, respectively."))
 
 (defmethod merge-normalized ((vec1 vector) (denom1 number)
                              (vec2 vector) (denom2 number))
@@ -195,7 +199,7 @@ present in its ASTs."))
 (define-feature ast-node-type-tf-feature
     "Term frequency of AST node types."
   (ast-node-type-tf-extractor ((clang clang))
-   "Return a vector with counts of occurrences of each possible AST node type."
+    "Return a vector with counts of occurrences of each possible AST node type."
     (-<>> (ast-node-types clang)
           (uni-grams)
           (to-feature-vector <> *clang-c-ast-classes*)
@@ -203,7 +207,7 @@ present in its ASTs."))
   (merge-normalized))
 
 
-;; Features related to depth in AST tree
+;;; Features related to depth in AST tree
 (defgeneric ast-depth (software ast)
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
@@ -231,26 +235,23 @@ present in its ASTs."))
 
 (define-feature max-depth-ast-feature "Maximum depth of any node in the AST."
   (max-depth-ast-extractor ((clang clang))
-   "Returns a feature vector of length 1 containing the maximum depth of any AST
-in SOFTWARE."
-   (values (vector (max-depth-ast clang (asts clang)))
-           nil))
+    "Return 1-element feature vector of the max depth of any AST in SOFTWARE."
+    (values (vector (max-depth-ast clang (asts clang)))
+            nil))
   (merge-max))
 
 (define-feature avg-depth-ast-feature
     "Average depth of each type of node in the AST."
   (avg-depth-ast-extractor ((clang clang))
-   "Returns a feature vector of length 1 containing the average depth of ASTs in
-SOFTWARE."
-   (let ((asts (asts clang)))
-     (values (vector (mean (mapcar {ast-depth clang} asts)))
-             (length asts))))
+    "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
+    (let ((asts (asts clang)))
+      (values (vector (mean (mapcar {ast-depth clang} asts)))
+              (length asts))))
   (merge-normalized))
 
-
 (defgeneric ast-node-type-avg-depth (software node-type)
-  (:documentation "Average depth of nodes with type NODE-TYPE in the ASTs in
-SOFTWARE."))
+  (:documentation
+   "Average depth of nodes with type NODE-TYPE in the ASTs in SOFTWARE."))
 
 (defmethod ast-node-type-avg-depth ((clang clang) (node-type symbol))
   (bind ((node-asts (remove-if-not {eql node-type} (asts clang)
@@ -261,8 +262,8 @@ SOFTWARE."))
         (values (mean depths) (length depths)))))
 
 (defgeneric all-ast-node-types (software)
-  (:documentation "Returns a list of all possible types of AST nodes for ASTs in
-SOFTWARE."))
+  (:documentation
+   "Returns a list of all possible types of AST nodes for ASTs in SOFTWARE."))
 
 (defmethod all-ast-node-types ((clang clang))
   (declare (ignorable clang))
@@ -281,42 +282,43 @@ SOFTWARE."))
 (define-feature ast-node-type-avg-depth-feature
     "Average depth of each possible node type in the AST."
   (ast-node-type-avg-depth-extractor ((clang clang))
-   "Returns a feature vector whose length is the number of possible AST node
-types (as determined by `all-ast-node-types') and whose elements indicate the
-average depth of nodes of that type in the AST of SOFTWARE."
-   (iter (for node-type in (all-ast-node-types clang))
-         (multiple-value-bind (mean num-items)
-             (ast-node-type-avg-depth clang node-type)
-           (collect mean into means)
-           (collect num-items into nums-items)
-           (finally (return (values (coerce means 'vector)
-                                    (coerce nums-items 'vector)))))))
+    "Returns a feature vector of average depth of AST nodes by type.
+The length is the number of possible AST node tyes (as determined by
+`all-ast-node-types'). Each element is the average depth of nodes of the
+corresponding type in the AST of SOFTWARE."
+    (iter (for node-type in (all-ast-node-types clang))
+          (multiple-value-bind (mean num-items)
+              (ast-node-type-avg-depth clang node-type)
+            (collect mean into means)
+            (collect num-items into nums-items)
+            (finally (return (values (coerce means 'vector)
+                                     (coerce nums-items 'vector)))))))
   (merge-means))
 
 
 ;; Bi-grams feature extractors
 (defgeneric bi-grams (items &key key bi-grams-ht)
-  (:documentation "Update and return a hash-table BI-GRAMS-HT containing counts
-of bi-gram occurrences in a list of ITEMS. Use KEY to specify a function applied
-to each item to get a value which will be paired with another such value to
-create a key."))
+  (:documentation
+   "Update and return BI-GRAMS-HT of counts of bi-gram occurrences in ITEMS.
+Use KEY to specify a function applied to each item to get a value which will be
+paired with another such value to create a key."))
 
 
 (defmethod bi-grams ((items list)
                      &key (key #'identity)
                        (bi-grams-ht (make-hash-table :test #'equal)))
-    (mapcar
-     ;; function applied to each item in the list (fst) and its successor (next)
-     (lambda (fst next)
-       ;; the key in the hash table is the ordered pair of the key function
-       ;; applied to fst and next
-       (let ((key (cons (funcall key fst)
-                        (funcall key next))))
+  (mapcar
+   ;; function applied to each item in the list (fst) and its successor (next)
+   (lambda (fst next)
+     ;; the key in the hash table is the ordered pair of the key function
+     ;; applied to fst and next
+     (let ((key (cons (funcall key fst)
+                      (funcall key next))))
        (setf (gethash key bi-grams-ht)
-               ;; increment value associated with key
+             ;; increment value associated with key
              (1+ (gethash key bi-grams-ht 0)))))
-            items
-            (cdr items))
+   items
+   (cdr items))
   bi-grams-ht)
 
 (defmethod ast-full-stmt-bi-grams ((clang clang)
@@ -342,31 +344,28 @@ create a key."))
     "Number of occurrences of AST node type bi-grams in each full statement in
 an AST."
   (ast-full-stmt-bi-grams-extractor ((clang clang))
-   "Return a feature vector containing the number of occurrences of AST node
-type bi-grams for full statement ASTs only."
-   (->> (ast-full-stmt-bi-grams clang)
-        (bi-grams-hashtable-to-feature clang)
-        (normalize-vector)))
+    "Return a feature vector counting AST node type bi-grams for full statements."
+                                    (->> (ast-full-stmt-bi-grams clang)
+                                         (bi-grams-hashtable-to-feature clang)
+                                         (normalize-vector)))
   (merge-normalized))
 
 (define-feature ast-bi-grams-feature
     "Number of occurrences of AST node type bi-grams in an AST."
   (ast-bi-grams-extractor ((clang clang))
-   "Return a feature vector containing the number of occurrences of AST node
-type bi-grams for all ASTs."
-   (->> (ast-bi-grams clang)
-        (bi-grams-hashtable-to-feature clang)
-        (normalize-vector)))
+    "Return a feature vector counting AST node type bi-grams."
+                          (->> (ast-bi-grams clang)
+                               (bi-grams-hashtable-to-feature clang)
+                               (normalize-vector)))
   (merge-normalized))
 
 
-;; Keyword feature extractors
+;;; Keyword feature extractors
 (defmethod auto-count-keyword ((keyword string) (ast ast-ref))
   (if (member keyword
               (aget (ast-class ast) *clang-c-ast-keywords-auto-count*)
-             :test #'string=)
-      1
-      0))
+              :test #'string=)
+      1 0))
 
 (defmethod search-keyword ((clang clang) (keyword string) (ast ast-ref))
   (let ((ast-class (ast-class ast)))
@@ -377,21 +376,18 @@ type bi-grams for all ASTs."
         0
         (switch (ast-class :test (lambda (class ls)
                                    (some {eq class} ls)))
-          ('(:DeclStmt :Field) ;; count if keyword is in src-text
-           (if (scan keyword (source-text ast))
-               1
-               0))
-          ('(:IfStmt) ;; count if keyword is "else" and ast has 3 children
-           (if (= 3 (length (get-immediate-children clang ast)))
-               1
-               0))
+          ('(:DeclStmt :Field) ; Count if keyword is in src-text.
+            (if (scan keyword (source-text ast))
+                1 0))
+          ('(:IfStmt) ; Count if keyword is "else" and ast has 3 children.
+            (if (= 3 (length (get-immediate-children clang ast)))
+                1 0))
           ('(:UnaryExprOrTypeTraitExpr :Record)
-           ;; only count if src-text begins with alignof, sizeof, struct, union
+            ;; Only count if src-text begins with alignof, sizeof, struct, union.
             (if (starts-with-subseq keyword
                                     (string-trim (list #\Space #\Tab #\Newline)
                                                  (source-text ast)))
-                1
-                0))
+                1 0))
           (t 0)))))
 
 (defmethod ast-keyword-tf ((clang clang) (keyword string) ast)
@@ -399,8 +395,8 @@ type bi-grams for all ASTs."
      (search-keyword clang keyword ast)))
 
 (defgeneric all-keywords (software)
-  (:documentation "Return the list of possible keywords that may appear in
-SOFTWARE."))
+  (:documentation
+   "Return the list of possible keywords that may appear in SOFTWARE."))
 
 (defmethod all-keywords ((clang clang))
   *clang-c-keywords*)
@@ -408,13 +404,13 @@ SOFTWARE."))
 (define-feature ast-keyword-tf-feature
     "Term frequency of keywords in an AST."
   (ast-keyword-tf-extractor ((clang clang))
-   "Return a vector containing term frequencies for the set of possible keywords
-used in SOFTWARE (see also `all-keywords')."
-   (iter (for keyword in (all-keywords clang))
-         (collect (reduce #'+ (mapcar {ast-keyword-tf clang keyword}
-                                      (asts clang)))
-           into keyword-tfs)
-         (finally (return (normalize-vector (coerce keyword-tfs 'vector))))))
+    "Return a vector containing term frequencies for all possible keywords in
+SOFTWARE (see also `all-keywords')."
+    (iter (for keyword in (all-keywords clang))
+          (collect (reduce #'+ (mapcar {ast-keyword-tf clang keyword}
+                                       (asts clang)))
+            into keyword-tfs)
+          (finally (return (normalize-vector (coerce keyword-tfs 'vector))))))
   (merge-normalized))
 
 (defparameter *feature-extractors*
@@ -424,14 +420,14 @@ used in SOFTWARE (see also `all-keywords')."
         ast-keyword-tf-feature))
 
 
-;; Feature extraction
+;;; Feature extraction
 (defmethod diff-feature-vectors ((vec1 vector) (vec2 vector))
   (map 'vector [#'abs #'-] vec1 vec2))
 
 (defgeneric merge-styleables (styleable1 styleable2 &key result)
-  (:documentation "Merge all feature vectors from STYLEABLE1 with those of
-STYLEABLE2. Returns a new `styleable' object containing the resulting feature
-vectors and meta-information."))
+  (:documentation "Merge all feature vectors from STYLEABLE1 and STYLEABLE2.
+Returns a new `styleable' object containing the resulting feature vectors and
+meta-information."))
 
 (defmethod merge-styleables ((style1 styleable) (style2 styleable)
                              &key (result (make-instance 'styleable)))
@@ -478,8 +474,8 @@ vectors and meta-information."))
         (values vec meta)))))
 
 (defgeneric extract-features (software &key features &allow-other-keys)
-  (:documentation "For a SOFTWARE object, extract a list of FEATURES and
-return two values: a vector of feature vectors and a vector of meta information
+  (:documentation "For a SOFTWARE object, extract a set of FEATURES.
+Returns two values: a vector of feature vectors and a vector of meta information
 (used by feature merge functions)."))
 
 (defmethod extract-features ((style styleable) &key (features nil))
@@ -492,30 +488,30 @@ return two values: a vector of feature vectors and a vector of meta information
 
 (defun update-project-features (project &key (features nil))
   (iter (for feature in features)
-    ;; assume index of feature is the same across project
-    ;; and all objects in project
-    (let* ((index (position feature (features project)))
-           (files (all-files project))
-           (obj (cdr (first files))))
-      (when (< 0 (length files))
-        ;; init feature vecs/meta on project to that of first obj
-        (setf (elt (feature-vecs project) index)
-              (elt (feature-vecs obj) index))
-        (setf (elt (feature-vec-meta project) index)
-              (elt (feature-vec-meta obj) index))
-        ;; merge feature vecs of rest of objs into first
-        (iter (for (file . obj) in  (cdr files))
-          (declare (ignorable file))
-          (multiple-value-bind (vec meta)
-              (funcall (merge-fn feature)
-               (elt (feature-vecs obj) index)
-               (elt (feature-vec-meta obj) index)
-               (elt (feature-vecs project) index)
-               (elt (feature-vec-meta project) index))
+        ;; assume index of feature is the same across project
+        ;; and all objects in project
+        (let* ((index (position feature (features project)))
+               (files (all-files project))
+               (obj (cdr (first files))))
+          (when (< 0 (length files))
+            ;; init feature vecs/meta on project to that of first obj
             (setf (elt (feature-vecs project) index)
-                  vec)
+                  (elt (feature-vecs obj) index))
             (setf (elt (feature-vec-meta project) index)
-                  meta)))))))
+                  (elt (feature-vec-meta obj) index))
+            ;; merge feature vecs of rest of objs into first
+            (iter (for (file . obj) in  (cdr files))
+                  (declare (ignorable file))
+                  (multiple-value-bind (vec meta)
+                      (funcall (merge-fn feature)
+                               (elt (feature-vecs obj) index)
+                               (elt (feature-vec-meta obj) index)
+                               (elt (feature-vecs project) index)
+                               (elt (feature-vec-meta project) index))
+                    (setf (elt (feature-vecs project) index)
+                          vec)
+                    (setf (elt (feature-vec-meta project) index)
+                          meta)))))))
 
 (defmethod extract-features ((project style-project)
                              &key (features *feature-extractors*)
@@ -527,7 +523,7 @@ return two values: a vector of feature vectors and a vector of meta information
   (values (feature-vecs project)
           (feature-vec-meta project)))
 
-;; convenience method
+;;; Convenience method.
 (defmethod extract-baseline-features ((style styleable)
                                       &key (features *feature-extractors*))
   (when features
