@@ -643,6 +643,15 @@
   (:teardown
     (setf *scopes* nil)))
 
+(defixture scopes-type-field-clang
+  (:setup
+    (setf *scopes*
+          (from-file (make-instance 'clang
+                                    :compiler "clang" :flags '("-g -m32 -O0"))
+                     (scopes-dir "scopes-type-field.c"))))
+  (:teardown
+    (setf *scopes* nil)))
+
 (defixture scopes-cxx-clang
   (:setup
     (setf *scopes*
@@ -6540,6 +6549,17 @@ prints unique counters in the trace"
                                  (stmt-starting-with-text *scopes* "void bar"))
                '(("(|foo|)" t nil 1)
                  ("(|bar|)" t nil 0))))))
+
+(deftest scopes-type-field-is-correct ()
+  (with-fixture scopes-type-field-clang
+    (is (equal "char"
+               (->> (scopes *scopes* (stmt-with-text *scopes* "return 0"))
+                    (lastcar)
+                    (first)
+                    (aget :type)
+                    (find-type *scopes*)
+                    (type-name)))
+        "char variable should have been found at the global scope")))
 
 (deftest move-statement-updates-scopes ()
   (with-fixture scopes2-clang

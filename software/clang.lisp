@@ -2723,7 +2723,7 @@ and :SCOPE.
                      (lambda (name)
                        `((:name . ,name)
                          (:decl . ,ast)
-                         (:type . ,(car (ast-types ast)))
+                         (:type . ,(lastcar (ast-types ast)))
                          (:scope . ,scope)))
                      (or (ast-declares ast)
                          (ast-unbound-vals ast)))))
