@@ -88,21 +88,23 @@ tournaments."
                (cond
                  ;; Numeric objectives
                  ((numberp f)
-                  (setf group (sort group #'< :key [{elt _ i} key]))
-                  (let ((index (position software group)))
+                  ;; Sort is destructive, must use copy
+                  (let* ((sorted (sort (copy-seq group) #'<
+                                       :key [{elt _ i} key]))
+                         (index (position software sorted)))
                     (sum
-                     (if (or (zerop index) (eq index (1- (length group))))
+                     (if (or (zerop index) (eq index (1- (length sorted))))
                          ;; Boundary solutions have infinite distance
                          infinity
                          ;; Otherwise, use distance between nearest neighbors
-                         (- (elt (funcall key (nth (1+ index) group)) i)
-                            (elt (funcall key (nth (1- index) group)) i))))))
+                         (- (elt (funcall key (nth (1+ index) sorted)) i)
+                            (elt (funcall key (nth (1- index) sorted)) i))))))
                    ;; Lexicase objectives. Average distance across all
                    ;; components.
                  ((vectorp f)
                   (sum (/ (summed-distance [{nth i} key] group)
                           (length f))))))))
-    (summed-distance #'fitness (copy-seq *population*))))
+    (summed-distance #'fitness *population*)))
 
 (defun pick-least-crowded (candidates &key (predicate *tie-breaker-predicate*))
   "Pick candidate with the greatest crowding distance.
