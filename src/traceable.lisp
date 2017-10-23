@@ -43,7 +43,7 @@ PREDICATE MAX and BIN keyword arguments."))
                                   :text "Unable to compile software."
                                   :obj obj
                                   :bin bin)))
-        (continue-collecting ()
+        (ignore-empty-trace ()
           :report "Ignore and continue collecting traces.")))
   (unwind-protect
        (setf (traces obj)
@@ -81,8 +81,8 @@ times."))
                                    :text "Unable to compile software."
                                    :obj obj
                                    :bin bin)))
-        (continue-collecting ()
-          :report "Ignore and continue collecting traces.")))
+        (ignore-empty-trace ()
+          :report "Ignore empty trace.")))
   (unwind-protect
     (with-temp-fifo (pipe)
       (with-temp-file (handshake-file) ;; Start running the test case.
@@ -127,10 +127,16 @@ times."))
                    (restart-case
                        ;; This usually indicates a problem with the
                        ;; test script or the instrumentation
-                       (assert (not (emptyp traces)) (test-case)
-                               "No traces collected for test case ~s"
-                               test-case)
-                     (continue-collecting ()
-                       :report "Ignore and continue collecting traces."))
+                       (when (emptyp traces)
+                         (error (make-condition 'trace-error
+                                 :text (format nil
+                                         "No traces collected for test case ~s ~s."
+                                         test-case
+                                         (cons (program-name test-case)
+                                               (program-args test-case)))
+                                 :obj test-case
+                                 :bin bin)))
+                      (ignore-empty-trace ()
+                        :report "Ignore empty trace"))
                    (return traces)))))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))
