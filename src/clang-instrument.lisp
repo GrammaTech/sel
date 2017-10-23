@@ -280,10 +280,10 @@ Keyword arguments are as follows:
                   ("int64_t"         "%li")
                   ("unsigned long"   "%lu")
                   ("uint64_t"        "%lu")
+                  ("size_t"          "%zu")
                   ("float"           "%f")
                   ("double"          "%G")
-                  ("long double"     "%LG")
-                  ("size_t"          "%zu")
+                  ("long double"     nil)
                   (t (if (or (starts-with "*" c-type :test #'string=)
                              (starts-with "[" c-type :test #'string=))
                          ;; NOTE: %lx is not guaranteed to be the right size for
