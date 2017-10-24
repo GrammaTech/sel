@@ -49,8 +49,6 @@ PREDICATE MAX and BIN keyword arguments."))
        (setf (traces obj)
              (mappend
                (lambda-bind ((i test-case))
-                 (note 2 "Collect traces from input ~a of ~a"
-                       (1+ i) (length (test-cases test-suite)))
                  (apply #'collect-trace obj test-case args))
                (indexed (test-cases test-suite))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))

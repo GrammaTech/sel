@@ -5060,6 +5060,7 @@ prints unique counters in the trace"
                                           instrumenter
                                           ast)))))))
 
+(defvar *project*)
 (defixture clang-project
   (:setup
    (setf *project*
