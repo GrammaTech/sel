@@ -5416,6 +5416,48 @@ prints unique counters in the trace"
                      "-c" "-o" "grep")
                (flags (cdr (first (evolve-files project))))))))
 
+(deftest apply-mutations-to-project-unique-test ()
+  (with-fixture clang-project
+    (let ((proj (copy *project*)))
+      (multiple-value-bind (objs muts)
+          (apply-mutations proj
+                           (make-instance 'clang-cut
+                             :object proj
+                             :targeter (lambda (obj)
+                                         (mapcar (lambda (stmt)
+                                                   (list (cons :stmt1 stmt)))
+                                                 (bad-stmts obj)))
+                             :picker (lambda (obj)
+                                       (list (cons :stmt1
+                                                   (random-elt
+                                                     (bad-stmts obj))))))
+                           10)
+        (declare (ignorable objs))
+        (is (< 1 (-> (mapcar {targets} muts)
+                     (remove-duplicates :test #'equalp)
+                     (length))))))))
+
+(deftest apply-picked-mutations-to-project-unique-test ()
+  (with-fixture clang-project
+    (let ((proj (copy *project*)))
+      (multiple-value-bind (objs muts)
+          (apply-mutations proj
+                           (make-instance 'clang-cut
+                             :object proj
+                             :targeter (lambda (obj)
+                                         (mapcar (lambda (stmt)
+                                                   (list (cons :stmt1 stmt)))
+                                                 (bad-stmts obj)))
+                             :picker (lambda (obj)
+                                       (list (cons :stmt1
+                                                   (random-elt
+                                                     (bad-stmts obj))))))
+                           10)
+        (declare (ignorable objs))
+        (is (< 1 (-> (mapcar {targets} muts)
+                     (remove-duplicates :test #'equalp)
+                     (length))))))))
+
 
 ;;; Condition synthesis tests
 (in-suite test)
