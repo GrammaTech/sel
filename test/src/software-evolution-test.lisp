@@ -4914,7 +4914,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter
                                           ast)))))
-    (is (scan (quote-meta-chars "WRITE_TRACE_VARIABLE(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -4937,7 +4937,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter
                                           ast)))))
-    (is (scan (quote-meta-chars "WRITE_TRACE_VARIABLE(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -4968,7 +4968,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter ast
                                           :print-strings t)))))
-    (is (scan (quote-meta-chars "write_trace_blob(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -4992,7 +4992,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter ast
                                           :print-strings t)))))
-    (is (scan (quote-meta-chars "write_trace_blob(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
@@ -5013,7 +5013,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter
                                           ast)))))
-    (is (scan (quote-meta-chars "WRITE_TRACE_VARIABLE(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -5033,7 +5033,7 @@ prints unique counters in the trace"
                                            (software instrumenter)}
                                           instrumenter
                                           ast)))))
-    (is (scan (quote-meta-chars "WRITE_TRACE_VARIABLE(__sel_trace_file")
+    (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
@@ -5127,7 +5127,7 @@ prints unique counters in the trace"
                                          (software instrumenter)}
                                         instrumenter
                                         ast))))
-    (is (not (scan (quote-meta-chars "WRITE_TRACE_VARIABLE(__sel_trace_file")
+    (is (not (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
                (genome soft)))
         "We don't find code to print variables in the instrumented source.")))
 

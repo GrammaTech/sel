@@ -42,9 +42,19 @@ Keyword arguments are as follows:
   "
 #define _GNU_SOURCE
 #include <stdio.h>
-#include <string.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+
+enum type_format {
+    UNSIGNED,                   /* unsigned integer */
+    SIGNED,                     /* signed integer */
+    FLOAT,                      /* floating point */
+    POINTER,                    /* unsigned, interpret as address */
+    BLOB,                       /* arbitrary bytes, do not interpret */
+    INVALID_FORMAT
+};
 
 enum trace_entry_tag {
     END_ENTRY = 0,
@@ -56,41 +66,6 @@ enum trace_entry_tag {
     /* Returned at EOF, should not appear in trace */
     END_OF_TRACE
 };
-
-#ifdef __cplusplus
-# define AUTO auto
-#else
-# define AUTO __auto_type
-#endif
-
-__attribute__((unused))
-static void write_trace_variable(FILE *out, uint16_t name_index,
-                                 uint16_t type_index,uint16_t size,
-                                 const void *var)
-{
-    fputc(VARIABLE, out);
-    fwrite(&name_index, sizeof(name_index), 1, out);
-    fwrite(&type_index, sizeof(type_index), 1, out);
-    fwrite(var, size, 1, out);
-}
-
-__attribute__((unused))
-static void write_trace_blob(FILE *out, uint16_t name_index, uint16_t type_index,
-                      uint16_t size, const void *var)
-{
-    fputc(VARIABLE, out);
-    fwrite(&name_index, sizeof(name_index), 1, out);
-    fwrite(&type_index, sizeof(type_index), 1, out);
-    fwrite(&size, sizeof(size), 1, out);
-    fwrite(var, size, 1, out);
-}
-
-#define WRITE_TRACE_VARIABLE(out, name_index, type_index, var) \\
-    do {                                                       \\
-        AUTO _sel_tmp = var;                                   \\
-        write_trace_variable(out, name_index, type_index,      \\
-                             sizeof(_sel_tmp), &_sel_tmp);     \\
-    } while(0)
 
 __attribute__((unused))
 static void write_trace_id(FILE *out, uint32_t statement_id)
@@ -112,6 +87,102 @@ static void write_end_entry(FILE *out)
     fputc(END_ENTRY, out);
     fflush(out);
 }
+
+__attribute__((unused))
+static void write_trace_variables(FILE *out, size_t n_vars, ...)
+{
+    va_list ap;
+
+    va_start (ap, n_vars);
+    for (size_t i = 0; i < n_vars; i++) {
+        uint16_t name_index = va_arg(ap, int);
+        uint16_t type_index = va_arg(ap, int);
+        uint16_t size = va_arg(ap, int);
+        enum type_format format = (enum type_format)va_arg(ap, int);
+
+        fputc(VARIABLE, out);
+        fwrite(&name_index, sizeof(name_index), 1, out);
+        fwrite(&type_index, sizeof(type_index), 1, out);
+
+        /* This code is tricky because va_args are subject to standard
+         promotions: smaller integers become ints, and floats become
+         doubles. Other types are left alone.
+        */
+        switch (format) {
+        case UNSIGNED:
+        case SIGNED:
+          switch (size) {
+          case 1:
+              {
+                  char val = va_arg(ap, int);
+                  fwrite(&val, sizeof(val), 1, out);
+                  break;
+              }
+          case 2:
+              {
+                  int16_t val = va_arg(ap, int);
+                  fwrite(&val, sizeof(val), 1, out);
+                  break;
+              }
+          case 4:
+              {
+                  int32_t val = va_arg(ap, int);
+                  fwrite(&val, sizeof(val), 1, out);
+                  break;
+              }
+          case 8:
+              {
+                  int64_t val = va_arg(ap, int);
+                  fwrite(&val, sizeof(val), 1, out);
+                  break;
+              }
+          }
+          break;
+        case FLOAT:
+          if (size == 4) {
+              float val = (float)va_arg(ap, double);
+              fwrite(&val, sizeof(val), 1, out);
+              break;
+          }
+          else {
+              double val = va_arg(ap, double);
+              fwrite(&val, sizeof(val), 1, out);
+              break;
+          }
+          break;
+        case POINTER:
+            {
+                void *val = va_arg(ap, void*);
+                fwrite(&val, sizeof(val), 1, out);
+            }
+            break;
+        case BLOB:
+        case INVALID_FORMAT:
+        default:
+          break;
+        }
+    }
+}
+
+__attribute__((unused))
+static void write_trace_blobs(FILE *out, size_t n_vars, ...)
+{
+    va_list ap;
+
+    va_start (ap, n_vars);
+    for (size_t i = 0; i < n_vars; i++) {
+        uint16_t name_index = va_arg(ap, int);
+        uint16_t type_index = va_arg(ap, int);
+        uint16_t size = va_arg(ap, int);
+        void *value = va_arg(ap, void*);
+
+        fputc(VARIABLE, out);
+        fwrite(&name_index, sizeof(name_index), 1, out);
+        fwrite(&type_index, sizeof(type_index), 1, out);
+        fwrite(&size, sizeof(size), 1, out);
+        fwrite(value, size, 1, out);
+    }
+}
 "
   :test #'string=
   :documentation "C code to include in all instrumented files.")
@@ -119,15 +190,6 @@ static void write_end_entry(FILE *out)
 
 (define-constant +write-trace-impl+
   "
-enum type_format {
-    UNSIGNED,                   /* unsigned integer */
-    SIGNED,                     /* signed integer */
-    FLOAT,                      /* floating point */
-    POINTER,                    /* unsigned, interpret as address */
-    BLOB,                       /* arbitrary bytes, do not interpret */
-    INVALID_FORMAT
-};
-
 typedef struct {
     /* Index into the string dictionary which gives the name of the type. */
     uint16_t name_index;
@@ -172,65 +234,10 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
    (ast-ids :accessor ast-ids :initform nil)))
 (defclass clang-instrumenter (instrumenter) ())
 
-(defmethod get-name-index ((instrumenter instrumenter) name)
-  (or (position name (names instrumenter) :test #'string=)
-      (vector-push-extend name (names instrumenter))))
-
 (defun array-or-pointer-type (type)
   ;; array or pointer, but not array of pointers
   (xor (not (emptyp (type-array type)))
        (type-pointer type)))
-
-(defmethod get-type-index ((instrumenter clang-instrumenter) type print-strings)
-  (labels
-      ((string-type-p (type)
-         (or (string= (type-name type) "string")
-             (and (string= (type-name type) "char")
-                  (array-or-pointer-type type))))
-
-       (type-description-struct (type c-type print-strings)
-         (let ((name-index (get-name-index instrumenter c-type))
-               (unqualified-c-type (type-trace-string type :qualified nil)))
-           (cond
-             ;; String
-             ((and print-strings (string-type-p type))
-              (format nil "{~d, BLOB, 0}" name-index))
-             ;; Pointer
-             ;; Use sizeof(void*) in case underlying type is not yet declared.
-             ((or (starts-with "*" unqualified-c-type :test #'string=)
-                  (starts-with "[" unqualified-c-type :test #'string=))
-              (format nil "{~d, POINTER, sizeof(void*)}" name-index))
-             ;; Signed integers
-             ((member unqualified-c-type
-                      '("char" "int8_t" "wchar_t" "short" "int16_t" "int"
-                        "int32_t" "long" "int64_t")
-                      :test #'string=)
-              (format nil "{~d, SIGNED, sizeof(~a)}"
-                      name-index
-                      (type-decl-string type :qualified nil)))
-             ;; Unsigned integers
-             ((member unqualified-c-type
-                      '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
-                        "unsigned int" "uint32_t" "unsigned long" "uint64_t"
-                        "size_t")
-                      :test #'string=)
-              (format nil "{~d, UNSIGNED, sizeof(~a)}"
-                      name-index
-                      (type-decl-string type :qualified nil)))
-             ((string= unqualified-c-type "float")
-              (format nil "{~d, FLOAT, sizeof(float)}" name-index))
-             ((string= unqualified-c-type "double")
-              (format nil "{~d, FLOAT, sizeof(double)}" name-index))
-             ;; Otherwise no instrumentation
-             (t nil)))))
-    (let* ((c-type (type-trace-string type))
-           (type-id (cons (and print-strings (string-type-p type)) c-type)))
-      (or (position type-id (types instrumenter) :test #'equal)
-          ;; Adding new type: generate header string
-          (when-let ((description (type-description-struct type c-type
-                                                           print-strings)))
-            (vector-push-extend description (type-descriptions instrumenter))
-            (vector-push-extend type-id (types instrumenter)))))))
 
 (defmethod get-ast-id ((instrumenter instrumenter) ast)
   (gethash ast (ast-ids instrumenter)))
@@ -419,29 +426,119 @@ write_end_entry(~a);
      (format nil "fopen(getenv(~s), \"w\")" env))
     (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
 
-(defun instrument-c-expr (expr name-index type-index type print-strings)
-  "Generate C code to print the value of EXPR."
-  (cond
-    ;; C string
-    ((and print-strings
-          (array-or-pointer-type type)
-          (string= "char" (type-name type)))
-     (format nil "write_trace_blob(~a, ~d, ~d, strlen(~a), ~a);"
-             *instrument-log-variable-name*
-             name-index type-index expr expr))
+(defmethod instrument-c-exprs ((instrumenter clang-instrumenter)
+                               exprs-and-types print-strings)
+  "Generate C code to print the values of expressions.
 
-    ;; C++ string
-    ((string= "string" (type-name type))
-     (format nil
-             "write_trace_blob(~a, ~d, ~d, ~a.length(), ~a.c_str());"
-             *instrument-log-variable-name*
-             name-index type-index expr expr))
+EXPRS-AND-TYPES is a list of (string . clang-type) pairs.
 
-    ;; Normal variable
-    (t
-     (format nil "WRITE_TRACE_VARIABLE(~a, ~d, ~d, ~a);~%"
-             *instrument-log-variable-name*
-             name-index type-index expr))))
+Returns a list of strings containing C source code.
+"
+  (labels
+      ((string-type-p (type)
+         (or (string= (type-name type) "string")
+             (and (string= (type-name type) "char")
+                  (array-or-pointer-type type))))
+
+       (type-format-and-size (type print-strings)
+         (let ((unqualified-c-type (type-trace-string type :qualified nil)))
+           (cond
+             ;; String
+             ((and print-strings (string-type-p type))
+              '(:BLOB "0"))
+             ;; Pointer
+             ;; Use sizeof(void*) in case underlying type is not yet declared.
+             ((or (starts-with "*" unqualified-c-type :test #'string=)
+                  (starts-with "[" unqualified-c-type :test #'string=))
+              '(:POINTER "sizeof(void*)"))
+             ;; Signed integers
+             ((member unqualified-c-type
+                      '("char" "int8_t" "wchar_t" "short" "int16_t" "int"
+                        "int32_t" "long" "int64_t")
+                      :test #'string=)
+              (list :SIGNED (format nil "sizeof(~a)"
+                                    (type-decl-string type :qualified nil))))
+             ;; Unsigned integers
+             ((member unqualified-c-type
+                      '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
+                        "unsigned int" "uint32_t" "unsigned long" "uint64_t"
+                        "size_t")
+                      :test #'string=)
+              (list :UNSIGNED (format nil "sizeof(~a)"
+                                      (type-decl-string type :qualified nil))))
+             ((string= unqualified-c-type "float")
+              '(:FLOAT "sizeof(float)"))
+             ((string= unqualified-c-type "double")
+              '(:FLOAT "sizeof(double)"))
+             ;; Otherwise no instrumentation
+             (t '(nil nil)))))
+
+       (get-name-index (name)
+         (or (position name (names instrumenter) :test #'string=)
+             (vector-push-extend name (names instrumenter))))
+
+       (type-description-struct (c-type format size)
+         (format nil "{~a, ~a, ~a}"
+                 (get-name-index c-type)
+                 format
+                 size))
+
+       (get-type-index (type format size print-strings)
+         (let* ((c-type (type-trace-string type))
+                (type-id (cons (and print-strings (string-type-p type))
+                               c-type)))
+           (or (position type-id (types instrumenter) :test #'equal)
+               ;; Adding new type: generate header string
+               (when-let ((description (type-description-struct c-type
+                                                                format size)))
+                 (vector-push-extend description
+                                     (type-descriptions instrumenter))
+                 (vector-push-extend type-id
+                                     (types instrumenter)))))))
+
+    (iter (for (expr . type) in exprs-and-types)
+          (destructuring-bind (format size)
+              (type-format-and-size type print-strings)
+            (when format
+              (let ((type-index (get-type-index type format size print-strings))
+                    (name-index (get-name-index expr)))
+                (cond
+                  ;; C string
+                  ((and print-strings
+                        (array-or-pointer-type type)
+                        (string= "char" (type-name type)))
+                   (collect (format nil "~d, ~d, strlen(~a), ~a"
+                                    name-index type-index expr expr)
+                     into blob-snippets))
+
+                  ;; C++ string
+                  ((and print-strings
+                        (string= "string" (type-name type)))
+                   (collect (format nil
+                                    "~d, ~d, (~a).length(), (~a).c_str()"
+                                    name-index type-index expr expr)
+                     into blob-snippets))
+
+                  ;; Normal variable
+                  (t
+                   (collect
+                       (format nil "~a, ~a, ~a, ~a, ~a"
+                               name-index type-index size format expr)
+                     into var-snippets))))))
+          (finally
+           (return
+             (append (&>> var-snippets
+                          (format nil
+                                  "write_trace_variables(~a, ~d, ~{~a~^,~%~});~%"
+                                  *instrument-log-variable-name*
+                                  (length var-snippets))
+                          (list))
+                     (&>> blob-snippets
+                          (format nil
+                                  "write_trace_blobs(~a, ~d, ~{~a~^,~%~});~%"
+                                  *instrument-log-variable-name*
+                                  (length blob-snippets))
+                          (list))))))))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
   (:documentation
@@ -455,12 +552,11 @@ used to pull the variable list out of AST."))
         (when-let* ((type (find-var-type (software instrumenter) var))
                     (name (aget :name var))
                     ;; Don't instrument nameless variables
-                    (has-name (not (emptyp name)))
-                    (type-index (get-type-index instrumenter
-                                                type print-strings))
-                    (name-index (get-name-index instrumenter name)))
-          (collect (instrument-c-expr name name-index type-index type
-                                      print-strings)))))
+                    (has-name (not (emptyp name))))
+          (collect (cons name type) into names-and-types))
+        (finally
+         (return (instrument-c-exprs instrumenter names-and-types
+                                     print-strings)))))
 
 (defgeneric get-entry (software)
   (:documentation "Return the entry AST in SOFTWARE."))
