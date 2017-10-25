@@ -322,12 +322,7 @@ abst_cond() in the source text."
                             (get-vars-in-scope (software instrumenter) ast))
                     (append extra-exprs)
                     (remove nil))))
-    (iter (for (var . type) in exprs)
-          (for name-index = (get-name-index instrumenter var))
-          (for type-index = (get-type-index instrumenter type t))
-
-          (collect (instrument-c-expr var name-index type-index
-                                      type t)))))
+    (instrument-c-exprs instrumenter exprs t)))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
   "Add instrumentation before the enclosing if statement for the guard
