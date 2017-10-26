@@ -1756,9 +1756,10 @@ for successful mutation (e.g. adding includes/types/macros)"))
   obj)
 
 (defmethod clear-caches ((obj clang))
-  (with-slots (stmt-asts non-stmt-asts functions prototypes
-                         includes asts-changed-p) obj
-    (setf stmt-asts nil
+  (with-slots (asts stmt-asts non-stmt-asts functions prototypes
+                    includes asts-changed-p) obj
+    (setf asts nil
+          stmt-asts nil
           non-stmt-asts nil
           functions nil
           prototypes nil
