@@ -12,7 +12,11 @@ recommendations, and solutions to common issues.
 - [Issues and Solutions](#issues-and-solutions)
     - [`clang-mutate` is not on my path](#clang-mutate-is-not-on-my-path)
     - [Dependency on MongoDB](#dependency-on-mongodb)
+    - [Large number of test failures](#large-number-of-test-failures)
     - [Cross compilation](#cross-compilation)
+    - [CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER is undefined](#curry-compose-reader-macroslcurly-brace-reader-is-undefined)
+    - [Deleting cache files](#deleting-cache-files)
+    - [Did all unit tests pass?](#did-all-unit-tests-pass)
 - [SEL](#sel)
     - [Adding new software types](#adding-new-software-types)
     - [Adding new mutations](#adding-new-mutations)
@@ -122,11 +126,51 @@ MongoDB installation.
 > Perhaps we should move the functionality that requires MongoDB to a
 > new package.
 
+### Large number of test failures
+
+A large number of test failures usually indicates a major prerequisite
+is missing.  To debug, try the following:
+
+1. Ensure `clang` and `clang-mutate` are on your $PATH.
+2. Execute `clang -m32 -g -O0 test/etc/hello-world/hello_world.c`
+3. Execute `clang-mutate -json test/etc/hello-world/hello_world.c -- -g -O0 -m32`
+
+If any of the above fail, the unit test failure is due to an external
+tool failing.  Ensure your system can
+[compile 32-bit binaries](#cross-compilation) and consult the documentation
+for these tools to debug the issue.
+
 ### Cross compilation
 
 SEL builds 32-bit binaries for most unit tests.  To enable
 cross-compilation on 64-bit machines, execute
 `sudo apt-get install gcc-multilib g++-multilib`.
+
+### CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER is undefined
+
+This usually indicates an issue with cache files created by ASDF.
+To resolve this issue at the repl, select the `try-recompiling` restart
+or [delete cache files](#deleting-cache-files).
+
+### Deleting cache files
+
+As part of the compilation process, ASDF saves compiled files to a cache
+as described [here](http://soc.if.usp.br/manual/cl-asdf/asdf/Controlling-where-ASDF-saves-compiled-files.html).
+When dealing with some compilation issues
+([see curry-compose-reader-macros](#curry-compose-reader-macroslcurly-brace-reader-is-undefined)]),
+it may be necessary to delete the cache.  By the default, the cache
+should be located in
+`~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution`.
+To remove the cache simply execute:
+
+    rm -rf ~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution
+
+### Did all unit tests pass?
+
+If the `make check` build target shows a sequence of dots with no 'E'
+or 'X' characters, all unit tests passed.  See the
+[stefil](https://common-lisp.net/project/stefil/index-old.shtml)
+project page for more information on our unit testing framework.
 
 ## SEL
 
