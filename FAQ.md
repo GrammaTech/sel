@@ -17,6 +17,7 @@ recommendations, and solutions to common issues.
     - [CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER is undefined](#curry-compose-reader-macroslcurly-brace-reader-is-undefined)
     - [Deleting cache files](#deleting-cache-files)
     - [Did all unit tests pass?](#did-all-unit-tests-pass)
+    - [Instrumented project compilation has long duration](#instrumented-project-compilation-has-long-duration)
 - [SEL](#sel)
     - [Adding new software types](#adding-new-software-types)
     - [Adding new mutations](#adding-new-mutations)
@@ -171,6 +172,13 @@ If the `make check` build target shows a sequence of dots with no 'E'
 or 'X' characters, all unit tests passed.  See the
 [stefil](https://common-lisp.net/project/stefil/index-old.shtml)
 project page for more information on our unit testing framework.
+
+### Instrumented project compilation has long duration]
+
+Instrumentation may add thousands of lines of code to your project, leading
+to a dramatic increase in compilation time.  Using clang as your compiler
+or compiling without optimizations enabled (-O0) will often speedup
+compilation.
 
 ## SEL
 
