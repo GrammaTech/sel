@@ -418,14 +418,6 @@ write_end_entry(~a);
 
     obj))
 
-(defun file-open-str (&key file env)
-  (cond
-    (file
-     (format nil "fopen(~s, \"w\")" (namestring file)))
-    (env
-     (format nil "fopen(getenv(~s), \"w\")" env))
-    (t (error "`file-open-str' must specify :FILE or :ENV keyword."))))
-
 (defmethod instrument-c-exprs ((instrumenter clang-instrumenter)
                                exprs-and-types print-strings)
   "Generate C code to print the values of expressions.
@@ -569,14 +561,24 @@ used to pull the variable list out of AST."))
                            instrumenter)
   (assert (typep obj 'clang))
 
-  (prepend-to-genome
-   obj
-   (if contains-entry
-       ;; Object contains main(). Insert log variable definition and
-       ;; initialization function. Use the "constructor" attribute to
-       ;; run it on startup, before main() or C++ static initializers.
-       (format nil
-               "
+  (flet
+      ((file-open-str ()
+         (cond
+           (file-name
+            (format nil "fopen(~s, \"w\")" (namestring file-name)))
+           (env-name
+            (format nil "fopen(getenv(~s) ? getenv(~s) : \"/dev/null\", \"w\")"
+                    env-name env-name))
+           (t "stderr"))))
+
+    (prepend-to-genome
+     obj
+     (if contains-entry
+         ;; Object contains main(). Insert log variable definition and
+         ;; initialization function. Use the "constructor" attribute to
+         ;; run it on startup, before main() or C++ static initializers.
+         (format nil
+                 "
 FILE *~a;
 void __attribute__((constructor(101))) __bi_setup_log_file() {
   ~a = ~a;
@@ -585,21 +587,19 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   write_trace_header(~a, names, ~d, types, ~d);
 }
 "
-               *instrument-log-variable-name*
-               *instrument-log-variable-name*
-               (if (or file-name env-name)
-                   (file-open-str :file file-name :env env-name)
-                   "stderr")
-               (format nil "~{~s, ~}" (coerce (names instrumenter) 'list))
-               (format nil "~{~a, ~}"
-                       (coerce (type-descriptions instrumenter) 'list))
-               *instrument-log-variable-name*
-               (length (names instrumenter))
-               (length (types instrumenter)))
+                 *instrument-log-variable-name*
+                 *instrument-log-variable-name*
+                 (file-open-str)
+                 (format nil "~{~s, ~}" (coerce (names instrumenter) 'list))
+                 (format nil "~{~a, ~}"
+                         (coerce (type-descriptions instrumenter) 'list))
+                 *instrument-log-variable-name*
+                 (length (names instrumenter))
+                 (length (types instrumenter)))
 
-       ;; Object does not contain main. Insert extern definition of log variable.
-       (format nil "extern FILE *~a;~%"
-               *instrument-log-variable-name*)))
+         ;; Object does not contain main. Insert extern definition of log variable.
+         (format nil "extern FILE *~a;~%"
+                 *instrument-log-variable-name*))))
 
   obj)
 
