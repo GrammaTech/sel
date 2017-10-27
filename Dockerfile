@@ -1,10 +1,5 @@
 FROM docker.grammatech.com:14850/synthesis/cl:arch-linux
 
-RUN pacman --noconfirm -Syu
-
-# This is installed in a previous layer but must be removed to install
-# some of the packages in the following line.
-RUN pacman --noconfirm -R libtinfo
 RUN pacman --noconfirm -Syu graphviz texinfo pandoc libffi
 
 ENV PATH=/gt/sel/bin:$PATH
