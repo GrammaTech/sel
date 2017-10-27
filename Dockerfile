@@ -1,7 +1,5 @@
 FROM docker.grammatech.com:14850/synthesis/cl:arch-linux
 
-RUN pacman --noconfirm -Syu graphviz texinfo pandoc libffi
-
 ENV PATH=/gt/sel/bin:$PATH
 
 # Checkout the latest into the image.
