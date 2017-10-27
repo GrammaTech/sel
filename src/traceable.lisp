@@ -84,33 +84,53 @@ times."))
         (continue-collecting ()
           :report "Ignore and continue collecting traces.")))
   (unwind-protect
-       (with-temp-fifo (pipe)
-         ;; Start running the test case.
-         (let ((proc (start-test bin test-case
-                                 :env (list (cons *instrument-log-env-name*
-                                                  pipe))
-                                 :wait nil)))
-           (iter (for trace = (and (eq :running (process-status proc))
-                                   (read-trace pipe *trace-open-timeout*
-                                               :predicate predicate
-                                               :max max)))
-                 (while trace)
-                 (collect
-                     (list
-                      ;; keep :bin symbol if present
-                      (cons :input
-                            (cons (program-name test-case)
-                                  (program-args test-case)))
-                      (cons :trace trace))
-                   into traces)
-                 (finally
-                  (finish-test proc :kill-signal 15)
-                  (restart-case
-                      ;; This usually indicates a problem with the test script
-                      ;; or the instrumentation
-                      (assert (not (emptyp traces)) (test-case)
-                              "No traces collected for test case ~s" test-case)
-                    (continue-collecting ()
-                      :report "Ignore and continue collecting traces."))
-                  (return traces)))))
+    (with-temp-fifo (pipe)
+      (with-temp-file (handshake-file) ;; Start running the test case.
+        (let ((proc (start-test bin test-case
+                                :env (list (cons *instrument-log-env-name*
+                                                 pipe)
+                                           (cons *instrument-handshake-env-name*
+                                                 handshake-file))
+                                :wait nil)))
+          (flet ((handshake (&aux (sleep-time 0.1))
+                   ;; Create the handshake file, which indicates that we
+                   ;; are ready to read traces. The file contents don't
+                   ;; actually matter.
+                   (with-output-to-file (out handshake-file)
+                     (format out "ready"))
+                   (iter (for i below (/ *trace-open-timeout* sleep-time))
+                         (unless (eq :running (process-status proc))
+                           (note 3 "Test process exited")
+                           (return nil))
+
+                         ;; The instrumented process will complete the
+                         ;; handshake by deleting the file.
+                         (unless (probe-file handshake-file)
+                           (return t))
+
+                         (sleep sleep-time)
+                         (finally (note 3 "No handshake after ~d seconds"
+                                        *trace-open-timeout*)))))
+            (iter (while (handshake))
+                  (collect
+                      (list
+                       ;; keep :bin symbol if present
+                       (cons :input
+                             (cons (program-name test-case)
+                                   (program-args test-case)))
+                       (cons :trace (read-trace pipe *trace-open-timeout*
+                                                :predicate predicate
+                                                :max max)))
+                    into traces)
+                  (finally
+                   (finish-test proc :kill-signal 15)
+                   (restart-case
+                       ;; This usually indicates a problem with the
+                       ;; test script or the instrumentation
+                       (assert (not (emptyp traces)) (test-case)
+                               "No traces collected for test case ~s"
+                               test-case)
+                     (continue-collecting ()
+                       :report "Ignore and continue collecting traces."))
+                   (return traces)))))))
     (when (and delete-bin-p (probe-file bin)) (delete-file bin))))

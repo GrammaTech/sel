@@ -11,6 +11,9 @@
 (defvar *instrument-log-env-name* "__SEL_TRACE_FILE"
   "Default environment variable in which to store log file.")
 
+(defvar *instrument-handshake-env-name* "__SEL_HANDSHAKE_FILE"
+  "Default environment variable in which to store log file.")
+
 (defun ast-counters-equal (ast1 ast2)
   "Return true if ast1 and ast2 have the same counters"
   (equal (ast-counter ast1) (ast-counter ast2)))
@@ -574,13 +577,27 @@ used to pull the variable list out of AST."))
     (prepend-to-genome
      obj
      (if contains-entry
-         ;; Object contains main(). Insert log variable definition and
-         ;; initialization function. Use the "constructor" attribute to
-         ;; run it on startup, before main() or C++ static initializers.
+         ;; Object contains main(), insert setup code. The goal is to
+         ;; insert this exactly once in each executable while avoid
+         ;; link problems. It doesn't need to be in the same file as
+         ;; main() but that provides a good heuristic.
+
+         ;; The setup function uses a "constructor" attribute to run
+         ;; before any other code. It optionally performs a handshake
+         ;; with the trace collector, then opens a file to write
+         ;; traces.
          (format nil
                  "
+int unlink(const char *pathname);
+int access(const char *pathname, int mode);
+
 FILE *~a;
 void __attribute__((constructor(101))) __bi_setup_log_file() {
+  const char *handshake_file = getenv(\"~a\");
+  if (handshake_file) {
+    while (access(handshake_file, 0) != 0);
+    unlink(handshake_file);
+  }
   ~a = ~a;
   const char *names[] = {~a};
   const type_description types[] = {~a};
@@ -588,6 +605,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 }
 "
                  *instrument-log-variable-name*
+                 *instrument-handshake-env-name*
                  *instrument-log-variable-name*
                  (file-open-str)
                  (format nil "~{~s, ~}" (coerce (names instrumenter) 'list))
