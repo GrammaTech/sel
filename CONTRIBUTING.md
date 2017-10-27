@@ -7,6 +7,7 @@ Basic procedures to contribute code or documentation.
 - [Coding Standards](#coding-standards)
 - [Testing](#testing)
     - [Unit Tests](#unit-tests)
+    - [REPL in Docker image](#repl-in-docker-image)
 - [Commit Review and Merge Requests](#commit-review-and-merge-requests)
     - [Git Commit Messages](#commit-messages)
 
@@ -111,6 +112,35 @@ more information.  Stefil's integration into the REPL makes it a
 comfortable tool for test driven development (meaning defining a test
 of desired behavior before implementing the behavior, and then
 leveraging the test and fixture from the REPL during development).
+
+
+### REPL in Docker image
+
+Sometimes it is useful to run a REPL in a docker image and connect to
+that REPL from your host machine.  This allows for interactive
+debugging of error conditions which may only occur in the image.  The
+following steps will launch a docker image (in this case) for SEL, and
+connect to it from Emacs running on your host.
+
+1. Ensure you have the latest version of the image.
+
+        docker pull docker.grammatech.com:14850/synthesis/sel:arch-linux
+
+2. Launch the image using your local machine's network stack (NOTE:
+     this may pose a security risk --
+     https://docs.docker.com/articles/networking/).
+
+        docker run --net=host -e LOCAL_USER=root -it docker.grammatech.com:14850/synthesis/sel:arch-linux /bin/bash
+
+3. In the image cd into the `/gt/sel` directory and launch a swank
+    server.  (If you'll be running tests build the test artifacts as
+    well.)
+
+        make test-artifacts
+        SWANK_PORT=4005 make swank
+
+4. Connect to the swank instance running in the image from Emacs on
+    your host with `M-x slime-connect RET 127.0.0.1 RET 4005 RET`.
 
 ## Commit Review and Merge Requests
 
