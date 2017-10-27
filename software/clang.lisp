@@ -3323,14 +3323,18 @@ within a function body, return null."))
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
                '("cppcore-guidelines*"
                  "misc*"
+                 "-misc-macro-parentheses"
                  "-misc-static-assert"
                  "-misc-unused-parameters"
                  "-modernize*"
                  "performance*"
+                 "-performance-unnecessary-value-param"
                  "readability*"
                  "-readability-function-size"
                  "-readability-identifier-naming"
-                 "-readability-non-const-parameter")
+                 "-readability-non-const-parameter"
+                 "-readability-redundant-control-flow"
+                 "-readability-redundant-declaration")
                src
                (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
