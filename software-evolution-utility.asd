@@ -8,6 +8,7 @@
                osicat
                metabang-bind
                curry-compose-reader-macros
+               bordeaux-threads
                cl-arrows
                iterate
                split-sequence

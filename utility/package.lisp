@@ -7,6 +7,7 @@
    :osicat-posix
    :metabang-bind
    :curry-compose-reader-macros
+   :bordeaux-threads
    :iterate
    :split-sequence
    :trivial-shell
