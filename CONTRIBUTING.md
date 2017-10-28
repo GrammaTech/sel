@@ -142,6 +142,29 @@ connect to it from Emacs running on your host.
 4. Connect to the swank instance running in the image from Emacs on
     your host with `M-x slime-connect RET 127.0.0.1 RET 4005 RET`.
 
+Alternately, you can build the sel docker image locally, and then
+connect to it.
+
+1. Build the image locally.
+
+        sed 's/CI_COMMIT_SHA/master/' Dockerfile > Dockerfile.tmp
+        docker build -f Dockerfile.tmp .
+
+2. Run swank in the resulting image (where `${IMAGE_HASH}` is the hash
+    of the image built in step 1 printed to STDOUT at the end of the
+    build).
+
+        docker run --net=host -e LOCAL_USER=root -it ${IMAGE_HASH} \
+              /bin/bash -c "cd /gt/sel && SWANK_PORT=4005 make swank"
+
+    The options have the following effects.
+    - `--net=host` runs the image on the host's network stack
+    - `-it` run the image interactive so it keeps running after swank
+         is launched
+
+3. Connect to the swank instance running in the image from Emacs on
+    your host with `M-x slime-connect RET 127.0.0.1 RET 4005 RET`.
+
 ## Commit Review and Merge Requests
 
 All changes should go through a merge request before landing in the
