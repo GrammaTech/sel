@@ -16,6 +16,7 @@
    :cl-dot
    :diff)
   (:shadow :quit :read)
+  (:shadowing-import-from :trivial-shell :with-timeout)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :alexandria
