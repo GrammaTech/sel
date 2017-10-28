@@ -14,4 +14,6 @@ RUN mkdir -p /gt/sel && \
     git checkout CI_COMMIT_SHA && \
     make
 
+WORKDIR /gt/sel
+
 CMD /bin/bash
