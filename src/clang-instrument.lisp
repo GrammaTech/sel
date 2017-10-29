@@ -413,8 +413,8 @@ write_end_entry(~a);
           (remove-if-not #'cdr points))
     (initialize-tracing obj trace-file trace-env entry instrumenter)
     (when entry
-      (prepend-to-genome obj +write-trace-impl+))
-    (prepend-to-genome obj +write-trace-include+)
+      (setf (genome obj) (format nil "~a~%~a" +write-trace-impl+ (genome obj))))
+    (setf (genome obj) (format nil "~a~%~a" +write-trace-include+ (genome obj)))
 
     (when postprocess-functions
       (mapcar {funcall _ obj} postprocess-functions))
@@ -574,24 +574,21 @@ used to pull the variable list out of AST."))
                     env-name env-name))
            (t "stderr"))))
 
-    (prepend-to-genome
-     obj
-     (if contains-entry
-         ;; Object contains main(), insert setup code. The goal is to
-         ;; insert this exactly once in each executable while avoid
-         ;; link problems. It doesn't need to be in the same file as
-         ;; main() but that provides a good heuristic.
+    (if contains-entry
+        ;; Object contains main() so insert setup code. The goal is to
+        ;; insert this exactly once in each executable while avoiding
+        ;; link problems. It doesn't need to be in the same file as
+        ;; main() but that provides a good heuristic.
 
-         ;; The setup function uses a "constructor" attribute to run
-         ;; before any other code. It optionally performs a handshake
-         ;; with the trace collector, then opens a file to write
-         ;; traces.
-         (format nil
-                 "
-int unlink(const char *pathname);
-int access(const char *pathname, int mode);
-
-FILE *~a;
+        ;; The setup function uses a "constructor" attribute to run
+        ;; before any other code. It optionally performs a handshake
+        ;; with the trace collector, then opens the trace file and
+        ;; writes the header.
+        (setf (genome obj)
+              (format nil "
+FILE * ~a;
+~a
+#include <unistd.h>
 void __attribute__((constructor(101))) __bi_setup_log_file() {
   const char *handshake_file = getenv(\"~a\");
   if (handshake_file) {
@@ -599,26 +596,27 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
     unlink(handshake_file);
   }
   ~a = ~a;
-  const char *names[] = {~a};
-  const type_description types[] = {~a};
+  const char *names[] = {~{~s, ~}};
+  const type_description types[] = {~{~a, ~}};
   write_trace_header(~a, names, ~d, types, ~d);
 }
 "
-                 *instrument-log-variable-name*
-                 *instrument-handshake-env-name*
-                 *instrument-log-variable-name*
-                 (file-open-str)
-                 (format nil "~{~s, ~}" (coerce (names instrumenter) 'list))
-                 (format nil "~{~a, ~}"
-                         (coerce (type-descriptions instrumenter) 'list))
-                 *instrument-log-variable-name*
-                 (length (names instrumenter))
-                 (length (types instrumenter)))
+                      *instrument-log-variable-name*
+                      (genome obj)
+                      *instrument-handshake-env-name*
+                      *instrument-log-variable-name*
+                      (file-open-str)
+                      (coerce (names instrumenter) 'list)
+                      (coerce (type-descriptions instrumenter) 'list)
+                      *instrument-log-variable-name*
+                      (length (names instrumenter))
+                      (length (types instrumenter))))
 
-         ;; Object does not contain main. Insert extern definition of log variable.
-         (format nil "extern FILE *~a;~%"
-                 *instrument-log-variable-name*))))
-
+        ;; Object does not contain main. Insert extern definition of
+        ;; log variable.
+         (prepend-to-genome obj
+                            (format nil "extern FILE *~a;~%"
+                                    *instrument-log-variable-name*))))
   obj)
 
 
