@@ -27,6 +27,7 @@
 *.docx
 *.snm
 *.toc
+*.tmp
 *.vrb
 *.svg
 *.html
