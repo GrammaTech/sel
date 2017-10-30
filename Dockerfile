@@ -1,10 +1,13 @@
-FROM docker.grammatech.com:14850/synthesis/cl
+FROM docker.grammatech.com:14850/synthesis/cl:arch-linux
 
-RUN apt-get -y update && \
-    apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev
+RUN pacman --noconfirm -Syu
 
-ENV PATH=/gt/sel/bin:$PATH \
-    GT_DOCKER_CHOWN_PATHS=""
+# This is installed in a previous layer but must be removed to install
+# some of the packages in the following line.
+RUN pacman --noconfirm -R libtinfo
+RUN pacman --noconfirm -Syu graphviz texinfo pandoc libffi
+
+ENV PATH=/gt/sel/bin:$PATH
 
 # Checkout the latest into the image.
 # Include the hash in command so it is not cached.
