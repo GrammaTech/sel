@@ -794,7 +794,7 @@
                   (iter (for i below 6)
                     (collecting
                      (make-instance 'test-case
-                       :program-name (namestring (fl-tiny-dir "fitness.py"))
+                       :program-name (namestring (fl-tiny-dir "fitness.sh"))
                        :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
@@ -810,7 +810,7 @@
                   (iter (for i below 6)
                     (collecting
                      (make-instance 'test-case
-                       :program-name (namestring (cs-tiny-dir "fitness.py"))
+                       :program-name (namestring (cs-tiny-dir "fitness.sh"))
                        :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
@@ -826,7 +826,7 @@
                   (iter (for i below 6)
                     (collecting
                      (make-instance 'test-case
-                       :program-name (namestring (cs-tighten-dir "fitness.py"))
+                       :program-name (namestring (cs-tighten-dir "fitness.sh"))
                        :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
@@ -842,7 +842,7 @@
                   (iter (for i below 8)
                     (collecting
                      (make-instance 'test-case
-                       :program-name (namestring (cs-add-guard-dir "fitness.py"))
+                       :program-name (namestring (cs-add-guard-dir "fitness.sh"))
                        :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)
@@ -858,7 +858,7 @@
                   (iter (for i below 5)
                     (collecting
                      (make-instance 'test-case
-                       :program-name (namestring (cs-divide-dir "fitness.py"))
+                       :program-name (namestring (cs-divide-dir "fitness.sh"))
                        :program-args (list :bin (write-to-string i))))))))
   (:teardown
    (setf *soft* nil)

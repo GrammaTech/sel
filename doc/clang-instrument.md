@@ -93,7 +93,7 @@ The following example shell code may be used to directly compress
 trace output before it hits the disk.  This is often useful as trace
 can produce large volumes of highly repetitive output.
 
-    #!/bin/sh
+    #!/bin/bash
     PROG=$1
     PIPE=$PROG.trace
 
