@@ -31,7 +31,7 @@ run-everything:
           docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
       elif [ "$CI_BUILD_REF_NAME" = "arch-linux" ];
       then
-          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check";
+          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check-testbot";
           docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
           docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
       else
