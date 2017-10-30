@@ -12,7 +12,13 @@ stages:
 run-everything:
   stage: build-test-and-tag
   script:
-    - docker pull $DOCKER_REGISTRY/synthesis/cl:latest
+    - if [ "$CI_BUILD_REF_NAME" = "arch-linux" ];
+      then
+          docker pull $DOCKER_REGISTRY/synthesis/cl:$CI_BUILD_REF_NAME;
+      else
+          docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
+      fi
+
     - cat Dockerfile|sed "s/CI_COMMIT_SHA/$CI_COMMIT_SHA/" > Dockerfile.tmp
     - docker build -f Dockerfile.tmp -t $LOCAL_IMAGE_NAME .
 
