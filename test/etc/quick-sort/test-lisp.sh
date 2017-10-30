@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # $1 = EXE 
 # $2 = test name  
 # exit 0 = success
