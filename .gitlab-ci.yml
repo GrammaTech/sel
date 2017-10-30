@@ -13,19 +13,26 @@ stages:
 build_image:
   stage: build
   script:
-    - docker pull $DOCKER_REGISTRY/synthesis/cl:latest
-    - make -C docker $CI_PROJECT_NAME
+    - if [ "$CI_BUILD_REF_NAME" = "arch-linux" ];
+      then
+          docker pull $DOCKER_REGISTRY/synthesis/cl:$CI_BUILD_REF_NAME;
+      else
+          docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
+      fi
 
-test_image:
-  stage: test
-  script:
-    - docker run $LOCAL_IMAGE_NAME /bin/bash -c "cd sel && make check"
+    - cat Dockerfile|sed "s/CI_COMMIT_SHA/$CI_COMMIT_SHA/" > Dockerfile.tmp
+    - docker build -f Dockerfile.tmp -t $LOCAL_IMAGE_NAME .
 
-tag_image:
-  stage: tag
-  script:
-    - docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
-    - docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME
+    # If on master branch, push test results to DataManager and push
+    # up a new "latest" image, otherwise, run locally.
+    - if [ "$CI_BUILD_REF_NAME" = "master" ];
+      then
+          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check-testbot";
+          docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+          docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+      else
+          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check";
+      fi
 
     # Cleanup local image.
     - docker rmi -f $LOCAL_IMAGE_NAME
