@@ -311,15 +311,28 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
             ;; clang-mutate can produce siblings with overlapping source
             ;; ranges. In this case, move one sibling into the child list of the
             ;; other. See the typedef-workaround test for an example.
+            ;;
+            ;; NOTE: This next bit of code may be too clever by half.
+            ;;       It holds a pointer named `prev' into the most
+            ;;       recently collected `c'.  It then mutates the
+            ;;       previously collected `c' based on processing of
+            ;;       the subsequent `c' in the list.  Because of the
+            ;;       mechanics of `(setf aget)' this only actually
+            ;;       adds to the :children element of a list of that
+            ;;       element exists *before* the setf call.  Hence the
+            ;;       necessity for the `(unless (assoc :children c) ...)'
+            ;;       bit before collecting `c'.
             (iter (for c in children)
                   (with prev)
                   (if (and prev
                            (< (aget :begin-off c) (aget :end-off prev)))
-                      (progn
-                        (setf (aget :end-off prev) (max (aget :end-off prev)
-                                                        (aget :end-off c)))
-                        (push (aget :counter c) (aget :children prev)))
-                      (progn (setf prev c)
+                      (progn (setf (aget :end-off prev)
+                                   (max (aget :end-off prev)
+                                        (aget :end-off c)))
+                             (push (aget :counter c) (aget :children prev)))
+                      (progn (unless (assoc :children c)
+                               (setf c (cons (list :children) c)))
+                             (setf prev c)
                              (collect c))))))
         (make-children (ast child-asts)
           (let ((start (begin-offset ast)))
@@ -1681,14 +1694,13 @@ for successful mutation (e.g. adding includes/types/macros)"))
                         (nullify-asts ()
                           :report "Nullify the clang software object."
                           nil)))
-          (cond ((and (assoc :hash ast)
-                      (assoc :reqs ast)
-                      (assoc :type ast))
+          (cond ((and (aget :hash ast)
+                      (aget :type ast))
                   ;; Types
                   (collect (snippet->clang-type ast) into m-types))
-                ((and (assoc :name ast)
-                      (assoc :body ast)
-                      (assoc :hash ast))
+                ((and (aget :name ast)
+                      (aget :body ast)
+                      (aget :hash ast))
                  ;; Macros
                  (collect (snippet->clang-macro ast) into m-macros))
                  ;; ASTs
