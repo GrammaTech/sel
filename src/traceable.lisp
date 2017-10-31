@@ -43,8 +43,13 @@ PREDICATE MAX and BIN keyword arguments."))
                                   :text "Unable to compile software."
                                   :obj obj
                                   :bin bin)))
-        (ignore-empty-trace ()
-          :report "Ignore and continue collecting traces.")))
+        (skip-trace-collection ()
+          :report "Skip trace collection and leave object unchanged."
+          (return-from collect-traces nil))
+        (nil-traces ()
+          :report "Set object traces to NIL and continue."
+          (setf (traces obj) (repeatedly (length (test-cases test-suite)) nil))
+          (return-from collect-traces nil))))
   (unwind-protect
        (setf (traces obj)
              (mappend
@@ -79,8 +84,9 @@ times."))
                                    :text "Unable to compile software."
                                    :obj obj
                                    :bin bin)))
-        (ignore-empty-trace ()
-          :report "Ignore empty trace.")))
+        (skip-test-case ()
+          :report "Skip trace collection for test case and return NIL."
+          (return-from collect-trace nil))))
   (unwind-protect
     (with-temp-fifo (pipe)
       (with-temp-file (handshake-file) ;; Start running the test case.
