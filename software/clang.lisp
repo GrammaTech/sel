@@ -3467,10 +3467,6 @@ within a function body, return null."))
 (defun replace-fields-in-snippet (snippet field-replacement-pairs)
   "Given a snippet and an association list in the form ((:field . <value>))
 replace the entries in the snippet with the given values."
-  (loop :for pair
-        :in field-replacement-pairs
-        :do (let ((field (car pair))
-                  (replacement (cdr pair)))
-              (setf (cdr (assoc field snippet))
-                    replacement)))
+  (mapc (lambda (pair) (setf (aget (car pair) snippet) (cdr pair)))
+        field-replacement-pairs)
   snippet)
