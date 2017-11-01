@@ -16,7 +16,8 @@
                uuid
                testbot
                libtrace
-               trivial-shell)
+               trivial-shell
+               uiop)
   :components
   ((:module test
             :pathname "test/src"
