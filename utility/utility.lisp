@@ -209,35 +209,6 @@ and an optional extension."
                         (if (listp s) s (list s)))
                       specs) body)))
 
-(defun open-file-timeout (filename seconds &rest kwargs)
-  "Try to open file, but give up after waiting SECONDS.
-KWARGS are passed on to the OPEN call."
-  (let ((start (get-internal-real-time))
-        (thread (bordeaux-threads:make-thread
-                 (lambda ()
-                   (handler-case
-                       (apply #'cl:open filename #+ccl :sharing #+ccl :external
-                              kwargs)
-                     ;; Catch errors and return the condition to the main thread
-                     (error (condition) condition))))))
-    (iter (while (bordeaux-threads:thread-alive-p thread))
-          (let ((remaining (- seconds
-                              (/ (- (get-internal-real-time) start)
-                                 internal-time-units-per-second))))
-            (if (positive-real-p remaining)
-                (cl:sleep (min 0.1 remaining))
-                (progn (bordeaux-threads:destroy-thread thread)
-                       (finish))))
-          (finally
-           (when-let ((result (handler-case
-                                  (bordeaux-threads:join-thread thread)
-                                ;; Joining an aborted thread fails on SBCL
-                                #+sbcl (sb-thread:join-thread-error () nil))))
-             ;; Raise errors in the main thread
-             (if (typep result 'error)
-                 (error result)
-                 (return result)))))))
-
 (defun ensure-path-is-string (path)
   (cond
     ((stringp path) path)
