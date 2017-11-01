@@ -266,11 +266,6 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
        (postprocess-functions (list #'clang-format)) (filter #'identity))
-  ;; Default value for TRACE-ENV is `*instrument-log-env-name*'.  This
-  ;; allows users to specify tracing from the environment without
-  ;; having to export this above value (which we'd prefer not be
-  ;; modified as it's assumed elsewhere).
-  (when (eq trace-env t) (setf trace-env *instrument-log-env-name*))
   (let* ((obj (software instrumenter))
          (entry (get-entry obj))
         ;; Promote every counter key in POINTS to the enclosing full
@@ -567,15 +562,24 @@ used to pull the variable list out of AST."))
                            instrumenter)
   (assert (typep obj 'clang))
 
-  (flet
-      ((file-open-str ()
-         (cond
-           (file-name
-            (format nil "fopen(~s, \"w\")" (namestring file-name)))
-           (env-name
-            (format nil "fopen(getenv(~s) ? getenv(~s) : \"/dev/null\", \"w\")"
-                    env-name env-name))
-           (t "stderr"))))
+  (labels ((file-open-str ()
+             ;; Default value for ENV-NAME is `*instrument-log-env-name*'.  This
+             ;; allows users to specify tracing from the environment without
+             ;; having to export this above value (which we'd prefer not be
+             ;; modified as it's assumed elsewhere).
+             (cond
+               (file-name
+                (format nil "fopen(~s, \"w\")" (namestring file-name)))
+               (env-name
+                (format nil "fopen(getenv(~s) ? getenv(~s) : \"/dev/null\", ~
+                             \"w\")"
+                        (if (eq t env-name)
+                            (namestring *instrument-log-env-name*)
+                            (namestring env-name))
+                        (if (eq t env-name)
+                            (namestring *instrument-log-env-name*)
+                            (namestring env-name))))
+               (t "stderr"))))
 
     (if contains-entry
         ;; Object contains main() so insert setup code. The goal is to
