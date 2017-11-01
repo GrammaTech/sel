@@ -411,11 +411,14 @@ write_end_entry(~a);
     (mapc (lambda (point)
             (warn "No insertion point found for point ~a." point))
           (remove-if-not #'cdr points))
+
+    ;; Add support code for tracing to obj
     (initialize-tracing obj trace-file trace-env entry instrumenter)
     (when entry
       (setf (genome obj) (format nil "~a~%~a" +write-trace-impl+ (genome obj))))
     (setf (genome obj) (format nil "~a~%~a" +write-trace-include+ (genome obj)))
 
+    ;; Perform any post-procesing
     (when postprocess-functions
       (mapcar {funcall _ obj} postprocess-functions))
 
