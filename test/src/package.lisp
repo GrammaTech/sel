@@ -16,12 +16,19 @@
    :software-evolution-utility
    :testbot
    :libtrace
-   :trivial-shell)
+   :trivial-shell
+   :uiop)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
+  (:shadowing-import-from :uiop :getenv :quit)
+  (:shadowing-import-from
+   :alexandria
+   :appendf :ensure-list :featurep :emptyp
+   :if-let :ensure-function :ensure-gethash :copy-file
+   :parse-body :simple-style-warning)
   (:export :test :batch-test :testbot-test))
 #+allegro
 (set-dispatch-macro-character #\# #\_

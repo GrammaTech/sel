@@ -5048,6 +5048,25 @@ prints unique counters in the trace"
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
+(define-software collect-traces-handles-directory-phenomes-mock
+    (se::ast se::traceable)
+  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :copier :direct)))
+
+(defmethod phenome ((obj collect-traces-handles-directory-phenomes-mock)
+                    &key (bin (temp-file-name)))
+  (let ((dir (ensure-directory-pathname bin)))
+    (setf (phenome-dir obj) dir)
+    (ensure-directories-exist dir)))
+
+(deftest collect-traces-handles-directory-phenomes ()
+  (let ((obj (make-instance 'collect-traces-handles-directory-phenomes-mock)))
+    (handler-bind ((trace-error (lambda (c)
+                                  (declare (ignorable c))
+                                  (invoke-restart 'se::ignore-empty-trace))))
+      (collect-traces obj (make-instance 'test-suite)))
+    (is (not (probe-file (phenome-dir obj)))
+        "collect-traces did not remove a phenome directory")))
+
 
 ;;;; Tests of declaration and type databases on clang objects
 (in-suite test)
