@@ -116,15 +116,15 @@ times."))
                          (finally (note 3 "No handshake after ~d seconds"
                                         *trace-open-timeout*)))))
             (iter (while (handshake))
-                  (collect
-                      (list
-                       ;; keep :bin symbol if present
-                       (cons :input
-                             (cons (program-name test-case)
-                                   (program-args test-case)))
-                       (cons :trace (read-trace pipe *trace-open-timeout*
-                                                :predicate predicate
-                                                :max max)))
+                  (collect (list ;; keep :bin symbol if present
+                                 (cons :input
+                                       (cons (program-name test-case)
+                                             (program-args test-case)))
+                                 (cons :trace
+                                       (read-trace pipe
+                                                   *trace-open-timeout*
+                                                   :predicate predicate
+                                                   :max max)))
                     into traces)
                   (finally
                    (finish-test proc :kill-signal 15)
