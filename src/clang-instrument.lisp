@@ -631,9 +631,10 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 
         ;; Object does not contain main. Insert extern definition of
         ;; log variable.
-        (prepend-to-genome obj
-                           (format nil "extern FILE *~a;~%"
-                                   *instrument-log-variable-name*))))
+        (setf (genome obj)
+              (format nil "extern FILE *~a;~%~a"
+                      *instrument-log-variable-name*
+                      (genome obj)))))
   obj)
 
 
