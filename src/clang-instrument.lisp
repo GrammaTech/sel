@@ -422,6 +422,58 @@ write_end_entry(~a);
 
     obj))
 
+(defmethod instrument ((clang-project clang-project) &rest args)
+  "Instrument a project. Arguments are passed through to instrument on
+the underlying software objects."
+  (let ((instrumenter (make-instance 'clang-instrumenter))
+        (files (if (current-file clang-project)
+                   (list (current-file clang-project))
+                   (mapcar #'cdr (evolve-files clang-project)))))
+    (labels
+        ((check-ids (file-id ast-id)
+           (assert (< file-id (ash 1 +trace-id-file-bits+)))
+           (assert (< ast-id (ash 1 +trace-id-statement-bits+))))
+         (instrument-file (obj index)
+           ;; Send object through clang-mutate to get accurate counters
+           (update-asts obj)
+           (setf (software instrumenter) obj)
+
+           ;; Set AST ids for new file
+           (setf (ast-ids instrumenter) (make-ast-ht))
+           (iter (for ast in (asts obj))
+                 (for ast-i upfrom 0)
+                 (check-ids index ast-i)
+                 (setf (gethash ast (ast-ids instrumenter))
+                       (logior (ash 1 31)                            ; flag bit
+                               (ash index +trace-id-statement-bits+) ; file ID
+                               ast-i)))                              ; AST ID
+           (apply #'instrument instrumenter args)))
+
+      ;; Fully instrument evolve-files
+      ;; Defer any files with main() to the end, because they need
+      ;; code for trace headers which depends on the instrumentation
+      ;; of other files.
+      (iter (for obj in (append (remove-if {get-entry} files)
+                                (remove-if-not {get-entry} files)))
+            (for i upfrom 0)
+            (instrument-file obj i))
+
+      ;; Insert log setup code in other-files
+      (iter (for obj in (mapcar #'cdr (other-files clang-project)))
+            (setf (software instrumenter) obj)
+            (when-let ((entry (get-entry obj)))
+              (initialize-tracing obj
+                                  (plist-get :trace-file args)
+                                  (plist-get :trace-env args)
+                                  entry
+                                  instrumenter)
+              (setf (genome obj) (format nil "~a~%~a~%~a"
+                                             +write-trace-include+
+                                             +write-trace-impl+
+                                             (genome obj)))))))
+
+  clang-project)
+
 (defmethod instrument-c-exprs ((instrumenter clang-instrumenter)
                                exprs-and-types print-strings)
   "Generate C code to print the values of expressions.
@@ -762,53 +814,3 @@ Built with ~a version ~a.~%"
       (with-open-file
           (out dest :direction :output :if-exists :supersede)
         (genome-string instrumented out)))))
-
-(defmethod instrument ((clang-project clang-project) &rest args)
-  "Instrument a project. Arguments are passed through to instrument on
-the underlying software objects."
-  (let ((instrumenter (make-instance 'clang-instrumenter))
-        (files (if (current-file clang-project)
-                   (list (current-file clang-project))
-                   (mapcar #'cdr (evolve-files clang-project)))))
-    (labels
-        ((check-ids (file-id ast-id)
-           (assert (< file-id (ash 1 +trace-id-file-bits+)))
-           (assert (< ast-id (ash 1 +trace-id-statement-bits+))))
-         (instrument-file (obj index)
-           ;; Send object through clang-mutate to get accurate counters
-           (update-asts obj)
-           (setf (software instrumenter) obj)
-
-           ;; Set AST ids for new file
-           (setf (ast-ids instrumenter) (make-ast-ht))
-           (iter (for ast in (asts obj))
-                 (for ast-i upfrom 0)
-                 (check-ids index ast-i)
-                 (setf (gethash ast (ast-ids instrumenter))
-                       (logior (ash 1 31)                            ; flag bit
-                               (ash index +trace-id-statement-bits+) ; file ID
-                               ast-i)))                              ; AST ID
-           (apply #'instrument instrumenter args)))
-
-      ;; Fully instrument evolve-files
-      ;; Defer any files with main() to the end, because they need
-      ;; code for trace headers which depends on the instrumentation
-      ;; of other files.
-      (iter (for obj in (append (remove-if {get-entry} files)
-                                (remove-if-not {get-entry} files)))
-            (for i upfrom 0)
-            (instrument-file obj i))
-
-      ;; Insert log setup code in other-files
-      (iter (for obj in (mapcar #'cdr (other-files clang-project)))
-            (setf (software instrumenter) obj)
-            (when-let ((entry (get-entry obj)))
-              (prepend-to-genome obj +write-trace-impl+)
-              (initialize-tracing obj
-                                  (plist-get :trace-file args)
-                                  (plist-get :trace-env args)
-                                  entry
-                                  instrumenter)
-              (prepend-to-genome obj +write-trace-include+)))))
-
-  clang-project)
