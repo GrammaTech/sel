@@ -586,7 +586,7 @@ used to pull the variable list out of AST."))
         ;; writes the header.
         (setf (genome obj)
               (format nil "
-FILE * ~a;
+FILE *~a;
 ~a
 #include <unistd.h>
 void __attribute__((constructor(101))) __bi_setup_log_file() {
