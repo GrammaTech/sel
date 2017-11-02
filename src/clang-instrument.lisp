@@ -229,11 +229,11 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
 (defclass instrumenter ()
   ((software :accessor software :initarg :software :initform nil)
    (names :accessor names
-          :initform (make-array 16 :fill-pointer 0 :adjustable t))
+          :initform (make-hash-table :test #'equal))
    (types :accessor types
-          :initform (make-array 16 :fill-pointer 0 :adjustable t))
+          :initform (make-hash-table :test #'equal))
    (type-descriptions :accessor type-descriptions
-          :initform (make-array 16 :fill-pointer 0 :adjustable t))
+          :initform (make-hash-table :test #'equal))
    (ast-ids :accessor ast-ids :initform nil)))
 (defclass clang-instrumenter (instrumenter) ())
 
@@ -467,8 +467,9 @@ Returns a list of strings containing C source code.
              (t '(nil nil)))))
 
        (get-name-index (name)
-         (or (position name (names instrumenter) :test #'string=)
-             (vector-push-extend name (names instrumenter))))
+         (or (gethash name (names instrumenter))
+             (setf (gethash name (names instrumenter))
+                   (hash-table-count (names instrumenter)))))
 
        (type-description-struct (c-type format size)
          (format nil "{~a, ~a, ~a}"
@@ -480,14 +481,13 @@ Returns a list of strings containing C source code.
          (let* ((c-type (type-trace-string type))
                 (type-id (cons (and print-strings (string-type-p type))
                                c-type)))
-           (or (position type-id (types instrumenter) :test #'equal)
-               ;; Adding new type: generate header string
-               (when-let ((description (type-description-struct c-type
-                                                                format size)))
-                 (vector-push-extend description
-                                     (type-descriptions instrumenter))
-                 (vector-push-extend type-id
-                                     (types instrumenter)))))))
+           (or (gethash type-id (types instrumenter))
+               (progn
+                 ;; Adding new type: generate header string
+                 (setf (gethash type-id (type-descriptions instrumenter))
+                       (type-description-struct c-type format size))
+                 (setf (gethash type-id (types instrumenter))
+                       (hash-table-count (types instrumenter))))))))
 
     (iter (for (expr . type) in exprs-and-types)
           (destructuring-bind (format size)
@@ -613,11 +613,18 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                       *instrument-handshake-env-name*
                       *instrument-log-variable-name*
                       (file-open-str)
-                      (coerce (names instrumenter) 'list)
-                      (coerce (type-descriptions instrumenter) 'list)
+                      (-<>> (names instrumenter)
+                            (hash-table-alist)
+                            (sort <> #'< :key #'cdr)
+                            (mapcar #'car))
+                      (-<>> (type-descriptions instrumenter)
+                            (hash-table-alist)
+                            (sort <> #'< :key [{gethash _ (types instrumenter)}
+                                               #'car])
+                            (mapcar #'cdr))
                       *instrument-log-variable-name*
-                      (length (names instrumenter))
-                      (length (types instrumenter))))
+                      (hash-table-count (names instrumenter))
+                      (hash-table-count (types instrumenter))))
 
         ;; Object does not contain main. Insert extern definition of
         ;; log variable.
