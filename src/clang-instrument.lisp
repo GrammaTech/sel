@@ -793,23 +793,21 @@ the underlying software objects."
       ;; Defer any files with main() to the end, because they need
       ;; code for trace headers which depends on the instrumentation
       ;; of other files.
-      (iter (for obj in files)
+      (iter (for obj in (append (remove-if {get-entry} files)
+                                (remove-if-not {get-entry} files)))
             (for i upfrom 0)
-            (unless (get-entry obj) (instrument-file obj i)))
-      (iter (for obj in files)
-            (for i upfrom 0)
-            (when (get-entry obj) (instrument-file obj i))))
+            (instrument-file obj i))
 
-    ;; Insert log setup code in other-files
-    (iter (for obj in (mapcar #'cdr (other-files clang-project)))
-          (setf (software instrumenter) obj)
-          (when-let ((entry (get-entry obj)))
-            (prepend-to-genome obj +write-trace-impl+)
-            (initialize-tracing obj
-                                (plist-get :trace-file args)
-                                (plist-get :trace-env args)
-                                entry
-                                instrumenter)
-            (prepend-to-genome obj +write-trace-include+))))
+      ;; Insert log setup code in other-files
+      (iter (for obj in (mapcar #'cdr (other-files clang-project)))
+            (setf (software instrumenter) obj)
+            (when-let ((entry (get-entry obj)))
+              (prepend-to-genome obj +write-trace-impl+)
+              (initialize-tracing obj
+                                  (plist-get :trace-file args)
+                                  (plist-get :trace-env args)
+                                  entry
+                                  instrumenter)
+              (prepend-to-genome obj +write-trace-include+)))))
 
   clang-project)
