@@ -4980,10 +4980,10 @@ prints unique counters in the trace"
             (is (not (emptyp trace)))
             (is (every «and {aget :c} {aget :f}» trace))
             (is (some «and [{equalp '(#("x" "int" 0))} {aget :scopes}]
-                           [{eq 1} {aget :f}]»
+                           [{eq 0} {aget :f}]»
                     trace))
             (is (some «and [{equalp '(#("y" "int" 1))} {aget :scopes}]
-                           [{eq 0} {aget :f}]»
+                           [{eq 1} {aget :f}]»
                     trace))))))))
 
 (deftest instrumentation-skips-nameless-variable ()

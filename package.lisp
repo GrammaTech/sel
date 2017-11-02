@@ -138,6 +138,7 @@
    :compiler
    :prototypes
    :functions
+   :get-entry
    :asts
    :stmt-asts
    :non-stmt-asts
