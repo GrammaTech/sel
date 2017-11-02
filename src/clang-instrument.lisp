@@ -95,9 +95,10 @@ __attribute__((unused))
 static void write_trace_variables(FILE *out, size_t n_vars, ...)
 {
     va_list ap;
+    size_t i;
 
     va_start (ap, n_vars);
-    for (size_t i = 0; i < n_vars; i++) {
+    for (i = 0; i < n_vars; i++) {
         uint16_t name_index = va_arg(ap, int);
         uint16_t type_index = va_arg(ap, int);
         uint16_t size = va_arg(ap, int);
@@ -171,9 +172,10 @@ __attribute__((unused))
 static void write_trace_blobs(FILE *out, size_t n_vars, ...)
 {
     va_list ap;
+    size_t i;
 
     va_start (ap, n_vars);
-    for (size_t i = 0; i < n_vars; i++) {
+    for (i = 0; i < n_vars; i++) {
         uint16_t name_index = va_arg(ap, int);
         uint16_t type_index = va_arg(ap, int);
         uint16_t size = va_arg(ap, int);
@@ -208,12 +210,13 @@ void write_trace_header(FILE *out, const char **names, uint16_t n_names,
 {
     /* Dictionary of names, as a sequence of NULL-terminated strings */
     uint16_t total_size = 0;
-    for (uint16_t i = 0; i < n_names; i++) {
+    uint16_t i = 0;
+    for (i = 0; i < n_names; i++) {
         total_size += strlen(names[i]) + 1;
     }
     fwrite(&total_size, sizeof(total_size), 1, out);
 
-    for (uint16_t i = 0; i < n_names; i++) {
+    for (i = 0; i < n_names; i++) {
         fputs(names[i], out);
         fputc(0, out);
     }
