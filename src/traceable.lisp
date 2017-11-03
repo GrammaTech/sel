@@ -52,10 +52,9 @@ PREDICATE MAX and BIN keyword arguments."))
           (return-from collect-traces nil))))
   (unwind-protect
        (setf (traces obj)
-             (mappend
-               (lambda-bind ((i test-case))
-                 (apply #'collect-trace obj test-case args))
-               (indexed (test-cases test-suite))))
+             (mappend (lambda (test-case)
+                        (apply #'collect-trace obj test-case args))
+                      (test-cases test-suite)))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
       (if (uiop:directory-pathname-p probe)
           (uiop:delete-directory-tree probe :validate #'probe-file)
