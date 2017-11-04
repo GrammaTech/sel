@@ -98,13 +98,15 @@ times."))
                                            (cons *instrument-handshake-env-name*
                                                  handshake-file))
                                 :wait nil)))
-          (flet ((handshake (&aux (sleep-time 0.1))
+          (flet ((handshake (&aux (start-time (get-internal-real-time)))
                    ;; Create the handshake file, which indicates that we
                    ;; are ready to read traces. The file contents don't
                    ;; actually matter.
                    (with-output-to-file (out handshake-file)
                      (format out "ready"))
-                   (iter (for i below (/ *trace-open-timeout* sleep-time))
+                   (iter (while (< (/ (- (get-internal-real-time) start-time)
+                                      internal-time-units-per-second)
+                                   *trace-open-timeout*))
                          (unless (eq :running (process-status proc))
                            (note 3 "Test process exited")
                            (return nil))
@@ -114,7 +116,6 @@ times."))
                          (unless (probe-file handshake-file)
                            (return t))
 
-                         (sleep sleep-time)
                          (finally (note 3 "No handshake after ~d seconds"
                                         *trace-open-timeout*)))))
             (iter (while (handshake))
