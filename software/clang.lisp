@@ -2637,7 +2637,7 @@ and :SCOPE.
                      (lambda (name)
                        `((:name . ,name)
                          (:decl . ,ast)
-                         (:type . ,(lastcar (ast-types ast)))
+                         (:type . ,(car (ast-types ast)))
                          (:scope . ,scope)))
                      (or (ast-declares ast)
                          (ast-unbound-vals ast)))))
