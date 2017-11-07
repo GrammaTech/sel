@@ -61,27 +61,32 @@ is generally applicable.  Specifically the sections on
 and
 [#Comment_semicolons](http://google.github.io/styleguide/lispguide.xml?showone=Comment_semicolons#Comment_semicolons).
 
-Of particular importance are the following points.
+Of particular importance are the following points:
 
-- whitespace 
-    - no tabs
-    - no closing parenthesis on lines by themselves
-    - indent everything as would GNU Emacs
-    - typically only include vertical whitespace between top-level
-       forms, sections of large functions may be demarcated by vertical
-       whitespace but it is better to use smaller functions
-    - no trailing whitespace
-    - no whitespace following an open-paren
+### Whitespace
 
-- comments (number of semicolons matters)
-    - 3 (or 4) semicolons at the beginning of a line for block comments
-       outside of any top level form
-    - 2 semicolons for comments that appear between lines of code
-    - 1 semicolon for comments that appear after code at the end of a
-       line
-    - vertical align end-of-line comments when possible
-    - always use a space after the last semicolon and before comment
-       text
+- no tabs
+- no closing parenthesis on lines by themselves
+- indent everything as would GNU Emacs
+- typically only include vertical whitespace between top-level
+   forms, sections of large functions may be demarcated by vertical
+   whitespace but it is better to use smaller functions
+- no trailing whitespace
+- no whitespace following an open-paren
+
+
+### Comments (number of semicolons matters)
+- 3 (or 4) semicolons at the beginning of a line for block comments
+   outside of any top level form
+- 2 semicolons for comments that appear between lines of code
+- 1 semicolon for comments that appear after code at the end of a
+   line
+- vertical align end-of-line comments when possible
+- always use a space after the last semicolon and before comment
+   text
+
+
+### Use existing utility functions (don't write your own)
 
 Regardless of language you should look carefully for existing utility
 functions before re-implementation (what you want probably already
@@ -101,6 +106,21 @@ following places before implementation of any utility.
       package.
 
    4. Check the "utilities" package of SEL.
+
+
+### Packages
+
+Only use packages which are explicitly included in your current
+package.  E.g., calling `cl-fad:foo` just because `cl-fad` happens to
+be loaded in the lisp image every time you've run tests is *not*
+acceptable.
+
+
+### Portability
+
+All code should be portable across at least sbcl and CCL.
+
+
 
 ## Testing
 
