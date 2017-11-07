@@ -322,7 +322,7 @@ elements.")
                  (format stream "Mutation error ~a on ~S"
                          (text condition) (obj condition))))))
 
-(define-condition no-mutation-targets (error)
+(define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)
    (op   :initarg :op   :initform nil :reader op))
