@@ -5,6 +5,12 @@ Basic procedures to contribute code or documentation.
 - [Setup](#setup)
     - [User Quicklisp](#user-quicklisp)
 - [Coding Standards](#coding-standards)
+    - [Whitespace](#whitespace)
+    - [Comments (number of semicolons matters)](#comments-number-of-semicolons-matters)
+    - [Use existing utility functions (don't write your own)](#use-existing-utility-functions-dont-write-your-own)
+    - [Packages](#packages)
+    - [Portability](#portability)
+    - [Documentation](#documentation)
 - [Testing](#testing)
     - [Unit Tests](#unit-tests)
     - [REPL in Docker image](#repl-in-docker-image)
@@ -76,14 +82,14 @@ Of particular importance are the following points:
 
 
 ### Comments (number of semicolons matters)
-- 3 (or 4) semicolons at the beginning of a line for block comments
-   outside of any top level form
+
+- All comments should be complete sentences with capitalization and a period.
+- 3 (or 4) semicolons at the beginning of a line for block comments outside of any top level form
 - 2 semicolons for comments that appear between lines of code
-- 1 semicolon for comments that appear after code at the end of a
-   line
+- 1 semicolon for comments that appear after code at the end of a line
 - vertical align end-of-line comments when possible
-- always use a space after the last semicolon and before comment
-   text
+- always use a space after the last semicolon and before comment text
+- In Emacs `M-;` inserts a comment of the appropriate type.
 
 
 ### Use existing utility functions (don't write your own)
@@ -118,8 +124,26 @@ acceptable.
 
 ### Portability
 
-All code should be portable across at least sbcl and CCL.
+All code should be portable across at least
+[SBCL](http://www.sbcl.org/) and [CCL](https://ccl.clozure.com/).  Any
+code which is specific to a particular implementation must be
+protected by `#+impl` guards.
 
+
+### Documentation
+
+#### For functions and methods
+
+Write documentation strings for *every* function *always*.  Also,
+ensure every `defmethod` has a `defgeneric` which has a documentation
+string.
+
+#### For files and modules
+
+Large new functional modules (e.g., a new file of code) should be
+documented in the manual.  The SEL manual is located in the `doc/`
+subdirectory and is written in texinfo.  Follow the example set by
+existing documentation to add new sections to this manual.
 
 
 ## Testing
