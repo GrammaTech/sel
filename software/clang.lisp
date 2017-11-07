@@ -2104,7 +2104,11 @@ operations.
                               tu)))
   software)
 
-(defun apply-mutation-ops (software ops)
+(defgeneric apply-mutation-ops (software ops)
+  (:documentation "Apply a recontextualized list of OPS to SOFTWARE.
+Useful as *another* point of interposition for mutation customization."))
+
+(defmethod apply-mutation-ops ((software clang) (ops list))
   (with-slots (ast-root) software
     (iter (for (op . properties) in ops)
           (let ((stmt1 (aget :stmt1 properties))

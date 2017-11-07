@@ -75,6 +75,7 @@
    :pick-mutation-type
    :clang-mutation
    :build-op
+   :apply-mutation-ops
    :apply-mutation
    :apply-mutations
    :apply-all-mutations
