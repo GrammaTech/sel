@@ -48,6 +48,8 @@ tests.html
 
 local.mk
 
+Dockerfile
+
 # qlot
 qlfile.lock
 quicklisp
