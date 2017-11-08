@@ -122,7 +122,7 @@ accompanying merge function for combining feature vectors."))
        (bind (((_ . obj1) (first (all-files project)))
               (feature-index (position ',feature-name
                                        (features obj1)
-                                       :key #'name))
+                                       :key #'feature-name))
               ((:values prev-vec prev-meta) (extract-feature obj1 ,feature-name)))
          (iter (for (file . obj) in (cdr (all-files project)))
                (declare (ignorable file))
