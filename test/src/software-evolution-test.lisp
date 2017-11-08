@@ -6518,6 +6518,20 @@ prints unique counters in the trace"
                     (type-name)))
         "char variable should have been found at the global scope")))
 
+(deftest get-vars-in-scope-keep-globals-flag ()
+  (with-fixture scopes-type-field-clang
+    (is (equal "time_args"
+               (->> (get-vars-in-scope *scopes*
+                                       (stmt-with-text *scopes* "return 0")
+                                       t)
+                    (first)
+                    (aget :name)))
+        "time_args variable should have been found at the global scope")
+    (is (equal nil (get-vars-in-scope *scopes*
+                                      (stmt-with-text *scopes* "return 0")
+                                      nil))
+        "no variables should have been found outside the global scope")))
+
 (deftest move-statement-updates-scopes ()
   (with-fixture scopes2-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))

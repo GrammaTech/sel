@@ -2717,12 +2717,12 @@ Each variable is represented by an alist in the same format used by SCOPES."))
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 (defmethod get-vars-in-scope ((obj clang) (ast ast-ref)
-                                   &optional keep-globals)
+                               &optional (keep-globals t))
   ;; Remove duplicate variable names from outer scopes. Only the inner variables
   ;; are accessible.
   (iter (for var in (apply #'append (if keep-globals
-                                        (butlast (scopes obj ast))
-                                        (scopes obj ast))))
+                                        (scopes obj ast)
+                                        (butlast (scopes obj ast)))))
         (unless (find (aget :name var) vars
                       :test #'string= :key {aget :name})
           (collect var into vars))
