@@ -2720,13 +2720,12 @@ Each variable is represented by an alist in the same format used by SCOPES."))
                                &optional (keep-globals t))
   ;; Remove duplicate variable names from outer scopes. Only the inner variables
   ;; are accessible.
-  (iter (for var in (apply #'append (if keep-globals
-                                        (scopes obj ast)
-                                        (butlast (scopes obj ast)))))
-        (unless (find (aget :name var) vars
-                      :test #'string= :key {aget :name})
-          (collect var into vars))
-        (finally (return vars))))
+  (remove-duplicates (apply #'append (if keep-globals
+                                         (scopes obj ast)
+                                         (butlast (scopes obj ast))))
+                     :from-end t
+                     :key {aget :name}
+                     :test #'string=))
 
 (defvar *allow-bindings-to-globals-bias* 1/5
   "Probability that we consider the global scope when binding
