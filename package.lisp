@@ -420,6 +420,7 @@
    :demote-binop-right
    :eval-error
    :project
+   :apply-to-project
    :build-command
    :build-target
    :current-file
