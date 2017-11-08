@@ -10,8 +10,9 @@
 # TEST_ARTIFACTS ----- Name of dependencies for testing
 # LISP_DEPS ---------- Packages require to build CL package
 # TEST_LISP_DEPS ----- Packages require to build CL test package
+# HARD_QUIT ---------- Define to hard quit on error
 
-.PHONY: test-artifacts check-testbot check clean more-clean real-clean
+.PHONY: test-artifacts check-testbot check clean more-clean real-clean Dockerfile
 
 .SECONDARY:
 
@@ -50,6 +51,28 @@ LISP_DEPS ?=				\
 	$(wildcard *.lisp) 		\
 	$(wildcard src/*.lisp)
 
+# Default lisp to build manifest file.
+LISP ?= ccl
+ifneq (,$(findstring sbcl, $(LISP)))
+ifeq ("$(SBCL_HOME)","")
+LISP_HOME = SBCL_HOME=$(dir $(shell which $(LISP)))../lib/sbcl
+endif
+endif
+
+ifneq ($(LISP_STACK),)
+ifneq (,$(findstring sbcl, $(LISP)))
+LISP_FLAGS = --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
+else
+LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init
+endif
+else
+ifneq (,$(findstring sbcl, $(LISP)))
+LISP_FLAGS = --no-userinit --no-sysinit
+else
+LISP_FLAGS = --quiet --no-init
+endif
+endif
+
 # Flags to buildapp
 LCFLAGS=--manifest-file $(MANIFEST) \
 	--asdf-tree $(USER_QUICK_LISP)/dists/quicklisp/software
@@ -58,17 +81,12 @@ ifneq ($(LISP_STACK),)
 LCFLAGS+= --dynamic-space-size $(LISP_STACK)
 endif
 
-# Default lisp to build manifest file.
-LISP ?= ccl
-ifneq (,$(findstring sbcl, $(LISP)))
-ifeq ("$(SBCL_HOME)","")
-LISP_HOME = SBCL_HOME=$(dir $(shell which $(LISP)))../lib/sbcl
-endif
-endif
-ifneq (,$(findstring sbcl, $(LISP)))
-LISP_FLAGS = --no-userinit --no-sysinit
-else
-LISP_FLAGS = --quiet --no-init
+ifneq ($(HARD_QUIT),)
+QUIT=(lambda (error hook-value)
+QUIT+=(declare (ignorable hook-value))
+QUIT+=(format *error-output* \"ERROR: ~a~%\" error)
+QUIT+=\#+sbcl (sb-ext:exit :code 2) \#+ccl (quit 2))
+LCFLAGS+=--eval "(setf *debugger-hook* $(QUIT))"
 endif
 
 all: $(addprefix bin/, $(BINS))
@@ -113,10 +131,13 @@ TEST_LISP_LIBS += $(PACKAGE_NAME)-test
 TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS:=$(addprefix $(USER_QUICK_LISP)/local-projects/, $(TEST_LISP_LIBS:=.loaded))
 
-bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST)
+bin:
+	mkdir -p $@
+
+bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "$(PACKAGE_NICKNAME)-test:run-batch"
 
-bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST)
+bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "$(PACKAGE_NICKNAME)-test:run-testbot"
 
 
@@ -125,10 +146,10 @@ TEST_ARTIFACTS ?=
 
 test-artifacts: $(TEST_ARTIFACTS)
 
-check: bin/$(PACKAGE_NICKNAME)-test test-artifacts
+check: bin/$(PACKAGE_NICKNAME)-test test-artifacts | bin
 	@$<
 
-check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts
+check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts | bin
 	@$<
 
 
@@ -153,6 +174,39 @@ swank-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
 	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
 	--eval '(swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)'
 
+
+## Docker file creation convenience target.
+ifndef OS
+ifneq ("$(shell which lsb_release)","")
+# Use lsb_release to get the name of the Linux distribution.
+OS=$(shell lsb_release -a|grep 'Distributor ID:'|sed 's/Distributor ID:[[:space:]]\+//'|tr 'A-Z' 'a-z' 2>/dev/null)
+else
+# Assume that if lsb_release is not installed we're on Arch Linux.
+OS=arch
+endif
+endif
+
+# This creates a Dockerfile which may be used to build a local image
+# using the current directory instead of checking BI out from git.
+# After running this command run the following to build the image.
+#
+#     Docker build -t bug-injector-local -f Dockerfile .
+#
+# You can then run the image as your would any other, e.g. as follows.
+#
+#     dr bug-injector-local
+#
+# or
+#
+#     docker run --net=host -e LOCAL_USER=root -it bug-injector-local
+#
+Dockerfile: Dockerfile.$(OS)
+	cat $<|sed -n '0,/^RUN mkdir -p /p;/^WORKDIR/,$$p;' \
+	|sed '/RUN mkdir -p /d' \
+	|sed "s|^CMD|ADD . .\n\nRUN $$(grep '^ \+make' $<)\n\n&|" > $@
+
+
+## Cleaning
 clean:
 	rm -f bin/$(PACKAGE_NICKNAME)-test bin/$(PACKAGE_NICKNAME)-testbot $(addprefix bin/, $(BINS))
 	rm -f $(TEST_ARTIFACTS)
@@ -165,4 +219,4 @@ more-clean: clean
 real-clean: more-clean
 	find . -type f -name "*.loaded" -exec rm {} \+
 	rm -f qlfile.lock $(MANIFEST)
-	rm -rf quicklisp system-index.txt
+	rm -rf quicklisp
