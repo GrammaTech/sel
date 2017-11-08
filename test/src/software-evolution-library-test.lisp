@@ -6371,6 +6371,49 @@ prints unique counters in the trace"
       (is (eq 2 (count-matching-chars-in-stmt #\} function)))
       (is (eq 1 (count-matching-chars-in-stmt #\; function))))))
 
+(deftest insert-after-full-stmt-adds-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "int x = 0")))
+      (sel::apply-mutation-ops *contexts*
+                               `((:insert-after (:stmt1 . ,target)
+                                                (:value1 . ,target)))))
+    (let ((function (find-function *contexts* "full_stmt")))
+      (is (eq 2 (count-matching-chars-in-stmt #\; function)))
+      ;; Each copy of "int x = 0" has a DeclStmt and a VarDecl
+      (is (eq 4 (count-if [{string= "int x = 0"} #'source-text]
+                          (asts *contexts*)))))))
+
+(deftest insert-after-braced-body-adds-trailing-semicolon ()
+  (with-fixture contexts
+    (let ((target (->> (stmt-with-text *contexts* "int x = 1")
+                       (get-parent-ast *contexts*)))
+          (inserted (stmt-with-text *contexts* "int x = 0")))
+      (sel::apply-mutation-ops *contexts*
+                               `((:insert-after (:stmt1 . ,target)
+                                                (:value1 . ,inserted)))))
+    (let ((function (find-function *contexts* "braced_body")))
+      (is (eq 2 (count-matching-chars-in-stmt #\; function)))
+      (is (eq 2 (count-matching-chars-in-stmt #\{ function)))
+      (is (eq 2 (count-matching-chars-in-stmt #\} function)))
+      ;; Each copy of "int x = 0" has a DeclStmt and a VarDecl
+      (is (eq 4 (count-if [{string= "int x = 0"} #'source-text]
+                          (asts *contexts*)))))))
+
+(deftest insert-braced-after-braced-body-does-not-add-semicolon ()
+  (with-fixture contexts
+    (let ((target (->> (stmt-with-text *contexts* "int x = 1")
+                       (get-parent-ast *contexts*))))
+      (sel::apply-mutation-ops *contexts*
+                               `((:insert-after (:stmt1 . ,target)
+                                                (:value1 . ,target)))))
+    (let ((function (find-function *contexts* "braced_body")))
+      (is (eq 2 (count-matching-chars-in-stmt #\; function)))
+      (is (eq 3 (count-matching-chars-in-stmt #\{ function)))
+      (is (eq 3 (count-matching-chars-in-stmt #\} function)))
+      ;; Each copy of "int x = 1" has a DeclStmt and a VarDecl
+      (is (eq 4 (count-if [{string= "int x = 1"} #'source-text]
+                          (asts *contexts*)))))))
+
 ;; FIXME: this behavior is not implemented, so we can get incorrect
 ;; trees in some cases.
 ;; (deftest insert-before-unbraced-body-adds-braces ()

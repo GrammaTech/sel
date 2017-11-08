@@ -654,6 +654,10 @@ Adds and removes semicolons, commas, and braces. "
                  (list before ast (subseq after 1))
                  (no-change))
              (add-semicolon)))
+       (add-semicolon-before-if-unbraced ()
+         (if (or (null ast) (starts-with #\{ (source-text ast)))
+             (no-change)
+             (list before ";" ast after)))
        (add-semicolon ()
          (if (or (ends-with #\; (source-text ast))
                  (starts-with #\; after))
@@ -661,6 +665,8 @@ Adds and removes semicolons, commas, and braces. "
              (list before ast ";" after)))
        (add-comma ()
          (list before ast "," after))
+       (add-leading-comma ()
+         (list before "," ast after))
        (wrap-with-block-if-unbraced ()
          ;; Wrap in a CompoundStmt and also add semicolon -- this
          ;; never hurts and is sometimes necessary (e.g. for loop
@@ -682,9 +688,14 @@ Adds and removes semicolons, commas, and braces. "
     (remove nil
             (ecase context
               (:generic (no-change))
-              (:fullstmt (add-semicolon-if-unbraced))
+              (:fullstmt (ecase operation
+                           (:before (add-semicolon-if-unbraced))
+                           (:instead (add-semicolon-if-unbraced))
+                           (:remove (add-semicolon-if-unbraced))
+                           (:after (add-semicolon-before-if-unbraced))))
               (:listelt (ecase operation
                           (:before (add-comma))
+                          (:after (add-comma))
                           (:instead (no-change))
                           (:remove (list before
                                          (if (starts-with #\, after)
@@ -692,11 +703,13 @@ Adds and removes semicolons, commas, and braces. "
                                              after)))))
               (:finallistelt (ecase operation
                                (:before (add-comma))
+                               (:after (add-leading-comma))
                                (:instead (no-change))
                                (:remove (list after))))
               (:braced
                (ecase operation
                          (:before (no-change))
+                         (:after (add-semicolon-if-unbraced))
                          ;; When cutting a free-floating block, we don't need a
                          ;; semicolon, but it's harmless. When cutting a braced
                          ;; loop/function body, we do need the semicolon. Since
@@ -707,10 +720,12 @@ Adds and removes semicolons, commas, and braces. "
               (:unbracedbody
                (ecase operation
                  (:before (add-semicolon-if-unbraced))
+                 (:after (no-change))
                  (:remove (add-null-stmt))
                  (:instead (add-semicolon-if-unbraced))))
               (:field (ecase operation
                         (:before (add-semicolon))
+                        (:after (add-semicolon))
                         (:instead (add-semicolon))
                         (:remove (no-change))))
               (:toplevel (add-semicolon-if-unbraced))))))
@@ -853,6 +868,31 @@ use carefully.
                                           (ast-ref-ast replacement)
                                           (or (nth head children) ""))
                           (nthcdr (1+ head) children)))))))
+    (helper tree (ast-ref-path location))))
+
+(defmethod insert-ast-after ((tree list) (location ast-ref)
+                             (ast ast-ref))
+  "Insert AST immediately after LOCATION in TREE, returning new tree.
+
+Does not modify the original TREE.
+"
+  (labels
+    ((helper (tree path)
+       (bind (((head . tail) path)
+              ((node . children) tree))
+         (if tail
+             ;; Recurse into child
+             (replace-nth-child tree head (helper (nth head children) tail))
+
+             ;; Insert into children
+             (cons node
+                   (nconc (subseq children 0 (max 0 head))
+                          (fixup-mutation :after
+                                          (ast-syn-ctx (car (nth head children)))
+                                          (nth head children)
+                                          (ast-ref-ast ast)
+                                          (or (nth (1+ head) children) ""))
+                          (nthcdr (+ 2 head) children)))))))
     (helper tree (ast-ref-path location))))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
@@ -1971,6 +2011,7 @@ Useful as *another* point of interposition for mutation customization."))
                     (:set (replace-ast ast-root stmt1 value1))
                     (:cut (remove-ast ast-root stmt1))
                     (:insert (insert-ast ast-root stmt1 value1))
+                    (:insert-after (insert-ast-after ast-root stmt1 value1))
                     (:splice (splice-asts ast-root stmt1 value1)))))))
   (clear-caches software)
   software)
