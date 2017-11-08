@@ -52,6 +52,8 @@ a.out.prj
 
 local.mk
 
+Dockerfile
+
 # qlot
 qlfile.lock
 quicklisp
