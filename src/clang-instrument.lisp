@@ -71,7 +71,7 @@ enum trace_entry_tag {
 };
 
 __attribute__((unused))
-static void write_trace_id(FILE *out, uint32_t statement_id)
+static void write_trace_id(FILE *out, uint64_t statement_id)
 {
     fputc(STATEMENT_ID, out);
     fwrite(&statement_id, sizeof(statement_id), 1, out);
@@ -92,16 +92,16 @@ static void write_end_entry(FILE *out)
 }
 
 __attribute__((unused))
-static void write_trace_variables(FILE *out, size_t n_vars, ...)
+static void write_trace_variables(FILE *out, uint32_t n_vars, ...)
 {
     va_list ap;
-    size_t i;
+    uint32_t i;
 
     va_start (ap, n_vars);
     for (i = 0; i < n_vars; i++) {
-        uint16_t name_index = va_arg(ap, int);
-        uint16_t type_index = va_arg(ap, int);
-        uint16_t size = va_arg(ap, int);
+        uint32_t name_index = va_arg(ap, uint32_t);
+        uint32_t type_index = va_arg(ap, uint32_t);
+        uint32_t size = va_arg(ap, uint32_t);
         enum type_format format = (enum type_format)va_arg(ap, int);
 
         fputc(VARIABLE, out);
@@ -169,16 +169,16 @@ static void write_trace_variables(FILE *out, size_t n_vars, ...)
 }
 
 __attribute__((unused))
-static void write_trace_blobs(FILE *out, size_t n_vars, ...)
+static void write_trace_blobs(FILE *out, uint32_t n_vars, ...)
 {
     va_list ap;
-    size_t i;
+    uint32_t i;
 
     va_start (ap, n_vars);
     for (i = 0; i < n_vars; i++) {
-        uint16_t name_index = va_arg(ap, int);
-        uint16_t type_index = va_arg(ap, int);
-        uint16_t size = va_arg(ap, int);
+        uint32_t name_index = va_arg(ap, uint32_t);
+        uint32_t type_index = va_arg(ap, uint32_t);
+        uint32_t size = va_arg(ap, uint32_t);
         void *value = va_arg(ap, void*);
 
         fputc(VARIABLE, out);
@@ -197,20 +197,20 @@ static void write_trace_blobs(FILE *out, size_t n_vars, ...)
   "
 typedef struct {
     /* Index into the string dictionary which gives the name of the type. */
-    uint16_t name_index;
+    uint32_t name_index;
     /* Data format */
     enum type_format format;
     /* Size in bytes. 0 indicates a variable-sized object. */
-    uint8_t size;
+    uint32_t size;
 } type_description;
 
 
-void write_trace_header(FILE *out, const char **names, uint16_t n_names,
-                        const type_description *types, uint16_t n_types)
+void write_trace_header(FILE *out, const char **names, uint32_t n_names,
+                        const type_description *types, uint32_t n_types)
 {
     /* Dictionary of names, as a sequence of NULL-terminated strings */
-    uint16_t total_size = 0;
-    uint16_t i = 0;
+    uint64_t total_size = 0;
+    uint32_t i = 0;
     for (i = 0; i < n_names; i++) {
         total_size += strlen(names[i]) + 1;
     }
@@ -444,7 +444,7 @@ the underlying software objects."
                  (for ast-i upfrom 0)
                  (check-ids index ast-i)
                  (setf (gethash ast (ast-ids instrumenter))
-                       (logior (ash 1 31)                            ; flag bit
+                       (logior (ash 1 63)                            ; flag bit
                                (ash index +trace-id-statement-bits+) ; file ID
                                ast-i)))                              ; AST ID
            (apply #'instrument instrumenter args)))
