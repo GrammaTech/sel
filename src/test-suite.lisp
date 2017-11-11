@@ -67,6 +67,17 @@ compiled phenome.")
     :documentation "The underlying process object (compiler-specific)."))
   (:documentation "Object representing an external process."))
 
+(defgeneric process-id (process)
+  (:documentation "Return the process id for PROCESS"))
+
+(defmethod process-id ((process process))
+  #+sbcl
+  (sb-ext:process-pid (os-process process))
+  #+ccl
+  (ccl:external-process-id (os-process process))
+  #-(or sbcl ccl)
+  (error "`PROCESS' only implemented for SBCL or CCL."))
+
 (defgeneric process-input-stream (process)
   (:documentation "Return the input stream for PROCESS."))
 
@@ -134,10 +145,15 @@ exited."))
   (:documentation "Send the signal SIGNAL-NUMBER to PROCESS."))
 
 (defmethod signal-process ((process process) (signal-number integer))
-  #+sbcl
-  (sb-ext:process-kill (os-process process) signal-number)
-  #+ccl
-  (ccl:signal-external-process (os-process process) signal-number))
+  (multiple-value-bind (stdout stderr errno)
+      (shell "kill -~d -- -$(ps -o pgid= $PID | ~
+                             grep -o '[0-9]*' | ~
+                             head -n 1 | ~
+                             tr -d ' ')"
+             signal-number
+             (process-id process))
+    (declare (ignorable stdout stderr))
+    (zerop errno)))
 
 (defgeneric start-test (phenome test-case &rest extra-keys
                         &key &allow-other-keys)
@@ -197,6 +213,12 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
     ;; If still running, send SIGKILL.
     (when (running-p test-process)
       (signal-process test-process 9)
+
+      ;; If still running and there's a timeout, sleep.
+      (when (and (running-p test-process)
+                 (and timeout (>= timeout 0)))
+        (sleep timeout))
+
       ;; If it's *still* running, warn someone.
       (when (running-p test-process)
         (note 0 "WARNING: Unable to kill process ~a" test-process)))

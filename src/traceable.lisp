@@ -5,6 +5,9 @@
 (defvar *trace-open-timeout* 2
   "Timeout (in seconds) when opening pipe to collect traces.")
 
+(defvar *process-kill-timeout* 10
+  "Timeout (in seconds) before killing a process with SIGKILL")
+
 (defclass traceable (software)
   ((traces :initarg :traces :accessor traces :initform nil
            :documentation "Execution traces from execution of the software."))
@@ -130,7 +133,8 @@ times."))
                                                    :max max)))
                     into traces)
                   (finally
-                   (finish-test proc :kill-signal 15)
+                   (finish-test proc :kill-signal 15
+                                     :timeout *process-kill-timeout*)
                    (restart-case
                        ;; This usually indicates a problem with the
                        ;; test script or the instrumentation
