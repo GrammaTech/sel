@@ -5049,6 +5049,32 @@ prints unique counters in the trace"
     (is (not (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
                (genome soft)))
         "We don't find code to print variables in the instrumented source.")))
+
+(deftest instrumentation-preserves-aux-data ()
+  (with-fixture gcd-clang
+    (let* ((stmt (stmt-starting-with-text *gcd* "if (a == 0)"))
+           (index (index-of-ast *gcd* stmt)))
+      (setf (ast-aux-data stmt) '((:foo . t)))
+
+      (instrument *gcd* :functions
+                  (list (lambda (instrumenter ast)
+                          (when (aget :foo (ast-aux-data ast))
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+
+      (with-temp-file (bin)
+        (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+            "Successfully compiled instrumented GCD.")
+        (is (equal '((:foo . t)) (ast-aux-data stmt)))
+        (let ((trace (get-gcd-trace bin)))
+          (is (listp trace) "We got a trace.")
+          (is (some {aget :scopes} trace))
+          (is (every «or [#'not {aget :scopes}]
+                         [{eq index} {aget :c}]»
+                     trace)))))))
+
 
 ;;;; Traceable tests.
 (sel-suite* traceable "Traceable tests."

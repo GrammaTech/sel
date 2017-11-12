@@ -517,6 +517,8 @@ if not given."
       (ecase kind
         (:integer (values :IntegerLiteral
                           (format nil "~a" (round value))))
+        (:unsigned (values :IntegerLiteral
+                           (format nil "~du" (round value))))
         (:float (values :FloatingLiteral
                         (format nil "~a" value)))
         (:string (values :StringLiteral
@@ -581,14 +583,30 @@ if not given."
                   :full-stmt t))
 
 (defun make-var-reference (name type)
-  (make-statement :ImplicitCastExpr :generic
-                  (list (make-statement :DeclRefExpr :generic
-                                        (list (unpeel-bananas name))
-                                        :expr-type (type-hash type)
-                                        :unbound-vals (list name)))
-                  :expr-type (type-hash type)))
+  (let ((hash (when type (type-hash type))))
+    (make-statement :ImplicitCastExpr :generic
+                    (list (make-statement :DeclRefExpr :generic
+                                          (list (unpeel-bananas name))
+                                          :expr-type hash
+                                          :unbound-vals (list name)))
+                    :expr-type hash)))
 
 (defun make-var-decl (name type &optional initializer)
+  (let ((decls (list name)))
+    (make-statement
+     :DeclStmt :fullstmt
+     (list (make-statement :Var :generic
+                           (if initializer
+                               (list (format nil "~a ~a = "
+                                             (type-decl-string type) name)
+                                     initializer)
+                               (list (format nil "~a ~a"
+                                             (type-decl-string type) name)))
+                           :types (list (type-hash type))
+                           :declares decls))
+     :declares decls)))
+
+(defun make-parm-var (name type)
   (let ((decls (list name)))
     (make-statement
      :DeclStmt :fullstmt
@@ -622,6 +640,10 @@ if not given."
            ,@(interleave args ", ")
            ")")
          rest))
+
+(defun make-label (name child)
+  (make-statement :LabelStmt :fullstmt
+                  (list (format nil "~a:~%" name) child)))
 
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
@@ -2460,8 +2482,8 @@ it will transform this into:
 (defmethod can-be-made-traceable-p ((obj clang) (ast ast-ref))
   (or (traceable-stmt-p obj ast)
       (unless (or (ast-guard-stmt ast) ; Don't wrap guard statements.
-                  (string= :CompoundStmt ; Don't wrap CompoundStmts.
-                           (ast-class ast)))
+                  (eq :CompoundStmt ; Don't wrap CompoundStmts.
+                      (ast-class ast)))
         (when-let ((parent (get-parent-ast obj ast)))
           ;; Is a child of a statement which might have a hanging body.
           (member (ast-class parent) +clang-wrapable-parents+
@@ -2489,6 +2511,8 @@ made full by wrapping with curly braces, return that."))
 (defmethod traceable-stmt-p ((obj clang) (ast ast-ref))
   (and (ast-full-stmt ast)
        (not (function-decl-p ast))
+       (not (ast-in-macro-expansion ast))
+       (not (eq :NullStmt (ast-class ast)))
        (get-parent-ast obj ast)
        (get-parent-ast obj ast)
        (eq :CompoundStmt (ast-class (get-parent-ast obj ast)))))

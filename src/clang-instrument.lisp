@@ -14,13 +14,6 @@
 (defvar *instrument-handshake-env-name* "__SEL_HANDSHAKE_FILE"
   "Default environment variable in which to store log file.")
 
-(defun ast-counters-equal (ast1 ast2)
-  "Return true if ast1 and ast2 have the same counters"
-  (equal (ast-counter ast1) (ast-counter ast2)))
-
-(define-custom-hash-table-constructor make-ast-ht
-  :test ast-counters-equal :hash-function ast-counter)
-
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env instrument-exit
                                  filter postprocess-functions)
@@ -255,13 +248,73 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
     (setf (ast-ids instance)
           (iter (for ast in (asts (software instance)))
                 (for i upfrom 0)
-                (with ht = (make-ast-ht))
+                (with ht = (make-hash-table :test #'eq))
                 (setf (gethash ast ht) i)
                 (finally (return ht))))))
 
+(defgeneric write-trace-id (instrumenter ast)
+  (:documentation "Generate ASTs which write statement ID to trace."))
+
+(defmethod write-trace-id ((instrumenter clang-instrumenter) ast)
+  (make-call-expr "write_trace_id"
+                  (list (make-var-reference *instrument-log-variable-name* nil)
+                        (make-literal :unsigned (get-ast-id instrumenter ast)))
+                  :fullstmt))
+
+(defgeneric write-trace-aux (instrumenter value)
+  (:documentation "Generate ASTs which write aux entries to trace."))
+
+(defmethod write-trace-aux ((instrumenter clang-instrumenter) value)
+  (declare (ignorable instrumenter))
+  (make-call-expr "write_trace_aux"
+                  (list (make-var-reference *instrument-log-variable-name* nil)
+                        (make-literal :integer value))
+                  :fullstmt))
+
+(defgeneric write-end-entry (instrumenter)
+  (:documentation "Generate ASTs which write end-entry flag to trace."))
+
+(defmethod write-end-entry ((instrumenter clang-instrumenter))
+  (declare (ignorable instrumenter))
+  (make-call-expr "write_end_entry"
+                  (list (make-var-reference *instrument-log-variable-name* nil))
+                  :fullstmt))
+
+(defgeneric instrument-return (instrumenter return-stmt return-void)
+  (:documentation "Generic ASTs which instrument RETURN-STMT."))
+
+(defmethod instrument-return ((instrumenter clang-instrumenter)
+                              return-stmt return-void)
+  (if return-void
+      `(,(make-statement :gotostmt :fullstmt '("goto inst_exit")))
+      `(,(make-operator :fullstmt "="
+                    (list (make-var-reference "_inst_ret" nil)
+                          (car (get-immediate-children (software instrumenter)
+                                                       return-stmt))))
+         ,(make-statement :gotostmt :fullstmt '("goto inst_exit")))))
+
+(defgeneric instrument-exit (instrumenter function return-void)
+  (:documentation "Generate ASTs to instrument exit from FUNCTION."))
+
+(defmethod instrument-exit ((instrumenter clang-instrumenter)
+                            function return-void)
+  (let ((obj (software instrumenter)))
+    `(,(make-label "inst_exit"
+                   ;; ast-id hash table uses eq, but function-body will
+                   ;; generate a new ast-ref. Search for the original in
+                   ;; order to look up the id.
+                   (write-trace-id instrumenter
+                                   (find-if {equalp (function-body obj
+                                                                   function)}
+                                            (asts obj))))
+       ,(write-end-entry instrumenter)
+       ,(make-statement :ReturnStmt :fullstmt
+                        (cons "return "
+                              (when (not return-void)
+                                (list (make-var-reference "_inst_ret"
+                                                          nil))))))))
+
 (defmethod instrument ((obj clang) &rest args)
-    ;; Send object through clang-mutate to get accurate counters
-  (update-asts obj)
   (apply #'instrument (make-instance 'clang-instrumenter :software obj)
          args))
 
@@ -283,127 +336,89 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
                                  ast))))
                    points))))
     (labels
-        ((escape (string)
-           (regex-replace (quote-meta-chars "%") (format nil "~S" string) "%%"))
-         (last-traceable-stmt (proto)
+        ((last-traceable-stmt (proto)
            (->> (function-body obj proto)
                 (get-immediate-children obj)
                 (lastcar)
                 (enclosing-traceable-stmt obj)))
          (first-traceable-stmt (proto)
            (first (get-immediate-children obj (function-body obj proto))))
-         (instrument-ast (ast counter extra-stmts extra-stmts-after
-                              aux-values)
-           ;; Return clang-mutate ops to instrument AST
-           (let* ((function (function-containing-ast obj ast))
-                  (wrap (and (not (traceable-stmt-p obj ast))
-                             (can-be-made-traceable-p obj ast)))
-                  (return-void (ast-void-ret function))
-                  (skip
-                   (or (ast-in-macro-expansion ast)
-                       (eq :NullStmt (ast-class ast)))))
+         (instrument-ast (ast extra-stmts extra-stmts-after aux-values)
+           "Generate instrumentation for AST.
+Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER).
+"
 
-             ;; Insertions in bottom-up order
-             (append
-              ;; Function exit instrumentation
-              (when (and instrument-exit
-                         (equalp ast (last-traceable-stmt function)))
-                `((:insert-value-after
-                   (:stmt1 . ,(ast-counter
-                               (ancestor-after obj (function-body obj function)
-                                               ast)))
-                   (:value1 .
-                         ,(format nil
-                                  "inst_exit:
-write_trace_id(~a, ~du);
-write_end_entry(~a);
-~a"
-                                  *instrument-log-variable-name*
-                                  (get-ast-id instrumenter
-                                              (function-body obj function))
-                                  *instrument-log-variable-name*
-                                  (if return-void "" "return _inst_ret;"))))))
-              ;; Closing brace after the statement
-              (when (and wrap (not skip))
-                `((:insert-value-after (:stmt1 . ,counter)
-                                       (:value1 . "}"))))
-              ;; Temp variable for return value
-              (when (and instrument-exit
-                         (equalp ast (first-traceable-stmt function))
-                         (not return-void))
-                `((:insert-value
-                   (:stmt1 . ,counter)
-                   (:value1 .
-                            ,(let ((type (find-type obj (ast-ret function))))
-                               (format nil "~a~@[*~] _inst_ret"
-                                       (type-name type)
-                                       (type-pointer type)))))))
-              ;; Transform return statement to temp assignment/goto
-              (when (and instrument-exit
-                         (eq (ast-class ast) :ReturnStmt))
-                (let ((ret (unless return-void
-                             (peel-bananas
-                              (source-text
-                               (first (get-immediate-children obj ast)))))))
-                  `((:set
-                     (:stmt1 . ,counter)
-                     (:value1 .
-                              ,(format nil "~@[_inst_ret = ~a;~] goto inst_exit;"
-                                       ret))))))
+           (let* ((function (when instrument-exit
+                              (function-containing-ast obj ast)))
+                  (return-type (when (and function
+                                          (not (ast-void-ret function)))
+                                 (find-type obj (ast-ret function)))))
 
-              (when (and functions-after (not skip))
-                `((:insert-value-after
-                   (:stmt1 . ,counter)
-                   (:value1 .
-                          ,(format nil "~a~{~a~}~a~%"
-                                   (format nil ; Start up alist w/counter.
-                                           "write_trace_id(~a, ~du);~%"
-                                           *instrument-log-variable-name*
-                                           (get-ast-id instrumenter ast))
-                                   extra-stmts-after
-                                   (format nil "write_end_entry(~a)"
-                                           *instrument-log-variable-name*))))))
-
-              ;; Opening brace and instrumentation code before
-              (unless skip
-                `((:insert-value
-                   (:stmt1 . ,counter)
-                   (:value1 .
-                      ,(format
-                        nil "~:[~;{~]~{~a~};~%"
-                        wrap
-                        (append
-                         (cons
-                          (format nil ; Start up alist w/counter.
-                                  "write_trace_id(~a, ~du);~%"
-                                  *instrument-log-variable-name*
-                                  (get-ast-id instrumenter ast))
-                          (mapcar {format nil
-                                          "write_trace_aux(~a, ~a);~%"
-                                          *instrument-log-variable-name*}
-                                  aux-values))
-                         extra-stmts
-                         `(,(format nil "write_end_entry(~a)"
-                                    *instrument-log-variable-name*))))))))))))
+             `(,ast
+               ,return-type
+               ;; Instrumentation before
+               (;; Temp variable for return value
+                ,@(when (and instrument-exit
+                             (equalp ast (first-traceable-stmt function))
+                             return-type)
+                        `(,(make-var-decl "_inst_ret" return-type)))
+                  ;; Instrument before
+                  ,(write-trace-id instrumenter ast)
+                  ,@(mapcar {write-trace-aux instrumenter} aux-values)
+                  ,@extra-stmts
+                  ,(write-end-entry instrumenter))
+               (;; Instrumentation after
+                ,@(when functions-after
+                        `(,(write-trace-id instrumenter ast)
+                           ,@extra-stmts-after
+                           ,(write-end-entry instrumenter)))
+                  ;; Function exit instrumentation
+                  ,@(when (and instrument-exit
+                               (equalp ast (last-traceable-stmt function)))
+                          (instrument-exit instrumenter function
+                                           (null return-type)))))))
+         (apply-instrumentation (ast return-type before after)
+           "Insert instrumentation around AST."
+           (let* ((wrap (not (traceable-stmt-p obj ast)))
+                  ;; Look up AST again in case its children have been
+                  ;; instrumented
+                  (new-ast (make-ast-ref :path (ast-ref-path ast)
+                                         :ast (get-ast obj
+                                                       (ast-ref-path ast))))
+                  (stmts (interleave
+                          (append before
+                                  (if (and instrument-exit
+                                           (eq (ast-class ast) :ReturnStmt))
+                                      (instrument-return instrumenter
+                                                         new-ast
+                                                         (null return-type))
+                                      (list new-ast))
+                                  after)
+                          (format nil ";~%"))))
+             ;; Wrap in compound statement if needed
+             (apply-mutation-ops
+              obj
+              (if wrap
+                  `((:set (:stmt1 . ,ast)
+                          (:value1 . ,(make-block `(,@stmts ";")))))
+                  `((:splice (:stmt1 . ,ast) (:value1 . ,stmts))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
-            ;; Bottom up ensure earlier insertions don't invalidate
-            ;; later counters.
-            (sort <> #'> :key #'ast-counter)
-            (mappend (lambda (ast)
-                       (prog1
-                           (instrument-ast ast
-                                           (ast-counter ast)
-                                           (mappend {funcall _ instrumenter ast}
-                                                    functions)
-                                           (mappend {funcall _ instrumenter ast}
-                                                    functions-after)
-                                           (when points
-                                             (aget ast points :test #'equalp)))
-                         (when points
-                           (setf (aget ast points :test #'equalp) nil)))))
-            (apply-clang-mutate-ops obj)))
+            (sort <> #'ast-later-p)
+            ;; Generate all instrumentation before applying changes
+            (mapcar (lambda (ast)
+                      (prog1
+                          (instrument-ast ast
+                                          (mappend {funcall _ instrumenter ast}
+                                                   functions)
+                                          (mappend {funcall _ instrumenter ast}
+                                                   functions-after)
+                                          (when points
+                                            (aget ast points :test #'equalp)))
+                        (when points
+                          (setf (aget ast points :test #'equalp) nil)))))
+            (mapc {apply #'apply-instrumentation})))
 
     ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
@@ -435,11 +450,10 @@ the underlying software objects."
            (assert (< ast-id (ash 1 +trace-id-statement-bits+))))
          (instrument-file (obj index)
            ;; Send object through clang-mutate to get accurate counters
-           (update-asts obj)
            (setf (software instrumenter) obj)
 
            ;; Set AST ids for new file
-           (setf (ast-ids instrumenter) (make-ast-ht))
+           (setf (ast-ids instrumenter) (make-hash-table :test #'eq))
            (iter (for ast in (asts obj))
                  (for ast-i upfrom 0)
                  (check-ids index ast-i)
