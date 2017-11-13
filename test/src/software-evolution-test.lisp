@@ -195,6 +195,11 @@
   :test #'equalp
   :documentation "Path to assert example.")
 
+(define-constant +long-running-program-dir+
+                 (append +etc-dir+  (list "long-running-program"))
+  :test #'equalp
+  :documentation "Path to long running program example.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -339,6 +344,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +assert-dir+))
+
+(defun long-running-program-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +long-running-program-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -878,6 +888,14 @@
     (setf *soft*
           (from-file (make-instance 'clang)
                      (assert-dir "assert.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture long-running-program-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang)
+                     (long-running-program-dir "long-running-program.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -5066,6 +5084,17 @@ prints unique counters in the trace"
       (collect-traces obj (make-instance 'test-suite)))
     (is (not (probe-file (phenome-dir obj)))
         "collect-traces did not remove a phenome directory")))
+
+(deftest long-running-program-killed-test ()
+  (with-fixture long-running-program-clang
+    (with-temp-file (bin)
+      (phenome *soft* :bin bin)
+      (let ((proc (start-test bin
+                              (make-instance 'test-case :program-name bin)
+                              :wait nil)))
+        (finish-test proc :kill-signal 15 :timeout 4)
+        (is (not (eq :running (process-status proc)))
+            "finish-test did not kill a long running process")))))
 
 
 ;;;; Tests of declaration and type databases on clang objects
