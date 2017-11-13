@@ -146,10 +146,10 @@ exited."))
 
 (defmethod signal-process ((process process) (signal-number integer))
   (multiple-value-bind (stdout stderr errno)
-      (shell "kill -~d -- -$(ps -o pgid= $PID | ~
-                             grep -o '[0-9]*' | ~
-                             head -n 1 | ~
-                             tr -d ' ')"
+      (shell "kill -~d -$(ps -o pgid= ~d | ~
+                          grep -o '[0-9]*' | ~
+                          head -n 1 | ~
+                          tr -d ' ')"
              signal-number
              (process-id process))
     (declare (ignorable stdout stderr))
