@@ -14,7 +14,7 @@ Basic procedures to contribute code or documentation.
     - [Documentation](#documentation)
     - [Don't use superfluous `let` or `let*` bindings](#dont-use-superfluous-let-or-let-bindings)
     - [Map instead of iterate](#map-instead-of-iterate)
-    - [Judicious use of "arrow" (`<-`, `<<-`, etc...) macros](#judicious-use-of-arrow-etc-macros)
+    - [Judicious use of "arrow" (`->`, `->>`, etc...) macros](#judicious-use-of-arrow-etc-macros)
 
 - [Testing](#testing)
     - [Unit Tests](#unit-tests)
@@ -194,6 +194,10 @@ There are some exceptions to this rule:
     it thus matters that it is bound at that point in the code then
     this may be acceptable.
 
+- If the let-bound value appears as, lets say, the third argument to
+    some function the in-lining of the long calculation may obscure
+    the flow of the function with it's other arguments.
+
 - If use of the let avoids horrible indentation issues then it maybe
     be acceptable.
 
@@ -209,13 +213,30 @@ straightforward `iterate` has better indentation behavior, in which
 case it might be acceptable (but I can't think of one now).
 
 
-### Judicious use of "arrow" (`<-`, `<<-`, etc...) macros
+### Judicious use of "arrow" (`->`, `->>`, etc...) macros
 
 We sometimes over-use the `->` and `->>` macros.  These *typically*
 only make sense to chain multiple calls, not single (or often double)
 nested call.  One exception here is to aid indentation (avoid going
 over 80 characters) when regular nesting would require contortionist
-indentation (although I can't find an example immediately).
+indentation.  For example in the following excerpt from our tests.
+This
+
+
+```lisp
+    (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
+                     (function-body *collatz*))
+                #|...|#))
+```
+
+is nicer than this.
+
+```lisp
+    (is (equalp (function-body
+                 *collatz*
+                 (stmt-starting-with-text *collatz* "int collatz"))
+                #|...|#))
+```
 
 
 ## Testing
