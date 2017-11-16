@@ -5,12 +5,17 @@ Basic procedures to contribute code or documentation.
 - [Setup](#setup)
     - [User Quicklisp](#user-quicklisp)
 - [Coding Standards](#coding-standards)
+    - [Use the compiler(s)](#use-the-compiler(s))
     - [Whitespace](#whitespace)
     - [Comments (number of semicolons matters)](#comments-number-of-semicolons-matters)
     - [Use existing utility functions (don't write your own)](#use-existing-utility-functions-dont-write-your-own)
     - [Packages](#packages)
     - [Portability](#portability)
     - [Documentation](#documentation)
+    - [Don't use superfluous `let` or `let*` bindings](#dont-use-superfluous-let-or-let-bindings)
+    - [Map instead of iterate](#map-instead-of-iterate)
+    - [Judicious use of "arrow" (`<-`, `<<-`, etc...) macros](#judicious-use-of-arrow-etc-macros)
+
 - [Testing](#testing)
     - [Unit Tests](#unit-tests)
     - [REPL in Docker image](#repl-in-docker-image)
@@ -69,6 +74,17 @@ and
 
 Of particular importance are the following points:
 
+
+### Use the compiler(s)
+
+All code should compile without warning in both SBCL and CCL.  Files
+may easily be compiled from within Emacs by running `M-x
+slime-compile-file` (which is typically bound to `C-c M-k`).  These
+warnings are often useful and catch type errors and outright mistakes
+that can easily slip through testing.  This will also ensure
+[portability](#portability).
+
+
 ### Whitespace
 
 - no tabs
@@ -119,7 +135,11 @@ following places before implementation of any utility.
 Only use packages which are explicitly included in your current
 package.  E.g., calling `cl-fad:foo` just because `cl-fad` happens to
 be loaded in the lisp image every time you've run tests is *not*
-acceptable.
+acceptable.  Instead the `:use` option to `defpackage` should
+explicitly include the required package and if necessary `:shadow` and
+`:shadowing-import-from` should be used to limit the symbols imported
+(see their use in the package.lisp file in this directory for an
+example).
 
 
 ### Portability
@@ -144,6 +164,58 @@ Large new functional modules (e.g., a new file of code) should be
 documented in the manual.  The SEL manual is located in the `doc/`
 subdirectory and is written in texinfo.  Follow the example set by
 existing documentation to add new sections to this manual.
+
+
+### Don't use superfluous `let` or `let*` bindings
+
+Any `let*` which can be changed to a `let` should be changed to a `let`.
+
+Typically, if a let-bound variable is only used once it should not be
+bound but instead it's definition should replace it's sole use.  This
+is suggested because each variable binding forces every subsequent
+reader to perform a dereference.  For example, this
+
+```lisp
+(let* ((subject (quick brown fox))
+       (object (lazy dog))
+       (sentence (The subject jumps over the object.)))
+  sentence)
+```
+
+is harder to read than this.
+
+```lisp
+(The quick brown fox jumps over the lazy dog)
+```
+
+There are some exceptions to this rule:
+
+- If the variable is often used in debugging (printf or debugger) and
+    it thus matters that it is bound at that point in the code then
+    this may be acceptable.
+
+- If use of the let avoids horrible indentation issues then it maybe
+    be acceptable.
+
+
+### Map instead of iterate
+
+Generally `mapc`, `mapcar`, `mappend`, and `reduce` should be
+preferred to use of the `iterate` macro (which should itself be
+preferred to `loop` which should never be used).  In general `iterate`
+should be limited to cases where non-trivial accumulation variables or
+incremental state are needed.  Potentially there are cases where a
+straightforward `iterate` has better indentation behavior, in which
+case it might be acceptable (but I can't think of one now).
+
+
+### Judicious use of "arrow" (`<-`, `<<-`, etc...) macros
+
+We sometimes over-use the `->` and `->>` macros.  These *typically*
+only make sense to chain multiple calls, not single (or often double)
+nested call.  One exception here is to aid indentation (avoid going
+over 80 characters) when regular nesting would require contortionist
+indentation (although I can't find an example immediately).
 
 
 ## Testing
