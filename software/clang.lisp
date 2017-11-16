@@ -3354,7 +3354,9 @@ within a function body, return null."))
                                 AllowShortCaseLabelsOnASingleLine: false,~
                                 AllowShortFunctionsOnASingleLine: false,~
                                 AllowShortIfStatementsOnASingleLine: false,~
-                                AllowShortLoopsOnASingleLine: false}'"))
+                                AllowShortLoopsOnASingleLine: false,~
+                                ReflowComments: false,~
+                                SortIncludes: false}'"))
                      src)
             (declare (ignorable stderr))
             (setf errno exit)
