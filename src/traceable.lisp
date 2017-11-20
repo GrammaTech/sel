@@ -8,8 +8,8 @@
 (defvar *process-kill-timeout* 10
   "Timeout (in seconds) before killing a process with SIGKILL")
 
-(defclass traceable (software)
-  ((traces :initarg :traces :accessor traces :initform nil
+(define-software traceable (software)
+  ((traces :initarg :traces :accessor traces :initform nil :copier :direct
            :documentation "Execution traces from execution of the software."))
   (:documentation
    "Instrumentable software with support for collecting dynamic traces."))
