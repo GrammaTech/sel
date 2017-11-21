@@ -597,7 +597,9 @@ used to pull the variable list out of AST."))
 (defmethod var-instrument
     (key (instrumenter instrumenter) (ast ast-ref) &key print-strings)
   (iter (for var in (funcall key ast))
-        (when-let* ((type (find-var-type (software instrumenter) var))
+        (when-let* ((software (software instrumenter))
+                    (type (&>> (find-var-type software var)
+                               (typedef-type software)))
                     (name (aget :name var))
                     ;; Don't instrument nameless variables
                     (has-name (not (emptyp name))))

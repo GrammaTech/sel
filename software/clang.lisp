@@ -2893,6 +2893,24 @@ VARIABLE-NAME should be declared in AST."))
   (&>> (aget :type variable)
        (find-type obj)))
 
+(defgeneric typedef-type (software type)
+  (:documentation "Return the underlying type if TYPE is a typedef"))
+(defmethod typedef-type ((obj clang) (type clang-type)
+                          &aux typedef-type ret)
+  (labels ((typedef-type-helper (obj type)
+             (if (and (equal 1 (length (type-reqs type)))
+                      (equal 0 (search "typedef" (type-decl type))))
+                 (typedef-type-helper obj
+                                      (find-type obj
+                                                 (first (type-reqs type))))
+                 type)))
+    (setf typedef-type    (typedef-type-helper obj type))
+    (setf ret             (copy-structure type))
+    (setf (type-hash ret) (if (equalp typedef-type type) (type-hash type) 0))
+    (setf (type-name ret) (type-name typedef-type))
+    (setf (type-decl ret) (type-decl typedef-type))
+    ret))
+
 
 ;;; Crossover functions
 (defun create-crossover-context (clang outer start &key include-start)
