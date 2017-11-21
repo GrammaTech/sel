@@ -177,6 +177,7 @@
    :ast-declarations
    :declared-type
    :find-var-type
+   :typedef-type
    :random-function-name
    :replace-fields-in-snippet
    ;; global variables

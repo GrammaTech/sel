@@ -200,6 +200,11 @@
   :test #'equalp
   :documentation "Path to long running program example.")
 
+(define-constant +typedef-type-dir+
+                 (append +etc-dir+ (list "typedef-type"))
+  :test #'equalp
+  :documentation "Path to the typedef-type program example")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -349,6 +354,11 @@
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +long-running-program-dir+))
+
+(defun typedef-type-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +typedef-type-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -896,6 +906,14 @@
     (setf *soft*
           (from-file (make-instance 'clang)
                      (long-running-program-dir "long-running-program.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture typedef-type-clang
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'clang)
+                     (typedef-type-dir "typedef-type.c"))))
   (:teardown
     (setf *soft* nil)))
 
@@ -2263,6 +2281,23 @@ int x = CHARSIZE;")))
                    (get-vars-in-scope *soft*)
                    (find-if [{string= "dirs"} {aget :name}])
                    (find-var-type *soft*))))))
+
+(deftest typedef-type-returns-correct-type ()
+  (with-fixture typedef-type-clang
+    (let ((type1 (&>> (stmt-with-text *soft* "gint a")
+                      (get-ast-types *soft*)
+                      (car)
+                      (find-type *soft*)
+                      (typedef-type *soft*)))
+          (type2 (&>> (stmt-with-text *soft* "gchar *b")
+                      (get-ast-types *soft*)
+                      (car)
+                      (find-type *soft*)
+                      (typedef-type *soft*))))
+      (is (equal "int"  (type-name type1)))
+      (is (equal nil    (type-pointer type1)))
+      (is (equal "char" (type-name type2)))
+      (is (equal t      (type-pointer type2))))))
 
 (deftest apply-replacements-test ()
   (is (string= "Hello, world!"
