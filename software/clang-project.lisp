@@ -36,7 +36,10 @@
                                               :directory (directory-namestring
                                                           *build-dir*)
                                               :name "compile_commands.json"))
-                          (json:decode-json-from-source in)))
+                          (remove-duplicates (json:decode-json-from-source in)
+                                             :test #'equalp
+                                             :key {aget :file}
+                                             :from-end t)))
                    (error "Failed to create compilation database for project.~%~
                            build command: ~a ~a~%~
                            stdout: ~a~%~
