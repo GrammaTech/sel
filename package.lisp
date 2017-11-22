@@ -328,6 +328,7 @@
    :addresses
    :instrument
    :var-instrument
+   :*instrument-log-variable-name*
    :add-include
    :force-include
    :add-type
