@@ -6,7 +6,7 @@ before_script:
   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
-  - documentation
+  - deploy
   - build-test-and-tag
   - dependents
 
@@ -80,7 +80,7 @@ trigger_evo-rings:
     - master
 
 pages:
-  stage: documentation
+  stage: deploy
   script:
     - make doc
     - mkdir -p public
