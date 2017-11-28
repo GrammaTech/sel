@@ -1033,8 +1033,8 @@ The resulting type will not be added to any clang object and will not have a
 valid hash."))
 (defmethod type-from-trace-string ((name string))
   (make-clang-type
-    :pointer (or (starts-with #\* name) (ends-with #\* name))
-    :array (if (starts-with #\[ name) (scan-to-strings "^\\[\\d*\\]" name) "")
+    :pointer (not (null (find #\* name)))
+    :array (if (find #\[ name) (scan-to-strings "\\[\\d*\\]" name) "")
     :const (not (null (search "const" name)))
     :volatile (not (null (search "volatile" name)))
     :restrict (not (null (search "restrict" name)))
@@ -1045,7 +1045,7 @@ valid hash."))
                        :None)
     :hash 0
     :size (register-groups-bind (size)
-              ("^\\[(\\d+)\\]" name)
+              ("\\[(\\d+)\\]" name)
             (parse-integer size))
     :name (-> (format nil "^(\\*|\\[\\d*\\]|const |volatile |restrict |extern |~
                              static |__private_extern__ |auto |register )*")
