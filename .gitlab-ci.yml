@@ -7,6 +7,7 @@ before_script:
   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
+  - documentation
   - build-test-and-tag
   - dependents
 
@@ -76,5 +77,17 @@ trigger_evo-rings:
   stage: dependents
   script:
     - "curl -X POST -F token=3927540b9948e9eb8d3b1774dd9627 -F ref=$CI_BUILD_REF_NAME https://git.grammatech.com/api/v4/projects/80/trigger/pipeline"
+  only:
+    - master
+
+pages:
+  stage: documentation
+  script:
+    - make doc
+    - mkdir -p public
+    - cp -R doc/* public/
+  artifacts:
+    paths:
+      - public
   only:
     - master
