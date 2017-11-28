@@ -6716,6 +6716,20 @@ prints unique counters in the trace"
                                                   :storage-class :None
                                                   :hash 0
                                                   :reqs nil))))
+  (is (equalp "*[]int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer t
+                                                  :array "[]"
+                                                  :storage-class :None
+                                                  :hash 0
+                                                  :reqs nil))))
+  (is (equalp "*[5]int"
+              (type-trace-string (make-clang-type :name "int"
+                                                  :pointer t
+                                                  :array "[5]"
+                                                  :storage-class :None
+                                                  :hash 0
+                                                  :reqs nil))))
   (is (equalp "const int"
               (type-trace-string (make-clang-type :name "int"
                                                   :pointer nil
@@ -6794,6 +6808,22 @@ prints unique counters in the trace"
   (is (equalp (type-from-trace-string "[5]int")
               (make-clang-type :name "int"
                                :pointer nil
+                               :array "[5]"
+                               :size 5
+                               :storage-class :None
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "*[]int")
+              (make-clang-type :name "int"
+                               :pointer t
+                               :array "[]"
+                               :size nil
+                               :storage-class :None
+                               :hash 0
+                               :reqs nil)))
+  (is (equalp (type-from-trace-string "*[5]int")
+              (make-clang-type :name "int"
+                               :pointer t
                                :array "[5]"
                                :size 5
                                :storage-class :None
