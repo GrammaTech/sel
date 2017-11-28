@@ -83,9 +83,10 @@ our github repo [here](CONTRIBUTING.html)
 [//]: # (TODO: update link to INSTALL file if needed)
 
 ## Now what?
-Once you have SEL and its dependencies set up, have a look at the
-[Getting Started]() guide to try out some of examples or start exploring
-the [API]().
+
+Once you have SEL and its dependencies set up, read the
+[manual](software-evolution/) have a look at the [Getting Started]()
+guide to try out some of examples or start exploring the [API]().
 
 If you have questions, please refer to the
 [FAQ](FAQ.html)
