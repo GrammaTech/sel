@@ -78,7 +78,7 @@ so that it passes failing unit tests
 
 ## That sounds awesome! How do I get it?
 Check out the installation requirements and instructions in the INSTALL file in
-our github repo [here](https://github.com/GrammaTech/software-evolution/tree/master/INSTALL)
+our github repo [here](CONTRIBUTING.html)
 
 [//]: # (TODO: update link to INSTALL file if needed)
 
@@ -88,7 +88,7 @@ Once you have SEL and its dependencies set up, have a look at the
 the [API]().
 
 If you have questions, please refer to the
-[FAQ](https://github.com/GrammaTech/software-evolution/tree/master/FAQ.md)
+[FAQ](FAQ.html)
 to make sure your question hasn't already been answered before reporting an
 issue.
 
