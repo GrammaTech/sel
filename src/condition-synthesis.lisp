@@ -432,7 +432,7 @@ environments."
             (setf prev-env (aget :scopes sexpr)))
           (when (aget :aux sexpr)
             ;; Convert var infos from vectors to lists
-            (collect (mapcar {coerce _ 'list} prev-env) into envs)
+            (collect (mapcar [{take 3} {coerce _ 'list}] prev-env) into envs)
             (collect (aref (aget :aux sexpr) 0) into abst-conds))
           (finally (return (values (format nil "~{~a~}" abst-conds)
                                    (apply #'append envs)))))))

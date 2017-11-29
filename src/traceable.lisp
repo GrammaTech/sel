@@ -24,27 +24,25 @@
                          (text condition) (obj condition) (bin condition))
                  (format stream "Trace error: ~a while tracing ~S"
                          (text condition) (obj condition)))))
-  (:documentation "DOCFIXME"))
+  (:documentation "Error thrown when trace collection fails unexpectedly"))
 
-
+
 ;;; Execution with trace collection.
-(defgeneric collect-traces (software test-suite &key predicate max bin)
+(defgeneric collect-traces (software test-suite &key max bin)
   (:documentation
    "Execute instrumented SOFTWARE on TEST-SUITE collecting dynamic traces.
 See the documentation of `collect-trace' for information on the
-PREDICATE MAX and BIN keyword arguments."))
+MAX and BIN keyword arguments."))
 
 (defmethod collect-traces ((obj software) (test-suite test-suite)
-                           &key predicate max (bin (temp-file-name))
+                           &key max (bin (temp-file-name))
                            &aux (args (list :bin bin)) (delete-bin-p t))
   "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-SUITE suite of test case to execute for trace collection
-* PREDICATE predicate to call on each trace point to allow for filtering
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
 "
-  (when predicate (setf args (append args (list :predicate predicate))))
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
       (setf delete-bin-p nil)
@@ -57,23 +55,22 @@ PREDICATE MAX and BIN keyword arguments."))
           :report "Set object traces to NIL and continue."
           (setf (traces obj) (repeatedly (length (test-cases test-suite)) nil))
           (return-from collect-traces nil))))
+  (setf (traces obj) (make-instance 'trace-db))
   (unwind-protect
-       (setf (traces obj)
-             (mappend (lambda (test-case)
-                        (apply #'collect-trace obj test-case args))
-                      (test-cases test-suite)))
+       (mapc (lambda (test-case)
+               (apply #'collect-trace obj test-case args))
+             (test-cases test-suite))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
       (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)
-          (delete-file probe)))))
+          (delete-file probe))))
+  (traces obj))
 
-(defgeneric collect-trace (software test-case &key predicate max bin)
+(defgeneric collect-trace (software input &key max bin)
   (:documentation
    "Execute instrumented SOFTWARE on TEST-CASE collecting a dynamic trace.
-PREDICATE may be a function in which case only trace points for which
-PREDICATE returns true are recorded.  Max specifies the maximum number of
-trace points to record.  BIN specifies the name of an already-compiled
-binary to use.
+MAX specifies the maximum number of trace points to record.  BIN specifies
+the name of an already-compiled binary to use.
 
 Returns a list of traces, which may contains multiple elements if
 executing a test script which runs the traceable program multiple
@@ -81,16 +78,15 @@ times."))
 
 (defmethod collect-trace
     ((obj software) (test-case test-case)
-     &key (predicate #'identity) (max infinity) (bin (temp-file-name))
+     &key max (bin (temp-file-name))
      &aux (delete-bin-p t))
     "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-CASE test case to execute for trace collection
-* PREDICATE predicate to call on each trace point to allow for filtering
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
 "
-    (if (probe-file bin)
+  (if (probe-file bin)
       (setf delete-bin-p nil)
       (restart-case
           (phenome obj :bin bin)
@@ -137,23 +133,20 @@ times."))
                            (finally (note 3 "No handshake after ~d seconds"
                                           *trace-open-timeout*)))))
             (iter (while (handshake))
-                  (collect (list ;; keep :bin symbol if present
-                                 (cons :input
-                                       (cons (program-name test-case)
-                                             (program-args test-case)))
-                                 (cons :trace
-                                       (read-trace pipe
-                                                   *trace-open-timeout*
-                                                   :predicate predicate
-                                                   :max max)))
-                    into traces)
+                  (for i upfrom 1)
+                  (add-trace (traces obj) pipe *trace-open-timeout*
+                             (list ;; keep :bin symbol if present
+                              (cons :input
+                                    (cons (program-name test-case)
+                                          (program-args test-case))))
+                             :max max)
                   (finally
                    (finish-test proc :kill-signal 15
                                      :timeout *process-kill-timeout*)
                    (restart-case
                        ;; This usually indicates a problem with the
                        ;; test script or the instrumentation
-                       (when (emptyp traces)
+                       (when (zerop i)
                          (error (make-condition 'trace-error
                                  :text (format nil
                                          "No traces collected for test case ~s ~s."
@@ -163,9 +156,8 @@ times."))
                                  :obj test-case
                                  :bin bin)))
                       (ignore-empty-trace ()
-                        :report "Ignore empty trace"))
-                   (return traces)))))))
+                        :report "Ignore empty trace"))))))))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
-      (if (directory-pathname-p probe)
+        (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)
           (delete-file probe)))))

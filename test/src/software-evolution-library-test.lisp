@@ -5086,8 +5086,8 @@ prints unique counters in the trace"
                    trace)
             "No duplicate variables.")
 
-        (is (every [«or {equalp '(#("x" "int" 1))}
-                        {equalp '(#("x" "short" 0))}»
+        (is (every [«or {equalp '(#("x" "int" 1 nil))}
+                        {equalp '(#("x" "short" 0 nil))}»
                     {aget :scopes}]
                    trace)
             "Variables have correct type and value.")))))
@@ -5154,10 +5154,10 @@ prints unique counters in the trace"
             (is (listp trace))
             (is (not (emptyp trace)))
             (is (every «and {aget :c} {aget :f}» trace))
-            (is (some «and [{equalp '(#("x" "int" 0))} {aget :scopes}]
+            (is (some «and [{equalp '(#("x" "int" 0 nil))} {aget :scopes}]
                            [{eq 0} {aget :f}]»
                     trace))
-            (is (some «and [{equalp '(#("y" "int" 1))} {aget :scopes}]
+            (is (some «and [{equalp '(#("y" "int" 1 nil))} {aget :scopes}]
                            [{eq 1} {aget :f}]»
                     trace))))))))
 
@@ -5325,8 +5325,9 @@ prints unique counters in the trace"
 (deftest run-traceable-gcd ()
   (with-fixture traceable-gcd
     (instrument *gcd* :trace-env t)
-    (setf (traces *gcd*) (mapcar {collect-trace *gcd*}
-                                 (test-cases *gcd-test-suite*)))
+    (collect-traces *gcd* *gcd-test-suite*)
+    (setf (traces *gcd*)
+          (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
@@ -5334,7 +5335,8 @@ prints unique counters in the trace"
   (with-fixture traceable-gcd
     (instrument *gcd* :trace-env t)
     (collect-traces *gcd* *gcd-test-suite*)
-    (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
+    (setf (traces *gcd*)
+          (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
 (define-software collect-traces-handles-directory-phenomes-mock
