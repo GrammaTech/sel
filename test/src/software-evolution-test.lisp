@@ -20,8 +20,34 @@
   (testbot-test #'test "SEL" +software-evolution-branch+))
 (defun run-batch (&rest a) (declare (ignorable a)) (batch-test #'test))
 
-(defsuite test)
-(in-suite test)
+(defsuite* test)                        ; The root test suite.
+
+(defmacro sel-suite* (name documentation &optional (test-pre-check t))
+  "Define NAME with DOCUMENTATION in the top level `test'.
+Optional TEST-PRE-CHECK if present should be one of the following:
+:SILENT --- silently skip this test suite
+NIL ------- skip this test suite with the default warning
+Otherwise - test-pre-check will be invoked at runtime
+return non-nil when the test
+suite should be run and nil otherwise."
+  (with-gensyms (test)
+    `(progn
+       (when (or (boundp ',name) (fboundp ',name))
+         (warn "Defining ~a with `sel-suite*' overwrites existing definition."
+               ',name))
+       (defsuite* (,name :in test :documentation ,documentation) ()
+         (let ((,test (find-test ',name)))
+           (cond
+             ((stefil::test-was-run-p ,test)
+              (warn "Skipped executing already run tests suite ~S"
+                    (stefil::name-of ,test)))
+             ,@(if (eq test-pre-check :silent)
+                   '()
+                   `(,@(if test-pre-check
+                           `((,test-pre-check (run-child-tests)))
+                           nil)
+                       (t (warn "Skipped executing disabled tests suite ~S."
+                                (stefil::name-of ,test)))))))))))
 
 (defvar *genome*      nil "Genome used in tests.")
 (defvar *soft*        nil "Software used in tests.")
@@ -918,9 +944,9 @@
     (setf *soft* nil)))
 
 
-;;; ASM representation
-(in-suite test)
-(defsuite* test-asm)
+;;; ASM representation.
+(sel-suite* asm "ASM representation.")
+
 
 (deftest simple-read ()
   (with-fixture gcd-asm
@@ -1026,10 +1052,12 @@
         ))))
 
 
-;;; ELF representation
-#| ;; TODO: Currently failing because we're not populating the .text section.
-(in-suite test)
-(defsuite* test-elf)
+;;; ELF representation.
+;;;
+;;; NOTE: Currently failing because not populating .text section.
+;;;
+(sel-suite* elf "ELF representation." :silent)
+
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 
@@ -1143,12 +1171,13 @@
       (let ((new (crossover variant *gcd*)))
         (is (not (equal-it (genome new) (genome *gcd*))))
         (is (= (length (bytes *gcd*)) (length (bytes variant))))))))
-|#
 
 
-;;; Clang representation
-(in-suite test)
-(defsuite* test-clang)
+;;; Clang representation.
+(defun clang-mutate-available-p ()
+  (zerop (third (multiple-value-list (shell "which clang-mutate")))))
+
+(sel-suite* clang "Clang representation." (clang-mutate-available-p))
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang
@@ -1745,8 +1774,8 @@ int x = CHARSIZE;")))
 ;;; apply-mutation, adjusting the good and bad picks to get
 ;;; predictable results. And they check the results of each mutation
 ;;; in as much detail as possible.
-(in-suite test)
-(defsuite* test-clang-mutations)
+(sel-suite* clang-mutations "Detailed clang mutation tests."
+            (clang-mutate-available-p))
 
 (defixture gcd-clang-control-picks
   (:setup
@@ -2077,9 +2106,10 @@ int x = CHARSIZE;")))
           (is (eq :WhileStmt (ast-class stmt))))))))
 
 
-;;; Clang w/ mutation fodder representation
-(in-suite test)
-(defsuite* test-clang-w-fodder)
+;;;; Clang w/ mutation fodder representation.
+(sel-suite* clang-w-fodder-tests "Clang w/ mutation fodder representation."
+            (clang-mutate-available-p))
+
 
 (deftest parse-source-snippet-body-statement ()
   (with-fixture gcd-clang
@@ -2203,9 +2233,11 @@ int x = CHARSIZE;")))
       (is (not (null (aget :stmt1 (targets mut)))))
       (is (not (null (aget :value1 (targets mut))))))))
 
-;;; Clang utility methods
-(in-suite test)
-(defsuite* test-clang-utility)
+
+;;;; Clang utility methods.
+(sel-suite* clang-utility "Clang utility methods."
+            (clang-mutate-available-p))
+
 
 (deftest asts-populated-on-creation ()
   (with-fixture hello-world-clang
@@ -2331,9 +2363,9 @@ int x = CHARSIZE;")))
           "rebind-vars did not rebind a variable within a macro"))))
 
 
-;;; Range representation
-(in-suite test)
-(defsuite* test-range)
+;;;; Range representation.
+(sel-suite* range-representation "Range representation.")
+
 
 (deftest range-size ()
   (with-fixture range (is (= 6 (size *soft*)))))
@@ -2457,9 +2489,11 @@ int x = CHARSIZE;")))
       (is (tree-equal before-b (genome *tfos*))))))
 
 
-;;; Mutation analysis and statistics collection tests
-(in-suite test)
-(defsuite* test-mutation-analysis)
+;;;; Mutation analysis and statistics collection tests.
+(sel-suite* mutation-analysis
+    "Mutation analysis and statistics collection tests."
+    (clang-mutate-available-p))
+
 
 (defvar *test* nil "Variable to hold evaluation function for tests.")
 
@@ -2551,9 +2585,10 @@ int x = CHARSIZE;")))
              (size *hello-world*))))))
 
 
-;;;; Ancestry tests
-(in-suite test)
-(defsuite* test-ancestry)
+;;;; Ancestry tests.
+(sel-suite* ancestry "Ancestry tests."
+            (clang-mutate-available-p))
+
 
 (defclass clang-w-ancestry (clang ancestral) ())
 
@@ -2631,9 +2666,9 @@ int x = CHARSIZE;")))
           (is (zerop errno)))))))
 
 
-;;; Diff tests
-(in-suite test)
-(defsuite* test-diff)
+;;;; Diff tests.
+(sel-suite* diff-tests "Diff tests.")
+
 
 (defmacro with-static-reference (software &rest body)
   (let ((ref-sym (gensym)))
@@ -2751,9 +2786,10 @@ int x = CHARSIZE;")))
                   #(((:CODE 3)) ((:CODE 2)) ((:CODE 1)) ((:CODE 4))))))))
 
 
-;;; Population tests
-(in-suite test)
-(defsuite* test-population)
+;;;; Population tests.
+(sel-suite* population-tests "Population tests."
+            (clang-mutate-available-p))
+
 
 (deftest evict-population ()
   (with-fixture population
@@ -2817,8 +2853,7 @@ int x = CHARSIZE;")))
         (is (= *fitness-evals* 5))))))
 
 
-
-;;; Helper functions to avoid hard-coded statement numbers.
+;;;; Helper functions to avoid hard-coded statement numbers.
 (defun stmt-with-text (obj text &optional no-error)
   "Return the AST in OBJ holding TEXT.
 Unless optional argument NO-ERROR is non-nil an error is raised if no
@@ -3002,9 +3037,10 @@ Useful for printing or returning differences in the REPL."
                                        :arity 3)))))
 
 
-;;; Fix compilation tests.
-(in-suite test)
-(defsuite* test-fix-compilation)
+;;;; Fix compilation tests.
+(sel-suite* fix-compilation-tests "Fix compilation tests."
+            (clang-mutate-available-p))
+
 
 (defvar *broken-clang* nil "")
 (defvar *broken-gcc* nil "")
@@ -3074,8 +3110,9 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Crossover tests.
-(in-suite test)
-(defsuite* test-clang-crossover)
+(sel-suite* clang-crossover "Crossover tests."
+            (clang-mutate-available-p))
+
 
 (defun select-intraprocedural-pair-with-adjustments-test (obj)
   (let ((function (first (functions obj))))
@@ -4232,7 +4269,10 @@ Useful for printing or returning differences in the REPL."
                     "")))))
 
 
-(in-suite test)
+;;;; Misc. mutation tests.
+(sel-suite* misc-mutations "Misc. mutation tests."
+            (clang-mutate-available-p))
+
 
 (deftest single-decl-works ()
   (with-fixture scopes-clang
@@ -4477,9 +4517,9 @@ Useful for printing or returning differences in the REPL."
     (is (stmt-with-text obj "x = x - 1" :no-error))))
 
 
-;;; Adaptive-mutation tests.
-(in-suite test)
-(defsuite* test-adaptive-mutation)
+;;;; Adaptive-mutation tests.
+(sel-suite* adaptive-mutation "Adaptive-mutation tests.")
+
 
 (deftest bad-cut-changes-mutation-probability ()
   (let* ((se::*mutation-results-queue* #((cut . :worse) (cut . :dead)))
@@ -4542,9 +4582,9 @@ Useful for printing or returning differences in the REPL."
       (is (equal :better (cdr (aref se::*mutation-results-queue* 0))))))
 
 
-;;; Database tests
-(in-suite test)
-(defsuite* test-database)
+;;;; Database tests.
+(sel-suite* database "Database tests.")
+
 
 (defixture json-database
   (:setup
@@ -4622,9 +4662,10 @@ Useful for printing or returning differences in the REPL."
         (equal picks (remove-duplicates picks))))))
 
 
-;;;; Instrumentation tests
-(in-suite test)
-(defsuite* test-instrumentation)
+;;;; Instrumentation tests.
+(sel-suite* instrumentation "Instrumentation tests."
+            (clang-mutate-available-p))
+
 
 (defun count-traceable (obj)
   "Return a count of full statements parented by compound statements"
@@ -5052,9 +5093,10 @@ prints unique counters in the trace"
                (genome soft)))
         "We don't find code to print variables in the instrumented source.")))
 
-;;;; Traceable tests
-(in-suite test)
-(defsuite* test-traceable)
+;;;; Traceable tests.
+(sel-suite* traceable "Traceable tests."
+            (clang-mutate-available-p))
+
 
 (define-software clang-traceable (clang traceable) ())
 
@@ -5132,9 +5174,11 @@ prints unique counters in the trace"
             "finish-test did not kill a long running process")))))
 
 
-;;;; Tests of declaration and type databases on clang objects
-(in-suite test)
-(defsuite* test-declaration-type-databases)
+;;;; Tests of declaration and type databases on clang objects.
+(sel-suite* declaration-type-databases
+    "Tests of declaration and type databases on clang objects."
+    (clang-mutate-available-p))
+
 
 (deftest huf-knows-types ()
   (with-fixture huf-clang
@@ -5165,9 +5209,9 @@ prints unique counters in the trace"
           "Variable \"strbit\" in huf is not a pointer."))))
 
 
-;; Lisp representation
-(in-suite test)
-(defsuite* test-lisp)
+;;;; Lisp representation.
+(sel-suite* lisp "Lisp representation.")
+
 
 (defvar *clang-expr*  nil "The clang expression (lisp) software object.")
 (defixture clang-expr
@@ -5241,10 +5285,13 @@ prints unique counters in the trace"
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:- 3 :y)))))))
 
 
-;; Mutations of clang expressions in Lisp form
-(in-suite test)
-(defsuite* test-clang-expression)
+;;;; Mutations and evaluation of clang expressions in Lisp form.
+(sel-suite* clang-expression
+    "Mutation and evaluation of clang expressions in Lisp form."
+    (clang-mutate-available-p))
 
+
+;;;; Mutations of clang expressions in Lisp form.
 (deftest change-operator-first ()
   (with-fixture clang-expr
     (apply-mutation *clang-expr*
@@ -5294,7 +5341,7 @@ prints unique counters in the trace"
     (is (equal (genome *clang-expr*) '(:+ 1 (:+ (:- (:* 2 (:- 3 :y)) 1) 1))))))
 
 
-;; Evaluation of clang expressions in Lisp form
+;;;; Evaluation of clang expressions in Lisp form.
 (deftest eval-number-clang ()
   (is (equal (evaluate-expression (make-instance 'clang-expression) nil 1)
              '(1 "int"))))
@@ -5349,9 +5396,9 @@ prints unique counters in the trace"
      '(:/ 2 (:+ :ptr 1)))))
 
 
-;; Utility tests
-(in-suite test)
-(defsuite* test-utility)
+;;;; Utility tests.
+(sel-suite* utility "Utility tests.")
+
 
 (deftest intersects-does-not-include-endpoints ()
   (is (not (intersects (make-instance 'range :begin 0 :end 1)
@@ -5399,9 +5446,10 @@ prints unique counters in the trace"
   (is (not (null (which "clang")))))
 
 
-;; project tests
-(in-suite test)
-(defsuite* test-project)
+;;;; Project tests.
+(sel-suite* clang-project-tests "Project tests."
+            (clang-mutate-available-p))
+
 
 (defvar *s1*)
 (defvar *s2*)
@@ -5526,9 +5574,10 @@ prints unique counters in the trace"
                      (length))))))))
 
 
-;;; Condition synthesis tests
-(in-suite test)
-(defsuite* test-condition-synthesis)
+;;;; Condition synthesis tests.
+(sel-suite* condition-synthesis "Condition synthesis tests."
+            (clang-mutate-available-p))
+
 
 (deftest flip-works ()
   (is (string= (se::flip "") ""))
@@ -5681,9 +5730,9 @@ prints unique counters in the trace"
 
 
 
-;;; Selection tests
-(in-suite test)
-(defsuite* test-selection)
+;;;; Selection tests.
+(sel-suite* selection "Selection tests.")
+
 
 (deftest select-best-single-winner ()
   (let ((group (list (make-instance 'simple :fitness 1.0)
@@ -5940,9 +5989,10 @@ prints unique counters in the trace"
     (is (tournament :size 3))))
 
 
-;; Style features tests
-(in-suite test)
-(defsuite* test-style-features)
+;;;; Style features tests.
+(sel-suite* style-features "Style features tests."
+            (clang-mutate-available-p))
+
 
 (deftest uni-grams-ht-test ()
   (let* ((sentence (list "the" "quick" "brown" "fox"
@@ -6142,8 +6192,10 @@ prints unique counters in the trace"
         (is (equal '(1 1) vals))))))
 
 
-(in-suite test)
-(defsuite* clang-syntactic-contexts)
+;;;; Clang syntactic contexts.
+(sel-suite* clang-syntactic-contexts "Clang syntactic contexts."
+            (clang-mutate-available-p))
+
 
 ;; Tests of basic clang mutation operators
 (defun count-matching-chars-in-stmt (char stmt)
@@ -6462,8 +6514,10 @@ prints unique counters in the trace"
 
 
 
-(in-suite test)
-(defsuite* clang-scopes-and-types)
+;;;; Clang scope and type tests.
+(sel-suite* clang-scopes-and-types "Clang scope and type tests."
+            (clang-mutate-available-p))
+
 
 (defun compare-scopes (result expected)
   (is (equal (mapcar {mapcar {aget :name}} result)
@@ -6685,7 +6739,10 @@ prints unique counters in the trace"
       (is (aget :type (car unbound))))))
 
 
-;;;; Types and traces tests
+;;;; Types and traces tests.
+(sel-suite* type-traces-tests "Types and traces tests."
+            (clang-mutate-available-p))
+
 
 (deftest type-trace-string-test ()
   (is (equalp "int"
@@ -6967,9 +7024,10 @@ prints unique counters in the trace"
                                                  :reqs nil)))))
 
 
-;;;; Clang tokenizer tests
-(in-suite test)
-(defsuite* test-clang-tokenizer)
+;;;; Clang tokenizer tests.
+(sel-suite* clang-tokenizer "Clang tokenizer tests."
+            (clang-mutate-available-p))
+
 
 (deftest case-tokens ()
   (with-fixture variety-clang
