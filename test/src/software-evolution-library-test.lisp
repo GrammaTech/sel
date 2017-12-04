@@ -4628,11 +4628,7 @@ Useful for printing or returning differences in the REPL."
   "Return a count of full statements parented by compound statements"
   (count-if {can-be-made-traceable-p obj} (asts obj)))
 
-(defun trace-to-lisp (string)
-  "Read a trace into a lisp objects."
   (declare (ignorable string))
-  (assert nil))
-
 (defun get-gcd-trace (bin)
   (with-temp-file (trace-file)
     (multiple-value-bind (stdout stderr errno)
