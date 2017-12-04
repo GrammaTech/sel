@@ -670,7 +670,7 @@ FILE *~a;
 void __attribute__((constructor(101))) __bi_setup_log_file() {
   const char *handshake_file = getenv(\"~a\");
   if (handshake_file) {
-    while (access(handshake_file, 0) != 0);
+    while (access(handshake_file, 0) != 0) { sleep(1); }
     unlink(handshake_file);
   }
   ~a = ~a;

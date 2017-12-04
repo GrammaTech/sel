@@ -101,26 +101,36 @@ times."))
                                            (cons *instrument-handshake-env-name*
                                                  handshake-file))
                                 :wait nil)))
-          (flet ((handshake (&aux (start-time (get-internal-real-time)))
-                   ;; Create the handshake file, which indicates that we
-                   ;; are ready to read traces. The file contents don't
-                   ;; actually matter.
-                   (with-output-to-file (out handshake-file)
-                     (format out "ready"))
-                   (iter (while (< (/ (- (get-internal-real-time) start-time)
-                                      internal-time-units-per-second)
-                                   *trace-open-timeout*))
-                         (unless (eq :running (process-status proc))
-                           (note 3 "Test process exited")
-                           (return nil))
+          (labels ((timeout-p (start-time)
+                     (> (/ (- (get-internal-real-time) start-time)
+                           internal-time-units-per-second)
+                        *trace-open-timeout*))
+                   (handshake (&aux (start-time (get-internal-real-time)))
+                     ;; Create the handshake file, which indicates that we
+                     ;; are ready to read traces. The file contents don't
+                     ;; actually matter.
+                     (iter (while (not (timeout-p start-time)))
+                           (handler-case
+                               (progn
+                                 (with-output-to-file (out handshake-file)
+                                   (format out "ready"))
+                                 (finish))
+                             (error (e)
+                               (declare (ignorable e))
+                               (sleep 1))))
 
-                         ;; The instrumented process will complete the
-                         ;; handshake by deleting the file.
-                         (unless (probe-file handshake-file)
-                           (return t))
+                     (iter (while (not (timeout-p start-time)))
+                           (unless (eq :running (process-status proc))
+                             (note 3 "Test process exited")
+                             (return nil))
 
-                         (finally (note 3 "No handshake after ~d seconds"
-                                        *trace-open-timeout*)))))
+                           ;; The instrumented process will complete the
+                           ;; handshake by deleting the file.
+                           (unless (probe-file handshake-file)
+                             (return t))
+
+                           (finally (note 3 "No handshake after ~d seconds"
+                                          *trace-open-timeout*)))))
             (iter (while (handshake))
                   (collect (list ;; keep :bin symbol if present
                                  (cons :input
