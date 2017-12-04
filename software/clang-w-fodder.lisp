@@ -1,10 +1,10 @@
 ;;; clang-w-fodder.lisp --- clang software with a source fodder database
 
-;;; clang software representation with a Mongo database containing
-;;; AST entries as fodder for the evolution process.
+;;; clang software representation with a database containing AST
+;;; entries as fodder for the evolution process.
 
-;;; Each AST entry in the Mongo database contains source text and,
-;;; where applicable, the corresponding binary bytes.
+;;; Each AST entry in the database contains source text and, where
+;;; applicable, the corresponding binary bytes.
 (in-package :software-evolution)
 (enable-curry-compose-reader-macros :include-utf8)
 

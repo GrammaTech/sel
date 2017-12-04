@@ -9,7 +9,6 @@
    :common-lisp
    :cl-arrows
    :cl-custom-hash-table
-   :cl-mongo
    :cl-ppcre
    :curry-compose-reader-macros
    :diff
@@ -213,7 +212,6 @@
    :fodder-database
    :in-memory-database
    :json-database
-   :mongo-database
    :pliny-database
    :db
    :host

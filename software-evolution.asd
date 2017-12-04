@@ -16,7 +16,6 @@ techniques."
                cl-arrows
                cl-custom-hash-table
                cl-json
-               cl-mongo
                cl-ppcre
                cl-fad
                curry-compose-reader-macros
@@ -73,7 +72,6 @@ techniques."
              (:file "in-memory-fodder-database" :depends-on ("fodder-database"))
              (:file "json-fodder-database" :depends-on ("in-memory-fodder-database"))
              (:file "lexicase")
-             (:file "mongo-fodder-database" :depends-on ("fodder-database"))
              (:file "pliny-fodder-database" :depends-on ("fodder-database"))
              (:file "test-suite")
              (:file "condition-synthesis" :depends-on ("test-suite"))

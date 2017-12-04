@@ -11,7 +11,6 @@ recommendations, and solutions to common issues.
     - [Tracing specific functions](#tracing-specific-functions)
 - [Issues and Solutions](#issues-and-solutions)
     - [`clang-mutate` is not on my path](#clang-mutate-is-not-on-my-path)
-    - [Dependency on MongoDB](#dependency-on-mongodb)
     - [Large number of test failures](#large-number-of-test-failures)
     - [Cross compilation](#cross-compilation)
     - [CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER is undefined](#curry-compose-reader-macroslcurly-brace-reader-is-undefined)
@@ -118,14 +117,6 @@ used by SBCL may not inherit PATH changes made in your user
 environment, so placing a clang-mutate executable on the standard
 system search path, or updating the path in `/etc/profile` may be
 required.
-
-### Dependency on MongoDB
-
-Currently cl-mongo is a dependency of SEL and some tests depend on a
-MongoDB installation.
-
-> Perhaps we should move the functionality that requires MongoDB to a
-> new package.
 
 ### Large number of test failures
 
