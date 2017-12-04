@@ -1,4 +1,4 @@
-.PHONY: doc
+.PHONY: doc api
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
@@ -30,5 +30,11 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 
 
 ## Documentation
-doc:
+doc: api
 	make -C doc
+
+api:
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
+		--eval '(ql:quickload :cl-gendoc)' \
+		--eval '(gendoc:gendoc (:output-filename "doc/api.html") (:mdf #P"./README.md") (:apiref :software-evolution :software-evolution-utility))' \
+		--eval "#+sbcl (exit) #+ccl (quit)"
