@@ -30,7 +30,7 @@
 ;; [3] http://llvm.org/docs/LangRef.html#introduction
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

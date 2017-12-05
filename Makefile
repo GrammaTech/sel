@@ -5,9 +5,9 @@ ifneq ("$(wildcard local.mk)","")
 include local.mk
 endif
 
-PACKAGE_NAME = software-evolution
-PACKAGE_NICKNAME = se
-PACKAGE_NAME_FIRST = software-evolution-utility
+PACKAGE_NAME = software-evolution-library
+PACKAGE_NICKNAME = sel
+PACKAGE_NAME_FIRST = software-evolution-library-utility
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard src/*.lisp)		\
@@ -36,5 +36,5 @@ doc: api
 api:
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
 		--eval '(ql:quickload :cl-gendoc)' \
-		--eval '(gendoc:gendoc (:output-filename "doc/api.html") (:mdf #P"./README.md") (:apiref :software-evolution :software-evolution-utility))' \
+		--eval '(gendoc:gendoc (:output-filename "doc/api.html") (:mdf #P"./README.md") (:apiref :software-evolution-library :software-evolution-library-utility))' \
 		--eval "#+sbcl (exit) #+ccl (quit)"

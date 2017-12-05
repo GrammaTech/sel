@@ -1,4 +1,4 @@
-(defsystem :software-evolution-command-line
+(defsystem :software-evolution-library-command-line
   :description "command line helpers"
   :licence "GPL V3"
   :depends-on (metabang-bind)

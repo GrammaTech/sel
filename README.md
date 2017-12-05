@@ -1,6 +1,6 @@
-# SOFTWARE-EVOLUTION
+# SOFTWARE-EVOLUTION-LIBRARY
 
-The SOFTWARE-EVOLUTION library enables the programmatic modification
+The SOFTWARE-EVOLUTION-LIBRARY enables the programmatic modification
 and evaluation of extant software.
 
 A common interface abstracts over multiple types of software objects
@@ -14,10 +14,10 @@ https://github.com/eschulte/goa) and to patch vulnerabilities in
 closed source binaries (see http://eschulte.github.io/netgear-repair).
 
 See the info manual for more information.  Available in the `doc/`
-directory and at http://GrammaTech.github.io/software-evolution.
+directory and at http://GrammaTech.github.io/sel.
 
 Please cite Eric Schulte's Ph.D. dissertation when you publish results
-that you have obtained with the SOFTWARE-EVOLUTION library.
+that you have obtained with the SOFTWARE-EVOLUTION-LIBRARY.
 
 ```bibtex
 @phdthesis{schulte2014dissertation,

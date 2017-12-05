@@ -51,7 +51,7 @@ Notes                                                      -*- org -*-
 ** running from a saved population
 Could use this sort of file as fodder.
 #+begin_src lisp
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (setq
  *MAX-POPULATION-SIZE* 100         ;; Maximum allowable population size.
  *POS-TEST-NUM*        10          ;; Number of positive tests.
@@ -345,7 +345,7 @@ by standard libraries.
    CLOSED: [2016-05-06 Fri 09:05]
 ** DONE define =se= as the usable package prefix
    CLOSED: [2016-04-19 Tue 09:42]
-So code can e.g., =(se::references ...)= to call private functions.
+So code can e.g., =(sel::references ...)= to call private functions.
 
 ** DONE More efficient storage for ELF files
 see file:software/diff.lisp
@@ -369,7 +369,7 @@ something which can be included downstream.
 ;; only holds a difference against a reference version of the genome.
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 
 (defclass diff (software)
   ((diffs :initarg :diffs :accessor diffs :initform nil)))
@@ -523,7 +523,7 @@ have rank-based selection and eviction.
 For now we could just make eviction and selection both controllable
 through the tournament size, with a size of 1 being completely random.
 
-** DONE expose a software-evolution utility class
+** DONE expose a software-evolution-library utility class
 ** DONE cleanup files system [4/4]
 - [X] combine soft.lisp and genome.lisp
 - [X] use full names

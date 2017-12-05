@@ -33,7 +33,7 @@ $(error Please point QUICK_LISP to your quicklisp installation)
 endif
 
 MANIFEST_FILE=$(QUICK_LISP)/local-projects/system-index.txt
-LISP_LIBS+= software-evolution-test
+LISP_LIBS+= software-evolution-library-test
 LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
 LOADED_LIBS_TMP:=$(addprefix $(QUICK_LISP)/local-projects/, $(LISP_LIBS))
 LOADED_LIBS:=$(LOADED_LIBS_TMP:=.loaded)

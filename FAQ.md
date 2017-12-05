@@ -81,8 +81,8 @@ Common lisp provides support for function-level tracing.  This may be
 enabled and disabled using the `cl-user::trace` and `cl-user::untrace`
 functions respectively, as shown in the following.
 
-    CL-USER> (in-package :software-evolution-test)
-    #<PACKAGE "SOFTWARE-EVOLUTION-TEST">
+    CL-USER> (in-package :software-evolution-library-test)
+    #<PACKAGE "SOFTWARE-EVOLUTION-LIBRARY-TEST">
     SE-TEST> (hello-world-clang)
     T
     SE-TEST> (cl-user::trace snippet->clang-type)
@@ -152,10 +152,10 @@ When dealing with some compilation issues
 ([see curry-compose-reader-macros](#curry-compose-reader-macroslcurly-brace-reader-is-undefined)]),
 it may be necessary to delete the cache.  By the default, the cache
 should be located in
-`~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution`.
+`~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution-library`.
 To remove the cache simply execute:
 
-    rm -rf ~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution
+    rm -rf ~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution-library
 
 ### Did all unit tests pass?
 

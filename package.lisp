@@ -1,6 +1,6 @@
 ;; Copyright (C) 2011-2013  Eric Schulte
-(defpackage :software-evolution
-  (:nicknames :se)
+(defpackage :software-evolution-library
+  (:nicknames :sel)
   (:use
    :alexandria
    :closer-mop
@@ -16,12 +16,12 @@
    :iterate
    :metabang-bind
    :split-sequence
-   :software-evolution-utility
+   :software-evolution-library-utility
    :usocket
    :fast-io
    :libtrace)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
-  (:shadowing-import-from :software-evolution-utility :quit)
+  (:shadowing-import-from :software-evolution-library-utility :quit)
   (:shadowing-import-from :uiop :getenv)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
@@ -34,8 +34,8 @@
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
   (:export
-   :+software-evolution-version+
-   :+software-evolution-branch+
+   :+software-evolution-library-version+
+   :+software-evolution-library-branch+
    ;; software objects
    :software
    :define-software

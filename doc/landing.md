@@ -85,7 +85,7 @@ our github repo [here](CONTRIBUTING.html)
 ## Now what?
 
 Once you have SEL and its dependencies set up, read the
-[manual](software-evolution/) have a look at the [Getting Started]()
+[manual](software-evolution-library/) have a look at the [Getting Started]()
 guide to try out some of examples or start exploring the [API]().
 
 If you have questions, please refer to the

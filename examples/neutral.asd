@@ -6,7 +6,7 @@
                metabang-bind
                cl-ppcre
                curry-compose-reader-macros
-               software-evolution
-               software-evolution-utility
-               software-evolution-command-line)
+               software-evolution-library
+               software-evolution-library-utility
+               software-evolution-library-command-line)
   :components ((:file "neutral")))

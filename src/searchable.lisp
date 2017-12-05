@@ -1,7 +1,7 @@
 ;;; Interface for all external assets searchable for snippets
 ;;; similar to a given target.
 
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defclass searchable () ())

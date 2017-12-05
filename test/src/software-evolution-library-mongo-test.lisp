@@ -1,6 +1,6 @@
-;;; software-evolution-mongo-tests.lisp --- tests for the `software-evolution-mongo' package
+;;; software-evolution-library-mongo-tests.lisp --- tests for the `software-evolution-library-mongo' package
 
-(in-package :software-evolution-mongo-test)
+(in-package :software-evolution-library-mongo-test)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

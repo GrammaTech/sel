@@ -1,7 +1,7 @@
 ;;; Concrete implementation of the database interface
 ;;; for an external Pliny fodder database.
 
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 ;; Helpers

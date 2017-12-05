@@ -56,5 +56,5 @@ quicklisp
 system-index.txt
 
 # loaded libraries
-software-evolution.loaded
-software-evolution-test.loaded
+software-evolution-library.loaded
+software-evolution-library-test.loaded

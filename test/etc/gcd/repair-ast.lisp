@@ -1,5 +1,5 @@
 ;; repair using software evolution
-(require :software-evolution)
+(require :software-evolution-library)
 (load #P"test/gcd/repair.lisp")
 (in-package :repair)
 (enable-curry-compose-reader-macros :include-utf8)

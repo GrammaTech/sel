@@ -1,5 +1,5 @@
-(defsystem :software-evolution-mongo-test
-  :description "Test the SOFTWARE-EVOLUTION-MONGO package."
+(defsystem :software-evolution-library-mongo-test
+  :description "Test the SOFTWARE-EVOLUTION-LIBRARY-MONGO package."
   :version "0.0.0"
   :depends-on (alexandria
                closer-mop
@@ -7,10 +7,10 @@
                curry-compose-reader-macros
                cxml
                metabang-bind
-               software-evolution
-               software-evolution-utility
-               software-evolution-mongo
-               software-evolution-test
+               software-evolution-library
+               software-evolution-library-utility
+               software-evolution-library-mongo
+               software-evolution-library-test
                split-sequence
                stefil
                uuid
@@ -20,5 +20,5 @@
             :pathname "test/src"
             :components
             ((:file "package-mongo")
-             (:file "software-evolution-mongo-test"
+             (:file "software-evolution-library-mongo-test"
                     :depends-on ("package-mongo"))))))

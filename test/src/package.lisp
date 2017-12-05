@@ -1,6 +1,6 @@
 ;; Copyright (C) 2013  Eric Schulte
-(defpackage :software-evolution-test
-  (:nicknames :se-test)
+(defpackage :software-evolution-library-test
+  (:nicknames :sel-test)
   (:use
    :common-lisp
    :alexandria
@@ -12,8 +12,8 @@
    :split-sequence
    :stefil
    :cl-ppcre
-   :software-evolution
-   :software-evolution-utility
+   :software-evolution-library
+   :software-evolution-library-utility
    :testbot
    :libtrace
    :trivial-shell

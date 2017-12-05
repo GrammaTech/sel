@@ -1,4 +1,4 @@
-(in-package :software-evolution-example)
+(in-package :software-evolution-library-example)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

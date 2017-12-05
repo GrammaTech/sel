@@ -1,4 +1,4 @@
-PROJECT=software-evolution
+PROJECT=software-evolution-library
 
 all: index.html CONTRIBUTING.html FAQ.html info html clang-instrument.1.gz
 

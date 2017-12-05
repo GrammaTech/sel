@@ -1,4 +1,4 @@
-(defsystem :software-evolution
+(defsystem :software-evolution-library
   :description "programmatic modification and evaluation of extant software"
   :long-description "A common interface abstracts over multiple
 types of software objects including abstract syntax trees parsed from
@@ -8,7 +8,7 @@ interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
   :licence "GPL V3"
-  ;; :homepage "http://eschulte.github.io/software-evolution/index.html"
+  ;; :homepage "http://GrammaTech.github.io/sel"
   :depends-on (alexandria
                closer-mop
                uiop
@@ -23,19 +23,19 @@ techniques."
                elf
                iterate
                metabang-bind
-               software-evolution-utility
+               software-evolution-library-utility
                split-sequence
                usocket
                trivial-utf-8
                fast-io
                libtrace)
-  :in-order-to ((test-op (test-op software-evolution-test)))
+  :in-order-to ((test-op (test-op software-evolution-library-test)))
   :components
   ((:module base
             :pathname ""
             :components
             ((:file "package")
-             (:file "software-evolution" :depends-on ("package"))))
+             (:file "software-evolution-library" :depends-on ("package"))))
    (:module software
             :depends-on (base)
             :pathname "software"

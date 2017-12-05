@@ -1,5 +1,5 @@
-(defpackage :software-evolution-view
-  (:nicknames :se-view)
+(defpackage :software-evolution-library-view
+  (:nicknames :sel-view)
   (:use
    :common-lisp
    :alexandria
@@ -13,8 +13,8 @@
    :cl-dot
    :diff
    :bordeaux-threads
-   :software-evolution
-   :software-evolution-utility
+   :software-evolution-library
+   :software-evolution-library-utility
    :cl-interpol)
   (:shadow :diff)
   (:export :*view-stream*

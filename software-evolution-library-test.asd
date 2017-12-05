@@ -1,5 +1,5 @@
-(defsystem :software-evolution-test
-  :description "Test the SOFTWARE-EVOLUTION package."
+(defsystem :software-evolution-library-test
+  :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
@@ -9,8 +9,8 @@
                cxml
                iterate
                metabang-bind
-               software-evolution
-               software-evolution-utility
+               software-evolution-library
+               software-evolution-library-utility
                split-sequence
                stefil
                uuid
@@ -23,4 +23,4 @@
             :pathname "test/src"
             :components
             ((:file "package")
-             (:file "software-evolution-test" :depends-on ("package"))))))
+             (:file "software-evolution-library-test" :depends-on ("package"))))))

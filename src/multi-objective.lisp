@@ -5,7 +5,7 @@
 ;; fitness values in the same population must be the same length and
 ;; have their scores in the same order.
 
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *pareto-comparison-set-size* nil

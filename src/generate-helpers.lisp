@@ -38,7 +38,7 @@ This file implements a simple approach to helper function generation,
 based on n-grams extracted from execution traces.
 |#
 
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 
@@ -91,7 +91,7 @@ snippets."
                                  (mapcar {aget :unbound-vals} snippet)))
         (:src-text .
                    ,(format nil "{~%~{~a~^~%~}~%}~%"
-                            (mapcar #'se::process-full-stmt-text snippet)))))))
+                            (mapcar #'sel::process-full-stmt-text snippet)))))))
 
 (defun type->string (type)
   "The name of a type, as it will appear in C source code."

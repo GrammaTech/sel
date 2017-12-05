@@ -15,7 +15,7 @@ endif
 #  Set the LISP_LIBS env variable to load another lisp system into the
 #  compiled optimization executables.
 #
-LISP_LIBS+=software-evolution software-evolution-command-line
+LISP_LIBS+=software-evolution-library software-evolution-library-command-line
 LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
 
 # Flags to buildapp

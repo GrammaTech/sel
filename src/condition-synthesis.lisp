@@ -28,7 +28,7 @@
 
 ;;; See the "Condition Synthesis" section in the SEL manual.
 
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

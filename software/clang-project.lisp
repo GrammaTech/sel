@@ -1,5 +1,5 @@
 ;; Specialization for building a project from a clang compilation database
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 
 (define-software clang-project (project)
   ((project-dir :initarg :project-dir

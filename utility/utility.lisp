@@ -22,7 +22,7 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :software-evolution-utility)
+(in-package :software-evolution-library-utility)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defvar infinity

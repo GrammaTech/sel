@@ -1,5 +1,5 @@
-(defsystem :software-evolution-mongo
-  :description "Mongo database functions for the SOFTWARE-EVOLUTION library."
+(defsystem :software-evolution-library-mongo
+  :description "Mongo database functions for the SOFTWARE-EVOLUTION-LIBRARY."
   :version "0.0.0"
   :depends-on (alexandria
                metabang-bind
@@ -9,8 +9,8 @@
                cl-ppcre
                cl-store
                cl-mongo
-               software-evolution
-               software-evolution-utility)
+               software-evolution-library
+               software-evolution-library-utility)
   :components
   ((:module mongo
             :pathname "mongo"

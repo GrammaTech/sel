@@ -19,7 +19,7 @@
 ;; re-implementing it inside of clang-tidy, which does have an
 ;; extensible mechanism for adding additional fixers.
 
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *compilation-fixers* nil

@@ -1,7 +1,7 @@
 ;;; Concrete implementation of the database interface
 ;;; for an external JSON fodder database parsed and stored
 ;;; entirely within the current LISP image
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defclass json-database (in-memory-database)

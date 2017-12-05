@@ -10,7 +10,7 @@
 ;; population of `arm' objects will only hold a pointer to this single
 ;; reference, and it's own diff against this single reference.
 ;;
-;;    (defclass arm (software-evolution:diff elf-arm)
+;;    (defclass arm (software-evolution-library:diff elf-arm)
 ;;      ((results :initarg :results :accessor results :initform nil)))
 ;;
 ;; After some initial experimentation, it does seem that mutations are
@@ -18,7 +18,7 @@
 ;; cheap.
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defclass diff (simple)

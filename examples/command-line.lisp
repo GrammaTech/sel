@@ -7,10 +7,10 @@
 ;;; Commentary:
 
 ;;; Code:
-(defpackage :software-evolution-command-line
+(defpackage :software-evolution-library-command-line
   (:use :common-lisp :metabang-bind)
   (:export :quit :throw-error :getopts))
-(in-package :software-evolution-command-line)
+(in-package :software-evolution-library-command-line)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

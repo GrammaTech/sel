@@ -1,5 +1,5 @@
-(defsystem :software-evolution-view
-  :description "Viewing functions for the SOFTWARE-EVOLUTION library."
+(defsystem :software-evolution-library-view
+  :description "Viewing functions for the SOFTWARE-EVOLUTION-LIBRARY."
   :version "0.0.0"
   :depends-on (alexandria
                metabang-bind
@@ -12,8 +12,8 @@
                cl-store
                cl-dot
                diff
-               software-evolution
-               software-evolution-utility
+               software-evolution-library
+               software-evolution-library-utility
                bordeaux-threads
                cl-interpol)
   :components

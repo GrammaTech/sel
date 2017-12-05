@@ -1,5 +1,5 @@
-(defsystem :software-evolution-utility
-  :description "Utility functions for the SOFTWARE-EVOLUTION package."
+(defsystem :software-evolution-library-utility
+  :description "Utility functions for the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria

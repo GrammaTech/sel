@@ -1,5 +1,5 @@
 ;;; traceable --- instrumentable software objects with dynamic traces
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defvar *trace-open-timeout* 2

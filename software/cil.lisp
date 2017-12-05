@@ -20,7 +20,7 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

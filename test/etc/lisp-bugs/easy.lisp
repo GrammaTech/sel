@@ -1,5 +1,5 @@
-(require :software-evolution)
-(in-package :software-evolution)
+(require :software-evolution-library)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (setq *easy*

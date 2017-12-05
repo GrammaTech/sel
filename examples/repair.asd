@@ -7,7 +7,7 @@
                curry-compose-reader-macros
                cl-store
                bordeaux-threads
-               software-evolution
-               software-evolution-utility
-               software-evolution-command-line)
+               software-evolution-library
+               software-evolution-library-utility
+               software-evolution-library-command-line)
   :components ((:file "repair")))

@@ -24,7 +24,7 @@
 ;; TODO: get memoization working
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 

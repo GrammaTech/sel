@@ -24,7 +24,7 @@
 ;; *view-best-genome-lines* -- show lines of the best genome
 
 ;;; Code:
-(in-package :software-evolution-view)
+(in-package :software-evolution-library-view)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -44,7 +44,7 @@
 (defvar *view-application-name* "SEL"
   "Name of the application using the view.")
 
-(defvar *view-application-version* +software-evolution-version+
+(defvar *view-application-version* +software-evolution-library-version+
   "Version string of the application using the view.")
 
 (defvar *view-run-name* nil

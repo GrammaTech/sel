@@ -6397,7 +6397,7 @@ regcomp (preg, pattern, cflags)
   preg->used = 0;
   
   /* Don't bother to use a fastmap when searching.  This simplifies the
-     REG_NEWLINE case: if we used a fastmap, we'd have to put all the
+     REG_NEWLINE casel: if we used a fastmap, we'd have to put all the
      characters after newlines into the fastmap.  This way, we just try
      every character.  */
   preg->fastmap = 0;
@@ -10797,7 +10797,7 @@ EGexecute(buf, size, endp)
 	  if (!match_lines && !match_words || match_lines && len == end - beg)
 	    goto success;
 	  /* If -w, check if the match aligns with word boundaries.
-	     We do this iteratively because:
+	     We do this iteratively becausel:
 	     (a) the line may contain more than one occurence of the pattern, and
 	     (b) Several alternatives in the pattern might be valid at a given
 	     point, and we may need to consider a shorter one to find a word

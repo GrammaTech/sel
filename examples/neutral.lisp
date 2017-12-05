@@ -14,9 +14,9 @@
         :metabang-bind
         :cl-ppcre
         :curry-compose-reader-macros
-        :software-evolution
-        :software-evolution-utility
-        :software-evolution-command-line)
+        :software-evolution-library
+        :software-evolution-library-utility
+        :software-evolution-library-command-line)
   (:export :main))
 (in-package :neutral)
 (enable-curry-compose-reader-macros)

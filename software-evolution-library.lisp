@@ -1,4 +1,4 @@
-;;; software-evolution.lisp --- Extant Software Evolution
+;;; software-evolution-library.lisp --- Extant Software Evolution
 
 ;; Copyright (C) 2011-2013  Eric Schulte
 
@@ -7,12 +7,12 @@
 ;;; Commentary:
 
 ;;; Code:
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 
 ;;; Software Object
-(define-constant +software-evolution-version+
+(define-constant +software-evolution-library-version+
     (eval-when (:compile-toplevel :load-toplevel :execute)
       (current-git-commit (pathname-directory
                            #.(or *compile-file-truename*
@@ -20,9 +20,9 @@
                                  *default-pathname-defaults*))))
   :test #'equalp
   :documentation
-  "Current version of the SOFTWARE-EVOLUTION library.")
+  "Current version of the SOFTWARE-EVOLUTION-LIBRARY.")
 
-(define-constant +software-evolution-branch+
+(define-constant +software-evolution-library-branch+
     (eval-when (:compile-toplevel :load-toplevel :execute)
       (current-git-branch (pathname-directory
                            #.(or *compile-file-truename*
@@ -30,7 +30,7 @@
                                  *default-pathname-defaults*))))
   :test #'equalp
   :documentation
-  "Current branch of the SOFTWARE-EVOLUTION library.")
+  "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defclass software ()
   ((fitness :initarg :fitness :accessor fitness :initform nil)))

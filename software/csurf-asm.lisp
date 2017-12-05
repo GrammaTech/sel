@@ -1,5 +1,5 @@
 ;;; csurf-asm.lisp --- Support for csurf-generated assembler files
-(in-package :se)
+(in-package :software-evolution-library)
 
 (defvar *gt-home* (getenv "GT_HOME")
   "Path to GT's trunk.")

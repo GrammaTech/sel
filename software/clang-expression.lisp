@@ -1,5 +1,5 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
-(in-package :software-evolution)
+(in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defun expression-intern (string)
