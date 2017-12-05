@@ -36,5 +36,8 @@ doc: api
 api:
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
 		--eval '(ql:quickload :cl-gendoc)' \
-		--eval '(gendoc:gendoc (:output-filename "doc/api.html") (:mdf #P"./README.md") (:apiref :software-evolution-library :software-evolution-library-utility))' \
+		--eval '(ql:quickload :cl-ppcre)' \
+		--eval '(ql:quickload :software-evolution-library)' \
+		--eval '(ql:quickload :software-evolution-library-utility)' \
+		--load .gendoc.lisp \
 		--eval "#+sbcl (exit) #+ccl (quit)"
