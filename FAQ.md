@@ -1,4 +1,5 @@
-# Frequently asked Questions
+% Frequently asked Questions
+% GrammaTech
 
 Background information, getting started guides, debugging
 recommendations, and solutions to common issues.
@@ -98,7 +99,7 @@ functions respectively, as shown in the following.
               :COL 0
     ;;;...
     #<CLANG {1003AD88D3}>
-    SE-TEST> 
+    SE-TEST>
 
 ### Use extra verbosity in command-line tools
 
@@ -269,4 +270,3 @@ to export the symbol for use outside the package, it must be
 added to the `:export` list in package.lisp.  If the symbol is not
 exported and an attempt to utilize it outside the package is made,
 an undefined symbol error will result.
-

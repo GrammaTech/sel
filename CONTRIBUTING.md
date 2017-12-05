@@ -1,4 +1,5 @@
-# How to contribute
+% How to Contribute
+% GrammaTech
 
 Basic procedures to contribute code or documentation.
 

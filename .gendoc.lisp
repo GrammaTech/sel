@@ -22,7 +22,7 @@
     "[`\\1`](#apiref-\\1)"))
 
 (defun original-apiref-doc (type sym)
-  (or 
+  (or
    (ecase type
      (:special (documentation sym 'variable))
      ((or :macro :function)
@@ -55,6 +55,9 @@
                  ""))
            "")))))
 
-(gendoc (:output-filename "doc/api.html" :css "api.css")
-  (:mdf #P"./README.md")
-  (:apiref :software-evolution-library :software-evolution-library-utility))
+(gendoc (:output-filename "doc/api.html" :css "sel.css")
+  (:mdf #P"./doc/package-listing.md")
+  (:apiref :software-evolution-library
+           :software-evolution-library-utility
+           :software-evolution-library-view
+           :software-evolution-library-mongo))

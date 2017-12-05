@@ -39,5 +39,10 @@ api:
 		--eval '(ql:quickload :cl-ppcre)' \
 		--eval '(ql:quickload :software-evolution-library)' \
 		--eval '(ql:quickload :software-evolution-library-utility)' \
+		--eval '(ql:quickload :software-evolution-library-view)' \
+		--eval '(ql:quickload :software-evolution-library-mongo)' \
 		--load .gendoc.lisp \
 		--eval "#+sbcl (exit) #+ccl (quit)"
+
+gh-pages: doc
+	rsync -aruv doc/ . --exclude .gitignore
