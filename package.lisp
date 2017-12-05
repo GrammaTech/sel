@@ -19,7 +19,7 @@
    :software-evolution-library-utility
    :usocket
    :fast-io
-   :libtrace)
+   :trace-db)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-library-utility :quit)
   (:shadowing-import-from :uiop :getenv)

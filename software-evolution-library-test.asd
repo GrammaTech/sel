@@ -15,7 +15,7 @@
                stefil
                uuid
                testbot
-               libtrace
+               trace-db
                trivial-shell
                uiop)
   :components

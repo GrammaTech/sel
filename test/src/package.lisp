@@ -15,7 +15,7 @@
    :software-evolution-library
    :software-evolution-library-utility
    :testbot
-   :libtrace
+   :trace-db
    :trivial-shell
    :uiop)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)

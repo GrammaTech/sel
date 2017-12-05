@@ -28,7 +28,7 @@ techniques."
                usocket
                trivial-utf-8
                fast-io
-               libtrace)
+               trace-db)
   :in-order-to ((test-op (test-op software-evolution-library-test)))
   :components
   ((:module base
