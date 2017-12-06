@@ -945,7 +945,7 @@ suite should be run and nil otherwise."
 
 
 ;;; ASM representation.
-(sel-suite* asm "ASM representation.")
+(sel-suite* asm-tests "ASM representation.")
 
 
 (deftest simple-read ()
@@ -1056,7 +1056,7 @@ suite should be run and nil otherwise."
 ;;;
 ;;; NOTE: Currently failing because not populating .text section.
 ;;;
-(sel-suite* elf "ELF representation." :silent)
+(sel-suite* elf-tests "ELF representation." :silent)
 
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
@@ -1177,7 +1177,7 @@ suite should be run and nil otherwise."
 (defun clang-mutate-available-p ()
   (zerop (third (multiple-value-list (shell "which clang-mutate")))))
 
-(sel-suite* clang "Clang representation." (clang-mutate-available-p))
+(sel-suite* clang-tests "Clang representation." (clang-mutate-available-p))
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang
@@ -4518,7 +4518,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Adaptive-mutation tests.
-(sel-suite* adaptive-mutation "Adaptive-mutation tests.")
+(sel-suite* adaptive-mutation-tests "Adaptive-mutation tests.")
 
 
 (deftest bad-cut-changes-mutation-probability ()
@@ -4630,6 +4630,7 @@ Useful for printing or returning differences in the REPL."
 
 (defun trace-to-lisp (string)
   "Read a trace into a lisp objects."
+  (declare (ignorable string))
   (assert nil))
 
 (defun get-gcd-trace (bin)
@@ -5077,7 +5078,7 @@ prints unique counters in the trace"
 
 
 ;;;; Traceable tests.
-(sel-suite* traceable "Traceable tests."
+(sel-suite* traceable-tests "Traceable tests."
             (clang-mutate-available-p))
 
 
@@ -5193,7 +5194,7 @@ prints unique counters in the trace"
 
 
 ;;;; Lisp representation.
-(sel-suite* lisp "Lisp representation.")
+(sel-suite* lisp-tests "Lisp representation.")
 
 
 (defvar *clang-expr*  nil "The clang expression (lisp) software object.")
@@ -5269,7 +5270,7 @@ prints unique counters in the trace"
 
 
 ;;;; Mutations and evaluation of clang expressions in Lisp form.
-(sel-suite* clang-expression
+(sel-suite* clang-expression-tests
     "Mutation and evaluation of clang expressions in Lisp form."
     (clang-mutate-available-p))
 
