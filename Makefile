@@ -35,6 +35,7 @@ doc: api
 
 api:
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
+		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :cl-gendoc)' \
 		--eval '(ql:quickload :cl-ppcre)' \
 		--eval '(ql:quickload :software-evolution-library)' \
