@@ -4628,7 +4628,6 @@ Useful for printing or returning differences in the REPL."
   "Return a count of full statements parented by compound statements"
   (count-if {can-be-made-traceable-p obj} (asts obj)))
 
-  (declare (ignorable string))
 (defun get-gcd-trace (bin)
   (with-temp-file (trace-file)
     (multiple-value-bind (stdout stderr errno)
