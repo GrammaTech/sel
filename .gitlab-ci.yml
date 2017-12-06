@@ -22,7 +22,7 @@ stages:
       fi
 
     - cat Dockerfile.$OS|sed "s/CI_COMMIT_SHA/$CI_COMMIT_SHA/" > Dockerfile
-    - docker build -f Dockerfile -t $LOCAL_IMAGE_NAME .
+    - docker build -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
 
 build:
   stage: build
@@ -44,23 +44,23 @@ build-arch:
       then
           if [ "$OS" = "ubuntu" ];
           then
-              docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check-testbot";
-              docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
           elif [ "$OS" = "arch" ];
           then
-              docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check-testbot";
-              docker tag $LOCAL_IMAGE_NAME $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
+              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
           else
-              docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check";
+              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
           fi
       else
-          docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make check";
+          docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
       fi
 
     # Cleanup local image.
-    - docker rmi -f $LOCAL_IMAGE_NAME
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}
 
 run:
   stage: test-and-tag
@@ -98,7 +98,7 @@ trigger_evo-rings:
 pages:
   stage: deploy
   script:
-    - docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/* /public/"
+    - docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/* /public/"
     - docker cp $(docker ps -alq):/public ./
   artifacts:
     paths:
