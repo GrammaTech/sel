@@ -7,11 +7,12 @@ before_script:
   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
+  - build
   - deploy
-  - build-test-and-tag
+  - test-and-tag
   - dependents
 
-.run-template: &run
+.build-template: &build
   script:
     - if [ "$OS" = "ubuntu" ];
       then
@@ -23,6 +24,20 @@ stages:
     - cat Dockerfile.$OS|sed "s/CI_COMMIT_SHA/$CI_COMMIT_SHA/" > Dockerfile
     - docker build -f Dockerfile -t $LOCAL_IMAGE_NAME .
 
+build:
+  stage: build
+  variables:
+    OS: 'ubuntu'
+  <<: *build
+
+build-arch:
+  stage: build
+  variables:
+    OS: 'arch'
+  <<: *build
+
+.run-template: &run
+  script:
     # If on master branch, push test results to DataManager and push
     # up a new "latest" image, otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
@@ -48,13 +63,13 @@ stages:
     - docker rmi -f $LOCAL_IMAGE_NAME
 
 run:
-  stage: build-test-and-tag
+  stage: test-and-tag
   variables:
     OS: 'ubuntu'
   <<: *run
 
 run-arch:
-  stage: build-test-and-tag
+  stage: test-and-tag
   variables:
     OS: 'arch'
   <<: *run
@@ -83,9 +98,8 @@ trigger_evo-rings:
 pages:
   stage: deploy
   script:
-    - make doc
     - mkdir -p public
-    - cp -R doc/* public/
+    - docker run -e LOCAL_USER=root -v public:/public $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make && cp -R doc/* /public/"
   artifacts:
     paths:
       - public
