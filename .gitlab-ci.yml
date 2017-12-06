@@ -99,7 +99,7 @@ pages:
   stage: deploy
   script:
     - mkdir -p public
-    - docker run -e LOCAL_USER=root -v public:/public $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make && cp -R doc/* /public/"
+    - docker run -e LOCAL_USER=root -v public:/public $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make doc && cp -R doc/* /public/"
   artifacts:
     paths:
       - public
