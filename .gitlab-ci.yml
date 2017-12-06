@@ -98,8 +98,8 @@ trigger_evo-rings:
 pages:
   stage: deploy
   script:
-    - mkdir -p public
-    - docker run -e LOCAL_USER=root -v public:/public $LOCAL_IMAGE_NAME /bin/bash -c "cd /gt/sel && make doc && cp -R doc/* /public/"
+    - docker run -e LOCAL_USER=root $LOCAL_IMAGE_NAME /bin/bash -c "mkdir -p public && cd /gt/sel && make doc && cp -R doc/* public/"
+    - docker cp $(docker ps -alq):public ./
   artifacts:
     paths:
       - public
