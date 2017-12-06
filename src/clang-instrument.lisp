@@ -740,8 +740,9 @@ Options:
  -v,--variables --------- write unbound variables to trace
  -V,--verbose NUM ------- verbosity level 0-4
 
-Built with ~a version ~a.~%"
-              self (lisp-implementation-type) (lisp-implementation-version))
+Built with SEL version ~a, and ~a version ~a.~%"
+              self +software-evolution-library-version+
+              (lisp-implementation-type) (lisp-implementation-version))
       (quit))
 
     ;; Mandatory arguments.
