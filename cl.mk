@@ -177,7 +177,7 @@ swank-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
 
 ## Docker file creation convenience target.
 ifndef OS
-ifneq ("$(shell which lsb_release)","")
+ifneq ("$(shell which lsb_release 2>/dev/null)","")
 # Use lsb_release to get the name of the Linux distribution.
 OS=$(shell lsb_release -a|grep 'Distributor ID:'|sed 's/Distributor ID:[[:space:]]\+//'|tr 'A-Z' 'a-z' 2>/dev/null)
 else
