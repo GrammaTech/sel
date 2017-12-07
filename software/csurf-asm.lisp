@@ -8,6 +8,14 @@
 (defvar *isa-nbits* 64
   "Indicate 32- or 64-bit architecture.")
 
+;; Default location: $GT_HOME/libswyx/bin/
+(defvar *elf-copy-redirect-path* "elf_copy_redirect"
+  "Path to elf_copy_redirect (or just the name if it's on the path).")
+
+;; Default location: $GT_HOME/libswyx/bin/
+(defvar *elf-edit-symtab-path* (format nil "elf_edit_symtab~d" *isa-nbits*)
+  "Path to elf_edit_symtab64 or 32 (or just the name if it's on the path).")
+
 (define-software csurf-asm (asm)
   ((assembler :initarg :assembler :accessor assembler :initform "nasm")
    (asm-flags :initarg :asm-flags :accessor asm-flags :initform nil
@@ -24,8 +32,7 @@
   "Reimplementation of CSURF elf:weaken-gmon-start.
 Mark a set of symbols, e.g. __gmon_start__, as weakly required.  Uses
 `*gt-home*' and `*isa-nbits*'."
-  (let ((cmd-path (format nil "~a/libswyx/src/exe_map/elf_edit_symtab~d"
-                          *gt-home* *isa-nbits*)))
+  (let ((cmd-path (namestring *elf-edit-symtab-path*)))
     (iter (for sym in symbols)
           (multiple-value-bind (stdout stderr errno)
               (shell "~a ~a ~a 2" cmd-path elf-objfile sym)
@@ -39,8 +46,7 @@ Redirect ELF COPY relocations and associated symbols, for entries
 described in redirect-file.  Requires GT_HOME environment variable to be
 set."
   (shell "~a -v -s ~a ~a"
-         (namestring
-          (in-directory *gt-home* "/libswyx/src/exe_map/elf_copy_redirect"))
+         (namestring *elf-copy-redirect-path*)
          redirect-file elf-file))
 
 (defmethod phenome ((asm csurf-asm) &key (bin (temp-file-name)))
