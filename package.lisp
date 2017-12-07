@@ -436,6 +436,7 @@
    :with-current-file
    :evolve-files
    :other-files
+   :instrumentation-files
    :all-files
    :write-genome-to-files
    :with-build-dir

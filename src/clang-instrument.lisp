@@ -440,13 +440,25 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
     obj))
 
+(defgeneric instrumentation-files (project)
+  (:documentation
+   "Return files in PROJECT in the order which they would be instrumented"))
+
+(defmethod instrumentation-files ((clang-project clang-project))
+  (append (remove-if {get-entry}
+                     (evolve-files clang-project)
+                     :key #'cdr)
+          (remove-if [#'not {get-entry}]
+                     (evolve-files clang-project)
+                     :key #'cdr)))
+
 (defmethod instrument ((clang-project clang-project) &rest args)
   "Instrument a project. Arguments are passed through to instrument on
 the underlying software objects."
   (let ((instrumenter (make-instance 'clang-instrumenter))
         (files (if (current-file clang-project)
                    (list (current-file clang-project))
-                   (mapcar #'cdr (evolve-files clang-project)))))
+                   (mapcar #'cdr (instrumentation-files clang-project)))))
     (labels
         ((check-ids (file-id ast-id)
            (assert (< file-id (ash 1 +trace-id-file-bits+)))
@@ -470,8 +482,7 @@ the underlying software objects."
       ;; Defer any files with main() to the end, because they need
       ;; code for trace headers which depends on the instrumentation
       ;; of other files.
-      (iter (for obj in (append (remove-if {get-entry} files)
-                                (remove-if-not {get-entry} files)))
+      (iter (for obj in files)
             (for i upfrom 0)
             (instrument-file obj i))
 
