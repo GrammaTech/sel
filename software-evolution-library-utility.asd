@@ -4,7 +4,8 @@
   :licence "GPL V3"
   :depends-on (alexandria
                uiop
-               babel
+               ;; https://gitlab.common-lisp.net/asdf/asdf-encodings
+               asdf-encodings
                osicat
                metabang-bind
                curry-compose-reader-macros

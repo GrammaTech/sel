@@ -5399,17 +5399,11 @@ prints unique counters in the trace"
 (deftest pad-list-already-of-requisite-length ()
   (is (equal '(1 2 3) (pad '(1 2 3) 3))))
 
-(deftest file-to-string-restart ()
+(deftest file-to-string-non-utf8-encoding ()
   #-ccl       ; CCL silently reads w/o warning despite bad encoding...
   (let ((path (make-pathname :directory +etc-dir+ :defaults "latin-1.c")))
-    (signals stream-error
-      (file-to-string path))
-    (is (string= (handler-bind ((stream-error
-                                 (lambda (c)
-                                   (declare (ignorable c))
-                                   (invoke-restart 'use-encoding :latin-1))))
-               (file-to-string path))
-         "/* Here is a non-ASCII character: § */
+    (is (string= (file-to-string path)
+                 "/* Here is a non-ASCII character: § */
 "))))
 
 (deftest in-directory-with-trailing-slash ()
