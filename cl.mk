@@ -65,7 +65,7 @@ LISP_FLAGS = --quiet --no-init
 endif
 endif
 
-all: $(addprefix bin/, $(BIN_SYSTEMS))
+all: $(addprefix bin/, $(BINS))
 
 # In this target we require :$(PACKAGE_NAME_FIRST) instead of
 # :$(PACKAGE_NAME) because the later may depend on the former causing
@@ -99,6 +99,7 @@ bin/%: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST)
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME))' \
+	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
 	--eval '(asdf:make-build :$(PACKAGE_NAME)/$* :type :program :monolithic t)' \
 	--eval '(quit)'
 
@@ -119,6 +120,7 @@ bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS)
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
+	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
 	--eval '(asdf:make-build :$(PACKAGE_NAME)-test/test :type :program :monolithic t)' \
 	--eval '(quit)'
 
@@ -127,6 +129,7 @@ bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LI
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
+	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
 	--eval '(asdf:make-build :$(PACKAGE_NAME)-test/testbot-test :type :program :monolithic t)' \
 	--eval '(quit)'
 
