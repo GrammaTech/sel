@@ -60,6 +60,8 @@
    :with-temp-files
    :with-temp-dir
    :with-cwd
+   :pwd
+   :cd
    :ensure-path-is-string
    :in-directory
    :*work-dir*

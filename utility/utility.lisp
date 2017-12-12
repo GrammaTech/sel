@@ -179,8 +179,20 @@ After BODY is executed the temporary file is removed."
   (with-gensyms (orig)
     `(let ((,orig (getcwd)))
        (unwind-protect
-         (progn (chdir ,(car dir)) ,@body)
-         (chdir ,orig)))))
+         (progn (cd ,(car dir)) ,@body)
+         (cd ,orig)))))
+
+(defun pwd ()
+  (getcwd))
+
+(defun cd (directory)
+  (let ((pathname (probe-file directory)))
+    (unless pathname
+      (error "Directory ~S does not exist." directory))
+    (unless (directory-exists-p (ensure-directory-pathname pathname))
+      (error "Directory ~S is not a directory." directory))
+    (setf *default-pathname-defaults* pathname)
+    (chdir pathname)))
 
 (defmacro with-temp-file-of (spec str &rest body)
   "SPEC should be a list of the variable used to reference the file
