@@ -6,11 +6,10 @@
 #                      (default: package name)
 # PACKAGE_NAME_FIRST - The first package name to require
 #                      (default: package name)
-# BINS --------------- Names of binaries to build with buildapp
+# BINS --------------- Names of binaries to build
 # TEST_ARTIFACTS ----- Name of dependencies for testing
 # LISP_DEPS ---------- Packages require to build CL package
 # TEST_LISP_DEPS ----- Packages require to build CL test package
-# HARD_QUIT ---------- Define to hard quit on error
 
 .PHONY: test-artifacts check-testbot check clean more-clean real-clean Dockerfile
 
@@ -19,9 +18,6 @@
 # Set default values of PACKAGE_NICKNAME/PACKAGE_NAME_FIRST
 PACKAGE_NICKNAME ?= $(PACKAGE_NAME)
 PICKAGE_NAME_FIRST ?= $(PACKAGE_NAME)
-
-# Use buildapp as the lisp compiler.
-LC ?= buildapp
 
 # You can set this as an environment variable to point to an alternate
 # quicklisp install location.  If you do, ensure that it ends in a "/"
@@ -42,10 +38,6 @@ ifeq "$(wildcard $(QUICK_LISP)/setup.lisp)" ""
 $(warning $(QUICK_LISP) does not appear to be a valid quicklisp install)
 $(error Please point QUICK_LISP to your quicklisp installation)
 endif
-
-LISP_LIBS += $(PACKAGE_NAME)
-LC_LIBS:=$(addprefix --load-system , $(LISP_LIBS))
-LOADED_LIBS:=$(addprefix $(USER_QUICK_LISP)/local-projects/, $(LISP_LIBS:=.loaded))
 
 LISP_DEPS ?=				\
 	$(wildcard *.lisp) 		\
@@ -73,23 +65,7 @@ LISP_FLAGS = --quiet --no-init
 endif
 endif
 
-# Flags to buildapp
-LCFLAGS=--manifest-file $(MANIFEST) \
-	--asdf-tree $(USER_QUICK_LISP)/dists/quicklisp/software
-
-ifneq ($(LISP_STACK),)
-LCFLAGS+= --dynamic-space-size $(LISP_STACK)
-endif
-
-ifneq ($(HARD_QUIT),)
-QUIT=(lambda (error hook-value)
-QUIT+=(declare (ignorable hook-value))
-QUIT+=(format *error-output* \"ERROR: ~a~%\" error)
-QUIT+=\#+sbcl (sb-ext:exit :code 2) \#+ccl (quit 2))
-LCFLAGS+=--eval "(setf *debugger-hook* $(QUIT))"
-endif
-
-all: $(addprefix bin/, $(BINS))
+all: $(addprefix bin/, $(BIN_SYSTEMS))
 
 # In this target we require :$(PACKAGE_NAME_FIRST) instead of
 # :$(PACKAGE_NAME) because the later may depend on the former causing
@@ -119,7 +95,12 @@ $(USER_QUICK_LISP)/local-projects/%.loaded: | $(MANIFEST)
 	touch $@
 
 bin/%: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST)
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(LC_LIBS) --output $@ --entry "$(PACKAGE_NICKNAME):$*"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(USER_QUICK_LISP)/setup.lisp \
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME))' \
+	--eval '(asdf:make-build :$(PACKAGE_NAME)/$* :type :program :monolithic t)' \
+	--eval '(quit)'
 
 
 # Test executable
@@ -128,17 +109,26 @@ BINS += $(PACKAGE_NICKNAME)-testbot
 
 TEST_LISP_DEPS ?= $(wildcard test/src/*.lisp)
 TEST_LISP_LIBS += $(PACKAGE_NAME)-test
-TEST_LC_LIBS:=$(addprefix --load-system , $(TEST_LISP_LIBS))
 TEST_LOADED_LIBS:=$(addprefix $(USER_QUICK_LISP)/local-projects/, $(TEST_LISP_LIBS:=.loaded))
 
 bin:
 	mkdir -p $@
 
 bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "$(PACKAGE_NICKNAME)-test:run-batch"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(USER_QUICK_LISP)/setup.lisp \
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
+	--eval '(asdf:make-build :$(PACKAGE_NAME)-test/test :type :program :monolithic t)' \
+	--eval '(quit)'
 
 bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LC) $(LCFLAGS) $(TEST_LC_LIBS) --output $@ --entry "$(PACKAGE_NICKNAME)-test:run-testbot"
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(USER_QUICK_LISP)/setup.lisp \
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
+	--eval '(asdf:make-build :$(PACKAGE_NAME)-test/testbot-test :type :program :monolithic t)' \
+	--eval '(quit)'
 
 
 ## Testing
@@ -173,6 +163,24 @@ swank-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
 	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
 	--eval '(swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)'
+
+repl: $(USER_QUICK_LISP)/setup.lisp
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
+	--load $<						\
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
+	--eval '(in-package :$(PACKAGE_NAME))'			\
+	--eval '$(REPL_STARTUP)'
+
+repl-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
+	--load $<						\
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :repl)'				\
+	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
+	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
+	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
+	--eval '$(REPL_STARTUP)'
 
 
 ## Docker file creation convenience target.

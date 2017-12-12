@@ -8,6 +8,9 @@ interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
   :licence "GPL V3"
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/clang-instrument"
+  :entry-point "software-evolution-library::main"
   ;; :homepage "http://GrammaTech.github.io/sel"
   :depends-on (alexandria
                closer-mop
@@ -80,3 +83,9 @@ techniques."
              (:file "style-features")
              (:file "multi-objective")
              (:file "clang-tokens")))))
+
+(defsystem :software-evolution-library/clang-instrument
+  :description "Compiled clang-instrument binary from SEL."
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/clang-instrument"
+  :entry-point "software-evolution-library::run-clang-instrument")

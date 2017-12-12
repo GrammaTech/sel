@@ -18,7 +18,7 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = clang-instrument
+BIN_SYSTEMS = clang-instrument
 
 include cl.mk
 

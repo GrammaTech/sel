@@ -718,9 +718,13 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 
 (setf *note-level* 1)
 
+(defun run-clang-instrument ()
+  "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
+  (clang-instrument *command-line-arguments*))
+
 (defun clang-instrument (args)
   "Interface to the command line instrumentation tool."
-  (in-package :se)
+  (in-package :sel)
   (let ((self (pop args))
         (original (make-instance 'clang
                     :compiler (or (getenv "CC") "clang")
