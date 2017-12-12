@@ -720,7 +720,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 
 (defun run-clang-instrument ()
   "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
-  (clang-instrument *command-line-arguments*))
+  (clang-instrument (cons (argv0) *command-line-arguments*)))
 
 (defun clang-instrument (args)
   "Interface to the command line instrumentation tool."
