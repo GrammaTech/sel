@@ -265,8 +265,9 @@ copy of the original current file.
     ;; Copy from src-dir into path.
     (multiple-value-bind (stdout stderr errno)
         (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir))
-      (declare (ignorable stdout stderr))
-      (assert (zerop errno)))
+      (declare (ignorable stdout))
+      (assert (zerop errno) (src-dir path)
+              "Creation of build directory failed with: ~a" stderr))
     dir))
 
 (defun full-path (rel-path)
