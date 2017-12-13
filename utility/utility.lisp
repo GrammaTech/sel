@@ -921,6 +921,23 @@ and 0 otherwise."
                                           :test test))
 
               (t middle)))))
+
+(defun tails (lst)
+  "Return all final segments of the LST, longest first.
+
+For example (tails '(a b c)) => ('(a b c) '(b c) '(c))
+"
+  (when lst (cons lst (tails (cdr lst)))))
+
+(defun pairs (lst)
+  "Return all pairs of elements in LST.
+
+For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
+"
+  (iter (for (a . rest) in (tails lst))
+        (appending (iter (for b in rest)
+                         (collecting (cons a b))))))
+
 
 ;;;; Source and binary locations and ranges.
 (defclass source-location ()

@@ -132,6 +132,8 @@
    :pad
    :chunks
    :binary-search
+   :tails
+   :pairs
    ;;; Source and binary locations and ranges
    :source-location
    :line
