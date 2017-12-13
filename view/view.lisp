@@ -24,7 +24,7 @@
 ;; *view-best-genome-lines* -- show lines of the best genome
 
 ;;; Code:
-(in-package :software-evolution-library-view)
+(in-package :software-evolution-library/view)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)

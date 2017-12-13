@@ -16,8 +16,8 @@
         :split-sequence
         :bordeaux-threads
         :software-evolution-library
-        :software-evolution-library-utility
-        :software-evolution-library-command-line)
+        :software-evolution-library/utility
+        :software-evolution-library/command-line)
   (:export :main))
 (in-package :repair)
 (enable-curry-compose-reader-macros)

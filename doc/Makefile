@@ -17,6 +17,8 @@ html: $(PROJECT).texi
 clean:
 	rm -f *.info;
 	rm -rf $(PROJECT)/
+	rm -rf software-evolution-library/
+	find . -type f -name "*.html" -exec rm {} \+
 
 %.md.tmp: %.md
 	pandoc -s -t man $< -o $@

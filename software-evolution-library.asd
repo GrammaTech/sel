@@ -1,4 +1,4 @@
-(defsystem :software-evolution-library
+(defsystem "software-evolution-library"
   :description "programmatic modification and evaluation of extant software"
   :long-description "A common interface abstracts over multiple
 types of software objects including abstract syntax trees parsed from
@@ -11,6 +11,7 @@ techniques."
   :build-operation "asdf:program-op"
   :build-pathname "bin/clang-instrument"
   :entry-point "software-evolution-library::main"
+  :in-order-to ((test-op (test-op "software-evolution-library/test")))
   ;; :homepage "http://GrammaTech.github.io/sel"
   :depends-on (alexandria
                closer-mop
@@ -26,13 +27,13 @@ techniques."
                elf
                iterate
                metabang-bind
-               software-evolution-library-utility
+               software-evolution-library/utility
                split-sequence
                usocket
                trivial-utf-8
                fast-io
                trace-db)
-  :in-order-to ((test-op (test-op software-evolution-library-test)))
+  :in-order-to ((test-op (test-op software-evolution-library/test)))
   :components
   ((:module base
             :pathname ""
@@ -84,8 +85,155 @@ techniques."
              (:file "multi-objective")
              (:file "clang-tokens")))))
 
-(defsystem :software-evolution-library/clang-instrument
+(defsystem "software-evolution-library/clang-instrument"
   :description "Compiled clang-instrument binary from SEL."
   :build-operation "asdf:program-op"
   :build-pathname "bin/clang-instrument"
   :entry-point "software-evolution-library::run-clang-instrument")
+
+
+;;;; Tests.
+(defsystem "software-evolution-library/test"
+  :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrows
+               curry-compose-reader-macros
+               cxml
+               iterate
+               metabang-bind
+               software-evolution-library
+               software-evolution-library/utility
+               split-sequence
+               stefil
+               uuid
+               testbot
+               trace-db
+               trivial-shell
+               uiop)
+  :components
+  ((:module test
+            :pathname "test/src"
+            :components
+            ((:file "package")
+             (:file "software-evolution-library-test"
+                    :depends-on ("package")))))
+  :perform (test-op (o c)
+                    (symbol-call :software-evolution-library/test '#:test)))
+
+(defsystem "software-evolution-library/run-test"
+  :description "Compiled basic test binary for SEL."
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/sel-test"
+  :entry-point "software-evolution-library/test::run-batch")
+
+(defsystem "software-evolution-library/run-testbot-test"
+  :description "Compiled basic test binary for SEL."
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/sel-testbot"
+  :entry-point "software-evolution-library/test::run-testbot")
+
+
+;;;; Subsystems.
+(defsystem "software-evolution-library/utility"
+  :description "Utility functions for the SOFTWARE-EVOLUTION-LIBRARY package."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               uiop
+               ;; https://gitlab.common-lisp.net/asdf/asdf-encodings
+               asdf-encodings
+               osicat
+               metabang-bind
+               curry-compose-reader-macros
+               bordeaux-threads
+               cl-arrows
+               iterate
+               split-sequence
+               trivial-shell
+               cl-ppcre
+               cl-store
+               cl-dot
+               diff)
+  :components
+  ((:module utility
+            :pathname "utility"
+            :components
+            ((:file "package")
+             (:file "utility" :depends-on ("package"))))))
+
+(defsystem "software-evolution-library/view"
+  :description "Viewing functions for the SOFTWARE-EVOLUTION-LIBRARY."
+  :version "0.0.0"
+  :depends-on (alexandria
+               metabang-bind
+               curry-compose-reader-macros
+               cl-arrows
+               iterate
+               split-sequence
+               trivial-shell
+               cl-ppcre
+               cl-store
+               cl-dot
+               diff
+               software-evolution-library
+               software-evolution-library/utility
+               bordeaux-threads
+               cl-interpol)
+  :components
+  ((:module view
+            :pathname "view"
+            :components
+            ((:file "package")
+             (:file "view" :depends-on ("package"))))))
+
+(defsystem "software-evolution-library/mongo"
+  :description "Mongo database functions for the SOFTWARE-EVOLUTION-LIBRARY."
+  :version "0.0.0"
+  :depends-on (alexandria
+               metabang-bind
+               curry-compose-reader-macros
+               cl-arrows
+               split-sequence
+               cl-ppcre
+               cl-store
+               cl-mongo
+               software-evolution-library
+               software-evolution-library/utility)
+  :components
+  ((:module mongo
+            :pathname "mongo"
+            :components
+            ((:file "package")
+             (:file "mongo-fodder-database" :depends-on ("package")))))
+  :in-order-to ((test-op (test-op "software-evolution-library/mongo-test"))))
+
+(defsystem "software-evolution-library/mongo-test"
+  :description "Test the SOFTWARE-EVOLUTION-LIBRARY/MONGO package."
+  :version "0.0.0"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrows
+               curry-compose-reader-macros
+               cxml
+               metabang-bind
+               software-evolution-library
+               software-evolution-library/utility
+               software-evolution-library/mongo
+               software-evolution-library/test
+               split-sequence
+               stefil
+               uuid
+               testbot)
+  :components
+  ((:module test-mongo
+            :pathname "test/src"
+            :components
+            ((:file "package-mongo")
+             (:file "software-evolution-library/mongo-test"
+                    :depends-on ("package-mongo")))))
+  :perform (test-op (o c)
+                    (symbol-call :software-evolution-library/mongo-test
+                                 '#:test)))

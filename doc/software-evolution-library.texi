@@ -500,14 +500,14 @@ clang-mutate for @code{clang} object support  (available from
 The Software Evolution library is meant to be used from Common Lisp
 programs.  Common lisp packages should include the
 @code{software-evolution-library} and may also include the
-@code{software-evolution-library-utility} in their package definition
+@code{software-evolution-library/utility} in their package definition
 as in the following example.
 
 @example
 (defpackage :software-evolution-library-example
   (:use :common-lisp
         :software-evolution-library
-        :software-evolution-library-utility))
+        :software-evolution-library/utility))
 @end example
 
 @heading Examples
@@ -555,7 +555,7 @@ The example code below does the following.
 Defines a @code{test} function used to evaluate the fitness of a
 software object.  This function makes use of an external shell script
 test driver which is run using the @code{shell} function defined in
-the @code{software-evolution-library-utility}.
+the @code{software-evolution-library/utility}.
 
 @item
 The original program is initialized from a file on disk.

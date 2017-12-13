@@ -1,5 +1,5 @@
-(defpackage :software-evolution-library-mongo
-  (:nicknames :sel-mongo)
+(defpackage :software-evolution-library/mongo
+  (:nicknames :sel/mongo)
   (:use
    :common-lisp
    :alexandria
@@ -10,5 +10,5 @@
    :cl-ppcre
    :cl-mongo
    :software-evolution-library
-   :software-evolution-library-utility)
+   :software-evolution-library/utility)
   (:export :mongo-database))

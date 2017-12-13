@@ -5,7 +5,7 @@
 ;; Licensed under the Gnu Public License Version 3 or later
 
 ;;; Code:
-(in-package :software-evolution-library-test)
+(in-package :software-evolution-library/test)
 (enable-curry-compose-reader-macros :include-utf8)
 
 ;; Disable clang-format and any other helpers

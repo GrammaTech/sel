@@ -1,7 +1,7 @@
 ;;; Concrete implementation of the database interface
 ;;; for an external Mongo fodder database.
 
-(in-package :software-evolution-library-mongo)
+(in-package :software-evolution-library/mongo)
 (enable-curry-compose-reader-macros :include-utf8)
 
 (defvar fodder-collection "asts"

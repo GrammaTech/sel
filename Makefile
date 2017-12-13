@@ -7,7 +7,7 @@ endif
 
 PACKAGE_NAME = software-evolution-library
 PACKAGE_NICKNAME = sel
-PACKAGE_NAME_FIRST = software-evolution-library-utility
+PACKAGE_NAME_FIRST = software-evolution-library/utility
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard src/*.lisp)		\
@@ -39,9 +39,9 @@ api:
 		--eval '(ql:quickload :cl-gendoc)' \
 		--eval '(ql:quickload :cl-ppcre)' \
 		--eval '(ql:quickload :software-evolution-library)' \
-		--eval '(ql:quickload :software-evolution-library-utility)' \
-		--eval '(ql:quickload :software-evolution-library-view)' \
-		--eval '(ql:quickload :software-evolution-library-mongo)' \
+		--eval '(ql:quickload :software-evolution-library/utility)' \
+		--eval '(ql:quickload :software-evolution-library/view)' \
+		--eval '(ql:quickload :software-evolution-library/mongo)' \
 		--load .gendoc.lisp \
 		--eval "#+sbcl (exit) #+ccl (quit)"
 

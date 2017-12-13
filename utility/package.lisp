@@ -1,5 +1,5 @@
-(defpackage :software-evolution-library-utility
-  (:nicknames :sel-utility)
+(defpackage :software-evolution-library/utility
+  (:nicknames :sel/utility)
   (:use
    :common-lisp
    :alexandria

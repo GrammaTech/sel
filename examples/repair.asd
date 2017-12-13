@@ -1,4 +1,4 @@
-(defsystem :repair
+(defsystem "repair"
   :description "repair software"
   :licence "GPL V3"
   :depends-on (alexandria
@@ -8,6 +8,6 @@
                cl-store
                bordeaux-threads
                software-evolution-library
-               software-evolution-library-utility
-               software-evolution-library-command-line)
+               software-evolution-library/utility
+               software-evolution-library/command-line)
   :components ((:file "repair")))

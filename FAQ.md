@@ -82,8 +82,8 @@ Common lisp provides support for function-level tracing.  This may be
 enabled and disabled using the `cl-user::trace` and `cl-user::untrace`
 functions respectively, as shown in the following.
 
-    CL-USER> (in-package :software-evolution-library-test)
-    #<PACKAGE "SOFTWARE-EVOLUTION-LIBRARY-TEST">
+    CL-USER> (in-package :software-evolution-library/test)
+    #<PACKAGE "SOFTWARE-EVOLUTION-LIBRARY/TEST">
     SE-TEST> (hello-world-clang)
     T
     SE-TEST> (cl-user::trace snippet->clang-type)

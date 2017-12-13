@@ -88,6 +88,7 @@ $(MANIFEST):
 endif
 
 $(USER_QUICK_LISP)/local-projects/%.loaded: | $(MANIFEST)
+	mkdir -p $(dirname $*)
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
 		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :$(notdir $*))' \
@@ -226,8 +227,9 @@ more-clean: clean
 	find . -type f -name "*.fasl" -exec rm {} \+
 	find . -type f -name "*.lx32fsl" -exec rm {} \+
 	find . -type f -name "*.lx64fsl" -exec rm {} \+
+	make -C doc clean
 
 real-clean: more-clean
 	find . -type f -name "*.loaded" -exec rm {} \+
-	rm -f qlfile.lock $(MANIFEST)
+	rm -f qlfile.lock $(MANIFEST) Dockerfile
 	rm -rf quicklisp

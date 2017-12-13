@@ -15,8 +15,8 @@
         :cl-ppcre
         :curry-compose-reader-macros
         :software-evolution-library
-        :software-evolution-library-utility
-        :software-evolution-library-command-line)
+        :software-evolution-library/utility
+        :software-evolution-library/command-line)
   (:export :main))
 (in-package :neutral)
 (enable-curry-compose-reader-macros)

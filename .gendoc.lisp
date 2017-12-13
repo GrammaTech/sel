@@ -6,12 +6,12 @@
 ;;; - The return values are taken from the end instead of the beginning.
 ;;;
 
-(defpackage :software-evolution-library-gendoc
-  (:nicknames :sel-gendoc)
+(defpackage :software-evolution-library/gendoc
+  (:nicknames :sel/gendoc)
   (:use :common-lisp :gendoc :cl-ppcre)
   (:export :gendoc))
 
-(in-package :software-evolution-library-gendoc)
+(in-package :software-evolution-library/gendoc)
 
 ;;; Customize `gendoc::apiref-doc' to handle lisp conventions.
 ;;; - `foo' becomes a link to foo.
@@ -58,6 +58,6 @@
 (gendoc (:output-filename "doc/api.html" :css "sel.css")
   (:mdf #P"./doc/package-listing.md")
   (:apiref :software-evolution-library
-           :software-evolution-library-utility
-           :software-evolution-library-view
-           :software-evolution-library-mongo))
+           :software-evolution-library/utility
+           :software-evolution-library/view
+           :software-evolution-library/mongo))

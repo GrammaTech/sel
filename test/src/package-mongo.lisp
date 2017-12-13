@@ -1,6 +1,6 @@
 ;; Copyright (C) 2013  Eric Schulte
-(defpackage :software-evolution-library-mongo-test
-  (:nicknames :sel-mongo-test)
+(defpackage :software-evolution-library/mongo-test
+  (:nicknames :sel/mongo-test)
   (:use
    :common-lisp
    :alexandria
@@ -11,9 +11,9 @@
    :split-sequence
    :stefil
    :software-evolution-library
-   :software-evolution-library-utility
-   :software-evolution-library-test
-   :software-evolution-library-mongo
+   :software-evolution-library/utility
+   :software-evolution-library/test
+   :software-evolution-library/mongo
    :testbot)
   (:shadowing-import-from
    :closer-mop
