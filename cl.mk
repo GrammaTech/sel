@@ -4,8 +4,6 @@
 # PACKAGE_NAME ------- The full name of the CL package
 # PACKAGE_NICKNAME --- The nickname of the CL package
 #                      (default: package name)
-# PACKAGE_NAME_FIRST - The first package name to require
-#                      (default: package name)
 # BINS --------------- Names of binaries to build
 # TEST_ARTIFACTS ----- Name of dependencies for testing
 # LISP_DEPS ---------- Packages require to build CL package
@@ -15,9 +13,8 @@
 
 .SECONDARY:
 
-# Set default values of PACKAGE_NICKNAME/PACKAGE_NAME_FIRST
+# Set default values of PACKAGE_NICKNAME
 PACKAGE_NICKNAME ?= $(PACKAGE_NAME)
-PICKAGE_NAME_FIRST ?= $(PACKAGE_NAME)
 
 # You can set this as an environment variable to point to an alternate
 # quicklisp install location.  If you do, ensure that it ends in a "/"
@@ -67,18 +64,19 @@ endif
 
 all: $(addprefix bin/, $(BINS))
 
-# In this target we require :$(PACKAGE_NAME_FIRST) instead of
-# :$(PACKAGE_NAME) because the later may depend on the former causing
-# an error if :$(PACKAGE_NAME_FIRST) is not found.
-PACKAGE_NAME_FIRST ?= $(PACKAGE_NAME)
 ifeq ($(USER_QUICK_LISP),quicklisp)
+# If we're using qlot to grab all dependencies and *not* using the
+# user's quicklisp, then we've USER_QUICK_LISP equal to
+# "$(pwd)/quicklisp" and we'll use qlot:with-local-quicklisp to
+# install everything into that new quicklisp location.  We then use
+# $(USER_QUICK_LISP) for all quicklisp operations moving forward.
 $(MANIFEST): qlfile
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
 		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :qlot)' \
-		--eval '(qlot:install :$(PACKAGE_NAME_FIRST))' \
-		--eval '(qlot:quickload :$(PACKAGE_NAME_FIRST))' \
-		--eval '(qlot:with-local-quicklisp (:$(PACKAGE_NAME_FIRST)) (ql:register-local-projects))' \
+		--eval '(qlot:install :$(PACKAGE_NAME))' \
+		--eval '(qlot:quickload :$(PACKAGE_NAME))' \
+		--eval '(qlot:with-local-quicklisp ("$(USER_QUICK_LISP)") (ql:register-local-projects))' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
 else
 $(MANIFEST):
@@ -231,5 +229,5 @@ more-clean: clean
 
 real-clean: more-clean
 	find . -type f -name "*.loaded" -exec rm {} \+
-	rm -f qlfile.lock $(MANIFEST) Dockerfile
-	rm -rf quicklisp
+	rm -f qlfile.lock Dockerfile
+	rm -rf quicklisp system-index.txt
