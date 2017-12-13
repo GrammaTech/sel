@@ -145,6 +145,7 @@ techniques."
                uiop
                ;; https://gitlab.common-lisp.net/asdf/asdf-encodings
                asdf-encodings
+               cffi ; Work around a bug in which :babel isn't found for :osicat.
                osicat
                metabang-bind
                curry-compose-reader-macros
