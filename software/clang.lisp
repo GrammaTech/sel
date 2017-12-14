@@ -875,14 +875,10 @@ use carefully.
              (replace-nth-child tree head (helper (nth head children) tail))
 
              ;; Splice into children
-             (let ((after (nth (1+ head) children)))
-               (cons node
-                     (append (subseq children 0 head)
-                             new-asts
-                             (when (not (starts-with #\;  after))
-                               (list ";"))
-                             (nthcdr (1+ head) children))))))))
-    (assert new-asts)
+             (cons node
+                   (nconc (subseq children 0 head)
+                          new-asts
+                          (nthcdr (1+ head) children)))))))
     (helper tree (ast-ref-path location))))
 
 (defmethod insert-ast ((tree list) (location ast-ref)
@@ -1388,8 +1384,16 @@ pick or false (nil) otherwise."
 
 (defmethod build-op ((mutation clang-promote-guarded) software
                      &aux (guarded (targets mutation)))
-  (flet
-      ((compose-children (&rest parents)
+  (labels
+      ((text-after-ast-helper (tree path)
+         (bind (((head . tail) path)
+                ((_ . children) tree))
+           (if tail
+               (text-after-ast-helper (nth head children) tail)
+               (nth (1+ head) children))))
+       (text-after-ast (ast-ref)
+         (text-after-ast-helper (ast-root software) (ast-ref-path ast-ref)))
+       (compose-children (&rest parents)
          (-<>> (iter (for p in parents)
                      ;; In case of an unbraced if/loop body, include
                      ;; the body directly.
@@ -1397,8 +1401,10 @@ pick or false (nil) otherwise."
                          (appending (get-immediate-children software p))
                          (collecting p)))
                (mapcar #'ast-ref-ast)
-               (interleave <>
-                           (coerce (list #\; #\Newline) 'string)))))
+               (interleave <> (format nil ";~%"))
+               (append <> (if (not (starts-with #\; (text-after-ast guarded)))
+                              (list (format nil ";~%"))
+                              nil)))))
 
       (let ((children
           (switch ((ast-class guarded))
