@@ -7,7 +7,6 @@ endif
 
 PACKAGE_NAME = software-evolution-library
 PACKAGE_NICKNAME = sel
-PACKAGE_NAME_FIRST = software-evolution-library/utility
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard src/*.lisp)		\
