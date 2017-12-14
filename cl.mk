@@ -94,12 +94,13 @@ $(USER_QUICK_LISP)/local-projects/%.loaded: | $(MANIFEST)
 	touch $@
 
 bin/%: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST)
+	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME))' \
 	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make-build :$(PACKAGE_NAME)/$* :type :program :monolithic t)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)/$* :type :program :monolithic t)' \
 	--eval '(quit)'
 
 
@@ -115,21 +116,23 @@ bin:
 	mkdir -p $@
 
 bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
+	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
 	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make-build :$(PACKAGE_NAME)-test/test :type :program :monolithic t)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)-test/test :type :program :monolithic t)' \
 	--eval '(quit)'
 
 bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
+	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
 	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make-build :$(PACKAGE_NAME)-test/testbot-test :type :program :monolithic t)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)-test/testbot-test :type :program :monolithic t)' \
 	--eval '(quit)'
 
 
