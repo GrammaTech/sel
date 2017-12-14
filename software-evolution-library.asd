@@ -84,7 +84,7 @@ techniques."
 
 (defsystem "software-evolution-library/clang-instrument"
   :description "Compiled clang-instrument binary from SEL."
-  :depends-on (software-evolution-library/test)
+  :depends-on (software-evolution-library)
   :build-operation "asdf:program-op"
   :build-pathname "bin/clang-instrument"
   :entry-point "software-evolution-library::run-clang-instrument")
