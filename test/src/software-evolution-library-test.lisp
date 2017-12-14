@@ -6570,6 +6570,25 @@ prints unique counters in the trace"
       (is (search "comment 1" (genome *contexts*)))
       (is (search "comment 2" (genome *contexts*))))))
 
+(deftest cut-initialization-list-preserves-semicolon ()
+  (with-fixture contexts
+    (let ((target (stmt-with-text *contexts* "{ 1, 2, 3 }")))
+      (sel::apply-mutation-ops *contexts*
+                               `((:cut (:stmt1 . ,target)))))
+    (is (eq 1 (->> (find-function *contexts* "initialization_list")
+                   (count-matching-chars-in-stmt #\;))))))
+
+(deftest replace-removes-trailing-semicolon-with-whitespace ()
+  (with-fixture contexts
+    (let ((location (stmt-starting-with-text *contexts* "MACRO"))
+          (replacement (->> (find-function *contexts* "unbraced_body")
+                            (get-immediate-children *contexts*)
+                            (first))))
+      (sel::apply-mutation-ops *contexts*
+                               `((:cut (:stmt1 . ,location)
+                                       (:value1 . replacement)))))
+    (is (eq 0 (->> (find-function *contexts* "trailing_semi_with_whitespace")
+                   (count-matching-chars-in-stmt #\;))))))
 
 
 ;;;; Clang scope and type tests.

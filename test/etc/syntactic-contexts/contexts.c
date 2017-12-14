@@ -24,3 +24,14 @@ void unbraced_body(int x)
 void list(int a, int b, int c)
 {
 }
+
+void initialization_list()
+{
+    int a[] = { 1, 2, 3 };
+}
+
+#define MACRO(x) x
+void trailing_semi_with_whitespace(int x)
+{
+    MACRO(x) ;
+}

@@ -489,6 +489,9 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
                                 c
                                 (source-text c))))))
 
+(defmethod source-text ((ast string))
+  ast)
+
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
                          types unbound-funs unbound-vals declares
@@ -687,18 +690,19 @@ Adds and removes semicolons, commas, and braces. "
       ((no-change ()
          (list before ast after))
        (add-semicolon-if-unbraced ()
-         (if (or (null ast) (ends-with #\} (source-text ast)))
-             (if (starts-with #\; after)
-                 (list before ast (subseq after 1))
+         (if (or (null ast) (ends-with #\} (trim-whitespace (source-text ast))))
+             (if (and (stringp after) (starts-with #\; (trim-whitespace after)))
+                 (list before ast (subseq after (1+ (position #\; after))))
                  (no-change))
              (add-semicolon)))
        (add-semicolon-before-if-unbraced ()
-         (if (or (null ast) (starts-with #\{ (source-text ast)))
+         (if (or (null ast)
+                 (starts-with #\{ (trim-whitespace (source-text ast))))
              (no-change)
              (list before ";" ast after)))
        (add-semicolon ()
-         (if (or (ends-with #\; (source-text ast))
-                 (starts-with #\; after))
+         (if (or (ends-with #\; (trim-whitespace (source-text ast)))
+                 (starts-with #\; (trim-whitespace (source-text after))))
              (no-change)
              (list before ast ";" after)))
        (add-comma ()
@@ -709,7 +713,7 @@ Adds and removes semicolons, commas, and braces. "
          ;; Wrap in a CompoundStmt and also add semicolon -- this
          ;; never hurts and is sometimes necessary (e.g. for loop
          ;; bodies).
-         (let ((text (source-text ast)))
+         (let ((text (trim-whitespace (source-text ast))))
            (if (and (starts-with #\{ text) (ends-with #\} text))
                (no-change)
                (list before (ast-ref-ast (make-block (list ast ";")))
