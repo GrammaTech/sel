@@ -8,9 +8,6 @@ interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
   :licence "GPL V3"
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/clang-instrument"
-  :entry-point "software-evolution-library::main"
   :in-order-to ((test-op (test-op "software-evolution-library/test")))
   ;; :homepage "http://GrammaTech.github.io/sel"
   :depends-on (alexandria
@@ -87,6 +84,7 @@ techniques."
 
 (defsystem "software-evolution-library/clang-instrument"
   :description "Compiled clang-instrument binary from SEL."
+  :depends-on (software-evolution-library/test)
   :build-operation "asdf:program-op"
   :build-pathname "bin/clang-instrument"
   :entry-point "software-evolution-library::run-clang-instrument")
@@ -125,12 +123,14 @@ techniques."
 
 (defsystem "software-evolution-library/run-test"
   :description "Compiled basic test binary for SEL."
+  :depends-on (software-evolution-library/test)
   :build-operation "asdf:program-op"
   :build-pathname "bin/sel-test"
   :entry-point "software-evolution-library/test::run-batch")
 
 (defsystem "software-evolution-library/run-testbot-test"
   :description "Compiled basic test binary for SEL."
+  :depends-on (software-evolution-library/test)
   :build-operation "asdf:program-op"
   :build-pathname "bin/sel-testbot"
   :entry-point "software-evolution-library/test::run-testbot")

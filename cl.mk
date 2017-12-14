@@ -85,15 +85,7 @@ $(MANIFEST):
 		--eval '#+sbcl (exit) #+ccl (quit)'
 endif
 
-$(USER_QUICK_LISP)/local-projects/%.loaded: | $(MANIFEST)
-	mkdir -p $(dirname $*)
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
-		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-		--eval '(ql:quickload :$(notdir $*))' \
-		--eval "#+sbcl (exit) #+ccl (quit)"
-	touch $@
-
-bin/%: $(LISP_DEPS) $(LOADED_LIBS) $(MANIFEST)
+bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(USER_QUICK_LISP)/setup.lisp \
@@ -109,30 +101,29 @@ BINS += $(PACKAGE_NICKNAME)-test
 BINS += $(PACKAGE_NICKNAME)-testbot
 
 TEST_LISP_DEPS ?= $(wildcard test/src/*.lisp)
-TEST_LISP_LIBS += $(PACKAGE_NAME)-test
-TEST_LOADED_LIBS:=$(addprefix $(USER_QUICK_LISP)/local-projects/, $(TEST_LISP_LIBS:=.loaded))
+TEST_LISP_LIBS += $(PACKAGE_NAME)/test
 
 bin:
 	mkdir -p $@
 
-bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
+bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST) | bin
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-test)' \
 	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make :$(PACKAGE_NAME)-test/test :type :program :monolithic t)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)/run-test :type :program :monolithic t)' \
 	--eval '(quit)'
 
-bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(TEST_LOADED_LIBS) $(MANIFEST) | bin
+bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST) | bin
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME)-test)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-testbot-test)' \
 	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make :$(PACKAGE_NAME)-test/testbot-test :type :program :monolithic t)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)/run-testbot-test :type :program :monolithic t)' \
 	--eval '(quit)'
 
 
@@ -230,6 +221,5 @@ more-clean: clean
 	make -C doc clean
 
 real-clean: more-clean
-	find . -type f -name "*.loaded" -exec rm {} \+
 	rm -f qlfile.lock Dockerfile
 	rm -rf quicklisp system-index.txt
