@@ -36,6 +36,8 @@ Keyword arguments are as follows:
 
 (define-constant +write-trace-include+
   "
+#ifndef __GT_TRACEDB
+#define __GT_TRACEDB
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdarg.h>
@@ -181,6 +183,7 @@ static void write_trace_blobs(FILE *out, uint32_t n_vars, ...)
         fwrite(value, size, 1, out);
     }
 }
+#endif
 "
   :test #'string=
   :documentation "C code to include in all instrumented files.")
