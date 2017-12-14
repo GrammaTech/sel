@@ -59,12 +59,9 @@ See http://kerneis.github.io/cil/."))
 
 (defmethod instrument ((cil cil) &key points functions functions-after
                                       trace-file trace-env
-                                      instrument-exit filter
-                                      postprocess-functions)
+                                      instrument-exit filter)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
-  (declare (ignorable postprocess-functions))
-
   (unless (null trace-env)
     (warn "Tracing to env variable is not support for CIL software objects."))
   (unless (null points)

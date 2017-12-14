@@ -357,7 +357,11 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
             ;; into them. And change the ast-class so other code won't get
             ;; confused by the lack of children.
             (when (aget :in-macro-expansion ast)
-              (setf (aget :ast-class ast) "MacroExpansion"))
+              (setf (aget :ast-class ast) "MacroExpansion")
+              (setf (aget :syn-ctx ast)
+                    (if (string= "Braced" (aget :syn-ctx ast))
+                        "FullStmt"
+                        (aget :syn-ctx ast))))
 
             (if (and child-asts (not (aget :in-macro-expansion ast)))
                 ;; Interleave child asts and source text
@@ -494,8 +498,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
-                         types unbound-funs unbound-vals declares
-                         includes)
+                         types unbound-funs unbound-vals declares includes
+                         aux-data)
   "Create a statement AST.
 
 TYPES, UNBOUND-FUNS, and UNBOUND-VALS will be computed from children
@@ -524,14 +528,15 @@ if not given."
                                   :declares declares
                                   :unbound-funs unbound-funs
                                   :unbound-vals unbound-vals
-                                  :includes includes)
+                                  :includes includes
+                                  :aux-data aux-data)
                   (mapcar (lambda (c)
                             (if (ast-ref-p c)
                                 (ast-ref-ast c)
                                 c))
                           children))))))
 
-(defun make-literal (kind value)
+(defun make-literal (kind value &rest rest)
   (multiple-value-bind (class text)
       (ecase kind
         (:integer (values :IntegerLiteral
@@ -548,9 +553,9 @@ if not given."
                  nil "Expected quotes around string literal ~s" value)
          (values :StringLiteral
                                 (format nil "~a" value))))
-    (make-statement class :generic (list text))))
+    (apply #'make-statement class :generic (list text) rest)))
 
-(defun make-operator (syn-ctx opcode child-asts &rest args)
+(defun make-operator (syn-ctx opcode child-asts &rest rest)
   "Create a unary or binary operator AST."
   (destructuring-bind (class . children)
       (ecase (length child-asts)
@@ -560,95 +565,106 @@ if not given."
                  (list (first child-asts)
                        (format nil " ~a " opcode)
                        (second child-asts)))))
-    (apply #'make-statement class syn-ctx children :opcode opcode args)))
+    (apply #'make-statement class syn-ctx children :opcode opcode rest)))
 
-(defun make-block (children)
-  (make-statement :CompoundStmt :braced
-                  `(,(format nil "{~%") ,@children ,(format nil "~%}"))
-                  :full-stmt t))
+(defun make-block (children &rest rest)
+  (apply #'make-statement :CompoundStmt :braced
+                          `(,(format nil "{~%") ,@children ,(format nil "~%}"))
+                          :full-stmt t
+                          rest))
 
-(defun make-parens (children)
-  (make-statement :ParenExpr :generic
-                  `("(" ,@children ")")))
+(defun make-parens (children &rest rest)
+  (apply #'make-statement :ParenExpr :generic
+                          `("(" ,@children ")")
+                          rest))
 
-(defun make-while-stmt (syn-ctx condition body)
-  (make-statement :WhileStmt syn-ctx
-                  `("while ("
-                    ,condition
-                    ") "
-                    ,body)
-                  :full-stmt t))
+(defun make-while-stmt (syn-ctx condition body &rest rest)
+  (apply #'make-statement :WhileStmt syn-ctx
+                          `("while ("
+                            ,condition
+                            ") "
+                            ,body)
+                          :full-stmt t
+                          rest))
 
-(defun make-for-stmt (syn-ctx initialization condition update body)
-  (make-statement :ForStmt syn-ctx
-                  (remove nil
-                          `("for ("
-                            ,initialization "; "
-                            ,condition "; "
-                            ,update ") "
-                            ,body))
-                  :full-stmt t))
+(defun make-for-stmt (syn-ctx initialization condition update body &rest rest)
+  (apply #'make-statement :ForStmt syn-ctx
+                          (remove nil
+                                  `("for ("
+                                    ,initialization "; "
+                                    ,condition "; "
+                                    ,update ") "
+                                    ,body))
+                          :full-stmt t
+                          rest))
 
-(defun make-if-stmt (condition then &optional else)
-  (make-statement :IfStmt :fullstmt
-                  (append `("if ("
-                            ,condition ") "
-                            ,then)
-                          (unless (or (eq :CompoundStmt (ast-class then))
-                                      (not else))
-                            '("; "))
-                          (when else
-                            `(" else " ,else)))
-                  :full-stmt t))
+(defun make-if-stmt (condition then &optional else &rest rest)
+  (apply #'make-statement :IfStmt :fullstmt
+                          (append `("if ("
+                                    ,condition ") "
+                                    ,then)
+                                  (unless (or (eq :CompoundStmt (ast-class then))
+                                              (not else))
+                                    '("; "))
+                                  (when else
+                                    `(" else " ,else)))
+                          :full-stmt t
+                          rest))
 
-(defun make-var-reference (name type)
-  (let ((hash (when type (type-hash type))))
-    (make-statement :ImplicitCastExpr :generic
-                    (list (make-statement :DeclRefExpr :generic
-                                          (list (unpeel-bananas name))
-                                          :expr-type hash
-                                          :unbound-vals (list name)))
-                    :expr-type hash)))
+(defun make-var-reference (name type &rest rest
+                           &aux (hash (when type (type-hash type))))
+  (apply #'make-statement :ImplicitCastExpr :generic
+                          (list (make-statement :DeclRefExpr :generic
+                                                (list (unpeel-bananas name))
+                                                :expr-type hash
+                                                :unbound-vals (list name)))
+                          :expr-type hash
+                          rest))
 
-(defun make-var-decl (name type &optional initializer)
-  (let ((decls (list name)))
-    (make-statement
-     :DeclStmt :fullstmt
-     (list (make-statement :Var :generic
-                           (if initializer
-                               (list (format nil "~a ~a = "
-                                             (type-decl-string type) name)
-                                     initializer)
-                               (list (format nil "~a ~a"
-                                             (type-decl-string type) name)))
-                           :types (list (type-hash type))
-                           :declares decls))
-     :declares decls)))
+(defun make-var-decl (name type &optional initializer &rest rest
+                      &aux (decls (list name)))
+  (apply #'make-statement
+         :DeclStmt :fullstmt
+         (list (make-statement :Var :generic
+                               (if initializer
+                                   (list (format nil "~a ~a = "
+                                                 (type-decl-string type) name)
+                                         initializer)
+                                   (list (format nil "~a ~a"
+                                                 (type-decl-string type) name)))
+                               :types (list (type-hash type))
+                               :declares decls))
+         :declares decls
+         :full-stmt t
+         rest))
 
-(defun make-parm-var (name type &optional initializer)
-  (let ((decls (list name)))
-    (make-statement
-     :DeclStmt :fullstmt
-     (list (make-statement :Var :generic
-                           (if initializer
-                               (list (format nil "~a ~a = "
-                                             (type-decl-string type) name)
-                                     initializer)
-                               (list (format nil "~a ~a"
-                                             (type-decl-string type) name)))
-                           :types (list (type-hash type))
-                           :declares decls))
-     :declares decls)))
+(defun make-parm-var (name type initializer &rest rest
+                      &aux (decls (list name)))
+  (apply #'make-statement
+         :DeclStmt :fullstmt
+         (list (make-statement :Var :generic
+                               (if initializer
+                                   (list (format nil "~a ~a = "
+                                                 (type-decl-string type) name)
+                                         initializer)
+                                   (list (format nil "~a ~a"
+                                                 (type-decl-string type) name)))
+                               :types (list (type-hash type))
+                               :declares decls))
+         :declares decls
+         rest))
 
-(defun make-array-subscript-expr (array-expr subscript-expr)
-  (make-statement :ArraySubscriptExpr :generic
-                  (list array-expr "[" subscript-expr "]")))
+(defun make-array-subscript-expr (array-expr subscript-expr &rest rest)
+  (apply #'make-statement :ArraySubscriptExpr :generic
+                          (list array-expr "[" subscript-expr "]")
+                          rest))
 
-(defun make-cast-expr (type child)
-  (make-statement :CStyleCastExpr :generic
-                  (list (format nil "(~a)" (type-name type))
-                        child)
-                  :types (list (type-hash type))))
+(defun make-cast-expr (type child &rest rest)
+  (apply #'make-statement :CStyleCastExpr :generic
+                          (list (format nil "(~a)" (type-name type))
+                                child)
+                          :types (list (type-hash type))
+                          rest))
 
 (defun make-call-expr (name args syn-ctx &rest rest)
   (apply #'make-statement :CallExpr syn-ctx
@@ -660,9 +676,10 @@ if not given."
            ")")
          rest))
 
-(defun make-label (name child)
-  (make-statement :LabelStmt :fullstmt
-                  (list (format nil "~a:~%" name) child)))
+(defun make-label (name child &rest rest)
+  (apply #'make-statement :LabelStmt :fullstmt
+                          (list (format nil "~a:~%" name) child)
+                          rest))
 
 (defmethod get-ast ((obj clang) (path list))
   (get-ast (ast-root obj) path))
@@ -1130,11 +1147,11 @@ valid hash."))
               (regex-replace name ""))))
 
 (defun prepend-to-genome (obj text)
-  "Prepend non-AST text to genome.
+  "Prepend non-AST TEXT to OBJ genome.
 
 New text will not be parsed. Only use this for macros, includes, etc which
 don't have corresponding ASTs."
-  (labels ((normalize-text (text)
+  (labels ((ensure-newline (text)
              (if (not (equalp #\Newline (last-elt text)))
                  (concatenate 'string text '(#\Newline))
                  text)))
@@ -1142,8 +1159,18 @@ don't have corresponding ASTs."
       (setf ast-root
             (destructuring-bind (first second . rest) (ast-root obj)
               (list* first
-                     (concatenate 'string (normalize-text text) second)
+                     (concatenate 'string (ensure-newline text) second)
                      rest))))))
+
+(defun append-to-genome (obj text)
+  "Append non-AST TEXT to OBJ genome.  The new text will not be parsed"
+  (with-slots (ast-root) obj
+    (setf ast-root
+          (if (stringp (lastcar (ast-root obj)))
+              (append (butlast (ast-root obj))
+                      (list (concatenate 'string (lastcar (ast-root obj))
+                                                 text)))
+              (append (ast-root obj) (list text))))))
 
 (defgeneric add-macro (software macro)
   (:documentation "Add MACRO to `macros' of SOFTWARE, unique by hash."))

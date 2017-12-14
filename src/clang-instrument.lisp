@@ -18,8 +18,7 @@
   (:documentation "Return true if OBJ is instrumented"))
 
 (defgeneric instrument (obj &key points functions functions-after
-                                 trace-file trace-env instrument-exit
-                                 filter postprocess-functions)
+                                 trace-file trace-env instrument-exit filter)
   (:documentation
    "Instrument OBJ to print AST index before each full statement.
 
@@ -34,8 +33,10 @@ Keyword arguments are as follows:
   TRACE-ENV ------------ trace output to file specified by ENV variable
   INSTRUMENT-EXIT ------ print counter of function body before exit
   FILTER --------------- function to select a subset of ASTs for instrumentation
-  POSTPROCESS-FUNCTIONS  functions to execute after instrumentation
 "))
+
+(defgeneric uninstrument (obj)
+  (:documentation "Remove instrumentation from OBJ"))
 
 (define-constant +write-trace-include+
   "
@@ -231,6 +232,34 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
   :test #'string=
   :documentation "C code which implements trace writing.")
 
+(define-constant +write-trace-initialization+
+  "
+#include <unistd.h>
+void __attribute__((constructor(101))) __bi_setup_log_file() {
+  const char *handshake_file = getenv(\"~a\");
+  if (handshake_file) {
+    while (access(handshake_file, 0) != 0) { sleep(1); }
+    unlink(handshake_file);
+  }
+  ~a = ~a;
+  const char *names[] = {~{~s, ~}};
+  const type_description types[] = {~{~a, ~}};
+  write_trace_header(~a, names, ~d, types, ~d);
+}
+"
+  :test #'string=
+  :documentation "C code which initializes the trace file")
+
+(define-constant +write-trace-file-definition+
+  "FILE *~a;~%"
+  :test #'string=
+  :documentation "C code which defines the trace file")
+
+(define-constant +write-trace-file-declaration+
+  "extern FILE *~a;~%"
+  :test #'string=
+  :documentation "C code which declares the trace file")
+
 (defclass instrumenter ()
   ((software :accessor software :initarg :software :initform nil)
    (names :accessor names
@@ -247,7 +276,7 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
   (xor (not (emptyp (type-array type)))
        (type-pointer type)))
 
-(defmethod get-ast-id ((instrumenter instrumenter) ast)
+(defun get-ast-id (instrumenter ast)
   (gethash ast (ast-ids instrumenter)))
 
 (defmethod initialize-instance :after ((instance instrumenter) &key)
@@ -268,7 +297,9 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
   (make-call-expr "write_trace_id"
                   (list (make-var-reference *instrument-log-variable-name* nil)
                         (make-literal :unsigned (get-ast-id instrumenter ast)))
-                  :fullstmt))
+                  :fullstmt
+                  :full-stmt t
+                  :aux-data '((:instrumentation t))))
 
 (defgeneric write-trace-aux (instrumenter value)
   (:documentation "Generate ASTs which write aux entries to trace."))
@@ -278,7 +309,9 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
   (make-call-expr "write_trace_aux"
                   (list (make-var-reference *instrument-log-variable-name* nil)
                         (make-literal :integer value))
-                  :fullstmt))
+                  :fullstmt
+                  :full-stmt t
+                  :aux-data '((:instrumentation t))))
 
 (defgeneric write-end-entry (instrumenter)
   (:documentation "Generate ASTs which write end-entry flag to trace."))
@@ -287,7 +320,9 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
   (declare (ignorable instrumenter))
   (make-call-expr "write_end_entry"
                   (list (make-var-reference *instrument-log-variable-name* nil))
-                  :fullstmt))
+                  :fullstmt
+                  :full-stmt t
+                  :aux-data '((:instrumentation t))))
 
 (defgeneric instrument-return (instrumenter return-stmt return-void)
   (:documentation "Generic ASTs which instrument RETURN-STMT."))
@@ -295,12 +330,19 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
 (defmethod instrument-return ((instrumenter clang-instrumenter)
                               return-stmt return-void)
   (if return-void
-      `(,(make-statement :gotostmt :fullstmt '("goto inst_exit")))
+      `(,(make-statement :gotostmt :fullstmt '("goto inst_exit")
+                         :full-stmt t
+                         :aux-data '((:instrumentation t))))
       `(,(make-operator :fullstmt "="
-                    (list (make-var-reference "_inst_ret" nil)
-                          (car (get-immediate-children (software instrumenter)
-                                                       return-stmt))))
-         ,(make-statement :gotostmt :fullstmt '("goto inst_exit")))))
+                        (list (make-var-reference "_inst_ret" nil)
+                              (car (get-immediate-children
+                                     (software instrumenter)
+                                     return-stmt)))
+                        :full-stmt t
+                        :aux-data '((:instrumentation t)))
+        ,(make-statement :gotostmt :fullstmt '("goto inst_exit")
+                         :full-stmt t
+                         :aux-data '((:instrumentation t))))))
 
 (defgeneric instrument-exit (instrumenter function return-void)
   (:documentation "Generate ASTs to instrument exit from FUNCTION."))
@@ -315,13 +357,16 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
                    (write-trace-id instrumenter
                                    (find-if {equalp (function-body obj
                                                                    function)}
-                                            (asts obj))))
-       ,(write-end-entry instrumenter)
-       ,(make-statement :ReturnStmt :fullstmt
-                        (cons "return "
-                              (when (not return-void)
-                                (list (make-var-reference "_inst_ret"
-                                                          nil))))))))
+                                            (asts obj)))
+                   :aux-data '((:instrumentation t)))
+      ,(write-end-entry instrumenter)
+      ,(make-statement :ReturnStmt :fullstmt
+                       (cons "return "
+                             (when (not return-void)
+                               (list (make-var-reference "_inst_ret"
+                                                         nil))))
+                       :full-stmt t
+                       :aux-data '((:instrumentation t))))))
 
 (defmethod instrumented-p ((clang clang))
   (search *instrument-log-variable-name* (genome clang)))
@@ -333,20 +378,20 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
 (defmethod instrument
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
-       (postprocess-functions (list #'clang-format)) (filter #'identity))
+       (filter #'identity))
   (let* ((obj (software instrumenter))
          (entry (get-entry obj))
-        ;; Promote every counter key in POINTS to the enclosing full
-        ;; statement with a CompoundStmt as a parent.  Otherwise they
-        ;; will not appear in the output.
-        (points
-         (remove nil
-           (mapcar (lambda-bind ((ast . value))
-                     (let ((parent (enclosing-traceable-stmt obj ast)))
-                       (if parent (cons parent value)
-                           (warn "Point ~s doesn't match traceable AST."
-                                 ast))))
-                   points))))
+         ;; Promote every counter key in POINTS to the enclosing full
+         ;; statement with a CompoundStmt as a parent.  Otherwise they
+         ;; will not appear in the output.
+         (points
+          (remove nil
+            (mapcar (lambda-bind ((ast . value))
+                      (let ((parent (enclosing-traceable-stmt obj ast)))
+                        (if parent (cons parent value)
+                            (warn "Point ~s doesn't match traceable AST."
+                                  ast))))
+                    points))))
     (labels
         ((last-traceable-stmt (proto)
            (->> (function-body obj proto)
@@ -373,47 +418,77 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                 ,@(when (and instrument-exit
                              (equalp ast (first-traceable-stmt function))
                              return-type)
-                        `(,(make-var-decl "_inst_ret" return-type)))
-                  ;; Instrument before
-                  ,(write-trace-id instrumenter ast)
-                  ,@(mapcar {write-trace-aux instrumenter} aux-values)
-                  ,@extra-stmts
-                  ,(write-end-entry instrumenter))
+                        `(,(make-var-decl "_inst_ret" return-type nil
+                                          :aux-data '((:instrumentation t)))))
+                ;; Instrument before
+                ,(write-trace-id instrumenter ast)
+                ,@(mapcar {write-trace-aux instrumenter} aux-values)
+                ,@extra-stmts
+                ,(write-end-entry instrumenter))
                (;; Instrumentation after
                 ,@(when functions-after
                         `(,(write-trace-id instrumenter ast)
-                           ,@extra-stmts-after
-                           ,(write-end-entry instrumenter)))
-                  ;; Function exit instrumentation
-                  ,@(when (and instrument-exit
-                               (equalp ast (last-traceable-stmt function)))
-                          (instrument-exit instrumenter function
-                                           (null return-type)))))))
+                          ,@extra-stmts-after
+                          ,(write-end-entry instrumenter)))
+                ;; Function exit instrumentation
+                ,@(when (and instrument-exit
+                             (equalp ast (last-traceable-stmt function)))
+                        (instrument-exit instrumenter function
+                                         (null return-type)))))))
+         (ast-ref->ast (ast-ref &key (semi nil)
+                        &aux (ast (copy-list (ast-ref-ast ast-ref))))
+           (cond ((eq semi :before)
+                  (labels ((add-semi-before (ast)
+                             (if (stringp (second ast))
+                                 (setf (second ast)
+                                       (concatenate 'string ";"
+                                                    (second ast)))
+                                 (add-semi-before (second ast)))))
+                    (add-semi-before ast)
+                    ast))
+                 ((eq semi :after)
+                  (append ast (list ";")))
+                 ((eq semi :both)
+                  (-<>> (make-ast-ref :ast ast)
+                        (ast-ref->ast <> :semi :before)
+                        (make-ast-ref :ast)
+                        (ast-ref->ast <> :semi :after)))
+                 (t ast)))
          (apply-instrumentation (ast return-type before after)
            "Insert instrumentation around AST."
-           (let* ((wrap (not (traceable-stmt-p obj ast)))
+           (let* ((*matching-free-var-retains-name-bias* 1.0)
+                  (*matching-free-function-retains-name-bias* 1.0)
+                  (wrap (not (traceable-stmt-p obj ast)))
                   ;; Look up AST again in case its children have been
                   ;; instrumented
                   (new-ast (make-ast-ref :path (ast-ref-path ast)
                                          :ast (get-ast obj
                                                        (ast-ref-path ast))))
-                  (stmts (interleave
-                          (append before
-                                  (if (and instrument-exit
-                                           (eq (ast-class ast) :ReturnStmt))
-                                      (instrument-return instrumenter
-                                                         new-ast
-                                                         (null return-type))
-                                      (list new-ast))
-                                  after)
-                          (format nil ";~%"))))
+                  (stmts (append (mapcar {ast-ref->ast _ :semi :after} before)
+                                 (if (and instrument-exit
+                                          (eq (ast-class ast) :ReturnStmt))
+                                     (->> (instrument-return instrumenter
+                                                             new-ast
+                                                             (null return-type))
+                                          (mapcar {ast-ref->ast _ :semi :both}))
+                                     (->> (ast-ref->ast new-ast)
+                                          (list)))
+                                 (mapcar {ast-ref->ast _ :semi :both} after))))
              ;; Wrap in compound statement if needed
-             (apply-mutation-ops
-              obj
-              (if wrap
+             (if wrap
+                 (apply-mutation-ops
+                  obj
                   `((:set (:stmt1 . ,ast)
-                          (:value1 . ,(make-block `(,@stmts ";")))))
-                  `((:splice (:stmt1 . ,ast) (:value1 . ,stmts))))))))
+                          (:value1 . ,(make-statement
+                                        :CompoundStmt
+                                        :FullStmt
+                                        `("{" ,@(interleave stmts ";") ";}")
+                                        :full-stmt t
+                                        :aux-data '((:instrumentation t)))))))
+                 (apply-mutation-ops
+                  obj
+                  `((:splice (:stmt1 . ,ast)
+                             (:value1 . ,stmts))))))))
       (-<>> (asts obj)
             (remove-if-not {can-be-made-traceable-p obj})
             (funcall filter)
@@ -440,14 +515,88 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
     ;; Add support code for tracing to obj
     (initialize-tracing obj trace-file trace-env entry instrumenter)
     (when entry
-      (setf (genome obj) (format nil "~a~%~a" +write-trace-impl+ (genome obj))))
-    (setf (genome obj) (format nil "~a~%~a" +write-trace-include+ (genome obj)))
-
-    ;; Perform any post-procesing
-    (when postprocess-functions
-      (mapcar {funcall _ obj} postprocess-functions))
+      (prepend-to-genome obj +write-trace-impl+))
+    (prepend-to-genome obj +write-trace-include+)
 
     obj))
+
+(defmethod uninstrument ((clang clang))
+  "Remove instrumentation from CLANG"
+  (labels ((uninstrument-genome-prologue (clang)
+             (with-slots (ast-root) clang
+               (setf ast-root
+                 (destructuring-bind (first second . rest) (ast-root clang)
+                   (list* first
+                          (-> second
+                              (replace-all
+                                +write-trace-impl+
+                                "")
+                              (replace-all
+                                +write-trace-include+
+                                "")
+                              (replace-all
+                                (format nil
+                                        +write-trace-file-declaration+
+                                        *instrument-log-variable-name*)
+                                "")
+                              (replace-all
+                                (format nil
+                                        +write-trace-file-definition+
+                                        *instrument-log-variable-name*)
+                                ""))
+                          rest)))))
+           (uninstrument-genome-epilogue (clang)
+             (with-slots (ast-root) clang
+               (setf ast-root
+                 (if (stringp (lastcar (ast-root clang)))
+                     (append (butlast (ast-root clang))
+                             (-> (subseq (lastcar (ast-root clang))
+                                         0
+                                         (-<>> (split-sequence
+                                                 #\Newline
+                                                 +write-trace-initialization+)
+                                               (take 2)
+                                               (format nil "~{~a~%~}")
+                                               (search <>
+                                                       (lastcar
+                                                         (ast-root clang)))))
+                                 (list)))
+                     (ast-root clang))))))
+
+    ;; Remove instrumentation setup code
+    (uninstrument-genome-prologue clang)
+    (uninstrument-genome-epilogue clang)
+
+    ;; Remove instrumented ASTs - blocks first, then individual statements
+    (let ((*matching-free-var-retains-name-bias* 1.0)
+          (*matching-free-function-retains-name-bias* 1.0))
+      (iter (for ast in (->> (asts clang)
+                             (remove-if-not [{aget :instrumentation}
+                                             {ast-aux-data}])
+                             (remove-if-not {block-p clang})
+                             (reverse)))
+            (apply-mutation-ops clang
+                                `((:set (:stmt1 . ,ast)
+                                        (:value1 .
+                                         ,(->> (get-ast clang (ast-ref-path ast))
+                                               (make-ast-ref
+                                                 :path (ast-ref-path ast)
+                                                 :ast)
+                                               (get-immediate-children clang)
+                                               (remove-if [{aget :instrumentation}
+                                                           {ast-aux-data}])
+                                               (first)))))))
+
+      (iter (for ast in (->> (asts clang)
+                             (remove-if-not [{aget :instrumentation}
+                                             {ast-aux-data}])
+                             (remove-if {block-p clang})
+                             (reverse)))
+            (apply-mutation-ops clang `((:splice (:stmt1 . ,ast)
+                                                 (:value1 . nil)))))))
+
+  ;; Return the software object
+  clang)
 
 (defgeneric instrumentation-files (project)
   (:documentation
@@ -507,21 +656,28 @@ the underlying software objects."
                                   (plist-get :trace-env args)
                                   entry
                                   instrumenter)
-              (setf (genome obj) (format nil "~a~%~a~%~a"
-                                             +write-trace-include+
-                                             +write-trace-impl+
-                                             (genome obj)))))))
+              (prepend-to-genome obj +write-trace-impl+)
+              (prepend-to-genome obj +write-trace-include+)))))
 
   clang-project)
 
+(defmethod uninstrument ((clang-project clang-project))
+  "Remove instrumentation from CLANG-PROJECT"
+  (iter (for (src-file . obj) in
+             (append (instrumentation-files clang-project)
+                     (remove-if-not [{get-entry} #'cdr]
+                                    (other-files clang-project))))
+        (declare (ignorable src-file))
+        (uninstrument obj))
+  clang-project)
+
+(defgeneric instrument-c-exprs (instrumenter exprs-and-types print-strings)
+  (:documentation "Generate C code to print the values of expressions.
+EXPRS-AND-TYPES is a list of (string . clang-type) pairs.
+Returns a list of strings containing C source code."))
+
 (defmethod instrument-c-exprs ((instrumenter clang-instrumenter)
                                exprs-and-types print-strings)
-  "Generate C code to print the values of expressions.
-
-EXPRS-AND-TYPES is a list of (string . clang-type) pairs.
-
-Returns a list of strings containing C source code.
-"
   (labels
       ((string-type-p (type)
          (or (string= (type-name type) "string")
@@ -582,7 +738,19 @@ Returns a list of strings containing C source code.
                  (setf (gethash type-id (type-descriptions instrumenter))
                        (type-description-struct c-type format size))
                  (setf (gethash type-id (types instrumenter))
-                       (hash-table-count (types instrumenter))))))))
+                       (hash-table-count (types instrumenter)))))))
+       (make-instrumentation-ast (function-name function-args)
+         (when function-args
+           (make-statement :CallExpr :FullStmt
+                           `(,(make-statement :ImplictCastExpr :generic
+                                (list (make-statement :DeclRefExpr :generic
+                                                      (list function-name))))
+                             ,(format nil "(~a, ~d, ~{~a~^, ~})"
+                                          *instrument-log-variable-name*
+                                          (length function-args)
+                                          function-args))
+                           :full-stmt t
+                           :aux-data '((:instrumentation t))))))
 
     (iter (for (expr . type) in exprs-and-types)
           (destructuring-bind (format size)
@@ -597,7 +765,7 @@ Returns a list of strings containing C source code.
                         (string= "char" (type-name type)))
                    (collect (format nil "~d, ~d, strlen(~a), ~a"
                                     name-index type-index expr expr)
-                     into blob-snippets))
+                     into blob-args))
 
                   ;; C++ string
                   ((and print-strings
@@ -605,28 +773,23 @@ Returns a list of strings containing C source code.
                    (collect (format nil
                                     "~d, ~d, (~a).length(), (~a).c_str()"
                                     name-index type-index expr expr)
-                     into blob-snippets))
+                     into blob-args))
 
                   ;; Normal variable
                   (t
                    (collect
                        (format nil "~a, ~a, ~a, ~a, ~a"
                                name-index type-index size format expr)
-                     into var-snippets))))))
+                     into var-args))))))
           (finally
            (return
-             (append (&>> var-snippets
-                          (format nil
-                                  "write_trace_variables(~a, ~d, ~{~a~^,~%~});~%"
-                                  *instrument-log-variable-name*
-                                  (length var-snippets))
-                          (list))
-                     (&>> blob-snippets
-                          (format nil
-                                  "write_trace_blobs(~a, ~d, ~{~a~^,~%~});~%"
-                                  *instrument-log-variable-name*
-                                  (length blob-snippets))
-                          (list))))))))
+             (->> (append (&> (make-instrumentation-ast "write_trace_variables"
+                                                        var-args)
+                              (list))
+                          (&> (make-instrumentation-ast "write_trace_blobs"
+                                                        blob-args)
+                              (list)))
+                  (remove-if #'null)))))))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
   (:documentation
@@ -688,50 +851,35 @@ used to pull the variable list out of AST."))
         ;; before any other code. It optionally performs a handshake
         ;; with the trace collector, then opens the trace file and
         ;; writes the header.
-        (setf (genome obj)
-              (format nil "
-#ifndef __GT_TRACEDB_STARTUP
-#define __GT_TRACEDB_STARTUP
-FILE *~a;
-~a
-#include <unistd.h>
-void __attribute__((constructor(101))) __bi_setup_log_file() {
-  const char *handshake_file = getenv(\"~a\");
-  if (handshake_file) {
-    while (access(handshake_file, 0) != 0) { sleep(1); }
-    unlink(handshake_file);
-  }
-  ~a = ~a;
-  const char *names[] = {~{~s, ~}};
-  const type_description types[] = {~{~a, ~}};
-  write_trace_header(~a, names, ~d, types, ~d);
-}
-#endif
-"
-                      *instrument-log-variable-name*
-                      (genome obj)
-                      *instrument-handshake-env-name*
-                      *instrument-log-variable-name*
-                      (file-open-str)
-                      (-<>> (names instrumenter)
-                            (hash-table-alist)
-                            (sort <> #'< :key #'cdr)
-                            (mapcar #'car))
-                      (-<>> (type-descriptions instrumenter)
-                            (hash-table-alist)
-                            (sort <> #'< :key [{gethash _ (types instrumenter)}
-                                               #'car])
-                            (mapcar #'cdr))
-                      *instrument-log-variable-name*
-                      (hash-table-count (names instrumenter))
-                      (hash-table-count (types instrumenter))))
+        (progn
+          (prepend-to-genome obj
+                             (format nil +write-trace-file-definition+
+                                     *instrument-log-variable-name*))
+          (append-to-genome  obj
+                             (format nil +write-trace-initialization+
+                                     *instrument-handshake-env-name*
+                                     *instrument-log-variable-name*
+                                     (file-open-str)
+                                     (-<>> (names instrumenter)
+                                           (hash-table-alist)
+                                           (sort <> #'< :key #'cdr)
+                                           (mapcar #'car))
+                                     (-<>> (type-descriptions instrumenter)
+                                           (hash-table-alist)
+                                           (sort <> #'<
+                                                 :key [{gethash _
+                                                        (types instrumenter)}
+                                                       #'car])
+                                           (mapcar #'cdr))
+                                     *instrument-log-variable-name*
+                                     (hash-table-count (names instrumenter))
+                                     (hash-table-count (types instrumenter)))))
 
-        ;; Object does not contain main. Insert extern definition of
+        ;; Object does not contain main. Insert extern declaration of
         ;; log variable.
-        (setf (genome obj)
-              (format nil "extern FILE *~a;~%~a"
-                      *instrument-log-variable-name*
-                      (genome obj)))))
+        (prepend-to-genome obj
+                           (format nil +write-trace-file-declaration+
+                                       *instrument-log-variable-name*))))
   obj)
 
 
@@ -744,8 +892,6 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                       `((or (string= ,arg ,short) (string= ,arg ,long)) ,@body))
                     forms)
           (:otherwise (error "Unrecognized argument:~a" ,arg))))))
-
-(setf *note-level* 1)
 
 (defun run-clang-instrument ()
   "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."

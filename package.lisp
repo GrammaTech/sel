@@ -336,6 +336,9 @@
    :addresses
    :instrumented-p
    :instrument
+   :instrumenter
+   :clang-instrumenter
+   :uninstrument
    :var-instrument
    :*instrument-log-variable-name*
    :add-include
@@ -344,6 +347,7 @@
    :find-or-add-type
    :type-decl-string
    :add-macro
+   :prepend-to-genome
    :nullify-asts
    :expand-stmt-pool
    :ignore-failed-mutation

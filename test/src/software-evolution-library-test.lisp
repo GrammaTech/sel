@@ -4670,7 +4670,7 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*))))
       ;; Do we insert the right number of printf statements?
-      (is (<= (* 2 (count-traceable *gcd*))
+      (is (<= (count-traceable *gcd*)
               (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -4698,7 +4698,7 @@ Useful for printing or returning differences in the REPL."
     (let ((instrumented (instrument (copy *gcd*)
                                     :instrument-exit t)))
       ;; Do we insert the right number of printf statements?
-      (is (<= (* 2 (count-traceable *gcd*))
+      (is (<= (count-traceable *gcd*)
               (count-traceable instrumented)))
 
       ;; Is function exit instrumented?
@@ -4765,7 +4765,7 @@ Useful for printing or returning differences in the REPL."
         ;; The next line (after flushing) should be the else branch.
         (let ((location (position-if {scan matcher} (lines instrumented))))
           (is (scan (quote-meta-chars "b = b - a")
-                    (nth (+ 2 location) (lines instrumented))))))
+                    (nth location (lines instrumented))))))
       ;; Finally, lets be sure we still compile.
       (with-temp-file (bin)
         (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
@@ -5088,6 +5088,92 @@ prints unique counters in the trace"
           (is (every «or [#'not {aget :scopes}]
                          [{eq index} {aget :c}]»
                      trace)))))))
+
+(deftest uninstrument-instrument-is-identity ()
+  (with-fixture gcd-clang
+    (let ((orig (copy *gcd*))
+          (instrumented (copy *gcd*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity")))
+  (with-fixture gcd-wo-curlies-clang
+    (let ((orig (copy *gcd*))
+          (instrumented (copy *gcd*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity")))
+  (with-fixture clang-project
+    (let ((orig (copy *project*))
+          (instrumented (copy *project*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity")))
+  (with-fixture shadow-clang
+    (let ((orig (copy *soft*))
+          (instrumented (copy *soft*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity")))
+  (with-fixture binary-search-clang
+    (let ((orig (copy *binary-search*))
+          (instrumented (copy *binary-search*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity")))
+  (with-fixture c-strings
+    (let ((orig (copy *soft*))
+          (instrumented (copy *soft*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity")))
+  (with-fixture cpp-strings
+    (let ((orig (copy *soft*))
+          (instrumented (copy *soft*)))
+      (handler-bind ((warning #'muffle-warning))
+        (instrument instrumented :functions
+                    (list (lambda (instrumenter ast)
+                            (var-instrument {get-vars-in-scope
+                                             (software instrumenter)}
+                                            instrumenter
+                                            ast)))))
+      (is (equal (genome orig) (genome (uninstrument instrumented)))
+          "(uninstrument (instrument obj ...)) is not an identity"))))
 
 
 ;;;; Traceable tests.
