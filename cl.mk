@@ -200,23 +200,22 @@ endif
 endif
 
 # This creates a Dockerfile which may be used to build a local image
-# using the current directory instead of checking BI out from git.
-# After running this command run the following to build the image.
+# using the current directory instead of checking the repo out from
+# git.  After running this command run the following to build the
+# image.
 #
-#     Docker build -t bug-injector-local -f Dockerfile .
+#     Docker build -t my-local-image -f Dockerfile .
 #
 # You can then run the image as your would any other, e.g. as follows.
 #
-#     dr bug-injector-local
+#     dr my-local-image
 #
 # or
 #
-#     docker run --net=host -e LOCAL_USER=root -it bug-injector-local
+#     docker run --net=host -e LOCAL_USER=root -it my-local-image
 #
 Dockerfile: Dockerfile.$(OS)
-	cat $<|sed -n '0,/^RUN mkdir -p /p;/^WORKDIR/,$$p;' \
-	|sed '/RUN mkdir -p /d' \
-	|sed "s|^CMD|ADD . .\n\nRUN $$(grep '^ \+make' $<)\n\n&|" > $@
+	cp $< $@
 
 
 ## Cleaning

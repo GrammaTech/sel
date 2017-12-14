@@ -9,13 +9,9 @@ ENV PATH=/gt/sel/bin:$PATH
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
 RUN yes|pacman -Syu --confirm gcc-multilib man-db man-pages python
 
-# Checkout the latest into the image.
-# Include the hash in command so it is not cached.
-RUN mkdir -p /gt/sel && \
-    git clone git@git.grammatech.com:synthesis/sel.git /gt/sel && \
-    cd /gt/sel && \
-    git checkout CI_COMMIT_SHA && \
-    make
+COPY . /gt/sel
+
+RUN cd /gt/sel && make
 
 WORKDIR /gt/sel
 

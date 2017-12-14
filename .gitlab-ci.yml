@@ -21,7 +21,7 @@ stages:
           docker pull $DOCKER_REGISTRY/synthesis/cl:$OS;
       fi
 
-    - cat Dockerfile.$OS|sed "s/CI_COMMIT_SHA/$CI_COMMIT_SHA/" > Dockerfile
+    - cp Dockerfile.$OS Dockerfile
     - docker build -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
 
 build:
