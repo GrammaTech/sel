@@ -1,43 +1,14 @@
-#|
-*************************************************************************************
-*
-* Unless otherwise specified, software artifacts in this directory and its
-* subdirectories are subject to:
-*
-* UNLIMITED RIGHTS
-*
-* The Government's rights to use, modify, reproduce, release, perform, display, or
-* disclose this software are governed by DFARS 252.227-7013, RIGHTS IN TECHNICAL DATA
-* --NONCOMMERCIAL ITEMS, and DFARS 252.227-7014 RIGHTS IN NONCOMMERCIAL SOFTWARE AND
-* NONCOMMERCIAL COMPUTER SOFTWARE DOCUMENTATION.
-*
-*************************************************************************************
-*
-* All GrammaTech IP (sole or co-developed) needs to include the GrammaTech copyright.
-*
-* (c) 2016 GrammaTech, Inc.  All rights reserved.
-*
-* Such IP is also subject to the terms of the Prioprietary Information Agreement (PIA)
-* executed between BAE Systems Information and Electronics Systems Integration Inc.
-* and GrammaTech, Inc. dated April 21, 2015
-*
-*************************************************************************************
-|#
-
-
-#| Automatic helper function generation
-
-When a repair requires moving or inserting multiple related
-statements, and no single mutation improves fitness in isolation, a
-standard genetic search has a low probability of succeeding. We can
-alleviate this problem by automatically creating helper functions from
-groups of related statements, and adding calls to those functions to
-the fodder database.
-
-This file implements a simple approach to helper function generation,
-based on n-grams extracted from execution traces.
-|#
-
+;; Automatic helper function generation
+;;
+;; When a repair requires moving or inserting multiple related
+;; statements, and no single mutation improves fitness in isolation, a
+;; standard genetic search has a low probability of succeeding. We can
+;; alleviate this problem by automatically creating helper functions from
+;; groups of related statements, and adding calls to those functions to
+;; the fodder database.
+;;
+;; This file implements a simple approach to helper function generation,
+;; based on n-grams extracted from execution traces.
 (in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 

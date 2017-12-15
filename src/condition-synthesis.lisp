@@ -1,33 +1,7 @@
-;;; condition-synthesis.lisp --- synthesize condition expressions
-
-#|
-*************************************************************************************
-*
-* Unless otherwise specified, software artifacts in this directory and its
-* subdirectories are subject to:
-*
-* UNLIMITED RIGHTS
-*
-* The Government's rights to use, modify, reproduce, release, perform, display, or
-* disclose this software are governed by DFARS 252.227-7013, RIGHTS IN TECHNICAL DATA
-* --NONCOMMERCIAL ITEMS, and DFARS 252.227-7014 RIGHTS IN NONCOMMERCIAL SOFTWARE AND
-* NONCOMMERCIAL COMPUTER SOFTWARE DOCUMENTATION.
-*
-*************************************************************************************
-*
-* All GrammaTech IP (sole or co-developed) needs to include the GrammaTech copyright.
-*
-* (c) 2016 GrammaTech, Inc.  All rights reserved.
-*
-* Such IP is also subject to the terms of the Prioprietary Information Agreement (PIA)
-* executed between BAE Systems Information and Electronics Systems Integration Inc.
-* and GrammaTech, Inc. dated April 21, 2015
-*
-*************************************************************************************
-|#
-
+;;;; condition-synthesis.lisp --- synthesize condition expressions
+;;;
 ;;; See the "Condition Synthesis" section in the SEL manual.
-
+;;;
 (in-package :software-evolution-library)
 (enable-curry-compose-reader-macros :include-utf8)
 
