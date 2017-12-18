@@ -75,7 +75,7 @@
                    :initform t :type boolean
                    :documentation
                    "Have ASTs changed since last clang-mutate run?")
-   (copy-lock :initform (bordeaux-threads:make-lock "clang-copy")
+   (copy-lock :initform (make-lock "clang-copy")
               :copier :none
               :documentation "Lock while copying clang objects.")))
 
@@ -243,6 +243,19 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
       (print-unreadable-object (obj stream :type t)
         (format stream "~a ~a"
                 (ast-counter obj) (ast-class obj)))))
+
+(defvar *clang-obj-code* (register-code 45 'clang))
+
+(defstore-cl-store (obj clang stream)
+  (let ((copy (copy obj)))
+    (setf (slot-value copy 'copy-lock) nil)
+    (output-type-code *clang-obj-code* stream)
+    (cl-store::store-type-object copy stream)))
+
+(defrestore-cl-store (clang stream)
+  (let ((obj (cl-store::restore-type-object stream)))
+    (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
+    obj))
 
 (defgeneric roots (software)
   (:documentation "Return all top-level ASTs in SOFTWARE."))

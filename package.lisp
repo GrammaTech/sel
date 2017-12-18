@@ -11,6 +11,7 @@
    :cl-custom-hash-table
    :cl-fad
    :cl-ppcre
+   :cl-store
    :named-readtables
    :curry-compose-reader-macros
    :diff

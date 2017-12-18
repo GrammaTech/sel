@@ -19,6 +19,7 @@ techniques."
                cl-json
                cl-ppcre
                cl-fad
+               cl-store
                named-readtables
                curry-compose-reader-macros
                diff
@@ -99,6 +100,7 @@ techniques."
   :depends-on (alexandria
                closer-mop
                cl-arrows
+               cl-store
                named-readtables
                curry-compose-reader-macros
                cxml

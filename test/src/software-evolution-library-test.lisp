@@ -1382,6 +1382,12 @@ suite should be run and nil otherwise."
                 (is (not (null stmt1)))
                 (is (not (null stmt2)))))))
 
+(deftest can-serialize-a-clang-software-obj ()
+  (with-fixture hello-world-clang
+    (with-temp-file (store-file)
+      (store *hello-world* store-file)
+      (is (equalp (genome (restore store-file)) (genome *hello-world*))))))
+
 
 ;;; Misc. clang tests
 

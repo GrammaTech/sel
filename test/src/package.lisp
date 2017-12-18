@@ -13,6 +13,7 @@
    :split-sequence
    :stefil
    :cl-ppcre
+   :cl-store
    :software-evolution-library
    :software-evolution-library/utility
    :testbot
