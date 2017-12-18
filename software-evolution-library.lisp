@@ -83,10 +83,12 @@ name used during compilation. "))
 
 (defmethod evaluate ((test symbol) (obj software)
                      &rest extra-keys &key &allow-other-keys)
+  (declare (ignorable extra-keys))
   (evaluate (symbol-function test) obj))
 
 (defmethod evaluate ((test function) (obj software)
                      &rest extra-keys &key &allow-other-keys)
+  (declare (ignorable extra-keys))
   (if (fitness obj)
       (values (fitness obj) (fitness-extra-data obj))
       (multiple-value-bind (fit extra) (funcall test obj)

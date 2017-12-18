@@ -27,19 +27,20 @@
 
 (defvar infinity
   #+sbcl
-  SB-EXT:DOUBLE-FLOAT-POSITIVE-INFINITY
+  sb-ext:double-float-positive-infinity
   #+ccl
-  CCL::DOUBLE-FLOAT-POSITIVE-INFINITY
+  ccl::double-float-positive-infinity
   #+allegro
   excl:*infinity-double*
   #+ecl
-  (/ (coerce 1 'double-float) (coerce 0.0 'double-float))
+  ext:long-float-positive-infinity
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
 (defun quit (&optional (errno 0))
   #+sbcl (sb-ext:exit :code errno)
-  #+ccl  (ccl:quit errno))
+  #+ccl  (ccl:quit errno)
+  #+ecl (EXT:EXIT errno))
 
 (defun current-git-commit (directory)
   (labels ((recur (dir)
@@ -90,12 +91,20 @@
     (ccl:get-foreign-namestring
      (ccl:external-call "tempnam" :address base :address prefix :address))))
 
+#+ecl
+(defun tempnam (dir &optional prefix)
+  (let ((dir-name (uiop:ensure-directory-pathname
+                   (or dir *temporary-directory*))))
+    (ext:mkstemp (if prefix
+                     (uiop::merge-pathnames dir-name prefix)
+                     dir-name))))
+
 (defun file-to-string
     (pathname &key (external-format
                     (encoding-external-format (detect-encoding pathname))))
   (restart-case
-      (let (#+sbcl
-            (sb-impl::*default-external-format* external-format))
+      (let (#+sbcl (sb-impl::*default-external-format* external-format)
+            #+ecl (ext:*default-external-format* external-format))
         (with-open-file (in pathname)
           (let ((seq (make-string (file-length in))))
             (read-sequence seq in)
@@ -136,39 +145,53 @@
   (let ((base #+clisp
           (let ((stream (gensym)))
             (eval `(with-open-stream
-                     (,stream (ext:mkstemp
-                                (if *temp-dir*
-                                    (namestring (make-pathname
+                       (,stream (ext:mkstemp
+                                 (if *temp-dir*
+                                     (namestring (make-pathname
                                                   :directory *temp-dir*
                                                   :name "XXXXXX"))
-                                    nil)))
+                                     nil)))
                      (pathname ,stream))))
-          #+(or sbcl ccl)
+          #+(or sbcl ccl ecl)
           (tempnam *temp-dir* nil)
           #+allegro
           (system:make-temp-file-name nil *temp-dir*)
-          #-(or sbcl clisp ccl allegro)
+          #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
     (if ext
-        (concatenate 'string base "." ext)
-        base)))
+        (if (pathnamep base)
+            (namestring (make-pathname :directory (pathname-directory base)
+                                       :name (pathname-name base)
+                                       :type ext))
+            (concatenate 'string base "." ext))
+        (if (pathname base)
+            (namestring base)
+            base))))
+
+(defun ensure-temp-file-free (path)
+  "Delete anything at PATH."
+  (let ((probe (probe-file path)))
+    (when probe
+      (if (equal (directory-namestring probe)
+                 (namestring probe))
+          (progn
+            #+sbcl (sb-ext:delete-directory probe :recursive t)
+            #+ccl (ccl:delete-directory probe)
+            #-(or sbcl ccl)
+            (uiop/filesystem:delete-directory-tree
+             (uiop:ensure-directory-pathname probe)
+             :validate t))
+          (delete-file path)))))
 
 (defmacro with-temp-file (spec &rest body)
   "SPEC holds the variable used to reference the file w/optional extension.
 After BODY is executed the temporary file is removed."
   `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect (progn ,@body)
-       (let ((probe (probe-file ,(car spec))))
-         (when probe
-           (if (equal (directory-namestring probe)
-                      (namestring probe))
-               (progn
-                 #+sbcl (sb-ext:delete-directory probe :recursive t)
-                 #+ccl (ccl:delete-directory probe))
-               (delete-file ,(car spec))))))))
+     (unwind-protect (progn ,@body) (ensure-temp-file-free ,(car spec)))))
 
 (defmacro with-temp-fifo (spec &rest body)
   `(with-temp-file ,spec
+     (ensure-temp-file-free ,(car spec))
      (mkfifo ,(car spec) (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
      ,@body))
 
@@ -283,8 +306,9 @@ See the documentation of `shell' for more information."
     (if *work-dir*
         ;; more robust shell execution using foreman
         (let* ((name
-                #+(or sbcl ccl) (tempnam *work-dir* "lisp-")
-                #-(or sbcl ccl) (error "work-dir not supported for this lisp"))
+                #+(or sbcl ccl ecl) (tempnam *work-dir* "lisp-")
+                #-(or sbcl ccl ecl)
+                (error "work-dir not supported for this lisp"))
                (run-file (format nil "~a.run" name))
                (done-file (format nil "~a.done" name)))
           (string-to-file cmd run-file)
@@ -307,10 +331,11 @@ See the documentation of `shell' for more information."
         ;; native shell execution
         (multiple-value-bind (stdout stderr errno)
             #+sbcl (shell-command cmd :input input)
+            #+ecl (shell-command cmd :input input)
             #+ccl
             (with-temp-file (stdout-file)
               (with-temp-file (stderr-file)
-                (let* ((*shell-search-paths* ; workaround trivial-shell bug with CCL
+                (let* ((*shell-search-paths* ; workaround with CCL
                          (if (equalp #\/ (aref (string-trim '(#\Space) cmd) 0))
                              nil ;absolute path to command given, don't search $PATH
                              *shell-search-paths*)))
@@ -352,19 +377,25 @@ See the documentation of `shell' for more information."
              #+ccl (ccl:run-program ,shell ,args :output ,file
                                     :input :stream
                                     :wait nil)
-             #-(or sbcl ccl)
-             (error "`WRITE-SHELL-FILE' only implemented for SBCL or CCL.")))
+             #+ecl (ext:run-program ,shell ,args :output ,file
+                                    :input :stream
+                                    :wait nil)
+             #-(or sbcl ccl ecl)
+             (error
+              "`WRITE-SHELL-FILE' only implemented for SBCL, CCL, and ECL.")))
        (unwind-protect
             (with-open-stream
                 (,stream-var #+sbcl (sb-ext:process-input ,proc-sym)
                              #+ccl (ccl:external-process-input-stream ,proc-sym)
-                             #-(or sbcl ccl) (error "Only SBCL or CCL."))
+                             #+ecl (ext:external-process-input ,proc-sym)
+                             #-(or sbcl ccl ecl)
+                             (error "Only SBCL, CCL or ECL."))
               ,@body)))))
 
 (defmacro read-shell-file
     ((stream-var file shell &optional args) &rest body)
   "Executes BODY with STREAM-VAR passing through SHELL from FILE."
-  #+(or sbcl ccl)
+  #+(or sbcl ccl ecl)
   (let ((proc-sym (gensym)))
     `(let* ((,proc-sym
              #+sbcl (sb-ext:run-program ,shell ,args :search t
@@ -374,24 +405,28 @@ See the documentation of `shell' for more information."
              #+ccl (ccl:run-program ,shell ,args :output :stream
                                     :input ,file
                                     :wait nil)
-             #-(or sbcl ccl)
-             (error "`READ-SHELL-FILE' only implemented for SBCL or CCL.")))
+             #+ecl (ext:run-program ,shell ,args :output :stream
+                                    :input ,file
+                                    :wait nil)
+             #-(or sbcl ccl ecl)
+             (error
+              "`READ-SHELL-FILE' only implemented for SBCL, CCL or ECL.")))
        (unwind-protect
             (with-open-stream
                 (,stream-var
                  #+sbcl (sb-ext:process-output ,proc-sym)
                  #+ccl (ccl:external-process-output-stream ,proc-sym)
-                 #-(or sbcl ccl) (error "Only SBCL or CCL."))
+                 #+ecl (ext:external-process-output ,proc-sym)
+                 #-(or sbcl ccl ecl) (error "Only SBCL or CCL."))
               ,@body)))))
 
 (defvar *bash-shell* "/bin/bash"
   "Bash shell for use in `read-shell'.")
 
+#+sbcl
 (defmacro read-shell ((stream-var shell) &rest body)
   "Executes BODY with STREAM-VAR holding the output of SHELL.
 The SHELL command is executed with `*bash-shell*'."
-  #-sbcl (error "`READ-SHELL-FILE' unimplemented for non-SBCL lisps.")
-  #+sbcl
   (let ((proc-sym (gensym)))
     `(let* ((,proc-sym (sb-ext:run-program *bash-shell*
                                            (list "-c" ,shell) :search t
@@ -399,6 +434,11 @@ The SHELL command is executed with `*bash-shell*'."
                                            :wait nil)))
        (with-open-stream (,stream-var (sb-ext:process-output ,proc-sym))
          ,@body))))
+
+#-sbcl
+(defmacro read-shell (&rest args)
+  (declare (ignorable args))
+  (error "`READ-SHELL' unimplemented for non-SBCL lisps."))
 
 (defmacro xz-pipe ((in-stream in-file) (out-stream out-file) &rest body)
   "Executes BODY with IN-STREAM and OUT-STREAM read/writing data from xz files."
@@ -1188,10 +1228,9 @@ that function may be declared.")
     ((graph sb-sprof::call-graph) (object sb-sprof::node))
   (sb-sprof::node-callers object))
 
+#+sbcl
 (defun profile-to-dot-graph (stream)
   "Write profile to STREAM."
-  #-sbcl (error "`PROFILE-TO-DOT-GRAPH' unimplemented for non-SBCL lisps.")
-  #+sbcl
   (progn
     (unless sb-sprof::*samples*
       (warn "; `profile-to-dot-graph': No samples to report.")
@@ -1206,8 +1245,14 @@ that function may be declared.")
                    (sb-sprof::call-graph-vertices call-graph)))
        :stream stream))))
 
+#-sbcl
+(defun profile-to-dot-graph (&rest args)
+  (declare (ignorable args))
+  (error "`PROFILE-TO-DOT-GRAPH' unimplemented for non-SBCL lisps."))
+
 ;; FlameGraph implementation from
 ;; http://paste.lisp.org/display/326901.
+#+sbcl
 (defun profile-to-flame-graph (stream)
   "Write FlameGraph profile data to STREAM.
 The resulting file may be fed directly to the flamegraph tool as follows.
@@ -1224,8 +1269,6 @@ The resulting file may be fed directly to the flamegraph tool as follows.
     shell$ profile.data|flamegraph > profile.svg
 
 See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
-  #-sbcl (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps.")
-  #+sbcl
   (progn
     (unless sb-sprof::*samples*
       (warn "; `profile-to-flame-graph': No samples to report.")
@@ -1253,3 +1296,8 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
       (maphash (lambda (trace count)
                  (format stream "~A ~D~%" trace count))
                counts))))
+
+#-sbcl
+(defun profile-to-flame-graph (&rest args)
+  (declare (ignorable args))
+  (error "`PROFILE-TO-FLAME-GRAPH' unimplemented for non-SBCL lisps."))

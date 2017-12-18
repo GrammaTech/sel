@@ -64,6 +64,7 @@ Options:
          (format nil
           #+ccl "repair version ~a using Clozure Common Lisp (CCL)~%"
           #+sbcl "repair version ~a using Steel Bank Common Lisp (SBCL)~%"
+          #+ecl "repair version ~a using Embeddable Common Lisp (ECL)~%"
           (eval-when (:compile-toplevel :load-toplevel :execute)
             (let ((raw (shell "git describe --always")))
               (subseq raw 0 (1- (length raw))))))))

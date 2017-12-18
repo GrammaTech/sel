@@ -30,12 +30,12 @@
              :documentation "Root node of AST.")
    (asts     :initarg :asts :initform nil
              :accessor asts :copier :direct
-             :type #+sbcl (list (cons keyword *) *) #+ccl list
+             :type #+sbcl (list (cons keyword *) *) #-sbcl list
              :documentation
              "List of all ASTs.")
    (stmt-asts :initarg :stmt-asts :initform nil
               :accessor stmt-asts :copier :direct
-              :type #+sbcl (list (cons keyword *) *) #+ccl list
+              :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation
               "List of statement ASTs which exist within a function body.")
    ;; TODO: We should split non-statement ASTs into typedefs,
@@ -43,33 +43,33 @@
    ;;       have different mutation types defined.  This needs more design.
    (non-stmt-asts :initarg :non-stmt-asts :accessor non-stmt-asts
                   :initform nil :copier :direct
-                  :type #+sbcl (list (cons keyword *) *) #+ccl list
+                  :type #+sbcl (list (cons keyword *) *) #-sbcl list
                   :documentation
                   "List of global AST which live outside of any function.")
    (functions :initarg :functions :accessor functions
               :initform nil :copier :direct
-              :type #+sbcl (list (cons keyword *) *) #+ccl list
+              :type #+sbcl (list (cons keyword *) *) #-sbcl list
               :documentation "Complete functions with bodies.")
    (prototypes :initarg :prototypes :accessor prototypes
                :initform nil :copier :direct
-               :type #+sbcl (list (cons keyword *) *) #+ccl list
+               :type #+sbcl (list (cons keyword *) *) #-sbcl list
                :documentation "Function prototypes.")
    (includes :initarg :includes :accessor includes
              :initform nil :copier :direct
-             :type #+sbcl (list string *) #+ccl list
+             :type #+sbcl (list string *) #-sbcl list
              :documentation "Names of included includes.")
    (types :initarg :types :accessor types
           :initform (make-hash-table :test 'equal)
           :copier :direct
-          :type #+sbcl hash-table #+ccl hash-table
+          :type #+sbcl hash-table #-sbcl hash-table
           :documentation "Association list of types keyed by HASH id.")
    (macros :initarg :macros :accessor macros
            :initform nil :copier :direct
-           :type #+sbcl (list clang-macro *) #+ccl list
+           :type #+sbcl (list clang-macro *) #-sbcl list
            :documentation "Association list of Names and values of macros.")
    (globals :initarg :globals :accessor globals
             :initform nil :copier :direct
-            :type #+sbcl (list (cons string string) *) #+ccl list
+            :type #+sbcl (list (cons string string) *) #-sbcl list
             :documentation "Association list of names and values of globals.")
    (asts-changed-p :accessor asts-changed-p
                    :initform t :type boolean

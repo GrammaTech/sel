@@ -52,13 +52,20 @@ ifneq ($(LISP_STACK),)
 ifneq (,$(findstring sbcl, $(LISP)))
 LISP_FLAGS = --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
 else
+ifneq (,$(findstring ecl, $(LISP)))
+LISP_FLAGS = --lisp-stack $(LISP_STACK) --norc
+else
 LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init
+endif
 endif
 else
 ifneq (,$(findstring sbcl, $(LISP)))
 LISP_FLAGS = --no-userinit --no-sysinit
+ifneq (,$(findstring ecl, $(LISP)))
+LISP_FLAGS = --norc
 else
 LISP_FLAGS = --quiet --no-init
+endif
 endif
 endif
 

@@ -16,7 +16,8 @@
 
 (defun quit (&optional (errno 0))
   #+sbcl (sb-ext:exit :code errno)
-  #+ccl  (ccl:quit errno))
+  #+ccl  (ccl:quit errno)
+  #+ecl  (ext:exit))
 
 (defun throw-error (&rest args)
   (apply #'format *error-output* args)

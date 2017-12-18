@@ -1,4 +1,5 @@
 # Compiled files
+*.fas
 *.fasl
 *.lx64fsl
 

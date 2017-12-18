@@ -5124,7 +5124,8 @@ prints unique counters in the trace"
 
 (define-software collect-traces-handles-directory-phenomes-mock
     (sel::ast sel::traceable)
-  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :copier :direct)))
+  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
+                :copier :direct)))
 
 (defmethod phenome ((obj collect-traces-handles-directory-phenomes-mock)
                     &key (bin (temp-file-name)))
@@ -5905,8 +5906,8 @@ prints unique counters in the trace"
                                  :comparison-set (list worst))))))
 
 (deftest multi-objective-scalar-works ()
-  (is (eq 1.0 (multi-objective-scalar '(0.1 0.4 0.5))))
-  (is (eq 1.0 (multi-objective-scalar '(0.1 0.4 #(1 0))))))
+  (is (equal 1.0 (multi-objective-scalar '(0.1 0.4 0.5))))
+  (is (equal 1.0 (multi-objective-scalar '(0.1 0.4 #(1 0))))))
 
 (deftest crowding-distance-works ()
   (let ((*population* (list (make-instance 'simple :fitness '(0.5 0.5 0.5))

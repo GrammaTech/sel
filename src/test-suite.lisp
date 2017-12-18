@@ -40,6 +40,10 @@ compiled phenome.")
     :documentation "The underlying process object (compiler-specific)."))
   (:documentation "Object representing an external process."))
 
+;;; TODO: Promote `process-id', `process-input-stream',
+;;; `process-output-stream', and `process-exit-code' to sel/utility,
+;;; also not clear why process need by a class when the notion already
+;;; exists in most lisps where it seems to be accessed by functions.
 (defgeneric process-id (process)
   (:documentation "Return the process id for PROCESS"))
 
@@ -48,8 +52,10 @@ compiled phenome.")
   (sb-ext:process-pid (os-process process))
   #+ccl
   (ccl:external-process-id (os-process process))
-  #-(or sbcl ccl)
-  (error "`PROCESS' only implemented for SBCL or CCL."))
+  #+ecl
+  (ext:external-process-pid (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric process-input-stream (process)
   (:documentation "Return the input stream for PROCESS."))
@@ -59,8 +65,10 @@ compiled phenome.")
   (sb-ext:process-input (os-process process))
   #+ccl
   (ccl:external-process-input-stream (os-process process))
-  #-(or sbcl ccl)
-  (error "`PROCESS' only implemented for SBCL or CCL."))
+  #+ecl
+  (ext:external-process-input (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric process-output-stream (process)
   (:documentation "Return the output stream for PROCESS."))
@@ -70,8 +78,10 @@ compiled phenome.")
   (sb-ext:process-output (os-process process))
   #+ccl
   (ccl:external-process-output-stream (os-process process))
-  #-(or sbcl ccl)
-  (error "`PROCESS' only implemented for SBCL or CCL."))
+  #+ecl
+  (ext:external-process-output (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric process-error-stream (process)
   (:documentation "Return the error stream for PROCESS."))
@@ -81,8 +91,10 @@ compiled phenome.")
   (sb-ext:process-error (os-process process))
   #+ccl
   (ccl:external-process-error-stream (os-process process))
-  #-(or sbcl ccl)
-  (error "`PROCESS' only implemented for SBCL or CCL."))
+  #+ecl
+  (ext:external-process-error-stream (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric process-exit-code (process)
   (:documentation "Return the exit code for PROCESS or nil if PROCESS has not
@@ -91,13 +103,14 @@ exited."))
 (defmethod process-exit-code ((process process))
   #+sbcl
   (sb-ext:process-exit-code (os-process process))
-  #+ccl
+  #+(or ccl ecl)
   (multiple-value-bind (status code)
-      (ccl:external-process-status (os-process process))
+      #+ccl (ccl:external-process-status (os-process process))
+      #+ecl (ext:external-process-status (os-process process))
     (declare (ignorable status))
     code)
-  #-(or sbcl ccl)
-  (error "`PROCESS' only implemented for SBCL or CCL."))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric process-status (process)
   (:documentation "Return the status of PROCESS: one of :running, :stopped,
@@ -106,13 +119,14 @@ exited."))
 (defmethod process-status ((process process))
   #+sbcl
   (sb-ext:process-status (os-process process))
-  #+ccl
+  #+ (or ccl ecl)
   (multiple-value-bind (status code)
-      (ccl:external-process-status (os-process process))
+      #+ccl (ccl:external-process-status (os-process process))
+      #+ecl (ext:external-process-status (os-process process))
     (declare (ignorable code))
     status)
-  #-(or sbcl ccl)
-  (error "`PROCESS' only implemented for SBCL or CCL."))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric signal-process (process signal-number)
   (:documentation "Send the signal SIGNAL-NUMBER to PROCESS."))
@@ -168,8 +182,12 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
                          extra-keys)))
         #+ccl
         (apply #'ccl:run-program real-name real-args extra-keys)
-        #-(or sbcl ccl)
-        (error "`START-TEST' only supported for SBCL or CCL.")))))
+        #+ecl
+        (nth-value 2 (apply #'ext:run-program real-name real-args
+                            (mapcar (lambda (it) (if (eq it :env) :environ it))
+                                    extra-keys)))
+        #-(or sbcl ccl ecl)
+        (error "`START-TEST' only supported for SBCL, CCL, or ECL.")))))
 
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
   (flet ((running-p (process)
