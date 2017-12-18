@@ -10,14 +10,13 @@
    :bordeaux-threads
    :iterate
    :split-sequence
-   :trivial-shell
    :cl-ppcre
    :cl-store
    :cl-dot
    :diff)
   (:shadow :quit :read)
-  (:shadowing-import-from :trivial-shell :with-timeout)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
+  (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
@@ -71,7 +70,6 @@
    :ignore-shell-error
    :shell-command-failed
    :shell
-   :shell-with-input
    :write-shell-file
    :read-shell-file
    :*bash-shell*

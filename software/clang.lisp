@@ -266,7 +266,7 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
          (iter (for c in-string genome)
                (with byte = 0)
                (for length = (->> (make-string 1 :initial-element c)
-                                  (trivial-utf-8:utf-8-byte-length)))
+                                  (babel:string-size-in-octets)))
                (incf byte length)
                (when (> length 1)
                  (collecting (cons byte (1- length)))))))
@@ -606,7 +606,7 @@ if not given."
                            :declares decls))
      :declares decls)))
 
-(defun make-parm-var (name type)
+(defun make-parm-var (name type &optional initializer)
   (let ((decls (list name)))
     (make-statement
      :DeclStmt :fullstmt
@@ -1108,7 +1108,7 @@ valid hash."))
     :hash 0
     :size (register-groups-bind (size)
               ("\\[(\\d+)\\]" name)
-            (parse-integer size))
+            (parse-integer (or size "")))
     :name (-> (format nil "^(\\*|\\[\\d*\\]|const |volatile |restrict |extern |~
                              static |__private_extern__ |auto |register )*")
               (regex-replace name ""))))
@@ -2208,12 +2208,12 @@ Useful as *another* point of interposition for mutation customization."))
     (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
       (unwind-protect
         (multiple-value-bind (stdout stderr exit)
-            (shell-with-input script
-                              "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
-                              (command-opt (car op))
-                              (mapcar #'option-opt (cdr op))
-                              src-file
-                              (flags obj))
+            (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
+                   (command-opt (car op))
+                   (mapcar #'option-opt (cdr op))
+                   src-file
+                   (flags obj)
+                   :input script)
           (declare (ignorable stderr))
           ;; NOTE: The clang-mutate executable will sometimes produce
           ;;       usable output even on a non-zero exit, e.g., usable

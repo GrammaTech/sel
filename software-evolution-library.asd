@@ -27,7 +27,7 @@ techniques."
                software-evolution-library/utility
                split-sequence
                usocket
-               trivial-utf-8
+               babel
                fast-io
                trace-db)
   :in-order-to ((test-op (test-op software-evolution-library/test)))
@@ -109,7 +109,6 @@ techniques."
                uuid
                testbot
                trace-db
-               trivial-shell
                uiop)
   :components
   ((:module test
@@ -153,7 +152,6 @@ techniques."
                cl-arrows
                iterate
                split-sequence
-               trivial-shell
                cl-ppcre
                cl-store
                cl-dot
@@ -174,7 +172,6 @@ techniques."
                cl-arrows
                iterate
                split-sequence
-               trivial-shell
                cl-ppcre
                cl-store
                cl-dot

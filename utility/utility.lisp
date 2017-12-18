@@ -102,6 +102,7 @@
 (defun file-to-string
     (pathname &key (external-format
                     (encoding-external-format (detect-encoding pathname))))
+  #+ccl (declare (ignorable external-format))
   (restart-case
       (let (#+sbcl (sb-impl::*default-external-format* external-format)
             #+ecl (ext:*default-external-format* external-format))
@@ -287,24 +288,27 @@ pathname (i.e., ending in a \"/\")."
              (format stream "Shell command failed with status ~a: \"~a\""
                      (exit-code condition) (command condition)))))
 
-(defun shell (control-string &rest format-arguments)
+(defun shell (control-string &rest format-arguments &aux input)
   "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
 Return (values stdout stderr errno).  Raise a `shell-command-failed'
 exception depending on the combination of errno with
 `*shell-error-codes*' and `*shell-non-error-codes*'.  Optionally print
 debug information depending on the value of `*shell-debug*'."
-  (apply {shell-with-input nil} control-string format-arguments))
-
-(defun shell-with-input (input control-string &rest format-arguments)
-  "Execute CONTROL-STRING applied to FORMAT-ARGUMENTS reading INPUT.
-See the documentation of `shell' for more information."
+  ;; Manual handling of an :input keyword argument.
+  (when-let ((input-arg (plist-get :input format-arguments)))
+    (setq input
+          (if (stringp input-arg)
+              (make-string-input-stream input-arg)
+              input-arg))
+    (setq format-arguments (take-until {eq :input} format-arguments)))
   (let ((cmd (apply #'format (list* nil control-string format-arguments))))
     (when *shell-debug*
       (format t "  cmd: ~a~%" cmd)
       (when input
         (format t "  input: ~a~%" input)))
     (if *work-dir*
-        ;; more robust shell execution using foreman
+        ;; Isolated shell execution using sh-runner.
+        ;; https://github.com/eschulte/sh-runner
         (let* ((name
                 #+(or sbcl ccl ecl) (tempnam *work-dir* "lisp-")
                 #-(or sbcl ccl ecl)
@@ -328,42 +332,53 @@ See the documentation of `shell' for more information."
                     (finish-output t))
                   (return (values stdout "" errno)))))
             (sleep 0.1)))
-        ;; native shell execution
-        (multiple-value-bind (stdout stderr errno)
-            #+sbcl (shell-command cmd :input input)
-            #+ecl (shell-command cmd :input input)
-            #+ccl
-            (with-temp-file (stdout-file)
-              (with-temp-file (stderr-file)
-                (let* ((*shell-search-paths* ; workaround with CCL
-                         (if (equalp #\/ (aref (string-trim '(#\Space) cmd) 0))
-                             nil ;absolute path to command given, don't search $PATH
-                             *shell-search-paths*)))
-                  (multiple-value-bind (stdout stderr errno)
-                      (shell-command (format nil "~a >~a 2>~a"
-                                                 cmd stdout-file stderr-file)
-                                     :input input)
-                    (declare (ignorable stdout stderr))
-                    (values (file-to-string stdout-file)
-                            (file-to-string stderr-file)
-                            errno)))))
-            #+allegro
-            (multiple-value-bind (out-lines err-lines errno)
-                (excl.osi:command-output cmd)
-              (let ((out (apply #'concatenate 'string out-lines))
-                    (err (apply #'concatenate 'string err-lines)))
-                (values out err errno)))
-            #-(or sbcl ccl allegro) (error "not implemented")
-            (when *shell-debug*
-              (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr errno))
-            (when (or (and *shell-non-error-codes*
-                           (not (find errno *shell-non-error-codes*)))
-                      (find errno *shell-error-codes*))
-              (restart-case (error (make-condition 'shell-command-failed
-                                     :exit-code errno
-                                     :command cmd))
-                (ignore-shell-error () "Ignore error and continue")))
-            (values stdout stderr errno)))))
+        ;; Direct shell execution with `uiop/run-program:run-program'.
+        ;;
+        ;; NOTE: CCL has a bug in which it will hang when large inputs
+        ;;       are read back from external programs on
+        ;;       STDOUT/STDERR.  We work around this by conditionally
+        ;;       redirecting those streams to files with CCL and
+        ;;       reading results back from those files.
+        (with-temp-file (stdout-file)
+          (with-temp-file (stderr-file)
+            (let ((stdout-str (make-array '(0)
+                                          :element-type
+                                          #+sbcl 'extended-char
+                                          #+(or ecl ccl) 'character
+                                          :fill-pointer 0 :adjustable t))
+                  (stderr-str (make-array '(0)
+                                          :element-type
+                                          #+sbcl 'extended-char
+                                          #+(or ecl ccl) 'character
+                                          :fill-pointer 0 :adjustable t))
+                  (errno nil))
+              (with-output-to-string (stderr stderr-str)
+                (with-output-to-string (stdout stdout-str)
+                  (setf errno (nth-value 2 (run-program
+                                            #-ccl cmd
+                                            #+ccl
+                                            (format nil "~a >~a 2>~a"
+                                                    cmd stdout-file stderr-file)
+                                            :force-shell t
+                                            :ignore-error-status t
+                                            :input input
+                                            :output stdout
+                                            :error-output stderr)))))
+              (when *shell-debug*
+                (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout-str stderr-str errno))
+              (when (or (and *shell-non-error-codes*
+                             (not (find errno *shell-non-error-codes*)))
+                        (find errno *shell-error-codes*))
+                (restart-case (error (make-condition 'shell-command-failed
+                                       :exit-code errno
+                                       :command cmd))
+                  (ignore-shell-error () "Ignore error and continue")))
+              #+ccl
+              (values (file-to-string stdout-file)
+                      (file-to-string stderr-file)
+                      errno)
+              #-ccl
+              (values stdout-str stderr-str errno)))))))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
@@ -612,7 +627,10 @@ Optional argument OUT specifies an output stream."
        ((funcall test item element) (setf last t)))))
 
 (defun plist-keys (plist)
-  (loop :for (key value) :on plist :by #'cddr :collect key))
+  (declare (optimize (speed 3) (safety 0) (debug 0)))
+  (iter (for (key value) on plist by #'cddr)
+        (declare (ignorable value))
+        (collect key)))
 
 (defun plist-drop-if (predicate list &aux last)
   (nreverse (reduce (lambda (acc element)
@@ -1135,12 +1153,12 @@ the genome of an ASM object."
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
     (remove nil
-      (loop :for line := (read-line in nil)
-         :while line
-         :collect
-         (register-groups-bind (c a) ("^ *(\\d+).+: +([\\dabcdef]+):" line)
-           (declare (string c) (string a))
-           (cons (parse-integer a :radix 16) (parse-integer c)))))))
+      (iter (for line = (read-line in nil :eof))
+            (until (eq line :eof))
+            (collect (register-groups-bind (c a)
+                         ("^ *(\\d+).+: +([\\dabcdef]+):" line)
+                       (cons (parse-integer (or a "") :radix 16)
+                             (parse-integer (or c "")))))))))
 
 (defun samples-from-tracer-file (path &aux samples)
   (with-open-file (in path)
@@ -1159,8 +1177,9 @@ that function may be declared.")
 
 (defun headers-in-manpage (section name)
   (multiple-value-bind (stdout stderr errno)
-      (shell "man -P cat ~a ~a | sed -n \"/DESCRIPTION/q;p\" | grep \"#include\" | cut -d'<' -f 2 | cut -d'>' -f 1"
-             section name)
+      (shell
+       "man -P cat ~a ~a | sed -n \"/DESCRIPTION/q;p\" | grep \"#include\" | cut -d'<' -f 2 | cut -d'>' -f 1"
+       section name)
     (declare (ignorable stderr errno))
     (split-sequence #\Newline stdout :remove-empty-subseqs t)))
 

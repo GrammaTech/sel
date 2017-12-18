@@ -16,7 +16,6 @@
    :software-evolution-library/utility
    :testbot
    :trace-db
-   :trivial-shell
    :uiop)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
