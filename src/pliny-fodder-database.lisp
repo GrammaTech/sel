@@ -2,7 +2,7 @@
 ;;; for an external Pliny fodder database.
 
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 ;; Helpers
 (defclass json-false ()

@@ -1,5 +1,5 @@
 (in-package :software-evolution-library/example)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 (defvar variants nil "List to hold accumulated neutral variants.")

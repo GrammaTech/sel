@@ -6,6 +6,7 @@
    :uiop
    :osicat-posix
    :metabang-bind
+   :named-readtables
    :curry-compose-reader-macros
    :bordeaux-threads
    :iterate

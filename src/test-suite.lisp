@@ -1,6 +1,6 @@
 ;;; test-suite.lisp --- an abstraction around test suites
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defclass test-suite ()
   ((test-cases

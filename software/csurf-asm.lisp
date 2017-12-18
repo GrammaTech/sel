@@ -1,6 +1,6 @@
 ;;; csurf-asm.lisp --- Support for csurf-generated assembler files
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar *gt-home* (getenv "GT_HOME")
   "Path to GT's trunk.")

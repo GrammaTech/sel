@@ -1,6 +1,6 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defun expression-intern (string)
   "Intern STRING for symbolic use in an expression.

@@ -6,7 +6,7 @@
 
 ;;; Code:
 (in-package :software-evolution-library/test)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 ;; Disable clang-format and any other helpers
 (defmacro every-is (function &rest lists)

@@ -4,6 +4,7 @@
    :common-lisp
    :alexandria
    :metabang-bind
+   :named-readtables
    :curry-compose-reader-macros
    :cl-arrows
    :iterate

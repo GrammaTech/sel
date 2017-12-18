@@ -53,7 +53,8 @@ ifneq (,$(findstring sbcl, $(LISP)))
 LISP_FLAGS = --dynamic-space-size $(LISP_STACK) --no-userinit --no-sysinit
 else
 ifneq (,$(findstring ecl, $(LISP)))
-LISP_FLAGS = --lisp-stack $(LISP_STACK) --norc
+# TODO: Figure out how to set --heap-size appropriately.
+LISP_FLAGS = --norc
 else
 LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init
 endif

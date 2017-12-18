@@ -6,6 +6,7 @@
    :alexandria
    :closer-mop
    :metabang-bind
+   :named-readtables
    :curry-compose-reader-macros
    :cl-arrows
    :split-sequence

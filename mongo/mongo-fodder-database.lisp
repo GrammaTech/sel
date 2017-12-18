@@ -2,7 +2,7 @@
 ;;; for an external Mongo fodder database.
 
 (in-package :software-evolution-library/mongo)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar fodder-collection "asts"
   "Name of the default collection holding fodder ASTs.")

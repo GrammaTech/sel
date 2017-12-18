@@ -1,5 +1,5 @@
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (define-software expression (lisp)
   ((scope :initarg :scope :accessor scope :initform nil :copier :direct

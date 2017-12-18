@@ -6,7 +6,7 @@
 ;;; Each AST entry in the database contains source text and, where
 ;;; applicable, the corresponding binary bytes.
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar *database* nil
   "Database utilized for fodder selection")

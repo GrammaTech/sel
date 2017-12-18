@@ -19,6 +19,7 @@ techniques."
                cl-json
                cl-ppcre
                cl-fad
+               named-readtables
                curry-compose-reader-macros
                diff
                elf
@@ -98,6 +99,7 @@ techniques."
   :depends-on (alexandria
                closer-mop
                cl-arrows
+               named-readtables
                curry-compose-reader-macros
                cxml
                iterate
@@ -147,6 +149,7 @@ techniques."
                cffi ; Work around a bug in which :babel isn't found for :osicat.
                osicat
                metabang-bind
+               named-readtables
                curry-compose-reader-macros
                bordeaux-threads
                cl-arrows
@@ -168,6 +171,7 @@ techniques."
   :version "0.0.0"
   :depends-on (alexandria
                metabang-bind
+               named-readtables
                curry-compose-reader-macros
                cl-arrows
                iterate
@@ -192,6 +196,7 @@ techniques."
   :version "0.0.0"
   :depends-on (alexandria
                metabang-bind
+               named-readtables
                curry-compose-reader-macros
                cl-arrows
                split-sequence
@@ -214,6 +219,7 @@ techniques."
   :depends-on (alexandria
                closer-mop
                cl-arrows
+               named-readtables
                curry-compose-reader-macros
                cxml
                metabang-bind

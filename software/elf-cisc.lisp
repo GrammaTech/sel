@@ -8,7 +8,7 @@
 
 ;;; Code:
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;; elf software objects

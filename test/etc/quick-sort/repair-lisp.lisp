@@ -1,7 +1,7 @@
 ;; repair using software evolution
 (require :software-evolution-library)
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 ;; ensure the runner is build and ready
 (unless (probe-file "lisp-runner")

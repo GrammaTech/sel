@@ -1,5 +1,5 @@
 (in-package :software-evolution-library/example)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;; gcd.s may be compiled from gcd.c in the test/ directory.

@@ -1,6 +1,6 @@
 ;;; project.lisp --- evolve multiple source files
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (define-software project (software)
   ((build-command :initarg :build-command :accessor build-command :initform nil

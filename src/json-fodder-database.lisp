@@ -2,7 +2,7 @@
 ;;; for an external JSON fodder database parsed and stored
 ;;; entirely within the current LISP image
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defclass json-database (in-memory-database)
   ((json-stream

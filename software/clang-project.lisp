@@ -1,5 +1,6 @@
 ;; Specialization for building a project from a clang compilation database
 (in-package :software-evolution-library)
+(in-readtable :curry-compose-reader-macros)
 
 (define-software clang-project (project)
   ((project-dir :initarg :project-dir

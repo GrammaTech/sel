@@ -1,6 +1,6 @@
 ;;; ancestral --- class adding ancestry tracking to software
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (define-software ancestral ()
   ((ancestors :initarg :ancestors :accessor ancestors :initform nil))

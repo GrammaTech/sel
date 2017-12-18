@@ -1,6 +1,6 @@
 ;;; clang-instrument --- Instrument C-language source files
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;;; Instrumentation

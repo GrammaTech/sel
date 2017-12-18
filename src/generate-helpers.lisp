@@ -10,7 +10,7 @@
 ;; This file implements a simple approach to helper function generation,
 ;; based on n-grams extracted from execution traces.
 (in-package :software-evolution-library)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;; Helper function generation

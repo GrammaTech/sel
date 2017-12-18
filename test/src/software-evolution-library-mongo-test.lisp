@@ -1,7 +1,7 @@
 ;;; software-evolution-library/mongo-tests.lisp --- tests for the `software-evolution-library-mongo' package
 
 (in-package :software-evolution-library/mongo-test)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;;; Mongo Database tests.

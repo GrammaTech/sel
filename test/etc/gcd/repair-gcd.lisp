@@ -1,7 +1,7 @@
 ;; repair using software evolution
 (load #P"repair.lisp")
 (in-package :repair)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar *clang* (from-file (make-instance 'clang) "gcd.c"))
 (defvar *cil*   (from-file (make-instance 'cil)   "gcd.c"))

@@ -11,7 +11,7 @@
   (:use :common-lisp :metabang-bind)
   (:export :quit :throw-error :getopts))
 (in-package :software-evolution-library/command-line)
-(enable-curry-compose-reader-macros :include-utf8)
+(in-readtable :curry-compose-reader-macros)
 
 
 (defun quit (&optional (errno 0))
