@@ -14,6 +14,9 @@
 (defvar *instrument-handshake-env-name* "__SEL_HANDSHAKE_FILE"
   "Default environment variable in which to store log file.")
 
+(defgeneric instrumented-p (obj)
+  (:documentation "Return true if OBJ is instrumented"))
+
 (defgeneric instrument (obj &key points functions functions-after
                                  trace-file trace-env instrument-exit
                                  filter postprocess-functions)
@@ -317,6 +320,9 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
                                 (list (make-var-reference "_inst_ret"
                                                           nil))))))))
 
+(defmethod instrumented-p ((clang clang))
+  (search *instrument-log-variable-name* (genome clang)))
+
 (defmethod instrument ((obj clang) &rest args)
   (apply #'instrument (make-instance 'clang-instrumenter :software obj)
          args))
@@ -451,6 +457,9 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
           (remove-if [#'not {get-entry}]
                      (evolve-files clang-project)
                      :key #'cdr)))
+
+(defmethod instrumented-p ((clang-project clang-project))
+  (some #'instrumented-p (mapcar #'cdr (evolve-files clang-project))))
 
 (defmethod instrument ((clang-project clang-project) &rest args)
   "Instrument a project. Arguments are passed through to instrument on

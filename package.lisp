@@ -333,6 +333,7 @@
    :base
    :disasm
    :addresses
+   :instrumented-p
    :instrument
    :var-instrument
    :*instrument-log-variable-name*

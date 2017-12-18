@@ -4638,6 +4638,11 @@ Useful for printing or returning differences in the REPL."
         (is (listp trace))
         trace))))
 
+(deftest instrumented-p-test ()
+  (with-fixture gcd-clang
+    (is (not (instrumented-p *gcd*)))
+    (is (instrumented-p (instrument (copy *gcd*))))))
+
 (deftest instrumentation-insertion-test ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*))))
