@@ -278,3 +278,7 @@ path within BODY."
      stderr
      stdout
      (mapcar [#'full-path #'first] (evolve-files obj)))))
+
+(defmethod compile-p ((obj project))
+  (with-temp-file (bin)
+    (zerop (second (multiple-value-list (phenome obj :bin bin))))))
