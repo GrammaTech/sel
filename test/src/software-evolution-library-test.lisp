@@ -4631,7 +4631,6 @@ Useful for printing or returning differences in the REPL."
 (defun get-gcd-trace (bin)
   (with-temp-file (trace-file)
     (multiple-value-bind (stdout stderr errno)
-        ;; TODO: No search path.
         (shell "~a 4 8 2>~a" bin trace-file)
       (declare (ignorable stdout stderr))
       (is (zerop errno))
@@ -5010,7 +5009,6 @@ prints unique counters in the trace"
             "Successfully compiled instrumented project."))
       (with-temp-file (trace-file)
         (multiple-value-bind (stdout stderr errno)
-            ;; TODO: No search path.
             (shell "~a 2>~a" bin trace-file)
           (declare (ignorable stdout stderr))
           (is (zerop errno))

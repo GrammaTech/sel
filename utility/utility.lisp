@@ -333,52 +333,36 @@ debug information depending on the value of `*shell-debug*'."
                   (return (values stdout "" errno)))))
             (sleep 0.1)))
         ;; Direct shell execution with `uiop/run-program:run-program'.
-        ;;
-        ;; NOTE: CCL has a bug in which it will hang when large inputs
-        ;;       are read back from external programs on
-        ;;       STDOUT/STDERR.  We work around this by conditionally
-        ;;       redirecting those streams to files with CCL and
-        ;;       reading results back from those files.
-        (with-temp-file (stdout-file)
-          (with-temp-file (stderr-file)
-            (let ((stdout-str (make-array '(0)
-                                          :element-type
-                                          #+sbcl 'extended-char
-                                          #+(or ecl ccl) 'character
-                                          :fill-pointer 0 :adjustable t))
-                  (stderr-str (make-array '(0)
-                                          :element-type
-                                          #+sbcl 'extended-char
-                                          #+(or ecl ccl) 'character
-                                          :fill-pointer 0 :adjustable t))
-                  (errno nil))
-              (with-output-to-string (stderr stderr-str)
-                (with-output-to-string (stdout stdout-str)
-                  (setf errno (nth-value 2 (run-program
-                                            #-ccl cmd
-                                            #+ccl
-                                            (format nil "~a >~a 2>~a"
-                                                    cmd stdout-file stderr-file)
-                                            :force-shell t
-                                            :ignore-error-status t
-                                            :input input
-                                            :output stdout
-                                            :error-output stderr)))))
-              (when *shell-debug*
-                (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout-str stderr-str errno))
-              (when (or (and *shell-non-error-codes*
-                             (not (find errno *shell-non-error-codes*)))
-                        (find errno *shell-error-codes*))
-                (restart-case (error (make-condition 'shell-command-failed
-                                       :exit-code errno
-                                       :command cmd))
-                  (ignore-shell-error () "Ignore error and continue")))
-              #+ccl
-              (values (file-to-string stdout-file)
-                      (file-to-string stderr-file)
-                      errno)
-              #-ccl
-              (values stdout-str stderr-str errno)))))))
+        (let ((stdout-str (make-array '(0)
+                                      :element-type
+                                      #+sbcl 'extended-char
+                                      #+(or ecl ccl) 'character
+                                      :fill-pointer 0 :adjustable t))
+              (stderr-str (make-array '(0)
+                                      :element-type
+                                      #+sbcl 'extended-char
+                                      #+(or ecl ccl) 'character
+                                      :fill-pointer 0 :adjustable t))
+              (errno nil))
+          (with-output-to-string (stderr stderr-str)
+            (with-output-to-string (stdout stdout-str)
+              (setf errno (nth-value 2 (run-program
+                                        cmd
+                                        :force-shell t
+                                        :ignore-error-status t
+                                        :input input
+                                        :output stdout
+                                        :error-output stderr)))))
+          (when *shell-debug*
+            (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout-str stderr-str errno))
+          (when (or (and *shell-non-error-codes*
+                         (not (find errno *shell-non-error-codes*)))
+                    (find errno *shell-error-codes*))
+            (restart-case (error (make-condition 'shell-command-failed
+                                   :exit-code errno
+                                   :command cmd))
+              (ignore-shell-error () "Ignore error and continue")))
+          (values stdout-str stderr-str errno)))))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
