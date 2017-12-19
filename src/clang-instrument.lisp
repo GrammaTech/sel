@@ -39,8 +39,8 @@ Keyword arguments are as follows:
 
 (define-constant +write-trace-include+
   "
-#ifndef __GT_TRACEDB
-#define __GT_TRACEDB
+#ifndef __GT_TRACEDB_INCLUDE
+#define __GT_TRACEDB_INCLUDE
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdarg.h>
@@ -194,6 +194,8 @@ static void write_trace_blobs(FILE *out, uint32_t n_vars, ...)
 
 (define-constant +write-trace-impl+
   "
+#ifndef __GT_TRACEDB_IMPL
+#define __GT_TRACEDB_IMPL
 typedef struct {
     /* Index into the string dictionary which gives the name of the type. */
     uint32_t name_index;
@@ -224,6 +226,7 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
     fwrite(&n_types, sizeof(n_types), 1, out);
     fwrite(types, sizeof(*types), n_types, out);
 }
+#endif
 "
   :test #'string=
   :documentation "C code which implements trace writing.")
@@ -687,6 +690,8 @@ used to pull the variable list out of AST."))
         ;; writes the header.
         (setf (genome obj)
               (format nil "
+#ifndef __GT_TRACEDB_STARTUP
+#define __GT_TRACEDB_STARTUP
 FILE *~a;
 ~a
 #include <unistd.h>
@@ -701,6 +706,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   const type_description types[] = {~{~a, ~}};
   write_trace_header(~a, names, ~d, types, ~d);
 }
+#endif
 "
                       *instrument-log-variable-name*
                       (genome obj)
