@@ -1175,7 +1175,7 @@ suite should be run and nil otherwise."
 
 ;;; Clang representation.
 (defun clang-mutate-available-p ()
-  (zerop (third (multiple-value-list (shell "which clang-mutate")))))
+  (zerop (nth-value 2 (shell "which clang-mutate"))))
 
 (sel-suite* clang-tests "Clang representation." (clang-mutate-available-p))
 
@@ -4647,8 +4647,7 @@ Useful for printing or returning differences in the REPL."
               (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every {aget :c} trace))
@@ -4661,8 +4660,7 @@ Useful for printing or returning differences in the REPL."
                                              [{eq 93} #'ast-counter]})))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every {aget :c} trace))
@@ -4686,8 +4684,7 @@ Useful for printing or returning differences in the REPL."
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every {aget :c} trace))
@@ -4707,8 +4704,7 @@ Useful for printing or returning differences in the REPL."
         "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every [«or {equalp #(1 2)} {equalp #(3 4)}»
@@ -4722,8 +4718,7 @@ Useful for printing or returning differences in the REPL."
         (let ((instrumented
                (instrument (copy *gcd*) :trace-file trace)))
           (is (scan (quote-meta-chars trace) (genome-string instrumented)))
-          (is (zerop (second (multiple-value-list
-                              (phenome instrumented :bin bin)))))
+          (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
           (is (probe-file bin))
           (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
             (declare (ignorable stdout stderr))
@@ -4746,8 +4741,7 @@ Useful for printing or returning differences in the REPL."
                     (nth (+ 2 location) (lines instrumented))))))
       ;; Finally, lets be sure we still compile.
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (is (not (emptyp (get-gcd-trace bin))))))))
 
@@ -4765,8 +4759,7 @@ Useful for printing or returning differences in the REPL."
           cookie)
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (find-if [{equalp `#(,cookie)} {aget :aux}]
@@ -4787,8 +4780,7 @@ prints unique counters in the trace"
       (instrument instrumented)
 
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list
-                            (phenome instrumented :bin bin)))))
+        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
         (is (probe-file bin))
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout stderr))
@@ -4832,7 +4824,7 @@ prints unique counters in the trace"
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+      (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
           "Successfully compiled instrumented GCD.")
       (let ((trace (get-gcd-trace bin)))
         (is (= (length trace) (count-if {assoc :c} trace))
@@ -4855,7 +4847,7 @@ prints unique counters in the trace"
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+      (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
           "Successfully compiled instrumented GCD.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4886,7 +4878,7 @@ prints unique counters in the trace"
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (second (multiple-value-list (phenome *soft* :bin bin))))
+      (is (zerop (nth-value 1 (phenome *soft* :bin bin)))
           "Successfully compiled instrumented SOFT.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4910,7 +4902,7 @@ prints unique counters in the trace"
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (second (multiple-value-list (phenome *soft* :bin bin))))
+      (is (zerop (nth-value 1 (phenome *soft* :bin bin)))
           "Successfully compiled instrumented SOFT.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4931,7 +4923,7 @@ prints unique counters in the trace"
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+      (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
           "Successfully compiled instrumented GCD.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4951,7 +4943,7 @@ prints unique counters in the trace"
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (second (multiple-value-list (phenome *soft* :bin bin))))
+      (is (zerop (nth-value 1 (phenome *soft* :bin bin)))
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
         (is (every [{eq 1} #'length {aget :scopes}]
@@ -5014,7 +5006,7 @@ prints unique counters in the trace"
     (with-temp-file (bin)
       (with-temp-build-dir ((directory-namestring
                              (make-pathname :directory +multi-file-dir+)))
-        (is (zerop (second (multiple-value-list (phenome *project* :bin bin))))
+        (is (zerop (nth-value 1 (phenome *project* :bin bin)))
             "Successfully compiled instrumented project."))
       (with-temp-file (trace-file)
         (multiple-value-bind (stdout stderr errno)
@@ -5061,7 +5053,7 @@ prints unique counters in the trace"
                                             ast)))))
 
       (with-temp-file (bin)
-        (is (zerop (second (multiple-value-list (phenome *gcd* :bin bin))))
+        (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
             "Successfully compiled instrumented GCD.")
         (is (equal '((:foo . t)) (ast-aux-data stmt)))
         (let ((trace (get-gcd-trace bin)))
