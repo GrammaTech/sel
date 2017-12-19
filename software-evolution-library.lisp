@@ -313,6 +313,17 @@ should be ergodic."))
 Should be initialized to a list of the unique possible genome
 elements.")
 
+(define-condition phenome (error)
+  ((text :initarg :text :initform nil :reader text)
+   (obj  :initarg :obj  :initform nil :reader obj)
+   (loc  :initarg :loc  :initform nil :reader loc))
+  (:report (lambda (condition stream)
+             (if (loc condition)
+                 (format stream "Phenome error ~a on ~S in ~a."
+                         (text condition) (obj condition) (loc condition))
+                 (format stream "Phenome error ~a on ~S."
+                         (text condition) (obj condition))))))
+
 (define-condition mutate (error)
   ((text :initarg :text :initform nil :reader text)
    (obj  :initarg :obj  :initform nil :reader obj)

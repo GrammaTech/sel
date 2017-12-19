@@ -211,14 +211,14 @@ copy of the original current file.
                    (collect (funcall f file)))))
 
 
-;;; Build directory handling.
+;;;; Build directory handling.
 
-;;; Each project needs a build directory which contains copies of the
-;;; build scripts and other dependencies. Paths within a project are
-;;; relative to *build-dir*, which allows us to do evolution in
-;;; multiple threads by creating separate build directory per thread.
-
-(defvar *build-dir* nil "Directory in which to build projects")
+(defvar *build-dir* nil
+  "Directory in which to build projects.
+Each project needs a build directory which contains copies of the
+build scripts and other dependencies. Paths within a project are
+relative to *build-dir*, which allows us to do evolution in multiple
+threads by creating separate build directory per thread.")
 
 (defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
@@ -265,19 +265,24 @@ path within BODY."
 
 (defmethod phenome ((obj project) &key (bin (temp-file-name)))
   (write-genome-to-files obj)
-
-  ;; Build the object for fitness testing and copy it to desired location
+  ;; Build the object and copy it to desired location.
   (multiple-value-bind (stdout stderr exit)
       (shell "cd ~a && ~a ~a" *build-dir*
              (build-command obj) (build-target obj))
-    (values
-     (when (zerop exit)
-       (prog1 bin
-         (shell "cp -r ~a ~a" (namestring (full-path (build-target obj))) bin)))
-     exit
-     stderr
-     stdout
-     (mapcar [#'full-path #'first] (evolve-files obj)))))
+    (restart-case
+        (if (zerop exit)
+            (shell "cp -r ~a ~a"
+                   (namestring (full-path (build-target obj))) bin)
+            (error (make-condition 'phenome
+                     :text stderr :obj obj :loc *build-dir*)))
+      (retry-project-build ()
+        :report "Retry `phenome' on OBJ."
+        (phenome obj :bin bin))
+      (return-nil-for-bin ()
+        :report "Allow failure returning NIL for bin."
+        (setf bin nil)))
+    (values bin exit stderr stdout
+            (mapcar [#'full-path #'first] (evolve-files obj)))))
 
 (defmethod compile-p ((obj project))
   (with-temp-file (bin)
