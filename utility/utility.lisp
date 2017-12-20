@@ -37,11 +37,6 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
-(defun quit (&optional (errno 0))
-  #+sbcl (sb-ext:exit :code errno)
-  #+ccl  (ccl:quit errno)
-  #+ecl (EXT:EXIT errno))
-
 (defun current-git-commit (directory)
   (labels ((recur (dir)
              (when (< (length dir) 2)

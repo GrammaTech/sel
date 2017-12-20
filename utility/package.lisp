@@ -15,9 +15,10 @@
    :cl-store
    :cl-dot
    :diff)
-  (:shadow :quit :read)
+  (:shadow :read)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
+  (:shadowing-import-from :uiop :quit)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
