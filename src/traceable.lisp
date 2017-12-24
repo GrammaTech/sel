@@ -121,7 +121,7 @@ times."))
 
                      (iter (while (not (timeout-p start-time)))
                            (unless (eq :running (process-status proc))
-                             (note 3 "Test process exited")
+                             (note 4 "Test process exited")
                              (return nil))
 
                            ;; The instrumented process will complete the
