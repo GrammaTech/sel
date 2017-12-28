@@ -12,6 +12,11 @@
 
 
 ;;; Software Object
+;;;
+;;; TODO: The following two don't work when SEL is installed in qlot
+;;;       by another project.  Instead you get the version/branch of
+;;;       the enclosing project.
+;;;
 (define-constant +software-evolution-library-version+
     (eval-when (:compile-toplevel :load-toplevel :execute)
       (current-git-commit (pathname-directory
