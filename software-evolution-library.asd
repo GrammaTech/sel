@@ -144,6 +144,8 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                uiop
+               ;; https://gitlab.common-lisp.net/asdf/asdf-encodings
+               asdf-encodings
                cffi ; Work around a bug in which :babel isn't found for :osicat.
                osicat
                metabang-bind
