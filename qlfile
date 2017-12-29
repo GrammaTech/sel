@@ -3,4 +3,4 @@ git cl-arrows git@git.grammatech.com:research/cl-arrows.git
 git elf git@git.grammatech.com:research/elf.git
 git testbot git@git.grammatech.com:synthesis/testbot.git
 git trace-db git@git.grammatech.com:research/trace-db.git
-git asdf-encodings https://gitlab.common-lisp.net/asdf/asdf-encodings.git
+git asdf-encodings git@git.grammatech.com:synthesis/asdf-encodings.git
