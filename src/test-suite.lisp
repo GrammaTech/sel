@@ -168,18 +168,21 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
         :os-process
         #+sbcl
         (apply #'sb-ext:run-program real-name real-args
-               ;; Ensure environment variable names are keywords,
-               ;; which is what SBCL's `run-program' expects.
-               (let (last)
-                 (mapcar (lambda (el)
-                           (prog1
-                               (if (equal last :env)
-                                   (mapcar (lambda-bind ((key . val))
-                                             (cons (make-keyword key) val))
-                                           el)
-                                   el)
-                             (setf last el)))
-                         extra-keys)))
+               ;; Ensure environment values are specified as a list of
+               ;; KEY=VALUE strings expected by SBCL's :environment
+               ;; keyword argument to `sb-ext:run-program'.
+               (iter (for arg in extra-keys)
+                     (for prev previous arg)
+                     (cond ((eq arg :env)
+                            (collect :environment))
+                           ((eq prev :env)
+                            (collect (append
+                                      (mapcar (lambda-bind ((key . value))
+                                                (concatenate 'string
+                                                  key "=" value))
+                                              arg)
+                                      (sb-ext:posix-environ))))
+                           (t (collect arg)))))
         #+ccl
         (apply #'ccl:run-program real-name real-args extra-keys)
         #+ecl
