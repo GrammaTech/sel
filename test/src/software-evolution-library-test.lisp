@@ -510,6 +510,14 @@ suite should be run and nil otherwise."
   (:teardown
     (setf *hello-world* nil)))
 
+(defixture print-env-clang
+  (:setup (setf *soft*
+                (from-file (make-instance 'clang :compiler "clang")
+                           (make-pathname :directory +etc-dir+
+                                          :name "print-env"
+                                          :type "c"))))
+  (:teardown (setf *soft* nil)))
+
 (defvar *good-asts* nil "Control pick-good")
 (defvar *bad-asts* nil "Control pick-bad")
 (define-software clang-control-picks (clang) ())
@@ -5147,6 +5155,22 @@ prints unique counters in the trace"
         (finish-test proc :kill-signal 15 :timeout 4)
         (is (not (eq :running (process-status proc)))
             "finish-test did not kill a long running process")))))
+
+(deftest env-variables-passed-through-to-test-suites ()
+  (with-fixture print-env-clang
+    (with-temp-file (bin)
+      (phenome *soft* :bin bin)
+      (is (string=
+           (concatenate 'string "__sel_bar" '(#\Newline))
+           (with-output-to-string (stdout)
+             (let ((proc (start-test bin (make-instance
+                                          'test-case
+                                          :program-name bin
+                                          :program-args '("__sel_foo"))
+                                     :wait nil
+                                     :output stdout
+                                     :env '(("__sel_foo" . "__sel_bar")))))
+               (finish-test proc :kill-signal 15 :timeout 4))))))))
 
 
 ;;;; Tests of declaration and type databases on clang objects.
