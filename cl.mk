@@ -8,8 +8,12 @@
 # TEST_ARTIFACTS ----- Name of dependencies for testing
 # LISP_DEPS ---------- Packages require to build CL package
 # TEST_LISP_DEPS ----- Packages require to build CL test package
+# BIN_TEST_DIR ------- Directory holding command-line tests
+# BIN_TESTS ---------- List of command line tests
+# LONG_BIN_TESTS ----- List of longer running command line tests
+#                      Used by the `real-check' target.
 
-.PHONY: test-artifacts check-testbot check clean more-clean real-clean Dockerfile
+.PHONY: test-artifacts check-testbot check real-check clean more-clean real-clean Dockerfile
 
 .SECONDARY:
 
@@ -62,6 +66,7 @@ endif
 else
 ifneq (,$(findstring sbcl, $(LISP)))
 LISP_FLAGS = --no-userinit --no-sysinit
+else
 ifneq (,$(findstring ecl, $(LISP)))
 LISP_FLAGS = --norc
 else
@@ -140,8 +145,12 @@ TEST_ARTIFACTS ?=
 
 test-artifacts: $(TEST_ARTIFACTS)
 
-check: bin/$(PACKAGE_NICKNAME)-test test-artifacts | bin
+unit-check: bin/$(PACKAGE_NICKNAME)-test test-artifacts | bin
 	@$<
+
+check: unit-check bin-check
+
+real-check: check long-bin-check
 
 check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts | bin
 	@$<
@@ -185,6 +194,28 @@ repl-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
 	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
 	--eval '$(REPL_STARTUP)'
+
+
+## Command-line testing.
+BIN_TEST_DIR ?= test/bin
+
+PASS=\e[1;1m\e[1;32mPASS\e[1;0m
+FAIL=\e[1;1m\e[1;31mFAIL\e[1;0m
+check/%: $(BIN_TEST_DIR)/% $(addprefix bin/, $(BINS))
+	@if ./$< >/dev/null 2>/dev/null;then \
+	printf "$(PASS)\t\e[1;1m%s\e[1;0m\n" $*; exit 0; \
+	else \
+	printf "$(FAIL)\t\e[1;1m%s\e[1;0m\n" $*; exit 1; \
+	fi
+
+desc/%: check/%
+	@$(BIN_TEST_DIR)/$* -d
+
+bin-check: $(addprefix check/, $(BIN_TESTS))
+bin-check-desc: $(addprefix desc/, $(BIN_TESTS))
+
+long-bin-check: $(addprefix check/, $(LONG_BIN_TESTS))
+long-bin-check-desc: $(addprefix desc/, $(LONG_BIN_TESTS))
 
 
 ## Docker file creation convenience target.
