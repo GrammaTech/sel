@@ -514,6 +514,29 @@ See 'man 3 termios' for more information."
   #-(or sbcl ccl)
   (clos::class-slots el))
 
+#+sbcl
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require 'sb-introspect))
+(defun arglist (fname)
+  "Return the argument list of FNAME."
+  ;; Taken from swank/backend:arglist.
+  #+sbcl
+  (sb-introspect:function-lambda-list fname)
+  ;; NOTE: The following is similar, but may return 0 for nil args.
+  ;; (sb-kernel:%simple-fun-arglist fname)
+  #+ecl
+  (multiple-value-bind (arglist foundp)
+      (ext:function-lambda-list name)
+    (if foundp arglist :not-available))
+  #+ccl
+  (multiple-value-bind (arglist binding) (let ((*break-on-signals* nil))
+                                           (ccl:arglist fname))
+    (if binding
+        arglist
+        :not-available))
+  #-(or ecl sbcl ccl)
+  (error "Only ECL, SBCL, and CCL."))
+
 (defun show-it (hd &optional out)
   "Print the fields of a elf, section or program header.
 Optional argument OUT specifies an output stream."

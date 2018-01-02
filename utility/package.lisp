@@ -83,6 +83,7 @@
    :make-terminal-raw
    :which
    ;; forensic
+   :arglist
    :show-it
    :equal-it
    :count-cons
