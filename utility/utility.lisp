@@ -1106,7 +1106,7 @@ region."
 LINES should be the output of the `lines' function on an ASM object."
   (loop :for line :in lines :as counter :from 0
      :for function = (register-groups-bind
-                         (line-function) ("^([^\\.][\\S]+):" line)
+                         (line-function) ("^\\$*([^\\.][\\S]+):" line)
                        line-function)
      :collect (or function counter)))
 
@@ -1124,7 +1124,7 @@ the genome of an ASM object."
        :for lines :in (cdr (mapcar
                             {remove-if
                              [{scan "^[\\s]*\\."} {aget :code} {aref genome}]}
-                             (split-sequence-if #'stringp flines)))
+                            (split-sequence-if #'stringp flines)))
        :do (mapc (lambda (addr line) (setf (gethash addr map) line))
                  addrs lines))
     map))
