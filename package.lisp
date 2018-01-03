@@ -327,6 +327,7 @@
    :llvm
    :linker
    :flags
+   :addr-map
    :assembler
    :asm-flags
    :redirect-file
