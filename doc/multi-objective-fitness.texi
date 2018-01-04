@@ -1,6 +1,6 @@
 The following code will enable multi-objective optimization:
 
-@verbatiminclude ../examples/005-multi-objective.lisp
+@verbatiminclude ./examples/005-multi-objective.lisp
 
 @code{#'pareto-selector} compares each candidate against a random
 comparison set, preferring candidates which dominate the comparison

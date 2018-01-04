@@ -537,7 +537,7 @@ The following example code;
 @item and prints the applied mutation.
 @end enumerate
 
-@verbatiminclude ../examples/001-mutate.lisp
+@verbatiminclude ./examples/001-mutate.lisp
 
 Executing this code will print output resembling the following.
 
@@ -572,7 +572,7 @@ The edits and fitness of each mutant are printed.
 
 @end enumerate
 
-@verbatiminclude ../examples/002-evaluation.lisp
+@verbatiminclude ./examples/002-evaluation.lisp
 
 Executing this code will print output resembling the following.
 
@@ -599,7 +599,7 @@ variants of the original program which still satisfy the test suite,
 known as ``neutral mutants'' (see @cite{Software Mutational
 Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
-@verbatiminclude ../examples/003-neutral.lisp
+@verbatiminclude ./examples/003-neutral.lisp
 
 @node Repair, Utility, Neutral Variants, Usage
 @section Repair
@@ -637,7 +637,7 @@ saved in the @code{*population*}.
 
 @end enumerate
 
-@verbatiminclude ../examples/004-evolve.lisp
+@verbatiminclude ./examples/004-evolve.lisp
 
 @heading Parallel Repair
 @cindex parallel repair
