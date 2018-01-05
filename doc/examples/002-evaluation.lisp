@@ -1,5 +1,9 @@
-(in-package :software-evolution-library/example)
-(in-readtable :curry-compose-reader-macros)
+(defpackage :example
+  (:use :common-lisp
+        :software-evolution-library
+        :software-evolution-library/utility))
+
+(in-package :example)
 
 
 (defun test (asm)                       ; (1)
@@ -9,11 +13,11 @@
       (count-if #'identity
                 (loop :for i :below 11 :collect
                    (multiple-value-bind (stdout stderr errno)
-                       (shell "../test/gcd/test.sh ~a ~d" bin i)
+                       (shell "test/etc/gcd/gcd.s ~a ~d" bin i)
                      (declare (ignorable stdout stderr))
                      (zerop errno)))))))
 
-(let ((orig (from-file (make-instance 'asm) "../test/gcd/gcd.s"))) ; (2)
+(let ((orig (from-file (make-instance 'asm) "test/etc/gcd/gcd.s"))) ; (2)
   (loop :for i :below 10 :do
      (multiple-value-bind (mutant edit) (mutate (copy orig)) ; (3)
        (setf (fitness mutant) (test mutant))                 ; (4)
