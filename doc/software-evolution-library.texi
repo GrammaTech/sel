@@ -492,22 +492,16 @@ cil-mutate for @code{cil} object support (available from
 @url{https://github.com/eschulte/cil-mutate}).
 @item
 clang-mutate for @code{clang} object support  (available from
-@url{https://github.com/eschulte/cil-mutate}).
+@url{https://github.com/GrammaTech/clang-mutate}).
 @end itemize
 
-@heading Packaging
-
-The Software Evolution library is meant to be used from Common Lisp
-programs.  Common lisp packages should include the
-@code{software-evolution-library} and may also include the
-@code{software-evolution-library/utility} in their package definition
-as in the following example.
-
+Install llvm-mutate, cil-mutate and clang-mutate as per the instructions 
+in their respective repository. Install SEL by cloning the repository into
+your quicklisp local-projects directory and then running:
 @example
-(defpackage :software-evolution-library-example
-  (:use :common-lisp
-        :software-evolution-library
-        :software-evolution-library/utility))
+    (ql:register-local-projects)
+    (ql:quickload :software-evolution-library)
+    (ql:quickload :software-evolution-library/utility)
 @end example
 
 @heading Examples
@@ -542,7 +536,7 @@ The following example code;
 Executing this code will print output resembling the following.
 
 @example
-Results of applying (:CUT 44) to gcd written to "/tmp/fileyfH5Hx.s".
+Results of applying #<SIMPLE-CUT #<ASM #x3020022A24DD> 78> to gcd written to "/tmp/fileLfs6Mf.s".
 @end example
 
 @node Evaluation, Neutral Variants, Mutation, Usage
@@ -577,16 +571,16 @@ The edits and fitness of each mutant are printed.
 Executing this code will print output resembling the following.
 
 @example
- 0 fitness for edit (:INSERT 76 38)
- 0 fitness for edit (:SWAP 66 77)
- 0 fitness for edit (:CUT 50)
-10 fitness for edit (:CUT 11)
-10 fitness for edit (:SWAP 62 39)
- 0 fitness for edit (:INSERT 2 48)
-10 fitness for edit (:CUT 66)
- 0 fitness for edit (:CUT 73)
-10 fitness for edit (:INSERT 73 26)
- 0 fitness for edit (:INSERT 71 1)
+ 0 fitness for edit #<SIMPLE-CUT #<ASM #x30200219A64D> 78>
+ 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021B042D> (30 47)>
+ 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021BB8DD> (19 64)>
+ 0 fitness for edit #<SIMPLE-INSERT #<ASM #x3020021C389D> (44 38)>
+ 0 fitness for edit #<SIMPLE-CUT #<ASM #x3020021CEB3D> 52>
+ 0 fitness for edit #<SIMPLE-CUT #<ASM #x3020021D673D> 47>
+ 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021E198D> (13 65)>
+ 0 fitness for edit #<ASM-REPLACE-OPERAND #<ASM #x3020021E880D> (56 5)>
+ 0 fitness for edit #<SIMPLE-INSERT #<ASM #x3020021F394D> (23 3)>
+ 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021FB34D> (48 23)>
 @end example
 
 @node Neutral Variants, Repair, Evaluation, Usage
@@ -607,7 +601,7 @@ Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
 Using the @code{test} function defined in a previous example
 (@pxref{Evaluation}), the code block below searches for a ``repair''
-of the buggy gcd implementation in @code{../test/gcd/gcd.s}.  The
+of the buggy gcd implementation in @code{test/etc/gcd/gcd.s}.  The
 ``repair'' will be a version of gcd which passes all 11 tests run in
 @code{test}.
 
@@ -647,7 +641,7 @@ threads.  For example a parallel version of the above example would
 replace,
 
 @example
-(evolve #'test :max-evals 100 :target 11)
+(evolve #'test :max-evals 100)
 @end example
 
 with the following.
@@ -660,7 +654,7 @@ with the following.
 (let (threads)
   (loop :for n :below *num-threads* :do
      (push (bordeaux-threads:make-thread
-            (lambda () (evolve #'test :max-evals 100 :target 11))
+            (lambda () (evolve #'test :max-evals 100))
             :name (format nil "opt-~d" n))
            threads)))
 
