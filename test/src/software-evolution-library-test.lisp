@@ -993,7 +993,7 @@ suite should be run and nil otherwise."
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
       (mutate ant)
-      (is (not (software-evolution-library::equal-it (genome ant) (genome *gcd*))))
+      (is (not (sel::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 (deftest asm-cut-actually-shortens ()
@@ -1047,7 +1047,6 @@ suite should be run and nil otherwise."
     (is (= 3 (length test2)))
     (is (equal (list "movl" "$0" "-4(%rbp)") test2))))
 
-
 (deftest simple-crossover-test ()
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
@@ -1058,6 +1057,16 @@ suite should be run and nil otherwise."
         ;; (is (some [{equal :crossover} #'car] (edits new)))
         ;; (is (some [{equal :cut} #'caar] (second (edits new))))
         ))))
+
+(deftest asm-can-form-a-phenome ()
+  (with-fixture gcd-asm
+    (with-temp-file (bin)
+      (is (phenome *gcd* :bin bin)
+          "Phenome works on an ASM software object.")
+      (is (probe-file bin)
+          "Phenome creates the binary file for an ASM software object.")
+      (is (nth-value 2 (shell "~a 1 1" bin))
+          "Phenome creates a runnable binary for an ASM software object."))))
 
 
 ;;; ELF representation.
