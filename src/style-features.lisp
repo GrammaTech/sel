@@ -172,8 +172,9 @@ The elements of the vector are the values corresponding to SORTED-KEYS."))
 
 (defun normalize-vector (vec)
   (let ((sum (reduce #'+ vec)))
-    (values (map 'vector {/ _ sum} vec)
-            sum)))
+    (if (zerop sum)
+        (values vec sum)
+        (values (map 'vector {/ _ sum} vec) sum))))
 
 (defgeneric ast-node-types (software)
   (:documentation
@@ -236,17 +237,20 @@ denominators DENOM1 and DENOM2, respectively."))
 (define-feature max-depth-ast-feature "Maximum depth of any node in the AST."
   (max-depth-ast-extractor ((clang clang))
     "Return 1-element feature vector of the max depth of any AST in SOFTWARE."
-    (values (vector (max-depth-ast clang (asts clang)))
-            nil))
+    (if (asts clang)
+        (values (vector (max-depth-ast clang (asts clang)))
+                nil)
+        (values (vector 0) nil)))
   (merge-max))
 
 (define-feature avg-depth-ast-feature
     "Average depth of each type of node in the AST."
   (avg-depth-ast-extractor ((clang clang))
     "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
-    (let ((asts (asts clang)))
+    (if-let ((asts (asts clang)))
       (values (vector (mean (mapcar {ast-depth clang} asts)))
-              (length asts))))
+              (length asts))
+      (values (vector) 0)))
   (merge-normalized))
 
 (defgeneric ast-node-type-avg-depth (software node-type)
@@ -273,9 +277,11 @@ denominators DENOM1 and DENOM2, respectively."))
                         (means2 vector) (lens2 vector))
   (values
    (map 'vector (lambda (mean1 len1 mean2 len2)
-                  (/ (+ (* mean1 len1)
-                        (* mean2 len2))
-                     (+ len1 len2)))
+                  (if (and (zerop len1) (zerop len2))
+                      0
+                      (/ (+ (* mean1 len1)
+                            (* mean2 len2))
+                         (+ len1 len2))))
         means1 lens1 means2 lens2)
    (map 'vector #'+ lens1 lens2)))
 

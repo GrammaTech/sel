@@ -6199,6 +6199,13 @@ prints unique counters in the trace"
                                          (string< (cdr k1) (cdr k2))))))))
         (is (equal '(1 1) vals))))))
 
+(define-software clang-styleable-test-class (clang styleable) ())
+
+(deftest extract-style-features-no-asts ()
+  (is (-> (from-string (make-instance 'clang-styleable-test-class) "")
+          (extract-baseline-features))
+      "extract-baseline-features should not throw an error on empty software"))
+
 
 ;;;; Clang syntactic contexts.
 (sel-suite* clang-syntactic-contexts "Clang syntactic contexts."
