@@ -5536,7 +5536,8 @@ prints unique counters in the trace"
     (is (equal "cc" (compiler (cdr (first (evolve-files project))))))
     (is (equal (list "-I" (namestring (make-pathname :directory +grep-prj-dir+))
                      "-c" "-o" "grep")
-               (flags (cdr (first (evolve-files project))))))))
+               (-> (flags (cdr (first (evolve-files project))))
+                   (remove-duplicates :test #'string=))))))
 
 (deftest apply-mutations-to-project-unique-test ()
   (with-fixture clang-project

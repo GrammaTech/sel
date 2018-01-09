@@ -116,8 +116,12 @@
                                          (get-project-path clang-project)))
                                 f)))
                     (remove-if {string= (aget :file compilation-database-entry)})
-                    (append (list "-I" (-> (project-dir clang-project)
-                                           (namestring))))))))
+                    (append (list "-I"
+                                  (namestring (project-dir clang-project))))
+                    (append (list "-I"
+                                  (->> (aget :file compilation-database-entry)
+                                       (directory-namestring)
+                                       (get-project-path clang-project))))))))
     (setf (project-dir clang-project)
           (-> (truename project-dir)
               (canonical-pathname)))
