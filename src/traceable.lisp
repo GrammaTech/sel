@@ -2,7 +2,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(defvar *trace-open-timeout* 2
+(defvar *trace-open-timeout* 10
   "Timeout (in seconds) when opening pipe to collect traces.")
 
 (defvar *process-kill-timeout* 10
