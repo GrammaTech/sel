@@ -5178,14 +5178,13 @@ prints unique counters in the trace"
       (is (string=
            (concatenate 'string "__sel_bar" '(#\Newline))
            (with-output-to-string (stdout)
-             (let ((proc (start-test bin (make-instance
-                                          'test-case
-                                          :program-name bin
-                                          :program-args '("__sel_foo"))
-                                     :wait nil
-                                     :output stdout
-                                     :env '(("__sel_foo" . "__sel_bar")))))
-               (finish-test proc :kill-signal 15 :timeout 4))))))))
+             (start-test bin (make-instance
+                              'test-case
+                              :program-name bin
+                              :program-args '("__sel_foo"))
+                         :wait t
+                         :output stdout
+                         :env '(("__sel_foo" . "__sel_bar")))))))))
 
 
 ;;;; Tests of declaration and type databases on clang objects.
