@@ -2,13 +2,6 @@
 (in-package :software-evolution-library/test)
 (in-readtable :curry-compose-reader-macros)
 
-#-gt (load (make-pathname :name "testbot"
-                          :type "lisp"
-                          :directory (pathname-directory
-                                      #.(or *compile-file-truename*
-                                            *load-truename*
-                                            *default-pathname-defaults*))))
-
 ;; Disable clang-format and any other helpers
 (defmacro every-is (function &rest lists)
   (let ((args-sym (gensym "args")))
@@ -1066,6 +1059,7 @@ suite should be run and nil otherwise."
 
 (deftest simple-crossover-test ()
   (with-fixture gcd-asm
+    (sel::number-genome *gcd*)
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'simple-cut :targets 0))
       ;; (push '(:cut 0) (edits variant))
@@ -1085,6 +1079,81 @@ suite should be run and nil otherwise."
             "Phenome creates the binary file for an ASM software object.")
         (is (nth-value 2 (shell "~a 1 1" bin))
             "Phenome creates a runnable binary for an ASM software object.")))))
+
+(deftest homologous-crossover-same-same ()
+  (with-fixture gcd-asm
+    (sel::number-genome *gcd*)
+    (is (tree-equal (genome *gcd*)
+                    (genome (sel::homologous-crossover *gcd* (copy *gcd*)))))))
+
+(deftest homologous-crossover-with-cut ()
+  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
+  ;; depends on whether crossover target is before or after cut.
+  (with-fixture gcd-asm
+    (sel::number-genome *gcd*)
+    (let ((variant (copy *gcd*))
+          (target 40))
+      ;; apply cut to variant
+      (apply-mutation variant
+                      (make-instance 'simple-cut
+                                     :object variant
+                                     :targets target))
+      (multiple-value-bind (crossed cross-a cross-b)
+          (sel::homologous-crossover *gcd* variant)
+        ;; If copied before cut, size is 1 smaller. Otherwise, it's the same
+        (if (< cross-b target)
+            (is (= (1- (size *gcd*)) (size crossed)))
+            (is (= (size *gcd*) (size crossed))))))))
+
+(deftest homologous-crossover-with-insert ()
+  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
+  ;; depends on whether crossover target is before or after insert-pt.
+  ;; TODO: This test documents a shortcoming in the crossover impl that we
+  ;; want to fix. If the cross-point in A refers to an index that was previouly
+  ;; copied from another part of A, we will select cross-b as the source of the
+  ;; copied statement (which might not be close to the ideal point for a
+  ;; homologous crossover.
+  (with-fixture gcd-asm
+    (sel::number-genome *gcd*)
+    (let ((insert-pt 40)
+          (stmt-to-insert 60)
+          (variant (copy *gcd*)))
+      (apply-mutation variant
+                      (make-instance 'simple-insert
+                                     :object variant
+                                     :targets (list insert-pt stmt-to-insert)))
+      (multiple-value-bind (crossed cross-a cross-b)
+          (sel::homologous-crossover variant *gcd*)
+        (cond
+          ((< cross-a insert-pt)
+           (is (= (size crossed) (size *gcd*))))
+          ((= cross-a insert-pt)
+           (is (= (size crossed) (- (size *gcd*) (- stmt-to-insert insert-pt)))))
+          (t (is (= (size crossed) (1+ (size *gcd*))))))))))
+
+(deftest homologous-crossover-with-swap ()
+  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
+  ;; depends on whether crossover target is exactly on a swap point or not.
+  ;; TODO: This test documents a shortcoming in the crossover impl that we
+  ;; want to fix. If the cross-point in A refers to an index that was previouly
+  ;; swapped in B, we will select cross-b as that new location.
+  (with-fixture gcd-asm
+    (sel::number-genome *gcd*)
+    (let ((targets (list 20 60))
+          (variant (copy *gcd*)))
+      (apply-mutation
+       variant
+       (make-instance 'simple-swap :object variant :targets targets))
+      (multiple-value-bind (crossed cross-a cross-b)
+          (sel::homologous-crossover *gcd* variant)
+        (cond
+          ((= cross-a 20)
+           ;; (format t "EQUAL 20~%")
+           (is (= (size crossed) (- (size *gcd*) 40))))
+          ((= cross-a 60)
+           ;; (format t "EQUAL 60~%")
+           (is (= (size crossed) (+ (size *gcd*) 40))))
+          (t (is (= (size crossed) (size *gcd*)))))))))
 
 
 ;;; ELF representation.
