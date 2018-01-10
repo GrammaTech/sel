@@ -2,9 +2,7 @@
   (:use :common-lisp
         :software-evolution-library
         :software-evolution-library/utility))
-
 (in-package :example)
-
 
 (defun test (asm)                       ; (1)
   (ignore-errors

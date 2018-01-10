@@ -1,6 +1,8 @@
-(in-package :software-evolution-library/example)
-(in-readtable :curry-compose-reader-macros)
-
+(defpackage :example
+  (:use :common-lisp
+        :software-evolution-library
+        :software-evolution-library/utility))
+(in-package :example)
 
 (setf *tournament-selector* #'pareto-selector)
 ;; Recommended value
@@ -9,4 +11,4 @@
 
 (defun test (software)
   ;; Return a list containing scores for each objective.
-  (list ...))
+  (list #| TODO: ... |#))

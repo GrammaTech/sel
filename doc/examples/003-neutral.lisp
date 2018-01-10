@@ -2,7 +2,6 @@
   (:use :common-lisp
         :software-evolution-library
         :software-evolution-library/utility))
-
 (in-package :example)
 
 (defvar variants nil "List to hold accumulated neutral variants.")

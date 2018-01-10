@@ -495,9 +495,11 @@ clang-mutate for @code{clang} object support  (available from
 @url{https://github.com/GrammaTech/clang-mutate}).
 @end itemize
 
-Install llvm-mutate, cil-mutate and clang-mutate as per the instructions 
-in their respective repository. Install SEL by cloning the repository into
-your quicklisp local-projects directory and then running:
+Install llvm-mutate, cil-mutate and clang-mutate as per the
+instructions in their respective repository. (Note, it is only
+necessary to install the tools for the specific software backends you
+intend to use.) Install SEL by cloning the repository into your
+quicklisp local-projects directory and then running:
 @example
     (ql:register-local-projects)
     (ql:quickload :software-evolution-library)
@@ -570,17 +572,19 @@ The edits and fitness of each mutant are printed.
 
 Executing this code will print output resembling the following.
 
+@c TODO: Figure out if/why this doesn't seem to work currently.
+
 @example
- 0 fitness for edit #<SIMPLE-CUT #<ASM #x30200219A64D> 78>
- 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021B042D> (30 47)>
- 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021BB8DD> (19 64)>
- 0 fitness for edit #<SIMPLE-INSERT #<ASM #x3020021C389D> (44 38)>
- 0 fitness for edit #<SIMPLE-CUT #<ASM #x3020021CEB3D> 52>
- 0 fitness for edit #<SIMPLE-CUT #<ASM #x3020021D673D> 47>
- 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021E198D> (13 65)>
- 0 fitness for edit #<ASM-REPLACE-OPERAND #<ASM #x3020021E880D> (56 5)>
- 0 fitness for edit #<SIMPLE-INSERT #<ASM #x3020021F394D> (23 3)>
- 0 fitness for edit #<SIMPLE-SWAP #<ASM #x3020021FB34D> (48 23)>
+ 0 fitness for edit (:INSERT 76 38)
+ 0 fitness for edit (:SWAP 66 77)
+ 0 fitness for edit (:CUT 50)
+10 fitness for edit (:CUT 11)
+10 fitness for edit (:SWAP 62 39)
+ 0 fitness for edit (:INSERT 2 48)
+10 fitness for edit (:CUT 66)
+ 0 fitness for edit (:CUT 73)
+10 fitness for edit (:INSERT 73 26)
+ 0 fitness for edit (:INSERT 71 1)
 @end example
 
 @node Neutral Variants, Repair, Evaluation, Usage
@@ -641,7 +645,8 @@ threads.  For example a parallel version of the above example would
 replace,
 
 @example
-(evolve #'test :max-evals 100)
+(let ((*target-fitness-p* [{= 11} #'fitness]))
+  (evolve #'test :max-evals 100))
 @end example
 
 with the following.
@@ -651,12 +656,13 @@ with the following.
 (defvar *num-threads* 64 "Number of available cores.")
 
 ;; launch *num-threads* evolution threads
-(let (threads)
-  (loop :for n :below *num-threads* :do
-     (push (bordeaux-threads:make-thread
-            (lambda () (evolve #'test :max-evals 100))
-            :name (format nil "opt-~d" n))
-           threads)))
+(let ((*target-fitness-p* [{= 11} #'fitness]))
+  (let (threads)
+    (loop :for n :below *num-threads* :do
+       (push (bordeaux-threads:make-thread
+              (lambda () (evolve #'test :max-evals 100))
+              :name (format nil "opt-~d" n))
+             threads))))
 
 ;; wait for all threads to return
 (mapc #'bordeaux-threads:join-thread threads)
