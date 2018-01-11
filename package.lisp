@@ -56,6 +56,8 @@
    :*mutation-improvements*
    :genome
    :phenome
+   :return-nil-for-bin
+   :retry-project-build
    :compile-p
    :evaluate
    :copy
