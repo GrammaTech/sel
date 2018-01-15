@@ -751,6 +751,7 @@ Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
 @verbatiminclude ./examples/003-neutral.lisp
 
+
 @node Repair, Parallel Repair, Neutral Variants, Examples
 @subsection Repair
 
@@ -799,7 +800,7 @@ threads.  For example a parallel version of the above example would
 replace,
 
 @example
-(let ((*target-fitness-p* [@lbracechar{}= 11@rbracechar{} #'fitness]))
+(let ((*target-fitness-p* [@{= 11@} #'fitness]))
   (evolve #'test :max-evals 100))
 @end example
 
@@ -810,7 +811,7 @@ with the following.
 (defvar *num-threads* 64 "Number of available cores.")
 
 ;; launch *num-threads* evolution threads
-(let ((*target-fitness-p* [@lbracechar{}= 11@rbracechar{} #'fitness]))
+(let ((*target-fitness-p* [@{= 11@} #'fitness]))
   (let (threads)
     (loop :for n :below *num-threads* :do
        (push (bordeaux-threads:make-thread
@@ -840,11 +841,14 @@ with the following.
 
 
 
+
 @node Troubleshooting, SEL API Reference, Usage, Top
+
 @chapter Troubleshooting
 @cindex troubleshooting
 
 @include troubleshooting.texi
+
 
 
 @node SEL API Reference, Troubleshooting, SEL API, Top
@@ -859,7 +863,8 @@ with the following.
 @include sel-api.texi
 
 @node SEL Utility API, SEL View API, SEL API, Top
-@chapter SEL/Utility Library
+
+@chapter SEL Utility API
 
 @cindex utility
 
@@ -867,7 +872,10 @@ with the following.
 
 
 
+
 @node SEL View API, General Lisp Advice, SEL Utility API, Top
+@chapter SEL View API
+
 @cindex view
 
 @include sel-view-api.texi
@@ -881,6 +889,362 @@ with the following.
 * Additional Lisp Resources::
 * General Lisp Debugging Advice::
 @end menu
+
+
+@node Getting Started with Lisp, Additional Lisp Resources, General Lisp Advice, General Lisp Advice
+@appendixsec Getting Started with Lisp
+
+We recommend the following Common Lisp resources.
+
+@itemize
+
+@item
+The @url{http://cliki.net/Getting+Started,Getting Started} guide provided on @url{http://cliki.net/,CLiki}, the Common Lisp wiki.
+
+This is a fairly complete guide to starting out with Lisp in general
+and Common Lisp in particular.
+
+@item @url{http://www.gigamonkeys.com/book/,Practical Common Lisp}.
+
+Especially, @url{
+http://www.gigamonkeys.com/book/lather-rinse-repeat-a-tour-of-the-repl.html,
+Chapter 2} describes how to get Emacs and Slime working.
+
+@end itemize
+
+
+We strongly recommend that you use Emacs: no other editor has such
+strong integration into the Lisp process (useful for finding function
+definitions, automatically displaying information, compiling,
+highlighting compiler warnings, evaluating, etc...).
+Install Emacs @url{http://emacswiki.org/emacs/ParEdit,ParEdit} for
+additional Lisp authoring support.
+
+If you prefer to use VIM, we recommend installing
+@url{https://github.com/vim-scripts/paredit.vim,paredit.vim}.
+
+
+
+
+@node Additional Lisp Resources, General Lisp Debugging Advice, Getting Started with Lisp, General Lisp Advice
+
+@appendixsec Additional Lisp Resources
+
+@itemize
+
+@item
+The @code{#lisp} IRC room on the @url{https://freenode.net/,freenode}
+IRC server.
+
+
+@item 
+@url{http://www.cliki.net/slime-howto,Introduction to Slime}
+
+@item
+@url{https://www.emacswiki.org/emacs/ParEdit,Introduction to ParEdit}
+
+@item
+@url{https://melpa.org/#/getting-started,Introduction to Melpa}
+
+@item
+@url{http://malisper.me/2015/07/07/debugging-lisp-part-1-recompilation/,Debugging Lisp}
+
+@item
+@url{http://www.gigamonkeys.com/book/,Practical Common Lisp Book}
+
+@item
+@url{https://www.csee.umbc.edu/courses/331/resources/lisp/onLisp/,On Lisp}
+
+@item
+@url{https://github.com/eschulte/curry-compose-reader-macros,
+     Curry compose reader macros@comma{} aka@comma{} those weird @code{[@{@}]} and @code{«»} symbols}
+
+@item
+We prefer @code{iter} over @code{loop}. See
+@url{https://sites.google.com/site/sabraonthehill/loop-v-iter#TOC-Collect,
+     @code{loop} vs. @code{iter}} for a comparison.
+
+@item
+@url{https://common-lisp.net/project/iterate/doc/index.html,
+     @code{iter} in detail}
+
+@item
+@url{https://common-lisp.net/project/metabang-bind/user-guide.html,
+     Using @code{bind}}
+
+@end itemize
+
+
+@node General Lisp Debugging Advice, SEL Coding Standards, Additional Lisp Resources, General Lisp Advice
+@appendixsec General Lisp Debugging Advice
+
+
+@subsection Log all interaction with the system shell
+
+For problems related to the execution of external commands turn on
+logging of all execution of shell commands by SEL.  This may be done
+by setting the `*shell-debug*` variable to a non-nil value.
+
+@lisp
+(setq *shell-debug* t)
+@end lisp
+
+All subsequent executions of @code{shell} will now print logging
+information.
+
+
+@subsection Tracing specific functions
+
+Common Lisp provides support for function-level tracing.  This may be
+enabled and disabled using the @code{cl-user::trace} and
+@code{cl-user::untrace} functions respectively, as shown in the
+following.
+
+@lisp
+    CL-USER> (in-package :software-evolution-library/test)
+    #<PACKAGE "SOFTWARE-EVOLUTION-LIBRARY/TEST">
+    SE-TEST> (hello-world-clang)
+    T
+    SE-TEST> (cl-user::trace snippet->clang-type)
+    (SNIPPET->CLANG-TYPE)
+    SE-TEST> (update-asts *hello-world*)
+      0: (SNIPPET->CLANG-TYPE
+          ((:ARRAY . "") (:COL . 0) (:DECL . "") (:FILE . "")
+           (:HASH . 342363981814211589) (:LINE . 0) (:POINTER . T) (:REQS)
+           (:SIZE . 4) (:TYPE . "char")))
+      0: SNIPPET->CLANG-TYPE returned
+           #S(CLANG-TYPE
+              :ARRAY ""
+              :COL 0
+    ;;;...
+    #<CLANG @{1003AD88D3@}>
+    SE-TEST>
+@end lisp
+
+
+@subsection Use extra verbosity in command-line tools
+
+Many command-line tools compiled from @code{sel} support various levels of
+verbosity in their output.  The simplest first step in debugging these
+tools should be to maximize the level of verbosity, e.g. @code{-v 5}.
+
+
+@node SEL Coding Standards, Use the compiler(s), General Lisp Advice, Top
+@appendix SEL Coding Standards
+
+@menu
+* Use the compiler(s)::
+* Whitespace::
+* Comments::
+* Use existing utility functions::
+* Packages::
+* Portability::
+* Documentation::
+* Don't use superfluous @code{let} or @code{let*} bindings::
+* Map instead of iterate::
+* Judicious use of arrow macros::
+@end menu
+
+Google's
+@url{http://google.github.io/styleguide/lispguide.xml,Common Lisp guide}
+is generally applicable.  Specifically the sections on
+@url{http://google.github.io/styleguide/lispguide.xml#Formatting,Formatting}
+and
+@url{http://google.github.io/styleguide/lispguide.xml#Comment_semicolons,Comment semicolons}.
+
+@node Use the compiler(s), Whitespace, SEL Coding Standards, SEL Coding Standards
+@appendixsec Use the compiler(s)
+
+
+All code should compile without warning in both SBCL and CCL.  Files
+may easily be compiled from within Emacs by running @code{M-x
+slime-compile-file} (which is typically bound to @code{C-c M-k}).  These
+warnings are often useful and catch type errors and outright mistakes
+that can easily slip through testing.  This will also ensure
+@ref{Portability,portability}.
+
+
+@node Whitespace, Comments, Use the compiler(s), SEL Coding Standards
+@appendixsec Whitespace
+
+@itemize
+@item no tabs
+@item no closing parenthesis on lines by themselves
+@item indent everything as would GNU Emacs
+@item typically only include vertical whitespace between top-level
+   forms, sections of large functions may be demarcated by vertical
+   whitespace but it is better to use smaller functions
+@item no trailing whitespace
+@item no whitespace following an open-paren
+@end itemize
+
+
+@node Comments, Use existing utility functions, Whitespace, SEL Coding Standards
+@appendixsec Comments (number of semicolons matters)
+
+@itemize
+@item All comments should be complete sentences with capitalization and a period.
+@item 3 (or 4) semicolons at the beginning of a line for block comments outside of any top level form
+@item 2 semicolons for comments that appear between lines of code
+@item 1 semicolon for comments that appear after code at the end of a line
+@item vertical align end-of-line comments when possible
+@item always use a space after the last semicolon and before comment text
+@item In Emacs @code{M-;} inserts a comment of the appropriate type.
+@end itemize
+
+@node Use existing utility functions, Packages, Comments, SEL Coding Standards
+@appendixsec Use existing utility functions (don't write your own)
+
+Regardless of language you should look carefully for existing utility
+functions before re-implementation (what you want probably already
+exists!).  For common lisp in particular you should check the
+following places before implementation of any utility.
+
+@enumerate
+@item Run @code{(apropos "thing")} in the repl.
+
+@item Look in the
+@url{http://www.lispworks.com/documentation/HyperSpec/Front/,hyperspec}
+(this lookup is a simple key-combo from a slime mode and is worth
+learning).  The hyperspec is a reference, good for lookup and bad for
+browsing.
+
+@item Check the
+@url{https://common-lisp.net/project/alexandria/,Alexandria} package.
+
+@item Check the @code{utilities} package of SEL.
+@end enumerate
+
+
+@node Packages, Portability, Use existing utility functions, SEL Coding Standards
+@appendixsec Packages
+
+Only use packages which are explicitly included in your current
+package.  E.g., calling @code{cl-fad:foo} just because @code{cl-fad} happens to
+be loaded in the lisp image every time you've run tests is @emph{not}
+acceptable.  Instead the @code{:use} option to @code{defpackage} should
+explicitly include the required package and if necessary @code{:shadow} and
+@code{:shadowing-import-from} should be used to limit the symbols imported.
+
+
+@node Portability, Documentation, Packages, SEL Coding Standards
+@appendixsec Portability
+
+All code should be portable across at least
+@url{http://www.sbcl.org/,SBCL} and
+@url{https://ccl.clozure.com/,CCL}.  Any code which is specific to a
+particular implementation must be protected by @code{#+impl} guards.
+
+
+@node Documentation, Don't use superfluous @code{let} or @code{let*} bindings, Portability, SEL Coding Standards
+@appendixsec Documentation
+
+@subsection For functions and methods
+
+Write documentation strings for @emph{every} function @emph{always}.
+Also, ensure every @code{defmethod} has a @code{defgeneric} which has
+a documentation string.
+
+@subsection For files and modules
+
+Large new functional modules (e.g., a new file of code) should be
+documented in the manual.  The SEL manual is located in the @code{doc/}
+subdirectory and is written in texinfo.  Follow the example set by
+existing documentation to add new sections to this manual.
+
+
+
+@node Don't use superfluous @code{let} or @code{let*} bindings, Map instead of iterate, Documentation, SEL Coding Standards
+@appendixsec Don't use superfluous @code{let} or @code{let*} bindings
+
+
+Any @code{let*} which can be changed to a @code{let} should be changed
+to a @code{let}.
+
+Typically, if a let-bound variable is only used once it should not be
+bound but instead its definition should replace its sole use.  This
+is suggested because each variable binding forces every subsequent
+reader to perform a dereference.  For example, this
+
+@lisp
+(let* ((subject (quick brown fox))
+       (object (lazy dog))
+       (sentence (The subject jumps over the object.)))
+  sentence)
+@end lisp
+
+is harder to read than this.
+
+@lisp
+(The quick brown fox jumps over the lazy dog)
+@end lisp
+
+There are some exceptions to this rule.
+
+@itemize
+
+@item
+If the variable is often used in debugging (printf or debugger) and it
+thus matters that it is bound at that point in the code then this may
+be acceptable.
+
+@item
+If the let-bound value appears as, lets say, the third argument to
+some function the in-lining of the long calculation may obscure the
+flow of the function with it's other arguments.
+
+@item
+If use of the let avoids horrible indentation issues then it may be
+acceptable.
+
+@end itemize
+
+@node Map instead of iterate, Judicious use of arrow macros, Don't use superfluous @code{let} or @code{let*} bindings, SEL Coding Standards
+@appendixsec Map instead of iterate
+
+
+Generally @code{mapc}, @code{mapcar}, @code{mappend}, and
+@code{reduce} should be preferred to use of the @code{iterate} macro
+(which should itself be preferred to @code{loop} which should never be
+used).  In general @code{iterate} should be limited to cases where
+non-trivial accumulation variables or incremental state are needed.
+Potentially there are cases where a straightforward @code{iterate} has
+better indentation behavior, in which case it might be acceptable (but
+I can't think of one now).
+
+
+@node Judicious use of arrow macros, Map instead of iterate, Map instead of iterate, SEL Coding Standards
+@appendixsec Judicious use of ``arrow'' (@code{->}, @code{->>}, etc...) macros
+
+We sometimes over-use the @code{->} and @code{->>} macros.  These
+@emph{typically} only make sense to chain multiple calls, not single
+(or often double) nested call.  One exception here is to aid
+indentation (avoid going over 80 characters) when regular nesting
+would require contortionist indentation.  For example in the following
+excerpt from our tests.  This
+
+
+@lisp
+    (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
+                     (function-body *collatz*))
+                #|...|#))
+@end lisp
+
+is nicer than this.
+
+@lisp
+    (is (equalp (function-body
+                 *collatz*
+                 (stmt-starting-with-text *collatz* "int collatz"))
+                #|...|#))
+@end lisp
+
+
+@node SEL API, SEL/Utility API, SEL/Test Library, Top
+@appendix SEL API
+@include include/sb-texinfo.texinfo
+@include sel-api.texi
+>>>>>>> push FAQ and landing page content into manual TP:74485 TP:74756
 
 @node Getting Started with Lisp, Additional Lisp Resources, General Lisp Advice, General Lisp Advice
 @appendixsec Getting Started with Lisp
@@ -1245,11 +1609,13 @@ is nicer than this.
 @end menu
 
 
+
 @node Copying, GNU Free Documentation License, Licensing, Licensing
 @appendixsec GNU GENERAL PUBLIC LICENSE
 @include gpl.texi
 
 @node GNU Free Documentation License, Index, Copying, Licensing
+
 @appendixsec GNU Free Documentation License
 @include doclicense.texi
 
