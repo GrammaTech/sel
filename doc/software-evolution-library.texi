@@ -40,11 +40,25 @@ A copy of the license is included in the section entitled
 @insertcopying
 @end ifnottex
 
+
+Software Evolution Library (SEL) is a Common Lisp library for using
+evolutionary search to programmatically modify and evaluate software.
+It provides a common interface which abstracts over several kinds of
+software objects including parsed abstract syntax trees, intermediate
+languages, compiled assembler, or binaries.
+
+Methods for evolution, mutation, crossover, and fitness evaluation are
+implemented on top of this interface, supporting Search Based Software
+Engineering (SBSE) techniques.
+
+
 @menu
 * Introduction::                What's it for?
 * Implementation::              How's it implemented?
 * Components::                  What's it provide?
 * Usage::                       How's it used?
+* SEL API Reference::           Full API reference including usage guidelines.
+* Troubleshooting::             FIXME
 
 Included Libraries
 * Utility::                     Utility functions.
@@ -52,22 +66,19 @@ Included Libraries
 * Test::                        Unit tests.
 
 Appendices
-
-* Copying::                     The GNU General Public License gives
-                                you permission to redistribute GNU Emacs on
-                                certain terms; it also explains that there is
-                                no warranty.
-* GNU Free Documentation License::  The license for this documentation.
+* General Lisp Advice::
+* SEL Coding Standards::
+* Licensing::
 * Index::                       Complete index.
 
-
-
-
 @end menu
+
+
 
 @node Introduction, Implementation, Top, Top
 @chapter Introduction
 @cindex introduction
+
 
 The Software Evolution library enables the programmatic modification
 and evaluation of extant software.  The software evolution library was
@@ -85,11 +96,159 @@ This library has been used to optimize benchmark programs (see
 closed source binaries (see
 @url{http://eschulte.github.io/netgear-repair}).
 
+
+@section How is it used?
+
+SEL has a broad range of applications for software improvement and
+understanding. The following are some current and past projects
+utilizing SEL.
+
+@itemize
+
+@item
+Optimizing real-world software
+(@url{https://github.com/eschulte/goa,github.com/eschulte/goa}).
+
+@item
+
+Patching vulnerabilities in closed source binaries
+(@url{http://eschulte.github.io/netgear-repair,eschulte.github.io/netgear-repair}).
+
+@item
+Filling "holes" in incomplete programs whose behavior is partially
+specified by unit tests and developer hints
+(@url{http://cs.unm.edu/~eschulte/data/musynth-ssbse-2017.pdf,MuSynth}).
+
+@item
+Adapting  software for
+@url{https://www.darpa.mil/program/building-resource-adaptive-software-systems,DARPA's BRASS program}.
+
+@item
+Injecting bugs into software to create cyber-defense benchmarks
+(@url{https://www.grammatech.com/sponsored-research,BUG-INJECTOR}).
+
+@item
+Decompiling binaries to C source FIXME LINK.
+
+@item
+Studying the @emph{mutational robustness} of software
+(@url{http://cs.unm.edu/~eschulte/dissertation/,cs.unm.edu/~eschulte/dissertation}).
+
+@end itemize
+
+
+@section What kinds of software can be manipulated?
+
+The SEL API defines software objects using the Common Lisp Object
+System (CLOS), to provide a uniform interface to many kinds of
+software artifact.
+
+SEL currently provides implementations of software objects
+representing a range of different software artifacts types, shown in
+the table below.
+
+Additionally, the flexible design of SEL makes it possible to add new
+software object kinds. Refer to the documentation FIXME LINK for
+information about creating new software objects.
+
+
+@multitable {compiled assembler  ASM  } {experimental}
+@item C and C++ source         @tab mature
+@item compiled assembler (ASM) @tab mature
+@item linked ELF binaries      @tab mature
+@item LLVM IR                  @tab experimental
+@item CIL                      @tab experimental
+@item LISP                     @tab experimental
+@item Forth                    @tab experimental
+@item Java                     @tab @emph{forthcoming}
+@item Coq                      @tab @emph{forthcoming}
+@end multitable
+
+
+@section What other features are provided?
+
+SEL provides support for exploring many different aspects of both
+evolutionary search and automated software manipulation. 
+
+@itemize
+
+@item
+Multiple evolution techniques including generational or Monte Carlo
+Markov chain.
+
+@item
+New mutations tailored to each software object.
+
+@item
+One- and two-point crossover.
+
+@item
+Lexicase or multi-objective fitness evaluations.
+
+@item
+Instrumentation of software objects and dynamic trace collection.
+
+@item
+Use of "fodder databases" as a source of new statements or expressions
+that can be injected by mutations.
+
+@item
+Ancestry for candidate solutions.
+
+@item
+Adaptive mutations to dynamically update probabilities based on
+mutation success.
+
+@end itemize
+
+
+@subheading Tailored feautures for for C/C++ objects
+
+@itemize
+
+@item
+Automatic repair for some compilation errors and warnings.
+
+@item
+Special mutations for renaming variables, changing loops, and
+otherwise manipulating statements.
+
+@item
+Spectrum-based fault localization, which instruments source code and
+runs (passing and failing) unit tests to attempt to locate errors.
+
+@item
+Condition synthesis, a repair technique 
+@url{http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf, described by Long and Rinard}
+which tries to synthesize conditional statements that will correct
+source code so that it passes failing unit tests.
+
+@end itemize
+
+
+
+@section That sounds awesome! How do I get started?
+
+
+First, @ref{Installation, install SEL and its dependencies}.
+
+Once SEL is installed, try out some of the @ref{Examples, example code}.
+
+If you are ready to try using SEL in your own code, consult the API documentation FIXME LINK.
+
+If you have questions, please refer to the [FAQ](FAQ.html) to make
+sure your question hasn't already been answered before reporting an
+issue.
+
+@subsection Citing
+
 Please cite Eric Schulte's Ph.D. dissertation when you publish results
 that you have obtained with the SOFTWARE EVOLUTION library (see
 @cite{Neutral Networks of Real-World Programs and their Application to
 Automated Software Evolution} available at
 @url{https://cs.unm.edu/~eschulte/dissertation}).
+
+
 
 @node Implementation, Software Objects, Introduction, Top
 @chapter Implementation
@@ -466,7 +625,17 @@ are given in remainder of this section.
 @chapter Usage
 @cindex usage
 
-@heading Installation
+
+@menu
+* Installation:: Installing SEL and its dependencies
+* Examples:: A series of examples demonstrating some SEL applications.
+
+@end menu
+
+
+
+@node Installation, Examples, Usage, Usage
+@section Installation
 
 The source code for the Software Evolution library is available at
 @url{https://github.com/GrammaTech/sel}.  The following Common Lisp
@@ -506,7 +675,11 @@ quicklisp local-projects directory and then running:
     (ql:quickload :software-evolution-library/utility)
 @end example
 
-@heading Examples
+
+
+
+@node Examples, Mutation, Installation, Usage
+@section Examples
 
 The following examples demonstrate usage.
 
@@ -515,14 +688,15 @@ The following examples demonstrate usage.
 * Evaluation::                  Evaluate fitness of a mutant
 * Neutral Variants::            Generate neutral variants of a program
 * Repair::                      Program repair
+* Parallel Repair::             Parallel program repair
 @c * Memoize Fitness::             A global memoized genome-fitness map
 @c * Annotations::                 Annotating portions of the genome
 @c * Focused Mutation::            Using annotations to focus mutation operations
 @c * Execution Statistics::        Saving statistics
 @end menu
 
-@node Mutation, Evaluation, Usage, Usage
-@section Mutation
+@node Mutation, Evaluation, Examples, Examples
+@subsection Mutation
 @cindex example mutation
 
 The following example code;
@@ -541,8 +715,8 @@ Executing this code will print output resembling the following.
 Results of applying #<SIMPLE-CUT #<ASM #x3020022A24DD> 78> to gcd written to "/tmp/fileLfs6Mf.s".
 @end example
 
-@node Evaluation, Neutral Variants, Mutation, Usage
-@section Evaluation
+@node Evaluation, Neutral Variants, Mutation, Examples
+@subsection Evaluation
 @cindex example evaluation
 
 The example code below does the following.
@@ -587,8 +761,8 @@ Executing this code will print output resembling the following.
  0 fitness for edit (:INSERT 71 1)
 @end example
 
-@node Neutral Variants, Repair, Evaluation, Usage
-@section Neutral Variants
+@node Neutral Variants, Repair, Evaluation, Examples
+@subsection Neutral Variants
 @cindex neutral variants
 
 Using the @code{test} function defined in the previous example
@@ -599,8 +773,8 @@ Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
 @verbatiminclude ./examples/003-neutral.lisp
 
-@node Repair, Utility, Neutral Variants, Usage
-@section Repair
+@node Repair, Parallel Repair, Neutral Variants, Examples
+@subsection Repair
 @cindex repair
 
 Using the @code{test} function defined in a previous example
@@ -637,7 +811,8 @@ saved in the @code{*population*}.
 
 @verbatiminclude ./examples/004-evolve.lisp
 
-@heading Parallel Repair
+@node Parallel Repair, SEL API Reference, Repair, Examples
+@subsection Parallel Repair
 @cindex parallel repair
 
 Evolution may be parallelized by calling @code{evolve} in multiple
@@ -645,7 +820,7 @@ threads.  For example a parallel version of the above example would
 replace,
 
 @example
-(let ((*target-fitness-p* [{= 11} #'fitness]))
+(let ((*target-fitness-p* [@{= 11@} #'fitness]))
   (evolve #'test :max-evals 100))
 @end example
 
@@ -656,7 +831,7 @@ with the following.
 (defvar *num-threads* 64 "Number of available cores.")
 
 ;; launch *num-threads* evolution threads
-(let ((*target-fitness-p* [{= 11} #'fitness]))
+(let ((*target-fitness-p* [@{= 11@} #'fitness]))
   (let (threads)
     (loop :for n :below *num-threads* :do
        (push (bordeaux-threads:make-thread
@@ -684,11 +859,28 @@ with the following.
 @c @section Memoize Fitness
 @c @cindex memoize fitness
 
+
+@node SEL API Reference, Troubleshooting, Usage, Top
+@chapter SEL API Reference
+@cindex api
+
+@include api.texi
+
+
+@node Troubleshooting, Utility, SEL API Reference, Top
+@chapter Troubleshooting
+@cindex troubleshooting
+
+@include troubleshooting.texi
+
+
 @node Utility, View, Usage, Top
 @section Utility
 @cindex utility
 
 @include utility.texi
+
+
 
 @node View, Test, Utility, Top
 @section View
@@ -696,21 +888,396 @@ with the following.
 
 @include view.texi
 
-@node Test, Copying, View, Top
+
+
+@node Test, General Lisp Advice, View, Top
 @section Test
 @cindex test
 
 @include test.texi
 
-@node Copying, GNU Free Documentation License, Test, Top
-@appendix GNU GENERAL PUBLIC LICENSE
+
+
+@node General Lisp Advice, Getting Started with Lisp, Test, Top
+@appendix General Lisp Advice
+
+@menu
+* Getting Started with Lisp::
+* Additional Lisp Resources::
+* General Lisp Debugging Advice::
+@end menu
+
+@node Getting Started with Lisp, Additional Lisp Resources, General Lisp Advice, General Lisp Advice
+@appendixsec Getting Started with Lisp
+
+We recommend the following Common Lisp resources.
+
+@itemize
+
+@item
+The @url{http://cliki.net/Getting+Started,Getting Started} guide provided on @url{http://cliki.net/,CLiki}, the Common Lisp wiki.
+
+This is a fairly complete guide to starting out with Lisp in general
+and Common Lisp in particular.
+
+@item @url{http://www.gigamonkeys.com/book/,Practical Common Lisp}.
+
+Especially, @url{
+http://www.gigamonkeys.com/book/lather-rinse-repeat-a-tour-of-the-repl.html,
+Chapter 2} describes how to get Emacs and Slime working.
+
+@end itemize
+
+
+We strongly recommend that you use Emacs: no other editor has such
+strong integration into the Lisp process (useful for finding function
+definitions, automatically displaying information, compiling,
+highlighting compiler warnings, evaluating, etc...).
+Install Emacs @url{http://emacswiki.org/emacs/ParEdit,ParEdit} for
+additional Lisp authoring support.
+
+If you prefer to use VIM, we recommend installing
+@url{https://github.com/vim-scripts/paredit.vim,paredit.vim}.
+
+
+
+
+@node Additional Lisp Resources, General Lisp Debugging Advice, Getting Started with Lisp, General Lisp Advice
+
+@appendixsec Additional Lisp Resources
+
+@itemize
+
+@item
+The @code{#lisp} IRC room on the @url{https://freenode.net/,freenode}
+IRC server.
+
+
+@item 
+@url{http://www.cliki.net/slime-howto,Introduction to Slime}
+
+@item
+@url{https://www.emacswiki.org/emacs/ParEdit,Introduction to ParEdit}
+
+@item
+@url{https://melpa.org/#/getting-started,Introduction to Melpa}
+
+@item
+@url{http://malisper.me/2015/07/07/debugging-lisp-part-1-recompilation/,Debugging Lisp}
+
+@item
+@url{http://www.gigamonkeys.com/book/,Practical Common Lisp Book}
+
+@item
+@url{https://www.csee.umbc.edu/courses/331/resources/lisp/onLisp/,On Lisp}
+
+@item
+@url{https://github.com/eschulte/curry-compose-reader-macros,
+     Curry compose reader macros@comma{} aka@comma{} those weird @code{[@{@}]} and @code{«»} symbols}
+
+@item
+We prefer @code{iter} over @code{loop}. See
+@url{https://sites.google.com/site/sabraonthehill/loop-v-iter#TOC-Collect,
+     @code{loop} vs. @code{iter}} for a comparison.
+
+@item
+@url{https://common-lisp.net/project/iterate/doc/index.html,
+     @code{iter} in detail}
+
+@item
+@url{https://common-lisp.net/project/metabang-bind/user-guide.html,
+     Using @code{bind}}
+
+@end itemize
+
+
+@node General Lisp Debugging Advice, Licensing, Additional Lisp Resources, General Lisp Advice
+@appendixsec General Lisp Debugging Advice
+
+
+@subsection Log all interaction with the system shell
+
+For problems related to the execution of external commands turn on
+logging of all execution of shell commands by SEL.  This may be done
+by setting the `*shell-debug*` variable to a non-nil value.
+
+@lisp
+(setq *shell-debug* t)
+@end lisp
+
+All subsequent executions of @code{shell} will now print logging
+information.
+
+
+@subsection Tracing specific functions
+
+Common Lisp provides support for function-level tracing.  This may be
+enabled and disabled using the @code{cl-user::trace} and
+@code{cl-user::untrace} functions respectively, as shown in the
+following.
+
+@lisp
+    CL-USER> (in-package :software-evolution-library/test)
+    #<PACKAGE "SOFTWARE-EVOLUTION-LIBRARY/TEST">
+    SE-TEST> (hello-world-clang)
+    T
+    SE-TEST> (cl-user::trace snippet->clang-type)
+    (SNIPPET->CLANG-TYPE)
+    SE-TEST> (update-asts *hello-world*)
+      0: (SNIPPET->CLANG-TYPE
+          ((:ARRAY . "") (:COL . 0) (:DECL . "") (:FILE . "")
+           (:HASH . 342363981814211589) (:LINE . 0) (:POINTER . T) (:REQS)
+           (:SIZE . 4) (:TYPE . "char")))
+      0: SNIPPET->CLANG-TYPE returned
+           #S(CLANG-TYPE
+              :ARRAY ""
+              :COL 0
+    ;;;...
+    #<CLANG @{1003AD88D3@}>
+    SE-TEST>
+@end lisp
+
+
+@subsection Use extra verbosity in command-line tools
+
+Many command-line tools compiled from @code{sel} support various levels of
+verbosity in their output.  The simplest first step in debugging these
+tools should be to maximize the level of verbosity, e.g. @code{-v 5}.
+
+
+@node SEL Coding Standards, Use the compiler(s), General Lisp Advice, Top
+@appendix SEL Coding Standards
+
+@menu
+* Use the compiler(s)::
+* Whitespace::
+* Comments::
+* Use existing utility functions::
+* Packages::
+* Portability::
+* Documentation::
+* Don't use superfluous @code{let} or @code{let*} bindings::
+* Map instead of iterate::
+* Judicious use of arrow macros::
+@end menu
+
+Google's
+@url{http://google.github.io/styleguide/lispguide.xml,Common Lisp guide}
+is generally applicable.  Specifically the sections on
+@url{http://google.github.io/styleguide/lispguide.xml#Formatting,Formatting}
+and
+@url{http://google.github.io/styleguide/lispguide.xml#Comment_semicolons,Comment semicolons}.
+
+@node Use the compiler(s), Whitespace, SEL Coding Standards, SEL Coding Standards
+@appendixsec Use the compiler(s)
+
+
+All code should compile without warning in both SBCL and CCL.  Files
+may easily be compiled from within Emacs by running @code{M-x
+slime-compile-file} (which is typically bound to @code{C-c M-k}).  These
+warnings are often useful and catch type errors and outright mistakes
+that can easily slip through testing.  This will also ensure
+@ref{Portability,portability}.
+
+
+@node Whitespace, Comments, Use the compiler(s), SEL Coding Standards
+@appendixsec Whitespace
+
+@itemize
+@item no tabs
+@item no closing parenthesis on lines by themselves
+@item indent everything as would GNU Emacs
+@item typically only include vertical whitespace between top-level
+   forms, sections of large functions may be demarcated by vertical
+   whitespace but it is better to use smaller functions
+@item no trailing whitespace
+@item no whitespace following an open-paren
+@end itemize
+
+
+@node Comments, Use existing utility functions, Whitespace, SEL Coding Standards
+@appendixsec Comments (number of semicolons matters)
+
+@itemize
+@item All comments should be complete sentences with capitalization and a period.
+@item 3 (or 4) semicolons at the beginning of a line for block comments outside of any top level form
+@item 2 semicolons for comments that appear between lines of code
+@item 1 semicolon for comments that appear after code at the end of a line
+@item vertical align end-of-line comments when possible
+@item always use a space after the last semicolon and before comment text
+@item In Emacs @code{M-;} inserts a comment of the appropriate type.
+@end itemize
+
+@node Use existing utility functions, Packages, Comments, SEL Coding Standards
+@appendixsec Use existing utility functions (don't write your own)
+
+Regardless of language you should look carefully for existing utility
+functions before re-implementation (what you want probably already
+exists!).  For common lisp in particular you should check the
+following places before implementation of any utility.
+
+@enumerate
+@item Run @code{(apropos "thing")} in the repl.
+
+@item Look in the
+@url{http://www.lispworks.com/documentation/HyperSpec/Front/,hyperspec}
+(this lookup is a simple key-combo from a slime mode and is worth
+learning).  The hyperspec is a reference, good for lookup and bad for
+browsing.
+
+@item Check the
+@url{https://common-lisp.net/project/alexandria/,Alexandria} package.
+
+@item Check the @code{utilities} package of SEL.
+@end enumerate
+
+
+@node Packages, Portability, Use existing utility functions, SEL Coding Standards
+@appendixsec Packages
+
+Only use packages which are explicitly included in your current
+package.  E.g., calling @code{cl-fad:foo} just because @code{cl-fad} happens to
+be loaded in the lisp image every time you've run tests is @emph{not}
+acceptable.  Instead the @code{:use} option to @code{defpackage} should
+explicitly include the required package and if necessary @code{:shadow} and
+@code{:shadowing-import-from} should be used to limit the symbols imported.
+
+
+@node Portability, Documentation, Packages, SEL Coding Standards
+@appendixsec Portability
+
+All code should be portable across at least
+@url{http://www.sbcl.org/,SBCL} and
+@url{https://ccl.clozure.com/,CCL}.  Any code which is specific to a
+particular implementation must be protected by @code{#+impl} guards.
+
+
+@node Documentation, Don't use superfluous @code{let} or @code{let*} bindings, Portability, SEL Coding Standards
+@appendixsec Documentation
+
+@subsection For functions and methods
+
+Write documentation strings for @emph{every} function @emph{always}.
+Also, ensure every @code{defmethod} has a @code{defgeneric} which has
+a documentation string.
+
+@subsection For files and modules
+
+Large new functional modules (e.g., a new file of code) should be
+documented in the manual.  The SEL manual is located in the @code{doc/}
+subdirectory and is written in texinfo.  Follow the example set by
+existing documentation to add new sections to this manual.
+
+
+
+@node Don't use superfluous @code{let} or @code{let*} bindings, Map instead of iterate, Documentation, SEL Coding Standards
+@appendixsec Don't use superfluous @code{let} or @code{let*} bindings
+
+
+Any @code{let*} which can be changed to a @code{let} should be changed
+to a @code{let}.
+
+Typically, if a let-bound variable is only used once it should not be
+bound but instead its definition should replace its sole use.  This
+is suggested because each variable binding forces every subsequent
+reader to perform a dereference.  For example, this
+
+@lisp
+(let* ((subject (quick brown fox))
+       (object (lazy dog))
+       (sentence (The subject jumps over the object.)))
+  sentence)
+@end lisp
+
+is harder to read than this.
+
+@lisp
+(The quick brown fox jumps over the lazy dog)
+@end lisp
+
+There are some exceptions to this rule.
+
+@itemize
+
+@item
+If the variable is often used in debugging (printf or debugger) and it
+thus matters that it is bound at that point in the code then this may
+be acceptable.
+
+@item
+If the let-bound value appears as, lets say, the third argument to
+some function the in-lining of the long calculation may obscure the
+flow of the function with it's other arguments.
+
+@item
+If use of the let avoids horrible indentation issues then it may be
+acceptable.
+
+@end itemize
+
+@node Map instead of iterate, Judicious use of arrow macros, Don't use superfluous @code{let} or @code{let*} bindings, SEL Coding Standards
+@appendixsec Map instead of iterate
+
+
+Generally @code{mapc}, @code{mapcar}, @code{mappend}, and
+@code{reduce} should be preferred to use of the @code{iterate} macro
+(which should itself be preferred to @code{loop} which should never be
+used).  In general @code{iterate} should be limited to cases where
+non-trivial accumulation variables or incremental state are needed.
+Potentially there are cases where a straightforward @code{iterate} has
+better indentation behavior, in which case it might be acceptable (but
+I can't think of one now).
+
+
+@node Judicious use of arrow macros, Licensing, Map instead of iterate, SEL Coding Standards
+@appendixsec Judicious use of ``arrow'' (@code{->}, @code{->>}, etc...) macros
+
+We sometimes over-use the @code{->} and @code{->>} macros.  These
+@emph{typically} only make sense to chain multiple calls, not single
+(or often double) nested call.  One exception here is to aid
+indentation (avoid going over 80 characters) when regular nesting
+would require contortionist indentation.  For example in the following
+excerpt from our tests.  This
+
+
+@lisp
+    (is (equalp (->> (stmt-starting-with-text *collatz* "int collatz")
+                     (function-body *collatz*))
+                #|...|#))
+@end lisp
+
+is nicer than this.
+
+@lisp
+    (is (equalp (function-body
+                 *collatz*
+                 (stmt-starting-with-text *collatz* "int collatz"))
+                #|...|#))
+@end lisp
+
+
+
+@node Licensing, Copying, SEL Coding Standards, Top
+@appendix Licensing
+
+@menu
+* Copying::                     The GNU General Public License gives
+                                you permission to redistribute GNU Emacs on
+                                certain terms; it also explains that there is
+                                no warranty.
+* GNU Free Documentation License::  The license for this documentation.
+@end menu
+
+
+@node Copying, GNU Free Documentation License, Licensing, Licensing
+@appendixsec GNU GENERAL PUBLIC LICENSE
 @include gpl.texi
 
-@node GNU Free Documentation License, Index, Copying, Top
-@appendix GNU Free Documentation License
+@node GNU Free Documentation License, Index, Copying, Licensing
+@appendixsec GNU Free Documentation License
 @include doclicense.texi
 
-@node Index,  , GNU Free Documentation License, Top
+@node Index,  , Licensing, Top
 @unnumbered Index
 
 @c Combine all index (function variable type and concept) types into a

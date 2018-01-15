@@ -1,0 +1,93 @@
+
+
+@heading @code{clang-mutate} is not on my path
+
+SEL assumes that the @code{clang-mutate} executable (see
+@url{https://git.grammatech.com/synthesis/clang-mutate,clang-mutate})
+is available on the shell's @code{PATH}.  Ensure this is the case.
+The path used by SBCL may not inherit PATH changes made in your user
+environment, so placing a clang-mutate executable on the standard
+system search path, or updating the path in @code{/etc/profile} may be
+required.
+
+
+@heading Large number of test failures
+
+A large number of test failures usually indicates a major prerequisite
+is missing.  To debug, try the following.
+
+
+@enumerate
+
+@item
+Ensure @code{clang} and @code{clang-mutate} are on your @code{$PATH}.
+
+@item
+Execute
+@example
+clang -m32 -g -O0 test/etc/hello-world/hello_world.c
+@end example
+
+@item
+Execute
+@example
+clang-mutate -json test/etc/hello-world/hello_world.c -- -g -O0 -m32
+@end example
+
+@end enumerate
+
+
+If any of the above fail, the unit test failure is due to an external
+tool failing.  Ensure your system can
+[compile 32-bit binaries](#cross-compilation) and consult the documentation
+for these tools to debug the issue.
+
+@heading Cross compilation
+
+SEL builds 32-bit binaries for most unit tests.  To enable
+cross-compilation on 64-bit machines, execute
+@example
+sudo apt-get install gcc-multilib g++-multilib
+@end example
+
+
+@heading CURRY-COMPOSE-READER-MACROS::LCURLY-BRACE-READER is undefined
+
+This usually indicates an issue with cache files created by ASDF.
+To resolve this issue at the repl, select the @code{try-recompiling} restart
+or [delete cache files](#deleting-cache-files).
+
+
+@heading Deleting cache files
+
+As part of the compilation process, ASDF saves compiled files to a
+cache as described
+@url{http://soc.if.usp.br/manual/cl-asdf/asdf/Controlling-where-ASDF-saves-compiled-files.html,here}.
+When dealing with some compilation issues
+(@url{#curry-compose-reader-macroslcurly-brace-reader-is-undefined,see
+curry-compose-reader-macros} ), it may be necessary to delete the
+cache.
+By default, the cache should be located in
+@code{~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution-library}.
+
+To remove the cache, execute:
+
+@example
+    rm -rf ~/.cache/common-lisp/[lisp-implementation]/path/to/local/projects/software-evolution-library
+@end example
+
+@heading Did all unit tests pass?
+
+If the @code{make check} build target shows a sequence of dots with no 'E'
+or 'X' characters, all unit tests passed.  See the
+@url{https://common-lisp.net/project/stefil/index-old.shtml,stefil}
+project page for more information on our unit testing framework.
+
+
+@heading Instrumented project compilation has long duration
+
+Instrumentation may add thousands of lines of code to your project, leading
+to a dramatic increase in compilation time.  Using clang as your compiler
+or compiling without optimizations enabled (-O0) will often speedup
+compilation.
+
