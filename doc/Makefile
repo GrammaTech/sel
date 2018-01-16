@@ -33,6 +33,15 @@ document-package-sample.texinfo: ../*.lisp ../*.asd
 
 html: sb-texinfo.html document-package-sample.html
 
+
+clean:
+	rm -f *.info;
+	rm -rf $(PROJECT)/
+	rm -rf software-evolution-library/
+	find . -type f -name "*.html" -exec rm {} \+
+	rm -f include/*
+
+
 pdf: sb-texinfo.pdf document-package-sample.pdf
 
 info: sb-texinfo.info document-package-sample.info

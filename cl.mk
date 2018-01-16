@@ -3,7 +3,9 @@
 #
 # PACKAGE_NAME ------- The full name of the CL package
 # PACKAGE_NICKNAME --- The nickname of the CL package
-#                      (default: package name)
+#                      (default: PACKAGE_NAME)
+# DOC_PACKAGES ------- Names of packages to document
+#                      (default: PACKAGE_NAME)
 # BINS --------------- Names of binaries to build
 # TEST_ARTIFACTS ----- Name of dependencies for testing
 # LISP_DEPS ---------- Packages require to build CL package
@@ -19,6 +21,7 @@
 
 # Set default values of PACKAGE_NICKNAME
 PACKAGE_NICKNAME ?= $(PACKAGE_NAME)
+DOC_PACKAGES ?= $(PACKAGE_NAME)
 
 # You can set this as an environment variable to point to an alternate
 # quicklisp install location.  If you do, ensure that it ends in a "/"
@@ -262,3 +265,17 @@ more-clean: clean
 real-clean: more-clean
 	rm -f qlfile.lock Dockerfile
 	rm -rf quicklisp system-index.txt
+
+
+## Documentation
+doc: api
+	make -C doc
+
+api: doc/include/sb-texinfo.texinfo
+
+doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
+	$(LISP_HOME) sbcl --load $(USER_QUICK_LISP)/setup.lisp \
+	--script .generate-api-docs includes $(DOC_PACKAGES)
+
+gh-pages: doc
+	rsync -aruv doc/ . --exclude .gitignore
