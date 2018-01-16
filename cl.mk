@@ -273,10 +273,14 @@ doc: api
 
 api: doc/include/sb-texinfo.texinfo
 
+oparen=(
+cparen=)
+LOADS=$(addprefix $(cparen)$(oparen)ql:quickload :, $(DOC_PACKAGES))
+
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME))' \
+	--eval '(progn (list $(LOADS) $(cparen))' \
 	--script .generate-api-docs includes $(DOC_PACKAGES)
 
 gh-pages: doc
