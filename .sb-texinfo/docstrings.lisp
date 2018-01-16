@@ -50,6 +50,8 @@
 (defvar *texinfo-variables*)
 (defvar *documentation-package*)
 (defvar *base-package*)
+(defvar *tex-bold-hack* nil
+  "Inhibit @&key macros designed to work around boldness in TeX output.")
 
 (defparameter *undocumented-packages* '(sb-pcl sb-int sb-kernel sb-sys sb-c))
 
@@ -779,8 +781,8 @@ followed another tabulation label or a tabulation body."
             ;; interactions,so we escape the ampersand -- amusingly for TeX.
             ;; sbcl.texinfo defines macros that expand @&key and friends to &key.
             (mapcar (lambda (name)
-                      (if (member name lambda-list-keywords)
-                          (format nil "@~A" name)
+                      (if (and *tex-bold-hack* (member name lambda-list-keywords))
+                          (format nil "texmacro~A" name)
                           name))
                     (lambda-list doc)))))
 
@@ -900,9 +902,10 @@ package, as well as for the package itself."
 @c MACHINE GENERATED FILE! Do not edit by hand!
 @c See SB-TEXINFO for details."
               *texinfo-output*)
-  ;; We use @&key, etc to escape & from TeX in lambda lists -- so we need to
-  ;; define them for info as well.
-  (write-line "
+  (when *tex-bold-hack*
+    ;; We use @&key, etc to escape & from TeX in lambda lists -- so we
+    ;; need to define them for info as well.
+    (write-line "
 @ifnottex
 @macro &allow-other-keys
 &allow-other-keys
@@ -920,7 +923,7 @@ package, as well as for the package itself."
 &body
 @end macro
 @end ifnottex"
-              *texinfo-output*)
+                *texinfo-output*))
   ;; Some index prettification helper macros, for tricking the texindex
   ;; collation engine
   (write-line "
