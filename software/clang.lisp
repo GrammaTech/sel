@@ -77,7 +77,8 @@
                    "Have ASTs changed since last clang-mutate run?")
    (copy-lock :initform (make-lock "clang-copy")
               :copier :none
-              :documentation "Lock while copying clang objects.")))
+              :documentation "Lock while copying clang objects."))
+  (:documentation "Clang software object for C/C++."))
 
 (defmethod copy :before ((obj clang))
   ;; Update ASTs before copying to avoid duplicates. Lock to prevent

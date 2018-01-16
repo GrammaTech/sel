@@ -68,7 +68,11 @@ Included Libraries
 Appendices
 * General Lisp Advice::
 * SEL Coding Standards::
-* Licensing::
+* Copying::                     The GNU General Public License gives
+                                you permission to redistribute GNU Emacs on
+                                certain terms; it also explains that there is
+                                no warranty.
+* GNU Free Documentation License::  The license for this documentation.
 * Index::                       Complete index.
 
 @end menu
@@ -820,7 +824,7 @@ threads.  For example a parallel version of the above example would
 replace,
 
 @example
-(let ((*target-fitness-p* [@{= 11@} #'fitness]))
+(let ((*target-fitness-p* [@lbracechar{}= 11@rbracechar{} #'fitness]))
   (evolve #'test :max-evals 100))
 @end example
 
@@ -831,7 +835,7 @@ with the following.
 (defvar *num-threads* 64 "Number of available cores.")
 
 ;; launch *num-threads* evolution threads
-(let ((*target-fitness-p* [@{= 11@} #'fitness]))
+(let ((*target-fitness-p* [@lbracechar{}= 11@rbracechar{} #'fitness]))
   (let (threads)
     (loop :for n :below *num-threads* :do
        (push (bordeaux-threads:make-thread
@@ -888,14 +892,11 @@ with the following.
 
 @include view.texi
 
-
-
-@node Test, General Lisp Advice, View, Top
+@node Test, SEL API, View, Top
 @section Test
 @cindex test
 
 @include test.texi
-
 
 
 @node General Lisp Advice, Getting Started with Lisp, Test, Top
