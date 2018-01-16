@@ -274,7 +274,9 @@ doc: api
 api: doc/include/sb-texinfo.texinfo
 
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
-	$(LISP_HOME) sbcl --load $(USER_QUICK_LISP)/setup.lisp \
+	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(USER_QUICK_LISP)/setup.lisp \
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME))' \
 	--script .generate-api-docs includes $(DOC_PACKAGES)
 
 gh-pages: doc
