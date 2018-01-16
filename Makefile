@@ -32,17 +32,11 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 doc: api
 	make -C doc
 
-api:
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
-		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-		--eval '(ql:quickload :cl-gendoc)' \
-		--eval '(ql:quickload :cl-ppcre)' \
-		--eval '(ql:quickload :software-evolution-library)' \
-		--eval '(ql:quickload :software-evolution-library/utility)' \
-		--eval '(ql:quickload :software-evolution-library/view)' \
-		--eval '(ql:quickload :software-evolution-library/mongo)' \
-		--load .gendoc.lisp \
-		--eval "#+sbcl (exit) #+ccl (quit)"
+api: doc/include/sb-texinfo.texinfo
+
+doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
+	$(LISP_HOME) sbcl --load $(USER_QUICK_LISP)/setup.lisp \
+	--script .generate-api-docs
 
 gh-pages: doc
 	rsync -aruv doc/ . --exclude .gitignore
