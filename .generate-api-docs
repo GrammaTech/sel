@@ -1,0 +1,44 @@
+#!/usr/bin/sbcl --script
+;; -*- lisp -*-
+;;
+;; Build the texinfo API documentation for the software evolution library.
+;;
+;; This uses the included (slightly tweaked) version of sb-texinfo.
+;; Call this script to build/update the texi documentation files for
+;; every exported symbol.
+;;
+;; Call this script with the argument "packages" to rebuild the
+;; doc/sel{,-utility,-view}-api.texi files to include newly documented
+;; exported symbols.  (By default sb-texinfo doesn't create any output
+;; for symbols without documentation in the source.)  Note that some
+;; manual "fixing up" is often required after re-running with the
+;; package argument and the results should be committed.
+;;
+(load "~/.sbclrc" :if-does-not-exist nil)
+(require :sb-introspect)
+(load ".sb-texinfo/docstrings.lisp")
+(in-package :sb-texinfo)
+
+(defparameter packages
+  '(:software-evolution-library
+    :software-evolution-library/utility
+    :software-evolution-library/view))
+
+(mapc #'require packages)
+
+(generate-includes "./doc/include/" packages :base-package (car packages))
+
+;;; Re-run the following to update the doc/foo-api.texi files with new
+;;; links to newly documented classes, functions, methods, types,
+;;; structures, and macros.
+(when (and (= (length sb-ext:*posix-argv*) 2)
+           (string= (second sb-ext:*posix-argv*) "packages"))
+  (sel/utility:cd "doc/")
+  (mapc (lambda (package path title)
+          (document-package package
+                            :output-file path
+                            :standalone nil
+                            :title title))
+        packages
+        '("sel-api.texi" "sel-utility-api.texi" "sel-view-api.texi")
+        '("SEL API" "SEL/Utility API" "SEL/View API")))
