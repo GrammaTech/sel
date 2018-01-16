@@ -53,6 +53,9 @@ Included Libraries
 
 Appendices
 
+* SEL API::                     Public functions, variables, and macros
+* SEL/Utility API::             Public functions, variables, and macros
+* SEL/View API::                Public functions, variables, and macros
 * Copying::                     The GNU General Public License gives
                                 you permission to redistribute GNU Emacs on
                                 certain terms; it also explains that there is
@@ -645,7 +648,7 @@ threads.  For example a parallel version of the above example would
 replace,
 
 @example
-(let ((*target-fitness-p* [{= 11} #'fitness]))
+(let ((*target-fitness-p* [@lbracechar{}= 11@rbracechar{} #'fitness]))
   (evolve #'test :max-evals 100))
 @end example
 
@@ -656,7 +659,7 @@ with the following.
 (defvar *num-threads* 64 "Number of available cores.")
 
 ;; launch *num-threads* evolution threads
-(let ((*target-fitness-p* [{= 11} #'fitness]))
+(let ((*target-fitness-p* [@lbracechar{}= 11@rbracechar{} #'fitness]))
   (let (threads)
     (loop :for n :below *num-threads* :do
        (push (bordeaux-threads:make-thread
@@ -696,14 +699,28 @@ with the following.
 
 @include view.texi
 
-@node Test, Copying, View, Top
+@node Test, SEL API, View, Top
 @section Test
 @cindex test
 
 @include test.texi
 
-@node Copying, GNU Free Documentation License, Test, Top
+@node SEL API, SEL/Utility API, Test, Top
+@appendix SEL Application Programming Interface
+@include include/sb-texinfo.texinfo
+@include sel-api.texi
+
+@node SEL/Utility API, SEL/View API, SEL API, Top
+@appendix SEL Utility Application Programming Interface
+@include sel-utility-api.texi
+
+@node SEL/View API, Copying, SEL/Utility API, Top
+@appendix SEL View Application Programming Interface
+@include sel-view-api.texi
+
+@node Copying, GNU Free Documentation License, SEL/Utility API, Top
 @appendix GNU GENERAL PUBLIC LICENSE
+
 @include gpl.texi
 
 @node GNU Free Documentation License, Index, Copying, Top
