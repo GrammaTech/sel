@@ -35,10 +35,13 @@
 
 
 ;;; llvm software objects
-(defclass llvm (ast)
+(define-software llvm (ast)
   ((ext      :initarg :ext      :accessor ext      :initform "ll")
    (compiler :initarg :compiler :accessor compiler :initform "llc")
-   (linker   :initarg :linker   :accessor linker   :initform "gcc")))
+   (linker   :initarg :linker   :accessor linker   :initform "gcc"))
+  (:documentation
+   "Low Level Virtual Machine (LLVM) intermediate representation (IR).
+See http://llvm.org)."))
 
 (defmethod from-file ((llvm llvm) path)
   (setf (genome llvm) (file-to-string path))

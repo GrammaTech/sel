@@ -14,7 +14,9 @@
 ;;; elf software objects
 (define-software elf-cisc (elf)
   ((addresses :initarg :addresses :accessor addresses :initform nil
-              :copier copy-seq)))
+              :copier copy-seq))
+  (:documentation
+   "Executable Linkable Format (ELF) binaries in complex instruction set architectures."))
 
 (define-software elf-csurf (elf-cisc)
   ((sw-project :initarg :sw-project :accessor sw-project :initform nil)))

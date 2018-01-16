@@ -25,8 +25,10 @@
 
 
 ;;; cil software objects
-(defclass cil (ast)
-  ((compiler :initarg :compiler :accessor compiler :initform "gcc")))
+(define-software cil (ast)
+  ((compiler :initarg :compiler :accessor compiler :initform "gcc"))
+  (:documentation "C abstract syntax trees using C Intermediate Language (CIL).
+See http://kerneis.github.io/cil/."))
 
 (defmethod apply-mutation ((cil cil) op)
   (with-temp-file-of (src (ext cil)) (genome cil)

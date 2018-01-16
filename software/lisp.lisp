@@ -49,7 +49,8 @@
 
 ;;; Lisp software object
 (define-software lisp (simple)
-  ((genome :initarg :genome :accessor genome :initform nil :copier copy-tree)))
+  ((genome :initarg :genome :accessor genome :initform nil :copier copy-tree))
+  (:documentation "Common Lisp source represented naturally as lists of code."))
 
 (defmethod from-file ((lisp lisp) file)
   (with-open-file (in file)

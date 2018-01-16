@@ -38,7 +38,8 @@
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defclass software ()
-  ((fitness :initarg :fitness :accessor fitness :initform nil)))
+  ((fitness :initarg :fitness :accessor fitness :initform nil))
+  (:documentation "Base class for all software objects."))
 
 (defmacro define-software (class-name superclasses slots &rest options)
   `(progn
@@ -69,18 +70,24 @@
              copy)))))
 
 (defgeneric genome (software)
-  (:documentation "Genotype of the software."))
+  (:documentation
+   "The software genotype or ``code'', exposed as a simplified data structure.
+For example an AST genome, e.g., of a `cil' or `lisp' software object
+my have a tree structure while the genome of an `asm' or `llvm'
+software object will be a vector."))
 
 (defgeneric phenome (software &key bin)
   (:documentation
    "Phenotype of the software.
-Returns multiple values holding in order; (1) the binary path to which
-the executable was compiled, (2) the errno, or a numeric indication of
-success, of the compilation process, (3) STDERR of the compilation
-process, or a string holding error output relevant to phenome
-generation, (4) STDOUT of the compilation process, or a string holding
-non-error output relevant to phenome generation, (5) the source file
-name used during compilation. "))
+This method will link, compile or serialize the software object as
+necessary returning an executable version of the software suitable for
+testing and evaluation.  Returns multiple values holding in order; (1)
+the binary path to which the executable was compiled, (2) the errno,
+or a numeric indication of success, of the compilation process, (3)
+STDERR of the compilation process, or a string holding error output
+relevant to phenome generation, (4) STDOUT of the compilation process,
+or a string holding non-error output relevant to phenome
+generation, (5) the source file name used during compilation. "))
 
 (defgeneric evaluate (function software &rest extra-keys &key &allow-other-keys)
   (:documentation "Evaluate the software returning a numerical fitness."))
@@ -114,7 +121,8 @@ name used during compilation. "))
   (declare (ignorable extra-data)))
 
 (defgeneric copy (software)
-  (:documentation "Copy the software."))
+  (:documentation "Copy the software.
+Return a deep copy of a software object."))
 
 (defmethod copy ((obj software))
   (make-instance (class-of obj) :fitness (fitness obj)))

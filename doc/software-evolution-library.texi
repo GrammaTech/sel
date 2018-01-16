@@ -47,12 +47,11 @@ A copy of the license is included in the section entitled
 * Usage::                       How's it used?
 
 Included Libraries
-* Utility::                     Utility functions.
-* View::                        Interactive user interface.
-* Test::                        Unit tests.
+* SEL/Utility Library::         Utility functions.
+* SEL/View Library::            Interactive user interface.
+* SEL/Test Library::            Unit tests.
 
 Appendices
-
 * SEL API::                     Public functions, variables, and macros
 * SEL/Utility API::             Public functions, variables, and macros
 * SEL/View API::                Public functions, variables, and macros
@@ -175,37 +174,21 @@ shown along with the software object class hierarchy.}
 
 The following types of software objects are supported.
 
-@deftp Class asm fitness genome addr-map linker flags
-General assembler backend used to manipulate @code{.s} text assembler.
-@end deftp
+@c DOCFIXME: Turn this into a table indicating relative maturity of each.
 
-@deftp Class cil fitness genome flags compiler ext raw-size
-C abstract syntax trees using C Intermediate Language (CIL) (see
-@url{http://kerneis.github.io/cil/}).
-@end deftp
+asm @ref{Class asm}
 
-@deftp Class clang fitness genome flags compiler ext raw-size
-C language (including @code{C}, @code{C++}, @code{C#}, etc...)
-abstract syntax trees using the C Language frontend for LLVM (see
-@url{http://clang.llvm.org/}).
-@end deftp
+cil @ref{Class cil}
 
-@deftp Class llvm fitness genome flags compiler ext raw-size ext linker
-Low Level Virtual Machine (LLVM) (see @url{http://llvm.org})
-intermediate representation (IR).
-@end deftp
+clang @ref{Class clang}
 
-@deftp Class elf-mips fitness genome base
-Executable Linkable Format (ELF) binaries in MIPS architectures.
-@end deftp
+llvm @ref{Class llvm}
 
-@deftp Class elf-cisc fitness genome base addresses
-Executable Linkable Format (ELF) binaries in complex instruction set architectures.
-@end deftp
+elf @ref{Class elf-mips}
 
-@deftp Class lisp fitness genome
-Common Lisp source code.
-@end deftp
+elf @ref{Class elf-cisc}
+
+lisp @ref{Class lisp}
 
 @node Software Methods, Global Variables, Software Objects, Implementation
 @section Software Methods
@@ -215,26 +198,16 @@ The following methods are defined for all software object types
 exposing a common interface for use by user programs or in heuristic
 search.
 
-@anchor{genome}
-@defun genome software
-The software genotype or ``code'', exposed as a simplified data
-structure.  For example an AST genome, e.g., of a @code{cil} or
-@code{lisp} software object, my have a tree structure while the genome
-of a @code{asm} or @code{elf} software object will be a vector.
-@end defun
+genome @ref{Generic-Function genome}
 
+phenome @ref{Generic-Function phenome}
 
-@anchor{phenome}
-@defun phenome software &key bin
-The software phenotype.  This method will link, compile or serialize
-the software object as necessary returning an executable version of
-the software suitable for testing and evaluation
-@end defun
+copy @ref{Generic-Function copy}
 
-@anchor{copy}
-@defun copy software
-Return a deep copy of a software object.
-@end defun
+@c DOCFIXME: Finish moving these descriptions into documentation
+@c strings in the code and replacing the in-place definitions
+@c with @include directives to load the automatically generated
+@c documentation.
 
 @anchor{pick}
 @defun pick software key &optional func
@@ -602,7 +575,7 @@ Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
 @verbatiminclude ./examples/003-neutral.lisp
 
-@node Repair, Utility, Neutral Variants, Usage
+@node Repair, SEL/Utility Library, Neutral Variants, Usage
 @section Repair
 @cindex repair
 
@@ -687,35 +660,35 @@ with the following.
 @c @section Memoize Fitness
 @c @cindex memoize fitness
 
-@node Utility, View, Usage, Top
-@section Utility
+@node SEL/Utility Library, SEL/View Library, Usage, Top
+@chapter SEL/Utility Library
 @cindex utility
 
-@include utility.texi
+@include sel-utility.texi
 
-@node View, Test, Utility, Top
-@section View
+@node SEL/View Library, SEL/Test Library, SEL/Utility Library, Top
+@chapter SEL/View Library
 @cindex view
 
-@include view.texi
+@include sel-view.texi
 
-@node Test, SEL API, View, Top
-@section Test
+@node SEL/Test Library, SEL API, SEL/View Library, Top
+@chapter SEL/Test Library
 @cindex test
 
-@include test.texi
+@include sel-test.texi
 
-@node SEL API, SEL/Utility API, Test, Top
-@appendix SEL Application Programming Interface
+@node SEL API, SEL/Utility API, SEL/Test Library, Top
+@appendix SEL API
 @include include/sb-texinfo.texinfo
 @include sel-api.texi
 
 @node SEL/Utility API, SEL/View API, SEL API, Top
-@appendix SEL Utility Application Programming Interface
+@appendix SEL Utility API
 @include sel-utility-api.texi
 
 @node SEL/View API, Copying, SEL/Utility API, Top
-@appendix SEL View Application Programming Interface
+@appendix SEL View API
 @include sel-view-api.texi
 
 @node Copying, GNU Free Documentation License, SEL/Utility API, Top

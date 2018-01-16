@@ -78,7 +78,9 @@
    (copy-lock :initform (make-lock "clang-copy")
               :copier :none
               :documentation "Lock while copying clang objects."))
-  (:documentation "Clang software object for C/C++."))
+  (:documentation
+   "C language (C, C++, C#, etc...) ASTs using CLang, C lang. frontend for LLVM.
+See http://clang.llvm.org/."))
 
 (defmethod copy :before ((obj clang))
   ;; Update ASTs before copying to avoid duplicates. Lock to prevent
