@@ -54,6 +54,8 @@
   "Inhibit @&key macros designed to work around boldness in TeX output.")
 (defvar *inhibit-sections* t
   "Inhibit the output of the description of sections in the index list.")
+(defvar *inhibit-sb-texinfo-macros* t
+  "Inhibit the output of the repeated inclusion of sb texinfo macros.")
 
 (defparameter *undocumented-packages* '(sb-pcl sb-int sb-kernel sb-sys sb-c))
 
@@ -1237,7 +1239,8 @@ for a manually maintained Texinfo manual."
                                 (pathname-name filename)
                                 desc
                                 long-desc))
-        (write-line "@include include/sb-texinfo.texinfo" *texinfo-output*)
+        (unless *inhibit-sb-texinfo-macros*
+          (write-line "@include include/sb-texinfo.texinfo" *texinfo-output*))
         (unless *inhibit-sections*
           (write-menu (when package-doc (package-shortest-name package)) docs))
         (write-chapter/package package package-doc)
