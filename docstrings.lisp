@@ -951,14 +951,7 @@ package, as well as for the package itself."
   ;; necessary to prevent treating the newline as a space.
   (write-line "
 @macro lw{word}
-@iftex
-@tex
-\\\\lw{\\word\\}%
-@end tex
-@end iftex
-@ifnottex
-\\word\\@c
-@end ifnottex
+\\word
 @end macro"
               *texinfo-output*)
   ;; Easy XREFs to variables, macros, and functions.
