@@ -19,6 +19,7 @@ clean:
 	rm -rf $(PROJECT)/
 	rm -rf software-evolution-library/
 	find . -type f -name "*.html" -exec rm {} \+
+	rm -f include/*
 
 %.md.tmp: %.md
 	pandoc -s -t man $< -o $@
