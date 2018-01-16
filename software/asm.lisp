@@ -31,7 +31,9 @@
   ((addr-map :initarg :addr-map :accessor addr-map :initform nil
              :copier copy-tree)
    (linker   :initarg :linker   :accessor linker :initform nil)
-   (flags    :initarg :flags    :accessor flags :initform nil)))
+   (flags    :initarg :flags    :accessor flags :initform nil))
+  (:documentation
+   "General assembler backend used to manipulate \".s\" text assembler."))
 
 (defvar *asm-linker* "gcc")
 

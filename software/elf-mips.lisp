@@ -6,4 +6,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(defclass elf-mips (elf-risc) ())
+(define-software elf-mips (elf-risc)
+  ()
+  (:documentation
+   "Executable Linkable Format (ELF) binaries in MIPS architectures."))

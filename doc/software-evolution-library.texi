@@ -61,9 +61,9 @@ Engineering (SBSE) techniques.
 * Troubleshooting::             FIXME
 
 Included Libraries
-* Utility::                     Utility functions.
-* View::                        Interactive user interface.
-* Test::                        Unit tests.
+* SEL/Utility Library::         Utility functions.
+* SEL/View Library::            Interactive user interface.
+* SEL/Test Library::            Unit tests.
 
 Appendices
 * General Lisp Advice::
@@ -335,37 +335,21 @@ shown along with the software object class hierarchy.}
 
 The following types of software objects are supported.
 
-@deftp Class asm fitness genome addr-map linker flags
-General assembler backend used to manipulate @code{.s} text assembler.
-@end deftp
+@c DOCFIXME: Turn this into a table indicating relative maturity of each.
 
-@deftp Class cil fitness genome flags compiler ext raw-size
-C abstract syntax trees using C Intermediate Language (CIL) (see
-@url{http://kerneis.github.io/cil/}).
-@end deftp
+asm @ref{Class asm}
 
-@deftp Class clang fitness genome flags compiler ext raw-size
-C language (including @code{C}, @code{C++}, @code{C#}, etc...)
-abstract syntax trees using the C Language frontend for LLVM (see
-@url{http://clang.llvm.org/}).
-@end deftp
+cil @ref{Class cil}
 
-@deftp Class llvm fitness genome flags compiler ext raw-size ext linker
-Low Level Virtual Machine (LLVM) (see @url{http://llvm.org})
-intermediate representation (IR).
-@end deftp
+clang @ref{Class clang}
 
-@deftp Class elf-mips fitness genome base
-Executable Linkable Format (ELF) binaries in MIPS architectures.
-@end deftp
+llvm @ref{Class llvm}
 
-@deftp Class elf-cisc fitness genome base addresses
-Executable Linkable Format (ELF) binaries in complex instruction set architectures.
-@end deftp
+elf @ref{Class elf-mips}
 
-@deftp Class lisp fitness genome
-Common Lisp source code.
-@end deftp
+elf @ref{Class elf-cisc}
+
+lisp @ref{Class lisp}
 
 @node Software Methods, Global Variables, Software Objects, Implementation
 @section Software Methods
@@ -375,26 +359,16 @@ The following methods are defined for all software object types
 exposing a common interface for use by user programs or in heuristic
 search.
 
-@anchor{genome}
-@defun genome software
-The software genotype or ``code'', exposed as a simplified data
-structure.  For example an AST genome, e.g., of a @code{cil} or
-@code{lisp} software object, my have a tree structure while the genome
-of a @code{asm} or @code{elf} software object will be a vector.
-@end defun
+genome @ref{Generic-Function genome}
 
+phenome @ref{Generic-Function phenome}
 
-@anchor{phenome}
-@defun phenome software &key bin
-The software phenotype.  This method will link, compile or serialize
-the software object as necessary returning an executable version of
-the software suitable for testing and evaluation
-@end defun
+copy @ref{Generic-Function copy}
 
-@anchor{copy}
-@defun copy software
-Return a deep copy of a software object.
-@end defun
+@c DOCFIXME: Finish moving these descriptions into documentation
+@c strings in the code and replacing the in-place definitions
+@c with @include directives to load the automatically generated
+@c documentation.
 
 @anchor{pick}
 @defun pick software key &optional func
@@ -779,6 +753,7 @@ Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
 
 @node Repair, Parallel Repair, Neutral Variants, Examples
 @subsection Repair
+
 @cindex repair
 
 Using the @code{test} function defined in a previous example
@@ -864,39 +839,38 @@ with the following.
 @c @cindex memoize fitness
 
 
-@node SEL API Reference, Troubleshooting, Usage, Top
-@chapter SEL API Reference
-@cindex api
 
-@include api.texi
-
-
-@node Troubleshooting, Utility, SEL API Reference, Top
+@node Troubleshooting, SEL API Reference, Usage, Top
 @chapter Troubleshooting
 @cindex troubleshooting
 
 @include troubleshooting.texi
 
 
-@node Utility, View, Usage, Top
-@section Utility
+@node SEL API Reference, Troubleshooting, SEL API, Top
+@chapter SEL API Notes
+
+@include api.texi
+
+
+@node SEL API, SEL API Reference, SEL/Utility API, Top
+@chapter SEL API
+
+@include sel-api.texi
+
+@node SEL Utility API, SEL View API, SEL API, Top
+@chapter SEL/Utility Library
+
 @cindex utility
 
-@include utility.texi
+@include sel-api-utility.texi
 
 
 
-@node View, Test, Utility, Top
-@section View
+@node SEL View API, General Lisp Advice, SEL Utility API, Top
 @cindex view
 
-@include view.texi
-
-@node Test, SEL API, View, Top
-@section Test
-@cindex test
-
-@include test.texi
+@include sel-view-api.texi
 
 
 @node General Lisp Advice, Getting Started with Lisp, Test, Top
@@ -939,6 +913,7 @@ additional Lisp authoring support.
 
 If you prefer to use VIM, we recommend installing
 @url{https://github.com/vim-scripts/paredit.vim,paredit.vim}.
+
 
 
 
