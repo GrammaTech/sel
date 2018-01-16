@@ -55,7 +55,7 @@
   (case action
     (:includes
      (generate-includes "./doc/include/" packages :base-package (car packages))
-     (format t "Generated includes for ~{~a~^, ~}.~%" packages))
+     (format t "~&Generated includes for ~{~a~^, ~}.~%" packages))
     (:packages
      ;; Re-run to update the doc/foo-api.texi files with new links to
      ;; newly documented classes, functions, methods, types, structures,
@@ -69,7 +69,7 @@
            packages
            (mapcar #'doc-file packages)
            (mapcar #'doc-title packages))
-     (format t "Generated full package docs for ~{~a~^, ~}.~%" packages))
+     (format t "~&Generated full package docs for ~{~a~^, ~}.~%" packages))
     (otherwise
      (format t "~&Unknown action \"~S\"~%" action)
      (usage))))
