@@ -285,5 +285,9 @@ path within BODY."
             (mapcar [#'full-path #'first] (evolve-files obj)))))
 
 (defmethod compile-p ((obj project))
-  (with-temp-file (bin)
-    (zerop (second (multiple-value-list (phenome obj :bin bin))))))
+  (handler-bind ((phenome
+                   (lambda (c)
+                     (declare (ignorable c))
+                     (invoke-restart 'return-nil-for-bin))))
+    (with-temp-file (bin)
+      (zerop (second (multiple-value-list (phenome obj :bin bin)))))))
