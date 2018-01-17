@@ -41,6 +41,8 @@
 
 @c @include include/fun-sel-and-not-connector.texinfo
 @c @include include/fun-sel-apply-best-cond-mutation.texinfo
+@c @include include/fun-sel-build-failed.texinfo
+@c @include include/fun-sel-build.texinfo
 @c @include include/fun-sel-collect-negative-conds-and-envs.texinfo
 @c @include include/fun-sel-collect-positive-conds-and-envs.texinfo
 @c @include include/fun-sel-collect-tests.texinfo
