@@ -476,10 +476,13 @@
    :add-condition
    :tighten-condition
    :loosen-condition
+   :refine-condition
    :valid-targets
    :if-to-while
    :if-to-while-tighten-condition
    :insert-else-if
+   :*abst-cond-attempts*
+   :*synth-condition-attempts*
    :stmts-in-file
    :error-funcs
    :rinard

@@ -10,21 +10,32 @@
 
 ;; Helper functions
 (defun guard-statements (software)
+  "DOCFIXME"
   (remove-if-not #'ast-guard-stmt (bad-stmts software)))
 
 (defun pick-target-condition (software)
-  "Pick a condition to target for refinement."
+  "Pick a condition in SOFTWARE to target for refinement.
+DOCFIXME return value
+* SOFTWARE DOCFIXME"
   (ast-counter (random-elt (guard-statements software))))
 
 (defun pick-if-stmt (software)
+  "DOCFIXME
+* SOFTWARE DOCFIXME"
   (let ((stmts (remove-if-not [{eq :IfStmt} #'ast-class ]
                               (bad-stmts software))))
     (and stmts (random-elt stmts))))
 
 (defun or-connector (left right)
+  "DOCFIXME
+* LEFT DOCFIXME
+* RIGHT DOCFIXME"
   (make-operator :generic "||" (list left right) :guard-stmt t))
 
 (defun and-not-connector (left right)
+  "DOCFIXME
+* LEFT DOCFIXME
+* RIGHT DOCFIXME"
   (make-operator :generic "&&"
                  (list left
                        (make-operator :generic "!" (list right)))
@@ -35,25 +46,38 @@
   ((targeter :initform (lambda (software)
                          (pick-target-condition software)))
    (connector :reader connector)
-   (abst-cond :accessor abst-cond :initform nil)))
+   (abst-cond :accessor abst-cond :initform nil))
+  (:documentation "Add an additional Boolean clause to an if condition."))
+
 
 (define-mutation tighten-condition (refine-condition)
   ((targeter :initform (lambda (software)
                          (pick-target-condition software)))
-   (connector :reader connector :initform #'and-not-connector)))
+   (connector :reader connector :initform #'and-not-connector))
+  (:documentation "Add an additional Boolean clause using the connectives && and !, e.g., if(foo) becomes if(foo && !abst_cond())."))
+
 
 (define-mutation loosen-condition (refine-condition)
   ((targeter :initform (lambda (software)
                          (pick-target-condition software)))
-   (connector :reader connector :initform #'or-connector)))
+   (connector :reader connector :initform #'or-connector))
+  (:documentation "add an additional Boolean clause using the || connective, e.g., if(foo) becomes if(foo || abst_cond())." ))
+
 
 (defgeneric valid-targets (mutation software)
-  (:documentation "List of locations where this mutation can be applied."))
+  (:documentation "Return a list of the locations in SOFTWARE where MUTATION can be applied.
+* MUTATION a `mutation'. 
+* SOFTWARE a `software-object'. 
+"))
+
 
 (defmethod valid-targets ((mutation refine-condition) software)
+  "Return a list of the locations in SOFTWARE where `refine-condition' MUTATION can be applied."
   (remove-if #'ast-in-macro-expansion (guard-statements software)))
 
+
 (defun abst-cond-expr ()
+  "DOCFIXME"
   (make-statement :CallExpr :generic
                   (list
                    (make-statement
@@ -65,17 +89,24 @@
                                                       nil nil 0)))))
                    "()")))
 
+
 (defun refined-condition (mutation target-ast)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* TARGET-AST DOCFIXME"
   (funcall (connector mutation)
            (make-parens (list target-ast))
            (or (abst-cond mutation) (abst-cond-expr))))
 
 (defmethod build-op ((mutation refine-condition) software)
+  "DOXFIXME MUTATION (a `refine-condition') SOFTWARE."
   (declare (ignorable software))
   (let ((target-ast (targets mutation)))
     `((:set (:stmt1 . ,target-ast)
             (:literal1 . ,(refined-condition mutation
                                              target-ast))))))
+
+
 
 ;; add-condition: wrap a statement in an if
 (define-mutation add-condition (clang-mutation)
@@ -88,9 +119,12 @@
                   (remove-if-not #'ast-full-stmt)
                   (remove-if [{eq :Function} #'ast-class])
                   (remove-if [{eq :DeclStmt} #'ast-class]))))))
-   (abst-cond :accessor abst-cond :initform nil)))
+   (abst-cond :accessor abst-cond :initform nil))
+  (:documentation "Wrap a statement in an if, e.g., foo\; becomes if(abst_cond()) foo\;."))
+
 
 (defmethod build-op ((mutation add-condition) software)
+  "DOCFIXME MUTATION (an `add-condition') SOFTWARE"
   (declare (ignorable software))
   (let* ((target-ast (targets mutation))
          (abst-cond (or (abst-cond mutation) (abst-cond-expr)))
@@ -102,22 +136,31 @@
             (:literal1 . ,(make-if-stmt abst-cond
                                         (make-block body)))))))
 
+
 (defmethod valid-targets ((mutation add-condition) software)
+ "Return a list of the locations in SOFTWARE where `add-condition' MUTATION can be applied."
   (remove-if «or {aget :in-macro-expansion}
                  [#'not {full-stmt-p software}]»
-              (bad-stmts software)))
+		 (bad-stmts software)))
+
+
 
 ;; if-to-while
 ;; replace an if statement with a while using the same condition
 (define-mutation if-to-while (clang-mutation)
-  ((targeter :initform #'pick-if-stmt)))
+  ((targeter :initform #'pick-if-stmt))
+  (:documentation "Replace an if statement with a while using the same condition, e.g., if(foo) becomes while(foo)."))
+
 
 ;; if-to-while-tighten-condition
 ;; Combine if-to-while and synthesize a refined condition
 (define-mutation if-to-while-tighten-condition (if-to-while tighten-condition)
-  ())
+  ()
+  (:documentation "Combine if-to-while replacement with a tighter condition, e.g., if(foo) becomes while(foo && !abst_cond())."))
+
 
 (defmethod build-op ((mutation if-to-while-tighten-condition) software)
+  "DOCFIXME MUTATION (a `if-to-while-tighten-condition) SOFTWARE."
   (when (targets mutation)
     (bind ((ast (targets mutation))
            (children (get-immediate-children software ast))
@@ -128,11 +171,14 @@
       `((:set (:stmt1 . ,ast)
               (:literal1 . ,replacement))))))
 
+
 ;; insert-else-if
 ;; insert an else-if clause for an existing if, insert abstract conditional
 ;; return the 2nd child (then branch) for an If
 (define-mutation insert-else-if (tighten-condition)
-  ((targeter :initform #'pick-if-stmt)))
+  ((targeter :initform #'pick-if-stmt))
+  (:documentation "insert an (empty) else-if clause after an existing if, e.g., if(foo) bar; becomes if(foo) bar; else if(abst_cond()) ;."))
+
 
 ;; FIXME: no longer needed
 (defun replace-one (string part replacement)
@@ -146,7 +192,9 @@ is replaced with replacement."
           (write-string string out :start (+ pos (length part))))
         string)))
 
+
 (defmethod build-op ((mutation if-to-while) software)
+  "DOCFIXME `if-to-while` MUTATION SOFTWARE"
   (when (targets mutation)
     (bind ((ast (targets mutation))
            (children (get-immediate-children software ast))
@@ -156,7 +204,9 @@ is replaced with replacement."
       `((:set (:stmt1 . ,ast)
               (:literal1 . ,replacement))))))
 
+
 (defmethod build-op ((mutation insert-else-if) software)
+  "DOCFIXME `insert-else-if' MUTATION SOFTWARE"
   (when (targets mutation)
     (let* ((if-stmt (targets mutation))
            (children (get-immediate-children software if-stmt))
@@ -171,11 +221,13 @@ is replaced with replacement."
          (:includes . "\"abst_cond.h\""))))))
 
 (defmethod valid-targets ((mutation if-to-while) software)
+ "Return a list of the locations in SOFTWARE where `if-to-while' MUTATION can be applied."  
   (remove-if #'ast-in-macro-expansion
              (remove-if-not [{eq :IfStmt} #'ast-class]
                             (bad-stmts software))))
 
 (defmethod valid-targets ((mutation insert-else-if) software)
+ "Return a list of the locations in SOFTWARE where `insert-else-if' MUTATION can be applied."  
   (remove-if #'ast-in-macro-expansion
              (remove-if-not [{eq :IfStmt} #'ast-class]
                             (bad-stmts software))))
@@ -236,39 +288,44 @@ int abst_cond() {
 discarding a repair.")
 
 (defparameter *synth-condition-attempts* 20
-  "Maximum number of synthesized conditions to test before discarding a
-repair.")
+  "Maximum number of synthesized conditions to test before discarding a repair.")
 
 (defgeneric contains-abstract-condition (mutation)
-  (:documentation "Returns t or nil indicating whether the mutation has an
-abstract condition."))
+  (:documentation "Return t if MUTATION contains an abstract condition, NIL otherwise."))
 
 (defmethod contains-abstract-condition ((mut mutation))
+  "Return t if `mutation' MUT contains an abstract condition, NIL otherwise"
   (declare (ignorable mut))
   nil)
 
 (defmethod contains-abstract-condition ((mut refine-condition))
+  "Return t if `refine-condition' MUT contains an abstract condition, NIL otherwise"
   (declare (ignorable mut))
   t)
 
 (defmethod contains-abstract-condition ((mut add-condition))
+  "Return t if `add-condition' MUT contains an abstract condition, NIL otherwise"  
   (declare (ignorable mut))
   t)
 
 (defgeneric contains-loop-condition (mutation)
-  (:documentation "Does the mutation contain an abstract loop condition?"))
+  (:documentation "Return DOCFIXME if MUTATION contains an abstract loop condition, DOCFIXME otherwise"))
 
 (defmethod contains-loop-condition (mutation)
+  "DOCFIXME"
   (declare (ignorable mutation))
   nil)
+
 (defmethod contains-loop-condition ((mutation if-to-while))
+  "DOCFIXME"
   (declare (ignorable mutation))
   t)
 
 (defun get-abst-cond-locs (software)
-  "Identify guard statements containing a call to abst_cond(), and return a list
-of lists containing the AST counter along with start and end index of
-abst_cond() in the source text."
+  "Identify guard statements in SOFTWARE that contain a call to
+abst_cond(), and return a list of lists containing the AST counter
+along with start and end index of abst_cond() in the source text.
+"
   (iter (for ast in (remove-if-not #'ast-guard-stmt (asts software)))
         (multiple-value-bind (match-start match-end reg-start reg-end)
             (scan "abst_cond\\(\\)" (peel-bananas (source-text ast)))
@@ -279,8 +336,12 @@ abst_cond() in the source text."
             (collect match-end into ends))
           (finally (return (mapcar #'list asts starts ends))))))
 
+
 (defun get-parent-control-stmt (clang guard-counter)
-  "Returns the AST structure of the enclosing if statement for a guard."
+  "Return the AST structure of the enclosing if statement for a guard.
+* CLANG DOCFIXME
+* GUARD-COUNTER DOCFIXME
+"
   (let ((stmt (car (remove-if-not
                     [{member _ '(:IfStmt :WhileStmt :ForStmt :DoStmt
                                  :SwitchStmt)}
@@ -289,7 +350,13 @@ abst_cond() in the source text."
     (assert stmt)
     stmt))
 
+
 (defun instrument-values (instrumenter ast &key extra-exprs)
+  "DOCFIXME
+* INSTRUMENTER DOCFIXME
+* AST DOCFIXME
+* EXTRA-EXPRS DOCFIXME 
+"
   (let ((exprs (->> (mapcar (lambda (v)
                               (cons (aget :name v)
                                     (find-var-type (software instrumenter) v)))
@@ -300,8 +367,12 @@ abst_cond() in the source text."
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
   "Add instrumentation before the enclosing if statement for the guard
-statement(s) in the repair targets."
-
+statement(s) in the repair targets.
+DOCFIXME return value
+* SOFTWARE DOCFIXME
+* TRACE-FILE-NAME DOCFIXME
+* EXTRA_EXPRS DOCFIXME
+"
   ;; Look for repair-locs only in the main target (e.g. for clang-project)
   (let* ((repair-locs (mapcar [{get-parent-control-stmt software} #'car]
                               (get-abst-cond-locs software)))
@@ -338,7 +409,9 @@ statement(s) in the repair targets."
                                        {function-containing-ast software}]}))))
 
 (defun read-abst-conds-and-envs (trace-results-file)
-  "For a trace file, read in the environments and recorded abst-cond decisions."
+  "For trace file TRACE-RESULTS-FILE, read in the environments and recorded abst-cond decisions.
+DOCFIXME return value
+"
   (when (probe-file trace-results-file)
     (iter (for sexpr in (read-trace trace-results-file 1))
           ;; iter can exhaust the stack on long traces. Bail out
@@ -356,10 +429,10 @@ statement(s) in the repair targets."
                                    (apply #'append envs)))))))
 
 (defun synthesize-conditions (envs)
-  "For each assignment in each environment, generate conditions representing
-(x == v) and !(x == v).
+  "For each assignment in each environment in ENVS, generate  conditions representing (x == v) and !(x == v).
+DOCFIXME return value
 
-envs is a list of environments, each of which contains a list of triples:
+* ENVS a list of environments, each of which contains a list of triples:
 (\"var\" \"type\" \"value\"). The result is a list of synthesized conditions,
 where each condition is a triple (\"var\" \"value\" [:eq|:neq])."
   (iter (for env in envs)
@@ -374,15 +447,19 @@ where each condition is a triple (\"var\" \"value\" [:eq|:neq])."
                           :test #'equal)))))
 
 (defun entails (env condition result)
-  "Check whether the condition's value in the environment is consistent with the
-desired result.
+  "Check whether the value of CONDITION in environment ENV is consistent with the desired RESULT.
 
-The env is a list of triples (\"var\" \"type\" \"value\"), the condition is a
-triple (\"var\" \"value\" [:eq|:neq]), and result is the string \"0\" or \"1\".
-The condition representing \"(x == v)\" in an environment where x is assigned
-the value v is consistent with the result . Similarly, the condition
-representing \"!(x == v)\" in an environment where x is assigned the value v is
-consistent with the result ."
+DOCFIXME return value
+
+* ENV a list of triples (\"var\" \"type\" \"value\")
+* CONDITION a triple (\"var\" \"value\" [:eq|:neq])
+* RESULT a string: either \"0\" or \"1\".  
+
+The condition representing \"(x == v)\" in
+an environment where x is assigned the value v is consistent with the
+result. Similarly, the condition representing \"!(x == v)\" in an
+environment where x is assigned the value v is consistent with the
+result. DOCFIXME really?"
   ;; Look up var from condition in the env.
   (destructuring-bind (comparison-type name type base) condition
     (declare (ignorable type))
@@ -402,7 +479,12 @@ consistent with the result ."
 
 (defun find-best-condition (recorded-results envs conditions)
   "Find the condition which correctly matches the largest number of recorded
-results when evaluated under the corresponding environment."
+results when evaluated under the corresponding environment.
+DOCFIXME return value
+* RECORDED-RESULTS DOCFIXME
+* ENVS DOCFIXME
+* CONDITIONS DOCFIXME
+"
   (iter (for condition in conditions)
         (finding condition maximizing
                  (iter (for result in recorded-results)
@@ -410,8 +492,14 @@ results when evaluated under the corresponding environment."
                        (sum (if (entails env condition result) 1 0))))))
 
 (defun run-test-case (test bin &key default abst-conds loop-count)
-  "Run a test case, returning the fitness score, condition values, and
-environments."
+  "Run a `test-case', returning the fitness score, condition values, and
+environments.
+* TEST the `test-case' to run
+* BIN DOCFIXME
+* DEFAULT DOCFIXME
+* ABST-CONDS DOCFIXME
+* LOOP-COUNT DOCFIXME
+"
   (bind ((env (append (when default `(("ABST_COND_DEFAULT" .
                                        ,(write-to-string default))))
                       (when abst-conds `(("ABST_COND_VALUES" .
@@ -424,13 +512,17 @@ environments."
          ((:values conds envs) (read-abst-conds-and-envs *trace-file*)))
     (values output conds envs)))
 
+
 (defun flip (bit-str)
-  "For strings of 0s and 1s, drop trailing 1s and change last 0 to a 1"
+  "Return the string obtained by dropping trailing 1s from BIT-STR and then changing the final 0 to a 1.
+* BIT-STR a string containing only \"0\" and \"1\"
+"  
   (cond
     ((emptyp bit-str) bit-str)
     ((ends-with "1" bit-str :test #'string=)
      (flip (subseq bit-str 0 (1- (length bit-str)))))
     (t (concatenate 'string (subseq bit-str 0 (1- (length bit-str))) "1"))))
+
 
 (define-condition build-failed (error)
   ((stdout :initarg :stdout :initform nil :reader stdout)
@@ -439,9 +531,15 @@ environments."
   (:report (lambda (condition stream)
              (format stream "Build failed with status ~a: ~%~a~%~a~%"
                      (exit-code condition) (stdout condition)
-                     (stderr condition)))))
+                     (stderr condition))))
+  (:documentation "DOCFIXME"))
+
 
 (defun build (software bin)
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* BIN DOCFIXME
+"
   (multiple-value-bind (bin errno stderr stdout) (phenome software :bin bin)
     (if (zerop errno)
         bin
@@ -450,7 +548,14 @@ environments."
                  :stderr stderr
                  :exit-code errno)))))
 
+
 (defun build-with-abst-cond (software repair-mutation bin extra-exprs)
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* REPAIR-MUTATION DOCFIXME
+* BIN DOCFIXME
+* EXTRA-EXPRS DOCFIXME
+"
   (apply-mutation software repair-mutation)
   ;; include abst_cond implementation
 
@@ -461,11 +566,15 @@ environments."
   ;; Build the whole project
   (build software bin))
 
-(defun collect-negative-conds-and-envs (bin neg-tests loop-condition)
-  "For each negative test case, try to identify a set of 0/1 values
-for abst_cond() that would improve fitness. If one is found, return the
-recorded decisions and environments."
 
+(defun collect-negative-conds-and-envs (bin neg-tests loop-condition)
+  "For each negative test case in NEG-TESTS, try to identify a set of
+0/1 values for abst_cond() that would improve fitness. If one is
+found, return the recorded decisions and environments.
+* BIN DOCFIXME
+* NEG-TESTS DOCFIXME a `test-suite' containing only negative test cases
+* LOOP-CONDITION DOCFIXME
+"
   ;; There are two different search strategies here for if conditions
   ;; and loop conditions. In the former case, we match SPR's
   ;; algorithm: start with all zeroes (preserving the original
@@ -521,7 +630,13 @@ recorded decisions and environments."
           (finally
            (return (values recorded-cond-results env-results))))))
 
+
 (defun collect-positive-conds-and-envs (bin pos-tests loop-condition)
+  "DOCFIXME
+* BIN DOCFIXME
+* POS-TESTS DOCFIXME a `test-suite' containing only positive test cases
+* LOOP-CONDITION
+"
   (iter (for test in pos-tests)
         (multiple-value-bind (test-result recorded-conds envs)
             ;; Run test, setting abst_cond() to preserve original
@@ -534,8 +649,14 @@ recorded decisions and environments."
           (finally (return (values recorded-cond-results env-results))))))
 
 (defun make-source (software condition)
-  "Take a condition of the form \(\"x\" \"val\" :eq\) and return the
-corresponding source code condition: \(x == val\) or !\(x == val\)"
+  "Return the source code condition corresponding to CONDITION DOCFIXME SOFTWARE.
+* SOFTWARE DOCFIXME
+* CONDITION a condition of the form \(\"x\" \"val\" :eq\), \(\"x\" \"val\" :neq\), or T.
+
+DOCFIXME The return value is a string of the form \"\(x == val\)\",
+\"!\(x == val\)\", or \"\", respectively
+
+"  
   (bind (((comparison-type name type base) condition)
          (var (make-var-reference name
                                   (find-or-add-type software type)))
@@ -549,10 +670,17 @@ corresponding source code condition: \(x == val\) or !\(x == val\)"
       (:neq (make-operator :generic "!" (list eq-op)))
       (t ""))))
 
+
 (defun apply-best-cond-mutation (software mutation best-condition)
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* MUTATION DOCFIXME
+* BEST-CONDITION DOCFIXME
+"
   (setf (abst-cond mutation) (make-source software best-condition))
   (apply-mutation software mutation)
   software)
+
 
 (defun collect-tests (software test-suite)
   "Build SOFTWARE and run TEST-SUITE, dividing the test cases into positive and
@@ -569,6 +697,7 @@ negative tests."
                 (collect case into negative)))
           (finally (return (values positive negative))))))
 
+
 (defun improves-fitness (new-fitness test-suite)
   "Are NEW-FITNESS scores an improvement over the current fitness of
 TEST-SUITE?"
@@ -576,27 +705,29 @@ TEST-SUITE?"
     (and (every (lambda (new old) (>= new old)) new-fitness orig-fitness)
          (some (lambda (new old) (> new old)) new-fitness orig-fitness))))
 
+
 (defun synthesize-condition (software test-suite repair-mutation
                              &key extra-instrumentation-exprs)
-  "For a program, a set of positive and negative test cases, and a repair
-mutation, return t or nil indicating if the repair was successful.
+  "Return T if application of REPAIR_MUTATION to SOFTWARE was successful according to TEST-SUITE, NIL otherwise. DOCFIXME is this definitely true? doc/condition-synthesis.texi previously said \"for a software object, a suite of unit tests, and a mutation which inserts an abstract condition, attempt to synthesize a condition which causes more unit tests to pass than before. Returns an updated software object\",
 
-FITNESS-COMMAND-FUN is a function which returns the shell command for
-testing fitness. It should take two parameters, the executable and a
-list of command-line arguments.
 
-The fitness script itself must accept the following arguments:
+* TEST-SUITE a `test-suite' containing both positive and negative test cases.
+* REPAIR-MUTATION a `mutation' that inserts an abstract condition. 
+* EXTRA-INSTRUMENTATION-EXPRS a list of additional expressions to
+  print at each instrumentation point. It should have the form
+  '((expr . ((:type . \"typename\")))). These expressions can be generated with `instrumentation-exprs'.
+
+DOCFIXME this doesn't seem to have anything to do with any of the
+listed parameters FITNESS-COMMAND-FUN is a function which returns the
+shell command for testing fitness. It should take two parameters, the
+executable and a list of command-line arguments.
+
+DOCFIXME neither does this The fitness script itself must accept the following arguments:
  --count: return the total number of test cases
  --which N: run a single test case
 
-By default, the fitness script should run all tests and print the
-overall fitness score.
-
-extra-instrumentation-exprs is a list of additional expressions to
-print at each instrumentation point. It should have the form
-'((expr . ((:type . \"typename\"))))
+DOCFIXME neither does this By default, the fitness script should run all tests and print the overall fitness score.
 "
-
   ;; only applies if repair mutation introduced abst_cond()
   (with-temp-file (trace-file)
     (with-temp-file (bin)
@@ -649,19 +780,23 @@ print at each instrumentation point. It should have the form
                           (return-from synthesize-condition cur-best)))))))))
           cur-best)))))
 
+
 (defun tails (lst)
+  "DOCFIXME LST"
   (when lst (cons lst (tails (cdr lst)))))
+
 
 (defun instrumentation-exprs (obj point type)
   "Generate additional expressions to instrument during condition
 synthesis. Finds all expressions of the given type which are in scope
 at the repair point, and generates comparisons for all of them. These
 expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
-synthesize-condition.
+`synthesize-condition'.
+DOCFIXME returns?
 
-OBJ ---------- software object
-POINT -------- repair point
-TYPE --------- type description alist (:types :array :pointer :compare)
+* OBJ DOCFIXME software object
+* POINT DOCFIXME repair point
+* TYPE DOCFIXME type description alist (:types :array :pointer :compare)
                Where :compare is a format template for the comparison
                expressions, and the other fields are matched against
                the type DB.
@@ -696,6 +831,7 @@ TYPE --------- type description alist (:types :array :pointer :compare)
                          (peel-bananas (source-text a))
                          (peel-bananas (source-text b)))
                     (make-clang-type :name "int" :array "" :hash 0))))))
+
 
 (defun types-equal (snippet type)
   "Does SNIPPET (an alist) represent the same type as TYPE (a type AST)?"
