@@ -1,10 +1,22 @@
 
 @itemize
+@item @ref{api-test-suites, Test Suites}
 @item @ref{api-condition-synthesis, Condition Synthesis}
+@item @ref{api-clang-tokenizer, Clang Tokenizer}
+@item @ref{api-style-features, Style Features}
 @end itemize
+
+
+@anchor{api-test-suites}
+@section API: Test Suites
+
+@include api--test-suites.texi
 
 @anchor{api-condition-synthesis}
 @section API: Condition Synthesis
+
+Condition synthesis details and an example are provided in section @ref{Condition Synthesis}.
+
 
 @itemize
 @item @ref{api-condition-synthesis-mutations, Mutations}
@@ -42,7 +54,7 @@
 @c @include include/fun-sel-and-not-connector.texinfo
 @c @include include/fun-sel-apply-best-cond-mutation.texinfo
 @c @include include/fun-sel-build-failed.texinfo
-@c @include include/fun-sel-build.texinfo
+@include include/fun-sel-build.texinfo
 @c @include include/fun-sel-collect-negative-conds-and-envs.texinfo
 @c @include include/fun-sel-collect-positive-conds-and-envs.texinfo
 @c @include include/fun-sel-collect-tests.texinfo
@@ -82,8 +94,73 @@
 @c abst-cond-source
 
 
+@c ------------------------------
 
+@anchor{api-clang-tokenizer}
+@section API: Clang C Tokenizer
 
+More information about the tokenizer component is provided in section
+@ref{Clang C Tokenizer}.
+
+@include include/fun-sel-tokens.texinfo
+@c condition unhandled-token-class
+
+@c ------------------------------
+
+@anchor{api-style-features}
+@section API: Style Features
+ 
+@include include/class-sel-style-feature.texinfo
+@include include/class-sel-styleable.texinfo
+@include include/class-sel-style-project.texinfo
+
+@include include/fun-sel-merge-styleables.texinfo
+@include include/fun-sel-extract-features.texinfo
+
+@include include/macro-sel-define-feature.texinfo
+
+@c ast-node-type-tf-extractor
+@c max-depth-ast-extractor
+@c avg-depth-ast-extractor
+@c ast-full-stmt-bi-grams-extractor
+@c ast-bi-grams-extractor
+@c ast-keyword-tf-extractor 
+@c *clang-c-ast-classes*
+@c *clang-c-keywords*
+@c *clang-c-ast-keywords-auto-count*
+@c *clang-c-ast-keywords-search-count*
+@c uni-grams
+@c to-feature-vector
+@c normalize-vector
+@c ast-node-types
+@c merge-normalized
+@c ast-node-type-tf-feature
+@c ast-depth
+@c *ast-depths-cache*
+@c max-depth-ast
+@c merge-max
+@c max-depth-ast-feature
+@c avg-depth-ast-feature
+@c ast-node-type-avg-depth
+@c all-ast-node-types
+@c merge-means
+@c ast-node-type-avg-depth-feature
+@c bi-grams
+@c ast-full-stmt-bi-grams
+@c ast-bi-grams
+@c bi-grams-hashable-to-feature
+@c ast-full-stmt-bi-grams-feature
+@c ast-bi-grams-feature
+@c auto-count-keyword
+@c search-keyword
+@c ast-keyword-tf
+@c all-keywords
+@c ast-keyword-tf-feature
+@c *feature-extractors*
+@c diff-feature-vectors
+@c extract-feature
+@c update-project-features
+@c extract-baseline-features
 
 
 @c ------------------------------
@@ -173,7 +250,7 @@
 @include include/fun-sel-copy.texinfo
 @include include/fun-sel-crossover.texinfo
 @include include/fun-sel-database-emptyp.texinfo
-@include include/class-sel-test-case.texinfo
+@c TEST SUITES @include include/class-sel-test-case.texinfo
 @include include/var-sel-star-lexicase-key-star.texinfo
 @include include/constant-sel-plus-c-pointer-unary-operators-plus.texinfo
 @include include/class-sel-elf-cisc.texinfo
@@ -190,13 +267,13 @@
 @include include/fun-sel-elf.texinfo
 @include include/var-sel-elf-risc-max-displacement.texinfo
 @include include/fun-sel-error-funcs.texinfo
-@include include/fun-sel-evaluate.texinfo
-@include include/fun-sel-extract-features.texinfo
+@c TEST SUITES @include include/fun-sel-evaluate.texinfo
+@c STYLE FEATURES @include include/fun-sel-extract-features.texinfo
 @include include/fun-sel-find-macro.texinfo
 @include include/fun-sel-find-snippets.texinfo
 @include include/fun-sel-find-type.texinfo
 @include include/fun-sel-find-var-type.texinfo
-@include include/fun-sel-finish-test.texinfo
+@c TEST SUITES @include include/fun-sel-finish-test.texinfo
 @include include/fun-sel-fitness-equal-p.texinfo
 @include include/fun-sel-force-include.texinfo
 @include include/fun-sel-from-string.texinfo
@@ -233,7 +310,7 @@
 @include include/fun-sel-lines.texinfo
 @include include/fun-sel-make-build-dir.texinfo
 @include include/fun-sel-make-operator.texinfo
-@include include/fun-sel-merge-styleables.texinfo
+@c STYLE FEATURES @include include/fun-sel-merge-styleables.texinfo
 @include include/fun-sel-mutate.texinfo
 @include include/fun-sel-mutation-key.texinfo
 @include include/fun-sel-nop-p.texinfo
@@ -249,7 +326,7 @@
 @include include/fun-sel-pick-guarded-compound.texinfo
 @include include/fun-sel-pick-mutation-type.texinfo
 @include include/fun-sel-pick-snippet.texinfo
-@include include/class-sel-process.texinfo
+@c TEST SUITES @include include/class-sel-process.texinfo
 @include include/class-sel-rename-variable.texinfo
 @include include/macro-sel-mcmc.texinfo
 @include include/fun-sel-incorporate.texinfo
@@ -257,16 +334,16 @@
 @include include/fun-sel-make-statement.texinfo
 @include include/fun-sel-parse-source-snippet.texinfo
 @include include/fun-sel-pick-least-crowded.texinfo
-@include include/fun-sel-process-error-stream.texinfo
-@include include/fun-sel-process-input-stream.texinfo
-@include include/fun-sel-process-output-stream.texinfo
-@include include/fun-sel-process-status.texinfo
+@c TEST SUITES @include include/fun-sel-process-error-stream.texinfo
+@c TEST SUITES @include include/fun-sel-process-input-stream.texinfo
+@c TEST SUITES @include include/fun-sel-process-output-stream.texinfo
+@c TEST SUITES @include include/fun-sel-process-status.texinfo
 @include include/fun-sel-random-point-in-function.texinfo
 @include include/fun-sel-setf-reference.texinfo
 @include include/fun-sel-replace-in-ast.texinfo
 @include include/fun-sel-rinard-write-out.texinfo
 @include include/fun-sel-roots.texinfo
-@include include/fun-sel-run-test.texinfo
+@c TEST SUITES @include include/fun-sel-run-test.texinfo
 @include include/fun-sel-scopes.texinfo
 @include include/fun-sel-select-crossover-points.texinfo
 @include include/fun-sel-select-intraprocedural-pair.texinfo
@@ -275,10 +352,10 @@
 @include include/class-sel-software.texinfo
 @include include/fun-sel-source-text.texinfo
 @include include/fun-sel-stmt-range.texinfo
-@include include/class-sel-style-feature.texinfo
-@include include/class-sel-styleable.texinfo
+@c STYLE FEATURES @include include/class-sel-style-feature.texinfo
+@c STYLE FEATURES @include include/class-sel-styleable.texinfo
 @include include/class-sel-sw-range.texinfo
-@include include/class-sel-test-suite.texinfo
+@c TEST SUITES @include include/class-sel-test-suite.texinfo
 @include include/class-sel-traceable.texinfo
 @include include/var-sel-star-clang-json-required-fields-star.texinfo
 @include include/var-sel-star-free-var-decay-rate-star.texinfo
@@ -288,7 +365,7 @@
 @include include/fun-sel-enclosing-full-stmt.texinfo
 @include include/macro-sel-sequence-mutations.texinfo
 @include include/fun-sel-to-file.texinfo
-@include include/fun-sel-tokens.texinfo
+@c CLANG TOKENIZER @include include/fun-sel-tokens.texinfo
 @include include/fun-sel-typedef-type.texinfo
 @include include/macro-sel-with-build-dir.texinfo
 @include include/macro-sel-with-current-file.texinfo
@@ -304,16 +381,16 @@
 @include include/fun-sel-from-file.texinfo
 @include include/fun-sel-mutant.texinfo
 @include include/fun-sel-pareto-selector.texinfo
-@include include/fun-sel-process-exit-code.texinfo
+@c TEST SUITES @include include/fun-sel-process-exit-code.texinfo
 @include include/fun-sel-replace-fields-in-snippet.texinfo
 @include include/fun-sel-rinard.texinfo
 @include include/fun-sel-rinard-incremental.texinfo
 @include include/fun-sel-rinard-read-in.texinfo
-@include include/fun-sel-signal-process.texinfo
+@c TEST SUITES @include include/fun-sel-signal-process.texinfo
 @include include/fun-sel-snippet-gt-clang-ast.texinfo
 @include include/fun-sel-snippet-gt-clang-macro.texinfo
 @include include/fun-sel-snippet-gt-clang-type.texinfo
-@include include/fun-sel-start-test.texinfo
+@c TEST SUITES @include include/fun-sel-start-test.texinfo
 @include include/fun-sel-synthesize-condition.texinfo
 @include include/fun-sel-tournament.texinfo
 @include include/fun-sel-two-point-crossover.texinfo

@@ -1,0 +1,40 @@
+
+
+@itemize
+
+@item @ref{api-test-suites-process, Class @code{test-suite}}
+@item @ref{api-test-suites-process, Class @code{test-case} and its methods}
+@item @ref{api-test-suites-process, Class @code{process} and its methods}
+
+@end itemize
+
+
+@anchor{api-test-suites-test-suite}
+@subsection Class @code{test-suite}
+@include include/class-sel-test-suite.texinfo
+
+
+
+@anchor{api-test-suites-test-case}
+@subsection Class @code{test-case} and its methods
+
+@include include/class-sel-test-case.texinfo
+@include include/fun-sel-evaluate.texinfo
+@include include/fun-sel-finish-test.texinfo
+@include include/fun-sel-run-test.texinfo
+@include include/fun-sel-start-test.texinfo
+
+
+@anchor{api-test-suites-process}
+@subsection Class @code{process} and its methods
+
+
+@include include/class-sel-process.texinfo
+@include include/fun-sel-process-error-stream.texinfo
+@include include/fun-sel-process-exit-code.texinfo
+@include include/fun-sel-process-id.texinfo
+@include include/fun-sel-process-input-stream.texinfo
+@include include/fun-sel-process-output-stream.texinfo
+@include include/fun-sel-process-status.texinfo
+@include include/fun-sel-signal-process.texinfo
+
