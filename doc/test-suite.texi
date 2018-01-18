@@ -1,97 +1,75 @@
-The `test-suite' and `test-case' classes are used to represent runnable unit
-tests so that other components (such as condition synthesis or trace collection)
-and evolution projects can determine whether unit tests are passing and if their
-behavior has changed.
 
-The `test-suite' class contains one field, `test-cases', which contains a list
-of `test-case' objects.
+SEL incorporates representations for runnable unit tests. This allows
+individual components (such as @ref{Condition Synthesis} and
+@ref{Trace Collection}) and evolution projects to determine whether
+unit tests are passing, and if their behavior has changed.
 
-@heading The Test Case Class
-The `test-case' class contains three fields:
-@table @code
-@item program-name
-either a string containing the name of an executable file which runs the test
-case or the symbol `:bin' which will be dynamically replaced by the name of the
-phenome for the software object under test
 
-@item program-args
-a list of arguments which will be passed to the executable in the
-`program-name' field. Similarly, all arguments must either be a string or the
-symbol `:bin'.
 
-@item fitness
-may be used to store the fitness result from a prior run of the test case.
-However, this field is not updated automatically since some components may
-need to perform comparisons between new and old values (e.g., condition
-synthesis).
-@end table
+@section API Support For Unit Tests
 
-The following methods are provided for executing test cases:
-@table @code
-@item (start-test phenome test-case &rest extra-keys &key &allow-other-keys)
-starts an external process to run the test-case on a phenome and returns a
-`process' object. This is essentially a wrapper around the SBCL or CCL
-`run-program' methods and any extra keys will be passed through to that method.
-Some keys that may be useful are:
-  @table @code
-  @item :output and :error
-  to specify how output and error streams are handled. In some cases, these are
-  sent to /dev/null by default, making output inaccessible after the process
-  completes, so it's often useful to set one or both of these to `:stream' to
-  capture the output.
+@itemize
 
-  @item :wait
-  whether to wait for the process to complete before continuing. The default is
-  to wait; however, some components (such as `traceable') may elect not to wait
-  and instead to stream results through a named pipe.
+@item @ref{doc-test-classes,
+           @code{test-case} and @code{test-suite} classes}
+@item @ref{doc-test-case-methods, @code{test-case} Methods}
+@item @ref{doc-process-methods, @code{process} Methods}
 
-  @item :env
-  to set environment variables
-  @end table
+@end itemize
 
-@item (finish-test test-process &key kill-signal timeout)
-ensures that the test-process either runs to completion or is killed. If
-test-process is running when `finish-test' is called and a kill-signal is
-specified, that signal will be sent to the process in an effort to kill it. If
-the process is still running and a timeout is specified, the Lisp process will
-sleep for timeout seconds before again checking if the process is still
-running and sending a SIGKILL signal.
 
-After the process is killed, the output and error streams are read into strings,
-and the standard output, error output, and process exit code are returned.
+@anchor{doc-test-classes}
+@subheading Test Suite Classes
 
-@item (run-test phenome test-case &rest extra-keys &key &allow-other-keys)
-a convenience method whose default behavior is simply to run `start-test'
-and `finish-test'.
 
-@item (evaluate phenome test-case &rest extra-keys &key &allow-other-keys)
-runs the test-case on a phenome and then returns a fitness score, rather than
-returning output and an exit code. The default behavior is to return a fitness
-of 1 if the exit code is 0, and 0 otherwise. This method may need to be
-overridden in some projects, e.g., to determine the fitness score based on the
-test output.
+@multitable {} {}
 
-@end table
+@item @ref{Class test-case, class @code{test-case}}
+      @tab a single test
 
-@heading The Process Class
-The `process' class wraps around SBCL- or CCL-specific representations of
-external processes. It contains just one field, `os-process', which holds
-the implementation-specific process object, but generally this field won't
-need to be accessed directly. Instead, the following methods are provided
-for interacting with processes:
+@item @ref{Class test-suite, class @code{test-suite}}
+      @tab a suite of tests (as a collection of
+      @ref{Class test-case, @code{test-case}} objects)
 
-@table @code
-@item (process-input-stream process)
-returns the input stream for the process
-@item (process-output-stream process)
-returns the output stream for the process
-@item (process-error-stream process)
-returns the error output stream for the process
-@item (process-exit-code process)
-returns the exit code for the process or nil if the process is running
-@item (process-status process)
-returns the status of the process: one of :running, :stopped, :signaled, or
-:exited
-@item (signal-process process signal-number)
-sends the signal indicated by signal-number to process
-@end table
+@item @ref{Class process, class @code{process}}
+      @tab wraps around SBCL- or CCL-specific representations of
+           external processes
+
+@end multitable
+
+
+@anchor{doc-test-case-methods}
+@subheading @code{test-case} Methods
+
+@itemize
+@item @ref{Generic-Function start-test, @code{start-test}}
+@item @ref{Generic-Function finish-test, @code{finish-test}}
+@item @ref{Generic-Function run-test, @code{run-test}}
+@item @ref{Generic-Function evaluate, @code{evaluate}}
+@end itemize
+
+
+@anchor{doc-process-methods}
+@subheading @code{process} Methods
+
+@itemize
+
+@item @ref{Generic-Function process-error-stream,
+           @code{process-error-stream}}
+@item @ref{Generic-Function process-exit-code,
+           @code{process-exit-code}}
+@item @ref{Generic-Function process-id,
+           @code{process-id}}
+@item @ref{Generic-Function process-input-stream,
+           @code{process-input-stream}}
+@item @ref{Generic-Function process-output-stream,
+           @code{process-output-stream}}
+@item @ref{Generic-Function process-status,
+           @code{process-status}}
+@item @ref{Generic-Function signal-process,
+           @code{signal-process}}
+
+
+@end itemize
+
+
