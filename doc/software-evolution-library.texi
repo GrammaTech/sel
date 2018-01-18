@@ -57,20 +57,21 @@ Engineering (SBSE) techniques.
 * Implementation::              How's it implemented?
 * Components::                  What's it provide?
 * Usage::                       How's it used?
+* Troubleshooting::             Solutions for build and test issues.
+
+
+SEL API Reference
 * SEL API Reference::           Full API reference including usage guidelines.
-* Troubleshooting::             FIXME
+* SEL API::                     Public functions, variables, and macros
+* SEL/Utility API::             Public functions, variables, and macros
+* SEL/View API::                Public functions, variables, and macro
 
 Included Libraries
-* SEL/Utility Library::         Utility functions.
-* SEL/View Library::            Interactive user interface.
 * SEL/Test Library::            Unit tests.
 
 Appendices
 * General Lisp Advice::         Information for those new to Common Lisp
 * SEL Coding Standards::        Guidance for contribution to SEL
-* SEL API::                     Public functions, variables, and macros
-* SEL/Utility API::             Public functions, variables, and macros
-* SEL/View API::                Public functions, variables, and macros
 * Copying::                     The GNU General Public License gives
                                 you permission to redistribute GNU Emacs on
                                 certain terms; it also explains that there is
@@ -561,9 +562,9 @@ are given in remainder of this section.
 * Test Suites::                 Running unit tests
 * Multi-objective Fitness::     Optimizing multiple objectives
 * Style Features::              Extracting source code features
-* Tokenizer::                   Tokenize software objects
-* Condition Synthesis::         Repair technique to synthesize guard conditions
-* Fault Localization::          Identifying or prioritizing likely-faulty code
+* Clang C Tokenizer::           Tokenize software objects
+* Condition Synthesis::         Synthesize guard conditions to repair software
+* Fault Localization::          Identify or prioritize likely-faulty code
 * Tracing::                     Trace execution of software
 @end menu
 
@@ -577,17 +578,17 @@ are given in remainder of this section.
 @cindex multi-objective fitness
 @include multi-objective-fitness.texi
 
-@node Style Features, Tokenizer, Multi-objective Fitness, Components
+@node Style Features, Clang C Tokenizer, Multi-objective Fitness, Components
 @section Style Features
 @cindex style-features
 @include style-features.texi
 
-@node Tokenizer, Condition Synthesis, Style Features, Components
-@section Tokenizer
+@node Clang C Tokenizer, Condition Synthesis, Style Features, Components
+@section Clang C Tokenizer
 @cindex tokenizer
 @include tokenizer.texi
 
-@node Condition Synthesis, Fault Localization, Tokenizer, Components
+@node Condition Synthesis, Fault Localization, Clang C Tokenizer, Components
 @section Condition Synthesis
 @cindex condition-synthesis
 @include condition-synthesis.texi
@@ -602,7 +603,7 @@ are given in remainder of this section.
 @cindex tracing
 @include tracing.texi
 
-@node Usage, Mutation, Implementation, Top
+@node Usage, Installation, Implementation, Top
 @chapter Usage
 @cindex usage
 
@@ -645,8 +646,10 @@ clang-mutate for @code{clang} object support  (available from
 @url{https://github.com/GrammaTech/clang-mutate}).
 @end itemize
 
+
+
 Install llvm-mutate, cil-mutate and clang-mutate as per the
-instructions in their respective repository. (Note, it is only
+instructions in their respective repositories. (Note, it is only
 necessary to install the tools for the specific software backends you
 intend to use.) Install SEL by cloning the repository into your
 quicklisp local-projects directory and then running:
@@ -793,7 +796,7 @@ saved in the @code{*population*}.
 
 @verbatiminclude ./examples/004-evolve.lisp
 
-@node Parallel Repair, SEL API Reference, Repair, Examples
+@node Parallel Repair, Troubleshooting, Repair, Examples
 @subsection Parallel Repair
 @cindex parallel repair
 
@@ -842,39 +845,41 @@ with the following.
 @c @cindex memoize fitness
 
 
-@node SEL API Reference, Troubleshooting, Usage, Top
-@chapter SEL API Reference
-@cindex api
 
-@include api.texi
-
-
-@node Troubleshooting, SEL/Utility Library, SEL API Reference, Top
+@node Troubleshooting, SEL API Reference, Usage, Top
 @chapter Troubleshooting
 @cindex troubleshooting
 
 @include troubleshooting.texi
 
 
-@node SEL/Utility Library, SEL/View Library, Usage, Top
-@chapter SEL/Utility Library
-@cindex utility
+@node SEL API Reference, SEL API, Troubleshooting, Top
+@chapter SEL API Reference
+@cindex api
 
-@include sel-utility.texi
-
-
-@node SEL/View Library, SEL/Test Library, SEL/Utility Library, Top
-@chapter SEL/View Library
-@cindex view
-
-@include sel-view.texi
+@include api.texi
 
 
-@node SEL/Test Library, General Lisp Advice, SEL/View Library, Top
+@node SEL API, SEL API Reference, SEL/Utility API, Top
+@appendix SEL API
+@include include/sb-texinfo.texinfo
+@include sel-api.texi
+
+@node SEL/Utility API, SEL/View API, SEL API, Top
+@appendix SEL Utility API
+@include sel-utility-api.texi
+
+@node SEL/View API, SEL/Test Library, SEL/Utility API, Top
+@appendix SEL View API
+@include sel-view-api.texi
+
+
+@node SEL/Test Library, General Lisp Advice, SEL/View API, Top
 @chapter SEL/Test Library
 @cindex test
 
 @include sel-test.texi
+
 
 
 @node General Lisp Advice, Getting Started with Lisp, SEL/Test Library, Top
@@ -1234,19 +1239,6 @@ is nicer than this.
                 #|...|#))
 @end lisp
 
-
-@node SEL API, SEL/Utility API, SEL/Test Library, Top
-@appendix SEL API
-@include include/sb-texinfo.texinfo
-@include sel-api.texi
-
-@node SEL/Utility API, SEL/View API, SEL API, Top
-@appendix SEL Utility API
-@include sel-utility-api.texi
-
-@node SEL/View API, Copying, SEL/Utility API, Top
-@appendix SEL View API
-@include sel-view-api.texi
 
 @node Copying, GNU Free Documentation License, SEL/Utility API, Top
 @appendix GNU GENERAL PUBLIC LICENSE
