@@ -456,6 +456,7 @@
    :program-args
    :process
    :os-process
+   :process-id
    :process-input-stream
    :process-output-stream
    :process-error-stream

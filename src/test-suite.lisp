@@ -1,4 +1,4 @@
-;;; test-suite.lisp --- an abstraction around test suites
+
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -12,33 +12,45 @@
   ((program-name
     :initarg :program-name :initform nil :accessor program-name
     :type (or string symbol)
-    :documentation "The name of an executable file which runs the test case.
-The special symbol :bin may be used instead of a string and will be replaced by
-the name of the compiled phenome.")
+    :documentation "The executable that runs the test case.  
+Contains either a string containing the name of an executable file or
+special symbol :bin, which will be dynamically replaced by the name of
+the compiled phenome for the software object under test.")
    (program-args
     :initarg :program-args :initform nil :accessor program-args
     :type list
     :documentation "A list of arguments which will be passed to the executable
-PROGRAM-NAME. Occurrences of the symbol :bin will be replaced by the name of the
-compiled phenome.")
+PROGRAM-NAME. 
+Each argument must be either a string or symbol :bin, which will be
+replaced by the name of the compiled phenome.")
    (fitness
     :initarg :fitness :initform nil :accessor fitness
-    :documentation "Fitness result last time test-case was run."))
+    :documentation "May be used to store the fitness result from a prior run of the test case. 
+This field is not updated automatically since some components may need
+to perform comparisons between new and old values (e.g., condition
+synthesis)."))
   (:documentation "Test case object."))
 
 (defmethod print-object ((obj test-suite) stream)
+  "Print `test-suite' OBJ to STREAM"
   (print-unreadable-object (obj stream :type t)
     (format stream "~s" (test-cases obj))))
 
 (defmethod print-object ((obj test-case) stream)
+  "Print `test-case' OBJ to STREAM"
   (print-unreadable-object (obj stream :type t)
     (format stream "~a ~{~a ~}" (program-name obj) (program-args obj))))
 
 (defclass process ()
   ((os-process
     :initarg :os-process :initform nil :reader os-process
-    :documentation "The underlying process object (compiler-specific)."))
-  (:documentation "Object representing an external process."))
+    :documentation "The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+`process-input-stream', `process-output-stream',
+`process-error-stream', `process-error-code', `process-status',
+`signal-process' to interact with processes."))
+  (:documentation "Object representing an external process.
+Wraps around SBCL- or CCL-specific representations of external processes."))
 
 ;;; TODO: Promote `process-id', `process-input-stream',
 ;;; `process-output-stream', and `process-exit-code' to sel/utility,
@@ -97,7 +109,7 @@ compiled phenome.")
   (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
 
 (defgeneric process-exit-code (process)
-  (:documentation "Return the exit code for PROCESS or nil if PROCESS has not
+  (:documentation "Return the exit code for PROCESS, or nil if PROCESS has not
 exited."))
 
 (defmethod process-exit-code ((process process))
@@ -144,16 +156,48 @@ exited."))
 
 (defgeneric start-test (phenome test-case &rest extra-keys
                         &key &allow-other-keys)
-  (:documentation "Begin running TEST-CASE on PHENOME and return the process."))
+  (:documentation "Start an external process to run TEST-CASE on PHENOME and return the `process'.
+
+This is essentially a wrapper around the SBCL or CCL ‘run-program’ methods and any EXTRA-KEYS will be passed through to that method.
+
+* PHENOME the phenome of the `software-object' under test.
+* TEST-CASE the `test-case' to run.
+* EXTRA-KEYS additional keyword arguments to pass to the SBCL or CCL `run-program' method. 
+
+Some EXTRA-KEYS that may be useful are:
+* :output and :error - to specify how output and error streams are
+  handled. In some cases, these are sent to /dev/null by default,
+  making output inaccessible after the process completes, so it’s
+  often useful to set one or both of these to ‘:stream’ to capture the
+  output.
+
+* :wait - whether to wait for the process to complete before
+  continuing. The default is to wait; however, some
+  components (such as ‘traceable’) may elect not to wait and
+  instead to stream results through a named pipe.
+
+* :env - to set environment variables  
+"))
+
 
 (defgeneric finish-test (test-process &key kill-signal timeout)
-  (:documentation "Complete TEST-PROCESS and return the test results. Optionally,
-KILL-SIGNAL specifies a signal to use to kill the process if it is still
-running, and TIMEOUT specifies an amount of time to wait between sending the kill
-signal and sending the SIGKILL signal to ensure the process is killed."))
+  (:documentation "Ensure that TEST-PROCESS either runs to completion or is killed; return the standard output, error output, and process exit code as strings.
+
+* TEST-PROCESS the `process' associated with the test case.
+
+* KILL-SIGNAL if TEST-PROCESS is still running when `finish-test' is called, this signal will be sent to TEST-PROCESS in an effort to kill it.
+
+* TIMEOUT if TEST-PROCESS is still running when `finish-test' is called, the Lisp process will sleep for this many seconds, then check if TEST-PROCESS is still running and send a SIGKILL signal if so.
+"))
+
 
 (defgeneric run-test (phenome test-case &rest extra-keys &key &allow-other-keys)
-  (:documentation "Run TEST-CASE on PHENOME and return the results."))
+  (:documentation "Run TEST-CASE on PHENOME and return the results.
+
+This is a convenience method whose default behavior is simply to run
+‘start-test’ and ‘finish-test’.
+"))
+
 
 (defmethod start-test (phenome (test-case test-case) &rest extra-keys
                        &key &allow-other-keys)
@@ -233,7 +277,20 @@ signal and sending the SIGKILL signal to ensure the process is killed."))
   (finish-test (apply #'start-test phenome test-case extra-keys)))
 
 (defmethod evaluate (phenome (obj test-case) &rest extra-keys
-                     &key &allow-other-keys)
+			     &key &allow-other-keys)
+   "Run `test-case' OBJ on PHENOME and return a fitness score (as
+opposed to the output and exit code returned by `finish-test`).
+Default behavior is to return 1 if the exit code is 0 and 0 otherwise.
+
+Override this method if you want to use other criteria, such as
+test output, to determine the fitness score.
+
+- PHENOME the phenome of the `software-object' under test.
+
+- OBJ the `test-case' to run.
+
+- EXTRA-KEYS additional keyword arguments to pass to the SBCL or CCL `run-program' method. See the `start-test' documentation for more information.
+"  
   (multiple-value-bind (stdout stderr exit-code)
       (apply #'run-test phenome obj extra-keys)
     (declare (ignorable stdout stderr))
