@@ -5,11 +5,15 @@
   ((text :initarg :text :initform nil :reader text))
   (:report (lambda (condition stream)
              (format stream "Tokenization failed: ~a"
-                     (text condition)))))
+                     (text condition))))
+  (:documentation "DOCFIXME"))
 
 (defgeneric tokens (software &optional roots)
   (:documentation "Return a list of tokens in SOFTWARE.
-Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
+DOCFIXME elaborate on type of return value: list of string?
+Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE.
+DOCFIXME elaborate on contents of ROOTS?")
+)
 
 ;;;; For reference, list of tokens explicitly introduced:
 ;;;; && identifier { } ( ) [ ] = break continue case switch default , : ?
@@ -17,6 +21,10 @@ Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE."))
 ;;;; generic sizeof alignof struct union char-literal int-literal string-literal
 ;;;; float-literal i-literal ... macro
 (defmethod tokens ((clang clang) &optional (roots (roots clang)))
+  "DOCFIXME
+* CLANG DOCFIXME
+* ROOTS DOCFIXME
+"
   (labels
       ((tokenize-children (children)
          (mappend #'tokenize children))
