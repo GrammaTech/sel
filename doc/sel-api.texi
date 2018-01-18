@@ -133,8 +133,8 @@
 @include include/constant-sel-plus-c-numeric-types-plus.texinfo
 @include include/constant-sel-plus-c-relational-operators-plus.texinfo
 @include include/constant-sel-plus-c-sign-unary-operators-plus.texinfo
-@include include/constant-sel-plus-software-evolution-library-branch-plus.texinfo
-@include include/constant-sel-plus-software-evolution-library-version-plus.texinfo
+@include include/var-sel-plus-software-evolution-library-branch-plus.texinfo
+@include include/var-sel-plus-software-evolution-library-version-plus.texinfo
 @include include/fun-sel-adaptive-analyze-mutation.texinfo
 @include include/fun-sel-add-include.texinfo
 @include include/fun-sel-add-macro.texinfo
