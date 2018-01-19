@@ -28,9 +28,11 @@
 
 ;;; asm software objects
 (define-software forth (simple)
-  ((shebang :initarg :shebang :accessor shebang :initform nil)))
+  ((shebang :initarg :shebang :accessor shebang :initform nil))
+  (:documentation "DOCFIXME"))
 
 (defmethod from-file ((forth forth) path &aux strings)
+  "DOCFIXME"
   (setf (genome forth)
         (flet ((rm-eol-comments (line)
                  (subseq line 0 (search "\\ " line)))
@@ -64,6 +66,7 @@
   forth)
 
 (defmethod phenome ((forth forth) &key (bin (temp-file-name)))
+  "DOCFIXME"
   #-ccl (declare (values t fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (string-to-file (format nil "~a~%~a" (shebang forth) (genome-string forth))
@@ -73,4 +76,5 @@
 
 (declaim (inline genome-string))
 (defmethod genome-string ((forth forth) &optional stream)
+  "DOCFIXME"
   (format stream "~{~a ~}~%" (lines forth)))

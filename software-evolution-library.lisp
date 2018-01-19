@@ -42,6 +42,12 @@
   (:documentation "Base class for all software objects."))
 
 (defmacro define-software (class-name superclasses slots &rest options)
+  "DOCFIXME
+* CLASS-NAME DOCFIXME
+* SUPERCLASSES DOCFIXME
+* SLOTS DOCFIXME
+* OPTIONS DOCFIXME
+"
   `(progn
      ;; Define the class
      (defclass ,class-name ,superclasses
