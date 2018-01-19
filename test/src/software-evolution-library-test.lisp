@@ -1061,12 +1061,13 @@ suite should be run and nil otherwise."
 (deftest asm-can-form-a-phenome ()
   (with-fixture gcd-asm
     (with-temp-file (bin)
-      (is (phenome *gcd* :bin bin)
-          "Phenome works on an ASM software object.")
-      (is (probe-file bin)
-          "Phenome creates the binary file for an ASM software object.")
-      (is (nth-value 2 (shell "~a 1 1" bin))
-          "Phenome creates a runnable binary for an ASM software object."))))
+      (ignore-phenome-errors
+        (is (phenome *gcd* :bin bin)
+            "Phenome works on an ASM software object.")
+        (is (probe-file bin)
+            "Phenome creates the binary file for an ASM software object.")
+        (is (nth-value 2 (shell "~a 1 1" bin))
+            "Phenome creates a runnable binary for an ASM software object.")))))
 
 
 ;;; ELF representation.
@@ -1265,18 +1266,11 @@ suite should be run and nil otherwise."
   (with-fixture hello-world-clang
     (with-temp-file (bin)
       (multiple-value-bind (bin errno stderr stdout src)
-          (phenome *hello-world*)
+          (ignore-phenome-errors
+            (phenome *hello-world* :bin bin))
         (declare (ignorable stderr stdout src))
         (is (probe-file bin))
         (is (= 0 errno))))))
-
-(deftest can-timeout-compiling-clang-software-object ()
-  (with-fixture hello-world-clang
-    ;; NOTE: The very small decimal in the following is required for
-    ;;       Clozure CL to timeout successfully.  On SBCL a simple "0"
-    ;;       will suffice.
-    (let ((sel::*compilation-timeout* 0.0000001))
-      (phenome *hello-world*))))
 
 (deftest can-apply-mutation-w-value1 ()
   (with-fixture hello-world-clang
@@ -2908,7 +2902,7 @@ AST holding STMT is found."
                                     (cons :stmt2 (stmt-with-text *huf* "bc=0"))))))
       (is (iter (for var = (apply-mutation (copy *huf*) mut))
                 (as count upfrom 0)
-                (when (compile-p var) (return t))
+                (when (phenome-p var) (return t))
                 (when (> count 100) (return nil)))
           "Is able to rebind successfully with 100 tries"))))
 
@@ -3002,7 +2996,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text variant "bc=0"))
                     (cons :stmt2
                           (stmt-with-text variant "n > 0")))))
-      (is (compile-p variant)))))
+      (is (phenome-p variant)))))
 
 (deftest insert-makes-expected-change ()
   (with-fixture huf-clang
@@ -3128,8 +3122,8 @@ Useful for printing or returning differences in the REPL."
                                      :compiler "gcc"
                                      :flags '("-m32" "-O0" "-g"))
                                    genome)))
-      (is (compile-p (fix-compilation broken-clang 1)))
-      (is (compile-p (fix-compilation broken-gcc 1))))))
+      (is (phenome-p (fix-compilation broken-clang 1)))
+      (is (phenome-p (fix-compilation broken-gcc 1))))))
 
 
 ;;;; Crossover tests.
@@ -3706,7 +3700,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *fib* "return x"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *fib* "x = x + y")
@@ -3730,7 +3724,7 @@ Useful for printing or returning differences in the REPL."
                  (first)))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *fib* "int t = x")
@@ -3752,7 +3746,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *collatz* "++k"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (equalp (cons (stmt-with-text *collatz* "m /= 2")
                           (stmt-with-text *collatz* "++k"))
                     effective-a-pts)))))
@@ -3767,7 +3761,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *collatz* "return k"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *collatz* "++k")
@@ -3787,7 +3781,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "return 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
@@ -3805,7 +3799,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "return 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-starting-with-text *soft* "for (j = 0")
@@ -3825,7 +3819,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "return 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc + argc)")
@@ -3844,7 +3838,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *fib* "return x"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *fib* "int x = 0")
@@ -3861,7 +3855,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *fib* "x = x + y"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *fib*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *fib* "int x = 0")
@@ -3880,7 +3874,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *collatz* "return k"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *collatz* "int k = 0")
@@ -3899,7 +3893,7 @@ Useful for printing or returning differences in the REPL."
                                                          "m = 3*m + 1"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *collatz* "int k = 0")
@@ -3916,7 +3910,7 @@ Useful for printing or returning differences in the REPL."
                                          (stmt-with-text *collatz* "++k"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *collatz*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *collatz* "int k = 0")
@@ -3936,7 +3930,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "return 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "int i")
@@ -3954,7 +3948,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "printf(\"%d\\n\", i+j)"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "int i")
@@ -3972,7 +3966,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-starting-with-text *soft* "for (i = 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "int i")
@@ -3990,7 +3984,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-starting-with-text *soft* "for (j = 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "int i")
@@ -4010,7 +4004,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "printf(\"%d\\n\", argc * argc)"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft*
@@ -4030,7 +4024,7 @@ Useful for printing or returning differences in the REPL."
             (stmt-with-text *soft* "return 0"))
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (stmt-asts *soft*))
                (length (stmt-asts variant))))
         (is (equalp (cons (stmt-with-text *soft* "printf(\"%d\\n\", argc)")
@@ -4050,7 +4044,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (equalp effective-a-pts target-a-pts))))))
 
 (deftest crossover-can-match-nesting ()
@@ -4097,7 +4091,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant)))))
+        (is (phenome-p variant)))))
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int b"))
            (a-stmt2 (stmt-with-text *scopes* "int c"))
@@ -4109,7 +4103,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))))))
+        (is (phenome-p variant))))))
 
 (deftest crossover-entire-text-of-a-function ()
   ;; Entire text of a function
@@ -4131,7 +4125,7 @@ Useful for printing or returning differences in the REPL."
                 (as count upfrom 0)
                 (declare (ignorable a-pts b-pts effective-a-pts))
                 (when (and ok
-                           (compile-p variant)
+                           (phenome-p variant)
                            (= (length (asts *scopes*))
                               (length (asts variant))))
                   (return t))
@@ -4151,7 +4145,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
@@ -4168,7 +4162,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
@@ -4186,7 +4180,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
@@ -4204,7 +4198,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
@@ -4229,7 +4223,7 @@ Useful for printing or returning differences in the REPL."
                 (as count upfrom 0)
                 (declare (ignorable a-pts b-pts effective-a-pts))
                 (when (and ok
-                           (compile-p variant)
+                           (phenome-p variant)
                            (= (length (asts *scopes*))
                               (length (asts variant))))
                   (return t))
@@ -4248,7 +4242,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt1 b-stmt2)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (> (length (asts variant))
                (length (asts *scopes*))))
         ;; a is the only var in scope so all these assignments should
@@ -4270,7 +4264,7 @@ Useful for printing or returning differences in the REPL."
                                          b-stmt b-stmt)
         (declare (ignorable a-pts b-pts effective-a-pts))
         (is ok)
-        (is (compile-p variant))
+        (is (phenome-p variant))
         (is (< (length (asts variant))
                (length (asts *scopes*))))
         ;; a is the only var in scope so this assignment should
@@ -4418,7 +4412,7 @@ Useful for printing or returning differences in the REPL."
       (apply-mutation
           variant
         `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int a"))))
-      (is (compile-p variant))
+      (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant))))
       (let ((stmt (or (stmt-with-text variant "b = 13" :no-error)
@@ -4432,13 +4426,13 @@ Useful for printing or returning differences in the REPL."
       (apply-mutation
           variant
         `(cut-decl (:stmt1 . ,(stmt-with-text *scopes* "int d"))))
-      (is (compile-p variant))
+      (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))
     (when-let* ((variant (copy *scopes*))
                 (id (stmt-with-text *scopes* "int f, g" :no-error)))
       (apply-mutation variant `(cut-decl (:stmt1 . ,id)))
-      (is (compile-p variant))
+      (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
@@ -4450,7 +4444,7 @@ Useful for printing or returning differences in the REPL."
            (list (stmt-with-text *scopes* "int a"))))
       (apply-mutation variant
                       (make-instance 'swap-decls :object variant))
-      (is (compile-p variant))
+      (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
@@ -4461,7 +4455,7 @@ Useful for printing or returning differences in the REPL."
            (list (stmt-with-text *scopes* "b = 1"))))
       (apply-mutation variant
                       (make-instance 'rename-variable :object variant))
-      (is (compile-p variant))
+      (is (phenome-p variant))
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
@@ -4674,7 +4668,8 @@ Useful for printing or returning differences in the REPL."
               (count-traceable instrumented)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every {aget :c} trace))
@@ -4687,7 +4682,8 @@ Useful for printing or returning differences in the REPL."
                                              [{eq 93} #'ast-counter]})))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every {aget :c} trace))
@@ -4711,7 +4707,8 @@ Useful for printing or returning differences in the REPL."
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every {aget :c} trace))
@@ -4731,7 +4728,8 @@ Useful for printing or returning differences in the REPL."
         "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (every [«or {equalp #(1 2)} {equalp #(3 4)}»
@@ -4745,7 +4743,8 @@ Useful for printing or returning differences in the REPL."
         (let ((instrumented
                (instrument (copy *gcd*) :trace-file trace)))
           (is (scan (quote-meta-chars trace) (genome-string instrumented)))
-          (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+          (is (zerop (nth-value 1 (ignore-phenome-errors
+                                    (phenome instrumented :bin bin)))))
           (is (probe-file bin))
           (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
             (declare (ignorable stdout stderr))
@@ -4768,7 +4767,8 @@ Useful for printing or returning differences in the REPL."
                     (nth location (lines instrumented))))))
       ;; Finally, lets be sure we still compile.
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (is (not (emptyp (get-gcd-trace bin))))))))
 
@@ -4786,7 +4786,8 @@ Useful for printing or returning differences in the REPL."
           cookie)
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (let ((trace (get-gcd-trace bin)))
           (is (find-if [{equalp `#(,cookie)} {aget :aux}]
@@ -4807,7 +4808,8 @@ prints unique counters in the trace"
       (instrument instrumented)
 
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome instrumented :bin bin))))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome instrumented :bin bin)))))
         (is (probe-file bin))
         (multiple-value-bind (stdout stderr errno) (shell "~a 4 8" bin)
           (declare (ignorable stdout stderr))
@@ -4851,7 +4853,8 @@ prints unique counters in the trace"
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                                (phenome *gcd* :bin bin))))
           "Successfully compiled instrumented GCD.")
       (let ((trace (get-gcd-trace bin)))
         (is (= (length trace) (count-if {assoc :c} trace))
@@ -4874,7 +4877,8 @@ prints unique counters in the trace"
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                                (phenome *gcd* :bin bin))))
           "Successfully compiled instrumented GCD.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4905,7 +4909,8 @@ prints unique counters in the trace"
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (nth-value 1 (phenome *soft* :bin bin)))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented SOFT.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4929,7 +4934,8 @@ prints unique counters in the trace"
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (nth-value 1 (phenome *soft* :bin bin)))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented SOFT.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4950,7 +4956,8 @@ prints unique counters in the trace"
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                                (phenome *gcd* :bin bin))))
           "Successfully compiled instrumented GCD.")
       (let ((trace (get-gcd-trace bin)))
         (is (listp trace) "We got a trace.")
@@ -4970,7 +4977,8 @@ prints unique counters in the trace"
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
     (with-temp-file (bin)
-      (is (zerop (nth-value 1 (phenome *soft* :bin bin)))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                                (phenome *soft* :bin bin))))
           "Successfully compiled instrumented program.")
       (let ((trace (get-gcd-trace bin)))
         (is (every [{eq 1} #'length {aget :scopes}]
@@ -5033,7 +5041,8 @@ prints unique counters in the trace"
     (with-temp-file (bin)
       (with-temp-build-dir ((directory-namestring
                              (make-pathname :directory +multi-file-dir+)))
-        (is (zerop (nth-value 1 (phenome *project* :bin bin)))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome *project* :bin bin))))
             "Successfully compiled instrumented project."))
       (with-temp-file (trace-file)
         (multiple-value-bind (stdout stderr errno)
@@ -5079,7 +5088,8 @@ prints unique counters in the trace"
                                             ast)))))
 
       (with-temp-file (bin)
-        (is (zerop (nth-value 1 (phenome *gcd* :bin bin)))
+        (is (zerop (nth-value 1 (ignore-phenome-errors
+                                  (phenome *gcd* :bin bin))))
             "Successfully compiled instrumented GCD.")
         (is (equal '((:foo . t)) (ast-aux-data stmt)))
         (let ((trace (get-gcd-trace bin)))
@@ -7386,25 +7396,21 @@ prints unique counters in the trace"
                            trace-file)))))
         (with-temp-file (bin)
           (multiple-value-bind (bin phenome-exit stderr stdout src)
-              (phenome instrumented)
+              (phenome instrumented :bin bin)
             (declare (ignorable stdout src))
 
-            (if (zerop phenome-exit)
-                (let* ((trace-results (collect-fault-loc-traces
-                                            bin
-                                            *test-suite*
-                                            read-trace-fn
-                                            made-up-bad-test))
-                       ;; Should be only 9 statements, only AST ids.
-                       ;; The first 5 elements are always the same, in
-                       ;; order.  The rest may be in an arbitrary
-                       ;; order.  Compare only the first 5.
-                       (bad-stmts (mapcar #'cdar (rinard 5 instrumented
-                                                         trace-results)))
-                       (gold-set-prefix (list 54 23 12 10 4)))
-                  ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
-                  ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
-                  (is (equal bad-stmts gold-set-prefix)))
-                (progn
-                  (error "Couldn't build phenome: ~a" stderr)
-                  (is nil)))))))))
+            (let* ((trace-results (collect-fault-loc-traces
+                                        bin
+                                        *test-suite*
+                                        read-trace-fn
+                                        made-up-bad-test))
+                   ;; Should be only 9 statements, only AST ids.
+                   ;; The first 5 elements are always the same, in
+                   ;; order.  The rest may be in an arbitrary
+                   ;; order.  Compare only the first 5.
+                   (bad-stmts (mapcar #'cdar (rinard 5 instrumented
+                                                     trace-results)))
+                   (gold-set-prefix (list 54 23 12 10 4)))
+              ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
+              ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
+              (is (equal bad-stmts gold-set-prefix)))))))))

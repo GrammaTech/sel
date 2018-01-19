@@ -202,8 +202,8 @@ locations in variant. Return the first successful result result."
          ;; Build failures can happen if we pick a bad
          ;; condition to modify. Ignore them and try the
          ;; next target.
-         (build-failed (err)
-                       (note 1 "~a~%" err)))
+         (phenome (err)
+                  (note 1 "~a~%" err)))
         do (when result
              (setf (fitness result) (test-fitness result))
              (return-from try-synthesis result)))))))

@@ -41,11 +41,7 @@ PREDICATE MAX and BIN keyword arguments."))
   (if (probe-file bin)
       (setf delete-bin-p nil)
       (restart-case
-          (unless (phenome obj :bin bin)
-            (error (make-condition 'trace-error
-                                  :text "Unable to compile software."
-                                  :obj obj
-                                  :bin bin)))
+          (phenome obj :bin bin)
         (skip-trace-collection ()
           :report "Skip trace collection and leave object unchanged."
           (return-from collect-traces nil))
@@ -84,11 +80,7 @@ times."))
   (if (probe-file bin)
       (setf delete-bin-p nil)
       (restart-case
-          (unless (phenome obj :bin bin)
-            (error (make-condition 'trace-error
-                                   :text "Unable to compile software."
-                                   :obj obj
-                                   :bin bin)))
+          (phenome obj :bin bin)
         (skip-test-case ()
           :report "Skip trace collection for test case and return NIL."
           (return-from collect-trace nil))))

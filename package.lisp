@@ -56,9 +56,10 @@
    :*mutation-improvements*
    :genome
    :phenome
+   :phenome-p
+   :ignore-phenome-errors
    :return-nil-for-bin
    :retry-project-build
-   :compile-p
    :evaluate
    :copy
    :size
@@ -473,8 +474,6 @@
    :run-test
    :instrumentation-exprs
    :synthesize-condition
-   :build
-   :build-failed
    :add-condition
    :tighten-condition
    :loosen-condition

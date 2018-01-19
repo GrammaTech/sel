@@ -39,7 +39,8 @@ expression match.")
      ;; Compile
      (with-temp-file (bin)
        (multiple-value-bind (bin errno stderr)
-         (phenome obj :bin bin)
+         (ignore-phenome-errors
+           (phenome obj :bin bin))
          (declare (ignorable bin))
          (when (zerop errno)
            (return))

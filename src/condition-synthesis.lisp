@@ -524,31 +524,6 @@ environments.
     (t (concatenate 'string (subseq bit-str 0 (1- (length bit-str))) "1"))))
 
 
-(define-condition build-failed (error)
-  ((stdout :initarg :stdout :initform nil :reader stdout)
-   (stderr :initarg :stderr :initform nil :reader stderr)
-   (exit-code :initarg :exit-code :initform nil :reader exit-code))
-  (:report (lambda (condition stream)
-             (format stream "Build failed with status ~a: ~%~a~%~a~%"
-                     (exit-code condition) (stdout condition)
-                     (stderr condition))))
-  (:documentation "DOCFIXME"))
-
-
-(defun build (software bin)
-  "DOCFIXME
-* SOFTWARE DOCFIXME
-* BIN DOCFIXME
-"
-  (multiple-value-bind (bin errno stderr stdout) (phenome software :bin bin)
-    (if (zerop errno)
-        bin
-        (error (make-condition 'build-failed
-                 :stdout stdout
-                 :stderr stderr
-                 :exit-code errno)))))
-
-
 (defun build-with-abst-cond (software repair-mutation bin extra-exprs)
   "DOCFIXME
 * SOFTWARE DOCFIXME
@@ -564,7 +539,7 @@ environments.
   ;; instrument to output in-scope vars at abst_cond() invocations
   (instrument-abst-cond-traces software *trace-file* extra-exprs)
   ;; Build the whole project
-  (build software bin))
+  (phenome software :bin bin))
 
 
 (defun collect-negative-conds-and-envs (bin neg-tests loop-condition)
@@ -686,7 +661,7 @@ DOCFIXME The return value is a string of the form \"\(x == val\)\",
   "Build SOFTWARE and run TEST-SUITE, dividing the test cases into positive and
 negative tests."
   (with-temp-file (bin)
-    (build software bin)
+    (phenome software :bin bin)
     (iter (for case in (test-cases test-suite))
           (let ((test-fitness (evaluate bin case
                                         :output :stream
@@ -759,11 +734,14 @@ DOCFIXME neither does this By default, the fitness script should run all tests a
                 ;; If the build fails, ignore it and continue to the next
                 ;; condition.
                 (let ((build-result
-                        (handler-case (build test-repair bin)
-                          (build-failed (e)
-                            (note 3 "Build failed (~a) applying condition ~a: ~a"
-                                  (exit-code e) best-cond (stderr e))
-                            nil))))
+                        (handler-bind
+                            ((phenome
+                               (lambda (e)
+                                 (note 3
+                                       "Build failed applying condition ~a: ~a"
+                                       best-cond (text e))
+                                 (invoke-restart 'return-nil-for-bin))))
+                          (phenome test-repair :bin bin))))
                   (when build-result
                     (let ((new-fitness (mapcar
                                         (lambda (test-case)

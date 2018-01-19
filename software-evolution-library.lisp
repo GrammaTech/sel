@@ -85,6 +85,23 @@ relevant to phenome generation, (4) STDOUT of the compilation process,
 or a string holding non-error output relevant to phenome
 generation, (5) the source file name used during compilation. "))
 
+(defgeneric phenome-p (software)
+  (:documentation "Return non-nil if SOFTWARE has a phenotype."))
+
+(defmacro ignore-phenome-errors (&rest body)
+  "Handle errors in `phenome' execution by returning nil as the
+first value from the `phenome' method."
+  `(handler-bind ((phenome
+                    (lambda (c)
+                      (declare (ignorable c))
+                      (invoke-restart 'return-nil-for-bin))))
+     (progn ,@body)))
+
+(defmethod phenome-p ((obj software))
+  (ignore-phenome-errors
+    (with-temp-file (bin)
+      (phenome obj :bin bin))))
+
 (defgeneric evaluate (function software &rest extra-keys &key &allow-other-keys)
   (:documentation "Evaluate the software returning a numerical fitness."))
 

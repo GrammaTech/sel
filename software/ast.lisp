@@ -28,9 +28,6 @@
 (in-readtable :curry-compose-reader-macros)
 
 
-(defvar *compilation-timeout* 600
-  "Timeout compilation after this number of seconds has elapsed")
-
 ;;; ast software objects
 (define-software ast (software)
   ((genome   :initarg :genome   :accessor genome   :initform ""
@@ -49,17 +46,17 @@
   (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext obj)) (genome-string obj)
     (multiple-value-bind (stdout stderr errno)
-      (handler-case
-          (with-timeout (*compilation-timeout*)
-            (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj)))
-        (timeout (e)
-          (declare (ignorable e))
-          (values "" "" 124)))
-      (values (when (zerop errno) bin) errno stderr stdout src))))
-
-(defmethod compile-p ((obj ast))
-  (with-temp-file (bin)
-    (zerop (second (multiple-value-list (phenome obj :bin bin))))))
+        (shell "~a ~a -o ~a ~{~a~^ ~}" (compiler obj) src bin (flags obj))
+      (restart-case
+          (unless (zerop errno)
+            (error (make-condition 'phenome :text stderr :obj obj :loc src)))
+        (retry-project-build ()
+          :report "Retry `phenome' on OBJ."
+          (phenome obj :bin bin))
+        (return-nil-for-bin ()
+          :report "Allow failure returning NIL for bin."
+          (setf bin nil)))
+      (values bin errno stderr stdout src))))
 
 (defmethod genome-string ((ast ast) &optional stream)
   (let ((genome (or (genome ast) "")))
