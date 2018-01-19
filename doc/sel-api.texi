@@ -1,11 +1,41 @@
 
+
+
+SEL is a Lisp @emph{package}, in essence, a container for symbols allowing
+the creation of seperate namespaces within a program. By default,
+functions/variables defined within SEL are private to the package; to
+export the symbol for use outside the package, it must be added to the
+@code{:export} list in package.lisp. If the symbol is not exported and an
+attempt to utilize it outside the package is made, an undefined symbol
+error will result.
+
+
+
 @itemize
+@item @ref{api-software-objects, Software Objects}
+
 @item @ref{api-test-suites, Test Suites}
 @item @ref{api-condition-synthesis, Condition Synthesis}
 @item @ref{api-clang-tokenizer, Clang Tokenizer}
 @item @ref{api-style-features, Style Features}
 @end itemize
 
+
+
+@anchor{api-software-objects}
+@section API: Software Objects
+
+@include include/class-sel-software.texinfo
+
+@include include/class-sel-asm.texinfo
+@include include/class-sel-cil.texinfo
+@include include/class-sel-clang.texinfo
+@include include/class-sel-elf-cisc.texinfo
+@include include/class-sel-elf-mips.texinfo
+@include include/class-sel-forth.texinfo
+@include include/class-sel-lisp.texinfo
+@include include/class-sel-llvm.texinfo
+@include include/macro-sel-define-software.texinfo
 
 @anchor{api-test-suites}
 @section API: Test Suites
@@ -117,9 +147,9 @@ More information about the tokenizer component is provided in section
 @section API: everything else
 
 @include include/struct-sel-clang-ast.texinfo
-@include include/class-sel-clang.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-clang.texinfo
 @include include/class-sel-explode-for-loop.texinfo
-@include include/class-sel-llvm.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-llvm.texinfo
 @include include/class-sel-mutation.texinfo
 @include include/var-sel-star-allow-bindings-to-globals-bias-star.texinfo
 @include include/var-sel-star-asm-mutation-types-star.texinfo
@@ -176,7 +206,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-ast-declarations.texinfo
 @include include/struct-sel-ast-ref.texinfo
 @include include/struct-sel-clang-type.texinfo
-@include include/class-sel-asm.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-asm.texinfo
 @include include/class-sel-asm-replace-operand.texinfo
 @include include/class-sel-coalesce-while-loop.texinfo
 @include include/var-sel-star-bias-toward-dynamic-mutation-star.texinfo
@@ -188,7 +218,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-block-p.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-build-op.texinfo
 @include include/fun-sel-can-be-made-traceable-p.texinfo
-@include include/class-sel-cil.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-cil.texinfo
 @include include/var-sel-star-fitness-predicate-star.texinfo
 @include include/var-sel-star-start-time-star.texinfo
 @include include/fun-sel-clang-instrument.texinfo
@@ -202,13 +232,13 @@ More information about the tokenizer component is provided in section
 @c TEST SUITES @include include/class-sel-test-case.texinfo
 @include include/var-sel-star-lexicase-key-star.texinfo
 @include include/constant-sel-plus-c-pointer-unary-operators-plus.texinfo
-@include include/class-sel-elf-cisc.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-elf-cisc.texinfo
 @include include/macro-sel-compose-mutations.texinfo
 @include include/macro-sel-evolve.texinfo
 @include include/fun-sel-asm-nth-instruction.texinfo
 @include include/fun-sel-crossed.texinfo
 @include include/fun-sel-declared-type.texinfo
-@include include/class-sel-elf-mips.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-elf-mips.texinfo
 @include include/fun-sel-default-random-winner.texinfo
 @include include/fun-sel-default-select-best.texinfo
 @include include/fun-sel-delete-decl-stmts.texinfo
@@ -251,7 +281,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-instrument.texinfo
 @include include/fun-sel-instrumentation-files.texinfo
 @include include/fun-sel-instrumented-p.texinfo
-@include include/class-sel-lisp.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-lisp.texinfo
 @include include/var-sel-star-clang-w-fodder-mutation-types-star.texinfo
 @include include/var-sel-star-crossover-function-probability-star.texinfo
 @include include/fun-sel-lexicase-select.texinfo
@@ -298,7 +328,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-select-intraprocedural-pair.texinfo
 @include include/fun-sel-similar-snippets.texinfo
 @include include/fun-sel-size.texinfo
-@include include/class-sel-software.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-software.texinfo
 @include include/fun-sel-source-text.texinfo
 @include include/fun-sel-stmt-range.texinfo
 @c STYLE FEATURES @include include/class-sel-style-feature.texinfo

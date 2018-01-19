@@ -160,7 +160,7 @@ exited."))
 
 This is essentially a wrapper around the SBCL or CCL ‘run-program’ methods and any EXTRA-KEYS will be passed through to that method.
 
-* PHENOME the phenome of the `software-object' under test.
+* PHENOME the phenome of the `software' object under test.
 * TEST-CASE the `test-case' to run.
 * EXTRA-KEYS additional keyword arguments to pass to the SBCL or CCL `run-program' method. 
 
@@ -285,7 +285,7 @@ Default behavior is to return 1 if the exit code is 0 and 0 otherwise.
 Override this method if you want to use other criteria, such as
 test output, to determine the fitness score.
 
-- PHENOME the phenome of the `software-object' under test.
+- PHENOME the phenome of the `software' object under test.
 
 - OBJ the `test-case' to run.
 

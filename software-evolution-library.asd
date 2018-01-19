@@ -58,6 +58,7 @@ techniques."
              (:file "clang" :depends-on ("ast"))
              (:file "clang-expression" :depends-on ("clang" "expression"))
              (:file "clang-w-fodder" :depends-on ("clang"))
+             (:file "forth" :depends-on ("simple"))
              (:file "llvm" :depends-on ("ast"))
              (:file "project")
              (:file "clang-project" :depends-on ("project" "clang"))))
