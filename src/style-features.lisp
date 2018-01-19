@@ -92,11 +92,14 @@ accompanying merge function for combining feature vectors."))
   (:documentation
    "Type of software objects that can have style features extracted."))
 
-(define-software style-project (styleable project) ())
+(define-software style-project (styleable project) ()
+  (:documentation "DOCFIXME"))
+
 
 (defmacro define-feature (feature-name feature-desc
                           (extractor-fn eargs extractor-desc &rest ebody)
                                                                (merge-fn &optional (margs nil margs-p) &rest mbody))
+   "DOCFIXME"
   `(progn
      ;; define merge-fn if args and body are provided
      ;; (otherwise, assume the function is already defined)
@@ -150,6 +153,11 @@ the result."))
 (defmethod uni-grams ((items list)
                       &key (key #'identity)
                            (uni-grams-ht (make-hash-table :test #'equal)))
+  "DOCFIXME
+* ITEMS DOCFIXME
+* KEY DOCFIXME
+* UNI-GRAMS-HT DOCFIXME
+"
   (mapcar (lambda (item)
             (let ((key (funcall key item)))
               (setf (gethash key uni-grams-ht)
@@ -163,6 +171,9 @@ the result."))
 The elements of the vector are the values corresponding to SORTED-KEYS."))
 
 (defmethod to-feature-vector ((feature-values hash-table) (sorted-keys list))
+  "DOCFIXME
+* FEATURE-VALUES DOCFIXME
+* SORTED-KEYS DOCFIXME"
   (let ((feature-vec (make-array (length sorted-keys) :initial-element nil)))
     (iter (for key in sorted-keys)
           (for i upfrom 0)
@@ -171,15 +182,18 @@ The elements of the vector are the values corresponding to SORTED-KEYS."))
     feature-vec))
 
 (defun normalize-vector (vec)
+  "DOCFIXME
+* VEC DOCFIXME"
   (let ((sum (reduce #'+ vec)))
     (values (map 'vector {/ _ sum} vec)
             sum)))
 
 (defgeneric ast-node-types (software)
   (:documentation
-   "For a SOFTWARE object, return a list of the node types present in its ASTs."))
+   "Return a list of the node types present in the ASTs in SOFTWARE."))
 
 (defmethod ast-node-types ((clang clang))
+  "DOCFIXME"
   (mapcar #'ast-class (asts clang)))
 
 (defgeneric merge-normalized (s1 denom1 s2 denom2)
@@ -189,6 +203,12 @@ denominators DENOM1 and DENOM2, respectively."))
 
 (defmethod merge-normalized ((vec1 vector) (denom1 number)
                              (vec2 vector) (denom2 number))
+  "DOCFIXME
+* VEC1 DOCFIXME
+* DENOM1 DOCFIXME
+* VEC2 DOCFIXME
+* DENOM2 DOCFIXME
+"
   (let ((v1 (map 'vector {* denom1} vec1))
         (v2 (map 'vector {* denom2} vec2)))
     (values (map 'vector [{/ _ (+ denom1 denom2)} #'+]
@@ -199,7 +219,10 @@ denominators DENOM1 and DENOM2, respectively."))
 (define-feature ast-node-type-tf-feature
     "Term frequency of AST node types."
   (ast-node-type-tf-extractor ((clang clang))
-    "Return a vector with counts of occurrences of each possible AST node type."
+    "Return a vector with counts of occurrences of each possible AST node type.
+
+The returned vector will have one entry for each ast class listed in `clang-c-ast-classes'.
+"
     (-<>> (ast-node-types clang)
           (uni-grams)
           (to-feature-vector <> *clang-c-ast-classes*)
@@ -212,11 +235,21 @@ denominators DENOM1 and DENOM2, respectively."))
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
 (defmethod ast-depth ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOXFIXME
+"
   (1- (length (get-parent-asts clang ast))))
 
 
-(defvar *ast-depths-cache* (make-hash-table :test #'equal))
+(defvar *ast-depths-cache* (make-hash-table :test #'equal)
+  "DOCFIXME")
+
 (defmethod ast-depth :around ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOXFIXME
+"
   (let* ((result (gethash ast *ast-depths-cache* (call-next-method))))
     (setf (gethash ast *ast-depths-cache*)
           result)))
@@ -225,6 +258,10 @@ denominators DENOM1 and DENOM2, respectively."))
   (:documentation "Return the maximum depth of the ASTS in SOFTWARE."))
 
 (defmethod max-depth-ast ((clang clang) asts)
+  "DOCFIXME
+* CLANG DOCFIXME
+* ASTS DOXFIXME
+"
   (apply #'max
          (mapcar {ast-depth clang} asts)))
 
@@ -243,7 +280,7 @@ Metadata, META1 and META2 is ignored."
   (merge-max))
 
 (define-feature avg-depth-ast-feature
-    "Average depth of each type of node in the AST."
+    "Average depth of nodes in the AST."
   (avg-depth-ast-extractor ((clang clang))
     "Return 1-element feature vector of the average depth of ASTs in SOFTWARE."
     (let ((asts (asts clang)))
@@ -256,6 +293,10 @@ Metadata, META1 and META2 is ignored."
    "Average depth of nodes with type NODE-TYPE in the ASTs in SOFTWARE."))
 
 (defmethod ast-node-type-avg-depth ((clang clang) (node-type symbol))
+  "DOCFIXME
+* CLANG DOCFIXME
+* NODE-TYPE DOXFIXME
+"
   (bind ((node-asts (remove-if-not {eql node-type} (asts clang)
                                    :key #'ast-class))
          (depths (mapcar {ast-depth clang} node-asts)))
@@ -268,8 +309,10 @@ Metadata, META1 and META2 is ignored."
    "Return a list of all possible types of AST nodes for ASTs in SOFTWARE."))
 
 (defmethod all-ast-node-types ((clang clang))
+  "DOCFIXME"
   (declare (ignorable clang))
   *clang-c-ast-classes*)
+
 
 (defun merge-means (means1 lens1 means2 lens2)
   "Return a new vector merging vectors MEANS1 and MEANS2 whose elements are means.
@@ -314,6 +357,11 @@ paired with another such value to create a key."))
 (defmethod bi-grams ((items list)
                      &key (key #'identity)
                        (bi-grams-ht (make-hash-table :test #'equal)))
+  "DOCFIXME
+* ITEMS DOCFIXME
+* KEY DOCFIXME
+* BI-GRAMS-HT DOCFIXME
+"
   (mapcar
    ;; function applied to each item in the list (fst) and its successor (next)
    (lambda (fst next)
@@ -331,12 +379,20 @@ paired with another such value to create a key."))
 (defmethod ast-full-stmt-bi-grams ((clang clang)
                                    &key (bi-grams-ht
                                          (make-hash-table :test #'equal)))
+  "DOCFIXME
+* CLANG DOCFIXME
+* BI-GRAMS-HT DOXFIXME
+"
   (let ((full-stmts (remove-if-not #'ast-full-stmt (asts clang)))
         (key-fn #'ast-class))
     (bi-grams full-stmts :key key-fn :bi-grams-ht bi-grams-ht)))
 
 (defmethod ast-bi-grams ((clang clang)
                          &key (bi-grams-ht (make-hash-table :test #'equal)))
+  "DOCFIXME
+* CLANG DOCFIXME
+* BI-GRAMS-HT DOCFIXME
+"
   (bi-grams (asts clang)
             :key #'ast-class
             :bi-grams-ht bi-grams-ht))
@@ -346,6 +402,10 @@ paired with another such value to create a key."))
 vector for a SOFTWARE object."))
 
 (defmethod bi-grams-hashtable-to-feature ((clang clang) (bi-grams hash-table))
+  "DOCFIXME
+* CLANG DOCFIXME
+* BI-GRAMS DOCFIXME
+"
   (let ((keys (mappend (lambda (k1)
                          (mapcar {cons k1} *clang-c-ast-classes*))
                        *clang-c-ast-classes*)))
@@ -373,12 +433,21 @@ an AST."
 
 ;;; Keyword feature extractors
 (defmethod auto-count-keyword ((keyword string) (ast ast-ref))
+  "DOCFIXME
+* KEYWORD DOCFIXME
+* AST DOCFIXME
+"
   (if (member keyword
               (aget (ast-class ast) *clang-c-ast-keywords-auto-count*)
               :test #'string=)
       1 0))
 
 (defmethod search-keyword ((clang clang) (keyword string) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* KEYWORD DOCFIXME
+* AST DOCFIXME
+"
   (let ((ast-class (ast-class ast)))
     (if (not (member keyword
                      (aget ast-class *clang-c-ast-keywords-search-count*
@@ -402,6 +471,11 @@ an AST."
           (t 0)))))
 
 (defmethod ast-keyword-tf ((clang clang) (keyword string) ast)
+  "DOCFIXME
+* CLANG DOCFIXME
+* KEYWORD DOCFIXME
+* AST DOCFIXME
+"
   (+ (auto-count-keyword keyword ast)
      (search-keyword clang keyword ast)))
 
@@ -410,13 +484,21 @@ an AST."
    "Return the list of possible keywords that may appear in SOFTWARE."))
 
 (defmethod all-keywords ((clang clang))
+  "DOCFIXME
+
+* CLANG DOCFIXME
+"
   *clang-c-keywords*)
 
 (define-feature ast-keyword-tf-feature
     "Term frequency of keywords in an AST."
   (ast-keyword-tf-extractor ((clang clang))
     "Return a vector containing term frequencies for all possible keywords in
-SOFTWARE (see also `all-keywords')."
+SOFTWARE (see also `all-keywords').
+
+The returned feature vector will have one entry for each keyword
+listed in `*clang-c-keywords*'.
+"
     (iter (for keyword in (all-keywords clang))
           (collect (reduce #'+ (mapcar {ast-keyword-tf clang keyword}
                                        (asts clang)))
@@ -428,7 +510,8 @@ SOFTWARE (see also `all-keywords')."
   (list ast-node-type-tf-feature max-depth-ast-feature
         avg-depth-ast-feature ast-node-type-avg-depth-feature
         ast-full-stmt-bi-grams-feature ast-bi-grams-feature
-        ast-keyword-tf-feature))
+        ast-keyword-tf-feature)
+    "DOCFIXME")
 
 
 ;;; Feature extraction
@@ -443,6 +526,11 @@ metadata."))
 
 (defmethod merge-styleables ((style1 styleable) (style2 styleable)
                              &key (result (make-instance 'styleable)))
+  "DOCFIXME
+* STYLE1 DOCFIXME
+* STYLE2 DOCFIXME
+* RESULT DOCFIXME
+"
   (assert (= (length (feature-vecs style1))
              (length (feature-vecs style2))
              (length (feature-vec-meta style1))
@@ -475,6 +563,9 @@ Updates the corresponding feature-vector and feature-vec-meta data in STYLEABLE
 and returns two values: the extracted feature vector and its metadata."))
 
 (defmethod extract-feature ((style styleable) (feature style-feature))
+  "DOCFIXME
+* STYLE DOCFIXME
+* FEATURE DOCFIXME"
   (let ((index (position feature (features style)))
         (num-features (length (features style))))
     (when index
@@ -496,6 +587,10 @@ Returns two values: a vector of feature vectors and a vector of metadata (used
 by feature merge functions)."))
 
 (defmethod extract-features ((style styleable) &key (features nil))
+  "DOCFIXME
+* STYLE DOCFIXME
+* FEATURES DOCFIXME
+"
   (iter (for feature in (or features (features style)))
         (multiple-value-bind (vec meta) (extract-feature style feature)
           (collect vec into vecs)
@@ -504,6 +599,10 @@ by feature merge functions)."))
                                    (coerce metas 'vector)))))))
 
 (defun update-project-features (project &key (features nil))
+  "DOCFIXME
+* PROJECT DOCFIXME
+* FEATURES DOCFIXME
+"
   (iter (for feature in features)
         ;; assume index of feature is the same across project
         ;; and all objects in project
@@ -533,6 +632,11 @@ by feature merge functions)."))
 (defmethod extract-features ((project style-project)
                              &key (features *feature-extractors*)
                                (files nil))
+  "DOCFIXME
+* PROJECT DOCFIXME
+* FEATURES DOCFIXME
+* FILES DOCFIXME
+"
   (iter (for (file . obj) in (or files (all-files project)))
         (declare (ignorable file))
         (extract-features obj :features features))
@@ -548,6 +652,10 @@ Returns two values: a vector of feature vectors and a vector of metadata."))
 
 (defmethod extract-baseline-features ((style styleable)
                                       &key (features *feature-extractors*))
+  "DOCFIXME
+* STYLE DOCFIXME
+* FEATURES DOCFIXME
+"
   (when features
     (setf (features style) features))
   (extract-features style :features features))
