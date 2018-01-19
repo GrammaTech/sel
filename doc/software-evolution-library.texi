@@ -1,4 +1,4 @@
-\input texinfo
+\Input texinfo
 @c @setfilename emacs-web-server.info
 @documentencoding utf-8
 @settitle Software Evolution Library
@@ -34,6 +34,15 @@ A copy of the license is included in the section entitled
 @contents
 
 
+@macro refapiclass{name}
+@ref{Class \name\, @code{\name\}}
+@end macro
+
+@macro refapimacro{name}
+@ref{Macro \name\, @code{\name\}}
+@end macro
+
+
 @ifnottex
 @node Top, Introduction, (dir), (dir)
 @top Software Evolution Library
@@ -54,10 +63,10 @@ Engineering (SBSE) techniques.
 
 
 @menu
-* Introduction::                What's it for?
-* Implementation::              How's it implemented?
-* Components::                  What's it provide?
-* Usage::                       How's it used?
+* Introduction::                What is SEL?
+* Implementation::              How SEL is implemented.
+* Components::                  Components provided by SEL.
+* Usage::                       Using SEL, including examples.
 * Troubleshooting::             Solutions for build and test issues.
 
 
@@ -66,9 +75,6 @@ SEL API Reference
 * SEL API::                     Public functions, variables, and macros
 * SEL/Utility API::             Public functions, variables, and macros
 * SEL/View API::                Public functions, variables, and macro
-
-Included Libraries
-* SEL/Test Library::            Unit tests.
 
 Appendices
 * General Lisp Advice::         Information for those new to Common Lisp
@@ -157,7 +163,7 @@ representing a range of different software artifacts types, shown in
 the table below.
 
 Additionally, the flexible design of SEL makes it possible to add new
-software object kinds. Refer to the documentation FIXME LINK for
+software object kinds. See section @ref{Software Objects} for
 information about creating new software objects.
 
 
@@ -243,11 +249,9 @@ First, @ref{Installation, install SEL and its dependencies}.
 
 Once SEL is installed, try out some of the @ref{Examples, example code}.
 
-If you are ready to try using SEL in your own code, consult the API documentation FIXME LINK.
+If you are ready to try using SEL in your own code, consult the
+@ref{SEL API, API documentation}.
 
-If you have questions, please refer to the [FAQ](FAQ.html) to make
-sure your question hasn't already been answered before reporting an
-issue.
 
 @subsection Citing
 
@@ -338,23 +342,73 @@ shown along with the software object class hierarchy.}
 @section Software Objects
 @cindex software objects
 
+
+@subsection Available software object types
+
+
 The following types of software objects are supported.
 
 @c DOCFIXME: Turn this into a table indicating relative maturity of each.
 
-asm @ref{Class asm}
 
-cil @ref{Class cil}
 
-clang @ref{Class clang}
+@multitable {compiled assembler  ASM  } {experimental}
+@end multitable
 
-llvm @ref{Class llvm}
 
-elf @ref{Class elf-mips}
+@multitable {compiled assembler (ASM)  } {@code{elf-mips}  } {experimental  }
 
-elf @ref{Class elf-cisc}
+@headitem  Software type @tab SEL Class @tab Maturity
 
-lisp @ref{Class lisp}
+@item C and C++ source
+      @tab @refapiclass{clang}
+      @tab mature
+
+@item compiled assembler (ASM)
+      @tab @refapiclass{asm}
+      @tab mature
+
+
+@item linked ELF binaries
+      @tab @refapiclass{elf-mips} @*  @refapiclass{elf-cisc}
+      @tab mature
+      
+@item LLVM IR
+      @tab @refapiclass{llvm}
+      @tab experimental
+
+@item CIL
+      @tab @refapiclass{cil}
+      @tab experimental
+
+@item LISP
+      @tab @refapiclass{lisp}
+      @tab experimental
+
+@item Forth
+      @tab @refapiclass{forth}
+      @tab experimental
+
+@end multitable
+
+
+
+
+@subsection Adding new software object types
+
+SEL software objects should derive from the most-relevant base
+class. For source code based software objects, this is the 
+@c @refapiclass{ast}
+@code{ast} class. To define a new software object type from an
+existing base class, use macro @refapimacro{define-software}. 
+
+
+@lisp
+(define-software new-software-type (base-software-type)
+  ())
+@end lisp
+
+
 
 @node Software Methods, Global Variables, Software Objects, Implementation
 @section Software Methods
@@ -870,20 +924,12 @@ with the following.
 @appendix SEL Utility API
 @include sel-utility-api.texi
 
-@node SEL/View API, SEL/Test Library, SEL/Utility API, Top
+@node SEL/View API, General Lisp Advice, SEL/Utility API, Top
 @appendix SEL View API
 @include sel-view-api.texi
 
 
-@node SEL/Test Library, General Lisp Advice, SEL/View API, Top
-@chapter SEL/Test Library
-@cindex test
-
-@include sel-test.texi
-
-
-
-@node General Lisp Advice, Getting Started with Lisp, SEL/Test Library, Top
+@node General Lisp Advice, Getting Started with Lisp, SEL/View API, Top
 @appendix General Lisp Advice
 
 @menu

@@ -42,7 +42,8 @@
    (ext      :initarg :ext      :accessor ext      :initform "c"
              :copier copy-tree)
    (raw-size :initarg :size     :accessor raw-size :initform nil
-             :copier :none)))
+             :copier :none))
+  (:documentation "DOXFIXME"))
 
 (defmethod phenome ((obj ast) &key (bin (temp-file-name)))
   #-ccl (declare (values t fixnum string string string))

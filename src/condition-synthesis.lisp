@@ -65,10 +65,7 @@ DOCFIXME return value
 
 
 (defgeneric valid-targets (mutation software)
-  (:documentation "Return a list of the locations in SOFTWARE where MUTATION can be applied.
-* MUTATION a `mutation'. 
-* SOFTWARE a `software-object'. 
-"))
+  (:documentation "Return a list of the locations in SOFTWARE where MUTATION can be applied."))
 
 
 (defmethod valid-targets ((mutation refine-condition) software)
