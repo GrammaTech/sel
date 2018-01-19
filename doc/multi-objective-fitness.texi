@@ -19,7 +19,9 @@ population. The same @code{*fitness-predicate*} applies to all
 objectives. It is not possible to maximize some objectives while
 minimizing others.
 
-@heading Lexicase Selection
+
+@anchor{lexicase-selection}
+@section Lexicase Selection
 Lexicase selection is a form of multi-objective optimization which
 prioritizes objectives in a different order for each selection
 event. It can be enabled by setting @code{*tournament-selector*} to

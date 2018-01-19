@@ -598,7 +598,37 @@
    :diff-feature-vectors
    :extract-features
    :extract-baseline-features
-   :merge-styleables))
+   :merge-styleables
+   :ast-node-type-tf-extractor
+   :max-depth-ast-extractor
+   :avg-depth-ast-extractor
+   :ast-node-type-avg-depth-extractor
+   :ast-full-stmt-bi-grams-extractor
+   :ast-bi-grams-extractor
+   :ast-keyword-tf-extractor
+   :*feature-extractors*
+   :ast-node-type-tf-feature
+   :max-depth-ast-feature
+   :avg-depth-ast-feature
+   :ast-node-type-avg-depth-feature
+   :ast-full-stmt-bi-grams-feature
+   :ast-bi-grams-feature
+   :ast-keyword-tf-feature
+   :merge-normalized
+   :merge-max
+   :merge-means
+   :uni-grams
+   :to-feature-vector
+   :normalize-vector
+   :ast-node-types
+   :ast-depth
+   :max-depth-ast
+   :all-ast-node-types
+   :bi-grams
+   :bi-grams-hashtable-to-feature
+   :all-keywords
+   :extract-feature
+   :update-project-features ))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

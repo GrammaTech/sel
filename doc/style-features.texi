@@ -4,8 +4,10 @@ Feature Set (CSFS) described in @cite{De-anonymizing Programmers via Code
 Stylometry} at
 @url{https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-caliskan-islam.pdf}).
 
+
+
 To extract the set of feature vectors from a software object, use
-@code{extract-features}, providing a software object and a list of
+@code{extract-features} FIXME LINK, providing a software object and a list of
 feature extractor functions.
 
 Each feature extractor function is expected to operate on a clang object and
@@ -20,46 +22,55 @@ The resulting feature vector can be used as a fitness vector with the lexicase
 evolution strategy. One application is to drive evolution towards solutions
 which better match the features of the surrounding source code.
 
+
+
+@section API Support for Feature Extraction
+
+@itemize
+
+@item @ref{doc-clang-feature-extractors,Clang Feature Extractors}
+@item @ref{doc-feature-extractor-utilities,Utilities}
+@end itemize
+
+@anchor{doc-clang-feature-extractors}
 @heading Clang Feature Extractors
 
 The following are the available AST-related feature extractors for clang
 software objects, i.e., features derived from properties of a clang AST.
 
-@table @code
-@item ast-node-type-tf-extractor
-number of nodes of each different ast-class (e.g., IfStmt or DeclStmt)
-in the AST. The resulting feature vector will have one entry for each
-ast-class listed in `*clang-c-ast-classes*'.
+@multitable {}{}
 
-@item max-depth-ast-extractor
-maximum depth of any node in the AST. The feature vector will have one
-entry.
+
+
+@item @code{ast-node-type-tf-extractor}
+      @tab number of nodes of each different ast-class (e.g., IfStmt
+or DeclStmt) in the AST. 
+
+@item @code{max-depth-ast-extractor}
+      @tab maximum depth of any node in the AST.
 
 @item avg-depth-ast-extractor
-for each ast-class, the average depth of nodes of that type in the
-AST. The resulting feature vector will have one entry for each
-ast-class in `*clang-c-ast-classes*'.
+      @tab the average depth of nodes in the AST.
 
 @item ast-full-stmt-bi-grams-extractor
-considering the ast-class of only the full statements in the AST, the
-number of occurrences of each ast-class bi-gram in the AST.
+      @tab the number of occurrences of each ast-class bi-gram for
+           full statements in the AST.
 
 @item ast-bi-grams-extractor
-considering the ast-class of each AST node, the number of occurrences
-of each ast-class bi-gram in the AST.
+      @tab the number of occurrences of each ast-class bi-gram in the
+           AST.
 
 @item ast-keyword-tf-extractor
-for each C keyword, the number of occurrences of that keyword in the
-AST. The resulting feature vector will have one entry for each keyword
-listed in `*clang-c-keywords*'.
+      @tab for each C keyword, the number of occurrences of that   
+           keyword in the AST.
 
-@end table
+@end multitable
 
-
+@anchor{doc-feature-extractor-utilities}
 @heading Utilities
 
 Generic methods for counting uni-grams or bi-grams in a list are
 provided. Refer to the documentation for @code{uni-grams} and
 @code{bi-grams} for descriptions of usage.
 
-Unit tests are included under the @code{test-style-features} suite.
+Unit tests are included under the @code{style-features} suite.
