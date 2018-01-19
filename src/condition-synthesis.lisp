@@ -683,7 +683,7 @@ TEST-SUITE?"
 
 (defun synthesize-condition (software test-suite repair-mutation
                              &key extra-instrumentation-exprs)
-  "Return T if application of REPAIR_MUTATION to SOFTWARE was successful according to TEST-SUITE, NIL otherwise. DOCFIXME is this definitely true? doc/condition-synthesis.texi previously said \"for a software object, a suite of unit tests, and a mutation which inserts an abstract condition, attempt to synthesize a condition which causes more unit tests to pass than before. Returns an updated software object\",
+  "Return T if application of REPAIR-MUTATION to SOFTWARE was successful according to TEST-SUITE, NIL otherwise. DOCFIXME is this definitely true? doc/condition-synthesis.texi previously said \"for a software object, a suite of unit tests, and a mutation which inserts an abstract condition, attempt to synthesize a condition which causes more unit tests to pass than before. Returns an updated software object\",
 
 
 * TEST-SUITE a `test-suite' containing both positive and negative test cases.

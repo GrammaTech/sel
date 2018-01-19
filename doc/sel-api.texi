@@ -109,59 +109,8 @@ More information about the tokenizer component is provided in section
 
 @anchor{api-style-features}
 @section API: Style Features
- 
-@include include/class-sel-style-feature.texinfo
-@include include/class-sel-styleable.texinfo
-@include include/class-sel-style-project.texinfo
 
-@include include/fun-sel-merge-styleables.texinfo
-@include include/fun-sel-extract-features.texinfo
-
-@include include/macro-sel-define-feature.texinfo
-
-@c ast-node-type-tf-extractor
-@c max-depth-ast-extractor
-@c avg-depth-ast-extractor
-@c ast-full-stmt-bi-grams-extractor
-@c ast-bi-grams-extractor
-@c ast-keyword-tf-extractor 
-@c *clang-c-ast-classes*
-@c *clang-c-keywords*
-@c *clang-c-ast-keywords-auto-count*
-@c *clang-c-ast-keywords-search-count*
-@c uni-grams
-@c to-feature-vector
-@c normalize-vector
-@c ast-node-types
-@c merge-normalized
-@c ast-node-type-tf-feature
-@c ast-depth
-@c *ast-depths-cache*
-@c max-depth-ast
-@c merge-max
-@c max-depth-ast-feature
-@c avg-depth-ast-feature
-@c ast-node-type-avg-depth
-@c all-ast-node-types
-@c merge-means
-@c ast-node-type-avg-depth-feature
-@c bi-grams
-@c ast-full-stmt-bi-grams
-@c ast-bi-grams
-@c bi-grams-hashable-to-feature
-@c ast-full-stmt-bi-grams-feature
-@c ast-bi-grams-feature
-@c auto-count-keyword
-@c search-keyword
-@c ast-keyword-tf
-@c all-keywords
-@c ast-keyword-tf-feature
-@c *feature-extractors*
-@c diff-feature-vectors
-@c extract-feature
-@c update-project-features
-@c extract-baseline-features
-
+@include api--style-features.texi
 
 @c ------------------------------
 
