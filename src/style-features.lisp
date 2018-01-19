@@ -88,7 +88,7 @@ accompanying merge function for combining feature vectors."))
    (feature-vec-meta
     :initarg :feature-vec-meta :initform nil
     :accessor feature-vec-meta
-    :documentation "Vector of feature vector meta-information."))
+    :documentation "Vector of feature vector metadata."))
   (:documentation
    "Type of software objects that can have style features extracted."))
 
@@ -229,7 +229,9 @@ denominators DENOM1 and DENOM2, respectively."))
   (apply #'max
          (mapcar {ast-depth clang} asts)))
 
-(defmethod merge-max ((vec1 vector) meta1 (vec2 vector) meta2)
+(defun merge-max (vec1 meta1 vec2 meta2)
+  "Return a new vector of the pair-wise maximums for values in VEC1 and VEC2.
+Metadata, META1 and META2 is ignored."
   (declare (ignorable meta1 meta2))
   (values (map 'vector #'max vec1 vec2)
           nil))
@@ -267,14 +269,19 @@ denominators DENOM1 and DENOM2, respectively."))
 
 (defgeneric all-ast-node-types (software)
   (:documentation
-   "Returns a list of all possible types of AST nodes for ASTs in SOFTWARE."))
+   "Return a list of all possible types of AST nodes for ASTs in SOFTWARE."))
 
 (defmethod all-ast-node-types ((clang clang))
   (declare (ignorable clang))
   *clang-c-ast-classes*)
 
-(defmethod merge-means ((means1 vector) (lens1 vector)
-                        (means2 vector) (lens2 vector))
+(defun merge-means (means1 lens1 means2 lens2)
+  "Return a new vector merging vectors MEANS1 and MEANS2 whose elements are means.
+Each element of MEANS1 and MEANS2 represents the mean of a set whose size is the
+corresponding element in vector LENS1 or LENS2, respectively. The result is two
+values: a vector of the combined means, and a vector of the pair-wise sums of
+LENS1 and LENS2 (i.e., the sizes of the combined sets each combined mean
+represents)."
   (values
    (map 'vector (lambda (mean1 len1 mean2 len2)
                   (if (and (zerop len1) (zerop len2))
@@ -339,6 +346,10 @@ paired with another such value to create a key."))
   (bi-grams (asts clang)
             :key #'ast-class
             :bi-grams-ht bi-grams-ht))
+
+(defgeneric bi-grams-hashtable-to-feature (software hash-table)
+  (:documentation "Convert a HASH-TABLE of bi-grams occurrences to a feature
+vector for a SOFTWARE object."))
 
 (defmethod bi-grams-hashtable-to-feature ((clang clang) (bi-grams hash-table))
   (let ((keys (mappend (lambda (k1)
@@ -427,13 +438,14 @@ SOFTWARE (see also `all-keywords')."
 
 
 ;;; Feature extraction
-(defmethod diff-feature-vectors ((vec1 vector) (vec2 vector))
+(defun diff-feature-vectors (vec1 vec2)
+  "Return a vector of the absolute differences between items in VEC1 and VEC2."
   (map 'vector [#'abs #'-] vec1 vec2))
 
 (defgeneric merge-styleables (styleable1 styleable2 &key result)
   (:documentation "Merge all feature vectors from STYLEABLE1 and STYLEABLE2.
 Returns a new `styleable' object containing the resulting feature vectors and
-meta-information."))
+metadata."))
 
 (defmethod merge-styleables ((style1 styleable) (style2 styleable)
                              &key (result (make-instance 'styleable)))
@@ -463,6 +475,11 @@ meta-information."))
                          (coerce fmetas 'vector))
                    (return result)))))
 
+(defgeneric extract-feature (styleable style-feature)
+  (:documentation "For a STYLEABLE object, extract a single STYLE-FEATURE.
+Updates the corresponding feature-vector and feature-vec-meta data in STYLEABLE
+and returns two values: the extracted feature vector and its metadata."))
+
 (defmethod extract-feature ((style styleable) (feature style-feature))
   (let ((index (position feature (features style)))
         (num-features (length (features style))))
@@ -481,8 +498,8 @@ meta-information."))
 
 (defgeneric extract-features (software &key features &allow-other-keys)
   (:documentation "For a SOFTWARE object, extract a set of FEATURES.
-Returns two values: a vector of feature vectors and a vector of meta information
-(used by feature merge functions)."))
+Returns two values: a vector of feature vectors and a vector of metadata (used
+by feature merge functions)."))
 
 (defmethod extract-features ((style styleable) &key (features nil))
   (iter (for feature in (or features (features style)))
@@ -530,6 +547,11 @@ Returns two values: a vector of feature vectors and a vector of meta information
           (feature-vec-meta project)))
 
 ;;; Convenience method.
+(defgeneric extract-baseline-features (styleable &key features)
+  (:documentation
+   "For a STYLEABLE, extract FEATURES to establish baseline feature vectors.
+Returns two values: a vector of feature vectors and a vector of metadata."))
+
 (defmethod extract-baseline-features ((style styleable)
                                       &key (features *feature-extractors*))
   (when features
