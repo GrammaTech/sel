@@ -1,12 +1,4 @@
 ;;; command-line.lisp --- Command line helpers for software evolution
-
-;; Copyright (C) 2011-2013  Eric Schulte
-
-;;; License: GNU General Public License, Version 3 or later
-
-;;; Commentary:
-
-;;; Code:
 (defpackage :software-evolution-library/command-line
   (:use :common-lisp :metabang-bind)
   (:export :quit :throw-error :getopts))

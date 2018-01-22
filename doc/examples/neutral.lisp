@@ -1,12 +1,4 @@
 ;;; neutral.lisp --- Evolve neutral variants of an original program
-
-;; Copyright (C) 2014  Eric Schulte
-
-;;; License: GNU General Public License, Version 3 or later
-
-;;; Commentary:
-
-;;; Code:
 (defpackage :neutral
   (:use :common-lisp
         :alexandria

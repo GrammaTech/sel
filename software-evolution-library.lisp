@@ -1,12 +1,4 @@
 ;;; software-evolution-library.lisp --- Extant Software Evolution
-
-;; Copyright (C) 2011-2013  Eric Schulte
-
-;;; License: GNU General Public License, Version 3 or later
-
-;;; Commentary:
-
-;;; Code:
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -1,10 +1,4 @@
 ;;; lisp.lisp --- software representation of lisp code
-
-;; Copyright (C) 2013  Eric Schulte
-
-;; Licensed under the Gnu Public License Version 3 or later
-
-;;; Code:
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

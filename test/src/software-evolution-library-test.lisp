@@ -1,10 +1,4 @@
 ;;; tests.lisp --- tests for the `software-evolution-library' package
-
-;; Copyright (C) 2011-2013  Eric Schulte
-
-;; Licensed under the Gnu Public License Version 3 or later
-
-;;; Code:
 (in-package :software-evolution-library/test)
 (in-readtable :curry-compose-reader-macros)
 

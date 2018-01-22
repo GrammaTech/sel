@@ -6,7 +6,7 @@
 @copying
 This file documents the Software Evolution library
 
-Copyright (C) 2014 Eric Schulte <eschulte@@cs.unm.edu>
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document

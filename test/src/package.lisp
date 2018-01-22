@@ -1,4 +1,3 @@
-;; Copyright (C) 2013  Eric Schulte
 (defpackage :software-evolution-library/test
   (:nicknames :sel/test)
   (:use

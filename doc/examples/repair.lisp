@@ -1,12 +1,4 @@
 ;;; repair.lisp --- repair software
-
-;; Copyright (C) 2013-2014  Eric Schulte
-
-;;; License: GNU General Public License, Version 3 or later
-
-;;; Commentary:
-
-;;; Code:
 (defpackage :repair
   (:use :common-lisp
         :alexandria

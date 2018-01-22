@@ -1,26 +1,5 @@
 ;;; llvm.lisp --- llvm software representation
 
-;; Copyright (C) 2013 Eric Schulte
-
-;;; License:
-
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-;;
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING. If not, write to the
-;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-
 ;; This software object uses the llvm-mutate [1] compiler pass run by
 ;; llvm opt [2] to manipulate LLVM intermediate representation (IR)
 ;; code (see [3] for more information).
@@ -29,7 +8,6 @@
 ;; [2] http://llvm.org/releases/3.2/docs/CommandGuide/opt.html
 ;; [3] http://llvm.org/docs/LangRef.html#introduction
 
-;;; Code:
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
