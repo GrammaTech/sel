@@ -10,32 +10,34 @@
 
 ;; Helper functions
 (defun guard-statements (software)
-  "DOCFIXME"
+  "Return a list of guard-statement ASTs in SOFTWARE"
   (remove-if-not #'ast-guard-stmt (bad-stmts software)))
 
 (defun pick-target-condition (software)
-  "Pick a condition in SOFTWARE to target for refinement.
-DOCFIXME return value
-* SOFTWARE DOCFIXME"
+  "Return the ast counter of a condition in SOFTWARE to
+target for refinement.
+* SOFTWARE software object with conditional AST(s)"
   (ast-counter (random-elt (guard-statements software))))
 
 (defun pick-if-stmt (software)
-  "DOCFIXME
-* SOFTWARE DOCFIXME"
+  "Pick a if statement in SOFTWARE to target for refinement.
+* SOFTWARE software object with if statement AST(s)"
   (let ((stmts (remove-if-not [{eq :IfStmt} #'ast-class ]
                               (bad-stmts software))))
     (and stmts (random-elt stmts))))
 
 (defun or-connector (left right)
-  "DOCFIXME
-* LEFT DOCFIXME
-* RIGHT DOCFIXME"
+  "Return an AST connecting the LEFT and RIGHT ASTs as an
+`LEFT || RIGHT' expression.
+* LEFT AST with left-hand-side of an OR expression
+* RIGHT AST with right-hand-side of an OR expression"
   (make-operator :generic "||" (list left right) :guard-stmt t))
 
 (defun and-not-connector (left right)
-  "DOCFIXME
-* LEFT DOCFIXME
-* RIGHT DOCFIXME"
+  "Return an AST connecting the LEFT and RIGHT ASTs as a
+`!LEFT && RIGHT' expression.
+* LEFT AST with the left-hand-side of an AND expression
+* RIGHT AST with the right-hand-side of an AND expression"
   (make-operator :generic "&&"
                  (list left
                        (make-operator :generic "!" (list right)))
@@ -74,7 +76,7 @@ DOCFIXME return value
 
 
 (defun abst-cond-expr ()
-  "DOCFIXME"
+  "Return an abstract condition expression AST"
   (make-statement :CallExpr :generic
                   (list
                    (make-statement
@@ -88,15 +90,16 @@ DOCFIXME return value
 
 
 (defun refined-condition (mutation target-ast)
-  "DOCFIXME
-* MUTATION DOCFIXME
-* TARGET-AST DOCFIXME"
+  "Return an AST with TARGET-AST and an additional boolean clause
+* MUTATION mutation defining the type or boolean clause to add
+* TARGET-AST AST to add an additional boolean clause to"
   (funcall (connector mutation)
            (make-parens (list target-ast))
            (or (abst-cond mutation) (abst-cond-expr))))
 
 (defmethod build-op ((mutation refine-condition) software)
-  "DOXFIXME MUTATION (a `refine-condition') SOFTWARE."
+  "Return an association list with the operations to apply
+a refine-condition MUTATION to SOFTWARE."
   (declare (ignorable software))
   (let ((target-ast (targets mutation)))
     `((:set (:stmt1 . ,target-ast)
@@ -121,7 +124,8 @@ DOCFIXME return value
 
 
 (defmethod build-op ((mutation add-condition) software)
-  "DOCFIXME MUTATION (an `add-condition') SOFTWARE"
+  "Return an association list with the operations to apply
+a add-condition MUTATION to SOFTWARE."
   (declare (ignorable software))
   (let* ((target-ast (targets mutation))
          (abst-cond (or (abst-cond mutation) (abst-cond-expr)))
@@ -157,7 +161,8 @@ DOCFIXME return value
 
 
 (defmethod build-op ((mutation if-to-while-tighten-condition) software)
-  "DOCFIXME MUTATION (a `if-to-while-tighten-condition) SOFTWARE."
+  "Return an association list with the operations to apply
+an if-to-while-tighten-condition MUTATION to SOFTWARE."
   (when (targets mutation)
     (bind ((ast (targets mutation))
            (children (get-immediate-children software ast))
@@ -191,7 +196,8 @@ is replaced with replacement."
 
 
 (defmethod build-op ((mutation if-to-while) software)
-  "DOCFIXME `if-to-while` MUTATION SOFTWARE"
+  "Return an association list with the operations to apply
+an if-to-while MUTATION to SOFTWARE"
   (when (targets mutation)
     (bind ((ast (targets mutation))
            (children (get-immediate-children software ast))
@@ -203,7 +209,8 @@ is replaced with replacement."
 
 
 (defmethod build-op ((mutation insert-else-if) software)
-  "DOCFIXME `insert-else-if' MUTATION SOFTWARE"
+  "Return an association list with the operations to apply
+an insert-else-if MUTATION to SOFTWARE."
   (when (targets mutation)
     (let* ((if-stmt (targets mutation))
            (children (get-immediate-children software if-stmt))
@@ -306,15 +313,15 @@ discarding a repair.")
   t)
 
 (defgeneric contains-loop-condition (mutation)
-  (:documentation "Return DOCFIXME if MUTATION contains an abstract loop condition, DOCFIXME otherwise"))
+  (:documentation "Return TRUE if MUTATION contains an abstract loop condition, NIL otherwise"))
 
 (defmethod contains-loop-condition (mutation)
-  "DOCFIXME"
+  "Return NIL as general MUTATIONs do not have an abstract loop condition"
   (declare (ignorable mutation))
   nil)
 
 (defmethod contains-loop-condition ((mutation if-to-while))
-  "DOCFIXME"
+  "Return TRUE as if-to-while MUTATIONs have an abstract loop condition"
   (declare (ignorable mutation))
   t)
 
@@ -334,25 +341,26 @@ along with start and end index of abst_cond() in the source text.
           (finally (return (mapcar #'list asts starts ends))))))
 
 
-(defun get-parent-control-stmt (clang guard-counter)
+(defun get-parent-control-stmt (clang guard-ast)
   "Return the AST structure of the enclosing if statement for a guard.
-* CLANG DOCFIXME
-* GUARD-COUNTER DOCFIXME
+* CLANG software object to search for parent control statement
+* GUARD-AST AST with a guard statement
 "
   (let ((stmt (car (remove-if-not
                     [{member _ '(:IfStmt :WhileStmt :ForStmt :DoStmt
                                  :SwitchStmt)}
                      #'ast-class]
-                    (get-parent-asts clang guard-counter)))))
+                    (get-parent-asts clang guard-ast)))))
     (assert stmt)
     stmt))
 
 
 (defun instrument-values (instrumenter ast &key extra-exprs)
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* AST DOCFIXME
-* EXTRA-EXPRS DOCFIXME 
+  "Return a list of ASTs to print the values of variables in scope at AST
+and EXTRA-EXPRS
+* INSTRUMENTER for generating instrumentation code
+* AST ast to instrument
+* EXTRA-EXPRS additional expressions to include in instrumentation
 "
   (let ((exprs (->> (mapcar (lambda (v)
                               (cons (aget :name v)
@@ -363,12 +371,11 @@ along with start and end index of abst_cond() in the source text.
     (instrument-c-exprs instrumenter exprs t)))
 
 (defun instrument-abst-cond-traces (software trace-file-name extra-exprs)
-  "Add instrumentation before the enclosing if statement for the guard
-statement(s) in the repair targets.
-DOCFIXME return value
-* SOFTWARE DOCFIXME
-* TRACE-FILE-NAME DOCFIXME
-* EXTRA_EXPRS DOCFIXME
+  "Return software with instrumentation before the enclosing if statement
+for the guard statement(s) in the repair targets.
+* SOFTWARE software to add instrumentation to
+* TRACE-FILE-NAME file to write traces created by instrumentation to
+* EXTRA_EXPRS additional expressions to include in instrumentation
 "
   ;; Look for repair-locs only in the main target (e.g. for clang-project)
   (let* ((repair-locs (mapcar [{get-parent-control-stmt software} #'car]
@@ -406,9 +413,8 @@ DOCFIXME return value
                                        {function-containing-ast software}]}))))
 
 (defun read-abst-conds-and-envs (trace-results-file)
-  "For trace file TRACE-RESULTS-FILE, read in the environments and recorded abst-cond decisions.
-DOCFIXME return value
-"
+  "For trace file TRACE-RESULTS-FILE, read in the environments and
+recorded abst-cond decisions into a list of strings."
   (when (probe-file trace-results-file)
     (iter (for sexpr in (read-trace trace-results-file 1))
           ;; iter can exhaust the stack on long traces. Bail out
@@ -426,8 +432,8 @@ DOCFIXME return value
                                    (apply #'append envs)))))))
 
 (defun synthesize-conditions (envs)
-  "For each assignment in each environment in ENVS, generate  conditions representing (x == v) and !(x == v).
-DOCFIXME return value
+  "For each assignment in each environment in ENVS, generate a list of condition
+triples representing (x == v) and !(x == v).
 
 * ENVS a list of environments, each of which contains a list of triples:
 (\"var\" \"type\" \"value\"). The result is a list of synthesized conditions,
@@ -444,9 +450,8 @@ where each condition is a triple (\"var\" \"value\" [:eq|:neq])."
                           :test #'equal)))))
 
 (defun entails (env condition result)
-  "Check whether the value of CONDITION in environment ENV is consistent with the desired RESULT.
-
-DOCFIXME return value
+  "Check whether the value of CONDITION in environment ENV is consistent
+with the desired RESULT, returning t or nil.
 
 * ENV a list of triples (\"var\" \"type\" \"value\")
 * CONDITION a triple (\"var\" \"value\" [:eq|:neq])
@@ -455,8 +460,8 @@ DOCFIXME return value
 The condition representing \"(x == v)\" in
 an environment where x is assigned the value v is consistent with the
 result. Similarly, the condition representing \"!(x == v)\" in an
-environment where x is assigned the value v is consistent with the
-result. DOCFIXME really?"
+environment where x is assigned the value v is not consistent with the
+result."
   ;; Look up var from condition in the env.
   (destructuring-bind (comparison-type name type base) condition
     (declare (ignorable type))
@@ -475,9 +480,8 @@ result. DOCFIXME really?"
         (t nil)))))
 
 (defun find-best-condition (recorded-results envs conditions)
-  "Find the condition which correctly matches the largest number of recorded
-results when evaluated under the corresponding environment.
-DOCFIXME return value
+  "Find and return the condition triple which correctly matches the largest
+number of recorded results when evaluated under the corresponding environment.
 * RECORDED-RESULTS DOCFIXME
 * ENVS DOCFIXME
 * CONDITIONS DOCFIXME
@@ -492,7 +496,7 @@ DOCFIXME return value
   "Run a `test-case', returning the fitness score, condition values, and
 environments.
 * TEST the `test-case' to run
-* BIN DOCFIXME
+* BIN binary to use in text execution
 * DEFAULT DOCFIXME
 * ABST-CONDS DOCFIXME
 * LOOP-COUNT DOCFIXME
@@ -645,10 +649,10 @@ DOCFIXME The return value is a string of the form \"\(x == val\)\",
 
 
 (defun apply-best-cond-mutation (software mutation best-condition)
-  "DOCFIXME
-* SOFTWARE DOCFIXME
-* MUTATION DOCFIXME
-* BEST-CONDITION DOCFIXME
+  "Apply BEST-CONDITION AST to SOFTWARE using MUTATION, returning SOFTWARE
+* SOFTWARE software object to have MUTATION applied to
+* MUTATION refine-condition mutation to apply to SOFTWARE
+* BEST-CONDITION Best condition AST
 "
   (setf (abst-cond mutation) (make-source software best-condition))
   (apply-mutation software mutation)
@@ -758,24 +762,23 @@ DOCFIXME neither does this By default, the fitness script should run all tests a
 
 
 (defun tails (lst)
-  "DOCFIXME LST"
+  "Return a list with successive cdr's of LST"
   (when lst (cons lst (tails (cdr lst)))))
 
 
 (defun instrumentation-exprs (obj point type)
-  "Generate additional expressions to instrument during condition
+  "Generate a list of additional expressions to instrument during condition
 synthesis. Finds all expressions of the given type which are in scope
 at the repair point, and generates comparisons for all of them. These
 expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
 `synthesize-condition'.
-DOCFIXME returns?
 
-* OBJ DOCFIXME software object
-* POINT DOCFIXME repair point
-* TYPE DOCFIXME type description alist (:types :array :pointer :compare)
-               Where :compare is a format template for the comparison
-               expressions, and the other fields are matched against
-               the type DB.
+* OBJ software object
+* POINT repair point to generate instrumentation for
+* TYPE type description alist (:types :array :pointer :compare)
+       Where :compare is a format template for the comparison
+       expressions, and the other fields are matched against
+       the type DB.
 "
   (let* ((type-hash
           (when-let ((clang-type (find-if {types-equal type}
