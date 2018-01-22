@@ -123,6 +123,3 @@ If no suitable points are found the returned points may be nil."))
 
 (defmethod (setf lines) (new (ast ast))
   (setf (genome ast) (format nil "~{~a~^~%~}" new)))
-
-(defgeneric asts (software)
-  (:documentation "Return a list of all asts in SOFTWARE."))
