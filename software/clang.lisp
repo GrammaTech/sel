@@ -260,10 +260,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
     (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
     obj))
 
-(defgeneric roots (software)
-  (:documentation "Return all top-level ASTs in SOFTWARE."))
-
 (defmethod roots ((obj clang))
+  "Return all top-level ASTs in SOFTWARE."
   (roots (asts obj)))
 
 (defmethod roots ((asts list))
@@ -481,9 +479,8 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
         (setf (gethash (type-hash type) hashtable) type)
         (finally (return hashtable))))
 
-(defgeneric source-text (ast)
-  (:documentation "Source code corresponding to an AST."))
 (defmethod source-text ((ast ast-ref))
+  "Source code corresponding to an AST."
   (source-text (ast-ref-ast ast)))
 
 (defmethod source-text ((ast list))
@@ -950,11 +947,8 @@ Does not modify the original TREE.
                           (nthcdr (+ 2 head) children)))))))
     (helper tree (ast-ref-path location))))
 
-(defgeneric rebind-vars (ast var-replacements fun-replacements)
-  (:documentation
-   "Replace variable and function references, returning a new AST."))
-
 (defmethod rebind-vars ((ast ast-ref) var-replacements fun-replacements)
+  "Replace variable and function references, returning a new AST."
   (make-ast-ref :path (ast-ref-path ast)
                 :ast (rebind-vars (ast-ref-ast ast)
                                   var-replacements fun-replacements)))
@@ -995,11 +989,8 @@ Does not modify the original TREE.
                           fun-replacements))
           :initial-value ast))
 
-(defgeneric replace-in-ast (ast replacements &key test)
-  (:documentation
-   "Make arbitrary replacements within AST, returning a new AST."))
-
 (defmethod replace-in-ast ((ast ast-ref) replacements &key (test #'eq))
+  "Make arbitrary replacements within AST, returning a new AST."
   (make-ast-ref :path (ast-ref-path ast)
                 :ast (replace-in-ast (ast-ref-ast ast) replacements
                                      :test test)))
@@ -1020,10 +1011,8 @@ Does not modify the original TREE.
 
 
 ;;; Handling header information (formerly "Michondria")
-(defgeneric add-type (software type)
-  (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
-
 (defmethod add-type ((obj clang) (type clang-type))
+  "Add TYPE to `types' of SOFTWARE, unique by hash."
   (unless (gethash (type-hash type) (types obj))
     (if (type-i-file type)
       ;; add requisite includes for this type
@@ -1080,11 +1069,10 @@ Does not modify the original TREE.
                (hash-table-values (types obj)))
       (progn (add-type obj type) type)))
 
-(defgeneric type-decl-string (type &key qualified)
-  (:documentation "The source text used to declare variables of TYPE.
-
-This will have stars on the right, e.g. char**. "))
 (defmethod type-decl-string ((type clang-type) &key (qualified t))
+"The source text used to declare variables of TYPE.
+
+This will have stars on the right, e.g. char**. "
   (format nil "~a~a~a~a~a~a~a"
           (if (and qualified (type-const type)) "const " "")
           (if (and qualified (type-volatile type)) "volatile " "")
@@ -1102,11 +1090,10 @@ This will have stars on the right, e.g. char**. "))
           (type-name type)
           (if (type-pointer type) " *" "")))
 
-(defgeneric type-trace-string (type &key qualified)
-  (:documentation "The text used to describe TYPE in an execution trace.
-
-This will have stars on the left, e.g **char."))
 (defmethod type-trace-string ((type clang-type) &key (qualified t))
+  "The text used to describe TYPE in an execution trace.
+
+This will have stars on the left, e.g **char."
   (concatenate 'string
                (when (type-pointer type) "*")
                (when (not (emptyp (type-array type))) (type-array type))
@@ -1120,13 +1107,11 @@ This will have stars on the left, e.g **char."))
                                         (string-downcase))))
                (type-name type)))
 
-(defgeneric type-from-trace-string (type)
-  (:documentation
-   "Create a clang-type from a NAME used in an execution trace.
+(defmethod type-from-trace-string ((name string))
+  "Create a clang-type from a NAME used in an execution trace.
 
 The resulting type will not be added to any clang object and will not have a
-valid hash."))
-(defmethod type-from-trace-string ((name string))
+valid hash."
   (make-clang-type
     :pointer (not (null (find #\* name)))
     :array (if (find #\[ name) (scan-to-strings "\\[\\d*\\]" name) "")
@@ -1172,9 +1157,8 @@ don't have corresponding ASTs."
                                                  text)))
               (append (ast-root obj) (list text))))))
 
-(defgeneric add-macro (software macro)
-  (:documentation "Add MACRO to `macros' of SOFTWARE, unique by hash."))
 (defmethod add-macro ((obj clang) (macro clang-macro))
+  "Add MACRO to `macros' of SOFTWARE, unique by hash."
   (unless (find-macro obj (macro-hash macro))
     (prepend-to-genome obj (format nil "#define ~a~&" (macro-body macro)))
     (push macro (macros obj)))
@@ -1183,18 +1167,16 @@ don't have corresponding ASTs."
 (defmethod find-macro((obj clang) hash)
   (find-if {= hash} (macros obj) :key #'macro-hash))
 
-(defgeneric add-include (software include)
-  (:documentation "Add an #include directive for a INCLUDE to SOFTWARE."))
 (defmethod add-include ((obj clang) (include string))
+  "Add an #include directive for a INCLUDE to SOFTWARE."
   (unless (member include (includes obj) :test #'string=)
     (prepend-to-genome obj (format nil "#include ~a~&" include))
     (push include (includes obj)))
   obj)
 
-(defgeneric force-include (software include)
-  (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
-even if such an INCLUDE already exists in SOFTWARE"))
 (defmethod force-include ((obj clang) include)
+  "Add an #include directive for an INCLUDE to SOFTWARE
+even if such an INCLUDE already exists in SOFTWARE"
   (prepend-to-genome obj (format nil "#include ~a~&" include))
   (unless (member include (includes obj) :test #'string=)
     (push include (includes obj)))
@@ -1400,15 +1382,13 @@ pick or false (nil) otherwise."
 (define-mutation clang-promote-guarded (clang-mutation)
   ((targeter :initform #'pick-guarded-compound)))
 
-(defgeneric pick-guarded-compound (software)
-  (:documentation "Pick a guarded compound statement in SOFTWARE."))
-
 (define-constant +clang-guarded-classes+
     '(:IfStmt :ForStmt :WhileStmt :DoStmt)
   :test #'equalp
   :documentation "Statement classes with guards")
 
 (defmethod pick-guarded-compound ((obj clang))
+  "Pick a guarded compound statement in SOFTWARE."
   (aget :stmt1
         (pick-bad-only obj :filter [{member _ +clang-guarded-classes+}
                                     #'ast-class])))
@@ -1479,9 +1459,8 @@ pick or false (nil) otherwise."
    "Select a 'for' loop and explode it into it's component parts.
 This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
 
-(defgeneric pick-for-loop (software)
-  (:documentation "Pick and return a 'for' loop in SOFTWARE."))
 (defmethod pick-for-loop ((obj clang))
+  "Pick and return a 'for' loop in SOFTWARE."
   (pick-bad-only obj :filter [{eq :ForStmt} #'ast-class]))
 
 (defmethod build-op ((mutation explode-for-loop) (obj clang))
@@ -1556,9 +1535,8 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
    "Select a 'while' loop and coalesce it into a 'for' loop.
 This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 
-(defgeneric pick-while-loop (software)
-  (:documentation "Pick and return a 'while' loop in SOFTWARE."))
 (defmethod pick-while-loop ((obj clang))
+  "Pick and return a 'while' loop in SOFTWARE."
   (pick-bad-only obj :filter [{eq :WhileStmt} #'ast-class]))
 
 (defmethod build-op ((mutation coalesce-while-loop) (obj clang))
@@ -1708,21 +1686,6 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 (defvar *clang-max-json-size* 104857600
   "Maximum size of output accepted from `clang-mutate'.")
 
-(defgeneric update-asts (software &key)
-  (:documentation "Update the store of asts associated with SOFTWARE."))
-
-(defgeneric asts (software)
-  (:documentation "Return a list of all asts in SOFTWARE."))
-
-(defgeneric stmts (software)
-  (:documentation "Return a list of all statement asts in SOFTWARE."))
-
-(defgeneric good-stmts (software)
-  (:documentation "Return a list of all good statement asts in SOFTWARE."))
-
-(defgeneric bad-stmts (software)
-  (:documentation "Return a list of all bad statement asts in SOFTWARE."))
-
 (defgeneric get-ast (software id)
   (:documentation "Return the statement in SOFTWARE indicated by ID."))
 
@@ -1781,6 +1744,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args)
+  "Update the store of asts associated with SOFTWARE."
   ;; Avoid updates if ASTs and genome haven't changed
   (unless (asts-changed-p obj)
     (return-from update-asts))
@@ -1805,14 +1769,14 @@ for successful mutation (e.g. adding includes/types/macros)"))
                           nil)))
           (cond ((and (aget :hash ast)
                       (aget :type ast))
-                  ;; Types
-                  (collect (snippet->clang-type ast) into m-types))
+                 ;; Types
+                 (collect (snippet->clang-type ast) into m-types))
                 ((and (aget :name ast)
                       (aget :body ast)
                       (aget :hash ast))
                  ;; Macros
                  (collect (snippet->clang-macro ast) into m-macros))
-                 ;; ASTs
+                ;; ASTs
                 ((aget :counter ast)
                  (collect ast into body))
                 (t (error "Unrecognized ast.~%~S" ast)))
@@ -1917,9 +1881,11 @@ for successful mutation (e.g. adding includes/types/macros)"))
   (remove-if-not #'ast-is-decl (get-parent-asts clang ast)))
 
 (defmethod good-stmts ((clang clang))
+  "Return a list of all good statement asts in SOFTWARE."
   (stmt-asts clang))
 
 (defmethod bad-stmts ((clang clang))
+  "Return a list of all bad statement asts in SOFTWARE."
   (stmt-asts clang))
 
 (defmethod pick-good ((clang clang))
@@ -2072,11 +2038,9 @@ operations.
                               tu)))
   software)
 
-(defgeneric apply-mutation-ops (software ops)
-  (:documentation "Apply a recontextualized list of OPS to SOFTWARE.
-Useful as *another* point of interposition for mutation customization."))
-
 (defmethod apply-mutation-ops ((software clang) (ops list))
+  "Apply a recontextualized list of OPS to SOFTWARE.
+Useful as *another* point of interposition for mutation customization."
   (with-slots (ast-root) software
     (iter (for (op . properties) in ops)
           (let ((stmt1 (aget :stmt1 properties))
@@ -2413,11 +2377,8 @@ Useful as *another* point of interposition for mutation customization."))
                 :from 0
                 :when (equal char #\Newline) :collect index)))
 
-(defgeneric parent-ast-p (software possible-parent-ast ast)
-  (:documentation
-   "Check if POSSIBLE-PARENT-AST is a parent of AST in SOFTWARE."))
-
 (defmethod parent-ast-p ((clang clang) possible-parent-ast ast)
+  "Check if POSSIBLE-PARENT-AST is a parent of AST in SOFTWARE."
   (member possible-parent-ast (get-parent-asts clang ast)
           :test #'equalp))
 
@@ -2439,42 +2400,31 @@ Useful as *another* point of interposition for mutation customization."))
     (-> (get-parent-asts-helper (ast-ref-path ast) (ast-root clang))
         (reverse))))
 
-(defgeneric get-immediate-children (sosftware ast)
-  (:documentation "Return the immediate children of AST in SOFTWARE."))
-
 (defmethod get-immediate-children ((clang clang) (ast ast-ref))
+  "Return the immediate children of AST in SOFTWARE."
   (let ((path (ast-ref-path ast)))
     (iter (for child in (cdr (ast-ref-ast ast)))
           (for i upfrom 0)
           (when (listp child)
             (collect (make-ast-ref :ast child :path (append path (list i))))))))
 
-(defgeneric function-body (software ast)
-  (:documentation
-   "If AST-PATH is a function AST, return the AST representing its body."))
-
 (defmethod function-body ((software clang) (ast ast-ref))
+  "If AST-PATH is a function AST, return the AST representing its body."
   (when (function-decl-p ast)
     (find-if [{eq :CompoundStmt} #'ast-class]
              (get-immediate-children software ast))))
 
-(defgeneric get-parent-full-stmt (software ast)
-  (:documentation
-   "Return the first ancestor of AST in SOFTWARE which is a full stmt.
-Returns nil if no full-stmt parent is found."))
-
 (defmethod get-parent-full-stmt ((clang clang) (ast ast-ref))
+  "Return the first ancestor of AST in SOFTWARE which is a full stmt.
+Returns nil if no full-stmt parent is found."
   (cond ((ast-full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
 
-(defgeneric stmt-range (software function)
-  (:documentation
-   "The indices of the first and last statements in a function.
+(defmethod stmt-range ((software clang) (function ast-ref))
+  "The indices of the first and last statements in a function.
 
 Return as a list of (first-index last-index). Indices are positions in
-the list returned by (asts software)."  ) )
-
-(defmethod stmt-range ((software clang) (function ast-ref))
+the list returned by (asts software)."
   (labels
       ((rightmost-child (ast)
          (if-let ((children (get-immediate-children software ast)))
@@ -2484,8 +2434,8 @@ the list returned by (asts software)."  ) )
       (mapcar {index-of-ast software}
               (list body (rightmost-child body))))))
 
-(defgeneric wrap-ast (software ast)
-  (:documentation "Wrap AST in SOFTWARE in a compound statement.
+(defmethod wrap-ast ((obj clang) (ast ast-ref))
+  "Wrap AST in SOFTWARE in a compound statement.
 Known issue with ifdefs -- consider this snippet:
 
     if (x) {
@@ -2506,9 +2456,7 @@ it will transform this into:
           var=2;
     #endif
         }  // spurious -- now won't compile.
-    }"))
-
-(defmethod wrap-ast ((obj clang) (ast ast-ref))
+    }"
   (apply-mutation obj
                   `(clang-replace (:stmt1 . ,ast)
                                   (:literal1 . ,(make-block (list ast ";")))))
@@ -2519,20 +2467,16 @@ it will transform this into:
   :test #'equalp
   :documentation "Types which can be wrapped.")
 
-(defgeneric wrap-child (software ast index)
-  (:documentation "Wrap INDEX child of AST in SOFTWARE in a compound stmt."))
-
 (defmethod wrap-child ((obj clang) (ast ast-ref) (index integer))
+  "Wrap INDEX child of AST in SOFTWARE in a compound stmt."
   (if (member (ast-class ast) +clang-wrapable-parents+)
       (wrap-ast obj (nth index (get-immediate-children obj ast)))
       (error "Will not wrap children of type ~a, only useful for ~a."
              (ast-class ast) +clang-wrapable-parents+))
   obj)
 
-(defgeneric can-be-made-traceable-p (software ast)
-  (:documentation "Check if AST can be made a traceable statement in SOFTWARE."))
-
 (defmethod can-be-made-traceable-p ((obj clang) (ast ast-ref))
+  "Check if AST can be made a traceable statement in SOFTWARE."
   (or (traceable-stmt-p obj ast)
       (unless (or (ast-guard-stmt ast) ; Don't wrap guard statements.
                   (eq :CompoundStmt ; Don't wrap CompoundStmts.
@@ -2542,13 +2486,10 @@ it will transform this into:
           (member (ast-class parent) +clang-wrapable-parents+
                   :test #'string=)))))
 
-(defgeneric enclosing-traceable-stmt (software ast)
-  (:documentation
-   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
-If a statement is reached which is not itself full, but which could be
-made full by wrapping with curly braces, return that."))
-
 (defmethod enclosing-traceable-stmt ((obj clang) (ast ast-ref))
+  "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
+If a statement is reached which is not itself full, but which could be
+made full by wrapping with curly braces, return that."
   (cond
     ((traceable-stmt-p obj ast) ast)
     ;; Wrap AST in a CompoundStmt to make it traceable.
@@ -2557,11 +2498,8 @@ made full by wrapping with curly braces, return that."))
      (&>> (get-parent-ast obj ast)
           (enclosing-traceable-stmt obj)))))
 
-(defgeneric traceable-stmt-p (software ast)
-  (:documentation
-   "Return TRUE if AST is a traceable statement in SOFTWARE."))
-
 (defmethod traceable-stmt-p ((obj clang) (ast ast-ref))
+  "Return TRUE if AST is a traceable statement in SOFTWARE."
   (and (ast-full-stmt ast)
        (not (function-decl-p ast))
        (not (ast-in-macro-expansion ast))
@@ -2580,24 +2518,18 @@ made full by wrapping with curly braces, return that."))
   ;; First parent AST is self, skip over that.
   (find-if {block-p clang} (cdr (get-parent-asts clang ast))))
 
-(defgeneric full-stmt-p (software statement)
-  (:documentation "Check if STATEMENT is a full statement in SOFTWARE."))
-
 (defmethod full-stmt-p ((obj clang) (stmt ast-ref))
+  "Check if STATEMENT is a full statement in SOFTWARE."
   (declare (ignorable obj))
   (ast-full-stmt stmt))
 
-(defgeneric guard-stmt-p (software statement)
-  (:documentation "Check if STATEMENT is a guard statement in SOFTWARE."))
-
 (defmethod guard-stmt-p ((obj clang) (stmt ast-ref))
+  "Check if STATEMENT is a guard statement in SOFTWARE."
   (declare (ignorable obj))
   (ast-guard-stmt stmt))
 
-(defgeneric block-p (software statement)
-  (:documentation "Check if STATEMENT is a block in SOFTWARE."))
-
 (defmethod block-p ((obj clang) (stmt ast-ref))
+  "Check if STATEMENT is a block in SOFTWARE."
   (or (eq :CompoundStmt (ast-class stmt))
       (and (member (ast-class stmt) +clang-wrapable-parents+)
            (not (null (->> (get-immediate-children obj stmt)
@@ -2605,11 +2537,8 @@ made full by wrapping with curly braces, return that."))
                                           [{eq :CompoundStmt}
                                            #'ast-class]»)))))))
 
-(defgeneric enclosing-full-stmt (software stmt)
-  (:documentation
-   "Return the first full statement in SOFTWARE holding STMT."))
-
 (defmethod enclosing-full-stmt ((obj clang) (stmt ast-ref))
+  "Return the first full statement in SOFTWARE holding STMT."
   (find-if #'ast-full-stmt (get-parent-asts obj stmt)))
 
 (defun get-entry-after (item list)
@@ -2706,15 +2635,13 @@ included as the first successor."
         (reverse (aget :types snippet)))
   snippet)
 
-(defgeneric begins-scope (ast)
-  (:documentation "True if AST begins a new scope."))
 (defmethod begins-scope ((ast ast-ref))
+  "True if AST begins a new scope."
   (member (ast-class ast)
           '(:CompoundStmt :Block :Captured :Function :CXXMethod)))
 
-(defgeneric enclosing-scope (software ast)
-  (:documentation "Returns enclosing scope of ast."))
 (defmethod enclosing-scope ((software clang) (ast ast-ref))
+  "Returns enclosing scope of ast."
   (or (find-if #'begins-scope
                (cdr (get-parent-asts software ast)))
       ;; Global scope
@@ -2725,13 +2652,10 @@ included as the first successor."
     (if (>= 0 depth) scope
         (nth-enclosing-scope software (1- depth) scope))))
 
-(defgeneric scopes (software ast)
-  (:documentation "Return lists of variables in each enclosing scope.
-Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
-and :SCOPE.
-"))
-
 (defmethod scopes ((software clang) (ast ast-ref))
+  "Return lists of variables in each enclosing scope.
+Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
+and :SCOPE."
   ;; Stop at the root AST
   (when (not (eq :TopLevel (ast-class ast)))
     (let ((scope (enclosing-scope software ast)))
@@ -2764,17 +2688,14 @@ and :SCOPE.
                  (reverse))
             (scopes software scope)))))
 
-(defgeneric get-ast-types (software ast)
-  (:documentation "Types directly referenced within AST."))
 (defmethod get-ast-types ((software clang) (ast ast-ref))
+  "Types directly referenced within AST."
   (remove-duplicates (apply #'append (ast-types ast)
                             (mapcar {get-ast-types software}
                                     (get-immediate-children software ast)))))
 
-(defgeneric get-unbound-funs (software ast)
-  (:documentation "Functions used (but not defined) within the AST."))
-
 (defmethod get-unbound-funs ((software clang) (ast ast-ref))
+  "Functions used (but not defined) within the AST."
   (remove-duplicates (apply #'append (ast-unbound-funs ast)
                             (mapcar {get-unbound-funs software}
                                     (get-immediate-children software ast)))
@@ -2784,11 +2705,10 @@ and :SCOPE.
   (declare (ignorable software))
   (ast-unbound-funs ast))
 
-(defgeneric get-unbound-vals (software ast)
-  (:documentation "Variables used (but not defined) within the AST.
-
-Each variable is represented by an alist in the same format used by SCOPES."))
 (defmethod get-unbound-vals ((software clang) (ast ast-ref))
+  "Variables used (but not defined) within the AST.
+
+Each variable is represented by an alist in the same format used by SCOPES."
   (labels
       ((in-scope (var scopes)
          (some (lambda (s) (member var s :test #'string=))
@@ -2832,10 +2752,9 @@ Each variable is represented by an alist in the same format used by SCOPES."))
   (declare (ignorable software))
   (ast-unbound-vals ast))
 
-(defgeneric get-vars-in-scope (software ast &optional keep-globals)
-  (:documentation "Return all variables in enclosing scopes."))
 (defmethod get-vars-in-scope ((obj clang) (ast ast-ref)
                                &optional (keep-globals t))
+  "Return all variables in enclosing scopes."
   ;; Remove duplicate variable names from outer scopes. Only the inner variables
   ;; are accessible.
   (remove-duplicates (apply #'append (if keep-globals
@@ -2925,13 +2844,10 @@ free variables.")
      var-replacements
      fun-replacements)))
 
-(defgeneric delete-decl-stmts (software block replacements)
-  (:documentation
-   "Return mutation ops applying REPLACEMENTS to BLOCK in SOFTWARE.
-REPLACEMENTS is a list holding lists of an ID to replace, and the new
-variables to replace use of the variables declared in stmt ID."))
-
 (defmethod delete-decl-stmts ((obj clang) (block ast-ref) (replacements list))
+  "Return mutation ops applying REPLACEMENTS to BLOCK in SOFTWARE.
+REPLACEMENTS is a list holding lists of an ID to replace, and the new
+variables to replace use of the variables declared in stmt ID."
   (append
    ;; Rewrite those stmts in the BLOCK which use an old variable.
    (let* ((old->new      ; First collect a map of old-name -> new-name.
@@ -2970,10 +2886,8 @@ variables to replace use of the variables declared in stmt ID."))
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
 
-(defgeneric ast-declarations (ast)
-  (:documentation "Names of the variables or functions that AST declares."))
-
 (defmethod ast-declarations ((ast clang-ast))
+  "Names of the variables or functions that AST declares."
   (cond
     ; Variable or function arg
     ((member (ast-class ast) '(:Var :ParmVar :DeclStmt))
@@ -2988,33 +2902,28 @@ variables to replace use of the variables declared in stmt ID."))
 (defmethod ast-declarations ((ast clang-type))
   nil)
 
-(defgeneric ast-var-declarations (ast)
-  (:documentation "Names of the variables that AST declares."))
 (defmethod ast-var-declarations (ast)
+  "Names of the variables that AST declares."
   (when (member (ast-class ast) '(:Var :ParmVar :DeclStmt))
     (ast-declares ast)))
 
-(defgeneric declared-type (ast variable-name)
-  (:documentation "Guess the type of the VARIABLE-NAME in AST.
-VARIABLE-NAME should be declared in AST."))
-
 (defmethod declared-type ((ast clang-ast) variable-name)
+  "Guess the type of the VARIABLE-NAME in AST.
+VARIABLE-NAME should be declared in AST."
   ;; NOTE: This is very simple and probably not robust to variable
   ;; declarations which are "weird" in any way.
   (declare (ignorable variable-name))
   (first
    (split-sequence #\Space (source-text ast) :remove-empty-subseqs t)))
 
-(defgeneric find-var-type (software variable)
-  (:documentation "Return the type of VARIABLE in SOFTWARE."))
 (defmethod find-var-type ((obj clang) (variable list))
+  "Return the type of VARIABLE in SOFTWARE."
   (&>> (aget :type variable)
        (find-type obj)))
 
-(defgeneric typedef-type (software type)
-  (:documentation "Return the underlying type if TYPE is a typedef"))
 (defmethod typedef-type ((obj clang) (type clang-type)
                           &aux typedef-type ret)
+  "Return the underlying type if TYPE is a typedef"
   (labels ((typedef-type-helper (obj type)
              (if (and (equal 1 (length (type-reqs type)))
                       (equal 0 (search "typedef" (type-decl type))))
@@ -3351,13 +3260,10 @@ Returns outermost AST of context.
                 (cons (or (car a-out) (car a-in))
                       (or (cdr a-in) (cdr a-out))))))))
 
-(defgeneric adjust-stmt-range (software start end)
-  (:documentation
-   "Adjust START and END so that they represent a valid range for set-range.
-The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
-full statements"))
-
 (defmethod adjust-stmt-range ((clang clang) start end)
+  "Adjust START and END so that they represent a valid range for set-range.
+The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
+full statements"
   (when (and start end)
     (let* ((stmt1 (enclosing-full-stmt clang (ast-at-index clang start)))
            (stmt2 (enclosing-full-stmt clang (ast-at-index clang end)))
@@ -3379,23 +3285,17 @@ full statements"))
             (t
              (values position1 position2))))))
 
-(defgeneric random-point-in-function (software prototype)
-  (:documentation
-   "Return the index of a random point in PROTOTYPE in SOFTWARE.
-If PROTOTYPE has an empty function body in SOFTWARE return nil."))
-
 (defmethod random-point-in-function ((clang clang) function)
+  "Return the index of a random point in PROTOTYPE in SOFTWARE.
+If PROTOTYPE has an empty function body in SOFTWARE return nil."
   (destructuring-bind (first last) (stmt-range clang function)
     (if (equal first last) nil
         (+ (1+ first) (random (- last first))))))
 
-(defgeneric select-intraprocedural-pair (software)
-  (:documentation
-   "Randomly select an AST within a function body and then select
-another point within the same function.  If there are no ASTs
-within a function body, return null."))
-
 (defmethod select-intraprocedural-pair ((clang clang))
+  "Randomly select an AST within a function body and then select
+another point within the same function.  If there are no ASTs
+within a function body, return null."
   (when-let (stmt1 (&>> (remove-if {function-body-p clang} (stmt-asts clang))
                         (random-elt)))
     (values (index-of-ast clang stmt1)
@@ -3436,10 +3336,8 @@ within a function body, return null."))
         ;; Could not find crossover point
         (values (copy a) nil nil))))
 
-(defgeneric function-containing-ast (object ast)
-  (:documentation "Return the ast for the function containing AST in OBJECT."))
-
 (defmethod function-containing-ast ((clang clang) (ast ast-ref))
+  "Return the ast for the function containing AST in OBJECT."
   (find-if #'function-decl-p (get-parent-asts clang ast)))
 
 (defmethod function-body-p ((clang clang) stmt)
@@ -3447,10 +3345,8 @@ within a function body, return null."))
 
 
 ;;; Clang methods
-(defgeneric clang-tidy (software)
-  (:documentation "Apply the software fixing command line, part of Clang."))
-
 (defmethod clang-tidy ((clang clang) &aux errno)
+  "Apply the software fixing command line, part of Clang."
   (setf (genome clang)
         (with-temp-file-of (src (ext clang)) (genome clang)
           (multiple-value-bind (stdout stderr exit)
