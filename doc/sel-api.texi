@@ -74,7 +74,6 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 @include include/fun-sel-valid-targets.texinfo
 @c @include include/fun-sel-abs-cond-expr.texinfo
 @c @include include/fun-sel-refined-condition.texinfo
-@include include/fun-sel-build-op.texinfo
 @c @include include/fun-sel-contains-abstract-condition.texinfo
 
 
@@ -84,7 +83,6 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 @c @include include/fun-sel-and-not-connector.texinfo
 @c @include include/fun-sel-apply-best-cond-mutation.texinfo
 @c @include include/fun-sel-build-failed.texinfo
-@include include/fun-sel-build.texinfo
 @c @include include/fun-sel-collect-negative-conds-and-envs.texinfo
 @c @include include/fun-sel-collect-positive-conds-and-envs.texinfo
 @c @include include/fun-sel-collect-tests.texinfo
