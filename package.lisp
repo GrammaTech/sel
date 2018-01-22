@@ -151,6 +151,7 @@
    :prototypes
    :functions
    :get-entry
+   :ast
    :asts
    :stmt-asts
    :non-stmt-asts
