@@ -1,38 +1,18 @@
-.PHONY: clean
+PROJECT=software-evolution-library
 
-all: html pdf info
+all: index.html CONTRIBUTING.html FAQ.html info html clang-instrument.1.gz
 
-clean:
-	rm -rf include
-	rm -f  *.pdf *.html *.info
-	rm -f *.aux *.cp *.fn *.fns *.ky *.log *.pg *.toc *.tp *.tps *.vr
-	rm -f document-package-sample.texinfo
-	rm -f include-stamp
+index.html: landing.md
+CONTRIBUTING.html: ../CONTRIBUTING.md
+FAQ.html: ../FAQ.md
+CONTRIBUTING.html FAQ.html index.html:
+	pandoc -s --css sel.css $< -o $@
 
-include-stamp: ../*.lisp ../*.asd
-	sbcl \
-	--eval '(let ((asdf:*central-registry* (cons #p"../" asdf:*central-registry*))) (require :sb-texinfo))' \
-	--eval '(sb-texinfo:generate-includes "include/" (list :sb-texinfo) :base-package :sb-texinfo)' \
-	--eval '(quit)'
-	touch include-stamp
+info: $(PROJECT).texi
+	makeinfo $<
 
-document-package-sample.texinfo: ../*.lisp ../*.asd
-	sbcl \
-	--eval '(let ((asdf:*central-registry* (cons #p"../" asdf:*central-registry*))) (require :sb-texinfo))' \
-	--eval '(sb-texinfo:document-package :sb-texinfo :output-file "document-package-sample.texinfo")' \
-	--eval '(quit)'
-
-%.html: %.texinfo style.css include-stamp
-	makeinfo --html --no-split --css-include=style.css $<
-
-%.pdf: %.texinfo include-stamp
-	texi2dvi -p $<
-
-%.info: %.texinfo include-stamp
-	makeinfo --no-split $<
-
-html: sb-texinfo.html document-package-sample.html
-
+html: $(PROJECT).texi
+	makeinfo --html $<
 
 clean:
 	rm -f *.info;
@@ -41,7 +21,8 @@ clean:
 	find . -type f -name "*.html" -exec rm {} \+
 	rm -f include/*
 
+%.md.tmp: %.md
+	pandoc -s -t man $< -o $@
 
-pdf: sb-texinfo.pdf document-package-sample.pdf
-
-info: sb-texinfo.info document-package-sample.info
+%.1.gz: %.md.tmp
+	gzip -9 < $< > $@
