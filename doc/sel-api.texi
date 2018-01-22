@@ -23,17 +23,17 @@ error will result.
 
 
 @anchor{api-software-objects}
-@section API: Software Objects
+@section API | Software Objects
 
 @include api--software-objects.texi
 
 @anchor{api-test-suites}
-@section API: Test Suites
+@section API | Test Suites
 
-
+@include api--test-suites.texi
 
 @anchor{api-condition-synthesis}
-@section API: Condition Synthesis
+@section API | Condition Synthesis
 
 Condition synthesis details and an example are provided in section @ref{Condition Synthesis}.
 
@@ -48,7 +48,7 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 
 
 @anchor{api-condition-synthesis-mutations}
-@subsection API: Condition Synthesis: Mutations
+@subsection API | Condition Synthesis | Mutations
 
 @include include/class-sel-add-condition.texinfo
 @include include/class-sel-if-to-while-tighten-condition.texinfo
@@ -59,7 +59,7 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 @include include/class-sel-tighten-condition.texinfo
 
 @anchor{api-condition-synthesis-mutations-methods}
-@subsection API: Condition Synthesis: Methods on Mutations
+@subsection API | Condition Synthesis | Methods on Mutations
 
 @include include/fun-sel-valid-targets.texinfo
 @c @include include/fun-sel-abs-cond-expr.texinfo
@@ -69,7 +69,7 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 
 
 @anchor{api-condition-synthesis-helper-functions}
-@subsection  API: Condition Synthesis: Helper Functions
+@subsection  API | Condition Synthesis | Helper Functions
 
 @c @include include/fun-sel-and-not-connector.texinfo
 @c @include include/fun-sel-apply-best-cond-mutation.texinfo
@@ -100,7 +100,7 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 
 
 @anchor{api-condition-synthesis-variables}
-@subsection API: Condition Synthesis: Variables and Parameters
+@subsection API | Condition Synthesis | Variables and Parameters
 
 @c trace-file
 @c max-trace-length
@@ -109,7 +109,7 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 
 
 @anchor{api-condition-synthesis-constants}
-@subsection API: Condition Synthesis: Constants
+@subsection API | Condition Synthesis | Constants
 
 @c abst-cond-source
 
@@ -117,7 +117,7 @@ Condition synthesis details and an example are provided in section @ref{Conditio
 @c ------------------------------
 
 @anchor{api-clang-tokenizer}
-@section API: Clang C Tokenizer
+@section API | Clang C Tokenizer
 
 More information about the tokenizer component is provided in section
 @ref{Clang C Tokenizer}.
@@ -128,13 +128,13 @@ More information about the tokenizer component is provided in section
 @c ------------------------------
 
 @anchor{api-style-features}
-@section API: Style Features
+@section API | Style Features
 
 @include api--style-features.texi
 
 @c ------------------------------
 
-@section API: everything else
+@section API | everything else
 
 @include include/struct-sel-clang-ast.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-clang.texinfo
@@ -216,8 +216,8 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-collect-fault-loc-traces.texinfo
 @include include/fun-sel-collect-trace.texinfo
 @include include/fun-sel-collect-traces.texinfo
-@include include/fun-sel-copy.texinfo
-@include include/fun-sel-crossover.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-copy.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-crossover.texinfo
 @include include/fun-sel-database-emptyp.texinfo
 @c TEST SUITES @include include/class-sel-test-case.texinfo
 @include include/var-sel-star-lexicase-key-star.texinfo
@@ -253,7 +253,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-function-decl-p.texinfo
 @include include/fun-sel-generate-helpers.texinfo
 @include include/fun-sel-generational-evolve.texinfo
-@include include/fun-sel-genome.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-genome.texinfo
 @include include/fun-sel-genome-bytes.texinfo
 @include include/fun-sel-genome-string.texinfo
 @include include/fun-sel-setf-genome-string.texinfo
@@ -280,18 +280,18 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-make-build-dir.texinfo
 @include include/fun-sel-make-operator.texinfo
 @c STYLE FEATURES @include include/fun-sel-merge-styleables.texinfo
-@include include/fun-sel-mutate.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-mutate.texinfo
 @include include/fun-sel-mutation-key.texinfo
 @include include/fun-sel-nop-p.texinfo
-@include include/fun-sel-one-point-crossover.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-one-point-crossover.texinfo
 @include include/fun-sel-pad-nops.texinfo
 @include include/fun-sel-parent-ast-p.texinfo
-@include include/fun-sel-phenome.texinfo
-@include include/fun-sel-pick.texinfo
-@include include/fun-sel-pick-bad.texinfo
-@include include/fun-sel-pick-bad-bad.texinfo
-@include include/fun-sel-pick-bad-good.texinfo
-@include include/fun-sel-pick-good.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-phenome.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-pick.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-pick-bad.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-pick-bad-bad.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-pick-bad-good.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-pick-good.texinfo
 @include include/fun-sel-pick-guarded-compound.texinfo
 @include include/fun-sel-pick-mutation-type.texinfo
 @include include/fun-sel-pick-snippet.texinfo
@@ -333,7 +333,7 @@ More information about the tokenizer component is provided in section
 @include include/macro-sel-define-mutation.texinfo
 @include include/fun-sel-enclosing-full-stmt.texinfo
 @include include/macro-sel-sequence-mutations.texinfo
-@include include/fun-sel-to-file.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-to-file.texinfo
 @c CLANG TOKENIZER @include include/fun-sel-tokens.texinfo
 @include include/fun-sel-typedef-type.texinfo
 @include include/macro-sel-with-build-dir.texinfo
@@ -347,7 +347,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-fitness-better-p.texinfo
 @include include/fun-sel-fitness-extra-data.texinfo
 @include include/fun-sel-setf-fitness-extra-data.texinfo
-@include include/fun-sel-from-file.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-from-file.texinfo
 @include include/fun-sel-mutant.texinfo
 @include include/fun-sel-pareto-selector.texinfo
 @c TEST SUITES @include include/fun-sel-process-exit-code.texinfo
@@ -362,7 +362,7 @@ More information about the tokenizer component is provided in section
 @c TEST SUITES @include include/fun-sel-start-test.texinfo
 @include include/fun-sel-synthesize-condition.texinfo
 @include include/fun-sel-tournament.texinfo
-@include include/fun-sel-two-point-crossover.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-two-point-crossover.texinfo
 @include include/fun-sel-type-decl-string.texinfo
 @include include/fun-sel-type-from-trace-string.texinfo
 @include include/fun-sel-type-trace-string.texinfo

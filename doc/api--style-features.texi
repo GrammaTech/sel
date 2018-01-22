@@ -17,7 +17,7 @@ See also  the manual section on @ref{Style Features}.
 
 
 @anchor{api-style-features-class-style-project}
-@subsection API: Style Features: Class @code{style-project} and its methods
+@subsection API | Style Features | Class @code{style-project} and its methods
 @include include/class-sel-style-project.texinfo
 @include include/fun-sel-update-project-features.texinfo
 
@@ -34,7 +34,7 @@ See also:
 
 
 @anchor{api-style-features-class-style-feature}
-@subsection API: Style Features: Class @code{style-feature} and its methods
+@subsection API | Style Features | Class @code{style-feature} and its methods
 
 @include include/class-sel-style-feature.texinfo
 @include include/macro-sel-define-feature.texinfo
@@ -46,7 +46,7 @@ See also:
 @end itemize
 
 @anchor{api-style-features-class-styleable}
-@subsection API: Style Features: Class @code{styleable} and its methods
+@subsection API | Style Features | Class @code{styleable} and its methods
 
 @include include/class-sel-styleable.texinfo
 @include include/fun-sel-merge-styleables.texinfo
@@ -67,7 +67,7 @@ See also:
 
 
 @anchor{api-style-features-features}
-@subsection API: Style Features: Clang Features
+@subsection API | Style Features | Clang Features
 
 @include include/var-sel-ast-node-type-tf-feature.texinfo
 @include include/var-sel-max-depth-ast-feature.texinfo
@@ -79,7 +79,7 @@ See also:
 
 
 @anchor{api-style-features-extracting}
-@subsection API: Style Features: Extracting Features
+@subsection API | Style Features | Extracting Features
 
 @include include/fun-sel-extract-baseline-features.texinfo
 @include include/fun-sel-extract-features.texinfo
@@ -87,7 +87,7 @@ See also:
 
 
 @anchor{api-style-features-extractors}
-@subsection API: Style Features: Clang Feature Extractors
+@subsection API | Style Features | Clang Feature Extractors
 
 @include include/var-sel-star-feature-extractors-star.texinfo
 @include include/fun-sel-ast-node-type-tf-extractor.texinfo
@@ -99,7 +99,7 @@ See also:
 
 
 @anchor{api-style-features-vectors}
-@subsection API: Style Features: Feature Vectors
+@subsection API | Style Features | Feature Vectors
 
 @include include/fun-sel-to-feature-vector.texinfo
 @include include/fun-sel-normalize-vector.texinfo
@@ -109,7 +109,7 @@ See also:
 
 
 @anchor{api-style-features-helpers} 
-@subsection API: Style Features: Helper Functions
+@subsection API | Style Features | Helper Functions
 
 @include include/fun-sel-uni-grams.texinfo
 @include include/fun-sel-ast-node-types.texinfo
