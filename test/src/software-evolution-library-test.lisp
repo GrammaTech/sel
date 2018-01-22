@@ -70,6 +70,7 @@ suite should be run and nil otherwise."
 (defvar *variety*     nil "Holds the variety software object.")
 (defvar *contexts*    nil "Holds the syntactic-contexts software object.")
 (defvar *test-suite*  nil "Holds condition synthesis test suite object.")
+(defvar *java-file-name* nil "File name to be tested in a test case.")
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
@@ -233,6 +234,14 @@ suite should be run and nil otherwise."
   :test #'equalp
   :documentation "Path to the typedef-type program example")
 
+(define-constant +java-dir+ (append +etc-dir+ (list "java" "non-instrumented"))
+  :test #'equalp
+  :documentation "Path to directory holding java.")
+
+(define-constant +maven-prj-dir+ (append +java-dir+ (list "SimpleMaven"))
+  :test #'equalp
+  :documentation "Path to directory holding the SimpleMaven java project.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -387,6 +396,11 @@ suite should be run and nil otherwise."
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +typedef-type-dir+))
+
+(defun java-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +java-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -960,6 +974,24 @@ suite should be run and nil otherwise."
     (setf *soft*
           (from-file (make-instance 'clang)
                      (typedef-type-dir "typedef-type.c"))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture general-fixture-java
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'java)
+                     (java-dir (concatenate 'string
+                                            *java-file-name* ".java")))))
+  (:teardown
+    (setf *soft* nil)))
+
+(defixture general-fixture-java-traceable
+  (:setup
+    (setf *soft*
+          (from-file (make-instance 'java-traceable)
+                     (java-dir (concatenate 'string
+                                            *java-file-name* ".java")))))
   (:teardown
     (setf *soft* nil)))
 
@@ -2518,6 +2550,284 @@ int x = CHARSIZE;")))
                                         nil)
                        (source-text)))
           "rebind-vars did not rebind a variable within a macro"))))
+
+;;; Java representation
+(defun java-mutate-available-p ()
+  (zerop (nth-value 2 (shell "which java-mutator"))))
+
+(sel-suite* java-tests "JAVA representation." (java-mutate-available-p))
+
+;; COPY SOFTWARE OBJECT
+(deftest java-test-copy ()
+  "Checks that when a deep copy of a software object is created. If the
+  genome is updated in the original whenever the copy is modified, then
+  there is a problem with the directives for the genome slot value
+  defined in the java software object."
+  (let ((*java-file-name* "TestSimple"))
+    (with-fixture general-fixture-java
+      (let ((temporary-obj (copy *soft*)))
+        (setf (slot-value temporary-obj 'genome) "new genome")
+        (is (not (equal (genome temporary-obj) (genome *soft*))))))))
+
+(deftest INSERT_TestSimple ()
+  "Check if print stmt was inserted in the new genome, but not in original."
+  (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
+    (with-fixture general-fixture-java
+    (let ((before-genome (genome *soft*))
+          (after-genome (genome (apply-mutation *soft*
+            (make-instance 'java-insert :targets
+             `((:stmt1 . ,(java-make-literal :integer 2))
+               (:value1 . ,(java-make-literal :string
+               "System.out.println(\"THIS STATEMENT INSERTED\");")))))))
+             (target "THIS STATEMENT INSERTED"))
+      (is (not (scan-to-strings target before-genome)))
+      (is (scan-to-strings target after-genome))))))
+
+;;; INSTRUMENTATION TESTS
+(deftest INSTRUMENT_TestSimple ()
+  "Currently checks whether file was modified with instrumentation commands."
+  (let ((*java-file-name* "TestSimple"))
+    (with-fixture general-fixture-java
+      (let* ((before-genome (genome *soft*))
+            (operation (instrument *soft*))
+            (result (genome *soft*))
+            (target "java[.]io[.]PrintWriter"))
+        (is (not (scan-to-strings target before-genome)))
+        (is (scan-to-strings target result))))))
+
+(deftest INSTRUMENT_TestSimple_with_one_pck ()
+  "Similar to INSTRUMENT_TestSimple, but with one package name."
+  (let ((*java-file-name* "TestSimple_package_name"))
+    (with-fixture general-fixture-java
+      (let* ((before-genome (genome *soft*))
+            (operation (instrument *soft*))
+            (result (genome *soft*))
+            (target "java[.]io[.]PrintWriter"))
+        (is (not (scan-to-strings target before-genome)))
+        (is (scan-to-strings target result))))))
+
+(deftest INSTRUMENT_TestSimple_with_mult_pcks ()
+  "Similar to INSTRUMENT_TestSimple, but with long package name."
+  (let ((*java-file-name* "TestSimple_longer_package_name"))
+    (with-fixture general-fixture-java
+      (let* ((before-genome (genome *soft*))
+            (operation (instrument *soft*))
+            (result (genome *soft*))
+            (target "java[.]io[.]PrintWriter"))
+        (is (not (scan-to-strings target before-genome)))
+        (is (scan-to-strings target result))))))
+
+;; PHENOME TESTS
+(deftest PHENOME_TestSimple ()
+  "Runs the phenome function and checks if execution script was created."
+  (let ((*java-file-name* "TestSimple"))
+    (with-fixture general-fixture-java
+      (instrument *soft*)
+      (with-temp-file (bin)
+        (phenome *soft* :bin bin)
+        (is (probe-file bin))))))
+
+(deftest PHENOME_TestSimple_with_one_pck ()
+  "Runs the phenome function and checks if execution script was created."
+  (let ((*java-file-name* "TestSimple_package_name"))
+    (with-fixture general-fixture-java
+      (instrument *soft*)
+      (with-temp-file (bin)
+        (phenome *soft* :bin bin)
+        (is (probe-file bin))))))
+
+(deftest PHENOME_TestSimple_with_mult_pcks ()
+  "Runs the phenome function and checks if execution script was created."
+  (let ((*java-file-name* "TestSimple_longer_package_name"))
+    (with-fixture general-fixture-java
+      (instrument *soft*)
+      (with-temp-file (bin)
+        (phenome *soft* :bin bin)
+        (is (probe-file bin))))))
+
+;; COLLECT TRACES TESTS
+(deftest COLLECT-TRACES_TestSimple ()
+  "Check exact output of collect-traces with the expected result."
+  (let ((*java-file-name* "TestSimple"))
+    (with-fixture general-fixture-java-traceable
+      (instrument *soft*)
+      (let ((trace-output
+              (-<>> (make-instance 'test-suite
+                      :test-cases (list (make-instance 'test-case
+                                          :program-name :bin)))
+                    (collect-traces *soft*)
+                    (get-trace <> 0)))
+            (trace-target
+              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
+                        ((:C . 2) (:F . 0) (:SCOPES)))
+                (:INPUT :BIN))))
+        (is (equal trace-output trace-target))))))
+
+(deftest COLLECT-TRACES_TestSimple_with_one_pck ()
+  "Similar to COLLECT-TRACES_TestSimple, but with one package name."
+  (let ((*java-file-name* "TestSimple_package_name"))
+    (with-fixture general-fixture-java-traceable
+      (instrument *soft*)
+      (let ((trace-output
+              (-<>> (make-instance 'test-suite
+                      :test-cases (list (make-instance 'test-case
+                                          :program-name :bin)))
+                    (collect-traces *soft*)
+                    (get-trace <> 0)))
+            (trace-target
+              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
+                        ((:C . 2) (:F . 0) (:SCOPES)))
+                (:INPUT :BIN))))
+        (is (equal trace-output trace-target))))))
+
+(deftest COLLECT-TRACES_TestSimple_with_mult_pcks ()
+  "Similar to COLLECT-TRACES_TestSimple, but with longer package name."
+  (let ((*java-file-name* "TestSimple_longer_package_name"))
+    (with-fixture general-fixture-java-traceable
+      (instrument *soft*)
+      (let ((trace-output
+              (-<>> (make-instance 'test-suite
+                      :test-cases (list (make-instance 'test-case
+                                          :program-name :bin)))
+                    (collect-traces *soft*)
+                    (get-trace <> 0)))
+            (trace-target
+              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
+                        ((:C . 2) (:F . 0) (:SCOPES)))
+                (:INPUT :BIN))))
+        (is (equal trace-output trace-target))))))
+
+(deftest COLLECT-TRACES_TestSimple_WhileForIfPrint ()
+  "Similar to COLLECT-TRACES_TestSimple, but with larger trace file."
+  (let ((*java-file-name* "TestSimple_WhileForIfPrint"))
+    (with-fixture general-fixture-java-traceable
+      (instrument *soft*)
+      (let ((trace-output
+              (-<>> (make-instance 'test-suite
+                      :test-cases (list (make-instance 'test-case
+                                          :program-name :bin)))
+                    (collect-traces *soft*)
+                    (get-trace <> 0)))
+            (trace-target
+              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
+                        ((:C . 2) (:F . 0)
+                         (:SCOPES . (("test1" "int" 0))))
+                        ((:C . 3) (:F . 0)
+                         (:SCOPES . (("test1" "int" 0))))
+                        ((:C . 4) (:F . 0)
+                         (:SCOPES . (("test1" "int" 0))))
+                        ((:C . 3) (:F . 0)
+                         (:SCOPES . (("test1" "int" 1))))
+                        ((:C . 4) (:F . 0)
+                         (:SCOPES . (("test1" "int" 1))))
+                        ((:C . 3) (:F . 0)
+                         (:SCOPES . (("test1" "int" 2))))
+                        ((:C . 4) (:F . 0)
+                         (:SCOPES . (("test1" "int" 2))))
+                        ((:C . 5) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 6) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 0))))
+                        ((:C . 7) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 0))))
+                        ((:C . 8) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 0))))
+                        ((:C . 7) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 1))))
+                        ((:C . 8) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 1))))
+                        ((:C . 9) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 1))))
+                        ((:C . 10) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 1)
+                                     ("test2" "int" 30))))
+                        ((:C . 11) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 2))))
+                        ((:C . 12) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 2))))
+                        ((:C . 13) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("k" "int" 2)))))
+                (:INPUT :BIN))))
+        (is (equalp trace-output trace-target))))))
+
+(deftest COLLECT-TRACES_TestSimple_WhileForIfPrint_2 ()
+  "Similar to COLLECT-TRACES_TestSimple, but with larger trace file."
+  (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
+    (with-fixture general-fixture-java-traceable
+      (instrument *soft*)
+      (let ((trace-output
+              (-<>> (make-instance 'test-suite
+                      :test-cases (list (make-instance 'test-case
+                                          :program-name :bin)))
+                    (collect-traces *soft*)
+                    (get-trace <> 0)))
+            (trace-target
+              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
+                        ((:C . 2) (:F . 0)
+                         (:SCOPES . (("test1" "int" 0))))
+                        ((:C . 3) (:F . 0)
+                         (:SCOPES . (("test1" "int" 0))))
+                        ((:C . 4) (:F . 0)
+                         (:SCOPES . (("test1" "int" 0))))
+                        ((:C . 3) (:F . 0)
+                         (:SCOPES . (("test1" "int" 1))))
+                        ((:C . 4) (:F . 0)
+                         (:SCOPES . (("test1" "int" 1))))
+                        ((:C . 3) (:F . 0)
+                         (:SCOPES . (("test1" "int" 2))))
+                        ((:C . 4) (:F . 0)
+                         (:SCOPES . (("test1" "int" 2))))
+                        ((:C . 5) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 6) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 7) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 6) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 7) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 8) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3))))
+                        ((:C . 9) (:F . 0)
+                         (:SCOPES . (("test1" "int" 3)
+                                     ("test2" "int" 30)))))
+                (:INPUT :BIN))))
+        (is (equalp trace-output trace-target))))))
+
+(defixture java-project
+  (:setup
+   (setf *soft*
+         (from-file
+           (make-instance 'java-project
+             :build-command "./gt-harness.sh build"
+             :build-target
+             (format nil
+               "target/~
+                simpleMultifileMaven-1.0-SNAPSHOT-jar-with-dependencies.jar"))
+           (make-pathname :directory +maven-prj-dir+))))
+  (:teardown
+   (setf *soft* nil)))
+
+(deftest java-project-test ()
+  (with-fixture java-project
+    (is (equal "./gt-harness.sh build" (build-command *soft*)))
+    (is (equal 2 (length (evolve-files *soft*))))
+    (is (find "src/main/java/com/simple/multi/maven/app/App.java"
+              (evolve-files *soft*) :key #'car :test #'string=))
+    (is (find "src/main/java/com/simple/multi/maven/extras/SharedClassImpl.java"
+              (evolve-files *soft*) :key #'car :test #'string=))
+    (is (equal "java" (compiler (cdr (first (evolve-files *soft*))))))))
 
 
 ;;;; Range representation.
@@ -4797,7 +5107,7 @@ Useful for printing or returning differences in the REPL."
     (let ((errno (nth-value 2 (run-program (format nil "~a 4 8 2>~a"
                                                    bin trace-file)))))
       (is (zerop errno))
-      (let ((trace (read-trace trace-file 1)))
+      (let ((trace (read-binary-trace trace-file 1)))
         (is (listp trace))
         trace))))
 
@@ -5245,7 +5555,7 @@ prints unique counters in the trace"
         (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
                                                        bin trace-file)))))
           (is (zerop errno))
-          (let ((trace (read-trace trace-file 1)))
+          (let ((trace (read-binary-trace trace-file 1)))
             (is (listp trace))
             (is (not (emptyp trace)))
             (is (every «and {aget :c} {aget :f}» trace))

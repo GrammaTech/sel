@@ -300,6 +300,8 @@
    :clang-w-fodder
    :clang-w-binary
    :clang-w-fodder-and-binary
+   :clang-traceable
+   :clang-traceable-project
    :bytes
    :diff-data
    :recontextualize
@@ -329,6 +331,9 @@
    :get-children-using
    :get-declared-variables
    :cil
+   :java
+   :java-traceable
+   :java-traceable-project
    :llvm
    :linker
    :flags
@@ -449,6 +454,7 @@
    :demote-binop-right
    :eval-error
    :project
+   :traceable-project
    :apply-to-project
    :build-command
    :build-target
@@ -648,7 +654,14 @@
    :bi-grams-hashtable-to-feature
    :all-keywords
    :extract-feature
-   :update-project-features ))
+   :update-project-features
+   ;; java mutation
+   :java-mutation
+   :java-insert
+   ;; java mutation helper methods
+   :java-make-literal
+   :java-number
+   :java-project))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
