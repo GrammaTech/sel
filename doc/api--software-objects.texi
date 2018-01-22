@@ -1,0 +1,41 @@
+
+@itemize
+@item @ref{api-software-objects-classes,
+           Class @code{software} and its subclasses}
+@item @ref{api-software-object-methods,
+           @code{software} methods}
+@end itemize
+
+
+@anchor{api-software-objects-classes}
+
+@subsection API: Software Objects: Class @code{software} and its subclasses
+
+@include include/class-sel-software.texinfo
+
+@include include/class-sel-ast.texinfo
+
+@include include/class-sel-asm.texinfo
+@include include/class-sel-cil.texinfo
+@include include/class-sel-clang.texinfo
+@include include/class-sel-elf-cisc.texinfo
+@include include/class-sel-elf-mips.texinfo
+@include include/class-sel-forth.texinfo
+@include include/class-sel-lisp.texinfo
+@include include/class-sel-llvm.texinfo
+@include include/macro-sel-define-software.texinfo
+
+
+@anchor{api-software-object-methods}
+@subsection API: Software Objects: @code{software} methods
+
+@include include/fun-sel-copy.texinfo
+@include include/fun-sel-crossover.texinfo
+@include include/fun-sel-from-file.texinfo
+@include include/fun-sel-genome.texinfo
+@include include/fun-sel-mutate.texinfo
+@include include/fun-sel-phenome.texinfo
+@include include/fun-sel-pick.texinfo
+@include include/fun-sel-to-file.texinfo
+
+

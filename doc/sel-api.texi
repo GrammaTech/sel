@@ -25,22 +25,12 @@ error will result.
 @anchor{api-software-objects}
 @section API: Software Objects
 
-@include include/class-sel-software.texinfo
-
-@include include/class-sel-asm.texinfo
-@include include/class-sel-cil.texinfo
-@include include/class-sel-clang.texinfo
-@include include/class-sel-elf-cisc.texinfo
-@include include/class-sel-elf-mips.texinfo
-@include include/class-sel-forth.texinfo
-@include include/class-sel-lisp.texinfo
-@include include/class-sel-llvm.texinfo
-@include include/macro-sel-define-software.texinfo
+@include api--software-objects.texi
 
 @anchor{api-test-suites}
 @section API: Test Suites
 
-@include api--test-suites.texi
+
 
 @anchor{api-condition-synthesis}
 @section API: Condition Synthesis
