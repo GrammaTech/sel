@@ -6,14 +6,13 @@
   (:report (lambda (condition stream)
              (format stream "Tokenization failed: ~a"
                      (text condition))))
-  (:documentation "DOCFIXME"))
+  (:documentation "UNHANDLED-TOKEN-CLASS is raised when an
+unknown AST class is encountered."))
 
 (defgeneric tokens (software &optional roots)
-  (:documentation "Return a list of tokens in SOFTWARE.
-DOCFIXME elaborate on type of return value: list of string?
-Optional argument ROOTS limits to tokens below elements of ROOTS in SOFTWARE.
-DOCFIXME elaborate on contents of ROOTS?")
-)
+  (:documentation "Return a list of keyword tokens in SOFTWARE.
+Optional argument ROOTS limits to tokens below elements of ROOT ASTs in
+SOFTWARE."))
 
 ;;;; For reference, list of tokens explicitly introduced:
 ;;;; && identifier { } ( ) [ ] = break continue case switch default , : ?
@@ -21,9 +20,9 @@ DOCFIXME elaborate on contents of ROOTS?")
 ;;;; generic sizeof alignof struct union char-literal int-literal string-literal
 ;;;; float-literal i-literal ... macro
 (defmethod tokens ((clang clang) &optional (roots (roots clang)))
-  "DOCFIXME
-* CLANG DOCFIXME
-* ROOTS DOCFIXME
+  "Return a list of keyword tokens representing the ASTs in SOFTWARE below ROOTS.
+* CLANG software object to tokenize
+* ROOTS limit to tokens below elements of ROOT ASTs in CLANG
 "
   (labels
       ((tokenize-children (children)
