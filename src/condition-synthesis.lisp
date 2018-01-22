@@ -21,9 +21,9 @@
 (defun pick-if-stmt (software)
   "Return the AST for a randomly selected `if' statement in SOFTWARE.
 * SOFTWARE software object with if statement AST(s)"
-  (let ((stmts (remove-if-not [{eq :IfStmt} #'ast-class ]
+  (when-let ((stmts (remove-if-not [{eq :IfStmt} #'ast-class ]
                               (bad-stmts software))))
-    (and stmts (random-elt stmts))))
+    (random-elt stmts)))
 
 (defun or-connector (left right)
   "Return an AST connecting the LEFT and RIGHT ASTs as an expression
@@ -762,10 +762,6 @@ REPAIR-MUTATION.
                           (return-from synthesize-condition cur-best)))))))))
           cur-best)))))
 
-(defun tails (lst)
-  "Return a list with successive cdr's of LST"
-  (when lst (cons lst (tails (cdr lst)))))
-
 (defun instrumentation-exprs (obj point type)
   "Return a list of additional expressions to instrument during condition
 synthesis. Finds all expressions of the given type which are in scope
@@ -802,7 +798,7 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
                          (ancestor-of obj scope a)))
                   (stmt-asts obj))
                  :test #'string= :key #'source-text)))
-    (loop for (a . rest) in (tails exprs)
+    (loop for (a . rest) in (maplist #'identity exprs)
        appending
          (loop for b in rest
             collecting
