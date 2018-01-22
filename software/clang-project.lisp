@@ -14,10 +14,15 @@
    (clang-class :initarg :clang-class
                 :accessor clang-class
                 :initform 'clang
-                :documentation "Clang subclass to utilize in the project")))
+                :documentation "Clang subclass to utilize in the project"))
+  (:documentation "DOCFIXME"))
 
 
 (defmethod from-file ((clang-project clang-project) project-dir)
+  "DOCFIXME
+* CLANG-PROJECT DOCFIXME
+* PROJECT-DIR DOCFIXME
+"
   (assert (or (compilation-database clang-project) (which "bear"))
           (clang-project)
           "Calling `from-file` on a clang-project requires a compilation ~
@@ -139,25 +144,45 @@
     clang-project))
 
 (defmethod to-file ((clang-project clang-project) path)
+  "DOCFIXME
+* CLANG-PROJECT DOCFIXME
+* PATH DOCFIXME
+"
   (let ((*build-dir* (make-build-dir (project-dir clang-project) :path path)))
     (write-genome-to-files clang-project)))
 
 
 (defmethod asts ((obj clang-project))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (if (current-file obj)
       (asts (current-file obj))
       (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj)))))
 
 (defmethod clang-format ((clang-project clang-project) &optional style)
+  "DOCFIXME
+* CLANG-PROJECT DOCFIXME
+"
   (apply-to-project clang-project {clang-format _ style})
   clang-project)
 
 (defmethod clang-tidy ((clang-project clang-project))
+  "DOCFIXME
+* CLANG-PROJECT DOCFIXME
+"
   (apply-to-project clang-project #'clang-tidy)
   clang-project)
 
 (defmethod indent ((clang-project clang-project) &optional style)
+  "DOCFIXME
+* CLANG-PROJECT DOCFIXME
+* STYLE DOCFIXME
+"
   (apply-to-project clang-project {indent _ style}))
 
 (defmethod flags ((obj clang-project))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   nil)
