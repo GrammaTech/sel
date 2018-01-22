@@ -1711,9 +1711,6 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 (defgeneric update-asts (software &key)
   (:documentation "Update the store of asts associated with SOFTWARE."))
 
-(defgeneric asts (software)
-  (:documentation "Return a list of all asts in SOFTWARE."))
-
 (defgeneric stmts (software)
   (:documentation "Return a list of all statement asts in SOFTWARE."))
 
