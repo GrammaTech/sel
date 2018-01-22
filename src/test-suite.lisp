@@ -158,7 +158,7 @@ exited."))
                         &key &allow-other-keys)
   (:documentation "Start an external process to run TEST-CASE on PHENOME and return the `process'.
 
-This is essentially a wrapper around the SBCL or CCL ‘run-program’ methods and any EXTRA-KEYS will be passed through to that method.
+This is essentially a wrapper around the SBCL or CCL `run-program' methods and any EXTRA-KEYS will be passed through to that method.
 
 * PHENOME the phenome of the `software' object under test.
 * TEST-CASE the `test-case' to run.
@@ -167,13 +167,13 @@ This is essentially a wrapper around the SBCL or CCL ‘run-program’ methods a
 Some EXTRA-KEYS that may be useful are:
 * :output and :error - to specify how output and error streams are
   handled. In some cases, these are sent to /dev/null by default,
-  making output inaccessible after the process completes, so it’s
-  often useful to set one or both of these to ‘:stream’ to capture the
+  making output inaccessible after the process completes, so it's
+  often useful to set one or both of these to `:stream' to capture the
   output.
 
 * :wait - whether to wait for the process to complete before
   continuing. The default is to wait; however, some
-  components (such as ‘traceable’) may elect not to wait and
+  components (such as `traceable') may elect not to wait and
   instead to stream results through a named pipe.
 
 * :env - to set environment variables  
@@ -195,7 +195,7 @@ Some EXTRA-KEYS that may be useful are:
   (:documentation "Run TEST-CASE on PHENOME and return the results.
 
 This is a convenience method whose default behavior is simply to run
-‘start-test’ and ‘finish-test’.
+`start-test' and `finish-test'.
 "))
 
 
