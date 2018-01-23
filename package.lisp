@@ -398,7 +398,6 @@
    :clang-replace-same
    :clang-replace-full
    :clang-replace-full-same
-   :clang-set-range
    :clang-promote-guarded
    :clang-nop
    :clang-instrument
