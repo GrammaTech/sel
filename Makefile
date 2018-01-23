@@ -23,6 +23,9 @@ TEST_ARTIFACTS = \
 
 BINS = clang-instrument
 
+BIN_TEST_DIR=doc/examples/bin/
+BIN_TESTS=example
+
 include cl.mk
 
 test/etc/gcd/gcd: test/etc/gcd/gcd.c
@@ -30,3 +33,4 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -o $@
+
