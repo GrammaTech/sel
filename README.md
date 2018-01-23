@@ -3,32 +3,31 @@
 The SOFTWARE-EVOLUTION-LIBRARY enables the programmatic modification
 and evaluation of extant software.
 
-See the manual for more information http://GrammaTech.github.io/sel.
+A common interface abstracts over multiple types of software objects
+including abstract syntax trees parsed from source code, LLVM IR,
+compiled assembler, and linked ELF binaries.  Mutation and evaluation
+methods are implemented on top of this interface supporting Search
+Based Software Engineering (SBSE) techniques.
 
-Copyright (C) 2018 Eric Schulte & GrammaTech, Inc.
+This library has been used to optimize benchmark programs (see
+https://github.com/eschulte/goa) and to patch vulnerabilities in
+closed source binaries (see http://eschulte.github.io/netgear-repair).
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
+See the info manual for more information.  Available in the `doc/`
+directory and at http://GrammaTech.github.io/sel (*pending*).
 
-This program is distributed AS-IS, WITHOUT ANY WARRANTY, express or 
-implied, including, but not limited to the WARRANTY OF MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.  The copyright holders hereby disclaim all warranties.
+Please cite Eric Schulte's Ph.D. dissertation when you publish results
+that you have obtained with the SOFTWARE-EVOLUTION-LIBRARY.
 
-In no case shall the copyright holders be liable to you or any thrid-
-party for damages of any kind, including, but not limited to, punitive,
-special, consequential, indirect or similar damages.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software Foundation,
-Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA.  On
-the initial date of release of this software, a copy can be found at 
-the following location:
-
-https://www.gnu.org/licenses/gpl-3.0.en.html
-
-If you have any questions, please contact:
-Eric Schulte, Ph.D. - eschulte@grammatech.com or in writing at:
-GrammaTech, Inc., attn: Eric Schulte, 531 Esty Street, Ithaca, NY 14850 
+```bibtex
+@phdthesis{schulte2014dissertation,
+  author  = {Eric Schulte},
+  title   = {Neutral Networks of Real-World Programs and their
+                  Application to Automated Software Evolution},
+  school  = {University of New Mexico},
+  address = {Albuquerque, USA},
+  month   = {July},
+  year    = {2014},
+  note    = {https://cs.unm.edu/~eschulte/dissertation}
+}
+```
