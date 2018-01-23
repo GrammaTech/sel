@@ -117,8 +117,8 @@ defined function.
   `(progn
      ;; define merge-fn if args and body are provided
      ;; (otherwise, assume the function is already defined)
-     (when ,margs-p
-       (defun ,merge-fn ,margs ,@mbody))
+     ,@(when margs-p
+         `((defun ,merge-fn ,margs ,@mbody)))
 
      ;; define extractor-fn methods
      ;; implementation for extractor-fn must be provided
