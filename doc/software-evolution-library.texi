@@ -38,6 +38,10 @@ A copy of the license is included in the section entitled
 @ref{Class \name\, @code{\name\}}
 @end macro
 
+@macro refapivariable{name}
+@ref{Variable \name\, @code{\name\}}
+@end macro
+
 @macro refapimacro{name}
 @ref{Macro \name\, @code{\name\}}
 @end macro
@@ -795,51 +799,124 @@ quicklisp local-projects directory and then running:
 @node Examples, Mutation, Installation, Usage
 @section Examples
 
-The following examples demonstrate usage.
+The examples in this section illustrate various applications of the
+software evolution library.
+
+We start with a C program for computing the greatest common
+demominator (gcd) of two numbers. The source file is available in
+@code{test/etc/gcd/gcd.c}, and reproduced below.
+
+
+@verbatiminclude ../test/etc/gcd/gcd.c
+
+(You may notice at this point that the C code is buggy and does not
+compute correct gcd for all inputs. The @ref{Repair} example will
+demonstrate how SEL can be used to create a repaired version of the
+program.)
+
+
+The examples operate on the ASM file compiled from @code{gcd.c}. If
+you would like to try out the examples yourself, compile @code{gcd.c}
+to ASM. For example:
+
+@example
+gcc gcd.c -S -o gcd.s
+@end example
+
+
+
 
 @menu
-* Mutation::                    Mutate a given program
-* Evaluation::                  Evaluate fitness of a mutant
+* Mutation::                    Mutate a program
+* Evaluation::                  Evaluate the fitness of a mutant
 * Neutral Variants::            Generate neutral variants of a program
-* Repair::                      Program repair
-* Parallel Repair::             Parallel program repair
+* Repair::                      Repair a program
 @c * Memoize Fitness::             A global memoized genome-fitness map
 @c * Annotations::                 Annotating portions of the genome
 @c * Focused Mutation::            Using annotations to focus mutation operations
 @c * Execution Statistics::        Saving statistics
 @end menu
-
 @node Mutation, Evaluation, Examples, Examples
 @subsection Mutation
 @cindex example mutation
 
-The following example code;
+
+The @refapigeneric{mutate} method applies a random mutation to a
+@refapiclass{software} object and returns two values: the mutated
+object and a @refapiclass{mutation} object describing the mutation
+that was applied.
+
+The following example applies a random mutation to @code{gcd.s}.
+
+
 @enumerate
-@item loads an @code{asm} software object from a file,
-@item mutates the object, and then
-@item writes the a modified version of the object to disk
-@item and prints the applied mutation.
+
+@item Uses @refapigeneric{from-file} to load @code{gcd.s} into a new @refapiclass{asm} software object, @code{orig}.
+
+@item Applies @refapigeneric{mutate} to mutate a deep @refapigeneric{copy} of @code{orig}.
+
+@item Writes the mutated object to disk with @refapigeneric{to-file}.
+
+@item Prints the @refapiclass{mutation} that was applied.
 @end enumerate
 
 @verbatiminclude ./examples/001-mutate.lisp
 
+
 Executing this code will print output resembling the following.
 
 @example
-Results of applying #<SIMPLE-CUT #<ASM #x3020022A24DD> 78> to gcd written to "/tmp/fileLfs6Mf.s".
+Results of applying #<SIMPLE-CUT #<ASM #x3020022A24DD> 78> to gcd written to "/\
+tmp/fileLfs6Mf.s".
 @end example
+
+
+@subsubheading API components in this example
+
+
+@itemize
+@item Class @refapiclass{asm}
+@item Methods
+  @itemize
+  @item @refapigeneric{copy}
+  @item @refapigeneric{from-file}
+  @item @refapigeneric{mutate}
+  @item @refapigeneric{to-file}
+  @end itemize
+@end itemize
+
 
 @node Evaluation, Neutral Variants, Mutation, Examples
 @subsection Evaluation
 @cindex example evaluation
 
+Once we are mutating programs, we need to be able to evaluate each
+variant and keep track of the evaluation results.
+
+We have provided a shell script @code{test.sh}, which contains several
+gcd test cases. Our fitness function will be the number of test cases
+for which a program produces the correct solution.
+
+Once a fitness value for a @refapiclass{software} object is
+established, it can be recorded in the object's @code{fitness} field.
+
+
+The example code below has two main components:
+
+@itemize
+@item A @code{test} function that harnesses the @code{test.sh} script to evaluate the fitness of an individual @refapiclass{asm} object.
+
+@item A loop in which ten mutants of the   @refapiclass{asm} object corresponding to the original @code{gcd.s} program are generated, their fitness assessed, and the results printed.
+@end itemize
+
+@ignore
 The example code below does the following.
 @enumerate
 @item
 Defines a @code{test} function used to evaluate the fitness of a
 software object.  This function makes use of an external shell script
 test driver which is run using the @code{shell} function defined in
-the @code{software-evolution-library/utility}.
+the @ref{SEL Utility API}.
 
 @item
 The original program is initialized from a file on disk.
@@ -855,6 +932,9 @@ defined @code{test} method.
 The edits and fitness of each mutant are printed.
 
 @end enumerate
+
+@end ignore
+
 
 @verbatiminclude ./examples/002-evaluation.lisp
 
@@ -875,34 +955,81 @@ Executing this code will print output resembling the following.
  0 fitness for edit (:INSERT 71 1)
 @end example
 
+
+
+@subsubheading API components in this example
+
+@itemize
+@item Class @refapiclass{asm}
+@item Methods
+  @itemize
+  @item @refapigeneric{copy}
+  @item @refapigeneric{from-file}
+  @item @refapigeneric{mutate}
+  @item @refapigeneric{phenome}
+  @end itemize
+@item [sel/utility] Macro @ref{Macro sel/utility:with-temp-file, @code{with-temp-file}}
+@item [sel/utility] Function @ref{Function sel/utility:shell, @code{shell}}
+@end itemize
+
+
+
+
 @node Neutral Variants, Repair, Evaluation, Examples
 @subsection Neutral Variants
 @cindex neutral variants
 
-Using the @code{test} function defined in the previous example
-(@pxref{Evaluation}), the code block below generates a number of
-variants of the original program which still satisfy the test suite,
-known as ``neutral mutants'' (see @cite{Software Mutational
-Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
+
+In some cases we are interested in ``neutral mutants'': variants of
+the original program that still satisfy the test suite. (For more information,
+see @cite{Software Mutational Robustness} available at @url{http://arxiv.org/abs/1204.4224}).
+
+
+The following example constructs a collection of neutral mutants of
+@code{gcd.s}, using the @code{test} function defined in the
+@ref{Evaluation} example to determine whether or not candidate
+variants have equivalent behavior to the original.
 
 @verbatiminclude ./examples/003-neutral.lisp
 
 
-@node Repair, Parallel Repair, Neutral Variants, Examples
+@subsubheading API components in this example
+
+
+@itemize
+@item Class @refapiclass{asm}
+@item Methods
+  @itemize
+  @item @refapigeneric{copy}
+  @item @refapigeneric{from-file}
+  @item @refapigeneric{mutate}
+  @end itemize
+@end itemize
+
+
+
+
+@node Repair, Troubleshooting, Neutral Variants, Examples
 @subsection Repair
 @cindex repair
 
-Using the @code{test} function defined in a previous example
-(@pxref{Evaluation}), the code block below searches for a ``repair''
-of the buggy gcd implementation in @code{test/etc/gcd/gcd.s}.  The
-``repair'' will be a version of gcd which passes all 11 tests run in
-@code{test}.
+The sample gcd program is failing one of the test cases in
+@code{test.sh}, so we know it contains at least one bug.  We can use
+evolutionary search to look for a ``repair'' for this buggy
+implementation: a mutant that passes every test case in the script.
 
-The @code{target} and @code{max-evals} keyword arguments are passed to
-@code{evolve} (@pxref{evolve}).  These arguments terminate the
-evolutionary search when either a repair has been reached or a budget
-of fitness evaluations has been exhausted respectively.
+As before, we use the @code{test} function defined in the
+@ref{Evaluation} example to measure the fitness of each program
+variant. This time, @code{test} is used as the fitness test in
+applying @refapimacro{evolve} to a @refapivariable{*population*}
+initialized with 100 copies of the original program. Variable
+@refapivariable{*target-fitness-p*} is set up so that the search will
+terminate when a member of the population has a fitness value that
+indicates it is passing all of the tests; @refapimacro{evolve}'s
+keyword argument @code{:max-evals} ensures that execution will always
+terminate after at most 100 fitness evaluations.
 
+@ignore
 The following properties of this example should be noted.
 
 @enumerate
@@ -921,42 +1048,67 @@ The @code{*population*} is not explicitly passed to the @code{evolve}
 function which implicitly modifies the @code{*population*} variable.
 When this function terminates the evolved program variants will be
 saved in the @code{*population*}.
-
 @end enumerate
+@end ignore
+
 
 @verbatiminclude ./examples/004-evolve.lisp
 
-@node Parallel Repair, Troubleshooting, Repair, Examples
+@subsubheading API components in this example
+
+
+
+
+@itemize
+@item Class @refapiclass{asm}
+@item Macro @refapimacro{evolve}
+@item Methods
+  @itemize
+  @item @refapigeneric{copy}
+  @item @refapigeneric{from-file}
+  @end itemize
+@item Variables
+  @itemize
+  @item @refapivariable{*population*}
+  @item @refapivariable{*target-fitness-p*}
+  @item @refapivariable{*fitness-predicate*}
+  @end itemize
+@end itemize
+
+
 @subsection Parallel Repair
 @cindex parallel repair
 
-Evolution may be parallelized by calling @code{evolve} in multiple
-threads.  For example a parallel version of the above example would
+Evolution may be parallelized by calling @refapimacro{evolve} in multiple
+threads.
+
+For example a parallel version of the previous example would
 replace,
 
-@example
+@lisp
 (let ((*target-fitness-p* [@{= 11@} #'fitness]))
   (evolve #'test :max-evals 100))
-@end example
+  @end lisp
 
 with the following.
 
-@example
+@lisp
 (require 'bordeaux-threads)
 (defvar *num-threads* 64 "Number of available cores.")
 
 ;; launch *num-threads* evolution threads
 (let ((*target-fitness-p* [@{= 11@} #'fitness]))
   (let (threads)
-    (loop :for n :below *num-threads* :do
-       (push (bordeaux-threads:make-thread
-              (lambda () (evolve #'test :max-evals 100))
-              :name (format nil "opt-~d" n))
-             threads))))
+      (loop :for n :below *num-threads* :do
+             (push (bordeaux-threads:make-thread
+                           (lambda () (evolve #'test :max-evals 100))
+                                         :name (format nil "opt-~d" n))
+                                                      threads))))
 
 ;; wait for all threads to return
 (mapc #'bordeaux-threads:join-thread threads)
-@end example
+@end lisp
+
 
 @c @node Annotations, Focused Mutation, Parallel Fitness Evaluation, Usage Examples
 @c @section Annotations
