@@ -43,9 +43,9 @@ techniques."
             :depends-on (base)
             :pathname "software"
             :components
-            ((:file "lisp")
+            ((:file "simple")
+             (:file "lisp" :depends-on ("simple"))
              (:file "expression" :depends-on ("lisp"))
-             (:file "simple")
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
              (:file "csurf-asm" :depends-on ("asm"))
