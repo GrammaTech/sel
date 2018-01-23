@@ -175,7 +175,9 @@ For example a description of the evolution target.")
 (defun string-output-stream-p (stream)
   (typep stream
          #+sbcl 'sb-impl::string-output-stream
-         #-sbcl (error "`string-output-stream-p' only supported for SBCL.")))
+         #+ccl  'ccl:string-output-stream
+         #- (or sbcl ccl)
+         (error "`string-output-stream-p' only supported for SBCL and CCL")))
 
 (defun view-truncate (line &optional (less 2))
   (if (> (length line) (- *view-length* less))
