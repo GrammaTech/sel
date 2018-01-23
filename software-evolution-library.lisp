@@ -29,39 +29,49 @@
   ((fitness :initarg :fitness :accessor fitness :initform nil))
   (:documentation "Base class for all software objects."))
 
-(defmacro define-software (class-name superclasses slots &rest options)
-  "DOCFIXME
-* CLASS-NAME DOCFIXME
-* SUPERCLASSES DOCFIXME
-* SLOTS DOCFIXME
-* OPTIONS DOCFIXME
-"
-  `(progn
-     ;; Define the class
-     (defclass ,class-name ,superclasses
-       ,(mapcar {plist-drop :copier} slots)
-       ,@options)
+(defmacro define-software
+    (name direct-superclasses direct-slots &rest options)
+  "Define a new `software' class NAME including a deep `copy' method.
+Arguments NAME DIRECT-SUPERCLASSES and OPTIONS are passed through to
+`defclass' unmodified.  Additional optional :COPIER property on each
+slot in DIRECT-SLOTS may be one of the following:
+
+* :NONE this slot is not copied and will be nil in the new object
+* :DIRECT this slot is copied by direct reference to the slot value
+          skipping the accessor
+* otherwise if the value of :COPIER is nil (default) then the slot is
+            copied through its accessor, otherwise the value is
+            assumed to be a function (e.g., `copy-tree') which is used
+            to copy the slot."
+  ;; Ensure a child of software.
+  `(prog1
+       ;; Define the class
+       (defclass ,name ,(if (member 'software direct-superclasses)
+                            direct-superclasses
+                            `(,@direct-superclasses software))
+         ,(mapcar {plist-drop :copier} direct-slots)
+         ,@options)
      ;; Define the copy method
-     ,(unless (null slots)
-        `(defmethod copy :around ((obj ,class-name))
-           (let ((copy (call-next-method)))
-             ,@(mappend
-                (lambda (accessor copier)
-                  (case copier
-                    (:none nil)
-                    (:direct
-                     `((with-slots (,accessor) copy
-                         (setf ,accessor
-                               (with-slots (,accessor) obj ,accessor)))))
-                    (otherwise
-                     `((with-slots (,accessor) copy
-                         (setf ,accessor
-                               ,(if copier
-                                    `(,copier (,accessor obj))
-                                    `(,accessor obj))))))))
-                (mapcar #'car slots)
-                (mapcar {plist-get :copier} slots))
-             copy)))))
+     ,(unless (null direct-slots)
+        `(defmethod copy :around ((obj ,name))
+                    (let ((copy (call-next-method)))
+                      (with-slots ,(mapcar #'car direct-slots) copy
+                        (setf
+                         ,@(mappend
+                            (lambda (accessor copier)
+                              (case copier
+                                (:none nil)
+                                (:direct
+                                 `(,accessor (with-slots (,accessor) obj
+                                               ,accessor)))
+                                (otherwise
+                                 `(,accessor
+                                   ,(if copier
+                                        `(,copier (,accessor obj))
+                                        `(,accessor obj))))))
+                            (mapcar #'car direct-slots)
+                            (mapcar {plist-get :copier} direct-slots))))
+                      copy)))))
 
 (defgeneric genome (software)
   (:documentation
