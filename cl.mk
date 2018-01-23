@@ -54,6 +54,7 @@ ifeq ("$(SBCL_HOME)","")
 LISP_HOME = SBCL_HOME=$(dir $(shell which $(LISP)))../lib/sbcl
 endif
 endif
+REPL_STARTUP ?= ()
 
 ifneq ($(LISP_STACK),)
 ifneq (,$(findstring sbcl, $(LISP)))
