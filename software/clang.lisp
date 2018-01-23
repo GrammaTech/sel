@@ -602,35 +602,38 @@ if not given.
                        (second child-asts)))))
     (apply #'make-statement class syn-ctx children :opcode opcode rest)))
 
-(defun make-block (children)
+(defun make-block (children &rest rest)
   "DOCFIXME
 * CHILDREN DOCFIXME
 "
-  (make-statement :CompoundStmt :braced
-                  `(,(format nil "{~%") ,@children ,(format nil "~%}"))
-                  :full-stmt t))
+  (apply #'make-statement :CompoundStmt :braced
+         `(,(format nil "{~%") ,@children ,(format nil "~%}"))
+         :full-stmt t
+         rest))
 
-(defun make-parens (children)
+(defun make-parens (children &rest rest)
   "DOCFIXME
 * CHILDREN DOCFIXME
 "
-  (make-statement :ParenExpr :generic
-                  `("(" ,@children ")")))
+  (apply #'make-statement :ParenExpr :generic
+         `("(" ,@children ")")
+         rest))
 
-(defun make-while-stmt (syn-ctx condition body)
+(defun make-while-stmt (syn-ctx condition body &rest rest)
   "DOCFIXME
 * SYN-CTX DOCFIXME
 * CONDITION DOCFIXME
 * BODY DOCFIXME
 "
-  (make-statement :WhileStmt syn-ctx
-                  `("while ("
-                    ,condition
-                    ") "
-                    ,body)
-                  :full-stmt t))
+  (apply #'make-statement :WhileStmt syn-ctx
+         `("while ("
+           ,condition
+           ") "
+           ,body)
+         :full-stmt t
+         rest))
 
-(defun make-for-stmt (syn-ctx initialization condition update body)
+(defun make-for-stmt (syn-ctx initialization condition update body &rest rest)
   "DOCFIXME
 * SYN-CTX DOCFIXME
 * INITIALIZATION DOCFIXME
@@ -638,44 +641,47 @@ if not given.
 * UPDATE DOCFIXME
 * BODY DOCFIXME
 "
-  (make-statement :ForStmt syn-ctx
-                  (remove nil
-                          `("for ("
-                            ,initialization "; "
-                            ,condition "; "
-                            ,update ") "
-                            ,body))
-                  :full-stmt t))
+  (apply #'make-statement :ForStmt syn-ctx
+         (remove nil
+           `("for ("
+             ,initialization "; "
+             ,condition "; "
+             ,update ") "
+             ,body))
+         :full-stmt t
+         rest))
 
-(defun make-if-stmt (condition then &optional else)
+(defun make-if-stmt (condition then &optional else &rest rest)
   "DOCFIXME
 * CONDITION DOCFIXME
 * THEN DOCFIXME
 * ELSE DOCFIXME
 "
-  (make-statement :IfStmt :fullstmt
-                  (append `("if ("
-                            ,condition ") "
-                            ,then)
-                          (unless (or (eq :CompoundStmt (ast-class then))
-                                      (not else))
-                            '("; "))
-                          (when else
-                            `(" else " ,else)))
-                  :full-stmt t))
+  (apply #'make-statement :IfStmt :fullstmt
+         (append `("if ("
+                   ,condition ") "
+                   ,then)
+                 (unless (or (eq :CompoundStmt (ast-class then))
+                             (not else))
+                   '("; "))
+                 (when else
+                   `(" else " ,else)))
+         :full-stmt t
+         rest))
 
-(defun make-var-reference (name type)
+(defun make-var-reference (name type &rest rest
+                           &aux (hash (when type (type-hash type))))
   "DOCFIXME
 * NAME DOCFIXME
 * TYPE DOCFIXME
 "
-  (let ((hash (when type (type-hash type))))
-    (make-statement :ImplicitCastExpr :generic
-                    (list (make-statement :DeclRefExpr :generic
-                                          (list (unpeel-bananas name))
-                                          :expr-type hash
-                                          :unbound-vals (list name)))
-                    :expr-type hash)))
+  (apply #'make-statement :ImplicitCastExpr :generic
+         (list (make-statement :DeclRefExpr :generic
+                               (list (unpeel-bananas name))
+                               :expr-type hash
+                               :unbound-vals (list name)))
+         :expr-type hash
+         rest))
 
 (defun make-var-decl (name type &optional initializer &rest rest
                       &aux (decls (list name)))
@@ -760,13 +766,14 @@ if not given.
            ")")
          rest))
 
-(defun make-label (name child)
+(defun make-label (name child &rest rest)
   "DOCFIXME
 * NAME DOCFIXME
 * CHILD DOCFIXME
 "
-  (make-statement :LabelStmt :fullstmt
-                  (list (format nil "~a:~%" name) child)))
+  (apply #'make-statement :LabelStmt :fullstmt
+         (list (format nil "~a:~%" name) child)
+         rest))
 
 (defmethod get-ast ((obj clang) (path list))
   "DOCFIXME
