@@ -13,6 +13,6 @@
 
 (let ((*target-fitness-p*
        (lambda (obj)
-         (or (= 11 (fitness obj))
-             (funcall *fitness-predicate* (fitness obj) 11)))))
+         (or (= 12 (fitness obj))
+             (funcall *fitness-predicate* (fitness obj) 12)))))
   (evolve #'test :max-evals 100))       ; (3)

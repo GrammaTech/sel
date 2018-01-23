@@ -9,9 +9,9 @@
     (with-temp-file (bin)
       (phenome asm :bin bin)
       (count-if #'identity
-                (loop :for i :below 11 :collect
+                (loop :for i :below 12 :collect
                    (multiple-value-bind (stdout stderr errno)
-                       (shell "test/etc/gcd/gcd.s ~a ~d" bin i)
+                       (shell "test/etc/gcd/test.sh ~a ~d" bin i)
                      (declare (ignorable stdout stderr))
                      (zerop errno)))))))
 
