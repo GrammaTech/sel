@@ -295,3 +295,16 @@ test output, to determine the fitness score.
       (apply #'run-test phenome obj extra-keys)
     (declare (ignorable stdout stderr))
     (if (zerop exit-code) 1 0)))
+
+(defmethod evaluate (phenome (test-suite test-suite) &rest extra-keys
+                     &key &allow-other-keys)
+  "Evaluate all test-cases in TEST-SUITE collecting their output.
+By default, sum results of applying `evaluate' to each test-case using `reduce'.
+Keyword arguments :function and :initial-value may be used as in `reduce' to
+specify an aggregation function and starting value."
+  (let ((keys (plist-drop :function (plist-drop :initial-value extra-keys))))
+    (apply #'reduce (or (plist-get :function extra-keys) #'+)
+           (mapcar (lambda (test) (apply #'evaluate phenome test keys))
+                   (test-cases test-suite))
+           (when-let ((val (plist-get :initial-value extra-keys)))
+             (list :initial-value val)))))
