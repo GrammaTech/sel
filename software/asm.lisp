@@ -28,9 +28,11 @@
 mutations (simple plus asm mutations).")
 
 (defmethod pick-mutation-type ((asm asm))
+  "DOCFIXME"
   (random-pick *asm-mutation-types*))
 
 (defmethod phenome ((asm asm) &key (bin (temp-file-name)))
+  "DOCFIXME"
   #-ccl (declare (values t fixnum string string string))
   (with-temp-file-of (src "s") (genome-string asm)
     (multiple-value-bind (stdout stderr errno)
@@ -72,6 +74,7 @@ with an operand in the second."))
   (assoc-value (elt (genome asm) n) :code))
 
 (defmethod apply-mutation ((asm asm) (mutation asm-replace-operand))
+  "DOCFIXME"
   (let ((bad-good (targets mutation)))
     (assert (listp bad-good) (mutation)
             "Requires mutations targets to be a list of two elements.")

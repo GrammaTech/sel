@@ -5,37 +5,48 @@
 
 ;;; simple software objects
 (define-software simple (software)
-  ((genome :initarg :genome :accessor genome :initform nil :copier copy-seq)))
+  ((genome :initarg :genome :accessor genome :initform nil :copier copy-seq))
+  (:documentation "DOCFIXME"))
 
 (declaim (inline lines))
+
 (defmethod lines ((simple simple))
+  "DOCFIXME"
   (remove nil (map 'list {aget :code} (genome simple))))
+
 (defmethod (setf lines) (new (simple simple))
+  "DOCFIXME"
   (setf (genome simple) (mapcar [#'list {cons :code}] new)))
 
 (defmethod size ((obj simple))
+  "DOCFIXME"
   (length (lines obj)))
 
 (declaim (inline genome-string))
 (defmethod genome-string ((simple simple) &optional stream)
+  "DOCFIXME"
   (format stream "~{~a~%~}" (lines simple)))
 
 (defun file-to-simple-genome-list (filespec)
+  "DOCFIXME"
   (with-open-file (in filespec)
     (loop :for line := (read-line in nil) :while line
        :collect (list (cons :code line)))))
 
 (defmethod from-file ((simple simple) path)
+  "DOCFIXME"
   (setf (genome simple) (file-to-simple-genome-list path))
   simple)
 
 (defun common-subseq (paths)
+  "DOCFIXME"
   (coerce (loop :for i :below (apply #'min (mapcar #'length paths))
              :while (every [{equal (aref (car paths) i)} {aref _ i}] paths)
              :collect (aref (car paths) i))
           'string))
 
 (defmethod from-file ((simple simple) (paths list))
+  "DOCFIXME"
   (let ((base (common-subseq paths)))
     (setf (genome simple)
           (mapcan (lambda (path)
@@ -45,6 +56,7 @@
   simple)
 
 (defmethod to-file ((simple simple) file)
+  "DOCFIXME"
   ;; handle multi-file individuals differently
   (if (assoc :path (car (genome simple)))
       ;; if multi-file, then assume FILE is a directory path
@@ -75,12 +87,15 @@
    (normalize-probabilities
     '((simple-cut    . 1)
       (simple-insert . 1)
-      (simple-swap   . 1)))))
+      (simple-swap   . 1))))
+   "DOCFIXME")
 
 (defmethod pick-mutation-type ((obj simple))
+  "DOCFIXME"
   (random-pick *simple-mutation-types*))
 
 (defmethod mutate ((simple simple))
+  "DOCFIXME"
   (unless (> (size simple) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj simple)))
   (restart-case
@@ -92,12 +107,16 @@
       :report "Try another mutation"
       (mutate simple))))
 
-(defclass simple-mutation (mutation) ())
+(defclass simple-mutation (mutation)
+  ()
+  (:documentation "DOCFIXME"))
 
 (define-mutation simple-cut (simple-mutation)
-  ((targeter :initform #'pick-bad)))
+  ((targeter :initform #'pick-bad))
+  (:documentation "DOCFIXME"))
 
 (defmethod apply-mutation ((simple simple) (mutation simple-cut))
+  "DOCFIXME"
   ;; NOTE: it is important here that elements of genome are not
   ;;       changed, rather the genome should *only* be changed by
   ;;       setting the genome *accessor* directly.  I.e., avoid
@@ -114,9 +133,11 @@
     simple))
 
 (define-mutation simple-insert (simple-mutation)
-  ((targeter :initform #'pick-bad-good)))
+  ((targeter :initform #'pick-bad-good))
+  (:documentation "DOCFIXME"))
 
 (defmethod apply-mutation ((simple simple) (mutation simple-insert))
+  "DOCFIXME"
   (let ((bad-good (targets mutation))
         (genome (genome simple)))
     (assert (listp bad-good) (mutation)
@@ -131,9 +152,11 @@
       simple)))
 
 (define-mutation simple-swap (simple-mutation)
-  ((targeter :initform #'pick-bad-good)))
+  ((targeter :initform #'pick-bad-good))
+  (:documentation "DOCFIXME"))
 
 (defmethod apply-mutation ((simple simple) (mutation simple-swap))
+  "DOCFIXME"
   (let ((bad-good (targets mutation))
         (genome (genome simple)))
     (assert (listp bad-good) (mutation)
@@ -147,6 +170,7 @@
       simple)))
 
 (defmethod mcmc-step ((simple simple))
+  "DOCFIXME"
   (let ((point (random (size simple))))
     (let ((genome (genome simple)))
       (setf genome
@@ -163,7 +187,9 @@
 
 
 ;;; Crossover
-(defmethod crossover ((a simple) (b simple)) (two-point-crossover a b))
+(defmethod crossover ((a simple) (b simple))
+  "DOCFIXME"
+  (two-point-crossover a b))
 
 #|
 (defun align-for-crossover (a b &key (test equal) key)
@@ -173,6 +199,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
 |#
 
 (defmethod two-point-crossover ((a simple) (b simple))
+  "DOCFIXME"
   ;; Two point crossover
   (let ((range (min (size a) (size b))))
     (if (> range 0)
@@ -187,6 +214,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
         (values (copy a) nil))))
 
 (defmethod one-point-crossover ((a simple) (b simple))
+  "DOCFIXME"
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let ((point (random range))
@@ -199,6 +227,7 @@ TEST may be used to test for similarity and should return a boolean (number?)."
         (values (copy a) nil))))
 
 (defun context (list i size)
+  "DOCFIXME"
   (loop :for j :from (max 0 (- i size)) :to (min (1- (length list)) (+ i size))
      :collect (nth j list)))
 
@@ -234,6 +263,7 @@ value is passed to TEST."
                                   (key {aget :code})
                                   (context 2)
                                   (test (lambda (a b) (if (tree-equal a b) 1 0))))
+  "DOCFIXME"
   (let* ((starts (synapsing-points (genome a) (genome b)
                                    :key key :context context :test test))
          (ends (mapcar #'+ starts
@@ -252,6 +282,7 @@ value is passed to TEST."
                                  &key
                                    (key {aget :code})
                                    (test (lambda (a b) (if (tree-equal a b) 1 0))))
+  "DOCFIXME"
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let* ((new (copy a))
@@ -279,12 +310,20 @@ value is passed to TEST."
 ;; A refinement of the "simple" software representation, using a
 ;; simplified genome data structure which require fewer cons cells but
 ;; does not allow tagging of lines of code with information.
-(defclass light (simple) ())
+(defclass light (simple)
+  ()
+  (:documentation "DOCFIXME"))
 
-(defmethod lines ((light light)) (genome light))
-(defmethod (setf lines) (new (light light)) (setf (genome light) new))
+(defmethod lines ((light light))
+  "DOCFIXME"
+  (genome light))
+
+(defmethod (setf lines) (new (light light))
+  "DOCFIXME"
+  (setf (genome light) new))
 
 (defmethod from-file ((light light) path)
+  "DOCFIXME"
   (setf (genome light) (split-sequence #\Newline (file-to-string path)))
   light)
 
@@ -303,36 +342,45 @@ value is passed to TEST."
 Instead of directly holding code in the GENOME, each GENOME is a list
 of range references to an external REFERENCE code array."))
 
-(defgeneric reference (software))
+(defgeneric reference (software) (:documentation "DOCFIXME"))
 (defgeneric (setf reference) (software new)
   (:documentation "Set the value of REFERENCE to NEW, and update the GENOME."))
 
-(defmethod reference ((range sw-range)) (slot-value range 'reference))
+(defmethod reference ((range sw-range))
+  "DOCFIXME"
+  (slot-value range 'reference))
 
 (defmethod (setf reference) (new (range sw-range))
+  "DOCFIXME"
   (assert (typep new 'vector) (new) "Reference must be a vector.")
   (setf (slot-value range 'reference) new)
   (setf (genome range) (list (cons 0 (1- (length new))))))
 
 (defmethod from-file ((range sw-range) path)
+  "DOCFIXME"
   (declare (ignorable path))
   (error "RANGE individuals may not be initialized directly from
 files.  First construct an array of code (lines or bytes) from PATH
 and use this to initialize the RANGE object."))
 
 (declaim (inline range-size))
-(defun range-size (range) (1+ (- (cdr range) (car range))))
+(defun range-size (range)
+  "DOCFIXME"
+  (1+ (- (cdr range) (car range))))
 
 (defmethod size ((range sw-range))
+  "DOCFIXME"
   (reduce #'+ (mapcar #'range-size (genome range))))
 
 (defmethod lines ((range sw-range))
+  "DOCFIXME"
   (mappend (lambda-bind ((start . end))
              (mapcar {aref (reference range)}
                      (loop :for i :from start :to end :collect i)))
            (genome range)))
 
 (defmethod (setf lines) (new (range sw-range))
+  "DOCFIXME"
   (setf (reference range) (coerce new 'vector))
   (setf (genome range) (list (cons 0 (1- (length new))))))
 
@@ -416,11 +464,13 @@ and use this to initialize the RANGE object."))
       genome))))
 
 (defmethod apply-mutation ((range sw-range) (mutation simple-cut))
+  "DOCFIXME"
   (with-slots (genome) range
     (setf genome (range-cut genome (targets mutation)))
     range))
 
 (defmethod apply-mutation ((range sw-range) (mutation simple-insert))
+  "DOCFIXME"
   (let ((bad-good (targets mutation)))
     (assert (listp bad-good) (mutation)
             "Requires mutations targets to be a list of two elements.")
@@ -432,6 +482,7 @@ and use this to initialize the RANGE object."))
         range))))
 
 (defmethod apply-mutation ((range sw-range) (mutation simple-swap))
+  "DOCFIXME"
   (let ((bad-good (targets mutation)))
     (assert (listp bad-good) (mutation)
             "Requires mutations targets to be a list of two elements.")
@@ -445,6 +496,7 @@ and use this to initialize the RANGE object."))
         range))))
 
 (defun range-subseq (range start &optional end)
+  "DOCFIXME"
   (flet ((from (c range)
            (remove nil
              (mapcan (lambda (r)
@@ -474,6 +526,7 @@ and use this to initialize the RANGE object."))
     (if end (to (- end start) (from start range)) (from start range))))
 
 (defmethod one-point-crossover ((a sw-range) (b sw-range))
+  "DOCFIXME"
   (assert (eq (reference a) (reference b)) (a b)
           "Can not crossover range objects with unequal references.")
   (let ((range (min (size a) (size b))))
@@ -487,6 +540,7 @@ and use this to initialize the RANGE object."))
         (values (copy a) 0))))
 
 (defmethod two-point-crossover ((a sw-range) (b sw-range))
+  "DOCFIXME"
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))
