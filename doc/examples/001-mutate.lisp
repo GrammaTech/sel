@@ -1,13 +1,18 @@
 (defpackage :example
   (:use :common-lisp
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility
+        :split-sequence))
 (in-package :example)
 
 ;;; gcd.s may be compiled from gcd.c in the test/ directory.
-(let ((orig (from-file (make-instance 'asm) "test/etc/gcd/gcd.s"))) ; (1)
-  (multiple-value-bind (mutant edit) (mutate (copy orig)) ; (2)
-    (let ((temp (temp-file-name "s")))
-      (to-file mutant temp)                                      ; (3)
-      (format t "Results of applying ~S to gcd written to ~S.~%" ; (4)
-              edit temp))))
+;; create an ASM software object using `from-file'
+(defvar *orig* (from-file (make-instance 'asm) "test/etc/gcd/gcd.s"))
+
+;; the results of `mutate' are a mutated object MUTANT and a `mutation' EDIT
+(multiple-value-bind (mutant edit) (mutate (copy *orig*))
+  (let ((temp (temp-file-name "s")))
+    ;; save MUTANT to temp file TEMP
+    (to-file mutant temp)
+    (format t "Results of applying ~S to gcd written to ~S~%"
+            edit temp)))
