@@ -404,7 +404,7 @@ used as keys in the hash-table
    (cdr items))
   bi-grams-ht)
 
-(defgeneric ast-full-stmt-bi-grams (software &key bi-grams)
+(defgeneric ast-full-stmt-bi-grams (software &key bi-grams-ht)
   (:documentation "Update and return data structure BI-GRAMS with counts of
 bi-grams in the ASTs of full statements in SOFTWARE."))
 
@@ -420,7 +420,7 @@ ASTs of full statements in CLANG.
         (key-fn #'ast-class))
     (bi-grams full-stmts :key key-fn :bi-grams-ht bi-grams-ht)))
 
-(defgeneric ast-bi-grams (software &key bi-grams)
+(defgeneric ast-bi-grams (software &key bi-grams-ht)
   (:documentation "Update and return data structure BI-GRAMS with counts of
 bi-grams in the ASTs of all statements in SOFTWARE."))
 
