@@ -58,10 +58,13 @@
               :copier :none
               :documentation "Lock while copying clang objects."))
   (:documentation
-   "C language (C, C++, C#, etc...) ASTs using CLang, C lang. frontend for LLVM.
+   "C language (C, C++, C#, etc...) ASTs using Clang, C language frontend for LLVM.
 See http://clang.llvm.org/."))
 
 (defmethod copy :before ((obj clang))
+  "DOCFIXME
+OBJ DOCFIXME
+"
   ;; Update ASTs before copying to avoid duplicates. Lock to prevent
   ;; multiple threads from updating concurrently.
   (unless (slot-value obj 'ast-root)
@@ -77,6 +80,10 @@ See http://clang.llvm.org/."))
   (ast nil :type list))
 
 (defmethod print-object ((obj ast-ref) stream)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STREAM DOCFIXME
+"
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
@@ -91,8 +98,8 @@ Form is similar to DEFSTRUCT, but each field can be described by a
 single symbol, or a list containing a name and options.
 
 Field options:
-KEY ------------- override the key used for storing field in alists
-READER ---------- call this function to transform values read from alists
+* KEY  override the key used for storing field in alists
+* READER  call this function to transform values read from alists
 
 This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 "
@@ -220,38 +227,55 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (body :type string))
 
 (defmethod print-object ((obj clang-ast) stream)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STREAM DOCFIXME
+"
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
         (format stream "~a ~a"
                 (ast-counter obj) (ast-class obj)))))
 
-(defvar *clang-obj-code* (register-code 45 'clang))
+(defvar *clang-obj-code*  (register-code 45 'clang)
+  "DOCFIXME")
 
 (defstore-cl-store (obj clang stream)
   (let ((copy (copy obj)))
     (setf (slot-value copy 'copy-lock) nil)
     (output-type-code *clang-obj-code* stream)
-    (cl-store::store-type-object copy stream)))
+    (cl-store::store-type-object copy stream))
+  (:documentation "DOCFIXME"))
 
 (defrestore-cl-store (clang stream)
   (let ((obj (cl-store::restore-type-object stream)))
     (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
-    obj))
+    obj)
+  (:documentation "DOCFIXME"))
 
 (defgeneric roots (software)
   (:documentation "Return all top-level ASTs in SOFTWARE."))
 
 (defmethod roots ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (roots (asts obj)))
 
 (defmethod roots ((asts list))
+  "DOCFIXME
+* ASTS DOCFIXME
+"
   (remove-if-not [{= 1} #'length #'ast-ref-path] asts))
 
 (defvar *clang-ast-aux-fields* nil
   "Extra fields to read to clang-mutate snippets into ast-aux-data.")
 
 (defun asts->tree (genome asts)
+  "DOCFIXME
+* GENOME DOCFIXME
+* ASTS DOCFIXME
+"
   (let ((roots (mapcar {aget :counter}
                        (remove-if-not [#'zerop {aget :parent-counter}] asts)))
         (ast-vector (coerce asts 'vector))
@@ -455,6 +479,9 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
        (cons (snippet->clang-ast root) children)))))
 
 (defun types->hashtable (types)
+  "DOCFIXME
+* TYPES
+"
   (iter (for type in types)
         (with hashtable = (make-hash-table :test #'equal))
         (setf (gethash (type-hash type) hashtable) type)
@@ -462,10 +489,17 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
 
 (defgeneric source-text (ast)
   (:documentation "Source code corresponding to an AST."))
+
 (defmethod source-text ((ast ast-ref))
+  "DOCFIXME
+* AST DOCFIXME
+"
   (source-text (ast-ref-ast ast)))
 
 (defmethod source-text ((ast list))
+  "DOCFIXME
+* AST DOCFIXME
+"
   (format nil "~{~a~}"
           (iter (for c in (cdr ast))
                 (collecting (if (stringp c)
@@ -482,7 +516,21 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   "Create a statement AST.
 
 TYPES, UNBOUND-FUNS, and UNBOUND-VALS will be computed from children
-if not given."
+if not given.
+
+* CLASS DOCFIXME
+* SYN-CTX DOCFIXME
+* CHILDREN DOCFIXME
+* EXPR-TYPE DOCFIXME
+* FULL-STMT DOCFIXME
+* GUARD-STMT  DOCFIXME
+* OPCODE DOCFIXME
+* TYPES DOCFIXME
+* UNBOUND-FUNS DOCFIXME
+* UNBOUND-VALS DOCFIXME
+* DECLARES DOCFIXME
+* INCLUDES DOCFIXME
+"
   (labels
       ((union-child-vals (function)
          (remove-duplicates
@@ -515,7 +563,11 @@ if not given."
                                 c))
                           children))))))
 
-(defun make-literal (kind value &rest rest)
+(defun make-literal (kind value)
+  "DOCFIXME
+* KIND DOCFIXME
+* VALUE DOCFIXME
+"
   (multiple-value-bind (class text)
       (ecase kind
         (:integer (values :IntegerLiteral
@@ -534,8 +586,14 @@ if not given."
                                 (format nil "~a" value))))
     (apply #'make-statement class :generic (list text) rest)))
 
-(defun make-operator (syn-ctx opcode child-asts &rest rest)
-  "Create a unary or binary operator AST."
+(defun make-operator (syn-ctx opcode child-asts &rest args)  
+  "Create a unary or binary operator AST.
+
+* SYN-CTX DOCFIXME
+* OPCODE DOCFIXME
+* CHILD-ASTS DOCFIXME
+* ARGS DOCFIXME
+"
   (destructuring-bind (class . children)
       (ecase (length child-asts)
         (1 (cons :UnaryOperator
@@ -546,62 +604,107 @@ if not given."
                        (second child-asts)))))
     (apply #'make-statement class syn-ctx children :opcode opcode rest)))
 
-(defun make-block (children &rest rest)
-  (apply #'make-statement :CompoundStmt :braced
-                          `(,(format nil "{~%") ,@children ,(format nil "~%}"))
-                          :full-stmt t
-                          rest))
+(defun make-block (children)
+  "DOCFIXME
+* CHILDREN DOCFIXME
+"
+  (make-statement :CompoundStmt :braced
+                  `(,(format nil "{~%") ,@children ,(format nil "~%}"))
+                  :full-stmt t))
 
-(defun make-parens (children &rest rest)
-  (apply #'make-statement :ParenExpr :generic
-                          `("(" ,@children ")")
-                          rest))
+(defun make-parens (children)
+  "DOCFIXME
+* CHILDREN DOCFIXME
+"
+  (make-statement :ParenExpr :generic
+                  `("(" ,@children ")")))
 
-(defun make-while-stmt (syn-ctx condition body &rest rest)
-  (apply #'make-statement :WhileStmt syn-ctx
-                          `("while ("
-                            ,condition
-                            ") "
-                            ,body)
-                          :full-stmt t
-                          rest))
+(defun make-while-stmt (syn-ctx condition body)
+  "DOCFIXME
+* SYN-CTX DOCFIXME
+* CONDITION DOCFIXME
+* BODY DOCFIXME
+"
+  (make-statement :WhileStmt syn-ctx
+                  `("while ("
+                    ,condition
+                    ") "
+                    ,body)
+                  :full-stmt t))
 
-(defun make-for-stmt (syn-ctx initialization condition update body &rest rest)
-  (apply #'make-statement :ForStmt syn-ctx
-                          (remove nil
-                                  `("for ("
-                                    ,initialization "; "
-                                    ,condition "; "
-                                    ,update ") "
-                                    ,body))
-                          :full-stmt t
-                          rest))
+(defun make-for-stmt (syn-ctx initialization condition update body)
+  "DOCFIXME
+* SYN-CTX DOCFIXME
+* INITIALIZATION DOCFIXME
+* CONDITION DOCFIXME
+* UPDATE DOCFIXME
+* BODY DOCFIXME
+"
+  (make-statement :ForStmt syn-ctx
+                  (remove nil
+                          `("for ("
+                            ,initialization "; "
+                            ,condition "; "
+                            ,update ") "
+                            ,body))
+                  :full-stmt t))
 
-(defun make-if-stmt (condition then &optional else &rest rest)
-  (apply #'make-statement :IfStmt :fullstmt
-                          (append `("if ("
-                                    ,condition ") "
-                                    ,then)
-                                  (unless (or (eq :CompoundStmt (ast-class then))
-                                              (not else))
-                                    '("; "))
-                                  (when else
-                                    `(" else " ,else)))
-                          :full-stmt t
-                          rest))
+(defun make-if-stmt (condition then &optional else)
+  "DOCFIXME
+* CONDITION DOCFIXME
+* THEN DOCFIXME
+* ELSE DOCFIXME
+"
+  (make-statement :IfStmt :fullstmt
+                  (append `("if ("
+                            ,condition ") "
+                            ,then)
+                          (unless (or (eq :CompoundStmt (ast-class then))
+                                      (not else))
+                            '("; "))
+                          (when else
+                            `(" else " ,else)))
+                  :full-stmt t))
 
-(defun make-var-reference (name type &rest rest
-                           &aux (hash (when type (type-hash type))))
-  (apply #'make-statement :ImplicitCastExpr :generic
-                          (list (make-statement :DeclRefExpr :generic
-                                                (list (unpeel-bananas name))
-                                                :expr-type hash
-                                                :unbound-vals (list name)))
-                          :expr-type hash
-                          rest))
+(defun make-var-reference (name type)
+  "DOCFIXME
+* NAME DOCFIXME
+* TYPE DOCFIXME
+"
+  (let ((hash (when type (type-hash type))))
+    (make-statement :ImplicitCastExpr :generic
+                    (list (make-statement :DeclRefExpr :generic
+                                          (list (unpeel-bananas name))
+                                          :expr-type hash
+                                          :unbound-vals (list name)))
+                    :expr-type hash)))
 
-(defun make-var-decl (name type &optional initializer &rest rest
-                      &aux (decls (list name)))
+(defun make-var-decl (name type &optional initializer)
+  "DOCFIXME
+* NAME DOCFIXME
+* TYPE DOCFIXME
+* INITIALIZER DOCFIXME
+"
+  (let ((decls (list name)))
+    (make-statement
+     :DeclStmt :fullstmt
+     (list (make-statement :Var :generic
+                           (if initializer
+                               (list (format nil "~a ~a = "
+                                             (type-decl-string type) name)
+                                     initializer)
+                               (list (format nil "~a ~a"
+                                             (type-decl-string type) name)))
+                           :types (list (type-hash type))
+                           :declares decls))
+     :declares decls)))
+
+(defun make-parm-var (name type &optional initializer)
+  "DOCFIXME
+* NAME DOCFIXME
+* TYPE DOCFIXME
+* INITIALIZER DOCFIXME
+"
   (apply #'make-statement
          :DeclStmt :fullstmt
          (list (make-statement :Var :generic
@@ -614,38 +717,35 @@ if not given."
                                :types (list (type-hash type))
                                :declares decls))
          :declares decls
-         :full-stmt t
          rest))
 
-(defun make-parm-var (name type initializer &rest rest
-                      &aux (decls (list name)))
-  (apply #'make-statement
-         :DeclStmt :fullstmt
-         (list (make-statement :Var :generic
-                               (if initializer
-                                   (list (format nil "~a ~a = "
-                                                 (type-decl-string type) name)
-                                         initializer)
-                                   (list (format nil "~a ~a"
-                                                 (type-decl-string type) name)))
-                               :types (list (type-hash type))
-                               :declares decls))
-         :declares decls
-         rest))
-
-(defun make-array-subscript-expr (array-expr subscript-expr &rest rest)
+(defun make-array-subscript-expr (array-expr subscript-expr)
+  "DOCFIXME
+* ARRAY-EXPR DOCFIXME
+* SUBSCRIPT-EXPR DOCFIXME
+"
   (apply #'make-statement :ArraySubscriptExpr :generic
-                          (list array-expr "[" subscript-expr "]")
-                          rest))
+         (list array-expr "[" subscript-expr "]")
+         rest))
 
-(defun make-cast-expr (type child &rest rest)
+(defun make-cast-expr (type child)
+  "DOCFIXME
+* TYPE DOCFIXME
+* CHILD DOCFIXME
+"
   (apply #'make-statement :CStyleCastExpr :generic
-                          (list (format nil "(~a)" (type-name type))
-                                child)
-                          :types (list (type-hash type))
-                          rest))
+         (list (format nil "(~a)" (type-name type))
+               child)
+         :types (list (type-hash type))
+         rest))
 
 (defun make-call-expr (name args syn-ctx &rest rest)
+  "DOCFIXME
+* NAME DOCFIXME
+* ARGS DOCFIXME
+* SYN-CTX DOCFIXME
+* REST DOCFIXME
+"
   (apply #'make-statement :CallExpr syn-ctx
          `(,(make-statement :ImplictCastExpr :generic
                          (list (make-statement :DeclRefExpr :generic
@@ -655,15 +755,26 @@ if not given."
            ")")
          rest))
 
-(defun make-label (name child &rest rest)
-  (apply #'make-statement :LabelStmt :fullstmt
-                          (list (format nil "~a:~%" name) child)
-                          rest))
+(defun make-label (name child)
+  "DOCFIXME
+* NAME DOCFIXME
+* CHILD DOCFIXME
+"
+  (make-statement :LabelStmt :fullstmt
+                  (list (format nil "~a:~%" name) child)))
 
 (defmethod get-ast ((obj clang) (path list))
+  "DOCFIXME
+* OBJ DOCFIXME
+* PATH DOCFIXME
+"
   (get-ast (ast-root obj) path))
 
 (defmethod get-ast ((tree list) (path list))
+  "DOCFIXME
+* TREE DOCFIXME
+* PATH DOCFIXME
+"
     (if path
         (destructuring-bind (head . tail) path
           (get-ast (nth head (cdr tree))
@@ -673,7 +784,14 @@ if not given."
 (defun fixup-mutation (operation context before ast after)
   "Adjust mutation result according to syntactic context.
 
-Adds and removes semicolons, commas, and braces. "
+Adds and removes semicolons, commas, and braces. 
+
+* OPERATION DOCFIXME
+* CONTEXT DOCFIXME
+* BEFORE DOCFIXME
+* AST DOCFIXME
+* AFTER DOCFIXME
+"
   (when ast
     (let ((new (copy-clang-ast (car ast))))
       ;; Make a new AST with updated values. If anything changed,
@@ -769,12 +887,22 @@ Adds and removes semicolons, commas, and braces. "
               (:toplevel (add-semicolon-if-unbraced))))))
 
 (defun replace-nth-child (ast n replacement)
+  "DOCFIXME
+* AST DOCFIXME
+* N DOCFIXME
+* REPLACEMENT DOCFIXME
+"
   (nconc (subseq ast 0 (+ 1 n))
          (list replacement)
          (subseq ast (+ 2 n))))
 
 (defmethod replace-ast ((tree list) (location ast-ref)
                         (replacement ast-ref))
+  "DOCFIXME
+* TREE DOCFIXME
+* LOCATION DOCFIXME
+* REPLACEMENT DOCFIXME
+"
   (labels
     ((non-empty (str)
        "Return STR only if it's not empty.
@@ -836,6 +964,10 @@ list, and we want to treat them as NIL in most cases.
     (helper tree (ast-ref-path location) nil)))
 
 (defmethod remove-ast ((tree list) (location ast-ref))
+  "DOCFIXME
+* TREE DOCFIXME
+* LOCATION DOCFIXME
+"
   (labels
       ((helper (tree path)
          (bind (((head . tail) path)
@@ -865,6 +997,10 @@ list, and we want to treat them as NIL in most cases.
 
 Can insert ASTs and text snippets. Does minimal syntactic fixups, so
 use carefully.
+
+* TREE DOCFIXME
+* LOCATION DOCFIXME
+* NEW-ASTS DOCFIXME
 "
   (labels
     ((helper (tree path)
@@ -883,6 +1019,11 @@ use carefully.
 
 (defmethod insert-ast ((tree list) (location ast-ref)
                        (replacement ast-ref))
+  "DOCFIXME
+* TREE DOCFIXME
+* LOCATION DOCFIXME
+* REPLACEMENT DOCFIXME
+"
   (labels
     ((helper (tree path)
        (bind (((head . tail) path)
@@ -934,12 +1075,22 @@ Does not modify the original TREE.
    "Replace variable and function references, returning a new AST."))
 
 (defmethod rebind-vars ((ast ast-ref) var-replacements fun-replacements)
+  "DOCFIXME
+* AST DOCFIXME
+* VAR-REPLACEMENTS DOCFIXME
+* FUN-REPLACEMENTS
+"
   (make-ast-ref :path (ast-ref-path ast)
                 :ast (rebind-vars (ast-ref-ast ast)
                                   var-replacements fun-replacements)))
 
 (defmethod rebind-vars ((ast list)
                         var-replacements fun-replacements)
+  "DOCFIXME
+* AST DOCFIXME
+* VAR-REPLACEMENTS DOCFIXME
+* FUN-REPLACEMENTS DOCFIXME
+"
   ;; var-replacements looks like:
   ;; ( (("(|old-name|)" "(|new-name|)") ... )
   ;; These name/depth pairs can come directly from ast-unbound-vals.
@@ -965,6 +1116,11 @@ Does not modify the original TREE.
                     children)))))
 
 (defmethod rebind-vars ((ast string) var-replacements fun-replacements)
+  "DOCFIXME
+* AST DOCFIXME
+* VAR-REPLACEMENTS DOCFIXME
+* FUN-REPLACEMENTS
+"
   (reduce (lambda (new-ast replacement)
             (replace-all new-ast (first replacement) (second replacement)))
           (append var-replacements
@@ -979,11 +1135,21 @@ Does not modify the original TREE.
    "Make arbitrary replacements within AST, returning a new AST."))
 
 (defmethod replace-in-ast ((ast ast-ref) replacements &key (test #'eq))
+  "DOCFIXME
+* AST DOCFIXME
+* REPLACEMENTS DOCFIXME
+* TEST DOCFIXME
+"
   (make-ast-ref :path (ast-ref-path ast)
                 :ast (replace-in-ast (ast-ref-ast ast) replacements
                                      :test test)))
 
 (defmethod replace-in-ast ((ast list) replacements &key (test #'eq))
+  "DOCFIXME
+* AST DOCFIXME
+* REPLACEMENTS DOCFIXME
+* TEST DOCFIXME
+"
   (or
    ;; If replacement found, return it
    (cdr (find ast replacements :key #'car :test test))
@@ -994,6 +1160,11 @@ Does not modify the original TREE.
                    children)))))
 
 (defmethod replace-in-ast (ast replacements &key (test #'eq))
+  "DOCFIXME
+* AST DOCFIXME
+* REPLACEMENTS DOCFIXME
+* TEST DOCFIXME
+"
   (or (cdr (find ast replacements :key #'car :test test))
       ast))
 
@@ -1003,6 +1174,10 @@ Does not modify the original TREE.
   (:documentation "Add TYPE to `types' of SOFTWARE, unique by hash."))
 
 (defmethod add-type ((obj clang) (type clang-type))
+  "DOCFIXME
+* OBJ DOCFIXME
+* TYPE DOCFIXME
+"
   (unless (gethash (type-hash type) (types obj))
     (if (type-i-file type)
       ;; add requisite includes for this type
@@ -1020,10 +1195,19 @@ Does not modify the original TREE.
     ;; always add type with new hash to types hashtable
     (setf (gethash (type-hash type) (types obj)) type))
   obj)
+
 (defmethod add-type ((obj clang) (type null))
+  "DOCFIXME
+* OBJ DOCFIXME
+* TYPE DOCFIXME
+"
   nil)
 
 (defmethod find-type ((obj clang) hash)
+  "DOCFIXME
+* OBJ DOCFIXME
+* HASH DOCFIXME
+"
   (gethash hash (types obj)))
 
 (defmethod find-or-add-type ((obj clang) name &key
@@ -1034,7 +1218,17 @@ Does not modify the original TREE.
                              (restrict nil restrict-arg-p)
                              (storage-class :None storage-class-arg-p)
                              &aux (type (type-from-trace-string name)))
-  "Find the type with given properties, or add it to the type DB."
+  "Find the type with given properties, or add it to the type DB.
+
+* OBJ DOCFIXME
+* NAME DOCFIXME
+* ARRAY DOCFIXME
+* CONST DOCFIXME
+* VOLATILE DOCFIXME
+* RESTRICT DOCFIXME
+* STORAGE-CLASS DOCFIXME
+* TYPE DOCFIXME
+"
   (setf (type-hash type)
         (1+ (apply #'max (mapcar #'type-hash (hash-table-values (types obj))))))
   (when pointer-arg-p
@@ -1064,6 +1258,10 @@ Does not modify the original TREE.
 
 This will have stars on the right, e.g. char**. "))
 (defmethod type-decl-string ((type clang-type) &key (qualified t))
+  "DOCFIXME
+* TYPE DOCFIXME
+* QUALIFIED DOCFIXME
+"
   (format nil "~a~a~a~a~a~a~a"
           (if (and qualified (type-const type)) "const " "")
           (if (and qualified (type-volatile type)) "volatile " "")
@@ -1086,6 +1284,10 @@ This will have stars on the right, e.g. char**. "))
 
 This will have stars on the left, e.g **char."))
 (defmethod type-trace-string ((type clang-type) &key (qualified t))
+  "DOCFIXME
+* TYPE DOCFIXME
+* QUALIFIED DOCFIXME
+"
   (concatenate 'string
                (when (type-pointer type) "*")
                (when (not (emptyp (type-array type))) (type-array type))
@@ -1103,9 +1305,14 @@ This will have stars on the left, e.g **char."))
   (:documentation
    "Create a clang-type from a NAME used in an execution trace.
 
+DOCFIXME no NAME
+
 The resulting type will not be added to any clang object and will not have a
 valid hash."))
 (defmethod type-from-trace-string ((name string))
+  "DOCFIXME
+* NAME DOCFIXME
+"
   (make-clang-type
     :pointer (not (null (find #\* name)))
     :array (if (find #\[ name) (scan-to-strings "\\[\\d*\\]" name) "")
@@ -1129,7 +1336,11 @@ valid hash."))
   "Prepend non-AST TEXT to OBJ genome.
 
 New text will not be parsed. Only use this for macros, includes, etc which
-don't have corresponding ASTs."
+don't have corresponding ASTs.
+
+* OBJ DOCFIXME
+* TEXT DOCFIXME
+"
   (labels ((ensure-newline (text)
              (if (not (equalp #\Newline (last-elt text)))
                  (concatenate 'string text '(#\Newline))
@@ -1160,11 +1371,20 @@ don't have corresponding ASTs."
   obj)
 
 (defmethod find-macro((obj clang) hash)
+  "DOCFIXME
+* OBJ DOCFIXME
+* HASH DOCFIXME
+"
   (find-if {= hash} (macros obj) :key #'macro-hash))
 
 (defgeneric add-include (software include)
   (:documentation "Add an #include directive for a INCLUDE to SOFTWARE."))
+
 (defmethod add-include ((obj clang) (include string))
+  "DOCFIXME
+* OBJ DOCFIXME
+* INCLUDE DOCFIXME
+"
   (unless (member include (includes obj) :test #'string=)
     (prepend-to-genome obj (format nil "#include ~a~&" include))
     (push include (includes obj)))
@@ -1173,7 +1393,12 @@ don't have corresponding ASTs."
 (defgeneric force-include (software include)
   (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
 even if such an INCLUDE already exists in SOFTWARE"))
+
 (defmethod force-include ((obj clang) include)
+  "DOCFIXME
+* OBJ DOCFIXME
+* INCLUDE DOCFIXME
+"
   (prepend-to-genome obj (format nil "#include ~a~&" include))
   (unless (member include (includes obj) :test #'string=)
     (push include (includes obj)))
@@ -1254,58 +1479,93 @@ pick or false (nil) otherwise."
                                (random-elt)))))))
 
 (defmethod pick-bad-good ((software clang) &key filter)
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* FILTER DOCFIXME
+"
   (pick-general software #'bad-stmts
                 :second-pool #'good-stmts
                 :filter filter))
 
 (defmethod pick-bad-bad ((software clang) &key filter)
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* FILTER DOCFIXME
+"
   (pick-general software #'bad-stmts
                 :second-pool #'bad-stmts
                 :filter filter))
 
 (defmethod pick-bad-only ((software clang) &key filter)
+  "DOCFIXME i don't think there is a generic for this
+* SOFTWARE DOCFIXME
+* FILTER
+"
   (pick-general software #'bad-stmts :filter filter))
 
 ;; Filters for use with Targetting functions
 (defun full-stmt-filter (ast &optional first-pick)
+  "DOCFIXME
+* AST DOCFIXME
+* FIRST-PICK DOCFIXME
+"
   (declare (ignorable first-pick))
   (ast-full-stmt ast))
 
 (defun same-class-filter (ast &optional first-pick)
+  "DOCFIXME
+* AST DOCFIXME
+* FIRST-PICK
+"
   (if first-pick
       (eq (ast-class ast) (ast-class first-pick))
       t))
 
 
 ;;; Mutations
-(defclass clang-mutation (mutation) ())
+(defclass clang-mutation (mutation)
+  ()
+  (:documentation "DOCFIXME"))
 
 (defgeneric build-op (mutation software)
   (:documentation "Build clang-mutate operation from a mutation."))
 
 ;; Insert
 (define-mutation clang-insert (clang-mutation)
-  ((targeter :initform #'pick-bad-good)))
+  ((targeter :initform #'pick-bad-good))
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-insert) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (declare (ignorable software))
   `((:insert . ,(targets mutation))))
 
 (define-mutation clang-insert-full (clang-insert)
-  ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter})))
+  ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter}))
+  (:documentation  "DOCFIXME"))
 
 (define-mutation clang-insert-same (clang-insert)
-  ((targeter :initform {pick-bad-good _ :filter #'same-class-filter})))
+  ((targeter :initform {pick-bad-good _ :filter #'same-class-filter}))
+  (:documentation "DOCFIXME"))
 
 (define-mutation clang-insert-full-same (clang-insert)
   ((targeter :initform {pick-bad-good _ :filter «and #'full-stmt-filter
-                                                     #'same-class-filter»})))
+	     #'same-class-filter»}))
+  (:documentation "DOCFIXME"))
 
 ;;; Swap
 (define-mutation clang-swap (clang-mutation)
-  ((targeter :initform #'pick-bad-bad)))
+  ((targeter :initform #'pick-bad-bad))
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-swap) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME5B
+"
   (declare (ignorable software))
   `((:set (:stmt1 . ,(aget :stmt1 (targets mutation)))
           (:stmt2 . ,(aget :stmt2 (targets mutation))))
@@ -1313,20 +1573,30 @@ pick or false (nil) otherwise."
           (:stmt2 . ,(aget :stmt1 (targets mutation))))))
 
 (define-mutation clang-swap-full (clang-swap)
-  ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter})))
+  ((targeter :initform {pick-bad-bad _ :filter #'full-stmt-filter}))
+  (:documentation "DOCFIXME"))
+
 
 (define-mutation clang-swap-same (clang-swap)
-  ((targeter :initform {pick-bad-bad _ :filter #'same-class-filter})))
+  ((targeter :initform {pick-bad-bad _ :filter #'same-class-filter}))
+  (:documentation "DOCFIXME"))
 
 (define-mutation clang-swap-full-same (clang-swap)
   ((targeter :initform {pick-bad-good _ :filter «and #'full-stmt-filter
-                                                     #'same-class-filter»})))
+	     #'same-class-filter»}))
+  (:documentation "DOCFIXME")
+  )
 
 ;;; Move
 (define-mutation clang-move (clang-mutation)
-  ((targeter :initform #'pick-bad-bad)))
+  ((targeter :initform #'pick-bad-bad))
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-move) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (declare (ignorable software))
   `((:insert (:stmt1 . ,(aget :stmt1 (targets mutation)))
              (:stmt2 . ,(aget :stmt2 (targets mutation))))
@@ -1334,42 +1604,64 @@ pick or false (nil) otherwise."
 
 ;;; Replace
 (define-mutation clang-replace (clang-mutation)
-  ((targeter :initform #'pick-bad-good)))
+  ((targeter :initform #'pick-bad-good))
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-replace) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (declare (ignorable software))
   `((:set . ,(targets mutation))))
 
 (define-mutation clang-replace-full (clang-replace)
-  ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter})))
+  ((targeter :initform {pick-bad-good _ :filter #'full-stmt-filter}))
+  (:documentation "DOCFIXME"))
 
 (define-mutation clang-replace-same (clang-replace)
-  ((targeter :initform {pick-bad-good _ :filter #'same-class-filter})))
+  ((targeter :initform {pick-bad-good _ :filter #'same-class-filter}))
+  (:documentation "DOCFIXME"))
 
 (define-mutation clang-replace-full-same (clang-replace)
   ((targeter :initform {pick-bad-good _ :filter «and #'full-stmt-filter
-                                                     #'same-class-filter»})))
+	     #'same-class-filter»}))
+  (:documentation "DOCFIXME"))
 
 ;;; Cut
 (define-mutation clang-cut (clang-mutation)
-  ((targeter :initform #'pick-bad-only)))
+  ((targeter :initform #'pick-bad-only))
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-cut) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (declare (ignorable software))
   `((:cut . ,(targets mutation))))
 
 (define-mutation clang-cut-full (clang-cut)
-  ((targeter :initform {pick-bad-only _ :filter #'full-stmt-filter})))
+  ((targeter :initform {pick-bad-only _ :filter #'full-stmt-filter}))
+  (:documentation "DOCFIXME"))
 
 ;;; Set Range
-(define-mutation clang-set-range (clang-mutation) ())
+(define-mutation clang-set-range (clang-mutation)
+  ()
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-set-range) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (declare (ignorable software))
   `((:set-range . ,(targets mutation))))
 
 ;;; Nop
-(define-mutation clang-nop (clang-mutation) ())
+(define-mutation clang-nop (clang-mutation)
+  ()
+  (:documentation "DOCFIXME"))
 
 (defmethod build-op ((mutation clang-nop) software)
   (declare (ignorable software mutation))
@@ -1377,7 +1669,8 @@ pick or false (nil) otherwise."
 
 ;;; Promote guarded compound statement.
 (define-mutation clang-promote-guarded (clang-mutation)
-  ((targeter :initform #'pick-guarded-compound)))
+  ((targeter :initform #'pick-guarded-compound))
+  (:documentation "DOCFIXME"))
 
 (defgeneric pick-guarded-compound (software)
   (:documentation "Pick a guarded compound statement in SOFTWARE."))
@@ -1388,12 +1681,20 @@ pick or false (nil) otherwise."
   :documentation "Statement classes with guards")
 
 (defmethod pick-guarded-compound ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (aget :stmt1
         (pick-bad-only obj :filter [{member _ +clang-guarded-classes+}
                                     #'ast-class])))
 
 (defmethod build-op ((mutation clang-promote-guarded) software
                      &aux (guarded (targets mutation)))
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+* GUARDED DOCFIXME
+"
   (labels
       ((text-after-ast-helper (tree path)
          (bind (((head . tail) path)
@@ -1460,10 +1761,18 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
 
 (defgeneric pick-for-loop (software)
   (:documentation "Pick and return a 'for' loop in SOFTWARE."))
+
 (defmethod pick-for-loop ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (pick-bad-only obj :filter [{eq :ForStmt} #'ast-class]))
 
 (defmethod build-op ((mutation explode-for-loop) (obj clang))
+  "DOCFIXME
+* MUTATION DOCFIXME
+* OBJ DOCFIXME
+"
   (labels ((is-initialization-ast (ast)
              (and (eq :BinaryOperator (ast-class ast))
                   (equal "=" (ast-opcode ast))))
@@ -1537,10 +1846,18 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 
 (defgeneric pick-while-loop (software)
   (:documentation "Pick and return a 'while' loop in SOFTWARE."))
+
 (defmethod pick-while-loop ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (pick-bad-only obj :filter [{eq :WhileStmt} #'ast-class]))
 
 (defmethod build-op ((mutation coalesce-while-loop) (obj clang))
+  "DOCFIXME
+* MUTATION DOCFIXME
+* OBJ DOCFIXME
+"
   (let ((ast (aget :stmt1 (targets mutation))))
     (destructuring-bind (condition body)
         (get-immediate-children obj ast)
@@ -1565,9 +1882,14 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   ((targeter :initform #'pick-cut-decl)))
 
 (defun pick-cut-decl (clang)
+  "DOCFIXME"
   (pick-bad-only clang :filter [{eq :DeclStmt} #'ast-class]))
 
 (defmethod build-op ((mutation cut-decl) clang)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* CLANG DOCFIXME
+"
   (let* ((decl (aget :stmt1 (targets mutation)))
          (the-block (enclosing-block clang decl))
          (old-names (ast-declares decl))
@@ -1587,9 +1909,13 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 
 ;;; Swap Decls
 (define-mutation swap-decls (clang-swap)
-  ((targeter :initform #'pick-swap-decls)))
+  ((targeter :initform #'pick-swap-decls))
+  (:documentation "DOCFIXME"))
 
 (defun pick-swap-decls (clang)
+  "DOCFIXME 
+* CLANG DOCFIXME
+"
   (labels
     ((is-decl (ast)
        (eq :DeclStmt (ast-class ast)))
@@ -1626,6 +1952,10 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
     `((:stmt1 . ,stmt1) (:old-var . ,old-var) (:new-var . ,new-var))))
 
 (defmethod build-op ((mutation rename-variable) software)
+  "DOCFIXME
+* MUTATION DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (declare (ignorable software))
   (let ((stmt1 (aget :stmt1 (targets mutation)))
         (old-var (aget :old-var (targets mutation)))
@@ -1639,9 +1969,11 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
 
 ;;; Expand compound assignment or increment/decrement
 (define-mutation expand-arithmatic-op (clang-replace)
-  ((targeter :initform #'pick-expand-arithmatic-op)))
+  ((targeter :initform #'pick-expand-arithmatic-op))
+  (:documentation "DOCFIXME"))
 
 (defun pick-expand-arithmatic-op (clang)
+  "DOCFIXME"
   (labels ((compound-assign-op (ast) (->> (ast-class ast)
                                           (eq :CompoundAssignOperator)))
            (increment-op (ast) (and (->> (ast-class ast)
@@ -1708,6 +2040,9 @@ values.  Additionally perform any updates to the software object required
 for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod size ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (length (asts obj)))
 
 (defvar *clang-json-required-fields*
@@ -1725,6 +2060,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
   "JSON database AuxDB entries required for clang software objects.")
 
 (defmethod genome ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   ;; If genome string is stored directly, use that. Otherwise,
   ;; build the genome by walking the AST.
   (if-let ((val (slot-value obj 'genome)))
@@ -1734,6 +2072,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
     (peel-bananas (source-text (ast-root obj)))))
 
 (defmethod (setf genome) :before (new (obj clang))
+  "DOCFIXME"
   (declare (ignorable new))
   (with-slots (ast-root types macros globals fitness) obj
     (setf ast-root nil
@@ -1744,6 +2083,7 @@ for successful mutation (e.g. adding includes/types/macros)"))
   (clear-caches obj))
 
 (defmethod (setf ast-root) :before (new (obj clang))
+  "DOCFIXME"
   (declare (ignorable new))
   (with-slots (globals fitness) obj
     (setf globals nil
@@ -1757,6 +2097,10 @@ for successful mutation (e.g. adding includes/types/macros)"))
 
 (defmethod update-asts ((obj clang)
                         &key clang-mutate-args)
+  "DOCFIXME
+* OBJ DOCFIXME
+* CLANG-MUTATE-ARGS DOCFIXME
+"
   ;; Avoid updates if ASTs and genome haven't changed
   (unless (asts-changed-p obj)
     (return-from update-asts))
@@ -1802,6 +2146,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
   obj)
 
 (defmethod update-caches ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (with-slots (asts stmt-asts non-stmt-asts functions prototypes
                     includes) obj
     ;; Collect all ast-refs
@@ -1841,6 +2188,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
   obj)
 
 (defmethod clear-caches ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (with-slots (asts stmt-asts non-stmt-asts functions prototypes
                     includes asts-changed-p) obj
     (setf asts nil
@@ -1852,62 +2202,167 @@ for successful mutation (e.g. adding includes/types/macros)"))
           asts-changed-p t)))
 
 (defmethod from-file ((obj clang) path)
+  "DOCFIXME
+* OBJ DOCFIXME
+* PATH DOCFIXME
+"
   (setf (ext obj) (pathname-type (pathname path)))
   (from-string obj (file-to-string path))
   obj)
 
 (defmethod from-string ((obj clang) string)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STRING DOCFIXME
+"
   ;; Load the raw string and generate a json database
   (setf (genome obj) string)
   obj)
 
 (defmethod update-asts-if-necessary ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
 (defmethod update-caches-if-necessary ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (with-slots (stmt-asts) obj (unless stmt-asts (update-caches obj))))
 
-(defmethod      ast-root :before ((obj clang)) (update-asts-if-necessary obj))
-(defmethod          size :before ((obj clang)) (update-asts-if-necessary obj))
+(defmethod      ast-root :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-asts-if-necessary obj))
 
-(defmethod          asts :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod     stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod non-stmt-asts :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod     functions :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod    prototypes :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod      includes :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod         types :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod        macros :before ((obj clang)) (update-caches-if-necessary obj))
-(defmethod       globals :before ((obj clang)) (update-caches-if-necessary obj))
+(defmethod          size :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-asts-if-necessary obj))
+
+
+(defmethod          asts :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod     stmt-asts :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod non-stmt-asts :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+ (update-caches-if-necessary obj))
+
+(defmethod     functions :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod    prototypes :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod      includes :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod         types :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod        macros :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
+
+(defmethod       globals :before ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
+  (update-caches-if-necessary obj))
 
 (defmethod ast-at-index ((obj clang) index)
+  "DOCFIXME
+* OBJ DOCFIXME
+* INDEX DOCFIXME
+"
   (nth index (asts obj)))
 
 (defmethod index-of-ast ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   (position ast (asts obj) :test #'equalp))
 
 (defmethod recontextualize ((clang clang) (ast ast-ref) (pt ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+* PT DOCFIXME
+"
   (bind-free-vars clang ast pt))
 
 (defmethod get-parent-decls ((clang clang) ast)
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (remove-if-not #'ast-is-decl (get-parent-asts clang ast)))
 
 (defmethod good-stmts ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (stmt-asts clang))
 
 (defmethod bad-stmts ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (stmt-asts clang))
 
 (defmethod pick-good ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (random-elt (good-mutation-targets clang)))
 
 (defmethod pick-bad ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (random-elt (bad-mutation-targets clang)))
 
 (defmethod good-mutation-targets ((clang clang) &key filter)
+  "DOCFIXME
+* CLANG DOCFIXME
+* FILTER DOCFIXME
+"
   (mutation-targets clang :filter filter :stmt-pool #'good-stmts))
 
 (defmethod bad-mutation-targets ((clang clang) &key filter)
+  "DOCFIXME
+* CLANG DOCFIXME
+* FILTER DOCFIXME
+"
   (mutation-targets clang :filter filter :stmt-pool #'bad-stmts))
 
 (defmethod mutation-targets ((clang clang) &key (filter nil)
@@ -1915,8 +2370,9 @@ for successful mutation (e.g. adding includes/types/macros)"))
   "Return a list of target ASTs from STMT-POOL for mutation, throwing
 a 'no-mutation-targets exception if none are available.
 
-:FILTER ------ filter AST from consideration when this function returns nil
-:STMT-POOL --- method on CLANG returning a list of ASTs"
+* CLANG DOCFIXME
+* FILTER filter AST from consideration when this function returns nil
+* STMT-POOL method on CLANG returning a list of ASTs"
   (labels ((do-mutation-targets ()
              (if-let ((target-stmts
                         (if filter
@@ -1975,9 +2431,15 @@ already in scope, it will keep that name.")
   "Cumulative distribution of normalized probabilities of weighted mutations.")
 
 (defmethod pick-mutation-type ((obj clang))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (random-pick *clang-mutation-types*))
 
 (defmethod mutate ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (unless (stmt-asts clang)
     (error (make-condition 'mutate :text "No valid statements" :obj clang)))
   (restart-case
@@ -2012,9 +2474,17 @@ operations.
     (path-later-p (ast-ref-path ast-a) (ast-ref-path ast-b))))
 
 (defmethod recontextualize-mutation ((obj clang) (mut mutation))
+  "DOCFIXME
+* OBJ DOCFIXME
+* MUT DOCFIXME
+"
   (recontextualize-mutation obj (build-op mut obj)))
 
 (defmethod recontextualize-mutation ((obj clang) (ops list))
+  "DOCFIXME
+* OBJ DOCFIXME
+* OPS DOCFIXME
+"
   (loop :for (op . properties) :in ops
      :collecting
      (let ((stmt1  (aget :stmt1  properties))
@@ -2053,6 +2523,10 @@ operations.
 Useful as *another* point of interposition for mutation customization."))
 
 (defmethod apply-mutation-ops ((software clang) (ops list))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* OPS DOCFIXME
+"
   (with-slots (ast-root) software
     (iter (for (op . properties) in ops)
           (let ((stmt1 (aget :stmt1 properties))
@@ -2069,6 +2543,10 @@ Useful as *another* point of interposition for mutation customization."))
 
 (defmethod apply-mutation ((software clang)
                            (mutation clang-mutation))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* MUTATION DOCFIXME
+"
   (restart-case
       (apply-mutation-ops software
                           ;; Sort operations latest-first so they
@@ -2089,9 +2567,17 @@ Useful as *another* point of interposition for mutation customization."))
 
 ;; Convenience form for compilation fixers, crossover, etc
 (defmethod apply-mutation ((clang clang) (op list))
+  "DOCFIXME
+* CLANG DOCFIXME
+* OP DOCFIXME
+"
   (apply-mutation clang (make-instance (car op) :targets (cdr op))))
 
 (defmethod mutation-key ((obj clang) op)
+  "DOCFIXME
+* OBJ DOCFIXME
+* OP DOCFIXME
+"
   ;; Return a list of the mutation type, and the classes of any stmt1 or
   ;; stmt2 arguments.
   (cons
@@ -2102,6 +2588,10 @@ Useful as *another* point of interposition for mutation customization."))
                                          (remove-if-not #'consp (targets op)))))))
 
 (defun mutation-op-to-cmd (tu op)
+  "DOCFIXME
+* TU DOCFIXME
+* OP DOCFIXME
+"
   (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
            (str (tag) (json:encode-json-to-string (aget tag (cdr op)))))
     (ecase (car op)
@@ -2145,6 +2635,13 @@ Useful as *another* point of interposition for mutation customization."))
 (defmethod clang-mutate ((obj clang) op
                          &key script
                          &aux value1-file value2-file)
+  "DOCFIXME
+* OBJ DOCFIXME
+* OP DOCFIXME
+* SCRIPT DOCFIXME
+* VALUE1-FILE DOCFIXME
+* VALUE2-FILE DOCFIXME
+"
   (assert (ext obj) (obj)
           "Software object ~a has no extension, required by clang-mutate."
           obj)
@@ -2369,22 +2866,37 @@ Useful as *another* point of interposition for mutation customization."))
     (cdr (scan-ast (ast-root obj) nil 1 1))))
 
 (defmethod asts-containing-source-location ((obj clang) (loc source-location))
+  "DOCFIXME
+* OBJ DOCFIXME
+* LOC DOCFIXME
+"
   (when loc
     (mapcar #'car
             (remove-if-not [{contains _ loc} #'cdr] (ast-source-ranges obj)))))
 
 (defmethod asts-contained-in-source-range ((obj clang) (range source-range))
+  "DOCFIXME
+* OBJ DOCFIXME
+* RANGE DOCFIXME
+"
   (when range
     (mapcar #'car
             (remove-if-not [{contains range} #'cdr] (ast-source-ranges obj)))))
 
 (defmethod asts-intersecting-source-range ((obj clang) (range source-range))
+  "DOCFIXME
+* OBJ DOCFIXME
+* RANGE DOCFIXME
+"
   (when range
     (mapcar #'car
             (remove-if-not [{intersects range} #'cdr]
                            (ast-source-ranges obj)))))
 
 (defmethod line-breaks ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (cons 0 (loop :for char :in (coerce (genome clang) 'list) :as index
                 :from 0
                 :when (equal char #\Newline) :collect index)))
@@ -2394,15 +2906,28 @@ Useful as *another* point of interposition for mutation customization."))
    "Check if POSSIBLE-PARENT-AST is a parent of AST in SOFTWARE."))
 
 (defmethod parent-ast-p ((clang clang) possible-parent-ast ast)
+  "DOCFIXME
+* CLANG DOCFIXME
+* POSSIBLE-PARENT-AST DOCFIXME
+* AST DOCFIXME
+"
   (member possible-parent-ast (get-parent-asts clang ast)
           :test #'equalp))
 
 (defmethod get-parent-ast ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   (when-let ((path (butlast (ast-ref-path ast))))
     (make-ast-ref :ast (get-ast obj path)
                   :path path)))
 
 (defmethod get-parent-asts ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (labels ((get-parent-asts-helper (path tree)
              (if (null path)
                  nil
@@ -2415,10 +2940,14 @@ Useful as *another* point of interposition for mutation customization."))
     (-> (get-parent-asts-helper (ast-ref-path ast) (ast-root clang))
         (reverse))))
 
-(defgeneric get-immediate-children (sosftware ast)
+(defgeneric get-immediate-children (software ast)
   (:documentation "Return the immediate children of AST in SOFTWARE."))
 
 (defmethod get-immediate-children ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (let ((path (ast-ref-path ast)))
     (iter (for child in (cdr (ast-ref-ast ast)))
           (for i upfrom 0)
@@ -2430,6 +2959,10 @@ Useful as *another* point of interposition for mutation customization."))
    "If AST-PATH is a function AST, return the AST representing its body."))
 
 (defmethod function-body ((software clang) (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (when (function-decl-p ast)
     (find-if [{eq :CompoundStmt} #'ast-class]
              (get-immediate-children software ast))))
@@ -2440,6 +2973,10 @@ Useful as *another* point of interposition for mutation customization."))
 Returns nil if no full-stmt parent is found."))
 
 (defmethod get-parent-full-stmt ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (cond ((ast-full-stmt ast) ast)
         (ast (get-parent-full-stmt clang (get-parent-ast clang ast)))))
 
@@ -2451,6 +2988,10 @@ Return as a list of (first-index last-index). Indices are positions in
 the list returned by (asts software)."  ) )
 
 (defmethod stmt-range ((software clang) (function ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* FUNCTION DOCFIXME
+"
   (labels
       ((rightmost-child (ast)
          (if-let ((children (get-immediate-children software ast)))
@@ -2485,6 +3026,10 @@ it will transform this into:
     }"))
 
 (defmethod wrap-ast ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   (apply-mutation obj
                   `(clang-replace (:stmt1 . ,ast)
                                   (:literal1 . ,(make-block (list ast ";")))))
@@ -2499,6 +3044,11 @@ it will transform this into:
   (:documentation "Wrap INDEX child of AST in SOFTWARE in a compound stmt."))
 
 (defmethod wrap-child ((obj clang) (ast ast-ref) (index integer))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+* INDEX DOCFIXME
+"
   (if (member (ast-class ast) +clang-wrapable-parents+)
       (wrap-ast obj (nth index (get-immediate-children obj ast)))
       (error "Will not wrap children of type ~a, only useful for ~a."
@@ -2509,6 +3059,10 @@ it will transform this into:
   (:documentation "Check if AST can be made a traceable statement in SOFTWARE."))
 
 (defmethod can-be-made-traceable-p ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   (or (traceable-stmt-p obj ast)
       (unless (or (ast-guard-stmt ast) ; Don't wrap guard statements.
                   (eq :CompoundStmt ; Don't wrap CompoundStmts.
@@ -2525,6 +3079,10 @@ If a statement is reached which is not itself full, but which could be
 made full by wrapping with curly braces, return that."))
 
 (defmethod enclosing-traceable-stmt ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   (cond
     ((traceable-stmt-p obj ast) ast)
     ;; Wrap AST in a CompoundStmt to make it traceable.
@@ -2538,6 +3096,10 @@ made full by wrapping with curly braces, return that."))
    "Return TRUE if AST is a traceable statement in SOFTWARE."))
 
 (defmethod traceable-stmt-p ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   (and (ast-full-stmt ast)
        (not (function-decl-p ast))
        (not (ast-in-macro-expansion ast))
@@ -2547,12 +3109,21 @@ made full by wrapping with curly braces, return that."))
        (eq :CompoundStmt (ast-class (get-parent-ast obj ast)))))
 
 (defmethod nesting-depth ((clang clang) stmt &optional orig-depth)
+  "DOCFIXME
+* CLANG DOCFIXME
+* STMT DOCFIXME
+* ORIG-DEPTH DOCFIXME
+"
   (let ((depth (or orig-depth 0)))
     (if (null stmt)
         depth
         (nesting-depth clang (enclosing-block clang stmt) (1+ depth)))))
 
 (defmethod enclosing-block ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   ;; First parent AST is self, skip over that.
   (find-if {block-p clang} (cdr (get-parent-asts clang ast))))
 
@@ -2560,6 +3131,10 @@ made full by wrapping with curly braces, return that."))
   (:documentation "Check if STATEMENT is a full statement in SOFTWARE."))
 
 (defmethod full-stmt-p ((obj clang) (stmt ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* STMT DOCFIXME
+"
   (declare (ignorable obj))
   (ast-full-stmt stmt))
 
@@ -2567,6 +3142,10 @@ made full by wrapping with curly braces, return that."))
   (:documentation "Check if STATEMENT is a guard statement in SOFTWARE."))
 
 (defmethod guard-stmt-p ((obj clang) (stmt ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* STATEMENT DOCFIXME
+"
   (declare (ignorable obj))
   (ast-guard-stmt stmt))
 
@@ -2574,6 +3153,10 @@ made full by wrapping with curly braces, return that."))
   (:documentation "Check if STATEMENT is a block in SOFTWARE."))
 
 (defmethod block-p ((obj clang) (stmt ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* STMT DOCFIXME
+"
   (or (eq :CompoundStmt (ast-class stmt))
       (and (member (ast-class stmt) +clang-wrapable-parents+)
            (not (null (->> (get-immediate-children obj stmt)
@@ -2586,20 +3169,37 @@ made full by wrapping with curly braces, return that."))
    "Return the first full statement in SOFTWARE holding STMT."))
 
 (defmethod enclosing-full-stmt ((obj clang) (stmt ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* STMT DOCFIXME
+"
   (find-if #'ast-full-stmt (get-parent-asts obj stmt)))
 
 (defun get-entry-after (item list)
+  "DOCFIXME
+* ITEM DOCFIXME
+* LIST DOCFIXME
+"
   (cond ((null list) nil)
         ((not (equalp (car list) item)) (get-entry-after item (cdr list)))
         ((null (cdr list)) nil)
         (t (cadr list))))
 
 (defun get-entry-before (item list &optional saw)
+  "DOCFIXME
+* ITEM DOCFIXME
+* LIST DOCFIXME
+* SAW DOCFIXME
+"
   (cond ((null list) nil)
         ((equalp (car list) item) saw)
         (t (get-entry-before item (cdr list) (car list)))))
 
 (defmethod block-successor ((clang clang) ast)
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (let* ((full-stmt (enclosing-full-stmt clang ast))
          (the-block (enclosing-block clang full-stmt))
          (the-stmts (remove-if-not «or {block-p clang}
@@ -2608,6 +3208,10 @@ made full by wrapping with curly braces, return that."))
     (get-entry-after full-stmt the-stmts)))
 
 (defmethod block-predeccessor ((clang clang) ast)
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (let* ((full-stmt (enclosing-full-stmt clang ast))
          (the-block (enclosing-block clang full-stmt))
          (the-stmts (remove-if-not «or {block-p clang}
@@ -2674,6 +3278,11 @@ included as the first successor."
         (reverse (successors (ast-ref-ast ancestor) rel-path)))))
 
 (defmethod update-headers-from-snippet ((clang clang) snippet database)
+  "DOCFIXME
+* CLANG DOCFIXME
+* SNIPPET DOCFIXME
+* DATABASE DOCFIXME
+"
   (mapc {add-include clang}
         (reverse (aget :includes snippet)))
   (mapc [{add-macro clang} {find-macro database}]
@@ -2684,19 +3293,33 @@ included as the first successor."
 
 (defgeneric begins-scope (ast)
   (:documentation "True if AST begins a new scope."))
+
 (defmethod begins-scope ((ast ast-ref))
+  "DOCFIXME
+* AST DOCFIXME
+"
   (member (ast-class ast)
           '(:CompoundStmt :Block :Captured :Function :CXXMethod)))
 
 (defgeneric enclosing-scope (software ast)
-  (:documentation "Returns enclosing scope of ast."))
+  (:documentation "Returns enclosing scope of AST."))
+
 (defmethod enclosing-scope ((software clang) (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (or (find-if #'begins-scope
                (cdr (get-parent-asts software ast)))
       ;; Global scope
       (make-ast-ref :path nil :ast (ast-root software))))
 
 (defmethod nth-enclosing-scope ((software clang) depth (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* DEPTH DOCFIXME
+* AST DOCFIXME
+"  
   (let ((scope (enclosing-scope software ast)))
     (if (>= 0 depth) scope
         (nth-enclosing-scope software (1- depth) scope))))
@@ -2708,6 +3331,10 @@ and :SCOPE.
 "))
 
 (defmethod scopes ((software clang) (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   ;; Stop at the root AST
   (when (not (eq :TopLevel (ast-class ast)))
     (let ((scope (enclosing-scope software ast)))
@@ -2742,7 +3369,12 @@ and :SCOPE.
 
 (defgeneric get-ast-types (software ast)
   (:documentation "Types directly referenced within AST."))
+
 (defmethod get-ast-types ((software clang) (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (remove-duplicates (apply #'append (ast-types ast)
                             (mapcar {get-ast-types software}
                                     (get-immediate-children software ast)))))
@@ -2751,12 +3383,20 @@ and :SCOPE.
   (:documentation "Functions used (but not defined) within the AST."))
 
 (defmethod get-unbound-funs ((software clang) (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (remove-duplicates (apply #'append (ast-unbound-funs ast)
                             (mapcar {get-unbound-funs software}
                                     (get-immediate-children software ast)))
                      :test #'equal))
 
 (defmethod get-unbound-funs ((software clang) (ast clang-ast))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (declare (ignorable software))
   (ast-unbound-funs ast))
 
@@ -2765,6 +3405,10 @@ and :SCOPE.
 
 Each variable is represented by an alist in the same format used by SCOPES."))
 (defmethod get-unbound-vals ((software clang) (ast ast-ref))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (labels
       ((in-scope (var scopes)
          (some (lambda (s) (member var s :test #'string=))
@@ -2805,13 +3449,23 @@ Each variable is represented by an alist in the same format used by SCOPES."))
                           `((:name . ,name)))))))))
 
 (defmethod get-unbound-vals ((software clang) (ast clang-ast))
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+* AST DOCFIXME
+"
   (declare (ignorable software))
   (ast-unbound-vals ast))
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
+
 (defmethod get-vars-in-scope ((obj clang) (ast ast-ref)
-                               &optional (keep-globals t))
+			      &optional (keep-globals t))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+* KEEP-GLOBALS DOCFIXME
+"
   ;; Remove duplicate variable names from outer scopes. Only the inner variables
   ;; are accessible.
   (remove-duplicates (apply #'append (if keep-globals
@@ -2826,6 +3480,11 @@ Each variable is represented by an alist in the same format used by SCOPES."))
 free variables.")
 
 (defun random-function-name (protos &key original-name arity)
+  "DOCFIXME
+* PROTOS DOCFIXME
+* ORIGINAL-NAME DOCFIXME
+* ARITY DOCFIXME
+"
   (let ((matching '())
         (variadic '())
         (others   '())
@@ -2845,7 +3504,11 @@ free variables.")
         (random-elt (or matching variadic others '(nil))))))
 
 (defun random-function-info (protos &key original-name arity)
-  "Returns function info in the same format as unbound-funs."
+  "Returns function info in the same format as unbound-funs.
+* PROTOS DOCFIXME
+* ORIGINAL-NAME DOCFIXME
+* ARITY DOCFIXME
+"
   (when-let* ((name (random-function-name protos
                                           :original-name original-name
                                           :arity arity))
@@ -2857,6 +3520,11 @@ free variables.")
           (length (ast-args decl)))))
 
 (defun binding-for-var (obj in-scope name)
+  "DOCFIXME
+* OBJ DOCFIXME
+* IN-SCOPE DOCFIXME
+* NAME DOCFIXME
+"
   ;; If the variable's original name matches the name of a variable in scope,
   ;; keep the original name with probability equal to
   ;; *matching-free-var-retains-name-bias*
@@ -2871,6 +3539,12 @@ free variables.")
                              :obj obj))))
 
 (defun binding-for-function (obj functions name arity)
+  "DOCFIXME
+* OBJ DOCFIXME
+* FUNCTIONS DOCFIXME
+* NAME DOCFIXME
+* ARITY DOCFIXME
+"
   (or (random-function-info functions
                             :original-name name
                             :arity arity)
@@ -2879,6 +3553,11 @@ free variables.")
                              :obj obj))))
 
 (defmethod bind-free-vars ((clang clang) (ast ast-ref) (pt ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+* PT DOCFIXME
+"
   (let* ((in-scope (mapcar {aget :name} (get-vars-in-scope clang pt)))
          (var-replacements
           (mapcar (lambda (var)
@@ -2908,6 +3587,11 @@ REPLACEMENTS is a list holding lists of an ID to replace, and the new
 variables to replace use of the variables declared in stmt ID."))
 
 (defmethod delete-decl-stmts ((obj clang) (block ast-ref) (replacements list))
+  "DOCFIXME
+* OBJ DOCFIXME
+* BLOCK DOCFIXME
+* REPLACEMENTS DOCFIXME
+"
   (append
    ;; Rewrite those stmts in the BLOCK which use an old variable.
    (let* ((old->new      ; First collect a map of old-name -> new-name.
@@ -2931,17 +3615,35 @@ variables to replace use of the variables declared in stmt ID."))
    (mapcar [{list :cut} {cons :stmt1} #'car] replacements)))
 
 (defmethod get-declared-variables ((clang clang) the-block)
+  "DOCFIXME
+* CLANG DOCFIXME
+* THE-BLOCK DOCFIXME
+"
   (mappend #'ast-declares (get-immediate-children clang the-block)))
 
 (defmethod get-used-variables ((clang clang) stmt)
+  "DOCFIXME
+* CLANG DOCFIXME
+* STMT DOCFIXME
+"
   (mapcar {aget :name} (get-unbound-vals clang stmt)))
 
 (defmethod get-children-using ((clang clang) var the-block)
+  "DOCFIXME
+* CLANG DOCFIXME
+* VAR DOCFIXME
+* THE-BLOCK DOCFIXME
+"
   (remove-if-not [(lambda (el) (find var el :test #'equal))
                   {get-used-variables clang}]
                  (get-immediate-children clang the-block)))
 
 (defmethod nth-enclosing-block ((clang clang) depth stmt)
+  "DOCFIXME
+* CLANG DOCFIXME
+* DEPTH DOCFIXME
+* STMT DOCFIXME
+"
   (let ((the-block (enclosing-block clang stmt)))
     (if (>= 0 depth) the-block
         (nth-enclosing-block clang (1- depth) the-block))))
@@ -2950,6 +3652,9 @@ variables to replace use of the variables declared in stmt ID."))
   (:documentation "Names of the variables or functions that AST declares."))
 
 (defmethod ast-declarations ((ast clang-ast))
+  "DOCFIXME
+* AST DOCFIXME
+"
   (cond
     ; Variable or function arg
     ((member (ast-class ast) '(:Var :ParmVar :DeclStmt))
@@ -2959,14 +3664,24 @@ variables to replace use of the variables declared in stmt ID."))
     (:otherwise nil)))
 
 (defmethod ast-declarations ((ast ast-ref))
+  "DOCFIXME
+* AST DOCFIXME
+"
   (ast-declarations (car (ast-ref-ast ast))))
 
 (defmethod ast-declarations ((ast clang-type))
+  "DOCFIXME
+* AST DOCFIXME
+"
   nil)
 
 (defgeneric ast-var-declarations (ast)
   (:documentation "Names of the variables that AST declares."))
+
 (defmethod ast-var-declarations (ast)
+  "DOCFIXME
+* AST DOCFIXME
+"
   (when (member (ast-class ast) '(:Var :ParmVar :DeclStmt))
     (ast-declares ast)))
 
@@ -2975,6 +3690,10 @@ variables to replace use of the variables declared in stmt ID."))
 VARIABLE-NAME should be declared in AST."))
 
 (defmethod declared-type ((ast clang-ast) variable-name)
+  "DOCFIXME
+* AST DOCFIXME
+* VARIABLE-NAME
+"
   ;; NOTE: This is very simple and probably not robust to variable
   ;; declarations which are "weird" in any way.
   (declare (ignorable variable-name))
@@ -2983,14 +3702,26 @@ VARIABLE-NAME should be declared in AST."))
 
 (defgeneric find-var-type (software variable)
   (:documentation "Return the type of VARIABLE in SOFTWARE."))
+
 (defmethod find-var-type ((obj clang) (variable list))
+  "DOCFIXME
+* OBJ DOCFIXME
+* VARIABLE DOCFIXME
+"
   (&>> (aget :type variable)
        (find-type obj)))
 
 (defgeneric typedef-type (software type)
   (:documentation "Return the underlying type if TYPE is a typedef"))
+
 (defmethod typedef-type ((obj clang) (type clang-type)
-                          &aux typedef-type ret)
+			 &aux typedef-type ret)
+  "DOCFIXME
+* OBJ DOCFIXME
+* TYPE DOCFIXME
+* TYPEDEF-TYPE DOCFIXME
+* RET DOCFIXME
+"
   (labels ((typedef-type-helper (obj type)
              (if (and (equal 1 (length (type-reqs type)))
                       (equal 0 (search "typedef" (type-decl type))))
@@ -3075,7 +3806,15 @@ Returns outermost AST of context.
 ;; Modifies parameter A.
 ;;
 (defmethod crossover-2pt-outward
-    ((a clang) (b clang) a-begin a-end b-begin b-end)
+  ((a clang) (b clang) a-begin a-end b-begin b-end)
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+* A-BEGIN DOCFIXME
+* A-END DOCFIXME
+* B-BEGIN DOCFIXME
+* B-END DOCFIXME
+"
   (let* ((outer (common-ancestor a a-begin a-end))
          (context (create-crossover-context a outer a-begin :include-start nil))
          (b-stmts (-<>> (common-ancestor b b-begin b-end)
@@ -3101,6 +3840,14 @@ Returns outermost AST of context.
 ;;
 (defmethod crossover-2pt-inward
     ((a clang) (b clang) a-begin a-end b-begin b-end)
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+* A-BEGIN DOCFIXME
+* A-END DOCFIXME
+* B-BEGIN DOCFIXME
+* B-END DOCFIXME
+"
   (labels
       ((child-index (parent child)
          "Position of CHILD within PARENT."
@@ -3151,6 +3898,11 @@ Returns outermost AST of context.
 
 
 (defun combine-snippets (obj inward-snippet outward-snippet)
+  "DOCFIXME
+* OBJ DOCFIXME
+* INWARD-SNIPPET DOCFIXME
+* OUTWARD-SNIPPET DOCFIXME
+"
   (let* ((outward-stmt1 (aget :stmt1 outward-snippet))
          (outward-value1 (aget :value1 outward-snippet))
          (inward-stmt1 (aget :stmt1 inward-snippet))
@@ -3189,6 +3941,11 @@ Returns outermost AST of context.
           `((:stmt1 . ,ancestor) (:value1 . ,value1))))))))
 
 (defmethod update-headers-from-ast ((clang clang) (ast ast-ref) database)
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+* DATABASE DOCFIXME
+"
   (labels
       ((update (tree)
          (destructuring-bind (ast . children) tree
@@ -3204,11 +3961,21 @@ Returns outermost AST of context.
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
 ;; On failure, just return STMT again.
 (defmethod ancestor-after ((clang clang) (ancestor ast-ref) (stmt ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* ANCESTOR DOCFIXME
+* STMT DOCFIXME
+"
   (or (->> (get-parent-asts clang stmt)
            (find-if [{equalp ancestor} {get-parent-ast clang}]))
       stmt))
 
 (defmethod common-ancestor ((clang clang) x y)
+  "DOCFIXME
+* CLANG DOCFIXME
+* X DOCFIXME
+* Y DOCFIXME
+"
   (let* ((x-ancestry (get-parent-asts clang x))
          (y-ancestry (get-parent-asts clang y))
          (last 0))
@@ -3220,14 +3987,29 @@ Returns outermost AST of context.
     last))
 
 (defmethod ancestor-of ((clang clang) x y)
+  "DOCFIXME
+* CLANG DOCFIXME
+* X DOCFIXME
+* Y DOCFIXME
+"
   (equalp (common-ancestor clang x y) x))
 
 (defmethod scopes-between ((clang clang) stmt ancestor)
+  "DOCFIXME
+* CLANG DOCFIXME
+* STMT DOCFIXME
+* ANCESTOR DOCFIXME
+"
   (iter (for ast in (get-parent-asts clang stmt))
                 (counting (block-p clang ast))
                 (until (equalp ast ancestor))))
 
 (defmethod nesting-relation ((clang clang) x y)
+  "DOCFIXME
+* CLANG DOCFIXME
+* X DOCFIXME
+* Y DOCFIXME
+"
   (if (or (null x) (null y)) nil
       (let* ((ancestor (common-ancestor clang x y)))
         (cond
@@ -3249,6 +4031,11 @@ Returns outermost AST of context.
 ;; path approppriate for across-and-in.  Returns the pair of
 ;; path descriptions, or NIL for a path that is not needed.
 (defmethod split-vee ((clang clang) x y)
+  "DOCFIXME
+* CLANG DOCFIXME
+* X DOCFIXME
+* Y DOCFIXME
+"
   (let* ((ancestor (common-ancestor clang x y))
          (stmt (ancestor-after clang ancestor x)))
     (cond
@@ -3265,6 +4052,12 @@ Returns outermost AST of context.
                (cons (block-successor clang stmt) y))))))
 
 (defmethod match-nesting ((a clang) xs (b clang) ys)
+  "DOCFIXME
+* A DOCFIXME
+* XS DOCFIXME
+* B DOCFIXME
+* YS DOCFIXME
+"
   (let* (;; Nesting relationships for xs, ys
          (x-rel (nesting-relation a (car xs) (cdr xs)))
          (y-rel (nesting-relation b (car ys) (cdr ys)))
@@ -3294,6 +4087,14 @@ Returns outermost AST of context.
 (defmethod intraprocedural-2pt-crossover ((a clang) (b clang)
                                           a-begin a-end
                                           b-begin b-end)
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+* A-BEGIN DOCFIXME
+* A-END DOCFIXME
+* B-BEGIN DOCFIXME
+* B-END DOCFIXME
+"
   (let ((variant (copy a)))
     (multiple-value-bind (a-out b-out a-in b-in)
         (match-nesting a (cons a-begin a-end)
@@ -3334,6 +4135,11 @@ The values returned will be STMT1 and STMT2, where STMT1 and STMT2 are both
 full statements"))
 
 (defmethod adjust-stmt-range ((clang clang) start end)
+  "DOCFIXME
+* CLANG DOCFIXME
+* START DOCFIXME
+* END DOCFIXME
+"
   (when (and start end)
     (let* ((stmt1 (enclosing-full-stmt clang (ast-at-index clang start)))
            (stmt2 (enclosing-full-stmt clang (ast-at-index clang end)))
@@ -3361,6 +4167,10 @@ full statements"))
 If PROTOTYPE has an empty function body in SOFTWARE return nil."))
 
 (defmethod random-point-in-function ((clang clang) function)
+  "DOCFIXME
+* CLANG DOCFIXME
+* FUNCTION DOCFIXME
+"
   (destructuring-bind (first last) (stmt-range clang function)
     (if (equal first last) nil
         (+ (1+ first) (random (- last first))))))
@@ -3372,6 +4182,9 @@ another point within the same function.  If there are no ASTs
 within a function body, return null."))
 
 (defmethod select-intraprocedural-pair ((clang clang))
+  "DOCFIXME
+* CLANG DOCFIXME
+"
   (when-let (stmt1 (&>> (remove-if {function-body-p clang} (stmt-asts clang))
                         (random-elt)))
     (values (index-of-ast clang stmt1)
@@ -3380,6 +4193,10 @@ within a function body, return null."))
              (function-containing-ast clang stmt1)))))
 
 (defmethod select-crossover-points ((a clang) (b clang))
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+"
   (multiple-value-bind (a-stmt1 a-stmt2)
       (select-intraprocedural-pair a)
     (multiple-value-bind (b-stmt1 b-stmt2)
@@ -3387,6 +4204,10 @@ within a function body, return null."))
       (values a-stmt1 a-stmt2 b-stmt1 b-stmt2))))
 
 (defmethod select-crossover-points-with-corrections ((a clang) (b clang))
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+"
   (multiple-value-bind (a-pt1 a-pt2 b-pt1 b-pt2)
       ;; choose crossover points
       (select-crossover-points a b)
@@ -3398,6 +4219,10 @@ within a function body, return null."))
         (values a-stmt1 a-stmt2 b-stmt1 b-stmt2)))))
 
 (defmethod crossover ((a clang) (b clang))
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+" 
   (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
       (select-crossover-points-with-corrections a b)
     (if (and a-stmt1 a-stmt2 b-stmt1 b-stmt2)
@@ -3416,9 +4241,17 @@ within a function body, return null."))
   (:documentation "Return the ast for the function containing AST in OBJECT."))
 
 (defmethod function-containing-ast ((clang clang) (ast ast-ref))
+  "DOCFIXME
+* CLANG DOCFIXME
+* AST DOCFIXME
+"
   (find-if #'function-decl-p (get-parent-asts clang ast)))
 
 (defmethod function-body-p ((clang clang) stmt)
+  "DOCFIXME
+* CLANG DOCFIXME
+* STMT DOCFIXME
+"
   (find-if [{equalp stmt} {function-body clang}] (functions clang)))
 
 
@@ -3427,6 +4260,10 @@ within a function body, return null."))
   (:documentation "Apply the software fixing command line, part of Clang."))
 
 (defmethod clang-tidy ((clang clang) &aux errno)
+  "DOCFIXME
+* CLANG DOCFIXME
+* ERRNO
+"  
   (setf (genome clang)
         (with-temp-file-of (src (ext clang)) (genome clang)
           (multiple-value-bind (stdout stderr exit)
@@ -3454,6 +4291,11 @@ within a function body, return null."))
   (values clang errno))
 
 (defmethod clang-format ((obj clang) &optional style &aux errno)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STYLE DOCFIXME
+* ERRNO DOCFIXME
+"
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
@@ -3484,6 +4326,11 @@ within a function body, return null."))
   :documentation "Default style for GNU indent")
 
 (defmethod indent ((obj clang) &optional style &aux errno)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STYLE DOCFIXME
+* ERRNO DOCFIXME
+"
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
@@ -3497,7 +4344,11 @@ within a function body, return null."))
 
 (defun replace-fields-in-snippet (snippet field-replacement-pairs)
   "Given a snippet and an association list in the form ((:field . <value>))
-replace the entries in the snippet with the given values."
+replace the entries in the snippet with the given values.
+
+* SNIPPET DOCFIXME
+* FIELD-REPLACEMENT-PAIRS DOCFIXME
+"
   (mapc (lambda (pair) (setf (aget (car pair) snippet) (cdr pair)))
         field-replacement-pairs)
   snippet)

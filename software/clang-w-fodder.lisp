@@ -11,9 +11,15 @@
 (defvar *database* nil
   "Database utilized for fodder selection")
 
-(define-software clang-w-fodder (clang) ())
+(define-software clang-w-fodder (clang)
+  ()
+  (:documentation "DOCFIXME"))
 
 (defmethod from-string :before ((obj clang-w-fodder) string)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STRING DOCFIXME
+"
   (assert (not (null *database*))))
 
 (defgeneric pick-snippet (clang-w-fodder &key full class pt decl)
@@ -29,6 +35,13 @@ CLANG-W-FODDER in a method-dependent fashion.
 With keyword argument :decl select a declaration."))
 
 (defmethod pick-snippet ((obj clang-w-fodder) &key full class pt decl)
+  "DOCFIXME
+* OBJ DOCFIXME
+* FULL DOCFIXME
+* CLASS DOCFIXME
+* PT DOCFIXME
+* DECL DOCFIXME
+"
   (let* ((snippet (first (find-snippets *database*
                                         :full-stmt
                                         (or full (and pt (full-stmt-p obj pt)))
@@ -89,10 +102,18 @@ new fodder mutations.  Fodder mutations make up 2/5 of all
 mutations.")
 
 (defmethod pick-mutation-type ((obj clang-w-fodder))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   (random-pick *clang-w-fodder-mutation-types*))
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
-  "Choose a bad AST and a fodder snippet"
+  "Choose a bad AST and a fodder snippet.
+
+* SOFTWARE DOCFIXME
+* FULL-STMT-P DOCFIXME
+* SAME-CLASS DOCFIXME
+"
   (let* ((bad (pick-bad software))
          (bad-stmt  (if (ast-full-stmt bad) bad
                         (enclosing-full-stmt software bad)))
@@ -109,6 +130,9 @@ mutations.")
           (cons :value1 value))))
 
 (defun pick-decl-fodder (software)
+  "DOCFIXME
+* SOFTWARE DOCFIXME
+"
   (let ((function-entry-stmts (->> (functions software)
                                    (mapcar {function-body software})
                                    (mapcar {get-immediate-children software})
@@ -161,6 +185,11 @@ Returns modified text, and names of bound variables.
             (mapcar [#'peel-bananas #'cdr] var-replacements))))
 
 (defun prepare-fodder (obj snippet pt)
+  "DOCFIXME
+* OBJ DOCFIXME
+* SNIPPET DOCFIXME
+* PT DOCFIXME
+"
   (flet
       ((var-type (in-scope var-name)
          (->> (find-if [{string= var-name} {aget :name}] in-scope)
@@ -182,6 +211,10 @@ Returns modified text, and names of bound variables.
                                  :obj obj)))))))
 
 (defun prepare-fodder-op (obj op)
+  "DOCFIXME
+* OBJ DOCFIXME
+* OP DOCFIXME
+"
   (destructuring-bind (kind . properties) op
     (if-let ((snippet (aget :value1 properties))
              (pt (aget :stmt1 properties)))
@@ -193,6 +226,10 @@ Returns modified text, and names of bound variables.
       op)))
 
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
+  "DOCFIXME
+* OBJ DOCFIXME
+* MUTATION DOCFIXME
+"
   (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
       (recontextualize-mutation obj (mapcar {prepare-fodder-op obj}
                                             (build-op mutation obj)))
@@ -207,6 +244,10 @@ Ensure that the name of the inserted decl is used by
 `rename-variable'."))
 
 (defmethod build-op ((mut insert-fodder-decl-rep) (obj clang-w-fodder))
+  "DOCFIXME
+* MUT DOCFIXME
+* OBJ DOCFIXME
+"
   ;; Apply the var op first as it has the higher value of STMT1.
 
   (sort
@@ -221,39 +262,48 @@ Ensure that the name of the inserted decl is used by
    #'ast-later-p :key [{aget :stmt1} #'cdr]))
 
 (defmethod apply-mutation :after ((obj clang-w-fodder) mutation)
+  "DOCFIXME
+* OBJ DOCFIXME
+* MUTATION DOCFIXME
+"
   (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
     (when-let ((snippet (aget :value1 (cdr (targets mutation)))))
       ;; Add includes/types/macros for the snippets inserted.
       (update-headers-from-snippet obj snippet *database*))))
 
 (define-mutation insert-fodder-decl (clang-insert)
-  ((targeter :initform #'pick-decl-fodder)))
+  ((targeter :initform #'pick-decl-fodder))
+  (:documentation "DOCFIXME"))
 
 (define-mutation insert-fodder (clang-insert)
-  ((targeter :initform #'pick-bad-fodder)))
+  ((targeter :initform #'pick-bad-fodder))
+  (:documentation "DOCFIXME"))
 
 (define-mutation insert-fodder-full (clang-insert)
-  ((targeter :initform {pick-bad-fodder _ t nil})))
+  ((targeter :initform {pick-bad-fodder _ t nil}))
+  (:documentation "DOCFIXME"))
 
 (define-mutation replace-fodder-same (clang-replace)
-  ((targeter :initform {pick-bad-fodder _ nil t})))
+  ((targeter :initform {pick-bad-fodder _ nil t}))
+  (:documentation "DOCFIXME"))
 
 (define-mutation replace-fodder-full (clang-replace)
-  ((targeter :initform {pick-bad-fodder _ t nil})))
+  ((targeter :initform {pick-bad-fodder _ t nil}))
+  (:documentation "DOCFIXME"))
 
 (defun parse-source-snippet (snippet unbound-vals includes &key top-level)
   "Build ASTs for SNIPPET, returning a list of root ast-refs.
 
-UNBOUND-VALS should have the form ((name clang-type) ... )
+* SNIPPET may include one or more full statements. It should compile in
+  a context where all UNBOUND-VALS are defined and all INCLUDES are
+  included.
 
-INCLUDES is a list of files to include.
+* UNBOUND-VALS should have the form ((name clang-type) ... )
 
-SNIPPET may include one or more full statements. It should compile in
-a context where all UNBOUND-VALS are defined and all INCLUDES are
-included.
+* INCLUDES is a list of files to include.
 
-TOP-LEVEL indicates that the snippet is a construct which can exist
-outside a function body, such as a type or function declaration.
+* TOP-LEVEL indicates that the snippet is a construct which can exist
+  outside a function body, such as a type or function declaration.
 "
   (let* ((preamble  (format nil "
 /* generated includes */

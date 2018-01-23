@@ -42,6 +42,14 @@ A copy of the license is included in the section entitled
 @ref{Macro \name\, @code{\name\}}
 @end macro
 
+@macro refapifunction{name}
+@ref{Function \name\, @code{\name\}}
+@end macro
+
+@macro refapigeneric{name}
+@ref{Generic-Function \name\, @code{\name\}}
+@end macro
+
 
 @ifnottex
 @node Top, Introduction, (dir), (dir)
@@ -73,17 +81,13 @@ Engineering (SBSE) techniques.
 SEL API Reference
 * SEL API Reference::           Full API reference including usage guidelines.
 * SEL API::                     Public functions, variables, and macros
-* SEL/Utility API::             Public functions, variables, and macros
-* SEL/View API::                Public functions, variables, and macro
+* SEL Utility API::             Public functions, variables, and macros
+* SEL View API::                Public functions, variables, and macro
 
 Appendices
 * General Lisp Advice::         Information for those new to Common Lisp
 * SEL Coding Standards::        Guidance for contribution to SEL
-* Copying::                     The GNU General Public License gives
-                                you permission to redistribute GNU Emacs on
-                                certain terms; it also explains that there is
-                                no warranty.
-* GNU Free Documentation License::  The license for this documentation.
+* Licensing::                   Licensing for SEL and for this documentation.
 * Index::                       Complete index.
 
 @end menu
@@ -143,7 +147,9 @@ Injecting bugs into software to create cyber-defense benchmarks
 (@url{https://www.grammatech.com/sponsored-research,BUG-INJECTOR}).
 
 @item
-Decompiling binaries to C source FIXME LINK.
+Decompiling binaries to C source
+(@url{http://cs.unm.edu/~eschulte/data/bed.pdf,
+      BED (Byte Equivalent Decompilation)}).
 
 @item
 Studying the @emph{mutational robustness} of software
@@ -343,6 +349,33 @@ shown along with the software object class hierarchy.}
 @cindex software objects
 
 
+The Software Evolution Library represents software as
+@refapiclass{software} objects.
+
+A software object has both a @emph{genome} and a @emph{phenome}.
+
+@table @dfn
+
+@item Genome
+In biology, the genome is the genetic material (DNA/RNA) of the
+cell. In the software evolution library, this field should contain the
+instructions which define the behavior of a software object. In most
+cases, the code (source or assembly), should be stored on this field.
+
+@item Phenome
+A phenome is an expression of all the traits described in the
+genome. In the software evolution library, this is an executable
+binary.
+
+@c In addition to the executable, this method also returns (2) an
+@c errno (a numeric indication of compilation success), (3) stderr of the
+@c compilation process or a string holding error output relevant to
+@c phenome generation, (4) stdout of the evolution process or a string
+@c holding non-error output relevant to phenome generation, (5) the
+@c source file name used during compilation.
+
+@end table
+
 @subsection Available software object types
 
 
@@ -397,10 +430,9 @@ The following types of software objects are supported.
 @subsection Adding new software object types
 
 SEL software objects should derive from the most-relevant base
-class. For source code based software objects, this is the 
-@c @refapiclass{ast}
-@code{ast} class. To define a new software object type from an
-existing base class, use macro @refapimacro{define-software}. 
+class. For source code based software objects, this is the
+@refapiclass{ast} class. To define a new software object type from an
+existing base class, use macro @refapimacro{define-software}.
 
 
 @lisp
@@ -418,17 +450,58 @@ The following methods are defined for all software object types
 exposing a common interface for use by user programs or in heuristic
 search.
 
-genome @ref{Generic-Function genome}
 
-phenome @ref{Generic-Function phenome}
+@itemize
+@item Recover @ref{Software Objects,genome and phenome}.
+    @itemize
+    @item @refapigeneric{genome}
+    @item @refapigeneric{genome}
+    @end itemize
 
-copy @ref{Generic-Function copy}
+@item @refapigeneric{copy}
+
+@item Pick an index into the genome
+    @itemize
+    @item @refapigeneric{pick}
+    @item @refapigeneric{pick-good}
+    @item @refapigeneric{pick-bad}
+    @item @refapigeneric{pick-bad-good}
+    @item @refapigeneric{pick-bad-bad}    
+    @end itemize
+
+@item Perform crossover on two software objects
+    @itemize
+    @item @refapigeneric{crossover}
+    @item @refapigeneric{one-point-crossover}
+    @item @refapigeneric{two-point-crossover}    
+    @end itemize
+
+
+@item File I/O
+    @itemize  
+    @item @refapigeneric{from-file}
+    @item @refapigeneric{to-file}
+    @end itemize
+
+@item @refapigeneric{mutate}
+@item @refapigeneric{evaluate}
+@item @refapigeneric{size}
+@item @refapigeneric{fitness-extra-data}
+@end itemize
+
+
 
 @c DOCFIXME: Finish moving these descriptions into documentation
 @c strings in the code and replacing the in-place definitions
 @c with @include directives to load the automatically generated
 @c documentation.
 
+
+      
+
+
+
+@ignore
 @anchor{pick}
 @defun pick software key &optional func
 Randomly select elements of the genome of @code{SOFTWARE}.  Selection
@@ -464,6 +537,8 @@ Initialize a software object @code{SOFTWARE} using the contents of
 @defun to-file software file
 Write the genome of software object @code{SOFTWARE} to @code{FILE}.
 @end defun
+
+@end ignore
 
 @node Global Variables, Search Functions, Software Methods, Implementation
 @section Global Variables
@@ -915,21 +990,30 @@ with the following.
 @include api.texi
 
 
-@node SEL API, SEL API Reference, SEL/Utility API, Top
+@node SEL API, SEL API Reference, SEL Utility API, Top
 @appendix SEL API
 @include include/sb-texinfo.texinfo
 @include sel-api.texi
 
-@node SEL/Utility API, SEL/View API, SEL API, Top
+@node SEL Utility API, SEL View API, SEL API, Top
+
 @appendix SEL Utility API
+@cindex utility
 @include sel-utility-api.texi
 
-@node SEL/View API, General Lisp Advice, SEL/Utility API, Top
-@appendix SEL View API
+
+
+
+@node SEL View API, General Lisp Advice, SEL Utility API, Top
+@chapter SEL View API
+
+@cindex view
+
 @include sel-view-api.texi
 
 
-@node General Lisp Advice, Getting Started with Lisp, SEL/View API, Top
+
+@node General Lisp Advice, Getting Started with Lisp, SEL View API, Top
 @appendix General Lisp Advice
 
 @menu
@@ -937,6 +1021,7 @@ with the following.
 * Additional Lisp Resources::
 * General Lisp Debugging Advice::
 @end menu
+
 
 @node Getting Started with Lisp, Additional Lisp Resources, General Lisp Advice, General Lisp Advice
 @appendixsec Getting Started with Lisp
@@ -1004,7 +1089,7 @@ IRC server.
 
 @item
 @url{https://github.com/eschulte/curry-compose-reader-macros,
-     Curry compose reader macros@comma{} aka@comma{} those weird @code{[@{@}]} and @code{«»} symbols}
+     Curry compose reader macros@comma{} aka@comma{} those weird @code{[@{@}]} and @code{@guillemotleft{}@guillemotright{}} symbols}
 
 @item
 We prefer @code{iter} over @code{loop}. See
@@ -1287,16 +1372,27 @@ is nicer than this.
 @end lisp
 
 
-@node Copying, GNU Free Documentation License, SEL/Utility API, Top
+@node Licensing, Copying, SEL Utility API, Top
+
+@menu
+* Copying::                     The GNU General Public License gives
+                                you permission to redistribute GNU Emacs on
+                                certain terms; it also explains that there is
+                                no warranty.
+* GNU Free Documentation License::  The license for this documentation.
+@end menu
+
+
+@node Copying, GNU Free Documentation License, Licensing, Licensing
 @appendix GNU GENERAL PUBLIC LICENSE
 @include gpl.texi
 
 
-@node GNU Free Documentation License, Index, Copying, Top
+@node GNU Free Documentation License, Index, Copying, Licensing
 @appendixsec GNU Free Documentation License
 @include doclicense.texi
 
-@node Index,  , GNU Free Documentation License, Top
+@node Index,  , Licensing, Top
 @unnumbered Index
 
 @c Combine all index (function variable type and concept) types into a

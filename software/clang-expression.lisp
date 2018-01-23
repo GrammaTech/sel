@@ -9,11 +9,18 @@ This is used to intern string names by `expression'."
 
 #+(or )                ; NOTE: Looks like this isn't really necessary.
 (defun clang-expression-opcode (raw-opcode)
+  "DOCFIXME
+* RAW-OPCODE
+"
   (switch (raw-opcode :test #'string=)
     ("=" :=!)
     (t (expression-intern raw-opcode))))
 
 (defmethod expression ((obj clang) (ast ast-ref))
+  "DOCFIXME
+* OBJ DOCFIXME
+* AST DOCFIXME
+"
   ;; TODO: The following AST types currently pull information from the
   ;;        source text.  This conversion may be made more robust by
   ;;        extending more ASTs types with additional information like
@@ -78,6 +85,9 @@ This is used to intern string names by `expression'."
       (t :unimplemented))))
 
 (defun expression-to-c (expression)
+  "DOCFIXME
+* EXPRESSION DOCFIXME
+"
   (cond
     ((listp expression)
      (assert (= 3 (length expression)))
@@ -92,9 +102,14 @@ This is used to intern string names by `expression'."
 ;;;; Evaluation
 (define-software clang-expression (expression)
   ((scope :initarg :scope :accessor scope :initform nil :copier :direct
-          :documentation "List of in-scope variable names.")))
+          :documentation "List of in-scope variable names."))
+  (:documentation "DOCFIXME"))
 
 (defmethod operator-to-function ((obj clang-expression) operator)
+  "DOCFIXME
+* OBJ DOCFIXME
+* OPERATOR DOCFIXME
+"    
   (labels
       ((pointerp (val)
          (eq (char (second val) 0) #\*))
@@ -128,6 +143,11 @@ This is used to intern string names by `expression'."
 
 (defmethod evaluate-expression ((obj clang-expression) free-vars
                                 &optional expression)
+  "DOCFIXME
+* OBJ DOCFIXME
+* FREE-VARS DOCFIXME
+* EXPRESSION DOCFIXME
+"
   (multiple-value-bind (result interior-max)
       (cond
         ((listp expression)
@@ -159,4 +179,7 @@ This is used to intern string names by `expression'."
             (max (car result) (or interior-max 0)))))
 
 (defmethod operators ((obj clang-expression))
+  "DOCFIXME
+* OBJ DOCFIXME
+"
   '(:+ :- :* :/))
