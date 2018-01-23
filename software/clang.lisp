@@ -244,14 +244,12 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
   (let ((copy (copy obj)))
     (setf (slot-value copy 'copy-lock) nil)
     (output-type-code *clang-obj-code* stream)
-    (cl-store::store-type-object copy stream))
-  (:documentation "DOCFIXME"))
+    (cl-store::store-type-object copy stream)))
 
 (defrestore-cl-store (clang stream)
   (let ((obj (cl-store::restore-type-object stream)))
     (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
-    obj)
-  (:documentation "DOCFIXME"))
+    obj))
 
 (defgeneric roots (software)
   (:documentation "Return all top-level ASTs in SOFTWARE."))
@@ -563,7 +561,7 @@ if not given.
                                 c))
                           children))))))
 
-(defun make-literal (kind value)
+(defun make-literal (kind value &rest rest)
   "DOCFIXME
 * KIND DOCFIXME
 * VALUE DOCFIXME
@@ -586,7 +584,7 @@ if not given.
                                 (format nil "~a" value))))
     (apply #'make-statement class :generic (list text) rest)))
 
-(defun make-operator (syn-ctx opcode child-asts &rest args)  
+(defun make-operator (syn-ctx opcode child-asts &rest rest)
   "Create a unary or binary operator AST.
 
 * SYN-CTX DOCFIXME
@@ -679,31 +677,38 @@ if not given.
                                           :unbound-vals (list name)))
                     :expr-type hash)))
 
-(defun make-var-decl (name type &optional initializer)
+(defun make-var-decl (name type &optional initializer &rest rest
+                      &aux (decls (list name)))
   "DOCFIXME
 * NAME DOCFIXME
 * TYPE DOCFIXME
 * INITIALIZER DOCFIXME
+* REST DOCFIXME
+* DECLS DOCFIXME
 "
-  (let ((decls (list name)))
-    (make-statement
-     :DeclStmt :fullstmt
-     (list (make-statement :Var :generic
-                           (if initializer
-                               (list (format nil "~a ~a = "
-                                             (type-decl-string type) name)
-                                     initializer)
-                               (list (format nil "~a ~a"
-                                             (type-decl-string type) name)))
-                           :types (list (type-hash type))
-                           :declares decls))
-     :declares decls)))
+  (apply #'make-statement
+         :DeclStmt :fullstmt
+         (list (make-statement :Var :generic
+                               (if initializer
+                                   (list (format nil "~a ~a = "
+                                                 (type-decl-string type) name)
+                                         initializer)
+                                   (list (format nil "~a ~a"
+                                                 (type-decl-string type) name)))
+                               :types (list (type-hash type))
+                               :declares decls))
+         :declares decls
+         :full-stmt t
+         rest))
 
-(defun make-parm-var (name type &optional initializer)
+(defun make-parm-var (name type initializer &rest rest
+                      &aux (decls (list name)))
   "DOCFIXME
 * NAME DOCFIXME
 * TYPE DOCFIXME
 * INITIALIZER DOCFIXME
+* REST DOCFIXME
+* DECLS DOCFIXME
 "
   (apply #'make-statement
          :DeclStmt :fullstmt
@@ -719,7 +724,7 @@ if not given.
          :declares decls
          rest))
 
-(defun make-array-subscript-expr (array-expr subscript-expr)
+(defun make-array-subscript-expr (array-expr subscript-expr &rest rest)
   "DOCFIXME
 * ARRAY-EXPR DOCFIXME
 * SUBSCRIPT-EXPR DOCFIXME
@@ -728,7 +733,7 @@ if not given.
          (list array-expr "[" subscript-expr "]")
          rest))
 
-(defun make-cast-expr (type child)
+(defun make-cast-expr (type child &rest rest)
   "DOCFIXME
 * TYPE DOCFIXME
 * CHILD DOCFIXME
@@ -784,7 +789,7 @@ if not given.
 (defun fixup-mutation (operation context before ast after)
   "Adjust mutation result according to syntactic context.
 
-Adds and removes semicolons, commas, and braces. 
+Adds and removes semicolons, commas, and braces.
 
 * OPERATION DOCFIXME
 * CONTEXT DOCFIXME
@@ -1913,7 +1918,7 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
   (:documentation "DOCFIXME"))
 
 (defun pick-swap-decls (clang)
-  "DOCFIXME 
+  "DOCFIXME
 * CLANG DOCFIXME
 "
   (labels
@@ -3319,7 +3324,7 @@ included as the first successor."
 * SOFTWARE DOCFIXME
 * DEPTH DOCFIXME
 * AST DOCFIXME
-"  
+"
   (let ((scope (enclosing-scope software ast)))
     (if (>= 0 depth) scope
         (nth-enclosing-scope software (1- depth) scope))))
@@ -4222,7 +4227,7 @@ within a function body, return null."))
   "DOCFIXME
 * A DOCFIXME
 * B DOCFIXME
-" 
+"
   (multiple-value-bind (a-stmt1 a-stmt2 b-stmt1 b-stmt2)
       (select-crossover-points-with-corrections a b)
     (if (and a-stmt1 a-stmt2 b-stmt1 b-stmt2)
@@ -4263,7 +4268,7 @@ within a function body, return null."))
   "DOCFIXME
 * CLANG DOCFIXME
 * ERRNO
-"  
+"
   (setf (genome clang)
         (with-temp-file-of (src (ext clang)) (genome clang)
           (multiple-value-bind (stdout stderr exit)

@@ -278,6 +278,10 @@ expression match.")
           ;;       which requires a number...  Not easy to reproduce.
           ;;
           ;; (mapc (lambda (it) (format t "IT:~S~%" it)))
+          ;;
+          ;; NOTE: Another potential bug here in which ast-refs are
+          ;;       returned instead of numbers and ast-refs can't be
+          ;;       compared with `>'.
           (sort <> #'>)
           (remove-if #'zerop)
           (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}]))))
