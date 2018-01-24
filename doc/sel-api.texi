@@ -13,11 +13,11 @@ error will result.
 
 @itemize
 @item @ref{api-software-objects, Software Objects}
-
 @item @ref{api-test-suites, Test Suites}
 @item @ref{api-condition-synthesis, Condition Synthesis}
 @item @ref{api-clang-tokenizer, Clang Tokenizer}
 @item @ref{api-style-features, Style Features}
+@item @ref{api-fault-localization, Fault Localization}
 @end itemize
 
 
@@ -134,6 +134,14 @@ More information about the tokenizer component is provided in section
 
 @c ------------------------------
 
+
+@anchor{api-fault-localization}
+@section API | Fault Localization
+
+@include api--fault-localization.texi
+
+@c ------------------------------
+
 @section API | everything else
 
 @include include/struct-sel-clang-ast.texinfo
@@ -169,6 +177,7 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-star-tournament-eviction-size-star.texinfo
 @include include/var-sel-star-tournament-selector-star.texinfo
 @include include/var-sel-star-tournament-tie-breaker-star.texinfo
+@include include/var-sel-star-tie-breaker-predicate-star.texinfo
 @include include/var-sel-star-worst-fitness-p-star.texinfo
 @include include/constant-sel-plus-c-arithmetic-assignment-operators-plus.texinfo
 @include include/constant-sel-plus-c-arithmetic-binary-operators-plus.texinfo
@@ -213,7 +222,7 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-star-start-time-star.texinfo
 @include include/fun-sel-clang-instrument.texinfo
 @include include/fun-sel-clang-tidy.texinfo
-@include include/fun-sel-collect-fault-loc-traces.texinfo
+@c FAULT LOCALIZATION @include include/fun-sel-collect-fault-loc-traces.texinfo
 @include include/fun-sel-collect-trace.texinfo
 @include include/fun-sel-collect-traces.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-copy.texinfo
@@ -310,7 +319,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-random-point-in-function.texinfo
 @include include/fun-sel-setf-reference.texinfo
 @include include/fun-sel-replace-in-ast.texinfo
-@include include/fun-sel-rinard-write-out.texinfo
+@c FAULT LOCALIZATION @include include/fun-sel-rinard-write-out.texinfo
 @include include/fun-sel-roots.texinfo
 @c TEST SUITES @include include/fun-sel-run-test.texinfo
 @include include/fun-sel-scopes.texinfo
@@ -352,9 +361,9 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-pareto-selector.texinfo
 @c TEST SUITES @include include/fun-sel-process-exit-code.texinfo
 @c @include include/fun-sel-replace-fields-in-snippet.texinfo
-@include include/fun-sel-rinard.texinfo
-@include include/fun-sel-rinard-incremental.texinfo
-@include include/fun-sel-rinard-read-in.texinfo
+@c FAULT LOCALIZATION @include include/fun-sel-rinard.texinfo
+@c FAULT LOCALIZATION @include include/fun-sel-rinard-incremental.texinfo
+@c FAULT LOCALIZATION @include include/fun-sel-rinard-read-in.texinfo
 @c TEST SUITES @include include/fun-sel-signal-process.texinfo
 @include include/fun-sel-snippet-gt-clang-ast.texinfo
 @include include/fun-sel-snippet-gt-clang-macro.texinfo

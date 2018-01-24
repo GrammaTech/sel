@@ -260,6 +260,7 @@
    :default-random-winner
    :*tournament-selector*
    :*tournament-tie-breaker*
+   :*tie-breaker-predicate*
    :tournament
    :mutant
    :crossed
@@ -487,6 +488,7 @@
    :stmts-in-file
    :error-funcs
    :rinard
+   :rinard-compare
    :rinard-incremental
    :rinard-write-out
    :rinard-read-in

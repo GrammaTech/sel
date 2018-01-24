@@ -22,6 +22,12 @@ No assumptions are made about the format or contents of the traces."))
 
 (defmethod collect-fault-loc-traces (bin test-suite read-trace-fn
                                      &optional fl-neg-test)
+  "DOCFIXME
+* BIN DOCFIXME
+* TEST-SUITE DOCFIXME
+* READ-TRACE-FN DOCFIXME
+* FL-NEG-TEST DOCFIXME
+"
   (iter (for test in (test-cases test-suite))
         (note 3 "Begin running test ~a" test)
         (let* ((f (evaluate bin test :output :stream :error :stream))
@@ -38,6 +44,10 @@ No assumptions are made about the format or contents of the traces."))
           (finally (return accumulated-result)))))
 
 (defun stmts-in-file (trace file-id)
+  "DOCFIXME
+* TRACE DOCFIXME
+* FILE-ID DOCFIXME
+"
   (remove-if-not [{= file-id} {aget :f}] trace))
 
 (defun error-funcs (software bad-traces good-traces)
@@ -96,11 +106,19 @@ which maps (test-casel: position)"
   (positions '()))
 
 (defun add-to-pos (k v sc)
+  "DOCFIXME
+* K DOCFIXME 
+* V DOCFIXME
+* SC DOCFIXME
+"
   ;; acons "k: v" onto positions, double-unwrapping
   (setf (stmt-counts-positions sc)
         (acons k v (stmt-counts-positions sc))))
 
 (defun pp-stmt-counts (sc)
+  "DOCFIXME
+* SC DOCFIXME
+"
   (format nil "~a : [pos: ~a, neg: ~a] -- [~a]"
           (stmt-counts-id sc)
           (stmt-counts-positive sc)
@@ -108,6 +126,9 @@ which maps (test-casel: position)"
           (pp-positions (stmt-counts-positions sc))))
 
 (defun pp-positions (pos)
+  "DOCFIXME
+* POS
+"
   (when pos
     (let ((pair_lst (loop :for key :in (mapcar 'car pos)
                        :for value :in (mapcar 'cdr pos)
@@ -115,13 +136,20 @@ which maps (test-casel: position)"
       (format nil "~{~a~^,~}" pair_lst))))
 
 (defun rinard-write-out (path data)
-  "Write out fault localization to speed up subsequent trials (see docs)"
+  "Write out fault localization to speed up subsequent trials.
+
+* PATH full system path to write to.
+* DATA fault loc data, as returned by `rinard'.
+"
   (with-open-file (stream path :direction :output
                           :if-exists :supersede :if-does-not-exist :create)
     (format stream "~a~%" (hash-table-alist data))))
 
 (defun rinard-read-in (path)
-  "Read in previously-written fault localization info (see docs)"
+  "Read in previously-written fault localization info.
+* PATH full system path to read in from, previously
+       written out by `rinard-write-out'.
+"
   (with-open-file (stream path)
     (let ((alst (loop :for line = (read stream nil :done)
                    :while (not (eq line :done))
@@ -154,7 +182,11 @@ which maps (test-casel: position)"
             (/ (length shared_traces) 2))))))
 
 (defun rinard (count obj stmt-counts)
-  "Spectrum-based fault localization from SPR and Prophet."
+  "Spectrum-based fault localization from SPR and Prophet.
+* COUNT size of prioritized list to return
+* OBJ software object under test
+* STMT-COUNTS aggregated trace results, collected from `rinard-incremental'
+"
   (note 2 "Start rinard")
   (let ((stmt-counts-vals (loop for key being the hash-keys of stmt-counts
                              using (hash-value val) collecting val)))
@@ -164,13 +196,23 @@ which maps (test-casel: position)"
       (mapcar #'stmt-counts-id (take count sorted)))))
 
 (defun print-rinard (sorted)
+  "DOCFIXME
+* SORTED DOCFIXME
+"
   (with-open-file (stream (merge-pathnames "/tmp/GP_fault_loc_sorted")
                           :direction :output :if-exists :supersede)
     (loop :for stmt :in sorted
        :do (format stream "~a~%" (pp-stmt-counts stmt)))))
 
 (defun rinard-incremental (trace-stream stmt-counts is-good-trace cur_test)
-  "Process a single trace's output, return the aggregated results"
+  "Process a single trace's output, return the aggregated results.
+* TRACE-STREAM an open file representing the trace result, generally
+        with statments of the form ((F . X) (C . Y)) where X is the
+        file id and Y is the statement id
+* STMT-COUNTS aggregated results, returned from this function
+* IS-GOOD-TRACE test outcome was positive/negative
+* CUR_TEST unique test identifier
+"
   ;; find position of last occurrence of stmt in trace
   (note 3 "Start rinard-incremental")
   (unless stmt-counts

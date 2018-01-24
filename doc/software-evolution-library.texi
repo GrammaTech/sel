@@ -113,7 +113,7 @@ implemented on top of this interface supporting Search Based Software
 Engineering (SBSE) techniques (@pxref{Search Functions}).
 
 
-@section How is it used?
+@section SEL Applications
 
 SEL has a broad range of applications for software improvement and
 understanding. The following are some current and past projects
@@ -155,15 +155,11 @@ Studying the @emph{mutational robustness} of software
 @end itemize
 
 
-@section What kinds of software can be manipulated?
+@section Many different kinds of software can be manipulated
 
 The SEL API defines software objects using the Common Lisp Object
 System (CLOS), to provide a uniform interface to many kinds of
-software artifact.
-
-SEL currently provides implementations of software objects
-representing a range of different software artifacts types, shown in
-the table below.
+software artifact, shown in the table below.
 
 Additionally, the flexible design of SEL makes it possible to add new
 software object kinds. See section @ref{Software Objects} for
@@ -183,7 +179,7 @@ information about creating new software objects.
 @end multitable
 
 
-@section What other features are provided?
+@section Other features
 
 SEL provides support for exploring many different aspects of both
 evolutionary search and automated software manipulation. 
@@ -220,7 +216,7 @@ mutation success.
 @end itemize
 
 
-@subheading Tailored feautures for for C/C++ objects
+@subheading Tailored feautures for for C and C++ objects
 
 @itemize
 
@@ -245,7 +241,7 @@ source code so that it passes failing unit tests.
 
 
 
-@section That sounds awesome! How do I get started?
+@section Getting started
 
 
 First, @ref{Installation, install SEL and its dependencies}.
@@ -439,6 +435,9 @@ existing base class, use macro @refapimacro{define-software}.
 
 
 
+
+
+
 @node Software Methods, Global Variables, Software Objects, Implementation
 @section Software Methods
 @cindex software methods
@@ -452,12 +451,12 @@ search.
 @item Recover @ref{Software Objects,genome and phenome}.
     @itemize
     @item @refapigeneric{genome}
-    @item @refapigeneric{genome}
+    @item @refapigeneric{phenome}
     @end itemize
 
 @item @refapigeneric{copy}
 
-@item Pick an index into the genome
+@item Pick an index into the genome.
     @itemize
     @item @refapigeneric{pick}
     @item @refapigeneric{pick-good}
@@ -466,7 +465,7 @@ search.
     @item @refapigeneric{pick-bad-bad}    
     @end itemize
 
-@item Perform crossover on two software objects
+@item Perform crossover on two software objects.
     @itemize
     @item @refapigeneric{crossover}
     @item @refapigeneric{one-point-crossover}
@@ -474,7 +473,7 @@ search.
     @end itemize
 
 
-@item File I/O
+@item File I/O. 
     @itemize  
     @item @refapigeneric{from-file}
     @item @refapigeneric{to-file}
@@ -542,93 +541,91 @@ Write the genome of software object @code{SOFTWARE} to @code{FILE}.
 @cindex Global Variables
 
 The following global variables are exposed for configuration and
-interaction with heuristic search processes.
+interaction with heuristic search processes. This table contains summary information only, see the @ref{SEL API} section for full details.
 
 
-@anchor{*population*}
-@defvar *population*
-A list of the software objects currently known to the system.  This
-variable may be read to inspect a running search process, or written
-to as part of a running search process.
-@end defvar
 
-@anchor{*max-population-size*}
-@defvar *max-population-size*
+@multitable {} {}
+
+@item @refapivariable{*population*} @tab
+A list of the software objects currently known to the system.
+
+@item @refapivariable{*max-population-size*} @tab
 Maximum allowable population size.
-@end defvar
 
-@anchor{*tournament-size*}
-@defvar *tournament-size*
-Number of individuals to participate in tournament selection.  Default
-value is ``@code{2}''.
-@end defvar
+@item @refapivariable{*generations*} @tab
+The running generation count.
 
-@anchor{*tournament-eviction-size*}
-@defvar *tournament-eviction-size*
-Number of individuals to participate in eviction tournaments.  Default
-value is ``@code{2}''.
-@end defvar
+@item @refapivariable{*tournament-size*} @tab
+Number of individuals to participate in tournament selection.
 
-@anchor{*tournament-selector*}
-@defvar *tournament-selector*
-Function used to select winners of a tournament. Returns a list of the
-best candidates.  Default  value is ``@code{#'default-select-best}''.
-@end defvar
+@item @refapivariable{*tournament-eviction-size*} @tab
+Number of individuals to participate in eviction tournaments.
 
-@anchor{*tournament-tie-breaker*}
-@defvar *tournament-tie-breaker*
+@item @refapivariable{*tournament-selector*} @tab
+Function used to select winners of a tournament.
+
+@item @refapivariable{*tournament-tie-breaker*} @tab
 Function used to break ties when a tournament has multiple
-winners. Returns a single winner.  Default value is
-``@code{#'default-random-winner}''.
-@end defvar
+winners.
 
-@anchor{*tie-breaker-predicate*}
-@defvar *tie-breaker-predicate*
+@item @refapivariable{*tie-breaker-predicate*} @tab
 Function to compare two tie breaker values to select which is
-preferred.  Default value is ``@code{#'>}''.
-@end defvar
+preferred.
 
-@anchor{*fitness-predicate* }
-@defvar *fitness-predicate*
+
+@item @refapivariable{*fitness-predicate* } @tab
 Function to compare two fitness values to select which is preferred.
-Default value is ``@code{#'>}''.
-@end defvar
 
-@anchor{*cross-chance*}
-@defvar *cross-chance*
+
+@item @refapivariable{*cross-chance*} @tab
 Fraction of new individuals generated using crossover rather than
-mutation.  Default value is ``@code{2/3}''.
-@end defvar
+mutation.
 
-@anchor{*mut-rate*}
-@defvar *mut-rate*
-Chance to mutate a new individual. If value is less than 1 then new
-individuals will be mutated once with change @code{*MUT-RATE*}.  If
-value is equal to 1, then every new individual will be mutated exactly
-once.  If value is greater than 1, then new individuals will be
-mutated from 1 to *MUT-RATE* times.  Default value is ``@code{1}''.
-@end defvar
+@item @refapivariable{*mut-rate*} @tab
+Chance to mutate a new individual. 
 
-@anchor{*fitness-evals*}
-@defvar *fitness-evals*
-This variable tracks the total number of fitness evaluations
+@item @refapivariable{*fitness-evals*} @tab
+Tracks the total number of fitness evaluations
 performed.
-@end defvar
 
-@anchor{*running*}
-@defvar *running*
-True when a search process is running, set this variable to nil to
+@item @refapivariable{*running*} @tab
+True when a search process is running, set to nil to
 stop a running search.
-@end defvar
+
+@end multitable
+
 
 @node Search Functions, Components, Global Variables, Implementation
 @section Search Functions
 @cindex search functions
 
-Currently two high-level search functions are implemented.  The
-@code{evolve} search function has received much more testing and is
-recommended.
+Currently two high-level search functions are implemented:
+@code{evolve} and @code{mcmc}.  The @code{evolve} search function has
+received much more testing and is recommended.
 
+
+@table @dfn
+
+@item @refapimacro{evolve}
+Evolve the existing @refapivariable{*population*} of
+@refapiclass{software} objects using a supplied test function to
+evaluate the fitness of software objects. A steady state evolutionary
+computation algorithm is used to evolve increasingly fit software
+objects in a process resembling natural selection.
+
+
+@item @refapimacro{mcmc}
+Perform Markov chain Monte Carlo search from a supplied
+@refapiclass{software} object using a supplied test function
+to evaluate the fitness of software objects.  The fitness returned by
+the test function is optimized.
+
+
+@end table
+
+
+@ignore
 @anchor{evolve}
 @defun evolve test &key max-evals max-time target period period-fn every-fn filter
 Evolve the existing @code{*population*} of software objects using the
@@ -675,6 +672,8 @@ keyword argument which when specified only includes individual for
 which @code{FILTER} returns true, and the @code{mcmc} function takes
 an optional @code{accept-fn} keyword argument which is a function of
 current and new fitness that returns acceptance.
+@end ignore
+
 
 @node Components, Multi-objective Fitness, Implementation, Top
 @chapter Components

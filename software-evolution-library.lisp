@@ -579,7 +579,11 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 
 ;;; Evolution
 (defvar *population* nil
-  "Holds the variant programs to be evolved.")
+  "Holds the variant programs to be evolved.
+
+This variable may be read to inspect a running search process, or
+written to as part of a running search process.
+")
 
 (defvar *generations* nil
   "Holds the running generation count.")
@@ -598,9 +602,9 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 
 (defvar *mut-rate* 1
   "Chance to mutate a new individual.
-If <1, new individuals will be mutated once with change *MUT-RATE*.
-If =1, then every new individual will be mutated exactly once.
-If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
+* If <1, new individuals will be mutated once with change *MUT-RATE*.
+* If =1, then every new individual will be mutated exactly once.
+* If >1, then new individuals will be mutated from 1 to *MUT-RATE* times.")
 
 (defvar *running* nil
   "True when a search process is running, set to nil to stop evolution.")
@@ -643,10 +647,11 @@ Default selection function for `tournament'."
   (random-elt group))
 
 (defvar *tournament-selector* #'default-select-best
-  "Function used to select winners of a tournament.")
+  "Function used to select winners of a tournament. Returns a list of
+  winners.")
 
 (defvar *tournament-tie-breaker* #'default-random-winner
-  "Function used to break ties in a tournament.")
+  "Function used to break ties in a tournament. Returns a single winner.")
 
 (defun tournament
     (&key (predicate *fitness-predicate*)

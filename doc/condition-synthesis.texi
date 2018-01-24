@@ -73,7 +73,7 @@ returned each time the function is invoked.
 
 The procedure for identifying abstract condition values depends on whether the condition is looping or non-looping.
 
-@multitable {Non-Looping Conditions }{} 
+@multitable { Non-Looping Conditions }{} 
 
 
 @item Non-Looping Conditions @tab @enumerate
@@ -86,7 +86,7 @@ The procedure for identifying abstract condition values depends on whether the c
          one of the latest branching conditions that was incorrect.
 
          @item Do this up to a specified cut-off (defined in
-         @ref{Variable *abst-cond-attempts*}).
+         @refapivariable{*abst-cond-attempts*}).
 
          @item If no series is found that causes the unit test to
          pass, re-run the test with a default value of 1 before giving
@@ -107,7 +107,7 @@ The procedure for identifying abstract condition values depends on whether the c
          periodically for a period of increasing length.
 
          @item Do this up to a specified cut-off (defined in
-         @ref{Variable *abst-cond-attempts*}).
+         @refapivariable{*abst-cond-attempts*}).
 
          @item If no series is found that causes the unit test to
          pass, re-run the test with a default value of 1 before giving
@@ -143,32 +143,35 @@ applied, and tested. If this condition repairs all unit tests, it is
 returned as the solution. If it improves the fitness (i.e., causes
 more unit tests to pass than before), then it is retained as the
 ``current best'' solution. In this case, up to
-@ref{Variable *synth-condition-attempts*,@code{*synth-condition-attempts*}} other
-conditions are tested to see if they offer additional improvements to
-the fitness.
+@refapivariable{*synth-condition-attempts*} other conditions are
+tested to see if they offer additional improvements to the fitness.
 
 
 @subsection API Support for Condition Synthesis
 
+API support for style features is documented in section
+@ref{api-condition-synthesis,API | Condition Synthesis}. We provide a
+brief overview here.
+
 @anchor{condition-synthesis-mutations}
-Mutations 
+Mutations (subclasses of @refapiclass{mutation})
 
 @itemize
-@item @ref{Class tighten-condition}
-@item @ref{Class loosen-condition}
-@item @ref{Class add-condition}
-@item @ref{Class if-to-while}
-@item @ref{Class if-to-while-tighten-condition}
-@item @ref{Class insert-else-if}
+@item @refapiclass{add-condition}
+@item @refapiclass{if-to-while-tighten-condition}
+@item @refapiclass{if-to-while}
+@item @refapiclass{insert-else-if}
+@item @refapiclass{loosen-condition}
+@item @refapiclass{tighten-condition}
 @end itemize
 
 
 Methods on Mutations
 
 @itemize
-@item @ref{Function synthesize-condition}
-@item @ref{Generic-Function valid-targets}
-@item @ref{Function instrumentation-exprs}
+@item @refapifunction{synthesize-condition}
+@item @refapigeneric{valid-targets}
+@item @refapifunction{instrumentation-exprs}
 @end itemize
 
 

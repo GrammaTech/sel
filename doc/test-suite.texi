@@ -1,12 +1,13 @@
 
 SEL incorporates representations for runnable unit tests. This allows
 individual components (such as @ref{Condition Synthesis} and
-@ref{Trace Collection}) and evolution projects to determine whether
-unit tests are passing, and if their behavior has changed.
+@ref{Tracing}) and evolution projects to
+determine whether unit tests are passing, and if their behavior has
+changed.
 
 
 
-@section API Support For Unit Tests
+@subsection API Support For Unit Tests
 
 @itemize
 

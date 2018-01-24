@@ -1,4 +1,4 @@
-@heading Overview
+
 Fault localization loosely covers activities related to trying to
 pinpoint the cause of a fault or bug.  In this context, the the goal
 of such activities is to narrow down the search space (or prioritize
@@ -8,22 +8,34 @@ was introduced by Long and Rinard in @cite{Automatic Patch Generation
 by Learning Correct Code} available at
 @url{http://groups.csail.mit.edu/pac/patchgen/papers/prophet-popl16.pdf}.
 
-Taken directly from section 3.7 the above paper: ``Prophet prioritizes
+Taken directly from section 3.7 of the above paper: ``Prophet prioritizes
 statements that 1) are executed with more negative test cases, 2) are
 executed with fewer positive test cases, and 3) are executed later
 during executions with negative test cases.''  They use this
 comparison methodology to sort all statements executed during a given
 test suite.
 
-We have implemented this comparator in fault-loc.lisp as
-``rinard-compare'', along with an overall trace processing function,
-``rinard-incremental''.
+We have implemented this comparator as @refapifunction{rinard-compare}
+(used in @refapifunction{rinard}), along with an overall trace
+processing function, @refapifunction{rinard-incremental}.
 
-@heading Usage
-The two entry points mentioned above can be called in the following manner
-(and in this order):
+@subsection Usage
 
-@itemize
+Given a collection of test traces, call @code{rinard-incremental} and @code{rinard} (in that order) for processing and prioritization.
+
+@multitable {} {}
+
+@item @refapifunction{rinard-incremental}
+      @tab Processes a trace for a single test, adding to historic data.
+
+@item @refapifunction{rinard}
+      @tab Once the traces are processed, this uses @refapifunction{rinard-compare} to perform the prioritization.
+
+@end multitable
+
+
+@ignore
+
 @item @code{(rinard-incremental trace-stream stmt-counts is-good-trace cur_test)}
 This processes a trace for a single test, adding to historic data.
 
@@ -47,11 +59,26 @@ STMT-COUNTS ------------- aggregated trace results, collected from
                           rinard-incremental above
 @end verbatim
 
-@heading Caching
+@end ignore
+
+
+@subsection Caching
 
 Fault localization can take a significant amount of time for large,
 complex systems.  Thus, we've included the ability to write-out/read-in fault localization results to facilitate subsequent runs, if fault localization is unlikely to change.  The two associated functions are:
 
+@multitable {} {}
+
+@item @refapifunction{rinard-write-out}
+      @tab Write out fault localization to speed up subsequent trials.
+
+@item @refapifunction{rinard-read-in}
+      @tab Read in previously-written fault localization info.
+@end multitable
+
+
+
+@ignore
 @item @code{(rinard-write-out path data)}
 
 @verbatim
@@ -65,4 +92,5 @@ DATA -------------------- fault loc data, as returned by @code{rinard}
 PATH -------------------- full system path to read in from, previously
                           written out by @code{rinard-write-out}
 @end verbatim
-@end itemize
+@end ignore
+

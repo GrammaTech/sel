@@ -1,0 +1,23 @@
+
+
+
+See also  the manual section on @ref{Fault Localization}.
+
+@include include/fun-sel-collect-fault-loc-traces.texinfo
+@include include/fun-sel-rinard-compare.texinfo
+@include include/fun-sel-rinard-incremental.texinfo
+@include include/fun-sel-rinard-read-in.texinfo
+@include include/fun-sel-rinard-write-out.texinfo
+@include include/fun-sel-rinard.texinfo
+
+
+
+
+
+@c defun stmts-in-file
+@c defun add-to-pos
+@c defun pp-stmt-counts
+@c defun pp-positions
+@c defun rinard-compare
+@c defun print-rinard
+@c defstruct stmt-counts
