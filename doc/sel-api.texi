@@ -2,7 +2,7 @@
 
 
 SEL is a Lisp @emph{package}, in essence, a container for symbols allowing
-the creation of seperate namespaces within a program. By default,
+the creation of separate namespaces within a program. By default,
 functions/variables defined within SEL are private to the package; to
 export the symbol for use outside the package, it must be added to the
 @code{:export} list in package.lisp. If the symbol is not exported and an
