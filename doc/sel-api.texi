@@ -13,6 +13,7 @@ error will result.
 
 @itemize
 @item @ref{api-software-objects, Software Objects}
+@item @ref{api-mutations, Mutations}
 @item @ref{api-test-suites, Test Suites}
 @item @ref{api-condition-synthesis, Condition Synthesis}
 @item @ref{api-clang-tokenizer, Clang Tokenizer}
@@ -25,94 +26,36 @@ error will result.
 @anchor{api-software-objects}
 @section API | Software Objects
 
+More information about software objects is provided in section
+@ref{Software Objects}.
+
 @include api--software-objects.texi
+
+@c ------------------------------
+
+@anchor{api-mutations}
+@section API | Mutations
+
+More information about mutations is provided in section
+@ref{Mutation Objects}.
+
+@include api--mutations.texi
+
+
+@c ------------------------------
 
 @anchor{api-test-suites}
 @section API | Test Suites
-
 @include api--test-suites.texi
+
+@c ------------------------------
 
 @anchor{api-condition-synthesis}
 @section API | Condition Synthesis
 
 Condition synthesis details and an example are provided in section @ref{Condition Synthesis}.
 
-
-@itemize
-@item @ref{api-condition-synthesis-mutations, Mutations}
-@item @ref{api-condition-synthesis-mutations-methods, Methods on Mutations}
-@item @ref{api-condition-synthesis-helper-functions, Helper Functions}
-@item @ref{api-condition-synthesis-variables, Variables and Parameters}
-@item @ref{api-condition-synthesis-constants, Constants}
-@end itemize
-
-
-@anchor{api-condition-synthesis-mutations}
-@subsection API | Condition Synthesis | Mutations
-
-@include include/class-sel-add-condition.texinfo
-@include include/class-sel-if-to-while-tighten-condition.texinfo
-@include include/class-sel-if-to-while.texinfo
-@include include/class-sel-insert-else-if.texinfo
-@include include/class-sel-loosen-condition.texinfo
-@include include/class-sel-refine-condition.texinfo
-@include include/class-sel-tighten-condition.texinfo
-
-@anchor{api-condition-synthesis-mutations-methods}
-@subsection API | Condition Synthesis | Methods on Mutations
-
-@include include/fun-sel-valid-targets.texinfo
-@c @include include/fun-sel-abs-cond-expr.texinfo
-@c @include include/fun-sel-refined-condition.texinfo
-@c @include include/fun-sel-build-op.texinfo
-@c @include include/fun-sel-contains-abstract-condition.texinfo
-
-
-@anchor{api-condition-synthesis-helper-functions}
-@subsection  API | Condition Synthesis | Helper Functions
-
-@c @include include/fun-sel-and-not-connector.texinfo
-@c @include include/fun-sel-apply-best-cond-mutation.texinfo
-@c @include include/fun-sel-build-failed.texinfo
-@c @include include/fun-sel-build.texinfo
-@c @include include/fun-sel-collect-negative-conds-and-envs.texinfo
-@c @include include/fun-sel-collect-positive-conds-and-envs.texinfo
-@c @include include/fun-sel-collect-tests.texinfo
-@c @include include/fun-sel-entails.texinfo
-@c @include include/fun-sel-find-best-condition.texinfo
-@c @include include/fun-sel-flip.texinfo
-@c @include include/fun-sel-get-abst-cond-locs.texinfo
-@c @include include/fun-sel-get-parent-control-stmt.texinfo
-@c @include include/fun-sel-guard-statements.texinfo
-@c @include include/fun-sel-improves-fitness.texinfo
-@c @include include/fun-sel-instrument-abst-cond-traces.texinfo
-@c @include include/fun-sel-instrument-values.texinfo
-@include include/fun-sel-instrumentation-exprs.texinfo
-@c @include include/fun-sel-make-source.texinfo
-@c @include include/fun-sel-or-connector.texinfo
-@c @include include/fun-sel-pick-if-statement.texinfo
-@c @include include/fun-sel-pick-target-condition.texinfo
-@c @include include/fun-sel-read-abst-conds-and-envs.texinfo
-@c @include include/fun-sel-run-test-case.texinfo
-@c @include include/fun-sel-synthesize-conditions.texinfo
-@c @include include/fun-sel-tails.texinfo
-@c @include include/fun-sel-types-equal.texinfo
-
-
-@anchor{api-condition-synthesis-variables}
-@subsection API | Condition Synthesis | Variables and Parameters
-
-@c trace-file
-@c max-trace-length
-@include include/var-sel-star-abst-cond-attempts-star.texinfo
-@include include/var-sel-star-synth-condition-attempts-star.texinfo
-
-
-@anchor{api-condition-synthesis-constants}
-@subsection API | Condition Synthesis | Constants
-
-@c abst-cond-source
-
+@include api--condition-synthesis.texi
 
 @c ------------------------------
 
@@ -148,7 +91,7 @@ More information about the tokenizer component is provided in section
 @c SOFTWARE OBJECTS @include include/class-sel-clang.texinfo
 @include include/class-sel-explode-for-loop.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-llvm.texinfo
-@include include/class-sel-mutation.texinfo
+@c MUTATION OBJECTS @include include/class-sel-mutation.texinfo
 @include include/var-sel-star-allow-bindings-to-globals-bias-star.texinfo
 @include include/var-sel-star-asm-mutation-types-star.texinfo
 @include include/var-sel-star-build-dir-star.texinfo
@@ -168,8 +111,8 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-star-matching-free-function-retains-name-bias-star.texinfo
 @include include/var-sel-star-matching-free-var-retains-name-bias-star.texinfo
 @include include/var-sel-star-max-population-size-star.texinfo
-@include include/var-sel-star-mutation-improvements-star.texinfo
-@include include/var-sel-star-mutation-stats-star.texinfo
+@c MUTATION OBJECTS @include include/var-sel-star-mutation-improvements-star.texinfo
+@c MUTATION OBJECTS @include include/var-sel-star-mutation-stats-star.texinfo
 @include include/var-sel-star-pareto-comparison-set-size-star.texinfo
 @include include/var-sel-star-population-star.texinfo
 @include include/var-sel-star-running-star.texinfo
@@ -196,10 +139,10 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-add-type.texinfo
 @include include/fun-sel-adjust-stmt-range.texinfo
 @include include/class-sel-ancestral.texinfo
-@include include/fun-sel-apply-all-mutations.texinfo
-@include include/fun-sel-apply-mutation.texinfo
-@include include/fun-sel-apply-mutation-ops.texinfo
-@include include/fun-sel-apply-mutations.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-apply-all-mutations.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-apply-mutation.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-apply-mutation-ops.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-apply-mutations.texinfo
 @include include/fun-sel-apply-path.texinfo
 @include include/fun-sel-ast-gt-snippet.texinfo
 @include include/fun-sel-ast-declarations.texinfo
@@ -213,7 +156,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-asm-split-instruction.texinfo
 @include include/fun-sel-ast-to-source-range.texinfo
 @include include/fun-sel-asts.texinfo
-@include include/fun-sel-at-targets.texinfo
+@c MUTATION OBJECTS @include include/fun-sel-at-targets.texinfo
 @include include/fun-sel-block-p.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-build-op.texinfo
 @include include/fun-sel-can-be-made-traceable-p.texinfo
@@ -232,7 +175,7 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-star-lexicase-key-star.texinfo
 @include include/constant-sel-plus-c-pointer-unary-operators-plus.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-elf-cisc.texinfo
-@include include/macro-sel-compose-mutations.texinfo
+@c MUTATION OBJECTS @include include/macro-sel-compose-mutations.texinfo
 @include include/macro-sel-evolve.texinfo
 @include include/fun-sel-asm-nth-instruction.texinfo
 @include include/fun-sel-crossed.texinfo
@@ -290,7 +233,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-make-operator.texinfo
 @c STYLE FEATURES @include include/fun-sel-merge-styleables.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-mutate.texinfo
-@include include/fun-sel-mutation-key.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-mutation-key.texinfo
 @include include/fun-sel-nop-p.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-one-point-crossover.texinfo
 @include include/fun-sel-pad-nops.texinfo
@@ -338,17 +281,17 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-star-clang-json-required-fields-star.texinfo
 @include include/var-sel-star-free-var-decay-rate-star.texinfo
 @include include/var-sel-star-mut-rate-star.texinfo
-@include include/fun-sel-apply-picked-mutations.texinfo
-@include include/macro-sel-define-mutation.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-apply-picked-mutations.texinfo
+@c MUTATION OBJECTS @include include/macro-sel-define-mutation.texinfo
 @include include/fun-sel-enclosing-full-stmt.texinfo
-@include include/macro-sel-sequence-mutations.texinfo
+@c MUTATION OBJECTS @include include/macro-sel-sequence-mutations.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-to-file.texinfo
 @c CLANG TOKENIZER @include include/fun-sel-tokens.texinfo
 @include include/fun-sel-typedef-type.texinfo
 @include include/macro-sel-with-build-dir.texinfo
 @include include/macro-sel-with-current-file.texinfo
 @include include/macro-sel-with-temp-build-dir.texinfo
-@include include/fun-sel-analyze-mutation.texinfo
+@c MUTATION OBJECTS @include include/fun-sel-analyze-mutation.texinfo
 @include include/fun-sel-ast-later-p.texinfo
 @include include/fun-sel-bad-stmts.texinfo
 @include include/fun-sel-expression.texinfo

@@ -4,6 +4,8 @@
            Class @code{software} and its subclasses}
 @item @ref{api-software-object-methods,
            @code{software} methods}
+@item @ref{api-software-object-applying-mutations,
+           Applying Mutations}
 @end itemize
 
 
@@ -11,10 +13,25 @@
 
 @subsection API | Software Objects | Class @code{software} and its subclasses
 
+@itemize
+@item Classes
+   @itemize
+   @item @refapiclass{software}
+   @item @refapiclass{ast}
+   @item @refapiclass{asm}
+   @item @refapiclass{cil}
+   @item @refapiclass{clang}
+   @item @refapiclass{elf-cisc}
+   @item @refapiclass{elf-mips}
+   @item @refapiclass{forth}
+   @item @refapiclass{lisp}
+   @item @refapiclass{llvm}
+   @end itemize
+@item Macro @refapimacro{define-software}
+@end itemize
+
 @include include/class-sel-software.texinfo
-
 @include include/class-sel-ast.texinfo
-
 @include include/class-sel-asm.texinfo
 @include include/class-sel-cil.texinfo
 @include include/class-sel-clang.texinfo
@@ -28,6 +45,23 @@
 
 @anchor{api-software-object-methods}
 @subsection API | Software Objects | @code{software} methods
+
+@itemize
+@item @refapigeneric{copy}
+@item @refapigeneric{crossover}
+@item @refapigeneric{one-point-crossover}
+@item @refapigeneric{two-point-crossover}
+@item @refapigeneric{from-file}
+@item @refapigeneric{genome}
+@item @refapigeneric{mutate}
+@item @refapigeneric{phenome}
+@item @refapigeneric{pick}
+@item @refapigeneric{pick-bad}
+@item @refapigeneric{pick-good}
+@item @refapigeneric{pick-bad-bad}
+@item @refapigeneric{pick-bad-good}
+@item @refapigeneric{to-file}
+@end itemize
 
 @include include/fun-sel-copy.texinfo
 @include include/fun-sel-crossover.texinfo
@@ -43,5 +77,30 @@
 @include include/fun-sel-pick-bad-bad.texinfo
 @include include/fun-sel-pick-bad-good.texinfo
 @include include/fun-sel-to-file.texinfo
+
+
+@anchor{api-software-object-applying-mutations}
+@subsection API | Software Objects | Applying Mutations
+
+
+@c defmethod targets
+
+@itemize
+@item @refapigeneric{apply-all-mutations}
+@item @refapigeneric{apply-mutation-ops}
+@item @refapigeneric{apply-mutations}
+@item @refapigeneric{apply-mutation}
+@item @refapigeneric{apply-picked-mutations}
+@item @refapigeneric{mutation-key}
+@end itemize
+
+@include include/fun-sel-apply-all-mutations.texinfo
+@include include/fun-sel-apply-mutation-ops.texinfo
+@include include/fun-sel-apply-mutation.texinfo
+@include include/fun-sel-apply-mutations.texinfo
+@include include/fun-sel-apply-picked-mutations.texinfo
+@include include/fun-sel-mutation-key.texinfo
+
+
 
 
