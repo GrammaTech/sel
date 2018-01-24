@@ -15,18 +15,18 @@
 ;;; Initialize fitness of `*orig*'. See 002-evaluation.lisp for `test'
 (setf (fitness *orig*) (test *orig*))
 
-(handler-bind
-    ;; Handle errors that might occur during mutation
-    ((no-mutation-targets
-      (lambda (e)
-        (declare (ignorable e))
-        (invoke-restart 'try-another-mutation))))
-  ;; Create a variant by applying a random mutation to a copy of `*orig*'
-  (do ((variant (mutate (copy *orig*))))
-      ((>= (length variants) 10) variants)
-    ;; Test the fitness of the variant
-    (setf (fitness variant) (test variant))
-    ;; When the fitness of the variant matches that of `*orig*', add it
-    ;; to the list of neutral variants
-    (when (= (fitness variant) (fitness *orig*))
-      (push variant variants))))
+;; Create a variant by applying a random mutation to a copy of `*orig*'
+(do ((variant (handler-bind
+                  ;; Handle errors that might occur during mutation
+                  ((no-mutation-targets
+                    (lambda (e)
+                      (declare (ignorable e))
+                      (invoke-restart 'try-another-mutation))))
+                (mutate (copy *orig*)))))
+    ((>= (length variants) 10) variants)
+  ;; Test the fitness of the variant
+  (setf (fitness variant) (test variant))
+  ;; When the fitness of the variant matches that of `*orig*', add it
+  ;; to the list of neutral variants
+  (when (= (fitness variant) (fitness *orig*))
+    (push variant variants)))
