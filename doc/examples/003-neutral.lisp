@@ -12,7 +12,22 @@
 ;;; Create an empty list of variants
 (defvar variants nil "List to hold accumulated neutral variants.")
 
-;;; Initialize fitness of `*orig*'. See 002-evaluation.lisp for `test'
+;;; Run the GCD unit tests on ASM. Return the number of passing tests.
+(defun test (asm)
+  (ignore-errors
+    (with-temp-file (bin)
+      ;; Build executable
+      (phenome asm :bin bin)
+      (count-if #'identity
+                (loop :for i :below 12 :collect
+                   (multiple-value-bind (stdout stderr errno)
+                       (shell "test/etc/gcd/test.sh ~a ~d" bin i)
+                     (declare (ignorable stdout stderr))
+                     ;; Collect list of T/NIL indicating if the exit code was 0.
+                     ;; Tests whose exit code is 0 are considered successful.
+                     (zerop errno)))))))
+
+;;; Initialize fitness of `*orig*'.
 (setf (fitness *orig*) (test *orig*))
 
 ;; Create a variant by applying a random mutation to a copy of `*orig*'
