@@ -19,6 +19,8 @@ error will result.
 @item @ref{api-clang-tokenizer, Clang Tokenizer}
 @item @ref{api-style-features, Style Features}
 @item @ref{api-fault-localization, Fault Localization}
+@item @ref{api-tracing, Tracing}
+@item @ref{api-clang-instrument, Clang Instrumentation}
 @end itemize
 
 
@@ -75,15 +77,47 @@ More information about the tokenizer component is provided in section
 
 @include api--style-features.texi
 
-@c ------------------------------
 
+@c ------------------------------
 
 @anchor{api-fault-localization}
 @section API | Fault Localization
 
+See also  the manual section on @ref{Fault Localization}.
+
 @include api--fault-localization.texi
 
 @c ------------------------------
+
+
+
+@anchor{api-tracing}
+@section API | Tracing
+
+
+More information about trace collection is
+provided in section @ref{Tracing}.
+
+
+@include api--tracing.texi
+
+@c ----------------------------
+
+
+
+@anchor{api-clang-instrument}
+@section API | Clang Instrumentation
+
+
+More information about instrumentation is provided in section
+@ref{Tracing}.
+
+@include api--clang-instrument.texi
+
+
+@c ----------------------------
+
+
 
 @section API | everything else
 
@@ -106,7 +140,7 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-star-fitness-evals-star.texinfo
 @include include/var-sel-star-fitness-scalar-fn-star.texinfo
 @include include/var-sel-star-generations-star.texinfo
-@include include/var-sel-star-instrument-log-variable-name-star.texinfo
+@c CLANG INSTRUMENTATION @include include/var-sel-star-instrument-log-variable-name-star.texinfo
 @include include/var-sel-star-isa-nbits-star.texinfo
 @include include/var-sel-star-matching-free-function-retains-name-bias-star.texinfo
 @include include/var-sel-star-matching-free-var-retains-name-bias-star.texinfo
@@ -163,11 +197,11 @@ More information about the tokenizer component is provided in section
 @c SOFTWARE OBJECTS @include include/class-sel-cil.texinfo
 @include include/var-sel-star-fitness-predicate-star.texinfo
 @include include/var-sel-star-start-time-star.texinfo
-@include include/fun-sel-clang-instrument.texinfo
+@c CLANG INSTRUMENT @include include/fun-sel-clang-instrument.texinfo
 @include include/fun-sel-clang-tidy.texinfo
 @c FAULT LOCALIZATION @include include/fun-sel-collect-fault-loc-traces.texinfo
-@include include/fun-sel-collect-trace.texinfo
-@include include/fun-sel-collect-traces.texinfo
+@c TRACING @include include/fun-sel-collect-trace.texinfo
+@c TRACING @include include/fun-sel-collect-traces.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-copy.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-crossover.texinfo
 @include include/fun-sel-database-emptyp.texinfo
@@ -211,7 +245,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-setf-genome-string.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-ast.texinfo
 @include include/fun-sel-get-ast-types.texinfo
-@include include/fun-sel-get-entry.texinfo
+@c CLANG INSTRUMENT @include include/fun-sel-get-entry.texinfo
 @include include/fun-sel-get-immediate-children.texinfo
 @include include/fun-sel-get-parent-full-stmt.texinfo
 @include include/fun-sel-get-unbound-funs.texinfo
@@ -220,9 +254,9 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-good-stmts.texinfo
 @include include/fun-sel-indent.texinfo
 @include include/class-sel-insert-fodder-decl-rep.texinfo
-@include include/fun-sel-instrument.texinfo
-@include include/fun-sel-instrumentation-files.texinfo
-@include include/fun-sel-instrumented-p.texinfo
+@c CLANG INSTRUMENT @include include/fun-sel-instrument.texinfo
+@c CLANG INSTRUMENT @include include/fun-sel-instrumentation-files.texinfo
+@c CLANG INSTRUMENT @include include/fun-sel-instrumented-p.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-lisp.texinfo
 @include include/var-sel-star-clang-w-fodder-mutation-types-star.texinfo
 @include include/var-sel-star-crossover-function-probability-star.texinfo
@@ -277,7 +311,7 @@ More information about the tokenizer component is provided in section
 @c STYLE FEATURES @include include/class-sel-styleable.texinfo
 @include include/class-sel-sw-range.texinfo
 @c TEST SUITES @include include/class-sel-test-suite.texinfo
-@include include/class-sel-traceable.texinfo
+@c TRACING @include include/class-sel-traceable.texinfo
 @include include/var-sel-star-clang-json-required-fields-star.texinfo
 @include include/var-sel-star-free-var-decay-rate-star.texinfo
 @include include/var-sel-star-mut-rate-star.texinfo
@@ -320,7 +354,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-type-trace-string.texinfo
 @include include/fun-sel-update-asts.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-valid-targets.texinfo
-@include include/fun-sel-var-instrument.texinfo
+@c CLANG INSTRUMENTATION @include include/fun-sel-var-instrument.texinfo
 @include include/fun-sel-weighted-pick.texinfo
 @include include/fun-sel-wrap-ast.texinfo
 @include include/fun-sel-wrap-child.texinfo

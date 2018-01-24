@@ -1,9 +1,5 @@
 
 
-
-See also  the manual section on @ref{Fault Localization}.
-
-
 @itemize
 @item @refapigeneric{collect-fault-loc-traces}
 @item @refapifunction{rinard-compare}
