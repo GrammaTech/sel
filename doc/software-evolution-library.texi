@@ -554,8 +554,6 @@ Write the genome of software object @code{SOFTWARE} to @code{FILE}.
 The following global variables are exposed for configuration and
 interaction with heuristic search processes. This table contains summary information only, see the @ref{SEL API} section for full details.
 
-
-
 @multitable {} {}
 
 @item @refapivariable{*population*} @tab
@@ -583,7 +581,6 @@ winners.
 @item @refapivariable{*tie-breaker-predicate*} @tab
 Function to compare two tie breaker values to select which is
 preferred.
-
 
 @item @refapivariable{*fitness-predicate* } @tab
 Function to compare two fitness values to select which is preferred.
@@ -617,6 +614,7 @@ received much more testing and is recommended.
 
 
 @table @dfn
+
 
 @item @refapimacro{evolve}
 Evolve the existing @refapivariable{*population*} of
