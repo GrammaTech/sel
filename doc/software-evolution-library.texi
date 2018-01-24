@@ -55,6 +55,10 @@ A copy of the license is included in the section entitled
 @ref{Generic-Function \name\, @code{\name\}}
 @end macro
 
+@macro refapimethod{name}
+@ref{Method \name\, @code{\name\}}
+@end macro
+
 
 @ifnottex
 @node Top, Introduction, (dir), (dir)

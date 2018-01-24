@@ -134,9 +134,9 @@ More information about the tokenizer component is provided in section
 @include include/var-sel-plus-software-evolution-library-branch-plus.texinfo
 @include include/var-sel-plus-software-evolution-library-version-plus.texinfo
 @include include/fun-sel-adaptive-analyze-mutation.texinfo
-@include include/fun-sel-add-include.texinfo
-@include include/fun-sel-add-macro.texinfo
-@include include/fun-sel-add-type.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-include.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-macro.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-type.texinfo
 @include include/fun-sel-adjust-stmt-range.texinfo
 @include include/class-sel-ancestral.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-apply-all-mutations.texinfo
@@ -196,7 +196,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-find-var-type.texinfo
 @c TEST SUITES @include include/fun-sel-finish-test.texinfo
 @include include/fun-sel-fitness-equal-p.texinfo
-@include include/fun-sel-force-include.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-force-include.texinfo
 @include include/fun-sel-from-string.texinfo
 @include include/fun-sel-full-path.texinfo
 @include include/fun-sel-full-stmt-p.texinfo
@@ -209,7 +209,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-genome-bytes.texinfo
 @include include/fun-sel-genome-string.texinfo
 @include include/fun-sel-setf-genome-string.texinfo
-@include include/fun-sel-get-ast.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-ast.texinfo
 @include include/fun-sel-get-ast-types.texinfo
 @include include/fun-sel-get-entry.texinfo
 @include include/fun-sel-get-immediate-children.texinfo
@@ -263,7 +263,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-setf-reference.texinfo
 @include include/fun-sel-replace-in-ast.texinfo
 @c FAULT LOCALIZATION @include include/fun-sel-rinard-write-out.texinfo
-@include include/fun-sel-roots.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-roots.texinfo
 @c TEST SUITES @include include/fun-sel-run-test.texinfo
 @include include/fun-sel-scopes.texinfo
 @include include/fun-sel-select-crossover-points.texinfo

@@ -2,21 +2,32 @@
 
 @itemize
 
-@item @ref{api-test-suites-process, Class @code{test-suite}}
-@item @ref{api-test-suites-process, Class @code{test-case} and its methods}
+@item @ref{api-test-suites-test-suite, Class @code{test-suite}}
+@item @ref{api-test-suites-test-case, Class @code{test-case} and its methods}
 @item @ref{api-test-suites-process, Class @code{process} and its methods}
 
 @end itemize
 
 
 @anchor{api-test-suites-test-suite}
-@subsection Class @code{test-suite}
+@subsection API | Test Suites | Class @code{test-suite}
 @include include/class-sel-test-suite.texinfo
 
 
 
 @anchor{api-test-suites-test-case}
-@subsection Class @code{test-case} and its methods
+@subsection API | Test Suites | Class @code{test-case} and its methods
+
+@itemize
+@item Class @refapiclass{test-case}
+@item Methods
+  @itemize
+  @item @refapigeneric{evaluate}
+  @item @refapigeneric{finish-test}
+  @item @refapigeneric{run-test}
+  @item @refapigeneric{start-test}
+  @end itemize
+@end itemize
 
 @include include/class-sel-test-case.texinfo
 @include include/fun-sel-evaluate.texinfo
@@ -26,7 +37,21 @@
 
 
 @anchor{api-test-suites-process}
-@subsection Class @code{process} and its methods
+@subsection API | Test Suites | Class @code{process} and its methods
+
+@itemize
+@item Class @refapiclass{process}
+@item Methods
+  @itemize
+  @item @refapigeneric{process-error-stream}
+  @item @refapigeneric{process-exit-code}
+  @item @refapigeneric{process-id}
+  @item @refapigeneric{process-input-stream}
+  @item @refapigeneric{process-output-stream}
+  @item @refapigeneric{process-status}
+  @item @refapigeneric{signal-process}
+  @end itemize
+@end itemize
 
 
 @include include/class-sel-process.texinfo
@@ -37,4 +62,8 @@
 @include include/fun-sel-process-output-stream.texinfo
 @include include/fun-sel-process-status.texinfo
 @include include/fun-sel-signal-process.texinfo
+
+
+
+
 

@@ -18,104 +18,156 @@ See also  the manual section on @ref{Style Features}.
 
 @anchor{api-style-features-class-style-project}
 @subsection API | Style Features | Class @code{style-project} and its methods
+
+@itemize
+@item Class @refapiclass{style-project}
+@item Function @refapifunction{update-project-features}
+@item See also:
+  @itemize
+  @item @c the whitespace in the ref is required
+      @refapimethod{extract-features ((project style-project) &key (features *feature-extractors*)
+                  (files nil))}
+  @end itemize
+@end itemize
+
 @include include/class-sel-style-project.texinfo
 @include include/fun-sel-update-project-features.texinfo
-
-
-
-See also:
-@itemize
-@item @c the whitespace in the ref is required
-      @ref{Method extract-features ((project style-project) &key (features *feature-extractors*)
-                  (files nil)), @code{extract-features ((project style-project) ...}}
-
-
-@end itemize
 
 
 @anchor{api-style-features-class-style-feature}
 @subsection API | Style Features | Class @code{style-feature} and its methods
 
+@itemize
+@item Class @refapiclass{style-feature}
+@item Macro @refapimacro{define-feature}
+@item See also:
+  @itemize
+  @item @refapimethod{extract-feature ((style styleable) (feature style-feature))}
+  @end itemize
+@end itemize
+
 @include include/class-sel-style-feature.texinfo
 @include include/macro-sel-define-feature.texinfo
 
-See also:
-@itemize
-@item @ref{Method extract-feature ((style styleable) (feature style-feature)),
-           @code{extract-feature ((style styleable) ...}}
-@end itemize
+
 
 @anchor{api-style-features-class-styleable}
 @subsection API | Style Features | Class @code{styleable} and its methods
 
+@itemize
+@item Class @refapiclass{styleable}
+@item Method @refapigeneric{merge-styleables}
+@item See also:
+  @itemize
+
+  @item @refapimethod{extract-features ((style styleable) &key (features nil))}
+
+  @item @refapimethod{extract-feature ((style styleable) (feature style-feature))}
+
+  @item @refapigeneric{extract-baseline-features}
+  @end itemize
+@end itemize
+
 @include include/class-sel-styleable.texinfo
 @include include/fun-sel-merge-styleables.texinfo
 
-See also:
-
-@itemize
-
-@item @ref{Method extract-features ((style styleable) &key (features nil)),
-           @code{extract-features ((style styleable) ...}}
-
-@item @ref{Method extract-feature ((style styleable) (feature style-feature)),
-           @code{extract-feature ((style styleable) ...}}
-
-@item @ref{Generic-Function extract-baseline-features,
-      @code{extract-baseline-features}}
-@end itemize
 
 
 @anchor{api-style-features-features}
 @subsection API | Style Features | Clang Features
 
-@include include/var-sel-ast-node-type-tf-feature.texinfo
-@include include/var-sel-max-depth-ast-feature.texinfo
-@include include/var-sel-avg-depth-ast-feature.texinfo
-@include include/var-sel-ast-node-type-avg-depth-feature.texinfo
-@include include/var-sel-ast-full-stmt-bi-grams-feature.texinfo
+@itemize
+@item @refapivariable{ast-bi-grams-feature}
+@item @refapivariable{ast-full-stmt-bi-grams-feature}
+@item @refapivariable{ast-keyword-tf-feature}
+@item @refapivariable{ast-node-type-avg-depth-feature}
+@item @refapivariable{ast-node-type-tf-feature}
+@item @refapivariable{avg-depth-ast-feature}
+@item @refapivariable{max-depth-ast-feature}
+@end itemize
+
 @include include/var-sel-ast-bi-grams-feature.texinfo
+@include include/var-sel-ast-full-stmt-bi-grams-feature.texinfo
 @include include/var-sel-ast-keyword-tf-feature.texinfo
+@include include/var-sel-ast-node-type-avg-depth-feature.texinfo
+@include include/var-sel-ast-node-type-tf-feature.texinfo
+@include include/var-sel-avg-depth-ast-feature.texinfo
+@include include/var-sel-max-depth-ast-feature.texinfo
 
 
 @anchor{api-style-features-extracting}
 @subsection API | Style Features | Extracting Features
 
+@itemize
+@item @refapigeneric{extract-baseline-features}
+@item @refapigeneric{extract-feature}
+@item @refapigeneric{extract-features}
+@end itemize
+
 @include include/fun-sel-extract-baseline-features.texinfo
-@include include/fun-sel-extract-features.texinfo
 @include include/fun-sel-extract-feature.texinfo
+@include include/fun-sel-extract-features.texinfo
 
 
 @anchor{api-style-features-extractors}
 @subsection API | Style Features | Clang Feature Extractors
 
-@include include/var-sel-star-feature-extractors-star.texinfo
-@include include/fun-sel-ast-node-type-tf-extractor.texinfo
-@include include/fun-sel-max-depth-ast-extractor.texinfo
-@include include/fun-sel-avg-depth-ast-extractor.texinfo
-@include include/fun-sel-ast-full-stmt-bi-grams-extractor.texinfo
-@include include/fun-sel-ast-bi-grams-extractor.texinfo
-@include include/fun-sel-ast-keyword-tf-extractor.texinfo
+@itemize
+@item @refapigeneric{ast-bi-grams-extractor}
+@item @refapigeneric{ast-full-stmt-bi-grams-extractor}
+@item @refapigeneric{ast-keyword-tf-extractor}
+@item @refapigeneric{ast-node-type-tf-extractor}
+@item @refapigeneric{avg-depth-ast-extractor}
+@item @refapigeneric{max-depth-ast-extractor}
+@item @refapivariable{*feature-extractors*}
+@end itemize
 
+@include include/fun-sel-ast-bi-grams-extractor.texinfo
+@include include/fun-sel-ast-full-stmt-bi-grams-extractor.texinfo
+@include include/fun-sel-ast-keyword-tf-extractor.texinfo
+@include include/fun-sel-ast-node-type-tf-extractor.texinfo
+@include include/fun-sel-avg-depth-ast-extractor.texinfo
+@include include/fun-sel-max-depth-ast-extractor.texinfo
+@include include/var-sel-star-feature-extractors-star.texinfo
 
 @anchor{api-style-features-vectors}
 @subsection API | Style Features | Feature Vectors
 
-@include include/fun-sel-to-feature-vector.texinfo
-@include include/fun-sel-normalize-vector.texinfo
+@itemize
+@item @refapifunction{merge-max}
+@item @refapifunction{merge-means}
+@item @refapifunction{merge-normalized}
+@item @refapifunction{normalize-vector}
+@item @refapigeneric{to-feature-vector}
+@end itemize
+
 @include include/fun-sel-merge-max.texinfo
 @include include/fun-sel-merge-means.texinfo
 @include include/fun-sel-merge-normalized.texinfo
+@include include/fun-sel-normalize-vector.texinfo
+@include include/fun-sel-to-feature-vector.texinfo
 
 
 @anchor{api-style-features-helpers} 
 @subsection API | Style Features | Helper Functions
 
-@include include/fun-sel-uni-grams.texinfo
-@include include/fun-sel-ast-node-types.texinfo
-@include include/fun-sel-max-depth-ast.texinfo
+@itemize
+@item @refapigeneric{all-ast-node-types}
+@item @refapigeneric{all-keywords}
+@item @refapigeneric{ast-node-types}
+@item @refapigeneric{bi-grams-hashtable-to-feature}
+@item @refapigeneric{bi-grams}
+@item @refapigeneric{max-depth-ast}
+@item @refapigeneric{uni-grams}
+@end itemize
+
+
 @include include/fun-sel-all-ast-node-types.texinfo
-@include include/fun-sel-bi-grams.texinfo
-@include include/fun-sel-bi-grams-hashtable-to-feature.texinfo
 @include include/fun-sel-all-keywords.texinfo
+@include include/fun-sel-ast-node-types.texinfo
+@include include/fun-sel-bi-grams-hashtable-to-feature.texinfo
+@include include/fun-sel-bi-grams.texinfo
+@include include/fun-sel-max-depth-ast.texinfo
+@include include/fun-sel-uni-grams.texinfo
+
 
