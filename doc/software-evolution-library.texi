@@ -1,3 +1,6 @@
+\input texinfo
+@c @setfilename emacs-web-server.info
+
 @documentencoding utf-8
 @settitle Software Evolution Library
 
