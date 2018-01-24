@@ -1,5 +1,6 @@
 
 
+<<<<<<< 785bc563c19ba0853105ef741b9dfb72f39553a8
 @itemize
 @item @refapigeneric{collect-fault-loc-traces}
 @item @refapifunction{rinard-compare}
@@ -9,6 +10,10 @@
 @item @refapifunction{rinard}
 @end itemize
 
+=======
+
+See also  the manual section on @ref{Fault Localization}.
+>>>>>>> Doc cleanup in COMPONENTS and IMPLEMENTATION sections
 
 @include include/fun-sel-collect-fault-loc-traces.texinfo
 @include include/fun-sel-rinard-compare.texinfo
@@ -19,6 +24,11 @@
 
 
 
+<<<<<<< 785bc563c19ba0853105ef741b9dfb72f39553a8
+=======
+
+
+>>>>>>> Doc cleanup in COMPONENTS and IMPLEMENTATION sections
 @c defun stmts-in-file
 @c defun add-to-pos
 @c defun pp-stmt-counts

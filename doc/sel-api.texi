@@ -90,7 +90,6 @@ See also  the manual section on @ref{Fault Localization}.
 @c ------------------------------
 
 
-
 @anchor{api-tracing}
 @section API | Tracing
 
@@ -143,6 +142,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-weighted-pick.texinfo
 
 @c ----------------------------
+
 @section API | everything else
 
 @include include/struct-sel-clang-ast.texinfo

@@ -450,8 +450,8 @@ existing base class, use macro @refapimacro{define-software}.
 
 
 
-
 @node Software Methods, Mutation Objects, Software Objects, Implementation
+
 @section Software Methods
 @cindex software methods
 
@@ -655,7 +655,6 @@ received much more testing and is recommended.
 
 @table @dfn
 
-
 @item @refapimacro{evolve}
 Evolve the existing @refapivariable{*population*} of
 @refapiclass{software} objects using a supplied test function to
@@ -663,13 +662,11 @@ evaluate the fitness of software objects. A steady state evolutionary
 computation algorithm is used to evolve increasingly fit software
 objects in a process resembling natural selection.
 
-
 @item @refapimacro{mcmc}
 Perform Markov chain Monte Carlo search from a supplied
 @refapiclass{software} object using a supplied test function
 to evaluate the fitness of software objects.  The fitness returned by
 the test function is optimized.
-
 
 @end table
 
