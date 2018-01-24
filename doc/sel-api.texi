@@ -351,7 +351,7 @@ More information about the tokenizer component is provided in section
 @include include/fun-sel-mutant.texinfo
 @include include/fun-sel-pareto-selector.texinfo
 @c TEST SUITES @include include/fun-sel-process-exit-code.texinfo
-@include include/fun-sel-replace-fields-in-snippet.texinfo
+@c @include include/fun-sel-replace-fields-in-snippet.texinfo
 @include include/fun-sel-rinard.texinfo
 @include include/fun-sel-rinard-incremental.texinfo
 @include include/fun-sel-rinard-read-in.texinfo
