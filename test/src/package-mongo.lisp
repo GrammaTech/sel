@@ -14,7 +14,7 @@
    :software-evolution-library/utility
    :software-evolution-library/test
    :software-evolution-library/mongo
-   :testbot)
+   #+gt :testbot)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function

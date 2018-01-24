@@ -1,7 +1,12 @@
-;;; software-evolution-library/mongo-tests.lisp --- tests for the `software-evolution-library-mongo' package
-
 (in-package :software-evolution-library/mongo-test)
 (in-readtable :curry-compose-reader-macros)
+
+#-gt (load (make-pathname :name "testbot"
+                          :type "lisp"
+                          :directory (pathname-directory
+                                      #.(or *compile-file-truename*
+                                            *load-truename*
+                                            *default-pathname-defaults*))))
 
 
 ;;;; Mongo Database tests.

@@ -15,7 +15,7 @@
    :cl-store
    :software-evolution-library
    :software-evolution-library/utility
-   :testbot
+   #+gt :testbot
    :trace-db
    :uiop)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)

@@ -79,6 +79,10 @@ endif
 endif
 endif
 
+ifneq ($(GT),)
+LISP_FLAGS += --eval "(push :GT *features*)"
+endif
+
 all: $(addprefix bin/, $(BINS))
 
 ifeq ($(USER_QUICK_LISP),quicklisp)

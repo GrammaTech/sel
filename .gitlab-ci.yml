@@ -28,12 +28,14 @@ build:
   stage: build
   variables:
     OS: 'ubuntu'
+    GT: 'yes'
   <<: *build
 
 build-arch:
   stage: build
   variables:
     OS: 'arch'
+    GT: 'yes'
   <<: *build
 
 .run-template: &run
@@ -66,12 +68,14 @@ run:
   stage: test-and-tag
   variables:
     OS: 'ubuntu'
+    GT: 'yes'
   <<: *run
 
 run-arch:
   stage: test-and-tag
   variables:
     OS: 'arch'
+    GT: 'yes'
   <<: *run
 
 trigger_bed:

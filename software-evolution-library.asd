@@ -112,7 +112,7 @@ techniques."
                split-sequence
                stefil
                uuid
-               testbot
+               #+gt testbot
                trace-db
                uiop)
   :components
@@ -233,7 +233,7 @@ techniques."
                split-sequence
                stefil
                uuid
-               testbot)
+               #+gt testbot)
   :components
   ((:module test-mongo
             :pathname "test/src"

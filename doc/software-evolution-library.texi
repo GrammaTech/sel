@@ -755,21 +755,31 @@ through Quicklisp (see @url{http://www.quicklisp.org/}).
 @item curry-compose-reader-macros
 @item split-sequence
 @item cl-ppcre
-@item elf
+@end itemize
+
+The following additional Common Lisp packages are required by this
+library but are not (yet) installable through Quicklisp.  These should
+be downloaded into your Quicklisp @code{local-projects/} folder.
+
+@itemize
+@item cl-arrows (available from @url{https://github.com/eschulte/llvm-mutate})
+@item elf (available from @url{https://github.com/GrammaTech/elf})
+@item trace-db (available from @url{https://github.com/GrammaTech/trace-db})
+@item asdf-encodings (available from @url{https://github.com/GrammaTech/asdf-encodings})
 @end itemize
 
 Depending on the type of software object used the following may also
 be required.
 @itemize
 @item
-llvm-mutate for @code{llvm} object support (available from
-@url{https://github.com/eschulte/llvm-mutate}).
+clang-mutate for @code{clang} object support  (available from
+@url{https://github.com/GrammaTech/clang-mutate}).
 @item
 cil-mutate for @code{cil} object support (available from
 @url{https://github.com/eschulte/cil-mutate}).
 @item
-clang-mutate for @code{clang} object support  (available from
-@url{https://github.com/GrammaTech/clang-mutate}).
+llvm-mutate for @code{llvm} object support (available from
+@url{https://github.com/eschulte/llvm-mutate}).
 @end itemize
 
 
