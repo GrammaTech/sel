@@ -252,7 +252,7 @@ If you are ready to try using SEL in your own code, consult the
 @ref{SEL API, API documentation}.
 
 
-@subsection Citing
+@section Citing
 
 Please cite Eric Schulte's Ph.D. dissertation when you publish results
 that you have obtained with the SOFTWARE EVOLUTION library (see
