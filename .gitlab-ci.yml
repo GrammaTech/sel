@@ -100,7 +100,7 @@ pages:
   script:
     - docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(docker ps -alq):/public ./
-    - sed -i 's|SEL_GCD_REPAIR_EXAMPLE_VIDEO_PATH|http://otsego.grammatech.com/u1/rswords/sel/sel-demo-slow.mp4|' Introduction.html
+    - sed -i 's|SEL_GCD_REPAIR_EXAMPLE_VIDEO_PATH|http://otsego.grammatech.com/u1/rswords/sel/sel-demo-slow.mp4|' public/Introduction.html
   artifacts:
     paths:
       - public
