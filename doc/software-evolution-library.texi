@@ -47,6 +47,10 @@ A copy of the license is included in the section entitled
 @ref{Macro \name\, @code{\name\}}
 @end macro
 
+@macro refapicond{name}
+@ref{Condition \name\, @code{\name\}}
+@end macro
+
 @macro refapifunction{name}
 @ref{Function \name\, @code{\name\}}
 @end macro

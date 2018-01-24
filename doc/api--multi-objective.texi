@@ -1,0 +1,48 @@
+
+@itemize
+@item @ref{api-multi-objective-optimization,Multi-Objective Optimization}
+@item @ref{api-multi-objective-pareto,Pareto Selection}
+@item @ref{api-multi-objective-lexicase,Lexicase Selection}
+@end itemize
+
+@anchor{api-multi-objective-optimization}
+@subsection API | Multi-Objective Fitness | Multi-Objective Optimization
+
+
+@itemize
+@item Function @refapifunction{multi-objective-scalar}
+@item Function @refapifunction{pick-least-crowded}
+@end itemize
+
+
+@include include/fun-sel-multi-objective-scalar.texinfo
+@include include/fun-sel-pick-least-crowded.texinfo
+@c defun dominates-all
+@c defun crowding-distance
+
+@anchor{api-multi-objective-pareto}
+@subsection API | Multi-Objective Fitness | Pareto Selection
+
+@itemize
+@item Function @refapifunction{pareto-selector}
+@item Variable @refapivariable{*pareto-comparison-set-size*}
+@end itemize
+
+@include include/fun-sel-pareto-selector.texinfo
+@include include/var-sel-star-pareto-comparison-set-size-star.texinfo
+
+
+@anchor{api-multi-objective-lexicase}
+@subsection API | Multi-Objective Fitness | Lexicase Selection
+
+@itemize
+@item Function @refapifunction{lexicase-select}
+@item Function @refapifunction{lexicase-select-best}
+@item Variable @refapivariable{*lexicase-key*}
+@end itemize
+
+
+@include include/fun-sel-lexicase-select-best.texinfo
+@include include/fun-sel-lexicase-select.texinfo
+@include include/var-sel-star-lexicase-key-star.texinfo
+@c defun lexicase-better-p

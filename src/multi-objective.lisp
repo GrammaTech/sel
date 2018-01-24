@@ -12,6 +12,7 @@
   "Size of comparison set for Pareto tournaments.")
 
 (defun multi-objective-scalar (fitness)
+  "DOCFIXME"
   (iter (for f in fitness)
         (summing (cond ((numberp f) f)
                        ((or (listp fitness) (vectorp fitness))

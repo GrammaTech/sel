@@ -4,7 +4,9 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(defclass searchable () ())
+(defclass searchable ()
+  ()
+  (:documentation "DOCFIXME"))
 
 (defgeneric weighted-pick
     (searchable target weight
@@ -19,6 +21,7 @@ All other arguments are passed through to sorted snippets."))
                                (metric #'diff-scalar)
                                (filter #'null)
                                (limit-considered infinity))
+  "DOCFIXME"
   (random-elt-with-decay
     (similar-snippets obj target
                       :predicate predicate :metric metric
@@ -31,14 +34,15 @@ All other arguments are passed through to sorted snippets."))
      &key predicate metric key limit ast-class limit-considered filter)
   (:documentation
    "Return snippets from SEARCHABLE similar to TARGET
-
-:PREDICATE -------- predicate for similarity metric
-:METRIC ----------- a function to generate a similarity metric
-:KEY -------------- a function called on each snippet before metric
-:LIMIT ------------ only return the MANY most similar snippets
-:AST-CLASS--------- only consider snippets matching this AST class
-:LIMIT-CONSIDERED - limit search to MANY-CONSIDERED random snippets
-:FILTER ----------- limit search to snippets for which FILTER returns false"))
+* SEARCHABLE DOCFIXME
+* TARGET DOCFIXME
+* :PREDICATE predicate for similarity metric
+* :METRIC a function to generate a similarity metric
+* :KEY a function called on each snippet before metric
+* :LIMIT only return the MANY most similar snippets
+* :AST-CLASS only consider snippets matching this AST class
+* :LIMIT-CONSIDERED  limit search to MANY-CONSIDERED random snippets
+* :FILTER limit search to snippets for which FILTER returns false"))
 
 (defmethod similar-snippets ((db searchable) target
                             &key key ast-class limit
@@ -46,6 +50,7 @@ All other arguments are passed through to sorted snippets."))
                                  (metric #'diff-scalar)
                                  (filter #'null)
                                  (limit-considered infinity))
+  "DOCFIXME"
   (declare (ignorable target))
   (let ((base (sort (remove-if filter
                                (find-snippets db

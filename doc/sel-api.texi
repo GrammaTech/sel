@@ -20,7 +20,7 @@ error will result.
 @item @ref{api-style-features, Style Features}
 @item @ref{api-fault-localization, Fault Localization}
 @item @ref{api-tracing, Tracing}
-@item @ref{api-clang-instrument, Clang Instrumentation}
+@item @ref{api-multi-objective, Multi-Objective Fitness}
 @end itemize
 
 
@@ -117,8 +117,32 @@ More information about instrumentation is provided in section
 
 @c ----------------------------
 
+@anchor{api-multi-objective}
+@section API | Multi-Objective Fitness
+
+For more information, see @ref{Multi-objective Fitness}.
+
+@include api--multi-objective.texi
+
+@c ----------------------------
 
 
+
+@section Class @code{searchable} and its methods
+@itemize
+@item Class @refapiclass{searchable}
+@item Methods
+  @itemize
+  @item @refapigeneric{similar-snippets}
+  @item @refapigeneric{weighted-pick}
+  @end itemize
+@end itemize
+
+@include include/class-sel-searchable.texinfo
+@include include/fun-sel-similar-snippets.texinfo
+@include include/fun-sel-weighted-pick.texinfo
+
+@c ----------------------------
 @section API | everything else
 
 @include include/struct-sel-clang-ast.texinfo
@@ -147,7 +171,7 @@ More information about instrumentation is provided in section
 @include include/var-sel-star-max-population-size-star.texinfo
 @c MUTATION OBJECTS @include include/var-sel-star-mutation-improvements-star.texinfo
 @c MUTATION OBJECTS @include include/var-sel-star-mutation-stats-star.texinfo
-@include include/var-sel-star-pareto-comparison-set-size-star.texinfo
+@c MULTIiOBJECTIVE @include include/var-sel-star-pareto-comparison-set-size-star.texinfo
 @include include/var-sel-star-population-star.texinfo
 @include include/var-sel-star-running-star.texinfo
 @include include/var-sel-star-target-fitness-p-star.texinfo
@@ -206,7 +230,7 @@ More information about instrumentation is provided in section
 @c SOFTWARE OBJECTS @include include/fun-sel-crossover.texinfo
 @include include/fun-sel-database-emptyp.texinfo
 @c TEST SUITES @include include/class-sel-test-case.texinfo
-@include include/var-sel-star-lexicase-key-star.texinfo
+@c LEXICASE SELECTION @include include/var-sel-star-lexicase-key-star.texinfo
 @include include/constant-sel-plus-c-pointer-unary-operators-plus.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-elf-cisc.texinfo
 @c MUTATION OBJECTS @include include/macro-sel-compose-mutations.texinfo
@@ -260,8 +284,8 @@ More information about instrumentation is provided in section
 @c SOFTWARE OBJECTS @include include/class-sel-lisp.texinfo
 @include include/var-sel-star-clang-w-fodder-mutation-types-star.texinfo
 @include include/var-sel-star-crossover-function-probability-star.texinfo
-@include include/fun-sel-lexicase-select.texinfo
-@include include/fun-sel-lexicase-select-best.texinfo
+@c LEXICASE SELECTION @include include/fun-sel-lexicase-select.texinfo
+@c LEXICASE SELECTION @include include/fun-sel-lexicase-select-best.texinfo
 @include include/fun-sel-lines.texinfo
 @include include/fun-sel-make-build-dir.texinfo
 @include include/fun-sel-make-operator.texinfo
@@ -288,7 +312,7 @@ More information about instrumentation is provided in section
 @c CONDITION SYNTHESIS @include include/fun-sel-instrumentation-exprs.texinfo
 @include include/fun-sel-make-statement.texinfo
 @include include/fun-sel-parse-source-snippet.texinfo
-@include include/fun-sel-pick-least-crowded.texinfo
+@c MULTI-OBJECTIVE @include include/fun-sel-pick-least-crowded.texinfo
 @c TEST SUITES @include include/fun-sel-process-error-stream.texinfo
 @c TEST SUITES @include include/fun-sel-process-input-stream.texinfo
 @c TEST SUITES @include include/fun-sel-process-output-stream.texinfo
@@ -302,7 +326,7 @@ More information about instrumentation is provided in section
 @include include/fun-sel-scopes.texinfo
 @include include/fun-sel-select-crossover-points.texinfo
 @include include/fun-sel-select-intraprocedural-pair.texinfo
-@include include/fun-sel-similar-snippets.texinfo
+@c SEARchABILITY @include include/fun-sel-similar-snippets.texinfo
 @include include/fun-sel-size.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-software.texinfo
 @include include/fun-sel-source-text.texinfo
@@ -335,7 +359,7 @@ More information about instrumentation is provided in section
 @include include/fun-sel-setf-fitness-extra-data.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-from-file.texinfo
 @include include/fun-sel-mutant.texinfo
-@include include/fun-sel-pareto-selector.texinfo
+@c MULTI-OBJECTIVE @include include/fun-sel-pareto-selector.texinfo
 @c TEST SUITES @include include/fun-sel-process-exit-code.texinfo
 @c @include include/fun-sel-replace-fields-in-snippet.texinfo
 @c FAULT LOCALIZATION @include include/fun-sel-rinard.texinfo
@@ -355,7 +379,7 @@ More information about instrumentation is provided in section
 @include include/fun-sel-update-asts.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-valid-targets.texinfo
 @c CLANG INSTRUMENTATION @include include/fun-sel-var-instrument.texinfo
-@include include/fun-sel-weighted-pick.texinfo
+@c SEARCHABILITY @include include/fun-sel-weighted-pick.texinfo
 @include include/fun-sel-wrap-ast.texinfo
 @include include/fun-sel-wrap-child.texinfo
 @include include/fun-sel-write-genome-to-files.texinfo
