@@ -31,7 +31,6 @@
 *.tmp
 *.vrb
 *.svg
-*.html
 
 # Backup files
 *~
