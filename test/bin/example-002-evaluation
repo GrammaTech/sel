@@ -1,0 +1,7 @@
+#!/bin/bash
+
+sbcl --no-sysinit --no-userinit \
+     --load ${USER_QUICK_LISP}/setup.lisp \
+     --eval "(ql:quickload :software-evolution-library)" \
+     --load doc/examples/002-evaluation.lisp \
+     --eval "(sb-ext:exit)"

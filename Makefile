@@ -23,8 +23,14 @@ TEST_ARTIFACTS = \
 
 BINS = clang-instrument
 
-BIN_TEST_DIR=doc/examples/bin/
-BIN_TESTS=example
+BIN_TEST_DIR = test/bin
+BIN_TESTS =			\
+	example-001-mutate	\
+	example-002-evaluation
+
+LONG_BIN_TESTS =		\
+	example-003-neutral	\
+	example-004-evolve
 
 include cl.mk
 
