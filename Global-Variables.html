@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Global Variables (Software Evolution Library)</title>
+
+<meta name="description" content="Global Variables (Software Evolution Library)">
+<meta name="keywords" content="Global Variables (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Implementation.html#Implementation" rel="up" title="Implementation">
+<link href="Search-Functions.html#Search-Functions" rel="next" title="Search Functions">
+<link href="Software-Methods.html#Software-Methods" rel="prev" title="Software Methods">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="Global-Variables"></a>
+<div class="header">
+<p>
+Next: <a href="Search-Functions.html#Search-Functions" accesskey="n" rel="next">Search Functions</a>, Previous: <a href="Software-Methods.html#Software-Methods" accesskey="p" rel="prev">Software Methods</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<a name="Global-Variables-1"></a>
+<h3 class="section">2.3 Global Variables</h3>
+<a name="index-Global-Variables"></a>
+
+<p>The following global variables are exposed for configuration and
+interaction with heuristic search processes. This table contains summary information only, see the <a href="SEL-API.html#SEL-API">SEL API</a> section for full details.
+</p>
+
+
+<table>
+<tr><td><a href="SEL-API.html#Variable-_002apopulation_002a"><code>*population*</code></a></td><td>A list of the software objects currently known to the system.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002amax_002dpopulation_002dsize_002a"><code>*max-population-size*</code></a></td><td>Maximum allowable population size.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002agenerations_002a"><code>*generations*</code></a></td><td>The running generation count.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002atournament_002dsize_002a"><code>*tournament-size*</code></a></td><td>Number of individuals to participate in tournament selection.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002atournament_002deviction_002dsize_002a"><code>*tournament-eviction-size*</code></a></td><td>Number of individuals to participate in eviction tournaments.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002atournament_002dselector_002a"><code>*tournament-selector*</code></a></td><td>Function used to select winners of a tournament.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002atournament_002dtie_002dbreaker_002a"><code>*tournament-tie-breaker*</code></a></td><td>Function used to break ties when a tournament has multiple
+winners.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002atie_002dbreaker_002dpredicate_002a"><code>*tie-breaker-predicate*</code></a></td><td>Function to compare two tie breaker values to select which is
+preferred.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate* </code></a></td><td>Function to compare two fitness values to select which is preferred.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002across_002dchance_002a"><code>*cross-chance*</code></a></td><td>Fraction of new individuals generated using crossover rather than
+mutation.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002amut_002drate_002a"><code>*mut-rate*</code></a></td><td>Chance to mutate a new individual.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002afitness_002devals_002a"><code>*fitness-evals*</code></a></td><td>Tracks the total number of fitness evaluations
+performed.</td></tr>
+<tr><td><a href="SEL-API.html#Variable-_002arunning_002a"><code>*running*</code></a></td><td>True when a search process is running, set to nil to
+stop a running search.</td></tr>
+</table>
+
+
+
+
+
+</body>
+</html>

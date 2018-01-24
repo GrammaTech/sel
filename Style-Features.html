@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Style Features (Software Evolution Library)</title>
+
+<meta name="description" content="Style Features (Software Evolution Library)">
+<meta name="keywords" content="Style Features (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Components.html#Components" rel="up" title="Components">
+<link href="Clang-C-Tokenizer.html#Clang-C-Tokenizer" rel="next" title="Clang C Tokenizer">
+<link href="Multi_002dobjective-Fitness.html#Multi_002dobjective-Fitness" rel="prev" title="Multi-objective Fitness">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="Style-Features"></a>
+<div class="header">
+<p>
+Next: <a href="Clang-C-Tokenizer.html#Clang-C-Tokenizer" accesskey="n" rel="next">Clang C Tokenizer</a>, Previous: <a href="Multi_002dobjective-Fitness.html#Multi_002dobjective-Fitness" accesskey="p" rel="prev">Multi-objective Fitness</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<a name="Style-Features-1"></a>
+<h3 class="section">3.4 Style Features</h3>
+<a name="index-style_002dfeatures"></a>
+
+<p>The Style Features component offers the ability to extract a set of features
+from a software object into a feature vector. We use the Code Stylometry
+Feature Set (CSFS) described in <cite>De-anonymizing Programmers via Code
+Stylometry</cite> at
+<a href="https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-caliskan-islam.pdf">https://www.usenix.org/system/files/conference/usenixsecurity15/sec15-paper-caliskan-islam.pdf</a>).
+</p>
+<p>Extracted feature vectors can be used as fitness vectors with the
+<a href="Multi_002dobjective-Fitness.html#lexicase_002dselection">lexicase evolution strategy</a>. One application
+is to drive evolution towards solutions which better match the
+features of the surrounding source code.
+</p>
+
+<a name="API-Support-for-Style-Features"></a>
+<h4 class="subsection">3.4.1 API Support for Style Features</h4>
+
+<p>API support for style features is documented in section
+<a href="SEL-API.html#api_002dstyle_002dfeatures">API | Style Features</a>. We provide a brief
+overview here.
+</p>
+
+<p>To extract the set of <a href="SEL-API.html#api_002dstyle_002dfeatures_002dvectors">feature vectors</a>
+from a <a href="SEL-API.html#Class-software"><code>software</code></a> object use
+<a href="SEL-API.html#Generic_002dFunction-extract_002dfeatures"><code>extract-features</code></a>,
+providing a software object and a list of feature extractor functions.
+</p>
+<p>Each feature extractor function is expected to operate on a clang
+ object, and return a feature vector containing the values for that feature.
+Function <code>extract-features</code> returns one large feature vector that
+is the result of concatenating all of these vectors in order.
+</p>
+<p>The SEL API provides several AST-related feature extractors for clang
+software objects, i.e., features derived from properties of a clang
+AST. The available feature extractors are:
+</p><ul>
+<li> Documented in section <a href="SEL-API.html#api_002dstyle_002dfeatures_002dextractors">API | Style Features | Feature Extractors</a>
+</li><li> Listed in parameter <a href="SEL-API.html#Variable-_002afeature_002dextractors_002a"><code>*feature-extractors*</code></a>.
+</li><li> Summarized in the following table.
+
+
+<table>
+<tr><td><a href="SEL-API.html#Generic_002dFunction-ast_002dnode_002dtype_002dtf_002dextractor">      <code>ast-node-type-tf-extractor</code></a></td><td>number of nodes of each different ast-class (e.g., IfStmt
+or DeclStmt) in the AST.</td></tr>
+<tr><td><a href="SEL-API.html#Generic_002dFunction-max_002ddepth_002dast_002dextractor">      <code>max-depth-ast-extractor</code></a></td><td>maximum depth of any node in the AST.</td></tr>
+<tr><td><a href="SEL-API.html#Generic_002dFunction-avg_002ddepth_002dast_002dextractor">           <code>avg-depth-ast-extractor</code></a></td><td>the average depth of nodes in the AST.</td></tr>
+<tr><td><a href="SEL-API.html#Generic_002dFunction-ast_002dfull_002dstmt_002dbi_002dgrams_002dextractor">              <code>ast-full-stmt-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram for
+           full statements in the AST.</td></tr>
+<tr><td><a href="SEL-API.html#Generic_002dFunction-ast_002dbi_002dgrams_002dextractor">           <code>ast-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram in the
+           AST.</td></tr>
+<tr><td><a href="SEL-API.html#Generic_002dFunction-ast_002dkeyword_002dtf_002dextractor">              <code>ast-keyword-tf-extractor</code></a></td><td>for each C keyword, the number of occurrences of that   
+           keyword in the AST.</td></tr>
+</table>
+
+</li></ul>
+
+<p>By convention, feature extractor functions have names ending in &ldquo;-extractor&rdquo;.
+</p>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="Clang-C-Tokenizer.html#Clang-C-Tokenizer" accesskey="n" rel="next">Clang C Tokenizer</a>, Previous: <a href="Multi_002dobjective-Fitness.html#Multi_002dobjective-Fitness" accesskey="p" rel="prev">Multi-objective Fitness</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

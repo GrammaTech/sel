@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Evaluation (Software Evolution Library)</title>
+
+<meta name="description" content="Evaluation (Software Evolution Library)">
+<meta name="keywords" content="Evaluation (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Examples.html#Examples" rel="up" title="Examples">
+<link href="Neutral-Variants.html#Neutral-Variants" rel="next" title="Neutral Variants">
+<link href="Mutation.html#Mutation" rel="prev" title="Mutation">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="Evaluation"></a>
+<div class="header">
+<p>
+Next: <a href="Neutral-Variants.html#Neutral-Variants" accesskey="n" rel="next">Neutral Variants</a>, Previous: <a href="Mutation.html#Mutation" accesskey="p" rel="prev">Mutation</a>, Up: <a href="Examples.html#Examples" accesskey="u" rel="up">Examples</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<a name="Evaluation-1"></a>
+<h4 class="subsection">4.2.2 Evaluation</h4>
+<a name="index-example-evaluation"></a>
+
+<p>Once we are mutating programs, we need to be able to evaluate each
+variant and keep track of the evaluation results.
+</p>
+<p>We have provided a shell script <code>test.sh</code>, which contains several
+gcd test cases. Our fitness function will be the number of test cases
+for which a program produces the correct solution.
+</p>
+<p>Once a fitness value for a <a href="SEL-API.html#Class-software"><code>software</code></a> object is
+established, it can be recorded in the object&rsquo;s <code>fitness</code> field.
+</p>
+
+<p>The example code below has two main components:
+</p>
+<ul>
+<li> A <code>test</code> function that harnesses the <code>test.sh</code> script to evaluate the fitness of an individual <a href="SEL-API.html#Class-asm"><code>asm</code></a> object.
+
+</li><li> A loop in which ten mutants of the   <a href="SEL-API.html#Class-asm"><code>asm</code></a> object corresponding to the original <code>gcd.s</code> program are generated, their fitness assessed, and the results printed.
+</li></ul>
+
+
+
+<pre class="verbatim">(defpackage :example
+  (:use :common-lisp
+        :software-evolution-library
+        :software-evolution-library/utility))
+(in-package :example)
+
+(defvar *orig* (from-file (make-instance 'asm) &quot;test/etc/gcd/gcd.s&quot;))
+
+(defun test (asm)
+  &quot;Run the GCD unit tests on ASM. Return the number of passing tests.&quot;
+  (ignore-errors
+    (with-temp-file (bin)
+      ;; Build executable
+      (phenome asm :bin bin)
+      (count-if #'identity
+                (loop :for i :below 12 :collect
+                   (multiple-value-bind (stdout stderr errno)
+                       (shell &quot;test/etc/gcd/test.sh ~a ~d&quot; bin i)
+                     (declare (ignorable stdout stderr))
+                     ;; Collect list of T/NIL indicating if the exit code was 0.
+                     ;; Tests whose exit code is 0 are considered successful.
+                     (zerop errno)))))))
+
+;; Apply 10 mutations to copies of `*orig*'
+(loop :for i :below 10 :do
+   (handler-bind
+       ((no-mutation-targets
+         (lambda (e)
+           (declare (ignorable e))
+           (invoke-restart 'try-another-mutation))))
+     (multiple-value-bind (mutant edit) (mutate (copy *orig*))
+       ;; Set fitness to be the number of passing unit tests
+       (setf (fitness mutant) (test mutant))
+       ;; Print the final fitness and the mutation applied.
+       (format t &quot;~2d fitness for edit ~S~%&quot; (fitness mutant) edit))))
+</pre>
+<p>Executing this code will print output resembling the following.
+</p>
+
+<div class="example">
+<pre class="example"> 0 fitness for edit (:INSERT 76 38)
+ 0 fitness for edit (:SWAP 66 77)
+ 0 fitness for edit (:CUT 50)
+10 fitness for edit (:CUT 11)
+10 fitness for edit (:SWAP 62 39)
+ 0 fitness for edit (:INSERT 2 48)
+10 fitness for edit (:CUT 66)
+ 0 fitness for edit (:CUT 73)
+10 fitness for edit (:INSERT 73 26)
+ 0 fitness for edit (:INSERT 71 1)
+</pre></div>
+
+
+
+<a name="API-components-in-this-example-1"></a>
+<h4 class="subsubheading">API components in this example</h4>
+
+<ul>
+<li> Class <a href="SEL-API.html#Class-asm"><code>asm</code></a>
+</li><li> Methods
+  <ul>
+<li> <a href="SEL-API.html#Generic_002dFunction-copy"><code>copy</code></a>
+  </li><li> <a href="SEL-API.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="SEL-API.html#Generic_002dFunction-mutate"><code>mutate</code></a>
+  </li><li> <a href="SEL-API.html#Generic_002dFunction-phenome"><code>phenome</code></a>
+  </li></ul>
+</li><li> [sel/utility] Macro <a href="SEL-Utility-API.html#Macro-sel_002futility_003awith_002dtemp_002dfile"><code>with-temp-file</code></a>
+</li><li> [sel/utility] Function <a href="SEL-Utility-API.html#Function-sel_002futility_003ashell"><code>shell</code></a>
+</li></ul>
+
+
+
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="Neutral-Variants.html#Neutral-Variants" accesskey="n" rel="next">Neutral Variants</a>, Previous: <a href="Mutation.html#Mutation" accesskey="p" rel="prev">Mutation</a>, Up: <a href="Examples.html#Examples" accesskey="u" rel="up">Examples</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

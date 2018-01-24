@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>SEL Utility API (Software Evolution Library)</title>
+
+<meta name="description" content="SEL Utility API (Software Evolution Library)">
+<meta name="keywords" content="SEL Utility API (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="SEL-View-API.html#SEL-View-API" rel="next" title="SEL View API">
+<link href="SEL-API.html#SEL-API" rel="prev" title="SEL API">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="SEL-Utility-API"></a>
+<div class="header">
+<p>
+Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View API</a>, Previous: <a href="SEL-API.html#SEL-API" accesskey="p" rel="prev">SEL API</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+
+<a name="SEL-Utility-API-1"></a>
+<h2 class="appendix">Appendix B SEL Utility API</h2>
+<a name="index-utility"></a>
+<a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002abash_002dshell_002a"></a><dl>
+<dt><a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*bash-shell* [sel/utility]</strong></dt>
+<dd><p>Bash shell for use in &lsquo;read-shell&rsquo;.
+</p></dd></dl>
+<a name="index-_002anote_002dlevel_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002anote_002dlevel_002a"></a><dl>
+<dt><a name="index-_002anote_002dlevel_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*note-level* [sel/utility]</strong></dt>
+<dd><p>Enables execution notes.
+</p></dd></dl>
+<a name="index-_002anote_002dout_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002anote_002dout_002a"></a><dl>
+<dt><a name="index-_002anote_002dout_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*note-out* [sel/utility]</strong></dt>
+<dd><p>Targets of notation.
+</p></dd></dl>
+<a name="index-_002aprofile_002ddot_002dmin_002dratio_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002aprofile_002ddot_002dmin_002dratio_002a"></a><dl>
+<dt><a name="index-_002aprofile_002ddot_002dmin_002dratio_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*profile-dot-min-ratio* [sel/utility]</strong></dt>
+<dd><p>Minimum percentage ratio to include a node in the profile dot graph.
+</p></dd></dl>
+<a name="index-_002ashell_002ddebug_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002ashell_002ddebug_002a"></a><dl>
+<dt><a name="index-_002ashell_002ddebug_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*shell-debug* [sel/utility]</strong></dt>
+<dd><p>Set to true to print shell invocations.
+</p></dd></dl>
+<a name="index-_002ashell_002derror_002dcodes_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002ashell_002derror_002dcodes_002a"></a><dl>
+<dt><a name="index-_002ashell_002derror_002dcodes_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*shell-error-codes* [sel/utility]</strong></dt>
+<dd><p>Raise a condition on these exit codes.
+</p></dd></dl>
+<a name="index-_002ashell_002dnon_002derror_002dcodes_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002ashell_002dnon_002derror_002dcodes_002a"></a><dl>
+<dt><a name="index-_002ashell_002dnon_002derror_002dcodes_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*shell-non-error-codes* [sel/utility]</strong></dt>
+<dd><p>Raise a condition on any but these exit codes.
+</p></dd></dl>
+<a name="index-_002atemp_002ddir_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002atemp_002ddir_002a"></a><dl>
+<dt><a name="index-_002atemp_002ddir_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*temp-dir* [sel/utility]</strong></dt>
+<dd><p>Set to non-nil for a custom temporary directory.
+</p></dd></dl>
+<a name="index-read_002dshell-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003aread_002dshell"></a><dl>
+<dt><a name="index-read_002dshell-_005bsel_002futility_005d-1"></a>Macro: <strong>read-shell [sel/utility]</strong> <em>(stream-var shell) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>stream-var</code> holding the output of <code>shell</code>.
+The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
+</p></dd></dl>
+<a name="index-read_002dshell_002dfile-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003aread_002dshell_002dfile"></a><dl>
+<dt><a name="index-read_002dshell_002dfile-_005bsel_002futility_005d-1"></a>Macro: <strong>read-shell-file [sel/utility]</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> from <code>file</code>.
+</p></dd></dl>
+<a name="index-with_002dcwd-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003awith_002dcwd"></a><dl>
+<dt><a name="index-with_002dcwd-_005bsel_002futility_005d-1"></a>Macro: <strong>with-cwd [sel/utility]</strong> <em>dir &amp;rest body</em></dt>
+<dd><p>Change the current working directory to dir and execute body
+</p></dd></dl>
+<a name="index-with_002dtemp_002dfile-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003awith_002dtemp_002dfile"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile-_005bsel_002futility_005d-1"></a>Macro: <strong>with-temp-file [sel/utility]</strong> <em>spec &amp;rest body</em></dt>
+<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
+After <code>body</code> is executed the temporary file is removed.
+</p></dd></dl>
+<a name="index-with_002dtemp_002dfile_002dof-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003awith_002dtemp_002dfile_002dof"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof-_005bsel_002futility_005d-1"></a>Macro: <strong>with-temp-file-of [sel/utility]</strong> <em>spec str &amp;rest body</em></dt>
+<dd><p><code>spec</code> should be a list of the variable used to reference the file
+and an optional extension.
+</p></dd></dl>
+<a name="index-with_002dtemp_002dfile_002dof_002dbytes-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003awith_002dtemp_002dfile_002dof_002dbytes"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes-_005bsel_002futility_005d-1"></a>Macro: <strong>with-temp-file-of-bytes [sel/utility]</strong> <em>spec bytes &amp;rest body</em></dt>
+<dd><p><code>spec</code> should be a list of the variable used to reference the file
+and an optional extension.
+</p></dd></dl>
+<a name="index-write_002dshell_002dfile-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003awrite_002dshell_002dfile"></a><dl>
+<dt><a name="index-write_002dshell_002dfile-_005bsel_002futility_005d-1"></a>Macro: <strong>write-shell-file [sel/utility]</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> to <code>file</code>.
+</p></dd></dl>
+<a name="index-xz_002dpipe-_005bsel_002futility_005d"></a>
+<a name="Macro-sel_002futility_003axz_002dpipe"></a><dl>
+<dt><a name="index-xz_002dpipe-_005bsel_002futility_005d-1"></a>Macro: <strong>xz-pipe [sel/utility]</strong> <em>(in-stream in-file) (out-stream out-file) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>in-stream</code> and <code>out-stream</code> read/writing data from xz files.
+</p></dd></dl>
+<a name="index-addrs-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aaddrs"></a><dl>
+<dt><a name="index-addrs-_005bsel_002futility_005d-1"></a>Function: <strong>addrs [sel/utility]</strong> <em>phenome function</em></dt>
+<dd><p>Return the numerical addresses of the lines (in order) of <code>function</code>.
+</p></dd></dl>
+<a name="index-aget-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aaget"></a><dl>
+<dt><a name="index-aget-_005bsel_002futility_005d-1"></a>Function: <strong>aget [sel/utility]</strong> <em>item list &amp;key test</em></dt>
+<dd><p>Get <code>key</code> from association list <code>list</code>.
+</p></dd></dl>
+<a name="index-alist_002dfilter-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aalist_002dfilter"></a><dl>
+<dt><a name="index-alist_002dfilter-_005bsel_002futility_005d-1"></a>Function: <strong>alist-filter [sel/utility]</strong> <em>keep-keys alist</em></dt>
+<dd><p>Remove all keys from <code>alist</code> except those in <code>keep-keys</code>.
+</p></dd></dl>
+<a name="index-arglist-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aarglist"></a><dl>
+<dt><a name="index-arglist-_005bsel_002futility_005d-1"></a>Function: <strong>arglist [sel/utility]</strong> <em>fname</em></dt>
+<dd><p>Return the argument list of <code>fname</code>.
+</p></dd></dl>
+<a name="index-binary_002dsearch-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003abinary_002dsearch"></a><dl>
+<dt><a name="index-binary_002dsearch-_005bsel_002futility_005d-1"></a>Function: <strong>binary-search [sel/utility]</strong> <em>value array &amp;key low high test</em></dt>
+<dd><p>Perform a binary search for <code>value</code> on a sorted <code>array</code>.
+Optional keyword parameters:
+<code>low:</code>  Lower bound
+<code>high:</code> Higher bound
+<code>test:</code> Test for the binary search algorithm taking on arg.
+Return -1 if arg is less than value, 1 if arg is greater than value,
+and 0 otherwise.
+</p></dd></dl>
+<a name="index-calculate_002daddr_002dmap-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003acalculate_002daddr_002dmap"></a><dl>
+<dt><a name="index-calculate_002daddr_002dmap-_005bsel_002futility_005d-1"></a>Function: <strong>calculate-addr-map [sel/utility]</strong> <em>lines phenome genome</em></dt>
+<dd><p>Calculate a map of memory address to offsets in <code>lines</code>.
+<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an <code>asm</code> object,
+<code>phenome</code> should be the phenome of an <code>asm</code> object and <code>genome</code> should be
+the genome of an <code>asm</code> object.
+</p></dd></dl>
+<a name="index-chunks-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003achunks"></a><dl>
+<dt><a name="index-chunks-_005bsel_002futility_005d-1"></a>Function: <strong>chunks [sel/utility]</strong> <em>list size &amp;optional include-remainder-p</em></dt>
+<dd><p>Return subsequent chunks of <code>list</code> of size <code>size</code>.
+</p></dd></dl>
+<a name="index-count_002dcons-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003acount_002dcons"></a><dl>
+<dt><a name="index-count_002dcons-_005bsel_002futility_005d-1"></a>Function: <strong>count-cons [sel/utility]</strong> <em>cons-cell</em></dt>
+<dd><p>Count and return the number of cons cells used in <code>cons-cell</code>.
+</p></dd></dl>
+<a name="index-counts-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003acounts"></a><dl>
+<dt><a name="index-counts-_005bsel_002futility_005d-1"></a>Function: <strong>counts [sel/utility]</strong> <em>list &amp;key test key frac</em></dt>
+<dd><p>Return an alist keyed by the unique elements of list holding their counts.
+Keyword argument <code>frac</code> will return fractions instead of raw counts.
+</p></dd></dl>
+<a name="index-cumulative_002ddistribution-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003acumulative_002ddistribution"></a><dl>
+<dt><a name="index-cumulative_002ddistribution-_005bsel_002futility_005d-1"></a>Function: <strong>cumulative-distribution [sel/utility]</strong> <em>alist</em></dt>
+<dd><p>Cumulative distribution function.
+Return an updated version of <code>alist</code> in which the cdr of each element is
+transformed from an instant to a cumulative probability.
+</p></dd></dl>
+<a name="index-diff_002dscalar-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003adiff_002dscalar"></a><dl>
+<dt><a name="index-diff_002dscalar-_005bsel_002futility_005d-1"></a>Function: <strong>diff-scalar [sel/utility]</strong> <em>original-seq modified-seq</em></dt>
+<dd><p>Return an integer representing the diff size of two sequences
+Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <code>o</code> is the length of the
+original diff region and <code>m</code> is the length of the modified diff
+region.
+</p></dd></dl>
+<a name="index-drop-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003adrop"></a><dl>
+<dt><a name="index-drop-_005bsel_002futility_005d-1"></a>Function: <strong>drop [sel/utility]</strong> <em>n seq</em></dt>
+<dd><p>Return <code>seq</code> less the first <code>n</code> items.
+</p></dd></dl>
+<a name="index-equal_002dit-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aequal_002dit"></a><dl>
+<dt><a name="index-equal_002dit-_005bsel_002futility_005d-1"></a>Function: <strong>equal-it [sel/utility]</strong> <em>obj1 obj2 &amp;optional trace</em></dt>
+<dd><p>Equal over objects and lists.
+</p></dd></dl>
+<a name="index-function_002dlines-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003afunction_002dlines"></a><dl>
+<dt><a name="index-function_002dlines-_005bsel_002futility_005d-1"></a>Function: <strong>function-lines [sel/utility]</strong> <em>lines</em></dt>
+<dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
+<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an <code>asm</code> object.
+</p></dd></dl>
+<a name="index-gdb_002ddisassemble-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003agdb_002ddisassemble"></a><dl>
+<dt><a name="index-gdb_002ddisassemble-_005bsel_002futility_005d-1"></a>Function: <strong>gdb-disassemble [sel/utility]</strong> <em>phenome function</em></dt>
+<dd><p>Return the raw gdb disassembled code of <code>function</code> in <code>phenome</code>.
+</p></dd></dl>
+<a name="index-getenv-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003agetenv"></a><dl>
+<dt><a name="index-getenv-_005bsel_002futility_005d-1"></a>Function: <strong>getenv [sel/utility]</strong> <em>name</em></dt>
+<dd><p>Returns the value of an environment variable
+</p></dd></dl>
+<a name="index-getter-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003agetter"></a><dl>
+<dt><a name="index-getter-_005bsel_002futility_005d-1"></a>Function: <strong>getter [sel/utility]</strong> <em>key</em></dt>
+<dd><p>Return a function which gets <code>key</code> from an association list.
+</p></dd></dl>
+<a name="index-in_002ddirectory-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003ain_002ddirectory"></a><dl>
+<dt><a name="index-in_002ddirectory-_005bsel_002futility_005d-1"></a>Function: <strong>in-directory [sel/utility]</strong> <em>directory path</em></dt>
+<dd><p>Return <code>path</code> based in <code>directory</code>.
+Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
+pathname (i.e., ending in a &quot;/&quot;).
+</p></dd></dl>
+<a name="index-make_002dterminal_002draw-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003amake_002dterminal_002draw"></a><dl>
+<dt><a name="index-make_002dterminal_002draw-_005bsel_002futility_005d-1"></a>Function: <strong>make-terminal-raw [sel/utility]</strong></dt>
+<dd><p>Place the terminal into &rsquo;raw&rsquo; mode, no echo non canonical.
+This allows characters to be read directly without waiting for a newline.
+See &rsquo;man 3 termios&rsquo; for more information.
+</p></dd></dl>
+<a name="index-normalize_002dprobabilities-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003anormalize_002dprobabilities"></a><dl>
+<dt><a name="index-normalize_002dprobabilities-_005bsel_002futility_005d-1"></a>Function: <strong>normalize-probabilities [sel/utility]</strong> <em>alist</em></dt>
+<dd><p>Normalize <code>alist</code> so sum of second elements is equal to 1.
+</p></dd></dl>
+<a name="index-pad-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003apad"></a><dl>
+<dt><a name="index-pad-_005bsel_002futility_005d-1"></a>Function: <strong>pad [sel/utility]</strong> <em>list n &amp;optional elem</em></dt>
+<dd><p>Pad <code>list</code> to a length of <code>n</code> with <code>elem</code>
+</p></dd></dl>
+<a name="index-parse_002dnumber-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aparse_002dnumber"></a><dl>
+<dt><a name="index-parse_002dnumber-_005bsel_002futility_005d-1"></a>Function: <strong>parse-number [sel/utility]</strong> <em>string</em></dt>
+<dd><p>Parse the number located at the front of <code>string</code> or return an error.
+</p></dd></dl>
+<a name="index-partition-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003apartition"></a><dl>
+<dt><a name="index-partition-_005bsel_002futility_005d-1"></a>Function: <strong>partition [sel/utility]</strong> <em>test list</em></dt>
+<dd><p>Return a list of lists of elements of <code>list</code> which do and do not satisfy <code>test</code>.
+The first list holds elements of <code>list</code> which satisfy <code>test</code>, the second
+holds those which do not.
+</p></dd></dl>
+<a name="index-plist_002dmerge-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aplist_002dmerge"></a><dl>
+<dt><a name="index-plist_002dmerge-_005bsel_002futility_005d-1"></a>Function: <strong>plist-merge [sel/utility]</strong> <em>plist-1 plist-2</em></dt>
+<dd><p>Merge arguments into a single plist with unique keys, prefer PLIST-1 items.
+</p></dd></dl>
+<a name="index-profile_002dto_002ddot_002dgraph-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aprofile_002dto_002ddot_002dgraph"></a><dl>
+<dt><a name="index-profile_002dto_002ddot_002dgraph-_005bsel_002futility_005d-1"></a>Function: <strong>profile-to-dot-graph [sel/utility]</strong> <em>stream</em></dt>
+<dd><p>Write profile to <code>stream</code>.
+</p></dd></dl>
+<a name="index-profile_002dto_002dflame_002dgraph-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aprofile_002dto_002dflame_002dgraph"></a><dl>
+<dt><a name="index-profile_002dto_002dflame_002dgraph-_005bsel_002futility_005d-1"></a>Function: <strong>profile-to-flame-graph [sel/utility]</strong> <em>stream</em></dt>
+<dd><p>Write FlameGraph profile data to <code>stream</code>.
+The resulting file may be fed directly to the flamegraph tool as follows.
+</p>
+<p><code>repl&gt;</code> (sb-sprof:start-profiling)
+</p>
+<p>...do some work...
+</p>
+
+<dl compact="compact">
+<dt><em><code>repl&gt;</code> (with-open-file (out &quot;profile.data&quot;</em></dt>
+<dd><p>:direction :output
+                               :if-exists :supersede)
+            (profile-to-flame-graph out))
+</p>
+</dd>
+</dl>
+
+<p>shell$ profile.data|flamegraph <code>&gt;</code> profile.svg
+</p>
+<p>See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html.
+</p></dd></dl>
+<a name="index-quit-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aquit"></a><dl>
+<dt><a name="index-quit-_005bsel_002futility_005d-1"></a>Function: <strong>quit [sel/utility]</strong> <em>&amp;optional code finish-output</em></dt>
+<dd><p>Quits from the Lisp world, with the given exit status if provided.
+This is designed to abstract away the implementation specific quit forms.
+</p></dd></dl>
+<a name="index-random_002dhash_002dtable_002dkey-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003arandom_002dhash_002dtable_002dkey"></a><dl>
+<dt><a name="index-random_002dhash_002dtable_002dkey-_005bsel_002futility_005d-1"></a>Function: <strong>random-hash-table-key [sel/utility]</strong> <em>hash-tbl</em></dt>
+<dd><p>Return a random key in a hash table
+</p></dd></dl>
+<a name="index-random_002dsample_002dwith_002dreplacement-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003arandom_002dsample_002dwith_002dreplacement"></a><dl>
+<dt><a name="index-random_002dsample_002dwith_002dreplacement-_005bsel_002futility_005d-1"></a>Function: <strong>random-sample-with-replacement [sel/utility]</strong> <em>range size</em></dt>
+<dd><p>Return a random sample of <code>size</code> numbers in <code>range</code> with replacement.
+</p></dd></dl>
+<a name="index-random_002dsample_002dwithout_002dreplacement-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003arandom_002dsample_002dwithout_002dreplacement"></a><dl>
+<dt><a name="index-random_002dsample_002dwithout_002dreplacement-_005bsel_002futility_005d-1"></a>Function: <strong>random-sample-without-replacement [sel/utility]</strong> <em>range size</em></dt>
+<dd><p>Return a random sample of <code>size</code> numbers in <code>range</code> without replacement.
+</p></dd></dl>
+<a name="index-replace_002dall-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003areplace_002dall"></a><dl>
+<dt><a name="index-replace_002dall-_005bsel_002futility_005d-1"></a>Function: <strong>replace-all [sel/utility]</strong> <em>string part replacement &amp;key test</em></dt>
+<dd><p>Returns a new string in which all the occurences of the part
+is replaced with replacement.
+</p></dd></dl>
+<a name="index-replace_002dstdout_002din_002dnote_002dtargets-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003areplace_002dstdout_002din_002dnote_002dtargets"></a><dl>
+<dt><a name="index-replace_002dstdout_002din_002dnote_002dtargets-_005bsel_002futility_005d-1"></a>Function: <strong>replace-stdout-in-note-targets [sel/utility]</strong> <em>&amp;optional targets</em></dt>
+<dd><p>Replace &lsquo;t&rsquo; which is a place holder for &lsquo;*standard-output*&rsquo;.
+Ideally we would like to set the value of &lsquo;*note-out*&rsquo; to a list
+holding &lsquo;*standard-output*&rsquo;, however in compiled binaries the value of
+&lsquo;*standard-output*&rsquo; changes each time the binary is launched.  So
+instead we use &lsquo;t&rsquo; as a place-holder, and provide this function for
+performing the replacement on the fly when &lsquo;note&rsquo; is called.  To
+specify a particular value for &lsquo;*standard-output*&rsquo; the user may
+replace &lsquo;t&rsquo; in the &lsquo;*note-out*&rsquo; list.
+</p></dd></dl>
+<a name="index-shell-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003ashell"></a><dl>
+<dt><a name="index-shell-_005bsel_002futility_005d-1"></a>Function: <strong>shell [sel/utility]</strong> <em>control-string &amp;rest format-arguments</em></dt>
+<dd><p>Apply <code>control-string</code> to <code>format-arguments</code> and execute the result with a shell.
+Return (values stdout stderr errno).  Raise a &lsquo;shell-command-failed&rsquo;
+exception depending on the combination of errno with
+&lsquo;*shell-error-codes*&rsquo; and &lsquo;*shell-non-error-codes*&rsquo;.  Optionally print
+debug information depending on the value of &lsquo;*shell-debug*&rsquo;.
+</p></dd></dl>
+<a name="index-show_002dit-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003ashow_002dit"></a><dl>
+<dt><a name="index-show_002dit-_005bsel_002futility_005d-1"></a>Function: <strong>show-it [sel/utility]</strong> <em>hd &amp;optional out</em></dt>
+<dd><p>Print the fields of a elf, section or program header.
+Optional argument <code>out</code> specifies an output stream.
+</p></dd></dl>
+<a name="index-take-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003atake"></a><dl>
+<dt><a name="index-take-_005bsel_002futility_005d-1"></a>Function: <strong>take [sel/utility]</strong> <em>n seq</em></dt>
+<dd><p>Return the first <code>n</code> items of <code>seq</code>.
+</p></dd></dl>
+<a name="index-transpose-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003atranspose"></a><dl>
+<dt><a name="index-transpose-_005bsel_002futility_005d-1"></a>Function: <strong>transpose [sel/utility]</strong> <em>matrix</em></dt>
+<dd><p>Simple matrix transposition.
+</p></dd></dl>
+<a name="index-un_002dcumulative_002ddistribution-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003aun_002dcumulative_002ddistribution"></a><dl>
+<dt><a name="index-un_002dcumulative_002ddistribution-_005bsel_002futility_005d-1"></a>Function: <strong>un-cumulative-distribution [sel/utility]</strong> <em>alist</em></dt>
+<dd><p>Undo the &lsquo;cumulative-distribution&rsquo; function.
+</p></dd></dl>
+
+
+
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View API</a>, Previous: <a href="SEL-API.html#SEL-API" accesskey="p" rel="prev">SEL API</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>
