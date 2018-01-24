@@ -112,6 +112,17 @@ Mutation and evaluation methods (@pxref{Software Methods}) are
 implemented on top of this interface supporting Search Based Software
 Engineering (SBSE) techniques (@pxref{Search Functions}).
 
+@ifhtml
+@html
+<center>
+ <span>Automated repair of buggy C source for Euclid's GCD.</br></span>
+ <video width="933" height="528" controls>
+  <source src="SEL_GCD_REPAIR_EXAMPLE_VIDEO_PATH" type="video/mp4">
+  Your browser does not support the video tag.
+</video> 
+</center>
+@end html
+@end ifhtml
 
 @section SEL Applications
 
