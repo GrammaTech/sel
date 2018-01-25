@@ -369,10 +369,10 @@ Define an :around method on this function to record crossovers.
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028clang_002dproject-clang_002dproject_0029-project_002ddir_0029"></a><dl>
 <dt><a name="index-from_002dfile-3"></a>Method: <strong>from-file</strong> <em>(clang-project clang-project) project-dir</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Populate <code>clang-project</code> from the source code in <code>project-dir</code>.
 </p><ul>
-<li> <code>clang-project</code> <code>docfixme</code>
-</li><li> <code>project-dir</code> <code>docfixme</code>
+<li> <code>clang-project</code> to be populated from source in <code>project-dir</code>
+</li><li> <code>project-dir</code> source code to populate <code>clang-project</code> with
 </li></ul>
 </dd></dl>
 <a name="Method-from_002dfile-_0028_0028forth-forth_0029-path-_0026aux-strings_0029"></a><dl>
@@ -536,10 +536,10 @@ by the &lsquo;good-stmts&rsquo; pool, excluding those ASTs removed by <code>filt
 </p></dd></dl>
 <a name="Method-to_002dfile-_0028_0028clang_002dproject-clang_002dproject_0029-path_0029"></a><dl>
 <dt><a name="index-to_002dfile-2"></a>Method: <strong>to-file</strong> <em>(clang-project clang-project) path</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Write <code>clang-project</code> to the path directory.
 </p><ul>
-<li> <code>clang-project</code> <code>docfixme</code>
-</li><li> <code>path</code> <code>docfixme</code>
+<li> <code>clang-project</code> project to output
+</li><li> <code>path</code> directory to write the project to
 </li></ul>
 </dd></dl>
 <a name="Method-to_002dfile-_0028_0028simple-simple_0029-file_0029"></a><dl>
@@ -3334,8 +3334,7 @@ This mutation will transform <code>'a</code>;while<code>(b)</code>;C&rsquo; into
 </p></dd></dl>
 <a name="Method-asts-_0028_0028obj-clang_002dproject_0029_0029"></a><dl>
 <dt><a name="index-asts-2"></a>Method: <strong>asts</strong> <em>(obj clang-project)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>obj</code> <code>docfixme</code>
+<dd><p>Return a list of all ASTs in the project <code>obj</code>.
 </p></dd></dl>
 <a name="Method-asts-before-_0028_0028obj-clang_0029_0029"></a><dl>
 <dt><a name="index-before-asts"></a>Method: <strong>before asts</strong> <em>(obj clang)</em></dt>
@@ -3388,8 +3387,8 @@ This mutation will transform <code>'a</code>;while<code>(b)</code>;C&rsquo; into
 </p></dd></dl>
 <a name="Method-clang_002dtidy-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
 <dt><a name="index-clang_002dtidy-2"></a>Method: <strong>clang-tidy</strong> <em>(clang-project clang-project)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>clang-project</code> <code>docfixme</code>
+<dd><p>Apply &lsquo;clang-tidy&rsquo; to <code>clang-project</code>.
+<code>*</code> <code>clang-project</code> project to tidy and return
 </p></dd></dl>
 <a name="Method-clang_002dtidy-_0028_0028clang-clang_0029-_0026aux-errno_0029"></a><dl>
 <dt><a name="index-clang_002dtidy-3"></a>Method: <strong>clang-tidy</strong> <em>(clang clang) &amp;aux errno</em></dt>
@@ -3803,10 +3802,10 @@ Returns nil if no full-stmt is found.
 </p></dd></dl>
 <a name="Method-indent-_0028_0028clang_002dproject-clang_002dproject_0029-_0026optional-style_0029"></a><dl>
 <dt><a name="index-indent-2"></a>Method: <strong>indent</strong> <em>(clang-project clang-project) &amp;optional style</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Apply <code>gnu</code> &lsquo;indent&rsquo; to <code>clang-project</code>.
 </p><ul>
-<li> <code>clang-project</code> <code>docfixme</code>
-</li><li> <code>style</code> <code>docfixme</code>
+<li> <code>clang-project</code> project to format and return
+</li><li> <code>style</code> <code>gnu</code> &lsquo;indent&rsquo; style to utilize
 </li></ul>
 </dd></dl>
 <a name="Method-indent-_0028_0028obj-clang_0029-_0026optional-style-_0026aux-errno_0029"></a><dl>
