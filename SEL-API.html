@@ -600,10 +600,11 @@ Define an :around method on this function to record mutations.
 </p></dd></dl>
 <a name="Method-apply_002dmutation-after-_0028_0028obj-clang_002dw_002dfodder_0029-mutation_0029"></a><dl>
 <dt><a name="index-after-apply_002dmutation"></a>Method: <strong>after apply-mutation</strong> <em>(obj clang-w-fodder) mutation</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Inject fodder dependencies such as types, macros, and headers after a fodder
+<code>mutation</code> has been applied to <code>obj</code>.
 </p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>mutation</code> <code>docfixme</code>
+<li> <code>obj</code> software object modified by <code>mutation</code>
+</li><li> <code>mutation</code> operations applied to <code>obj</code>
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028clang-clang_0029-_0028op-list_0029_0029"></a><dl>
@@ -1180,10 +1181,11 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </p></dd></dl>
 <a name="Method-build_002dop-_0028_0028mut-insert_002dfodder_002ddecl_002drep_0029-_0028obj-clang_002dw_002dfodder_0029_0029"></a><dl>
 <dt><a name="index-build_002dop-7"></a>Method: <strong>build-op</strong> <em>(mut insert-fodder-decl-rep) (obj clang-w-fodder)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return an association list with the operations to apply a
+&lsquo;insert-fodder-decl-rep&rsquo; <code>mut</code> to <code>obj</code>.
 </p><ul>
-<li> <code>mut</code> <code>docfixme</code>
-</li><li> <code>obj</code> <code>docfixme</code>
+<li> <code>mut</code> defines the targets of the insertion operation
+</li><li> <code>obj</code> object to be modified by the mutation
 </li></ul>
 </dd></dl>
 <a name="Method-build_002dop-_0028_0028mutation-rename_002dvariable_0029-software_0029"></a><dl>
@@ -2583,34 +2585,30 @@ provided in section <a href="Tracing.html#Tracing">Tracing</a>.
 </p></dd></dl>
 <a name="index-collect_002dtraces"></a>
 <a name="Generic_002dFunction-collect_002dtraces"></a><dl>
-<dt><a name="index-collect_002dtraces-1"></a>Generic Function: <strong>collect-traces</strong> <em>software inputs &amp;key predicate max bin</em></dt>
-<dd><p>Execute instrumented <code>software</code> on <code>inputs</code> collecting dynamic traces.
+<dt><a name="index-collect_002dtraces-1"></a>Generic Function: <strong>collect-traces</strong> <em>software test-suite &amp;key predicate max bin</em></dt>
+<dd><p>Execute instrumented <code>software</code> on <code>test-suite</code> collecting dynamic traces.
 See the documentation of &lsquo;collect-trace&rsquo; for information on the
 <code>predicate</code> <code>max</code> and <code>bin</code> keyword arguments.
 </p></dd></dl>
 <a name="Method-collect_002dtraces-_0028_0028obj-software_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-predicate-max--_0028bin-_0028temp_002dfile_002dname_0029_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029--_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
 <dt><a name="index-collect_002dtraces-2"></a>Method: <strong>collect-traces</strong> <em>(obj software) (test-suite test-suite) &amp;key predicate max (bin (temp-file-name)) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Executed instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>test-suite</code> <code>docfixme</code>
-</li><li> <code>predicate</code> <code>docfixme</code>
-</li><li> <code>max</code> <code>docfixme</code>
-</li><li> <code>bin</code> <code>docfixme</code>
-</li><li> <code>args</code> <code>docfixme</code>
-</li><li> <code>delete-bin-p</code> <code>docfixme</code>
+<li> <code>obj</code> Instrumented software object suitable for trace collection
+</li><li> <code>test-suite</code> suite of test case to execute for trace collection
+</li><li> <code>predicate</code> predicate to call on each trace point to allow for filtering
+</li><li> <code>max</code> maximum number of trace points to record
+</li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
 </li></ul>
 </dd></dl>
 <a name="index-collect_002dtrace"></a>
 <a name="Generic_002dFunction-collect_002dtrace"></a><dl>
-<dt><a name="index-collect_002dtrace-1"></a>Generic Function: <strong>collect-trace</strong> <em>software input &amp;key predicate max bin</em></dt>
-<dd><p>Execute instrumented <code>software</code> on <code>input</code> collecting a dynamic trace.
-<code>input</code> should be a program and sequence of arguments.  The special
-element <code>:bin</code> in <code>input</code> will be replaced with the name of the compiled
-instrumented binary.  <code>predicate</code> may be a function in which case only
-trace points for which <code>predicate</code> returns true are recorded.  Max
-specifies the maximum number of trace points to record.  <code>bin</code> specifies
-the name of an already-compiled binary to use.
+<dt><a name="index-collect_002dtrace-1"></a>Generic Function: <strong>collect-trace</strong> <em>software test-case &amp;key predicate max bin</em></dt>
+<dd><p>Execute instrumented <code>software</code> on <code>test-case</code> collecting a dynamic trace.
+<code>predicate</code> may be a function in which case only trace points for which
+<code>predicate</code> returns true are recorded.  Max specifies the maximum number of
+trace points to record.  <code>bin</code> specifies the name of an already-compiled
+binary to use.
 </p>
 <p>Returns a list of traces, which may contains multiple elements if
 executing a test script which runs the traceable program multiple
@@ -2618,14 +2616,13 @@ times.
 </p></dd></dl>
 <a name="Method-collect_002dtrace-_0028_0028obj-software_0029-_0028test_002dcase-test_002dcase_0029-_0026key-_0028predicate-_0023_0027identity_0029--_0028max-infinity_0029-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0026aux-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
 <dt><a name="index-collect_002dtrace-2"></a>Method: <strong>collect-trace</strong> <em>(obj software) (test-case test-case) &amp;key (predicate (function identity)) (max infinity) (bin (temp-file-name)) &amp;aux (delete-bin-p t)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Execute instrumented <code>obj</code> on <code>test-case</code> collecting dynamic traces.
 </p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>test-case</code> <code>docfixme</code>
-</li><li> <code>predicate</code> <code>docfixme</code>
-</li><li> <code>max</code> <code>docfixme</code>
-</li><li> <code>bin</code> <code>docfixme</code>
-</li><li> <code>delete-bin-p</code> <code>docfixme</code>
+<li> <code>obj</code> Instrumented software object suitable for trace collection
+</li><li> <code>test-case</code> test case to execute for trace collection
+</li><li> <code>predicate</code> predicate to call on each trace point to allow for filtering
+</li><li> <code>max</code> maximum number of trace points to record
+</li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
 </li></ul>
 </dd></dl>
 
@@ -3572,10 +3569,11 @@ matching the parameter <code>hash</code>
 </p></dd></dl>
 <a name="Method-from_002dstring-before-_0028_0028obj-clang_002dw_002dfodder_0029-string_0029"></a><dl>
 <dt><a name="index-before-from_002dstring"></a>Method: <strong>before from-string</strong> <em>(obj clang-w-fodder) string</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Ensure the fodder database has been initialized prior to creating
+a &lsquo;clang-w-fodder&rsquo; software <code>obj</code> from <code>string</code>.
 </p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>string</code> <code>docfixme</code>
+<li> <code>obj</code> object to be populated from source in <code>string</code>
+</li><li> <code>string</code> source code to populate <code>obj</code> with
 </li></ul>
 </dd></dl>
 <a name="Method-from_002dstring-_0028_0028obj-clang_0029-string_0029"></a><dl>
@@ -3930,8 +3928,7 @@ otherwise.
 </p></dd></dl>
 <a name="Method-pick_002dmutation_002dtype-_0028_0028obj-clang_002dw_002dfodder_0029_0029"></a><dl>
 <dt><a name="index-pick_002dmutation_002dtype-2"></a>Method: <strong>pick-mutation-type</strong> <em>(obj clang-w-fodder)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>obj</code> <code>docfixme</code>
+<dd><p>Select type of mutation to apply to <code>obj</code>.
 </p></dd></dl>
 <a name="Method-pick_002dmutation_002dtype-_0028_0028obj-clang_0029_0029"></a><dl>
 <dt><a name="index-pick_002dmutation_002dtype-3"></a>Method: <strong>pick-mutation-type</strong> <em>(obj clang)</em></dt>
@@ -3961,13 +3958,13 @@ otherwise.
 </p></dd></dl>
 <a name="Method-pick_002dsnippet-_0028_0028obj-clang_002dw_002dfodder_0029-_0026key-full-class-pt-decl_0029"></a><dl>
 <dt><a name="index-pick_002dsnippet-2"></a>Method: <strong>pick-snippet</strong> <em>(obj clang-w-fodder) &amp;key full class pt decl</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return a snippet from the fodder database.
 </p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>full</code> <code>docfixme</code>
-</li><li> <code>class</code> <code>docfixme</code>
-</li><li> <code>pt</code> <code>docfixme</code>
-</li><li> <code>decl</code> <code>docfixme</code>
+<li> <code>obj</code> software object to pick a fodder snippet for
+</li><li> <code>full</code> select a full statement element if true
+</li><li> <code>class</code> select an element of the specified class
+</li><li> <code>pt</code> select an element similar to <code>pt</code> in <code>obj</code> in a method-dependent fashion
+</li><li> <code>decl</code> select a decl <code>ast</code> if true
 </li></ul>
 </dd></dl>
 <a name="index-rename_002dvariable"></a>
