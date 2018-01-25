@@ -28,23 +28,21 @@
 
 
 ;;; Execution with trace collection.
-(defgeneric collect-traces (software inputs &key predicate max bin)
+(defgeneric collect-traces (software test-suite &key predicate max bin)
   (:documentation
-   "Execute instrumented SOFTWARE on INPUTS collecting dynamic traces.
+   "Execute instrumented SOFTWARE on TEST-SUITE collecting dynamic traces.
 See the documentation of `collect-trace' for information on the
 PREDICATE MAX and BIN keyword arguments."))
 
 (defmethod collect-traces ((obj software) (test-suite test-suite)
                            &key predicate max (bin (temp-file-name))
                            &aux (args (list :bin bin)) (delete-bin-p t))
-  "DOCFIXME
-* OBJ DOCFIXME
-* TEST-SUITE DOCFIXME
-* PREDICATE DOCFIXME
-* MAX DOCFIXME
-* BIN DOCFIXME
-* ARGS DOCFIXME
-* DELETE-BIN-P DOCFIXME
+  "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
+* OBJ Instrumented software object suitable for trace collection
+* TEST-SUITE suite of test case to execute for trace collection
+* PREDICATE predicate to call on each trace point to allow for filtering
+* MAX maximum number of trace points to record
+* BIN compiled binary with instrumentation to use for trace collection
 "
   (when predicate (setf args (append args (list :predicate predicate))))
   (when max (setf args (append args (list :max max))))
@@ -69,15 +67,13 @@ PREDICATE MAX and BIN keyword arguments."))
           (delete-directory-tree probe :validate #'probe-file)
           (delete-file probe)))))
 
-(defgeneric collect-trace (software input &key predicate max bin)
+(defgeneric collect-trace (software test-case &key predicate max bin)
   (:documentation
-   "Execute instrumented SOFTWARE on INPUT collecting a dynamic trace.
-INPUT should be a program and sequence of arguments.  The special
-element :BIN in INPUT will be replaced with the name of the compiled
-instrumented binary.  PREDICATE may be a function in which case only
-trace points for which PREDICATE returns true are recorded.  Max
-specifies the maximum number of trace points to record.  BIN specifies
-the name of an already-compiled binary to use.
+   "Execute instrumented SOFTWARE on TEST-CASE collecting a dynamic trace.
+PREDICATE may be a function in which case only trace points for which
+PREDICATE returns true are recorded.  Max specifies the maximum number of
+trace points to record.  BIN specifies the name of an already-compiled
+binary to use.
 
 Returns a list of traces, which may contains multiple elements if
 executing a test script which runs the traceable program multiple
@@ -87,13 +83,12 @@ times."))
     ((obj software) (test-case test-case)
      &key (predicate #'identity) (max infinity) (bin (temp-file-name))
      &aux (delete-bin-p t))
-    "DOCFIXME
-* OBJ DOCFIXME
-* TEST-CASE DOCFIXME
-* PREDICATE DOCFIXME
-* MAX DOCFIXME
-* BIN DOCFIXME
-* DELETE-BIN-P DOCFIXME
+    "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
+* OBJ Instrumented software object suitable for trace collection
+* TEST-CASE test case to execute for trace collection
+* PREDICATE predicate to call on each trace point to allow for filtering
+* MAX maximum number of trace points to record
+* BIN compiled binary with instrumentation to use for trace collection
 "
     (if (probe-file bin)
       (setf delete-bin-p nil)
