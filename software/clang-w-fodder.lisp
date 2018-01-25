@@ -13,12 +13,14 @@
 
 (define-software clang-w-fodder (clang)
   ()
-  (:documentation "DOCFIXME"))
+  (:documentation "clang software resentation with a database
+containing AST entries as fodder for the evolution process."))
 
 (defmethod from-string :before ((obj clang-w-fodder) string)
-  "DOCFIXME
-* OBJ DOCFIXME
-* STRING DOCFIXME
+  "Ensure the fodder database has been initialized prior to creating
+a `clang-w-fodder' software OBJ from STRING.
+* OBJ object to be populated from source in STRING
+* STRING source code to populate OBJ with
 "
   (assert (not (null *database*))))
 
@@ -35,12 +37,12 @@ CLANG-W-FODDER in a method-dependent fashion.
 With keyword argument :decl select a declaration."))
 
 (defmethod pick-snippet ((obj clang-w-fodder) &key full class pt decl)
-  "DOCFIXME
-* OBJ DOCFIXME
-* FULL DOCFIXME
-* CLASS DOCFIXME
-* PT DOCFIXME
-* DECL DOCFIXME
+  "Return a snippet from the fodder database.
+* OBJ software object to pick a fodder snippet for
+* FULL select a full statement element if true
+* CLASS select an element of the specified class
+* PT select an element similar to PT in OBJ in a method-dependent fashion
+* DECL select a decl AST if true
 "
   (let* ((snippet (first (find-snippets *database*
                                         :full-stmt
@@ -102,17 +104,15 @@ new fodder mutations.  Fodder mutations make up 2/5 of all
 mutations.")
 
 (defmethod pick-mutation-type ((obj clang-w-fodder))
-  "DOCFIXME
-* OBJ DOCFIXME
-"
+  "Select type of mutation to apply to OBJ."
   (random-pick *clang-w-fodder-mutation-types*))
 
 (defun pick-bad-fodder (software &optional full-stmt-p same-class)
   "Choose a bad AST and a fodder snippet.
 
-* SOFTWARE DOCFIXME
-* FULL-STMT-P DOCFIXME
-* SAME-CLASS DOCFIXME
+* SOFTWARE clang object to pick a bad AST from
+* FULL-STMT-P only pick full statements if true
+* SAME-CLASS pick a fodder snipper with the same class as the bad AST if true
 "
   (let* ((bad (pick-bad software))
          (bad-stmt  (if (ast-full-stmt bad) bad
@@ -130,8 +130,9 @@ mutations.")
           (cons :value1 value))))
 
 (defun pick-decl-fodder (software)
-  "DOCFIXME
-* SOFTWARE DOCFIXME
+  "Pick a DeclStmt AST from the fodder database to insert into a function
+body entry of SOFTWARE.
+* SOFTWARE clang object to pick a DeclStmt AST for
 "
   (let ((function-entry-stmts (->> (functions software)
                                    (mapcar {function-body software})
@@ -185,10 +186,10 @@ Returns modified text, and names of bound variables.
             (mapcar [#'peel-bananas #'cdr] var-replacements))))
 
 (defun prepare-fodder (obj snippet pt)
-  "DOCFIXME
-* OBJ DOCFIXME
-* SNIPPET DOCFIXME
-* PT DOCFIXME
+  "Prepare SNIPPET for insertion into OBJ at PT.
+* OBJ clang software object to be injected with SNIPPET
+* SNIPPET fodder snippet to inject
+* PT point where fodder snippet is to be injected
 "
   (flet
       ((var-type (in-scope var-name)
@@ -211,9 +212,9 @@ Returns modified text, and names of bound variables.
                                  :obj obj)))))))
 
 (defun prepare-fodder-op (obj op)
-  "DOCFIXME
-* OBJ DOCFIXME
-* OP DOCFIXME
+  "Prepare list of fodder mutation operations to be applied to OBJ.
+* OBJ clang software object to be modified by OPS
+* OP list of fodder operations to recontextualize and perform
 "
   (destructuring-bind (kind . properties) op
     (if-let ((snippet (aget :value1 properties))
@@ -226,9 +227,10 @@ Returns modified text, and names of bound variables.
       op)))
 
 (defmethod recontextualize-mutation :around ((obj clang-w-fodder) mutation)
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUTATION DOCFIXME
+  "Wrapper around `recontextualize-mutation' to allow for parsing and rebinding
+of variables and functions in fodder snippets prior to fodder mutations.
+* OBJ clang software object to be modified
+* MUTATION operations to be performed
 "
   (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
       (recontextualize-mutation obj (mapcar {prepare-fodder-op obj}
@@ -244,9 +246,10 @@ Ensure that the name of the inserted decl is used by
 `rename-variable'."))
 
 (defmethod build-op ((mut insert-fodder-decl-rep) (obj clang-w-fodder))
-  "DOCFIXME
-* MUT DOCFIXME
-* OBJ DOCFIXME
+  "Return an association list with the operations to apply a
+`insert-fodder-decl-rep' MUT to OBJ.
+* MUT defines the targets of the insertion operation
+* OBJ object to be modified by the mutation
 "
   ;; Apply the var op first as it has the higher value of STMT1.
 
@@ -262,9 +265,10 @@ Ensure that the name of the inserted decl is used by
    #'ast-later-p :key [{aget :stmt1} #'cdr]))
 
 (defmethod apply-mutation :after ((obj clang-w-fodder) mutation)
-  "DOCFIXME
-* OBJ DOCFIXME
-* MUTATION DOCFIXME
+  "Inject fodder dependencies such as types, macros, and headers after a fodder
+MUTATION has been applied to OBJ.
+* OBJ software object modified by MUTATION
+* MUTATION operations applied to OBJ
 "
   (when (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
     (when-let ((snippet (aget :value1 (cdr (targets mutation)))))
@@ -273,23 +277,26 @@ Ensure that the name of the inserted decl is used by
 
 (define-mutation insert-fodder-decl (clang-insert)
   ((targeter :initform #'pick-decl-fodder))
-  (:documentation "DOCFIXME"))
+  (:documentation "Insert a Decl fodder AST into a clang software object."))
 
 (define-mutation insert-fodder (clang-insert)
   ((targeter :initform #'pick-bad-fodder))
-  (:documentation "DOCFIXME"))
+  (:documentation "Insert a fodder AST into a clang software object."))
 
 (define-mutation insert-fodder-full (clang-insert)
   ((targeter :initform {pick-bad-fodder _ t nil}))
-  (:documentation "DOCFIXME"))
+  (:documentation "Insert a full statement fodder AST into a clang software
+object"))
 
 (define-mutation replace-fodder-same (clang-replace)
   ((targeter :initform {pick-bad-fodder _ nil t}))
-  (:documentation "DOCFIXME"))
+  (:documentation "Replace an AST in a clang software object with a fodder
+AST of the same class."))
 
 (define-mutation replace-fodder-full (clang-replace)
   ((targeter :initform {pick-bad-fodder _ t nil}))
-  (:documentation "DOCFIXME"))
+  (:documentation "Replace an AST in a clang software object with a full
+statement fodder AST."))
 
 (defun parse-source-snippet (snippet unbound-vals includes &key top-level)
   "Build ASTs for SNIPPET, returning a list of root ast-refs.
