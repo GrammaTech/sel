@@ -2,6 +2,7 @@ include/
 software-evolution-library/
 *.html
 *.info
+*.info-*
 *.pdf
 *.svg
 *~
