@@ -18,7 +18,7 @@
 (require :sb-introspect)
 (require :alexandria)
 (require :cl-ppcre)
-(load ".sb-texinfo/docstrings.lisp")
+(load ".ci/.sb-texinfo/docstrings.lisp")
 (in-package :sb-texinfo)
 
 (pop sb-ext:*posix-argv*)
