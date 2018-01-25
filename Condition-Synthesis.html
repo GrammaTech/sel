@@ -65,7 +65,7 @@ Next: <a href="Fault-Localization.html#Fault-Localization" accesskey="n" rel="ne
 </div>
 <hr>
 <a name="Condition-Synthesis-1"></a>
-<h3 class="section">3.6 Condition Synthesis</h3>
+<h3 class="section">3.5 Condition Synthesis</h3>
 <a name="index-condition_002dsynthesis"></a>
 <p>Condition synthesis is a program repair technique that introduces or alters
 guard conditions in source code using a set of passing and failing unit tests
@@ -75,7 +75,7 @@ described in <cite>Staged Program Repair with Condition Synthesis</cite> availab
 </p>
 
 <a name="Performing-Condition-Synthesis"></a>
-<h4 class="subsection">3.6.1 Performing Condition Synthesis</h4>
+<h4 class="subsection">3.5.1 Performing Condition Synthesis</h4>
 
 <p>At a high level, condition synthesis will:
 </p><ol>
@@ -97,7 +97,7 @@ condition in the source code with the
 <p>More details about each of these steps are provided in the following sections.
 </p>
 <a name="condition_002dsynthesis_002dintroduce"></a><a name="Introduce-An-Abstract-Condition"></a>
-<h4 class="subsubsection">3.6.1.1 Introduce An Abstract Condition</h4>
+<h4 class="subsubsection">3.5.1.1 Introduce An Abstract Condition</h4>
 <p>Abstract conditions are represented by a call to the
 <code>abst_cond()</code> function. Mutations are used to perform the
 insertion. The <a href="#condition_002dsynthesis_002dmutations">set of available
@@ -105,7 +105,7 @@ mutations</a> is listed below.
 </p>
 
 <a name="condition_002dsynthesis_002didentify_002dvalues"></a><a name="Identify-Abstract-Condition-Values"></a>
-<h4 class="subsubsection">3.6.1.2 Identify Abstract Condition Values</h4>
+<h4 class="subsubsection">3.5.1.2 Identify Abstract Condition Values</h4>
 <p>The C implementation of <code>abst_cond()</code> refers to a set of environment
 variables in order to determine which value to return.
 </p>
@@ -178,7 +178,7 @@ returned each time the function is invoked.
 </table>
 
 <a name="condition_002dsynthesis_002dtest_002dconditions"></a><a name="Test-Possible-Conditions"></a>
-<h4 class="subsubsection">3.6.1.3 Test Possible Conditions</h4>
+<h4 class="subsubsection">3.5.1.3 Test Possible Conditions</h4>
 
 <p>For each test with a satisfying series of values for the abstract condition,
 we have recorded an environment showing the values of in-scope variables at
@@ -192,7 +192,7 @@ and desired abstract condition values.
 </p>
 
 <a name="condition_002dsynthesis_002dbest_002dcondition"></a><a name="Select-_0060_0060Best_0027_0027-Condition"></a>
-<h4 class="subsubsection">3.6.1.4 Select &ldquo;Best&rdquo; Condition</h4>
+<h4 class="subsubsection">3.5.1.4 Select &ldquo;Best&rdquo; Condition</h4>
 
 <p>The condition which satisfies the largest number of environment and
 abstract condition value pairs is selected as the &ldquo;best&rdquo; condition,
@@ -205,7 +205,7 @@ tested to see if they offer additional improvements to the fitness.
 </p>
 
 <a name="API-Support-for-Condition-Synthesis"></a>
-<h4 class="subsection">3.6.2 API Support for Condition Synthesis</h4>
+<h4 class="subsection">3.5.2 API Support for Condition Synthesis</h4>
 
 <p>API support for style features is documented in section
 <a href="SEL-API.html#api_002dcondition_002dsynthesis">API | Condition Synthesis</a>. We provide a
@@ -233,7 +233,7 @@ brief overview here.
 
 
 <a name="Condition-Synthesis-Example"></a>
-<h4 class="subsection">3.6.3 Condition Synthesis Example</h4>
+<h4 class="subsection">3.5.3 Condition Synthesis Example</h4>
 
 <p>Function <code>try-synthesis</code> will attempt condition synthesis on all valid
 target locations for each of the possible guard mutations described above.

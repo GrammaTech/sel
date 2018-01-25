@@ -79,6 +79,12 @@ changed.
 <a name="API-Support-For-Unit-Tests"></a>
 <h4 class="subsection">3.1.1 API Support For Unit Tests</h4>
 
+
+<p>API support for unit tests is documented in section
+<a href="SEL-API.html#api_002dtest_002dsuites">API | Test Suites</a>. We provide a brief overview
+here.
+</p>
+
 <ul>
 <li> <a href="#doc_002dtest_002dclasses">           <code>test-case</code> and <code>test-suite</code> classes</a>
 </li><li> <a href="#doc_002dtest_002dcase_002dmethods"><code>test-case</code> Methods</a>
@@ -92,10 +98,10 @@ changed.
 
 
 <table>
-<tr><td><a href="SEL-API.html#Class-test_002dcase">class <code>test-case</code></a></td><td>a single test</td></tr>
-<tr><td><a href="SEL-API.html#Class-test_002dsuite">class <code>test-suite</code></a></td><td>a suite of tests (as a collection of
+<tr><td><a href="SEL-API.html#Class-test_002dcase"><code>test-case</code></a></td><td>a single test</td></tr>
+<tr><td><a href="SEL-API.html#Class-test_002dsuite"><code>test-suite</code></a></td><td>a suite of tests (as a collection of
       <a href="SEL-API.html#Class-test_002dcase"><code>test-case</code></a> objects)</td></tr>
-<tr><td><a href="SEL-API.html#Class-process">class <code>process</code></a></td><td>wraps around SBCL- or CCL-specific representations of
+<tr><td><a href="SEL-API.html#Class-process"><code>process</code></a></td><td>wraps around SBCL- or CCL-specific representations of
            external processes</td></tr>
 </table>
 
@@ -104,10 +110,10 @@ changed.
 <h4 class="subheading"><code>test-case</code> Methods</h4>
 
 <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-start_002dtest"><code>start-test</code></a>
+<li> <a href="SEL-API.html#Generic_002dFunction-evaluate"><code>evaluate</code></a>
 </li><li> <a href="SEL-API.html#Generic_002dFunction-finish_002dtest"><code>finish-test</code></a>
 </li><li> <a href="SEL-API.html#Generic_002dFunction-run_002dtest"><code>run-test</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-evaluate"><code>evaluate</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-start_002dtest"><code>start-test</code></a>
 </li></ul>
 
 
@@ -115,15 +121,13 @@ changed.
 <h4 class="subheading"><code>process</code> Methods</h4>
 
 <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-process_002derror_002dstream">           <code>process-error-stream</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002dexit_002dcode">           <code>process-exit-code</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002did">           <code>process-id</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002dinput_002dstream">           <code>process-input-stream</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002doutput_002dstream">           <code>process-output-stream</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002dstatus">           <code>process-status</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-signal_002dprocess">           <code>signal-process</code></a>
-
-
+<li> <a href="SEL-API.html#Generic_002dFunction-process_002derror_002dstream"><code>process-error-stream</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002dexit_002dcode"><code>process-exit-code</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002did"><code>process-id</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002dinput_002dstream"><code>process-input-stream</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002doutput_002dstream"><code>process-output-stream</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-process_002dstatus"><code>process-status</code></a>
+</li><li> <a href="SEL-API.html#Generic_002dFunction-signal_002dprocess"><code>signal-process</code></a>
 </li></ul>
 
 

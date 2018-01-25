@@ -67,7 +67,77 @@ Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Styl
 <a name="Multi_002dobjective-Fitness-1"></a>
 <h3 class="section">3.2 Multi-objective Fitness</h3>
 <a name="index-multi_002dobjective-fitness"></a>
-<p>The following code will enable multi-objective optimization:
+
+<p>For multi-objective fitness, a fitness score is a list or vector
+(depending on selector) of values: one for each objective.
+</p>
+<p>SEL provides two selection options for multi-objective optimization:
+ <a href="#pareto_002dselection">Pareto selection</a> and <a href="#lexicase_002dselection">lexicase selection</a>.
+</p>
+<a name="pareto_002dselection"></a><a name="Pareto-Selection"></a>
+<h4 class="subsection">3.2.1 Pareto Selection</h4>
+
+<p>Function <a href="SEL-API.html#Function-pareto_002dselector"><code>pareto-selector</code></a> compares each candidate
+against a random comparison set, preferring candidates which dominate
+the comparison set. This will select for individuals along the Pareto
+front of the population.
+</p>
+<p>Because dominance is a partial order, <code>pareto-selector</code> will
+often produce multiple winners, requiring a tie-breaker. 
+</p>
+<p>Pareto fitness scores are lists in which each list element can be a
+vector, a list, or a number. When an element in this list is a
+vector of numeric values, it can be subjected to lexicase selection.
+The fitness score lists must be the same length (that is, contain
+the same number of objectives) across the entire population.
+</p>
+
+<a name="lexicase_002dselection"></a><a name="Lexicase-Selection"></a>
+<h4 class="subsection">3.2.2 Lexicase Selection</h4>
+
+<p>Function <a href="SEL-API.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a> performs lexicase
+selection: a form of multi-objective optimization which prioritizes
+objectives in a different order for each selection event.
+</p>
+<p>Lexicase fitness scores are vectors of numeric values. The vectors must be the same length across the entire population.
+</p>
+
+<a name="API-Support-for-Multi_002dObjective-Fitness"></a>
+<h4 class="subsection">3.2.3 API Support for Multi-Objective Fitness</h4>
+
+<p>API support for multi-objective fitness is documented in section
+<a href="SEL-API.html#api_002dmulti_002dobjective">API | Multi-Objective Fitness</a>.
+</p>
+
+<ul>
+<li> Set variable <a href="SEL-API.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate*</code></a> to specify how
+fitness values should be compared. Note that this applies across all
+objectives: it is not possible to maximize some objectives while
+minimizing others.
+
+</li><li> Set variable <a href="SEL-API.html#Variable-_002atournament_002dselector_002a"><code>*tournament-selector*</code></a> to specify the
+selector function to use for multi-objective optimization. There are
+currently two such functions:
+  <ul>
+<li> <a href="SEL-API.html#Function-pareto_002dselector"><code>pareto-selector</code></a>
+  </li><li> <a href="SEL-API.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a>
+  </li></ul>
+
+</li><li> Set variable <a href="SEL-API.html#Variable-_002atournament_002dtie_002dbreaker_002a"><code>*tournament-tie-breaker*</code></a> to specify how
+the tournament should break ties in the case where the selector
+produces multiple winners. A useful tie-breaker for multi-objective
+optimization is <a href="SEL-API.html#Function-pick_002dleast_002dcrowded"><code>pick-least-crowded</code></a>, which promotes
+diversity by selecting individuals that are farther from their
+neighbors in fitness space.
+
+</li></ul>
+
+
+<a name="Example"></a>
+<h4 class="subsection">3.2.4 Example</h4>
+
+<p>The following code will enable multi-objective optimization with
+Pareto selection.
 </p>
 <pre class="verbatim">(defpackage :example
   (:use :common-lisp
@@ -84,36 +154,11 @@ Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Styl
   ;; Return a list containing scores for each objective.
   (list #| TODO: ... |#))
 </pre>
-<p><code>#'pareto-selector</code> compares each candidate against a random
-comparison set, preferring candidates which dominate the comparison
-set. This will select for individuals along the Pareto front of the
-population.
-</p>
-<p>Because dominance is a partial order, <code>#'pareto-selector</code> will
-often produce multiple winners. <code>#'pick-least-crowded</code> breaks
-those ties based on <em>crowding distance</em>, a fitness-sharing metric
-which promotes diversity by selecting individuals that are farther
-from their neighbors in fitness space.
-</p>
-<p>Multi-objective fitness scores should be lists with one value for each
-objective. These lists must be the same length across the entire
-population. The same <code>*fitness-predicate*</code> applies to all
-objectives. It is not possible to maximize some objectives while
-minimizing others.
-</p>
-
-<a name="lexicase_002dselection"></a><a name="Lexicase-Selection"></a>
-<h3 class="section">3.3 Lexicase Selection</h3>
-<p>Lexicase selection is a form of multi-objective optimization which
-prioritizes objectives in a different order for each selection
-event. It can be enabled by setting <code>*tournament-selector*</code> to
-<code>#'lexicase-select-best</code>.
-</p>
-<p>Lexicase fitness scores are vectors of numeric values.
-</p>
-<p><code>#'pareto-selector</code> also supports lexicase selection for
-individual objectives.
-</p>
+<hr>
+<div class="header">
+<p>
+Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Style Features</a>, Previous: <a href="Test-Suites.html#Test-Suites" accesskey="p" rel="prev">Test Suites</a>, Up: <a href="Components.html#Components" accesskey="u" rel="up">Components</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
 
 
 

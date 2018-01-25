@@ -68,6 +68,82 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
 <a name="SEL-Utility-API-1"></a>
 <h2 class="appendix">Appendix B SEL Utility API</h2>
 <a name="index-utility"></a>
+
+
+
+
+<a name="Contents"></a>
+<h3 class="section">B.1 Contents</h3>
+<ul>
+<li> Variables
+  <ul>
+<li> <a href="#Variable-sel_002futility_003a_002abash_002dshell_002a"><code>*bash-shell*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002anote_002dlevel_002a"><code>*note-level*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002anote_002dout_002a"><code>*note-out*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002aprofile_002ddot_002dmin_002dratio_002a"><code>*profile-dot-min-ratio*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002ashell_002ddebug_002a"><code>*shell-debug*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002ashell_002derror_002dcodes_002a"><code>*shell-error-codes*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002ashell_002dnon_002derror_002dcodes_002a"><code>*shell-non-error-codes*</code></a> 
+  </li><li> <a href="#Variable-sel_002futility_003a_002atemp_002ddir_002a"><code>*temp-dir*</code></a> 
+  </li></ul>
+
+</li><li> Macros
+  <ul>
+<li> <a href="#Macro-sel_002futility_003aread_002dshell"><code>read-shell</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003aread_002dshell_002dfile"><code>read-shell-file</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003awith_002dcwd"><code>with-cwd</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003awith_002dtemp_002dfile"><code>with-temp-file</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003awith_002dtemp_002dfile_002dof"><code>with-temp-file-of</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003awith_002dtemp_002dfile_002dof_002dbytes"><code>with-temp-file-of-bytes</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003awrite_002dshell_002dfile"><code>write-shell-file</code></a> 
+  </li><li> <a href="#Macro-sel_002futility_003axz_002dpipe"><code>xz-pipe</code></a> 
+  </li></ul>
+
+</li><li> Functions
+  <ul>
+<li> <a href="#Function-sel_002futility_003aaddrs"><code>addrs</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aaget"><code>aget</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aalist_002dfilter"><code>alist-filter</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aarglist"><code>arglist</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003abinary_002dsearch"><code>binary-search</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003acalculate_002daddr_002dmap"><code>calculate-addr-map</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003achunks"><code>chunks</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003acount_002dcons"><code>count-cons</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003acounts"><code>counts</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003acumulative_002ddistribution"><code>cumulative-distribution</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003adiff_002dscalar"><code>diff-scalar</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003adrop"><code>drop</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aequal_002dit"><code>equal-it</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003afunction_002dlines"><code>function-lines</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003agdb_002ddisassemble"><code>gdb-disassemble</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003agetenv"><code>getenv</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003agetter"><code>getter</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003ain_002ddirectory"><code>in-directory</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003amake_002dterminal_002draw"><code>make-terminal-raw</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003anormalize_002dprobabilities"><code>normalize-probabilities</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003apad"><code>pad</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aparse_002dnumber"><code>parse-number</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003apartition"><code>partition</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aplist_002dmerge"><code>plist-merge</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aprofile_002dto_002ddot_002dgraph"><code>profile-to-dot-graph</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aprofile_002dto_002dflame_002dgraph"><code>profile-to-flame-graph</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aquit"><code>quit</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003arandom_002dhash_002dtable_002dkey"><code>random-hash-table-key</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003arandom_002dsample_002dwith_002dreplacement"><code>random-sample-with-replacement</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003arandom_002dsample_002dwithout_002dreplacement"><code>random-sample-without-replacement</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003areplace_002dall"><code>replace-all</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003areplace_002dstdout_002din_002dnote_002dtargets"><code>replace-stdout-in-note-targets</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003ashell"><code>shell</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003ashow_002dit"><code>show-it</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003atake"><code>take</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003atranspose"><code>transpose</code></a> 
+  </li><li> <a href="#Function-sel_002futility_003aun_002dcumulative_002ddistribution"><code>un-cumulative-distribution</code></a> 
+  </li></ul>
+</li></ul>
+
+<a name="Documentation-1"></a>
+<h3 class="section">B.2 Documentation</h3>
+
 <a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d"></a>
 <a name="Variable-sel_002futility_003a_002abash_002dshell_002a"></a><dl>
 <dt><a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*bash-shell* [sel/utility]</strong></dt>
@@ -392,6 +468,8 @@ Optional argument <code>out</code> specifies an output stream.
 <dt><a name="index-un_002dcumulative_002ddistribution-_005bsel_002futility_005d-1"></a>Function: <strong>un-cumulative-distribution [sel/utility]</strong> <em>alist</em></dt>
 <dd><p>Undo the &lsquo;cumulative-distribution&rsquo; function.
 </p></dd></dl>
+
+
 
 
 
