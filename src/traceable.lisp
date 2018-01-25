@@ -23,9 +23,10 @@
                  (format stream "Trace error: ~a while tracing ~S in binary ~S"
                          (text condition) (obj condition) (bin condition))
                  (format stream "Trace error: ~a while tracing ~S"
-                         (text condition) (obj condition))))))
+                         (text condition) (obj condition)))))
+  (:documentation "DOCFIXME"))
 
-
+
 ;;; Execution with trace collection.
 (defgeneric collect-traces (software inputs &key predicate max bin)
   (:documentation
@@ -36,6 +37,15 @@ PREDICATE MAX and BIN keyword arguments."))
 (defmethod collect-traces ((obj software) (test-suite test-suite)
                            &key predicate max (bin (temp-file-name))
                            &aux (args (list :bin bin)) (delete-bin-p t))
+  "DOCFIXME
+* OBJ DOCFIXME
+* TEST-SUITE DOCFIXME
+* PREDICATE DOCFIXME
+* MAX DOCFIXME
+* BIN DOCFIXME
+* ARGS DOCFIXME
+* DELETE-BIN-P DOCFIXME
+"
   (when predicate (setf args (append args (list :predicate predicate))))
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
@@ -77,7 +87,15 @@ times."))
     ((obj software) (test-case test-case)
      &key (predicate #'identity) (max infinity) (bin (temp-file-name))
      &aux (delete-bin-p t))
-  (if (probe-file bin)
+    "DOCFIXME
+* OBJ DOCFIXME
+* TEST-CASE DOCFIXME
+* PREDICATE DOCFIXME
+* MAX DOCFIXME
+* BIN DOCFIXME
+* DELETE-BIN-P DOCFIXME
+"
+    (if (probe-file bin)
       (setf delete-bin-p nil)
       (restart-case
           (phenome obj :bin bin)

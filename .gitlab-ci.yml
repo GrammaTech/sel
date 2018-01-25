@@ -28,14 +28,12 @@ build:
   stage: build
   variables:
     OS: 'ubuntu'
-    GT: 'yes'
   <<: *build
 
 build-arch:
   stage: build
   variables:
     OS: 'arch'
-    GT: 'yes'
   <<: *build
 
 .run-template: &run
@@ -46,19 +44,19 @@ build-arch:
       then
           if [ "$OS" = "ubuntu" ];
           then
-              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
               docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
           elif [ "$OS" = "arch" ];
           then
-              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
               docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
           else
-              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
           fi
       else
-          docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
+          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
       fi
 
     # Cleanup local image.
@@ -68,14 +66,12 @@ run:
   stage: test-and-tag
   variables:
     OS: 'ubuntu'
-    GT: 'yes'
   <<: *run
 
 run-arch:
   stage: test-and-tag
   variables:
     OS: 'arch'
-    GT: 'yes'
   <<: *run
 
 trigger_bed:

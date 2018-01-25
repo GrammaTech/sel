@@ -6,6 +6,21 @@
 
 (defvar *orig* (from-file (make-instance 'asm) "test/etc/gcd/gcd.s"))
 
+;;; Run the GCD unit tests on ASM. Return the number of passing tests.
+(defun test (asm)
+  (ignore-errors
+    (with-temp-file (bin)
+      ;; Build executable
+      (phenome asm :bin bin)
+      (count-if #'identity
+                (loop :for i :below 12 :collect
+                   (multiple-value-bind (stdout stderr errno)
+                       (shell "test/etc/gcd/test.sh ~a ~d" bin i)
+                     (declare (ignorable stdout stderr))
+                     ;; Collect list of T/NIL indicating if the exit code was 0.
+                     ;; Tests whose exit code is 0 are considered successful.
+                     (zerop errno)))))))
+
 ;;; Set the fitness of `*orig*' before creating the *population*.
 ;;; `evolve' assumes that all variants have an initialized, non-NIL fitness
 (setf (fitness *orig*) (test *orig*))

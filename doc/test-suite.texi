@@ -9,6 +9,12 @@ changed.
 
 @subsection API Support For Unit Tests
 
+
+API support for unit tests is documented in section
+@ref{api-test-suites, API | Test Suites}. We provide a brief overview
+here.
+
+
 @itemize
 
 @item @ref{doc-test-classes,
@@ -25,14 +31,14 @@ changed.
 
 @multitable {} {}
 
-@item @ref{Class test-case, class @code{test-case}}
+@item @refapiclass{test-case}
       @tab a single test
 
-@item @ref{Class test-suite, class @code{test-suite}}
+@item @refapiclass{test-suite}
       @tab a suite of tests (as a collection of
-      @ref{Class test-case, @code{test-case}} objects)
+      @refapiclass{test-case} objects)
 
-@item @ref{Class process, class @code{process}}
+@item @refapiclass{process}
       @tab wraps around SBCL- or CCL-specific representations of
            external processes
 
@@ -43,10 +49,10 @@ changed.
 @subheading @code{test-case} Methods
 
 @itemize
-@item @ref{Generic-Function start-test, @code{start-test}}
-@item @ref{Generic-Function finish-test, @code{finish-test}}
-@item @ref{Generic-Function run-test, @code{run-test}}
-@item @ref{Generic-Function evaluate, @code{evaluate}}
+@item @refapigeneric{evaluate}
+@item @refapigeneric{finish-test}
+@item @refapigeneric{run-test}
+@item @refapigeneric{start-test}
 @end itemize
 
 
@@ -54,23 +60,13 @@ changed.
 @subheading @code{process} Methods
 
 @itemize
-
-@item @ref{Generic-Function process-error-stream,
-           @code{process-error-stream}}
-@item @ref{Generic-Function process-exit-code,
-           @code{process-exit-code}}
-@item @ref{Generic-Function process-id,
-           @code{process-id}}
-@item @ref{Generic-Function process-input-stream,
-           @code{process-input-stream}}
-@item @ref{Generic-Function process-output-stream,
-           @code{process-output-stream}}
-@item @ref{Generic-Function process-status,
-           @code{process-status}}
-@item @ref{Generic-Function signal-process,
-           @code{signal-process}}
-
-
+@item @refapigeneric{process-error-stream}
+@item @refapigeneric{process-exit-code}
+@item @refapigeneric{process-id}
+@item @refapigeneric{process-input-stream}
+@item @refapigeneric{process-output-stream}
+@item @refapigeneric{process-status}
+@item @refapigeneric{signal-process}
 @end itemize
 
 

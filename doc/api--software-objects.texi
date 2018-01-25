@@ -4,6 +4,11 @@
            Class @code{software} and its subclasses}
 @item @ref{api-software-object-methods,
            @code{software} methods}
+@item @ref{api-software-object-applying-mutations,
+           Applying Mutations}
+
+@item @ref{api-software-objects-clang,  Class @code{clang}}
+
 @end itemize
 
 
@@ -11,10 +16,25 @@
 
 @subsection API | Software Objects | Class @code{software} and its subclasses
 
+@itemize
+@item Classes
+   @itemize
+   @item @refapiclass{software}
+   @item @refapiclass{ast}
+   @item @refapiclass{asm}
+   @item @refapiclass{cil}
+   @item @refapiclass{clang}
+   @item @refapiclass{elf-cisc}
+   @item @refapiclass{elf-mips}
+   @item @refapiclass{forth}
+   @item @refapiclass{lisp}
+   @item @refapiclass{llvm}
+   @end itemize
+@item Macro @refapimacro{define-software}
+@end itemize
+
 @include include/class-sel-software.texinfo
-
 @include include/class-sel-ast.texinfo
-
 @include include/class-sel-asm.texinfo
 @include include/class-sel-cil.texinfo
 @include include/class-sel-clang.texinfo
@@ -28,6 +48,23 @@
 
 @anchor{api-software-object-methods}
 @subsection API | Software Objects | @code{software} methods
+
+@itemize
+@item @refapigeneric{copy}
+@item @refapigeneric{crossover}
+@item @refapigeneric{one-point-crossover}
+@item @refapigeneric{two-point-crossover}
+@item @refapigeneric{from-file}
+@item @refapigeneric{genome}
+@item @refapigeneric{mutate}
+@item @refapigeneric{phenome}
+@item @refapigeneric{pick}
+@item @refapigeneric{pick-bad}
+@item @refapigeneric{pick-good}
+@item @refapigeneric{pick-bad-bad}
+@item @refapigeneric{pick-bad-good}
+@item @refapigeneric{to-file}
+@end itemize
 
 @include include/fun-sel-copy.texinfo
 @include include/fun-sel-crossover.texinfo
@@ -43,5 +80,140 @@
 @include include/fun-sel-pick-bad-bad.texinfo
 @include include/fun-sel-pick-bad-good.texinfo
 @include include/fun-sel-to-file.texinfo
+
+
+@anchor{api-software-object-applying-mutations}
+@subsection API | Software Objects | Applying Mutations
+
+
+@c defmethod targets
+
+@itemize
+@item @refapigeneric{apply-all-mutations}
+@item @refapigeneric{apply-mutation-ops}
+@item @refapigeneric{apply-mutations}
+@item @refapigeneric{apply-mutation}
+@item @refapigeneric{apply-picked-mutations}
+@item @refapigeneric{mutation-key}
+@end itemize
+
+@include include/fun-sel-apply-all-mutations.texinfo
+@include include/fun-sel-apply-mutation-ops.texinfo
+@include include/fun-sel-apply-mutation.texinfo
+@include include/fun-sel-apply-mutations.texinfo
+@include include/fun-sel-apply-picked-mutations.texinfo
+@include include/fun-sel-mutation-key.texinfo
+
+
+@anchor{api-software-objects-clang}
+@subsection API | Software Objects, Class @code{clang}
+
+
+@itemize
+
+@item @ref{api-software-objects-clang-methods,@code{clang}-Specific Methods}
+
+@item @ref{api-software-objects-clang-mutations, Clang Mutations}
+
+@item @ref{api-software-objects-clang-mutations-methods, Methods on Clang Mutations}
+
+@item Specializations of @code{software} methods
+  @itemize
+  @item @refapimethod{copy before ((obj clang))}
+  @item @refapimethod{find-type ((obj clang) hash)}
+  @item @refapimethod{pick-bad-good ((software clang) &key filter)}
+  @item @refapimethod{pick-bad-bad ((software clang) &key filter)}
+  @end itemize
+
+@item Specializations of database methods
+  @itemize
+  @item @refapimethod{find-macro ((obj clang) hash)}
+  @end itemize
+
+@end itemize
+
+
+@anchor{api-software-objects-clang-methods}
+@subsubsection API | Software Objects | Class @code{clang} |  @code{clang}-Specific methods
+@itemize
+@item @refapigeneric{add-include}
+@item @refapigeneric{add-macro}
+@item @refapigeneric{add-type}
+@item @refapigeneric{force-include}
+@item @refapigeneric{get-ast}
+@item @refapifunction{prepend-to-genome}
+@item @refapigeneric{roots}
+@c @item remove-ast
+@c @item splice-asts
+@c @item insert-ast
+@c @item insert-ast-after
+@c @item find-or-add-type
+@c @item replace-ast
+@c @item pick-generic
+@c  @item pick-bad-only
+@end itemize
+
+
+@include include/fun-sel-add-include.texinfo
+@include include/fun-sel-add-macro.texinfo
+@include include/fun-sel-add-type.texinfo
+@include include/fun-sel-force-include.texinfo
+@include include/fun-sel-get-ast.texinfo
+@include include/fun-sel-prepend-to-genome.texinfo
+@include include/fun-sel-roots.texinfo
+
+
+@anchor{api-software-objects-clang-mutations}
+@subsubsection API | Software Objects | Class @code{clang} |  Clang mutations
+
+@refapiclass{mutation} subclasses
+
+@itemize
+@item @refapiclass{clang-mutation}
+@item @refapiclass{clang-insert}
+@item @refapiclass{clang-insert-full}
+@item @refapiclass{clang-insert-same}
+@item @refapiclass{clang-insert-full-same}
+@item @refapiclass{clang-swap}
+@item @refapiclass{clang-swap-full}
+@item @refapiclass{clang-swap-same}
+@item @refapiclass{clang-swap-full-same}
+@item @refapiclass{clang-move}
+@item @refapiclass{clang-replace}
+@item @refapiclass{clang-replace-full}
+@item @refapiclass{clang-replace-same}
+@item @refapiclass{clang-replace-full-same}
+@end itemize
+
+
+@include include/class-sel-clang-mutation.texinfo
+@include include/class-sel-clang-insert.texinfo
+@include include/class-sel-clang-insert-full.texinfo
+@include include/class-sel-clang-insert-full-same.texinfo
+@include include/class-sel-clang-insert-same.texinfo
+@include include/class-sel-clang-swap.texinfo
+@include include/class-sel-clang-swap-full.texinfo
+@include include/class-sel-clang-swap-full-same.texinfo
+@include include/class-sel-clang-swap-same.texinfo
+@include include/class-sel-clang-move.texinfo
+@include include/class-sel-clang-replace.texinfo
+@include include/class-sel-clang-replace-full.texinfo
+@include include/class-sel-clang-replace-full-same.texinfo
+@include include/class-sel-clang-replace-same.texinfo
+
+
+
+
+@anchor{api-software-objects-clang-mutations-methods}
+@subsubsection API | Software Objects | Class @code{clang} | Methods on Clang mutations
+
+@itemize
+@item @refapigeneric{build-op}
+@end itemize
+
+
+@include include/fun-sel-build-op.texinfo
+
+
 
 

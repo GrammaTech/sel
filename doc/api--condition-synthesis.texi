@@ -1,0 +1,106 @@
+
+@itemize
+@item @ref{api-condition-synthesis-mutations, Mutations}
+@item @ref{api-condition-synthesis-mutations-methods, Methods on Mutations}
+@item @ref{api-condition-synthesis-helper-functions, Helper Functions}
+@item @ref{api-condition-synthesis-variables, Variables and Parameters}
+@c @item @ref{api-condition-synthesis-constants, Constants}
+@end itemize
+
+
+@anchor{api-condition-synthesis-mutations}
+@subsection API | Condition Synthesis | Mutations
+
+@refapiclass{mutation} subclasses
+
+@itemize
+@item @refapiclass{add-condition}
+@item @refapiclass{if-to-while-tighten-condition}
+@item @refapiclass{if-to-while}
+@item @refapiclass{insert-else-if}
+@item @refapiclass{loosen-condition}
+@item @refapiclass{refine-condition}
+@item @refapiclass{tighten-condition}
+@end itemize
+
+@include include/class-sel-add-condition.texinfo
+@include include/class-sel-if-to-while-tighten-condition.texinfo
+@include include/class-sel-if-to-while.texinfo
+@include include/class-sel-insert-else-if.texinfo
+@include include/class-sel-loosen-condition.texinfo
+@include include/class-sel-refine-condition.texinfo
+@include include/class-sel-tighten-condition.texinfo
+
+@anchor{api-condition-synthesis-mutations-methods}
+@subsection API | Condition Synthesis | Methods on Mutations
+
+@itemize
+@item @refapigeneric{valid-targets}
+@end itemize
+
+
+@include include/fun-sel-valid-targets.texinfo
+
+@c @include include/fun-sel-abs-cond-expr.texinfo
+@c @include include/fun-sel-refined-condition.texinfo
+@c @include include/fun-sel-build-op.texinfo
+@c @include include/fun-sel-contains-abstract-condition.texinfo
+
+
+@anchor{api-condition-synthesis-helper-functions}
+@subsection  API | Condition Synthesis | Helper Functions
+
+@itemize
+@item @refapifunction{instrumentation-exprs}
+@end itemize
+
+@include include/fun-sel-instrumentation-exprs.texinfo
+
+@c @include include/fun-sel-and-not-connector.texinfo
+@c @include include/fun-sel-apply-best-cond-mutation.texinfo
+@c @include include/fun-sel-build-failed.texinfo
+@c @include include/fun-sel-build.texinfo
+@c @include include/fun-sel-collect-negative-conds-and-envs.texinfo
+@c @include include/fun-sel-collect-positive-conds-and-envs.texinfo
+@c @include include/fun-sel-collect-tests.texinfo
+@c @include include/fun-sel-entails.texinfo
+@c @include include/fun-sel-find-best-condition.texinfo
+@c @include include/fun-sel-flip.texinfo
+@c @include include/fun-sel-get-abst-cond-locs.texinfo
+@c @include include/fun-sel-get-parent-control-stmt.texinfo
+@c @include include/fun-sel-guard-statements.texinfo
+@c @include include/fun-sel-improves-fitness.texinfo
+@c @include include/fun-sel-instrument-abst-cond-traces.texinfo
+@c @include include/fun-sel-instrument-values.texinfo
+@c @include include/fun-sel-make-source.texinfo
+@c @include include/fun-sel-or-connector.texinfo
+@c @include include/fun-sel-pick-if-statement.texinfo
+@c @include include/fun-sel-pick-target-condition.texinfo
+@c @include include/fun-sel-read-abst-conds-and-envs.texinfo
+@c @include include/fun-sel-run-test-case.texinfo
+@c @include include/fun-sel-synthesize-conditions.texinfo
+@c @include include/fun-sel-tails.texinfo
+@c @include include/fun-sel-types-equal.texinfo
+
+
+@anchor{api-condition-synthesis-variables}
+@subsection API | Condition Synthesis | Variables and Parameters
+
+@itemize
+@item @refapivariable{*abst-cond-attempts*}
+@item @refapivariable{*synth-condition-attempts*}
+@end itemize
+
+@include include/var-sel-star-abst-cond-attempts-star.texinfo
+@include include/var-sel-star-synth-condition-attempts-star.texinfo
+@c trace-file
+@c max-trace-length
+
+
+
+@c @anchor{api-condition-synthesis-constants}
+@c @subsection API | Condition Synthesis | Constants
+
+@c abst-cond-source
+
+

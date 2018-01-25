@@ -1,3 +1,6 @@
+\input texinfo
+@c @setfilename emacs-web-server.info
+
 @documentencoding utf-8
 @settitle Software Evolution Library
 
@@ -44,12 +47,20 @@ A copy of the license is included in the section entitled
 @ref{Macro \name\, @code{\name\}}
 @end macro
 
+@macro refapicond{name}
+@ref{Condition \name\, @code{\name\}}
+@end macro
+
 @macro refapifunction{name}
 @ref{Function \name\, @code{\name\}}
 @end macro
 
 @macro refapigeneric{name}
 @ref{Generic-Function \name\, @code{\name\}}
+@end macro
+
+@macro refapimethod{name}
+@ref{Method \name\, @code{\name\}}
 @end macro
 
 
@@ -81,7 +92,6 @@ Engineering (SBSE) techniques.
 
 
 SEL API Reference
-* SEL API Reference::           Full API reference including usage guidelines.
 * SEL API::                     Public functions, variables, and macros
 * SEL Utility API::             Public functions, variables, and macros
 * SEL View API::                Public functions, variables, and macro
@@ -273,7 +283,8 @@ are given in remainder of this section.
 
 @menu
 * Software Objects::            Representation of software
-* Software Methods::            Manipulation of software
+* Software Methods::            Operations on software objects
+* Mutation Objects::            Representation of software mutation operations
 * Global Variables::            Interface to search processes
 * Search Functions::            High level functions to perform search
 @end menu
@@ -438,7 +449,9 @@ existing base class, use macro @refapimacro{define-software}.
 
 
 
-@node Software Methods, Global Variables, Software Objects, Implementation
+
+
+@node Software Methods, Mutation Objects, Software Objects, Implementation
 @section Software Methods
 @cindex software methods
 
@@ -536,14 +549,50 @@ Write the genome of software object @code{SOFTWARE} to @code{FILE}.
 
 @end ignore
 
-@node Global Variables, Search Functions, Software Methods, Implementation
+
+@node Mutation Objects, Global Variables, Software Methods, Implementation 
+@section Mutation Objects
+@cindex Mutation
+
+@c DOCFIXME need more intro
+
+SEL provides a variety of operations that apply @emph{mutations} to
+modify code. These mutations are represented as @refapiclass{mutation}
+objects.
+
+
+
+See section @ref{api-mutations,API | Mutations} for full API
+documentation. We provide a brief outline here.
+
+New @refapiclass{mutation} subclasses should derive from the
+most-relevant base class. To define a new mutation from an existing
+base class, use
+
+@lisp
+(define-mutation new-mutation (base-mutation)
+  ())
+@end lisp
+
+The mutation may be initialized with two functions; a targeter and
+picker. The targeter is a function which, given a software object,
+returns a list of mutation targets; this function defaults to
+@refapigeneric{pick-bad}. The picker is a function which, given a software
+object, returns a random mutation target; this function defaults to a
+random element returned by @refapigeneric{pick-bad}.
+
+After creating a software object and a mutation, use the
+@refapigeneric{apply-mutation} method to create a new mutant.
+
+
+
+
+@node Global Variables, Search Functions, Mutation Objects, Implementation
 @section Global Variables
 @cindex Global Variables
 
 The following global variables are exposed for configuration and
 interaction with heuristic search processes. This table contains summary information only, see the @ref{SEL API} section for full details.
-
-
 
 @multitable {} {}
 
@@ -572,7 +621,6 @@ winners.
 @item @refapivariable{*tie-breaker-predicate*} @tab
 Function to compare two tie breaker values to select which is
 preferred.
-
 
 @item @refapivariable{*fitness-predicate* } @tab
 Function to compare two fitness values to select which is preferred.
@@ -606,6 +654,7 @@ received much more testing and is recommended.
 
 
 @table @dfn
+
 
 @item @refapimacro{evolve}
 Evolve the existing @refapivariable{*population*} of
@@ -1130,21 +1179,14 @@ with the following.
 
 
 
-@node Troubleshooting, SEL API Reference, Usage, Top
+@node Troubleshooting, SEL API, Usage, Top
 @chapter Troubleshooting
 @cindex troubleshooting
 
 @include troubleshooting.texi
 
 
-@node SEL API Reference, SEL API, Troubleshooting, Top
-@chapter SEL API Reference
-@cindex api
-
-@include api.texi
-
-
-@node SEL API, SEL API Reference, SEL Utility API, Top
+@node SEL API, Troubleshooting, SEL Utility API, Top
 @appendix SEL API
 @include include/sb-texinfo.texinfo
 @include sel-api.texi

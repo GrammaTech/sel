@@ -1,7 +1,8 @@
 #!/bin/bash
 
-sbcl --no-sysinit --no-userinit \
-     --load ${USER_QUICK_LISP}/setup.lisp \
-     --eval "(ql:quickload :software-evolution-library)" \
-     --load doc/examples/004-evolve.lisp \
-     --eval "(sb-ext:exit)"
+ccl --quiet --no-init \
+    --load ${USER_QUICK_LISP:-quicklisp}/setup.lisp \
+    --eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+    --eval '(ql:quickload :software-evolution-library)' \
+    --load doc/examples/004-evolve.lisp \
+    --eval '(quit)'

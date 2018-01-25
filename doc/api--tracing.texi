@@ -1,0 +1,18 @@
+
+@itemize
+@item Class @refapiclass{traceable}
+@item Condition @refapicond{trace-error}
+@item Methods
+  @itemize
+  @item @refapigeneric{collect-traces}
+  @item @refapigeneric{collect-trace}
+  @end itemize
+@end itemize
+
+
+@include include/class-sel-traceable.texinfo
+@include include/condition-sel-trace-error.texinfo
+@include include/fun-sel-collect-traces.texinfo
+@include include/fun-sel-collect-trace.texinfo
+@c defvar  *trace-open-timeout*
+@c defvar *process-kill-timeout*

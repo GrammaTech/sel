@@ -1,3 +1,86 @@
+@macro refutilityvar{name}
+@ref{Variable sel/utility:\name\,@code{\name\}} 
+@end macro
+
+@macro refutilitymacro{name}
+@ref{Macro sel/utility:\name\,@code{\name\}} 
+@end macro
+
+@macro refutilityfunction{name}
+@ref{Function sel/utility:\name\,@code{\name\}} 
+@end macro
+
+
+@section Contents
+@itemize
+@item Variables
+  @itemize
+  @item @refutilityvar{*bash-shell*}
+  @item @refutilityvar{*note-level*}
+  @item @refutilityvar{*note-out*}
+  @item @refutilityvar{*profile-dot-min-ratio*}
+  @item @refutilityvar{*shell-debug*}
+  @item @refutilityvar{*shell-error-codes*}
+  @item @refutilityvar{*shell-non-error-codes*}
+  @item @refutilityvar{*temp-dir*}
+  @end itemize
+
+@item Macros
+  @itemize  
+  @item @refutilitymacro{read-shell}
+  @item @refutilitymacro{read-shell-file}
+  @item @refutilitymacro{with-cwd}
+  @item @refutilitymacro{with-temp-file}
+  @item @refutilitymacro{with-temp-file-of}
+  @item @refutilitymacro{with-temp-file-of-bytes}
+  @item @refutilitymacro{write-shell-file}
+  @item @refutilitymacro{xz-pipe}
+  @end itemize
+
+@item Functions
+  @itemize
+  @item @refutilityfunction{addrs}
+  @item @refutilityfunction{aget}
+  @item @refutilityfunction{alist-filter}
+  @item @refutilityfunction{arglist}
+  @item @refutilityfunction{binary-search}
+  @item @refutilityfunction{calculate-addr-map}
+  @item @refutilityfunction{chunks}
+  @item @refutilityfunction{count-cons}
+  @item @refutilityfunction{counts}
+  @item @refutilityfunction{cumulative-distribution}
+  @item @refutilityfunction{diff-scalar}
+  @item @refutilityfunction{drop}
+  @item @refutilityfunction{equal-it}
+  @item @refutilityfunction{function-lines}
+  @item @refutilityfunction{gdb-disassemble}
+  @item @refutilityfunction{getenv}
+  @item @refutilityfunction{getter}
+  @item @refutilityfunction{in-directory}
+  @item @refutilityfunction{make-terminal-raw}
+  @item @refutilityfunction{normalize-probabilities}
+  @item @refutilityfunction{pad}
+  @item @refutilityfunction{parse-number}
+  @item @refutilityfunction{partition}
+  @item @refutilityfunction{plist-merge}
+  @item @refutilityfunction{profile-to-dot-graph}
+  @item @refutilityfunction{profile-to-flame-graph}
+  @item @refutilityfunction{quit}
+  @item @refutilityfunction{random-hash-table-key}
+  @item @refutilityfunction{random-sample-with-replacement}
+  @item @refutilityfunction{random-sample-without-replacement}
+  @item @refutilityfunction{replace-all}
+  @item @refutilityfunction{replace-stdout-in-note-targets}
+  @item @refutilityfunction{shell}
+  @item @refutilityfunction{show-it}
+  @item @refutilityfunction{take}
+  @item @refutilityfunction{transpose}
+  @item @refutilityfunction{un-cumulative-distribution}
+  @end itemize  
+@end itemize
+
+@section Documentation
+
 @include include/var-sel-slash-utility-star-bash-shell-star.texinfo
 @include include/var-sel-slash-utility-star-note-level-star.texinfo
 @include include/var-sel-slash-utility-star-note-out-star.texinfo
@@ -51,3 +134,5 @@
 @include include/fun-sel-slash-utility-take.texinfo
 @include include/fun-sel-slash-utility-transpose.texinfo
 @include include/fun-sel-slash-utility-un-cumulative-distribution.texinfo
+
+
