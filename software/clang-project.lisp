@@ -15,13 +15,13 @@
                 :accessor clang-class
                 :initform 'clang
                 :documentation "Clang subclass to utilize in the project"))
-  (:documentation "DOCFIXME"))
+  (:documentation "Project specialization for clang software objects."))
 
 
 (defmethod from-file ((clang-project clang-project) project-dir)
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
-* PROJECT-DIR DOCFIXME
+  "Populate CLANG-PROJECT from the source code in PROJECT-DIR.
+* CLANG-PROJECT to be populated from source in PROJECT-DIR
+* PROJECT-DIR source code to populate CLANG-PROJECT with
 "
   (assert (or (compilation-database clang-project) (which "bear"))
           (clang-project)
@@ -148,45 +148,38 @@
     clang-project))
 
 (defmethod to-file ((clang-project clang-project) path)
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
-* PATH DOCFIXME
+  "Write CLANG-PROJECT to the path directory.
+* CLANG-PROJECT project to output
+* PATH directory to write the project to
 "
   (let ((*build-dir* (make-build-dir (project-dir clang-project) :path path)))
     (write-genome-to-files clang-project)))
 
 
 (defmethod asts ((obj clang-project))
-  "DOCFIXME
-* OBJ DOCFIXME
-"
+  "Return a list of all ASTs in the project OBJ."
   (if (current-file obj)
       (asts (current-file obj))
       (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj)))))
 
 (defmethod clang-format ((clang-project clang-project) &optional style)
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
+  "Apply `clang-format' to CLANG-PROJECT.
+* CLANG-PROJECT project to format and return
+* STYLE `clang-format' style to utilize
 "
   (apply-to-project clang-project {clang-format _ style})
   clang-project)
 
 (defmethod clang-tidy ((clang-project clang-project))
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
+  "Apply `clang-tidy' to CLANG-PROJECT.
+* CLANG-PROJECT project to tidy and return
 "
   (apply-to-project clang-project #'clang-tidy)
   clang-project)
 
 (defmethod indent ((clang-project clang-project) &optional style)
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
-* STYLE DOCFIXME
+  "Apply GNU `indent' to CLANG-PROJECT.
+* CLANG-PROJECT project to format and return
+* STYLE GNU `indent' style to utilize
 "
   (apply-to-project clang-project {indent _ style}))
-
-(defmethod flags ((obj clang-project))
-  "DOCFIXME
-* OBJ DOCFIXME
-"
-  nil)
