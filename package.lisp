@@ -574,6 +574,7 @@
    :make-cast-expr
    :make-call-expr
    :make-array-subscript-expr
+   :make-label
    :ast-root
    :replace-in-ast
    :parse-source-snippet

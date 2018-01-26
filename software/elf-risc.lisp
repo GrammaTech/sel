@@ -7,9 +7,11 @@
 (defvar risc-nop (coerce (elf:int-to-bytes #x0 1) 'list))
 
 (define-software elf-risc (elf)
-  ((nop :initarg :nop :accessor nop :initform risc-nop)))
+  ((nop :initarg :nop :accessor nop :initform risc-nop))
+  (:documentation "DOCFIXME"))
 
 (defmethod elf ((elf elf-risc))
+  "DOCFIXME"
   (let ((genome (genome elf)))
     (with-slots (base) elf
       (let ((new (copy-elf base))
@@ -35,6 +37,7 @@
         new))))
 
 (defun risc-genome-from-elf (elf)
+  "DOCFIXME"  
   (map 'vector
        [#'list {cons :code} #'list]
        (or
@@ -52,17 +55,21 @@
                   (remove-if-not #'elf:ph (sections elf))))))))
 
 (defmethod from-file ((elf elf-risc) path)
+  "DOCFIXME"  
   (setf (base elf) (read-elf path))
   (setf (genome elf) (risc-genome-from-elf (base elf)))
   elf)
 
 (defmethod lines ((elf elf-risc))
+  "DOCFIXME"
   (mappend {aget :code} (coerce (genome elf) 'list)))
 
 (defmethod (setf lines) (new (elf elf-risc))
+  "DOCFIXME"
   (setf (genome elf) (map 'vector [#'list {cons :code}] new)))
 
 (defmethod apply-mutation ((elf elf-risc) mut)
+  "DOCFIXME"
   (let ((starting-length (length (genome elf))))
     ;; NOTE: it is important here that elements of genome are not
     ;;       changed, rather the genome should *only* be changed by
@@ -86,6 +93,7 @@
             mut starting-length (length (genome elf)))))
 
 (defmethod elf-replace ((elf elf-risc) s1 value)
+  "DOCFIXME"
   (let ((genome (genome elf)))
     (map (class-of genome)
          (lambda-bind ((index element))
@@ -97,6 +105,7 @@
          (indexed (coerce genome 'list)))))
 
 (defmethod elf-cut ((elf elf-risc) s1)
+  "DOCFIXME"
   ;; NOTE: see the note above in the body of `apply-mutation'.
   (elf-replace elf s1 (nop elf)))
 
@@ -109,6 +118,7 @@ delete, if none is found in this range insertion becomes replacement.
 A value of nil means never replace.")
 
 (defmethod elf-insert ((elf elf-risc) s1 val)
+  "DOCFIXME"
   ;; NOTE: see the note above in the body of `apply-mutation'.
   (let ((genome (genome elf)))
     (with-slots (base nop) elf
@@ -159,6 +169,7 @@ A value of nil means never replace.")
             (elf-replace elf s1 val))))))
 
 (defmethod elf-swap ((elf elf-risc) s1 s2)
+  "DOCFIXME"
   ;; NOTE: see the note above in the body of `apply-mutation'.
   (let* ((genome (genome elf))
          (tmp (copy-seq (genome elf))))

@@ -1,0 +1,27 @@
+
+@itemize
+@item Class @refapiclass{ancestral}
+@item Function @refapifunction{get-fresh-ancestry-id}
+@item Method specizalizations
+  @itemize
+  @item @refapimethod{(setf fitness-extra-data) around (extra-data (obj ancestral))}
+  @item @refapimethod{apply-mutation before ((obj ancestral) op)}
+  @item @refapimethod{crossover around ((a ancestral) (b ancestral))}
+  @item @refapimethod{from-file before ((obj ancestral) path)}
+  @item @refapimethod{from-string before ((obj ancestral) string)}
+  @end itemize
+@end itemize
+
+@include include/class-sel-ancestral.texinfo
+@include include/fun-sel-get-fresh-ancestry-id.texinfo
+
+
+@c defvar *next-ancestry-id*
+@c defmethod save-ancestry
+@c defun node-parents
+@c defun fitness-color
+@c defun to-node-descr
+@c defun ancestry-graph
+@c defun graphviz
+
+

@@ -242,16 +242,18 @@ including the AST counter and AST class.
 (defvar *clang-obj-code*  (register-code 45 'clang)
   "Object code for serialization of clang software objects.")
 
-(defstore-cl-store (obj clang stream)
+(defstore-cl-store (obj clang stream) 
   (let ((copy (copy obj)))
     (setf (slot-value copy 'copy-lock) nil)
     (output-type-code *clang-obj-code* stream)
-    (cl-store::store-type-object copy stream)))
+    (cl-store::store-type-object copy stream))
+  (:documentation "DOCFIXME"))
 
 (defrestore-cl-store (clang stream)
   (let ((obj (cl-store::restore-type-object stream)))
     (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
-    obj))
+    obj)
+  (:documentation "DOCFIXME"))
 
 (defgeneric roots (software)
   (:documentation "Return all top-level ASTs in SOFTWARE."))
@@ -1328,6 +1330,7 @@ valid hash."))
   "Create a clang-type from a name used in an execution trace.
 The resulting type will not be added to any clang object and will not have a
 valid hash.
+
 * NAME type name as expressed in an execution trace
 "
   (make-clang-type

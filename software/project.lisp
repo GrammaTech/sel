@@ -19,9 +19,11 @@ Passed as an argument to BUILD-COMMAND.")
    ;; Implementation of this is tricky: use with-current-file rather
    ;; than setting it directly.
    (current-file-name :initform nil :accessor current-file-name
-                      :documentation "Delegate method calls to this file.")))
+                      :documentation "Delegate method calls to this file."))
+  (:documentation "DOCFIXME"))
 
 (defun copy-files (files)
+  "DOCFIXME"
   (loop for (p . c) in files
      collecting (cons p (copy c))))
 
@@ -76,9 +78,11 @@ copy of the original current file.
         (call-next-method))))
 
 (defmethod all-files ((obj project))
+  "DOCFIXME"
   (append (evolve-files obj) (other-files obj)))
 
 (defmethod genome ((obj project))
+  "DOCFIXME"
   (if (current-file obj)
       (genome (current-file obj))
       ;; If no current file, join all genomes with separators.
@@ -90,6 +94,7 @@ copy of the original current file.
                  collect (genome c)))))
 
 (defmethod (setf genome) (text (project project))
+  "DOCFIXME"
   (assert (current-file project) nil
           "Genome setting is only allowed when current-file is set.")
   (setf (genome (current-file project)) text))
@@ -98,10 +103,12 @@ copy of the original current file.
   (:documentation "Overwrite evolved files with current genome."))
 
 (defmethod write-genome-to-files ((obj project))
+  "DOCFIXME"
   (loop for (path . c) in (all-files obj)
      do (string-to-file (genome c) (full-path path))))
 
 (defmethod size ((obj project))
+  "DOCFIXME"
   (if (current-file obj)
       (size (current-file obj))
       (loop for (p . c) in (evolve-files obj)
@@ -129,6 +136,7 @@ copy of the original current file.
 ;; This isn't used in normal operation (because mutate just dispatches
 ;; to the individual files), but it's handy for debugging.
 (defmethod apply-mutation ((obj project) op)
+  "DOCFIXME"
   (if (current-file obj)
       (apply-mutation (current-file obj) op)
       (destructuring-bind (file . mutation) op
@@ -136,6 +144,7 @@ copy of the original current file.
           mutation))))
 
 (defmethod apply-mutations ((project project) (mut mutation) n)
+  "DOCFIXME"
   (labels ((apply-mutations-single-file (evolve-file mut n)
              (setf (slot-value mut 'object) (cdr evolve-file))
              (setf (slot-value mut 'targets) nil)
@@ -165,6 +174,7 @@ copy of the original current file.
           (finally (return (values results mutations))))))
 
 (defmethod apply-picked-mutations ((project project) (mut mutation) n)
+  "DOCFIXME"
   (labels ((apply-mutation-single-file (evolve-file mut)
              (setf (slot-value mut 'object) (cdr evolve-file))
              (setf (slot-value mut 'targets) nil)
@@ -204,6 +214,7 @@ copy of the original current file.
     (values new (cons point-a file) (cons point-b file))))
 
 (defmethod apply-to-project ((project project) f)
+  "DOCFIXME"
   (values project
           (iterate (for file in (if (current-file project)
                                     (list (current-file project))
@@ -234,6 +245,7 @@ threads by creating separate build directory per thread.")
       (make-build-dir src-dir :path new-path))))
 
 (defun make-build-dir-aux (src-dir path)
+  "DOCFIXME"
   (let ((dir (ensure-directory-pathname path)))
     ;; Verify parent directory exists, otherwise the copy will fail.
     (ensure-directories-exist (pathname-parent-directory-pathname dir))
@@ -264,6 +276,7 @@ path within BODY."
          (delete-directory-tree ,build-dir :validate t)))))
 
 (defmethod phenome ((obj project) &key (bin (temp-file-name)))
+  "DOCFIXME"
   (write-genome-to-files obj)
   ;; Build the object and copy it to desired location.
   (multiple-value-bind (stdout stderr exit)

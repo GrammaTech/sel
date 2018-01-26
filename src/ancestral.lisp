@@ -10,9 +10,14 @@
   "Unique identifier for ancestry.")
 
 (defun get-fresh-ancestry-id ()
+  "DOCFIXME"
   (1- (incf *next-ancestry-id*)))
 
 (defmethod from-file :before ((obj ancestral) path)
+  "DOCFIXME
+* OBJ DOCFIXME
+* PATH DOCFIXME
+"
   (if (null (ancestors obj))
       (setf (ancestors obj)
             `((:base ,path
@@ -21,6 +26,10 @@
       (ancestors obj)))
 
 (defmethod from-string :before ((obj ancestral) string)
+  "DOCFIXME
+* OBJ DOCFIXME
+* STRING DOCFIXME
+"
   (if (null (ancestors obj))
       (setf (ancestors obj) (list (list :base string
                                         :how 'from-string
@@ -28,6 +37,10 @@
       (ancestors obj)))
 
 (defmethod apply-mutation :before ((obj ancestral) op)
+  "DOCFIXME
+* OBJ DOCFIXME
+* OP DOCFIXME
+"
   (unless (member (type-of op)
                   ;; Inhibited operations.  E.g., we don't care about
                   ;; clang-set-range which is applied by crossover.
@@ -36,6 +49,10 @@
           (ancestors obj))))
 
 (defmethod crossover :around ((a ancestral) (b ancestral))
+  "DOCFIXME
+* A DOCFIXME
+* B DOCFIXME
+"
   (multiple-value-bind (crossed a-point b-point) (call-next-method)
     (when a-point
       (push (list :cross-with (ancestors b)
@@ -45,6 +62,10 @@
     (values crossed a-point b-point)))
 
 (defmethod (setf fitness-extra-data) :around (extra-data (obj ancestral))
+  "DOCFIXME
+* EXTRA-DATA DOCFIXME
+* OBJ DOCFIXME
+"
   (when (ancestors obj)
     (setf (car (ancestors obj))
           (append (car (ancestors obj))
@@ -52,6 +73,11 @@
   (call-next-method))
 
 (defmethod save-ancestry ((obj ancestral) directory filename)
+  "DOCFIXME
+* OBJ DOCFIXME
+* DIRECTORY DOCFIXME
+* FILENAME DOCFIXME
+"
   (let ((dot (make-pathname :directory directory
                             :name filename
                             :type "dot"))
@@ -66,6 +92,10 @@
     (shell "dot -Tsvg ~a > ~a" dot svg)))
 
 (defun node-parents (x x-parent)
+  "DOCFIXME
+* X DOCFIXME
+* X-PARENT DOCFIXME
+"
   (cond
     ((plist-get :how x)
      nil)
@@ -84,6 +114,9 @@
     (t (error "unknown ancestry"))))
 
 (defun fitness-color (fitness)
+  "DOCFIXME
+* FITNES DOCFIXME
+"
   (if fitness
       (format nil "~a ~a ~a"
               (clamp (+ 0.33 (* fitness -0.00556)) 0.0 1.0)
@@ -92,6 +125,10 @@
       "lightgrey"))
 
 (defun to-node-descr (x x-parent)
+  "DOCFIXME
+* X DOCFIXME
+* X-PARENT DOCFIXME
+"
   (list
    :id (plist-get :id x)
    :graphviz (let ((fitness (plist-get :fitness x)))
@@ -110,7 +147,11 @@
    :parents (node-parents x x-parent)))
 
 (defun ancestry-graph (history &key (with-nodes nil) (with-edges nil))
-  "Gather the ancestor graph."
+  "Gather the ancestor graph.
+* HISTORY DOCFIXME
+* WITH-NODES DOCFIXME
+* WITH-EDGES DOCFIXME
+"
   (let ((edges (or with-edges (make-hash-table :test #'equal)))
         (nodes (or with-nodes (make-hash-table :test #'equal))))
     (labels ((add-edge (x y e)
@@ -138,7 +179,14 @@
 Nodes are identified by the keys in the hashtables NODES and EDGES.
 The values in NODES are plists of graphviz attribute/value pairs.  The
 values in EDGES are pairs of the target node id and a plist of
-attribute/value pair"
+attribute/value pair
+
+* NODES DOCFIXME
+* EDGES DOCFIXME
+* NAME DOCFIXME
+* STREAM DOCFIXME
+* RANKDIR DOCFIXME
+"
   (format stream "digraph ~a {~%    rankdir=~a;~%" name rankdir)
   (flet ((to-attr-string (attrs)
            (mapcar (lambda-bind ((key . value))

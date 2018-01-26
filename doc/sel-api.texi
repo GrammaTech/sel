@@ -20,6 +20,7 @@ error will result.
 @item @ref{api-style-features, Style Features}
 @item @ref{api-fault-localization, Fault Localization}
 @item @ref{api-tracing, Tracing}
+@item @ref{api-ancestry, Ancestry Tracking}
 @item @ref{api-multi-objective, Multi-Objective Fitness}
 @end itemize
 
@@ -103,6 +104,15 @@ provided in section @ref{Tracing}.
 @c ----------------------------
 
 
+@anchor{api-ancestry}
+@section API | Ancestry Tracking
+
+
+@include api--ancestry.texi
+
+@c ----------------------------
+
+
 
 @anchor{api-clang-instrument}
 @section API | Clang Instrumentation
@@ -145,15 +155,15 @@ For more information, see @ref{Multi-objective Fitness}.
 
 @section API | everything else
 
-@include include/struct-sel-clang-ast.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/struct-sel-clang-ast.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-clang.texinfo
 @include include/class-sel-explode-for-loop.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-llvm.texinfo
 @c MUTATION OBJECTS @include include/class-sel-mutation.texinfo
 @include include/var-sel-star-allow-bindings-to-globals-bias-star.texinfo
-@include include/var-sel-star-asm-mutation-types-star.texinfo
-@include include/var-sel-star-build-dir-star.texinfo
-@include include/var-sel-star-clang-ast-aux-fields-star.texinfo
+@c SOFTWARE OBJECTS /ASM @include include/var-sel-star-asm-mutation-types-star.texinfo
+@c SOFTWARE OBJECTS / PROJECT @include include/var-sel-star-build-dir-star.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/var-sel-star-clang-ast-aux-fields-star.texinfo
 @include include/var-sel-star-clang-json-required-aux-star.texinfo
 @include include/var-sel-star-clang-max-json-size-star.texinfo
 @include include/var-sel-star-clang-mutation-types-star.texinfo
@@ -195,34 +205,34 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-include.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-macro.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-type.texinfo
-@include include/fun-sel-adjust-stmt-range.texinfo
-@include include/class-sel-ancestral.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-adjust-stmt-range.texinfo
+@c ANCESTRY @include include/class-sel-ancestral.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-apply-all-mutations.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-apply-mutation.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-apply-mutation-ops.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-apply-mutations.texinfo
-@include include/fun-sel-apply-path.texinfo
-@include include/fun-sel-ast-gt-snippet.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-apply-path.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-ast-gt-snippet.texinfo
 @include include/fun-sel-ast-declarations.texinfo
-@include include/struct-sel-ast-ref.texinfo
-@include include/struct-sel-clang-type.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/struct-sel-ast-ref.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/struct-sel-clang-type.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-asm.texinfo
-@include include/class-sel-asm-replace-operand.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-asm-replace-operand.texinfo
 @include include/class-sel-coalesce-while-loop.texinfo
 @include include/var-sel-star-bias-toward-dynamic-mutation-star.texinfo
 @include include/var-sel-star-tournament-size-star.texinfo
-@include include/fun-sel-asm-split-instruction.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-asm-split-instruction.texinfo
 @include include/fun-sel-ast-to-source-range.texinfo
-@include include/fun-sel-asts.texinfo
+@c SOFTWARE OBJECTS / AST @include include/fun-sel-asts.texinfo
 @c MUTATION OBJECTS @include include/fun-sel-at-targets.texinfo
-@include include/fun-sel-block-p.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-block-p.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-build-op.texinfo
-@include include/fun-sel-can-be-made-traceable-p.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-can-be-made-traceable-p.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-cil.texinfo
 @include include/var-sel-star-fitness-predicate-star.texinfo
 @include include/var-sel-star-start-time-star.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-clang-instrument.texinfo
-@include include/fun-sel-clang-tidy.texinfo
+@c CLANG INSTRUMENT / CLANG @include include/fun-sel-clang-tidy.texinfo
 @c FAULT LOCALIZATION @include include/fun-sel-collect-fault-loc-traces.texinfo
 @c TRACING @include include/fun-sel-collect-trace.texinfo
 @c TRACING @include include/fun-sel-collect-traces.texinfo
@@ -235,7 +245,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS @include include/class-sel-elf-cisc.texinfo
 @c MUTATION OBJECTS @include include/macro-sel-compose-mutations.texinfo
 @include include/macro-sel-evolve.texinfo
-@include include/fun-sel-asm-nth-instruction.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-asm-nth-instruction.texinfo
 @include include/fun-sel-crossed.texinfo
 @include include/fun-sel-declared-type.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-elf-mips.texinfo
@@ -243,7 +253,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-default-select-best.texinfo
 @include include/fun-sel-delete-decl-stmts.texinfo
 @include include/class-sel-diff.texinfo
-@include include/fun-sel-elf.texinfo
+@c SOFTWARE OBJECTS / ELF @include include/fun-sel-elf.texinfo
 @include include/var-sel-elf-risc-max-displacement.texinfo
 @include include/fun-sel-error-funcs.texinfo
 @c TEST SUITES @include include/fun-sel-evaluate.texinfo
@@ -251,7 +261,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-find-macro.texinfo
 @include include/fun-sel-find-snippets.texinfo
 @include include/fun-sel-find-type.texinfo
-@include include/fun-sel-find-var-type.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-find-var-type.texinfo
 @c TEST SUITES @include include/fun-sel-finish-test.texinfo
 @include include/fun-sel-fitness-equal-p.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-force-include.texinfo
@@ -259,24 +269,24 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-full-path.texinfo
 @include include/fun-sel-full-stmt-p.texinfo
 @include include/fun-sel-function-body.texinfo
-@include include/fun-sel-function-containing-ast.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-function-containing-ast.texinfo
 @include include/fun-sel-function-decl-p.texinfo
 @include include/fun-sel-generate-helpers.texinfo
 @include include/fun-sel-generational-evolve.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-genome.texinfo
-@include include/fun-sel-genome-bytes.texinfo
+@c SOFTWARE OBJECTS /ELF @include include/fun-sel-genome-bytes.texinfo
 @include include/fun-sel-genome-string.texinfo
 @include include/fun-sel-setf-genome-string.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-ast.texinfo
 @include include/fun-sel-get-ast-types.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-get-entry.texinfo
-@include include/fun-sel-get-immediate-children.texinfo
-@include include/fun-sel-get-parent-full-stmt.texinfo
-@include include/fun-sel-get-unbound-funs.texinfo
-@include include/fun-sel-get-unbound-vals.texinfo
-@include include/fun-sel-get-vars-in-scope.texinfo
-@include include/fun-sel-good-stmts.texinfo
-@include include/fun-sel-indent.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-immediate-children.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-parent-full-stmt.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-unbound-funs.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-get-unbound-vals.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-get-vars-in-scope.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-good-stmts.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-indent.texinfo
 @include include/class-sel-insert-fodder-decl-rep.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-instrument.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-instrumentation-files.texinfo
@@ -287,53 +297,53 @@ For more information, see @ref{Multi-objective Fitness}.
 @c LEXICASE SELECTION @include include/fun-sel-lexicase-select.texinfo
 @c LEXICASE SELECTION @include include/fun-sel-lexicase-select-best.texinfo
 @include include/fun-sel-lines.texinfo
-@include include/fun-sel-make-build-dir.texinfo
-@include include/fun-sel-make-operator.texinfo
+@c SOFTWARE OBJECTS / PROJECT @include include/fun-sel-make-build-dir.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-make-operator.texinfo
 @c STYLE FEATURES @include include/fun-sel-merge-styleables.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-mutate.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-mutation-key.texinfo
-@include include/fun-sel-nop-p.texinfo
+@c SOFTWARE OBJECTS / ELF @include include/fun-sel-nop-p.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-one-point-crossover.texinfo
-@include include/fun-sel-pad-nops.texinfo
-@include include/fun-sel-parent-ast-p.texinfo
+@c SOFTWARE OBJECTS / ELF @include include/fun-sel-pad-nops.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-parent-ast-p.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-phenome.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-pick.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-pick-bad.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-pick-bad-bad.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-pick-bad-good.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-pick-good.texinfo
-@include include/fun-sel-pick-guarded-compound.texinfo
-@include include/fun-sel-pick-mutation-type.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-pick-guarded-compound.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-pick-mutation-type.texinfo
 @include include/fun-sel-pick-snippet.texinfo
 @c TEST SUITES @include include/class-sel-process.texinfo
-@include include/class-sel-rename-variable.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/class-sel-rename-variable.texinfo
 @include include/macro-sel-mcmc.texinfo
 @include include/fun-sel-incorporate.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-instrumentation-exprs.texinfo
-@include include/fun-sel-make-statement.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-make-statement.texinfo
 @include include/fun-sel-parse-source-snippet.texinfo
 @c MULTI-OBJECTIVE @include include/fun-sel-pick-least-crowded.texinfo
 @c TEST SUITES @include include/fun-sel-process-error-stream.texinfo
 @c TEST SUITES @include include/fun-sel-process-input-stream.texinfo
 @c TEST SUITES @include include/fun-sel-process-output-stream.texinfo
 @c TEST SUITES @include include/fun-sel-process-status.texinfo
-@include include/fun-sel-random-point-in-function.texinfo
-@include include/fun-sel-setf-reference.texinfo
-@include include/fun-sel-replace-in-ast.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-random-point-in-function.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-setf-reference.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-replace-in-ast.texinfo
 @c FAULT LOCALIZATION @include include/fun-sel-rinard-write-out.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-roots.texinfo
 @c TEST SUITES @include include/fun-sel-run-test.texinfo
-@include include/fun-sel-scopes.texinfo
-@include include/fun-sel-select-crossover-points.texinfo
-@include include/fun-sel-select-intraprocedural-pair.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-scopes.texinfo
+@c SOFTWARE OBJECTS @include include/fun-sel-select-crossover-points.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-select-intraprocedural-pair.texinfo
 @c SEARchABILITY @include include/fun-sel-similar-snippets.texinfo
-@include include/fun-sel-size.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-size.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-software.texinfo
-@include include/fun-sel-source-text.texinfo
-@include include/fun-sel-stmt-range.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-source-text.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-stmt-range.texinfo
 @c STYLE FEATURES @include include/class-sel-style-feature.texinfo
 @c STYLE FEATURES @include include/class-sel-styleable.texinfo
-@include include/class-sel-sw-range.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-sw-range.texinfo
 @c TEST SUITES @include include/class-sel-test-suite.texinfo
 @c TRACING @include include/class-sel-traceable.texinfo
 @include include/var-sel-star-clang-json-required-fields-star.texinfo
@@ -341,17 +351,17 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/var-sel-star-mut-rate-star.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-apply-picked-mutations.texinfo
 @c MUTATION OBJECTS @include include/macro-sel-define-mutation.texinfo
-@include include/fun-sel-enclosing-full-stmt.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-enclosing-full-stmt.texinfo
 @c MUTATION OBJECTS @include include/macro-sel-sequence-mutations.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-to-file.texinfo
 @c CLANG TOKENIZER @include include/fun-sel-tokens.texinfo
-@include include/fun-sel-typedef-type.texinfo
-@include include/macro-sel-with-build-dir.texinfo
-@include include/macro-sel-with-current-file.texinfo
-@include include/macro-sel-with-temp-build-dir.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-typedef-type.texinfo
+@c SOFTWARE OBJECTS / PROJECT @include include/macro-sel-with-build-dir.texinfo
+@c SOFTWARE OBJECTS / PROJECT @include include/macro-sel-with-current-file.texinfo
+@c SOFTWARE OBJECTS / PROJECT @include include/macro-sel-with-temp-build-dir.texinfo
 @c MUTATION OBJECTS @include include/fun-sel-analyze-mutation.texinfo
 @include include/fun-sel-ast-later-p.texinfo
-@include include/fun-sel-bad-stmts.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-bad-stmts.texinfo
 @include include/fun-sel-expression.texinfo
 @include include/fun-sel-expression-intern.texinfo
 @include include/fun-sel-fitness-better-p.texinfo
@@ -366,7 +376,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c FAULT LOCALIZATION @include include/fun-sel-rinard-incremental.texinfo
 @c FAULT LOCALIZATION @include include/fun-sel-rinard-read-in.texinfo
 @c TEST SUITES @include include/fun-sel-signal-process.texinfo
-@include include/fun-sel-snippet-gt-clang-ast.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-snippet-gt-clang-ast.texinfo
 @include include/fun-sel-snippet-gt-clang-macro.texinfo
 @include include/fun-sel-snippet-gt-clang-type.texinfo
 @c TEST SUITES @include include/fun-sel-start-test.texinfo
@@ -376,10 +386,12 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-type-decl-string.texinfo
 @include include/fun-sel-type-from-trace-string.texinfo
 @include include/fun-sel-type-trace-string.texinfo
-@include include/fun-sel-update-asts.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-update-asts.texinfo
 @c CONDITION SYNTHESIS @include include/fun-sel-valid-targets.texinfo
 @c CLANG INSTRUMENTATION @include include/fun-sel-var-instrument.texinfo
 @c SEARCHABILITY @include include/fun-sel-weighted-pick.texinfo
-@include include/fun-sel-wrap-ast.texinfo
-@include include/fun-sel-wrap-child.texinfo
-@include include/fun-sel-write-genome-to-files.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-wrap-ast.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/fun-sel-wrap-child.texinfo
+@c SOFTWARE OBJECTS / PROJECT @include include/fun-sel-write-genome-to-files.texinfo
+@include include/fun-sel-full-stmt-filter.texinfo
+@include include/fun-sel-same-class-filter.texinfo

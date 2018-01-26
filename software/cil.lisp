@@ -10,6 +10,7 @@
 See http://kerneis.github.io/cil/."))
 
 (defmethod apply-mutation ((cil cil) op)
+  "DOCFIXME"
   (with-temp-file-of (src (ext cil)) (genome cil)
     (multiple-value-bind (stdout stderr exit)
         (shell "cil-mutate ~a ~a ~a"
