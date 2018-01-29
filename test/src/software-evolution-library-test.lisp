@@ -59,6 +59,7 @@ suite should be run and nil otherwise."
 (defvar *empty-while* nil "Holds the empty-while software object.")
 (defvar *headers*     nil "Holds the headers software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *sqrt*        nil "Holds the hello world software object.")
 (defvar *huf*         nil "Holds the huf software object.")
 (defvar *nested*      nil "Holds the nested software object.")
 (defvar *scopes*      nil "Holds the scopes software object.")
@@ -510,6 +511,16 @@ suite should be run and nil otherwise."
                  (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
+
+(defixture sqrt-clang
+  (:setup
+   (setf *sqrt*
+         (from-file (make-instance 'clang)
+                    (make-pathname :name "sqrt"
+                                   :type "c"
+                                   :directory +etc-dir+))))
+  (:teardown
+   (setf *sqrt* nil)))
 
 (defixture print-env-clang
   (:setup (setf *soft*
@@ -1284,6 +1295,21 @@ suite should be run and nil otherwise."
           (:value1 . ,(make-literal :integer 0))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
+
+(deftest can-apply-mutation-w-value1 ()
+  (with-fixture sqrt-clang
+    (let* ((variant (copy *sqrt*))
+           (integer-constant
+            (second (remove-if-not
+                     [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
+                     (asts variant)))))
+      (apply-mutation variant
+        `(clang-replace
+          (:stmt1 . ,integer-constant)
+          (:value1 . ,(make-literal :integer 0))))
+      (is (different-asts (asts variant) (asts *sqrt*)))
+      (is (not (equal (genome variant) (genome *sqrt*))))
+      (is (stmt-with-text variant "0")))))
 
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
