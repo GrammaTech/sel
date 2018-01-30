@@ -8,15 +8,22 @@
   ((json-stream
     :initarg :json-stream :accessor json-stream
     :initform (error "JSON-STREAM field is required for DATABASE.")
-    :documentation "Stream of incoming JSON.")))
+    :documentation "Stream of incoming JSON."))
+  (:documentation "DOCFIXME"))
 
 (defmethod print-object ((db json-database) stream)
+  "DOCFIXME
+
+* DB DOCFIXME
+* STREAM DOCFIXME
+"
   (print-unreadable-object (db stream :type t)
     (when (subtypep (type-of (json-stream db)) 'file-stream)
       (format stream "~a:" (pathname (json-stream db))))
     (prin1 (length (ast-database-list db)) stream)))
 
 (defmethod initialize-instance :after ((db json-database) &key)
+  "DOCFIXME"
   ;; Initialize (load) a new json database.
   (dolist (snippet (load-json-with-caching db))
     (cond ((and (assoc :hash snippet)
@@ -46,6 +53,7 @@
                            (gethash ast-class (ast-database-ht db)))))))))
 
 (defmethod load-json-with-caching ((db json-database))
+  "DOCFIXME"
   (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
     (if (subtypep (type-of (json-stream db)) 'file-stream)
         (let* ((json-db-path (pathname (json-stream db)))
@@ -66,4 +74,5 @@
         (json:decode-json-from-source (json-stream db)))))
 
 (defun se-json-identifier-name-to-key (json-identifier)
+  "DOCFIXME"
   (make-keyword (string-upcase (regex-replace-all "--" json-identifier "-"))))

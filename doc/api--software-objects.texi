@@ -95,6 +95,7 @@
 @item Property extension subclasses
    @itemize
    @item @refapiclass{ancestral} (see @ref{api-ancestry, API | Ancestry Tracking})
+   @item @refapiclass{styleable} (see @ref{api-style-features-class-styleable, API | Style Features | Class @code{styleable} and its methods})
    @item @refapiclass{traceable} (see @ref{api-tracing, API | Tracing})
    @end itemize
 @item Macro @refapimacro{define-software}
@@ -200,19 +201,8 @@
 @anchor{api-software-objects-clang}
 @subsection API | Software Objects, Class @code{clang}
 
+See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
-@itemize
-
-@item @ref{api-software-objects-clang-methods, @code{clang}  Methods}
-@item @ref{api-software-objects-clang-asts, Clang ASTs}
-@item @ref{api-software-objects-clang-mutations, Clang Mutations}
-@end itemize
-
-@c defvar *clang-obj-code*
-
-
-@anchor{api-software-objects-clang-methods}
-@subsubsection API | Software Objects | Class @code{clang} |  @code{clang} Methods
 @itemize
 @item Methods
   @itemize
@@ -222,6 +212,7 @@
   @item @refapigeneric{adjust-stmt-range}
   @item @refapigeneric{bad-stmts}
   @item @refapigeneric{block-p}
+  @item @refapigeneric{build-op}
   @item @refapigeneric{can-be-made-traceable-p}
   @item @refapigeneric{clang-tidy}
   @item @refapigeneric{enclosing-full-stmt}
@@ -258,6 +249,31 @@
 @c @item pick-generic
 @c  @item pick-bad-only
 
+@item Variables
+   @itemize
+   @item @refapivariable{*clang-mutation-types*}
+   @end itemize
+
+@c defvar *clang-obj-code*
+@item Mutations (subclasses of @refapiclass {mutation}
+  @itemize
+  @item @refapiclass{clang-mutation}
+  @item @refapiclass{clang-insert}
+  @item @refapiclass{clang-insert-full}
+  @item @refapiclass{clang-insert-same}
+  @item @refapiclass{clang-insert-full-same}
+  @item @refapiclass{clang-swap}
+  @item @refapiclass{clang-swap-full}
+  @item @refapiclass{clang-swap-same}
+  @item @refapiclass{clang-swap-full-same}
+  @item @refapiclass{clang-move}
+  @item @refapiclass{clang-replace}
+  @item @refapiclass{clang-replace-full}
+  @item @refapiclass{clang-replace-same}
+  @item @refapiclass{clang-replace-full-same}
+  @item @refapiclass{rename-variable}
+  @end itemize
+
 @item Specializations
   @itemize
   @item @refapimethod{apply-mutation ((clang clang) (op list))}
@@ -287,6 +303,7 @@
 @include include/fun-sel-adjust-stmt-range.texinfo
 @include include/fun-sel-bad-stmts.texinfo
 @include include/fun-sel-block-p.texinfo
+@include include/fun-sel-build-op.texinfo
 @include include/fun-sel-can-be-made-traceable-p.texinfo
 @include include/fun-sel-clang-tidy.texinfo
 @include include/fun-sel-enclosing-full-stmt.texinfo
@@ -314,6 +331,25 @@
 @include include/fun-sel-update-asts.texinfo
 @include include/fun-sel-wrap-ast.texinfo
 @include include/fun-sel-wrap-child.texinfo
+
+@include include/var-sel-star-clang-mutation-types-star.texinfo
+
+@include include/class-sel-clang-mutation.texinfo
+@include include/class-sel-clang-insert.texinfo
+@include include/class-sel-clang-insert-full.texinfo
+@include include/class-sel-clang-insert-full-same.texinfo
+@include include/class-sel-clang-insert-same.texinfo
+@include include/class-sel-clang-swap.texinfo
+@include include/class-sel-clang-swap-full.texinfo
+@include include/class-sel-clang-swap-full-same.texinfo
+@include include/class-sel-clang-swap-same.texinfo
+@include include/class-sel-clang-move.texinfo
+@include include/class-sel-clang-replace.texinfo
+@include include/class-sel-clang-replace-full.texinfo
+@include include/class-sel-clang-replace-full-same.texinfo
+@include include/class-sel-clang-replace-same.texinfo
+@include include/class-sel-rename-variable.texinfo
+
 
 
 @anchor{api-software-objects-clang-asts}
@@ -349,6 +385,7 @@
   @item @refapigeneric{replace-in-ast}
   @item @refapigeneric{source-text}
   @end itemize
+
 
 @item Variable @refapivariable{*clang-ast-aux-fields*}
 
@@ -402,53 +439,6 @@
 @include include/fun-sel-source-text.texinfo
 
 @include include/var-sel-star-clang-ast-aux-fields-star.texinfo
-
-
-@anchor{api-software-objects-clang-mutations}
-@subsubsection API | Software Objects | Class @code{clang} |  Clang Mutations
-
-@itemize
-@item Mutation classes (subclasses of @refapiclass {mutation}
-  @itemize
-  @item @refapiclass{clang-mutation}
-  @item @refapiclass{clang-insert}
-  @item @refapiclass{clang-insert-full}
-  @item @refapiclass{clang-insert-same}
-  @item @refapiclass{clang-insert-full-same}
-  @item @refapiclass{clang-swap}
-  @item @refapiclass{clang-swap-full}
-  @item @refapiclass{clang-swap-same}
-  @item @refapiclass{clang-swap-full-same}
-  @item @refapiclass{clang-move}
-  @item @refapiclass{clang-replace}
-  @item @refapiclass{clang-replace-full}
-  @item @refapiclass{clang-replace-same}
-  @item @refapiclass{clang-replace-full-same}
-  @item @refapiclass{rename-variable}
-  @end itemize
-@itemize
-@item Method @refapigeneric{build-op}
-@end itemize
-
-@end itemize
-
-@include include/class-sel-clang-mutation.texinfo
-@include include/class-sel-clang-insert.texinfo
-@include include/class-sel-clang-insert-full.texinfo
-@include include/class-sel-clang-insert-full-same.texinfo
-@include include/class-sel-clang-insert-same.texinfo
-@include include/class-sel-clang-swap.texinfo
-@include include/class-sel-clang-swap-full.texinfo
-@include include/class-sel-clang-swap-full-same.texinfo
-@include include/class-sel-clang-swap-same.texinfo
-@include include/class-sel-clang-move.texinfo
-@include include/class-sel-clang-replace.texinfo
-@include include/class-sel-clang-replace-full.texinfo
-@include include/class-sel-clang-replace-full-same.texinfo
-@include include/class-sel-clang-replace-same.texinfo
-@include include/class-sel-rename-variable.texinfo
-
-@include include/fun-sel-build-op.texinfo
 
 
 @anchor{api-software-objects-clang-w-fodder}

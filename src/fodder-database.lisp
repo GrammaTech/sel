@@ -3,7 +3,9 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(defclass fodder-database (searchable) ())
+(defclass fodder-database (searchable)
+  ()
+  (:documentation "FIXME"))
 
 (defgeneric database-emptyp (database)
   (:documentation "Return t if the database is empty, nil otherwise"))

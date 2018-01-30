@@ -14,21 +14,34 @@
   "Queue containing pairs (MUTATION-TYPE . MUTATION-RESULT) for
 the last *max-mutation-results-queue-length* mutations")
 
-(defvar *mutation-results-queue-next* (the fixnum 0))
+(defvar *mutation-results-queue-next* (the fixnum 0)
+  "DOCFIXME")
 
 (defvar *mutation-results-queue-lock*
-  (make-lock "mutation-results-queue"))
+  (make-lock "mutation-results-queue")
+  "DOCFIXME")
 
 (defvar *bias-toward-dynamic-mutation* 1/2
   "Degree to which dynamic weights are emphasized over default weights.")
-(defvar *better-bias* 5/4)
-(defvar *same-bias* 1)
-(defvar *worse-bias* 1/10)
-(defvar *dead-bias* 0)
+(defvar *better-bias* 5/4
+  "DOCFIXME")
+(defvar *same-bias* 1
+  "DOCFIXME")
+(defvar *worse-bias* 1/10
+  "DOCFIXME")
+(defvar *dead-bias* 0
+  "DOCFIXME")
 
-(define-software adaptive-mutation (software) ())
+(define-software adaptive-mutation (software)
+  ()
+  (:documentation "DOCFIXME"))
 
 (defun queue-mutation (type classification)
+  "DOCFIXME
+
+* TYPE DOCFIXME
+* CLASSIFICATION DOCFIXME
+"
   (declare (optimize speed))
   (with-lock-held (*mutation-results-queue-lock*)
     (setf (the (cons symbol symbol)
@@ -52,6 +65,11 @@ the last *max-mutation-results-queue-length* mutations")
       (queue-mutation (type-of mutation) (classify obj crossed)))))
 
 (defun update-mutation-types (mutation-types &aux by-type)
+  "DOCFIXME
+
+* MUTATION-TYPES DOCFIXME
+* BY-TYPE DOCFIXME
+"
   (flet ((dynamic-weight (mutation-results)
            ;; Return a new dynamic mutation probability weight
            ;; for MUTATION-TYPE by examining the results of previous

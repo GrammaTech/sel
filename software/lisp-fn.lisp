@@ -4,7 +4,9 @@
 
 
 ;;; the class of lisp software objects
-(defclass lisp-fn (lisp) ())
+(defclass lisp-fn (lisp)
+  ()
+  (:documentation "DOCFIXME"))
 
 (defvar *test-script*  nil "Script capable of executing external code.")
 
@@ -17,6 +19,7 @@
          (error "external execution failed"))))
 
 (defmethod evaluate ((lisp-fn lisp-fn))
+  "DOCFIXME"
   (externally
    (mapcar #'test-flopped
            (funcall #'collect-test-results `(lambda () ,(get lisp-fn 'tests))))))

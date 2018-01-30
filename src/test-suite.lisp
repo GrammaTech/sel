@@ -60,6 +60,7 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (:documentation "Return the process id for PROCESS"))
 
 (defmethod process-id ((process process))
+  "DOCFIXME"
   #+sbcl
   (sb-ext:process-pid (os-process process))
   #+ccl
@@ -73,6 +74,7 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (:documentation "Return the input stream for PROCESS."))
 
 (defmethod process-input-stream ((process process))
+  "DOCFIXME"
   #+sbcl
   (sb-ext:process-input (os-process process))
   #+ccl
@@ -86,6 +88,7 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (:documentation "Return the output stream for PROCESS."))
 
 (defmethod process-output-stream ((process process))
+  "DOCFIXME"
   #+sbcl
   (sb-ext:process-output (os-process process))
   #+ccl
@@ -99,6 +102,7 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (:documentation "Return the error stream for PROCESS."))
 
 (defmethod process-error-stream ((process process))
+  "DOCFIXME"
   #+sbcl
   (sb-ext:process-error (os-process process))
   #+ccl
@@ -113,6 +117,7 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 exited."))
 
 (defmethod process-exit-code ((process process))
+  "DOCFIXME"
   #+sbcl
   (sb-ext:process-exit-code (os-process process))
   #+(or ccl ecl)
@@ -129,6 +134,7 @@ exited."))
 :signaled, or :exited."))
 
 (defmethod process-status ((process process))
+  "DOCFIXME"
   #+sbcl
   (sb-ext:process-status (os-process process))
   #+ (or ccl ecl)
@@ -144,6 +150,7 @@ exited."))
   (:documentation "Send the signal SIGNAL-NUMBER to PROCESS."))
 
 (defmethod signal-process ((process process) (signal-number integer))
+  "DOCFIXME"
   (multiple-value-bind (stdout stderr errno)
       (shell "kill -~d -$(ps -o pgid= ~d | ~
                           grep -o '[0-9]*' | ~
@@ -200,7 +207,13 @@ This is a convenience method whose default behavior is simply to run
 
 
 (defmethod start-test (phenome (test-case test-case) &rest extra-keys
-                       &key &allow-other-keys)
+		       &key &allow-other-keys)
+  "DOCFIXME
+
+* PHENOME DOCFIXME
+* TEST-CASE DOCFIXME
+* EXTRA-KEYS DOCFIXME
+"
   (flet ((bin-sub (bin it)
            (if (eq :bin it) bin it)))
     (let ((real-name (bin-sub (namestring phenome) (program-name test-case)))
@@ -237,6 +250,12 @@ This is a convenience method whose default behavior is simply to run
         (error "`START-TEST' only supported for SBCL, CCL, or ECL.")))))
 
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
+  "DOCFIXME
+
+* TEST-PROCESS DOCFIXME
+* KILL-SIGNAL DOCFIXME
+* TIMEOUT DOCFIXME
+"
   (flet ((running-p (process)
            (eq :running (process-status process))))
     (when (and kill-signal (running-p test-process))
@@ -273,7 +292,13 @@ This is a convenience method whose default behavior is simply to run
       (values stdout stderr exit-code))))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
-                     &key &allow-other-keys)
+		     &key &allow-other-keys)
+  "DOCFIXME
+
+* PHENOME DOCFIXME
+* TEST-CASE DOCFIXME
+* EXTRA-KEYS DOCFIXME
+"
   (finish-test (apply #'start-test phenome test-case extra-keys)))
 
 (defmethod evaluate (phenome (obj test-case) &rest extra-keys

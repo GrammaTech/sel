@@ -6,22 +6,36 @@
 
 ;; Helpers
 (defclass json-false ()
-  ())
+  ()
+  (:documentation "DOCFIXME"))
 
 (defmethod cl-json:encode-json ((object json-false) &optional stream)
+  "DOCFIXME
+
+* OBJECT DOCFIXME
+* STREAM DOCFIXME
+"
   (princ "false" stream)
   nil)
 
-(defvar *json-false* (make-instance 'json-false))
+(defvar *json-false* (make-instance 'json-false)
+  "DOCFIXME")
 
 (defclass json-true ()
-  ())
+  ()
+  (:documentation "DOCFIXME"))
 
 (defmethod cl-json:encode-json ((object json-true) &optional stream)
+  "DOCFIXME
+
+* OBJECT DOCFIXME
+* STREAM DOCFIXME
+"
   (princ "true" stream)
   nil)
 
-(defvar *json-true* (make-instance 'json-true))
+(defvar *json-true* (make-instance 'json-true)
+  "DOCFIXME")
 
 (define-condition pliny-query-failed (error)
   ((command :initarg :command :initform nil :reader command)
@@ -33,9 +47,11 @@
                              stdout: ~a~%~
                              stderr: ~a~%"
                      (exit-code condition) (command condition)
-                     (stdout condition) (stderr condition)))))
+                     (stdout condition) (stderr condition))))
+  (:documentation "DOCFIXME"))
 
 (defmethod features-to-weights (features)
+  "DOCFIXME"
   (mapcar (lambda (feature) (cons (car feature) (/ 1 (length features))))
           features))
 
@@ -88,7 +104,8 @@
                  :type simple-string
                  :documentation "Database query binary")
    (server-thread :reader server-thread
-                  :documentation "Thread running the GTServer")))
+                  :documentation "Thread running the GTServer"))
+  (:documentation "DOCFIXME"))
 
 (defmethod from-file ((obj pliny-database) db)
   "Create a Pliny database using the contents of DB"
@@ -128,6 +145,7 @@
   obj)
 
 (defmethod database-emptyp ((obj pliny-database))
+  "DOCFIXME"
   (handler-case
       (null (find-snippets obj :limit 1))
     (pliny-query-failed (e)
@@ -135,6 +153,7 @@
       t)))
 
 (defmethod start-server ((obj pliny-database))
+  "DOCFIXME"
   (setf (slot-value obj 'host) "localhost")
   (setf (slot-value obj 'server-thread)
         (make-thread (lambda()
@@ -148,11 +167,17 @@
                      :name (format nil "GTServerThread:~a" (port obj)))))
 
 (defmethod load-server ((obj pliny-database) db)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* DB DOCFIXME
+"
   (with-temp-file (logfile)
     (shell "~a ~a ~d ~a --storage ~a --logfile ~a"
            (loader-bin obj) (host obj) (port obj) db (storage obj) logfile)))
 
 (defmethod shutdown-server ((obj pliny-database))
+  "DOCFIXME"
   (or (or (null (host obj)) (null (port obj)))
       (with-temp-file (logfile)
         (shell "~a ~a ~d --logfile ~a"
@@ -174,12 +199,25 @@
   nil)
 
 (defmethod print-object ((obj pliny-database) stream)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* STREAM DOCFIXME
+"
   (print-unreadable-object (obj stream :type t)
     (format stream "~a:~d" (host obj) (port obj))))
 
 (defmethod find-snippets ((obj pliny-database)
                           &key ast-class full-stmt decls
-                            (limit (- (expt 2 32) 1)))
+			  (limit (- (expt 2 32) 1)))
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* AST-CLASS DOCFIXME
+* FULL-STMT DOCFIXME
+* DECLS DOCFIXME
+* LIMIT DOCFIXME
+"
   (let ((features (cond (ast-class
                          `((:ast--class  . ,ast-class)
                            (:random . ,(random 1.0))))
@@ -210,6 +248,17 @@
                               key ast-class limit-considered
                               (limit (- (expt 2 32) 1))
                               (filter #'null))
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* PREDICATE DOCFIXME
+* METRIC DOCFIXME
+* KEY DOCFIXME
+* AST-CLASS DOCFIXME
+* LIMIT-CONSIDERED DOCFIXME
+* LIMIT DOCFIXME
+* FILTER DOCFIXME
+"
   (declare (ignorable predicate metric key limit-considered))
   (labels ((add-target-feature ()
              (if (every 'integerp target)
@@ -228,13 +277,29 @@
                                 limit)))))
 
 (defmethod find-type ((obj pliny-database) hash)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* HASH DOCFIXME
+"
   (pliny-find-hash obj hash #'snippet->clang-type))
 
 (defmethod find-macro ((obj pliny-database) hash)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* HASH DOCFIXME
+"
   ;; FIXME: Update pliny database to support new macro format
   (pliny-find-hash obj hash #'snippet->clang-macro))
 
 (defun pliny-find-hash (pliny-db hash to-obj-fn)
+  "DOCFIXME
+
+* PLINY-DB DOCFIXME
+* HASH DOCFIXME
+* TO-OBJ-FN DOCFIXME
+"
   (->> (execute-query pliny-db
                       `((:*features (:hash . ,hash))
                         (:*weights (:hash . 1)))
@@ -247,6 +312,12 @@
    "Execute QUERY against PLINY-DATABASE with GTQuery."))
 
 (defmethod execute-query ((obj pliny-database) query limit)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* QUERY DOCFIXME
+* LIMIT DOCFIXME
+"
   (with-temp-file-of (query-file "json")
     (cl-json:encode-json-to-string query)
     (with-temp-file (log-file)

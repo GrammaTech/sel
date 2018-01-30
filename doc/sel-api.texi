@@ -166,7 +166,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS / CLANG @include include/var-sel-star-clang-ast-aux-fields-star.texinfo
 @include include/var-sel-star-clang-json-required-aux-star.texinfo
 @include include/var-sel-star-clang-max-json-size-star.texinfo
-@include include/var-sel-star-clang-mutation-types-star.texinfo
+@c SOFTWARE OBJECTS / CLANG @include include/var-sel-star-clang-mutation-types-star.texinfo
 @c SOFTWARE OBJECTS / CLANG-W-FODDER @include include/var-sel-star-clang-w-fodder-new-mutation-types-star.texinfo
 @include include/var-sel-star-cross-chance-star.texinfo
 @include include/var-sel-star-crossover-stats-star.texinfo
