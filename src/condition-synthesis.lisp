@@ -647,8 +647,8 @@ conditions that cause the tests to pass.
          (var (make-var-reference name
                                   (find-or-add-type software type)))
          (val (if (stringp base)
-                  (make-literal :string base)
-                  (make-literal :integer base)))
+                  (make-literal base)
+                  (make-literal base)))
          (eq-op (make-parens
                  (list (make-operator :generic "==" (list var val))))))
     (case comparison-type

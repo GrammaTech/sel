@@ -1292,7 +1292,7 @@ suite should be run and nil otherwise."
       (apply-mutation variant
         `(clang-replace
           (:stmt1 . ,stmt1)
-          (:value1 . ,(make-literal :integer 0))))
+          (:value1 . ,(make-literal 0))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
 
@@ -1306,7 +1306,7 @@ suite should be run and nil otherwise."
       (apply-mutation variant
         `(clang-replace
           (:stmt1 . ,integer-constant)
-          (:value1 . ,(make-literal :integer 0))))
+          (:value1 . ,(make-literal 0))))
       (is (different-asts (asts variant) (asts *sqrt*)))
       (is (not (equal (genome variant) (genome *sqrt*))))
       (is (stmt-with-text variant "0")))))
@@ -2243,7 +2243,7 @@ int x = CHARSIZE;")))
         `(clang-replace
           (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
                               (asts variant)))
-          (:literal1 . ,(make-literal :string "Hello, mutate!"))))
+          (:literal1 . ,(make-literal "Hello, mutate!"))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -2562,7 +2562,7 @@ int x = CHARSIZE;")))
            (op (make-instance 'clang-insert
                  :targets `((:stmt1 . ,(stmt-starting-with-text variant
                                                                 "printf"))
-                            (:literal1 . ,(make-literal :integer 0))))))
+                            (:literal1 . ,(make-literal 0))))))
       (apply-mutation variant op)
       (is (null (fitness variant))
           "Fitness is null after `apply-mutation'")

@@ -322,7 +322,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 "
   (make-call-expr "write_trace_id"
                   (list (make-var-reference *instrument-log-variable-name* nil)
-                        (make-literal :unsigned (get-ast-id instrumenter ast)))
+                        (make-literal (get-ast-id instrumenter ast) :unsigned))
                   :fullstmt
                   :full-stmt t
                   :aux-data '((:instrumentation t))))
@@ -338,7 +338,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   (declare (ignorable instrumenter))
   (make-call-expr "write_trace_aux"
                   (list (make-var-reference *instrument-log-variable-name* nil)
-                        (make-literal :integer value))
+                        (make-literal value))
                   :fullstmt
                   :full-stmt t
                   :aux-data '((:instrumentation t))))

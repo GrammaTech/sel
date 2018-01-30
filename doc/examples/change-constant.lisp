@@ -29,7 +29,7 @@
                   (remove-if-not
                    [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
                    (asts obj))))
-      (:value1 . ,(make-literal :integer rand)))))
+      (:value1 . ,(make-literal rand)))))
 
 ;;; Evaluate fitness (looking at cycles to execute).
 (defun test-sqrt (obj &aux (total 0))
