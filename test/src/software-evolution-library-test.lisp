@@ -1004,7 +1004,12 @@ suite should be run and nil otherwise."
   (with-fixture gcd-asm
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      (mutate ant)
+      (handler-bind
+          ((no-mutation-targets
+            (lambda (c)
+              (declare (ignorable c))
+              (invoke-restart 'try-another-mutation))))
+        (mutate ant))
       (is (not (sel::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
