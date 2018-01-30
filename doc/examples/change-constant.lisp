@@ -23,13 +23,22 @@
 
 ;;; Replace the interesting AST with a random value.
 (defun second-integer-to-rand (obj &optional (rand (random 10000)))
-  (apply-mutation obj
-    `(clang-replace
-      (:stmt1 . ,(second
+  (setf (ast-ref (second
                   (remove-if-not
                    [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
-                   (asts obj))))
-      (:value1 . ,(make-literal rand)))))
+                   (asts obj)))
+                 obj)
+        (make-literal rand))
+  obj)
+
+(defun rand-integer-to-rand (obj &optional (rand (random 10000)))
+  (setf (ast-ref (random-elt
+                  (remove-if-not
+                   [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
+                   (asts obj)))
+                 obj)
+        (make-literal rand))
+  obj)
 
 ;;; Evaluate fitness (looking at cycles to execute).
 (defun test-sqrt (obj &aux (total 0))

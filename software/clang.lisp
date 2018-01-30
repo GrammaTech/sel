@@ -905,6 +905,12 @@ Adds and removes semicolons, commas, and braces.
          (list replacement)
          (subseq ast (+ 2 n))))
 
+(defun (setf ast-ref) (new ref obj)
+  "Replace REF in OBJ with NEW."
+  (prog1 (setf (ast-root obj)
+               (replace-ast (ast-root obj) ref new))
+    (clear-caches obj)))
+
 (defmethod replace-ast ((tree list) (location ast-ref)
                         (replacement ast-ref))
   "Return the modified TREE with the AST at LOCATION replaced with
