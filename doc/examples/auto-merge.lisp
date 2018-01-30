@@ -132,3 +132,60 @@
 ;; SEL> *fitness-evals*
 ;; 800
 ;; SEL> 
+
+(defun eval-lines (lines &aux obj)
+  (ignore-errors
+    (with-temp-file (src "c")
+      (string-to-file
+       (mapconcat #'identity lines (string #\Newline)) src)
+      (setf obj (from-file (make-instance 'clang) src)))
+    (evaluate #'run-suite obj)
+    (funcall *target-fitness-p* obj)))
+
+;; SEL> (delta-debug:minimize (lines (copy result)) #'eval-lines)
+;; ("int main(int argc, char *argv[]) {" "    double a,b,c;"
+;;  "    a = atoi(argv[1]);" "    b = atoi(argv[2]);" "    if (a == 0) {"
+;;  "        printf(\"%g\\n\", b);" "    } else {" "        while (b != 0)"
+;;  "        if (a > b) a = a - b;" "        else       b = b - a;"
+;;  "    printf(\"gcd=%g\\n\", a);" "}" "}")
+;; SEL> (defvar lines *)
+;; LINES
+;; SEL> (defvar best (let ((best (copy result)))
+;;                     (setf (genome best)
+;;                           (mapconcat #'identity lines (string #\Newline)))
+;;                     best))
+;; BEST
+;; SEL> (genome best)
+;; "int main(int argc, char *argv[]) {
+;;     double a,b,c;
+;;     a = atoi(argv[1]);
+;;     b = atoi(argv[2]);
+;;     if (a == 0) {
+;;         printf(\"%g\\n\", b);
+;;     } else {
+;;         while (b != 0)
+;;         if (a > b) a = a - b;
+;;         else       b = b - a;
+;;     printf(\"gcd=%g\\n\", a);
+;; }
+;; }"
+;; SEL> (clang-format best)
+;; #<CLANG {1011721873}>
+;; 0
+;; SEL> (genome best)
+;; "int main(int argc, char *argv[]) {
+;;   double a, b, c;
+;;   a = atoi(argv[1]);
+;;   b = atoi(argv[2]);
+;;   if (a == 0) {
+;;     printf(\"%g\\n\", b);
+;;   } else {
+;;     while (b != 0)
+;;       if (a > b)
+;;         a = a - b;
+;;       else
+;;         b = b - a;
+;;     printf(\"gcd=%g\\n\", a);
+;;   }
+;; }"
+;; SEL> 
