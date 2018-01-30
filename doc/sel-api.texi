@@ -167,15 +167,15 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/var-sel-star-clang-json-required-aux-star.texinfo
 @include include/var-sel-star-clang-max-json-size-star.texinfo
 @include include/var-sel-star-clang-mutation-types-star.texinfo
-@include include/var-sel-star-clang-w-fodder-new-mutation-types-star.texinfo
+@c SOFTWARE OBJECTS / CLANG-W-FODDER @include include/var-sel-star-clang-w-fodder-new-mutation-types-star.texinfo
 @include include/var-sel-star-cross-chance-star.texinfo
 @include include/var-sel-star-crossover-stats-star.texinfo
-@include include/var-sel-star-database-star.texinfo
+@c SOFTWARE OBJECTS / CLANG-W-FODDER @include include/var-sel-star-database-star.texinfo
 @include include/var-sel-star-fitness-evals-star.texinfo
 @include include/var-sel-star-fitness-scalar-fn-star.texinfo
 @include include/var-sel-star-generations-star.texinfo
 @c CLANG INSTRUMENTATION @include include/var-sel-star-instrument-log-variable-name-star.texinfo
-@include include/var-sel-star-isa-nbits-star.texinfo
+@c SOFTWARE OBJECTS / CSURF-ASM @include include/var-sel-star-isa-nbits-star.texinfo
 @include include/var-sel-star-matching-free-function-retains-name-bias-star.texinfo
 @include include/var-sel-star-matching-free-var-retains-name-bias-star.texinfo
 @include include/var-sel-star-max-population-size-star.texinfo
@@ -252,7 +252,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-default-random-winner.texinfo
 @include include/fun-sel-default-select-best.texinfo
 @include include/fun-sel-delete-decl-stmts.texinfo
-@include include/class-sel-diff.texinfo
+@c SOFTWARE OBJECTS @include include/class-sel-diff.texinfo
 @c SOFTWARE OBJECTS / ELF @include include/fun-sel-elf.texinfo
 @include include/var-sel-elf-risc-max-displacement.texinfo
 @include include/fun-sel-error-funcs.texinfo
@@ -287,12 +287,12 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS @include include/fun-sel-get-vars-in-scope.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-good-stmts.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-indent.texinfo
-@include include/class-sel-insert-fodder-decl-rep.texinfo
+@c SOFTWARE OBJECTS / CLANG-W-FODDER @include include/class-sel-insert-fodder-decl-rep.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-instrument.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-instrumentation-files.texinfo
 @c CLANG INSTRUMENT @include include/fun-sel-instrumented-p.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-lisp.texinfo
-@include include/var-sel-star-clang-w-fodder-mutation-types-star.texinfo
+@c SOFTWARE OBJECTS / CLANG-W-FODDER @include include/var-sel-star-clang-w-fodder-mutation-types-star.texinfo
 @include include/var-sel-star-crossover-function-probability-star.texinfo
 @c LEXICASE SELECTION @include include/fun-sel-lexicase-select.texinfo
 @c LEXICASE SELECTION @include include/fun-sel-lexicase-select-best.texinfo
@@ -314,7 +314,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS @include include/fun-sel-pick-good.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-pick-guarded-compound.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-pick-mutation-type.texinfo
-@include include/fun-sel-pick-snippet.texinfo
+@c SOFTWARE OBJECTS / CLANG-W-FODDER @include include/fun-sel-pick-snippet.texinfo
 @c TEST SUITES @include include/class-sel-process.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/class-sel-rename-variable.texinfo
 @include include/macro-sel-mcmc.texinfo
@@ -363,7 +363,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-ast-later-p.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-bad-stmts.texinfo
 @include include/fun-sel-expression.texinfo
-@include include/fun-sel-expression-intern.texinfo
+@c SOFTWARE OBJECTS / CLANG-EXPRESSION @include include/fun-sel-expression-intern.texinfo
 @include include/fun-sel-fitness-better-p.texinfo
 @include include/fun-sel-fitness-extra-data.texinfo
 @include include/fun-sel-setf-fitness-extra-data.texinfo

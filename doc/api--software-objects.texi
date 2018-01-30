@@ -6,9 +6,6 @@
            @code{software} methods}
 @item @ref{api-software-object-applying-mutations,
            Applying Mutations}
-
-@item @ref{api-software-objects-clang,  Class @code{clang}}
-
 @end itemize
 
 
@@ -23,10 +20,18 @@
    @itemize
    @item @refapiclass{asm}
          (see @ref{api-software-objects-asm, API | Software Objects | Class @code{asm}})
+     @itemize
+     @item @refapiclass{csurf-asm}
+           (see @ref{api-software-objects-csurf-asm, API | Software Objects | Class @code{csurf-asm}})
+     @end itemize
    @item @refapiclass{cil}
          (see @ref{api-software-objects-cil, API | Software Objects | Class @code{cil}})   
    @item @refapiclass{clang}
          (see @ref{api-software-objects-clang, API | Software Objects | Class @code{clang}})   
+     @itemize
+     @item @refapiclass{clang-w-fodder}
+         (see @ref{api-software-objects-clang-w-fodder, API | Software Objects | Class @code{clang-w-fodder}})          
+     @end itemize
    @item @refapiclass{elf}
          (see @ref{api-software-objects-elf, API | Software Objects | Class @code{elf}})   
      @itemize
@@ -50,19 +55,33 @@
    @item @refapiclass{forth}
          (see @ref{api-software-objects-forth, API | Software Objects | Class @code{forth}})
    @item @refapiclass{lisp}
+         (see @ref{api-software-objects-lisp, API | Software Objects | Class @code{lisp}})
+     @itemize
+     @item @refapiclass{expression}
+           (see @ref{api-software-objects-expression, API | Software Objects | Class @code{expression}})
+       @itemize
+       @item @refapiclass{clang-expression}
+             (see @ref{api-software-objects-clang-expression, API | Software Objects | Class @code{clang-expression}})
+       @end itemize
+     @end itemize
    @item @refapiclass{llvm}
+         (see @ref{api-software-objects-llvm, API | Software Objects | Class @code{llvm}})   
    @end itemize
 
 @item Utility subclasses: base classes for language back ends
    @itemize
    @item @refapiclass{ast}
          (see @ref{api-software-objects-ast, API | Software Objects | Class @code{ast}})
-   @item @refapiclass{light}
-         (see @ref{api-software-objects-light, API | Software Objects | Class @code{light}})
    @item @refapiclass{simple}
-         (see @ref{api-software-objects-simple, API | Software Objects | Class @code{simple}})            
-   @item @refapiclass{sw-range}
-         (see @ref{api-software-objects-sw-range, API | Software Objects | Class @code{sw-range}})               
+         (see @ref{api-software-objects-simple, API | Software Objects | Class @code{simple}})
+     @itemize
+     @item @refapiclass{diff}
+         (see @ref{api-software-objects-diff, API | Software Objects | Class @code{diff}})
+     @item @refapiclass{light}
+         (see @ref{api-software-objects-light, API | Software Objects | Class @code{light}})         
+     @item @refapiclass{sw-range}
+         (see @ref{api-software-objects-sw-range, API | Software Objects | Class @code{sw-range}})
+     @end itemize
    @end itemize
 
 @item Project subclasses
@@ -81,11 +100,15 @@
 @item Macro @refapimacro{define-software}
 @end itemize
 
+@c 
+
 @include include/class-sel-software.texinfo
 @include include/class-sel-ast.texinfo
 @include include/class-sel-asm.texinfo
+@include include/class-sel-csurf-asm.texinfo
 @include include/class-sel-cil.texinfo
 @include include/class-sel-clang.texinfo
+@include include/class-sel-clang-w-fodder.texinfo
 @include include/class-sel-elf.texinfo
 @include include/class-sel-elf-cisc.texinfo
 @include include/class-sel-elf-arm.texinfo
@@ -94,10 +117,13 @@
 @include include/class-sel-elf-risc.texinfo
 @include include/class-sel-elf-mips.texinfo
 @include include/class-sel-forth.texinfo
-@include include/class-sel-light.texinfo
 @include include/class-sel-lisp.texinfo
+@include include/class-sel-expression.texinfo
+@include include/class-sel-clang-expression.texinfo
 @include include/class-sel-llvm.texinfo
 @include include/class-sel-simple.texinfo
+@include include/class-sel-diff.texinfo
+@include include/class-sel-light.texinfo
 @include include/class-sel-sw-range.texinfo
 @include include/class-sel-project.texinfo
 @include include/class-sel-clang-project.texinfo
@@ -425,9 +451,67 @@
 @include include/fun-sel-build-op.texinfo
 
 
+@anchor{api-software-objects-clang-w-fodder}
+@subsubsection API | Software Objects | Class @code{clang-w-fodder}
 
+@itemize
 
+@item Class @refapiclass{clang-w-fodder}
 
+@item Functions and Methods
+  @itemize
+  @item @refapigeneric{pick-snippet}
+  @item @refapifunction{prepare-fodder}
+  @item @refapifunction{parse-source-snippet}
+  @end itemize
+
+@item Variables
+  @itemize
+  @item @refapivariable{*database*}
+  @item @refapivariable{*clang-w-fodder-new-mutation-types*}
+  @item @refapivariable{*clang-w-fodder-mutation-types*}
+  @end itemize
+
+@item Mutations (subclasses of @refapiclass{mutation}
+  @itemize
+  @item @refapiclass{insert-fodder-decl-rep}
+  @item @refapiclass{insert-fodder-decl}
+  @item @refapiclass{insert-fodder}
+  @item @refapiclass{insert-fodder-full}
+  @item @refapiclass{replace-fodder-same}
+  @item @refapiclass{replace-fodder-full}
+  @end itemize
+
+@item Specializations
+  @itemize
+  @item @refapimethod{from-string before ((obj clang-w-fodder) string)}
+  @item @refapimethod{pick-mutation-type ((obj clang-w-fodder))}
+  @item @refapimethod{build-op ((mut insert-fodder-decl-rep) (obj clang-w-fodder))}
+  @item @refapimethod{apply-mutation after ((obj clang-w-fodder) mutation)}
+  @end itemize
+  
+@end itemize
+
+@c defun pick-bad-fodder
+@c defun pick-decl-fodder
+@c defun pick-decl-fodder-and-rename
+@c defun bind-vars-in-snippet
+@c defun prepare-fodder-op
+@c defmethod recontextualize-mutation :around
+
+@include include/fun-sel-pick-snippet.texinfo
+@include include/fun-sel-prepare-fodder.texinfo
+
+@include include/var-sel-star-database-star.texinfo
+@include include/var-sel-star-clang-w-fodder-new-mutation-types-star.texinfo
+@include include/var-sel-star-clang-w-fodder-mutation-types-star.texinfo
+
+@include include/class-sel-insert-fodder-decl-rep.texinfo
+@include include/class-sel-insert-fodder-decl.texinfo
+@include include/class-sel-insert-fodder.texinfo
+@include include/class-sel-insert-fodder-full.texinfo
+@include include/class-sel-replace-fodder-same.texinfo
+@include include/class-sel-replace-fodder-full.texinfo
 
 
 
@@ -448,7 +532,6 @@
   @item @refapifunction{asm-nth-instruction}
   @item @refapifunction{asm-split-instruction}
   @end itemize
-
 
 @item Variables
   @itemize
@@ -475,9 +558,29 @@
 @include include/fun-sel-asm-split-instruction.texinfo
 
 
+@anchor{api-software-objects-csurf-asm}
+@subsubsection API | Software Objects | Class @code{csurf-asm}
+
+
+@itemize
+@item Class @refapiclass{csurf-asm}
+@item Variable @refapivariable{*isa-nbits*}
+@item Specializations
+  @itemize
+  @item @refapimethod{phenome ((asm csurf-asm) &key (bin (temp-file-name)))}
+  @end itemize
+@end itemize
+
+@c defvar *gt-home*
+@c defun elf-weaken-gmon-start
+@c defun elf-copy-redirect
+
+@include include/var-sel-star-isa-nbits-star.texinfo
+
+
+
 @anchor{api-software-objects-elf}
 @subsubsection API | Software Objects | Class @code{elf}
-
 
 @itemize
 @item Class @refapiclass{elf}
@@ -629,6 +732,169 @@
   @end itemize
 @end itemize
 
+@c ----------------------------------------
+
+@anchor{api-software-objects-lisp}
+@subsubsection API | Software Objects | Class @code{lisp}
+
+@itemize
+@item Class @refapiclass{lisp}
+@item Mutations (subclasses of @refapiclass{mutation}
+  @itemize
+  @item @refapiclass{lisp-cut}
+  @item @refapiclass{lisp-replace}
+  @item @refapiclass{lisp-swap}
+  @end itemize
+@item Variable @refapivariable{*lisp-mutation-types*}
+@item Specializations
+  @itemize
+  @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-cut))}  
+  @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-replace))}
+  @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-swap))}
+  @item @refapimethod{crossover ((a lisp) (b lisp))}
+  @item @refapimethod{from-file ((llvm llvm) path)}
+  @item @refapimethod{genome-string ((lisp lisp) &optional stream)}
+  @item @refapimethod{mutate ((lisp lisp))}  
+  @item @refapimethod{pick-mutation-type ((obj lisp))}
+  @item @refapimethod{size ((lisp lisp))}
+  @item @refapimethod{to-file ((lisp lisp) path)}
+  @end itemize
+@end itemize
+
+@c defun tree-size
+@c defun subtree
+@c defun find-subtree-if
+@c defmacro set-subtree
+@c defsetf subtree
+@c defmethod filter-subtrees
+
+
+@include include/class-sel-lisp-cut.texinfo
+@include include/class-sel-lisp-replace.texinfo
+@include include/class-sel-lisp-swap.texinfo
+
+@include include/var-sel-star-lisp-mutation-types-star.texinfo
+
+@c ----------------------------------------
+
+@anchor{api-software-objects-expression}
+@subsubsection API | Software Objects | Class @code{expression}
+
+@itemize
+@item Class @refapiclass{expression}
+@item Condition @refapicond{eval-error}
+@item Mutations (subclasses of @refapiclass{mutation})
+  @itemize
+  @item @refapiclass{add-subtract-scope}
+  @item @refapiclass{add-subtract-tree}
+  @item @refapiclass{add-subtract}
+  @item @refapiclass{change-constant}
+  @item @refapiclass{change-operator}
+  @item @refapiclass{demote-binop-left}
+  @item @refapiclass{demote-binop-right}
+  @item @refapiclass{mult-divide}
+  @item @refapiclass{random-subtree}  
+  @item @refapiclass{subtract-add-tree}
+  @item @refapiclass{subtract-add}
+  @end itemize
+@item Specializations
+  @itemize
+  @item @refapimethod{apply-mutation ((obj expression) (mut add-subtract-scope))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation add-subtract))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation add-subtract-tree))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation change-constant))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation change-operator))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation demote-binop-left))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation demote-binop-right))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation double-half))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation mult-divide))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation random-subtree))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation subtract-add))}
+  @item @refapimethod{apply-mutation ((obj expression) (mutation subtract-add-tree))}
+  @item @refapimethod{pick-mutation-type ((obj expression))}
+  @end itemize
+@end itemize
+
+@c defmethod operators
+@c defmethod operator-to-function
+@c defmethod constants
+@c defvar *expression-mutation-types*
+@c defmethod target-operator
+@c defmethod operator-subtrees
+@c defmethod constant-subtrees
+@c defgeneric pick-bad-binop-left
+@c defgeneric pick-bad-binop-right
+@c define-mutation double-half
+@c defmethod target-subtree
+@c defmethod random-subtree
+@c defmethod all-subtrees
+@c defmethod constant-fold
+@c defun choose
+@c defmethod evaluate-expression
+@c defun expression-unbound-vars
+
+@include include/condition-sel-eval-error.texinfo
+
+@include include/class-sel-add-subtract-scope.texinfo
+@include include/class-sel-add-subtract-tree.texinfo
+@include include/class-sel-add-subtract.texinfo
+@include include/class-sel-change-constant.texinfo
+@include include/class-sel-change-operator.texinfo
+@include include/class-sel-demote-binop-left.texinfo
+@include include/class-sel-demote-binop-right.texinfo
+@include include/class-sel-mult-divide.texinfo
+@include include/class-sel-random-subtree.texinfo
+@include include/class-sel-subtract-add-tree.texinfo
+@include include/class-sel-subtract-add.texinfo
+
+
+@c ----------------------------------------
+
+@anchor{api-software-objects-clang-expression}
+@subsubsection API | Software Objects | Class @code{clang-expression}
+
+@itemize
+@item Class @refapiclass{clang-expression}
+@item Functions and Methods
+  @itemize
+  @item @refapifunction{expression-intern}
+  @item @refapifunction{expression-to-c}  
+  @end itemize
+@item Specializations
+  @itemize
+  @item @refapimethod{expression ((obj clang) (ast ast-ref))}
+  @end itemize
+@end itemize
+
+@c defun clang-expression-opcode
+@c defmethod operator-to-function
+@c defmethod evaluate-expression
+@c defmethod operators
+
+@include include/fun-sel-expression-intern.texinfo
+@include include/fun-sel-expression-to-c.texinfo
+
+
+@c ----------------------------------------
+
+@anchor{api-software-objects-llvm}
+@subsubsection API | Software Objects | Class @code{llvm}
+
+@itemize
+@item Class @refapiclass{llvm}
+@item Specializations
+  @itemize
+  @item @refapimethod{apply-mutation ((llvm llvm) op)}
+  @item @refapimethod{apply-mutation ((llvm llvm) op)}
+  @item @refapimethod{from-file ((llvm llvm) path)}
+  @item @refapimethod{mutate ((llvm llvm))}
+  @item @refapimethod{phenome ((llvm llvm) &key (bin (temp-file-name)))}  
+  @end itemize
+@end itemize
+
+
+
+@c ----------------------------------------
 
 @anchor{api-software-objects-simple}
 @subsubsection API | Software Objects | Class @code{simple}
@@ -675,39 +941,24 @@
 
 @include include/var-sel-star-simple-mutation-types-star.texinfo
 
-@anchor{api-software-objects-ast}
-@subsubsection API | Software Objects | Class @code{ast}
-@c done
+@c ----------------------------------------
+
+@anchor{api-software-objects-diff}
+@subsubsection API | Software Objects | Class @code{diff}
 
 @itemize
-@item Class @refapiclass{ast}
-@item Methods
-  @itemize
-  @item @refapigeneric{asts}
-  @item @refapigeneric{select-crossover-points}
-  @end itemize
+@item Class @refapiclass{diff}
 @item Specializations
   @itemize
-  @item @refapimethod{crossover ((a ast) (b ast))}
-  @item @refapimethod{from-file ((ast ast) path)}
-  @item @refapimethod{genome-string ((ast ast) &optional stream)}
-  @item @refapimethod{(setf genome-string) (text (obj ast))}
-  @item @refapimethod{lines ((ast ast))}
-  @item @refapimethod{mutate ((ast ast))}
-  @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
-  @item @refapimethod{size ((ast ast))}  
-  @end itemize 
+  @item @refapimethod{copy ((diff diff))}
+  @item @refapimethod{genome ((diff diff))}  
+  @end itemize
 @end itemize
 
-@c defun ast-from-file
-@c defmethod (setf lines)
-@c defun ast-to-file
-@c defmethod line-breaks
+@c defmethod original
+@c defmethod (setf genome)
 
-
-@include include/fun-sel-asts.texinfo
-@include include/fun-sel-select-crossover-points.texinfo
-
+@c ----------------------------------------
 
 @anchor{api-software-objects-light}
 @subsubsection API | Software Objects | Class @code{light}
@@ -723,6 +974,7 @@
 
 @c defmethod (setf lines)
 
+@c ----------------------------------------
 
 @anchor{api-software-objects-sw-range}
 @subsubsection API | Software Objects | Class @code{sw-range}
@@ -758,10 +1010,44 @@
 @c defun range-swap
 @c defun range-subseq
 
-
-
 @include include/fun-sel-reference.texinfo
 @include include/fun-sel-setf-reference.texinfo
+
+@c ----------------------------------------
+
+
+@anchor{api-software-objects-ast}
+@subsubsection API | Software Objects | Class @code{ast}
+@c done
+
+@itemize
+@item Class @refapiclass{ast}
+@item Methods
+  @itemize
+  @item @refapigeneric{asts}
+  @item @refapigeneric{select-crossover-points}
+  @end itemize
+@item Specializations
+  @itemize
+  @item @refapimethod{crossover ((a ast) (b ast))}
+  @item @refapimethod{from-file ((ast ast) path)}
+  @item @refapimethod{genome-string ((ast ast) &optional stream)}
+  @item @refapimethod{(setf genome-string) (text (obj ast))}
+  @item @refapimethod{lines ((ast ast))}
+  @item @refapimethod{mutate ((ast ast))}
+  @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
+  @item @refapimethod{size ((ast ast))}  
+  @end itemize 
+@end itemize
+
+@c defun ast-from-file
+@c defmethod (setf lines)
+@c defun ast-to-file
+@c defmethod line-breaks
+
+
+@include include/fun-sel-asts.texinfo
+@include include/fun-sel-select-crossover-points.texinfo
 
 
 
@@ -770,7 +1056,6 @@
 @anchor{api-software-objects-cil}
 @subsubsection API | Software Objects | Class @code{cil}
 
-@c done 
 @itemize
 @item Class @refapiclass{cil}
 @item Specializations
@@ -784,12 +1069,9 @@
 
 
 
-
-
 @anchor{api-software-objects-clang-instrumenter}
 @subsubsection API | Software Objects | Class @code{clang-instrumenter}
 
-@c done 
 @itemize
 @item Class @refapiclass{clang-instrumenter}
 @item Specializations
@@ -806,7 +1088,6 @@
 @anchor{api-software-objects-project}
 @subsubsection API | Software Objects | Class @code{project}
 
-@c done 
 @itemize
 @item Class @refapiclass{project}
 @item Macros
@@ -858,7 +1139,7 @@
 @anchor{api-software-objects-clang-project}
 @subsubsection API | Software Objects | Class @code{clang-project}
 
-@c done 
+
 @itemize
 @item Class @refapiclass{clang-project}
 @item Specializations

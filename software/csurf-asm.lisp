@@ -17,7 +17,8 @@
                   "CodeSurfer redirect file to redirect elf copy relocations.")
    (weak-symbols :initarg :weak-symbols :accessor weak-symbols :initform nil
                  :copier :direct :documentation
-                 "Symbols to weaken with `elf-weaken-gmon-start'.")))
+                 "Symbols to weaken with `elf-weaken-gmon-start'."))
+  (:documentation "DOCFIXME"))
 
 (defun elf-weaken-gmon-start (elf-objfile symbols)
   "Reimplementation of CSURF elf:weaken-gmon-start.
@@ -43,6 +44,7 @@ set."
          redirect-file elf-file))
 
 (defmethod phenome ((asm csurf-asm) &key (bin (temp-file-name)))
+  "DOCFIXME"
   ;; In CSURF-generated asm, mark some symbols, e.g.  __gmon_start__,
   ;; as weakly required.  The first value returned will be the name of
   ;; the binary on success, but may be the name of the object file if

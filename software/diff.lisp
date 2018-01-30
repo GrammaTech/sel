@@ -36,6 +36,7 @@ of range references to an external REFERENCE code array.
 Similar to the range approach, but striving for a simpler interface."))
 
 (defmethod copy ((diff diff))
+  "DOCFIXME"
   (let ((copy (make-instance (type-of diff))))
     (setf (fitness copy)   (fitness diff))
     (setf (reference copy) (reference diff))
@@ -44,6 +45,7 @@ Similar to the range approach, but striving for a simpler interface."))
     copy))
 
 (defmethod original ((diff diff))
+  "DOCFIXME"
   (let ((copy (copy diff)))
     (setf (diffs copy)     (make-instance 'diff:unified-diff
                              :original-pathname "original"
@@ -51,12 +53,14 @@ Similar to the range approach, but striving for a simpler interface."))
     copy))
 
 (defmethod genome ((diff diff))
+  "DOCFIXME"
   ;; Build the genome on the fly from the reference and diffs
   (with-slots (reference diffs type) diff
     (when (and reference diffs type)  ; otherwise uninitialized
       (coerce (apply-seq-diff reference diffs) type))))
 
 (defmethod (setf genome) (new (diff diff))
+  "DOCFIXME"
   ;; Convert the genome to a set of diffs against the reference
   (setf (type diff) (type-of new))
   (let ((list-new (coerce new 'list)))
