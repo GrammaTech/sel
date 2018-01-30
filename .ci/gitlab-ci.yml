@@ -21,7 +21,7 @@ stages:
           docker pull $DOCKER_REGISTRY/synthesis/cl:$OS;
       fi
 
-    - cp Dockerfile.$OS Dockerfile
+    - cp .ci/Dockerfile.$OS Dockerfile
     - docker build -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
 
 build:

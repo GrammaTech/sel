@@ -488,6 +488,7 @@ type in TYPES.
         (setf (gethash (type-hash type) hashtable) type)
         (finally (return hashtable))))
 
+;;; NOTE: I'd like to see a setf method for `source-text'.
 (defgeneric source-text (ast)
   (:documentation "Source code corresponding to an AST."))
 
@@ -567,10 +568,16 @@ if not given.
                                 c))
                           children))))))
 
-(defun make-literal (kind value &rest rest)
-  "Create a literal AST-REF of type KIND with value VALUE.
-* KIND type of literal to create (:integer, :unsigned, :float,
-:string, :quoated-string)
+(defun make-literal (value &optional (kind (etypecase value
+                                             (integer :integer)
+                                             (fixnum :integer)
+                                             (single-float :float)
+                                             (simple-array :string)))
+                     &rest rest)
+  "Create a literal AST-REF of VALUE.
+* Optional value KIND specified the type of literal to
+  create (:integer, :unsigned, :float, :string, :quoated-string).
+  Defaults based on the type of value
 * VALUE value for the literal AST to have
 * REST additional arguments to `make-statement'
 "
@@ -582,14 +589,11 @@ if not given.
                            (format nil "~du" (round value))))
         (:float (values :FloatingLiteral
                         (format nil "~a" value)))
-        (:string (values :StringLiteral
-                         (format nil "~s" value)))
-        (:quoted-string                 ; already has quotes, use ~a format
-         (assert (and (starts-with #\" value)
-                      (ends-with #\" value))
-                 nil "Expected quotes around string literal ~s" value)
+        (:string
          (values :StringLiteral
-                                (format nil "~a" value))))
+                 (format nil (if (and (eq (aref value 0) #\")
+                                      (eq (aref value (1- (length value))) #\"))
+                                 "~a" "~s") value))))
     (apply #'make-statement class :generic (list text) rest)))
 
 (defun make-operator (syn-ctx opcode child-asts &rest rest)
@@ -900,6 +904,12 @@ Adds and removes semicolons, commas, and braces.
   (nconc (subseq ast 0 (+ 1 n))
          (list replacement)
          (subseq ast (+ 2 n))))
+
+(defun (setf ast-ref) (new ref obj)
+  "Replace REF in OBJ with NEW."
+  (prog1 (setf (ast-root obj)
+               (replace-ast (ast-root obj) ref new))
+    (clear-caches obj)))
 
 (defmethod replace-ast ((tree list) (location ast-ref)
                         (replacement ast-ref))
@@ -1850,8 +1860,7 @@ This mutation will transform 'for(A;B;C)' into 'A;while(B);C'."))
     (let ((ast (aget :stmt1 (targets mutation))))
       (multiple-value-bind (initialization condition increment body)
         (destructure-for-loop ast)
-        (let* ((condition (or condition
-                             (make-literal :integer 1)))
+        (let* ((condition (or condition (make-literal 1)))
                (body (make-block (if increment
                                      (list body increment ";")
                                      (list body)))))
@@ -2030,7 +2039,7 @@ to expand.
            ,(let* ((children (get-immediate-children clang ast))
                    (lhs (first children))
                    (rhs (second children))
-                   (one (make-literal :integer 1)))
+                   (one (make-literal 1)))
               (cond
                ((increment-op ast)
                 (make-operator (ast-syn-ctx ast) "="

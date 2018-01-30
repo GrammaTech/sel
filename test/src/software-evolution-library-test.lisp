@@ -59,6 +59,7 @@ suite should be run and nil otherwise."
 (defvar *empty-while* nil "Holds the empty-while software object.")
 (defvar *headers*     nil "Holds the headers software object.")
 (defvar *hello-world* nil "Holds the hello world software object.")
+(defvar *sqrt*        nil "Holds the hello world software object.")
 (defvar *huf*         nil "Holds the huf software object.")
 (defvar *nested*      nil "Holds the nested software object.")
 (defvar *scopes*      nil "Holds the scopes software object.")
@@ -510,6 +511,16 @@ suite should be run and nil otherwise."
                  (hello-world-dir "hello_world.c"))))
   (:teardown
     (setf *hello-world* nil)))
+
+(defixture sqrt-clang
+  (:setup
+   (setf *sqrt*
+         (from-file (make-instance 'clang)
+                    (make-pathname :name "sqrt"
+                                   :type "c"
+                                   :directory +etc-dir+))))
+  (:teardown
+   (setf *sqrt* nil)))
 
 (defixture print-env-clang
   (:setup (setf *soft*
@@ -993,7 +1004,12 @@ suite should be run and nil otherwise."
   (with-fixture gcd-asm
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      (mutate ant)
+      (handler-bind
+          ((no-mutation-targets
+            (lambda (c)
+              (declare (ignorable c))
+              (invoke-restart 'try-another-mutation))))
+        (mutate ant))
       (is (not (sel::equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
@@ -1281,9 +1297,24 @@ suite should be run and nil otherwise."
       (apply-mutation variant
         `(clang-replace
           (:stmt1 . ,stmt1)
-          (:value1 . ,(make-literal :integer 0))))
+          (:value1 . ,(make-literal 0))))
       (is (different-asts (asts variant) (asts *hello-world*)))
       (is (not (equal (genome variant) (genome *hello-world*)))))))
+
+(deftest can-apply-mutation-w-value1 ()
+  (with-fixture sqrt-clang
+    (let* ((variant (copy *sqrt*))
+           (integer-constant
+            (second (remove-if-not
+                     [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
+                     (asts variant)))))
+      (apply-mutation variant
+        `(clang-replace
+          (:stmt1 . ,integer-constant)
+          (:value1 . ,(make-literal 0))))
+      (is (different-asts (asts variant) (asts *sqrt*)))
+      (is (not (equal (genome variant) (genome *sqrt*))))
+      (is (stmt-with-text variant "0")))))
 
 (deftest cut-shortens-a-clang-software-object()
   (with-fixture hello-world-clang
@@ -2217,7 +2248,7 @@ int x = CHARSIZE;")))
         `(clang-replace
           (:stmt1 . ,(find-if [{eq :StringLiteral} #'ast-class]
                               (asts variant)))
-          (:literal1 . ,(make-literal :string "Hello, mutate!"))))
+          (:literal1 . ,(make-literal "Hello, mutate!"))))
       (is (= (size variant)
              (size *hello-world*)))
       (is (string/= (genome variant)
@@ -2536,7 +2567,7 @@ int x = CHARSIZE;")))
            (op (make-instance 'clang-insert
                  :targets `((:stmt1 . ,(stmt-starting-with-text variant
                                                                 "printf"))
-                            (:literal1 . ,(make-literal :integer 0))))))
+                            (:literal1 . ,(make-literal 0))))))
       (apply-mutation variant op)
       (is (null (fitness variant))
           "Fitness is null after `apply-mutation'")
