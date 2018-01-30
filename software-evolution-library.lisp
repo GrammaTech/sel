@@ -238,6 +238,9 @@ Used to target mutation."))
         ((equal #'> *fitness-predicate*) 0)
         (t (error "bad *fitness-predicate* ~a" *fitness-predicate*))))
 
+(defvar *worst-fitness* (worst-numeric-fitness)
+  "Default worst fitness TODO.")
+
 (defun worst-numeric-fitness-p (obj)
   (= (fitness obj)
      (worst-numeric-fitness)))
@@ -861,15 +864,15 @@ Keyword arguments are used as defined in the `-search' function."
             (incorporate new)))
 
 (defun generational-evolve
-    (reproduce evaluate select
+    (reproduce evaluate-pop select
      &key
        every-pre-fn every-post-fn analyze-mutation-fn test period period-fn
        max-generations max-evals max-time filter)
-  "Evolves `*population*' using REPRODUCE EVALUATE and SELECT.
+  "Evolves `*population*' using REPRODUCE EVALUATE-POP and SELECT.
 
 Required arguments are as follows:
   REPRODUCE ----------- create new individuals from the current population
-  EVALUATE ------------ evaluate the entire population
+  EVALUATE-POP -------- evaluate-pop the entire population
   SELECT -------------- select best individuals from the population
 Keyword arguments are as follows:
   MAX-GENERATIONS ----- stop after this many generations
@@ -886,6 +889,9 @@ Keyword arguments are as follows:
   (setq *running* t)
   (setq *generations* 0)
   (setq *start-time* (get-internal-real-time))
+  (when *target-fitness-p*
+    (assert (functionp *target-fitness-p*) (*target-fitness-p*)
+            "`*target-fitness-p*' must be a function"))
   (flet
       ((check-max (current max)
          (or (not max) (not current) (< current max))))
@@ -898,7 +904,7 @@ Keyword arguments are as follows:
            (multiple-value-bind (children mutation-info)
                (funcall reproduce *population*)
              (if every-pre-fn (mapc every-pre-fn children))
-             (funcall evaluate children)
+             (funcall evaluate-pop children)
              (if analyze-mutation-fn
                  (mapcar (lambda (c info)
                            (funcall analyze-mutation-fn c info test))
@@ -910,6 +916,7 @@ Keyword arguments are as follows:
                 :when (funcall *target-fitness-p* child) :do
                 (setf *running* nil)
                 (return-from generational-evolve child)))
+           (format t "Selecting~%")
            (setq *population*
                  (funcall select *population* *max-population-size*))
            (assert (<= (length *population*) *max-population-size*))
@@ -917,27 +924,31 @@ Keyword arguments are as follows:
                (funcall period-fn)))
       (setq *running* nil))))
 
-(defun simple-reproduce (population)
-  (let (children mutations)
-    (iter (for parent in population)
-          (restart-case
-              (multiple-value-bind (child info)
-                  (new-individual parent (random-elt population))
-                (push child children)
-                (push info mutations))
-            (ignore-failed-mutation ()
-              :report
-              "Ignore failed mutation and continue evolution")))
-    (values children mutations)))
+(defun simple-reproduce (population &aux children mutations)
+  "Reproduce using every individual in POPULATION.
+Return a list of the resulting children and as optional extra value a
+list of the mutations applied to produce those children."
+  (mapcar (lambda (parent)
+            (restart-case
+                (multiple-value-bind (child info)
+                    (new-individual parent (random-elt population))
+                  (push child children)
+                  (push info mutations))
+              (ignore-failed-mutation ()
+                :report "Ignore failed mutation and continue evolution")))
+          population)
+  (values children mutations))
 
 (defun simple-evaluate (test new-children)
+  "Evaluate NEW-CHILDREN using TEST assigning each a fitness."
   (mapc (lambda (child)
           (incf *fitness-evals*)
           (restart-case
               (evaluate test child)
             (worse-for-failed-fitness-evaluation ()
               :report
-              "Assign `worst-numeric-fitness' for failed fitness evaluation.")))
+              "Assign `worst-numeric-fitness' for failed fitness evaluation."
+              *worst-fitness*)))
         new-children))
 
 (defun simple-select (population max-size &aux new-pop)
