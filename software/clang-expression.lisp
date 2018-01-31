@@ -7,15 +7,6 @@
 This is used to intern string names by `expression'."
   (make-keyword (string-upcase string)))
 
-#+(or )                ; NOTE: Looks like this isn't really necessary.
-(defun clang-expression-opcode (raw-opcode)
-  "DOCFIXME
-* RAW-OPCODE
-"
-  (switch (raw-opcode :test #'string=)
-    ("=" :=!)
-    (t (expression-intern raw-opcode))))
-
 (defmethod expression ((obj clang) (ast ast-ref))
   "Convert AST to an expression tree.
 * OBJ clang software object containing AST
