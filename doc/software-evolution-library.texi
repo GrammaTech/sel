@@ -1570,7 +1570,7 @@ is nicer than this.
 
 
 @node Licensing, Copying, SEL Utility API, Top
-
+@appendix Licensing
 @menu
 * Copying::                     The GNU General Public License gives
                                 you permission to redistribute GNU Emacs on
@@ -1581,7 +1581,7 @@ is nicer than this.
 
 
 @node Copying, GNU Free Documentation License, Licensing, Licensing
-@appendix GNU GENERAL PUBLIC LICENSE
+@appendixsec Copying: GNU GENERAL PUBLIC LICENSE
 @include gpl.texi
 
 

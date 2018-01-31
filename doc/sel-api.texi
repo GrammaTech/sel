@@ -22,6 +22,7 @@ error will result.
 @item @ref{api-tracing, Tracing}
 @item @ref{api-ancestry, Ancestry Tracking}
 @item @ref{api-multi-objective, Multi-Objective Fitness}
+@item @ref{api-searchability, Searchability}
 @end itemize
 
 
@@ -136,20 +137,11 @@ For more information, see @ref{Multi-objective Fitness}.
 @c ----------------------------
 
 
+@anchor{api-searchability}
+@section API | Searchability 
 
-@section Class @code{searchable} and its methods
-@itemize
-@item Class @refapiclass{searchable}
-@item Methods
-  @itemize
-  @item @refapigeneric{similar-snippets}
-  @item @refapigeneric{weighted-pick}
-  @end itemize
-@end itemize
+@include api--searchability.texi
 
-@include include/class-sel-searchable.texinfo
-@include include/fun-sel-similar-snippets.texinfo
-@include include/fun-sel-weighted-pick.texinfo
 
 @c ----------------------------
 
@@ -201,7 +193,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/constant-sel-plus-c-sign-unary-operators-plus.texinfo
 @include include/var-sel-plus-software-evolution-library-branch-plus.texinfo
 @include include/var-sel-plus-software-evolution-library-version-plus.texinfo
-@include include/fun-sel-adaptive-analyze-mutation.texinfo
+@c SOFTWARE OBJECTS / ADAPTIVE-MUTATION @include include/fun-sel-adaptive-analyze-mutation.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-include.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-macro.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-add-type.texinfo
@@ -219,7 +211,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS @include include/class-sel-asm.texinfo
 @c SOFTWARE OBJECTS @include include/class-sel-asm-replace-operand.texinfo
 @include include/class-sel-coalesce-while-loop.texinfo
-@include include/var-sel-star-bias-toward-dynamic-mutation-star.texinfo
+@c SOFTWARE-OBJECTS / ADAPTIVE-MUTATION @include include/var-sel-star-bias-toward-dynamic-mutation-star.texinfo
 @include include/var-sel-star-tournament-size-star.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-asm-split-instruction.texinfo
 @include include/fun-sel-ast-to-source-range.texinfo
@@ -238,7 +230,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c TRACING @include include/fun-sel-collect-traces.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-copy.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-crossover.texinfo
-@include include/fun-sel-database-emptyp.texinfo
+@c SEARCHABILITY @include include/fun-sel-database-emptyp.texinfo
 @c TEST SUITES @include include/class-sel-test-case.texinfo
 @c LEXICASE SELECTION @include include/var-sel-star-lexicase-key-star.texinfo
 @include include/constant-sel-plus-c-pointer-unary-operators-plus.texinfo
@@ -258,9 +250,9 @@ For more information, see @ref{Multi-objective Fitness}.
 @include include/fun-sel-error-funcs.texinfo
 @c TEST SUITES @include include/fun-sel-evaluate.texinfo
 @c STYLE FEATURES @include include/fun-sel-extract-features.texinfo
-@include include/fun-sel-find-macro.texinfo
-@include include/fun-sel-find-snippets.texinfo
-@include include/fun-sel-find-type.texinfo
+@c SEARCHABILITY @include include/fun-sel-find-macro.texinfo
+@c SEARCHABILITY @include include/fun-sel-find-snippets.texinfo
+@c SEARCHABILITY @include include/fun-sel-find-type.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-find-var-type.texinfo
 @c TEST SUITES @include include/fun-sel-finish-test.texinfo
 @include include/fun-sel-fitness-equal-p.texinfo

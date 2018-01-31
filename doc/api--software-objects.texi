@@ -94,11 +94,15 @@
 
 @item Property extension subclasses
    @itemize
+   @item @refapiclass{adaptive-mutation} (see @ref{api-software-objects-adaptive-mutation, API | Software Objects | Class @code{adaptive-mutation}})
    @item @refapiclass{ancestral} (see @ref{api-ancestry, API | Ancestry Tracking})
    @item @refapiclass{styleable} (see @ref{api-style-features-class-styleable, API | Style Features | Class @code{styleable} and its methods})
    @item @refapiclass{traceable} (see @ref{api-tracing, API | Tracing})
    @end itemize
 @item Macro @refapimacro{define-software}
+
+@item See also @ref{api-searchability, API | Searchability}
+
 @end itemize
 
 @c 
@@ -128,6 +132,7 @@
 @include include/class-sel-sw-range.texinfo
 @include include/class-sel-project.texinfo
 @include include/class-sel-clang-project.texinfo
+@include include/class-sel-adaptive-mutation.texinfo
 
 @include include/macro-sel-define-software.texinfo
 
@@ -1124,7 +1129,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
 @include include/var-sel-star-build-dir-star.texinfo
 
-
+@c ----------------------------------------
 
 @anchor{api-software-objects-clang-project}
 @subsubsection API | Software Objects | Class @code{clang-project}
@@ -1147,8 +1152,44 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
 
 
+@c ----------------------------------------
+
+@anchor{api-software-objects-adaptive-mutation}
+@subsubsection API | Software Objects | Class @code{adaptive-mutation}
 
 
+@itemize
+@item Class @refapiclass{adaptive-mutation}
+@item Functions and Methods
+  @itemize
+  @item @refapifunction{adaptive-analyze-mutation}
+  @item @refapifunction{update-mutation-types}
+  @end itemize
+@item Variables
+  @itemize
+  @item @refapivariable{*bias-toward-dynamic-mutation*}
+  @item @refapivariable{*better-bias*}
+  @item @refapivariable{*same-bias*}
+  @item @refapivariable{*worse-bias*}
+  @item @refapivariable{*dead-bias*}
+  @end itemize
+
+@item Specializations
+@end itemize
 
 
+@c define-constant +initial-mutation-results-queue+
+@c defvar *mutation-results-queue*
+@c defvar *mutation-results-queue-next*
+@c defvar *mutation-results-queue-lock*
+@c defun queue-mutation
+
+@include include/fun-sel-adaptive-analyze-mutation.texinfo
+@include include/fun-sel-update-mutation-types.texinfo
+
+@include include/var-sel-star-bias-toward-dynamic-mutation-star.texinfo
+@include include/var-sel-star-better-bias-star.texinfo
+@include include/var-sel-star-same-bias-star.texinfo
+@include include/var-sel-star-worse-bias-star.texinfo
+@include include/var-sel-star-dead-bias-star.texinfo
 
