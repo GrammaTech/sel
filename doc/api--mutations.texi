@@ -1,12 +1,5 @@
 
-
-@itemize
-@item @ref{api-mutations-classes,Class @code{mutation}}
-@item @ref{api-mutations-methods,@code{mutation} Methods}
-@item @ref{api-mutations-variables,Variables}
-@end itemize
-
-See also @ref{api-software-object-applying-mutations, API | Software Objects | Applying Mutations}
+See also @ref{api-software-object-applying-mutations, API | Software Objects@comma{} Applying Mutations}
 
 
 @anchor{api-mutations-classes}
@@ -14,47 +7,52 @@ See also @ref{api-software-object-applying-mutations, API | Software Objects | A
 
 @itemize
 @item Class @refapiclass{mutation}
-@item Macro @refapimacro{define-mutation}
-@end itemize
 
-@include include/class-sel-mutation.texinfo
-@include include/macro-sel-define-mutation.texinfo
-
-
-@anchor{api-mutations-methods}
-@subsection API | Mutation Objects | @code{mutation} Operations
-
-@itemize
+@item Generic Function
+  @itemize
+  @item @refapigeneric{at-targets}
+  @end itemize
 
 @item Function @refapifunction{analyze-mutation}
-@c   @refapifunction{summarize-mutation-stats}
 
-@item Method @refapigeneric{at-targets}
-  
 @item Macros
   @itemize
+  @item @refapimacro{define-mutation}
   @item @refapimacro{compose-mutations}
   @item @refapimacro{sequence-mutations} 
   @end itemize
+
+@item Variables
+  @itemize
+  @item @refapivariable{*mutation-improvements*}
+  @item @refapivariable{*mutation-stats*}
+  @end itemize
+
+@item Methods
+  @itemize
+  @item @refapimethod{at-targets ((mut mutation) targets &key (object (object mut)))}
+  @end itemize
 @end itemize
+
+@c summarize-mutation-stats
+@c *max-saved-mutation-improvements*
+
+
+@include include/class-sel-mutation.texinfo
 
 @include include/fun-sel-analyze-mutation.texinfo
 @include include/fun-sel-summarize-mutation-stats.texinfo
 @include include/fun-sel-at-targets.texinfo
+
+@include include/macro-sel-define-mutation.texinfo
 @include include/macro-sel-compose-mutations.texinfo
 @include include/macro-sel-sequence-mutations.texinfo
 
-
-@anchor{api-mutations-variables}
-@subsection API | Mutation Objects | Variables
-
-@itemize
-@c @item @refapivariable{*max-saved-mutation-improvements*}
-@item @refapivariable{*mutation-improvements*}
-@item @refapivariable{*mutation-stats*}
-@end itemize
-
-@c @include include/var-sel-star-max-saved-mutation-improvements-star.texinfo
 @include include/var-sel-star-mutation-improvements-star.texinfo
 @include include/var-sel-star-mutation-stats-star.texinfo
+
+
+
+
+
 

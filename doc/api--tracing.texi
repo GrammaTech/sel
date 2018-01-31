@@ -2,7 +2,7 @@
 @itemize
 @item Class @refapiclass{traceable}
 @item Condition @refapicond{trace-error}
-@item Methods
+@item Generic Functions
   @itemize
   @item @refapigeneric{collect-traces}
   @item @refapigeneric{collect-trace}

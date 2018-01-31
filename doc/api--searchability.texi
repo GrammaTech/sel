@@ -21,7 +21,7 @@ Classes:
 
 
 @anchor{api-searchability-searchable}
-@section API | Searchability | Class @code{searchable}
+@subsection API | Searchability | Class @code{searchable}
 @itemize
 @item Class @refapiclass{searchable}
 @item Subclasses
@@ -39,10 +39,23 @@ Classes:
      (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
     @end itemize
   @end itemize
-@item Methods
+
+@item Generic Functions
   @itemize
   @item @refapigeneric{similar-snippets}
   @item @refapigeneric{weighted-pick}
+  @end itemize
+
+@item Methods
+  @itemize
+@c whitespace in this reference is important
+  @item @refapimethod{similar-snippets ((db searchable) target &key key ast-class limit
+                    (predicate #'<) (metric #'diff-scalar) (filter #'null)
+                                      (limit-considered infinity))}
+@c whitespace in this reference is important
+  @item @refapimethod{weighted-pick ((obj searchable) target weight &key key limit ast-class
+                 (predicate #'<) (metric #'diff-scalar) (filter #'null)
+                                (limit-considered infinity))}
   @end itemize
 @end itemize
 
@@ -67,7 +80,7 @@ Classes:
   @item @refapiclass{pliny-database}
      (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
   @end itemize
-@item Methods
+@item Generic Methods
   @itemize
   @item @refapigeneric{database-emptyp}
   @item @refapigeneric{find-macro}
@@ -95,7 +108,7 @@ Classes:
   @item @refapiclass{json-database}
      (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})  
   @end itemize
-@item Specializations
+@item Methods
   @itemize
   @item @refapimethod{size ((db in-memory-database))}
   @item @refapimethod{database-emptyp ((db in-memory-database))}
@@ -130,7 +143,7 @@ Classes:
 
 @itemize
 @item Class @refapiclass{pliny-database}
-@item Specializations
+@item Methods
   @itemize
   @item @refapimethod{database-emptyp ((obj pliny-database))}
   @item @refapimethod{find-macro ((obj pliny-database) hash)}  

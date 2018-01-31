@@ -32,7 +32,7 @@ The SEL API provides several AST-related feature extractors for clang
 software objects, i.e., features derived from properties of a clang
 AST. The available feature extractors are:
 @itemize
-@item Documented in section @ref{api-style-features-extractors, API | Style Features | Feature Extractors}
+@item Documented in section @ref{api-style-features, API | Style Features}
 @item Listed in parameter @ref{Variable *feature-extractors*,@code{*feature-extractors*}}.
 @item Summarized in the following table.
 

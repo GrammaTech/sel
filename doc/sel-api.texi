@@ -21,6 +21,7 @@ error will result.
 @item @ref{api-fault-localization, Fault Localization}
 @item @ref{api-tracing, Tracing}
 @item @ref{api-ancestry, Ancestry Tracking}
+@item @ref{api-instrumentation, Instrumentation}
 @item @ref{api-multi-objective, Multi-Objective Fitness}
 @item @ref{api-searchability, Searchability}
 @end itemize
@@ -115,8 +116,8 @@ provided in section @ref{Tracing}.
 
 
 
-@anchor{api-clang-instrument}
-@section API | Clang Instrumentation
+@anchor{api-instrumentation}
+@section API | Instrumentation
 
 
 More information about instrumentation is provided in section
@@ -248,7 +249,7 @@ For more information, see @ref{Multi-objective Fitness}.
 @c SOFTWARE OBJECTS / ELF @include include/fun-sel-elf.texinfo
 @include include/var-sel-elf-risc-max-displacement.texinfo
 @include include/fun-sel-error-funcs.texinfo
-@c TEST SUITES @include include/fun-sel-evaluate.texinfo
+@include include/fun-sel-evaluate.texinfo
 @c STYLE FEATURES @include include/fun-sel-extract-features.texinfo
 @c SEARCHABILITY @include include/fun-sel-find-macro.texinfo
 @c SEARCHABILITY @include include/fun-sel-find-snippets.texinfo

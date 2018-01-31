@@ -3,34 +3,60 @@
 @itemize
 
 @item @ref{api-test-suites-test-suite, Class @code{test-suite}}
-@item @ref{api-test-suites-test-case, Class @code{test-case} and its methods}
-@item @ref{api-test-suites-process, Class @code{process} and its methods}
+@item @ref{api-test-suites-test-case, Class @code{test-case}}
+@item @ref{api-test-suites-process, Class @code{process}}
 
 @end itemize
 
 
 @anchor{api-test-suites-test-suite}
 @subsection API | Test Suites | Class @code{test-suite}
+
+@itemize
+@item Class @refapiclass{test-suite}
+
+@item Methods
+  @itemize
+@c whitespace in this reference is important  
+  @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key predicate max
+                  (bin (temp-file-name)) &aux (args (list bin bin))
+                                  (delete-bin-p t))}
+@c whitespace in this reference is important
+  @item @refapimethod{evaluate (phenome (test-suite test-suite) &rest extra-keys &key
+                    &allow-other-keys)}
+  @end itemize
+@end itemize
+
+
+
 @include include/class-sel-test-suite.texinfo
 
-
+@c ----------------------------------------
 
 @anchor{api-test-suites-test-case}
-@subsection API | Test Suites | Class @code{test-case} and its methods
+@subsection API | Test Suites | Class @code{test-case} 
 
 @itemize
 @item Class @refapiclass{test-case}
-@item Methods
+@item Generic Functions
   @itemize
-  @item @refapigeneric{evaluate}
-  @item @refapigeneric{finish-test}
   @item @refapigeneric{run-test}
   @item @refapigeneric{start-test}
+  @end itemize
+
+@item Methods
+  @itemize
+@c whitespace in this reference is important
+  @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key (predicate #'identity)
+                 (max infinity) (bin (temp-file-name)) &aux (delete-bin-p t))}
+  @item @refapimethod{evaluate (phenome (obj test-case) &rest extra-keys &key &allow-other-keys)}
+  @item @refapimethod{run-test (phenome (test-case test-case) &rest extra-keys &key &allow-other-keys)}
+  @item @refapimethod{start-test (phenome (test-case test-case) &rest extra-keys &key
+                      &allow-other-keys)}
   @end itemize
 @end itemize
 
 @include include/class-sel-test-case.texinfo
-@include include/fun-sel-evaluate.texinfo
 @include include/fun-sel-finish-test.texinfo
 @include include/fun-sel-run-test.texinfo
 @include include/fun-sel-start-test.texinfo
@@ -41,8 +67,9 @@
 
 @itemize
 @item Class @refapiclass{process}
-@item Methods
+@item Generic Functions
   @itemize
+  @item @refapigeneric{finish-test}
   @item @refapigeneric{process-error-stream}
   @item @refapigeneric{process-exit-code}
   @item @refapigeneric{process-id}
@@ -50,6 +77,18 @@
   @item @refapigeneric{process-output-stream}
   @item @refapigeneric{process-status}
   @item @refapigeneric{signal-process}
+  @end itemize
+
+@item Methods
+  @itemize
+  @item @refapimethod{finish-test ((test-process process) &key kill-signal timeout)}
+  @item @refapimethod{process-error-stream ((process process))}
+  @item @refapimethod{process-exit-code ((process process))}
+  @item @refapimethod{process-id ((process process))}
+  @item @refapimethod{process-input-stream ((process process))}
+  @item @refapimethod{process-output-stream ((process process))}
+  @item @refapimethod{process-status ((process process))}
+  @item @refapimethod{signal-process ((process process) (signal-number integer))}
   @end itemize
 @end itemize
 
