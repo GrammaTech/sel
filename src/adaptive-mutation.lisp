@@ -53,7 +53,7 @@ the last *max-mutation-results-queue-length* mutations")
       (setf *mutation-results-queue-next* 0))))
 
 (defun adaptive-analyze-mutation (obj mutation-info test)
-  "Adaptively update mutation probabilites based on the result of the mutation"
+  "Adaptively update mutation probabilities based on the result of the mutation"
   (when (not (zerop *bias-toward-dynamic-mutation*))
     (destructuring-bind (mutation software-a cross-point-a
                                   crossed software-b cross-point-b)

@@ -204,7 +204,7 @@
 
 
 @anchor{api-software-objects-clang}
-@subsection API | Software Objects, Class @code{clang}
+@subsection API | Software Objects | Class @code{clang}
 
 See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
@@ -260,7 +260,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
    @end itemize
 
 @c defvar *clang-obj-code*
-@item Mutations (subclasses of @refapiclass {mutation}
+@item Mutations (subclasses of @refapiclass {mutation})
   @itemize
   @item @refapiclass{clang-mutation}
   @item @refapiclass{clang-insert}
@@ -1149,8 +1149,6 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @end itemize
 
 @c defmethod clang-format
-
-
 
 @c ----------------------------------------
 
