@@ -85,6 +85,8 @@
    @item @refapiclass{styleable} (see @ref{api-style-features-class-styleable, API | Style Features | Class @code{styleable} and its methods})
    @item @refapiclass{traceable} (see @ref{api-tracing, API | Tracing})
    @end itemize
+ @end itemize
+
 @item Macro @refapimacro{define-software}
 
 @item See also @ref{api-searchability, API | Searchability}
