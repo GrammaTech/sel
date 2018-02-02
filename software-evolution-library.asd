@@ -64,7 +64,8 @@ techniques."
              (:file "llvm" :depends-on ("ast"))
              (:file "project")
              (:file "clang-project" :depends-on ("project" "clang"))
-             (:file "java-project" :depends-on ("project" "java"))))
+             (:file "java-project" :depends-on ("project" "java"))
+             (:file "super-mutant")))
    (:module src
             :depends-on (base software)
             :pathname "src"
