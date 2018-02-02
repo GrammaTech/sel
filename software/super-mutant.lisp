@@ -52,3 +52,66 @@
                    (setf (fitness obj) fit)
                    (setf (fitness-extra-data obj) extra))))
              (indexed (mutants super)))))))
+
+
+
+
+(defvar *mutants-at-once* 4
+  "Number of variants to combine into a single super-mutant.")
+
+;;; Evolution
+(defun super-evolve (test &key
+                    max-evals max-time period period-fn
+                    every-pre-fn every-post-fn filter analyze-mutation-fn)
+
+  (unless *start-time* (setq *start-time* (get-internal-real-time)))
+  (setq *running* t)
+  (flet
+      ((fitness-check (variant)
+         (assert (fitness variant) (variant) "Variant with no fitness"))
+       (new-individuals ()
+         (iter (for i below *mutants-at-once*)
+               (restart-case
+                   (multiple-value-bind (variant mutation-info)
+                       (new-individual)
+                     (collect variant into variants)
+                     (collect mutation-info into infos))
+                 (ignore-failed-mutation ()
+                   :report
+                   "Ignore failed mutation and continue evolution"))
+               (finally (return (values variants infos))))))
+
+    (block search-target-reached
+      (iter (until (or (not *running*)
+                       (and max-evals
+                            (> *fitness-evals* max-evals))
+                       (and max-time
+                            (> (/ (- (get-internal-real-time) *start-time*)
+                                  internal-time-units-per-second)
+                               max-time))))
+            (multiple-value-bind (variants mutation-infos)
+                (new-individuals)
+              (when every-pre-fn
+                (mapcar every-pre-fn variants))
+              (evaluate test (make-instance 'super-mutant :mutants variants))
+              (when analyze-mutation-fn
+                (mapcar (lambda (variant info)
+                          (funcall analyze-mutation-fn variant info test))
+                        variants
+                        mutation-infos))
+              (when every-post-fn
+                (mapcar every-post-fn variants))
+              (incf *fitness-evals* (length variants))
+              (when (and period period-fn
+                         (zerop (mod *fitness-evals* period)))
+                (funcall period-fn))
+              (mapcar #'fitness-check variants)
+              (mapcar #'incorporate
+                      (if filter
+                          (remove-if-not filter variants)
+                          variants))
+              (when *target-fitness-p*
+                (iter (for v in variants)
+                      (when (funcall *target-fitness-p* v)
+                        (return-from search-target-reached v))))))))
+  (setq *running* nil))
