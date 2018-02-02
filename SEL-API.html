@@ -2662,23 +2662,24 @@ times.
 <dt><a name="index-clang_002dinstrumenter-1"></a>Class: <strong>clang-instrumenter</strong></dt>
 <dd><p>Class precedence list: <code>clang-instrumenter, instrumenter, standard-object, t</code>
 </p>
-<p><code>docfixme</code>
+<p>Handles instrumentation for clang software objects.
 </p></dd></dl>
 <a name="index-clang_002dinstrument"></a>
 <a name="Function-clang_002dinstrument"></a><dl>
 <dt><a name="index-clang_002dinstrument-1"></a>Function: <strong>clang-instrument</strong> <em>args</em></dt>
 <dd><p>Interface to the command line instrumentation tool.
-<code>*</code> <code>args</code> <code>docfixme</code>
+<code>*</code> <code>args</code> command-line arguments
 </p></dd></dl>
 <a name="index-get_002dentry"></a>
 <a name="Generic_002dFunction-get_002dentry"></a><dl>
 <dt><a name="index-get_002dentry-1"></a>Generic Function: <strong>get-entry</strong> <em>software</em></dt>
-<dd><p>Return the entry <code>ast</code> in <code>software</code>.
+<dd><p>Return the <code>ast</code> of the entry point (main function) in <code>software</code>.
 </p></dd></dl>
 <a name="Method-get_002dentry-_0028_0028obj-clang_0029_0029"></a><dl>
 <dt><a name="index-get_002dentry-2"></a>Method: <strong>get-entry</strong> <em>(obj clang)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>obj</code> <code>docfixme</code>
+<dd><p>Return the <code>ast</code> of the entry point (main function) in <code>software</code>.
+</p>
+<p><code>obj</code> a clang software object
 </p></dd></dl>
 <a name="index-instrument"></a>
 <a name="Generic_002dFunction-instrument"></a><dl>
@@ -2689,7 +2690,7 @@ times.
 position of the ast in (asts obj).
 </p>
 <ul>
-<li> <code>obj</code> <code>docfixme</code>
+<li> <code>obj</code> software object to instrument
 
 </li><li> <code>points</code> alist of additional values to print at specific points
 
@@ -2710,35 +2711,37 @@ position of the ast in (asts obj).
 </dd></dl>
 <a name="Method-instrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026rest-args_0029"></a><dl>
 <dt><a name="index-instrument-2"></a>Method: <strong>instrument</strong> <em>(clang-project clang-project) &amp;rest args</em></dt>
-<dd><p>Instrument a project. Arguments are passed through to instrument on
-the underlying software objects.
+<dd><p>Instrument <code>clang-project</code> to print <code>ast</code> index before each full statement.
 </p>
 <ul>
-<li> <code>clang-project</code> <code>docfixme</code>
-</li><li> <code>args</code> <code>docfixme</code>
+<li> <code>clang-project</code> the project to instrument
+</li><li> <code>args</code> passed through to the instrument method on underlying software objects.
 </li></ul>
 </dd></dl>
 <a name="Method-instrument-_0028_0028instrumenter-clang_002dinstrumenter_0029-_0026key-points-functions--functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit--_0028filter-_0023_0027identity_0029_0029"></a><dl>
 <dt><a name="index-instrument-3"></a>Method: <strong>instrument</strong> <em>(instrumenter clang-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (function identity))</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>instrumenter</code> <code>docfixme</code>
-</li><li> <code>points</code> <code>docfixme</code>
-</li><li> <code>functions</code> <code>docfixme</code>
-</li><li> <code>functions-after</code> <code>docfixme</code>
-</li><li> <code>trace-file</code> <code>docfixme</code>
-</li><li> <code>trace-env</code> <code>docfixme</code>
-</li><li> <code>instrument-exit</code> <code>docfixme</code>
-</li><li> <code>postprocess-functions</code> <code>docfixme</code>
-</li><li> <code>filter</code> <code>docfixme</code>
+<dd><p>Use <code>instrumenter</code> to instrument a clang software object.
+</p>
+<ul>
+<li> <code>instrumenter</code> current instrumentation state
+</li><li> <code>points</code> alist of additional values to print at specific points
+</li><li> <code>functions</code>  functions to calculate instrumentation at each point
+</li><li> <code>functions-after</code> functions to calculate instrumentation after each point
+</li><li> <code>trace-file</code> file for trace output
+</li><li> <code>trace-env</code> trace output to file specified by <code>env</code> variable
+</li><li> <code>instrument-exit</code> print counter of function body before exit
+</li><li> <code>filter</code> function to select a subset of ASTs for instrumentation
+</li><li> <code>postprocess-functions</code> functions to execute after instrumentation
 </li></ul>
 </dd></dl>
 <a name="Method-instrument-_0028_0028obj-clang_0029-_0026rest-args_0029"></a><dl>
 <dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(obj clang) &amp;rest args</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>args</code> <code>docfixme</code>
+<dd><p>Instrumentation for clang software objects.
+Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its instrument method.
+</p>
+<ul>
+<li> <code>obj</code> the software object to instrument
+</li><li> <code>args</code> additional arguments are passed through to the instrumenter method.
 </li></ul>
 </dd></dl>
 <a name="Method-instrument-_0028_0028cil-cil_0029-_0026key-points-functions-functions_002dafter-trace_002dfile--trace_002denv-instrument_002dexit-filter_0029"></a><dl>
@@ -2753,8 +2756,8 @@ Optionally specify the name of the file in which to save trace data.
 </p></dd></dl>
 <a name="Method-instrumentation_002dfiles-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
 <dt><a name="index-instrumentation_002dfiles-2"></a>Method: <strong>instrumentation-files</strong> <em>(clang-project clang-project)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>clang-project</code> <code>docfixme</code>
+<dd><p>Return files in <code>clang-project</code> in the order which they would be instrumented
+<code>*</code> <code>clang-project</code> an instrumented project
 </p></dd></dl>
 <a name="index-instrumented_002dp"></a>
 <a name="Generic_002dFunction-instrumented_002dp"></a><dl>
@@ -2763,13 +2766,13 @@ Optionally specify the name of the file in which to save trace data.
 </p></dd></dl>
 <a name="Method-instrumented_002dp-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
 <dt><a name="index-instrumented_002dp-2"></a>Method: <strong>instrumented-p</strong> <em>(clang-project clang-project)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>clang-project</code> <code>docfixme</code>
+<dd><p>Return true if <code>clang-project</code> is instrumented
+<code>*</code> <code>clang-project</code> a clang-project software object
 </p></dd></dl>
 <a name="Method-instrumented_002dp-_0028_0028clang-clang_0029_0029"></a><dl>
 <dt><a name="index-instrumented_002dp-3"></a>Method: <strong>instrumented-p</strong> <em>(clang clang)</em></dt>
-<dd><p><code>docfixme</code>
-<code>*</code> <code>clang</code> <code>docfixme</code>
+<dd><p>Return true if <code>clang</code> is instrumented
+<code>*</code> <code>clang</code> a clang software object
 </p></dd></dl>
 <a name="index-uninstrument"></a>
 <a name="Generic_002dFunction-uninstrument"></a><dl>
@@ -2787,18 +2790,20 @@ Optionally specify the name of the file in which to save trace data.
 <a name="index-var_002dinstrument"></a>
 <a name="Generic_002dFunction-var_002dinstrument"></a><dl>
 <dt><a name="index-var_002dinstrument-1"></a>Generic Function: <strong>var-instrument</strong> <em>key instrumenter ast &amp;key print-strings</em></dt>
-<dd><p>Return <code>c</code> statements for variable instrumentation.
-<code>instrumenter</code> contains instrumentation state. <code>key</code> should be a function
-used to pull the variable list out of <code>ast</code>.
-</p></dd></dl>
+<dd><p>Generate ASTs for variable instrumentation.
+</p><ul>
+<li> <code>key</code> a function used to pull the variable list out of <code>ast</code>
+</li><li> <code>instrumenter</code> current instrumentation state
+</li><li> <code>ast</code> the <code>ast</code> to instrument
+</li></ul>
+</dd></dl>
 <a name="Method-var_002dinstrument-_0028key-_0028instrumenter-instrumenter_0029-_0028ast-ast_002dref_0029-_0026key--print_002dstrings_0029"></a><dl>
 <dt><a name="index-var_002dinstrument-2"></a>Method: <strong>var-instrument</strong> <em>key (instrumenter instrumenter) (ast ast-ref) &amp;key print-strings</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Generate ASTs for variable instrumentation.
 </p><ul>
-<li> <code>key</code> <code>docfixme</code>
-</li><li> <code>instrumenter</code> <code>docfixme</code>
-</li><li> <code>ast</code> <code>docfixme</code>
-</li><li> <code>print-strings</code> <code>docfixme</code>
+<li> <code>key</code> a function used to pull the variable list out of <code>ast</code>
+</li><li> <code>instrumenter</code> current instrumentation state
+</li><li> <code>ast</code> the <code>ast</code> to instrument
 </li></ul>
 </dd></dl>
 <a name="index-_002ainstrument_002dlog_002dvariable_002dname_002a"></a>
@@ -3642,12 +3647,12 @@ snippets.
 </p></dd></dl>
 <a name="index-generational_002devolve"></a>
 <a name="Function-generational_002devolve"></a><dl>
-<dt><a name="index-generational_002devolve-1"></a>Function: <strong>generational-evolve</strong> <em>reproduce evaluate select &amp;key every-pre-fn every-post-fn analyze-mutation-fn test period period-fn max-generations max-evals max-time filter</em></dt>
-<dd><p>Evolves &lsquo;*population*&rsquo; using <code>reproduce</code> <code>evaluate</code> and <code>select</code>.
+<dt><a name="index-generational_002devolve-1"></a>Function: <strong>generational-evolve</strong> <em>reproduce evaluate-pop select &amp;key every-pre-fn every-post-fn analyze-mutation-fn test period period-fn max-generations max-evals max-time filter</em></dt>
+<dd><p>Evolves &lsquo;*population*&rsquo; using <code>reproduce</code> <code>evaluate-pop</code> and <code>select</code>.
 </p>
 <p>Required arguments are as follows:
   <code>reproduce</code> <code>-----------</code> create new individuals from the current population
-  <code>evaluate</code> <code>------------</code> evaluate the entire population
+  <code>evaluate-pop</code> <code>--------</code> evaluate-pop the entire population
   <code>select</code> <code>--------------</code> select best individuals from the population
 Keyword arguments are as follows:
   <code>max-generations</code> <code>-----</code> stop after this many generations
@@ -4300,10 +4305,10 @@ operations.
 </p></dd></dl>
 <a name="Method-expression-_0028_0028obj-clang_0029-_0028ast-ast_002dref_0029_0029"></a><dl>
 <dt><a name="index-expression-2"></a>Method: <strong>expression</strong> <em>(obj clang) (ast ast-ref)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Convert <code>ast</code> to an expression tree.
 </p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>ast</code> <code>docfixme</code>
+<li> <code>obj</code> clang software object containing <code>ast</code>
+</li><li> <code>ast</code> the <code>ast</code> to convert
 </li></ul>
 </dd></dl>
 <a name="index-expression_002dintern"></a>
