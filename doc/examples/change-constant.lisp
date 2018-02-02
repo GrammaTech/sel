@@ -3,11 +3,10 @@
 (in-package :software-evolution-library)
 
 (defparameter *sqrt*
-  (setf *sqrt*
-        (from-file (make-instance 'clang)
-                   (make-pathname :name "sqrt"
-                                  :type "c"
-                                  :directory sel/test::+etc-dir+))))
+  (from-file (make-instance 'clang)
+             (make-pathname :name "sqrt"
+                            :type "c"
+                            :directory sel/test::+etc-dir+)))
 
 ;;; Show some mutations.
 (genome (mutate (copy *sqrt*)))

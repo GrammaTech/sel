@@ -188,4 +188,78 @@
 ;;     printf(\"gcd=%g\\n\", a);
 ;;   }
 ;; }"
-;; SEL> 
+;; SEL>
+
+
+;;; Now lets try to get this last bit.
+
+#+(or )                                 ; Update the parameters.
+((push (make-test 0 4 "gcd") *suite*)
+ (count-if [{= 14} #'length #'fitness] *population*)
+ (setf *max-population-size* (expt 2 10) ; Reasonable population size.
+       *worst-fitness* (mapcar (constantly nil) *suite*)
+       *target-fitness-p* [{equalp (mapcar (constantly t) *suite*)} #'fitness]))
+
+#+(or )                              ; Second run to finish the merge.
+(handler-bind        ; Handle errors that might occur during mutation.
+    ((no-mutation-targets
+      (lambda (e)
+        (declare (ignorable e))
+        (invoke-restart 'try-another-mutation)))
+     (phenome
+      (lambda (e)
+        (declare (ignorable e))
+        (invoke-restart 'return-nil-for-bin)))
+     (t (lambda (e)
+          (cond
+            ((find-restart 'try-another-mutation)
+             (invoke-restart 'try-another-mutation))
+            ((find-restart 'ignore-failed-mutation)
+             (invoke-restart 'ignore-failed-mutation))
+            (t (error e))))))
+  (progn
+    ;; Reset everyone's fitness.
+    (mapc (lambda (ind) (setf (fitness ind) (run-suite ind)))
+          *population*)
+    ;; Kickoff evolution again.
+    (generational-evolve #'simple-reproduce
+      {simple-evaluate #'run-suite}
+      #'lexicase-select)))
+
+
+;;; One more try.
+
+#+(or )                                 ; Update the parameters.
+((push (lambda (bin)
+         (zerop (nth-value 2 (shell "/tmp/limit ~a ~d ~d|grep -vq \"^[[:digit:]]\""
+                                    bin left right))))
+       *suite*)
+ (setf *max-population-size* (expt 2 10) ; Reasonable population size.
+       *worst-fitness* (mapcar (constantly nil) *suite*)
+       *target-fitness-p* [{equalp (mapcar (constantly t) *suite*)} #'fitness]))
+
+#+(or )                              ; Second run to finish the merge.
+(handler-bind        ; Handle errors that might occur during mutation.
+    ((no-mutation-targets
+      (lambda (e)
+        (declare (ignorable e))
+        (invoke-restart 'try-another-mutation)))
+     (phenome
+      (lambda (e)
+        (declare (ignorable e))
+        (invoke-restart 'return-nil-for-bin)))
+     (t (lambda (e)
+          (cond
+            ((find-restart 'try-another-mutation)
+             (invoke-restart 'try-another-mutation))
+            ((find-restart 'ignore-failed-mutation)
+             (invoke-restart 'ignore-failed-mutation))
+            (t (error e))))))
+  (progn
+    ;; Reset everyone's fitness.
+    (mapc (lambda (ind) (setf (fitness ind) (run-suite ind)))
+          *population*)
+    ;; Kickoff evolution again.
+    (generational-evolve #'simple-reproduce
+      {simple-evaluate #'run-suite}
+      #'lexicase-select)))
