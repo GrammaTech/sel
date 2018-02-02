@@ -35,8 +35,8 @@ use lexicase-style selection in tournament selection."
         (setf group
               ;; Keep individuals with the highest score on the current test.
               (remove-if-not
-               [{= (extremum (mapcar [{elt _ which} #'fitness] group)
-                             predicate :key *lexicase-key*)}
+               [{equal (extremum (mapcar [{elt _ which} #'fitness] group)
+                                 predicate :key *lexicase-key*)}
                 {elt _ which} #'fitness]
                group :key *lexicase-key*))
         ;; Stop when we get down to one individual

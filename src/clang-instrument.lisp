@@ -25,7 +25,7 @@
 The indices printed here are not clang-mutate counters, but rather the
 position of the ast in (asts obj).
 
-* OBJ DOCFIXME
+* OBJ software object to instrument
 
 * POINTS alist of additional values to print at specific points
 
@@ -269,38 +269,46 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   :documentation "C code which declares the trace file")
 
 (defclass instrumenter ()
-  ((software :accessor software :initarg :software :initform nil)
+  ((software :accessor software :initarg :software :initform nil
+             :documentation "Software obj to instrument")
    (names :accessor names
-          :initform (make-hash-table :test #'equal))
+          :initform (make-hash-table :test #'equal)
+          :documentation "Type and variable names seen during instrumentation")
    (types :accessor types
-          :initform (make-hash-table :test #'equal))
+          :initform (make-hash-table :test #'equal)
+          :documentation "Types seen during instrumentation")
    (type-descriptions :accessor type-descriptions
-          :initform (make-hash-table :test #'equal))
-   (ast-ids :accessor ast-ids :initform nil))
-  (:documentation "DOCFIXME"))
+          :initform (make-hash-table :test #'equal)
+          :documentation "Descriptions of instrumented types")
+   (ast-ids :accessor ast-ids :initform nil
+            :documentation "Maps ASTs to trace IDs"))
+  (:documentation
+   "Base class for objects which handle instrumentation.
+Stores instrumentation state and provides methods for instrumentation
+operations."))
 
 (defclass clang-instrumenter (instrumenter)
   ()
-  (:documentation "DOCFIXME"))
+  (:documentation "Handles instrumentation for clang software objects."))
 
 (defun array-or-pointer-type (type)
-  "DOCFIXME
-* TYPE DOCFIXME
+  "Is TYPE an array or pointer (but not an array of pointers)?
+* TYPE a type object
 "
   ;; array or pointer, but not array of pointers
   (xor (not (emptyp (type-array type)))
        (type-pointer type)))
 
 (defun get-ast-id (instrumenter ast)
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* AST DOCFIXME
+  "Return the trace ID for AST
+* INSTRUMENTER current instrumentation state
+* AST the AST to instrument
 "
   (gethash ast (ast-ids instrumenter)))
 
 (defmethod initialize-instance :after ((instance instrumenter) &key)
-  "DOCFIXME
-* INSTANCE DOCFIXME
+  "Initialize AST ids.
+* INSTANCE the newly-created instrumenter.
 "
   ;; Values are the same as index-of-ast, but without the linear
   ;; search.
@@ -313,12 +321,15 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                 (finally (return ht))))))
 
 (defgeneric write-trace-id (instrumenter ast)
-  (:documentation "Generate ASTs which write statement ID to trace."))
+  (:documentation "Generate ASTs which write statement ID to trace.
+* INSTRUMENTER current instrumentation state
+* AST the AST to instrument
+"))
 
 (defmethod write-trace-id ((instrumenter clang-instrumenter) ast)
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* AST DOCFIXME
+  "Generate ASTs which write statement ID to trace.
+* INSTRUMENTER current instrumentation state
+* AST the AST to instrument
 "
   (make-call-expr "write_trace_id"
                   (list (make-var-reference *instrument-log-variable-name* nil)
@@ -328,12 +339,15 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                   :aux-data '((:instrumentation t))))
 
 (defgeneric write-trace-aux (instrumenter value)
-  (:documentation "Generate ASTs which write aux entries to trace."))
+  (:documentation "Generate ASTs which write aux entries to trace.
+* INSTRUMENTER current instrumentation state
+* VALUE the auxiliary value to write
+"))
 
 (defmethod write-trace-aux ((instrumenter clang-instrumenter) value)
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* VALUE DOCFIXME
+  "Generate ASTs which write aux entries to trace.
+* INSTRUMENTER current instrumentation state
+* VALUE the auxiliary value to write
 "
   (declare (ignorable instrumenter))
   (make-call-expr "write_trace_aux"
@@ -344,11 +358,13 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                   :aux-data '((:instrumentation t))))
 
 (defgeneric write-end-entry (instrumenter)
-  (:documentation "Generate ASTs which write end-entry flag to trace."))
+  (:documentation "Generate ASTs which write end-entry flag to trace.
+* INSTRUMENTER current instrumentation state
+"))
 
 (defmethod write-end-entry ((instrumenter clang-instrumenter))
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
+  "Generate ASTs which write end-entry flag to trace.
+* INSTRUMENTER current instrumentation state
 "
   (declare (ignorable instrumenter))
   (make-call-expr "write_end_entry"
@@ -358,14 +374,22 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                   :aux-data '((:instrumentation t))))
 
 (defgeneric instrument-return (instrumenter return-stmt return-void)
-  (:documentation "Generic ASTs which instrument RETURN-STMT."))
+  (:documentation "Generate ASTs which instrument RETURN-STMT.
+The generated ASTs will store the return value in a temporary variable
+and jump to the exit point, allowing instrumentation of function exit.
+* INSTRUMENTER current instrumentation state
+* RETURN-STMT the AST for a return statement
+* RETURN-VOID does this function return void?
+"))
 
 (defmethod instrument-return ((instrumenter clang-instrumenter)
                               return-stmt return-void)
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* RETURN-STMT DOCFIXME
-* RETURN-VOID DOCFIXME
+  "Generate ASTs which instrument RETURN-STMT.
+The generated ASTs will store the return value in a local variable
+and jump to the exit point, allowing instrumentation of function exit.
+* INSTRUMENTER current instrumentation state
+* RETURN-STMT the AST for a return statement
+* RETURN-VOID does this function return void?
 "
   (if return-void
       `(,(make-statement :gotostmt :fullstmt '("goto inst_exit")
@@ -383,14 +407,28 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                          :aux-data '((:instrumentation t))))))
 
 (defgeneric instrument-exit (instrumenter function return-void)
-  (:documentation "Generate ASTs to instrument exit from FUNCTION."))
+  (:documentation "Generate ASTs to instrument exit from FUNCTION.
+
+The generated ASTs add a label which can be jumped to from return
+statements, and return a value stored in a local variable, allowing
+instrumentation of function exit.
+
+* INSTRUMENTER current instrumentation state
+* FUNCTION the AST for the current function
+* RETURN-VOID does this function return void?
+"))
 
 (defmethod instrument-exit ((instrumenter clang-instrumenter)
                             function return-void)
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* FUNCTION DOCFIXME
-* RETURN-VOID DOCFIXME
+  "Generate ASTs to instrument exit from FUNCTION.
+
+The generated ASTs add a label which can be jumped to from return
+statements, and return a value stored in a local variable, allowing
+instrumentation of function exit.
+
+* INSTRUMENTER current instrumentation state
+* FUNCTION the AST for the current function
+* RETURN-VOID does this function return void?
 "
   (let ((obj (software instrumenter)))
     `(,(make-label "inst_exit"
@@ -412,15 +450,17 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
                        :aux-data '((:instrumentation t))))))
 
 (defmethod instrumented-p ((clang clang))
-  "DOCFIXME
-* CLANG DOCFIXME
+  "Return true if CLANG is instrumented
+* CLANG a clang software object
 "
   (search *instrument-log-variable-name* (genome clang)))
 
 (defmethod instrument ((obj clang) &rest args)
-  "DOCFIXME
-* OBJ DOCFIXME
-* ARGS DOCFIXME
+  "Instrumentation for clang software objects.
+Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
+
+* OBJ the software object to instrument
+* ARGS additional arguments are passed through to the instrumenter method.
 "
   (apply #'instrument (make-instance 'clang-instrumenter :software obj)
          args))
@@ -429,17 +469,17 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
        (filter #'identity))
-  "DOCFIXME
-* INSTRUMENTER DOCFIXME
-* POINTS DOCFIXME
-* FUNCTIONS DOCFIXME
-* FUNCTIONS-AFTER DOCFIXME
-* TRACE-FILE DOCFIXME
-* TRACE-ENV DOCFIXME
-* INSTRUMENT-EXIT DOCFIXME
-* POSTPROCESS-FUNCTIONS DOCFIXME
-* FILTER DOCFIXME
-"
+  "Use INSTRUMENTER to instrument a clang software object.
+
+* INSTRUMENTER current instrumentation state
+* POINTS alist of additional values to print at specific points
+* FUNCTIONS  functions to calculate instrumentation at each point
+* FUNCTIONS-AFTER functions to calculate instrumentation after each point
+* TRACE-FILE file for trace output
+* TRACE-ENV trace output to file specified by ENV variable
+* INSTRUMENT-EXIT print counter of function body before exit
+* FILTER function to select a subset of ASTs for instrumentation
+* POSTPROCESS-FUNCTIONS functions to execute after instrumentation"
   (let* ((obj (software instrumenter))
          (entry (get-entry obj))
          ;; Promote every counter key in POINTS to the enclosing full
@@ -664,8 +704,8 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
    "Return files in PROJECT in the order which they would be instrumented"))
 
 (defmethod instrumentation-files ((clang-project clang-project))
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
+  "Return files in CLANG-PROJECT in the order which they would be instrumented
+* CLANG-PROJECT an instrumented project
 "
   (append (remove-if {get-entry}
                      (evolve-files clang-project)
@@ -675,17 +715,16 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                      :key #'cdr)))
 
 (defmethod instrumented-p ((clang-project clang-project))
-  "DOCFIXME
-* CLANG-PROJECT DOCFIXME
+  "Return true if CLANG-PROJECT is instrumented
+* CLANG-PROJECT a clang-project software object
 "
   (some #'instrumented-p (mapcar #'cdr (evolve-files clang-project))))
 
 (defmethod instrument ((clang-project clang-project) &rest args)
-  "Instrument a project. Arguments are passed through to instrument on
-the underlying software objects.
+  "Instrument CLANG-PROJECT to print AST index before each full statement.
 
-* CLANG-PROJECT DOCFIXME
-* ARGS DOCFIXME
+* CLANG-PROJECT the project to instrument
+* ARGS passed through to the instrument method on underlying software objects.
 "
   (let ((instrumenter (make-instance 'clang-instrumenter))
         (files (if (current-file clang-project)
@@ -864,17 +903,18 @@ Returns a list of strings containing C source code."))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
   (:documentation
-   "Return C statements for variable instrumentation.
-INSTRUMENTER contains instrumentation state. KEY should be a function
-used to pull the variable list out of AST."))
+   "Generate ASTs for variable instrumentation.
+* KEY a function used to pull the variable list out of AST
+* INSTRUMENTER current instrumentation state
+* AST the AST to instrument
+"))
 
 (defmethod var-instrument
   (key (instrumenter instrumenter) (ast ast-ref) &key print-strings)
-  "DOCFIXME
-* KEY DOCFIXME
-* INSTRUMENTER DOCFIXME
-* AST DOCFIXME
-* PRINT-STRINGS DOCFIXME
+  "Generate ASTs for variable instrumentation.
+* KEY a function used to pull the variable list out of AST
+* INSTRUMENTER current instrumentation state
+* AST the AST to instrument
 "
   (iter (for var in (funcall key ast))
         (when-let* ((software (software instrumenter))
@@ -889,24 +929,26 @@ used to pull the variable list out of AST."))
                                      print-strings)))))
 
 (defgeneric get-entry (software)
-  (:documentation "Return the entry AST in SOFTWARE."))
+  (:documentation
+   "Return the AST of the entry point (main function) in SOFTWARE."))
 
 (defmethod get-entry ((obj clang))
-  "DOCFIXME
-* OBJ DOCFIXME
+  "Return the AST of the entry point (main function) in SOFTWARE.
+
+OBJ a clang software object
 "
   (&>> (find-if [{string= "main"} {ast-name}] (functions obj))
        (function-body obj)))
 
 (defun initialize-tracing (obj file-name env-name contains-entry
-			   instrumenter)
-  "DOCFIXME
+                           instrumenter)
+  "Insert code to initialize tracing and/or define the log variable.
 
-* OBJ DOCFIXME
-* FILE-NAME DOCFIXME
-* ENV-NAME DOCFIXME
-* CONTAINS-ENTRY DOCFIXME
-* INSTRUMENTER DOCFIXME
+* OBJ the software object to instrument
+* FILE-NAME fixed name for the trace output file
+* ENV-NAME environment variable from which to read the trace output file
+* CONTAINS-ENTRY does this object contain the entry point?
+* INSTRUMENTER current instrumentation state
 "
   (assert (typep obj 'clang))
 
@@ -988,7 +1030,7 @@ used to pull the variable list out of AST."))
 
 (defun clang-instrument (args)
   "Interface to the command line instrumentation tool.
-* ARGS DOCFIXME
+* ARGS command-line arguments
 "
   (in-package :sel)
   (let ((self (pop args))

@@ -7,19 +7,10 @@
 This is used to intern string names by `expression'."
   (make-keyword (string-upcase string)))
 
-#+(or )                ; NOTE: Looks like this isn't really necessary.
-(defun clang-expression-opcode (raw-opcode)
-  "DOCFIXME
-* RAW-OPCODE
-"
-  (switch (raw-opcode :test #'string=)
-    ("=" :=!)
-    (t (expression-intern raw-opcode))))
-
 (defmethod expression ((obj clang) (ast ast-ref))
-  "DOCFIXME
-* OBJ DOCFIXME
-* AST DOCFIXME
+  "Convert AST to an expression tree.
+* OBJ clang software object containing AST
+* AST the AST to convert
 "
   ;; TODO: The following AST types currently pull information from the
   ;;        source text.  This conversion may be made more robust by
@@ -85,8 +76,8 @@ This is used to intern string names by `expression'."
       (t :unimplemented))))
 
 (defun expression-to-c (expression)
-  "DOCFIXME
-* EXPRESSION DOCFIXME
+  "Format EXPRESSION as C source code.
+* EXPRESSION an expression tree
 "
   (cond
     ((listp expression)
@@ -103,12 +94,13 @@ This is used to intern string names by `expression'."
 (define-software clang-expression (expression)
   ((scope :initarg :scope :accessor scope :initform nil :copier :direct
           :documentation "List of in-scope variable names."))
-  (:documentation "DOCFIXME"))
+  (:documentation
+   "C arithmetic expressions represented as trees to allow direct evaluation."))
 
 (defmethod operator-to-function ((obj clang-expression) operator)
-  "DOCFIXME
-* OBJ DOCFIXME
-* OPERATOR DOCFIXME
+  "Return a function which evaluates OPERATOR on two expressions.
+* OBJ a CLANG-EXPRESSION object
+* OPERATOR a keyword symbol representing the operator (e.g. :+)
 "    
   (labels
       ((pointerp (val)
@@ -143,10 +135,10 @@ This is used to intern string names by `expression'."
 
 (defmethod evaluate-expression ((obj clang-expression) free-vars
                                 &optional expression)
-  "DOCFIXME
-* OBJ DOCFIXME
-* FREE-VARS DOCFIXME
-* EXPRESSION DOCFIXME
+  "Evaluate expression over FREE-VARS, returning result and max interior value.
+* OBJ a CLANG-EXPRESSION object
+* FREE-VARS an alist mapping variable names to values
+* EXPRESSION an expression tree
 "
   (multiple-value-bind (result interior-max)
       (cond
