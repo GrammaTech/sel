@@ -1554,6 +1554,9 @@ second should be included as a possible pick
 
 
 ;;; Mutations
+;;;
+;;; TODO: Loop iteration order flip.  \cite{Nicholas Harrand}
+;;;
 (defclass clang-mutation (mutation)
   ()
   (:documentation "Specialization of the mutation interface for clang software
