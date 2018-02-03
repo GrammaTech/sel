@@ -7911,3 +7911,23 @@ prints unique counters in the trace"
               ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
               ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
               (is (equal bad-stmts gold-set-prefix)))))))))
+
+(sel-suite* clang-super-mutants "Super mutants of clang objects."
+            (clang-mutate-available-p))
+
+(deftest super-mutant-works ()
+  (with-fixture fib-clang
+    (let* ((mutant-a (copy *fib*))
+           (mutant-b (copy *fib*)))
+      (apply-mutation mutant-a
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-a
+                                                             "x = x + y"))))
+      (apply-mutation mutant-b
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-b
+                                                             "y = t"))))
+
+      (let ((super (make-instance 'super-mutant
+                                  :mutants (list mutant-a mutant-b
+                                                 (copy mutant-b)))))
+        (is (genome super))
+        (is (phenome-p super))))))

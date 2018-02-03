@@ -663,7 +663,8 @@
    ;; java mutation helper methods
    :java-make-literal
    :java-number
-   :java-project))
+   :java-project
+   :super-mutant))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

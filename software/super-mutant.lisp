@@ -4,11 +4,17 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software super-mutant (software)
-  ((mutants :accessor mutants :initarg :mutants :initform nil)))
+  ((mutants :accessor mutants :initarg :mutants :initform nil
+            :type list
+            :documentation "Mutants to combine.")
+   (super-obj :accessor super-obj :initform nil
+              :type (or null software)
+              :documentation "Software object containing combined genome.")))
 
 (defmethod phenome ((obj super-mutant) &key (bin (temp-file-name)))
-  (declare (ignorable bin))
-  "/tmp/phenome")
+  (unless (slot-value obj 'super-obj)
+    (update-super-obj obj))
+  (phenome (super-obj obj) :bin bin))
 
 (defmethod evaluate ((test function) (super super-mutant)
                      &rest extra-keys &key &allow-other-keys)
@@ -53,7 +59,70 @@
                    (setf (fitness-extra-data obj) extra))))
              (indexed (mutants super)))))))
 
+(defmethod genome ((obj super-mutant))
+  (unless (slot-value obj 'super-obj)
+    (update-super-obj obj))
+  (genome (super-obj obj)))
 
+(defmethod update-super-obj ((obj super-mutant))
+  (labels
+      ((functions-compatible-p (f1 f2)
+         (or (eq f1 f2)
+             (and (string= (ast-name f1) (ast-name f2))
+                  (eq (ast-void-ret f1) (ast-void-ret f2))
+                  (eq (ast-varargs f1) (ast-varargs f2))
+                  (equal (ast-args f1) (ast-args f2)))))
+       (process-ast (&rest asts)
+         (destructuring-bind (head . rest) asts
+           (if (function-decl-p head)
+               ;; Function bodies may differ as long as name and
+               ;; arguments are the same. Collect all unique variants,
+               ;; along with the mutants they came from.
+               (let ((variants (make-hash-table)))
+                 (mapc (lambda-bind ((i ref) mutant)
+                         (assert (functions-compatible-p head ref))
+                         (let ((ast (ast-ref-ast ref)))
+                           (if-let ((value (gethash ast variants)))
+                             (pushnew i (second value))
+                             (setf (gethash ast variants)
+                                   (list (function-body mutant ref)
+                                         (list i))))))
+                       (indexed asts)
+                       (mutants obj))
+                 (cons (function-body (car (mutants obj)) head)
+                       variants))
+               ;; Top-level decls must be identical across
+               ;; variants. Don't collect anything.
+               (progn
+                 (assert (every [{eq (ast-ref-ast head)} #'ast-ref-ast] rest))
+                 nil))))
+       (make-super-function (variants-ht)
+         (->> (mapcar (lambda-bind ((body indices))
+                        (list indices (list body (make-break-stmt))))
+                      (hash-table-values variants-ht))
+              (make-switch-stmt
+               (make-call-expr
+                "atoi"
+                (list (make-call-expr "getenv"
+                                      (list (make-literal "SUPER_MUTANT"))
+                                      :generic))
+                :generic)))))
+    (-<>>
+     ;; Collect all variants of each function.
+     (apply #'mapcar
+            #'process-ast
+            (mapcar #'roots (mutants obj)))
+     (remove nil)
+     ;; Create mutation ops to replace original functions with
+     ;; super-functions
+     (mapcar (lambda-bind ((orig . variants))
+               `(:set (:stmt1 . ,orig)
+                      (:value1 . ,(make-super-function variants)))))
+     (sort <>
+           #'ast-later-p :key [{aget :stmt1} #'cdr])
+     ;; Substitute super-functions into genome of first variant
+     (apply-mutation-ops (copy (car (mutants obj))))
+     (setf (super-obj obj)))))
 
 
 (defvar *mutants-at-once* 4
