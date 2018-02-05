@@ -780,6 +780,62 @@ if not given.
          (list (format nil "~a:~%" name) child)
          rest))
 
+(defun make-break-stmt (&rest rest)
+  "Create a break statement AST.
+* REST additional arguments to `make-statement'
+"
+  (apply #'make-statement :BreakStmt :fullstmt
+         (list "break")
+         :full-stmt t
+         rest))
+
+(defun make-switch-stmt (value cases &rest rest)
+  "Create a switch statement AST.
+* VALUE the AST of the expression to switch on
+* CASES list of cases
+* SYN-CTX surrounding syntactic context of the AST node
+* REST additional arguments to `make-statement'
+
+Each element of CASES has the form ((values ...) stmts ), where each
+value is an integer (or T for the default case) and each stmt is a
+full-statement AST. Don't forget to include BreakStmt ASTs as they
+will not be generated automatically.
+"
+  (labels ((make-case (values stmts)
+             (bind (((v . vals) values)
+                    (children (list* (format nil ":~%")
+                                     ;; The first statement following the
+                                     ;; "case" is its child.
+                                     (if vals
+                                         (make-case vals (take 1 stmts))
+                                         (take 1 stmts))))
+                    )
+               `(,(ast-ref-ast
+                   (if (eq v t)
+                       (apply #'make-statement :DefaultStmt :generic
+                              (cons "default" children)
+                              rest)
+                       (apply #'make-statement :CaseStmt :fullstmt
+                              (cons "case "
+                                    (cons (make-literal v)
+                                          children))
+                              rest)))
+                  ;; The remaining statements in this case are siblings. This
+                  ;; is weird but it matches clang's AST.
+                  ,@(cdr (interleave stmts (format nil ";~%")))
+                  ,(format nil ";~%")))))
+
+    (apply #'make-statement :SwitchStmt :fullstmt
+           `("switch ("
+             ,value
+             ,")"
+             ,(apply #'make-block (mappend (lambda-bind ((values stmts))
+                                             (make-case values stmts))
+                                           cases)
+                     rest))
+           :full-stmt t
+           rest)))
+
 (defmethod get-ast ((obj clang) (path list))
   "Return the AST in OBJ at the given PATH.
 * OBJ clang software object with ASTs

@@ -594,6 +594,8 @@
    :make-call-expr
    :make-array-subscript-expr
    :make-label
+   :make-switch-stmt
+   :make-break-stmt
    :ast-root
    :replace-in-ast
    :parse-source-snippet
