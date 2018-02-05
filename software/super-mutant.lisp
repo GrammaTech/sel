@@ -7,14 +7,12 @@
   ((mutants :accessor mutants :initarg :mutants :initform nil
             :type list
             :documentation "Mutants to combine.")
-   (super-obj :accessor super-obj :initform nil
-              :type (or null software)
-              :documentation "Software object containing combined genome.")))
+   (super-soft :accessor super-soft :initform nil
+               :type (or null software)
+               :documentation "Software object containing combined genome.")))
 
 (defmethod phenome ((obj super-mutant) &key (bin (temp-file-name)))
-  (unless (slot-value obj 'super-obj)
-    (update-super-obj obj))
-  (phenome (super-obj obj) :bin bin))
+  (phenome (super-soft obj) :bin bin))
 
 (defmethod evaluate ((test function) (super super-mutant)
                      &rest extra-keys &key &allow-other-keys)
@@ -60,11 +58,15 @@
              (indexed (mutants super)))))))
 
 (defmethod genome ((obj super-mutant))
-  (unless (slot-value obj 'super-obj)
-    (update-super-obj obj))
-  (genome (super-obj obj)))
+  (genome (super-soft obj)))
 
-(defmethod update-super-obj ((obj super-mutant))
+(defmethod super-soft :before ((obj super-mutant))
+  (with-slots (super-soft) obj
+    (unless super-soft
+      (setf super-soft (create-super-soft (car (mutants obj))
+                                          (mutants obj))))))
+
+(defmethod create-super-soft ((base clang) mutants)
   (labels
       ((functions-compatible-p (f1 f2)
          (or (eq f1 f2)
@@ -88,8 +90,8 @@
                                    (list (function-body mutant ref)
                                          (list i))))))
                        (indexed asts)
-                       (mutants obj))
-                 (cons (function-body (car (mutants obj)) head)
+                       mutants)
+                 (cons (function-body base head)
                        variants))
                ;; Top-level decls must be identical across
                ;; variants. Don't collect anything.
@@ -111,7 +113,7 @@
      ;; Collect all variants of each function.
      (apply #'mapcar
             #'process-ast
-            (mapcar #'roots (mutants obj)))
+            (mapcar #'roots mutants))
      (remove nil)
      ;; Create mutation ops to replace original functions with
      ;; super-functions
@@ -121,8 +123,7 @@
      (sort <>
            #'ast-later-p :key [{aget :stmt1} #'cdr])
      ;; Substitute super-functions into genome of first variant
-     (apply-mutation-ops (copy (car (mutants obj))))
-     (setf (super-obj obj)))))
+     (apply-mutation-ops (copy base)))))
 
 
 (defvar *mutants-at-once* 4
