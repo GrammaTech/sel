@@ -50,11 +50,11 @@ MAX and BIN keyword arguments."))
           (phenome obj :bin bin)
         (skip-trace-collection ()
           :report "Skip trace collection and leave object unchanged."
-          (return-from collect-traces nil))
+          (return-from collect-traces (traces obj)))
         (nil-traces ()
           :report "Set object traces to NIL and continue."
-          (setf (traces obj) (repeatedly (length (test-cases test-suite)) nil))
-          (return-from collect-traces nil))))
+          (setf (traces obj) nil)
+          (return-from collect-traces (traces obj)))))
   (setf (traces obj) (make-instance 'trace-db))
   (unwind-protect
        (mapc (lambda (test-case)
