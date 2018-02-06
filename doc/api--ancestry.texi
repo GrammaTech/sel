@@ -23,5 +23,3 @@
 @c defun to-node-descr
 @c defun ancestry-graph
 @c defun graphviz
-
-

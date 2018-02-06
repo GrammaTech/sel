@@ -16,7 +16,7 @@ At a high level, condition synthesis will:
 Run @emph{negative unit tests} --- tests that should pass, but fail
 due to the presence of the defect --- to
 @ref{condition-synthesis-identify-values, identify a series of
-abstract condition values} that would allow the failing tests to pass. 
+abstract condition values} that would allow the failing tests to pass.
 
 @item
 For each passing test, @ref{condition-synthesis-test-conditions, test possible (concrete) conditions} to see if there are any that satisfy each value in the identified series of abstract condition values.
@@ -73,7 +73,7 @@ returned each time the function is invoked.
 
 The procedure for identifying abstract condition values depends on whether the condition is looping or non-looping.
 
-@multitable { Non-Looping Conditions }{} 
+@multitable { Non-Looping Conditions }{}
 
 
 @item Non-Looping Conditions @tab @enumerate
@@ -116,7 +116,7 @@ The procedure for identifying abstract condition values depends on whether the c
          @item If a successful series of abstract condition values is
          found, record the series and the values of in-scope variables
          at each evaluation of the abstract condition.
-         @end enumerate 
+         @end enumerate
 
 @end multitable
 
@@ -134,7 +134,7 @@ pass by checking whether it is entailed by that test's series of environments
 and desired abstract condition values.
 
 
-@anchor{condition-synthesis-best-condition} 
+@anchor{condition-synthesis-best-condition}
 @subsubsection Select ``Best'' Condition
 
 The condition which satisfies the largest number of environment and

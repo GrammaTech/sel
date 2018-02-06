@@ -11,15 +11,15 @@
            (see @ref{api-software-objects-csurf-asm, API | Software Objects | Class @code{csurf-asm}})
        @end itemize
      @item @refapiclass{cil}
-           (see @ref{api-software-objects-cil, API | Software Objects | Class @code{cil}})   
+           (see @ref{api-software-objects-cil, API | Software Objects | Class @code{cil}})
      @item @refapiclass{clang}
-           (see @ref{api-software-objects-clang, API | Software Objects | Class @code{clang}})   
+           (see @ref{api-software-objects-clang, API | Software Objects | Class @code{clang}})
        @itemize
        @item @refapiclass{clang-w-fodder}
-           (see @ref{api-software-objects-clang-w-fodder, API | Software Objects | Class @code{clang-w-fodder}})          
+           (see @ref{api-software-objects-clang-w-fodder, API | Software Objects | Class @code{clang-w-fodder}})
        @end itemize
      @item @refapiclass{elf}
-           (see @ref{api-software-objects-elf, API | Software Objects | Class @code{elf}})   
+           (see @ref{api-software-objects-elf, API | Software Objects | Class @code{elf}})
        @itemize
        @item @refapiclass{elf-cisc}
              (see @ref{api-software-objects-elf-cisc, API | Software Objects | Class @code{elf-cisc}})
@@ -27,16 +27,16 @@
          @item @refapiclass{elf-arm}
              (see @ref{api-software-objects-elf-arm, API | Software Objects | Class @code{elf-arm}})
          @item @refapiclass{elf-csurf}
-             (see @ref{api-software-objects-elf-csurf, API | Software Objects | Class @code{elf-csurf}})             
+             (see @ref{api-software-objects-elf-csurf, API | Software Objects | Class @code{elf-csurf}})
          @item @refapiclass{elf-x86}
              (see @ref{api-software-objects-elf-x86, API | Software Objects | Class @code{elf-x86}})
          @end itemize
        @item @refapiclass{elf-risc}
-           (see @ref{api-software-objects-elf-risc, API | Software Objects | Class @code{elf-risc}})   
+           (see @ref{api-software-objects-elf-risc, API | Software Objects | Class @code{elf-risc}})
          @itemize
          @item @refapiclass{elf-mips}
              (see @ref{api-software-objects-elf-mips, API | Software Objects | Class @code{elf-mips}})
-         @end itemize 
+         @end itemize
        @end itemize
      @item @refapiclass{forth}
          (see @ref{api-software-objects-forth, API | Software Objects | Class @code{forth}})
@@ -51,7 +51,7 @@
        @end itemize
      @end itemize
    @item @refapiclass{llvm}
-         (see @ref{api-software-objects-llvm, API | Software Objects | Class @code{llvm}})   
+         (see @ref{api-software-objects-llvm, API | Software Objects | Class @code{llvm}})
   @end itemize
 
   @item Utility subclasses: base classes for language back ends
@@ -64,7 +64,7 @@
        @item @refapiclass{diff}
          (see @ref{api-software-objects-diff, API | Software Objects | Class @code{diff}})
        @item @refapiclass{light}
-         (see @ref{api-software-objects-light, API | Software Objects | Class @code{light}})         
+         (see @ref{api-software-objects-light, API | Software Objects | Class @code{light}})
        @item @refapiclass{sw-range}
          (see @ref{api-software-objects-sw-range, API | Software Objects | Class @code{sw-range}})
        @end itemize
@@ -169,7 +169,7 @@
 @c whitespace in this reference is important
   @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key (predicate #'identity)
                  (max infinity) (bin (temp-file-name)) &aux (delete-bin-p t))}
-@c whitespace in this reference is important  
+@c whitespace in this reference is important
   @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key predicate max
                   (bin (temp-file-name)) &aux (args (list bin bin))
                                   (delete-bin-p t))}
@@ -317,7 +317,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapimethod{copy before ((obj clang))}
   @item @refapimethod{crossover ((a clang) (b clang))}
   @item @refapimethod{enclosing-full-stmt ((obj clang) (stmt ast-ref))}
-  @item @refapimethod{expression ((obj clang) (ast ast-ref))}  
+  @item @refapimethod{expression ((obj clang) (ast ast-ref))}
   @item @refapimethod{find-macro ((obj clang) hash)}
   @item @refapimethod{find-type ((obj clang) hash)}
   @item @refapimethod{find-var-type ((obj clang) (variable list))}
@@ -336,7 +336,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapimethod{good-stmts ((clang clang))}
   @item @refapimethod{indent ((obj clang) &optional style &aux errno)}
   @item @refapimethod{instrument ((obj clang) &rest args)}
-  @item @refapimethod{instrumented-p ((clang clang))}  
+  @item @refapimethod{instrumented-p ((clang clang))}
   @item @refapimethod{max-depth-ast ((clang clang) asts)}
   @item @refapimethod{parent-ast-p ((clang clang) possible-parent-ast ast)}
   @item @refapimethod{pick-bad-bad ((software clang) &key filter)}
@@ -422,7 +422,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
 @itemize
 
-@item Structure @refapistruct{ast-ref}  
+@item Structure @refapistruct{ast-ref}
 
 @item AST Structures
    @itemize
@@ -464,7 +464,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapimethod{ast->snippet ((ast clang-ast))}
   @item @refapimethod{ast->snippet ((ast clang-macro))}
   @item @refapimethod{ast->snippet ((ast clang-type))}
-  @item @refapimethod{expression ((obj clang) (ast ast-ref))}  
+  @item @refapimethod{expression ((obj clang) (ast ast-ref))}
   @item @refapimethod{replace-in-ast ((ast ast-ref) replacements &key (test #'eq))}
   @item @refapimethod{replace-in-ast ((ast list) replacements  &key (test #'eq))}
   @item @refapimethod{replace-in-ast (ast replacements &key (test #'eq))}
@@ -479,8 +479,8 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapifunction{full-stmt-filter}
   @item @refapigeneric{get-ast}
   @item @refapimethod{pick-bad-bad ((software clang) &key filter)}
-  @item @refapimethod{pick-bad-good ((software clang) &key filter)} 
-  @item @refapifunction{same-class-filter}  
+  @item @refapimethod{pick-bad-good ((software clang) &key filter)}
+  @item @refapifunction{same-class-filter}
   @end itemize
 @end itemize
 
@@ -565,7 +565,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapimethod{pick-mutation-type ((obj clang-w-fodder))}
   @item @refapimethod{pick-snippet ((obj clang-w-fodder) &key full class pt decl)}
   @end itemize
-  
+
 @end itemize
 
 @c defun pick-bad-fodder
@@ -831,13 +831,13 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @item Variable @refapivariable{*lisp-mutation-types*}
 @item Methods
   @itemize
-  @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-cut))}  
+  @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-cut))}
   @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-replace))}
   @item @refapimethod{apply-mutation ((lisp lisp) (mutation lisp-swap))}
   @item @refapimethod{crossover ((a lisp) (b lisp))}
   @item @refapimethod{from-file ((llvm llvm) path)}
   @item @refapimethod{genome-string ((lisp lisp) &optional stream)}
-  @item @refapimethod{mutate ((lisp lisp))}  
+  @item @refapimethod{mutate ((lisp lisp))}
   @item @refapimethod{pick-mutation-type ((obj lisp))}
   @item @refapimethod{size ((lisp lisp))}
   @item @refapimethod{to-file ((lisp lisp) path)}
@@ -876,7 +876,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapiclass{demote-binop-left}
   @item @refapiclass{demote-binop-right}
   @item @refapiclass{mult-divide}
-  @item @refapiclass{random-subtree}  
+  @item @refapiclass{random-subtree}
   @item @refapiclass{subtract-add-tree}
   @item @refapiclass{subtract-add}
   @end itemize
@@ -941,7 +941,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @item Functions
   @itemize
   @item @refapifunction{expression-intern}
-  @item @refapifunction{expression-to-c}  
+  @item @refapifunction{expression-to-c}
   @end itemize
 @item Methods
   @itemize
@@ -971,7 +971,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapimethod{apply-mutation ((llvm llvm) op)}
   @item @refapimethod{from-file ((llvm llvm) path)}
   @item @refapimethod{mutate ((llvm llvm))}
-  @item @refapimethod{phenome ((llvm llvm) &key (bin (temp-file-name)))}  
+  @item @refapimethod{phenome ((llvm llvm) &key (bin (temp-file-name)))}
   @end itemize
 @end itemize
 
@@ -989,7 +989,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @itemize
   @item @refapivariable{*simple-mutation-types*}
   @end itemize
-  
+
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation ((simple simple) (mutation simple-cut))}
@@ -1074,7 +1074,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
 @item Methods
   @itemize
-  @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-cut))}  
+  @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-cut))}
   @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-insert))}
   @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-swap))}
   @item @refapimethod{from-file ((range sw-range) path)}
@@ -1122,8 +1122,8 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
   @item @refapimethod{lines ((ast ast))}
   @item @refapimethod{mutate ((ast ast))}
   @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
-  @item @refapimethod{size ((ast ast))}  
-  @end itemize 
+  @item @refapimethod{size ((ast ast))}
+  @end itemize
 @end itemize
 
 @c defun ast-from-file
@@ -1147,7 +1147,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation ((cil cil) op)}
-@c the whitespace in this reference is important  
+@c the whitespace in this reference is important
   @item @refapimethod{instrument ((cil cil) &key points functions functions-after trace-file
               trace-env instrument-exit filter)}
   @end itemize
@@ -1162,7 +1162,7 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @item Class @refapiclass{clang-instrumenter}
 @item Methods
    @itemize
-@c the whitespace in this reference is important   
+@c the whitespace in this reference is important
    @item @refapimethod{instrument ((instrumenter clang-instrumenter) &key points functions
                functions-after trace-file trace-env instrument-exit
                            (filter #'identity))}
@@ -1287,4 +1287,3 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @include include/var-sel-star-same-bias-star.texinfo
 @include include/var-sel-star-worse-bias-star.texinfo
 @include include/var-sel-star-dead-bias-star.texinfo
-

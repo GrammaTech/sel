@@ -102,5 +102,3 @@
 @c @subsection API | Condition Synthesis | Constants
 
 @c abst-cond-source
-
-

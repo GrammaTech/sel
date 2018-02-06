@@ -19,7 +19,7 @@ See also @ref{api-software-object-applying-mutations, API | Software Objects@com
   @itemize
   @item @refapimacro{define-mutation}
   @item @refapimacro{compose-mutations}
-  @item @refapimacro{sequence-mutations} 
+  @item @refapimacro{sequence-mutations}
   @end itemize
 
 @item Variables
@@ -50,9 +50,3 @@ See also @ref{api-software-object-applying-mutations, API | Software Objects@com
 
 @include include/var-sel-star-mutation-improvements-star.texinfo
 @include include/var-sel-star-mutation-stats-star.texinfo
-
-
-
-
-
-

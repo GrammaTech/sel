@@ -66,5 +66,3 @@ here.
 @item @refapigeneric{process-status}
 @item @refapigeneric{signal-process}
 @end itemize
-
-

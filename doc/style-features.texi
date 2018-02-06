@@ -42,7 +42,7 @@ AST. The available feature extractors are:
 @item @ref{Generic-Function ast-node-type-tf-extractor,
       @code{ast-node-type-tf-extractor}}
       @tab number of nodes of each different ast-class (e.g., IfStmt
-or DeclStmt) in the AST. 
+or DeclStmt) in the AST.
 
 @item @ref{Generic-Function max-depth-ast-extractor,
       @code{max-depth-ast-extractor}}
@@ -64,7 +64,7 @@ or DeclStmt) in the AST.
 
 @item @ref{Generic-Function ast-keyword-tf-extractor,
               @code{ast-keyword-tf-extractor}}
-      @tab for each C keyword, the number of occurrences of that   
+      @tab for each C keyword, the number of occurrences of that
            keyword in the AST.
 
 @end multitable
@@ -72,4 +72,3 @@ or DeclStmt) in the AST.
 @end itemize
 
 By convention, feature extractor functions have names ending in ``-extractor''.
-

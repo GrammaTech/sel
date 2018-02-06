@@ -196,7 +196,7 @@ information about creating new software objects.
 @section Other features
 
 SEL provides support for exploring many different aspects of both
-evolutionary search and automated software manipulation. 
+evolutionary search and automated software manipulation.
 
 @itemize
 
@@ -246,7 +246,7 @@ Spectrum-based fault localization, which instruments source code and
 runs (passing and failing) unit tests to attempt to locate errors.
 
 @item
-Condition synthesis, a repair technique 
+Condition synthesis, a repair technique
 @url{http://groups.csail.mit.edu/pac/patchgen/papers/spr-fse15.pdf, described by Long and Rinard}
 which tries to synthesize conditional statements that will correct
 source code so that it passes failing unit tests.
@@ -413,7 +413,7 @@ The following types of software objects are supported.
 @item linked ELF binaries
       @tab @refapiclass{elf-mips} @*  @refapiclass{elf-cisc}
       @tab mature
-      
+
 @item LLVM IR
       @tab @refapiclass{llvm}
       @tab experimental
@@ -479,19 +479,19 @@ search.
     @item @refapigeneric{pick-good}
     @item @refapigeneric{pick-bad}
     @item @refapigeneric{pick-bad-good}
-    @item @refapigeneric{pick-bad-bad}    
+    @item @refapigeneric{pick-bad-bad}
     @end itemize
 
 @item Perform crossover on two software objects.
     @itemize
     @item @refapigeneric{crossover}
     @item @refapigeneric{one-point-crossover}
-    @item @refapigeneric{two-point-crossover}    
+    @item @refapigeneric{two-point-crossover}
     @end itemize
 
 
-@item File I/O. 
-    @itemize  
+@item File I/O.
+    @itemize
     @item @refapigeneric{from-file}
     @item @refapigeneric{to-file}
     @end itemize
@@ -510,7 +510,7 @@ search.
 @c documentation.
 
 
-      
+
 
 
 
@@ -554,7 +554,7 @@ Write the genome of software object @code{SOFTWARE} to @code{FILE}.
 @end ignore
 
 
-@node Mutation Objects, Global Variables, Software Methods, Implementation 
+@node Mutation Objects, Global Variables, Software Methods, Implementation
 @section Mutation Objects
 @cindex Mutation
 
@@ -635,7 +635,7 @@ Fraction of new individuals generated using crossover rather than
 mutation.
 
 @item @refapivariable{*mut-rate*} @tab
-Chance to mutate a new individual. 
+Chance to mutate a new individual.
 
 @item @refapivariable{*fitness-evals*} @tab
 Tracks the total number of fitness evaluations
@@ -1266,7 +1266,7 @@ The @code{#lisp} IRC room on the @url{https://freenode.net/,freenode}
 IRC server.
 
 
-@item 
+@item
 @url{http://www.cliki.net/slime-howto,Introduction to Slime}
 
 @item

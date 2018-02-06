@@ -93,4 +93,3 @@ PATH -------------------- full system path to read in from, previously
                           written out by @code{rinard-write-out}
 @end verbatim
 @end ignore
-

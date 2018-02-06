@@ -12,7 +12,7 @@ Classes:
       @itemize
       @item @refapiclass{json-database}
        (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
-      @end itemize 
+      @end itemize
     @item @refapiclass{pliny-database}
      (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
     @end itemize
@@ -34,7 +34,7 @@ Classes:
       @itemize
       @item @refapiclass{json-database}
        (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
-      @end itemize 
+      @end itemize
     @item @refapiclass{pliny-database}
      (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
     @end itemize
@@ -76,7 +76,7 @@ Classes:
     @itemize
     @item @refapiclass{json-database}
        (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
-    @end itemize 
+    @end itemize
   @item @refapiclass{pliny-database}
      (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
   @end itemize
@@ -106,13 +106,13 @@ Classes:
 @item Subclasses
   @itemize
   @item @refapiclass{json-database}
-     (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})  
+     (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
   @end itemize
 @item Methods
   @itemize
   @item @refapimethod{size ((db in-memory-database))}
   @item @refapimethod{database-emptyp ((db in-memory-database))}
-  @item @refapimethod{find-macro ((db in-memory-database) hash)}  
+  @item @refapimethod{find-macro ((db in-memory-database) hash)}
   @item @refapimethod{find-snippets ((db in-memory-database) &key ast-class full-stmt decls limit)}
   @item @refapimethod{find-type ((db in-memory-database) hash)}
   @end itemize
@@ -146,14 +146,14 @@ Classes:
 @item Methods
   @itemize
   @item @refapimethod{database-emptyp ((obj pliny-database))}
-  @item @refapimethod{find-macro ((obj pliny-database) hash)}  
+  @item @refapimethod{find-macro ((obj pliny-database) hash)}
 @c whitespace in this reference is important
   @item @refapimethod{find-snippets ((obj pliny-database) &key ast-class full-stmt decls
                  (limit (- (expt 2 32) 1)))}
   @item @refapimethod{find-type ((obj pliny-database) hash)}
   @item @refapimethod{from-file ((obj pliny-database) db)}
   @item @refapimethod{from-string ((obj pliny-database) arg)}
-@c whitespace in this reference is important  
+@c whitespace in this reference is important
   @item @refapimethod{similar-snippets ((obj pliny-database) target &key predicate metric key
                     ast-class limit-considered (limit (- (expt 2 32) 1))
                                       (filter #'null))}
@@ -175,5 +175,3 @@ Classes:
 @c defgeneric execute-query
 
 @include include/class-sel-pliny-database.texinfo
-
-

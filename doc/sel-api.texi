@@ -139,7 +139,7 @@ For more information, see @ref{Multi-objective Fitness}.
 
 
 @anchor{api-searchability}
-@section API | Searchability 
+@section API | Searchability
 
 @include api--searchability.texi
 

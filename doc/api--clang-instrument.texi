@@ -10,7 +10,7 @@ Classes:
   @item @refapiclass{clang-instrumenter}
         (see @ref{api-instrumentation-clang-instrumenter, API | Instrumentation | class @code{clang-instrumenter}})
   @end itemize
-@end itemize  
+@end itemize
 
 
 @c ----------------------------------------
@@ -22,7 +22,7 @@ Classes:
 @itemize
 
 @item @refapiclass{instrumenter}
-  
+
 @item Subclass @refapiclass{clang-instrumenter}
       (see @ref{api-instrumentation-clang-instrumenter, API | Instrumentation | class @code{clang-instrumenter}})
 
@@ -32,7 +32,7 @@ Classes:
   @item @refapigeneric{instrumented-p}
   @item @refapigeneric{instrument}
   @item @refapigeneric{instrumentation-files}
-  @item @refapigeneric{uninstrument}  
+  @item @refapigeneric{uninstrument}
   @item @refapigeneric{var-instrument}
   @end itemize
 
@@ -44,7 +44,7 @@ Classes:
   @item @refapimethod{var-instrument (key (instrumenter instrumenter) (ast ast-ref) &key
                   print-strings)}
   @end itemize
-@end itemize  
+@end itemize
 
 
 @c defvar *instrument-log-env-name*
@@ -105,6 +105,3 @@ Classes:
 @include include/class-sel-clang-instrumenter.texinfo
 @include include/fun-sel-clang-instrument.texinfo
 @c ----------------------------------------
-
-
-

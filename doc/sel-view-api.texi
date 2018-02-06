@@ -1,17 +1,17 @@
 @macro refviewvar{name}
-@ref{Variable sel/view:\name\,@code{\name\}} 
+@ref{Variable sel/view:\name\,@code{\name\}}
 @end macro
 
 @macro refviewconst{name}
-@ref{Constant sel/view:\name\,@code{\name\}} 
+@ref{Constant sel/view:\name\,@code{\name\}}
 @end macro
 
 @macro refviewmacro{name}
-@ref{Macro sel/view:\name\,@code{\name\}} 
+@ref{Macro sel/view:\name\,@code{\name\}}
 @end macro
 
 @macro refviewfunction{name}
-@ref{Function sel/view:\name\,@code{\name\}} 
+@ref{Function sel/view:\name\,@code{\name\}}
 @end macro
 
 
@@ -132,7 +132,3 @@
 @include include/constant-sel-slash-view-plus-term-home-plus.texinfo
 @include include/macro-sel-slash-view-with-delayed-invocation.texinfo
 @include include/fun-sel-slash-view-view-start.texinfo
-
-
-
-

@@ -1,13 +1,13 @@
 @macro refutilityvar{name}
-@ref{Variable sel/utility:\name\,@code{\name\}} 
+@ref{Variable sel/utility:\name\,@code{\name\}}
 @end macro
 
 @macro refutilitymacro{name}
-@ref{Macro sel/utility:\name\,@code{\name\}} 
+@ref{Macro sel/utility:\name\,@code{\name\}}
 @end macro
 
 @macro refutilityfunction{name}
-@ref{Function sel/utility:\name\,@code{\name\}} 
+@ref{Function sel/utility:\name\,@code{\name\}}
 @end macro
 
 
@@ -26,7 +26,7 @@
   @end itemize
 
 @item Macros
-  @itemize  
+  @itemize
   @item @refutilitymacro{read-shell}
   @item @refutilitymacro{read-shell-file}
   @item @refutilitymacro{with-cwd}
@@ -76,7 +76,7 @@
   @item @refutilityfunction{take}
   @item @refutilityfunction{transpose}
   @item @refutilityfunction{un-cumulative-distribution}
-  @end itemize  
+  @end itemize
 @end itemize
 
 @section Documentation
@@ -134,5 +134,3 @@
 @include include/fun-sel-slash-utility-take.texinfo
 @include include/fun-sel-slash-utility-transpose.texinfo
 @include include/fun-sel-slash-utility-un-cumulative-distribution.texinfo
-
-
