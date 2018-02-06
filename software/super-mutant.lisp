@@ -124,6 +124,27 @@
            #'ast-later-p :key [{aget :stmt1} #'cdr])
      ;; Substitute super-functions into genome of first variant
      (apply-mutation-ops (copy base)))))
+(defmethod create-super-soft ((base project) mutants)
+  (assert (every (lambda (mutant)
+                   (and (eq (length (evolve-files base))
+                            (length (evolve-files mutant)))
+                        (every #'string=
+                               (mapcar #'car (evolve-files base))
+                               (mapcar #'car (evolve-files mutant)))))
+                 mutants)
+          nil
+          "All project mutants must have the same file names.")
+
+  (let ((super (copy base)))
+    (->> (apply #'mapcar                ; create super-soft for each file
+                (lambda (&rest mutants)
+                  (create-super-soft (car mutants) mutants))
+                (mapcar [{mapcar #'cdr} #'evolve-files] mutants))
+         (mapcar (lambda (base-file super-file) ; combine with filenames
+                   (cons (car base-file) super-file))
+                 (evolve-files base))
+         (setf (evolve-files super)))
+    super))
 
 
 (defvar *mutants-at-once* 4
