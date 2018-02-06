@@ -83,12 +83,19 @@
                (let ((variants (make-hash-table)))
                  (mapc (lambda-bind ((i ref) mutant)
                          (assert (functions-compatible-p head ref))
-                         (let ((ast (ast-ref-ast ref)))
+                         (let ((ast (ast-ref-ast ref))
+                               (body (function-body mutant ref)))
+                           (unless body
+                             (error
+                              (make-condition 'mutate
+                                              :text
+                                              (format nil "Missing body for ~a"
+                                                      (ast-name ref))
+                                              :obj mutant)))
                            (if-let ((value (gethash ast variants)))
                              (pushnew i (second value))
                              (setf (gethash ast variants)
-                                   (list (function-body mutant ref)
-                                         (list i))))))
+                                   (list body (list i))))))
                        (indexed asts)
                        mutants)
                  (cons (function-body base head)
