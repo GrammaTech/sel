@@ -1059,7 +1059,7 @@ suite should be run and nil otherwise."
 
 (deftest simple-crossover-test ()
   (with-fixture gcd-asm
-    (sel::number-genome *gcd*)
+    (number-genome *gcd*)
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'simple-cut :targets 0))
       ;; (push '(:cut 0) (edits variant))
@@ -1082,7 +1082,7 @@ suite should be run and nil otherwise."
 
 (deftest homologous-crossover-same-same ()
   (with-fixture gcd-asm
-    (sel::number-genome *gcd*)
+    (number-genome *gcd*)
     (is (tree-equal (genome *gcd*)
                     (genome (sel::homologous-crossover *gcd* (copy *gcd*)))))))
 
@@ -1090,7 +1090,7 @@ suite should be run and nil otherwise."
   ;; NOTE: If crossover changes, this test may fail sporadically: behavior
   ;; depends on whether crossover target is before or after cut.
   (with-fixture gcd-asm
-    (sel::number-genome *gcd*)
+    (number-genome *gcd*)
     (let ((variant (copy *gcd*))
           (target 40))
       ;; apply cut to variant
@@ -1114,7 +1114,7 @@ suite should be run and nil otherwise."
   ;; copied statement (which might not be close to the ideal point for a
   ;; homologous crossover.
   (with-fixture gcd-asm
-    (sel::number-genome *gcd*)
+    (number-genome *gcd*)
     (let ((insert-pt 40)
           (stmt-to-insert 60)
           (variant (copy *gcd*)))
@@ -1138,7 +1138,7 @@ suite should be run and nil otherwise."
   ;; want to fix. If the cross-point in A refers to an index that was previouly
   ;; swapped in B, we will select cross-b as that new location.
   (with-fixture gcd-asm
-    (sel::number-genome *gcd*)
+    (number-genome *gcd*)
     (let ((targets (list 20 60))
           (variant (copy *gcd*)))
       (apply-mutation

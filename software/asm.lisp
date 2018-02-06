@@ -77,10 +77,13 @@ SOFTWARE-B. Ideally, if A and B are identical, `homologous-crossover' always
 results in a genome that matches those of A and B."))
 
 (defgeneric find-corresponding-point (point-a software-a software-b)
-  (:documentation "Find a point in SOFTWARE-B matching POINT-A in SOFTWARE-A.
+  (:documentation
+   "Find and return a point in SOFTWARE-B matching POINT-A in SOFTWARE-A.
 Used by `homologous-crossover'."))
 
 (defmethod find-corresponding-point ((point-a integer) (a asm) (b asm))
+  "Find and return a point in asm B matching POINT-A in asm A.
+Used by `homologous-crossover'."
   (flet ((lookup-id (obj id)
            (aget :id (elt (genome obj) id))))
     (let* ((id-a (lookup-id a point-a))
@@ -117,6 +120,10 @@ Used by `homologous-crossover'."))
               (finally (return closest)))))))
 
 (defmethod homologous-crossover ((a asm) (b asm))
+  "Crossover at a similar point in asm objects, A and B.
+After picking a crossover point in A, try to find the same point in B. If A and
+B are identical, this implementation always results in a genome that matches
+those of A and B."
   ;; Assumes genome is numbered (see `number-genome')
   ;; TODO: Need to update so that we remove/reset ids after mutations because
   ;; lines copied or swapped from other locs will have a misleading id, most
@@ -134,6 +141,7 @@ Used by `homologous-crossover'."))
       (values new point-a point-b))))
 
 (defmethod crossover ((a asm) (b asm))
+  "By default, crossover for ASM objects uses `homologous-crossover'."
   (homologous-crossover a b))
 
 

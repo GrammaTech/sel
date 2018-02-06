@@ -383,6 +383,8 @@
    :asm-replace-operand
    :asm-nth-instruction
    :asm-split-instruction
+   :number-genome
+   :homologous-crossover
    :clang-cut
    :clang-cut-same
    :clang-cut-full
