@@ -100,7 +100,11 @@
                  nil))))
        (make-super-function (variants-ht)
          (->> (mapcar (lambda-bind ((body indices))
-                        (list indices (list body (make-break-stmt))))
+                        (list (if (member 0 indices)
+                                  ;; Add default case to make compiler happy
+                                  (cons t indices)
+                                  indices)
+                              (list body (make-break-stmt))))
                       (hash-table-values variants-ht))
               (make-switch-stmt
                (make-call-expr
@@ -123,7 +127,9 @@
      (sort <>
            #'ast-later-p :key [{aget :stmt1} #'cdr])
      ;; Substitute super-functions into genome of first variant
-     (apply-mutation-ops (copy base)))))
+     (apply-mutation-ops (copy base))
+     (add-include <> "<stdlib.h>"))))
+
 (defmethod create-super-soft ((base project) mutants)
   (assert (every (lambda (mutant)
                    (and (eq (length (evolve-files base))
