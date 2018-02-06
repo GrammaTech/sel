@@ -937,8 +937,13 @@ Returns a list of strings containing C source code."))
 
 OBJ a clang software object
 "
-  (&>> (find-if [{string= "main"} {ast-name}] (functions obj))
-       (function-body obj)))
+  (when-let* ((main (find-if [{string= "main"} {ast-name}]
+                             (functions obj)))
+              (_1 (equal :Function (ast-class main)))
+              (_2 (and (ast-ret main)
+                       (member (type-name (find-type obj (ast-ret main)))
+                               '("int" "void") :test #'string=))))
+    (function-body obj main)))
 
 (defun initialize-tracing (obj file-name env-name contains-entry
                            instrumenter)
