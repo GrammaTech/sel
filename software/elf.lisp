@@ -5,9 +5,11 @@
 
 ;;; elf software objects
 (define-software elf (simple)
-  ((base :initarg :base :accessor base :initform nil)))
+  ((base :initarg :base :accessor base :initform nil))
+  (:documentation "DOCFIXME"))
 
 (defmethod genome-string ((elf elf) &optional stream)
+  "DOCFIXME"
   (format stream "~S" (genome elf)))
 
 (defgeneric genome-bytes (elf)
@@ -15,6 +17,7 @@
 The result should be a simple array of type '(UNSIGNED-BYTE 8)."))
 
 (defmethod genome-bytes ((elf elf))
+  "DOCFIXME"
   (coerce (apply #'append (lines elf)) '(vector (unsigned-byte 8))))
 
 (defgeneric elf (elf)
@@ -23,18 +26,25 @@ This takes the `base' of ELF (which should not be changed), copies it,
 and applies the changed data in `genome' of ELF."))
 
 (defmethod from-file ((elf elf) path)
+  "DOCFIXME"
   (setf (base elf) (read-elf path))
   elf)
 
 (defmethod phenome ((elf elf) &key (bin (temp-file-name)))
+  "DOCFIXME"
   #-ccl (declare (values t fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (write-elf (elf elf) bin)
   (multiple-value-bind (stdout stderr errno) (shell "chmod +x ~a" bin)
     (values bin errno stderr stdout bin)))
 
-(defmethod pick-good ((elf elf)) (random (length (genome elf))))
-(defmethod pick-bad ((elf elf)) (random (length (genome elf))))
+(defmethod pick-good ((elf elf))
+  "DOCFIXME"
+  (random (length (genome elf))))
+
+(defmethod pick-bad ((elf elf))
+  "DOCFIXME"
+  (random (length (genome elf))))
 
 (defmethod mutate ((elf elf))
   "Randomly mutate ELF."

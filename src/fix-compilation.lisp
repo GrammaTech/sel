@@ -33,6 +33,12 @@ expression match.")
     (push (cons regex function) *compilation-fixers*)))
 
 (defmethod fix-compilation ((obj clang) max-attempts &aux matches)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MAX-ATTEMPTS DOCFIXME
+* MATCHES DOCFIXME
+"
   ;; Tidy
   (clang-tidy obj)
   (loop :for attempt :below max-attempts :do
@@ -59,6 +65,11 @@ expression match.")
 
 ;; Fallback strategy: just delete the offending line entirely.
 (defmethod delete-line-with-error ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (let ((target-line (parse-integer (aref match-data 0))))
     (setf (lines obj)
           (loop :for line :in (lines obj)
@@ -69,6 +80,11 @@ expression match.")
 
 ;;; Resolve missing functions by adding #includes.
 (defmethod resolve-function ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (mapc {add-include obj} (resolve-function-includes (aref match-data 2)))
   obj)
 
@@ -82,6 +98,12 @@ expression match.")
                                            variable-name-index
                                            (obj clang-w-fodder)
                                            match-data)
+  "DOCFIXME
+* LINE-NUMBER-INDEX DOCFIXME
+* VARIABLE-NAME-INDEX DOCFIXME
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (flet ((random-type ()
            (random-elt ; TODO: More types.
             (mappend (lambda (type)
@@ -156,6 +178,13 @@ expression match.")
                                            variable-name-index
                                            (obj clang)
                                            match-data)
+  "DOCFIXME
+
+* LINE-NUMBER-INDEX DOCFIXME
+* VARIABLE-NAME-INDEX DOCFIXME
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (declare (ignorable line-number-index)
            (ignorable variable-name-index))
   (delete-line-with-error obj match-data))
@@ -166,6 +195,11 @@ expression match.")
 
 ;; Replace C++-style casts with C-style casts.
 (defmethod c++-casts-to-c-casts ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (declare (ignorable match-data))
   (setf (lines obj)
         (loop :for line :in (lines obj)
@@ -185,6 +219,11 @@ expression match.")
 
 ;;; Add declaration and initialize uninitialized variables.
 (defmethod expected-expression-before ((obj clang-w-fodder) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA
+"
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (1- (parse-integer (aref match-data 1))))
          (new-expression
@@ -224,6 +263,11 @@ expression match.")
 
 ;; #include <stdint.h> when using types like int32_t.
 (defmethod require-stdint ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (declare (ignorable match-data))
   (add-include obj "stdint.h"))
 
@@ -233,6 +277,11 @@ expression match.")
 
 ;; Macro definitions for int1_t, uint1_t
 (defmethod add-int1-macros ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (declare (ignorable match-data))
   (add-include obj "stdint.h")
   (add-macro obj (make-clang-macro :name "int1_t"
@@ -247,6 +296,11 @@ expression match.")
  #'add-int1-macros)
 
 (defmethod delete-redefinitions ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA
+"
   ;; TODO: For now, we just take care of offending structs.
   (multiple-value-bind (new-genome matched)
     (regex-replace (concatenate 'string
@@ -263,6 +317,11 @@ expression match.")
  #'delete-redefinitions)
 
 (defmethod delete-undefined-references ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (let ((id (format nil "(|~a|)" (aref match-data 0)))
         (to-delete (make-hash-table :test 'equal)))
     (loop :for ast :in (asts obj)
@@ -291,6 +350,11 @@ expression match.")
  #'delete-undefined-references)
 
 (defmethod declare-var-as-pointer ((obj clang) match-data)
+  "DOCFIXME
+
+* OBJ DOCFIXME
+* MATCH-DATA DOCFIXME
+"
   (let* ((line-number (parse-integer (aref match-data 0)))
          (col-number (parse-integer (aref match-data 1)))
          (variable (scan-to-strings

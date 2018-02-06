@@ -1,0 +1,177 @@
+
+Classes:
+@itemize
+@item @refapiclass{searchable}
+   (see @ref{api-searchability-searchable, API | Searchability | Class @code{searchable}})
+  @itemize
+  @item @refapiclass{fodder-database}
+      (see @ref{api-searchability-fodder-database, API | Searchability | Class @code{fodder-database}})
+    @itemize
+    @item @refapiclass{in-memory-database}
+       (see @ref{api-searchability-in-memory-database, API | Searchability | Class @code {in-memory-database}})
+      @itemize
+      @item @refapiclass{json-database}
+       (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
+      @end itemize
+    @item @refapiclass{pliny-database}
+     (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
+    @end itemize
+  @end itemize
+@end itemize
+
+
+@anchor{api-searchability-searchable}
+@subsection API | Searchability | Class @code{searchable}
+@itemize
+@item Class @refapiclass{searchable}
+@item Subclasses
+  @itemize
+  @item @refapiclass{fodder-database}
+      (see @ref{api-searchability-fodder-database, API | Searchability | Class @code{fodder-database}})
+    @itemize
+    @item @refapiclass{in-memory-database}
+       (see @ref{api-searchability-in-memory-database, API | Searchability | Class @code {in-memory-database}})
+      @itemize
+      @item @refapiclass{json-database}
+       (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
+      @end itemize
+    @item @refapiclass{pliny-database}
+     (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
+    @end itemize
+  @end itemize
+
+@item Generic Functions
+  @itemize
+  @item @refapigeneric{similar-snippets}
+  @item @refapigeneric{weighted-pick}
+  @end itemize
+
+@item Methods
+  @itemize
+@c whitespace in this reference is important
+  @item @refapimethod{similar-snippets ((db searchable) target &key key ast-class limit
+                    (predicate #'<) (metric #'diff-scalar) (filter #'null)
+                                      (limit-considered infinity))}
+@c whitespace in this reference is important
+  @item @refapimethod{weighted-pick ((obj searchable) target weight &key key limit ast-class
+                 (predicate #'<) (metric #'diff-scalar) (filter #'null)
+                                (limit-considered infinity))}
+  @end itemize
+@end itemize
+
+@include include/class-sel-searchable.texinfo
+@include include/fun-sel-similar-snippets.texinfo
+@include include/fun-sel-weighted-pick.texinfo
+
+@c ----------------------------------------
+@anchor{api-searchability-fodder-database}
+@subsection API | Searchability | Class @code{fodder-database}
+
+@itemize
+@item Class @refapiclass{fodder-database}
+@item Subclasses
+  @itemize
+  @item @refapiclass{in-memory-database}
+     (see @ref{api-searchability-in-memory-database, API | Searchability | Class @code{in-memory-database}})
+    @itemize
+    @item @refapiclass{json-database}
+       (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
+    @end itemize
+  @item @refapiclass{pliny-database}
+     (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
+  @end itemize
+@item Generic Methods
+  @itemize
+  @item @refapigeneric{database-emptyp}
+  @item @refapigeneric{find-macro}
+  @item @refapigeneric{find-snippets}
+  @item @refapigeneric{find-type}
+  @end itemize
+@end itemize
+
+@include include/class-sel-fodder-database.texinfo
+
+@include include/fun-sel-database-emptyp.texinfo
+@include include/fun-sel-find-macro.texinfo
+@include include/fun-sel-find-snippets.texinfo
+@include include/fun-sel-find-type.texinfo
+
+
+@c ----------------------------------------
+@anchor{api-searchability-in-memory-database}
+@subsection API | Searchability | Class @code{in-memory-database}
+
+@itemize
+@item Class @refapiclass{in-memory-database}
+@item Subclasses
+  @itemize
+  @item @refapiclass{json-database}
+     (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
+  @end itemize
+@item Methods
+  @itemize
+  @item @refapimethod{size ((db in-memory-database))}
+  @item @refapimethod{database-emptyp ((db in-memory-database))}
+  @item @refapimethod{find-macro ((db in-memory-database) hash)}
+  @item @refapimethod{find-snippets ((db in-memory-database) &key ast-class full-stmt decls limit)}
+  @item @refapimethod{find-type ((db in-memory-database) hash)}
+  @end itemize
+@end itemize
+
+@include include/class-sel-in-memory-database.texinfo
+
+
+@c ----------------------------------------
+@anchor{api-searchability-json-database}
+@subsection API | Searchability | Class @code{json-database}
+
+@itemize
+@item Class @refapiclass{json-database}
+@end itemize
+
+@c defmethod print-object
+@c defmethod initialize-instance :after
+@c defmethod load-json-with-caching
+@c defun se-json-identifier-name-to-key
+
+@include include/class-sel-json-database.texinfo
+
+
+@c ----------------------------------------
+@anchor{api-searchability-pliny-database}
+@subsection API | Searchability | Class @code{pliny-database}
+
+@itemize
+@item Class @refapiclass{pliny-database}
+@item Methods
+  @itemize
+  @item @refapimethod{database-emptyp ((obj pliny-database))}
+  @item @refapimethod{find-macro ((obj pliny-database) hash)}
+@c whitespace in this reference is important
+  @item @refapimethod{find-snippets ((obj pliny-database) &key ast-class full-stmt decls
+                 (limit (- (expt 2 32) 1)))}
+  @item @refapimethod{find-type ((obj pliny-database) hash)}
+  @item @refapimethod{from-file ((obj pliny-database) db)}
+  @item @refapimethod{from-string ((obj pliny-database) arg)}
+@c whitespace in this reference is important
+  @item @refapimethod{similar-snippets ((obj pliny-database) target &key predicate metric key
+                    ast-class limit-considered (limit (- (expt 2 32) 1))
+                                      (filter #'null))}
+  @end itemize
+@end itemize
+
+@c defclass json-false
+@c defmethod cl-json:encode-json
+@c defvar *json-false*
+@c defclass json-true
+@c defvar *json-true*
+@c define-condition pliny-query-failed
+@c defmethod features-to-weights
+@c defmethod start-server
+@c defmethod load-server
+@c defmethod shutdown-server
+@c defmethod print-object
+@c defun pliny-find-hash
+@c defgeneric execute-query
+
+@include include/class-sel-pliny-database.texinfo

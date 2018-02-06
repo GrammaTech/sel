@@ -32,7 +32,7 @@ The SEL API provides several AST-related feature extractors for clang
 software objects, i.e., features derived from properties of a clang
 AST. The available feature extractors are:
 @itemize
-@item Documented in section @ref{api-style-features-extractors, API | Style Features | Feature Extractors}
+@item Documented in section @ref{api-style-features, API | Style Features}
 @item Listed in parameter @ref{Variable *feature-extractors*,@code{*feature-extractors*}}.
 @item Summarized in the following table.
 
@@ -42,7 +42,7 @@ AST. The available feature extractors are:
 @item @ref{Generic-Function ast-node-type-tf-extractor,
       @code{ast-node-type-tf-extractor}}
       @tab number of nodes of each different ast-class (e.g., IfStmt
-or DeclStmt) in the AST. 
+or DeclStmt) in the AST.
 
 @item @ref{Generic-Function max-depth-ast-extractor,
       @code{max-depth-ast-extractor}}
@@ -64,7 +64,7 @@ or DeclStmt) in the AST.
 
 @item @ref{Generic-Function ast-keyword-tf-extractor,
               @code{ast-keyword-tf-extractor}}
-      @tab for each C keyword, the number of occurrences of that   
+      @tab for each C keyword, the number of occurrences of that
            keyword in the AST.
 
 @end multitable
@@ -72,4 +72,3 @@ or DeclStmt) in the AST.
 @end itemize
 
 By convention, feature extractor functions have names ending in ``-extractor''.
-

@@ -22,11 +22,17 @@
 See http://llvm.org)."))
 
 (defmethod from-file ((llvm llvm) path)
+  "DOCFIXME
+
+* LLVM DOCFIXME
+* PATH DOCFIXME
+"
   (setf (genome llvm) (file-to-string path))
   (setf (ext llvm)  (pathname-type (pathname path)))
   llvm)
 
 (defmethod mutate ((llvm llvm))
+  "DOCFIXME"
   (unless (> (size llvm) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj llvm)))
   (let ((op (case (random-elt '(cut replace insert swap))
@@ -38,6 +44,11 @@ See http://llvm.org)."))
     (values llvm op)))
 
 (defmethod apply-mutation ((llvm llvm) op)
+  "DOCFIXME
+
+* LLVM DOCFIXME
+* OP DOCFIXME
+"
   (with-temp-file-of (src (ext llvm)) (genome llvm)
     (multiple-value-bind (stdout stderr exit)
         (shell "cat ~a|llvm-mutate --~a ~a"
@@ -51,6 +62,11 @@ See http://llvm.org)."))
       llvm)))
 
 (defmethod phenome ((llvm llvm) &key (bin (temp-file-name)))
+  "DOCFIXME
+
+* LLVM DOCFIXME
+* BIN DOCFIXME
+"
   #-ccl (declare (values t fixnum string string string))
   (setf bin (ensure-path-is-string bin))
   (with-temp-file-of (src (ext llvm)) (genome llvm)

@@ -9,11 +9,9 @@ changed.
 
 @subsection API Support For Unit Tests
 
-
 API support for unit tests is documented in section
 @ref{api-test-suites, API | Test Suites}. We provide a brief overview
 here.
-
 
 @itemize
 
@@ -68,5 +66,3 @@ here.
 @item @refapigeneric{process-status}
 @item @refapigeneric{signal-process}
 @end itemize
-
-

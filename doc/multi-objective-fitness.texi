@@ -14,7 +14,7 @@ the comparison set. This will select for individuals along the Pareto
 front of the population.
 
 Because dominance is a partial order, @code{pareto-selector} will
-often produce multiple winners, requiring a tie-breaker. 
+often produce multiple winners, requiring a tie-breaker.
 
 Pareto fitness scores are lists in which each list element can be a
 vector, a list, or a number. When an element in this list is a

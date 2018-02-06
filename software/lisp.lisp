@@ -26,6 +26,11 @@
         (values nil index))))
 
 (defun find-subtree-if (predicate tree)
+  "DOCFIXME
+
+* PREDICATE DOCFIXME
+* TREE DOCFIXME
+"
   (when (and tree (listp tree))
     (if (funcall predicate tree)
         tree
@@ -47,6 +52,11 @@
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
 (defmethod from-file ((lisp lisp) file)
+  "DOCFIXME
+
+* LISP DOCFIXME
+* FILE DOCFIXME
+"
   (with-open-file (in file)
     (setf (genome lisp)
           (loop :for form := (read in nil :eof)
@@ -56,37 +66,60 @@
 
 (declaim (inline genome-string))
 (defmethod genome-string ((lisp lisp) &optional stream)
+  "DOCFIXME
+
+* LISP DOCFIXME
+* STREAM DOCFIXME
+"
   (format stream "~&~{~S~^~%~}~%" (genome lisp)))
 
 (defmethod to-file ((lisp lisp) path)
+  "DOCFIXME
+
+* LISP DOCFIXME
+* PATH DOCFIXME
+"
   (with-open-file (out path :direction :output :if-exists :supersede)
     (genome-string lisp out)))
 
-(defmethod size ((lisp lisp)) (tree-size (genome lisp)))
+(defmethod size ((lisp lisp))
+  "DOCFIXME"
+  (tree-size (genome lisp)))
 
 (defmethod filter-subtrees (predicate (lisp lisp))
+  "DOCFIXME
+
+* PREDICATE DOCFIXME
+* LISP DOCFIXME
+"
   (remove-if-not [predicate {subtree (genome lisp)}]
                  (iter (for i below (size lisp)) (collect i))))
 
 
 ;;; Mutations
 (define-mutation lisp-cut (mutation)
-  ((targeter :initform #'pick-bad)))
+  ((targeter :initform #'pick-bad))
+  (:documentation "DOCFIXME"))
 
 (define-mutation lisp-replace (mutation)
-  ((targeter :initform #'pick-bad-good)))
+  ((targeter :initform #'pick-bad-good))
+  (:documentation "DOCFIXME"))
 
 (define-mutation lisp-swap (mutation)
-  ((targeter :initform #'pick-bad-good)))
+  ((targeter :initform #'pick-bad-good))
+  (:documentation "DOCFIXME"))
 
 (defvar *lisp-mutation-types*
   ;; TODO: Fix `lisp-cut' before adding back to this list.
-  '(lisp-replace lisp-swap))
+  '(lisp-replace lisp-swap)
+  "DOCFIXME")
 
 (defmethod pick-mutation-type ((obj lisp))
+  "DOCFIXME"
   (random-elt *lisp-mutation-types*))
 
 (defmethod mutate ((lisp lisp))
+  "DOCFIXME"
   (unless (> (size lisp) 0)
     (error (make-condition 'mutate :text "No valid IDs" :obj lisp)))
   (let ((mutation (make-instance (pick-mutation-type lisp)
@@ -95,6 +128,11 @@
     (values lisp mutation)))
 
 (defmethod apply-mutation ((lisp lisp) (mutation lisp-cut))
+  "DOCFIXME
+
+* LISP DOCFIXME
+* MUTATION DOCFIXME
+"
   ;; TODO: Fix.
   (with-slots (genome) lisp
     (let* ((s1 (targets mutation))
@@ -109,6 +147,11 @@
   lisp)
 
 (defmethod apply-mutation ((lisp lisp) (mutation lisp-replace))
+  "DOCFIXME
+
+* LISP DOCFIXME
+* MUTATION DOCFIXME
+"
   (bind (((s1 s2) (targets mutation)))
     (with-slots (genome) lisp
       (setf (subtree genome s1)
@@ -116,6 +159,11 @@
   lisp)
 
 (defmethod apply-mutation ((lisp lisp) (mutation lisp-swap))
+  "DOCFIXME
+
+* LISP DOCFIXME
+* MUTATION DOCFIXME
+"
   (bind (((s1 s2) (targets mutation)))
     (let ((s1 (max s1 s2))
           (s2 (min s1 s2)))
@@ -127,6 +175,11 @@
   lisp)
 
 (defmethod crossover ((a lisp) (b lisp))
+  "DOCFIXME
+
+* A DOCFIXME
+* B DOCFIXME
+"
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))

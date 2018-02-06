@@ -11,13 +11,16 @@
    "Executable Linkable Format (ELF) binaries in complex instruction set architectures."))
 
 (define-software elf-csurf (elf-cisc)
-  ((sw-project :initarg :sw-project :accessor sw-project :initform nil)))
+  ((sw-project :initarg :sw-project :accessor sw-project :initform nil))
+  (:documentation "DOCFIXME"))
 
-(define-software elf-x86 (elf-cisc) ())
+(define-software elf-x86 (elf-cisc) ()
+  (:documentation "DOCFIXME"))
 
 ;; Yes, ARM is a RISC architecture, but it is not a fixed-width
 ;; instruction, which means we treat it as CISC here.
-(defclass elf-arm (elf-cisc) ())
+(defclass elf-arm (elf-cisc) ()
+  (:documentation "DOCFIXME"))
 
 (defgeneric pad-nops (elf num-bytes)
   (:documentation "Return NOP(s) sufficient to fill num-bytes"))
@@ -25,9 +28,10 @@
 (defgeneric nop-p (elf bytes)
   (:documentation "Return non-nil if BYTES is a NOP for ELF."))
 
-(defvar x86-nop (list #x90))
+(defvar x86-nop (list #x90) "DOCFIXME")
 
 (defmethod pad-nops ((elf elf-x86) num-bytes)
+  "DOCFIXME"
   (loop :for i :below num-bytes :collect x86-nop))
 
 (defvar arm-nops
@@ -39,9 +43,11 @@
                   (2 #x46C0)
                   (4 #xE1A00000))
                 width)
-               'list))))
+               'list)))
+  "DOCFIXME")
 
 (defmethod pad-nops ((elf elf-arm) num-bytes)
+  "DOCFIXME"
   ;; Pad an ARM elf file with appropriately sized nops.
   (flet ((arm-nop-for-width (width)
            (car (remove-if-not {= width} arm-nops :key #'length))))
@@ -54,17 +60,21 @@
          pad))))
 
 (defmethod nop-p ((elf elf-x86) bytes)
+  "DOCFIXME"
   (tree-equal x86-nop bytes))
 
 (defmethod nop-p ((elf elf-arm) bytes)
+  "DOCFIXME"
   (member bytes arm-nops :test #'tree-equal))
 
 (defmethod elf ((elf elf-cisc))
+  "DOCFIXME"
   (let ((new (copy-elf (base elf))))
     (setf (data (named-section new ".text")) (genome-bytes elf))
     new))
 
 (defun parse-disasm (elf section)
+  "DOCFIXME"
   (let ((disasm (disassemble-section (base elf) section)))
     (values
      (mapcar #'car disasm)
@@ -90,6 +100,7 @@
                 (:disasm . ,(aget :disasm op))))))))
 
 (defmethod from-file ((elf elf-cisc) path)
+  "DOCFIXME"
   (setf (base elf) (read-elf path 'objdump))
   (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
     (setf (addresses elf) addresses)
@@ -97,6 +108,7 @@
   elf)
 
 (defmethod from-file ((elf elf-csurf) path)
+  "DOCFIXME"
   (setf (base elf) (read-elf path 'csurf))
   (setf (sw-project (base elf)) (sw-project elf))
   (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
@@ -105,6 +117,7 @@
   elf)
 
 (defmethod apply-mutation ((elf elf-cisc) mut)
+  "DOCFIXME"
   ;; TODO: CISC mutations should update the `addresses' of the
   ;;       resulting ELF file.
   (flet ((byte-count (genome)
@@ -126,6 +139,7 @@
       elf)))
 
 (defun elf-pad (elf genome place num-bytes flags)
+  "DOCFIXME"
   (let ((flags (remove :code (copy-tree flags) :key #'car)))
     (append
      (subseq genome 0 place)
@@ -133,6 +147,7 @@
      (subseq genome place))))
 
 (defun elf-strip (elf genome place num-bytes)
+  "DOCFIXME"
   (let ((length (length genome)))
     (flet ((nop-p (n genome)
              (nop-p elf (aget :code (nth n genome))))
@@ -152,6 +167,7 @@
   (:documentation "Replace the contents of ELF at S1 with VALUE."))
 
 (defmethod elf-replace ((elf elf) s1 value)
+  "DOCFIXME"
   (let ((genome (genome elf)))
     (let* ((prev (nth s1 genome))
            (out-bytes (length (aget :code prev)))
@@ -173,6 +189,7 @@
               (elf-strip elf genome s1 (- in-bytes out-bytes))))))))
 
 (defmethod elf-cut ((elf elf-cisc) s1)
+  "DOCFIXME"
   (let ((genome (genome elf)))
     (let ((prev (nth s1 genome)))
       (assert (assoc :code prev) (prev)
@@ -184,6 +201,7 @@
                (cons '(:mutation . :cut) prev)))))
 
 (defmethod elf-insert ((elf elf-cisc) s1 val)
+  "DOCFIXME"
   (let ((genome (genome elf)))
     (assert (assoc :code val) (val)
             "attempt to insert genome element with no bytes: ~S" val)
@@ -192,6 +210,7 @@
     (elf-strip elf (genome elf) s1 (length (aget :code val)))))
 
 (defmethod elf-swap ((elf elf-cisc) s1 s2)
+  "DOCFIXME"
   (assert (every {assoc :code} (mapcar {nth _ (genome elf)} (list s1 s2)))
           (s1 s2) "attempt to swap genome elements w/o bytes: ~S" (cons s1 s2))
   (flet ((rep (point value)
@@ -230,6 +249,7 @@
       new)))
 
 (defmethod apply-path ((elf elf-cisc) key addresses &aux applied)
+  "DOCFIXME"
   (loop :for el :in addresses :as i :from 0 :do
      (let* ((addr  (if (consp el) (car el) el))
             (val   (if (consp el) (cdr el) t))
@@ -240,7 +260,9 @@
   (reverse applied))
 
 (defmethod lines ((elf elf-cisc))
+  "DOCFIXME"
   (map 'list {aget :code} (genome elf)))
 
 (defmethod (setf lines) (new (elf elf-cisc))
+  "DOCFIXME"
   (setf (genome elf) (coerce (map 'vector [#'list {cons :code}] new) 'list)))

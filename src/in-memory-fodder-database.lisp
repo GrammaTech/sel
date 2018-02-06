@@ -36,16 +36,27 @@
     :accessor macro-database-ht
     :initform (make-hash-table :test 'equal)
     :documentation
-    "An auxillary database of macro snippets, grouped by hash-code")))
+    "An auxillary database of macro snippets, grouped by hash-code"))
+  (:documentation "DOCFIXME"))
 
 (defmethod size ((db in-memory-database))
+  "DOCFIXME"
   (length (ast-database-list db)))
 
 (defmethod database-emptyp ((db in-memory-database))
+  "DOCFIXME"
   (zerop (size db)))
 
 (defmethod find-snippets ((db in-memory-database)
                           &key ast-class full-stmt decls limit)
+  "DOCFIXME
+
+* DB DOCFIXME
+* AST-CLASS DOCFIXME
+* FULL-STMT DOCFIXME
+* DECLS DOCFIXME
+* LIMIT DOCFIXME
+"
   (let ((snippets (->> (cond (ast-class
                               (gethash ast-class (ast-database-ht db)))
                              (full-stmt
@@ -63,10 +74,20 @@
         snippets)))
 
 (defmethod find-type ((db in-memory-database) hash)
+  "DOCFIXME
+
+* DB  DOCFIXME
+* HASH DOCFIXME
+"
   (let ((type (gethash hash (type-database-ht db))))
     (when type (snippet->clang-type type))))
 
 (defmethod find-macro ((db in-memory-database) hash)
+  "DOCFIXME
+
+* DB DOCFIXME
+* HASH DOCFIXME
+"
   (let ((macro (gethash hash (macro-database-ht db))))
     (when macro (snippet->clang-macro macro))))
 

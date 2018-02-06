@@ -1,6 +1,6 @@
 
 The Clang C Tokenizer component offers the ability to construct a sequence of
-tokens that represent a software object. 
+tokens that represent a software object.
 
 @subsection API Support
 
@@ -19,7 +19,7 @@ The Clang C tokenizer uses the following conventions:
 @item identifier
 @tab interned string ``identifier''.
 
-@item special character @* @w{(operator, parenthesis, brace, etc) } 
+@item special character @* @w{(operator, parenthesis, brace, etc) }
 @tab the interned string of the special character, e.g., @code{(intern "+")}.
 
 @item primitive type

@@ -1,14 +1,25 @@
 
 
-@itemize
-@item @refapigeneric{collect-fault-loc-traces}
-@item @refapifunction{rinard-compare}
-@item @refapifunction{rinard-incremental}
-@item @refapifunction{rinard-read-in}
-@item @refapifunction{rinard-write-out}
-@item @refapifunction{rinard}
-@end itemize
+See also  the manual section on @ref{Fault Localization}.
 
+@itemize
+@item Generic Function
+  @itemize
+  @item @refapigeneric{collect-fault-loc-traces}
+  @end itemize
+@item Functions
+  @itemize
+  @item @refapifunction{rinard-compare}
+  @item @refapifunction{rinard-incremental}
+  @item @refapifunction{rinard-read-in}
+  @item @refapifunction{rinard-write-out}
+  @item @refapifunction{rinard}
+  @end itemize
+@item Methods
+  @itemize
+  @item @refapimethod{collect-fault-loc-traces (bin test-suite read-trace-fn &optional fl-neg-test)}
+  @end itemize
+@end itemize
 
 @include include/fun-sel-collect-fault-loc-traces.texinfo
 @include include/fun-sel-rinard-compare.texinfo
@@ -16,8 +27,6 @@
 @include include/fun-sel-rinard-read-in.texinfo
 @include include/fun-sel-rinard-write-out.texinfo
 @include include/fun-sel-rinard.texinfo
-
-
 
 @c defun stmts-in-file
 @c defun add-to-pos

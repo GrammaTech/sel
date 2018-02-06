@@ -36,8 +36,11 @@
 @subsection API | Multi-Objective Fitness | Lexicase Selection
 
 @itemize
-@item Function @refapifunction{lexicase-select}
-@item Function @refapifunction{lexicase-select-best}
+@item Functions
+  @itemize
+  @item @refapifunction{lexicase-select}
+  @item @refapifunction{lexicase-select-best}
+  @end itemize
 @item Variable @refapivariable{*lexicase-key*}
 @end itemize
 

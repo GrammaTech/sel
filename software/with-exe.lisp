@@ -1,16 +1,23 @@
 
 ;;; Software Object with an executable
 (defclass software-exe (software)
-  ((exe :initarg :exe :accessor raw-exe :initform nil)))
+  ((exe :initarg :exe :accessor raw-exe :initform nil))
+  (:documentation "DOCFIXME"))
 
 (defgeneric exe (software &optional place)
   (:documentation
    "Return the path to an executable of the software. (caching)"))
 
 (defmethod (setf exe) (new (software software-exe))
+  "DOCFIXME"
   (setf (raw-exe software) new))
 
 (defmethod exe :around ((software software-exe) &optional place)
+  "DOCFIXME
+
+* SOFTWARE DOCFIXME
+* PLACE DOCFIXME
+"
   (declare (ignorable place))
   (or (raw-exe software) (setf (exe software) (or (call-next-method) :failed))))
 
@@ -19,6 +26,7 @@
    "Delete any external executables associated with the software."))
 
 (defmethod delete-exe ((software software-exe))
+  "DOCFIXME"
   (when (raw-exe software)
     (when (and (not (eq :failed (raw-exe software)))
                (probe-file (exe software)))

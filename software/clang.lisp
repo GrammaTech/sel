@@ -1328,6 +1328,7 @@ valid hash."))
   "Create a clang-type from a name used in an execution trace.
 The resulting type will not be added to any clang object and will not have a
 valid hash.
+
 * NAME type name as expressed in an execution trace
 "
   (make-clang-type
@@ -1554,6 +1555,9 @@ second should be included as a possible pick
 
 
 ;;; Mutations
+;;;
+;;; TODO: Loop iteration order flip.  \cite{Nicholas Harrand}
+;;;
 (defclass clang-mutation (mutation)
   ()
   (:documentation "Specialization of the mutation interface for clang software
