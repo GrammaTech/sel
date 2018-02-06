@@ -163,7 +163,16 @@
                 (new-individuals)
               (when every-pre-fn
                 (mapcar every-pre-fn variants))
-              (evaluate test (make-instance 'super-mutant :mutants variants))
+              (let ((super (make-instance 'super-mutant :mutants variants)))
+                ;; Building super-mutant genome may fail if e.g. one
+                ;; of the variants has deleted a function body.
+                (restart-case
+                    (genome super)
+                  (ignore-failed-mutation ()
+                    :report
+                    "Ignore failed mutation and continue evolution"
+                    (next-iteration)))
+                (evaluate test super))
               (when analyze-mutation-fn
                 (mapcar (lambda (variant info)
                           (funcall analyze-mutation-fn variant info test))
