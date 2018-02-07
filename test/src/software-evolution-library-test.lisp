@@ -1084,7 +1084,7 @@ suite should be run and nil otherwise."
   (with-fixture gcd-asm
     (number-genome *gcd*)
     (is (tree-equal (genome *gcd*)
-                    (genome (sel::homologous-crossover *gcd* (copy *gcd*)))))))
+                    (genome (homologous-crossover *gcd* (copy *gcd*)))))))
 
 (deftest homologous-crossover-with-cut ()
   ;; NOTE: If crossover changes, this test may fail sporadically: behavior
@@ -1099,7 +1099,7 @@ suite should be run and nil otherwise."
                                      :object variant
                                      :targets target))
       (multiple-value-bind (crossed cross-a cross-b)
-          (sel::homologous-crossover *gcd* variant)
+          (homologous-crossover *gcd* variant)
         ;; If copied before cut, size is 1 smaller. Otherwise, it's the same
         (if (< cross-b target)
             (is (= (1- (size *gcd*)) (size crossed)))
@@ -1123,7 +1123,7 @@ suite should be run and nil otherwise."
                                      :object variant
                                      :targets (list insert-pt stmt-to-insert)))
       (multiple-value-bind (crossed cross-a cross-b)
-          (sel::homologous-crossover variant *gcd*)
+          (homologous-crossover variant *gcd*)
         (cond
           ((< cross-a insert-pt)
            (is (= (size crossed) (size *gcd*))))
@@ -1145,7 +1145,7 @@ suite should be run and nil otherwise."
        variant
        (make-instance 'simple-swap :object variant :targets targets))
       (multiple-value-bind (crossed cross-a cross-b)
-          (sel::homologous-crossover *gcd* variant)
+          (homologous-crossover *gcd* variant)
         (cond
           ((= cross-a 20)
            ;; (format t "EQUAL 20~%")
