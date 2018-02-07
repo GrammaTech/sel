@@ -109,14 +109,16 @@ Used by `homologous-crossover'."
                 ((eql id-a (lookup-id b upper))
                  (leave upper))
                 ;; neither upper nor lower matches, check if either is close
-                (t (when (> closest-diff (abs (- id-a (lookup-id b lower))))
-                     ;; id at lower is closer than closest yet found
-                     (setf closest lower)
-                     (setf closest-diff (abs (- id-a (lookup-id b lower)))))
-                   (when (> closest-diff (abs (- id-a (lookup-id b upper))))
-                     ;; id at upper is closer than closest yet found
-                     (setf closest upper)
-                     (setf closest-diff (abs (- id-a (lookup-id b upper)))))))
+                (t (when-let ((id-b-lower (lookup-id b lower)))
+                     (when (> closest-diff (abs (- id-a id-b-lower)))
+                       ;; id at lower is closer than closest yet found
+                       (setf closest lower)
+                       (setf closest-diff (abs (- id-a id-b-lower)))))
+                   (when-let ((id-b-upper (lookup-id b upper)))
+                     (when (> closest-diff (abs (- id-a id-b-upper)))
+                       ;; id at upper is closer than closest yet found
+                       (setf closest upper)
+                       (setf closest-diff (abs (- id-a id-b-upper)))))))
               (finally (return closest)))))))
 
 (defmethod homologous-crossover ((a asm) (b asm))
