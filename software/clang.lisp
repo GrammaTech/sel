@@ -4295,6 +4295,7 @@ within a function body, return null."))
                  "performance*"
                  "-performance-unnecessary-value-param"
                  "readability*"
+                 "-readability-else-after-return"
                  "-readability-function-size"
                  "-readability-identifier-naming"
                  "-readability-non-const-parameter"
