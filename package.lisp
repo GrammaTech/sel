@@ -110,6 +110,7 @@
    :from-file
    :from-file-exactly
    :from-string
+   :apply-config
    :ext
    :get-vars-in-scope
    :bind-free-vars
@@ -276,7 +277,9 @@
    :original
    :asm
    :csurf-asm
-   :*isa-nbits*
+   :*dynamic-linker-path*
+   :*elf-copy-redirect-path*
+   :*elf-edit-symtab-path*
    :elf
    :elf-cisc
    :elf-csurf

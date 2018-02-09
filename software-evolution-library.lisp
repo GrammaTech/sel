@@ -435,6 +435,9 @@ Define an :around method on this function to record crossovers."))
 (defgeneric from-file (software file)
   (:documentation "Initialize SOFTWARE with contents of FILE."))
 
+(defgeneric apply-config (software config-file)
+  (:documentation "Parse CONFIG-FILE and use to configure SOFTWARE."))
+
 (defgeneric to-file (software file)
   (:documentation "Write SOFTWARE to FILE"))
 
