@@ -348,7 +348,8 @@
    :clang-instrumenter
    :uninstrument
    :var-instrument
-   :*instrument-log-variable-name*
+   :+instrument-log-variable-name+
+   :+instrument-log-lock-variable-name+
    :add-include
    :force-include
    :add-type

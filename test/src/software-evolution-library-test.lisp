@@ -4821,12 +4821,14 @@ Useful for printing or returning differences in the REPL."
               (count-traceable instrumented)))
 
       ;; Is function exit instrumented?
-      (is (stmt-with-text instrumented
-                          (format nil "write_trace_id(__sel_trace_file, ~du)"
-                                  (-<>> (first (functions *gcd*))
-                                        (function-body *gcd*)
-                                        (position <> (asts *gcd*)
-                                                  :test #'equalp))) :no-error))
+      (is (stmt-with-text
+            instrumented
+            (format nil
+              "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+              (-<>> (first (functions *gcd*))
+                    (function-body *gcd*)
+                    (position <> (asts *gcd*)
+                              :test #'equalp))) :no-error))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -4847,7 +4849,7 @@ Useful for printing or returning differences in the REPL."
                      (for i upfrom 0)
                      (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))))))
       (is (scan (quote-meta-chars "write_trace_aux(__sel_trace_file")
-              (genome-string instrumented))
+                (genome-string instrumented))
         "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -4880,9 +4882,8 @@ Useful for printing or returning differences in the REPL."
       ;; Ensure we were able to instrument an else branch w/o curlies.
       (let* ((else-counter (index-of-ast *gcd*
                                          (stmt-with-text *gcd* "b = b - a")))
-             (matcher (quote-meta-chars
-                       (format nil "write_trace_id(__sel_trace_file, ~du)"
-                               else-counter))))
+             (matcher (format nil "write_trace_id\\(.*~du\\)"
+                              else-counter)))
         (is (scan matcher (genome instrumented)))
         ;; The next line (after flushing) should be the else branch.
         (let ((location (position-if {scan matcher} (lines instrumented))))
@@ -4946,21 +4947,25 @@ prints unique counters in the trace"
                                     (asts variant)
                                     :from-end t)))
               "a = atoi(argv[1]) was not inserted into the genome")
-          (is (search (format nil "write_trace_id(__sel_trace_file, ~du)"
-                              (->> (find-if [{string= "a = atoi(argv[1])"}
-                                             #'peel-bananas #'source-text]
-                                            (asts variant)
-                                            :from-end nil)
-                                   (index-of-ast variant)))
-                      (genome instrumented))
+          (is (search
+                (format nil
+                  "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                  (->> (find-if [{string= "a = atoi(argv[1])"}
+                                 #'peel-bananas #'source-text]
+                                (asts variant)
+                                :from-end nil)
+                       (index-of-ast variant)))
+                (genome instrumented))
               "instrumentation was not added for the inserted statement")
-          (is (search (format nil "write_trace_id(__sel_trace_file, ~du)"
-                              (->> (find-if [{string= "a = atoi(argv[1])"}
-                                             #'peel-bananas #'source-text]
-                                            (asts variant)
-                                            :from-end t)
-                                   (index-of-ast variant)))
-                      (genome instrumented))
+          (is (search
+                (format nil
+                  "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                  (->> (find-if [{string= "a = atoi(argv[1])"}
+                                 #'peel-bananas #'source-text]
+                                (asts variant)
+                                :from-end t)
+                       (index-of-ast variant)))
+                (genome instrumented))
               "instrumentation was not added for the original statement"))))))
 
 (deftest instrumentation-print-unbound-vars ()
