@@ -65,6 +65,7 @@
    :cd
    :ensure-path-is-string
    :in-directory
+   :directory-p
    :*work-dir*
    :*shell-debug*
    :*shell-error-codes*

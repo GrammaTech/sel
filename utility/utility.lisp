@@ -242,6 +242,13 @@ pathname (i.e., ending in a \"/\")."
      :type (pathname-type path)
      :version (pathname-version path))))
 
+(defun directory-p (pathname)
+  "Return a directory version of PATHNAME if it indicates a directory."
+  (if (directory-pathname-p pathname)
+      pathname
+      ;; When T `directory-exists-p' (like this function) returns the pathname.
+      (directory-exists-p (pathname-as-directory pathname))))
+
 
 ;;;; Shell and system command helpers
 (defvar *work-dir* nil)
