@@ -202,15 +202,18 @@ the first return value.
       ((fitness-check (variant)
          (assert (fitness variant) (variant) "Variant with no fitness"))
        (new-individuals ()
-         (iter (for i below *mutants-at-once*)
+         (iter (with count = 0)
                (restart-case
                    (multiple-value-bind (variant mutation-info)
                        (new-individual)
                      (collect variant into variants)
-                     (collect mutation-info into infos))
+                     (collect mutation-info into infos)
+                     (incf count))
+
                  (ignore-failed-mutation ()
                    :report
                    "Ignore failed mutation and continue evolution"))
+               (while (< count *mutants-at-once*))
                (finally (return (values variants infos))))))
 
     (block search-target-reached
