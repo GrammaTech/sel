@@ -19,43 +19,55 @@
   (declare (ignorable extra-keys))
   (flet
       ((make-phenome-proxy (phenome-results obj)
-         (let ((proxy (copy obj)))
-           ;; TODO: how much memory is used up by these temporary functions?
-           ;; Will they be freed along with the associated object or do we
-           ;; need to use `remove-method' or `fmakunbound' on them?
-           (eval `(defmethod phenome ((proxy (eql ,proxy)) &key bin)
-                    (values-list
-                     (cons (if bin
-                               (progn (shell "cp -a ~a ~a"
-                                             ,(car phenome-results) bin)
-                                      bin)
-                               ,(car phenome-results))
-                           ',(cdr phenome-results)))))
-           proxy)))
+         ;; Make a copy of OBJ and dynamically add an eql-specialized
+         ;; version of PHENOME which implements super-mutant behavior.
+         (let* ((proxy (copy obj))
+                (function
+                 (lambda (obj &key bin)
+                  (declare (ignorable obj))
+                  (values-list
+                   (cons (if bin
+                             (progn (shell "cp -a ~a ~a"
+                                           (car phenome-results) bin)
+                                    bin)
+                             (car phenome-results))
+                         (cdr phenome-results)))))
+                ;; TODO: how much memory is used up by these temporary
+                ;; functions?  Will they be freed along with the
+                ;; associated object or do we need to use
+                ;; `remove-method' on them?
+                (method (make-instance 'standard-method
+                                       :name 'phenome
+                                       :function function
+                                       :lambda-list '(obj &key bin)
+                                       :specializers
+                                       (list (intern-eql-specializer proxy)))))
+           (add-method #'phenome method)
+           (values proxy method))))
 
     (with-temp-file (bin)
-     ;; Compile the super-mutant
-     (destructuring-bind (bin . rest)
-         (multiple-value-list (phenome super :bin bin))
-       (mapc (lambda-bind ((i obj))
-               ;; Create a wrapper script to ensure the correct mutant
-               ;; is evaluated
-               (with-temp-file-of (wrapper)
-                 (format nil "#!/bin/sh~%SUPER_MUTANT=~d ~a" i bin)
-                 (shell "chmod +x ~s" wrapper)
+      ;; Compile the super-mutant
+      (destructuring-bind (bin . rest)
+          (multiple-value-list (phenome super :bin bin))
+        (mapc (lambda-bind ((i obj))
+                ;; Create a wrapper script to ensure the correct mutant
+                ;; is evaluated
+                (with-temp-file-of (wrapper)
+                  (format nil "#!/bin/sh~%SUPER_MUTANT=~d ~a" i bin)
+                  (shell "chmod +x ~s" wrapper)
 
-                 ;; Perform normal evaluation on the proxy, which will
-                 ;; return the wrapper script as its phenome
-                 (multiple-value-bind (fit extra)
-                     (evaluate test
-                               (make-phenome-proxy (if bin
-                                                       (cons wrapper rest)
-                                                       (cons nil rest))
-                                                   obj))
+                  ;; Perform normal evaluation on the proxy, which will
+                  ;; return the wrapper script as its phenome
+                  (multiple-value-bind (fit extra)
+                      (evaluate test
+                                (make-phenome-proxy (if bin
+                                                        (cons wrapper rest)
+                                                        (cons nil rest))
+                                                    obj))
 
-                   (setf (fitness obj) fit)
-                   (setf (fitness-extra-data obj) extra))))
-             (indexed (mutants super)))))))
+                    (setf (fitness obj) fit)
+                    (setf (fitness-extra-data obj) extra))))
+              (indexed (mutants super)))))))
 
 (defmethod genome ((obj super-mutant))
   (genome (super-soft obj)))
