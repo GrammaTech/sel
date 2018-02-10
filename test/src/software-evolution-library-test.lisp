@@ -7931,3 +7931,43 @@ prints unique counters in the trace"
                                                  (copy mutant-b)))))
         (is (genome super))
         (is (phenome-p super))))))
+
+(deftest super-mutant-genome-preserves-unvarying-functions ()
+  "Switch should be omitted in functions which are the same across all mutants."
+  (with-fixture huf-clang
+    (let ((mutant-a (copy *huf*))
+          (mutant-b (copy *huf*))
+          (mutant-c (copy *huf*)))
+      (apply-mutation mutant-a
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-a
+                                                             "h->n = 0"))))
+      (apply-mutation mutant-b
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-b
+                                                             "free(heap)"))))
+      (apply-mutation mutant-c
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-b
+                                                             "heap->n--"))))
+
+      (let* ((super (make-instance 'super-mutant
+                                   :mutants (list mutant-a mutant-b
+                                                  mutant-c)))
+             (obj (sel::super-soft super)))
+        (is (genome super))
+        (is (phenome-p super))
+        (mapcar (lambda (fun)
+                  (is (eq (if (member (ast-name fun)
+                                      '("_heap_create" "_heap_destroy"
+                                        "_heap_remove")
+                                      :test #'string=)
+                              1
+                              0)
+                          (count-if [{eq :SwitchStmt} #'ast-class]
+                                    (->> (function-body obj fun)
+                                         (get-immediate-children obj))))))
+                (functions obj))))))
+
+(deftest super-mutant-genome-has-union-of-decls
+    (with-fixture gcd-clang
+
+      )
+    )

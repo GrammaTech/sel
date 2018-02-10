@@ -108,26 +108,28 @@ the first return value.
                ;; Function bodies may differ as long as name and
                ;; arguments are the same. Collect all unique variants,
                ;; along with the mutants they came from.
-               (let ((variants (make-hash-table)))
-                 (mapc (lambda-bind ((i ref) mutant)
-                         (assert (functions-compatible-p head ref))
-                         (let ((ast (ast-ref-ast ref))
-                               (body (function-body mutant ref)))
-                           (unless body
-                             (error
-                              (make-condition 'mutate
-                                              :text
-                                              (format nil "Missing body for ~a"
-                                                      (ast-name ref))
-                                              :obj mutant)))
-                           (if-let ((value (gethash ast variants)))
-                             (pushnew i (second value))
-                             (setf (gethash ast variants)
-                                   (list body (list i))))))
-                       (indexed asts)
-                       mutants)
-                 (cons (function-body base head)
-                       variants))
+               (unless (every [{eq (ast-ref-ast head)} #'ast-ref-ast] rest)
+                 (let ((variants (make-hash-table)))
+                   (mapc (lambda-bind ((i ref) mutant)
+                           (assert (functions-compatible-p head ref))
+                           (let ((ast (ast-ref-ast ref))
+                                 (body (function-body mutant ref)))
+                             (unless body
+                               (error
+                                (make-condition 'mutate
+                                                :text
+                                                (format nil
+                                                        "Missing body for ~a"
+                                                        (ast-name ref))
+                                                :obj mutant)))
+                             (if-let ((value (gethash ast variants)))
+                               (pushnew i (second value))
+                               (setf (gethash ast variants)
+                                     (list body (list i))))))
+                         (indexed asts)
+                         mutants)
+                   (cons (function-body base head)
+                         variants)))
                ;; Top-level decls must be identical across
                ;; variants. Don't collect anything.
                (progn
