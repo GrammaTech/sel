@@ -9,65 +9,81 @@
             :documentation "Mutants to combine.")
    (super-soft :accessor super-soft :initform nil
                :type (or null software)
-               :documentation "Software object containing combined genome.")))
+               :documentation "Software object containing combined genome.")
+   (phenome-results :accessor phenome-results :initform nil
+                    :type list
+                    :documentation "Cached results from PHENOME method.")))
 
 (defmethod phenome ((obj super-mutant) &key (bin (temp-file-name)))
   (phenome (super-soft obj) :bin bin))
 
+(defmethod phenome-wrapper ((obj super-mutant) wrapper which-mutant &key bin)
+  "Create a script which wraps phenome of OBJ to run the desired mutant.
+* OBJ the super-mutant
+* WRAPPER the path for the wrapper script
+* WHICH-MUTANT the index of the mutant to enable
+* BIN the path for the super-mutant phenome
+
+First generates a phenome unless it has already been cached. Then
+writes out a wrapper script which sets the SUPER_MUTANT environment
+variable to WHICH_MUTANT before running the phenome.
+
+Returns the results of the PHENOME call, except that WRAPPER replaces
+the first return value.
+"
+  (destructuring-bind (result-bin . rest)
+      (or (phenome-results obj)
+          (setf (phenome-results obj)
+                (multiple-value-list (phenome obj :bin bin))))
+    ;; Create a wrapper script to ensure the correct mutant
+    ;; is evaluated
+    (cons (when result-bin
+            (string-to-file (format nil "#!/bin/sh~%SUPER_MUTANT=~d ~a"
+                                    which-mutant
+                                    result-bin)
+                            wrapper)
+            (shell "chmod +x ~s" wrapper)
+            wrapper)
+          rest)))
+
 (defmethod evaluate ((test function) (super super-mutant)
                      &rest extra-keys &key &allow-other-keys)
   (declare (ignorable extra-keys))
-  (flet
-      ((make-phenome-proxy (phenome-results obj)
-         ;; Make a copy of OBJ and dynamically add an eql-specialized
-         ;; version of PHENOME which implements super-mutant behavior.
-         (let* ((proxy (copy obj))
-                (function
-                 (lambda (obj &key bin)
-                  (declare (ignorable obj))
-                  (values-list
-                   (cons (if bin
-                             (progn (shell "cp -a ~a ~a"
-                                           (car phenome-results) bin)
-                                    bin)
-                             (car phenome-results))
-                         (cdr phenome-results)))))
-                ;; TODO: how much memory is used up by these temporary
-                ;; functions?  Will they be freed along with the
-                ;; associated object or do we need to use
-                ;; `remove-method' on them?
-                (method (make-instance 'standard-method
-                                       :name 'phenome
-                                       :function function
-                                       :lambda-list '(obj &key bin)
-                                       :specializers
-                                       (list (intern-eql-specializer proxy)))))
-           (add-method #'phenome method)
-           (values proxy method))))
+  (with-temp-file (super-bin)
+    (flet
+        ((make-phenome-proxy (obj which-mutant)
+           ;; Make a copy of OBJ and dynamically add an eql-specialized
+           ;; version of PHENOME which implements super-mutant behavior.
+           (flet ((proxy-phenome (obj &key (bin (temp-file-name)))
+                    (declare (ignorable obj))
+                    (values-list (phenome-wrapper super bin which-mutant
+                                                  :bin super-bin))))
 
-    (with-temp-file (bin)
-      ;; Compile the super-mutant
-      (destructuring-bind (bin . rest)
-          (multiple-value-list (phenome super :bin bin))
-        (mapc (lambda-bind ((i obj))
-                ;; Create a wrapper script to ensure the correct mutant
-                ;; is evaluated
-                (with-temp-file-of (wrapper)
-                  (format nil "#!/bin/sh~%SUPER_MUTANT=~d ~a" i bin)
-                  (shell "chmod +x ~s" wrapper)
+             (let* ((proxy (copy obj))
+                    (method
+                     (make-instance 'standard-method
+                                    :name 'phenome
+                                    :function #'proxy-phenome
+                                    :lambda-list '(obj &key bin)
+                                    :specializers
+                                    (list (intern-eql-specializer proxy)))))
+               ;; TODO: how much memory is used up by these temporary
+               ;; functions?  Will they be freed along with the
+               ;; associated object or do we need to use
+               ;; `remove-method' on them?
+               (add-method #'phenome method)
+               (values proxy method)))))
 
-                  ;; Perform normal evaluation on the proxy, which will
-                  ;; return the wrapper script as its phenome
-                  (multiple-value-bind (fit extra)
-                      (evaluate test
-                                (make-phenome-proxy (if bin
-                                                        (cons wrapper rest)
-                                                        (cons nil rest))
-                                                    obj))
+      (mapc (lambda-bind ((i obj))
+              ;; Create a proxy to override phenome behavior, then
+              ;; evaluate that in the normal way.
+              (multiple-value-bind (fit extra)
+                  (evaluate test
+                            (make-phenome-proxy obj i))
 
-                    (setf (fitness obj) fit)
-                    (setf (fitness-extra-data obj) extra))))
-              (indexed (mutants super)))))))
+                (setf (fitness obj) fit)
+                (setf (fitness-extra-data obj) extra)))
+            (indexed (mutants super))))))
 
 (defmethod genome ((obj super-mutant))
   (genome (super-soft obj)))
