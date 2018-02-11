@@ -4770,9 +4770,8 @@ Useful for printing or returning differences in the REPL."
 
 (defun get-gcd-trace (bin)
   (with-temp-file (trace-file)
-    (multiple-value-bind (stdout stderr errno)
-        (shell "~a 4 8 2>~a" bin trace-file)
-      (declare (ignorable stdout stderr))
+    (let ((errno (nth-value 2 (run-program (format nil "~a 4 8 2>~a"
+                                                   bin trace-file)))))
       (is (zerop errno))
       (let ((trace (read-trace trace-file 1)))
         (is (listp trace))
@@ -5173,9 +5172,8 @@ prints unique counters in the trace"
                                   (phenome *project* :bin bin))))
             "Successfully compiled instrumented project."))
       (with-temp-file (trace-file)
-        (multiple-value-bind (stdout stderr errno)
-            (shell "~a 2>~a" bin trace-file)
-          (declare (ignorable stdout stderr))
+        (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
+                                                       bin trace-file)))))
           (is (zerop errno))
           (let ((trace (read-trace trace-file 1)))
             (is (listp trace))

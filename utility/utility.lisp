@@ -280,23 +280,28 @@ debug information depending on the value of `*shell-debug*'."
               (make-string-input-stream input-arg)
               input-arg))
     (setq format-arguments (take-until {eq :input} format-arguments)))
-  (let ((cmd (apply #'format (list* nil control-string format-arguments))))
+  (let ((cmd (apply #'format (list* nil control-string format-arguments)))
+        (stdout-str nil)
+        (stderr-str nil)
+        (errno nil))
     (when *shell-debug*
       (format t "  cmd: ~a~%" cmd)
       (when input
         (format t "  input: ~a~%" input)))
+
     ;; Direct shell execution with `uiop/run-program:run-program'.
-    (let ((stdout-str (make-array '(0)
-                                  :element-type
-                                  #+sbcl 'extended-char
-                                  #+(or ecl ccl) 'character
-                                  :fill-pointer 0 :adjustable t))
-          (stderr-str (make-array '(0)
-                                  :element-type
-                                  #+sbcl 'extended-char
-                                  #+(or ecl ccl) 'character
-                                  :fill-pointer 0 :adjustable t))
-          (errno nil))
+    #-ccl
+    (progn
+      (setf stdout-str (make-array '(0)
+                                   :element-type
+                                   #+sbcl 'extended-char
+                                   #-sbcl 'character
+                                   :fill-pointer 0 :adjustable t))
+      (setf stderr-str (make-array '(0)
+                                   :element-type
+                                   #+sbcl 'extended-char
+                                   #-sbcl 'character
+                                   :fill-pointer 0 :adjustable t))
       (with-output-to-string (stderr stderr-str)
         (with-output-to-string (stdout stdout-str)
           (setf errno (nth-value 2 (run-program
@@ -305,17 +310,30 @@ debug information depending on the value of `*shell-debug*'."
                                     :ignore-error-status t
                                     :input input
                                     :output stdout
-                                    :error-output stderr)))))
-      (when *shell-debug*
-        (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout-str stderr-str errno))
-      (when (or (and *shell-non-error-codes*
-                     (not (find errno *shell-non-error-codes*)))
-                (find errno *shell-error-codes*))
-        (restart-case (error (make-condition 'shell-command-failed
-                               :exit-code errno
-                               :command cmd))
-          (ignore-shell-error () "Ignore error and continue")))
-      (values stdout-str stderr-str errno))))
+                                    :error-output stderr))))))
+    #+ccl
+    (progn
+      (with-temp-file (stdout-file)
+        (with-temp-file (stderr-file)
+          (setf errno (nth-value 2 (run-program
+                                    (format nil "~a 1>~a 2>~a"
+                                            cmd stdout-file stderr-file)
+                                    :force-shell t
+                                    :ignore-error-status t
+                                    :input input)))
+          (setf stdout-str (file-to-string stdout-file))
+          (setf stderr-str (file-to-string stderr-file)))))
+    (when *shell-debug*
+      (format t "~&stdout:~a~%stderr:~a~%errno:~a"
+              stdout-str stderr-str errno))
+    (when (or (and *shell-non-error-codes*
+                   (not (find errno *shell-non-error-codes*)))
+              (find errno *shell-error-codes*))
+      (restart-case (error (make-condition 'shell-command-failed
+                             :exit-code errno
+                             :command cmd))
+        (ignore-shell-error () "Ignore error and continue")))
+    (values stdout-str stderr-str errno)))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
