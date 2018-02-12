@@ -2,7 +2,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software csurf-asm (asm)
+(define-software csurf-asm (asm-range)
   ((assembler
     :initarg :assembler :accessor assembler :initform "nasm"
     :documentation "Assembler to use for assembling.")
