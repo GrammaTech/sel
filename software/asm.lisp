@@ -12,6 +12,41 @@
   (:documentation
    "General assembler backend used to manipulate \".s\" text assembler."))
 
+(defclass asm-range (sw-range asm)
+  ((stats :initarg :stats :accessor stats :initform nil))
+  (:documentation
+   "Memory efficient alternative to `asm' mixing in `range'.
+Some operations on the genome are more complicated but very large
+memory savings may be realized by using this class."))
+
+(defmethod to-asm-range ((asm asm))
+  "Convert an `asm' software object to an `asm-range' object."
+  (with-slots (flags linker genome) asm
+    (make-instance 'asm-range
+      :flags flags
+      :linker linker
+      :genome (list (cons 0 (1- (length genome))))
+      :reference (coerce (lines asm) 'vector))))
+
+(defmethod from-file ((asm asm-range) file)
+  "Initialize an `asm-range' software object from a file.
+Note this is required as no `from-file' method is defined on the
+`range' software object class."
+  (setf (lines asm) (split-sequence #\Newline (file-to-string file)))
+  asm)
+
+(defmethod copy ((asm asm-range))
+  "Customized copy for `asm-range' software objects.
+Ensures deep copies are made of the genome (ranges) but shallow copies
+are made of the reference base genome."
+  (with-slots (genome linker flags reference) asm
+    (make-instance (type-of asm)
+      :fitness (fitness asm)
+      :genome (copy-tree genome)
+      :linker linker
+      :flags flags
+      :reference reference)))
+
 (defvar *asm-linker* "gcc")
 
 (defvar *asm-new-mutation-types* '(asm-replace-operand)
