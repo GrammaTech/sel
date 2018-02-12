@@ -17,7 +17,7 @@
              :copier copy-tree)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
-  (:documentation "DOXFIXME"))
+  (:documentation "DOCFIXME"))
 
 (defmethod phenome ((obj ast) &key (bin (temp-file-name)))
   "DOCFIXME

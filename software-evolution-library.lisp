@@ -335,7 +335,7 @@ compared to OLD.  NEW and OLD must have fitness populated."
   (declare (ignorable obj)) (car mutation))
 
 (defun summarize-mutation-stats (&aux results)
-  "DOXFIXME
+  "DOCFIXME
 * RESULTS DOCFIXME
 "
   (maphash (lambda (key vals)
