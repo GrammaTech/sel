@@ -2,6 +2,13 @@
 (in-package :software-evolution-library/test)
 (in-readtable :curry-compose-reader-macros)
 
+#-gt (load (make-pathname :name "testbot"
+                          :type "lisp"
+                          :directory (pathname-directory
+                                      #.(or *compile-file-truename*
+                                            *load-truename*
+                                            *default-pathname-defaults*))))
+
 ;; Disable clang-format and any other helpers
 (defmacro every-is (function &rest lists)
   (let ((args-sym (gensym "args")))
