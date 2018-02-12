@@ -640,7 +640,6 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
 @itemize
 @item Class @refapiclass{csurf-asm}
-@item Variable @refapivariable{*isa-nbits*}
 @item Methods
   @itemize
   @item @refapimethod{phenome ((asm csurf-asm) &key (bin (temp-file-name)))}
@@ -650,10 +649,6 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @c defvar *gt-home*
 @c defun elf-weaken-gmon-start
 @c defun elf-copy-redirect
-
-@include include/var-sel-star-isa-nbits-star.texinfo
-
-
 
 @anchor{api-software-objects-elf}
 @subsection API | Software Objects | Class @code{elf}
