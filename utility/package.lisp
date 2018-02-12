@@ -24,6 +24,7 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
+  (:shadowing-import-from :osicat :pathname-as-directory)
   (:shadowing-import-from
    :osicat-posix
    :write
