@@ -18,9 +18,9 @@
 @item Methods
   @itemize
 @c whitespace in this reference is important
-  @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key predicate max
+  @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key max
                   (bin (temp-file-name)) &aux (args (list bin bin))
-                                  (delete-bin-p t))}
+                  (delete-bin-p t))}
 @c whitespace in this reference is important
   @item @refapimethod{evaluate (phenome (test-suite test-suite) &rest extra-keys &key
                     &allow-other-keys)}
@@ -47,8 +47,8 @@
 @item Methods
   @itemize
 @c whitespace in this reference is important
-  @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key (predicate #'identity)
-                 (max infinity) (bin (temp-file-name)) &aux (delete-bin-p t))}
+  @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key max
+                 (bin (temp-file-name)) &aux (delete-bin-p t))}
   @item @refapimethod{evaluate (phenome (obj test-case) &rest extra-keys &key &allow-other-keys)}
   @item @refapimethod{run-test (phenome (test-case test-case) &rest extra-keys &key &allow-other-keys)}
   @item @refapimethod{start-test (phenome (test-case test-case) &rest extra-keys &key
