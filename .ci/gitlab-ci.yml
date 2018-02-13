@@ -8,8 +8,8 @@ before_script:
 
 stages:
   - build
-  - deploy
   - test-and-tag
+  - deploy
   - dependents
 
 .build-template: &build
