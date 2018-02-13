@@ -10,6 +10,7 @@ stages:
   - build
   - test-and-tag
   - deploy
+  - cleanup
   - dependents
 
 .build-template: &build
@@ -59,9 +60,6 @@ build-arch:
           docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
       fi
 
-    # Cleanup local image.
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}
-
 run:
   stage: test-and-tag
   variables:
@@ -73,6 +71,22 @@ run-arch:
   variables:
     OS: 'arch'
   <<: *run
+
+.clean-template: &clean
+  script:
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}
+
+clean:
+  stage: cleanup
+  variables:
+    OS: 'ubuntu'
+  <<: *clean
+
+clean-arch:
+  stage: cleanup
+  variables:
+    OS: 'arch'
+  <<: *clean
 
 trigger_bed:
   stage: dependents
