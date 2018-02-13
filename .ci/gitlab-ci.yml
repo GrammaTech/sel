@@ -9,9 +9,8 @@ before_script:
 stages:
   - build
   - test-and-tag
-  - deploy
-  - cleanup
   - dependents
+  - deploy-and-cleanup
 
 .build-template: &build
   script:
@@ -72,22 +71,6 @@ run-arch:
     OS: 'arch'
   <<: *run
 
-.clean-template: &clean
-  script:
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}
-
-clean:
-  stage: cleanup
-  variables:
-    OS: 'ubuntu'
-  <<: *clean
-
-clean-arch:
-  stage: cleanup
-  variables:
-    OS: 'arch'
-  <<: *clean
-
 trigger_bed:
   stage: dependents
   script:
@@ -110,10 +93,12 @@ trigger_evo-rings:
     - master
 
 pages:
-  stage: deploy
+  stage: deploy-and-cleanup
   script:
     - docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(docker ps -alq):/public ./
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
   artifacts:
     paths:
       - public
