@@ -1004,13 +1004,21 @@ suite should be run and nil otherwise."
   (with-fixture gcd-asm
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      (handler-bind
-          ((no-mutation-targets
-            (lambda (c)
-              (declare (ignorable c))
-              (invoke-restart 'try-another-mutation))))
-        (mutate ant))
-      (is (not (sel::equal-it (genome ant) (genome *gcd*))))
+      ;; Multiple tries to apply a mutation creating a difference.
+      ;; Stochastically some might result in the same genome, e.g. by
+      ;; swapping to identical instructions.
+      (is (iter (as count upfrom 0)
+                (handler-bind
+                    ((no-mutation-targets
+                      (lambda (c)
+                        (declare (ignorable c))
+                        (invoke-restart 'try-another-mutation))))
+                  (mutate ant))
+                (when (not (sel::equal-it (genome ant) (genome *gcd*)))
+                  (return t))
+                (when (> count 100)
+                  (return nil)))
+          "In 100 tries, a mutation results in a different mutated genome.")
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 (deftest asm-cut-actually-shortens ()
