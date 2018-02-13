@@ -4,7 +4,8 @@ RUN apt-get -y update && \
     apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev
 
 ENV PATH=/gt/sel/bin:$PATH \
-    GT_DOCKER_CHOWN_PATHS=""
+    GT_DOCKER_CHOWN_PATHS="" \
+    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH
 
 COPY . /gt/sel
 

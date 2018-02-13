@@ -12,6 +12,41 @@
   (:documentation
    "General assembler backend used to manipulate \".s\" text assembler."))
 
+(defclass asm-range (sw-range asm)
+  ((stats :initarg :stats :accessor stats :initform nil))
+  (:documentation
+   "Memory efficient alternative to `asm' mixing in `range'.
+Some operations on the genome are more complicated but very large
+memory savings may be realized by using this class."))
+
+(defmethod to-asm-range ((asm asm))
+  "Convert an `asm' software object to an `asm-range' object."
+  (with-slots (flags linker genome) asm
+    (make-instance 'asm-range
+      :flags flags
+      :linker linker
+      :genome (list (cons 0 (1- (length genome))))
+      :reference (coerce (lines asm) 'vector))))
+
+(defmethod from-file ((asm asm-range) file)
+  "Initialize an `asm-range' software object from a file.
+Note this is required as no `from-file' method is defined on the
+`range' software object class."
+  (setf (lines asm) (split-sequence #\Newline (file-to-string file)))
+  asm)
+
+(defmethod copy ((asm asm-range))
+  "Customized copy for `asm-range' software objects.
+Ensures deep copies are made of the genome (ranges) but shallow copies
+are made of the reference base genome."
+  (with-slots (genome linker flags reference) asm
+    (make-instance (type-of asm)
+      :fitness (fitness asm)
+      :genome (copy-tree genome)
+      :linker linker
+      :flags flags
+      :reference reference)))
+
 (defvar *asm-linker* "gcc")
 
 (defvar *asm-new-mutation-types* '(asm-replace-operand)
@@ -61,11 +96,97 @@ address and the cdr is the value."
            (push (list i key val) applied)))))
   (reverse applied))
 
+
+;;; Crossover
+(defun number-genome (asm)
+  "Number each element in the genome of ASM by adding an :ID association."
+  (iter (for line in (genome asm))
+        (for i upfrom 0)
+        (unless (aget :id line)
+          (setf (elt (genome asm) i) (acons :id i line)))))
+
+(defgeneric homologous-crossover (software-a software-b)
+  (:documentation "Crossover at a similar point in both software objects.
+After picking a crossover point in SOFTWARE-A, try to find the same point in
+SOFTWARE-B. Ideally, if A and B are identical, `homologous-crossover' always
+results in a genome that matches those of A and B."))
+
+(defgeneric find-corresponding-point (point-a software-a software-b)
+  (:documentation
+   "Find and return a point in SOFTWARE-B matching POINT-A in SOFTWARE-A.
+Used by `homologous-crossover'."))
+
+(defmethod find-corresponding-point ((point-a integer) (a asm) (b asm))
+  "Find and return a point in asm B matching POINT-A in asm A.
+Used by `homologous-crossover'."
+  (flet ((lookup-id (obj id)
+           (aget :id (elt (genome obj) id))))
+    (let* ((id-a (lookup-id a point-a))
+           ;; adjust if id-a is beyond length of b
+           (start (if (>= id-a (length (genome b)))
+                      (1- (length (genome b)))
+                      id-a))
+           ;; max value we can add to start and still have a valid index in b
+           (add-upper-bound (- (1- (length (genome b))) start)))
+      ;; search above/below start simultaneously, adding and subtracting i
+      ;; to get the indices to check (upper and lower, resp.)
+      (iter (for i below (max start (1+ add-upper-bound)))
+            ;; keep track of closest difference in case there's no exact match
+            (with closest = start)
+            (with closest-diff = (abs (- id-a (lookup-id b start))))
+            (let ((lower (- start (min i start)))
+                  (upper (+ start (min i add-upper-bound))))
+              (cond
+                ;; lower index contains an exact match
+                ((eql id-a (lookup-id b lower))
+                 (leave lower))
+                ;; upper index contains an exact match
+                ((eql id-a (lookup-id b upper))
+                 (leave upper))
+                ;; neither upper nor lower matches, check if either is close
+                (t (when-let ((id-b-lower (lookup-id b lower)))
+                     (when (> closest-diff (abs (- id-a id-b-lower)))
+                       ;; id at lower is closer than closest yet found
+                       (setf closest lower)
+                       (setf closest-diff (abs (- id-a id-b-lower)))))
+                   (when-let ((id-b-upper (lookup-id b upper)))
+                     (when (> closest-diff (abs (- id-a id-b-upper)))
+                       ;; id at upper is closer than closest yet found
+                       (setf closest upper)
+                       (setf closest-diff (abs (- id-a id-b-upper)))))))
+              (finally (return closest)))))))
+
+(defmethod homologous-crossover ((a asm) (b asm))
+  "Crossover at a similar point in asm objects, A and B.
+After picking a crossover point in A, try to find the same point in B. If A and
+B are identical, this implementation always results in a genome that matches
+those of A and B."
+  ;; Assumes genome is numbered (see `number-genome')
+  ;; TODO: Need to update so that we remove/reset ids after mutations because
+  ;; lines copied or swapped from other locs will have a misleading id, most
+  ;; likely causing a bad crossover. Changing ids like this will now require
+  ;; creating deep copies when we copy the genome.
+  (let ((point-a (random (length (genome a))))
+        (new (copy a)))
+    (let ((point-b (find-corresponding-point point-a a b)))
+      (setf (genome new)
+            (copy-seq (concatenate (class-of (genome a))
+                                   ;; copy from beginning to point-a in A
+                                   (subseq (genome a) 0 point-a)
+                                   ;; and from point-b to end in B
+                                   (subseq (genome b) point-b))))
+      (values new point-a point-b))))
+
+(defmethod crossover ((a asm) (b asm))
+  "By default, crossover for ASM objects uses `homologous-crossover'."
+  (homologous-crossover a b))
+
+
+;;; ASM mutations
 (define-mutation asm-replace-operand (simple-mutation)
   ((targeter :initform #'pick-bad-good))
   (:documentation "Select two instructions, and replace an operand in the first
 with an operand in the second."))
-
 
 (defun asm-split-instruction (instruction)
   "Split INSTRUCTION string on white space or commas. Return a list of strings."

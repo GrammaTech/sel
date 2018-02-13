@@ -110,6 +110,7 @@
    :from-file
    :from-file-exactly
    :from-string
+   :apply-config
    :ext
    :get-vars-in-scope
    :bind-free-vars
@@ -276,7 +277,9 @@
    :original
    :asm
    :csurf-asm
-   :*isa-nbits*
+   :*dynamic-linker-path*
+   :*elf-copy-redirect-path*
+   :*elf-edit-symtab-path*
    :elf
    :elf-cisc
    :elf-csurf
@@ -327,6 +330,7 @@
    :llvm
    :linker
    :flags
+   :addr-map
    :assembler
    :asm-flags
    :redirect-file
@@ -382,6 +386,8 @@
    :asm-replace-operand
    :asm-nth-instruction
    :asm-split-instruction
+   :number-genome
+   :homologous-crossover
    :clang-cut
    :clang-cut-same
    :clang-cut-full

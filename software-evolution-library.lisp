@@ -335,7 +335,7 @@ compared to OLD.  NEW and OLD must have fitness populated."
   (declare (ignorable obj)) (car mutation))
 
 (defun summarize-mutation-stats (&aux results)
-  "DOXFIXME
+  "DOCFIXME
 * RESULTS DOCFIXME
 "
   (maphash (lambda (key vals)
@@ -434,6 +434,9 @@ Define an :around method on this function to record crossovers."))
 
 (defgeneric from-file (software file)
   (:documentation "Initialize SOFTWARE with contents of FILE."))
+
+(defgeneric apply-config (software config-file)
+  (:documentation "Parse CONFIG-FILE and use to configure SOFTWARE."))
 
 (defgeneric to-file (software file)
   (:documentation "Write SOFTWARE to FILE"))

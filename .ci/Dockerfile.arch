@@ -1,6 +1,7 @@
 FROM docker.grammatech.com:14850/synthesis/cl:arch
 
-ENV PATH=/gt/sel/bin:$PATH
+ENV PATH=/gt/sel/bin:$PATH \
+    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH
 
 # Some of the SEL tests require multilib support for m32 tests.
 # Also, our functionality for looking up the library providing

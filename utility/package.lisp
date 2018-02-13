@@ -65,6 +65,7 @@
    :cd
    :ensure-path-is-string
    :in-directory
+   :directory-p
    :*work-dir*
    :*shell-debug*
    :*shell-error-codes*
@@ -131,6 +132,8 @@
    :pad
    :chunks
    :binary-search
+   :tails
+   :pairs
    ;;; Source and binary locations and ranges
    :source-location
    :line

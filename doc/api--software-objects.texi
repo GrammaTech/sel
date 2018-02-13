@@ -167,12 +167,12 @@
 @item Methods
   @itemize
 @c whitespace in this reference is important
-  @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key (predicate #'identity)
-                 (max infinity) (bin (temp-file-name)) &aux (delete-bin-p t))}
+  @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key max
+                 (bin (temp-file-name)) &aux (delete-bin-p t))}
 @c whitespace in this reference is important
-  @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key predicate max
+  @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key max
                   (bin (temp-file-name)) &aux (args (list bin bin))
-                                  (delete-bin-p t))}
+                  (delete-bin-p t))}
   @end itemize
 @end itemize
 
@@ -640,7 +640,6 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 
 @itemize
 @item Class @refapiclass{csurf-asm}
-@item Variable @refapivariable{*isa-nbits*}
 @item Methods
   @itemize
   @item @refapimethod{phenome ((asm csurf-asm) &key (bin (temp-file-name)))}
@@ -650,10 +649,6 @@ See also @ref{api-software-objects-clang-asts, Clang ASTs}
 @c defvar *gt-home*
 @c defun elf-weaken-gmon-start
 @c defun elf-copy-redirect
-
-@include include/var-sel-star-isa-nbits-star.texinfo
-
-
 
 @anchor{api-software-objects-elf}
 @subsection API | Software Objects | Class @code{elf}

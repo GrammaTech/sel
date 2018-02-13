@@ -242,6 +242,13 @@ pathname (i.e., ending in a \"/\")."
      :type (pathname-type path)
      :version (pathname-version path))))
 
+(defun directory-p (pathname)
+  "Return a directory version of PATHNAME if it indicates a directory."
+  (if (directory-pathname-p pathname)
+      pathname
+      ;; When T `directory-exists-p' (like this function) returns the pathname.
+      (directory-exists-p (pathname-as-directory pathname))))
+
 
 ;;;; Shell and system command helpers
 (defvar *work-dir* nil)
@@ -914,6 +921,23 @@ and 0 otherwise."
                                           :test test))
 
               (t middle)))))
+
+(defun tails (lst)
+  "Return all final segments of the LST, longest first.
+
+For example (tails '(a b c)) => ('(a b c) '(b c) '(c))
+"
+  (when lst (cons lst (tails (cdr lst)))))
+
+(defun pairs (lst)
+  "Return all pairs of elements in LST.
+
+For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
+"
+  (iter (for (a . rest) in (tails lst))
+        (appending (iter (for b in rest)
+                         (collecting (cons a b))))))
+
 
 ;;;; Source and binary locations and ranges.
 (defclass source-location ()
@@ -1106,7 +1130,7 @@ region."
 LINES should be the output of the `lines' function on an ASM object."
   (loop :for line :in lines :as counter :from 0
      :for function = (register-groups-bind
-                         (line-function) ("^([^\\.][\\S]+):" line)
+                         (line-function) ("^\\$*([^\\.][\\S]+):" line)
                        line-function)
      :collect (or function counter)))
 
@@ -1124,7 +1148,7 @@ the genome of an ASM object."
        :for lines :in (cdr (mapcar
                             {remove-if
                              [{scan "^[\\s]*\\."} {aget :code} {aref genome}]}
-                             (split-sequence-if #'stringp flines)))
+                            (split-sequence-if #'stringp flines)))
        :do (mapc (lambda (addr line) (setf (gethash addr map) line))
                  addrs lines))
     map))

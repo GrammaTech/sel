@@ -8,8 +8,7 @@
 
 ;;; ast software objects
 (define-software ast (software)
-  ((genome   :initarg :genome   :accessor genome   :initform ""
-             :copier copy-seq)
+  ((genome   :initarg :genome   :accessor genome   :initform "")
    (flags    :initarg :flags    :accessor flags    :initform nil
              :copier copy-tree)
    (compiler :initarg :compiler :accessor compiler :initform "clang"
@@ -18,7 +17,7 @@
              :copier copy-tree)
    (raw-size :initarg :size     :accessor raw-size :initform nil
              :copier :none))
-  (:documentation "DOXFIXME"))
+  (:documentation "DOCFIXME"))
 
 (defmethod phenome ((obj ast) &key (bin (temp-file-name)))
   "DOCFIXME

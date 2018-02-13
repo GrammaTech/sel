@@ -1066,6 +1066,7 @@ suite should be run and nil otherwise."
 
 (deftest simple-crossover-test ()
   (with-fixture gcd-asm
+    (number-genome *gcd*)
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'simple-cut :targets 0))
       ;; (push '(:cut 0) (edits variant))
@@ -1085,6 +1086,81 @@ suite should be run and nil otherwise."
             "Phenome creates the binary file for an ASM software object.")
         (is (nth-value 2 (shell "~a 1 1" bin))
             "Phenome creates a runnable binary for an ASM software object.")))))
+
+(deftest homologous-crossover-same-same ()
+  (with-fixture gcd-asm
+    (number-genome *gcd*)
+    (is (tree-equal (genome *gcd*)
+                    (genome (homologous-crossover *gcd* (copy *gcd*)))))))
+
+(deftest homologous-crossover-with-cut ()
+  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
+  ;; depends on whether crossover target is before or after cut.
+  (with-fixture gcd-asm
+    (number-genome *gcd*)
+    (let ((variant (copy *gcd*))
+          (target 40))
+      ;; apply cut to variant
+      (apply-mutation variant
+                      (make-instance 'simple-cut
+                                     :object variant
+                                     :targets target))
+      (multiple-value-bind (crossed cross-a cross-b)
+          (homologous-crossover *gcd* variant)
+        ;; If copied before cut, size is 1 smaller. Otherwise, it's the same
+        (if (< cross-b target)
+            (is (= (1- (size *gcd*)) (size crossed)))
+            (is (= (size *gcd*) (size crossed))))))))
+
+(deftest homologous-crossover-with-insert ()
+  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
+  ;; depends on whether crossover target is before or after insert-pt.
+  ;; TODO: This test documents a shortcoming in the crossover impl that we
+  ;; want to fix. If the cross-point in A refers to an index that was previouly
+  ;; copied from another part of A, we will select cross-b as the source of the
+  ;; copied statement (which might not be close to the ideal point for a
+  ;; homologous crossover.
+  (with-fixture gcd-asm
+    (number-genome *gcd*)
+    (let ((insert-pt 40)
+          (stmt-to-insert 60)
+          (variant (copy *gcd*)))
+      (apply-mutation variant
+                      (make-instance 'simple-insert
+                                     :object variant
+                                     :targets (list insert-pt stmt-to-insert)))
+      (multiple-value-bind (crossed cross-a cross-b)
+          (homologous-crossover variant *gcd*)
+        (cond
+          ((< cross-a insert-pt)
+           (is (= (size crossed) (size *gcd*))))
+          ((= cross-a insert-pt)
+           (is (= (size crossed) (- (size *gcd*) (- stmt-to-insert insert-pt)))))
+          (t (is (= (size crossed) (1+ (size *gcd*))))))))))
+
+(deftest homologous-crossover-with-swap ()
+  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
+  ;; depends on whether crossover target is exactly on a swap point or not.
+  ;; TODO: This test documents a shortcoming in the crossover impl that we
+  ;; want to fix. If the cross-point in A refers to an index that was previouly
+  ;; swapped in B, we will select cross-b as that new location.
+  (with-fixture gcd-asm
+    (number-genome *gcd*)
+    (let ((targets (list 20 60))
+          (variant (copy *gcd*)))
+      (apply-mutation
+       variant
+       (make-instance 'simple-swap :object variant :targets targets))
+      (multiple-value-bind (crossed cross-a cross-b)
+          (homologous-crossover *gcd* variant)
+        (cond
+          ((= cross-a 20)
+           ;; (format t "EQUAL 20~%")
+           (is (= (size crossed) (- (size *gcd*) 40))))
+          ((= cross-a 60)
+           ;; (format t "EQUAL 60~%")
+           (is (= (size crossed) (+ (size *gcd*) 40))))
+          (t (is (= (size crossed) (size *gcd*)))))))))
 
 
 ;;; ELF representation.
@@ -5017,8 +5093,8 @@ prints unique counters in the trace"
                    trace)
             "No duplicate variables.")
 
-        (is (every [«or {equalp '(#("x" "int" 1))}
-                        {equalp '(#("x" "short" 0))}»
+        (is (every [«or {equalp '(#("x" "int" 1 nil))}
+                        {equalp '(#("x" "short" 0 nil))}»
                     {aget :scopes}]
                    trace)
             "Variables have correct type and value.")))))
@@ -5085,10 +5161,10 @@ prints unique counters in the trace"
             (is (listp trace))
             (is (not (emptyp trace)))
             (is (every «and {aget :c} {aget :f}» trace))
-            (is (some «and [{equalp '(#("x" "int" 0))} {aget :scopes}]
+            (is (some «and [{equalp '(#("x" "int" 0 nil))} {aget :scopes}]
                            [{eq 0} {aget :f}]»
                     trace))
-            (is (some «and [{equalp '(#("y" "int" 1))} {aget :scopes}]
+            (is (some «and [{equalp '(#("y" "int" 1 nil))} {aget :scopes}]
                            [{eq 1} {aget :f}]»
                     trace))))))))
 
@@ -5256,8 +5332,9 @@ prints unique counters in the trace"
 (deftest run-traceable-gcd ()
   (with-fixture traceable-gcd
     (instrument *gcd* :trace-env t)
-    (setf (traces *gcd*) (mapcar {collect-trace *gcd*}
-                                 (test-cases *gcd-test-suite*)))
+    (collect-traces *gcd* *gcd-test-suite*)
+    (setf (traces *gcd*)
+          (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
@@ -5265,7 +5342,8 @@ prints unique counters in the trace"
   (with-fixture traceable-gcd
     (instrument *gcd* :trace-env t)
     (collect-traces *gcd* *gcd-test-suite*)
-    (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
+    (setf (traces *gcd*)
+          (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
 (define-software collect-traces-handles-directory-phenomes-mock

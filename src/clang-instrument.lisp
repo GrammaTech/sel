@@ -1015,7 +1015,16 @@ OBJ a clang software object
 
 ;;;; Command line
 (defmacro getopts (&rest forms)
-  "DOXFIXME"
+  "Collect command-line options from ARGS in an executable.
+
+For usage see the definition of `clang-instrument'.  E.g.,
+
+    (getopts
+      (\"-c\" \"--compiler\" (setf (compiler original) (pop args)))
+      (\"-e\" \"--exit\" (setf instrument-exit t))
+      (\"-F\" \"--flags\" (setf (flags original) (split-sequence #\, (pop args))))
+      #| ... |#)
+"
   (let ((arg (gensym)))
     `(loop :for ,arg = (pop args) :while ,arg :do
         (cond
