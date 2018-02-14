@@ -289,4 +289,4 @@ doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	--script .ci/.generate-api-docs includes $(DOC_PACKAGES)
 
 gh-pages: doc
-	rsync -aruv doc/software-evolution-library/ . --exclude .gitignore
+	rsync -aruv doc/$(PACKAGE_NAME)/ . --exclude .gitignore
