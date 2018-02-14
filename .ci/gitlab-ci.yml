@@ -104,3 +104,11 @@ pages:
       - public
   only:
     - master
+
+cleanup:
+  stage: deploy-and-cleanup
+  script:
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
+  except:
+    - master
