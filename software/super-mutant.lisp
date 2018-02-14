@@ -94,6 +94,57 @@ the first return value.
       (setf super-soft (create-super-soft (car (mutants obj))
                                           (mutants obj))))))
 
+(defun collate-ast-variants (ast-roots)
+  "Collect and align variants of top-level ASTs.
+
+* AST-ROOTS a (key . ast) pair for each top-level AST across all
+  mutants. Grouped into sublists per mutant.
+
+Returns a list of variants for each key. Keys are merged
+across mutants, while preserving the original order as much as
+possible. The position of each variant in the variants list matches
+the position of the corresponding mutant in AST-ROOTS. In the event of
+inserted or deleted ASTs, the variant list will contain nils.
+
+We assume that the order of common keys is consistent across all
+variants. If this is not true, the result may have duplicate keys.
+"
+  (iter (for roots in ast-roots)
+        (for i upfrom 0)
+        ;; Dummy value avoids special cases due to empty result list
+        (with result = (list 'dummy))
+        (iter (for (key . variant) in roots)
+              (with previous = result)
+              (with current = (cdr result))
+
+              ;; Search for a matching key in the results
+              (if-let ((matching (find key (tails current)
+                                       :key #'caar
+                                       :test #'equal)))
+                ;; If found, advance to that key and add the new variant there
+                (progn
+                  ;; add a nil in each skipped key
+                  (iter (for c on current)
+                        (while (not (eq c matching)))
+                        (push nil (cdr (car c))))
+                  (push variant (cdr (car matching)))
+                  (setf previous matching
+                        current (cdr matching)))
+                ;; Otherwise, insert new entry at current position,
+                ;; with nils for the previous mutants
+                (progn
+                  (setf (cdr previous) (cons (list* key variant
+                                                    (make-list i))
+                                             current)
+                        previous (cdr previous))))
+
+              ;; Add nil to remaining keys
+              (finally (iter (for c on current)
+                             (push nil (cdr (car c))))))
+        (finally
+         ;; Strip dummy value and keys, and put variants in correct order.
+         (return (mapcar [#'reverse #'cdr] (cdr result))))))
+
 (defmethod create-super-soft ((base clang) mutants)
   (labels
       ((functions-compatible-p (f1 f2)
@@ -102,65 +153,143 @@ the first return value.
                   (eq (ast-void-ret f1) (ast-void-ret f2))
                   (eq (ast-varargs f1) (ast-varargs f2))
                   (equal (ast-args f1) (ast-args f2)))))
-       (process-ast (&rest asts)
-         (destructuring-bind (head . rest) asts
-           (if (function-decl-p head)
-               ;; Function bodies may differ as long as name and
-               ;; arguments are the same. Collect all unique variants,
-               ;; along with the mutants they came from.
-               (unless (every [{eq (ast-ref-ast head)} #'ast-ref-ast] rest)
-                 (let ((variants (make-hash-table)))
-                   (mapc (lambda-bind ((i ref) mutant)
-                           (assert (functions-compatible-p head ref))
-                           (let ((ast (ast-ref-ast ref))
-                                 (body (function-body mutant ref)))
-                             (unless body
-                               (error
-                                (make-condition 'mutate
-                                                :text
-                                                (format nil
-                                                        "Missing body for ~a"
-                                                        (ast-name ref))
-                                                :obj mutant)))
-                             (if-let ((value (gethash ast variants)))
-                               (pushnew i (second value))
-                               (setf (gethash ast variants)
-                                     (list body (list i))))))
-                         (indexed asts)
-                         mutants)
-                   (cons (function-body base head)
-                         variants)))
-               ;; Top-level decls must be identical across
-               ;; variants. Don't collect anything.
+       (process-ast (asts)
+         "Process variants of ASTs to determine the edits necessary.
+
+Returns a pair of (base-ast . variants).
+
+base-ast indicates the AST in the base mutant to replace. If it's nil,
+then an insert is required.
+
+There are several cases here:
+* Global decl, present in base mutant
+  No edits needed, return (base-ast . nil)
+* Global decl, missing in base mutant
+  Return (nil . variant-ast)
+* Function, identical in all mutants where it appears.
+  Return (base-ast . variant-ast). Will insert if base-ast is nil.
+* Function, differs across mutants
+  Return (base-ast . variants-hashtable). Will generate a super-function to
+  replace base-ast.
+"
+         (let* ((non-null-asts (remove nil asts))
+                (head (car non-null-asts)))
+           (if (not (function-decl-p head))
+               ;; Non-function decls
                (progn
-                 (assert (every [{eq (ast-ref-ast head)} #'ast-ref-ast] rest))
-                 nil))))
-       (make-super-function (variants-ht)
-         (->> (mapcar (lambda-bind ((body indices))
-                        (list (if (member 0 indices)
-                                  ;; Add default case to make compiler happy
-                                  (cons t indices)
-                                  indices)
-                              (list body (make-break-stmt))))
-                      (hash-table-values variants-ht))
-              (make-switch-stmt
-               (make-call-expr
-                "atoi"
-                (list (make-call-expr "getenv"
-                                      (list (make-literal "SUPER_MUTANT"))
-                                      :generic))
-                :generic)))))
+                 ;; Top-level decls must be identical across variants.
+                 ;; Don't collect anything.
+                 (assert (every [{eq (ast-ref-ast head)} #'ast-ref-ast]
+                                non-null-asts))
+                 (if (car asts)
+                     ;; No change
+                     (list (car asts))
+                     ;; Insert decls
+                     (cons nil (car non-null-asts))))
+               ;; Functions
+               (if (every [{eq (ast-ref-ast head)} #'ast-ref-ast]
+                          non-null-asts)
+                   ;; All identical (but may be missing in some mutants)
+                   (cons (car asts) (car non-null-asts))
+                   ;; Function bodies may differ as long as name and arguments
+                   ;; are the same. Collect all unique variants, along with the
+                   ;; mutants they came from.
+                   (let ((variants (make-hash-table)))
+                     (mapc (lambda-bind ((i ref) mutant)
+                             (when ref
+                               (assert (functions-compatible-p head ref))
+                               (let ((ast (ast-ref-ast ref))
+                                     (body (function-body mutant ref)))
+                                 (unless body
+                                   (error
+                                    (make-condition 'mutate
+                                                    :text
+                                                    (format nil
+                                                            "Missing body for ~a"
+                                                            (ast-name ref))
+                                                    :obj mutant)))
+                                 (if-let ((value (gethash ast variants)))
+                                   (pushnew i (third value))
+                                   (setf (gethash ast variants)
+                                         (list ast body (list i)))))))
+                           (indexed asts)
+                           mutants)
+                     (cons (when (car asts) (function-body base head))
+                           (hash-table-values variants)))))))
+       (make-super-body (variants &key make-decl)
+         "Create body for a super-mutant function.
+
+The body is a switch statement with cases for each variant. If MAKE-DECL is
+true, create a complete function decl which contains the body."
+         (let* ((getenv (make-call-expr "getenv"
+                                        (list (make-literal "SUPER_MUTANT"))
+                                        :generic))
+                (body
+                 (->> (mapcar (lambda-bind ((decl body indices))
+                                (declare (ignorable decl))
+                                ;; Add default case to make the
+                                ;; compiler happy.
+                                (list (if (eq decl (caar variants))
+                                          (cons t indices)
+                                          indices)
+                                      (list body (make-break-stmt))))
+                              variants)
+                      (make-switch-stmt
+                       (make-call-expr "atoi" (list getenv)
+                                       :generic))
+                      (list)
+                      (make-block))))
+           (if make-decl
+               (let ((decl (caar variants)))
+                 (->> (replace-nth-child decl
+                                         (position-if «and #'listp
+                                                           [{eq :CompoundStmt}
+                                                            #'ast-class
+                                                            #'car]»
+                                                      (cdr decl))
+                                         (ast-ref-ast body))
+                      (make-ast-ref :ast)))
+               body)))
+       (create-mutation-ops (variants-list)
+         (iter (for (orig . variants) in variants-list)
+               (with inserts = nil)
+               (cond
+                 (orig
+                  ;; We've reached an AST in the base genome. If we're waiting
+                  ;; to insert any ASTs, handle them now.
+                  (when inserts
+                    (appending
+                     (mapcar (lambda (ast)
+                               `(:insert
+                                 (:stmt1 . ,orig)
+                                 ;; For function with variants, insert the
+                                 ;; merged version. Otherwise just insert the
+                                 ;; ast.
+                                 (:value1 . ,(if (consp ast)
+                                                 (make-super-body ast
+                                                                  :make-decl t)
+                                                 ast))))
+                             (reverse inserts)))
+                    (setf inserts nil))
+                  ;; Function with multiple variants. Replace the original
+                  ;; function body with the merged version.
+                  (when (consp variants)
+                    (collecting
+                     `(:set (:stmt1 . ,orig)
+                            (:value1 . ,(make-super-body variants))))))
+                 ;; New AST not present in base genome. Save these
+                 ;; and insert them before the next AST in the base
+                 ;; genome.
+                 (variants
+                  (push variants inserts))))))
     (-<>>
-     ;; Collect all variants of each function.
-     (apply #'mapcar
-            #'process-ast
-            (mapcar #'roots mutants))
+     ;; Collect top-level ASTs and their declared identifiers
+     (mapcar [{mapcar (lambda (ast) (cons (ast-declares ast) ast))} #'roots]
+             mutants)
+     (collate-ast-variants)
+     (mapcar #'process-ast)
      (remove nil)
-     ;; Create mutation ops to replace original functions with
-     ;; super-functions
-     (mapcar (lambda-bind ((orig . variants))
-               `(:set (:stmt1 . ,orig)
-                      (:value1 . ,(make-super-function variants)))))
+     (create-mutation-ops)
      (sort <>
            #'ast-later-p :key [{aget :stmt1} #'cdr])
      ;; Substitute super-functions into genome of first variant
