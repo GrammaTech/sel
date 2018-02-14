@@ -1171,6 +1171,13 @@ suite should be run and nil otherwise."
           (t (is (= (size crossed) (size *gcd*)))))))))
 
 
+;;; CSURF-ASM representation.
+(sel-suite* csurf-asm-tests "CSURF-ASM representation.")
+
+(deftest dynamic-linker-path-has-been-set ()
+  (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
+
+
 ;;; ELF representation.
 ;;;
 ;;; NOTE: Currently failing because not populating .text section.
