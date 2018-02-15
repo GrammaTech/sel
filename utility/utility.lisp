@@ -209,6 +209,13 @@ and an optional extension."
      (unwind-protect (progn (bytes-to-file ,bytes ,(car spec)) ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
+(defmacro with-temp-dir-of (spec dir &rest body)
+  "Populate SPEC with the path to a temporary directory with the contents
+of DIR and execute BODY"
+  `(with-temp-dir ,spec
+     (shell "cp -pr ~a/* ~a" (namestring ,dir) (namestring ,(car spec)))
+     ,@body))
+
 (defmacro with-temp-files (specs &rest body)
   (labels ((expander (specs body)
              (let ((s (car specs)))

@@ -61,6 +61,7 @@
    :with-temp-file-of-bytes
    :with-temp-files
    :with-temp-dir
+   :with-temp-dir-of
    :with-cwd
    :pwd
    :cd
