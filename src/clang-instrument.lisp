@@ -30,7 +30,7 @@ position of the ast in (asts obj).
 
 * FUNCTIONS-AFTER functions to calculate instrumentation after each point
 
-* TRACE-FILE file for trace output
+* TRACE-FILE file or stream (stdout/stderr) for trace output
 
 * TRACE-ENV trace output to file specified by ENV variable
 
@@ -265,10 +265,16 @@ void write_trace_header(FILE *out, pthread_mutex_t *lock,
   (concatenate 'string "
 #include <unistd.h>
 void __attribute__((constructor(101))) __bi_setup_log_file() {
-  const char *handshake_file = getenv(\"~a\");
-  if (handshake_file) {
-    while (access(handshake_file, 0) != 0) { sleep(1); }
-    unlink(handshake_file);
+  FILE *handshake_file = NULL;
+  const char *handshake_file_path = getenv(\"~a\");
+  char buffer[1024] = \"/dev/null\";
+  if (handshake_file_path) {
+    while (access(handshake_file_path, 0) != 0) { sleep(1); }
+    handshake_file = fopen(handshake_file_path, \"r\");
+    fgets(buffer, 1024, handshake_file);
+    buffer[strcspn(buffer, \"\\n\")] = 0;
+    fclose(handshake_file);
+    unlink(handshake_file_path);
   }
   " +instrument-log-variable-name+ " = ~a;
   const char *names[] = {~{~s, ~}};
@@ -517,7 +523,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 * POINTS alist of additional values to print at specific points
 * FUNCTIONS  functions to calculate instrumentation at each point
 * FUNCTIONS-AFTER functions to calculate instrumentation after each point
-* TRACE-FILE file for trace output
+* TRACE-FILE file or stream (stdout/stderr) for trace output
 * TRACE-ENV trace output to file specified by ENV variable
 * INSTRUMENT-EXIT print counter of function body before exit
 * FILTER function to select a subset of ASTs for instrumentation
@@ -656,7 +662,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
           (remove-if-not #'cdr points))
 
     ;; Add support code for tracing to obj
-    (initialize-tracing obj trace-file trace-env entry instrumenter)
+    (initialize-tracing instrumenter trace-file trace-env entry)
     (when entry
       (prepend-to-genome obj +write-trace-impl+))
     (prepend-to-genome obj +write-trace-include+)
@@ -797,11 +803,10 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
       (iter (for obj in (mapcar #'cdr (other-files clang-project)))
             (setf (software instrumenter) obj)
             (when-let ((entry (get-entry obj)))
-              (initialize-tracing obj
+              (initialize-tracing instrumenter
                                   (plist-get :trace-file args)
                                   (plist-get :trace-env args)
-                                  entry
-                                  instrumenter)
+                                  entry)
               (prepend-to-genome obj +write-trace-impl+)
               (prepend-to-genome obj +write-trace-include+)))))
 
@@ -981,36 +986,28 @@ OBJ a clang software object
                                '("int" "void") :test #'string=))))
     (function-body obj main)))
 
-(defun initialize-tracing (obj file-name env-name contains-entry
-                           instrumenter)
+(defun initialize-tracing (instrumenter file-name env-name contains-entry
+                           &aux (obj (software instrumenter)))
   "Insert code to initialize tracing and/or define the log variable.
 
-* OBJ the software object to instrument
-* FILE-NAME fixed name for the trace output file
+* INSTRUMENTER current instrumentation state with software object to instrument
+* FILE-NAME fixed name for the trace output file or stream (:stdout/:stderr)
 * ENV-NAME environment variable from which to read the trace output file
 * CONTAINS-ENTRY does this object contain the entry point?
-* INSTRUMENTER current instrumentation state
 "
   (assert (typep obj 'clang))
 
   (labels ((file-open-str ()
-             ;; Default value for ENV-NAME is `*instrument-log-env-name*'.  This
-             ;; allows users to specify tracing from the environment without
-             ;; having to export this above value (which we'd prefer not be
-             ;; modified as it's assumed elsewhere).
+             ;; Open the file at FILE-NAME or in the environment variable
+             ;; ENV-NAME.  If neither is given, read the file to open
+             ;; from the buffer containing the contents of the
+             ;; SEL_HANDSHAKE_FILE.
              (cond
-               (file-name
-                (format nil "fopen(~s, \"w\")" (namestring file-name)))
-               (env-name
-                (format nil "fopen(getenv(~s) ? getenv(~s) : \"/dev/null\", ~
-                             \"w\")"
-                        (if (eq t env-name)
-                            (namestring *instrument-log-env-name*)
-                            (namestring env-name))
-                        (if (eq t env-name)
-                            (namestring *instrument-log-env-name*)
-                            (namestring env-name))))
-               (t "stderr"))))
+               ((eq file-name :stderr) "stderr")
+               ((eq file-name :stdout) "stdout")
+               (file-name (format nil "fopen(~s, \"w\")" (namestring file-name)))
+               ((stringp env-name) (format nil "fopen(getenv(~a), \"w\")" env-name))
+               (t (format nil "fopen(buffer, \"w\")")))))
 
     (if contains-entry
         ;; Object contains main() so insert setup code. The goal is to
@@ -1085,7 +1082,8 @@ For usage see the definition of `clang-instrument'.  E.g.,
         (original (make-instance 'clang
                     :compiler (or (getenv "CC") "clang")
                     :flags (getenv "CFLAGS")))
-        path out-dir name type trace-file out-file save-original
+        (trace-file :stderr)
+        path out-dir name type out-file save-original
         points functions print-strings instrument-exit)
     (when (or (not args)
               (< (length args) 1)
@@ -1140,7 +1138,11 @@ Built with SEL version ~a, and ~a version ~a.~%"
       ("-q" "--quiet" (setf *note-level* 0))
       ("-s" "--strings" (setf print-strings t))
       ("-S" "--scope" (push 'trace-scope-vars functions))
-      ("-t" "--trace-file" (setf trace-file (pop args)))
+      ("-t" "--trace-file" (let ((arg (pop args)))
+                             (setf trace-file
+                                   (cond ((string= "stdout" arg) :stdout)
+                                         ((string= "stderr" arg) :stderr)
+                                         (t arg)))))
       ("-v" "--variables" (push 'trace-unbound-vars functions))
       ("-V" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
