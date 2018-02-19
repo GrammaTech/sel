@@ -168,7 +168,10 @@ check: unit-check bin-check
 
 real-check: check long-bin-check
 
-check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts | bin
+unit-check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts | bin
+	@$<
+
+check-testbot: unit-check-testbot bin-check
 	@$<
 
 
