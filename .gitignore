@@ -51,6 +51,7 @@ local.mk
 Dockerfile
 
 # qlot
+qlfile
 qlfile.lock
 quicklisp
 system-index.txt

@@ -85,6 +85,14 @@ endif
 
 all: $(addprefix bin/, $(BINS))
 
+ifneq ($(GT),)
+qlfile: .ci/qlfile.grammatech
+	cp $< $@
+else
+qlfile: .ci/qlfile.external
+	cp $< $@
+endif
+
 ifeq ($(USER_QUICK_LISP),quicklisp)
 # If we're using qlot to grab all dependencies and *not* using the
 # user's quicklisp, then we've USER_QUICK_LISP equal to

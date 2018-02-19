@@ -1,0 +1,5 @@
+git curry-compose-reader-macros https://github.com/eschulte/curry-compose-reader-macros.git
+git cl-arrows https://github.com/grammatech/cl-arrows.git
+git elf https://github.com/grammatech/elf.git
+git trace-db https://github.com/grammatech/trace-db.git
+git asdf-encodings https://github.com/grammatech/asdf-encodings.git
