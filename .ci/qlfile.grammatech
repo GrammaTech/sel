@@ -1,5 +1,5 @@
 git curry-compose-reader-macros https://github.com/eschulte/curry-compose-reader-macros.git
-git cl-arrows git@git.grammatech.com:research/cl-arrows.git
+git cl-arrows https://github.com/eschulte/cl-arrows.git
 git elf git@git.grammatech.com:research/elf.git
 git testbot git@git.grammatech.com:synthesis/testbot.git
 git trace-db git@git.grammatech.com:research/trace-db.git
