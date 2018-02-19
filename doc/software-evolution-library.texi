@@ -471,6 +471,13 @@ search.
     @item @refapigeneric{phenome}
     @end itemize
 
+@item Get genome properties.
+    @itemize
+    @item @refapigeneric{genome-string}
+    @item @refapigeneric{lines}
+    @item @refapigeneric{size}
+    @end itemize
+
 @item @refapigeneric{copy}
 
 @item Pick an index into the genome.
@@ -490,15 +497,15 @@ search.
     @end itemize
 
 
-@item File I/O.
-    @itemize
+@item Input/Output. 
+    @itemize  
     @item @refapigeneric{from-file}
+    @item @refapigeneric{from-string}
     @item @refapigeneric{to-file}
     @end itemize
 
 @item @refapigeneric{mutate}
 @item @refapigeneric{evaluate}
-@item @refapigeneric{size}
 @item @refapigeneric{fitness-extra-data}
 @end itemize
 

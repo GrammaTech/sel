@@ -1,12 +1,32 @@
 
-See also @ref{api-software-object-applying-mutations, API | Software Objects@comma{} Applying Mutations}
 
+@anchor{api-mutations}
+@subsection Mutations
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+Mutations
+]
+
+More information about mutations is provided in section
+@ref{Mutation Objects}.
+
+See also the @refapiclass{software} methods for @ref{api-software-object-applying-mutations,applying mutations}.
 
 @anchor{api-mutations-classes}
-@subsection API | Mutation Objects | Class @code{mutation}
-
 @itemize
 @item Class @refapiclass{mutation}
+
+@item Subclasses
+  @itemize
+  @item @ref{api-condition-synthesis-mutations, Mutations for Condition Synthesis}
+  @item @ref{api-clang-ast-mutations, @code{clang} Mutations}
+  @item @ref{api-clang-w-fodder-mutations, @code{clang-w-fodder} Mutations}
+  @item @ref{api-asm-mutations, @code{asm} Mutations}
+  @item @ref{api-lisp-mutations, @code{lisp} Mutations}
+  @item @ref{api-expression-mutations, @code{expression} Mutations}
+  @end itemize
 
 @item Generic Function
   @itemize
@@ -20,6 +40,17 @@ See also @ref{api-software-object-applying-mutations, API | Software Objects@com
   @item @refapimacro{define-mutation}
   @item @refapimacro{compose-mutations}
   @item @refapimacro{sequence-mutations}
+  @end itemize
+
+@item Variables
+  @itemize
+  @item @refapivariable{*mutation-improvements*}
+  @item @refapivariable{*mutation-stats*}
+  @end itemize
+
+@item Methods
+  @itemize
+  @item @refapimethod{at-targets ((mut mutation) targets &key (object (object mut)))}
   @end itemize
 
 @item Variables

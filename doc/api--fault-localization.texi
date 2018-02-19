@@ -1,4 +1,15 @@
 
+@anchor{api-fault-localization}
+@subsection Fault Localization
+
+[
+@ref{SEL API,API} |
+@ref{api-heuristic-search, Heuristic Search} |
+Fault Localization
+]
+
+
+See also  the manual section on @ref{Fault Localization}.
 
 See also  the manual section on @ref{Fault Localization}.
 

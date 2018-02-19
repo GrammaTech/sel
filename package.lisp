@@ -267,6 +267,8 @@
    :crossed
    :new-individual
    :mcmc
+   :mcmc-step
+   :*mcmc-fodder*
    :evolve
    :generational-evolve
    ;; software backends

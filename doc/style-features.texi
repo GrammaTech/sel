@@ -13,8 +13,10 @@ features of the surrounding source code.
 
 @subsection API Support for Style Features
 
-API support for style features is documented in section
-@ref{api-style-features,API | Style Features}. We provide a brief
+API support for style features is documented in the entries for classes
+@ref{api-style-features-class-style-feature, @code{style-feature}},
+@ref{api-style-features-class-styleable, @code{styleable}}, and
+@ref{api-style-features-class-style-project, @code{style-project}}. We provide a brief
 overview here.
 
 
@@ -32,7 +34,7 @@ The SEL API provides several AST-related feature extractors for clang
 software objects, i.e., features derived from properties of a clang
 AST. The available feature extractors are:
 @itemize
-@item Documented in section @ref{api-style-features, API | Style Features}
+@item @ref{api-clang-feature-extractors, Included in the API documentation}.
 @item Listed in parameter @ref{Variable *feature-extractors*,@code{*feature-extractors*}}.
 @item Summarized in the following table.
 

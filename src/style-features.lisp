@@ -192,8 +192,8 @@ The elements of the vector are the values corresponding to SORTED-KEYS."))
 Return a vector whose elements are the values from FEATURE-VALUES that are
 mapped to the keys in SORTED-KEYS.
 * FEATURE-VALUES a hash-table
-* SORTED-KEYS a list of keys from hash table whose values will be added to the
-resulting feature vector
+* SORTED-KEYS a list of keys from hash table whose values will be
+  added to the resulting feature vector
 "
   (let ((feature-vec (make-array (length sorted-keys) :initial-element nil)))
     (iter (for key in sorted-keys)
@@ -204,6 +204,7 @@ resulting feature vector
 
 (defun normalize-vector (vec)
   "Return a copy of VEC whose elements have been normalized to sum to 1.
+
 * VEC a vector of numeric values."
   (let ((sum (reduce #'+ vec)))
     (if (zerop sum)

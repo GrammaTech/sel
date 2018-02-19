@@ -1,16 +1,29 @@
 
+@anchor{api-test-suites}
+@subsection Test Suites
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+Test Suites
+]
+
 
 @itemize
-
 @item @ref{api-test-suites-test-suite, Class @code{test-suite}}
 @item @ref{api-test-suites-test-case, Class @code{test-case}}
 @item @ref{api-test-suites-process, Class @code{process}}
-
 @end itemize
 
 
 @anchor{api-test-suites-test-suite}
-@subsection API | Test Suites | Class @code{test-suite}
+@subsubsection Class @code{test-suite}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-test-suites,Test Suites} |
+Class @code{test-suite}
+]
 
 @itemize
 @item Class @refapiclass{test-suite}
@@ -31,10 +44,19 @@
 
 @include include/class-sel-test-suite.texinfo
 
+
 @c ----------------------------------------
 
 @anchor{api-test-suites-test-case}
-@subsection API | Test Suites | Class @code{test-case}
+@subsubsection Class @code{test-case}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-test-suites,Test Suites} |
+Class @code{test-case}
+]
+
 
 @itemize
 @item Class @refapiclass{test-case}
@@ -63,7 +85,14 @@
 
 
 @anchor{api-test-suites-process}
-@subsection API | Test Suites | Class @code{process} and its methods
+@subsubsection Class @code{process}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-test-suites,Test Suites} |
+Class @code{process}
+]
 
 @itemize
 @item Class @refapiclass{process}

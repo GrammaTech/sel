@@ -1,0 +1,60 @@
+
+
+@anchor{api-software-objects-core-ops}
+@subsection Core Operations on Software Objects
+
+[
+@ref{SEL API, API} |
+@ref{api-software-objects, Software Objects} |
+Core Operations on Software Objects
+]
+
+See also the manual section on @ref{Software Methods}.
+
+@itemize
+  @item @refapigeneric{copy}
+  @item @refapigeneric{crossover}
+  @item @refapigeneric{evaluate}
+  @item @refapigeneric{fitness-extra-data}  
+  @item @refapigeneric{from-file}
+  @item @refapigeneric{from-string}
+  @item @refapigeneric{genome}
+  @item @refapigeneric{genome-string}
+  @item @refapigeneric{lines}
+  @item @refapigeneric{mutate}
+  @item @refapigeneric{one-point-crossover}
+  @item @refapigeneric{phenome}
+  @item @refapigeneric{pick}
+  @item @refapigeneric{pick-bad}
+  @item @refapigeneric{pick-good}
+  @item @refapigeneric{pick-bad-bad}
+  @item @refapigeneric{pick-bad-good}
+  @item @refapigeneric{size}
+  @item @refapigeneric{to-file}
+  @item @refapigeneric{two-point-crossover}
+  @end itemize
+
+@include include/fun-sel-copy.texinfo
+@include include/fun-sel-crossover.texinfo
+@include include/fun-sel-evaluate.texinfo
+@include include/fun-sel-fitness-extra-data.texinfo
+@include include/fun-sel-setf-fitness-extra-data.texinfo
+@include include/fun-sel-from-file.texinfo
+@include include/fun-sel-from-string.texinfo
+@include include/fun-sel-genome.texinfo
+@include include/fun-sel-genome-string.texinfo
+@include include/fun-sel-setf-genome-string.texinfo
+@include include/fun-sel-lines.texinfo
+@include include/fun-sel-mutate.texinfo
+@include include/fun-sel-one-point-crossover.texinfo
+@include include/fun-sel-phenome.texinfo
+@include include/fun-sel-pick.texinfo
+@include include/fun-sel-pick-bad.texinfo
+@include include/fun-sel-pick-good.texinfo
+@include include/fun-sel-pick-bad-bad.texinfo
+@include include/fun-sel-pick-bad-good.texinfo
+@include include/fun-sel-size.texinfo
+@include include/fun-sel-to-file.texinfo
+@include include/fun-sel-two-point-crossover.texinfo
+
+
