@@ -44,19 +44,19 @@ build-arch:
       then
           if [ "$OS" = "ubuntu" ];
           then
-              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
               docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
           elif [ "$OS" = "arch" ];
           then
-              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
               docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
           else
-              docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
           fi
       else
-          docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
+          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
       fi
 
 run:
@@ -95,7 +95,7 @@ trigger_evo-rings:
 pages:
   stage: deploy-and-cleanup
   script:
-    - docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
+    - docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(docker ps -alq):/public ./
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
