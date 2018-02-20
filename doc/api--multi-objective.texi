@@ -1,4 +1,16 @@
 
+
+@anchor{api-multi-objective}
+@subsection Multi-Objective Fitness
+
+[
+@ref{SEL API, API} |
+@ref{api-heuristic-search, Heuristic Search} | 
+Multi-Objective Fitness
+]
+
+For more information, see @ref{Multi-objective Fitness}.
+
 @itemize
 @item @ref{api-multi-objective-optimization,Multi-Objective Optimization}
 @item @ref{api-multi-objective-pareto,Pareto Selection}
@@ -6,8 +18,15 @@
 @end itemize
 
 @anchor{api-multi-objective-optimization}
-@subsection API | Multi-Objective Fitness | Multi-Objective Optimization
+@subsubsection Multi-Objective Optimization
 
+
+[
+@ref{SEL API, API} |
+@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-multi-objective, Multi-Objective Fitness} |
+Multi-Objective Optimization
+]
 
 @itemize
 @item Function @refapifunction{multi-objective-scalar}
@@ -21,7 +40,14 @@
 @c defun crowding-distance
 
 @anchor{api-multi-objective-pareto}
-@subsection API | Multi-Objective Fitness | Pareto Selection
+@subsubsection Pareto Selection
+
+[
+@ref{SEL API, API} |
+@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-multi-objective, Multi-Objective Fitness} |
+Pareto Selection
+]
 
 @itemize
 @item Function @refapifunction{pareto-selector}
@@ -33,7 +59,14 @@
 
 
 @anchor{api-multi-objective-lexicase}
-@subsection API | Multi-Objective Fitness | Lexicase Selection
+@subsubsection Lexicase Selection
+
+[
+@ref{SEL API, API} |
+@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-multi-objective, Multi-Objective Fitness} |
+Lexicase Selection
+]
 
 @itemize
 @item Functions

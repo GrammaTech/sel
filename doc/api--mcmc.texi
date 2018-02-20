@@ -1,0 +1,36 @@
+
+
+@anchor{api-mcmc}
+@subsection Markov Chain Monte Carlo (MCMC) Search
+
+[
+@ref{SEL API, API} |
+@ref{api-heuristic-search, Heuristic Search} |
+MCMC Search
+]
+
+Note: MCMC Search is experimental and unsupported.
+
+
+@itemize
+@item Generic Functions
+  @itemize
+  @item @refapigeneric{mcmc-step}
+  @end itemize
+@item Macros
+  @itemize
+  @item @refapimacro{mcmc}
+  @end itemize
+@item Variables
+  @itemize
+  @item @refapivariable{*mcmc-fodder*}
+  @end itemize
+@end itemize
+
+
+@include include/fun-sel-mcmc-step.texinfo
+@include include/macro-sel-mcmc.texinfo
+@include include/var-sel-star-mcmc-fodder-star.texinfo
+
+
+

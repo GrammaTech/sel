@@ -1,4 +1,19 @@
 
+@anchor{api-tracing}
+@subsubsection Tracing
+
+[
+@ref{SEL API,API} |
+@ref{api-software-objects,Software Objects} |
+@ref{api-software-objects-spec-ops,Specialized Operations on Software Objects} |
+Tracing
+]
+
+
+More information about trace collection is
+provided in section @ref{Tracing}.
+
+
 @itemize
 @item Class @refapiclass{traceable}
 @item Condition @refapicond{trace-error}
@@ -6,6 +21,12 @@
   @itemize
   @item @refapigeneric{collect-traces}
   @item @refapigeneric{collect-trace}
+  @end itemize
+
+@item See also
+  @itemize
+  @item @refapigeneric{type-from-trace-string}
+  @item @refapigeneric{type-trace-string}
   @end itemize
 @end itemize
 

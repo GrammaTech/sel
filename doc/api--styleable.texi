@@ -1,0 +1,150 @@
+
+
+@anchor{api-style-features-class-styleable}
+@subsubsection Class @code{styleable}
+
+[
+@ref{SEL API,API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-mixins,Software Object Class ``Mixins''} |
+Class @code{styleable}
+]
+
+
+See also  the manual section on @ref{Style Features}.
+
+@itemize
+@item Class @refapiclass{styleable}
+@item Subclass @ref{api-style-features-class-style-project, API | Style Features | Class @code{style-project}})
+      
+@item Generic Functions
+  @itemize
+  @item @refapigeneric{merge-styleables}
+  @item Extracting Features
+    @itemize
+    @item @refapigeneric{extract-baseline-features}
+    @item @refapigeneric{extract-feature}
+    @item @refapigeneric{extract-features}
+    @end itemize
+  @anchor{api-clang-feature-extractors}
+  @item Clang Feature Extractors
+    @itemize
+    @item @refapigeneric{ast-bi-grams-extractor}
+    @item @refapigeneric{ast-full-stmt-bi-grams-extractor}
+    @item @refapigeneric{ast-keyword-tf-extractor}
+    @item @refapigeneric{ast-node-type-avg-depth-extractor}
+    @item @refapigeneric{ast-node-type-tf-extractor}
+    @item @refapigeneric{avg-depth-ast-extractor}
+    @item @refapigeneric{max-depth-ast-extractor}
+    @end itemize
+  @item Helper Functions
+    @itemize
+    @item @refapigeneric{all-ast-node-types}
+    @item @refapigeneric{all-keywords}
+    @item @refapigeneric{ast-node-types}
+    @item @refapigeneric{bi-grams-hashtable-to-feature}
+    @item @refapigeneric{bi-grams}
+    @item @refapigeneric{max-depth-ast}
+    @item @refapigeneric{uni-grams}
+    @end itemize
+
+  @end itemize
+
+
+@item Variables
+  @itemize
+  @item @refapivariable{*feature-extractors*}
+  @item @refapivariable{ast-bi-grams-feature}
+  @item @refapivariable{ast-full-stmt-bi-grams-feature}
+  @item @refapivariable{ast-keyword-tf-feature}
+  @item @refapivariable{ast-node-type-avg-depth-feature}
+  @item @refapivariable{ast-node-type-tf-feature}
+  @item @refapivariable{avg-depth-ast-feature}
+  @item @refapivariable{max-depth-ast-feature}
+  @end itemize
+
+@item Methods
+  @itemize
+@c whitespace in this reference is important  
+  @item @refapimethod{extract-baseline-features ((style styleable) &key
+                             (features *feature-extractors*))}
+  @item @refapimethod{extract-features ((style styleable) &key (features nil))}
+  @item @refapimethod{extract-feature ((style styleable) (feature style-feature))}
+  @end itemize
+
+@item @item See also @ref{api-style-features-class-style-feature,Class @code{style-feature}}
+@end itemize
+
+
+@include include/class-sel-styleable.texinfo
+
+
+@include include/fun-sel-merge-styleables.texinfo
+
+@include include/fun-sel-extract-baseline-features.texinfo
+@include include/fun-sel-extract-feature.texinfo
+@include include/fun-sel-extract-features.texinfo
+
+@include include/fun-sel-ast-bi-grams-extractor.texinfo
+@include include/fun-sel-ast-full-stmt-bi-grams-extractor.texinfo
+@include include/fun-sel-ast-keyword-tf-extractor.texinfo
+@include include/fun-sel-ast-node-type-avg-depth-extractor.texinfo
+@include include/fun-sel-ast-node-type-tf-extractor.texinfo
+@include include/fun-sel-avg-depth-ast-extractor.texinfo
+@include include/fun-sel-max-depth-ast-extractor.texinfo
+
+@include include/fun-sel-all-ast-node-types.texinfo
+@include include/fun-sel-all-keywords.texinfo
+@include include/fun-sel-ast-node-types.texinfo
+@include include/fun-sel-bi-grams-hashtable-to-feature.texinfo
+@include include/fun-sel-bi-grams.texinfo
+@include include/fun-sel-max-depth-ast.texinfo
+@include include/fun-sel-uni-grams.texinfo
+
+@include include/var-sel-star-feature-extractors-star.texinfo
+
+@include include/var-sel-ast-bi-grams-feature.texinfo
+@include include/var-sel-ast-full-stmt-bi-grams-feature.texinfo
+@include include/var-sel-ast-keyword-tf-feature.texinfo
+@include include/var-sel-ast-node-type-avg-depth-feature.texinfo
+@include include/var-sel-ast-node-type-tf-feature.texinfo
+@include include/var-sel-avg-depth-ast-feature.texinfo
+@include include/var-sel-max-depth-ast-feature.texinfo
+
+
+@c ----------------------------------------
+
+@anchor{api-style-features-class-style-project}
+@subsubsection Class @code{style-project}
+
+[
+@ref{SEL API,API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-mixins,Software Object Class ``Mixins''} |
+Class @code{style-project}
+]
+
+
+See also  the manual section on @ref{Style Features}.
+
+@itemize
+@item Class @refapiclass{style-project}
+
+@item Function
+  @itemize
+  @item @refapifunction{update-project-features}
+  @end itemize
+  
+@item Methods
+  @itemize
+  @item @c the whitespace in the ref is required
+      @refapimethod{extract-features ((project style-project) &key (features *feature-extractors*)
+                  (files nil))}
+  @end itemize
+
+@item See also @ref{api-style-features-class-style-feature,Class @code{style-feature}}
+@end itemize
+
+@include include/class-sel-style-project.texinfo
+@include include/fun-sel-update-project-features.texinfo
+

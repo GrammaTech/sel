@@ -209,6 +209,13 @@ and an optional extension."
      (unwind-protect (progn (bytes-to-file ,bytes ,(car spec)) ,@body)
        (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
 
+(defmacro with-temp-dir-of (spec dir &rest body)
+  "Populate SPEC with the path to a temporary directory with the contents
+of DIR and execute BODY"
+  `(with-temp-dir ,spec
+     (shell "cp -pr ~a/* ~a" (namestring ,dir) (namestring ,(car spec)))
+     ,@body))
+
 (defmacro with-temp-files (specs &rest body)
   (labels ((expander (specs body)
              (let ((s (car specs)))
@@ -251,8 +258,6 @@ pathname (i.e., ending in a \"/\")."
 
 
 ;;;; Shell and system command helpers
-(defvar *work-dir* nil)
-
 (defvar *shell-debug* nil
   "Set to true to print shell invocations.")
 
@@ -282,68 +287,60 @@ debug information depending on the value of `*shell-debug*'."
               (make-string-input-stream input-arg)
               input-arg))
     (setq format-arguments (take-until {eq :input} format-arguments)))
-  (let ((cmd (apply #'format (list* nil control-string format-arguments))))
+  (let ((cmd (apply #'format (list* nil control-string format-arguments)))
+        (stdout-str nil)
+        (stderr-str nil)
+        (errno nil))
     (when *shell-debug*
       (format t "  cmd: ~a~%" cmd)
       (when input
         (format t "  input: ~a~%" input)))
-    (if *work-dir*
-        ;; Isolated shell execution using sh-runner.
-        ;; https://github.com/eschulte/sh-runner
-        (let* ((name
-                #+(or sbcl ccl ecl) (tempnam *work-dir* "lisp-")
-                #-(or sbcl ccl ecl)
-                (error "work-dir not supported for this lisp"))
-               (run-file (format nil "~a.run" name))
-               (done-file (format nil "~a.done" name)))
-          (string-to-file cmd run-file)
-          (do () (())
-            (when (probe-file done-file)
-              (let ((lines (split-sequence #\Newline (file-to-string done-file)
-                                           :remove-empty-subseqs t)))
-                (delete-file done-file)
-                (let ((stdout (or (mapconcat (curry #'format nil "~a~%")
-                                             (butlast lines) "")
-                                  ""))
-                      (errno (if (lastcar lines)
-                                 (parse-integer (lastcar lines))
-                                 2)))
-                  (when *shell-debug*
-                    (format t "~&stdout:~a~%errno:~a~%" stdout errno)
-                    (finish-output t))
-                  (return (values stdout "" errno)))))
-            (sleep 0.1)))
-        ;; Direct shell execution with `uiop/run-program:run-program'.
-        (let ((stdout-str (make-array '(0)
-                                      :element-type
-                                      #+sbcl 'extended-char
-                                      #+(or ecl ccl) 'character
-                                      :fill-pointer 0 :adjustable t))
-              (stderr-str (make-array '(0)
-                                      :element-type
-                                      #+sbcl 'extended-char
-                                      #+(or ecl ccl) 'character
-                                      :fill-pointer 0 :adjustable t))
-              (errno nil))
-          (with-output-to-string (stderr stderr-str)
-            (with-output-to-string (stdout stdout-str)
-              (setf errno (nth-value 2 (run-program
-                                        cmd
-                                        :force-shell t
-                                        :ignore-error-status t
-                                        :input input
-                                        :output stdout
-                                        :error-output stderr)))))
-          (when *shell-debug*
-            (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout-str stderr-str errno))
-          (when (or (and *shell-non-error-codes*
-                         (not (find errno *shell-non-error-codes*)))
-                    (find errno *shell-error-codes*))
-            (restart-case (error (make-condition 'shell-command-failed
-                                   :exit-code errno
-                                   :command cmd))
-              (ignore-shell-error () "Ignore error and continue")))
-          (values stdout-str stderr-str errno)))))
+
+    ;; Direct shell execution with `uiop/run-program:run-program'.
+    #-ccl
+    (progn
+      (setf stdout-str (make-array '(0)
+                                   :element-type
+                                   #+sbcl 'extended-char
+                                   #-sbcl 'character
+                                   :fill-pointer 0 :adjustable t))
+      (setf stderr-str (make-array '(0)
+                                   :element-type
+                                   #+sbcl 'extended-char
+                                   #-sbcl 'character
+                                   :fill-pointer 0 :adjustable t))
+      (with-output-to-string (stderr stderr-str)
+        (with-output-to-string (stdout stdout-str)
+          (setf errno (nth-value 2 (run-program
+                                    cmd
+                                    :force-shell t
+                                    :ignore-error-status t
+                                    :input input
+                                    :output stdout
+                                    :error-output stderr))))))
+    #+ccl
+    (progn
+      (with-temp-file (stdout-file)
+        (with-temp-file (stderr-file)
+          (setf errno (nth-value 2 (run-program
+                                    (format nil "~a 1>~a 2>~a"
+                                            cmd stdout-file stderr-file)
+                                    :force-shell t
+                                    :ignore-error-status t
+                                    :input input)))
+          (setf stdout-str (file-to-string stdout-file))
+          (setf stderr-str (file-to-string stderr-file)))))
+    (when *shell-debug*
+      (format t "~&stdout:~a~%stderr:~a~%errno:~a"
+              stdout-str stderr-str errno))
+    (when (or (and *shell-non-error-codes*
+                   (not (find errno *shell-non-error-codes*)))
+              (find errno *shell-error-codes*))
+      (restart-case (error (make-condition 'shell-command-failed
+                             :exit-code errno
+                             :command cmd))
+        (ignore-shell-error () "Ignore error and continue")))
+    (values stdout-str stderr-str errno)))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)

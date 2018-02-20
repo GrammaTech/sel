@@ -8,9 +8,9 @@ before_script:
 
 stages:
   - build
-  - deploy
   - test-and-tag
   - dependents
+  - deploy-and-cleanup
 
 .build-template: &build
   script:
@@ -22,7 +22,7 @@ stages:
       fi
 
     - cp .ci/Dockerfile.$OS Dockerfile
-    - docker build -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
+    - docker build --build-arg=GT=yes -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
 
 build:
   stage: build
@@ -59,9 +59,6 @@ build-arch:
           docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
       fi
 
-    # Cleanup local image.
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-${OS}
-
 run:
   stage: test-and-tag
   variables:
@@ -96,12 +93,22 @@ trigger_evo-rings:
     - master
 
 pages:
-  stage: deploy
+  stage: deploy-and-cleanup
   script:
-    - docker run -e LOCAL_USER=root ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
+    - docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(docker ps -alq):/public ./
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
   artifacts:
     paths:
       - public
   only:
+    - master
+
+cleanup:
+  stage: deploy-and-cleanup
+  script:
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
+  except:
     - master

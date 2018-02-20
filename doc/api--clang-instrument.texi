@@ -1,51 +1,62 @@
 
+@anchor{api-instrumentation}
+@subsubsection Instrumentation
 
-Classes:
+[
+@ref{SEL API, API} |
+@ref{api-software-objects,Software Objects} |
+@ref{api-software-objects-spec-ops,Specialized Operations on Software Objects} |
+Instrumentation
+]
 
-@itemize
-
-@item @refapiclass{instrumenter}
-      (see @ref{api-instrumentation-instrumenter,API | Instrumentation | class @code{instrumenter}})
-  @itemize
-  @item @refapiclass{clang-instrumenter}
-        (see @ref{api-instrumentation-clang-instrumenter, API | Instrumentation | class @code{clang-instrumenter}})
-  @end itemize
-@end itemize
-
-
-@c ----------------------------------------
+More information about instrumentation is provided in section
+@ref{Tracing}.
 
 @anchor{api-instrumentation-instrumenter}
-@subsection API | Instrumentation | Class @code{instrumenter}
-
-
 @itemize
+@item Class @refapiclass{instrumenter}
 
-@item @refapiclass{instrumenter}
-
-@item Subclass @refapiclass{clang-instrumenter}
-      (see @ref{api-instrumentation-clang-instrumenter, API | Instrumentation | class @code{clang-instrumenter}})
-
-@item Generic Functions
   @itemize
-  @item @refapigeneric{get-entry}
-  @item @refapigeneric{instrumented-p}
-  @item @refapigeneric{instrument}
-  @item @refapigeneric{instrumentation-files}
-  @item @refapigeneric{uninstrument}
-  @item @refapigeneric{var-instrument}
+  @item Subclass @ref{api-instrumentation-clang-instrumenter,@code{clang-instrumenter}}
+
+  @item Generic Functions
+    @itemize
+    @item @refapigeneric{get-entry}
+    @item @refapigeneric{instrumented-p}
+    @item @refapigeneric{instrument}
+    @item @refapigeneric{instrumentation-files}
+    @item @refapigeneric{uninstrument}
+    @item @refapigeneric{var-instrument}
+    @end itemize
+
+  @item Methods
+    @itemize
+@c whitespace in this reference is important
+    @item @refapimethod{var-instrument (key (instrumenter instrumenter) (ast ast-ref) &key
+                  print-strings)}
+    @end itemize
   @end itemize
 
-@item Variable @refapivariable{*instrument-log-variable-name*}
-
-@item Methods
+@anchor{api-instrumentation-clang-instrumenter}
+@item Class @refapiclass{clang-instrumenter}
   @itemize
-@c whitespace in this reference is important
-  @item @refapimethod{var-instrument (key (instrumenter instrumenter) (ast ast-ref) &key
-                  print-strings)}
+
+  @item Functions
+    @itemize
+    @item @refapifunction{clang-instrument}
+    @end itemize
+
+  @item Methods
+    @itemize
+    @c the whitespace in this reference is important
+    @item @refapimethod{instrument ((instrumenter clang-instrumenter) &key points functions
+              functions-after trace-file trace-env instrument-exit
+                          (filter #'identity))}
+    @end itemize
   @end itemize
 @end itemize
 
+@c ----------------------------------------
 
 @c defvar *instrument-log-env-name*
 @c defvar *instrument-handshake-env-name*
@@ -76,31 +87,9 @@ Classes:
 @include include/fun-sel-uninstrument.texinfo
 @include include/fun-sel-var-instrument.texinfo
 
-@include include/var-sel-star-instrument-log-variable-name-star.texinfo
-
+@include include/constant-sel-plus-instrument-log-variable-name-plus.texinfo
 
 @c ----------------------------------------
-
-@anchor{api-instrumentation-clang-instrumenter}
-@subsection API | Instrumentation | Class @code{clang-instrumenter}
-
-@itemize
-@item Class @refapiclass{clang-instrumenter}
-
-@item Functions
-  @itemize
-  @item @refapifunction{clang-instrument}
-  @end itemize
-
-@item Methods
-  @itemize
-  @c the whitespace in this reference is important
-  @item @refapimethod{instrument ((instrumenter clang-instrumenter) &key points functions
-              functions-after trace-file trace-env instrument-exit
-                          (filter #'identity))}
-  @end itemize
-
-@end itemize
 
 @include include/class-sel-clang-instrumenter.texinfo
 @include include/fun-sel-clang-instrument.texinfo

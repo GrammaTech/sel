@@ -24,6 +24,7 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
+  (:shadowing-import-from :osicat :pathname-as-directory)
   (:shadowing-import-from
    :osicat-posix
    :write
@@ -60,13 +61,13 @@
    :with-temp-file-of-bytes
    :with-temp-files
    :with-temp-dir
+   :with-temp-dir-of
    :with-cwd
    :pwd
    :cd
    :ensure-path-is-string
    :in-directory
    :directory-p
-   :*work-dir*
    :*shell-debug*
    :*shell-error-codes*
    :*shell-non-error-codes*

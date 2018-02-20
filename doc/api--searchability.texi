@@ -1,42 +1,51 @@
 
+@anchor{api-searchability}
+@subsection Databases of Software Components
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+Databases of Software Components
+]
+
+
 Classes:
 @itemize
-@item @refapiclass{searchable}
-   (see @ref{api-searchability-searchable, API | Searchability | Class @code{searchable}})
+@item @ref{api-searchability-searchable, @code{searchable}}
   @itemize
-  @item @refapiclass{fodder-database}
-      (see @ref{api-searchability-fodder-database, API | Searchability | Class @code{fodder-database}})
+  @item @ref{api-searchability-fodder-database, @code{fodder-database}}
     @itemize
-    @item @refapiclass{in-memory-database}
-       (see @ref{api-searchability-in-memory-database, API | Searchability | Class @code {in-memory-database}})
+    @item @ref{api-searchability-in-memory-database, @code {in-memory-database}}
       @itemize
-      @item @refapiclass{json-database}
-       (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
-      @end itemize
-    @item @refapiclass{pliny-database}
-     (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
+      @item @ref{api-searchability-json-database, @code{json-database}}
+      @end itemize 
+    @item @ref{api-searchability-pliny-database, @code{pliny-database}}
     @end itemize
   @end itemize
 @end itemize
 
 
 @anchor{api-searchability-searchable}
-@subsection API | Searchability | Class @code{searchable}
+@subsubsection Class @code{searchable}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-searchability,Databases of Software Components} |
+Class @code{searchable}
+]
+
 @itemize
 @item Class @refapiclass{searchable}
 @item Subclasses
   @itemize
-  @item @refapiclass{fodder-database}
-      (see @ref{api-searchability-fodder-database, API | Searchability | Class @code{fodder-database}})
+  @item @ref{api-searchability-fodder-database, @code{fodder-database}}
     @itemize
-    @item @refapiclass{in-memory-database}
-       (see @ref{api-searchability-in-memory-database, API | Searchability | Class @code {in-memory-database}})
+    @item @ref{api-searchability-in-memory-database, @code{in-memory-database}}
       @itemize
-      @item @refapiclass{json-database}
-       (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
-      @end itemize
-    @item @refapiclass{pliny-database}
-     (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
+      @item @ref{api-searchability-json-database, @code{json-database}}
+      @end itemize 
+    @item @ref{api-searchability-pliny-database, @code{pliny-database}}
     @end itemize
   @end itemize
 
@@ -65,20 +74,24 @@ Classes:
 
 @c ----------------------------------------
 @anchor{api-searchability-fodder-database}
-@subsection API | Searchability | Class @code{fodder-database}
+@subsubsection Class @code{fodder-database}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-searchability,Databases of Software Components} |
+Class @code{fodder-database}
+]
 
 @itemize
 @item Class @refapiclass{fodder-database}
 @item Subclasses
   @itemize
-  @item @refapiclass{in-memory-database}
-     (see @ref{api-searchability-in-memory-database, API | Searchability | Class @code{in-memory-database}})
+  @item @ref{api-searchability-in-memory-database, @code{in-memory-database}}
     @itemize
-    @item @refapiclass{json-database}
-       (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
-    @end itemize
-  @item @refapiclass{pliny-database}
-     (see @ref{api-searchability-pliny-database, API | Searchability | Class @code{pliny-database}})
+    @item @ref{api-searchability-json-database, @code{json-database}}
+    @end itemize 
+  @item @ref{api-searchability-pliny-database, @code{pliny-database}}
   @end itemize
 @item Generic Methods
   @itemize
@@ -99,14 +112,20 @@ Classes:
 
 @c ----------------------------------------
 @anchor{api-searchability-in-memory-database}
-@subsection API | Searchability | Class @code{in-memory-database}
+@subsubsection Class @code{in-memory-database}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-searchability,Databases of Software Components} |
+Class @code{in-memory-database}
+]
 
 @itemize
 @item Class @refapiclass{in-memory-database}
 @item Subclasses
   @itemize
-  @item @refapiclass{json-database}
-     (see @ref{api-searchability-json-database, API | Searchability | Class @code{json-database}})
+  @item @ref{api-searchability-json-database, @code{json-database}}
   @end itemize
 @item Methods
   @itemize
@@ -123,7 +142,14 @@ Classes:
 
 @c ----------------------------------------
 @anchor{api-searchability-json-database}
-@subsection API | Searchability | Class @code{json-database}
+@subsubsection Class @code{json-database}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-searchability,Databases of Software Components} |
+Class @code{json-database}
+]
 
 @itemize
 @item Class @refapiclass{json-database}
@@ -139,7 +165,14 @@ Classes:
 
 @c ----------------------------------------
 @anchor{api-searchability-pliny-database}
-@subsection API | Searchability | Class @code{pliny-database}
+@subsubsection Class @code{pliny-database}
+
+[
+@ref{SEL API, API} |
+@ref{api-supporting-objects, Supporting Objects} |
+@ref{api-searchability,Databases of Software Components} |
+Class @code{pliny-database}
+]
 
 @itemize
 @item Class @refapiclass{pliny-database}

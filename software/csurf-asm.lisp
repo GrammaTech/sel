@@ -29,7 +29,8 @@
 
 (defvar *dynamic-linker-path*
   ;; Find the dynamic linker by pulling it from an executable on the system.
-  #+unix (->> (split-sequence #\Newline (shell "ldd /usr/bin/ls"))
+  #+unix (->> (split-sequence #\Newline
+                (shell "ldd ~a" (trim-whitespace (shell "which ls"))))
               (mappend {split-sequence #\space})
               (mapcar #'trim-whitespace)
               (find-if {search "ld-linux"} ))

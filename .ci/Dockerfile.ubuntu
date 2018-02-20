@@ -7,6 +7,7 @@ ENV PATH=/gt/sel/bin:$PATH \
     GT_DOCKER_CHOWN_PATHS="" \
     LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH
 
+ARG GT
 COPY . /gt/sel
 
 RUN cd /gt/sel && make

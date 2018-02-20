@@ -5,9 +5,6 @@
 
 ;;;; Instrumentation
 
-(defvar *instrument-log-variable-name* "__sel_trace_file"
-  "Variable used for instrumentation.")
-
 (defvar *instrument-log-env-name* "__SEL_TRACE_FILE"
   "Default environment variable in which to store log file.")
 
@@ -46,11 +43,20 @@ position of the ast in (asts obj).
 (defgeneric uninstrument (obj)
   (:documentation "Remove instrumentation from OBJ"))
 
+(define-constant +instrument-log-variable-name+ "__sel_trace_file"
+  :test #'string=
+  :documentation "Variable used for instrumentation.")
+
+(define-constant +instrument-log-lock-variable-name+ "__sel_trace_file_lock"
+  :test #'string=
+  :documentation "File lock variable used for instrumentation")
+
 (define-constant +write-trace-include+
   "
 #ifndef __GT_TRACEDB_INCLUDE
 #define __GT_TRACEDB_INCLUDE
 #define _GNU_SOURCE
+#include <pthread.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -78,8 +84,12 @@ enum trace_entry_tag {
 };
 
 __attribute__((unused))
-static void write_trace_id(FILE *out, uint64_t statement_id)
+static void write_trace_id(FILE *out, pthread_mutex_t *lock,
+                           uint64_t statement_id)
 {
+    /* Write trace point as single transaction */
+    pthread_mutex_lock(lock);
+
     fputc(STATEMENT_ID, out);
     fwrite(&statement_id, sizeof(statement_id), 1, out);
 }
@@ -92,10 +102,13 @@ static void write_trace_aux(FILE *out, uint64_t value)
 }
 
 __attribute__((unused))
-static void write_end_entry(FILE *out)
+static void write_end_entry(FILE *out, pthread_mutex_t *lock)
 {
     fputc(END_ENTRY, out);
     fflush(out);
+
+    /* Finished writing trace point */
+    pthread_mutex_unlock(lock);
 }
 
 __attribute__((unused))
@@ -215,12 +228,17 @@ typedef struct {
 } type_description;
 
 
-void write_trace_header(FILE *out, const char **names, uint32_t n_names,
+void write_trace_header(FILE *out, pthread_mutex_t *lock,
+                        const char **names, uint32_t n_names,
                         const type_description *types, uint32_t n_types)
 {
     /* Dictionary of names, as a sequence of NULL-terminated strings */
     uint64_t total_size = 0;
     uint32_t i = 0;
+
+    /* Write trace header as single transaction */
+    pthread_mutex_lock(lock);
+
     for (i = 0; i < n_names; i++) {
         total_size += strlen(names[i]) + 1;
     }
@@ -234,6 +252,9 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
     /* Dictionary of types */
     fwrite(&n_types, sizeof(n_types), 1, out);
     fwrite(types, sizeof(*types), n_types, out);
+
+    /* Finished writing trace header */
+    pthread_mutex_unlock(lock);
 }
 #endif
 "
@@ -241,7 +262,7 @@ void write_trace_header(FILE *out, const char **names, uint32_t n_names,
   :documentation "C code which implements trace writing.")
 
 (define-constant +write-trace-initialization+
-  "
+  (concatenate 'string "
 #include <unistd.h>
 void __attribute__((constructor(101))) __bi_setup_log_file() {
   const char *handshake_file = getenv(\"~a\");
@@ -249,24 +270,37 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
     while (access(handshake_file, 0) != 0) { sleep(1); }
     unlink(handshake_file);
   }
-  ~a = ~a;
+  " +instrument-log-variable-name+ " = ~a;
   const char *names[] = {~{~s, ~}};
   const type_description types[] = {~{~a, ~}};
-  write_trace_header(~a, names, ~d, types, ~d);
+  pthread_mutex_init(&" +instrument-log-lock-variable-name+ ", NULL);
+  write_trace_header(" +instrument-log-variable-name+ ",
+                     &" +instrument-log-lock-variable-name+",
+                     names, ~d, types, ~d);
 }
-"
+")
   :test #'string=
   :documentation "C code which initializes the trace file")
 
 (define-constant +write-trace-file-definition+
-  "FILE *~a;~%"
+  (format nil "FILE *~a;~%" +instrument-log-variable-name+)
   :test #'string=
   :documentation "C code which defines the trace file")
 
 (define-constant +write-trace-file-declaration+
-  "extern FILE *~a;~%"
+  (format nil "extern FILE *~a;~%" +instrument-log-variable-name+)
   :test #'string=
   :documentation "C code which declares the trace file")
+
+(define-constant +write-trace-file-lock-definition+
+  (format nil "pthread_mutex_t ~a;~%" +instrument-log-lock-variable-name+)
+  :test #'string=
+  :documentation "C code which defines the trace file lock")
+
+(define-constant +write-trace-file-lock-declaration+
+  (format nil "extern pthread_mutex_t ~a;~%" +instrument-log-lock-variable-name+)
+  :test #'string=
+  :documentation "C code which declares the trace file lock")
 
 (defclass instrumenter ()
   ((software :accessor software :initarg :software :initform nil
@@ -332,7 +366,11 @@ operations."))
 * AST the AST to instrument
 "
   (make-call-expr "write_trace_id"
-                  (list (make-var-reference *instrument-log-variable-name* nil)
+                  (list (make-var-reference +instrument-log-variable-name+ nil)
+                        (make-var-reference
+                          (format nil "&~a"
+                                  +instrument-log-lock-variable-name+)
+                          nil)
                         (make-literal (get-ast-id instrumenter ast) :unsigned))
                   :fullstmt
                   :full-stmt t
@@ -351,7 +389,7 @@ operations."))
 "
   (declare (ignorable instrumenter))
   (make-call-expr "write_trace_aux"
-                  (list (make-var-reference *instrument-log-variable-name* nil)
+                  (list (make-var-reference +instrument-log-variable-name+ nil)
                         (make-literal value))
                   :fullstmt
                   :full-stmt t
@@ -368,7 +406,11 @@ operations."))
 "
   (declare (ignorable instrumenter))
   (make-call-expr "write_end_entry"
-                  (list (make-var-reference *instrument-log-variable-name* nil))
+                  (list (make-var-reference +instrument-log-variable-name+ nil)
+                        (make-var-reference
+                          (format nil "&~a"
+                                  +instrument-log-lock-variable-name+)
+                          nil))
                   :fullstmt
                   :full-stmt t
                   :aux-data '((:instrumentation t))))
@@ -453,7 +495,7 @@ instrumentation of function exit.
   "Return true if CLANG is instrumented
 * CLANG a clang software object
 "
-  (search *instrument-log-variable-name* (genome clang)))
+  (search +instrument-log-variable-name+ (genome clang)))
 
 (defmethod instrument ((obj clang) &rest args)
   "Instrumentation for clang software objects.
@@ -619,6 +661,9 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
       (prepend-to-genome obj +write-trace-impl+))
     (prepend-to-genome obj +write-trace-include+)
 
+    ;; Add flag to allow building with pthreads
+    (appendf (flags obj) (list "-lpthread"))
+
     obj))
 
 (defmethod uninstrument ((clang clang))
@@ -627,25 +672,16 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
              (with-slots (ast-root) clang
                (setf ast-root
                  (destructuring-bind (first second . rest) (ast-root clang)
-                   (list* first
-                          (-> second
-                              (replace-all
-                                +write-trace-impl+
-                                "")
-                              (replace-all
-                                +write-trace-include+
-                                "")
-                              (replace-all
-                                (format nil
-                                        +write-trace-file-declaration+
-                                        *instrument-log-variable-name*)
-                                "")
-                              (replace-all
-                                (format nil
-                                        +write-trace-file-definition+
-                                        *instrument-log-variable-name*)
-                                ""))
-                          rest)))))
+                   (list*
+                     first
+                     (-> second
+                         (replace-all +write-trace-impl+ "")
+                         (replace-all +write-trace-include+ "")
+                         (replace-all +write-trace-file-declaration+ "")
+                         (replace-all +write-trace-file-definition+ "")
+                         (replace-all +write-trace-file-lock-declaration+ "")
+                         (replace-all +write-trace-file-lock-definition+ ""))
+                     rest)))))
            (uninstrument-genome-epilogue (clang)
              (with-slots (ast-root) clang
                (setf ast-root
@@ -856,7 +892,7 @@ Returns a list of strings containing C source code."))
                                 (list (make-statement :DeclRefExpr :generic
                                                       (list function-name))))
                              ,(format nil "(~a, ~d, ~{~a~^, ~})"
-                                          *instrument-log-variable-name*
+                                          +instrument-log-variable-name+
                                           (length function-args)
                                           function-args))
                            :full-stmt t
@@ -937,8 +973,13 @@ Returns a list of strings containing C source code."))
 
 OBJ a clang software object
 "
-  (&>> (find-if [{string= "main"} {ast-name}] (functions obj))
-       (function-body obj)))
+  (when-let* ((main (find-if [{string= "main"} {ast-name}]
+                             (functions obj)))
+              (_1 (equal :Function (ast-class main)))
+              (_2 (and (ast-ret main)
+                       (member (type-name (find-type obj (ast-ret main)))
+                               '("int" "void") :test #'string=))))
+    (function-body obj main)))
 
 (defun initialize-tracing (obj file-name env-name contains-entry
                            instrumenter)
@@ -982,13 +1023,11 @@ OBJ a clang software object
         ;; with the trace collector, then opens the trace file and
         ;; writes the header.
         (progn
-          (prepend-to-genome obj
-                             (format nil +write-trace-file-definition+
-                                     *instrument-log-variable-name*))
+          (prepend-to-genome obj +write-trace-file-lock-definition+)
+          (prepend-to-genome obj +write-trace-file-definition+)
           (append-to-genome  obj
                              (format nil +write-trace-initialization+
                                      *instrument-handshake-env-name*
-                                     *instrument-log-variable-name*
                                      (file-open-str)
                                      (-<>> (names instrumenter)
                                            (hash-table-alist)
@@ -1001,15 +1040,15 @@ OBJ a clang software object
                                                         (types instrumenter)}
                                                        #'car])
                                            (mapcar #'cdr))
-                                     *instrument-log-variable-name*
                                      (hash-table-count (names instrumenter))
                                      (hash-table-count (types instrumenter)))))
 
         ;; Object does not contain main. Insert extern declaration of
-        ;; log variable.
-        (prepend-to-genome obj
-                           (format nil +write-trace-file-declaration+
-                                       *instrument-log-variable-name*))))
+        ;; log variable and its lock.
+        (progn
+          (prepend-to-genome obj +write-trace-file-lock-declaration+)
+          (prepend-to-genome obj +write-trace-file-declaration+))))
+
   obj)
 
 

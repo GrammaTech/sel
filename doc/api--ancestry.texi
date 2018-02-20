@@ -1,4 +1,15 @@
 
+@anchor{api-ancestry}
+@subsubsection Class @code{ancestral}
+
+[
+@ref{SEL API,API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-mixins,Software Object Class ``Mixins''} |
+Class @code{ancestral}
+]
+
+
 @itemize
 @item Class @refapiclass{ancestral}
 @item Function @refapifunction{get-fresh-ancestry-id}

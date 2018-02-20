@@ -695,17 +695,17 @@ TEST-SUITE?"
 
 (defun synthesize-condition (software test-suite repair-mutation
                              &key extra-instrumentation-exprs)
-  "Apply REPAIR-MUTATION to SOFTWARE, attempting to synthesize a condition which
-increases the number of tests in TEST-SUITE that pass.
-Return a copy of SOFTWARE with a synthesized condition inserted at the target of
-REPAIR-MUTATION.
+  "Apply REPAIR-MUTATION to SOFTWARE, attempting to synthesize a
+condition which increases the number of tests in TEST-SUITE that pass.
+Return a copy of SOFTWARE with a synthesized condition inserted at the
+target of REPAIR-MUTATION.
 
 * TEST-SUITE a `test-suite' containing both positive and negative test cases.
 * REPAIR-MUTATION a `mutation' that inserts an abstract condition.
 * EXTRA-INSTRUMENTATION-EXPRS a list of additional expressions to
-  print at each instrumentation point. It should have the form
-  '((expr . ((:type . \"typename\")))). These expressions can be generated with
-`instrumentation-exprs'.
+  print at each instrumentation point. It should have the form '((expr
+  . ((:type . \"typename\")))). These expressions can be generated
+  with `instrumentation-exprs'.
 "
   ;; only applies if repair mutation introduced abst_cond()
   (with-temp-file (trace-file)

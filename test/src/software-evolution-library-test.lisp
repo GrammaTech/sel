@@ -1004,13 +1004,21 @@ suite should be run and nil otherwise."
   (with-fixture gcd-asm
     (let ((orig-hash (sxhash (genome *gcd*)))
           (ant (copy *gcd*)))
-      (handler-bind
-          ((no-mutation-targets
-            (lambda (c)
-              (declare (ignorable c))
-              (invoke-restart 'try-another-mutation))))
-        (mutate ant))
-      (is (not (sel::equal-it (genome ant) (genome *gcd*))))
+      ;; Multiple tries to apply a mutation creating a difference.
+      ;; Stochastically some might result in the same genome, e.g. by
+      ;; swapping to identical instructions.
+      (is (iter (as count upfrom 0)
+                (handler-bind
+                    ((no-mutation-targets
+                      (lambda (c)
+                        (declare (ignorable c))
+                        (invoke-restart 'try-another-mutation))))
+                  (mutate ant))
+                (when (not (sel::equal-it (genome ant) (genome *gcd*)))
+                  (return t))
+                (when (> count 100)
+                  (return nil)))
+          "In 100 tries, a mutation results in a different mutated genome.")
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 (deftest asm-cut-actually-shortens ()
@@ -1161,6 +1169,13 @@ suite should be run and nil otherwise."
            ;; (format t "EQUAL 60~%")
            (is (= (size crossed) (+ (size *gcd*) 40))))
           (t (is (= (size crossed) (size *gcd*)))))))))
+
+
+;;; CSURF-ASM representation.
+(sel-suite* csurf-asm-tests "CSURF-ASM representation.")
+
+(deftest dynamic-linker-path-has-been-set ()
+  (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
 
 
 ;;; ELF representation.
@@ -4755,9 +4770,8 @@ Useful for printing or returning differences in the REPL."
 
 (defun get-gcd-trace (bin)
   (with-temp-file (trace-file)
-    (multiple-value-bind (stdout stderr errno)
-        (shell "~a 4 8 2>~a" bin trace-file)
-      (declare (ignorable stdout stderr))
+    (let ((errno (nth-value 2 (run-program (format nil "~a 4 8 2>~a"
+                                                   bin trace-file)))))
       (is (zerop errno))
       (let ((trace (read-trace trace-file 1)))
         (is (listp trace))
@@ -4806,12 +4820,14 @@ Useful for printing or returning differences in the REPL."
               (count-traceable instrumented)))
 
       ;; Is function exit instrumented?
-      (is (stmt-with-text instrumented
-                          (format nil "write_trace_id(__sel_trace_file, ~du)"
-                                  (-<>> (first (functions *gcd*))
-                                        (function-body *gcd*)
-                                        (position <> (asts *gcd*)
-                                                  :test #'equalp))) :no-error))
+      (is (stmt-with-text
+            instrumented
+            (format nil
+              "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+              (-<>> (first (functions *gcd*))
+                    (function-body *gcd*)
+                    (position <> (asts *gcd*)
+                              :test #'equalp))) :no-error))
 
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -4832,7 +4848,7 @@ Useful for printing or returning differences in the REPL."
                      (for i upfrom 0)
                      (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))))))
       (is (scan (quote-meta-chars "write_trace_aux(__sel_trace_file")
-              (genome-string instrumented))
+                (genome-string instrumented))
         "We find code to print auxiliary values in the instrumented source.")
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -4865,9 +4881,8 @@ Useful for printing or returning differences in the REPL."
       ;; Ensure we were able to instrument an else branch w/o curlies.
       (let* ((else-counter (index-of-ast *gcd*
                                          (stmt-with-text *gcd* "b = b - a")))
-             (matcher (quote-meta-chars
-                       (format nil "write_trace_id(__sel_trace_file, ~du)"
-                               else-counter))))
+             (matcher (format nil "write_trace_id\\(.*~du\\)"
+                              else-counter)))
         (is (scan matcher (genome instrumented)))
         ;; The next line (after flushing) should be the else branch.
         (let ((location (position-if {scan matcher} (lines instrumented))))
@@ -4931,21 +4946,25 @@ prints unique counters in the trace"
                                     (asts variant)
                                     :from-end t)))
               "a = atoi(argv[1]) was not inserted into the genome")
-          (is (search (format nil "write_trace_id(__sel_trace_file, ~du)"
-                              (->> (find-if [{string= "a = atoi(argv[1])"}
-                                             #'peel-bananas #'source-text]
-                                            (asts variant)
-                                            :from-end nil)
-                                   (index-of-ast variant)))
-                      (genome instrumented))
+          (is (search
+                (format nil
+                  "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                  (->> (find-if [{string= "a = atoi(argv[1])"}
+                                 #'peel-bananas #'source-text]
+                                (asts variant)
+                                :from-end nil)
+                       (index-of-ast variant)))
+                (genome instrumented))
               "instrumentation was not added for the inserted statement")
-          (is (search (format nil "write_trace_id(__sel_trace_file, ~du)"
-                              (->> (find-if [{string= "a = atoi(argv[1])"}
-                                             #'peel-bananas #'source-text]
-                                            (asts variant)
-                                            :from-end t)
-                                   (index-of-ast variant)))
-                      (genome instrumented))
+          (is (search
+                (format nil
+                  "write_trace_id(__sel_trace_file, &__sel_trace_file_lock, ~du)"
+                  (->> (find-if [{string= "a = atoi(argv[1])"}
+                                 #'peel-bananas #'source-text]
+                                (asts variant)
+                                :from-end t)
+                       (index-of-ast variant)))
+                (genome instrumented))
               "instrumentation was not added for the original statement"))))))
 
 (deftest instrumentation-print-unbound-vars ()
@@ -5153,9 +5172,8 @@ prints unique counters in the trace"
                                   (phenome *project* :bin bin))))
             "Successfully compiled instrumented project."))
       (with-temp-file (trace-file)
-        (multiple-value-bind (stdout stderr errno)
-            (shell "~a 2>~a" bin trace-file)
-          (declare (ignorable stdout stderr))
+        (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
+                                                       bin trace-file)))))
           (is (zerop errno))
           (let ((trace (read-trace trace-file 1)))
             (is (listp trace))

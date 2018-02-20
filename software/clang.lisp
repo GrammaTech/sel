@@ -243,12 +243,14 @@ including the AST counter and AST class.
   "Object code for serialization of clang software objects.")
 
 (defstore-cl-store (obj clang stream)
+  ;; NOTE: Does *not* support documentation.
   (let ((copy (copy obj)))
     (setf (slot-value copy 'copy-lock) nil)
     (output-type-code *clang-obj-code* stream)
     (cl-store::store-type-object copy stream)))
 
 (defrestore-cl-store (clang stream)
+  ;; NOTE: Does *not* support documentation.
   (let ((obj (cl-store::restore-type-object stream)))
     (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
     obj))
@@ -494,12 +496,14 @@ type in TYPES.
 
 (defmethod source-text ((ast ast-ref))
   "Return the source code corresponding to AST.
+
 * AST ast-ref to retrieve source code for
 "
   (source-text (ast-ref-ast ast)))
 
 (defmethod source-text ((ast list))
   "Return the source code corresponding to AST.
+
 * AST ast to retrieve source code for
 "
   (format nil "~{~a~}"
@@ -510,6 +514,7 @@ type in TYPES.
 
 (defmethod source-text ((ast string))
   "Return the source code corresponding to AST.
+
 * AST string to retrieve source code for
 "
   ast)
@@ -727,7 +732,7 @@ if not given.
   "Create a array subscript expression AST.
 * ARRAY-EXPR AST expression with an array type
 * SUBSCRIPT-EXPR AST expression with an integer type to be used as array
-subscript
+  subscript
 * REST additional arguments to `make-statement'
 "
   (apply #'make-statement :ArraySubscriptExpr :generic
@@ -1154,7 +1159,7 @@ the rebinding
    "Make arbitrary replacements within AST, returning a new AST."))
 
 (defmethod replace-in-ast ((ast ast-ref) replacements &key (test #'eq))
-  "Make arbritrary replacements within AST, returning a new AST.
+  "Make arbitrary replacements within AST, returning a new AST.
 * AST node to perform modifications to
 * REPLACEMENTS association list of key, value pairs to replace in AST
 * TEST function to test if a given replacement key can be found in AST
@@ -4295,6 +4300,7 @@ within a function body, return null."))
                  "performance*"
                  "-performance-unnecessary-value-param"
                  "readability*"
+                 "-readability-else-after-return"
                  "-readability-function-size"
                  "-readability-identifier-naming"
                  "-readability-non-const-parameter"
