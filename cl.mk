@@ -278,7 +278,7 @@ more-clean: clean
 	make -C doc clean
 
 real-clean: more-clean
-	rm -f qlfile.lock Dockerfile
+	rm -f qlfile qlfile.lock Dockerfile
 	rm -rf quicklisp system-index.txt
 
 

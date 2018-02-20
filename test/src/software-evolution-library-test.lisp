@@ -4784,7 +4784,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest instrumentation-insertion-test ()
   (with-fixture gcd-clang
-    (let ((instrumented (instrument (copy *gcd*))))
+    (let ((instrumented (instrument (copy *gcd*) :trace-file :stderr)))
       ;; Do we insert the right number of printf statements?
       (is (<= (count-traceable *gcd*)
               (count-traceable instrumented)))
@@ -4801,7 +4801,8 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
                                     :filter {remove-if-not
-                                             [{eq 93} #'ast-counter]})))
+                                             [{eq 93} #'ast-counter]}
+                                    :trace-file :stderr)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
@@ -4814,7 +4815,8 @@ Useful for printing or returning differences in the REPL."
 (deftest instrumentation-insertion-w-function-exit-test ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
-                                    :instrument-exit t)))
+                                    :instrument-exit t
+                                    :trace-file :stderr)))
       ;; Do we insert the right number of printf statements?
       (is (<= (count-traceable *gcd*)
               (count-traceable instrumented)))
@@ -4846,7 +4848,8 @@ Useful for printing or returning differences in the REPL."
                :points
                (iter (for ast in (stmt-asts *gcd*))
                      (for i upfrom 0)
-                     (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))))))
+                     (collect (cons ast (if (evenp i) '(1 2) '(3 4) ))))
+               :trace-file :stderr))))
       (is (scan (quote-meta-chars "write_trace_aux(__sel_trace_file")
                 (genome-string instrumented))
         "We find code to print auxiliary values in the instrumented source.")
@@ -4877,7 +4880,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest instrumentation-handles-missing-curlies-test ()
   (with-fixture gcd-wo-curlies-clang
-    (let ((instrumented (instrument (copy *gcd*))))
+    (let ((instrumented (instrument (copy *gcd*) :trace-file :stderr)))
       ;; Ensure we were able to instrument an else branch w/o curlies.
       (let* ((else-counter (index-of-ast *gcd*
                                          (stmt-with-text *gcd* "b = b - a")))
@@ -4901,7 +4904,8 @@ Useful for printing or returning differences in the REPL."
            (instrumented
             (instrument (copy *gcd*)
               :points
-              `((,(stmt-with-text *gcd* "b - a") ,cookie)))))
+              `((,(stmt-with-text *gcd* "b - a") ,cookie))
+              :trace-file :stderr)))
       ;; Instrumented program holds the value 1234.
       (is (scan (quote-meta-chars (format nil "~d" cookie))
                 (genome-string instrumented))
@@ -4975,7 +4979,8 @@ prints unique counters in the trace"
                           (var-instrument {get-unbound-vals
                                            (software instrumenter)}
                                           instrumenter
-                                          ast)))))
+                                          ast)))
+                  :trace-file :stderr))
     (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
@@ -4999,7 +5004,8 @@ prints unique counters in the trace"
                           (var-instrument {get-vars-in-scope
                                            (software instrumenter)}
                                           instrumenter
-                                          ast)))))
+                                          ast)))
+                  :trace-file :stderr))
     (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
@@ -5031,7 +5037,8 @@ prints unique counters in the trace"
                           (var-instrument {get-vars-in-scope
                                            (software instrumenter)}
                                           instrumenter ast
-                                          :print-strings t)))))
+                                          :print-strings t)))
+                  :trace-file :stderr))
     (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
@@ -5056,7 +5063,8 @@ prints unique counters in the trace"
                           (var-instrument {get-vars-in-scope
                                            (software instrumenter)}
                                           instrumenter ast
-                                          :print-strings t)))))
+                                          :print-strings t)))
+                  :trace-file :stderr))
     (is (scan (quote-meta-chars "write_trace_blobs(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print strings in the instrumented source.")
@@ -5078,7 +5086,8 @@ prints unique counters in the trace"
                           (var-instrument {get-vars-in-scope
                                            (software instrumenter)}
                                           instrumenter
-                                          ast)))))
+                                          ast)))
+                  :trace-file :stderr))
     (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *gcd*))
         "We find code to print unbound variables in the instrumented source.")
@@ -5099,7 +5108,8 @@ prints unique counters in the trace"
                           (var-instrument {get-vars-in-scope
                                            (software instrumenter)}
                                           instrumenter
-                                          ast)))))
+                                          ast)))
+                  :trace-file :stderr))
     (is (scan (quote-meta-chars "write_trace_variables(__sel_trace_file")
               (genome-string *soft*))
         "We find code to print unbound variables in the instrumented source.")
@@ -5164,7 +5174,8 @@ prints unique counters in the trace"
                         (var-instrument {get-unbound-vals
                                          (software instrumenter)}
                                         instrumenter
-                                        ast))))
+                                        ast)))
+                :trace-file :stderr)
     (with-temp-file (bin)
       (with-temp-build-dir ((directory-namestring
                              (make-pathname :directory +multi-file-dir+)))
@@ -5211,7 +5222,8 @@ prints unique counters in the trace"
                             (var-instrument {get-vars-in-scope
                                              (software instrumenter)}
                                             instrumenter
-                                            ast)))))
+                                            ast))))
+                  :trace-file :stderr)
 
       (with-temp-file (bin)
         (is (zerop (nth-value 1 (ignore-phenome-errors
@@ -5349,7 +5361,7 @@ prints unique counters in the trace"
 
 (deftest run-traceable-gcd ()
   (with-fixture traceable-gcd
-    (instrument *gcd* :trace-env t)
+    (instrument *gcd*)
     (collect-traces *gcd* *gcd-test-suite*)
     (setf (traces *gcd*)
           (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))
@@ -5358,7 +5370,7 @@ prints unique counters in the trace"
 
 (deftest run-traceable-gcd-w/collect-traces ()
   (with-fixture traceable-gcd
-    (instrument *gcd* :trace-env t)
+    (instrument *gcd*)
     (collect-traces *gcd* *gcd-test-suite*)
     (setf (traces *gcd*)
           (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))

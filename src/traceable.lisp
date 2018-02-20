@@ -94,19 +94,16 @@ times."))
           :report "Skip trace collection for test case and return NIL."
           (return-from collect-trace nil))))
   (unwind-protect
-    (with-temp-fifo (pipe)
       (with-temp-file (handshake-file) ;; Start running the test case.
         (let ((proc (start-test bin test-case
-                                :env (list (cons *instrument-log-env-name*
-                                                 pipe)
-                                           (cons *instrument-handshake-env-name*
+                                :env (list (cons *instrument-handshake-env-name*
                                                  handshake-file))
                                 :wait nil)))
           (labels ((timeout-p (start-time)
                      (> (/ (- (get-internal-real-time) start-time)
                            internal-time-units-per-second)
                         *trace-open-timeout*))
-                   (handshake (&aux (start-time (get-internal-real-time)))
+                   (handshake (pipe &aux (start-time (get-internal-real-time)))
                      ;; Create the handshake file, which indicates that we
                      ;; are ready to read traces. The file contents don't
                      ;; actually matter.
@@ -114,7 +111,7 @@ times."))
                            (handler-case
                                (progn
                                  (with-output-to-file (out handshake-file)
-                                   (format out "ready"))
+                                   (format out "~a" pipe))
                                  (finish))
                              (error (e)
                                (declare (ignorable e))
@@ -132,14 +129,15 @@ times."))
 
                            (finally (note 3 "No handshake after ~d seconds"
                                           *trace-open-timeout*)))))
-            (iter (while (handshake))
-                  (for i upfrom 1)
-                  (add-trace (traces obj) pipe *trace-open-timeout*
-                             (list ;; keep :bin symbol if present
-                              (cons :input
-                                    (cons (program-name test-case)
-                                          (program-args test-case))))
-                             :max max)
+            (iter (for i upfrom 1)
+                  (while (with-temp-fifo (pipe)
+                           (when (handshake pipe)
+                             (add-trace (traces obj) pipe *trace-open-timeout*
+                                        (list ;; keep :bin symbol if present
+                                         (cons :input
+                                               (cons (program-name test-case)
+                                                     (program-args test-case))))
+                                        :max max))))
                   (finally
                    (finish-test proc :kill-signal 15
                                      :timeout *process-kill-timeout*)
@@ -156,7 +154,7 @@ times."))
                                  :obj test-case
                                  :bin bin)))
                       (ignore-empty-trace ()
-                        :report "Ignore empty trace"))))))))
+                        :report "Ignore empty trace")))))))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
         (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)
