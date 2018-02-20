@@ -929,8 +929,6 @@ Class @code{clang-project}
 
 @c defmethod clang-format
 
-@include include/var-sel-star-isa-nbits-star.texinfo
-
 @c ----------------------------------------
 
 @anchor{api-software-objects-simple}
@@ -1089,7 +1087,6 @@ Class @code{csurf-asm}
 
 @itemize
 @item Class @refapiclass{csurf-asm}
-@item Variable @refapivariable{*isa-nbits*}
 @item Methods
   @itemize
   @item @refapimethod{phenome ((asm csurf-asm) &key (bin (temp-file-name)))}

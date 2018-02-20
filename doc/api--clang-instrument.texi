@@ -29,8 +29,6 @@ More information about instrumentation is provided in section
     @item @refapigeneric{var-instrument}
     @end itemize
 
-  @item Variable @refapivariable{*instrument-log-variable-name*}
-
   @item Methods
     @itemize
 @c whitespace in this reference is important
@@ -88,9 +86,6 @@ More information about instrumentation is provided in section
 @include include/fun-sel-instrumentation-files.texinfo
 @include include/fun-sel-uninstrument.texinfo
 @include include/fun-sel-var-instrument.texinfo
-
-@include include/var-sel-star-instrument-log-variable-name-star.texinfo
-
 
 @c ----------------------------------------
 
