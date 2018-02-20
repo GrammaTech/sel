@@ -172,7 +172,6 @@ unit-check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts | bin
 	@$<
 
 check-testbot: unit-check-testbot bin-check
-	@$<
 
 
 ## Interactive testing
