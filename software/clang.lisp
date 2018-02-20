@@ -243,17 +243,17 @@ including the AST counter and AST class.
   "Object code for serialization of clang software objects.")
 
 (defstore-cl-store (obj clang stream)
+  ;; NOTE: Does *not* support documentation.
   (let ((copy (copy obj)))
     (setf (slot-value copy 'copy-lock) nil)
     (output-type-code *clang-obj-code* stream)
-    (cl-store::store-type-object copy stream))
-  (:documentation "DOCFIXME"))
+    (cl-store::store-type-object copy stream)))
 
 (defrestore-cl-store (clang stream)
+  ;; NOTE: Does *not* support documentation.
   (let ((obj (cl-store::restore-type-object stream)))
     (setf (slot-value obj 'copy-lock) (make-lock "clang-copy"))
-    obj)
-  (:documentation "DOCFIXME"))
+    obj))
 
 (defgeneric roots (software)
   (:documentation "Return all top-level ASTs in SOFTWARE."))
