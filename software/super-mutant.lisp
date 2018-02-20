@@ -67,22 +67,21 @@ the first return value.
                                     :lambda-list '(obj &key bin)
                                     :specializers
                                     (list (intern-eql-specializer proxy)))))
-               ;; TODO: how much memory is used up by these temporary
-               ;; functions?  Will they be freed along with the
-               ;; associated object or do we need to use
-               ;; `remove-method' on them?
                (add-method #'phenome method)
                (values proxy method)))))
 
       (mapc (lambda-bind ((i obj))
               ;; Create a proxy to override phenome behavior, then
               ;; evaluate that in the normal way.
-              (multiple-value-bind (fit extra)
-                  (evaluate test
-                            (make-phenome-proxy obj i))
-
-                (setf (fitness obj) fit)
-                (setf (fitness-extra-data obj) extra)))
+              (multiple-value-bind (proxy method)
+                  (make-phenome-proxy obj i)
+                (unwind-protect
+                     (multiple-value-bind (fit extra)
+                         (evaluate test proxy)
+                       (setf (fitness obj) fit)
+                       (setf (fitness-extra-data obj) extra))
+                  ;; Clean up the temporary proxy method
+                  (remove-method #'phenome method))))
             (indexed (mutants super))))))
 
 (defmethod genome ((obj super-mutant))
