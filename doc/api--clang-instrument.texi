@@ -87,6 +87,8 @@ More information about instrumentation is provided in section
 @include include/fun-sel-uninstrument.texinfo
 @include include/fun-sel-var-instrument.texinfo
 
+@include include/constant-sel-plus-instrument-log-variable-name-plus.texinfo
+
 @c ----------------------------------------
 
 @include include/class-sel-clang-instrumenter.texinfo
