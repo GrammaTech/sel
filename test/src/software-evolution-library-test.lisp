@@ -7915,7 +7915,7 @@ prints unique counters in the trace"
 (sel-suite* clang-super-mutants "Super mutants of clang objects."
             (clang-mutate-available-p))
 
-(deftest super-mutant-works ()
+(deftest super-mutant-genome-works ()
   (with-fixture fib-clang
     (let* ((mutant-a (copy *fib*))
            (mutant-b (copy *fib*))
@@ -8089,6 +8089,91 @@ prints unique counters in the trace"
         (is (eq 2 (count-if [{eq :CaseStmt} #'ast-class] stmts))
             "Super-function contains correct number of case statements.")))))
 
+(deftest super-mutant-genome-handles-function-prototypes ()
+  (let ((mutant (from-string (make-instance 'clang) "int foo();")))
+    (is (genome (make-instance 'super-mutant
+                               :mutants (list (copy mutant) (copy mutant)))))))
+
+(deftest super-mutant-genome-detects-incompatible-functions ()
+  ;; These all fail because ast-args is set by clang-mutate and does not
+  ;; update upon mutation
+  ;; (let* ((base (from-string (make-instance 'clang)
+  ;;                           "void foo(int a, int b) {}"))
+  ;;        (remove-arg (copy base))
+  ;;        (change-arg-type (copy base))
+  ;;        (change-arg-name (copy base)))
+  ;;   ;; Different argument count
+  ;;   (apply-mutation remove-arg
+  ;;                   `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
+  ;;                                                          "int b"))))
+  ;;   (signals mutate
+  ;;     (genome (make-instance 'super-mutant
+  ;;                            :mutants (list base remove-arg))))
+  ;;   ;; Different argument type
+  ;;   (apply-mutation change-arg-type
+  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
+  ;;                                                              "int b"))
+  ;;                                   (:value1 . ,(make-statement :ParmVar
+  ;;                                                               :finallistelt
+  ;;                                                               '("char b")))))
+  ;;   (signals mutate
+  ;;     (genome (make-instance 'super-mutant
+  ;;                            :mutants (list base change-arg-type))))
+  ;;   ;; Different argument name
+  ;;   (apply-mutation change-arg-name
+  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
+  ;;                                                              "int b"))
+  ;;                                   (:value1 . ,(make-statement :ParmVar
+  ;;                                                               :finallistelt
+  ;;                                                               '("int c")))))
+  ;;   (signals mutate
+  ;;     (genome (make-instance 'super-mutant
+  ;;                            :mutants (list base change-arg-name)))))
+
+  ;; Different return types
+  (signals mutate
+    (genome (make-instance 'super-mutant
+                           :mutants
+                           (list (from-string (make-instance 'clang)
+                                              "void foo() {}")
+                                 (from-string (make-instance 'clang)
+                                              "int foo() { return 1; }")))))
+
+  ;; Prototype vs. complete function
+  (signals mutate
+    (genome (make-instance 'super-mutant
+                           :mutants
+                           (list (from-string (make-instance 'clang)
+                                              "void foo() {}")
+                                 (from-string (make-instance 'clang)
+                                              "void foo();"))))))
+
+(deftest super-mutant-genome-detects-mismatched-globals ()
+  (let* ((base (from-string (make-instance 'clang)
+                           "int a; int b; int c;"))
+         (variant (copy base)))
+    (apply-mutation variant
+                    `(clang-replace (:stmt1 . ,(stmt-with-text variant
+                                                               "int b"))
+                                    (:value1 . ,(->> (find-or-add-type variant
+                                                                       "char")
+                                                     (make-var-decl "b")))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                             :mutants (list base variant))))))
+
+(deftest super-mutant-genome-detects-delete-function-body ()
+  (let* ((base (from-string (make-instance 'clang)
+                           "void foo() {}"))
+         (variant (copy base)))
+    ;; This is a useless mutation but it happens sometimes. Ensure
+    ;; that it leads to a mutation error.
+    (apply-mutation variant
+                    `(clang-cut (:stmt1 . ,(stmt-with-text variant "{}"))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                             :mutants (list base variant))))))
+
 (deftest collate-ast-variants-test ()
   ;; This function is intended to be called on asts, but it only
   ;; relies on EQUAL comparison of the keys so we can test it with
@@ -8154,3 +8239,59 @@ prints unique counters in the trace"
   (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((2 . b2) (1 . b1) (3 . b3))))
              '((a1 nil) (a2 b2) (nil b1) (a3 b3)))))
+
+(define-software mutation-failure-tester (clang) ())
+
+(defvar *test-mutation-count* 0)
+(defmethod mutate ((soft mutation-failure-tester))
+  (incf *test-mutation-count*)
+  ;; Every other mutation fails
+  (when (zerop (mod *test-mutation-count* 2))
+    (error (make-condition 'mutate)))
+  soft)
+
+(deftest super-evolve-handles-mutation-failure ()
+  (let* ((obj (from-string (make-instance 'mutation-failure-tester)
+                           "int main() { return 0; }"))
+         (*population* (list obj))
+         (*fitness-evals* 0)
+         (*cross-chance* 0)
+         (*target-fitness-p* (lambda (fit) (declare (ignorable fit)) t)))
+    (setf (fitness obj) 0)
+    ;; Ensure the software objects raise mutation errors as expected
+    (signals mutate
+      (sel::super-evolve (lambda (obj) (declare (ignorable obj)) 1)
+                         :max-evals 10))
+    (handler-bind ((mutate (lambda (err)
+                             (declare (ignorable err))
+                             (invoke-restart 'ignore-failed-mutation))))
+      ;; This should exit after evaluating the first super-mutant,
+      ;; because *target-fitness-p* is trivially true.
+      (sel::super-evolve (lambda (obj) (declare (ignorable obj)) 1)
+                         :max-evals 10))
+    ;; Despite errors, the first super-mutant should accumulate the
+    ;; desired number of variants and evaluate all of them.
+    (is (eq *fitness-evals* sel::*mutants-at-once*))))
+
+(deftest super-mutant-evaluate-works ()
+  (let* ((template "#include <stdio.h>
+int main() { puts(\"~d\"); return 0; }
+")
+         (mutants (mapcar (lambda (i)
+                            (from-string (make-instance 'clang)
+                                         (format nil template i)))
+                          '(1 2 3 4)))
+           (super (make-instance 'super-mutant :mutants mutants)))
+    (evaluate (lambda (obj)
+                ;; Proxies are the same type as mutants
+                (is (eq 'clang (type-of obj)))
+                (cons (&>> (phenome obj)
+                           (shell)
+                           (parse-integer))
+                      (genome obj)))
+              super)
+    ;; Each variant printed the appropriate number
+    (is (equal '(1 2 3 4) (mapcar [#'car #'fitness] mutants)))
+    ;; Each proxy had genome identical to the corresponding mutant
+    (is (equal (mapcar #'genome mutants)
+               (mapcar [#'cdr #'fitness] mutants)))))
