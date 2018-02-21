@@ -146,12 +146,21 @@ variants. If this is not true, the result may have duplicate keys.
 
 (defmethod create-super-soft ((base clang) mutants)
   (labels
-      ((functions-compatible-p (f1 f2)
-         (or (eq f1 f2)
-             (and (string= (ast-name f1) (ast-name f2))
-                  (eq (ast-void-ret f1) (ast-void-ret f2))
-                  (eq (ast-varargs f1) (ast-varargs f2))
-                  (equal (ast-args f1) (ast-args f2)))))
+      ((ensure-functions-compatible (f1 f2 mutant)
+         (unless (eq f1 f2)
+           (unless (string= (ast-name f1) (ast-name f2))
+             (error (make-condition 'mutate
+                                    :text "Mismatched function names"
+                                    :obj mutant)))
+           (unless (eq (ast-void-ret f1) (ast-void-ret f2))
+             (error (make-condition 'mutate
+                                    :text "Mismatched return types"
+                                    :obj mutant)))
+           (unless (and (eq (ast-varargs f1) (ast-varargs f2))
+                        (equal (ast-args f1) (ast-args f2)))
+             (error (make-condition 'mutate
+                                    :text "Mismatched function arguments"
+                                    :obj mutant)))))
        (process-ast (asts)
          "Process variants of ASTs to determine the edits necessary.
 
@@ -178,8 +187,12 @@ There are several cases here:
                (progn
                  ;; Top-level decls must be identical across variants.
                  ;; Don't collect anything.
-                 (assert (every [{eq (ast-ref-ast head)} #'ast-ref-ast]
-                                non-null-asts))
+                 (mapc (lambda (ast)
+                         (unless (eq (ast-ref-ast head) (ast-ref-ast ast))
+                           (error (make-condition 'mutate
+                                                  :text
+                                                  "Mismatched global decls"))))
+                       non-null-asts)
                  (if (car asts)
                      ;; No change
                      (list (car asts))
@@ -196,7 +209,7 @@ There are several cases here:
                    (let ((variants (make-hash-table)))
                      (mapc (lambda-bind ((i ref) mutant)
                              (when ref
-                               (assert (functions-compatible-p head ref))
+                               (ensure-functions-compatible head ref mutant)
                                (let ((ast (ast-ref-ast ref))
                                      (body (function-body mutant ref)))
                                  (unless body
@@ -359,8 +372,8 @@ true, create a complete function decl which contains the body."
               (when every-pre-fn
                 (mapcar every-pre-fn variants))
               (let ((super (make-instance 'super-mutant :mutants variants)))
-                ;; Building super-mutant genome may fail if e.g. one
-                ;; of the variants has deleted a function body.
+                ;; Building super-mutant genome may fail if the
+                ;; variants are incompatible.
                 (restart-case
                     (genome super)
                   (ignore-failed-mutation ()
