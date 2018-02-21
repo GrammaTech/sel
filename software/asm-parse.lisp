@@ -34,6 +34,10 @@
 	 ((eq token eof)(nreverse result))
 	(push token result))))
 
+(defun token-labelp (token)
+  (and (symbolp token)
+       (char= (char (symbol-name token) 0) #\$)))
+
 ;;;
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -43,19 +47,26 @@
 ;;;     :operation
 (defun parse-line-type (tokens)
   (cond ((null tokens) ':empty)
-	((and (symbolp (first tokens))  ; is first token a symbol beginning with '$'?
-	      (char= (char (symbol-name (first tokens)) 0) #\$)
-	      (> (length tokens) 1)
+	((and (token-labelp (first tokens))  ; is first token a symbol beginning with '$'?
 	      (eq (second tokens) :colon)) ; followed by a ':'?
 	 ':label-decl)
-	((or (member 'db tokens)(member 'dq tokens)(member 'dd tokens))
+	((or (member 'db tokens)
+	     (member 'dq tokens)
+	     (member 'dd tokens)
+	     (member 'dw tokens))
 	 ':data)
-	((member (first tokens) '(push pop lea sub mov sar call test jz zor nop
+	((member (first tokens) '(align section extern %define global))
+	 ':decl)
+	((and (token-labelp (first tokens))
+	      (eq (second tokens) 'equ))
+	 ':decl)
+#|	((member (first tokens) '(push pop lea sub mov sar call test jz zor nop
 				     add cmp mul div jnz ja jb jl jg jlt jgt je jne
 				     movzx movq movsd movupd jmp leave pxor ucomisd jp
-				     pxor ret hlt mulsd subsd))
+				     pxor ret hlt mulsd subsd shr and divsd movsx jna xor))
 	 ':op)
-	(t ':decl)))     ;; use this as catch-all for anything else
+|#
+	(t ':op)))     ;; use this as catch-all for anything else
 
 ;;;
 ;;; takes a line of text from a .asm file, and, and returns 1 or 2 asm-line-info structs.
