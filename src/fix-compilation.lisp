@@ -25,7 +25,9 @@
 (defvar *compilation-fixers* nil
   "Alist of compiler warning regular expressions, and associated function.
 The function is called over the match data returned by the regular
-expression match.")
+expression match.  Each fixer function may modify its argument, and
+should return non-nil on success or nil if additional fixers should be
+applied.")
 
 (defun register-fixer (regex function)
   "Add FUNCTION to `*compilation-fixers*' to be called when REGEX matches."
@@ -33,34 +35,46 @@ expression match.")
     (push (cons regex function) *compilation-fixers*)))
 
 (defmethod fix-compilation ((obj clang) max-attempts &aux matches)
-  "DOCFIXME
+  "Fix compilation errors in clang software object OBJ.
+Try to make any changes necessary for that object to compile
+successfully.  This will first employ `clang-tidy', which calls the
+command line utility of the same name.  If that is not sufficient it
+will then begin collecting compilation error messages, and calling the
+associated element of `*compilation-fixers*'.
 
-* OBJ DOCFIXME
-* MAX-ATTEMPTS DOCFIXME
-* MATCHES DOCFIXME
-"
-  ;; Tidy
-  (clang-tidy obj)
-  (loop :for attempt :below max-attempts :do
-     ;; Compile
-     (with-temp-file (bin)
-       (multiple-value-bind (bin errno stderr)
-         (ignore-phenome-errors
-           (phenome obj :bin bin))
-         (declare (ignorable bin))
-         (when (zerop errno)
-           (return))
-         ;; Dispatch on the first compiler warnings.
-         (block fix
-           (loop :for line :in (split-sequence #\Newline stderr) :do
-              (loop :for fixer :in *compilation-fixers*
-                 :when (setf matches
-                             (multiple-value-bind (matchp match-data)
-                                 (scan-to-strings (car fixer) line)
-                               (when matchp match-data)))
-                 :do
-                 (when (funcall (cdr fixer) obj matches)
-                       (return-from fix))))))))
+* OBJ Clang software object to fix.
+* MAX-ATTEMPTS Maximum number of fix attempts to try."
+  (handler-bind
+      ;; While compilation is broken we expect all clang-mutate calls
+      ;; to return non-zero.  Simply restart keeping as many of the
+      ;; source ASTs as possible.
+      ((mutate
+        (lambda (e)
+          (if (find-restart 'keep-partial-asts)
+              (invoke-restart 'keep-partial-asts)
+              (error e)))))
+    ;; Tidy
+    (clang-tidy obj)
+    (loop :for attempt :below max-attempts :do
+       ;; Compile
+       (with-temp-file (bin)
+         (multiple-value-bind (bin errno stderr)
+             (ignore-phenome-errors
+              (phenome obj :bin bin))
+           (declare (ignorable bin))
+           (when (zerop errno)
+             (return))
+           ;; Dispatch on the first compiler warnings.
+           (block fix
+             (loop :for line :in (split-sequence #\Newline stderr) :do
+                (loop :for fixer :in *compilation-fixers*
+                   :when (setf matches
+                               (multiple-value-bind (matchp match-data)
+                                   (scan-to-strings (car fixer) line)
+                                 (when matchp match-data)))
+                   :do
+                   (when (funcall (cdr fixer) obj matches)
+                     (return-from fix)))))))))
   obj)
 
 ;; Fallback strategy: just delete the offending line entirely.

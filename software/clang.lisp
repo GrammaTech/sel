@@ -2586,6 +2586,9 @@ SOFTWARE.
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
+    (retry-mutation ()
+      :report "Retry the mutation"
+      (apply-mutation software mutation))
     (tidy ()
       :report "Call clang-tidy before re-attempting mutation"
       (clang-tidy software)
@@ -2771,7 +2774,6 @@ SOFTWARE.
                    src-file
                    (flags obj)
                    :input script)
-          (declare (ignorable stderr))
           ;; NOTE: The clang-mutate executable will sometimes produce
           ;;       usable output even on a non-zero exit, e.g., usable
           ;;       json or successful mutations but an exit of 1
@@ -2781,8 +2783,18 @@ SOFTWARE.
           (when (find exit '(131 132 134 136 139))
             (error
              (make-condition 'mutate
-               :text (format nil "clang-mutate core dump, ~d," exit)
+               :text (format nil "clang-mutate core dump with ~d, ~s"
+                             exit stderr)
                :obj obj :op op)))
+          (restart-case
+              (unless (zerop exit)
+                (error
+                 (make-condition 'mutate
+                   :text (format nil "clang-mutate exit ~d, ~s" exit stderr)
+                   :obj obj :op op)))
+            (keep-partial-asts ()
+              :report "Ignore error retaining partial ASTs for software object."
+              nil))
           ;; NOTE: If clang-mutate output exceeds 10 MB, this is likely due
           ;; to an insertion which is technically legal via the standard,
           ;; but is actually meaningless.  This tends to happen with array
