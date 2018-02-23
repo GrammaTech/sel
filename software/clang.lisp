@@ -39,7 +39,7 @@
              :documentation "Names of included includes.")
    (types :initarg :types :accessor types
           :initform (make-hash-table :test 'equal)
-          :copier :direct
+          :copier copy-hash-table
           :type #+sbcl hash-table #-sbcl hash-table
           :documentation "Association list of types keyed by HASH id.")
    (macros :initarg :macros :accessor macros
