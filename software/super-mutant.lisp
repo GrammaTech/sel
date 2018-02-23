@@ -62,8 +62,13 @@ the first return value.
              (let* ((proxy (copy obj))
                     (method
                      (make-instance 'standard-method
-                                    :name 'phenome
-                                    :function #'proxy-phenome
+                                    :function
+                                    #+ccl #'proxy-phenome
+                                    #+sbcl (lambda (args other)
+                                             (declare (ignorable other))
+                                             (apply #'proxy-phenome args))
+                                    #-(or sbcl ccl)
+                                    (error "make-phenome-proxy not implemented")
                                     :lambda-list '(obj &key bin)
                                     :specializers
                                     (list (intern-eql-specializer proxy)))))
