@@ -9,12 +9,15 @@
                  :documentation "The executable to build.
 Passed as an argument to BUILD-COMMAND.")
    (evolve-files :initarg :evolve-files :accessor evolve-files :initform nil
-                 :documentation "Files within the project to mutate"
+                 :documentation
+                 "Files within the project to mutate.
+This holds a list of cons cells of the form (path . software-object-for-path)."
                  :copier copy-files)
    (other-files
     :initarg :other-files :accessor other-files :initform nil
     :documentation
-    "Source files which may be used (e.g., instrumented) but not evolved."
+    "Source files which may be used (e.g., instrumented) but not evolved.
+This holds a list of cons cells of the form (path . software-object-for-path)."
     :copier copy-files)
    ;; Implementation of this is tricky: use with-current-file rather
    ;; than setting it directly.
