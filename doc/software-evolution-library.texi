@@ -409,10 +409,13 @@ The following types of software objects are supported.
       @tab @refapiclass{asm}
       @tab mature
 
+@item linked ELF binaries @* (manipulated as assembler)
+      @tab @refapiclass{csurf-asm}
+      @tab mature
 
 @item linked ELF binaries
       @tab @refapiclass{elf-mips} @*  @refapiclass{elf-cisc}
-      @tab mature
+      @tab mature (not recommended)
 
 @item LLVM IR
       @tab @refapiclass{llvm}
