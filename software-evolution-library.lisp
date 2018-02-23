@@ -363,9 +363,9 @@ elements.")
    (loc  :initarg :loc  :initform nil :reader loc))
   (:report (lambda (condition stream)
              (if (loc condition)
-                 (format stream "Phenome error ~a on ~S in ~a."
+                 (format stream "Phenome error ~S on ~S in ~a."
                          (text condition) (obj condition) (loc condition))
-                 (format stream "Phenome error ~a on ~S."
+                 (format stream "Phenome error ~S on ~S."
                          (text condition) (obj condition)))))
   (:documentation "DOCFIXME"))
 
