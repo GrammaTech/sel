@@ -375,11 +375,14 @@ elements.")
    (op   :initarg :op   :initform nil :reader op))
   (:report (lambda (condition stream)
              (if (op condition)
-                 (format stream "Mutation error ~a applying ~S to ~S"
+                 (format stream "Mutation error, ~a, applying ~S to ~S"
                          (text condition) (op condition) (obj condition))
-                 (format stream "Mutation error ~a on ~S"
+                 (format stream "Mutation error, ~a, on ~S"
                          (text condition) (obj condition)))))
-  (:documentation "DOCFIXME"))
+  (:documentation
+   "Mutation errors are thrown when a mutation fails.
+These may often be safely ignored.  A common restart is
+`ignore-failed-mutation'."))
 
 (define-condition no-mutation-targets (mutate)
   ((text :initarg :text :initform nil :reader text)
@@ -391,7 +394,9 @@ elements.")
                          (text condition) (op condition) (obj condition))
                  (format stream "No targets error ~a on ~S"
                          (text condition) (obj condition)))))
-  (:documentation "DOCFIXME"))
+  (:documentation
+   "This is a particularly benign form of mutation error.
+A common restart is `ignore-failed-mutation'."))
 
 (defgeneric apply-mutation (software mutation)
   (:documentation "Apply MUTATION to SOFTWARE, return the resulting software.
