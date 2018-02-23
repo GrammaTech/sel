@@ -5188,6 +5188,41 @@ prints unique counters in the trace"
               (from-file (make-pathname :directory +multi-file-dir+)))))
     (:teardown (setf *project* nil)))
 
+(defixture grep-project
+  (:setup
+   (setf *project*
+         (-> (make-instance 'clang-project
+               :build-command "make"
+               :build-target "grep"
+               :compilation-database
+               (list
+                (list
+                 (cons :file
+                       (-> (make-pathname :directory +grep-prj-dir+
+                                          :name "grep"
+                                          :type "c")
+                           (namestring)))
+                 (cons :directory
+                       (-> (make-pathname :directory +grep-prj-dir+)
+                           (directory-namestring)))
+                 (cons :command
+                       (format nil "cc -c -o grep ~a"
+                               (-> (make-pathname :directory +grep-prj-dir+
+                                                  :name "grep"
+                                                  :type "c")
+                                   (namestring)))))))
+             (from-file (make-pathname :directory +grep-prj-dir+)))))
+  (:teardown (setf *project* nil)))
+
+(defixture grep-bear-project
+  (:setup
+   (setf *project*
+         (from-file (make-instance 'clang-project
+                      :build-command "make"
+                      :build-target "grep")
+                    (make-pathname :directory +grep-prj-dir+))))
+  (:teardown (setf *project* nil)))
+
 (deftest can-instrument-clang-project ()
   (with-fixture clang-project
     (instrument *project* :functions
@@ -5771,34 +5806,15 @@ prints unique counters in the trace"
       (is (null (current-file copy))))))
 
 (deftest clang-project-test ()
-  (let ((project
-          (-> (make-instance 'clang-project
-                :build-command "make"
-                :build-target "grep"
-                :compilation-database
-                  `(((:file .
-                      ,(-> (make-pathname :directory +grep-prj-dir+
-                                          :name "grep"
-                                          :type "c")
-                           (namestring)))
-                     (:directory .
-                      ,(-> (make-pathname :directory +grep-prj-dir+)
-                           (directory-namestring)))
-                     (:command .
-                      ,(format nil "cc -c -o grep ~a"
-                                   (-> (make-pathname :directory +grep-prj-dir+
-                                                      :name "grep"
-                                                      :type "c")
-                                       (namestring)))))))
-              (from-file (make-pathname :directory +grep-prj-dir+)))))
-    (is (equal "make" (build-command project)))
-    (is (equal "grep" (build-target project)))
-    (is (equal 1 (length (evolve-files project))))
-    (is (equal "grep.c" (car (first (evolve-files project)))))
-    (is (equal "cc" (compiler (cdr (first (evolve-files project))))))
+  (with-fixture grep-project
+    (is (equal "make" (build-command *project*)))
+    (is (equal "grep" (build-target *project*)))
+    (is (equal 1 (length (evolve-files *project*))))
+    (is (equal "grep.c" (car (first (evolve-files *project*)))))
+    (is (equal "cc" (compiler (cdr (first (evolve-files *project*))))))
     (is (equal (list "-I" (namestring (make-pathname :directory +grep-prj-dir+))
                      "-c" "-o" "grep")
-               (-> (flags (cdr (first (evolve-files project))))
+               (-> (flags (cdr (first (evolve-files *project*))))
                    (remove-duplicates :test #'string=))))))
 
 (deftest apply-mutations-to-project-unique-test ()
@@ -5842,6 +5858,22 @@ prints unique counters in the trace"
         (is (< 1 (-> (mapcar {targets} muts)
                      (remove-duplicates :test #'equalp)
                      (length))))))))
+
+
+;;;; Tests that require bear.
+(sel-suite* bear-tests "Clang representation."
+            (lambda () (zerop (nth-value 2 (shell "which bear")))))
+
+(deftest able-to-create-a-bear-project ()
+  (with-fixture grep-bear-project
+    (is (equal "make" (build-command *project*)))
+    (is (equal "grep" (build-target *project*)))
+    (is (equal 1 (length (evolve-files *project*))))))
+
+(deftest able-to-copy-a-bear-project ()
+  (with-fixture grep-bear-project
+    (is (copy *project*)
+        "Able to copy a project built with bear.")))
 
 
 ;;;; Condition synthesis tests.
