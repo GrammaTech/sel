@@ -43,9 +43,14 @@
                                                           *build-dir*)
                                               :name "compile_commands.json"))
                           (remove-duplicates (json:decode-json-from-source in)
-                                             :test #'equalp
-                                             :key {aget :file}
-                                             :from-end t)))
+                            :test #'equalp
+                            :key (lambda (entry)
+                                   (merge-pathnames
+                                     (-> (aget :file entry)
+                                         (pathname-as-file))
+                                     (-> (aget :directory entry)
+                                         (pathname-as-directory))))
+                            :from-end t)))
                    (error "Failed to create compilation database for project.~%~
                            build command: ~a ~a~%~
                            stdout: ~a~%~
@@ -87,13 +92,16 @@
            (create-evolve-files (clang-project)
              (iter (for entry in (compilation-database clang-project))
                    (collect
-                     (cons (->> (get-project-path clang-project
-                                                  (aget :file entry))
-                                (relativize clang-project))
-                           (->  (make-instance (clang-class clang-project)
-                                               :compiler (get-compiler entry)
-                                               :flags (get-flags entry))
-                                (from-file (aget :file entry)))))))
+                     (let ((file-path
+                             (->> (merge-pathnames
+                                    (pathname-as-file (aget :file entry))
+                                    (pathname-as-directory (aget :directory entry)))
+                                  (get-project-path clang-project))))
+                       (cons (relativize clang-project file-path)
+                             (-> (make-instance (clang-class clang-project)
+                                                :compiler (get-compiler entry)
+                                                :flags (get-flags entry))
+                                 (from-file file-path)))))))
            (get-compiler (compilation-database-entry)
              (->> (aget :command compilation-database-entry)
                   (split-sequence #\Space)
@@ -124,7 +132,8 @@
                     (append (list "-I"
                                   (namestring (project-dir clang-project))))
                     (append (list "-I"
-                                  (->> (aget :file compilation-database-entry)
+                                  (->> (aget :directory compilation-database-entry)
+                                       (pathname-as-directory)
                                        (directory-namestring)
                                        (get-project-path clang-project))))))))
     (setf (project-dir clang-project)
