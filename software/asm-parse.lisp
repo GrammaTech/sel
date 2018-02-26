@@ -294,7 +294,7 @@ in the designated range."
           (values new points))
         (values (copy a) nil))))
 
-(setf *asm-heap* (from-file (make-instance
+(setf *orig* (from-file (make-instance
                    'asm-heap)
                   (make-pathname
                    :name "calc.null"
