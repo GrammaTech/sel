@@ -17,7 +17,6 @@
                 :documentation "Clang subclass to utilize in the project"))
   (:documentation "Project specialization for clang software objects."))
 
-
 (defmethod from-file ((clang-project clang-project) project-dir)
   "Populate CLANG-PROJECT from the source code in PROJECT-DIR.
 * CLANG-PROJECT to be populated from source in PROJECT-DIR
@@ -140,15 +139,15 @@
           (-> (truename project-dir)
               (canonical-pathname)))
     (cond ((all-files clang-project)
-           ;; reload existing files
+           ;; Reload existing files.
            (iter (for (src-file . obj) in (all-files clang-project))
                  (from-file obj (in-directory (project-dir clang-project)
                                               src-file))))
           ((compilation-database clang-project)
-           ;; load from compilation database
+           ;; Load from compilation database.
            (setf (evolve-files clang-project)
                  (create-evolve-files clang-project)))
-          (t ;;create compilation database
+          (t ;; Create compilation database.
            (with-temp-build-dir (project-dir)
              (setf (compilation-database clang-project)
                    (create-compilation-database clang-project))
@@ -164,7 +163,6 @@
   (let ((*build-dir* (make-build-dir (project-dir clang-project) :path path)))
     (write-genome-to-files clang-project)))
 
-
 (defmethod asts ((obj clang-project))
   "Return a list of all ASTs in the project OBJ."
   (if (current-file obj)
