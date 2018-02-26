@@ -37,6 +37,10 @@
   #-unix (error "No analog for dynamic linker when not on Linux.")
   "Path to the dynamic linker on this system.")
 
+;;; NOTE: Add the following variables to your path with something like...
+;;; (osicat-posix:setenv "PATH" (concatenate 'string (getenv "PATH")
+;;;                                          ":/path/to/libswyx/bin"))
+
 (defvar *elf-copy-redirect-path* "elf_copy_redirect"
   "Path to elf_copy_redirect (or just the name if it's on the path).")
 
