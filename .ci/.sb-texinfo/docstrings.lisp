@@ -36,7 +36,7 @@
 ;;;; lines are marked up as @table @code, with the SYMBOL as the item.
 
 (defpackage :sb-texinfo
-  (:use :cl :sb-mop :split-sequence)
+  (:use :cl :sb-mop :split-sequence :uiop)
   (:shadow #:documentation)
   (:export #:generate-includes #:generate-comment-includes
            #:document-package #:document-package-pathname)
@@ -1188,7 +1188,8 @@ very beginning of a source file."
                         (equal #\Space (aref trimmed 0)))
                    (subseq trimmed 1)
                    trimmed))))
-    (let* ((string (with-open-file (in file)
+    (let* ((sb-impl::*default-external-format* (detect-encoding file))
+           (string (with-open-file (in file)
                      (let ((seq (make-string (file-length in))))
                        (read-sequence seq in)
                        seq)))

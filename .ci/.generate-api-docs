@@ -19,6 +19,7 @@
 (require :alexandria)
 (require :split-sequence)
 (require :cl-ppcre)
+(require :uiop)
 (load ".ci/.sb-texinfo/docstrings.lisp")
 (in-package :sb-texinfo)
 
