@@ -130,34 +130,27 @@ Currently only populates the `weak-symbols' field from the log."
            ;; if the first element ends with the string PROGRAM (to
            ;; allow for qualified paths).
            (and program (ends-with-subseq program (first cmd) :test #'equal)))
-         #+(or )                        ; NOTE: Unused
          (extract-linker-flags
-             (cmd &aux (linker-ignore-flags '("-o" ">" "1>" "2>" "&>")))
+             (cmd &aux (linker-flags-to-keep '("-z" "-T")))
            ;; Return a list of the flags for a linker command from
            ;; CMD.  CMD is a list of strings representing a command.
            ;; Remove the first element which is the program name.
-           ;; Remove any ignored flags and their parameters, each is
-           ;; assumed to have exactly one.  Remove any options ending
-           ;; with \".o\", assuming that there is only one and it's
-           ;; the file for the software object and so shouldn't be
-           ;; linked again.
-           ;; 
+           ;; Keep only flags listed in `linker-flags-to-keep'.
+
            ;; Use cdr to remove linker program name.
            (iter (for str in (cdr cmd))
                  (for i upfrom 0)
-                 (with next-removal = -1)
-                 ;; For strings that match a flag/redirect exactly,
-                 ;; remove the following element (the argument to the
-                 ;; flag).
-                 (when (member str linker-ignore-flags :test #'equal)
-                   (setf next-removal (1+ i)))
-                 ;; Keep only if the element isn't flagged for
-                 ;; removal, doesn't start with one of the ignore
-                 ;; flags/redirects, and isn't a .o file.
-                 (unless
-                     (or (= i next-removal)
-                         (some {starts-with-subseq _ str} linker-ignore-flags)
-                         (ends-with-subseq ".o" str :test #'equal))
+                 (with next-keep = -1)
+                 ;; For strings that match a flag exactly, keep the
+                 ;; following element (the value for the flag)
+                 (when (member str linker-flags-to-keep :test #'equal)
+                   (setf next-keep (1+ i)))
+                 ;; Keep if the element is in the whitelist of keep-able flags.
+                 (when (or
+                        ;; Space between flag and param.
+                        (= i next-keep)
+                        ;; Flag with no space before param.
+                        (some {starts-with-subseq _ str} linker-flags-to-keep))
                    (collect str into extract-flags))
                  (finally (return extract-flags)))))
     (let ((cmd (->> (subseq bracket-cmd 1 (1- (length bracket-cmd)))
@@ -176,11 +169,11 @@ Currently only populates the `weak-symbols' field from the log."
                (adjoin (lastcar (butlast cmd))
                        (weak-symbols csurf-asm)
                        :test #'equal)))
-        ;; NOTE: Disabled as the defaults above are generally better for now.
         ;; Linker cmd.
-        ;; ((is-program-cmd (linker csurf-asm) cmd)
-        ;;  (setf (flags csurf-asm)
-        ;;        (extract-linker-flags cmd)))
+        ((is-program-cmd (linker csurf-asm) cmd)
+         ;; keep defaults, append additional flags from log file
+         (appendf (flags csurf-asm)
+                  (extract-linker-flags cmd)))
         ;; Elf copy redirect file.
         ;; ((is-program-cmd *elf-copy-redirect-path* cmd)
         ;;  (setf (redirect-file csurf-asm)
