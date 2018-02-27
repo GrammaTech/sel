@@ -1,4 +1,8 @@
 ;;; asm.lisp --- software representation of Assembly code
+;;;
+;;; DOCFIXME Need a page or so introduction to asm software objects.
+;;;
+;;; @texi{asm}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

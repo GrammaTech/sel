@@ -2,7 +2,7 @@
 
 struct test {
     int x;
-}
+};
 
 int main(int argc, char** argv) {
     struct test t;

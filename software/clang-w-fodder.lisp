@@ -312,33 +312,37 @@ statement fodder AST."))
 * TOP-LEVEL indicates that the snippet is a construct which can exist
   outside a function body, such as a type or function declaration.
 "
-  (let* ((preamble  (format nil "
+  (handler-case
+      (let* ((preamble
+              (format nil "
 /* generated includes */
 ~{#include ~a~&~}
 /* generated declarations */
 ~:{~a ~a;~%~}~%
 "
-                            includes (mapcar «list [#'type-decl-string #'second]
-                                                   #'first»
-                                             unbound-vals)))
-         (wrapped (format nil
-                          (if top-level
-                              "int __snippet_marker;~%~a~%"
-                              "void main() {int __snippet_marker; ~a;}")
-                          snippet))
-         (obj (make-instance 'clang :genome (concatenate 'string
-                                                         preamble wrapped)))
-         (block-children (if top-level
-                             (->> (make-ast-ref :ast (ast-root obj))
-                                  (get-immediate-children obj))
-                             (->> (functions obj)
-                              (first)
-                              (function-body obj)
-                              (get-immediate-children obj)))))
-    (mapc (lambda (ast)
-            ;; These ASTs are not part of any genome so clear their paths
-            (setf (ast-ref-path ast) nil))
-          (subseq block-children
-                  (1+ (position-if [{string= "__snippet_marker"} #'car
-                                    #'ast-declares]
-                                   block-children))))))
+                      includes
+                      (mapcar «list [#'type-decl-string #'second] #'first»
+                              unbound-vals)))
+             (wrapped (format nil
+                              (if top-level
+                                  "int __snippet_marker;~%~a~%"
+                                  "void main() {int __snippet_marker; ~a;}")
+                              snippet))
+             (obj (make-instance 'clang :genome (concatenate 'string
+                                                  preamble wrapped)))
+             (block-children (if top-level
+                                 (->> (make-ast-ref :ast (ast-root obj))
+                                      (get-immediate-children obj))
+                                 (->> (functions obj)
+                                      (first)
+                                      (function-body obj)
+                                      (get-immediate-children obj)))))
+        (mapc (lambda (ast)
+                ;; These ASTs are not part of any genome so clear their paths
+                (setf (ast-ref-path ast) nil))
+              (subseq block-children
+                      (1+ (position-if [{string= "__snippet_marker"} #'car
+                                        #'ast-declares]
+                                       block-children)))))
+    ;; If error parsing simply return nil.
+    (mutate (e) (declare (ignorable e)) nil)))

@@ -360,6 +360,8 @@
    :add-macro
    :prepend-to-genome
    :nullify-asts
+   :keep-partial-asts
+   :retry-mutation
    :expand-stmt-pool
    :ignore-failed-mutation
    :try-another-mutation
@@ -484,6 +486,8 @@
    :run-test
    :instrumentation-exprs
    :synthesize-condition
+   :synthesize-conditions
+   :find-best-condition
    :add-condition
    :tighten-condition
    :loosen-condition

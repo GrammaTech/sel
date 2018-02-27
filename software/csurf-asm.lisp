@@ -1,4 +1,8 @@
 ;;; csurf-asm.lisp --- Support for csurf-generated assembler files
+;;;
+;;; DOCFIXME Need a page or so introduction to csurf-asm software objects.
+;;;
+;;; @texi{csurf-asm}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -36,6 +40,10 @@
               (find-if {search "ld-linux"} ))
   #-unix (error "No analog for dynamic linker when not on Linux.")
   "Path to the dynamic linker on this system.")
+
+;;; NOTE: Add the following variables to your path with something like...
+;;; (osicat-posix:setenv "PATH" (concatenate 'string (getenv "PATH")
+;;;                                          ":/path/to/libswyx/bin"))
 
 (defvar *elf-copy-redirect-path* "elf_copy_redirect"
   "Path to elf_copy_redirect (or just the name if it's on the path).")

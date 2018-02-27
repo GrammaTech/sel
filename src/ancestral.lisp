@@ -1,4 +1,8 @@
-;;; ancestral --- class adding ancestry tracking to software
+;;; ancestral.lisp --- class adding ancestry tracking to software
+;;;
+;;; DOCFIXME Need a page or so introduction to ancestral software mixin.
+;;;
+;;; @texi{ancestral}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
