@@ -136,11 +136,54 @@ included.
 ;;;; @@texi@{foo@}
 @end lisp
 
-Comments like the above example which are (1) preceded by a page
-break, @code{^L} in an Emacs buffer, (2) top level comments starting
-at the beginning of a line, and (3) include the special substring
-@code{@@texi@{foo@}}, will be exported to a texinfo file named
-@code{foo.texi} in the current include directory.
+Comments like the above example which are (1) either preceded by a
+page break, @code{^L} in an Emacs buffer, or are at the top of the
+file (2) top level comments starting at the beginning of a line, and
+(3) include the special substring @code{@@texi@{foo@}}, will be
+exported to a texinfo file named @code{foo.texi} in the current
+include directory.
+
+There are a couple of important special cases of lines in comment
+blocks which are not exported.
+
+@table @dfn
+
+@item Copyright lines at top of file
+These typically should not be exported and will not be.
+
+@item Lines that look like Emacs directives
+Lines at the top of a file with @code{-*-} will be inhibited.
+
+@item File name and brief description at top of file
+These typically should not be exported and will not be.  E.g., the
+first line in the following would not be exported.
+
+@lisp
+;;;; foo.lisp --- This file does foo for you
+;;;
+;;; Some description of FOO which will be exported.
+;;;
+;;; @@texi@{foo@}
+@end lisp
+
+@item Comment Headers
+We typically don't want the header in the exported output because
+we'll prefer to write something like @@subsection@{blah@} in the
+texinfo directly.  So first lines with four ``;''s will be elided.
+E.g., the first line of the following.
+
+@lisp
+^L
+;;;; Foo
+;;;
+;;; Some description of FOO which will be exported.
+;;;
+;;; @@texi@{foo@}
+@end lisp
+
+@end table
+
+
 
 @section Using @code{document-package}
 
