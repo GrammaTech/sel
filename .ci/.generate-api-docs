@@ -17,6 +17,7 @@
 (load "~/.sbclrc" :if-does-not-exist nil)
 (require :sb-introspect)
 (require :alexandria)
+(require :split-sequence)
 (require :cl-ppcre)
 (load ".ci/.sb-texinfo/docstrings.lisp")
 (in-package :sb-texinfo)
@@ -55,6 +56,7 @@
   (case action
     (:includes
      (generate-includes "./doc/include/" packages :base-package (car packages))
+     (generate-comment-includes "./doc/include/" packages :base-package (car packages))
      (format t "~&Generated includes for ~{~a~^, ~}.~%" packages))
     (:packages
      ;; Re-run to update the doc/foo-api.texi files with new links to

@@ -11,6 +11,6 @@
 ;;;; by Nikodemus Siivola <nikodemus@random-state.net>.
 
 (defsystem :sb-texinfo
-  :depends-on (:sb-introspect)
+  :depends-on (:sb-introspect :split-sequence)
   :components ((:file "docstrings")))
 
