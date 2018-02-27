@@ -1012,10 +1012,12 @@ See http://llvm.org).
 Passed as an argument to <code>build-command</code>.
 </p></li><li> <code>evolve-files</code> &mdash; initarg: <code><span class="nolinebreak">:evolve-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:evolve-files</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:evolve-files)</span><!-- /@w --></code>
 
-<p>Files within the project to mutate
+<p>Files within the project to mutate.
+This holds a list of cons cells of the form (path . software-object-for-path).
 </p></li><li> <code>other-files</code> &mdash; initarg: <code><span class="nolinebreak">:other-files</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:other-files</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:other-files)</span><!-- /@w --></code>
 
 <p>Source files which may be used (e.g., instrumented) but not evolved.
+This holds a list of cons cells of the form (path . software-object-for-path).
 </p></li><li> <code>current-file-name</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library::current-file-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::current-file-name)</span><!-- /@w --></code>
 
 <p>Delegate method calls to this file.
@@ -8055,14 +8057,17 @@ first value from the &lsquo;phenome&rsquo; method.
 <dt><a name="index-no_002dmutation_002dtargets-1"></a>Condition: <strong>no-mutation-targets</strong></dt>
 <dd><p>Class precedence list: <code>no-mutation-targets, mutate, error, serious-condition, condition, t</code>
 </p>
-<p><code>docfixme</code>
+<p>This is a particularly benign form of mutation error.
+A common restart is &lsquo;ignore-failed-mutation&rsquo;.
 </p></dd></dl>
 <a name="index-mutate-9"></a>
 <a name="Condition-mutate"></a><dl>
 <dt><a name="index-mutate-10"></a>Condition: <strong>mutate</strong></dt>
 <dd><p>Class precedence list: <code>mutate, error, serious-condition, condition, t</code>
 </p>
-<p><code>docfixme</code>
+<p>Mutation errors are thrown when a mutation fails.
+These may often be safely ignored.  A common restart is
+&lsquo;ignore-failed-mutation&rsquo;.
 </p></dd></dl>
 <a name="index-phenome-9"></a>
 <a name="Condition-phenome"></a><dl>

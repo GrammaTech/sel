@@ -24,7 +24,7 @@ A copy of the license is included in the section entitled
 <link href="Index.html#Index" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="Implementation.html#Implementation" rel="up" title="Implementation">
-<link href="Software-Methods.html#Software-Methods" rel="next" title="Software Methods">
+<link href="C_002fC_002b_002b-with-clang.html#C_002fC_002b_002b-with-clang" rel="next" title="C/C++ with clang">
 <link href="Implementation.html#Implementation" rel="prev" title="Implementation">
 <style type="text/css">
 <!--
@@ -68,39 +68,18 @@ Next: <a href="Software-Methods.html#Software-Methods" accesskey="n" rel="next">
 <h3 class="section">2.1 Software Objects</h3>
 <a name="index-software-objects"></a>
 
-
-<p>The Software Evolution Library represents software as
-<a href="SEL-API.html#Class-software"><code>software</code></a> objects.
+<p>The Software Evolution Library represents software as <em>software
+objects</em> which all inherit from the base <a href="SEL-API.html#Class-software"><code>software</code></a> class.
+Currently many subclasses of software are defined.  These classes may
+inherit from other software sub-classes, e.g. most tree-structured
+source code software objects inherit from the <a href="SEL-API.html#Class-ast"><code>ast</code></a> class.
+The inheritance tree of software objects is shown graphically in
+<a href="Implementation.html#fig_003aoverview">Figure 2.1</a>.
 </p>
-<p>A software object has both a <em>genome</em> and a <em>phenome</em>.
+<p>Table <a href="#tab_003aobjects">Table 2.1</a> lists the existing software object classes
+with an indicate of their relative maturity.
 </p>
-<dl compact="compact">
-<dt><em>Genome</em></dt>
-<dd><p>In biology, the genome is the genetic material (DNA/RNA) of the
-cell. In the software evolution library, this field should contain the
-instructions which define the behavior of a software object. In most
-cases, the code (source or assembly), should be stored on this field.
-</p>
-</dd>
-<dt><em>Phenome</em></dt>
-<dd><p>A phenome is an expression of all the traits described in the
-genome. In the software evolution library, this is an executable
-binary.
-</p>
-
-</dd>
-</dl>
-
-<a name="Available-software-object-types"></a>
-<h4 class="subsection">2.1.1 Available software object types</h4>
-
-
-<p>The following types of software objects are supported.
-</p>
-
-
-
-
+<div class="float"><a name="tab_003aobjects"></a>
 
 <table>
 <thead><tr><th>Software type</th><th>SEL Class</th><th>Maturity</th></tr></thead>
@@ -113,30 +92,44 @@ binary.
 <tr><td>LISP</td><td><a href="SEL-API.html#Class-lisp"><code>lisp</code></a></td><td>experimental</td></tr>
 <tr><td>Forth</td><td><a href="SEL-API.html#Class-forth"><code>forth</code></a></td><td>experimental</td></tr>
 </table>
-
-
-
-
-<a name="Adding-new-software-object-types"></a>
-<h4 class="subsection">2.1.2 Adding new software object types</h4>
-
-<p>SEL software objects should derive from the most-relevant base
-class. For source code based software objects, this is the
-<a href="SEL-API.html#Class-ast"><code>ast</code></a> class. To define a new software object type from an
-existing base class, use macro <a href="SEL-API.html#Macro-define_002dsoftware"><code>define-software</code></a>.
+<div class="float-caption"><p><strong>Table 2.1: </strong>Supported software objects listed with relative maturity.</p></div></div>
+<p>These classes may also inherit from <em>mixin</em> classes which provide
+additional functionality which may be re-used across multiple software
+object classes.  Detailed descriptions of important software object
+classes and mixins (which may be added to a software objects
+inheritance tree to provide additional functionality) are described in
+the following subsections.
 </p>
+<p>Software Object Classes (see also
+<a href="SEL-API.html#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> in the API):
+</p><table class="menu" border="0" cellspacing="0">
+<tr><td align="left" valign="top">&bull; <a href="C_002fC_002b_002b-with-clang.html#C_002fC_002b_002b-with-clang" accesskey="1">C/C++ with <code>clang</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">C language source code ASTs
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Assembler-with-asm.html#Assembler-with-asm" accesskey="2">Assembler with <code>asm</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Assembler represented as a vector
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Executables-with-csurf_002dasm.html#Executables-with-csurf_002dasm" accesskey="3">Executables with <code>csurf-asm</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Executables manipulated as an
+                                      assembler vector
+</td></tr>
+</table>
 
-<div class="lisp">
-<pre class="lisp">(define-software new-software-type (base-software-type)
-  ())
-</pre></div>
+<p>Software Object Mixins (see also
+<a href="SEL-API.html#api_002dsoftware_002dobject_002dmixins">Software Object Class &ldquo;Mixins&rdquo;</a> in
+the API):
+</p><table class="menu" border="0" cellspacing="0">
+<tr><td align="left" valign="top">&bull; <a href="Ancestor-tracking-with-ancestral.html#Ancestor-tracking-with-ancestral" accesskey="1">Ancestor tracking with <code>ancestral</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Collect history of applied
+                                        mutations and crossover events.
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Lighter-asm-alternatives-light_002frange_002fdiff.html#Lighter-asm-alternatives-light_002frange_002fdiff" accesskey="2">Lighter asm alternatives <code>light</code>/<code>range</code>/<code>diff</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+                                        Lighter weight alternatives to
+                                        <code>simple</code> software.
+</td></tr>
+</table>
 
-
-
-
-
-
-
+<hr>
+<div class="header">
+<p>
+Next: <a href="Software-Methods.html#Software-Methods" accesskey="n" rel="next">Software Methods</a>, Previous: <a href="Implementation.html#Implementation" accesskey="p" rel="prev">Implementation</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
 
 
 
