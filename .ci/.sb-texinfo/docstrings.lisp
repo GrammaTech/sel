@@ -1211,7 +1211,12 @@ very beginning of a source file."
                       (push (list (clean-line line)) comments))))
               (if in-comment-p
                   (if (equal #\; (aref line 0))
-                      (push (clean-line line) (car comments))
+                      ;; Ignore first lines with four ;;;;'s because
+                      ;; these are likely labels.
+                      (unless (and (zerop (length (car comments)))
+                                   (> (length line) 4)
+                                   (string= ";;;;" (subseq line 0 4)))
+                        (push (clean-line line) (car comments)))
                       (setf in-comment-p nil))
                   (when (equal #\Page (aref line 0))
                     (setf in-comment-p t)
