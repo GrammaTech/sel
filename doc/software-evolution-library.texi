@@ -356,48 +356,20 @@ shown along with the software object class hierarchy.}
 @section Software Objects
 @cindex software objects
 
+The Software Evolution Library represents software as @emph{software
+objects} which all inherit from the base @refapiclass{software} class.
+Currently many subclasses of software are defined.  These classes may
+inherit from other software sub-classes, e.g. most tree-structured
+source code software objects inherit from the @refapiclass{ast} class.
+The inheritance tree of software objects is shown graphically in
+@ref{fig:overview}.
 
-The Software Evolution Library represents software as
-@refapiclass{software} objects.
+Table @ref{tab:objects} lists the existing software object classes
+with an indicate of their relative maturity.
 
-A software object has both a @emph{genome} and a @emph{phenome}.
-
-@table @dfn
-
-@item Genome
-In biology, the genome is the genetic material (DNA/RNA) of the
-cell. In the software evolution library, this field should contain the
-instructions which define the behavior of a software object. In most
-cases, the code (source or assembly), should be stored on this field.
-
-@item Phenome
-A phenome is an expression of all the traits described in the
-genome. In the software evolution library, this is an executable
-binary.
-
-@c In addition to the executable, this method also returns (2) an
-@c errno (a numeric indication of compilation success), (3) stderr of the
-@c compilation process or a string holding error output relevant to
-@c phenome generation, (4) stdout of the evolution process or a string
-@c holding non-error output relevant to phenome generation, (5) the
-@c source file name used during compilation.
-
-@end table
-
-@subsection Available software object types
-
-
-The following types of software objects are supported.
-
-@c DOCFIXME: Turn this into a table indicating relative maturity of each.
-
-
-
-@multitable {compiled assembler  ASM  } {experimental}
-@end multitable
-
-
-@multitable {compiled assembler (ASM)  } {@code{elf-mips}  } {experimental  }
+@float Table,tab:objects
+@caption{Supported software objects listed with relative maturity.}
+@multitable {} {} {}
 
 @headitem  Software type @tab SEL Class @tab Maturity
 
@@ -434,17 +406,119 @@ The following types of software objects are supported.
       @tab experimental
 
 @end multitable
+@end float
+
+These classes may also inherit from @emph{mixin} classes which provide
+additional functionality which may be re-used across multiple software
+object classes.  Detailed descriptions of important software object
+classes and mixins (which may be added to a software objects
+inheritance tree to provide additional functionality) are described in
+the following subsections.
+
+Software Object Classes (see also
+@ref{api-software-object-classes,Software Object Classes} in the API):
+@menu
+* C/C++ with @code{clang}::     C language source code ASTs
+* Assembler with @code{asm}::   Assembler represented as a vector
+* Executables with @code{csurf-asm}:: Executables manipulated as an
+                                      assembler vector
+@end menu
+
+Software Object Mixins (see also
+@ref{api-software-object-mixins,Software Object Class ``Mixins''} in
+the API):
+@menu
+* Ancestor tracking with @code{ancestral}:: Collect history of applied
+                                        mutations and crossover events.
+* Lighter asm alternatives @code{light}/@code{range}/@code{diff}::
+                                        Lighter weight alternatives to
+                                        @code{simple} software.
+@end menu
+
+@node C/C++ with @code{clang}, Assembler with @code{asm}, Software Objects, Software Objects
+
+@subsection C/C++ with @code{clang} Software Object
+
+@include include/clang.texi
+
+@node Assembler with @code{asm}, Executables with @code{csurf-asm}, C/C++ with @code{clang}, Software Objects
+
+@subsection Assembler with @code{asm} Software Object
+
+@include include/asm.texi
+
+@node Executables with @code{csurf-asm}, Ancestor tracking with @code{ancestral}, Assembler with @code{asm}, Software Objects
+
+@subsection Executables with @code{csurf-asm} Software Object
+
+@include include/csurf-asm.texi
+
+@node Ancestor tracking with @code{ancestral}, Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Executables with @code{csurf-asm}, Software Objects
+
+@subsection Ancestor tracking with @code{ancestral} Software Mixin
+
+@include include/ancestral.texi
+
+@node Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Software Methods, Ancestor tracking with @code{ancestral}, Software Objects
+
+@subsection Lighter asm alternatives @code{light}/@code{range}/@code{diff}
+
+@subsubsection Lighter genomes with @code{light} Software Mixin
+
+@include include/light.texi
+
+@subsubsection Range based genomes @code{range} Software Mixin
+
+@include include/range.texi
+
+@subsubsection Difference genomes with @code{diff} Software Mixin
+
+@include include/diff.texi
+
+@node Software Methods, Mutation Objects, Software Objects, Implementation
+
+@section Software Methods
+@cindex software methods
 
 
+@subsection Software Genome and Phenome
+
+A software object has both a @emph{genome} and a @emph{phenome}.
+These are the two most important methods on software objects.  They
+return the @emph{code} and @emph{executable} versions of the software
+respectively.
+
+@table @dfn
+
+@item Genome
+In biology, the genome is the genetic material (DNA/RNA) of the
+cell. In the software evolution library, this field should contain the
+instructions which define the behavior of a software object. In most
+cases, the code (source or assembly), should be stored on this field.
+
+@item Phenome
+A phenome is an expression of all the traits described in the
+genome. In the software evolution library, this is an executable
+binary.
+
+@c In addition to the executable, this method also returns (2) an
+@c errno (a numeric indication of compilation success), (3) stderr of the
+@c compilation process or a string holding error output relevant to
+@c phenome generation, (4) stdout of the evolution process or a string
+@c holding non-error output relevant to phenome generation, (5) the
+@c source file name used during compilation.
+
+@end table
 
 
-@subsection Adding new software object types
+@subsection Defining new software object types
 
-SEL software objects should derive from the most-relevant base
+New software objects should inherit from the most-relevant base
 class. For source code based software objects, this is the
 @refapiclass{ast} class. To define a new software object type from an
-existing base class, use macro @refapimacro{define-software}.
-
+existing base class, use the @refapimacro{define-software} macro.  All
+software objects should ultimately inherit from the
+@refapiclass{software} class.
 
 @lisp
 (define-software new-software-type (base-software-type)
@@ -452,20 +526,11 @@ existing base class, use macro @refapimacro{define-software}.
 @end lisp
 
 
+@subsection Core methods on Software
 
-
-
-
-
-@node Software Methods, Mutation Objects, Software Objects, Implementation
-
-@section Software Methods
-@cindex software methods
-
-The following methods are defined for all software object types
-exposing a common interface for use by user programs or in heuristic
-search.
-
+The following lists the core methods which are defined for all
+software object types exposing a common interface for use by user
+programs or in heuristic search.
 
 @itemize
 @item Recover @ref{Software Objects,genome and phenome}.

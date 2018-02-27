@@ -1,4 +1,8 @@
 ;;; csurf-asm.lisp --- Support for csurf-generated assembler files
+;;;
+;;; DOCFIXME Need a page or so introduction to csurf-asm software objects.
+;;;
+;;; @texi{csurf-asm}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

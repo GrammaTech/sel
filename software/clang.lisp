@@ -1,4 +1,8 @@
 ;;; clang.lisp --- clang software representation
+;;;
+;;; DOCFIXME Need a page or so introduction to clang software objects.
+;;;
+;;; @texi{clang}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

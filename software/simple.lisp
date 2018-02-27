@@ -305,11 +305,13 @@ value is passed to TEST."
         (values (copy a) nil))))
 
 
-;;; light software objects
-;;
-;; A refinement of the "simple" software representation, using a
-;; simplified genome data structure which require fewer cons cells but
-;; does not allow tagging of lines of code with information.
+;;;; Light software objects
+;;;
+;;; A refinement of the `simple' software representation, using a
+;;; simplified genome data structure which require fewer cons cells
+;;; but does not allow tagging of lines of code with information.
+;;;
+;;; @texi{light}
 (defclass light (simple)
   ()
   (:documentation "DOCFIXME"))
@@ -328,13 +330,16 @@ value is passed to TEST."
   light)
 
 
-;;; range software objects
-;;
-;; An software object which uses even less memory, but adds some
-;; complexity to many genome manipulation methods.
-;;
-;; This class
-;;
+;;;; Range software objects
+;;;
+;;; An software object which uses even less memory than the `light' or
+;;; `simple' software object, but adds some complexity to many genome
+;;; manipulation methods.  Genomes are stored as references to ranges
+;;; in the original reference genome.  This representation does not
+;;; permit wholly new genome elements, only re-orderings of existing
+;;; genome elements.
+;;;
+;;; @texi{range}
 (define-software sw-range (simple)
   ((reference :initarg :reference :initform nil))
   (:documentation

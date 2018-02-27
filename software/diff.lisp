@@ -1,23 +1,21 @@
 ;;; diff.lisp --- Store genomes as differences against a reference genome
-
-;;; Commentary:
-
-;; Classes which inherit from diff will replace their genome structure
-;; with a diff which instead of holding a copy of the entire genome
-;; only holds a difference against a reference version of the genome.
-;; For example, the following will transparently save a single
-;; reference version of the genome and each individual in the
-;; population of `arm' objects will only hold a pointer to this single
-;; reference, and it's own diff against this single reference.
-;;
-;;    (defclass arm (software-evolution-library:diff elf-arm)
-;;      ((results :initarg :results :accessor results :initform nil)))
-;;
-;; After some initial experimentation, it does seem that mutations are
-;; now noticeably slower, because the differencing operations are not
-;; cheap.
-
-;;; Code:
+;;;
+;;; Classes which inherit from diff will replace their genome structure
+;;; with a diff which instead of holding a copy of the entire genome
+;;; only holds a difference against a reference version of the genome.
+;;; For example, the following will transparently save a single
+;;; reference version of the genome and each individual in the
+;;; population of `arm' objects will only hold a pointer to this single
+;;; reference, and it's own diff against this single reference.
+;;;
+;;;    (defclass arm (software-evolution-library:diff elf-arm)
+;;;      ((results :initarg :results :accessor results :initform nil)))
+;;;
+;;; After some initial experimentation, it does seem that mutations are
+;;; now noticeably slower, because the differencing operations are not
+;;; cheap.
+;;;
+;;; @texi{diff}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
