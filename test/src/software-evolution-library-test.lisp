@@ -2551,13 +2551,14 @@ int x = CHARSIZE;")))
                        (source-text)))
           "rebind-vars did not rebind a variable within a macro"))))
 
-;;; Java representation
+
+;;;; Java representation.
 (defun java-mutate-available-p ()
   (zerop (nth-value 2 (shell "which java-mutator"))))
 
 (sel-suite* java-tests "JAVA representation." (java-mutate-available-p))
 
-;; COPY SOFTWARE OBJECT
+;; Copy software object.
 (deftest java-test-copy ()
   "Checks that when a deep copy of a software object is created. If the
   genome is updated in the original whenever the copy is modified, then
@@ -2569,7 +2570,7 @@ int x = CHARSIZE;")))
         (setf (slot-value temporary-obj 'genome) "new genome")
         (is (not (equal (genome temporary-obj) (genome *soft*))))))))
 
-(deftest INSERT_TestSimple ()
+(deftest insert_testsimple ()
   "Check if print stmt was inserted in the new genome, but not in original."
   (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
     (with-fixture general-fixture-java
@@ -2583,227 +2584,138 @@ int x = CHARSIZE;")))
       (is (not (scan-to-strings target before-genome)))
       (is (scan-to-strings target after-genome))))))
 
-;;; INSTRUMENTATION TESTS
-(deftest INSTRUMENT_TestSimple ()
+(defun is-genome-modified-by-instrumentation-of (file)
+  (let ((*java-file-name* file))
+    (with-fixture general-fixture-java
+      (let ((inst (copy *soft*))
+            (target "java[.]io[.]PrintWriter"))
+        (instrument inst)
+        (is (not (scan-to-strings target (genome *soft*)))
+            "Original version of ~a does not include ~a." file target)
+        (is (scan-to-strings target (genome inst))
+            "Instrumented version of ~a does include ~a." file target)))))
+
+;;; Instrumentation tests.
+(deftest instrument-testsimple ()
   "Currently checks whether file was modified with instrumentation commands."
-  (let ((*java-file-name* "TestSimple"))
-    (with-fixture general-fixture-java
-      (let* ((before-genome (genome *soft*))
-            (operation (instrument *soft*))
-            (result (genome *soft*))
-            (target "java[.]io[.]PrintWriter"))
-        (is (not (scan-to-strings target before-genome)))
-        (is (scan-to-strings target result))))))
+  (is-genome-modified-by-instrumentation-of "TestSimple"))
 
-(deftest INSTRUMENT_TestSimple_with_one_pck ()
-  "Similar to INSTRUMENT_TestSimple, but with one package name."
-  (let ((*java-file-name* "TestSimple_package_name"))
-    (with-fixture general-fixture-java
-      (let* ((before-genome (genome *soft*))
-            (operation (instrument *soft*))
-            (result (genome *soft*))
-            (target "java[.]io[.]PrintWriter"))
-        (is (not (scan-to-strings target before-genome)))
-        (is (scan-to-strings target result))))))
+(deftest instrument-testsimple-with-one-pck ()
+  "Similar to `instrument_testsimple', but with one package name."
+  (is-genome-modified-by-instrumentation-of "TestSimple_package_name"))
 
-(deftest INSTRUMENT_TestSimple_with_mult_pcks ()
-  "Similar to INSTRUMENT_TestSimple, but with long package name."
-  (let ((*java-file-name* "TestSimple_longer_package_name"))
-    (with-fixture general-fixture-java
-      (let* ((before-genome (genome *soft*))
-            (operation (instrument *soft*))
-            (result (genome *soft*))
-            (target "java[.]io[.]PrintWriter"))
-        (is (not (scan-to-strings target before-genome)))
-        (is (scan-to-strings target result))))))
+(deftest instrument-testsimple-with-mult-pcks ()
+  "Similar to `instrument_testsimple', but with long package name."
+  (is-genome-modified-by-instrumentation-of "TestSimple_longer_package_name"))
 
-;; PHENOME TESTS
-(deftest PHENOME_TestSimple ()
-  "Runs the phenome function and checks if execution script was created."
-  (let ((*java-file-name* "TestSimple"))
+;; Phenome tests.
+(defun is-phenome-execution-script-created-for (file)
+  (let ((*java-file-name* file))
     (with-fixture general-fixture-java
       (instrument *soft*)
       (with-temp-file (bin)
         (phenome *soft* :bin bin)
         (is (probe-file bin))))))
 
-(deftest PHENOME_TestSimple_with_one_pck ()
+(deftest phenome-testsimple ()
   "Runs the phenome function and checks if execution script was created."
-  (let ((*java-file-name* "TestSimple_package_name"))
-    (with-fixture general-fixture-java
-      (instrument *soft*)
-      (with-temp-file (bin)
-        (phenome *soft* :bin bin)
-        (is (probe-file bin))))))
+  (is-phenome-execution-script-created-for "TestSimple"))
 
-(deftest PHENOME_TestSimple_with_mult_pcks ()
+(deftest phenome-testsimple-with-one-pck ()
   "Runs the phenome function and checks if execution script was created."
-  (let ((*java-file-name* "TestSimple_longer_package_name"))
-    (with-fixture general-fixture-java
-      (instrument *soft*)
-      (with-temp-file (bin)
-        (phenome *soft* :bin bin)
-        (is (probe-file bin))))))
+  (is-phenome-execution-script-created-for "TestSimple_package_name"))
 
-;; COLLECT TRACES TESTS
-(deftest COLLECT-TRACES_TestSimple ()
+(deftest phenome-testsimple-with-mult-pcks ()
+  "Runs the phenome function and checks if execution script was created."
+  (is-phenome-execution-script-created-for "TestSimple_longer_package_name"))
+
+;; Collect traces tests.
+(defun is-exact-output-of-collect-traces-expected-for
+    (file &optional (target '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
+                                      ((:C . 2) (:F . 0) (:SCOPES)))
+                              (:INPUT :BIN))))
+  (let ((*java-file-name* file))
+    (with-fixture general-fixture-java-traceable
+      (instrument *soft*)
+      (is (equalp (-<>> (make-instance 'test-suite
+                          :test-cases (list (make-instance 'test-case
+                                              :program-name :bin)))
+                        (collect-traces *soft*)
+                        (get-trace <> 0))
+                  target)))))
+
+(deftest collect-traces-testsimple ()
   "Check exact output of collect-traces with the expected result."
-  (let ((*java-file-name* "TestSimple"))
-    (with-fixture general-fixture-java-traceable
-      (instrument *soft*)
-      (let ((trace-output
-              (-<>> (make-instance 'test-suite
-                      :test-cases (list (make-instance 'test-case
-                                          :program-name :bin)))
-                    (collect-traces *soft*)
-                    (get-trace <> 0)))
-            (trace-target
-              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
-                        ((:C . 2) (:F . 0) (:SCOPES)))
-                (:INPUT :BIN))))
-        (is (equal trace-output trace-target))))))
+  (is-exact-output-of-collect-traces-expected-for "TestSimple"))
 
-(deftest COLLECT-TRACES_TestSimple_with_one_pck ()
-  "Similar to COLLECT-TRACES_TestSimple, but with one package name."
-  (let ((*java-file-name* "TestSimple_package_name"))
-    (with-fixture general-fixture-java-traceable
-      (instrument *soft*)
-      (let ((trace-output
-              (-<>> (make-instance 'test-suite
-                      :test-cases (list (make-instance 'test-case
-                                          :program-name :bin)))
-                    (collect-traces *soft*)
-                    (get-trace <> 0)))
-            (trace-target
-              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
-                        ((:C . 2) (:F . 0) (:SCOPES)))
-                (:INPUT :BIN))))
-        (is (equal trace-output trace-target))))))
+(deftest collect-traces-testsimple-with-one-pck ()
+  "Similar to `collect-traces-testsimple', but with one package name."
+  (is-exact-output-of-collect-traces-expected-for "TestSimple_package_name"))
 
-(deftest COLLECT-TRACES_TestSimple_with_mult_pcks ()
-  "Similar to COLLECT-TRACES_TestSimple, but with longer package name."
-  (let ((*java-file-name* "TestSimple_longer_package_name"))
-    (with-fixture general-fixture-java-traceable
-      (instrument *soft*)
-      (let ((trace-output
-              (-<>> (make-instance 'test-suite
-                      :test-cases (list (make-instance 'test-case
-                                          :program-name :bin)))
-                    (collect-traces *soft*)
-                    (get-trace <> 0)))
-            (trace-target
-              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
-                        ((:C . 2) (:F . 0) (:SCOPES)))
-                (:INPUT :BIN))))
-        (is (equal trace-output trace-target))))))
+(deftest collect-traces-testsimple-with-mult-pcks ()
+  "Similar to `collect-traces-testsimple', but with longer package name."
+  (is-exact-output-of-collect-traces-expected-for
+   "TestSimple_longer_package_name"))
 
-(deftest COLLECT-TRACES_TestSimple_WhileForIfPrint ()
-  "Similar to COLLECT-TRACES_TestSimple, but with larger trace file."
-  (let ((*java-file-name* "TestSimple_WhileForIfPrint"))
-    (with-fixture general-fixture-java-traceable
-      (instrument *soft*)
-      (let ((trace-output
-              (-<>> (make-instance 'test-suite
-                      :test-cases (list (make-instance 'test-case
-                                          :program-name :bin)))
-                    (collect-traces *soft*)
-                    (get-trace <> 0)))
-            (trace-target
-              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
-                        ((:C . 2) (:F . 0)
-                         (:SCOPES . (("test1" "int" 0))))
-                        ((:C . 3) (:F . 0)
-                         (:SCOPES . (("test1" "int" 0))))
-                        ((:C . 4) (:F . 0)
-                         (:SCOPES . (("test1" "int" 0))))
-                        ((:C . 3) (:F . 0)
-                         (:SCOPES . (("test1" "int" 1))))
-                        ((:C . 4) (:F . 0)
-                         (:SCOPES . (("test1" "int" 1))))
-                        ((:C . 3) (:F . 0)
-                         (:SCOPES . (("test1" "int" 2))))
-                        ((:C . 4) (:F . 0)
-                         (:SCOPES . (("test1" "int" 2))))
-                        ((:C . 5) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 6) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
+(deftest collect-traces-testsimple-whileforifprint ()
+  "Similar to `collect-traces-testsimple', but with larger trace file."
+  (is-exact-output-of-collect-traces-expected-for
+   "TestSimple_WhileForIfPrint"
+   '((:TRACE
+      ((:C . 1) (:F . 0)(:SCOPES))
+      ((:C . 2) (:F . 0)(:SCOPES . (("test1" "int" 0))))
+      ((:C . 3) (:F . 0)(:SCOPES . (("test1" "int" 0))))
+      ((:C . 4) (:F . 0)(:SCOPES . (("test1" "int" 0))))
+      ((:C . 3) (:F . 0)(:SCOPES . (("test1" "int" 1))))
+      ((:C . 4) (:F . 0)(:SCOPES . (("test1" "int" 1))))
+      ((:C . 3) (:F . 0)(:SCOPES . (("test1" "int" 2))))
+      ((:C . 4) (:F . 0)(:SCOPES . (("test1" "int" 2))))
+      ((:C . 5) (:F . 0)(:SCOPES . (("test1" "int" 3))))
+      ((:C . 6) (:F . 0)(:SCOPES . (("test1" "int" 3)
+                                    ("k" "int" 0))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3)
                                      ("k" "int" 0))))
-                        ((:C . 7) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
+      ((:C . 8) (:F . 0) (:SCOPES . (("test1" "int" 3)
                                      ("k" "int" 0))))
-                        ((:C . 8) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 0))))
-                        ((:C . 7) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
+      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3)
                                      ("k" "int" 1))))
-                        ((:C . 8) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
+      ((:C . 8) (:F . 0) (:SCOPES . (("test1" "int" 3)
                                      ("k" "int" 1))))
-                        ((:C . 9) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
+      ((:C . 9) (:F . 0) (:SCOPES . (("test1" "int" 3)
                                      ("k" "int" 1))))
-                        ((:C . 10) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 1)
-                                     ("test2" "int" 30))))
-                        ((:C . 11) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 2))))
-                        ((:C . 12) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 2))))
-                        ((:C . 13) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 2)))))
-                (:INPUT :BIN))))
-        (is (equalp trace-output trace-target))))))
+      ((:C . 10) (:F . 0) (:SCOPES . (("test1" "int" 3)
+                                      ("k" "int" 1)
+                                      ("test2" "int" 30))))
+      ((:C . 11) (:F . 0) (:SCOPES . (("test1" "int" 3)
+                                      ("k" "int" 2))))
+      ((:C . 12) (:F . 0) (:SCOPES . (("test1" "int" 3)
+                                      ("k" "int" 2))))
+      ((:C . 13) (:F . 0) (:SCOPES . (("test1" "int" 3)
+                                      ("k" "int" 2)))))
+     (:INPUT :BIN))))
 
-(deftest COLLECT-TRACES_TestSimple_WhileForIfPrint_2 ()
-  "Similar to COLLECT-TRACES_TestSimple, but with larger trace file."
-  (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
-    (with-fixture general-fixture-java-traceable
-      (instrument *soft*)
-      (let ((trace-output
-              (-<>> (make-instance 'test-suite
-                      :test-cases (list (make-instance 'test-case
-                                          :program-name :bin)))
-                    (collect-traces *soft*)
-                    (get-trace <> 0)))
-            (trace-target
-              '((:TRACE ((:C . 1) (:F . 0) (:SCOPES))
-                        ((:C . 2) (:F . 0)
-                         (:SCOPES . (("test1" "int" 0))))
-                        ((:C . 3) (:F . 0)
-                         (:SCOPES . (("test1" "int" 0))))
-                        ((:C . 4) (:F . 0)
-                         (:SCOPES . (("test1" "int" 0))))
-                        ((:C . 3) (:F . 0)
-                         (:SCOPES . (("test1" "int" 1))))
-                        ((:C . 4) (:F . 0)
-                         (:SCOPES . (("test1" "int" 1))))
-                        ((:C . 3) (:F . 0)
-                         (:SCOPES . (("test1" "int" 2))))
-                        ((:C . 4) (:F . 0)
-                         (:SCOPES . (("test1" "int" 2))))
-                        ((:C . 5) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 6) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 7) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 6) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 7) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 8) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3))))
-                        ((:C . 9) (:F . 0)
-                         (:SCOPES . (("test1" "int" 3)
+(deftest collect-traces-testsimple-whileforifprint-2 ()
+  "Similar to `collect-traces-testsimple', but with larger trace file."
+  (is-exact-output-of-collect-traces-expected-for
+   "TestSimple_WhileForIfPrint_2"
+   '((:TRACE
+      ((:C . 1) (:F . 0) (:SCOPES))
+      ((:C . 2) (:F . 0) (:SCOPES . (("test1" "int" 0))))
+      ((:C . 3) (:F . 0) (:SCOPES . (("test1" "int" 0))))
+      ((:C . 4) (:F . 0) (:SCOPES . (("test1" "int" 0))))
+      ((:C . 3) (:F . 0) (:SCOPES . (("test1" "int" 1))))
+      ((:C . 4) (:F . 0) (:SCOPES . (("test1" "int" 1))))
+      ((:C . 3) (:F . 0) (:SCOPES . (("test1" "int" 2))))
+      ((:C . 4) (:F . 0) (:SCOPES . (("test1" "int" 2))))
+      ((:C . 5) (:F . 0) (:SCOPES . (("test1" "int" 3))))
+      ((:C . 6) (:F . 0) (:SCOPES . (("test1" "int" 3))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3))))
+      ((:C . 6) (:F . 0) (:SCOPES . (("test1" "int" 3))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3))))
+      ((:C . 8) (:F . 0) (:SCOPES . (("test1" "int" 3))))
+      ((:C . 9) (:F . 0) (:SCOPES . (("test1" "int" 3)
                                      ("test2" "int" 30)))))
-                (:INPUT :BIN))))
-        (is (equalp trace-output trace-target))))))
+     (:INPUT :BIN))))
 
 (defixture java-project
   (:setup
