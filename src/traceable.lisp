@@ -118,14 +118,14 @@ times."))
                                (sleep 1))))
 
                      (iter (while (not (timeout-p start-time)))
-                           (unless (eq :running (process-status proc))
-                             (note 4 "Test process exited")
-                             (return nil))
-
                            ;; The instrumented process will complete the
                            ;; handshake by deleting the file.
                            (unless (probe-file handshake-file)
                              (return t))
+
+                           (unless (eq :running (process-status proc))
+                             (note 4 "Test process exited")
+                             (return nil))
 
                            (finally (note 3 "No handshake after ~d seconds"
                                           *trace-open-timeout*)))))
