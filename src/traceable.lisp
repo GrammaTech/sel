@@ -105,8 +105,8 @@ times."))
                         *trace-open-timeout*))
                    (handshake (pipe &aux (start-time (get-internal-real-time)))
                      ;; Create the handshake file, which indicates that we
-                     ;; are ready to read traces. The file contents don't
-                     ;; actually matter.
+                     ;; are ready to read traces. Write the pipe name to the
+                     ;; handshake file to begin trace collection.
                      (iter (while (not (timeout-p start-time)))
                            (handler-case
                                (progn
