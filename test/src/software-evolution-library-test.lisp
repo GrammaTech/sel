@@ -242,6 +242,10 @@ suite should be run and nil otherwise."
   :test #'equalp
   :documentation "Path to directory holding the SimpleMaven java project.")
 
+(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
+  :test #'equalp
+  :documentation "Path to asm-test examples.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -401,6 +405,11 @@ suite should be run and nil otherwise."
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +java-dir+))
+
+(defun asm-test-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +asm-test-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -995,6 +1004,15 @@ suite should be run and nil otherwise."
   (:teardown
     (setf *soft* nil)))
 
+(defixture csurf-asm-calc
+  (:setup (setf *soft*
+		(from-file
+		 (make-instance 'csurf-asm
+				:redirect-file (asm-test-dir "calc.elf_copy_redirect.asm"))
+                 (asm-test-dir "calc.asm"))))
+  (:teardown
+   (setf *soft* nil)))
+
 
 ;;; ASM representation.
 (sel-suite* asm-tests "ASM representation.")
@@ -1211,6 +1229,11 @@ suite should be run and nil otherwise."
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
+
+;; simple test to see if the whole file parsed correctly
+(deftest parser-test-1 ()
+  (with-fixture csurf-asm-calc
+    (is (= (length (genome *soft*)) 840))))
 
 
 ;;; ELF representation.

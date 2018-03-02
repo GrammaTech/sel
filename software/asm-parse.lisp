@@ -17,12 +17,14 @@
   type    ;; empty (white space/comments), decl, data, label-decl, op)
   label   ;; for operations which refer to labels
   opcode  ;; for operations
+  operands;; the operands that are associated with the opcode
   id      ;; unique index in heap, sequential starting at 0
   orig-file ;; path of the orignal .asm file that was loaded (if any)
   orig-line ;; line number (0-based) of line in original .asm file (if any)
   )
   
 (defvar *assembler-x86-readtable* (copy-readtable))
+(defpackage asm)
 
 ;; 
 ;; treat some characters such as : and , as special tokens
@@ -34,12 +36,43 @@
 (set-macro-character #\, (lambda (stream ch)(declare (ignore stream ch)) :comma)
 		     nil
 		     *assembler-x86-readtable*)
+
+(set-macro-character #\[ (lambda (stream ch)(declare (ignore stream ch)) :left-brace)
+		     nil
+		     *assembler-x86-readtable*)
+
+(set-macro-character #\] (lambda (stream ch)(declare (ignore stream ch)) :right-brace)
+		     nil
+		     *assembler-x86-readtable*)
+
+;; if we encounter a single quote, look for the terminating quote
+(set-macro-character #\'
+		     (lambda (stream ch)
+		       (declare (ignore ch))
+		       (let ((chars nil)(eof (cons nil nil)))
+			 (flet ((get-char ()
+				  (let ((ch (read-char stream nil eof t)))
+				    (when (eq ch eof)
+				      (error "Unterminated single-quoted string found"))
+				    ch)))
+			   (do ((ch (get-char) (get-char))
+			        (count 0 (1+ count)))
+			       ((char= ch #\')
+				(make-array count
+					    :element-type 'character
+					    :initial-contents (nreverse chars)))
+			     ;; handle '\' as an escape character
+			     (push (if (char= ch #\\)(get-char) ch) chars)))))
+				 
+		     nil
+		     *assembler-x86-readtable*)
 ;;;
 ;;; takes a line of text from a .asm file, and, and converts it to tokens
 ;;;
 (defun tokenize-asm-line (line)
   (with-input-from-string (s line)
     (do* ((*readtable* *assembler-x86-readtable*)
+	  (*package* (find-package :asm))
 	  (result '())
 	  (eof (cons 0 0))
 	  (token (read s nil eof)(read s nil eof)))
@@ -62,15 +95,15 @@
 	((and (token-labelp (first tokens))  ; is first token a symbol beginning with '$'?
 	      (eq (second tokens) :colon)) ; followed by a ':'?
 	 ':label-decl)
-	((or (member 'db tokens)
-	     (member 'dq tokens)
-	     (member 'dd tokens)
-	     (member 'dw tokens))
+	((or (member 'asm::db tokens)
+	     (member 'asm::dq tokens)
+	     (member 'asm::dd tokens)
+	     (member 'asm::dw tokens))
 	 ':data)
-	((member (first tokens) '(align section extern %define global))
+	((member (first tokens) '(asm::align asm::section asm::extern asm::%define asm::global))
 	 ':decl)
 	((and (token-labelp (first tokens))
-	      (eq (second tokens) 'equ))
+	      (eq (second tokens) 'asm::equ))
 	 ':decl)
 	(t ':op)))     ;; use this as catch-all for anything else
 
@@ -103,7 +136,12 @@
 			(setf (asm-line-info-text info) line) ;; restore full text line
 		        (list info)))))
 	(:empty (list info))
-	(:op (setf (asm-line-info-opcode info) (first tokens))(list info))
+	(:op (setf (asm-line-info-opcode info) (first tokens))
+	     (setf (asm-line-info-operands info)
+		   (remove-if
+		    (lambda (tok)(member tok '(:colon :comma :left-brace :right-brace)))
+		    (rest tokens)))
+	     (list info))
 	(:data (list info))
 	(:decl (list info))))))
 
@@ -139,7 +177,7 @@ type of mutation we need. The GENOME is a vector of references into the asm-heap
 
 #| I don't think we need this, since we fixed the default genome copier
 (defmethod copy ((asm asm-heap))
-  "Customized copy for `asm-heap' software objects.
+  "Customized copy for asm-heap software objects.
 Ensures deep copies are made of the genome but shallow copies
 are made of the other slots."
   (with-slots (fitness genome addr-map linker flags line-heap history) asm

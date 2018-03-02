@@ -176,6 +176,7 @@
    :*profile-dot-min-ratio*
    :profile-to-dot-graph
    :profile-to-flame-graph
+   :enhanced-copy-seq
    ))
 #+allegro
 (set-dispatch-macro-character #\# #\_
