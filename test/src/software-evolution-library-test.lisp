@@ -2309,6 +2309,9 @@ int x = CHARSIZE;")))
     (with-fixture hello-world-clang-w-fodder
       (let ((variant (copy *hello-world*)))
         (let ((retries 0))
+          ;; NOTE: To deal with stochastic failures parsing fodder see
+          ;; the note in "recontextualize-mutation :around" in
+          ;; clang-w-fodder.lisp.
           (handler-bind ((mutate (lambda (e)
                                    (if (< retries 100)
                                        (progn (incf retries)
