@@ -1,4 +1,8 @@
 ;;; Specialization for building a software object from a java project
+;;;
+;;; DOCFIXME_JAVA Need a page or so introduction to java project software objects.
+;;;
+;;; @texi{java-project}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

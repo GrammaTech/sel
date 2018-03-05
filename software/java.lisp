@@ -1,5 +1,8 @@
 ;;; java.lisp --- java software representation
-
+;;;
+;;; DOCFIXME_JAVA Need a page or so introduction to java software objects.
+;;;
+;;; @texi{java}
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -27,7 +30,8 @@ exit 0")
    (compiler  :initarg :compiler
               :accessor compiler :initform "java")
    (file-name :initarg :file-name
-              :accessor file-name :initform nil)))
+              :accessor file-name :initform nil))
+  (:documentation "DOCFIXME_JAVA"))
 
 (defmethod from-file ((obj java) path)
   "Populate software object upon initialization"
