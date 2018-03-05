@@ -232,6 +232,12 @@ of variables and functions in fodder snippets prior to fodder mutations.
 * OBJ clang software object to be modified
 * MUTATION operations to be performed
 "
+  ;; NOTE: Stochastic failures in `prepare-fodder-op' when fodder
+  ;;       fails to parse.  This is sometimes exercised by the
+  ;;       `insert-decl-lengthens-a-clang-w-fodder-software-object'
+  ;;       test function.  It seems like a restart near here which is
+  ;;       able to re-run the targetter should fix this... but didn't
+  ;;       work after a brief try.
   (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
       (recontextualize-mutation obj (mapcar {prepare-fodder-op obj}
                                             (build-op mutation obj)))

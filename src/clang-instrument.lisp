@@ -4,53 +4,6 @@
 
 
 ;;;; Instrumentation
-
-(defvar *instrument-log-env-name* "__SEL_TRACE_FILE"
-  "Default environment variable in which to store log file.")
-
-(defvar *instrument-handshake-env-name* "__SEL_HANDSHAKE_FILE"
-  "Default environment variable in which to store log file.")
-
-(defgeneric instrumented-p (obj)
-  (:documentation "Return true if OBJ is instrumented"))
-
-(defgeneric instrument (obj &key points functions functions-after
-                                 trace-file trace-env instrument-exit filter)
-  (:documentation
-   "Instrument OBJ to print AST index before each full statement.
-
-The indices printed here are not clang-mutate counters, but rather the
-position of the ast in (asts obj).
-
-* OBJ software object to instrument
-
-* POINTS alist of additional values to print at specific points
-
-* FUNCTIONS  functions to calculate instrumentation at each point
-
-* FUNCTIONS-AFTER functions to calculate instrumentation after each point
-
-* TRACE-FILE file or stream (stdout/stderr) for trace output
-
-* TRACE-ENV trace output to file specified by ENV variable
-
-* INSTRUMENT-EXIT print counter of function body before exit
-
-* FILTER function to select a subset of ASTs for instrumentation
-
-* POSTPROCESS-FUNCTIONS  functions to execute after instrumentation"))
-
-(defgeneric uninstrument (obj)
-  (:documentation "Remove instrumentation from OBJ"))
-
-(define-constant +instrument-log-variable-name+ "__sel_trace_file"
-  :test #'string=
-  :documentation "Variable used for instrumentation.")
-
-(define-constant +instrument-log-lock-variable-name+ "__sel_trace_file_lock"
-  :test #'string=
-  :documentation "File lock variable used for instrumentation")
-
 (define-constant +write-trace-include+
   "
 #ifndef __GT_TRACEDB_INCLUDE
@@ -271,7 +224,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   if (handshake_file_path) {
     while (access(handshake_file_path, 0) != 0) { sleep(1); }
     handshake_file = fopen(handshake_file_path, \"r\");
-    fgets(buffer, 1024, handshake_file);
+    while (fgets(buffer, 1024, handshake_file) == NULL) { sleep(1); }
     buffer[strcspn(buffer, \"\\n\")] = 0;
     fclose(handshake_file);
     unlink(handshake_file_path);
@@ -308,29 +261,28 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   :test #'string=
   :documentation "C code which declares the trace file lock")
 
-(defclass instrumenter ()
-  ((software :accessor software :initarg :software :initform nil
-             :documentation "Software obj to instrument")
-   (names :accessor names
-          :initform (make-hash-table :test #'equal)
-          :documentation "Type and variable names seen during instrumentation")
-   (types :accessor types
-          :initform (make-hash-table :test #'equal)
-          :documentation "Types seen during instrumentation")
-   (type-descriptions :accessor type-descriptions
-          :initform (make-hash-table :test #'equal)
-          :documentation "Descriptions of instrumented types")
-   (ast-ids :accessor ast-ids :initform nil
-            :documentation "Maps ASTs to trace IDs"))
-  (:documentation
-   "Base class for objects which handle instrumentation.
-Stores instrumentation state and provides methods for instrumentation
-operations."))
-
 (defclass clang-instrumenter (instrumenter)
-  ()
+  ((names :accessor names
+          :initform (make-hash-table :test #'equal))
+   (types :accessor types
+          :initform (make-hash-table :test #'equal))
+   (type-descriptions :accessor type-descriptions
+          :initform (make-hash-table :test #'equal))
+   (ast-ids :accessor ast-ids :initform nil))
   (:documentation "Handles instrumentation for clang software objects."))
 
+(defmethod initialize-instance :after ((instance clang-instrumenter) &key)
+  ;; Values are the same as index-of-ast, but without the linear
+  ;; search.
+  (when (software instance)
+    (setf (ast-ids instance)
+          (iter (for ast in (asts (software instance)))
+                (for i upfrom 0)
+                (with ht = (make-hash-table :test #'eq))
+                (setf (gethash ast ht) i)
+                (finally (return ht))))))
+
+
 (defun array-or-pointer-type (type)
   "Is TYPE an array or pointer (but not an array of pointers)?
 * TYPE a type object
@@ -346,20 +298,7 @@ operations."))
 "
   (gethash ast (ast-ids instrumenter)))
 
-(defmethod initialize-instance :after ((instance instrumenter) &key)
-  "Initialize AST ids.
-* INSTANCE the newly-created instrumenter.
-"
-  ;; Values are the same as index-of-ast, but without the linear
-  ;; search.
-  (when (software instance)
-    (setf (ast-ids instance)
-          (iter (for ast in (asts (software instance)))
-                (for i upfrom 0)
-                (with ht = (make-hash-table :test #'eq))
-                (setf (gethash ast ht) i)
-                (finally (return ht))))))
-
+
 (defgeneric write-trace-id (instrumenter ast)
   (:documentation "Generate ASTs which write statement ID to trace.
 * INSTRUMENTER current instrumentation state
@@ -740,10 +679,6 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
   ;; Return the software object
   clang)
-
-(defgeneric instrumentation-files (project)
-  (:documentation
-   "Return files in PROJECT in the order which they would be instrumented"))
 
 (defmethod instrumentation-files ((clang-project clang-project))
   "Return files in CLANG-PROJECT in the order which they would be instrumented

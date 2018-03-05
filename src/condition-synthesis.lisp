@@ -422,7 +422,7 @@ recorded abst-cond decisions.
 Return two values: a list of strings of the abst-cond decisions and the list of
 environments."
   (when (probe-file trace-results-file)
-    (iter (for sexpr in (read-trace trace-results-file 1))
+    (iter (for sexpr in (read-binary-trace trace-results-file 1))
           ;; iter can exhaust the stack on long traces. Bail out
           ;; before that happens.
           (for i below *max-trace-length*)

@@ -193,7 +193,7 @@ copy of the original current file.
              project))
     (iter (for i upfrom 0)
           (while (and (< (length results) n)
-                      (< i (* n (ceiling (/ (length (asts project)) 1000))))))
+                      (< i (* n (ceiling (/ (size project) 1000))))))
           (bind ((evolve-file (or (current-file project)
                                   (nth (pick-file project)
                                        (evolve-files project))))
