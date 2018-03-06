@@ -1225,6 +1225,7 @@ suite should be run and nil otherwise."
 
 
 ;;; CSURF-ASM representation.
+
 (sel-suite* csurf-asm-tests "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
@@ -1234,6 +1235,42 @@ suite should be run and nil otherwise."
 (deftest parser-test-1 ()
   (with-fixture csurf-asm-calc
     (is (= (length (genome *soft*)) 840))))
+
+(deftest parser-test-2 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 0)) :empty))))
+
+(deftest parser-test-3 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+
+(deftest parser-test-4 ()
+  (with-fixture csurf-asm-calc
+    (let ((op-line (find :op (genome *soft*) :key 'sel::asm-line-info-type)))
+      (is (and (eq (sel::asm-line-info-opcode op-line) 'asm::sub)
+	       (equal (sel::asm-line-info-operands op-line) '(asm::rsp 8)))))))
+
+(deftest parser-test-5 ()
+  (with-fixture csurf-asm-calc
+    (is (= (iter (for x in-vector (genome *soft*))
+		 (counting (eq (sel::asm-line-info-type x) :op))) 283))))
+
+(deftest parser-test-3 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+
+(deftest parser-test-3 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+
+(deftest parser-test-3 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+
+(deftest parser-test-3 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+
 
 
 ;;; ELF representation.

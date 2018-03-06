@@ -399,7 +399,15 @@ These may often be safely ignored.  A common restart is
 A common restart is `ignore-failed-mutation'."))
 
 (defgeneric apply-mutation (software mutation)
-  (:documentation "Apply MUTATION to SOFTWARE, return the resulting software.
+  (:documentation "Apply MUTATION to SOFTWARE, return the resulting software object.
+Mutation application may destructively modify the software object, or it may return a
+new instance with the mutation applied, and leave the original untouched. Any client
+which calls apply-mutation should ensure that the result returned by apply-mutation is 
+captured, and should not make assumptions about the state of the original.
+
+Example:  (let ((mutated-software (apply-mutation (copy software) mutation)))
+              ...
+
 Define an :around method on this function to record mutations."))
 
 (defgeneric apply-all-mutations (software mutation)
