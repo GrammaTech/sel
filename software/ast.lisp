@@ -8,7 +8,8 @@
 
 ;;; ast software objects
 (define-software ast (software)
-  ((genome   :initarg :genome   :accessor genome   :initform "")
+  ((genome   :initarg :genome   :accessor genome   :initform ""
+             :copier :direct)
    (flags    :initarg :flags    :accessor flags    :initform nil
              :copier copy-tree)
    (compiler :initarg :compiler :accessor compiler :initform "clang"
