@@ -17,23 +17,23 @@
 #include <string.h>
 
 enum type_format {
-    UNSIGNED,                   /* unsigned integer */
-    SIGNED,                     /* signed integer */
-    FLOAT,                      /* floating point */
-    POINTER,                    /* unsigned, interpret as address */
-    BLOB,                       /* arbitrary bytes, do not interpret */
-    INVALID_FORMAT
+    __GT_TRACEDB_UNSIGNED,       /* unsigned integer */
+    __GT_TRACEDB_SIGNED,         /* signed integer */
+    __GT_TRACEDB_FLOAT,          /* floating point */
+    __GT_TRACEDB_POINTER,        /* unsigned, interpret as address */
+    __GT_TRACEDB_BLOB,           /* arbitrary bytes, do not interpret */
+    __GT_TRACEDB_INVALID_FORMAT
 };
 
 enum trace_entry_tag {
-    END_ENTRY = 0,
-    STATEMENT_ID,
-    VARIABLE,
-    BUFFER_SIZE,
-    AUXILIARY,
-    TRACE_TAG_ERROR,
+    __GT_TRACEDB_END_ENTRY = 0,
+    __GT_TRACEDB_STATEMENT_ID,
+    __GT_TRACEDB_VARIABLE,
+    __GT_TRACEDB_BUFFER_SIZE,
+    __GT_TRACEDB_AUXILIARY,
+    __GT_TRACEDB_TRACE_TAG_ERROR,
     /* Returned at EOF, should not appear in trace */
-    END_OF_TRACE
+    __GT_TRACEDB_END_OF_TRACE
 };
 
 __attribute__((unused))
@@ -43,21 +43,21 @@ static void write_trace_id(FILE *out, pthread_mutex_t *lock,
     /* Write trace point as single transaction */
     pthread_mutex_lock(lock);
 
-    fputc(STATEMENT_ID, out);
+    fputc(__GT_TRACEDB_STATEMENT_ID, out);
     fwrite(&statement_id, sizeof(statement_id), 1, out);
 }
 
 __attribute__((unused))
 static void write_trace_aux(FILE *out, uint64_t value)
 {
-    fputc(AUXILIARY, out);
+    fputc(__GT_TRACEDB_AUXILIARY, out);
     fwrite(&value, sizeof(value), 1, out);
 }
 
 __attribute__((unused))
 static void write_end_entry(FILE *out, pthread_mutex_t *lock)
 {
-    fputc(END_ENTRY, out);
+    fputc(__GT_TRACEDB_END_ENTRY, out);
     fflush(out);
 
     /* Finished writing trace point */
@@ -77,7 +77,7 @@ static void write_trace_variables(FILE *out, uint32_t n_vars, ...)
         uint32_t size = va_arg(ap, uint32_t);
         enum type_format format = (enum type_format)va_arg(ap, int);
 
-        fputc(VARIABLE, out);
+        fputc(__GT_TRACEDB_VARIABLE, out);
         fwrite(&name_index, sizeof(name_index), 1, out);
         fwrite(&type_index, sizeof(type_index), 1, out);
 
@@ -86,8 +86,8 @@ static void write_trace_variables(FILE *out, uint32_t n_vars, ...)
          doubles. Other types are left alone.
         */
         switch (format) {
-        case UNSIGNED:
-        case SIGNED:
+        case __GT_TRACEDB_UNSIGNED:
+        case __GT_TRACEDB_SIGNED:
           switch (size) {
           case 1:
               {
@@ -115,7 +115,7 @@ static void write_trace_variables(FILE *out, uint32_t n_vars, ...)
               }
           }
           break;
-        case FLOAT:
+        case __GT_TRACEDB_FLOAT:
           if (size == 4) {
               float val = (float)va_arg(ap, double);
               fwrite(&val, sizeof(val), 1, out);
@@ -127,14 +127,14 @@ static void write_trace_variables(FILE *out, uint32_t n_vars, ...)
               break;
           }
           break;
-        case POINTER:
+        case __GT_TRACEDB_POINTER:
             {
                 void *val = va_arg(ap, void*);
                 fwrite(&val, sizeof(val), 1, out);
             }
             break;
-        case BLOB:
-        case INVALID_FORMAT:
+        case __GT_TRACEDB_BLOB:
+        case __GT_TRACEDB_INVALID_FORMAT:
         default:
           break;
         }
@@ -154,7 +154,7 @@ static void write_trace_blobs(FILE *out, uint32_t n_vars, ...)
         uint32_t size = va_arg(ap, uint32_t);
         void *value = va_arg(ap, void*);
 
-        fputc(VARIABLE, out);
+        fputc(__GT_TRACEDB_VARIABLE, out);
         fwrite(&name_index, sizeof(name_index), 1, out);
         fwrite(&type_index, sizeof(type_index), 1, out);
         fwrite(&size, sizeof(size), 1, out);
@@ -775,31 +775,33 @@ Returns a list of strings containing C source code."))
            (cond
              ;; String
              ((and print-strings (string-type-p type))
-              '(:BLOB "0"))
+              '(:__GT_TRACEDB_BLOB "0"))
              ;; Pointer
              ;; Use sizeof(void*) in case underlying type is not yet declared.
              ((or (starts-with "*" unqualified-c-type :test #'string=)
                   (starts-with "[" unqualified-c-type :test #'string=))
-              '(:POINTER "sizeof(void*)"))
+              '(:__GT_TRACEDB_POINTER "sizeof(void*)"))
              ;; Signed integers
              ((member unqualified-c-type
                       '("char" "int8_t" "wchar_t" "short" "int16_t" "int"
                         "int32_t" "long" "int64_t")
                       :test #'string=)
-              (list :SIGNED (format nil "sizeof(~a)"
-                                    (type-decl-string type :qualified nil))))
+              (list :__GT_TRACEDB_SIGNED
+                    (format nil "sizeof(~a)"
+                                (type-decl-string type :qualified nil))))
              ;; Unsigned integers
              ((member unqualified-c-type
                       '("unsigned char" "uint8_t" "unsigned short" "uint16_t"
                         "unsigned int" "uint32_t" "unsigned long" "uint64_t"
                         "size_t")
                       :test #'string=)
-              (list :UNSIGNED (format nil "sizeof(~a)"
-                                      (type-decl-string type :qualified nil))))
+              (list :__GT_TRACEDB_UNSIGNED
+                    (format nil "sizeof(~a)"
+                                (type-decl-string type :qualified nil))))
              ((string= unqualified-c-type "float")
-              '(:FLOAT "sizeof(float)"))
+              '(:__GT_TRACEDB_FLOAT "sizeof(float)"))
              ((string= unqualified-c-type "double")
-              '(:FLOAT "sizeof(double)"))
+              '(:__GT_TRACEDB_FLOAT "sizeof(double)"))
              ;; Otherwise no instrumentation
              (t '(nil nil)))))
 
