@@ -8260,18 +8260,20 @@ prints unique counters in the trace"
     (setf (fitness obj) 0)
     ;; Ensure the software objects raise mutation errors as expected
     (signals mutate
-      (sel::super-evolve (lambda (obj) (declare (ignorable obj)) 1)
-                         :max-evals 10))
+      (evolve (lambda (obj) (declare (ignorable obj)) 1)
+              :max-evals 10
+              :super-mutant-count 4))
     (handler-bind ((mutate (lambda (err)
                              (declare (ignorable err))
                              (invoke-restart 'ignore-failed-mutation))))
       ;; This should exit after evaluating the first super-mutant,
       ;; because *target-fitness-p* is trivially true.
-      (sel::super-evolve (lambda (obj) (declare (ignorable obj)) 1)
-                         :max-evals 10))
+      (evolve (lambda (obj) (declare (ignorable obj)) 1)
+              :max-evals 10
+              :super-mutant-count 4))
     ;; Despite errors, the first super-mutant should accumulate the
     ;; desired number of variants and evaluate all of them.
-    (is (eq *fitness-evals* sel::*mutants-at-once*))))
+    (is (eq *fitness-evals* 4))))
 
 (deftest super-mutant-evaluate-works ()
   (let* ((template "#include <stdio.h>
