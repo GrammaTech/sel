@@ -15,8 +15,19 @@
                     :documentation "Cached results from PHENOME method.")))
 
 (defmethod phenome ((obj super-mutant) &key (bin (temp-file-name)))
+  "Phenotype of the software.
+This method will link, compile or serialize the software object as
+necessary returning an executable version of the software suitable for
+testing and evaluation.  Returns multiple values holding in order; (1)
+the binary path to which the executable was compiled, (2) the errno,
+or a numeric indication of success, of the compilation process, (3)
+STDERR of the compilation process, or a string holding error output
+relevant to phenome generation, (4) STDOUT of the compilation process,
+or a string holding non-error output relevant to phenome
+generation, (5) the source file name used during compilation. "
   (phenome (super-soft obj) :bin bin))
 
+(defgeneric phenome-wrapper (obj wrapper which-mutant &key bin))
 (defmethod phenome-wrapper ((obj super-mutant) wrapper which-mutant &key bin)
   "Create a script which wraps phenome of OBJ to run the desired mutant.
 * OBJ the super-mutant
@@ -48,6 +59,7 @@ the first return value.
 
 (defmethod evaluate ((test function) (super super-mutant)
                      &rest extra-keys &key &allow-other-keys)
+  "Evaluate SUPER-MUTANT, setting fitness for all variants."
   (declare (ignorable extra-keys))
   (with-temp-file (super-bin)
     (flet
@@ -90,6 +102,7 @@ the first return value.
             (indexed (mutants super))))))
 
 (defmethod genome ((obj super-mutant))
+  "Return a genome which combines all variants in SUPER-MUTANT."
   (genome (super-soft obj)))
 
 (defmethod super-soft :before ((obj super-mutant))
@@ -149,6 +162,13 @@ variants. If this is not true, the result may have duplicate keys.
          ;; Strip dummy value and keys, and put variants in correct order.
          (return (mapcar [#'reverse #'cdr] (cdr result))))))
 
+(defgeneric create-super-soft (base mutants)
+  (:documentation "Create a software object which combines multiple variants.
+* BASE object to use as a starting point
+* MUTANTS objects to combine
+
+BASE is typically a member of MUTANTS."))
+
 (defmethod create-super-soft ((base clang) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
@@ -191,7 +211,6 @@ There are several cases here:
                ;; Non-function decls
                (progn
                  ;; Top-level decls must be identical across variants.
-                 ;; Don't collect anything.
                  (mapc (lambda (ast)
                          (unless (eq (ast-ref-ast head) (ast-ref-ast ast))
                            (error (make-condition 'mutate
@@ -306,11 +325,13 @@ true, create a complete function decl which contains the body."
      (collate-ast-variants)
      (mapcar #'process-ast)
      (remove nil)
+     ;; Create mutations to insert super-functions into genome of
+     ;; first variant
      (create-mutation-ops)
      (sort <>
            #'ast-later-p :key [{aget :stmt1} #'cdr])
-     ;; Substitute super-functions into genome of first variant
      (apply-mutation-ops (copy base))
+     ;; Needed for getenv()
      (add-include <> "<stdlib.h>"))))
 
 (defmethod create-super-soft ((base project) mutants)
