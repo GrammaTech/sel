@@ -73,8 +73,27 @@
                      (uiop::merge-pathnames dir-name prefix)
                      dir-name))))
 
-(defun file-to-string (pathname)
-  (read-file-string pathname))
+(defun file-to-string
+    (pathname &key (external-format
+                    (encoding-external-format (detect-encoding pathname))))
+  #+ccl (declare (ignorable external-format))
+  (restart-case
+      (let (#+sbcl (sb-impl::*default-external-format* external-format)
+                   #+ecl (ext:*default-external-format* external-format))
+        (with-open-file (in pathname)
+          (let* ((file-bytes (file-length in))
+                 (seq (make-string file-bytes))
+                 (file-chars (read-sequence seq in)))
+            (if (= file-bytes file-chars)
+                seq
+                ;; Truncate the unused tail of seq.  It is possible
+                ;; for read-sequence to read less than file-length
+                ;; when the file has multi-byte UTF-8 characters.
+                (subseq seq 0 file-chars)))))
+    ;; Try a different encoding
+    (use-encoding (encoding)
+      :report "Specify another encoding"
+      (file-to-string pathname :external-format encoding))))
 
 (defun file-to-bytes (path)
   (with-open-file (in path :element-type '(unsigned-byte 8))
