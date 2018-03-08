@@ -1201,7 +1201,7 @@ that function may be declared.")
 ;;;; Enhanced COPY-SEQ functionality
 ;;;
 
-(defun copy-array (array)
+(defun sel-copy-array (array)
   (let* ((element-type (array-element-type array))
 	 (fill-pointer (and (array-has-fill-pointer-p array)(fill-pointer array)))
 	 (adjustable (adjustable-array-p array))
@@ -1215,7 +1215,7 @@ that function may be declared.")
 (defun enhanced-copy-seq (sequence)
   "Copies any type of array (except :displaced-to) and lists. Otherwise returns NIL."
   (if (arrayp sequence)
-      (copy-array sequence)
+      (sel-copy-array sequence)
       (if (listp sequence)
 	  (copy-list sequence))))
 

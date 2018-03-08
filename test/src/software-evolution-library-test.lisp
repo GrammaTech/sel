@@ -1255,22 +1255,6 @@ suite should be run and nil otherwise."
     (is (= (iter (for x in-vector (genome *soft*))
 		 (counting (eq (sel::asm-line-info-type x) :op))) 283))))
 
-(deftest parser-test-3 ()
-  (with-fixture csurf-asm-calc
-    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
-
-(deftest parser-test-3 ()
-  (with-fixture csurf-asm-calc
-    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
-
-(deftest parser-test-3 ()
-  (with-fixture csurf-asm-calc
-    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
-
-(deftest parser-test-3 ()
-  (with-fixture csurf-asm-calc
-    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
-
 
 
 ;;; ELF representation.
