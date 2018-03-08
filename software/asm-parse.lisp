@@ -4,12 +4,13 @@
 
 
 (defstruct asm-edit
-  "Capture an edit operation (insert, delete, swap, move) for history purposes"
+  "Capture an edit operation (insert, delete, swap, move) for history purposes."
   op        ;; :insert, :delete, :swap, :move
-  position  ;; position where a line was inserted into the genome,
-            ;; where a line was removed, or a list of source and dest positions for swap/move
-  info)     ;; asm-line-info that was deleted or inserted, or list of source/dest info structs
-            ;; for swap/move
+  position  ;; Position where a line was inserted into the genome,
+            ;; where a line was removed, or a list of source and dest
+            ;; positions for swap/move
+  info)     ;; asm-line-info that was deleted or inserted, or list of
+            ;; source/dest info structs for swap/move
 
 (defstruct asm-line-info
   text    ;; original text
@@ -22,7 +23,8 @@
   orig-file ;; path of the orignal .asm file that was loaded (if any)
   orig-line ;; line number (0-based) of line in original .asm file (if any)
   )
-  
+
+;;; This read-table and package are used for parsing ASM instructions.
 (defvar *assembler-x86-readtable* (copy-readtable))
 (defpackage asm)
 
@@ -46,26 +48,27 @@
 		     *assembler-x86-readtable*)
 
 ;; if we encounter a single quote, look for the terminating quote
-(set-macro-character #\'
-		     (lambda (stream ch)
-		       (declare (ignore ch))
-		       (let ((chars nil)(eof (cons nil nil)))
-			 (flet ((get-char ()
-				  (let ((ch (read-char stream nil eof t)))
-				    (when (eq ch eof)
-				      (error "Unterminated single-quoted string found"))
-				    ch)))
-			   (do ((ch (get-char) (get-char))
-			        (count 0 (1+ count)))
-			       ((char= ch #\')
-				(make-array count
-					    :element-type 'character
-					    :initial-contents (nreverse chars)))
-			     ;; handle '\' as an escape character
-			     (push (if (char= ch #\\)(get-char) ch) chars)))))
-				 
-		     nil
-		     *assembler-x86-readtable*)
+(set-macro-character
+ #\'
+ (lambda (stream ch)
+   (declare (ignore ch))
+   (let ((chars nil)(eof (cons nil nil)))
+     (flet ((get-char ()
+              (let ((ch (read-char stream nil eof t)))
+                (when (eq ch eof)
+                  (error "Unterminated single-quoted string found"))
+                ch)))
+       (do ((ch (get-char) (get-char))
+            (count 0 (1+ count)))
+           ((char= ch #\')
+            (make-array count
+                        :element-type 'character
+                        :initial-contents (nreverse chars)))
+         ;; handle '\' as an escape character
+         (push (if (char= ch #\\)(get-char) ch) chars)))))
+ 
+ nil
+ *assembler-x86-readtable*)
 ;;;
 ;;; takes a line of text from a .asm file, and, and converts it to tokens
 ;;;
@@ -92,15 +95,16 @@
 ;;;     :operation
 (defun parse-line-type (tokens)
   (cond ((null tokens) ':empty)
-	((and (token-labelp (first tokens))  ; is first token a symbol beginning with '$'?
-	      (eq (second tokens) :colon)) ; followed by a ':'?
+	((and (token-labelp (first tokens)) ; first token symbol beg. with '$'?
+	      (eq (second tokens) :colon))  ; followed by a ':'?
 	 ':label-decl)
 	((or (member 'asm::db tokens)
 	     (member 'asm::dq tokens)
 	     (member 'asm::dd tokens)
 	     (member 'asm::dw tokens))
 	 ':data)
-	((member (first tokens) '(asm::align asm::section asm::extern asm::%define asm::global))
+	((member (first tokens)
+                 '(asm::align asm::section asm::extern asm::%define asm::global))
 	 ':decl)
 	((and (token-labelp (first tokens))
 	      (eq (second tokens) 'asm::equ))
@@ -108,9 +112,10 @@
 	(t ':op)))     ;; use this as catch-all for anything else
 
 ;;;
-;;; takes a line of text from a .asm file, and, and returns 1 or 2 asm-line-info structs.
-;;; If the line begins with a label, the line is split into two lines: the label,
-;;; and the remaining text/tokens. In this case 2 asm-line-info structs are returned.
+;;; takes a line of text from a .asm file, and, and returns 1 or 2
+;;; asm-line-info structs.  If the line begins with a label, the line
+;;; is split into two lines: the label, and the remaining
+;;; text/tokens. In this case 2 asm-line-info structs are returned.
 ;;; Otherwise, as single asm-line-info is returned.
 ;;;
 (defun parse-asm-line (line)
@@ -123,23 +128,28 @@
       
       (case line-type
 	(:label-decl (let* ((label (first tokens))
-		       (label-end (position #\: line))
-		       (line1 (subseq line 0 (+ label-end 1)))
-		       (line2 (subseq line (+ label-end 1)))
-		       (next-info (parse-asm-line line2))) ;; recurse!
-		  (setf (asm-line-info-text info) line1)
-		  (setf (asm-line-info-tokens info) (list label ':colon))
-		  (setf (asm-line-info-label info) label)
-		  (if (and next-info (not (eq (asm-line-info-type (car next-info)) ':empty)))  
-		      (cons info next-info)  ;; if an empty line follows the label, discard it
-		      (progn
-			(setf (asm-line-info-text info) line) ;; restore full text line
-		        (list info)))))
+                            (label-end (position #\: line))
+                            (line1 (subseq line 0 (+ label-end 1)))
+                            (line2 (subseq line (+ label-end 1)))
+                            (next-info (parse-asm-line line2))) ;; recurse!
+                       (setf (asm-line-info-text info) line1)
+                       (setf (asm-line-info-tokens info) (list label ':colon))
+                       (setf (asm-line-info-label info) label)
+                       (if (and next-info (not (eq (asm-line-info-type
+                                                    (car next-info))
+                                                   ':empty)))  
+                           ;; If an empty line follows the label, discard it.
+                           (cons info next-info)
+                           (progn
+                             ; Restore full text line.
+                             (setf (asm-line-info-text info) line)
+                             (list info)))))
 	(:empty (list info))
 	(:op (setf (asm-line-info-opcode info) (first tokens))
 	     (setf (asm-line-info-operands info)
 		   (remove-if
-		    (lambda (tok)(member tok '(:colon :comma :left-brace :right-brace)))
+		    (lambda (tok)
+                      (member tok '(:colon :comma :left-brace :right-brace)))
 		    (rest tokens)))
 	     (list info))
 	(:data (list info))
@@ -148,13 +158,13 @@
 
 ;;; asm-heap software objects
 ;;
-;; An software object which uses less memory. even less memory, but adds some
-;; complexity to many genome manipulation methods.
-;; The line-heap holds the original lines of the program (before
-;; any mutations, along with any new or modified lines appended to the end of
-;; the heap. All elements of the genome are references into this line-heap.
-;; history is a list of asm-edit structs, representing the edit history. The first
-;; item in the list is the newest edit.
+;; An software object which uses less memory. even less memory, but
+;; adds some complexity to many genome manipulation methods.  The
+;; line-heap holds the original lines of the program (before any
+;; mutations, along with any new or modified lines appended to the end
+;; of the heap. All elements of the genome are references into this
+;; line-heap.  history is a list of asm-edit structs, representing the
+;; edit history. The first item in the list is the newest edit.
 ;; 
 ;;
 (define-software asm-heap (asm)
@@ -163,11 +173,12 @@
 
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
-Similar to RANGE, but allows for adding and mutating lines, and should be able to handle
-type of mutation we need. The GENOME is a vector of references into the asm-heap (asm-line-info) describes the code."))
+Similar to RANGE, but allows for adding and mutating lines, and should
+be able to handle type of mutation we need. The GENOME is a vector of
+references into the asm-heap (asm-line-info) describes the code."))
 
 (defmethod size ((asm asm-heap))
-  "Returns the number of lines in the program, which is just the length of the genome"
+  "Return the number of lines in the program."
   (length (genome asm)))
 
 (defun line-heap-copy (heap)
@@ -175,7 +186,7 @@ type of mutation we need. The GENOME is a vector of references into the asm-heap
 			 :adjustable t :initial-contents heap)))
     new))
 
-#| I don't think we need this, since we fixed the default genome copier
+#| I don't think we need this, since we fixed the default genome copier.
 (defmethod copy ((asm asm-heap))
   "Customized copy for asm-heap software objects.
 Ensures deep copies are made of the genome but shallow copies
@@ -187,16 +198,17 @@ are made of the other slots."
 		   :linker linker
 		   :flags flags
 		   :history history
-		   :line-heap line-heap)))          ;; don't copy the heap, all mutations share it
+		   :line-heap line-heap))) ; Don't copy the heap, it's shared.
 |#
 
 (defmethod lines ((asm asm-heap))
-  "Returns the list of text lines of the genome"
+  "Return the list of text lines of the genome."
   (map 'list 'asm-line-info-text (genome asm)))
 
 (defmethod (setf lines) (asm-lines (asm asm-heap))
-  "Initializes the line-heap, by converting the passed list of lines to
-ASM-LINE-INFO structs, and storing them in a vector on the LINE-HEAP"
+  "Initializes the line-heap.
+Does this by converting the passed list of lines to ASM-LINE-INFO
+structs, and storing them in a vector on the LINE-HEAP"
   (let* ((asm-infos '())
 	 (orig-line 0)
 	 (id 0))
@@ -209,19 +221,23 @@ ASM-LINE-INFO structs, and storing them in a vector on the LINE-HEAP"
       (incf orig-line))
     (setf asm-infos (nreverse asm-infos))
     (let* ((size (length asm-infos))
-	   (heap (make-array size :fill-pointer size :adjustable t :initial-contents asm-infos)))
+	   (heap (make-array size
+                             :fill-pointer size :adjustable t
+                             :initial-contents asm-infos)))
       (setf (line-heap asm) heap)
-      (setf (genome asm)(line-heap-copy heap)))))  ;; make a copy for this instance 
+      ;; Make a copy for this instance.
+      (setf (genome asm)(line-heap-copy heap)))))
 
 (defmethod from-file ((asm asm-heap) file)
   "Initialize an `asm-heap' software object from a file."
   (setf (lines asm) (split-sequence #\Newline (file-to-string file)))
   ;; tag all the heap entries with the original file name
-  (map nil (lambda (info) (setf (asm-line-info-orig-file info) file)) (line-heap asm))
+  (map nil (lambda (info) (setf (asm-line-info-orig-file info) file))
+       (line-heap asm))
   asm)
 
 (defun vector-cut (a index)
-  "Destructively removes an element from a vector with a fill pointer, returning the element"
+  "Destructively remove and return an element from a vector with a fill pointer."
   (let ((deleted (aref a index)))
     (do ((i index (+ i 1)))
 	((= i (- (length a) 1))(decf (fill-pointer a)))
@@ -229,14 +245,14 @@ ASM-LINE-INFO structs, and storing them in a vector on the LINE-HEAP"
     deleted))
 
 (defun vector-insert (a index val)
-  "Destructively inserts an object into a vector with a fill pointer. Returns the object inserted."
-  (vector-push-extend 0 a)      ;; increase size by 1 (will be resized if necessary)
+  "Destructively insert and return an object into a vector with a fill pointer."
+  (vector-push-extend 0 a) ; Increase size by 1 (will be resized if necessary).
   (do ((i (- (length a) 1) (- i 1)))
       ((= i index)(setf (aref a i) val)) 
     (setf (aref a i)(aref a (- i 1))))) 
-  
+
 (defun asm-heap-cut (asm index)
-  "Create new mutated asm-heap, deleting line-info at index from GENOME"
+  "Create new mutated asm-heap, deleting line-info at index from GENOME."
   (let* ((new (copy asm))
          (genome (genome new))
 	 (item (vector-cut genome index)))
@@ -245,9 +261,9 @@ ASM-LINE-INFO structs, and storing them in a vector on the LINE-HEAP"
     new))
        
 (defun asm-heap-insert (asm index val)
-  "Create new mutated asm-heap, with added line-info in GENOME"
+  "Create new mutated asm-heap, with added line-info in GENOME."
   (assert (asm-line-info-p val)(val)
-            "Requires valid ASM-LINE-INFO in all slots of the line-heap.")
+          "Requires valid ASM-LINE-INFO in all slots of the line-heap.")
   (let* ((new (copy asm))
          (genome (genome new)))
     (vector-insert genome index val)
@@ -256,19 +272,22 @@ ASM-LINE-INFO structs, and storing them in a vector on the LINE-HEAP"
     new))
 
 (defun asm-heap-swap (asm i1 i2)
-  "Create a new mutated asm-heap. Set value of I1 to the value stored at I2, 
-and set I2 to value stored at I1, in GENOME."
+  "Create a new mutated asm-heap.
+Set value of I1 to the value stored at I2, and set I2 to value stored
+at I1, in GENOME."
   (let* ((new (copy asm))
 	 (genome (genome new))
 	 (item1 (aref genome i1))
 	 (item2 (aref genome i2)))
     (rotatef (aref genome i1) (aref genome i2))
     (with-slots (history) new
-      (push (make-asm-edit :op :swap :position (list i1 i2) :info (list item1 item2)) history)) 
+      (push (make-asm-edit
+             :op :swap :position (list i1 i2) :info (list item1 item2))
+            history)) 
     new))
   
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-cut))
-  "Implement simple-cut mutation on ASM-HEAP"
+  "Implement simple-cut mutation on ASM-HEAP."
   (asm-heap-cut asm (targets mutation)))
 
 ;;;
@@ -282,7 +301,7 @@ and set I2 to value stored at I1, in GENOME."
 |#
 
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-swap))
-  "Implement simple-swap mutation on ASM-HEAP"
+  "Implement simple-swap mutation on ASM-HEAP."
   (let ((bad-good (targets mutation)))
     (assert (listp bad-good) (mutation)
             "Requires mutations targets to be a list of two elements.")
@@ -291,14 +310,13 @@ and set I2 to value stored at I1, in GENOME."
       (asm-heap-swap asm pt1 pt2))))
 
 (defun asm-heap-subseq (asm start &optional end)
-  "Create a new mutated asm-heap. The new genome contains only the elements
-in the designated range."
+  "Create a new mutated asm-heap.
+The new genome contains only the elements in the designated range."
   (let* ((new (copy asm))
 	 (genome (genome new))
 	 (new-genome (line-heap-copy (subseq genome start end))))
     (setf (genome new) new-genome)
     new))
-
 
 #|  
    Not implemented yet --RGC
