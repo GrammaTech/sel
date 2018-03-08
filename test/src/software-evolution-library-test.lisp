@@ -5053,7 +5053,7 @@ Useful for printing or returning differences in the REPL."
     (let ((errno (nth-value 2 (run-program (format nil "~a 4 8 2>~a"
                                                    bin trace-file)))))
       (is (zerop errno))
-      (let ((trace (read-binary-trace trace-file 1)))
+      (let ((trace (read-binary-trace trace-file)))
         (is (listp trace))
         trace))))
 
@@ -5501,7 +5501,7 @@ prints unique counters in the trace"
         (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
                                                        bin trace-file)))))
           (is (zerop errno))
-          (let ((trace (read-binary-trace trace-file 1)))
+          (let ((trace (read-binary-trace trace-file)))
             (is (listp trace))
             (is (not (emptyp trace)))
             (is (every «and {aget :c} {aget :f}» trace))
