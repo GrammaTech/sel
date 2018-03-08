@@ -44,11 +44,11 @@
                           (remove-duplicates (json:decode-json-from-source in)
                             :test #'equalp
                             :key (lambda (entry)
-                                   (merge-pathnames
-                                     (-> (aget :file entry)
-                                         (pathname-as-file))
-                                     (-> (aget :directory entry)
-                                         (pathname-as-directory))))
+                                   (merge-pathnames-as-file
+                                     (pathname-as-directory
+                                       (aget :directory entry))
+                                     (pathname-as-file
+                                       (aget :file entry))))
                             :from-end t)))
                    (error "Failed to create compilation database for project.~%~
                            build command: ~a ~a~%~
@@ -92,22 +92,23 @@
              (iter (for entry in (compilation-database clang-project))
                    (collect
                      (let ((file-path
-                             (->> (merge-pathnames
-                                    (pathname-as-file (aget :file entry))
-                                    (pathname-as-directory (aget :directory entry)))
+                             (->> (merge-pathnames-as-file
+                                    (pathname-as-directory
+                                      (aget :directory entry))
+                                    (pathname-as-file
+                                      (aget :file entry)))
                                   (get-project-path clang-project))))
                        (cons (relativize clang-project file-path)
                              (-> (make-instance (clang-class clang-project)
                                                 :compiler (get-compiler entry)
                                                 :flags (get-flags entry))
                                  (from-file file-path)))))))
-           (get-compiler (compilation-database-entry)
-             (->> (aget :command compilation-database-entry)
+           (get-compiler (entry)
+             (->> (aget :command entry)
                   (split-sequence #\Space)
                   (first)))
-           (get-flags (compilation-database-entry)
-             (let ((flags (-<>> (or (aget :command compilation-database-entry)
-                                    "")
+           (get-flags (entry)
+             (let ((flags (-<>> (or (aget :command entry) "")
                                 (replace-all <> "-I" "-I ")
                                 (split-sequence #\Space)
                                 (remove-if {string= ""})
@@ -120,20 +121,22 @@
                                     (->> (pathname-as-directory f)
                                          (get-project-path clang-project))
                                     (->> (merge-pathnames-as-directory
-                                           (->> (aget :directory
-                                                      compilation-database-entry)
+                                           (->> (aget :directory entry)
                                                 (make-pathname :directory))
                                            (make-pathname :directory f))
                                          (pathname-as-directory)
                                          (get-project-path clang-project)))
                                 f)))
-                    (remove-if {string= (aget :file compilation-database-entry)})
+                    (remove-if {string= (aget :file entry)})
                     (append (list "-I"
                                   (namestring (project-dir clang-project))))
                     (append (list "-I"
-                                  (->> (aget :directory compilation-database-entry)
+                                  (->> (merge-pathnames-as-directory
+                                         (pathname-as-directory
+                                           (aget :directory entry))
+                                         (pathname-as-file
+                                           (aget :file entry)))
                                        (pathname-as-directory)
-                                       (directory-namestring)
                                        (get-project-path clang-project))))))))
     (setf (project-dir clang-project)
           (-> (truename project-dir)

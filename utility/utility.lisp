@@ -73,21 +73,8 @@
                      (uiop::merge-pathnames dir-name prefix)
                      dir-name))))
 
-(defun file-to-string
-    (pathname &key (external-format
-                    (encoding-external-format (detect-encoding pathname))))
-  #+ccl (declare (ignorable external-format))
-  (restart-case
-      (let (#+sbcl (sb-impl::*default-external-format* external-format)
-            #+ecl (ext:*default-external-format* external-format))
-        (with-open-file (in pathname)
-          (let ((seq (make-string (file-length in))))
-            (read-sequence seq in)
-            seq)))
-    ;; Try a different encoding
-    (use-encoding (encoding)
-      :report "Specify another encoding"
-      (file-to-string pathname :external-format encoding))))
+(defun file-to-string (pathname)
+  (read-file-string pathname))
 
 (defun file-to-bytes (path)
   (with-open-file (in path :element-type '(unsigned-byte 8))

@@ -131,7 +131,7 @@
 ;; #<CLANG {1004FC4223}>
 ;; SEL> *fitness-evals*
 ;; 800
-;; SEL> 
+;; SEL>
 
 (defun eval-lines (lines &aux obj)
   (ignore-errors
@@ -263,3 +263,61 @@
     (generational-evolve #'simple-reproduce
       {simple-evaluate #'run-suite}
       #'lexicase-select)))
+
+
+;;;; Doing this in a reasonable way...
+;;;
+;;; 1. Extend impending super-mutant work (after getting the current
+;;;    version finished and committed) by implementing a version of
+;;;    the following general tree (S-expression) differencing
+;;;    algorithm in SEL.  (I imagine this would be something we
+;;;    implement in a self-contained ASDF system inside of SEL so
+;;;    other people could use it for other things.)
+;;;
+;;;    http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer
+;;;
+;;;    This algorithm, when applied to C/C++ AST trees parsed with Clang,
+;;;    should provide minimal differences.  This could be used for tighter
+;;;    super-mutants.  It could also be used to provide higher quality
+;;;    source differences than any current tools I'm aware of.  E.g.,
+;;;
+;;;    - A better code differencing tool.  There already exists syntax for
+;;;      diff regions at the sub-line boundary used by tools like wdiff.  We
+;;;      could use such a tree differences with our Clang ASTs to annotate
+;;;      source differences which difference at the AST level instead of the
+;;;      line level... This would be nice.  (I'd personally be more excited
+;;;      about the S-expression level diffs for CL source review.)  Git
+;;;      allows configurable differencing engines, so this could be easily
+;;;      adopted pretty widely.  I think this is sort of exciting.
+;;;
+;;;    - Feature toggles and A/B testing support.  We could also use this
+;;;      sort of differencing to turn two versions of a program into a
+;;;      single version with a feature toggle.  This is basically exactly
+;;;      what we would be doing with super mutants.  The difference is that
+;;;      by performing the diffs more precisely we open the possibility that
+;;;      developers might want to commit and maintain both sides of the
+;;;      feature.  This sort of tool (with super-mutants) would also
+;;;      automate the compilation of binaries to support A/B testing.
+;;;
+;;; 2. Fault localization (tarantula style).  We would have three sets of
+;;;    tests; original tests O, and tests added by new branches A and B.
+;;;    Thus every statement in the programs falls into the superset of
+;;;    {O,A,B} = {∅, {A}, {B}, {O}, {A,B}, {A,O}, {B,O}, {A,B,O}}.
+;;;
+;;;    If the goal of the resolution is to pick the right content for every
+;;;    diff region, we could...
+;;;
+;;;    - limit changes to diff regions between branches A and B
+;;;    - take the A-side diff of the diff for statements in {A} and {A,O}
+;;;    - take the B-side diff of the diff for statements in {B} and {B,O}
+;;;    - for all others seed an initial population with random choices, or
+;;;      both concatenate, or something...
+;;;
+;;; 3. Next would be determining a good fitness function, mutation
+;;;    operations, etc...
+;;;
+;;; Questions:
+;;; - Should we consider gum-tree as a diff alternative?  Are moves important?
+;;; - Will we ever want to touch code outside of the difference areas.
+;;; - Should we constrain ourselves to what e-diff provides?
+;;;
