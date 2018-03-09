@@ -870,7 +870,7 @@ are given in remainder of this section.
 @node Super-Mutants, Usage, Tracing, Components
 @section Super-Mutants
 @cindex super-mutants
-@include super-mutants.texi
+@include include/super-mutants.texi
 
 @node Usage, Installation, Implementation, Top
 @chapter Usage
