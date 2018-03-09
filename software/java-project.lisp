@@ -1,6 +1,21 @@
 ;;; Specialization for building a software object from a java project
 ;;;
-;;; DOCFIXME_JAVA Need a page or so introduction to java project software objects.
+;;; Implements the core functionality of the software-evolution-library
+;;; for class files written in java. The java versions that are supported
+;;; relies heavily on an input's success of parsing individual files with
+;;; @uref{http://javaparser.org/, Java Parser}.
+;;;
+;;; The project will use jar files to extract which files need to be
+;;; initialized in this context. A java-project will contain relative
+;;; path names and the corresponding software object, stored in
+;;; evolve-files. Naturally, the java software object is used in this
+;;; implementation.
+;;;
+;;; The core functionality is supported by the command line tool
+;;; @uref{https://github.com/GrammaTech/java-mutator, java-mutator}.
+;;;
+;;; Note: certain methods in this class are over-loaded to provide consistency
+;;; with other software objects, but are not used in this implementation.
 ;;;
 ;;; @texi{java-project}
 (in-package :software-evolution-library)
@@ -110,6 +125,7 @@ java -jar ~a $@"
   "Template for the java execution script to run class files")
 
 (defmethod phenome ((obj java-project) &key (bin (temp-file-name)))
+  "Compiles the software object to a jar and converts it to a linux executable"
   (write-genome-to-files obj)
 
   ;; Build the object
@@ -149,4 +165,3 @@ java -jar ~a $@"
 
 (defmethod clang-tidy ((java-project java-project))
   java-project)
-
