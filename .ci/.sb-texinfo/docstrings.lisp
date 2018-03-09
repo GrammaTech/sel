@@ -476,6 +476,24 @@ with #\@. Optionally downcase the result."
                         do (write-char char s)))))
     (if downcasep (nstring-downcase result) result)))
 
+;;; TODO: Maybe everything in here should at some point get
+;;;       first-class support as specialized syntax.
+(defun unescape-for-texinfo (string &aux last-char)
+  "Unescape obvious texinfo commands in STRING.
+STRING is assumed to be the result of `escape-for-texinfo'."
+  (with-output-to-string (s)
+    (loop
+       for char across string
+       as i upfrom 1
+       unless (and (equal last-char #\@)
+                   (equal char #\@)
+                   (some (lambda (word)
+                           (string= (subseq string i (min (+ i (length word))))
+                                    word))
+                         '("section" "subsection" "subsubsection")))
+       do (write-char char s)
+       do (setf last-char char))))
+
 (defun empty-p (line-number lines)
   (and (< -1 line-number (length lines))
        (not (indentation (svref lines line-number)))))
@@ -727,7 +745,8 @@ followed another tabulation label or a tabulation body."
 (defun write-texinfo-string (string &optional lambda-list)
   "Try to guess as much formatting for a raw docstring as possible."
   (let ((*texinfo-variables* (flatten lambda-list))
-        (lines (string-lines (escape-for-texinfo string nil))))
+        (lines (string-lines (unescape-for-texinfo
+                              (escape-for-texinfo string nil)))))
       (loop for line-number from 0 below (length lines)
             for line = (svref lines line-number)
             do (cond
