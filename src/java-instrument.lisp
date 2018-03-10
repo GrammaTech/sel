@@ -27,7 +27,6 @@
   (declare (ignorable points functions functions-after
                       trace-file trace-env
                       instrument-exit filter))
-
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (java-jar-exec (format nil "-instrument ~a -out=~a -file=~a"
                            src-file
@@ -48,22 +47,29 @@
 (defmethod instrument ((java-project java-project) &rest args
                        &aux (instrumenter (make-instance 'java-instrumenter)))
   (declare (ignorable args))
-  (iterate (for (f . obj) in (instrumentation-files java-project))
-           (for i upfrom 0)
-           (declare (ignorable f))
-           (setf (software instrumenter) obj)
-           (setf (file-id instrumenter) i)
-           (instrument instrumenter))
-  java-project)
+  (let ((num-files-instrument (list-length (instrumentation-files java-project))))
+       (iterate (for (f . obj) in (instrumentation-files java-project))
+                (for i upfrom 0)
+                (note 3 "Instrumenting ~a" f)
+                (note 4 "Instrument progress: ~a/~a" (+ i 1) num-files-instrument)
+                (setf (software instrumenter) obj)
+                (setf (file-id instrumenter) i)
+                (instrument instrumenter))
+       java-project))
 
 (defmethod uninstrument ((java-project java-project))
-  (iter (for (src-file . obj) in
-             (append (instrumentation-files java-project)
-                     (remove-if-not [{get-entry} #'cdr]
-                                    (other-files java-project))))
-        (declare (ignorable src-file))
-        (uninstrument obj))
-  java-project)
+        ;; Might not be correct becuse of remove-if-not but closest I got
+        (let ((num-files-instrument (list-length (instrumentation-files java-project))))
+
+        (iter (for (f . obj) in (append (instrumentation-files java-project)
+                                               (remove-if-not [{get-entry} #'cdr]
+                                                              (other-files
+                                                               java-project))))
+              (for i upfrom 1)
+              (note 3 "Uninstrumenting ~a" f)
+              (note 4 "Uninstrument progress: ~a/~a" i num-files-instrument)
+              (uninstrument obj))
+        java-project))
 
 (defmethod instrumentation-files ((java-project java-project))
   (evolve-files java-project))
