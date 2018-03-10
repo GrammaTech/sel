@@ -3,6 +3,15 @@ FROM docker.grammatech.com:14850/synthesis/cl
 RUN apt-get -y update && \
     apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev unzip
 
+RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz && \
+    tar xf astyle_3.1_linux.tar.gz && \
+    cd astyle/build/gcc && \
+    make release && \
+    cp bin/astyle /usr/synth/bin && \
+    cd - && \
+    rm -rf astyle && \
+    rm -rf astyle_3.1_linux.tar.gz
+
 ENV PATH=/gt/sel/bin:$PATH \
     GT_DOCKER_CHOWN_PATHS="" \
     LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH

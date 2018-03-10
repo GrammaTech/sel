@@ -244,7 +244,7 @@ java -jar ~a $@"
   (declare (ignorable style))
   java-project)
 
-(defmethod indent ((java-project java-project) &optional style)
+(defmethod astyle ((java-project java-project) &optional style)
   (declare (ignorable style))
   java-project)
 

@@ -127,7 +127,7 @@
    :adjust-stmt-range
    :random-point-in-function
    :select-intraprocedural-pair
-   :indent
+   :astyle
    :clang-tidy
    :clang-format
    :clang-mutate

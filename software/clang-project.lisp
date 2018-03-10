@@ -187,9 +187,9 @@
   (apply-to-project clang-project #'clang-tidy)
   clang-project)
 
-(defmethod indent ((clang-project clang-project) &optional style)
-  "Apply GNU `indent' to CLANG-PROJECT.
+(defmethod astyle ((clang-project clang-project) &optional style)
+  "Apply Artistic Style to CLANG-PROJECT.
 * CLANG-PROJECT project to format and return
-* STYLE GNU `indent' style to utilize
+* STYLE style to utilize
 "
-  (apply-to-project clang-project {indent _ style}))
+  (apply-to-project clang-project {astyle _ style}))

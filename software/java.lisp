@@ -180,10 +180,8 @@ insert)."
   (declare (ignorable style))
   obj)
 
-;;; TODO: Rename to `indent' to `indent', or think of another way to
-;;;       control if tidy or indent is run (e.g., a clang-specific
-;;;       global configuration variable)..
-(defmethod indent ((obj java) &optional style)
+;; TODO: Artistic style can be used with JAVA objects
+(defmethod astyle ((obj java) &optional style)
   (declare (ignorable style))
   obj)
 
