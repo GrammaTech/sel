@@ -9,6 +9,11 @@
 Software Object Classes
 ]
 
+@c TODO: Remove all of these manually generated
+@c       api-software-objects-foo sections.  They will be a pain to
+@c       keep up to date.  Instead if we really want to collect all
+@c       methods defined on an object, we should update sb-texinfo to
+@c       do this for us as part of the class documentation.
 @itemize
 @item @ref{api-software-objects-software,@code{software}}
    @itemize
@@ -23,6 +28,7 @@ Software Object Classes
        @itemize
        @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
        @end itemize
+     @item @refapiclass{java}
      @item @ref{api-software-objects-elf, @code{elf}}
        @itemize
        @item @ref{api-software-objects-elf-cisc,  @code{elf-cisc}}
