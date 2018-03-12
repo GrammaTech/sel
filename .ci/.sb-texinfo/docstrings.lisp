@@ -481,18 +481,39 @@ with #\@. Optionally downcase the result."
 (defun unescape-for-texinfo (string &aux last-char)
   "Unescape obvious texinfo commands in STRING.
 STRING is assumed to be the result of `escape-for-texinfo'."
-  (with-output-to-string (s)
-    (loop
-       for char across string
-       as i upfrom 1
-       unless (and (equal last-char #\@)
-                   (equal char #\@)
-                   (some (lambda (word)
-                           (string= (subseq string i (min (+ i (length word))))
-                                    word))
-                         '("section" "subsection" "subsubsection")))
-       do (write-char char s)
-       do (setf last-char char))))
+  (let ((w/o-braces '("section" "subsection" "subsubsection"))
+        (w/braces '("uref" "ref"))
+        (braces 0))
+    (flet ((subword-at (i word)
+             (string= (subseq string i (min (+ i (length word))))
+                      word))
+           (next-char (i) (aref string i)))
+      (with-output-to-string (s)
+        (loop
+           for char across string
+           as i upfrom 1
+           ;; This conditional is admittedly convoluted, it manages
+           ;; two things.  First, it checks for words which we don't
+           ;; want to escape, in `w/o-braces' or `w/braces'.  Second,
+           ;; when something is is `w/braces' it handles not escaping
+           ;; the next two braces using the `braces' counter.
+           unless (or (and (> braces 0) ; Handle brace un-escaping.
+                           (when (or (and (equal (next-char i) #\{)
+                                          (= braces 2))
+                                     (and (equal (next-char i) #\})
+                                          (= braces 1)))
+                             (decf braces)
+                             t))
+                      (and (equal last-char #\@) ; Handle word un-escaping.
+                           (equal char #\@)
+                           (or (some (lambda (word) (subword-at i word))
+                                     w/o-braces)
+                               (when (some (lambda (word) (subword-at i word))
+                                           w/braces)
+                                 (setf braces 2)
+                                 t))))
+           do (write-char char s)
+           do (setf last-char char))))))
 
 (defun empty-p (line-number lines)
   (and (< -1 line-number (length lines))
