@@ -125,7 +125,9 @@ techniques."
                uuid
                #+gt testbot
                trace-db
-               uiop)
+               uiop
+               optima
+               fare-quasiquote-extras)
   :components
   ((:module test
             :pathname "test/src"
