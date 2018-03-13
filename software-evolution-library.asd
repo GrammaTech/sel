@@ -65,13 +65,13 @@ techniques."
              (:file "project")
              (:file "clang-project" :depends-on ("project" "clang"))
              (:file "java-project" :depends-on ("project" "java"))
-             (:file "super-mutant")))
+             (:file "super-mutant")
+             (:file "ancestral" :depends-on ("clang"))))
    (:module src
             :depends-on (base software)
             :pathname "src"
             :components
-            ((:file "ancestral")
-             (:file "instrument")
+            ((:file "instrument")
              (:file "clang-instrument" :depends-on ("instrument"))
              (:file "java-instrument" :depends-on ("instrument"))
              (:file "traceable" :depends-on ("test-suite"))
