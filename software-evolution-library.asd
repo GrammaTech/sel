@@ -31,7 +31,9 @@ techniques."
                usocket
                babel
                fast-io
-               trace-db)
+               trace-db
+               optima
+               fare-quasiquote-extras)
   :in-order-to ((test-op (test-op software-evolution-library/test)))
   :components
   ((:module base
@@ -68,7 +70,10 @@ techniques."
              (:file "super-mutant")
              (:file "adaptive-mutation")
              (:file "styleable" :depends-on ("project"))
-             (:file "ancestral" :depends-on ("clang"))))
+             (:file "ancestral" :depends-on ("clang"))
+             (:file "serapi-io")
+             (:file "coq" :depends-on ("serapi-io"))
+             (:file "coq-project" :depends-on ("project" "serapi-io" "coq"))))
    (:module src
             :depends-on (base software)
             :pathname "src"
