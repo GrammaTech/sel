@@ -278,6 +278,16 @@
    :diff
    :original
    :asm
+   :asm-heap
+   :asm-line-info-text
+   :asm-line-info-tokens
+   :asm-line-info-type
+   :asm-line-info-label
+   :asm-line-info-opcode
+   :asm-line-info-operands
+   :asm-line-info-id
+   :asm-line-info-orig-file
+   :asm-line-info-orig-line
    :csurf-asm
    :*dynamic-linker-path*
    :*elf-copy-redirect-path*

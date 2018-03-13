@@ -474,6 +474,10 @@ suite should be run and nil otherwise."
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
   (:teardown (setf *gcd* nil)))
 
+(defixture gcd-asm-heap
+  (:setup (setf *gcd* (from-file (make-instance 'asm-heap) (gcd-dir "gcd.s"))))
+  (:teardown (setf *gcd* nil)))
+
 (defixture gcd-elf
   (:setup
    (let ((arch (intern (string-upcase (subseq (shell "uname -m") 0 3)))))
@@ -1008,7 +1012,7 @@ suite should be run and nil otherwise."
   (:setup (setf *soft*
 		(from-file
 		 (make-instance 'csurf-asm
-				:redirect-file (asm-test-dir "calc.elf_copy_redirect.asm"))
+                   :redirect-file (asm-test-dir "calc.elf_copy_redirect.asm"))
                  (asm-test-dir "calc.asm"))))
   (:teardown
    (setf *soft* nil)))
@@ -1224,8 +1228,59 @@ suite should be run and nil otherwise."
           (t (is (= (size crossed) (size *gcd*)))))))))
 
 
-;;; CSURF-ASM representation.
+;;; ASM-HEAP representation.
+(deftest edit-of-asm-heap-copy-does-not-change-original ()
+  (with-fixture gcd-asm-heap
+    (let ((orig-hash (sxhash (genome *gcd*)))
+          (variant (copy *gcd*)))
+      ;; Multiple tries to apply a mutation creating a difference.
+      ;; Stochastically some might result in the same genome, e.g. by
+      ;; swapping to identical instructions.
+      (is (iter (as count upfrom 0)
+                (handler-bind
+                    ((no-mutation-targets
+                      (lambda (c)
+                        (declare (ignorable c))
+                        (invoke-restart 'try-another-mutation))))
+                  (mutate variant))
+                (when (not (sel::equal-it (genome variant) (genome *gcd*)))
+                  (return t))
+                (when (> count 100)
+                  (return nil)))
+          "In 100 tries, a mutation results in a different mutated genome.")
+      (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
+(deftest asm-heap-cut-actually-shortens ()
+  (with-fixture gcd-asm-heap
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant (make-instance 'simple-cut :targets 4))
+      (is (< (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-heap-insertion-actually-lengthens ()
+  (with-fixture gcd-asm-heap
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant (make-instance 'simple-insert
+                                             :targets (list 4 8)))
+      (is (> (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-heap-swap-maintains-length ()
+  (with-fixture gcd-asm-heap
+    (let ((variant (copy *gcd*))
+          (mutation
+           (make-instance 'simple-swap
+             :targets (list
+                       (position-if
+                        [{eql 'sel/asm::movsd} #'asm-line-info-opcode]
+                        (genome *gcd*))
+                       (position-if
+                        [{eql 'sel/asm::call} #'asm-line-info-opcode]
+                        (genome *gcd*))))))
+      (setf variant (apply-mutation variant mutation))
+      (is (not (equalp (genome variant) (genome *gcd*))))
+      (is (= (length (genome variant)) (length (genome *gcd*)))))))
+
+
+;;; CSURF-ASM representation.
 (sel-suite* csurf-asm-tests "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
@@ -1238,23 +1293,22 @@ suite should be run and nil otherwise."
 
 (deftest parser-test-2 ()
   (with-fixture csurf-asm-calc
-    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 0)) :empty))))
+    (is (eq (asm-line-info-type (elt (genome *soft*) 0)) :empty))))
 
 (deftest parser-test-3 ()
   (with-fixture csurf-asm-calc
-    (is (eq (sel::asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+    (is (eq (asm-line-info-type (elt (genome *soft*) 1)) :decl))))
 
 (deftest parser-test-4 ()
   (with-fixture csurf-asm-calc
-    (let ((op-line (find :op (genome *soft*) :key 'sel::asm-line-info-type)))
-      (is (and (eq (sel::asm-line-info-opcode op-line) 'asm::sub)
-	       (equal (sel::asm-line-info-operands op-line) '(asm::rsp 8)))))))
+    (let ((op-line (find :op (genome *soft*) :key 'asm-line-info-type)))
+      (is (and (eq (asm-line-info-opcode op-line) 'sel/asm::sub)
+	       (equal (asm-line-info-operands op-line) '(sel/asm::rsp 8)))))))
 
 (deftest parser-test-5 ()
   (with-fixture csurf-asm-calc
     (is (= (iter (for x in-vector (genome *soft*))
-		 (counting (eq (sel::asm-line-info-type x) :op))) 283))))
-
+		 (counting (eq (asm-line-info-type x) :op))) 283))))
 
 
 ;;; ELF representation.
