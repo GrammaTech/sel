@@ -47,29 +47,24 @@
 (defmethod instrument ((java-project java-project) &rest args
                        &aux (instrumenter (make-instance 'java-instrumenter)))
   (declare (ignorable args))
-  (let ((num-files-instrument (list-length (instrumentation-files java-project))))
-       (iterate (for (f . obj) in (instrumentation-files java-project))
-                (for i upfrom 0)
-                (note 3 "Instrumenting ~a" f)
-                (note 4 "Instrument progress: ~a/~a" (+ i 1) num-files-instrument)
-                (setf (software instrumenter) obj)
-                (setf (file-id instrumenter) i)
-                (instrument instrumenter))
-       java-project))
+  (iterate (for (f . obj) in (instrumentation-files java-project))
+           (for i upfrom 1)
+           (note 3 "Instrumenting ~a" f)
+           (note 4 "Instrument progress: ~a/~a"
+                 i (length (instrumentation-files java-project)))
+           (setf (software instrumenter) obj)
+           (setf (file-id instrumenter) (1- i))
+           (instrument instrumenter))
+  java-project)
 
 (defmethod uninstrument ((java-project java-project))
-        ;; Might not be correct becuse of remove-if-not but closest I got
-        (let ((num-files-instrument (list-length (instrumentation-files java-project))))
-
-        (iter (for (f . obj) in (append (instrumentation-files java-project)
-                                               (remove-if-not [{get-entry} #'cdr]
-                                                              (other-files
-                                                               java-project))))
-              (for i upfrom 1)
-              (note 3 "Uninstrumenting ~a" f)
-              (note 4 "Uninstrument progress: ~a/~a" i num-files-instrument)
-              (uninstrument obj))
-        java-project))
+  (iter (for (f . obj) in (instrumentation-files java-project))
+        (for i upfrom 1)
+        (note 3 "Uninstrumenting ~a" f)
+        (note 4 "Uninstrument progress: ~a/~a"
+              i (length (instrumentation-files java-project)))
+        (uninstrument obj))
+  java-project)
 
 (defmethod instrumentation-files ((java-project java-project))
   (evolve-files java-project))
