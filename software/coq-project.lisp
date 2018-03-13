@@ -7,9 +7,7 @@
 ;;; sense for projects, while having it on individual `coq' objects allows them
 ;;; to function well outside of projects.)
 ;;; @texi{coq-project}
-
-
-(in-package :evo-rings)
+(in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software coq-project (project)

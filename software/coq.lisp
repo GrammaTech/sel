@@ -74,7 +74,7 @@
 ;;; a reset point before returning.
 ;;;
 ;;; @texi{coq-usage}
-(in-package :evo-rings)
+(in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
 ;; Coq object

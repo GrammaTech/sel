@@ -30,7 +30,7 @@
 ;;;
 ;;; @texi{setting-up-serapi}
 
-(in-package :evo-rings)
+(in-package :software-evolution-library)
 
 ;;;; Use fare-quasiquote instead of built-in quasiquote
 ;;;; If this isn't set up correctly, SBCL may have errors about quasiquotep
