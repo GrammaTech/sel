@@ -1,7 +1,8 @@
 FROM docker.grammatech.com:14850/synthesis/cl
 
 RUN apt-get -y update && \
-    apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev unzip
+    apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev \
+        unzip opam
 
 RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz && \
     tar xf astyle_3.1_linux.tar.gz && \
@@ -19,8 +20,41 @@ ENV PATH=/gt/sel/bin:$PATH \
 ARG GT
 COPY . /gt/sel
 
+# Install ocaml 4.04.2 via opam (for SerAPI)
+RUN opam init -j 4 --compiler="4.04.2" -y
+
+# Configure ocaml, install packages
+RUN eval `opam config env` && \
+    opam install ocamlfind ocamlbuild ppx_type_conv=v0.9.0 \
+                 ppx_import ppx_deriving=4.1 \
+                 cmdliner core_kernel sexplib ppx_sexp_conv camlp5
+
+# Clone, build Coq V8.7.0 tag (must happen after ocaml)
+RUN eval `opam config env` && \
+    mkdir -p /gt/coq && \
+    git clone https://github.com/coq/coq.git /gt/coq && \
+    cd /gt/coq && \
+    git checkout 78e3385221c5c6d024b33107517f5674b3d341c2 && \
+    ./configure -local -native-compiler no && \
+    make -j 4
+
+# Clone, build SerAPI for Coq 8.7
+# FIXME: currently applying a patch to SerAPI. Goal is to eventually remove
+# it (by moving to a Common Lisp fix for the whitespace issues).
+RUN eval `opam config env` && \
+    mkdir -p /gt/coq-serapi && \
+    git clone https://github.com/riswords/coq-serapi.git /gt/coq-serapi && \
+    cd /gt/coq-serapi && \
+    git checkout 956c1637a681745bf8833a2acb2543bfea576080 && \
+    patch -p1 --directory=/gt/coq-serapi/ < /gt/sel/.ci/serapi-whitespace-handling.patch && \
+    SERAPI_COQ_HOME=/gt/coq/ COQDIR=/gt/coq/ make
+
 RUN cd /gt/sel && make
 
 WORKDIR /gt/sel
+
+ENV SERAPI=/gt/coq-serapi/sertop.native \
+    COQ_PRELUDE=/gt/coq/ \
+    PATH=$PATH:/gt/coq/bin
 
 CMD /bin/bash
