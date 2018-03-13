@@ -75,7 +75,7 @@
 ;;;
 ;;; @texi{coq-usage}
 (in-package :software-evolution-library)
-(in-readtable :curry-compose-reader-macros)
+(in-readtable :serapi-readtable)
 
 ;; Coq object
 (define-software coq (lisp)

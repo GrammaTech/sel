@@ -8,7 +8,7 @@
 ;;; to function well outside of projects.)
 ;;; @texi{coq-project}
 (in-package :software-evolution-library)
-(in-readtable :curry-compose-reader-macros)
+(in-readtable :serapi-readtable)
 
 (define-software coq-project (project)
   ((project-file :initarg :project-file :accessor project-file :initform nil
