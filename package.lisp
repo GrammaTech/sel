@@ -322,6 +322,7 @@
    :run-rename-variable
    :common-ancestor
    :ancestor-of
+   :reset-ancestry-id
    :get-fresh-ancestry-id
    :save-ancestry
    :scopes-between
