@@ -1,4 +1,4 @@
-;;; asm-parse.lisp --- parse assembly code into asm-line-info structs
+;;; asm-heap.lisp --- parse assembly code into asm-line-info structs
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
