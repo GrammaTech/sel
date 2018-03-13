@@ -66,6 +66,8 @@ techniques."
              (:file "clang-project" :depends-on ("project" "clang"))
              (:file "java-project" :depends-on ("project" "java"))
              (:file "super-mutant")
+             (:file "adaptive-mutation")
+             (:file "styleable" :depends-on ("project"))
              (:file "ancestral" :depends-on ("clang"))))
    (:module src
             :depends-on (base software)
@@ -76,7 +78,6 @@ techniques."
              (:file "java-instrument" :depends-on ("instrument"))
              (:file "traceable" :depends-on ("test-suite"))
              (:file "fix-compilation")
-             (:file "adaptive-mutation")
              (:file "searchable")
              (:file "fodder-database" :depends-on ("searchable"))
              (:file "in-memory-fodder-database" :depends-on ("fodder-database"))
@@ -87,7 +88,6 @@ techniques."
              (:file "condition-synthesis" :depends-on ("test-suite"))
              (:file "fault-loc" :depends-on ("test-suite"))
              (:file "generate-helpers")
-             (:file "style-features")
              (:file "multi-objective")
              (:file "clang-tokens")))))
 
