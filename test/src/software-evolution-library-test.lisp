@@ -8442,7 +8442,8 @@ int main() { puts(\"~d\"); return 0; }
 
 ;;; Test SerAPI (low-level Coq interaction)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (named-readtables:in-readtable :serapi-readtable))
+  (named-readtables:in-readtable :serapi-readtable)
+  (set-serapi-paths))
 
 (defun serapi-available-p ()
   (set-serapi-paths)
