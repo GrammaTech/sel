@@ -93,6 +93,7 @@ Software Object Classes
 @include include/class-sel-forth.texinfo
 @include include/class-sel-java.texinfo
 @include include/class-sel-lisp.texinfo
+@include include/class-sel-coq.texinfo
 @include include/class-sel-expression.texinfo
 @include include/class-sel-clang-expression.texinfo
 @include include/class-sel-llvm.texinfo

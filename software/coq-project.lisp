@@ -6,6 +6,7 @@
 ;;; `coq' objects, because having it stored at the project-level makes more
 ;;; sense for projects, while having it on individual `coq' objects allows them
 ;;; to function well outside of projects.)
+;;;
 ;;; @texi{coq-project}
 (in-package :software-evolution-library)
 (in-readtable :serapi-readtable)

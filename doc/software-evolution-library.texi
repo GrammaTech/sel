@@ -189,7 +189,7 @@ information about creating new software objects.
 @item LISP                     @tab experimental
 @item Forth                    @tab experimental
 @item Java                     @tab experimental
-@item Coq                      @tab @emph{forthcoming}
+@item Coq                      @tab experimental
 @end multitable
 
 
@@ -408,6 +408,10 @@ with an indicate of their relative maturity.
       @tab @refapiclass{lisp}
       @tab experimental
 
+@item Coq source
+      @tab @refapiclass{coq}
+      @tab experimental
+
 @item Forth
       @tab @refapiclass{forth}
       @tab experimental
@@ -430,6 +434,7 @@ Software Object Classes (see also
 * Executables with @code{csurf-asm}:: Executables manipulated as an
                                       assembler vector
 * Java with @code{java}::       Java language source code ASTs
+* Coq with @code{coq}::         Coq language source code ASTs
 @end menu
 
 Software Object Mixins (see also
@@ -457,15 +462,25 @@ the API):
 
 @node Executables with @code{csurf-asm}, Java with @code{java}, Assembler with @code{asm}, Software Objects
 
-@subsection Java with @code{java}
+@subsection Executables with @code{csurf-asm} Software Object
 
 @include include/csurf-asm.texi
 
-@node Java with @code{java}, Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Java with @code{java}, Software Objects
+@node Java with @code{java}, Coq with @code{coq}, Executables with @code{csurf-asm}, Software Objects
+
+@subsection Java with @code{java}
 
 @include include/java.texi
 
-@node Ancestor tracking with @code{ancestral}, Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Executables with @code{csurf-asm}, Software Objects
+@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Java with @code{java}, Software Objects
+
+@subsection Coq with @code{coq} and @code{SerAPI}
+
+@include include/serapi-io.texi
+
+@include include/coq.texi
+
+@node Ancestor tracking with @code{ancestral}, Lighter asm alternatives @code{light}/@code{range}/@code{diff}, Coq with @code{coq}, Software Objects
 
 @subsection Ancestor tracking with @code{ancestral} Software Mixin
 

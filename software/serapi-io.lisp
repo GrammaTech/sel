@@ -1,5 +1,7 @@
 ;;; serapi-io.lisp --- serialization interface for Coq
 ;;;
+;;; @subsection Coq Module Organization
+;;;
 ;;; The `coq' module is split into two layers. The lower layer, implemented in   
 ;;; `serapi-io.lisp', is strictly responsible for serialization of Coq abstract
 ;;; syntax trees (ASTs). This is done with Coq SerAPI
@@ -12,7 +14,7 @@
 ;;; use API functions provided by `coq.lisp' or `coq-project.lisp' without having to
 ;;; worry about the lower-level functions.
 ;;;
-;;; @texi{coq-module-organization}
+;;; @subsection Setting up SerAPI
 ;;;
 ;;; In order to construct a Coq software object, coq-serapi must be installed.
 ;;; Refer to its GitHub project page for instructions. The variables `*sertop-path*'
@@ -28,9 +30,10 @@
 ;;; @code{(list ``--prelude=/path/to/coq/lib/'')}. Other sertop parameters may also
 ;;; be added to `*sertop-args*'.
 ;;;
-;;; @texi{setting-up-serapi}
+;;; @texi{serapi-io}
 
 (in-package :software-evolution-library)
+;; not in :curry-compose-reader-macros readtable: see below
 
 ;;;; Use fare-quasiquote instead of built-in quasiquote
 ;;;; If this isn't set up correctly, SBCL may have errors about quasiquotep

@@ -1,5 +1,7 @@
 ;;; coq.lisp --- Coq software representation
 ;;;
+;;; @subsection Coq Module Organization
+;;;
 ;;; The `coq' module is split into two layers. The lower layer, implemented in
 ;;; `serapi-io.lisp', is strictly responsible for serialization of Coq abstract
 ;;; syntax trees (ASTs) and is described in-depth in its own section.
@@ -10,15 +12,16 @@
 ;;;  and use API functions provided by `coq.lisp' or `coq-project.lisp' without
 ;;;  having to worry about the lower-level functions.
 ;;;
-;;;  Coq software objects have the following fields:
-;;; @itemize
-;;; @item project-file - path to _CoqProject file
-;;; @item file-source - path to the Coq source file this object represents
-;;; @item imports - list of ASTs representing load or require statements
-;;; @item genome - list of ASTs representing the Coq source, excluding imports
-;;; @item ast-ids - list of AST IDs assigned to ASTs in the genome
-;;; @item fitness - fitness of the object last time it was evaluated
-;;; @end itemize
+;;; @subsection Creating Coq Objects
+;;;
+;;; Coq software objects have the following fields:
+;;;
+;;; * project-file - path to _CoqProject file
+;;; * file-source - path to the Coq source file this object represents
+;;; * imports - list of ASTs representing load or require statements
+;;; * genome - list of ASTs representing the Coq source, excluding imports
+;;; * ast-ids - list of AST IDs assigned to ASTs in the genome
+;;; * fitness - fitness of the object last time it was evaluated
 ;;;
 ;;; The recommended way to create a Coq software object is using `from-file':
 ;;;
@@ -46,7 +49,7 @@
 ;;; `reset-and-load-imports' (which in addition to setting load paths also
 ;;; executes import statements).
 ;;;
-;;; @texi{coq-object-creation}
+;;; @subsection Usage of Coq Objects
 ;;;
 ;;; The ASTs of a Coq genome are lists whose elements are lists, symbols, and
 ;;; strings. A `type-safe-swap' mutation selects two subtrees that have the same
@@ -73,7 +76,7 @@
 ;;; previously saved state. Both `from-file' and `reset-and-load-imports' insert
 ;;; a reset point before returning.
 ;;;
-;;; @texi{coq-usage}
+;;; @texi{coq}
 (in-package :software-evolution-library)
 (in-readtable :serapi-readtable)
 
