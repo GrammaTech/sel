@@ -259,6 +259,9 @@ The new genome contains only the elements in the designated range."
     (setf (genome new) new-genome)
     new))
 
+(defmethod pick-mutation-type ((asm asm-heap))
+  (random-pick *simple-mutation-types*))
+
 #|
    Not implemented yet --RGC
 
