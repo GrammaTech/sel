@@ -4412,6 +4412,11 @@ within a function body, return null."))
             (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
 
+(defgeneric astyle (software &optional style)
+  (:documentation "Apply Artistic Style to the software.
+Documentation can be found at
+http://astyle.sourceforge.net/astyle.html#_Usage"))
+
 (defmethod astyle ((obj clang) &optional style &aux errno)
   "Apply Artistic Style to OBJ.
 * OBJ object to format and return

@@ -182,6 +182,7 @@ insert)."
 
 ;; TODO: Artistic style can be used with JAVA objects
 (defmethod astyle ((obj java) &optional style)
+  "This method currently has not effect on Java objects."
   (declare (ignorable style))
   obj)
 
