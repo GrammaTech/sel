@@ -2,7 +2,7 @@
 ;;;
 ;;; @subsection Coq Module Organization
 ;;;
-;;; The `coq' module is split into two layers. The lower layer, implemented in   
+;;; The `coq' module is split into two layers. The lower layer, implemented in
 ;;; `serapi-io.lisp', is strictly responsible for serialization of Coq abstract
 ;;; syntax trees (ASTs). This is done with Coq SerAPI
 ;;; @url{https://github.com/ejgallego/coq-serapi}, specifically `sertop', which
@@ -10,25 +10,25 @@
 ;;;
 ;;; The `coq' and `coq-project' software objects, implemented in `coq.lisp' and
 ;;; `coq-project.lisp', respectively, are higher-level abstractions built on
-;;; `serapi-io'. Ideally, clients should only have to construct software objects and
-;;; use API functions provided by `coq.lisp' or `coq-project.lisp' without having to
-;;; worry about the lower-level functions.
+;;; `serapi-io'. Ideally, clients should only have to construct software objects
+;;; anduse API functions provided by `coq.lisp' or `coq-project.lisp' without
+;;; having to worry about the lower-level functions.
 ;;;
 ;;; @subsection Setting up SerAPI
 ;;;
 ;;; In order to construct a Coq software object, coq-serapi must be installed.
-;;; Refer to its GitHub project page for instructions. The variables `*sertop-path*'
-;;; and `*sertop-args*' must then be set. This can be done either with
-;;; `setf' or by setting the environment variables `SERAPI' and `COQ_PRELUDE' and
-;;; invoking `set-serapi-paths' to update the Lisp variables. `SERAPI' and
-;;; `*sertop-path*' should point to the sertop executable.
+;;; Refer to its GitHub project page for instructions. The variables
+;;; `*sertop-path*' and `*sertop-args*' must then be set. This can be done
+;;; either with `setf' or by setting the environment variables `SERAPI' and
+;;; `COQ_PRELUDE' and invoking `set-serapi-paths' to update the Lisp variables.
+;;; `SERAPI' and `*sertop-path*' should point to the sertop executable.
 ;;;
 ;;; If you intend to use the Coq standard library, you will need to ensure that
-;;; sertop is started with the `--prelude' flag pointing to the coq/lib directory.
-;;; This can be done either by setting the environment variable `COQ_PRELUDE' to
-;;; that path or by setting `*sertop-args*' to
-;;; @code{(list ``--prelude=/path/to/coq/lib/'')}. Other sertop parameters may also
-;;; be added to `*sertop-args*'.
+;;; sertop is started with the `--prelude' flag pointing to the coq/lib
+;;; directory. This can be done either by setting the environment variable
+;;; `COQ_PRELUDE' to that path or by setting `*sertop-args*' to
+;;; @code{(list ``--prelude=/path/to/coq/lib/'')}. Other sertop parameters may
+;;; also be added to `*sertop-args*'.
 ;;;
 ;;; @texi{serapi-io}
 
