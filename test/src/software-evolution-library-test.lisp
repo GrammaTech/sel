@@ -414,6 +414,23 @@ suite should be run and nil otherwise."
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
 
+;;;
+;;; Task support
+;;;
+(defclass child-task (task) ())
+(defclass parent-task (task) ())
+(defmethod task-job ((task parent-task) runner)
+  (declare (ignore runner))
+  (let ((index 0))
+    (lambda ()
+      (if (<= (incf index) 20)
+	  (make-instance 'child-task
+			 :object (format nil "~A-~D"
+					 (task-object task) index))))))      
+(defmethod process-task ((task child-task) runner)
+  (task-save-result runner (task-object task)) ;; save the object
+  (sleep 1)) ;; sleep 1 second
+
 (defvar *soft-mutate-errors* nil
   "Control when mutations on soft objects throw errors.")
 
@@ -1017,6 +1034,16 @@ suite should be run and nil otherwise."
   (:teardown
    (setf *soft* nil)))
 
+(defixture task-runner
+  (:setup (setf *soft*
+	    (list (run-task (make-instance 'parent-task :object "test1") 10)
+	          (run-task (make-instance 'parent-task :object "test2") 20)))
+	  ;; wait for all the threads to terminate
+	  (mapcar 'bt:join-thread (task-runner-workers (first *soft*)))
+	  (mapcar 'bt:join-thread (task-runner-workers (second *soft*))))
+  (:teardown
+   (setf *soft* nil)))
+
 
 ;;; ASM representation.
 (sel-suite* asm-tests "ASM representation.")
@@ -1309,6 +1336,39 @@ suite should be run and nil otherwise."
   (with-fixture csurf-asm-calc
     (is (= (iter (for x in-vector (genome *soft*))
 		 (counting (eq (asm-line-info-type x) :op))) 283))))
+
+
+;;;
+;;; Test the TASK-RUNNER modules.
+;;;
+(sel-suite* task-runner-tests "TASK-RUNNER tests.")
+
+;; simple test to see if the whole file parsed correctly
+(deftest task-runner-1 ()
+  (with-fixture task-runner
+    (is (= (length (task-runner-results (first *soft*))) 20))))
+
+(deftest task-runner-2 ()
+  (with-fixture task-runner
+    (is (= (length (task-runner-results (second *soft*))) 20))))
+
+(deftest task-runner-3 ()
+  (with-fixture task-runner
+    (is (and
+	 (= (task-runner-completed-tasks (first *soft*)) 20)
+	 (= (task-runner-completed-tasks (second *soft*)) 20)
+	 (= (task-runner-completed-jobs (first *soft*)) 1)
+	 (= (task-runner-completed-jobs (second *soft*)) 1)))))
+
+(deftest task-runner-4 ()
+  (with-fixture task-runner
+    (is (and
+	 (= (count "test1" (task-runner-results (first *soft*))
+		  :test 'equal :key (lambda (s) (subseq s 0 5)))
+	    20)
+	 (= (count "test2" (task-runner-results (second *soft*))
+		  :test 'equal :key (lambda (s) (subseq s 0 5)))
+	   20)))))
 
 
 ;;; ELF representation.

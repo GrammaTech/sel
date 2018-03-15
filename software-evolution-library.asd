@@ -173,7 +173,8 @@ techniques."
             :pathname "utility"
             :components
             ((:file "package")
-             (:file "utility" :depends-on ("package"))))))
+             (:file "utility" :depends-on ("package"))
+	     (:file "task" :depends-on ("package"))))))
 
 (defsystem "software-evolution-library/view"
   :description "Viewing functions for the SOFTWARE-EVOLUTION-LIBRARY."
