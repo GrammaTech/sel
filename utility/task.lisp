@@ -1,36 +1,34 @@
-;;;;
-;;;; task.lisp
-;;;;
-;;;; Functions to run multiple tasks (such as mutations  and fitness
-;;;; tests) on multiple threads.
-;;;;
-;;;; This module makes use of Bordeaux Threads. See the
-;;;; documentation here:
-;;;; https://trac.common-lisp.net/bordeaux-threads/wiki/ApiDocumentation
-;;;;
-;;;; Job: a function which returns a series of Tasks, one Task each time it is
-;;;;      called. When the series is exhausted, it will return NIL.
-;;;;
-;;;; Task: a thin wrapper over a Lisp object (typically a SOFTWARE
-;;;;      instance, but could be anything).
-;;;;      The task can be used to customize how to process the object
-;;;;      after fitness testing (basically a completion routine)
-;;;;      and to customize how it spins off child Jobs.
-;;;;
-;;;; Worker: one or more Worker threads can be created to process Jobs.
-;;;;      When all jobs are finished, all the Worker threads will exit.
-;;;;      Therefore you create Jobs first, then the Workers.
-;;;;
-;;;; Example use:
-#|
-  (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*) 10))
-  ;; When (task-runner-worker-count *runner*) = 0, 
-  ;; it means all threads are finished.
-|#
-
-(in-package :software-evolution-library/utility)
-(in-readtable :curry-compose-reader-macros)
-
+;;;; task.lisp --- Functions to run multiple tasks on multiple threads
+;;;
+;;; Functions to run multiple tasks (such as mutations and fitness
+;;; tests) on multiple threads.
+;;;
+;;; This module makes use of Bordeaux Threads. See the documentation
+;;; here:
+;;; https://trac.common-lisp.net/bordeaux-threads/wiki/ApiDocumentation
+;;;
+;;; * Job: a function which returns a series of Tasks, one Task each
+;;;        time it is called. When the series is exhausted, it will
+;;;        return NIL.
+;;;
+;;; * Task: a thin wrapper over a Lisp object (typically a SOFTWARE
+;;;         instance, but could be anything).  The task can be used to
+;;;         customize how to process the object after fitness testing
+;;;         (basically a completion routine) and to customize how it
+;;;         spins off child Jobs.
+;;;
+;;; * Worker: one or more Worker threads can be created to process
+;;;           Jobs.  When all jobs are finished, all the Worker
+;;;           threads will exit.  Therefore you create Jobs first,
+;;;           then the Workers.
+;;;
+;;; Example use:
+;;;
+;;;     (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*)
+;;;                              10))
+;;;      ;; When (task-runner-worker-count *runner*) = 0,
+;;;      ;; it means all threads are finished.
+;;;
 ;;;
 ;;; A TASK is an operation to be performed by the multi-threaded
 ;;; TASK-RUNNER. A TASK can be customized by the client to generate
@@ -50,21 +48,20 @@
 ;;; higher on the stack and therefore have priority over other tasks.
 ;;;
 ;;; When the JOBS stack is empty/NIL, then all worker threads will exit.
-;;;
+;;; @texi{task}
+(in-package :software-evolution-library/utility)
+(in-readtable :curry-compose-reader-macros)
 
-;;;
-;;; TASK-RUNNER encapsulates the state needed to run multi-threaded tasks
-;;; and associated jobs.
-;;;    jobs:         stack of current jobs to execute
-;;;    workers:      list running worker threads
-;;;    results:      result objects collected by worker threads
-;;;    jobs-lock:    (internal) used to synchronize jobs stack
-;;;    results-lock: (internal) used to synchronnize results list
-;;;    workers-lock: (internal) used to synchronize worker list
-;;;    completed-jobs: number of jobs that have been executed and finished
-;;;    completed-tasks: number of tasks that have finished
-;;;
 (defstruct task-runner
+"The state needed to run multi-threaded tasks and associated jobs.
+* jobs:         stack of current jobs to execute
+* workers:      list running worker threads
+* results:      result objects collected by worker threads
+* jobs-lock:    (internal) used to synchronize jobs stack
+* results-lock: (internal) used to synchronnize results list
+* workers-lock: (internal) used to synchronize worker list
+* completed-jobs: number of jobs that have been executed and finished
+* completed-tasks: number of tasks that have finished"
   (jobs nil)
   (workers nil)
   (results nil)
@@ -77,11 +74,9 @@
 (defparameter *task-runner* nil
   "Bind *TASK-RUNNER* for worker threads")
 
-;;;
-;;; Base class for all task classes.
-;;;
 (defclass task ()
-  ((object :initarg :object :accessor task-object)))
+  ((object :initarg :object :accessor task-object))
+  (:documentation "Base class for all task classes."))
 
 ;;;
 ;;; A class derived from the TASK class will override the method
@@ -181,17 +176,15 @@
       (push (current-thread) (task-runner-workers runner)))
     (worker-thread-task runner)))  ;; begin worker loop
 
-;;;
-;;; Save a result object
-;;;
 (defun task-save-result (runner obj)
+  "Save a result object."
   (bt:with-lock-held ((task-runner-results-lock runner))
     (push obj (task-runner-results runner))))
 
 (let ((worker-id -1))
   (defun task-runner-create-worker (runner)
     "Create a new worker thread."
-    (let ((bt:*default-special-bindings* (acons '*task-runner* runner nil))) 
+    (let ((bt:*default-special-bindings* (acons '*task-runner* runner nil)))
       (bt:make-thread 'start-worker
 		    :name (format nil "~A-~D" "software-mutator"
 				  (incf worker-id))))))
@@ -230,4 +223,3 @@
 (defun task-runner-workers-count (runner)
   "Returns the number of running threads."
   (length (task-runner-workers runner)))
-
