@@ -121,8 +121,9 @@
 ;;;
 (defmethod process-task :after (obj runner)
   (declare (ignore obj))
-  (incf (task-runner-completed-tasks runner))
-  nil)
+  (bt:with-recursive-lock-held ((task-runner-jobs-lock runner))
+    (incf (task-runner-completed-tasks runner))
+    nil))
 
 ;;;
 ;;; Returns the next mutated software task, or NIL if no more tasks
