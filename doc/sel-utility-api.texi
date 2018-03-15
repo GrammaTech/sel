@@ -1,3 +1,11 @@
+@macro refutilitystruct{name}
+@ref{Structure sel/utility:\name\, @code{\name\}}
+@end macro
+
+@macro refutilityclass{name}
+@ref{Class sel/utility:\name\,@code{\name\}}
+@end macro
+
 @macro refutilityvar{name}
 @ref{Variable sel/utility:\name\,@code{\name\}}
 @end macro
@@ -10,9 +18,28 @@
 @ref{Function sel/utility:\name\,@code{\name\}}
 @end macro
 
+@macro refutilitygeneric{name}
+@ref{Generic-Function sel/utility:\name\, @code{\name\}}
+@end macro
+
+@macro refutilitymethod{name}
+@ref{Method sel/utility:\name\, @code{\name\}}
+@end macro
+
 
 @section Contents
 @itemize
+@item @ref{tasks, Tasks}
+  @itemize
+   @item @refutilitystruct{task-runner}
+   @item @refutilityvar{*task-runner*}
+   @item @refutilityclass{task}
+   @item @refutilitygeneric{task-job}
+   @item @refutilitygeneric{process-task}
+   @item @refutilityfunction{task-save-result}
+   @item @refutilityfunction{run-task}
+  @end itemize
+
 @item Variables
   @itemize
   @item @refutilityvar{*bash-shell*}
@@ -78,6 +105,29 @@
   @item @refutilityfunction{un-cumulative-distribution}
   @end itemize
 @end itemize
+
+@anchor{tasks}
+@section Tasks
+
+@include include/task.texi
+
+@subsection Tasks API
+
+@c @item @refutilitystruct{task-runner}
+@c @item @refutilityvar{*task-runner*}
+@c @item @refutilityclass{task}
+@c @item @refutilityfunction{task-job}
+@c @item @refutilityfunction{process-task}
+@c @item @refutilityfunction{task-save-result}
+@c @item @refutilityfunction{run-task}
+
+@include include/struct-sel-slash-utility-task-runner.texinfo
+@include include/var-sel-slash-utility-star-task-runner-star.texinfo
+@include include/class-sel-slash-utility-task.texinfo
+@include include/fun-sel-slash-utility-task-job.texinfo
+@include include/fun-sel-slash-utility-process-task.texinfo
+@include include/fun-sel-slash-utility-task-save-result.texinfo
+@include include/fun-sel-slash-utility-run-task.texinfo
 
 @section Documentation
 

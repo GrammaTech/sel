@@ -48,7 +48,8 @@ techniques."
              (:file "expression" :depends-on ("lisp"))
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
-             (:file "csurf-asm" :depends-on ("asm"))
+	     (:file "asm-heap"  :depends-on ("asm"))
+             (:file "csurf-asm" :depends-on ("asm-heap"))
              (:file "elf"  :depends-on ("diff"))
              (:file "elf-cisc" :depends-on ("elf"))
              (:file "elf-risc" :depends-on ("elf"))
@@ -63,18 +64,20 @@ techniques."
              (:file "llvm" :depends-on ("ast"))
              (:file "project")
              (:file "clang-project" :depends-on ("project" "clang"))
-             (:file "java-project" :depends-on ("project" "java"))))
+             (:file "java-project" :depends-on ("project" "java"))
+             (:file "super-mutant")
+             (:file "adaptive-mutation")
+             (:file "styleable" :depends-on ("project"))
+             (:file "ancestral" :depends-on ("clang"))))
    (:module src
             :depends-on (base software)
             :pathname "src"
             :components
-            ((:file "ancestral")
-             (:file "instrument")
+            ((:file "instrument")
              (:file "clang-instrument" :depends-on ("instrument"))
              (:file "java-instrument" :depends-on ("instrument"))
              (:file "traceable" :depends-on ("test-suite"))
              (:file "fix-compilation")
-             (:file "adaptive-mutation")
              (:file "searchable")
              (:file "fodder-database" :depends-on ("searchable"))
              (:file "in-memory-fodder-database" :depends-on ("fodder-database"))
@@ -85,7 +88,6 @@ techniques."
              (:file "condition-synthesis" :depends-on ("test-suite"))
              (:file "fault-loc" :depends-on ("test-suite"))
              (:file "generate-helpers")
-             (:file "style-features")
              (:file "multi-objective")
              (:file "clang-tokens")))))
 
@@ -171,7 +173,8 @@ techniques."
             :pathname "utility"
             :components
             ((:file "package")
-             (:file "utility" :depends-on ("package"))))))
+             (:file "utility" :depends-on ("package"))
+	     (:file "task" :depends-on ("package"))))))
 
 (defsystem "software-evolution-library/view"
   :description "Viewing functions for the SOFTWARE-EVOLUTION-LIBRARY."

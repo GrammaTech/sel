@@ -1,6 +1,15 @@
 ;;; java.lisp --- java software representation
 ;;;
-;;; DOCFIXME_JAVA Need a page or so introduction to java software objects.
+;;; Implements the core functionality of the software-evolution-library
+;;; for class files written in java. The java versions that are supported
+;;; relies heavily on an input's success of parsing with
+;;; @uref{http://javaparser.org/, Java Parser}.
+;;;
+;;; The core functionality is supported by the command line tool
+;;; @uref{https://github.com/GrammaTech/java-mutator, java-mutator}.
+;;;
+;;; Note: certain methods in this class are over-loaded to provide consistency
+;;; with other software objects, but are not used in this implementation.
 ;;;
 ;;; @texi{java}
 (in-package :software-evolution-library)
@@ -31,7 +40,7 @@ exit 0")
               :accessor compiler :initform "java")
    (file-name :initarg :file-name
               :accessor file-name :initform nil))
-  (:documentation "DOCFIXME_JAVA"))
+  (:documentation "The java software object represents a single java file."))
 
 (defmethod from-file ((obj java) path)
   "Populate software object upon initialization"
@@ -127,6 +136,7 @@ insert)."
     (:string (values (format nil "~s" value)))))
 
 (defmethod phenome ((obj java) &key (bin (temp-file-name)))
+  "Compiles the software object to a jar and converts it to a linux executable"
   (with-temp-dir (sandbox)
     (with-cwd (sandbox)
       (let ((bin (ensure-path-is-string bin))
@@ -170,10 +180,9 @@ insert)."
   (declare (ignorable style))
   obj)
 
-;;; TODO: Rename to `indent' to `indent', or think of another way to
-;;;       control if tidy or indent is run (e.g., a clang-specific
-;;;       global configuration variable)..
-(defmethod indent ((obj java) &optional style)
+;; TODO: Artistic style can be used with JAVA objects
+(defmethod astyle ((obj java) &optional style)
+  "This method currently has not effect on Java objects."
   (declare (ignorable style))
   obj)
 

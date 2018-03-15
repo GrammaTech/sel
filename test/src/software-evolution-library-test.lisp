@@ -242,6 +242,10 @@ suite should be run and nil otherwise."
   :test #'equalp
   :documentation "Path to directory holding the SimpleMaven java project.")
 
+(define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
+  :test #'equalp
+  :documentation "Path to asm-test examples.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -402,8 +406,30 @@ suite should be run and nil otherwise."
                  :type (pathname-type filename)
                  :directory +java-dir+))
 
+(defun asm-test-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +asm-test-dir+))
+
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
+
+;;;
+;;; Task support
+;;;
+(defclass child-task (task) ())
+(defclass parent-task (task) ())
+(defmethod task-job ((task parent-task) runner)
+  (declare (ignore runner))
+  (let ((index 0))
+    (lambda ()
+      (if (<= (incf index) 20)
+	  (make-instance 'child-task
+			 :object (format nil "~A-~D"
+					 (task-object task) index))))))      
+(defmethod process-task ((task child-task) runner)
+  (task-save-result runner (task-object task)) ;; save the object
+  (sleep 1)) ;; sleep 1 second
 
 (defvar *soft-mutate-errors* nil
   "Control when mutations on soft objects throw errors.")
@@ -463,6 +489,10 @@ suite should be run and nil otherwise."
 
 (defixture gcd-asm
   (:setup (setf *gcd* (from-file (make-instance 'asm) (gcd-dir "gcd.s"))))
+  (:teardown (setf *gcd* nil)))
+
+(defixture gcd-asm-heap
+  (:setup (setf *gcd* (from-file (make-instance 'asm-heap) (gcd-dir "gcd.s"))))
   (:teardown (setf *gcd* nil)))
 
 (defixture gcd-elf
@@ -995,6 +1025,25 @@ suite should be run and nil otherwise."
   (:teardown
     (setf *soft* nil)))
 
+(defixture csurf-asm-calc
+  (:setup (setf *soft*
+		(from-file
+		 (make-instance 'csurf-asm
+                   :redirect-file (asm-test-dir "calc.elf_copy_redirect.asm"))
+                 (asm-test-dir "calc.asm"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture task-runner
+  (:setup (setf *soft*
+	    (list (run-task (make-instance 'parent-task :object "test1") 10)
+	          (run-task (make-instance 'parent-task :object "test2") 20)))
+	  ;; wait for all the threads to terminate
+	  (mapcar 'bt:join-thread (task-runner-workers (first *soft*)))
+	  (mapcar 'bt:join-thread (task-runner-workers (second *soft*))))
+  (:teardown
+   (setf *soft* nil)))
+
 
 ;;; ASM representation.
 (sel-suite* asm-tests "ASM representation.")
@@ -1206,11 +1255,118 @@ suite should be run and nil otherwise."
           (t (is (= (size crossed) (size *gcd*)))))))))
 
 
+;;; ASM-HEAP representation.
+(deftest edit-of-asm-heap-copy-does-not-change-original ()
+  (with-fixture gcd-asm-heap
+    (let ((orig-hash (sxhash (genome *gcd*)))
+          (variant (copy *gcd*)))
+      ;; Multiple tries to apply a mutation creating a difference.
+      ;; Stochastically some might result in the same genome, e.g. by
+      ;; swapping to identical instructions.
+      (is (iter (as count upfrom 0)
+                (handler-bind
+                    ((no-mutation-targets
+                      (lambda (c)
+                        (declare (ignorable c))
+                        (invoke-restart 'try-another-mutation))))
+                  (mutate variant))
+                (when (not (sel::equal-it (genome variant) (genome *gcd*)))
+                  (return t))
+                (when (> count 100)
+                  (return nil)))
+          "In 100 tries, a mutation results in a different mutated genome.")
+      (is (equal orig-hash (sxhash (genome *gcd*)))))))
+
+(deftest asm-heap-cut-actually-shortens ()
+  (with-fixture gcd-asm-heap
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant (make-instance 'simple-cut :targets 4))
+      (is (< (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-heap-insertion-actually-lengthens ()
+  (with-fixture gcd-asm-heap
+    (let ((variant (copy *gcd*)))
+      (apply-mutation variant (make-instance 'simple-insert
+                                             :targets (list 4 8)))
+      (is (> (length (genome variant)) (length (genome *gcd*)))))))
+
+(deftest asm-heap-swap-maintains-length ()
+  (with-fixture gcd-asm-heap
+    (let ((variant (copy *gcd*))
+          (mutation
+           (make-instance 'simple-swap
+             :targets (list
+                       (position-if
+                        [{eql 'sel/asm::movsd} #'asm-line-info-opcode]
+                        (genome *gcd*))
+                       (position-if
+                        [{eql 'sel/asm::call} #'asm-line-info-opcode]
+                        (genome *gcd*))))))
+      (setf variant (apply-mutation variant mutation))
+      (is (not (equalp (genome variant) (genome *gcd*))))
+      (is (= (length (genome variant)) (length (genome *gcd*)))))))
+
+
 ;;; CSURF-ASM representation.
 (sel-suite* csurf-asm-tests "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
+
+;; simple test to see if the whole file parsed correctly
+(deftest parser-test-1 ()
+  (with-fixture csurf-asm-calc
+    (is (= (length (genome *soft*)) 840))))
+
+(deftest parser-test-2 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (asm-line-info-type (elt (genome *soft*) 0)) :empty))))
+
+(deftest parser-test-3 ()
+  (with-fixture csurf-asm-calc
+    (is (eq (asm-line-info-type (elt (genome *soft*) 1)) :decl))))
+
+(deftest parser-test-4 ()
+  (with-fixture csurf-asm-calc
+    (let ((op-line (find :op (genome *soft*) :key 'asm-line-info-type)))
+      (is (and (eq (asm-line-info-opcode op-line) 'sel/asm::sub)
+	       (equal (asm-line-info-operands op-line) '(sel/asm::rsp 8)))))))
+
+(deftest parser-test-5 ()
+  (with-fixture csurf-asm-calc
+    (is (= (iter (for x in-vector (genome *soft*))
+		 (counting (eq (asm-line-info-type x) :op))) 283))))
+
+
+;;;
+;;; Test the TASK-RUNNER modules.
+;;;
+(sel-suite* task-runner-tests "TASK-RUNNER tests.")
+
+;; simple test to see if the whole file parsed correctly
+(deftest task-runner-1 ()
+  (with-fixture task-runner
+    (is (= (length (task-runner-results (first *soft*))) 20))))
+
+(deftest task-runner-2 ()
+  (with-fixture task-runner
+    (is (= (length (task-runner-results (second *soft*))) 20))))
+
+(deftest task-runner-3 ()
+  (with-fixture task-runner
+    (is (= (task-runner-completed-tasks (first *soft*)) 20))
+    (is (= (task-runner-completed-tasks (second *soft*)) 20))
+    (is (= (task-runner-completed-jobs (first *soft*)) 1))
+    (is (= (task-runner-completed-jobs (second *soft*)) 1))))
+
+(deftest task-runner-4 ()
+  (with-fixture task-runner
+    (is (= (count "test1" (task-runner-results (first *soft*))
+		  :test 'equal :key (lambda (s) (subseq s 0 5)))
+           20))
+    (is (= (count "test2" (task-runner-results (second *soft*))
+		  :test 'equal :key (lambda (s) (subseq s 0 5)))
+	   20))))
 
 
 ;;; ELF representation.
@@ -2340,17 +2496,8 @@ int x = CHARSIZE;")))
                         (error e)))))
     (with-fixture hello-world-clang-w-fodder
       (let ((variant (copy *hello-world*)))
-        (let ((retries 0))
-          ;; NOTE: To deal with stochastic failures parsing fodder see
-          ;; the note in "recontextualize-mutation :around" in
-          ;; clang-w-fodder.lisp.
-          (handler-bind ((mutate (lambda (e)
-                                   (if (< retries 100)
-                                       (progn (incf retries)
-                                              (invoke-restart 'retry-mutation))
-                                       (error e)))))
-            (apply-mutation variant (make-instance 'insert-fodder-decl
-                                      :object variant))))
+        (apply-mutation variant (make-instance 'insert-fodder-decl
+                                  :object variant))
         (is (> (size variant)
                (size *hello-world*)))
         (is (string/= (genome variant)
@@ -2671,27 +2818,17 @@ int x = CHARSIZE;")))
       ((:C . 3) (:F . 0)(:SCOPES . (("test1" "int" 2))))
       ((:C . 4) (:F . 0)(:SCOPES . (("test1" "int" 2))))
       ((:C . 5) (:F . 0)(:SCOPES . (("test1" "int" 3))))
-      ((:C . 6) (:F . 0)(:SCOPES . (("test1" "int" 3)
-                                    ("k" "int" 0))))
-      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 0))))
-      ((:C . 8) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 0))))
-      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 1))))
-      ((:C . 8) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 1))))
-      ((:C . 9) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                     ("k" "int" 1))))
-      ((:C . 10) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                      ("k" "int" 1)
+      ((:C . 6) (:F . 0)(:SCOPES . (("k" "int" 0)("test1" "int" 3))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("k" "int" 0)("test1" "int" 3))))
+      ((:C . 8) (:F . 0) (:SCOPES . (("k" "int" 0)("test1" "int" 3))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3))))
+      ((:C . 8) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3))))
+      ((:C . 9) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3))))
+      ((:C . 10) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3)
                                       ("test2" "int" 30))))
-      ((:C . 11) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                      ("k" "int" 2))))
-      ((:C . 12) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                      ("k" "int" 2))))
-      ((:C . 13) (:F . 0) (:SCOPES . (("test1" "int" 3)
-                                      ("k" "int" 2)))))
+      ((:C . 11) (:F . 0) (:SCOPES . (("k" "int" 2)("test1" "int" 3))))
+      ((:C . 12) (:F . 0) (:SCOPES . (("k" "int" 2)("test1" "int" 3))))
+      ((:C . 13) (:F . 0) (:SCOPES . (("k" "int" 2)("test1" "int" 3)))))
      (:INPUT :BIN))))
 
 (deftest collect-traces-testsimple-whileforifprint-2 ()
@@ -2708,12 +2845,12 @@ int x = CHARSIZE;")))
       ((:C . 3) (:F . 0) (:SCOPES . (("test1" "int" 2))))
       ((:C . 4) (:F . 0) (:SCOPES . (("test1" "int" 2))))
       ((:C . 5) (:F . 0) (:SCOPES . (("test1" "int" 3))))
-      ((:C . 6) (:F . 0) (:SCOPES . (("test1" "int" 3))))
-      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3))))
-      ((:C . 6) (:F . 0) (:SCOPES . (("test1" "int" 3))))
-      ((:C . 7) (:F . 0) (:SCOPES . (("test1" "int" 3))))
-      ((:C . 8) (:F . 0) (:SCOPES . (("test1" "int" 3))))
-      ((:C . 9) (:F . 0) (:SCOPES . (("test1" "int" 3)
+      ((:C . 6) (:F . 0) (:SCOPES . (("k" "int" 0)("test1" "int" 3))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("k" "int" 0)("test1" "int" 3))))
+      ((:C . 6) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3))))
+      ((:C . 7) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3))))
+      ((:C . 8) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3))))
+      ((:C . 9) (:F . 0) (:SCOPES . (("k" "int" 1)("test1" "int" 3)
                                      ("test2" "int" 30)))))
      (:INPUT :BIN))))
 
@@ -2965,7 +3102,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Ancestry tests.
-(sel-suite* ancestry "Ancestry tests."
+(sel-suite* clang-ancestry "Ancestry tests."
             (clang-mutate-available-p))
 
 
@@ -3043,6 +3180,44 @@ int x = CHARSIZE;")))
             (when (probe-file svg) (delete-file svg))
             (when (probe-file dot) (delete-file dot)))
           (is (zerop errno)))))))
+
+
+;;; CSURF-ASM ancestry tests.
+(sel-suite* csurf-asm-ancestry "Ancestry tests.")
+
+
+(defclass csurf-asm-w/ancestry (csurf-asm ancestral) ())
+
+(defixture csurf-asm-w-ancestry
+  (:setup
+   (reset-ancestry-id)
+   (setf *soft*
+         (from-file
+          (make-instance 'csurf-asm-w/ancestry
+            :redirect-file (asm-test-dir "calc.elf_copy_redirect.asm"))
+          (asm-test-dir "calc.asm"))
+         *test* [#'length #'genome])
+   (evaluate *test* *soft*))
+  (:teardown
+   (reset-ancestry-id)
+   (setf *soft* nil *test* nil)))
+
+(deftest apply-mutation-logs-ancestry-on-csurf-asm ()
+  (with-fixture csurf-asm-w-ancestry
+    (let ((op (make-instance 'simple-cut :targets 4)))
+      (apply-mutation *soft* op)
+      (evaluate *test* *soft*)
+
+      (is (< 1 (length (ancestors *soft*))))
+
+      (is (= 1 (plist-get :id (first (ancestors *soft*)))))
+      (is (not (null (plist-get :fitness (first (ancestors *soft*))))))
+      (is (equal (type-of op)
+                 (plist-get :mutant (first (ancestors *soft*)))))
+
+      (is (= 0 (plist-get :id (second (ancestors *soft*)))))
+      (is (equal 'from-file
+                 (plist-get :how (second (ancestors *soft*))))))))
 
 
 ;;;; Diff tests.
@@ -5019,7 +5194,7 @@ Useful for printing or returning differences in the REPL."
     (let ((errno (nth-value 2 (run-program (format nil "~a 4 8 2>~a"
                                                    bin trace-file)))))
       (is (zerop errno))
-      (let ((trace (read-binary-trace trace-file 1)))
+      (let ((trace (read-binary-trace trace-file)))
         (is (listp trace))
         trace))))
 
@@ -5467,7 +5642,7 @@ prints unique counters in the trace"
         (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
                                                        bin trace-file)))))
           (is (zerop errno))
-          (let ((trace (read-binary-trace trace-file 1)))
+          (let ((trace (read-binary-trace trace-file)))
             (is (listp trace))
             (is (not (emptyp trace)))
             (is (every «and {aget :c} {aget :f}» trace))
@@ -7867,3 +8042,389 @@ prints unique counters in the trace"
               ;(format t "BAD:  ~{~a~^,~}~%" bad-stmts)
               ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
               (is (equal bad-stmts gold-set-prefix)))))))))
+
+(sel-suite* clang-super-mutants "Super mutants of clang objects."
+            (clang-mutate-available-p))
+
+(deftest super-mutant-genome-works ()
+  (with-fixture fib-clang
+    (let* ((mutant-a (copy *fib*))
+           (mutant-b (copy *fib*))
+           (*matching-free-var-retains-name-bias* 1.0))
+      (apply-mutation mutant-a
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-a
+                                                             "x = x + y"))))
+      (apply-mutation mutant-b
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-b
+                                                             "y = t"))))
+
+      (let ((super (make-instance 'super-mutant
+                                  :mutants (list mutant-a mutant-b
+                                                 (copy mutant-b)))))
+        (is (genome super))
+        (is (phenome-p super))))))
+
+(deftest super-mutant-genome-preserves-unvarying-functions ()
+  "Switch should be omitted in functions which are the same across all mutants."
+  (with-fixture huf-clang
+    (let ((mutant-a (copy *huf*))
+          (mutant-b (copy *huf*))
+          (mutant-c (copy *huf*)))
+      (apply-mutation mutant-a
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-a
+                                                             "h->n = 0"))))
+      (apply-mutation mutant-b
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-b
+                                                             "free(heap)"))))
+      (apply-mutation mutant-c
+                      `(clang-cut (:stmt1 . ,(stmt-with-text mutant-b
+                                                             "heap->n--"))))
+
+      (let* ((super (make-instance 'super-mutant
+                                   :mutants (list mutant-a mutant-b
+                                                  mutant-c)))
+             (obj (sel::super-soft super)))
+        (is (genome super))
+        (is (phenome-p super))
+        (mapcar (lambda (fun)
+                  (is (eq (if (member (ast-name fun)
+                                      '("_heap_create" "_heap_destroy"
+                                        "_heap_remove")
+                                      :test #'string=)
+                              1
+                              0)
+                          (count-if [{eq :SwitchStmt} #'ast-class]
+                                    (->> (function-body obj fun)
+                                         (get-immediate-children obj))))))
+                (functions obj))))))
+
+(deftest super-mutant-genome-has-union-of-global-decls ()
+  (with-fixture gcd-clang
+    (let* ((mutant-a (->>
+                      `(clang-insert (:stmt1 . ,(car (asts *gcd*)))
+                                     (:stmt2 . ,(stmt-with-text *gcd*
+                                                                "double a")))
+                      (apply-mutation (copy *gcd*))))
+           (mutant-b (copy mutant-a))
+           (mutant-c (copy mutant-b)))
+      (apply-mutation mutant-b
+                      `(clang-insert (:stmt1 . ,(second (roots mutant-b)))
+                                     (:stmt2 . ,(stmt-with-text mutant-b
+                                                                "double b"))))
+      (apply-mutation mutant-c
+                      `(clang-insert (:stmt1 . ,(second (roots mutant-c)))
+                                     (:stmt2 . ,(stmt-with-text mutant-c
+                                                                "double c"))))
+      (apply-mutation mutant-c
+                      `(clang-insert (:stmt1 . ,(second (roots mutant-c)))
+                                     (:stmt2 . ,(stmt-with-text mutant-c
+                                                                "double r1"))))
+      (let* ((super (make-instance 'super-mutant
+                                   :mutants (list mutant-a mutant-b
+                                                  mutant-c)))
+             (obj (sel::super-soft super)))
+        (is (genome super))
+        (is (phenome-p super))
+        (let ((decls (mapcar #'source-text
+                             (remove-if #'function-decl-p (roots obj)))))
+          ;; Ordering between b and (c r1) is arbitrary, but a must
+          ;; come first.
+          (is (or (equal decls
+                         '("double a" "double c" "double r1" "double b"))
+                  (equal decls
+                         '("double a" "double b" "double c" "double r1")))))))))
+
+(deftest super-mutant-genome-has-union-of-functions ()
+  (with-fixture huf-clang
+    (let* ((mutant-a (copy *huf*))
+           (mutant-b (copy *huf*))
+           (mutant-c (copy *huf*)))
+      (->> `(clang-cut (:stmt1 . ,(find-if [{string= "_heap_add"}
+                                            #'ast-name]
+                                           (functions mutant-a))))
+           (apply-mutation mutant-a))
+      (->> `(clang-cut (:stmt1 . ,(find-if [{string= "_heap_remove"}
+                                            #'ast-name]
+                                           (functions mutant-a))))
+           (apply-mutation mutant-a))
+      (->> `(clang-cut (:stmt1 . ,(find-if [{string= "_heap_add"}
+                                            #'ast-name]
+                                           (functions mutant-b))))
+           (apply-mutation mutant-b))
+      (->> `(clang-cut (:stmt1 . ,(find-if [{string= "_heap_remove"}
+                                            #'ast-name]
+                                           (functions mutant-c))))
+           (apply-mutation mutant-c))
+
+      (let* ((super (make-instance 'super-mutant
+                                   :mutants (list mutant-a mutant-b
+                                                  mutant-c)))
+             (obj (sel::super-soft super)))
+        (is (genome super))
+        (is (phenome-p super))
+        (let ((functions (->> (functions obj)
+                              (take 5)
+                              (mapcar #'ast-name))))
+          ;; Ordering between _heap_sort and _heap_destroy is
+          ;; arbitrary, but _heap_create must come first.
+          (is (or (equal functions
+                         '("_heap_create" "_heap_destroy" "_heap_sort"
+                           "_heap_add" "_heap_remove"))
+                  (equal functions
+                         '("_heap_create" "_heap_destroy" "_heap_sort"
+                           "_heap_remove" "_heap_add")))))))))
+
+(deftest super-mutant-genome-can-insert-merged-function ()
+  (with-fixture huf-clang
+    (let* ((mutant-a (copy *huf*))
+           (mutant-b (copy *huf*))
+           (mutant-c (copy *huf*))
+           (*matching-free-var-retains-name-bias* 1.0))
+      (->> `(clang-cut (:stmt1 . ,(find-if [{string= "_heap_add"}
+                                            #'ast-name]
+                                           (functions mutant-a))))
+           (apply-mutation mutant-a))
+      (->> `(clang-insert (:stmt1 . ,(stmt-with-text mutant-b
+                                                     "_heap_sort(heap)"))
+                          (:value1 . ,(stmt-with-text mutant-b
+                                                      "heap->n++")))
+           (apply-mutation mutant-b))
+      (->> `(clang-insert (:stmt1 . ,(stmt-with-text mutant-c
+                                                     "_heap_sort(heap)"))
+                          (:value1 . ,(stmt-with-text mutant-c
+                                                      "heap->h[heap->n] = c")))
+           (apply-mutation mutant-c))
+
+
+
+      (let* ((super (make-instance 'super-mutant
+                                   :mutants (list mutant-a mutant-b
+                                                  mutant-c)))
+             (obj (sel::super-soft super))
+             (heap-add (find-if [{string= "_heap_add"} #'ast-name]
+                                (functions obj)))
+             (stmts (apply #'subseq (asts obj) (stmt-range obj heap-add))))
+        (is (genome super))
+        (is (phenome-p super))
+        (is heap-add)
+        (mapcar (lambda (fun)
+                  (is (eq (if (eq heap-add fun)
+                              1
+                              0)
+                          (count-if [{eq :SwitchStmt} #'ast-class]
+                                    (->> (function-body obj fun)
+                                         (get-immediate-children obj))))))
+                (functions obj))
+        (is (eq 1 (count-if [{eq :DefaultStmt} #'ast-class] stmts))
+            "Super-function contains default statement.")
+        (is (eq 2 (count-if [{eq :CaseStmt} #'ast-class] stmts))
+            "Super-function contains correct number of case statements.")))))
+
+(deftest super-mutant-genome-handles-function-prototypes ()
+  (let ((mutant (from-string (make-instance 'clang) "int foo();")))
+    (is (genome (make-instance 'super-mutant
+                               :mutants (list (copy mutant) (copy mutant)))))))
+
+(deftest super-mutant-genome-detects-incompatible-functions ()
+  ;; These all fail because ast-args is set by clang-mutate and does not
+  ;; update upon mutation
+  ;; (let* ((base (from-string (make-instance 'clang)
+  ;;                           "void foo(int a, int b) {}"))
+  ;;        (remove-arg (copy base))
+  ;;        (change-arg-type (copy base))
+  ;;        (change-arg-name (copy base)))
+  ;;   ;; Different argument count
+  ;;   (apply-mutation remove-arg
+  ;;                   `(clang-cut (:stmt1 . ,(stmt-with-text remove-arg
+  ;;                                                          "int b"))))
+  ;;   (signals mutate
+  ;;     (genome (make-instance 'super-mutant
+  ;;                            :mutants (list base remove-arg))))
+  ;;   ;; Different argument type
+  ;;   (apply-mutation change-arg-type
+  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-type
+  ;;                                                              "int b"))
+  ;;                                   (:value1 . ,(make-statement :ParmVar
+  ;;                                                               :finallistelt
+  ;;                                                               '("char b")))))
+  ;;   (signals mutate
+  ;;     (genome (make-instance 'super-mutant
+  ;;                            :mutants (list base change-arg-type))))
+  ;;   ;; Different argument name
+  ;;   (apply-mutation change-arg-name
+  ;;                   `(clang-replace (:stmt1 . ,(stmt-with-text change-arg-name
+  ;;                                                              "int b"))
+  ;;                                   (:value1 . ,(make-statement :ParmVar
+  ;;                                                               :finallistelt
+  ;;                                                               '("int c")))))
+  ;;   (signals mutate
+  ;;     (genome (make-instance 'super-mutant
+  ;;                            :mutants (list base change-arg-name)))))
+
+  ;; Different return types
+  (signals mutate
+    (genome (make-instance 'super-mutant
+                           :mutants
+                           (list (from-string (make-instance 'clang)
+                                              "void foo() {}")
+                                 (from-string (make-instance 'clang)
+                                              "int foo() { return 1; }")))))
+
+  ;; Prototype vs. complete function
+  (signals mutate
+    (genome (make-instance 'super-mutant
+                           :mutants
+                           (list (from-string (make-instance 'clang)
+                                              "void foo() {}")
+                                 (from-string (make-instance 'clang)
+                                              "void foo();"))))))
+
+(deftest super-mutant-genome-detects-mismatched-globals ()
+  (let* ((base (from-string (make-instance 'clang)
+                           "int a; int b; int c;"))
+         (variant (copy base)))
+    (apply-mutation variant
+                    `(clang-replace (:stmt1 . ,(stmt-with-text variant
+                                                               "int b"))
+                                    (:value1 . ,(->> (find-or-add-type variant
+                                                                       "char")
+                                                     (make-var-decl "b")))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                             :mutants (list base variant))))))
+
+(deftest super-mutant-genome-detects-delete-function-body ()
+  (let* ((base (from-string (make-instance 'clang)
+                           "void foo() {}"))
+         (variant (copy base)))
+    ;; This is a useless mutation but it happens sometimes. Ensure
+    ;; that it leads to a mutation error.
+    (apply-mutation variant
+                    `(clang-cut (:stmt1 . ,(stmt-with-text variant "{}"))))
+    (signals mutate
+      (genome (make-instance 'super-mutant
+                             :mutants (list base variant))))))
+
+(deftest collate-ast-variants-test ()
+  ;; This function is intended to be called on asts, but it only
+  ;; relies on EQUAL comparison of the keys so we can test it with
+  ;; artificial data.
+
+  ;; Simple case: all top-level decls line up
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((1 . b1) (2 . b2) (3 . b3))))
+             '((a1 b1) (a2 b2) (a3 b3))))
+
+  ;; Deleted AST
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((1 . b1) (3 . b3))))
+             '((a1 b1) (a2 nil) (a3 b3))))
+
+  ;; Inserted AST
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (3 . a3))
+                                          ((1 . b1) (2 . b2) (3 . b3))))
+             '((a1 b1) (nil b2) (a3 b3))))
+
+  ;; Deleted at beginning
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((2 . b2) (3 . b3))))
+             '((a1 nil) (a2 b2) (a3 b3))))
+
+  ;; Deleted at end
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((1 . b1) (2 . b2))))
+             '((a1 b1) (a2 b2) (a3 nil))))
+
+  ;; Inserted at beginning
+  (is (equal (sel::collate-ast-variants '(((2 . a2) (3 . a3))
+                                          ((1 . b1) (2 . b2) (3 . b3))))
+             '((nil b1) (a2 b2) (a3 b3))))
+
+  ;; Inserted at end
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2))
+                                          ((1 . b1) (2 . b2) (3 . b3))))
+             '((a1 b1) (a2 b2) (nil b3))))
+
+  ;; Multiple inserted ASTs
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (3 . a3))
+                                          ((1 . b1) (2 . b2) (4 . b4)
+                                           (5 . b5) (3 . b3))))
+             '((a1 b1) (nil b2) (nil b4) (nil b5) (a3 b3))))
+
+  ;; 3 variants
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((1 . b1) (2 . b2) (3 . b3))
+                                          ((1 . c1) (2 . c2) (3 . c3))))
+             '((a1 b1 c1) (a2 b2 c2) (a3 b3 c3))))
+
+  ;; 3 variants with inserts and deletes
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((1 . b1) (3 . b3))
+                                          ((1 . c1) (2 . c2) (4 . c4)
+                                           (3 . c3))))
+             '((a1 b1 c1) (a2 nil c2) (nil nil c4) (a3 b3 c3))))
+
+
+  ;; Swapped ASTs are not merged correctly. This is a known
+  ;; limitation.
+  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+                                          ((2 . b2) (1 . b1) (3 . b3))))
+             '((a1 nil) (a2 b2) (nil b1) (a3 b3)))))
+
+(define-software mutation-failure-tester (clang) ())
+
+(defvar *test-mutation-count* 0)
+(defmethod mutate ((soft mutation-failure-tester))
+  (incf *test-mutation-count*)
+  ;; Every other mutation fails
+  (when (zerop (mod *test-mutation-count* 2))
+    (error (make-condition 'mutate)))
+  soft)
+
+(deftest super-evolve-handles-mutation-failure ()
+  (let* ((obj (from-string (make-instance 'mutation-failure-tester)
+                           "int main() { return 0; }"))
+         (*population* (list obj))
+         (*fitness-evals* 0)
+         (*cross-chance* 0)
+         (*target-fitness-p* (lambda (fit) (declare (ignorable fit)) t)))
+    (setf (fitness obj) 0)
+    ;; Ensure the software objects raise mutation errors as expected
+    (signals mutate
+      (evolve (lambda (obj) (declare (ignorable obj)) 1)
+              :max-evals 10
+              :super-mutant-count 4))
+    (handler-bind ((mutate (lambda (err)
+                             (declare (ignorable err))
+                             (invoke-restart 'ignore-failed-mutation))))
+      ;; This should exit after evaluating the first super-mutant,
+      ;; because *target-fitness-p* is trivially true.
+      (evolve (lambda (obj) (declare (ignorable obj)) 1)
+              :max-evals 10
+              :super-mutant-count 4))
+    ;; Despite errors, the first super-mutant should accumulate the
+    ;; desired number of variants and evaluate all of them.
+    (is (eq *fitness-evals* 4))))
+
+(deftest super-mutant-evaluate-works ()
+  (let* ((template "#include <stdio.h>
+int main() { puts(\"~d\"); return 0; }
+")
+         (mutants (mapcar (lambda (i)
+                            (from-string (make-instance 'clang)
+                                         (format nil template i)))
+                          '(1 2 3 4)))
+           (super (make-instance 'super-mutant :mutants mutants)))
+    (evaluate (lambda (obj)
+                ;; Proxies are the same type as mutants
+                (is (eq 'clang (type-of obj)))
+                (cons (&>> (phenome obj)
+                           (shell)
+                           (parse-integer))
+                      (genome obj)))
+              super)
+    ;; Each variant printed the appropriate number
+    (is (equal '(1 2 3 4) (mapcar [#'car #'fitness] mutants)))
+    ;; Each proxy had genome identical to the corresponding mutant
+    (is (equal (mapcar #'genome mutants)
+               (mapcar [#'cdr #'fitness] mutants)))))

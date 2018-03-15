@@ -13,6 +13,10 @@
 (defvar *next-ancestry-id* 0
   "Unique identifier for ancestry.")
 
+(defun reset-ancestry-id ()
+  "Reset the ancestry ID."
+  (setf *next-ancestry-id* 0))
+
 (defun get-fresh-ancestry-id ()
   "DOCFIXME"
   (1- (incf *next-ancestry-id*)))

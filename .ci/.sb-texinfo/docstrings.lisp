@@ -476,6 +476,45 @@ with #\@. Optionally downcase the result."
                         do (write-char char s)))))
     (if downcasep (nstring-downcase result) result)))
 
+;;; TODO: Maybe everything in here should at some point get
+;;;       first-class support as specialized syntax.
+(defun unescape-for-texinfo (string &aux last-char)
+  "Unescape obvious texinfo commands in STRING.
+STRING is assumed to be the result of `escape-for-texinfo'."
+  (let ((w/o-braces '("section" "subsection" "subsubsection"))
+        (w/braces '("uref" "ref"))
+        (braces 0))
+    (flet ((subword-at (i word)
+             (string= (subseq string i (min (+ i (length word))))
+                      word))
+           (next-char (i) (aref string i)))
+      (with-output-to-string (s)
+        (loop
+           for char across string
+           as i upfrom 1
+           ;; This conditional is admittedly convoluted, it manages
+           ;; two things.  First, it checks for words which we don't
+           ;; want to escape, in `w/o-braces' or `w/braces'.  Second,
+           ;; when something is is `w/braces' it handles not escaping
+           ;; the next two braces using the `braces' counter.
+           unless (or (and (> braces 0) ; Handle brace un-escaping.
+                           (when (or (and (equal (next-char i) #\{)
+                                          (= braces 2))
+                                     (and (equal (next-char i) #\})
+                                          (= braces 1)))
+                             (decf braces)
+                             t))
+                      (and (equal last-char #\@) ; Handle word un-escaping.
+                           (equal char #\@)
+                           (or (some (lambda (word) (subword-at i word))
+                                     w/o-braces)
+                               (when (some (lambda (word) (subword-at i word))
+                                           w/braces)
+                                 (setf braces 2)
+                                 t))))
+           do (write-char char s)
+           do (setf last-char char))))))
+
 (defun empty-p (line-number lines)
   (and (< -1 line-number (length lines))
        (not (indentation (svref lines line-number)))))
@@ -727,7 +766,8 @@ followed another tabulation label or a tabulation body."
 (defun write-texinfo-string (string &optional lambda-list)
   "Try to guess as much formatting for a raw docstring as possible."
   (let ((*texinfo-variables* (flatten lambda-list))
-        (lines (string-lines (escape-for-texinfo string nil))))
+        (lines (string-lines (unescape-for-texinfo
+                              (escape-for-texinfo string nil)))))
       (loop for line-number from 0 below (length lines)
             for line = (svref lines line-number)
             do (cond

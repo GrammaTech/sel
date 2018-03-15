@@ -8,7 +8,7 @@ ENV PATH=/gt/sel/bin:$PATH \
 # standard functions requires that the system has man pages installed.
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
-RUN pacman -Syu --noconfirm gcc-multilib lib32-fakeroot lib32-gcc-libs lib32-libltdl man-db man-pages python
+RUN pacman -Syu --noconfirm gcc-multilib lib32-fakeroot lib32-gcc-libs lib32-libltdl man-db man-pages python unzip astyle
 
 ARG GT
 COPY . /gt/sel

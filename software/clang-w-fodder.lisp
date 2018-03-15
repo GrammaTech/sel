@@ -185,9 +185,10 @@ Returns modified text, and names of bound variables.
              (apply-replacements replacements (aget :src-text snippet)))
             (mapcar [#'peel-bananas #'cdr] var-replacements))))
 
-(defun prepare-fodder (obj snippet pt)
+(defun prepare-fodder (obj database snippet pt)
   "Prepare SNIPPET for insertion into OBJ at PT.
 * OBJ clang software object to be injected with SNIPPET
+* DATABASE fodder database containing snippet
 * SNIPPET fodder snippet to inject
 * PT point where fodder snippet is to be injected
 "
@@ -205,7 +206,9 @@ Returns modified text, and names of bound variables.
                    (mapcar #'list
                            vars
                            (mapcar {var-type in-scope} vars))
-                   (aget :includes snippet))))
+                   (aget :includes snippet)
+                   :macros (mapcar {find-macro database}
+                                   (aget :macros snippet)))))
           (car asts)
           (error (make-condition 'mutate
                                  :text "Failed to parse fodder"
@@ -221,7 +224,7 @@ Returns modified text, and names of bound variables.
              (pt (aget :stmt1 properties)))
       ;; When :value1 is present, rebind variables and parse the
       ;; resulting code to generate an AST.
-      (cons kind (acons :value1 (prepare-fodder obj snippet pt)
+      (cons kind (acons :value1 (prepare-fodder obj *database* snippet pt)
                         properties))
       ;; Otherwise return the original OP
       op)))
@@ -232,12 +235,6 @@ of variables and functions in fodder snippets prior to fodder mutations.
 * OBJ clang software object to be modified
 * MUTATION operations to be performed
 "
-  ;; NOTE: Stochastic failures in `prepare-fodder-op' when fodder
-  ;;       fails to parse.  This is sometimes exercised by the
-  ;;       `insert-decl-lengthens-a-clang-w-fodder-software-object'
-  ;;       test function.  It seems like a restart near here which is
-  ;;       able to re-run the targetter should fix this... but didn't
-  ;;       work after a brief try.
   (if (member (type-of mutation) *clang-w-fodder-new-mutation-types*)
       (recontextualize-mutation obj (mapcar {prepare-fodder-op obj}
                                             (build-op mutation obj)))
@@ -304,7 +301,8 @@ AST of the same class."))
   (:documentation "Replace an AST in a clang software object with a full
 statement fodder AST."))
 
-(defun parse-source-snippet (snippet unbound-vals includes &key top-level)
+(defun parse-source-snippet (snippet unbound-vals includes &key
+                             macros top-level)
   "Build ASTs for SNIPPET, returning a list of root ast-refs.
 
 * SNIPPET may include one or more full statements. It should compile in
@@ -315,6 +313,8 @@ statement fodder AST."))
 
 * INCLUDES is a list of files to include.
 
+* MACROS is a list of macros to define
+
 * TOP-LEVEL indicates that the snippet is a construct which can exist
   outside a function body, such as a type or function declaration.
 "
@@ -323,10 +323,12 @@ statement fodder AST."))
               (format nil "
 /* generated includes */
 ~{#include ~a~&~}
+~{#define ~a~&~}
 /* generated declarations */
 ~:{~a ~a;~%~}~%
 "
                       includes
+                      (mapcar #'macro-body macros)
                       (mapcar «list [#'type-decl-string #'second] #'first»
                               unbound-vals)))
              (wrapped (format nil

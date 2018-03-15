@@ -5,7 +5,7 @@
 
 ;;; simple software objects
 (define-software simple (software)
-  ((genome :initarg :genome :accessor genome :initform nil :copier copy-seq))
+  ((genome :initarg :genome :accessor genome :initform nil :copier sel/utility:enhanced-copy-seq))
   (:documentation "DOCFIXME"))
 
 (declaim (inline lines))

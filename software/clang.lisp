@@ -780,6 +780,62 @@ if not given.
          (list (format nil "~a:~%" name) child)
          rest))
 
+(defun make-break-stmt (&rest rest)
+  "Create a break statement AST.
+* REST additional arguments to `make-statement'
+"
+  (apply #'make-statement :BreakStmt :fullstmt
+         (list "break")
+         :full-stmt t
+         rest))
+
+(defun make-switch-stmt (value cases &rest rest)
+  "Create a switch statement AST.
+* VALUE the AST of the expression to switch on
+* CASES list of cases
+* SYN-CTX surrounding syntactic context of the AST node
+* REST additional arguments to `make-statement'
+
+Each element of CASES has the form ((values ...) stmts ), where each
+value is an integer (or T for the default case) and each stmt is a
+full-statement AST. Don't forget to include BreakStmt ASTs as they
+will not be generated automatically.
+"
+  (labels ((make-case (values stmts)
+             (bind (((v . vals) values)
+                    (children (list* (format nil ":~%")
+                                     ;; The first statement following the
+                                     ;; "case" is its child.
+                                     (if vals
+                                         (make-case vals (take 1 stmts))
+                                         (take 1 stmts))))
+                    )
+               `(,(ast-ref-ast
+                   (if (eq v t)
+                       (apply #'make-statement :DefaultStmt :generic
+                              (cons "default" children)
+                              rest)
+                       (apply #'make-statement :CaseStmt :fullstmt
+                              (cons "case "
+                                    (cons (make-literal v)
+                                          children))
+                              rest)))
+                  ;; The remaining statements in this case are siblings. This
+                  ;; is weird but it matches clang's AST.
+                  ,@(cdr (interleave stmts (format nil ";~%")))
+                  ,(format nil ";~%")))))
+
+    (apply #'make-statement :SwitchStmt :fullstmt
+           `("switch ("
+             ,value
+             ,")"
+             ,(apply #'make-block (mappend (lambda-bind ((values stmts))
+                                             (make-case values stmts))
+                                           cases)
+                     rest))
+           :full-stmt t
+           rest)))
+
 (defmethod get-ast ((obj clang) (path list))
   "Return the AST in OBJ at the given PATH.
 * OBJ clang software object with ASTs
@@ -4333,7 +4389,7 @@ within a function body, return null."))
   "Apply clang-format to OBJ.
 * OBJ object to format and return
 * STYLE clang-format style to utilize
-* ERRNO Exit code of GNU indent
+* ERRNO Exit code of clang-format
 "
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
@@ -4356,27 +4412,24 @@ within a function body, return null."))
             (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
 
-(defgeneric indent (software &optional style)
-  (:documentation "Apply GNU indent to the software"))
+(defgeneric astyle (software &optional style)
+  (:documentation "Apply Artistic Style to the software.
+Documentation can be found at
+http://astyle.sourceforge.net/astyle.html#_Usage"))
 
-(define-constant +indent-style+
-  "-linux -i2 -ts2 -nut"
-  :test #'string=
-  :documentation "Default style for GNU indent")
-
-(defmethod indent ((obj clang) &optional style &aux errno)
-  "Apply GNU indent to OBJ.
+(defmethod astyle ((obj clang) &optional style &aux errno)
+  "Apply Artistic Style to OBJ.
 * OBJ object to format and return
-* STYLE GNU style to use for formatting
-* ERRNO Exit code of GNU indent
+* STYLE style to utilize
+* ERRNO Exit code of astyle binary
 "
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
-              (shell "indent ~a ~a -st" src (or style +indent-style+))
-            (declare (ignorable stderr))
+              (shell "astyle --style=~a ~a" (or style "kr") src)
+            (declare (ignorable stdout stderr))
             (setf errno exit)
-            (if (or (= 0 exit) (= 2 exit))
-                stdout
+            (if (zerop exit)
+                (file-to-string src)
                 (genome obj)))))
   (values obj errno))

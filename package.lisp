@@ -127,7 +127,7 @@
    :adjust-stmt-range
    :random-point-in-function
    :select-intraprocedural-pair
-   :indent
+   :astyle
    :clang-tidy
    :clang-format
    :clang-mutate
@@ -278,6 +278,16 @@
    :diff
    :original
    :asm
+   :asm-heap
+   :asm-line-info-text
+   :asm-line-info-tokens
+   :asm-line-info-type
+   :asm-line-info-label
+   :asm-line-info-opcode
+   :asm-line-info-operands
+   :asm-line-info-id
+   :asm-line-info-orig-file
+   :asm-line-info-orig-line
    :csurf-asm
    :*dynamic-linker-path*
    :*elf-copy-redirect-path*
@@ -312,6 +322,7 @@
    :run-rename-variable
    :common-ancestor
    :ancestor-of
+   :reset-ancestry-id
    :get-fresh-ancestry-id
    :save-ancestry
    :scopes-between
@@ -594,6 +605,8 @@
    :make-call-expr
    :make-array-subscript-expr
    :make-label
+   :make-switch-stmt
+   :make-break-stmt
    :ast-root
    :replace-in-ast
    :parse-source-snippet
@@ -661,7 +674,8 @@
    ;; java mutation helper methods
    :java-make-literal
    :java-number
-   :java-project))
+   :java-project
+   :super-mutant))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

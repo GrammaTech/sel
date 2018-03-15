@@ -9,6 +9,11 @@
 Software Object Classes
 ]
 
+@c TODO: Remove all of these manually generated
+@c       api-software-objects-foo sections.  They will be a pain to
+@c       keep up to date.  Instead if we really want to collect all
+@c       methods defined on an object, we should update sb-texinfo to
+@c       do this for us as part of the class documentation.
 @itemize
 @item @ref{api-software-objects-software,@code{software}}
    @itemize
@@ -23,6 +28,7 @@ Software Object Classes
        @itemize
        @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
        @end itemize
+     @item @refapiclass{java}
      @item @ref{api-software-objects-elf, @code{elf}}
        @itemize
        @item @ref{api-software-objects-elf-cisc,  @code{elf-cisc}}
@@ -481,7 +487,7 @@ Class @code{clang}
   @item @refapigeneric{get-unbound-vals}
   @item @refapigeneric{get-vars-in-scope}
   @item @refapigeneric{good-stmts}
-  @item @refapigeneric{indent}
+  @item @refapigeneric{astyle}
   @item @refapigeneric{parent-ast-p}
   @item @refapigeneric{pick-guarded-compound}
   @item @refapigeneric{random-point-in-function}
@@ -562,7 +568,7 @@ Class @code{clang}
   @item @refapimethod{get-unbound-vals ((software clang) (ast ast-ref))}
   @item @refapimethod{get-vars-in-scope ((obj clang) (ast ast-ref) &optional (keep-globals t))}
   @item @refapimethod{good-stmts ((clang clang))}
-  @item @refapimethod{indent ((obj clang) &optional style &aux errno)}
+  @item @refapimethod{astyle ((obj clang) &optional style &aux errno)}
   @item @refapimethod{instrument ((obj clang) &rest args)}
   @item @refapimethod{instrumented-p ((clang clang))}  
   @item @refapimethod{max-depth-ast ((clang clang) asts)}
@@ -664,7 +670,7 @@ Class @code{clang}
 @include include/fun-sel-get-unbound-vals.texinfo
 @include include/fun-sel-get-vars-in-scope.texinfo
 @include include/fun-sel-good-stmts.texinfo
-@include include/fun-sel-indent.texinfo
+@include include/fun-sel-astyle.texinfo
 @include include/fun-sel-parent-ast-p.texinfo
 @include include/fun-sel-pick-guarded-compound.texinfo
 @include include/fun-sel-prepend-to-genome.texinfo
@@ -919,7 +925,7 @@ Class @code{clang-project}
   @item @refapimethod{asts ((obj clang-project))}
   @item @refapimethod{clang-tidy ((clang-project clang-project))}
   @item @refapimethod{from-file ((clang-project clang-project) project-dir)}
-  @item @refapimethod{indent ((clang-project clang-project) &optional style)}
+  @item @refapimethod{astyle ((clang-project clang-project) &optional style)}
   @item @refapimethod{instrument ((clang-project clang-project) &rest args)}
   @item @refapimethod{instrumentation-files ((clang-project clang-project))}
   @item @refapimethod{instrumented-p ((clang-project clang-project))}

@@ -176,6 +176,27 @@
    :*profile-dot-min-ratio*
    :profile-to-dot-graph
    :profile-to-flame-graph
+   :enhanced-copy-seq
+   ;; jobs
+   :task-runner
+   :*task-runner*
+   :task-runner-jobs
+   :task-runner-workers
+   :task-runner-workers-count
+   :task-runner-results
+   :task-runner-completed-jobs
+   :task-runner-completed-tasks
+   :task-runner-remaining-jobs
+   :task-runner-init-jobs
+   :task-runner-stop-jobs
+   :task-runner-add-job
+   :task-runner-create-worker
+   :task
+   :task-job
+   :process-task
+   :task-object
+   :task-save-result
+   :run-task
    ))
 #+allegro
 (set-dispatch-macro-character #\# #\_

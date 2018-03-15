@@ -399,7 +399,15 @@ These may often be safely ignored.  A common restart is
 A common restart is `ignore-failed-mutation'."))
 
 (defgeneric apply-mutation (software mutation)
-  (:documentation "Apply MUTATION to SOFTWARE, return the resulting software.
+  (:documentation "Apply MUTATION to SOFTWARE, return the resulting software object.
+Mutation application may destructively modify the software object, or it may return a
+new instance with the mutation applied, and leave the original untouched. Any client
+which calls apply-mutation should ensure that the result returned by apply-mutation is 
+captured, and should not make assumptions about the state of the original.
+
+Example:  (let ((mutated-software (apply-mutation (copy software) mutation)))
+              ...
+
 Define an :around method on this function to record mutations."))
 
 (defgeneric apply-all-mutations (software mutation)
@@ -750,6 +758,22 @@ Default selection function for `tournament'."
               ;; Mutation info for analyze-mutation
               (list mutation a a-point crossed b b-point)))))
 
+(defun new-individuals (count)
+  "Generate COUNT new individuals from *POPULATION*."
+  (iter (with new-count = 0)
+        (restart-case
+            (multiple-value-bind (variant mutation-info)
+                (new-individual)
+              (collect variant into variants)
+              (collect mutation-info into infos)
+              (incf new-count))
+
+          (ignore-failed-mutation ()
+            :report
+            "Ignore failed mutation and continue evolution"))
+        (while (< new-count count))
+        (finally (return (values variants infos)))))
+
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination.
 
@@ -781,7 +805,9 @@ criteria for this search."
                    (every-pre-fn every-pre-fn)
                    (every-post-fn every-post-fn)
                    (filter filter)
-                   (analyze-mutation-fn analyze-mutation-fn))
+                   (analyze-mutation-fn analyze-mutation-fn)
+                   (variants variants)
+                   (mutation-infos mutation-infos))
       ;; Inside the returned code let-bind evaluated elements of SPECS.
       `(let ((,test ,(nth 1 specs))
              (,max-evals ,(nth 2 specs))
@@ -803,28 +829,41 @@ criteria for this search."
                                        internal-time-units-per-second)
                                     ,max-time))) :do
               (restart-case
-                  (multiple-value-bind (,variant ,mutation-info)
+                  (multiple-value-bind (,variants ,mutation-infos)
                       (funcall ,step)
                     (when ,every-pre-fn
-                      (funcall ,every-pre-fn ,variant))
-                    (evaluate ,test ,variant)
+                      (mapc ,every-pre-fn variants))
+                    (if (cdr ,variants)
+                        ;; Multiple variants. Combine into super-mutant.
+                        (let ((super (make-instance 'super-mutant
+                                                    :mutants ,variants)))
+                          (genome super)
+                          (evaluate ,test super))
+                        ;; Single variant. Evaluate directly.
+                        (evaluate ,test (car ,variants)))
                     (when ,analyze-mutation-fn
-                      (funcall ,analyze-mutation-fn ,variant
-                                                    ,mutation-info
-                                                    ,test))
+                      (mapc (lambda (variant info)
+                              (funcall ,analyze-mutation-fn variant info ,test))
+                            ,variants
+                            ,mutation-infos))
                     (when ,every-post-fn
-                      (funcall ,every-post-fn ,variant))
-                    (incf *fitness-evals*)
-                    (when (and ,period ,period-fn
-                               (zerop (mod *fitness-evals* ,period)))
-                      (funcall ,period-fn))
-                    (assert (fitness ,variant) (,variant)
-                            "Variant with no fitness")
-                    (when (or (not ,filter) (funcall ,filter ,variant))
-                      ,@body)
-                    (when (and *target-fitness-p*
-                               (funcall *target-fitness-p* ,variant))
-                      (return-from search-target-reached ,variant)))
+                      (mapc ,every-post-fn ,variants))
+                    (dotimes (_ (length ,variants))
+                      (incf *fitness-evals*)
+                      (when (and ,period ,period-fn
+                                 (zerop (mod *fitness-evals* ,period)))
+                        (funcall ,period-fn)))
+                    (mapc (lambda (,variant ,mutation-info)
+                            (declare (ignorable ,mutation-info))
+                            (assert (fitness ,variant) (,variant)
+                                    "Variant with no fitness")
+                            (when (or (not ,filter) (funcall ,filter ,variant))
+                              ,@body)
+                            (when (and *target-fitness-p*
+                                       (funcall *target-fitness-p* ,variant))
+                              (return-from search-target-reached ,variant)))
+                          ,variants
+                          ,mutation-infos))
                 (ignore-failed-mutation ()
                   :report
                   "Ignore failed mutation and continue evolution"))))
@@ -862,13 +901,19 @@ Other keyword arguments are used as defined in the `-search' function."
 (defmacro evolve (test
                   &key
                     max-evals max-time period period-fn
-                    every-pre-fn every-post-fn filter analyze-mutation-fn)
+                    every-pre-fn every-post-fn filter analyze-mutation-fn
+                    (super-mutant-count 1))
   "Evolves `*population*' using `new-individual' and TEST.
-Keyword arguments are used as defined in the `-search' function."
+
+* SUPER-MUTANT-COUNT evaluate this number of mutants at once in a
+  combined genome
+
+Other keyword arguments are used as defined in the `-search' function.
+"
   `(-search ((new mut-info)
              ,test ,max-evals ,max-time ,period ,period-fn
              ,every-pre-fn ,every-post-fn ,filter ,analyze-mutation-fn)
-            #'new-individual
+            {new-individuals ,super-mutant-count}
             (incorporate new)))
 
 (defun generational-evolve

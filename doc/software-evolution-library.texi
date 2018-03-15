@@ -227,6 +227,9 @@ Ancestry for candidate solutions.
 Adaptive mutations to dynamically update probabilities based on
 mutation success.
 
+@item
+Super-mutants to evaluate multiple mutations in a single genome.
+
 @end itemize
 
 
@@ -826,6 +829,7 @@ are given in remainder of this section.
 * Condition Synthesis::         Synthesize guard conditions to repair software
 * Fault Localization::          Identify or prioritize likely-faulty code
 * Tracing::                     Trace execution of software
+* Super-Mutants::               Evaluate multiple variants in a single genome
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -858,10 +862,15 @@ are given in remainder of this section.
 @cindex fault-localization
 @include fault-localization.texi
 
-@node Tracing, Usage, Fault Localization, Components
+@node Tracing, Super-Mutants, Fault Localization, Components
 @section Tracing
 @cindex tracing
 @include tracing.texi
+
+@node Super-Mutants, Usage, Tracing, Components
+@section Super-Mutants
+@cindex super-mutants
+@include include/super-mutants.texi
 
 @node Usage, Installation, Implementation, Top
 @chapter Usage

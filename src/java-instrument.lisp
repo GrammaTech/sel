@@ -27,7 +27,6 @@
   (declare (ignorable points functions functions-after
                       trace-file trace-env
                       instrument-exit filter))
-
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (java-jar-exec (format nil "-instrument ~a -out=~a -file=~a"
                            src-file
@@ -49,19 +48,21 @@
                        &aux (instrumenter (make-instance 'java-instrumenter)))
   (declare (ignorable args))
   (iterate (for (f . obj) in (instrumentation-files java-project))
-           (for i upfrom 0)
-           (declare (ignorable f))
+           (for i upfrom 1)
+           (note 3 "Instrumenting ~a" f)
+           (note 4 "Instrument progress: ~a/~a"
+                 i (length (instrumentation-files java-project)))
            (setf (software instrumenter) obj)
-           (setf (file-id instrumenter) i)
+           (setf (file-id instrumenter) (1- i))
            (instrument instrumenter))
   java-project)
 
 (defmethod uninstrument ((java-project java-project))
-  (iter (for (src-file . obj) in
-             (append (instrumentation-files java-project)
-                     (remove-if-not [{get-entry} #'cdr]
-                                    (other-files java-project))))
-        (declare (ignorable src-file))
+  (iter (for (f . obj) in (instrumentation-files java-project))
+        (for i upfrom 1)
+        (note 3 "Uninstrumenting ~a" f)
+        (note 4 "Uninstrument progress: ~a/~a"
+              i (length (instrumentation-files java-project)))
         (uninstrument obj))
   java-project)
 
