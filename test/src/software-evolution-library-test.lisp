@@ -1354,21 +1354,19 @@ suite should be run and nil otherwise."
 
 (deftest task-runner-3 ()
   (with-fixture task-runner
-    (is (and
-	 (= (task-runner-completed-tasks (first *soft*)) 20)
-	 (= (task-runner-completed-tasks (second *soft*)) 20)
-	 (= (task-runner-completed-jobs (first *soft*)) 1)
-	 (= (task-runner-completed-jobs (second *soft*)) 1)))))
+    (is (= (task-runner-completed-tasks (first *soft*)) 20))
+    (is (= (task-runner-completed-tasks (second *soft*)) 20))
+    (is (= (task-runner-completed-jobs (first *soft*)) 1))
+    (is (= (task-runner-completed-jobs (second *soft*)) 1))))
 
 (deftest task-runner-4 ()
   (with-fixture task-runner
-    (is (and
-	 (= (count "test1" (task-runner-results (first *soft*))
+    (is (= (count "test1" (task-runner-results (first *soft*))
 		  :test 'equal :key (lambda (s) (subseq s 0 5)))
-	    20)
-	 (= (count "test2" (task-runner-results (second *soft*))
+           20))
+    (is (= (count "test2" (task-runner-results (second *soft*))
 		  :test 'equal :key (lambda (s) (subseq s 0 5)))
-	   20)))))
+	   20))))
 
 
 ;;; ELF representation.
