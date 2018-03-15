@@ -72,10 +72,25 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
 
 
 
+
+
+
+
 <a name="Contents"></a>
 <h3 class="section">B.1 Contents</h3>
 <ul>
-<li> Variables
+<li> <a href="#tasks">Tasks</a>
+  <ul>
+<li> <a href="#Structure-sel_002futility_003atask_002drunner"><code>task-runner</code></a>
+   </li><li> <a href="#Variable-sel_002futility_003a_002atask_002drunner_002a"><code>*task-runner*</code></a>
+   </li><li> <a href="#Class-sel_002futility_003atask"><code>task</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003atask_002djob"><code>task-job</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dtask"><code>process-task</code></a>
+   </li><li> <a href="#Function-sel_002futility_003atask_002dsave_002dresult"><code>task-save-result</code></a>
+   </li><li> <a href="#Function-sel_002futility_003arun_002dtask"><code>run-task</code></a>
+  </li></ul>
+
+</li><li> Variables
   <ul>
 <li> <a href="#Variable-sel_002futility_003a_002abash_002dshell_002a"><code>*bash-shell*</code></a>
   </li><li> <a href="#Variable-sel_002futility_003a_002anote_002dlevel_002a"><code>*note-level*</code></a>
@@ -141,8 +156,121 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
   </li></ul>
 </li></ul>
 
+<a name="tasks"></a><a name="Tasks"></a>
+<h3 class="section">B.2 Tasks</h3>
+
+
+<p>Functions to run multiple tasks (such as mutations and fitness
+tests) on multiple threads.
+</p>
+<p>This module makes use of Bordeaux Threads. See the documentation
+here:
+https://trac.common-lisp.net/bordeaux-threads/wiki/ApiDocumentation
+</p>
+<ul>
+<li> Job: a function which returns a series of Tasks, one Task each
+       time it is called. When the series is exhausted, it will
+       return <code>nil</code>.
+
+</li><li> Task: a thin wrapper over a Lisp object (typically a <code>software</code>
+        instance, but could be anything).  The task can be used to
+        customize how to process the object after fitness testing
+        (basically a completion routine) and to customize how it
+        spins off child Jobs.
+
+</li><li> Worker: one or more Worker threads can be created to process
+          Jobs.  When all jobs are finished, all the Worker
+          threads will exit.  Therefore you create Jobs first,
+          then the Workers.
+
+</li></ul>
+<p>Example use:
+</p>
+<div class="lisp">
+<pre class="lisp">    (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*)
+                             10))
+     ;; When (task-runner-worker-count *runner*) = 0,
+     ;; it means all threads are finished.
+</pre></div>
+
+
+<p>A <code>task</code> is an operation to be performed by the multi-threaded
+<code>task-runner</code>. A <code>task</code> can be customized by the client to generate
+a job (child series of tasks) by implementing the <code>task-job</code> method,
+and the code to be performed when processing a <code>task</code> is defined by the
+<code>process-task</code> method.
+</p>
+<p>A job is a Lisp function, which takes no arguments, and which will
+produce a <code>task</code> each time it is called, or <code>nil</code> when all of its tasks are
+complete. Think of a job as a lazy sequence of <code>task</code>.
+</p>
+<p><code>task-runner-jobs</code> is a stack of jobs. Worker threads will call the
+first job on the stack, and process the task returned.
+</p>
+<p>A task may add 1 or more jobs to the top of the stack, causing worker
+threads to immediately start processing those jobs since they are now
+higher on the stack and therefore have priority over other tasks.
+</p>
+<p>When the <code>jobs</code> stack is empty/NIL, then all worker threads will exit.
+</p>
+<a name="Tasks-API"></a>
+<h4 class="subsection">B.2.1 Tasks API</h4>
+
+
+<a name="index-task_002drunner-_005bsel_002futility_005d"></a>
+<a name="Structure-sel_002futility_003atask_002drunner"></a><dl>
+<dt><a name="index-task_002drunner-_005bsel_002futility_005d-1"></a>Structure: <strong>task-runner [sel/utility]</strong></dt>
+<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
+</p>
+<p>The state needed to run multi-threaded tasks and associated jobs.
+</p><ul>
+<li> jobs:         stack of current jobs to execute
+</li><li> workers:      list running worker threads
+</li><li> results:      result objects collected by worker threads
+</li><li> jobs-lock:    (internal) used to synchronize jobs stack
+</li><li> results-lock: (internal) used to synchronnize results list
+</li><li> workers-lock: (internal) used to synchronize worker list
+</li><li> completed-jobs: number of jobs that have been executed and finished
+</li><li> completed-tasks: number of tasks that have finished
+</li></ul>
+</dd></dl>
+<a name="index-_002atask_002drunner_002a-_005bsel_002futility_005d"></a>
+<a name="Variable-sel_002futility_003a_002atask_002drunner_002a"></a><dl>
+<dt><a name="index-_002atask_002drunner_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*task-runner* [sel/utility]</strong></dt>
+<dd><p>Bind <code>*task-runner*</code> for worker threads
+</p></dd></dl>
+<a name="index-task-_005bsel_002futility_005d"></a>
+<a name="Class-sel_002futility_003atask"></a><dl>
+<dt><a name="index-task-_005bsel_002futility_005d-1"></a>Class: <strong>task [sel/utility]</strong></dt>
+<dd><p>Class precedence list: <code>task, standard-object, t</code>
+</p>
+<p>Base class for all task classes.
+</p></dd></dl>
+<a name="index-task_002djob-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003atask_002djob"></a><dl>
+<dt><a name="index-task_002djob-_005bsel_002futility_005d-1"></a>Generic Function: <strong>task-job [sel/utility]</strong> <em>task runner</em></dt>
+<dd><p>Return a job for the *jobs* stack. This is a function which,
+ when called, returns the next task in the series.
+</p></dd></dl>
+<a name="index-process_002dtask-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002dtask"></a><dl>
+<dt><a name="index-process_002dtask-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-task [sel/utility]</strong> <em>task runner</em></dt>
+<dd><p>Process the object, including evaluate fitness, push new Jobs, and
+ store interesting results
+</p></dd></dl>
+<a name="index-task_002dsave_002dresult-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003atask_002dsave_002dresult"></a><dl>
+<dt><a name="index-task_002dsave_002dresult-_005bsel_002futility_005d-1"></a>Function: <strong>task-save-result [sel/utility]</strong> <em>runner obj</em></dt>
+<dd><p>Save a result object.
+</p></dd></dl>
+<a name="index-run_002dtask-_005bsel_002futility_005d"></a>
+<a name="Function-sel_002futility_003arun_002dtask"></a><dl>
+<dt><a name="index-run_002dtask-_005bsel_002futility_005d-1"></a>Function: <strong>run-task [sel/utility]</strong> <em>task &amp;optional num-workers</em></dt>
+<dd><p>Create a <code>task-runner</code>, using the specified task as the first job.
+</p></dd></dl>
+
 <a name="Documentation-1"></a>
-<h3 class="section">B.2 Documentation</h3>
+<h3 class="section">B.3 Documentation</h3>
 
 <a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d"></a>
 <a name="Variable-sel_002futility_003a_002abash_002dshell_002a"></a><dl>

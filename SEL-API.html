@@ -261,9 +261,15 @@ list of the mutations applied to produce those children.
 
 <a name="index-evolve"></a>
 <a name="Macro-evolve"></a><dl>
-<dt><a name="index-evolve-1"></a>Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn</em></dt>
+<dt><a name="index-evolve-1"></a>Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn super-mutant-count</em></dt>
 <dd><p>Evolves &lsquo;*population*&rsquo; using &lsquo;new-individual&rsquo; and <code>test</code>.
-Keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
+</p>
+<ul>
+<li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
+  combined genome
+
+</li></ul>
+<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
 </p></dd></dl>
 
 
@@ -722,7 +728,8 @@ Software Object Classes
        <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dclang_002dw_002dfodder"><code>clang-w-fodder</code></a>
        </li></ul>
-</li><li> <a href="#api_002dsoftware_002dobjects_002delf"><code>elf</code></a>
+</li><li> <a href="#Class-java"><code>java</code></a>
+     </li><li> <a href="#api_002dsoftware_002dobjects_002delf"><code>elf</code></a>
        <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002delf_002dcisc"><code>elf-cisc</code></a>
          <ul>
@@ -793,7 +800,7 @@ Software Object Classes
 <a name="index-csurf_002dasm"></a>
 <a name="Class-csurf_002dasm"></a><dl>
 <dt><a name="index-csurf_002dasm-1"></a>Class: <strong>csurf-asm</strong></dt>
-<dd><p>Class precedence list: <code>csurf-asm, asm-range, sw-range, asm, simple, software, standard-object, t</code>
+<dd><p>Class precedence list: <code>csurf-asm, asm-heap, asm, simple, software, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
@@ -944,7 +951,7 @@ containing <code>ast</code> entries as fodder for the evolution process.
 <dt><a name="index-java-1"></a>Class: <strong>java</strong></dt>
 <dd><p>Class precedence list: <code>java, ast, software, standard-object, t</code>
 </p>
-<p>DOCFIXME_JAVA
+<p>The java software object represents a single java file.
 </p></dd></dl>
 <a name="index-lisp"></a>
 <a name="Class-lisp"></a><dl>
@@ -1294,8 +1301,16 @@ Useful as *another* point of interposition for mutation customization.
 <a name="index-apply_002dmutation"></a>
 <a name="Generic_002dFunction-apply_002dmutation"></a><dl>
 <dt><a name="index-apply_002dmutation-1"></a>Generic Function: <strong>apply-mutation</strong> <em>software mutation</em></dt>
-<dd><p>Apply <code>mutation</code> to <code>software</code>, return the resulting software.
-Define an :around method on this function to record mutations.
+<dd><p>Apply <code>mutation</code> to <code>software</code>, return the resulting software object.
+Mutation application may destructively modify the software object, or it may return a
+new instance with the mutation applied, and leave the original untouched. Any client
+which calls apply-mutation should ensure that the result returned by apply-mutation is 
+captured, and should not make assumptions about the state of the original.
+</p>
+<p>Example:  (let ((mutated-software (apply-mutation (copy software) mutation)))
+              ...
+</p>
+<p>Define an :around method on this function to record mutations.
 </p></dd></dl>
 <a name="Method-apply_002dmutation-before-_0028_0028obj-ancestral_0029-op_0029"></a><dl>
 <dt><a name="index-before-apply_002dmutation"></a>Method: <strong>before apply-mutation</strong> <em>(obj ancestral) op</em></dt>
@@ -1365,8 +1380,20 @@ insert).
 <dt><a name="index-apply_002dmutation-10"></a>Method: <strong>apply-mutation</strong> <em>(elf elf-cisc) mut</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
+<a name="Method-apply_002dmutation-_0028_0028asm-asm_002dheap_0029-_0028mutation-simple_002dswap_0029_0029"></a><dl>
+<dt><a name="index-apply_002dmutation-11"></a>Method: <strong>apply-mutation</strong> <em>(asm asm-heap) (mutation simple-swap)</em></dt>
+<dd><p>Swap the values at two locations in <code>asm</code> as specified by <code>mutation</code>.
+</p></dd></dl>
+<a name="Method-apply_002dmutation-_0028_0028asm-asm_002dheap_0029-_0028mutation-simple_002dinsert_0029_0029"></a><dl>
+<dt><a name="index-apply_002dmutation-12"></a>Method: <strong>apply-mutation</strong> <em>(asm asm-heap) (mutation simple-insert)</em></dt>
+<dd><p>Insert a value into location of <code>asm</code> as specified by <code>mutation</code>.
+</p></dd></dl>
+<a name="Method-apply_002dmutation-_0028_0028asm-asm_002dheap_0029-_0028mutation-simple_002dcut_0029_0029"></a><dl>
+<dt><a name="index-apply_002dmutation-13"></a>Method: <strong>apply-mutation</strong> <em>(asm asm-heap) (mutation simple-cut)</em></dt>
+<dd><p>Implement simple-cut mutation on <code>asm-heap</code>.
+</p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028asm-asm_0029-_0028mutation-asm_002dreplace_002doperand_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-11"></a>Method: <strong>apply-mutation</strong> <em>(asm asm) (mutation asm-replace-operand)</em></dt>
+<dt><a name="index-apply_002dmutation-14"></a>Method: <strong>apply-mutation</strong> <em>(asm asm) (mutation asm-replace-operand)</em></dt>
 <dd><p>Apply an asm-replace-operand <code>mutation</code> to <code>asm</code>, return the resulting software.
 The <code>mutation</code> targets are a pair of instruction indices pointing to a &quot;bad&quot;
 instruction (whose operand will be replaced) and a &quot;good&quot; instruction
@@ -1374,7 +1401,7 @@ instruction (whose operand will be replaced) and a &quot;good&quot; instruction
 operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-random_002dsubtree_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-12"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation random-subtree)</em></dt>
+<dt><a name="index-apply_002dmutation-15"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation random-subtree)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1383,7 +1410,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-double_002dhalf_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-13"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation double-half)</em></dt>
+<dt><a name="index-apply_002dmutation-16"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation double-half)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1392,7 +1419,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-subtract_002dadd_002dtree_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-14"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation subtract-add-tree)</em></dt>
+<dt><a name="index-apply_002dmutation-17"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation subtract-add-tree)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1401,7 +1428,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mut-add_002dsubtract_002dscope_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-15"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mut add-subtract-scope)</em></dt>
+<dt><a name="index-apply_002dmutation-18"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mut add-subtract-scope)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1410,7 +1437,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-add_002dsubtract_002dtree_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-16"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation add-subtract-tree)</em></dt>
+<dt><a name="index-apply_002dmutation-19"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation add-subtract-tree)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1419,7 +1446,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-subtract_002dadd_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-17"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation subtract-add)</em></dt>
+<dt><a name="index-apply_002dmutation-20"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation subtract-add)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1428,7 +1455,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-add_002dsubtract_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-18"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation add-subtract)</em></dt>
+<dt><a name="index-apply_002dmutation-21"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation add-subtract)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1437,7 +1464,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-mult_002ddivide_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-19"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation mult-divide)</em></dt>
+<dt><a name="index-apply_002dmutation-22"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation mult-divide)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1446,7 +1473,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-demote_002dbinop_002dright_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-20"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation demote-binop-right)</em></dt>
+<dt><a name="index-apply_002dmutation-23"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation demote-binop-right)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1455,7 +1482,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-demote_002dbinop_002dleft_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-21"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation demote-binop-left)</em></dt>
+<dt><a name="index-apply_002dmutation-24"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation demote-binop-left)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1464,7 +1491,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-change_002dconstant_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-22"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation change-constant)</em></dt>
+<dt><a name="index-apply_002dmutation-25"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation change-constant)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1473,7 +1500,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028obj-expression_0029-_0028mutation-change_002doperator_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-23"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation change-operator)</em></dt>
+<dt><a name="index-apply_002dmutation-26"></a>Method: <strong>apply-mutation</strong> <em>(obj expression) (mutation change-operator)</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -1481,7 +1508,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028lisp-lisp_0029-_0028mutation-lisp_002dswap_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-24"></a>Method: <strong>apply-mutation</strong> <em>(lisp lisp) (mutation lisp-swap)</em></dt>
+<dt><a name="index-apply_002dmutation-27"></a>Method: <strong>apply-mutation</strong> <em>(lisp lisp) (mutation lisp-swap)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1490,7 +1517,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028lisp-lisp_0029-_0028mutation-lisp_002dreplace_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-25"></a>Method: <strong>apply-mutation</strong> <em>(lisp lisp) (mutation lisp-replace)</em></dt>
+<dt><a name="index-apply_002dmutation-28"></a>Method: <strong>apply-mutation</strong> <em>(lisp lisp) (mutation lisp-replace)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1499,7 +1526,7 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028lisp-lisp_0029-_0028mutation-lisp_002dcut_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-26"></a>Method: <strong>apply-mutation</strong> <em>(lisp lisp) (mutation lisp-cut)</em></dt>
+<dt><a name="index-apply_002dmutation-29"></a>Method: <strong>apply-mutation</strong> <em>(lisp lisp) (mutation lisp-cut)</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -1508,27 +1535,27 @@ operand, a &lsquo;no-mutation-targets&rsquo; condition is raised.
 </li></ul>
 </dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028range-sw_002drange_0029-_0028mutation-simple_002dswap_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-27"></a>Method: <strong>apply-mutation</strong> <em>(range sw-range) (mutation simple-swap)</em></dt>
+<dt><a name="index-apply_002dmutation-30"></a>Method: <strong>apply-mutation</strong> <em>(range sw-range) (mutation simple-swap)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028range-sw_002drange_0029-_0028mutation-simple_002dinsert_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-28"></a>Method: <strong>apply-mutation</strong> <em>(range sw-range) (mutation simple-insert)</em></dt>
+<dt><a name="index-apply_002dmutation-31"></a>Method: <strong>apply-mutation</strong> <em>(range sw-range) (mutation simple-insert)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028range-sw_002drange_0029-_0028mutation-simple_002dcut_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-29"></a>Method: <strong>apply-mutation</strong> <em>(range sw-range) (mutation simple-cut)</em></dt>
+<dt><a name="index-apply_002dmutation-32"></a>Method: <strong>apply-mutation</strong> <em>(range sw-range) (mutation simple-cut)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028simple-simple_0029-_0028mutation-simple_002dswap_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-30"></a>Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-swap)</em></dt>
+<dt><a name="index-apply_002dmutation-33"></a>Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-swap)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028simple-simple_0029-_0028mutation-simple_002dinsert_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-31"></a>Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-insert)</em></dt>
+<dt><a name="index-apply_002dmutation-34"></a>Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-insert)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-apply_002dmutation-_0028_0028simple-simple_0029-_0028mutation-simple_002dcut_0029_0029"></a><dl>
-<dt><a name="index-apply_002dmutation-32"></a>Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-cut)</em></dt>
+<dt><a name="index-apply_002dmutation-35"></a>Method: <strong>apply-mutation</strong> <em>(simple simple) (mutation simple-cut)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-apply_002dmutation-before-_0028_0028obj-software_0029-_0028mut-mutation_0029_0029"></a><dl>
@@ -2222,7 +2249,7 @@ Class <code>clang</code>
   </li><li> <a href="#Generic_002dFunction-get_002dunbound_002dvals"><code>get-unbound-vals</code></a>
   </li><li> <a href="#Generic_002dFunction-get_002dvars_002din_002dscope"><code>get-vars-in-scope</code></a>
   </li><li> <a href="#Generic_002dFunction-good_002dstmts"><code>good-stmts</code></a>
-  </li><li> <a href="#Generic_002dFunction-indent"><code>indent</code></a>
+  </li><li> <a href="#Generic_002dFunction-astyle"><code>astyle</code></a>
   </li><li> <a href="#Generic_002dFunction-parent_002dast_002dp"><code>parent-ast-p</code></a>
   </li><li> <a href="#Generic_002dFunction-pick_002dguarded_002dcompound"><code>pick-guarded-compound</code></a>
   </li><li> <a href="#Generic_002dFunction-random_002dpoint_002din_002dfunction"><code>random-point-in-function</code></a>
@@ -2294,7 +2321,7 @@ Class <code>clang</code>
   </li><li> <a href="#Method-get_002dunbound_002dvals-_0028_0028software-clang_0029-_0028ast-ast_002dref_0029_0029"><code>get-unbound-vals ((software clang) (ast ast-ref))</code></a>
   </li><li> <a href="#Method-get_002dvars_002din_002dscope-_0028_0028obj-clang_0029-_0028ast-ast_002dref_0029-_0026optional-_0028keep_002dglobals-t_0029_0029"><code>get-vars-in-scope ((obj clang) (ast ast-ref) &amp;optional (keep-globals t))</code></a>
   </li><li> <a href="#Method-good_002dstmts-_0028_0028clang-clang_0029_0029"><code>good-stmts ((clang clang))</code></a>
-  </li><li> <a href="#Method-indent-_0028_0028obj-clang_0029-_0026optional-style-_0026aux-errno_0029"><code>indent ((obj clang) &amp;optional style &amp;aux errno)</code></a>
+  </li><li> <a href="#Method-astyle-_0028_0028obj-clang_0029-_0026optional-style-_0026aux-errno_0029"><code>astyle ((obj clang) &amp;optional style &amp;aux errno)</code></a>
   </li><li> <a href="#Method-instrument-_0028_0028obj-clang_0029-_0026rest-args_0029"><code>instrument ((obj clang) &amp;rest args)</code></a>
   </li><li> <a href="#Method-instrumented_002dp-_0028_0028clang-clang_0029_0029"><code>instrumented-p ((clang clang))</code></a>  
   </li><li> <a href="#Method-max_002ddepth_002dast-_0028_0028clang-clang_0029-asts_0029"><code>max-depth-ast ((clang clang) asts)</code></a>
@@ -2792,28 +2819,34 @@ Returns nil if no full-stmt is found.
 <dt><a name="index-good_002dstmts-2"></a>Method: <strong>good-stmts</strong> <em>(clang clang)</em></dt>
 <dd><p>Return a list of all good statement ASTs in <code>clang</code>.
 </p></dd></dl>
-<a name="index-indent"></a>
-<a name="Generic_002dFunction-indent"></a><dl>
-<dt><a name="index-indent-1"></a>Generic Function: <strong>indent</strong> <em>software &amp;optional style</em></dt>
-<dd><p>Apply <code>gnu</code> indent to the software
+<a name="index-astyle"></a>
+<a name="Generic_002dFunction-astyle"></a><dl>
+<dt><a name="index-astyle-1"></a>Generic Function: <strong>astyle</strong> <em>software &amp;optional style</em></dt>
+<dd><p>Apply Artistic Style to the software.
+Documentation can be found at
+http://astyle.sourceforge.net/astyle.html#_Usage
 </p></dd></dl>
-<a name="Method-indent-_0028_0028clang_002dproject-clang_002dproject_0029-_0026optional-style_0029"></a><dl>
-<dt><a name="index-indent-2"></a>Method: <strong>indent</strong> <em>(clang-project clang-project) &amp;optional style</em></dt>
-<dd><p>Apply <code>gnu</code> &lsquo;indent&rsquo; to <code>clang-project</code>.
+<a name="Method-astyle-_0028_0028clang_002dproject-clang_002dproject_0029-_0026optional-style_0029"></a><dl>
+<dt><a name="index-astyle-2"></a>Method: <strong>astyle</strong> <em>(clang-project clang-project) &amp;optional style</em></dt>
+<dd><p>Apply Artistic Style to <code>clang-project</code>.
 </p><ul>
 <li> <code>clang-project</code> project to format and return
-</li><li> <code>style</code> <code>gnu</code> &lsquo;indent&rsquo; style to utilize
+</li><li> <code>style</code> style to utilize
 </li></ul>
 </dd></dl>
-<a name="Method-indent-_0028_0028obj-clang_0029-_0026optional-style-_0026aux-errno_0029"></a><dl>
-<dt><a name="index-indent-3"></a>Method: <strong>indent</strong> <em>(obj clang) &amp;optional style &amp;aux errno</em></dt>
-<dd><p>Apply <code>gnu</code> indent to <code>obj</code>.
+<a name="Method-astyle-_0028_0028obj-clang_0029-_0026optional-style-_0026aux-errno_0029"></a><dl>
+<dt><a name="index-astyle-3"></a>Method: <strong>astyle</strong> <em>(obj clang) &amp;optional style &amp;aux errno</em></dt>
+<dd><p>Apply Artistic Style to <code>obj</code>.
 </p><ul>
 <li> <code>obj</code> object to format and return
-</li><li> <code>style</code> <code>gnu</code> style to use for formatting
-</li><li> <code>errno</code> Exit code of <code>gnu</code> indent
+</li><li> <code>style</code> style to utilize
+</li><li> <code>errno</code> Exit code of astyle binary
 </li></ul>
 </dd></dl>
+<a name="Method-astyle-_0028_0028obj-java_0029-_0026optional-style_0029"></a><dl>
+<dt><a name="index-astyle-4"></a>Method: <strong>astyle</strong> <em>(obj java) &amp;optional style</em></dt>
+<dd><p>This method currently has not effect on Java objects.
+</p></dd></dl>
 <a name="index-parent_002dast_002dp"></a>
 <a name="Generic_002dFunction-parent_002dast_002dp"></a><dl>
 <dt><a name="index-parent_002dast_002dp-1"></a>Generic Function: <strong>parent-ast-p</strong> <em>software possible-parent-ast ast</em></dt>
@@ -3609,10 +3642,11 @@ Class <code>clang-w-fodder</code>
 </dd></dl>
 <a name="index-prepare_002dfodder"></a>
 <a name="Function-prepare_002dfodder"></a><dl>
-<dt><a name="index-prepare_002dfodder-1"></a>Function: <strong>prepare-fodder</strong> <em>obj snippet pt</em></dt>
+<dt><a name="index-prepare_002dfodder-1"></a>Function: <strong>prepare-fodder</strong> <em>obj database snippet pt</em></dt>
 <dd><p>Prepare <code>snippet</code> for insertion into <code>obj</code> at <code>pt</code>.
 </p><ul>
 <li> <code>obj</code> clang software object to be injected with <code>snippet</code>
+</li><li> <code>database</code> fodder database containing snippet
 </li><li> <code>snippet</code> fodder snippet to inject
 </li><li> <code>pt</code> point where fodder snippet is to be injected
 </li></ul>
@@ -3884,7 +3918,7 @@ Class <code>clang-project</code>
 <li> <a href="#Method-asts-_0028_0028obj-clang_002dproject_0029_0029"><code>asts ((obj clang-project))</code></a>
   </li><li> <a href="#Method-clang_002dtidy-_0028_0028clang_002dproject-clang_002dproject_0029_0029"><code>clang-tidy ((clang-project clang-project))</code></a>
   </li><li> <a href="#Method-from_002dfile-_0028_0028clang_002dproject-clang_002dproject_0029-project_002ddir_0029"><code>from-file ((clang-project clang-project) project-dir)</code></a>
-  </li><li> <a href="#Method-indent-_0028_0028clang_002dproject-clang_002dproject_0029-_0026optional-style_0029"><code>indent ((clang-project clang-project) &amp;optional style)</code></a>
+  </li><li> <a href="#Method-astyle-_0028_0028clang_002dproject-clang_002dproject_0029-_0026optional-style_0029"><code>astyle ((clang-project clang-project) &amp;optional style)</code></a>
   </li><li> <a href="#Method-instrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026rest-args_0029"><code>instrument ((clang-project clang-project) &amp;rest args)</code></a>
   </li><li> <a href="#Method-instrumentation_002dfiles-_0028_0028clang_002dproject-clang_002dproject_0029_0029"><code>instrumentation-files ((clang-project clang-project))</code></a>
   </li><li> <a href="#Method-instrumented_002dp-_0028_0028clang_002dproject-clang_002dproject_0029_0029"><code>instrumented-p ((clang-project clang-project))</code></a>
@@ -5610,6 +5644,10 @@ test output, to determine the fitness score.
 </li><li> <code>extra-keys</code> additional keyword arguments to pass to the <code>sbcl</code> or <code>ccl</code> &lsquo;run-program&rsquo; method. See the &lsquo;start-test&rsquo; documentation for more information.
 </li></ul>
 </dd></dl>
+<a name="Method-evaluate-_0028_0028test-function_0029-_0028super-super_002dmutant_0029-_0026rest-extra_002dkeys-_0026key--_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-evaluate-4"></a>Method: <strong>evaluate</strong> <em>(test function) (super super-mutant) &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Evaluate <code>super-mutant</code>, setting fitness for all variants.
+</p></dd></dl>
 <a name="index-fitness_002dextra_002ddata"></a>
 <a name="Generic_002dFunction-fitness_002dextra_002ddata"></a><dl>
 <dt><a name="index-fitness_002dextra_002ddata-1"></a>Generic Function: <strong>fitness-extra-data</strong> <em>software</em></dt>
@@ -5709,14 +5747,18 @@ each and stores them in a list.
 <dt><a name="index-from_002dfile-13"></a>Method: <strong>from-file</strong> <em>(elf elf) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
+<a name="Method-from_002dfile-_0028_0028asm-asm_002dheap_0029-file_0029"></a><dl>
+<dt><a name="index-from_002dfile-14"></a>Method: <strong>from-file</strong> <em>(asm asm-heap) file</em></dt>
+<dd><p>Initialize an &lsquo;asm-heap&rsquo; software object from a file.
+</p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028asm-asm_002drange_0029-file_0029"></a><dl>
-<dt><a name="index-from_002dfile-14"></a>Method: <strong>from-file</strong> <em>(asm asm-range) file</em></dt>
+<dt><a name="index-from_002dfile-15"></a>Method: <strong>from-file</strong> <em>(asm asm-range) file</em></dt>
 <dd><p>Initialize an &lsquo;asm-range&rsquo; software object from a file.
 Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 &lsquo;range&rsquo; software object class.
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028lisp-lisp_0029-file_0029"></a><dl>
-<dt><a name="index-from_002dfile-15"></a>Method: <strong>from-file</strong> <em>(lisp lisp) file</em></dt>
+<dt><a name="index-from_002dfile-16"></a>Method: <strong>from-file</strong> <em>(lisp lisp) file</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -5725,19 +5767,19 @@ Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 </li></ul>
 </dd></dl>
 <a name="Method-from_002dfile-_0028_0028range-sw_002drange_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-16"></a>Method: <strong>from-file</strong> <em>(range sw-range) path</em></dt>
+<dt><a name="index-from_002dfile-17"></a>Method: <strong>from-file</strong> <em>(range sw-range) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028light-light_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-17"></a>Method: <strong>from-file</strong> <em>(light light) path</em></dt>
+<dt><a name="index-from_002dfile-18"></a>Method: <strong>from-file</strong> <em>(light light) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028simple-simple_0029-_0028paths-list_0029_0029"></a><dl>
-<dt><a name="index-from_002dfile-18"></a>Method: <strong>from-file</strong> <em>(simple simple) (paths list)</em></dt>
+<dt><a name="index-from_002dfile-19"></a>Method: <strong>from-file</strong> <em>(simple simple) (paths list)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-from_002dfile-_0028_0028simple-simple_0029-path_0029"></a><dl>
-<dt><a name="index-from_002dfile-19"></a>Method: <strong>from-file</strong> <em>(simple simple) path</em></dt>
+<dt><a name="index-from_002dfile-20"></a>Method: <strong>from-file</strong> <em>(simple simple) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="index-from_002dstring"></a>
@@ -5782,28 +5824,32 @@ For example an <code>ast</code> genome, e.g., of a &lsquo;cil&rsquo; or &lsquo;l
 my have a tree structure while the genome of an &lsquo;asm&rsquo; or &lsquo;llvm&rsquo;
 software object will be a vector.
 </p></dd></dl>
+<a name="Method-genome-_0028_0028obj-super_002dmutant_0029_0029"></a><dl>
+<dt><a name="index-genome-2"></a>Method: <strong>genome</strong> <em>(obj super-mutant)</em></dt>
+<dd><p>Return a genome which combines all variants in <code>super-mutant</code>.
+</p></dd></dl>
 <a name="Method-genome-_0028_0028obj-project_0029_0029"></a><dl>
-<dt><a name="index-genome-2"></a>Method: <strong>genome</strong> <em>(obj project)</em></dt>
+<dt><a name="index-genome-3"></a>Method: <strong>genome</strong> <em>(obj project)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-genome-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-genome-3"></a>Method: <strong>genome</strong> <em>(obj clang)</em></dt>
+<dt><a name="index-genome-4"></a>Method: <strong>genome</strong> <em>(obj clang)</em></dt>
 <dd><p>Return the source code in <code>obj</code>.
 </p></dd></dl>
 <a name="Method-genome-_0028_0028ast-ast_0029_0029"></a><dl>
-<dt><a name="index-genome-4"></a>Method: <strong>genome</strong> <em>(ast ast)</em></dt>
+<dt><a name="index-genome-5"></a>Method: <strong>genome</strong> <em>(ast ast)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
 <a name="Method-genome-_0028_0028diff-diff_0029_0029"></a><dl>
-<dt><a name="index-genome-5"></a>Method: <strong>genome</strong> <em>(diff diff)</em></dt>
+<dt><a name="index-genome-6"></a>Method: <strong>genome</strong> <em>(diff diff)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-genome-_0028_0028lisp-lisp_0029_0029"></a><dl>
-<dt><a name="index-genome-6"></a>Method: <strong>genome</strong> <em>(lisp lisp)</em></dt>
+<dt><a name="index-genome-7"></a>Method: <strong>genome</strong> <em>(lisp lisp)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
 <a name="Method-genome-_0028_0028simple-simple_0029_0029"></a><dl>
-<dt><a name="index-genome-7"></a>Method: <strong>genome</strong> <em>(simple simple)</em></dt>
+<dt><a name="index-genome-8"></a>Method: <strong>genome</strong> <em>(simple simple)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
 <a name="index-genome_002dstring"></a>
@@ -5872,16 +5918,20 @@ instead of Newlines.
 <dt><a name="index-lines-4"></a>Method: <strong>lines</strong> <em>(elf elf-cisc)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
+<a name="Method-lines-_0028_0028asm-asm_002dheap_0029_0029"></a><dl>
+<dt><a name="index-lines-5"></a>Method: <strong>lines</strong> <em>(asm asm-heap)</em></dt>
+<dd><p>Return the list of text lines of the genome.
+</p></dd></dl>
 <a name="Method-lines-_0028_0028range-sw_002drange_0029_0029"></a><dl>
-<dt><a name="index-lines-5"></a>Method: <strong>lines</strong> <em>(range sw-range)</em></dt>
+<dt><a name="index-lines-6"></a>Method: <strong>lines</strong> <em>(range sw-range)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-lines-_0028_0028light-light_0029_0029"></a><dl>
-<dt><a name="index-lines-6"></a>Method: <strong>lines</strong> <em>(light light)</em></dt>
+<dt><a name="index-lines-7"></a>Method: <strong>lines</strong> <em>(light light)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-lines-_0028_0028simple-simple_0029_0029"></a><dl>
-<dt><a name="index-lines-7"></a>Method: <strong>lines</strong> <em>(simple simple)</em></dt>
+<dt><a name="index-lines-8"></a>Method: <strong>lines</strong> <em>(simple simple)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="index-mutate"></a>
@@ -5944,12 +5994,29 @@ relevant to phenome generation, (4) <code>stdout</code> of the compilation proce
 or a string holding non-error output relevant to phenome
 generation, (5) the source file name used during compilation. 
 </p></dd></dl>
+<a name="Method-phenome-_0028_0028obj-super_002dmutant_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
+<dt><a name="index-phenome-2"></a>Method: <strong>phenome</strong> <em>(obj super-mutant) &amp;key (bin (temp-file-name))</em></dt>
+<dd><p>Phenotype of the software.
+This method will link, compile or serialize the software object as
+necessary returning an executable version of the software suitable for
+testing and evaluation.  Returns multiple values holding in order; (1)
+the binary path to which the executable was compiled, (2) the errno,
+or a numeric indication of success, of the compilation process, (3)
+<code>stderr</code> of the compilation process, or a string holding error output
+relevant to phenome generation, (4) <code>stdout</code> of the compilation process,
+or a string holding non-error output relevant to phenome
+generation, (5) the source file name used during compilation. 
+</p></dd></dl>
+<a name="Method-phenome-_0028_0028obj-java_002dproject_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
+<dt><a name="index-phenome-3"></a>Method: <strong>phenome</strong> <em>(obj java-project) &amp;key (bin (temp-file-name))</em></dt>
+<dd><p>Compiles the software object to a jar and converts it to a linux executable
+</p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-project_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-2"></a>Method: <strong>phenome</strong> <em>(obj project) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-4"></a>Method: <strong>phenome</strong> <em>(obj project) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028llvm-llvm_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-3"></a>Method: <strong>phenome</strong> <em>(llvm llvm) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-5"></a>Method: <strong>phenome</strong> <em>(llvm llvm) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p><code>docfixme</code>
 </p>
 <ul>
@@ -5958,11 +6025,15 @@ generation, (5) the source file name used during compilation.
 </li></ul>
 </dd></dl>
 <a name="Method-phenome-_0028_0028forth-forth_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-4"></a>Method: <strong>phenome</strong> <em>(forth forth) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-6"></a>Method: <strong>phenome</strong> <em>(forth forth) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Write <code>forth</code> to an executable script suitable for evaluation.
 </p></dd></dl>
+<a name="Method-phenome-_0028_0028obj-java_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
+<dt><a name="index-phenome-7"></a>Method: <strong>phenome</strong> <em>(obj java) &amp;key (bin (temp-file-name))</em></dt>
+<dd><p>Compiles the software object to a jar and converts it to a linux executable
+</p></dd></dl>
 <a name="Method-phenome-_0028_0028obj-ast_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-5"></a>Method: <strong>phenome</strong> <em>(obj ast) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-8"></a>Method: <strong>phenome</strong> <em>(obj ast) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p><code>docfixme</code>
 </p><ul>
 <li> <code>obj</code> <code>docfixme</code>
@@ -5970,11 +6041,11 @@ generation, (5) the source file name used during compilation.
 </li></ul>
 </dd></dl>
 <a name="Method-phenome-_0028_0028elf-elf_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-6"></a>Method: <strong>phenome</strong> <em>(elf elf) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-9"></a>Method: <strong>phenome</strong> <em>(elf elf) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028asm-csurf_002dasm_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-7"></a>Method: <strong>phenome</strong> <em>(asm csurf-asm) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-10"></a>Method: <strong>phenome</strong> <em>(asm csurf-asm) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Assemble and link <code>asm</code> into binary <code>bin</code>.
 1. Run &lsquo;assembler&rsquo; with &lsquo;asm-flags&rsquo;. If unsuccessful, return early.
 2. If <code>asm</code> contains &lsquo;weak-symbols&rsquo;, mark them as weakly required
@@ -5983,7 +6054,7 @@ generation, (5) the source file name used during compilation.
 4. If &lsquo;redirect-file&rsquo; is specified, run &lsquo;elf-copy-redirect&rsquo;.
 </p></dd></dl>
 <a name="Method-phenome-_0028_0028asm-asm_0029-_0026key-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-phenome-8"></a>Method: <strong>phenome</strong> <em>(asm asm) &amp;key (bin (temp-file-name))</em></dt>
+<dt><a name="index-phenome-11"></a>Method: <strong>phenome</strong> <em>(asm asm) &amp;key (bin (temp-file-name))</em></dt>
 <dd><p>Runs the &lsquo;linker&rsquo; for <code>asm</code>, using the specified &lsquo;flags&rsquo; for <code>asm</code> and returns
 multiple values holding in order: (1) the binary path <code>bin</code> to which the
 executable was compiled, (2) the errno, or a numeric indication of success, of
@@ -6082,16 +6153,20 @@ by the &lsquo;good-stmts&rsquo; pool, excluding those ASTs removed by <code>filt
 <dt><a name="index-size-5"></a>Method: <strong>size</strong> <em>(ast ast)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
+<a name="Method-size-_0028_0028asm-asm_002dheap_0029_0029"></a><dl>
+<dt><a name="index-size-6"></a>Method: <strong>size</strong> <em>(asm asm-heap)</em></dt>
+<dd><p>Return the number of lines in the program.
+</p></dd></dl>
 <a name="Method-size-_0028_0028lisp-lisp_0029_0029"></a><dl>
-<dt><a name="index-size-6"></a>Method: <strong>size</strong> <em>(lisp lisp)</em></dt>
+<dt><a name="index-size-7"></a>Method: <strong>size</strong> <em>(lisp lisp)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-size-_0028_0028range-sw_002drange_0029_0029"></a><dl>
-<dt><a name="index-size-7"></a>Method: <strong>size</strong> <em>(range sw-range)</em></dt>
+<dt><a name="index-size-8"></a>Method: <strong>size</strong> <em>(range sw-range)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Method-size-_0028_0028obj-simple_0029_0029"></a><dl>
-<dt><a name="index-size-8"></a>Method: <strong>size</strong> <em>(obj simple)</em></dt>
+<dt><a name="index-size-9"></a>Method: <strong>size</strong> <em>(obj simple)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="index-to_002dfile"></a>
@@ -7966,7 +8041,7 @@ snippets.
 </p></dd></dl>
 <a name="index-parse_002dsource_002dsnippet"></a>
 <a name="Function-parse_002dsource_002dsnippet"></a><dl>
-<dt><a name="index-parse_002dsource_002dsnippet-1"></a>Function: <strong>parse-source-snippet</strong> <em>snippet unbound-vals includes &amp;key top-level</em></dt>
+<dt><a name="index-parse_002dsource_002dsnippet-1"></a>Function: <strong>parse-source-snippet</strong> <em>snippet unbound-vals includes &amp;key macros top-level</em></dt>
 <dd><p>Build ASTs for <code>snippet</code>, returning a list of root ast-refs.
 </p>
 <ul>
@@ -7977,6 +8052,8 @@ snippets.
 </li><li> <code>unbound-vals</code> should have the form ((name clang-type) ... )
 
 </li><li> <code>includes</code> is a list of files to include.
+
+</li><li> <code>macros</code> is a list of macros to define
 
 </li><li> <code>top-level</code> indicates that the snippet is a construct which can exist
   outside a function body, such as a type or function declaration.
@@ -8110,9 +8187,9 @@ A common restart is &lsquo;ignore-failed-mutation&rsquo;.
 These may often be safely ignored.  A common restart is
 &lsquo;ignore-failed-mutation&rsquo;.
 </p></dd></dl>
-<a name="index-phenome-9"></a>
+<a name="index-phenome-12"></a>
 <a name="Condition-phenome"></a><dl>
-<dt><a name="index-phenome-10"></a>Condition: <strong>phenome</strong></dt>
+<dt><a name="index-phenome-13"></a>Condition: <strong>phenome</strong></dt>
 <dd><p>Class precedence list: <code>phenome, error, serious-condition, condition, t</code>
 </p>
 <p><code>docfixme</code>
