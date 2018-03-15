@@ -68,6 +68,16 @@
    :ensure-path-is-string
    :in-directory
    :directory-p
+   ;; Process wrapper
+   :process
+   :process-id
+   :process-input-stream
+   :process-output-stream
+   :process-error-stream
+   :process-exit-code
+   :process-status
+   :signal-process
+   ;; Shell execution
    :*shell-debug*
    :*shell-error-codes*
    :*shell-non-error-codes*

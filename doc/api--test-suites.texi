@@ -11,7 +11,6 @@ Test Suites
 @itemize
 @item @ref{api-test-suites-test-suite, Class @code{test-suite}}
 @item @ref{api-test-suites-test-case, Class @code{test-case}}
-@item @ref{api-test-suites-process, Class @code{process}}
 @end itemize
 
 
@@ -82,51 +81,3 @@ Class @code{test-case}
 @include include/fun-sel-finish-test.texinfo
 @include include/fun-sel-run-test.texinfo
 @include include/fun-sel-start-test.texinfo
-
-
-@anchor{api-test-suites-process}
-@subsubsection Class @code{process}
-
-[
-@ref{SEL API, API} |
-@ref{api-supporting-objects, Supporting Objects} |
-@ref{api-test-suites,Test Suites} |
-Class @code{process}
-]
-
-@itemize
-@item Class @refapiclass{process}
-@item Generic Functions
-  @itemize
-  @item @refapigeneric{finish-test}
-  @item @refapigeneric{process-error-stream}
-  @item @refapigeneric{process-exit-code}
-  @item @refapigeneric{process-id}
-  @item @refapigeneric{process-input-stream}
-  @item @refapigeneric{process-output-stream}
-  @item @refapigeneric{process-status}
-  @item @refapigeneric{signal-process}
-  @end itemize
-
-@item Methods
-  @itemize
-  @item @refapimethod{finish-test ((test-process process) &key kill-signal timeout)}
-  @item @refapimethod{process-error-stream ((process process))}
-  @item @refapimethod{process-exit-code ((process process))}
-  @item @refapimethod{process-id ((process process))}
-  @item @refapimethod{process-input-stream ((process process))}
-  @item @refapimethod{process-output-stream ((process process))}
-  @item @refapimethod{process-status ((process process))}
-  @item @refapimethod{signal-process ((process process) (signal-number integer))}
-  @end itemize
-@end itemize
-
-
-@include include/class-sel-process.texinfo
-@include include/fun-sel-process-error-stream.texinfo
-@include include/fun-sel-process-exit-code.texinfo
-@include include/fun-sel-process-id.texinfo
-@include include/fun-sel-process-input-stream.texinfo
-@include include/fun-sel-process-output-stream.texinfo
-@include include/fun-sel-process-status.texinfo
-@include include/fun-sel-signal-process.texinfo

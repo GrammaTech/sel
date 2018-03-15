@@ -29,6 +29,7 @@
 
 @section Contents
 @itemize
+
 @item @ref{tasks, Tasks}
   @itemize
    @item @refutilitystruct{task-runner}
@@ -38,6 +39,19 @@
    @item @refutilitygeneric{process-task}
    @item @refutilityfunction{task-save-result}
    @item @refutilityfunction{run-task}
+  @end itemize
+
+@item @ref{doc-process-methods, Process Methods}
+      wraps around SBCL- or CCL-specific representations of
+      external processes
+  @itemize
+   @item @refutilitygeneric{process-error-stream}
+   @item @refutilitygeneric{process-exit-code}
+   @item @refutilitygeneric{process-id}
+   @item @refutilitygeneric{process-input-stream}
+   @item @refutilitygeneric{process-output-stream}
+   @item @refutilitygeneric{process-status}
+   @item @refutilitygeneric{signal-process}
   @end itemize
 
 @item Variables
@@ -128,6 +142,10 @@
 @include include/fun-sel-slash-utility-process-task.texinfo
 @include include/fun-sel-slash-utility-task-save-result.texinfo
 @include include/fun-sel-slash-utility-run-task.texinfo
+
+@anchor{doc-process-methods}
+@section Process Methods
+
 
 @section Documentation
 

@@ -493,15 +493,7 @@
    :test-case
    :program-name
    :program-args
-   :process
    :os-process
-   :process-id
-   :process-input-stream
-   :process-output-stream
-   :process-error-stream
-   :process-exit-code
-   :process-status
-   :signal-process
    :start-test
    :finish-test
    :run-test

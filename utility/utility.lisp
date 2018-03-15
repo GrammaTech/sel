@@ -263,6 +263,129 @@ pathname (i.e., ending in a \"/\")."
       (directory-exists-p (pathname-as-directory pathname))))
 
 
+;;;; Process wrapping
+;;;
+;;; TODO: What is the benefit of this wrapper layer?  Just interop
+;;;       between lisps implementations?  Does nothing else already
+;;;       provide this?
+;;;
+(defclass process ()
+  ((os-process
+    :initarg :os-process :initform nil :reader os-process
+    :documentation "The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+`process-input-stream', `process-output-stream',
+`process-error-stream', `process-error-code', `process-status',
+`signal-process' to interact with processes."))
+  (:documentation "Object representing an external process.
+Wraps around SBCL- or CCL-specific representations of external processes."))
+
+(defgeneric process-id (process)
+  (:documentation "Return the process id for PROCESS"))
+
+(defmethod process-id ((process process))
+  "DOCFIXME"
+  #+sbcl
+  (sb-ext:process-pid (os-process process))
+  #+ccl
+  (ccl:external-process-id (os-process process))
+  #+ecl
+  (ext:external-process-pid (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+
+(defgeneric process-input-stream (process)
+  (:documentation "Return the input stream for PROCESS."))
+
+(defmethod process-input-stream ((process process))
+  "DOCFIXME"
+  #+sbcl
+  (sb-ext:process-input (os-process process))
+  #+ccl
+  (ccl:external-process-input-stream (os-process process))
+  #+ecl
+  (ext:external-process-input (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+
+(defgeneric process-output-stream (process)
+  (:documentation "Return the output stream for PROCESS."))
+
+(defmethod process-output-stream ((process process))
+  "DOCFIXME"
+  #+sbcl
+  (sb-ext:process-output (os-process process))
+  #+ccl
+  (ccl:external-process-output-stream (os-process process))
+  #+ecl
+  (ext:external-process-output (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+
+(defgeneric process-error-stream (process)
+  (:documentation "Return the error stream for PROCESS."))
+
+(defmethod process-error-stream ((process process))
+  "DOCFIXME"
+  #+sbcl
+  (sb-ext:process-error (os-process process))
+  #+ccl
+  (ccl:external-process-error-stream (os-process process))
+  #+ecl
+  (ext:external-process-error-stream (os-process process))
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+
+(defgeneric process-exit-code (process)
+  (:documentation "Return the exit code for PROCESS, or nil if PROCESS has not
+exited."))
+
+(defmethod process-exit-code ((process process))
+  "DOCFIXME"
+  #+sbcl
+  (sb-ext:process-exit-code (os-process process))
+  #+(or ccl ecl)
+  (multiple-value-bind (status code)
+      #+ccl (ccl:external-process-status (os-process process))
+      #+ecl (ext:external-process-status (os-process process))
+    (declare (ignorable status))
+    code)
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+
+(defgeneric process-status (process)
+  (:documentation "Return the status of PROCESS: one of :running, :stopped,
+:signaled, or :exited."))
+
+(defmethod process-status ((process process))
+  "DOCFIXME"
+  #+sbcl
+  (sb-ext:process-status (os-process process))
+  #+ (or ccl ecl)
+  (multiple-value-bind (status code)
+      #+ccl (ccl:external-process-status (os-process process))
+      #+ecl (ext:external-process-status (os-process process))
+    (declare (ignorable code))
+    status)
+  #-(or sbcl ccl ecl)
+  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+
+(defgeneric signal-process (process signal-number)
+  (:documentation "Send the signal SIGNAL-NUMBER to PROCESS."))
+
+(defmethod signal-process ((process process) (signal-number integer))
+  "DOCFIXME"
+  (multiple-value-bind (stdout stderr errno)
+      (shell "kill -~d -$(ps -o pgid= ~d | ~
+                          grep -o '[0-9]*' | ~
+                          head -n 1 | ~
+                          tr -d ' ')"
+             signal-number
+             (process-id process))
+    (declare (ignorable stdout stderr))
+    (zerop errno)))
+
+
 ;;;; Shell and system command helpers
 (defvar *shell-debug* nil
   "Set to true to print shell invocations.")
