@@ -8475,7 +8475,7 @@ int main() { puts(\"~d\"); return 0; }
     ;; locally binds `*serapi-process*'
     (write-to-serapi *serapi-process*
                      #!`((Test1 (Query () (Vernac "Print nat.")))))
-    (is (member '(|Answer| |Test1| |Ack|)
+    (is (member #!'(Answer Test1 Ack)
                 (read-serapi-response *serapi-process*)
                 :test #'equal)))
   ;; `*serapi-process*' goes out of scope at end
@@ -8493,7 +8493,7 @@ int main() { puts(\"~d\"); return 0; }
         (write-to-serapi *serapi-process*
                          #!`((Test1 (Query () (Vernac "Print nat.")))))
         ;; writing to *serapi-process* also writes to serproc
-        (is (member '(|Answer| |Test1| |Ack|)
+        (is (member #!'(Answer Test1 Ack)
                     (read-serapi-response serproc)
                     :test #'equal)))
       ;; serproc isn't killed after with-serapi ends
@@ -8510,45 +8510,46 @@ int main() { puts(\"~d\"); return 0; }
     (let ((response (read-serapi-response *serapi-process*)))
       (is response)
       (is (= 5 (length response)))
-      (is (member '(|Answer| |TestQ| |Ack|) response :test #'equal))
-      (is (member '(|Answer| |TestQ| |Completed|) response :test #'equal)))))
+      ;; Why not use the #! macro here?
+      (is (member #!'(Answer TestQ Ack) response :test #'equal))
+      (is (member #!'(Answer TestQ Completed) response :test #'equal)))))
 
 (deftest is-type-works ()
-  (let ((resp1 '(|Answer| |TestQ| |Ack|))
-        (resp2 '(|Feedback| ((|id| 1) (|route| 0) (|contents| |Processed|)))))
-    (is (is-type '|Answer| resp1))
-    (is (is-type '|Feedback| resp2))
-    (is (not (is-type '|Answer| resp2)))
-    (is (not (is-type '|Feedback| resp1)))))
+  (let ((resp1 #!'(Answer TestQ Ack))
+        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
+    (is (is-type #!'Answer resp1))
+    (is (is-type #!'Feedback resp2))
+    (is (not (is-type #!'Answer resp2)))
+    (is (not (is-type #!'Feedback resp1)))))
 
 (deftest feedback-parsing-works ()
-  (let ((resp1 '(|Feedback| ((|id| 1) (|route| 0) (|contents| |Processed|))))
-        (resp2 '(|Answer| |TestQ| |Ack|)))
+  (let ((resp1 #!'(Feedback ((id 1) (route 0) (contents Processed))))
+        (resp2 #!'(Answer TestQ Ack)))
     (is (eql 1 (feedback-id resp1)))
     (is (eql 0 (feedback-route resp1)))
-    (is (eql '|Processed| (feedback-contents resp1)))
+    (is (eql #!'Processed (feedback-contents resp1)))
     (is (not (feedback-id resp2)))
     (is (not (feedback-route resp2)))
     (is (not (feedback-contents resp2)))))
 
 (deftest message-content-works ()
   (let ((resp1
-         '(|Feedback|
-           ((|id| 1) (|route| 0)
-            (|contents| (|Message| |Notice| () (Some (AST (tree)) here))))))
-        (resp2 '(|Answer| |TestQ| |Ack|)))
+         #!'(Feedback
+           ((id 1) (route 0)
+            (contents (Message Notice () (Some (AST (tree)) here))))))
+        (resp2 #!'(Answer TestQ Ack)))
     (is (equal '(Some (AST (tree)) here)
                (message-content (feedback-contents resp1))))
     (is (not (message-content (feedback-contents resp2))))))
 
 (deftest answer-parsing-works ()
-  (let ((resp1 '(|Answer| |TestQ| |Ack|))
-        (resp2 '(|Feedback| ((|id| 1) (|route| 0) (|contents| |Processed|))))
-        (resp3 '(|Answer| |TestQ| (|ObjList| ((|CoqAst| (NIL more-stuff))))))
-        (resp4 '(|Answer| |TestQ|
-                 (|ObjList| ((|CoqString| "Inductive binop..."))))))
+  (let ((resp1 #!'(Answer TestQ Ack))
+        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed))))
+        (resp3 #!'(Answer TestQ (ObjList ((CoqAst (NIL more-stuff))))))
+        (resp4 #!'(Answer TestQ
+                   (ObjList ((CoqString "Inductive binop..."))))))
     ;; verify answer-content
-    (is (equal (list '|Ack| nil (lastcar resp3) (lastcar resp4))
+    (is (equal (list #!'Ack nil (lastcar resp3) (lastcar resp4))
                (mapcar #'answer-content
                        (list resp1 resp2 resp3 resp4))))
 
@@ -8569,18 +8570,18 @@ int main() { puts(\"~d\"); return 0; }
                (answer-ast (answer-content resp3))))))
 
 (deftest end-of-response-parsing-works ()
-  (let ((resp1 '(|Answer| |TestQ| |Completed|))
-        (resp2 '("Sexplib.Conv.Of_sexp_error" (|Failure| "Failure message") etc))
-        (resp3 '(|Answer| |TestQ| |Ack|)))
+  (let ((resp1 #!'(Answer TestQ Completed))
+        (resp2 #!'("Sexplib.Conv.Of_sexp_error" (Failure "Failure message") etc))
+        (resp3 #!'(Answer TestQ Ack)))
     (is (equal (list t t nil)
                (mapcar #'is-terminating (list resp1 resp2 resp3))))
     (is (equal (list nil t nil)
                (mapcar #'is-error (list resp1 resp2 resp3))))))
 
 (deftest added-id-correct ()
-  (let ((resp1 '(|Answer| |TestQ| (|Added| 2 () |NewTip|)))
-        (resp2 '(|Answer| |TestQ| |Ack|))
-        (resp3 '(|Feedback| ((|id| 1) (|route| 0) (|contents| |Processed|)))))
+  (let ((resp1 #!'(Answer TestQ (Added 2 () NewTip)))
+        (resp2 #!'(Answer TestQ Ack))
+        (resp3 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
     (is (equal (list 2 nil nil)
                (iter (for i in (list resp1 resp2 resp3))
                      (collecting (when-let ((content (answer-content i)))
