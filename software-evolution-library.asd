@@ -27,13 +27,12 @@ techniques."
                iterate
                metabang-bind
                software-evolution-library/utility
+               software-evolution-library/serapi-io
                split-sequence
                usocket
                babel
                fast-io
-               trace-db
-               optima
-               fare-quasiquote-extras)
+               trace-db)
   :in-order-to ((test-op (test-op software-evolution-library/test)))
   :components
   ((:module base
@@ -71,9 +70,8 @@ techniques."
              (:file "adaptive-mutation")
              (:file "styleable" :depends-on ("project"))
              (:file "ancestral" :depends-on ("clang"))
-             (:file "serapi-io")
-             (:file "coq" :depends-on ("serapi-io"))
-             (:file "coq-project" :depends-on ("project" "serapi-io" "coq"))))
+             (:file "coq")
+             (:file "coq-project" :depends-on ("project" "coq"))))
    (:module src
             :depends-on (base software)
             :pathname "src"
@@ -207,6 +205,26 @@ techniques."
             :components
             ((:file "package")
              (:file "view" :depends-on ("package"))))))
+
+(defsystem "software-evolution-library/serapi-io"
+  :description "serialization interface for Coq"
+  :version "0.0.0"
+  :depends-on (alexandria
+               metabang-bind
+               named-readtables
+               curry-compose-reader-macros
+               cl-arrows
+               iterate
+               split-sequence
+               cl-ppcre
+               cl-store
+               cl-dot
+               diff
+               software-evolution-library/utility
+               bordeaux-threads
+               optima
+               fare-quasiquote-extras)
+  :components ((:file "src/serapi-io")))
 
 (defsystem "software-evolution-library/mongo"
   :description "Mongo database functions for the SOFTWARE-EVOLUTION-LIBRARY."

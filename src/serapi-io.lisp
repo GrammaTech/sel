@@ -31,14 +31,59 @@
 ;;; also be added to `*sertop-args*'.
 ;;;
 ;;; @texi{serapi-io}
-
-(in-package :software-evolution-library)
-;; not in :curry-compose-reader-macros readtable: see below
-
-;;;; Use fare-quasiquote instead of built-in quasiquote
-;;;; If this isn't set up correctly, SBCL may have errors about quasiquotep
-;;;; being undefined when case-sensitive symbols are quasiquoted or about
-;;;; conflicts with :curry-compose-reader-macros::_ and :optima::_.
+(defpackage :software-evolution-library/serapi-io
+  (:nicknames :sel/serapi-io)
+  (:use
+   :common-lisp
+   :alexandria
+   :metabang-bind
+   :named-readtables
+   :curry-compose-reader-macros
+   :cl-arrows
+   :iterate
+   :split-sequence
+   :cl-ppcre
+   :optima
+   :fare-quasiquote
+   :software-evolution-library/utility)
+  (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
+                          :unquote-splicing :unquote-nsplicing)
+  (:export :set-serapi-paths
+           :reset-serapi-process
+           :make-serapi
+           :with-serapi
+           :kill-serapi
+           :write-to-serapi
+           :read-serapi-response
+           :enable-preserving-case-syntax
+           :*sertop-path*
+           :*sertop-args*
+           :*serapi-timeout*
+           :*serapi-process*
+           :is-type
+           :feedback-id
+           :feedback-route
+           :feedback-contents
+           :message-content
+           :answer-content
+           :answer-string
+           :answer-ast
+           :added-id
+           :is-terminating
+           :is-error
+           :lookup-coq-pp
+           :lookup-coq-string
+           :add-coq-string
+           :lib-add
+           :lookup-coq-ast
+           :coq-ast-to-string
+           :cancel-coq-asts
+           :load-coq-file
+           :timeout-error
+           :use-empty-response
+           :retry-read
+           :timeout))
+(in-package :software-evolution-library/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun read-preserving-case (stream char n)
     (declare (ignorable char) (ignorable n))
@@ -76,7 +121,7 @@ to `*sertop-args*'."
     (setf *sertop-path* sertop-env))
   (when (and
          (not *sertop-path*)
-         (zerop (third (multiple-value-list (shell "which sertop.native")))))
+         (zerop (nth-value 2 (shell "which sertop.native"))))
     (setf *sertop-path* "sertop.native"))
   (when (getenv "COQ_PRELUDE")
     (setf *sertop-args*

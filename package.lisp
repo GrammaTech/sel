@@ -21,9 +21,7 @@
    :software-evolution-library/utility
    :usocket
    :fast-io
-   :trace-db
-   :optima
-   :fare-quasiquote)
+   :trace-db)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-library/utility :quit)
   (:shadowing-import-from :uiop :getenv)
@@ -44,8 +42,6 @@
    :merge-pathnames-as-directory :merge-pathnames-as-file
    :pathname-parent-directory :pathname-equal
    :directory-pathname-p :file-exists-p)
-  (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
-                          :unquote-splicing :unquote-nsplicing)
   (:export
    :+software-evolution-library-version+
    :+software-evolution-library-branch+
@@ -672,40 +668,6 @@
    :java-number
    :java-project
    :super-mutant
-   ;; SerAPI exports
-   :make-serapi
-   :with-serapi
-   :kill-serapi
-   :write-to-serapi
-   :read-serapi-response
-   :enable-preserving-case-syntax
-   :*sertop-path*
-   :*sertop-args*
-   :*serapi-timeout*
-   :*serapi-process*
-   :is-type
-   :feedback-id
-   :feedback-route
-   :feedback-contents
-   :message-content
-   :answer-content
-   :answer-string
-   :answer-ast
-   :added-id
-   :is-terminating
-   :is-error
-   :lookup-coq-pp
-   :lookup-coq-string
-   :add-coq-string
-   :lib-add
-   :lookup-coq-ast
-   :coq-ast-to-string
-   :cancel-coq-asts
-   :load-coq-file
-   :timeout-error
-   :use-empty-response
-   :retry-read
-   :timeout
    ;; Coq exports
    :coq
    :ast-ids
@@ -715,11 +677,9 @@
    :reset-and-load-imports
    :init-coq-project
    :insert-reset-point
-   :reset-serapi-process
    :type-safe-swap
    :tag-loc-info
-   :untag-loc-info
-   :set-serapi-paths))
+   :untag-loc-info))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

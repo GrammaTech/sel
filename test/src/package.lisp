@@ -15,11 +15,10 @@
    :cl-store
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/serapi-io
    #+gt :testbot
    :trace-db
-   :uiop
-   :optima
-   :fare-quasiquote)
+   :uiop)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
@@ -31,8 +30,6 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
-  (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
-                          :unquote-splicing :unquote-nsplicing)
   (:export :test :batch-test :testbot-test :sel-suite*))
 #+allegro
 (set-dispatch-macro-character #\# #\_

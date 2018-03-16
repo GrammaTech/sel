@@ -1,6 +1,6 @@
 ;;; tests.lisp --- tests for the `software-evolution-library' package
 (in-package :software-evolution-library/test)
-(in-readtable :curry-compose-reader-macros)
+(named-readtables:in-readtable :serapi-readtable)
 
 #-gt (load (make-pathname :name "testbot"
                           :type "lisp"
@@ -8441,10 +8441,6 @@ int main() { puts(\"~d\"); return 0; }
 
 
 ;;; Test SerAPI (low-level Coq interaction)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (named-readtables:in-readtable :serapi-readtable)
-  (set-serapi-paths))
-
 (defun serapi-available-p ()
   (set-serapi-paths)
   (probe-file *sertop-path*))
