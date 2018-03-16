@@ -1,6 +1,6 @@
 ;;; tests.lisp --- tests for the `software-evolution-library' package
 (in-package :software-evolution-library/test)
-(named-readtables:in-readtable :serapi-readtable)
+(named-readtables:in-readtable :sel-readtable)
 
 #-gt (load (make-pathname :name "testbot"
                           :type "lisp"

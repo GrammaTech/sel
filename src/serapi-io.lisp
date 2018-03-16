@@ -88,18 +88,11 @@
            :serapi-timeout))
 (in-package :software-evolution-library/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun read-preserving-case (stream char n)
-    (declare (ignorable char) (ignorable n))
-    (let ((*readtable* (copy-readtable nil)))
-      (setf (readtable-case *readtable*) :preserve)
-      (read stream t nil t)))
-
   (defreadtable :serapi-readtable
-    ;; Must fuse FQ after CCRM because otherwise the SBCL quasiquoter clobbers
-    ;; the FQ quasiquoter. Alt. fix is for CCRM to define a mixin readtable
-    ;; similar to FQ.
-    (:fuse :curry-compose-reader-macros :fare-quasiquote-mixin)
-    (:dispatch-macro-char #\# #\! #'read-preserving-case))
+    ;; Must fuse FQ after SEL because otherwise the SBCL quasiquoter
+    ;; clobbers the FQ quasiquoter. Alt. fix is for CCRM and SEL to
+    ;; define a mixin readtable as done by FQ.
+    (:fuse :sel-readtable :fare-quasiquote-mixin))
 
   (in-readtable :serapi-readtable))
 
