@@ -16,20 +16,18 @@
 ;;;
 ;;; Coq software objects have the following fields:
 ;;;
-;;; * project-file - path to _CoqProject file
-;;; * file-source - path to the Coq source file this object represents
-;;; * imports - list of ASTs representing load or require statements
-;;; * genome - list of ASTs representing the Coq source, excluding imports
-;;; * ast-ids - list of AST IDs assigned to ASTs in the genome
-;;; * fitness - fitness of the object last time it was evaluated
+;;; * PROJECT-FILE path to _CoqProject file
+;;; * FILE-SOURCE path to the Coq source file this object represents
+;;; * IMPORTS list of ASTs representing load or require statements
+;;; * GENOME list of ASTs representing the Coq source, excluding imports
+;;; * AST-IDS list of AST IDs assigned to ASTs in the genome
+;;; * FITNESS fitness of the object last time it was evaluated
 ;;;
 ;;; The recommended way to create a Coq software object is using `from-file':
 ;;;
-;;; @code{
-;;; (with-serapi ()
-;;;   (from-file (make-instance 'coq :project-file "/path/to/_CoqProject")
-;;;              "/path/to/Foo.v"))
-;;; }
+;;;     (with-serapi ()
+;;;       (from-file (make-instance 'coq :project-file "/path/to/_CoqProject")
+;;;                  "/path/to/Foo.v"))
 ;;;
 ;;; If you don't have a _CoqProject file, you may omit the `:project-file'
 ;;; keyword.

@@ -482,7 +482,7 @@ with #\@. Optionally downcase the result."
   "Unescape obvious texinfo commands in STRING.
 STRING is assumed to be the result of `escape-for-texinfo'."
   (let ((w/o-braces '("section" "subsection" "subsubsection"))
-        (w/braces '("uref" "ref"))
+        (w/braces '("uref" "ref" "url" "code"))
         (braces 0))
     (flet ((subword-at (i word)
              (string= (subseq string i (min (+ i (length word))))

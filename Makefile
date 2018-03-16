@@ -9,7 +9,8 @@ PACKAGE_NAME = software-evolution-library
 PACKAGE_NICKNAME = sel
 DOC_PACKAGES =	software-evolution-library		\
 		software-evolution-library/utility	\
-		software-evolution-library/view
+		software-evolution-library/view		\
+		software-evolution-library/serapi-io
 
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
