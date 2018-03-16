@@ -94,14 +94,14 @@
       (setf (readtable-case *readtable*) :preserve)
       (read stream t nil t)))
 
-  (named-readtables:defreadtable :serapi-readtable
+  (defreadtable :serapi-readtable
     ;; Must fuse FQ after CCRM because otherwise the SBCL quasiquoter clobbers
     ;; the FQ quasiquoter. Alt. fix is for CCRM to define a mixin readtable
     ;; similar to FQ.
     (:fuse :curry-compose-reader-macros :fare-quasiquote-mixin)
     (:dispatch-macro-char #\# #\! #'read-preserving-case))
 
-  (named-readtables:in-readtable :serapi-readtable))
+  (in-readtable :serapi-readtable))
 
 (defvar *sertop-path* "sertop" "Path to sertop program.")
 (defvar *sertop-args* nil      "Arguments to sertop program.")
