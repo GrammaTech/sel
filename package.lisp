@@ -19,6 +19,7 @@
    :metabang-bind
    :split-sequence
    :software-evolution-library/utility
+   :software-evolution-library/serapi-io
    :usocket
    :fast-io
    :trace-db)
@@ -676,7 +677,6 @@
    :imports
    :reset-and-load-imports
    :init-coq-project
-   :insert-reset-point
    :type-safe-swap
    :tag-loc-info
    :untag-loc-info))

@@ -8452,7 +8452,7 @@ int main() { puts(\"~d\"); return 0; }
 (defixture serapi
   (:setup (sleep 0.1)
           (setf *serapi-process* (make-serapi))
-          (handler-bind ((timeout-error
+          (handler-bind ((serapi-timeout-error
                           (lambda (c)
                             (invoke-restart 'use-empty-response))))
             (read-serapi-response *serapi-process*)))
@@ -8636,7 +8636,7 @@ int main() { puts(\"~d\"); return 0; }
 (defixture total-maps
   (:setup (sleep 0.1)
           (setf *serapi-process* (make-serapi))
-          (handler-bind ((timeout-error
+          (handler-bind ((serapi-timeout-error
                           (lambda (c)
                             (invoke-restart 'use-empty-response))))
             (read-serapi-response *serapi-process*))
@@ -8650,7 +8650,7 @@ int main() { puts(\"~d\"); return 0; }
 (defixture math
   (:setup (sleep 0.1)
           (setf *serapi-process* (make-serapi))
-          (handler-bind ((timeout-error
+          (handler-bind ((serapi-timeout-error
                           (lambda (c)
                             (invoke-restart 'use-empty-response))))
             (read-serapi-response *serapi-process*))

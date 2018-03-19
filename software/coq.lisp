@@ -130,6 +130,22 @@ IMPORTS defaults to the list of `imports' in COQ."
                               (lookup-coq-string import))))
         imports))
 
+(defun tag-loc-info (sexpr)
+  "Return SEXPR with Coq location info replaced by `(:loc NIL)'.
+See also `is-loc-info' and `untag-loc-info'."
+  (cond
+    ((not (listp sexpr)) sexpr)
+    ((is-loc-info sexpr) '(:loc nil))
+    (t (mapcar #'tag-loc-info sexpr))))
+
+(defun untag-loc-info (sexpr)
+  "Return SEXPR with occurrences of `(:loc NIL)' replaced by NIL.
+See also `tag-loc-info'."
+  (cond
+    ((not (listp sexpr)) sexpr)
+    ((equal sexpr '(:loc nil)) nil)
+    (t (mapcar #'untag-loc-info sexpr))))
+
 (defgeneric unannotated-genome (software)
   (:documentation "Remove any annotations added to SOFTWARE."))
 

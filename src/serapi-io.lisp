@@ -20,14 +20,14 @@
 ;;; Refer to its GitHub project page for instructions. The variables
 ;;; `*sertop-path*' and `*sertop-args*' must then be set. This can be done
 ;;; either with `setf' or by setting the environment variables `SERAPI' and
-;;; `COQ_PRELUDE' and invoking `set-serapi-paths' to update the Lisp variables.
+;;; `COQLIB' and invoking `set-serapi-paths' to update the Lisp variables.
 ;;; `SERAPI' and `*sertop-path*' should point to the sertop executable.
 ;;;
 ;;; If you intend to use the Coq standard library, you will need to ensure that
-;;; sertop is started with the `--prelude' flag pointing to the coq/lib
+;;; sertop is started with the `--coqlib' flag pointing to the coq/lib
 ;;; directory. This can be done either by setting the environment variable
-;;; `COQ_PRELUDE' to that path or by setting `*sertop-args*' to
-;;; @code{(list ``--prelude=/path/to/coq/lib/'')}. Other sertop parameters may
+;;; `COQLIB' to that path or by setting `*sertop-args*' to
+;;; @code{(list ``--coqlib=/path/to/coq/lib/'')}. Other sertop parameters may
 ;;; also be added to `*sertop-args*'.
 ;;;
 ;;; @texi{serapi-io}
@@ -49,6 +49,7 @@
   (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
                           :unquote-splicing :unquote-nsplicing)
   (:export :set-serapi-paths
+           :insert-reset-point
            :reset-serapi-process
            :make-serapi
            :with-serapi
@@ -71,6 +72,8 @@
            :added-id
            :is-terminating
            :is-error
+           :is-loc-info
+           :is-import-ast
            :lookup-coq-pp
            :lookup-coq-string
            :add-coq-string
@@ -79,10 +82,10 @@
            :coq-ast-to-string
            :cancel-coq-asts
            :load-coq-file
-           :timeout-error
+           :serapi-timeout-error
            :use-empty-response
            :retry-read
-           :timeout))
+           :serapi-timeout))
 (in-package :software-evolution-library/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun read-preserving-case (stream char n)
@@ -100,11 +103,8 @@
 
   (named-readtables:in-readtable :serapi-readtable))
 
-(defvar *sertop-path* "sertop.native"
-  "Path to sertop program.")
-
-(defvar *sertop-args* nil
-  "Arguments to sertop program.")
+(defvar *sertop-path* "sertop" "Path to sertop program.")
+(defvar *sertop-args* nil      "Arguments to sertop program.")
 
 ;;;; If threads don't have their own copy, they don't have a way to ensure that
 ;;;; the response they're reading corresponds to the query they wrote and that
@@ -115,7 +115,7 @@
 (defun set-serapi-paths ()
   "Function to set `*sertop-path*' and `*sertop-args*' automatically.
 Uses SERAPI environment variable or \"which sertop.native\" to set
-`*sertop-path*'. Uses COQ_PRELUDE environment variable to add \"--prelude\" flag
+`*sertop-path*'. Uses COQLIB environment variable to add \"--coqlib\" flag
 to `*sertop-args*'."
   (when-let ((sertop-env (getenv "SERAPI")))
     (setf *sertop-path* sertop-env))
@@ -123,9 +123,9 @@ to `*sertop-args*'."
          (not *sertop-path*)
          (zerop (nth-value 2 (shell "which sertop.native"))))
     (setf *sertop-path* "sertop.native"))
-  (when (getenv "COQ_PRELUDE")
+  (when (getenv "COQLIB")
     (setf *sertop-args*
-          (list (format nil "--prelude=~a" (getenv "COQ_PRELUDE"))))))
+          (list (format nil "--coqlib=~a" (getenv "COQLIB"))))))
 
 ;;;; For timeout, we have a longer *serapi-timeout* - the max time (in seconds)
 ;;;; to wait before determining that a read can't happen - and
@@ -178,12 +178,13 @@ See `insert-reset-point'.")
   (:documentation
    "Condition raised if errors are detected in the SerAPI process."))
 
-(define-condition timeout-error (error)
+(define-condition serapi-timeout-error (error)
   ((text :initarg :text :initform nil :reader text)
-   (timeout :initarg :timeout :initform nil :reader timeout))
+   (serapi-timeout :initarg :serapi-timeout :initform nil
+                   :reader serapi-timeout))
   (:report (lambda (condition stream)
              (format stream "Time limit of ~a seconds exceeded: ~a."
-                     (timeout condition) (text condition))))
+                     (serapi-timeout condition) (text condition))))
   (:documentation
    "Condition raised if timeout is exceeded."))
 
@@ -273,8 +274,8 @@ maximum of TIMEOUT seconds. Return NIL if no data becomes available."
         (read-process-string process eof-error-p eof-value))
       (restart-case
           (error (make-condition
-                  'timeout-error
-                  :timeout timeout
+                  'serapi-timeout-error
+                  :serapi-timeout timeout
                   :text
                   (format nil "failed to read a response from process ~a."
                           process)))
@@ -398,7 +399,7 @@ Uses default path and arguments for sertop (`*sertop-path*' and
                            ;; try to read in case there's any output when
                            ;; the process is created, but don't propagate the
                            ;; error if there isn't.
-                           ((timeout-error
+                           ((serapi-timeout-error
                              (lambda (c) (invoke-restart 'use-empty-response))))
                          (read-serapi-response *serapi-process*)))
                      ,@body)
@@ -546,22 +547,6 @@ command or an invalid Coq command, NIL otherwise."
                 (eql (find-symbol "ep") ep)
                 t))
          (otherwise nil))))
-
-(defun tag-loc-info (sexpr)
-  "Return SEXPR with Coq location info replaced by `(:loc NIL)'.
-See also `is-loc-info' and `untag-loc-info'."
-  (cond
-    ((not (listp sexpr)) sexpr)
-    ((is-loc-info sexpr) '(:loc nil))
-    (t (mapcar #'tag-loc-info sexpr))))
-
-(defun untag-loc-info (sexpr)
-  "Return SEXPR with occurrences of `(:loc NIL)' replaced by NIL.
-See also `tag-loc-info'."
-  (cond
-    ((not (listp sexpr)) sexpr)
-    ((equal sexpr '(:loc nil)) nil)
-    (t (mapcar #'untag-loc-info sexpr))))
 
 (defun is-import-ast (sexpr)
   "Return T if SEXPR is tagged as as VernacImport or VernacRequire, NIL
