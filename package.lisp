@@ -20,6 +20,7 @@
    :split-sequence
    :software-evolution-library/utility
    :software-evolution-library/serapi-io
+   :software-evolution-library/ast-diff
    :usocket
    :fast-io
    :trace-db)
@@ -669,6 +670,8 @@
    :java-number
    :java-project
    :super-mutant
+   :diff-software
+   :edit-software
    ;; Coq exports
    :coq
    :ast-ids

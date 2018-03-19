@@ -28,6 +28,7 @@ techniques."
                metabang-bind
                software-evolution-library/utility
                software-evolution-library/serapi-io
+               software-evolution-library/ast-diff
                split-sequence
                usocket
                babel
