@@ -276,3 +276,18 @@ techniques."
   :perform (test-op (o c)
                     (symbol-call :software-evolution-library/mongo-test
                                  '#:test)))
+
+(defsystem "software-evolution-library/ast-diff"
+  :description "Compute differences between ASTs and other tree structures."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrows
+               named-readtables
+               curry-compose-reader-macros
+               iterate
+               cl-who
+               software-evolution-library/utility)
+  :in-order-to ((test-op (test-op "software-evolution-library/test")))
+  :components ((:file "ast-diff/ast-diff")))
