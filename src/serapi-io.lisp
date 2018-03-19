@@ -114,6 +114,10 @@ to `*sertop-args*'."
     (setf *sertop-path* sertop-env))
   (when (and
          (not *sertop-path*)
+         (zerop (nth-value 2 (shell "which sertop"))))
+    (setf *sertop-path* "sertop"))
+  (when (and
+         (not *sertop-path*)
          (zerop (nth-value 2 (shell "which sertop.native"))))
     (setf *sertop-path* "sertop.native"))
   (when (getenv "COQLIB")

@@ -8443,7 +8443,7 @@ int main() { puts(\"~d\"); return 0; }
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
   (set-serapi-paths)
-  (probe-file *sertop-path*))
+  (probe-file (trim-whitespace (shell "which ~a" *sertop-path*))))
 
 (setf *serapi-timeout* 1.0)
 
