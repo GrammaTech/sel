@@ -8535,10 +8535,10 @@ int main() { puts(\"~d\"); return 0; }
 (deftest message-content-works ()
   (let ((resp1
          #!'(Feedback
-           ((id 1) (route 0)
-            (contents (Message Notice () (Some (AST (tree)) here))))))
+             ((id 1) (route 0)
+              (contents (Message Notice () (Some (AST (tree)) here))))))
         (resp2 #!'(Answer TestQ Ack)))
-    (is (equal '(Some (AST (tree)) here)
+    (is (equal #!'(Some (AST (tree)) here)
                (message-content (feedback-contents resp1))))
     (is (not (message-content (feedback-contents resp2))))))
 
@@ -8566,7 +8566,7 @@ int main() { puts(\"~d\"); return 0; }
                (mapcar (lambda (resp)
                          (answer-ast (answer-content resp)))
                        (list resp1 resp2 resp4))))
-    (is (equal '(NIL more-stuff)
+    (is (equal #!'(NIL more-stuff)
                (answer-ast (answer-content resp3))))))
 
 (deftest end-of-response-parsing-works ()
