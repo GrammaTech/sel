@@ -45,6 +45,7 @@
       wraps around SBCL- or CCL-specific representations of
       external processes
   @itemize
+   @item @refutilityclass{process}
    @item @refutilitygeneric{process-error-stream}
    @item @refutilitygeneric{process-exit-code}
    @item @refutilitygeneric{process-id}
@@ -146,6 +147,14 @@
 @anchor{doc-process-methods}
 @section Process Methods
 
+@include include/class-sel-slash-utility-process.texinfo
+@include include/fun-sel-slash-utility-process-error-stream.texinfo
+@include include/fun-sel-slash-utility-process-exit-code.texinfo
+@include include/fun-sel-slash-utility-process-id.texinfo
+@include include/fun-sel-slash-utility-process-input-stream.texinfo
+@include include/fun-sel-slash-utility-process-output-stream.texinfo
+@include include/fun-sel-slash-utility-process-status.texinfo
+@include include/fun-sel-slash-utility-signal-process.texinfo
 
 @section Documentation
 
