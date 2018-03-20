@@ -252,10 +252,22 @@ format."
       (format (process-input-stream serapi) full-string)
       (finish-output (process-input-stream serapi)))))
 
+(defun sanitize-process-string (string &aux (last nil))
+  (with-output-to-string (s)
+    (iter (for char in (coerce string 'list))
+          (if (eql last #\\)        ; If last char was an escape then,
+              ;; skip inhibited escaped whitespace chars.
+              (unless (member char '(#\n #\t #\r #\b))
+                ;; Double escape non-inhibited escaped chars.
+                (mapc {write-char _ s} (list #\\ #\\ char)))
+              (unless (eql char #\\) (write-char char s))) ; Write non-escaped.
+          (setf last char))))
+
 (defmethod read-process-string ((process process)
                                 &optional (eof-error-p t) eof-value)
   "Read the next line from the PROCESS output stream. Return a string."
-  (read-line (process-output-stream process) eof-error-p eof-value))
+  (sanitize-process-string
+   (read-line (process-output-stream process) eof-error-p eof-value)))
 
 (defmethod read-with-timeout ((process process) timeout interval
                               &optional (eof-error-p t) eof-value)
