@@ -676,6 +676,7 @@
    :edit-software
    ;; Coq exports
    :coq
+   :coq-project
    :ast-ids
    :project-file
    :file-source
