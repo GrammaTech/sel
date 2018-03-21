@@ -1,3 +1,12 @@
+FROM base/archlinux as coq-serapi
+RUN pacman -Syu --noconfirm gcc gcc-libs make opam m4 patch
+# Install ocaml 4.06.0 via opam (for SerAPI)
+RUN opam init -j 4 --compiler="4.06.0" -y
+# Configure ocaml, install packages
+RUN eval `opam config env` && \
+    opam install coq-serapi
+
+
 FROM docker.grammatech.com:14850/synthesis/cl:arch
 
 ENV PATH=/gt/sel/bin:$PATH \
@@ -8,7 +17,14 @@ ENV PATH=/gt/sel/bin:$PATH \
 # standard functions requires that the system has man pages installed.
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
-RUN pacman -Syu --noconfirm gcc-multilib lib32-fakeroot lib32-gcc-libs lib32-libltdl man-db man-pages python unzip astyle
+RUN pacman -Syu --noconfirm gcc-multilib lib32-fakeroot lib32-gcc-libs \
+        lib32-libltdl man-db man-pages python unzip astyle
+
+COPY --from=coq-serapi /root/.opam /root/.opam
+
+ENV SERAPI=/root/.opam/4.06.0/bin/sertop \
+    COQLIB=/root/.opam/4.06.0/lib/coq/ \
+    PATH=$PATH:/root/.opam/4.06.0/bin
 
 ARG GT
 COPY . /gt/sel

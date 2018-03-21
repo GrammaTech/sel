@@ -19,6 +19,7 @@
    :metabang-bind
    :split-sequence
    :software-evolution-library/utility
+   :software-evolution-library/serapi-io
    :usocket
    :fast-io
    :trace-db)
@@ -489,15 +490,7 @@
    :test-case
    :program-name
    :program-args
-   :process
    :os-process
-   :process-id
-   :process-input-stream
-   :process-output-stream
-   :process-error-stream
-   :process-exit-code
-   :process-status
-   :signal-process
    :start-test
    :finish-test
    :run-test
@@ -675,7 +668,18 @@
    :java-make-literal
    :java-number
    :java-project
-   :super-mutant))
+   :super-mutant
+   ;; Coq exports
+   :coq
+   :ast-ids
+   :project-file
+   :file-source
+   :imports
+   :reset-and-load-imports
+   :init-coq-project
+   :type-safe-swap
+   :tag-loc-info
+   :untag-loc-info))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

@@ -15,6 +15,7 @@
    :cl-store
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/serapi-io
    #+gt :testbot
    :trace-db
    :uiop)

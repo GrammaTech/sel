@@ -36,10 +36,6 @@ here.
       @tab a suite of tests (as a collection of
       @refapiclass{test-case} objects)
 
-@item @refapiclass{process}
-      @tab wraps around SBCL- or CCL-specific representations of
-           external processes
-
 @end multitable
 
 
@@ -51,18 +47,4 @@ here.
 @item @refapigeneric{finish-test}
 @item @refapigeneric{run-test}
 @item @refapigeneric{start-test}
-@end itemize
-
-
-@anchor{doc-process-methods}
-@subheading @code{process} Methods
-
-@itemize
-@item @refapigeneric{process-error-stream}
-@item @refapigeneric{process-exit-code}
-@item @refapigeneric{process-id}
-@item @refapigeneric{process-input-stream}
-@item @refapigeneric{process-output-stream}
-@item @refapigeneric{process-status}
-@item @refapigeneric{signal-process}
 @end itemize

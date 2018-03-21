@@ -1,6 +1,6 @@
 ;;; tests.lisp --- tests for the `software-evolution-library' package
 (in-package :software-evolution-library/test)
-(in-readtable :curry-compose-reader-macros)
+(named-readtables:in-readtable :sel-readtable)
 
 #-gt (load (make-pathname :name "testbot"
                           :type "lisp"
@@ -71,6 +71,7 @@ suite should be run and nil otherwise."
 (defvar *contexts*    nil "Holds the syntactic-contexts software object.")
 (defvar *test-suite*  nil "Holds condition synthesis test suite object.")
 (defvar *java-file-name* nil "File name to be tested in a test case.")
+(defvar *coq*         nil "Coq software object.")
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
@@ -246,6 +247,10 @@ suite should be run and nil otherwise."
   :test #'equalp
   :documentation "Path to asm-test examples.")
 
+(define-constant +coq-test-dir+ (append +etc-dir+ (list "coq"))
+  :test #'equalp
+  :documentation "Path to Coq test examples.")
+
 (defun gcd-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -410,6 +415,11 @@ suite should be run and nil otherwise."
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
                  :directory +asm-test-dir+))
+
+(defun coq-test-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +coq-test-dir+))
 
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
@@ -8428,3 +8438,323 @@ int main() { puts(\"~d\"); return 0; }
     ;; Each proxy had genome identical to the corresponding mutant
     (is (equal (mapcar #'genome mutants)
                (mapcar [#'cdr #'fitness] mutants)))))
+
+
+;;; Test SerAPI (low-level Coq interaction)
+(defun serapi-available-p ()
+  (set-serapi-paths)
+  (probe-file (trim-whitespace (shell "which ~a" *sertop-path*))))
+
+(setf *serapi-timeout* 1.0)
+
+(sel-suite* test-serapi "Coq SerAPI interaction." (serapi-available-p))
+
+(defixture serapi
+  (:setup (sleep 0.1)
+          (setf *serapi-process* (make-serapi))
+          (handler-bind ((serapi-timeout-error
+                          (lambda (c)
+                            (invoke-restart 'use-empty-response))))
+            (read-serapi-response *serapi-process*)))
+  (:teardown
+   (kill-serapi *serapi-process*)
+   (setf *serapi-process* nil)))
+
+(deftest can-start-end-serapi ()
+  (is *sertop-path*)
+  (let ((serapi (make-serapi)))
+    (is serapi)
+    (is (eql :running (process-status serapi)))
+    (kill-serapi serapi)
+    (sleep 0.1)
+    (is (not (eql :running (process-status serapi))))))
+
+(deftest with-serapi-creates-new-process ()
+  (is (not *serapi-process*))
+  (with-serapi ()
+    ;; locally binds `*serapi-process*'
+    (write-to-serapi *serapi-process*
+                     #!`((Test1 (Query () (Vernac "Print nat.")))))
+    (is (member #!'(Answer Test1 Ack)
+                (read-serapi-response *serapi-process*)
+                :test #'equal)))
+  ;; `*serapi-process*' goes out of scope at end
+  (is (not *serapi-process*)))
+
+(deftest with-serapi-can-capture-process ()
+  (with-fixture serapi
+    (is (eql :running (process-status *serapi-process*)))
+    (let ((serproc (make-serapi)))
+      ;; serproc is a different process than *serapi-process*
+      (is (not (eq serproc *serapi-process*)))
+      (with-serapi (serproc)
+        ;; *serapi-process is rebound to serproc inside with-serapi
+        (is (eq serproc *serapi-process*))
+        (write-to-serapi *serapi-process*
+                         #!`((Test1 (Query () (Vernac "Print nat.")))))
+        ;; writing to *serapi-process* also writes to serproc
+        (is (member #!'(Answer Test1 Ack)
+                    (read-serapi-response serproc)
+                    :test #'equal)))
+      ;; serproc isn't killed after with-serapi ends
+      (is (eql :running (process-status serproc)))
+      (kill-serapi serproc))
+    ;; *serapi-process isn't killed after with-serapi ends
+    (is (eql :RUNNING (process-status *serapi-process*)))))
+
+(deftest can-read-write-serapi ()
+  (with-fixture serapi
+    ;; write basic "Print nat." query and read response
+    (write-to-serapi *serapi-process*
+                     #!`((TestQ (Query () (Vernac "Print nat.")))))
+    (let ((response (read-serapi-response *serapi-process*)))
+      (is response)
+      (is (= 5 (length response)))
+      ;; Why not use the #! macro here?
+      (is (member #!'(Answer TestQ Ack) response :test #'equal))
+      (is (member #!'(Answer TestQ Completed) response :test #'equal)))))
+
+(deftest is-type-works ()
+  (let ((resp1 #!'(Answer TestQ Ack))
+        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
+    (is (is-type #!'Answer resp1))
+    (is (is-type #!'Feedback resp2))
+    (is (not (is-type #!'Answer resp2)))
+    (is (not (is-type #!'Feedback resp1)))))
+
+(deftest feedback-parsing-works ()
+  (let ((resp1 #!'(Feedback ((id 1) (route 0) (contents Processed))))
+        (resp2 #!'(Answer TestQ Ack)))
+    (is (eql 1 (feedback-id resp1)))
+    (is (eql 0 (feedback-route resp1)))
+    (is (eql #!'Processed (feedback-contents resp1)))
+    (is (not (feedback-id resp2)))
+    (is (not (feedback-route resp2)))
+    (is (not (feedback-contents resp2)))))
+
+(deftest message-content-works ()
+  (let ((resp1
+         #!'(Feedback
+             ((id 1) (route 0)
+              (contents (Message Notice () (Some (AST (tree)) here))))))
+        (resp2 #!'(Answer TestQ Ack)))
+    (is (equal #!'(Some (AST (tree)) here)
+               (message-content (feedback-contents resp1))))
+    (is (not (message-content (feedback-contents resp2))))))
+
+(deftest answer-parsing-works ()
+  (let ((resp1 #!'(Answer TestQ Ack))
+        (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed))))
+        (resp3 #!'(Answer TestQ (ObjList ((CoqAst (NIL more-stuff))))))
+        (resp4 #!'(Answer TestQ
+                   (ObjList ((CoqString "Inductive binop..."))))))
+    ;; verify answer-content
+    (is (equal (list #!'Ack nil (lastcar resp3) (lastcar resp4))
+               (mapcar #'answer-content
+                       (list resp1 resp2 resp3 resp4))))
+
+    ;; verify answer-string
+    (is (equal (list nil nil nil)
+               (mapcar (lambda (resp)
+                         (answer-string (answer-content resp)))
+                       (list resp1 resp2 resp3))))
+    (is (equal "Inductive binop..."
+               (answer-string (answer-content resp4))))
+
+    ;; verify answer-ast
+    (is (equal (list nil nil nil)
+               (mapcar (lambda (resp)
+                         (answer-ast (answer-content resp)))
+                       (list resp1 resp2 resp4))))
+    (is (equal #!'(NIL more-stuff)
+               (answer-ast (answer-content resp3))))))
+
+(deftest end-of-response-parsing-works ()
+  (let ((resp1 #!'(Answer TestQ Completed))
+        (resp2 #!'("Sexplib.Conv.Of_sexp_error" (Failure "Failure message") etc))
+        (resp3 #!'(Answer TestQ Ack)))
+    (is (equal (list t t nil)
+               (mapcar #'is-terminating (list resp1 resp2 resp3))))
+    (is (equal (list nil t nil)
+               (mapcar #'is-error (list resp1 resp2 resp3))))))
+
+(deftest added-id-correct ()
+  (let ((resp1 #!'(Answer TestQ (Added 2 () NewTip)))
+        (resp2 #!'(Answer TestQ Ack))
+        (resp3 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
+    (is (equal (list 2 nil nil)
+               (iter (for i in (list resp1 resp2 resp3))
+                     (collecting (when-let ((content (answer-content i)))
+                                   (added-id content))))))))
+
+(deftest can-add-and-lookup-coq-string ()
+  (with-fixture serapi
+    (let* ((add-str "Inductive test :=  | T1 : test  | T2 : test.")
+           (id (add-coq-string add-str)))
+      (is (= 1 (length id)))
+      (is (integerp (first id)))
+      (let ((lookup-str (lookup-coq-string (first id))))
+        (is (equal add-str lookup-str))))))
+
+(deftest can-convert-ast-to-string ()
+  (with-fixture serapi
+    (let* ((add-str "Inductive test :=  | T1 : test  | T2 : test.")
+           (id (add-coq-string add-str)))
+      (is (= 1 (length id)))
+      (is (integerp (first id)))
+      (let* ((lookup-ast (lookup-coq-ast (first id)))
+             (ast-str (lookup-coq-string lookup-ast)))
+        (is (equal add-str ast-str))))))
+
+(deftest can-lookup-pretty-printed-repr-1 ()
+  (with-fixture serapi
+    (let ((add-str "Inductive test :=  | T1 : test  | T2 : test."))
+      (add-coq-string add-str)
+      (write-to-serapi *serapi-process* #!`((Query () (Vernac "Print test."))))
+      (let ((resp1 (read-serapi-response *serapi-process*))
+            (resp2 (lookup-coq-pp "test")))
+        (equal (message-content (feedback-contents (nth 1 resp1)))
+               resp2)))))
+
+(deftest can-load-coq-file ()
+  (with-fixture serapi
+    (let ((ids (load-coq-file (coq-test-dir "NatBinop.v"))))
+      (is (equal '(2 3 4) ids)))))
+
+
+;;; Test Coq software objects
+(sel-suite* test-coq "Coq software object tests." (serapi-available-p))
+
+(defixture ls-test
+  (:setup (setf *coq* (make-instance
+                       'coq
+                       :genome (copy-tree'(a (b ((c d) a))
+                                           (b (() (c d e) ())))))))
+  (:teardown
+   (setf (genome *coq*) nil)
+   (setf *coq* nil)))
+
+(defixture total-maps
+  (:setup (sleep 0.1)
+          (setf *serapi-process* (make-serapi))
+          (handler-bind ((serapi-timeout-error
+                          (lambda (c)
+                            (invoke-restart 'use-empty-response))))
+            (read-serapi-response *serapi-process*))
+          (setf *coq* (from-file (make-instance 'coq)
+                                 (coq-test-dir "TotalMaps.v"))))
+  (:teardown
+   (setf *coq* nil)
+   (kill-serapi *serapi-process*)
+   (setf *serapi-process* nil)))
+
+(defixture math
+  (:setup (sleep 0.1)
+          (setf *serapi-process* (make-serapi))
+          (handler-bind ((serapi-timeout-error
+                          (lambda (c)
+                            (invoke-restart 'use-empty-response))))
+            (read-serapi-response *serapi-process*))
+          (setf *coq* (from-file (make-instance 'coq)
+                                 (coq-test-dir "NatBinop.v"))))
+  (:teardown
+   (setf *coq* nil)
+   (kill-serapi *serapi-process*)
+   (setf *serapi-process* nil)))
+
+(deftest from-file-sets-fields ()
+  (with-fixture math
+    (is *coq*)
+    (is (typep *coq* 'coq))
+    (is (= 3 (length (genome *coq*)) (length (ast-ids *coq*))))
+    (is (not (imports *coq*))))
+  (with-fixture total-maps
+    (is *coq*)
+    (is (typep *coq* 'coq))
+    (is (= 172 (length (genome *coq*)) (length (ast-ids *coq*))))
+    (is (= 4 (length (imports *coq*))))))
+
+(deftest can-lookup-pretty-printed-repr-2 ()
+  (with-fixture math
+    (write-to-serapi *serapi-process* #!`((Query () (Vernac "Print binop."))))
+    (let ((resp1 (read-serapi-response *serapi-process*))
+          (resp2 (lookup-coq-pp "binop")))
+      ;; one of the messages in resp1 has the pretty-printed repr. we would
+      ;; get by using lookup-coq-pp
+      (is (some (lambda (resp) (equal resp2 resp))
+                (mapcar (lambda (resp)
+                          (message-content (feedback-contents resp)))
+                        resp1))))))
+
+(deftest verify-asts-match ()
+  (with-fixture total-maps
+    (iter (for ast-id in (ast-ids *coq*))
+          (for ast in (genome *coq*))
+          (is (equal ast (tag-loc-info (lookup-coq-ast ast-id)))))))
+
+
+(deftest find-nearest-type-works ()
+  (let* ((ls (copy-tree'(a (b ((c d) e)) f (() (g) ()))))
+         (coq (make-instance 'coq :genome ls))
+         (types (iter (for i below (sel::tree-size ls))
+                      (collecting (sel::find-nearest-type coq i)))))
+    (is (equal types '(a b b c c c d e f g g g g f)))))
+
+(deftest can-pick-subtree-matching-type ()
+  (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
+         (coq (make-instance 'coq :genome ls)))
+    (is (not (sel::pick-subtree-matching-type coq 'a 0)))
+    (is (= 2 (sel::pick-subtree-matching-type coq 'b 1)))
+    (is (= 1 (sel::pick-subtree-matching-type coq 'b 2)))
+    (is (member (sel::pick-subtree-matching-type coq 'c 3) '(4 5)))
+    (is (= 13 (sel::pick-subtree-matching-type coq 'f 8)))
+    (is (= 8 (sel::pick-subtree-matching-type coq 'f 13)))))
+
+(deftest pick-typesafe-bad-good-respects-types ()
+  (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
+         (coq (make-instance 'coq :genome ls)))
+    (iter (for i below 25)
+          (handler-case
+              (let ((pair (sel::pick-typesafe-bad-good coq)))
+                (is (= 2 (length pair)))
+                (is (equal (sel::find-nearest-type coq (first pair))
+                           (sel::find-nearest-type coq (second pair)))))
+            (no-mutation-targets () nil)))))
+
+
+(deftest apply-type-safe-swap-mutation-test-1 ()
+  (with-fixture ls-test
+    ;; genome: '(a (b ((c d) a)) (b (() (c d e) ())))
+    ;; swap (c d) and (c d e)
+    (apply-mutation *coq* (make-instance 'type-safe-swap
+                                         :object *coq*
+                                         :targets (list 13 5)))
+    (is (equal '(a (b ((c d e) a)) (b (() (c d) ())))
+               (genome *coq*)))))
+
+(deftest apply-type-safe-swap-mutation-test-2 ()
+  (with-fixture ls-test
+    ;; swap (b ((c d) a)) with (b (() (c d e) ()))
+    (apply-mutation *coq* (make-instance 'type-safe-swap
+                                         :object *coq*
+                                         :targets (list 9 2)))
+    (is (equal '(a (b (() (c d e) ())) (b ((c d) a)))
+               (genome *coq*)))))
+
+(deftest apply-type-safe-swap-mutation-test-3 ()
+  (with-fixture ls-test
+    ;; strange but permissible
+    ;; swap ((b ((c d) a)) (b (() (c d e) ()))) with (b (() (c d e) ()))
+    (apply-mutation *coq* (make-instance 'type-safe-swap
+                                         :object *coq*
+                                         :targets (list 9 1)))
+    (is (equal '(a (b (() (c d e) ())) ((b ((c d) a)) (b (() (c d e) ()))))
+               (genome *coq*)))))
+
+(deftest apply-type-safe-swap-mutation-test-4 ()
+  (with-fixture ls-test
+    ;; verify no issues at edge
+    (apply-mutation *coq* (make-instance 'type-safe-swap
+                                         :object *coq*
+                                         :targets (list 7 0)))
+    (is (equal '(a) (genome *coq*)))))
