@@ -70,6 +70,7 @@
    :directory-p
    ;; Process wrapper
    :process
+   :os-process
    :process-id
    :process-input-stream
    :process-output-stream

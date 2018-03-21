@@ -492,7 +492,6 @@
    :test-case
    :program-name
    :program-args
-   :os-process
    :start-test
    :finish-test
    :run-test
