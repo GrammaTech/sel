@@ -4433,3 +4433,40 @@ http://astyle.sourceforge.net/astyle.html#_Usage"))
                 (file-to-string src)
                 (genome obj)))))
   (values obj errno))
+
+
+;;; Interface for ast-diff
+(defvar clang-diff-interface
+  (labels       ; Defined w/labels so they're defined at load time.
+      ((ast-equal-p (ast-a ast-b)
+         (or (eq ast-a ast-b)
+             (and (stringp ast-a) (stringp ast-b) (string= ast-a ast-b))
+             (and (consp ast-a) (consp ast-b)
+                  (eq (sel:ast-class (car ast-a)) (sel:ast-class (car ast-b)))
+                  (eq (length ast-a) (length ast-b))
+                  (every #'ast-equal-p (cdr ast-a) (cdr ast-b)))))
+       (ast-cost (ast)
+         (if (listp ast)
+             (apply #'+ (mapcar #'ast-cost (cdr ast)))
+             1))
+       (can-recurse (ast-a ast-b)
+         (and (consp ast-a)
+              (consp ast-b)
+              (eq (ast-class (car ast-a))
+                  (ast-class (car ast-b))))))
+    (make-instance 'ast-interface
+      :equal-p #'ast-equal-p
+      :cost #'ast-cost
+      :can-recurse #'can-recurse
+      :text [#'peel-bananas #'source-text]))
+  "AST-DIFF interface for CLANG objects.")
+
+(defmethod diff-software ((clang-a clang) (clang-b clang))
+  (ast-diff clang-diff-interface (ast-root clang-a) (ast-root clang-b)))
+
+(defmethod edit-software ((clang clang) edit-script)
+  (setf (ast-root clang)
+        (apply-edit-script clang-diff-interface
+                           (ast-root clang)
+                           edit-script))
+  clang)

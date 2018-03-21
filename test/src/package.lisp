@@ -16,6 +16,7 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/serapi-io
+   :software-evolution-library/ast-diff
    #+gt :testbot
    :trace-db
    :uiop)

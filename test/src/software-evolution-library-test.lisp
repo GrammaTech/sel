@@ -8439,6 +8439,126 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (mapcar #'genome mutants)
                (mapcar [#'cdr #'fitness] mutants)))))
 
+(sel-suite* clang-ast-diff "AST-level diffs of clang objects.")
+
+(deftest diff-insert ()
+  (let ((orig (from-string (make-instance 'clang)
+                           "int x; int y; int z;"))
+        (a (from-string (make-instance 'clang)
+                        "int a; int x; int y; int z;"))
+        (b (from-string (make-instance 'clang)
+                        "int x; int b; int y; int z;"))
+        (c (from-string (make-instance 'clang)
+                        "int x; int y; int z; int c;")))
+    (let ((diff-a (diff-software orig a)))
+      (is diff-a)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-a))
+           (ast-root a)))
+      (is (equalp (mapcar #'car diff-a)
+                  '(:same :insert :insert :same :same
+                    :same :same :same :same))))
+    (let ((diff-b (diff-software orig b)))
+      (is diff-b)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-b))
+           (ast-root b)))
+      (is (equalp (mapcar #'car diff-b)
+                  '(:same :same :same :insert :insert
+                    :same :same :same :same))))
+    (let ((diff-c (diff-software orig c)))
+      (is diff-c)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-c))
+           (ast-root c)))
+      (is (equalp (mapcar #'car diff-c)
+                  '(:same :same :same :same :same
+                    :same :insert :insert :same))))))
+
+(deftest diff-delete ()
+  (let ((orig (from-string (make-instance 'clang)
+                           "int x; int y; int z;"))
+        (a (from-string (make-instance 'clang)
+                        "int y; int z;"))
+        (b (from-string (make-instance 'clang)
+                        "int x; int z;"))
+        (c (from-string (make-instance 'clang)
+                        "int x; int y;")))
+    (let ((diff-a (diff-software orig a)))
+      (is diff-a)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-a))
+           (ast-root a)))
+      (is (equalp (mapcar #'car diff-a)
+                  '(:same :delete :delete :same :same :same :same))))
+    (let ((diff-b (diff-software orig b)))
+      (is diff-b)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-b))
+           (ast-root b)))
+      (is (equalp (mapcar #'car diff-b)
+                  '(:same :same :same :delete :delete :same :same))))
+    (let ((diff-c (diff-software orig c)))
+      (is diff-c)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-c))
+           (ast-root c)))
+      (is (equalp (mapcar #'car diff-c)
+                  '(:same :same :same :same :delete :delete :same))))))
+
+(deftest diff-recursive ()
+  (let* ((orig (from-string (make-instance 'clang)
+                           "int x = 1; int y = 2; int z = 3;"))
+        (new (from-string (make-instance 'clang)
+                           "int x = 1; int y = 5; int z = 3;"))
+        (diff (diff-software orig new)))
+    (is diff)
+    (is (sel/ast-diff::ast-equal-p sel::clang-diff-interface
+                                   (ast-root (edit-software (copy orig) diff))
+                                   (ast-root new)))
+    (is (equalp (mapcar #'car diff)
+                '(:same :same :same :recurse :same :same :same)))))
+
+(deftest diff-text-changes ()
+  (let ((orig (from-string (make-instance 'clang)
+                           "/* 1 */ int x; /* 2 */ int y; int z; /* 3 */"))
+        (a (from-string (make-instance 'clang)
+                        "/* X */ int x; /* 2 */ int y; int z; /* 3 */"))
+        (b (from-string (make-instance 'clang)
+                        "/* 1 */ int x; /* X */ int y; int z; /* 3 */"))
+        (c (from-string (make-instance 'clang)
+                        "/* 1 */ int x; /* 2 */ int y; int z; /* X */")))
+    (let ((diff-a (diff-software orig a)))
+      (is diff-a)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-a))
+           (ast-root a)))
+      (is (equalp (mapcar #'car diff-a)
+                  '(:delete :insert :same :same :same :same :same :same))))
+    (let ((diff-b (diff-software orig b)))
+      (is diff-b)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-b))
+           (ast-root b)))
+      (is (equalp (mapcar #'car diff-b)
+                  '(:same :same :delete :insert :same :same :same :same))))
+    (let ((diff-c (diff-software orig c)))
+      (is diff-c)
+      (is (sel/ast-diff::ast-equal-p
+           sel::clang-diff-interface
+           (ast-root (edit-software (copy orig) diff-c))
+           (ast-root c)))
+      (is (equalp (mapcar #'car diff-c)
+                  '(:same :same :same :same :same :same :delete :insert))))))
+
 
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
