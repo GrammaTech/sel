@@ -2,12 +2,14 @@
 (in-package :software-evolution-library/test)
 (named-readtables:in-readtable :sel-readtable)
 
+(defvar *this-file*
+  #.(or *compile-file-truename*
+        *load-truename*
+        *default-pathname-defaults*))
+
 #-gt (load (make-pathname :name "testbot"
                           :type "lisp"
-                          :directory (pathname-directory
-                                      #.(or *compile-file-truename*
-                                            *load-truename*
-                                            *default-pathname-defaults*))))
+                          :directory (pathname-directory *this-file*)))
 
 ;; Disable clang-format and any other helpers
 (defmacro every-is (function &rest lists)
@@ -440,7 +442,7 @@ suite should be run and nil otherwise."
       (if (<= (incf index) 20)
 	  (make-instance 'child-task
 			 :object (format nil "~A-~D"
-					 (task-object task) index))))))      
+					 (task-object task) index))))))
 (defmethod process-task ((task child-task) runner)
   (task-save-result runner (task-object task)) ;; save the object
   (sleep 1)) ;; sleep 1 second
@@ -8486,7 +8488,57 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (mapcar #'genome mutants)
                (mapcar [#'cdr #'fitness] mutants)))))
 
-(sel-suite* clang-ast-diff "AST-level diffs of clang objects.")
+
+;;;; AST Diff tests
+(sel-suite* ast-diff-tests "AST-level diffs of Sexprs.")
+
+(defparameter *sexp-diff-interface*
+  (labels ((ast-cost (ast)
+             (if (listp ast)
+                 (apply #'+ (mapcar #'ast-cost (cdr ast)))
+                 1)))
+    (make-instance 'ast-interface
+      :equal-p #'equalp
+      :cost #'ast-cost
+      :can-recurse (lambda (left right) (and (consp left) (consp right)))
+      :text {format nil "~S"})))
+
+(deftest sexp-diff-equal-zero-cost ()
+  (is (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
+                                    '(1 2 3 4) '(1 2 3 4))))
+      "Equal should have 0 cost."))
+
+(deftest sexp-diff-non-equal-first-element ()
+  (is (not (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
+                                         '(1 2 3 4) '(0 2 3 4)))))
+      "Difference in first car is caught.
+TODO: Currently it seems to ignore the first car."))
+
+(deftest sexp-diff-simple-sublist-test ()
+  (multiple-value-bind (script cost)
+      (ast-diff *sexp-diff-interface* '(1 '(1 2 3 4) 3 4) '(1 '(1 2 3 4) 3 5))
+    (multiple-value-bind (script-sublist cost-sublist)
+        (ast-diff *sexp-diff-interface* '(1 2 3 4) '(1 2 3 5))
+      (is (= (length script) (length script-sublist))
+          "Sublists have no effect on script when same.")
+      (is (= (length script) (length script-sublist))
+          "Sublists have no effect on cost when same."))))
+
+(deftest sexp-diff-on-unit-tests-file ()
+  (let ((forms (read-file-forms *this-file*)))
+    (is (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
+                                      '(1 2 3 4) '(1 2 3 4))))
+        "Handles forms from a lisp source file.
+TODO: Currently it seems to error on a non list cons.")
+    ;; TODO: Once the above is passing, add something which makes a
+    ;;       copy of forms with some deep changes and ensures they
+    ;;       have the anticipated weights.
+    ;;
+    ;;       If this is too slow maybe we comment out this test for
+    ;;       now.
+    ))
+
+(sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects.")
 
 (deftest diff-insert ()
   (let ((orig (from-string (make-instance 'clang)
