@@ -90,6 +90,20 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
    </li><li> <a href="#Function-sel_002futility_003arun_002dtask"><code>run-task</code></a>
   </li></ul>
 
+</li><li> <a href="#doc_002dprocess_002dmethods">Process Methods</a>
+      wraps around SBCL- or CCL-specific representations of
+      external processes
+  <ul>
+<li> <a href="#Class-sel_002futility_003aprocess"><code>process</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002derror_002dstream"><code>process-error-stream</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dexit_002dcode"><code>process-exit-code</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002did"><code>process-id</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dinput_002dstream"><code>process-input-stream</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002doutput_002dstream"><code>process-output-stream</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dstatus"><code>process-status</code></a>
+   </li><li> <a href="#Generic_002dFunction-sel_002futility_003asignal_002dprocess"><code>signal-process</code></a>
+  </li></ul>
+
 </li><li> Variables
   <ul>
 <li> <a href="#Variable-sel_002futility_003a_002abash_002dshell_002a"><code>*bash-shell*</code></a>
@@ -269,8 +283,96 @@ higher on the stack and therefore have priority over other tasks.
 <dd><p>Create a <code>task-runner</code>, using the specified task as the first job.
 </p></dd></dl>
 
+<a name="doc_002dprocess_002dmethods"></a><a name="Process-Methods"></a>
+<h3 class="section">B.3 Process Methods</h3>
+
+<a name="index-process-_005bsel_002futility_005d"></a>
+<a name="Class-sel_002futility_003aprocess"></a><dl>
+<dt><a name="index-process-_005bsel_002futility_005d-1"></a>Class: <strong>process [sel/utility]</strong></dt>
+<dd><p>Class precedence list: <code>process, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility::os-process</span><!-- /@w --></code>
+
+<p>The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
+&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
+&lsquo;signal-process&rsquo; to interact with processes.
+</p></li></ul>
+
+<p>Object representing an external process.
+Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
+</p></dd></dl>
+<a name="index-process_002derror_002dstream-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002derror_002dstream"></a><dl>
+<dt><a name="index-process_002derror_002dstream-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-error-stream [sel/utility]</strong> <em>process</em></dt>
+<dd><p>Return the error stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002derror_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002derror_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-error-stream [sel/utility]</strong> <em>(process process)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="index-process_002dexit_002dcode-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002dexit_002dcode"></a><dl>
+<dt><a name="index-process_002dexit_002dcode-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-exit-code [sel/utility]</strong> <em>process</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not
+exited.
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dexit_002dcode-_005bsel_002futility_005d-2"></a>Method: <strong>process-exit-code [sel/utility]</strong> <em>(process process)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="index-process_002did-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002did"></a><dl>
+<dt><a name="index-process_002did-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-id [sel/utility]</strong> <em>process</em></dt>
+<dd><p>Return the process id for <code>process</code>
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002did-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002did-_005bsel_002futility_005d-2"></a>Method: <strong>process-id [sel/utility]</strong> <em>(process process)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="index-process_002dinput_002dstream-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002dinput_002dstream"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-input-stream [sel/utility]</strong> <em>process</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-input-stream [sel/utility]</strong> <em>(process process)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="index-process_002doutput_002dstream-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002doutput_002dstream"></a><dl>
+<dt><a name="index-process_002doutput_002dstream-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-output-stream [sel/utility]</strong> <em>process</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002doutput_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-output-stream [sel/utility]</strong> <em>(process process)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="index-process_002dstatus-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003aprocess_002dstatus"></a><dl>
+<dt><a name="index-process_002dstatus-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-status [sel/utility]</strong> <em>process</em></dt>
+<dd><p>Return the status of <code>process:</code> one of :running, :stopped,
+:signaled, or :exited.
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002dstatus-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dstatus-_005bsel_002futility_005d-2"></a>Method: <strong>process-status [sel/utility]</strong> <em>(process process)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="index-signal_002dprocess-_005bsel_002futility_005d"></a>
+<a name="Generic_002dFunction-sel_002futility_003asignal_002dprocess"></a><dl>
+<dt><a name="index-signal_002dprocess-_005bsel_002futility_005d-1"></a>Generic Function: <strong>signal-process [sel/utility]</strong> <em>process signal-number</em></dt>
+<dd><p>Send the signal <code>signal-number</code> to <code>process</code>.
+</p></dd></dl>
+<a name="Method-sel_002futility_003asignal_002dprocess-_0028_0028process-process_0029-_0028signal_002dnumber-integer_0029_0029"></a><dl>
+<dt><a name="index-signal_002dprocess-_005bsel_002futility_005d-2"></a>Method: <strong>signal-process [sel/utility]</strong> <em>(process process) (signal-number integer)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+
 <a name="Documentation-1"></a>
-<h3 class="section">B.3 Documentation</h3>
+<h3 class="section">B.4 Documentation</h3>
 
 <a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d"></a>
 <a name="Variable-sel_002futility_003a_002abash_002dshell_002a"></a><dl>
