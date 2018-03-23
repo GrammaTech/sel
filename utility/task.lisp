@@ -65,9 +65,9 @@
   (jobs nil)
   (workers nil)
   (results nil)
-  (jobs-lock (bt:make-recursive-lock))
-  (results-lock (bt:make-lock))
-  (workers-lock (bt:make-lock))
+  (jobs-lock (bt:make-recursive-lock "task-runner-jobs"))
+  (results-lock (bt:make-lock "task-runner-results"))
+  (workers-lock (bt:make-lock "task-runner-workers"))
   (completed-jobs 0)
   (completed-tasks 0))
 
