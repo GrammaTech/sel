@@ -470,8 +470,12 @@ debug information depending on the value of `*shell-debug*'."
                                     :force-shell t
                                     :ignore-error-status t
                                     :input input)))
-          (setf stdout-str (file-to-string stdout-file))
-          (setf stderr-str (file-to-string stderr-file)))))
+          (setf stdout-str (if (probe-file stdout-file)
+                               (file-to-string stdout-file)
+                               ""))
+          (setf stderr-str (if (probe-file stderr-file)
+                               (file-to-string stderr-file)
+                               "")))))
     (when *shell-debug*
       (format t "~&stdout:~a~%stderr:~a~%errno:~a"
               stdout-str stderr-str errno))
