@@ -50,7 +50,7 @@ techniques."
              (:file "expression" :depends-on ("lisp"))
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
-	     (:file "asm-heap"  :depends-on ("asm"))
+             (:file "asm-heap"  :depends-on ("asm"))
              (:file "csurf-asm" :depends-on ("asm-heap"))
              (:file "elf"  :depends-on ("diff"))
              (:file "elf-cisc" :depends-on ("elf"))
@@ -181,7 +181,7 @@ techniques."
             :components
             ((:file "package")
              (:file "utility" :depends-on ("package"))
-	     (:file "task" :depends-on ("package"))))))
+             (:file "task" :depends-on ("package"))))))
 
 (defsystem "software-evolution-library/view"
   :description "Viewing functions for the SOFTWARE-EVOLUTION-LIBRARY."
