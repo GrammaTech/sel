@@ -11,33 +11,56 @@
 ;;; source code, and input/output specifications, as well as a function
 ;;; boundary deliminator which determines the target of the mutation algorithm.
 ;;;
+
 ;;; Performance testing will take advantage of the assembly functionality built
 ;;; into SBCL, so, for now, this software class is SBCL-specific.
 ;;;
 (define-software asm-super-mutant (asm-heap super-mutant)
-  ((input-spec :initarg :input-spec :accessor asm-super-mutant-input-spec)
-   (output-spec :initarg :output-spec :accessor asm-super-mutant-output-spec))
+  ((input-spec :initarg :input-spec :accessor input-spec)
+   (output-spec :initarg :output-spec :accessor output-spec))
   (:documentation
    "Combine super-mutant capabilities with asm-heap framework."))
 
+;;;
+;;; all the SIMD register names start with 'y'
+;;;
+(defun simd-reg-p (name) (char= (elt name 0) #\y))
+
 (defstruct memory-spec
-  addr   ;; 64-bit address as an int
-  mask   ;; bit set for each live byte starting at addr,
-         ;; low-bit (bit 0) = addr, bit 1 = addr+1, etc.
-  bytes)  ;; 8 bytes starting at addr
+  addr   ; 64-bit address as an int
+  mask   ; bit set for each live byte starting at addr,
+         ; low-bit (bit 0) = addr, bit 1 = addr+1, etc.
+  bytes) ; 8 bytes starting at addr
+
+(defmethod print-object ((mem memory-spec) stream)
+  (format stream "~16,'0X: ~T~A ~16,'0X"
+		(memory-spec-addr mem)
+		(memory-spec-mask mem)
+		(memory-spec-bytes mem)))
+
+(defstruct reg-contents
+  name     ; name of register (string) i.e. "rax", "ymm1", etc.
+  value)   ; integer value (64 bits for gen. purpose, 256 bit for SIMD)
+
+(defmethod print-object ((reg reg-contents) stream)
+  (if (simd-reg-p (reg-contents-name reg))
+    (format stream "~4A: ~T~64,'0X" (reg-contents-name reg)
+		(reg-contents-value reg))
+    (format t "~4A: ~T~16,'0X" (reg-contents-name reg)
+		(reg-contents-value reg))))
 
 (defstruct input-specification
-  rax
-  rbx
-  rcx
-  rdx
-  rso
-  rbp
-  rsi
-  rdi
-  ymm   ;; array of 16 x 32 bytes
+  regs
+  simd-regs 
   mem)   ;; vector of memory-spec to indicate all memory inputs
 
+(defmethod print-object ((spec input-specification) stream)
+  (iter (for reg in-vector (input-specification-regs spec))
+	(print reg))
+  (iter (for reg in-vector (input-specification-simd-regs spec))
+	(print reg))
+  (iter (for mem in-vector (input-specification-mem spec))
+	(print mem)))
 
 #|
 I'll go ahead and describe the format that is simplest for me (partly because 
@@ -89,8 +112,92 @@ writes to addresses that are part of the output state. We can also give it
 a "red zone" from %rsp to %rsp-128 where it can write, but that won't be 
 live on exit.
   |#
-  
-(defun parse-input-file (input)
-  (declare (ignorable input))
+
+;;; whitespace handling
+;;;
+(defconstant whitespace '(#\space #\linefeed #\newline #\tab #\page))
+(defun is-whitespace (c) (member c whitespace))
+
+(defun get-next-line (input)
+  (let ((line (read-line input nil 'eof)))
+    (if (stringp line)
+	(trim-whitespace line))))  ;; returns nil if end-of-file
+
+(defun parse-bytes (num line pos)
+  (iter (while (is-whitespace (char line pos))) (incf pos)) ;; skip whitespace
+  (let ((result 0))
+    (dotimes (i num)
+      (setf result (+ (* result #x10)
+		      (digit-char-p (char line (+ (* i 3) 0 pos)) #x10)))
+      (setf result (+ (* result #x10)
+		      (digit-char-p (char line (+ (* i 3) 1 pos)) #x10))))
+    result))
+
+;;;
+;;; Returns a 64-bit integer representing an address, and the line position
+;;; immediately following the address. The address should be in the format:
+;;;   xxxxxxxx xxxxxxxx
+;;; (16 hex digits, with 8 digits + space + 8 digits = 17 chars)
+;;;;
+(defun parse-address (line pos)
+  (let ((result 0))
+    (dotimes (i 8)
+      (setf result (+ (* result #x10)
+		      (digit-char-p (char line (+ i pos)) #x10))))
+    (dotimes (i 8)
+      (setf result (+ (* result #x10)
+		      (digit-char-p (char line (+ i 9 pos)) #x10))))
+    (values result (+ pos 17))))
+
+(defun parse-mem-spec (line pos)
+  (multiple-value-bind (addr i)
+      (parse-address line pos)
+      (setf pos i)
+      (iter (while (is-whitespace (char line pos))) (incf pos)) ; skip spaces
+      (let ((b (make-array 8 :element-type 'bit)))
+	(dotimes (i 8)
+	  (setf (bit b i)
+		(if (char= (char line pos) #\v) 1 0))
+	  (incf pos 2))
+	(make-memory-spec :addr addr
+			   :mask b
+			   :bytes (parse-bytes 8 line pos))))) 
+
+(defun parse-reg-spec (line pos)
+  (let ((name               ; get the register name (string)
+	 (do ((c (char line (incf pos))(char line (incf pos)))
+	      (chars '()))
+	     ((is-whitespace c)
+	      (concatenate 'string (nreverse chars)))
+	   (push c chars))))
+    (if (simd-reg-p name)  ; was it a SIMD register?
+        (make-reg-contents
+		      :name name
+		      :value (parse-bytes 32 line pos))
+	;; else a general-purpose register
+	(make-reg-contents
+		      :name name
+		      :value (parse-bytes 8 line pos)))))
+
+(defun parse-input-file (input-name)
   "Need to implement"
-  nil)
+  (let ((input-spec (make-input-specification
+		     :regs (make-array 16 :fill-pointer 0)
+		     :simd-regs (make-array 16 :fill-pointer 0)
+		     :mem (make-array 0 :fill-pointer 0 :adjustable t))))
+    (with-open-file (input input-name :direction :input)
+      (do ((line (get-next-line input) (get-next-line input))
+	   (pos 0 0))
+	  ((null line))
+	(cond ((zerop (length line))) ; do nothing, empty line
+	      ((char= (char line 0) #\%) ; register spec?
+	       (let ((spec (parse-reg-spec line pos)))
+		 (if (simd-reg-p (reg-contents-name spec))  ; was it a SIMD register?
+		   (vector-push spec (input-specification-simd-regs input-spec))
+		   ;; else a general-purpose register
+		   (vector-push spec (input-specification-regs input-spec)))))
+	      (t ; assume memory specification
+	       (vector-push-extend (parse-mem-spec line pos)
+				   (input-specification-mem input-spec))))))
+    input-spec))
+
