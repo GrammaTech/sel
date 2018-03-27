@@ -6,7 +6,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang (ast)
+(define-software clang (source)
   ((genome   :initarg :genome :initform "" :copier :direct)
    (compiler :initarg :compiler :accessor compiler :initform "clang")
    (ast-root :initarg :ast-root :initform nil :accessor ast-root

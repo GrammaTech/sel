@@ -5897,7 +5897,7 @@ prints unique counters in the trace"
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
 (define-software collect-traces-handles-directory-phenomes-mock
-    (sel::ast sel::traceable)
+    (sel::source sel::traceable)
   ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
                 :copier :direct)))
 

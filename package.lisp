@@ -309,6 +309,7 @@
    :lisp
    :constant-fold
    :random-subtree
+   :source
    :clang
    :clang-w-fodder
    :clang-w-binary

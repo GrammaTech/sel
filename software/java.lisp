@@ -33,7 +33,7 @@ exit 0")
  "Error exit code from the java-mutator.jar")
 
 
-(define-software java (ast)
+(define-software java (source)
   ((genome    :initarg :genome :initform nil
               :copier :direct)
    (compiler  :initarg :compiler
