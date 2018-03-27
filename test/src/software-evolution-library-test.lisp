@@ -1544,7 +1544,6 @@ suite should be run and nil otherwise."
     (is (null  (prototypes *hello-world*)))
     (is (null  (includes *hello-world*)))
     (is (null  (macros *hello-world*)))
-    (is (null  (globals *hello-world*)))
     (is (null  (fitness *hello-world*)))
     (is (zerop (hash-table-count (types *hello-world*))))))
 
@@ -3218,27 +3217,26 @@ int x = CHARSIZE;")))
 
 (deftest graphing-ancestry ()
   (with-fixture hello-world-clang-w-ancestry
-    (let ((crossed (crossover *hello-world* *hello-world*))
-          (op (make-instance 'clang-cut
-                :object *hello-world*
-                :targets `((:stmt1 . ,(stmt-with-text *hello-world*
-                                                      "return 0"))))))
-      (apply-mutation crossed op)
-      (with-temp-file (save-base)
-        (multiple-value-bind (stdout stderr errno)
-            (save-ancestry crossed
-                           (pathname-directory save-base)
-                           (pathname-name save-base))
-          (declare (ignorable stdout stderr))
-          (let ((svg (make-pathname :directory (pathname-directory save-base)
-                                    :name (pathname-name save-base)
-                                    :type "svg"))
-                (dot (make-pathname :directory (pathname-directory save-base)
-                                    :name (pathname-name save-base)
-                                    :type "dot")))
-            (when (probe-file svg) (delete-file svg))
-            (when (probe-file dot) (delete-file dot)))
-          (is (zerop errno)))))))
+    (apply-mutation *hello-world*
+                    (make-instance 'clang-cut
+                      :object *hello-world*
+                      :targets `((:stmt1 . ,(stmt-with-text *hello-world*
+                                                            "return 0")))))
+    (with-temp-file (save-base)
+      (multiple-value-bind (stdout stderr errno)
+          (save-ancestry *hello-world*
+                         (pathname-directory save-base)
+                         (pathname-name save-base))
+        (declare (ignorable stdout stderr))
+        (let ((svg (make-pathname :directory (pathname-directory save-base)
+                                  :name (pathname-name save-base)
+                                  :type "svg"))
+              (dot (make-pathname :directory (pathname-directory save-base)
+                                  :name (pathname-name save-base)
+                                  :type "dot")))
+          (when (probe-file svg) (delete-file svg))
+          (when (probe-file dot) (delete-file dot)))
+        (is (zerop errno))))))
 
 
 ;;; CSURF-ASM ancestry tests.
@@ -8551,7 +8549,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
@@ -8560,7 +8558,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
@@ -8569,7 +8567,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
@@ -8588,7 +8586,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
@@ -8596,7 +8594,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
@@ -8604,7 +8602,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
@@ -8617,7 +8615,7 @@ TODO: Currently it seems to ignore the first car."))
                            "int x = 1; int y = 5; int z = 3;"))
         (diff (diff-software orig new)))
     (is diff)
-    (is (sel/ast-diff::ast-equal-p sel::clang-diff-interface
+    (is (sel/ast-diff::ast-equal-p sel::ast-tree-diff-interface
                                    (ast-root (edit-software (copy orig) diff))
                                    (ast-root new)))
     (is (equalp (mapcar #'car diff)
@@ -8635,7 +8633,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
@@ -8643,7 +8641,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
@@ -8651,7 +8649,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
       (is (sel/ast-diff::ast-equal-p
-           sel::clang-diff-interface
+           sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)

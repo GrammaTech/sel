@@ -192,6 +192,12 @@ Used to target mutation."))
 (defmethod pick-bad-bad ((software software) &key)
   (list (pick-bad software) (pick-bad software)))
 
+(defgeneric pick-bad-only (software &key)
+  (:documentation "Pick a single 'bad' index into a software object.
+Used to target mutation."))
+(defmethod pick-bad-only ((software software) &key)
+  (list (pick-bad software)))
+
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
 

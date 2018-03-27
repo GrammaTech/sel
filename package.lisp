@@ -153,7 +153,6 @@
    :prototypes
    :functions
    :get-entry
-   :ast
    :asts
    :stmt-asts
    :non-stmt-asts
@@ -253,7 +252,8 @@
    :*allow-bindings-to-globals-bias*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
-   *clang-ast-aux-fields*
+   :*clang-ast-aux-fields*
+   :*clang-mutate-additional-args*
    :*database*
    :*mmm-processing-seconds*
    ;; evolution functions
@@ -310,6 +310,7 @@
    :constant-fold
    :random-subtree
    :source
+   :ast-tree
    :clang
    :clang-w-fodder
    :clang-w-binary

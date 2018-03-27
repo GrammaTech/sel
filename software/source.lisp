@@ -71,10 +71,6 @@ on the filesystem at BIN."
     (apply-mutation obj op)
     (values obj op)))
 
-(defgeneric select-crossover-points (a b)
-  (:documentation "Select suitable crossover points in A and B.
-If no suitable points are found the returned points may be nil."))
-
 (defmethod crossover ((a source) (b source))
   "Crossover two software objects, A and B."
   (let ((a-point (random-elt (line-breaks (genome a))))
@@ -106,6 +102,3 @@ If no suitable points are found the returned points may be nil."))
 * OBJ software object to modify
 "
   (setf (genome obj) (format nil "~{~a~^~%~}" new)))
-
-(defgeneric asts (software)
-  (:documentation "Return a list of all asts in SOFTWARE."))
