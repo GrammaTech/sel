@@ -281,6 +281,7 @@
    :original
    :asm
    :asm-heap
+   :asm-line-info
    :asm-line-info-text
    :asm-line-info-tokens
    :asm-line-info-type
