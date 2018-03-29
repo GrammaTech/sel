@@ -4,16 +4,18 @@ variables:
 
 before_script:
   - docker info
-  - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
 
 stages:
-  - build
-  - test-and-tag
+  - build-ubuntu
+  - build-arch
+  - test-and-tag-ubuntu
+  - test-and-tag-arch
   - dependents
   - deploy-and-cleanup
 
 .build-template: &build
   script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     - if [ "$OS" = "ubuntu" ];
       then
           docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
@@ -24,14 +26,14 @@ stages:
     - cp .ci/Dockerfile.$OS Dockerfile
     - docker build --build-arg=GT=yes -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
 
-build:
-  stage: build
+build-ubuntu:
+  stage: build-ubuntu
   variables:
     OS: 'ubuntu'
   <<: *build
 
 build-arch:
-  stage: build
+  stage: build-arch
   variables:
     OS: 'arch'
   <<: *build
@@ -46,11 +48,13 @@ build-arch:
           then
               docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
               docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:latest;
           elif [ "$OS" = "arch" ];
           then
               docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
               docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
           else
               docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
@@ -59,14 +63,14 @@ build-arch:
           docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
       fi
 
-run:
-  stage: test-and-tag
+run-ubuntu:
+  stage: test-and-tag-ubuntu
   variables:
     OS: 'ubuntu'
   <<: *run
 
 run-arch:
-  stage: test-and-tag
+  stage: test-and-tag-arch
   variables:
     OS: 'arch'
   <<: *run
