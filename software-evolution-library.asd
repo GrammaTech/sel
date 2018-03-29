@@ -14,7 +14,7 @@ techniques."
                closer-mop
                uiop
                bordeaux-threads
-               cl-arrows
+               cl-arrowz
                cl-custom-hash-table
                cl-json
                cl-ppcre
@@ -110,7 +110,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrows
+               cl-arrowz
                cl-store
                named-readtables
                curry-compose-reader-macros
@@ -168,7 +168,7 @@ techniques."
                named-readtables
                curry-compose-reader-macros
                bordeaux-threads
-               cl-arrows
+               cl-arrowz
                iterate
                split-sequence
                cl-ppcre
@@ -190,7 +190,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrows
+               cl-arrowz
                iterate
                split-sequence
                cl-ppcre
@@ -215,7 +215,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrows
+               cl-arrowz
                iterate
                split-sequence
                cl-ppcre
@@ -235,7 +235,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrows
+               cl-arrowz
                split-sequence
                cl-ppcre
                cl-store
@@ -255,7 +255,7 @@ techniques."
   :version "0.0.0"
   :depends-on (alexandria
                closer-mop
-               cl-arrows
+               cl-arrowz
                named-readtables
                curry-compose-reader-macros
                cxml
@@ -285,7 +285,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrows
+               cl-arrowz
                named-readtables
                curry-compose-reader-macros
                iterate

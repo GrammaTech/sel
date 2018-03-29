@@ -6,7 +6,7 @@
    :uiop
    :bordeaux-threads
    :common-lisp
-   :cl-arrows
+   :cl-arrowz
    :cl-custom-hash-table
    :cl-fad
    :cl-ppcre
