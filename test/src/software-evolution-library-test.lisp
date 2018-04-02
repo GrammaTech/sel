@@ -243,6 +243,10 @@ suite should be run and nil otherwise."
   :test #'equalp
   :documentation "Path to directory holding the SimpleMaven java project.")
 
+(define-constant +java-jars-dir+ (append +java-dir+ (list "Jars"))
+  :test #'equalp
+  :documentation "Path to directory holding the Build Folder jars.")
+
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
   :documentation "Path to asm-test examples.")
@@ -2741,6 +2745,26 @@ int x = CHARSIZE;")))
       (is (not (scan-to-strings target before-genome)))
       (is (scan-to-strings target after-genome))))))
 
+(deftest force-include-test-java-1 ()
+  "Check if include statement was inserted into file with no package name."
+  (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
+    (with-fixture general-fixture-java
+    (let ((before-genome (genome *soft*))
+          (after-genome (genome (force-include *soft* "java.util.LinkedList")))
+          (target "java[.]util[.]LinkedList"))
+      (is (not (scan-to-strings target before-genome)))
+      (is (scan-to-strings target after-genome))))))
+
+(deftest force-include-test-java-2 ()
+  "Check if include statement was inserted into file with package name."
+  (let ((*java-file-name* "TestSimple_package_name"))
+    (with-fixture general-fixture-java
+    (let ((before-genome (genome *soft*))
+          (after-genome (genome (force-include *soft* "java.util.LinkedList")))
+          (target "java[.]util[.]LinkedList"))
+      (is (not (scan-to-strings target before-genome)))
+      (is (scan-to-strings target after-genome))))))
+
 (defun is-genome-modified-by-instrumentation-of (file)
   (let ((*java-file-name* file))
     (with-fixture general-fixture-java
@@ -2871,9 +2895,10 @@ int x = CHARSIZE;")))
            (make-instance 'java-project
              :build-command "./gt-harness.sh build"
              :build-target
-             (format nil
-               "target/~
-                simpleMultifileMaven-1.0-SNAPSHOT-jar-with-dependencies.jar"))
+               (format nil
+                       "target/~
+                        simpleMultifileMaven-1.~
+                        0-SNAPSHOT-jar-with-dependencies.jar"))
            (make-pathname :directory +maven-prj-dir+))))
   (:teardown
    (setf *soft* nil)))
@@ -2888,6 +2913,10 @@ int x = CHARSIZE;")))
               (evolve-files *soft*) :key #'car :test #'string=))
     (is (equal "java" (compiler (cdr (first (evolve-files *soft*))))))))
 
+(deftest java-build-folder-jar-test ()
+  "Tests if applicable file names in a build-folder are found."
+  (with-temp-dir-of (temp-dir) (make-pathname :directory +java-jars-dir+)
+    (is (equal 9 (length (get-files-jar temp-dir))))))
 
 ;;;; Range representation.
 (sel-suite* range-representation "Range representation.")

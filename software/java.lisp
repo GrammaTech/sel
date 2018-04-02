@@ -174,6 +174,30 @@ insert)."
   (or (raw-size obj)
       (setf (raw-size obj) (java-ids-aux obj))))
 
+(defmethod force-include ((obj java) include)
+  "Add an import directive for an INCLUDE to OBJ after the package declaration."
+  (setf (genome obj)
+        (let* ((lst (split "(package [^;]+;)"
+                            (genome obj)
+                            :with-registers-p t))
+               ;; Get index of package
+               (index (position
+                        (nth-value 0
+                          (scan-to-strings
+                            (create-scanner "(package [^;]+;)")
+                            (genome obj)))
+                        lst :test 'equal)))
+          ;; If package exists, add import after it, else, add to front.
+          (if index
+              (progn
+                (push (format nil "~%import ~a;~&" include)
+                      (cdr (nthcdr index lst)))
+                (format nil "~{~A~^~}" lst))
+              (concatenate 'string
+                           (format nil "import ~a;~&" include)
+                           (genome obj)))))
+  obj)
+
 ;;; TODO: Rename `clang-format' to `format' (or something that won't
 ;;;       conflict with a core CL function name.
 (defmethod clang-format ((obj java) &optional style)

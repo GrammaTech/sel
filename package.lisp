@@ -669,6 +669,7 @@
    :java-make-literal
    :java-number
    :java-project
+   :get-files-jar
    :super-mutant
    :diff-software
    :edit-software
