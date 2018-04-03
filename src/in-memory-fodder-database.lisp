@@ -80,7 +80,7 @@
 * HASH DOCFIXME
 "
   (let ((type (gethash hash (type-database-ht db))))
-    (when type (snippet->clang-type type))))
+    (when type (from-alist 'clang-type type))))
 
 (defmethod find-macro ((db in-memory-database) hash)
   "DOCFIXME
@@ -89,5 +89,5 @@
 * HASH DOCFIXME
 "
   (let ((macro (gethash hash (macro-database-ht db))))
-    (when macro (snippet->clang-macro macro))))
+    (when macro (from-alist 'clang-macro macro))))
 

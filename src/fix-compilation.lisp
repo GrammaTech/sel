@@ -135,11 +135,10 @@ associated element of `*compilation-fixers*'.
                     (list (format nil "~a ~a;" (random-type) variable-name))
                     (drop (1- line-number) lines)))
       ;; Find the ID of the declaration.
-      (let* ((decl-stmt (find-if (lambda (snippet)
-                                   (and (eq (ast-class snippet)
+      (let* ((decl-stmt (find-if (lambda (ast)
+                                   (and (eq (ast-class ast)
                                             :DeclStmt)
-                                        (= (->> snippet
-                                                (ast-to-source-range obj)
+                                        (= (->> (ast-to-source-range obj ast)
                                                 (begin)
                                                 (line))
                                            line-number)))

@@ -519,7 +519,12 @@
    :rinard-write-out
    :rinard-read-in
    :collect-fault-loc-traces
-   :generate-helpers
+   :to-alist
+   :from-alist
+   :ast-ref
+   :make-ast-ref
+   :ast-ref-path
+   :ast-ref-ast
    :clang-ast
    :ast-args
    :ast-children
@@ -570,10 +575,6 @@
    :macro-hash
    :make-clang-macro
    :roots
-   :ast->snippet
-   :snippet->clang-ast
-   :snippet->clang-type
-   :snippet->clang-macro
    :source-text
    :function-body
    :stmt-range
@@ -581,10 +582,6 @@
    :get-unbound-vals
    :get-unbound-funs
    :scopes
-   :ast-ref
-   :make-ast-ref
-   :ast-ref-path
-   :ast-ref-ast
    :index-of-ast
    :ast-at-index
    :ast-later-p

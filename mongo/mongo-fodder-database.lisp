@@ -123,11 +123,11 @@
           (take (or limit infinity) snippets)))))
 
 (defmethod find-type ((obj mongo-database) hash)
-  (mongo-find-hash obj "types" hash #'snippet->clang-type))
+  (mongo-find-hash obj "types" hash {from-alist 'clang-type}))
 
 (defmethod find-macro ((obj mongo-database) hash)
   ;; FIXME: Update pliny database to support new macro format
-  (mongo-find-hash obj "macros" hash #'snippet->clang-macro))
+  (mongo-find-hash obj "macros" hash {from-alist 'clang-macro}))
 
 (defun mongo-find-hash (mongo-db database-name hash to-obj-fn)
   (with-mongo-connection (:db (db mongo-db)

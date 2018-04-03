@@ -93,7 +93,6 @@ techniques."
              (:file "test-suite")
              (:file "condition-synthesis" :depends-on ("test-suite"))
              (:file "fault-loc" :depends-on ("test-suite"))
-             (:file "generate-helpers")
              (:file "multi-objective")
              (:file "clang-tokens")))))
 

@@ -1260,7 +1260,7 @@ to expand.
   "JSON database AuxDB entries required for clang software objects.")
 
 (defvar *clang-ast-aux-fields* nil
-  "Extra fields to read to clang-mutate snippets into ast-aux-data.")
+  "Extra fields to read from clang-mutate into ast-aux-data.")
 
 (defvar *clang-mutate-additional-args* nil
   "Extra arguments to pass to clang-mutate when parsing")
@@ -1301,12 +1301,12 @@ to expand.
           (byte-offset-to-chars (aget :begin-off ast)))
         (end-offset (ast)
           (byte-offset-to-chars (aget :end-off ast)))
-        (snippet->ast (snippet)
-          (let ((ast (snippet->clang-ast snippet)))
+        (ast-from-alist (alist)
+          (let ((ast (from-alist 'clang-ast alist)))
             (setf (ast-aux-data ast)
                   (mapcar #'cons
                           *clang-ast-aux-fields*
-                          (mapcar {aget _ snippet}
+                          (mapcar {aget _ alist}
                                   *clang-ast-aux-fields*)))
           ast))
         (collect-children (ast)
@@ -1368,7 +1368,7 @@ to expand.
                       (collect (subseq genome start (begin-offset c))
                         into children)
                       ;; Collect child, converted to AST struct
-                      (collect (cons (snippet->ast c) (cdr subtree))
+                      (collect (cons (ast-from-alist c) (cdr subtree))
                         into children)
                       (setf start (+ 1 (end-offset c)))
                       (finally
@@ -1470,7 +1470,7 @@ to expand.
                       (:children . ,roots)
                       (:begin-off . 0)
                       (:end-off . :end)))
-       (cons (snippet->clang-ast root) children)))))
+       (cons (from-alist 'clang-ast root) children)))))
 
 (defun types->hashtable (types)
   "Return a hashtable mapping type-hash -> type for each
@@ -1513,12 +1513,12 @@ type in TYPES.
           (cond ((and (aget :hash ast)
                       (aget :type ast))
                   ;; Types
-                  (collect (snippet->clang-type ast) into m-types))
+                  (collect (from-alist 'clang-type ast) into m-types))
                 ((and (aget :name ast)
                       (aget :body ast)
                       (aget :hash ast))
                  ;; Macros
-                 (collect (snippet->clang-macro ast) into m-macros))
+                 (collect (from-alist 'clang-macro ast) into m-macros))
                  ;; ASTs
                 ((aget :counter ast)
                  (collect ast into body))
@@ -2881,7 +2881,7 @@ variables to replace use of the variables declared in stmt ID."))
 
 ;;; Crossover functions
 (defun create-crossover-context (clang outer start &key include-start)
-  "Create the context for a crossover snippet.
+  "Create the context for a crossover AST.
 
 Start at the outer AST and proceed forward/inward, copying all
 children before the start point of the crossover. This collects
@@ -3002,8 +3002,8 @@ Returns outermost AST of context.
            (if (equalp ancestor begin)
                (get-parent-ast obj ancestor)
                ancestor)))
-       (splice-snippets (a-outer b-outer b-inner b-snippet)
-         ;; Splice b-snippet into a-outer.
+       (splice-ast (a-outer b-outer b-inner b-ast)
+         ;; Splice b-ast into a-outer.
          (bind (((node . children) (ast-ref-ast a-outer))
                 (a-index1 (child-index a-outer a-begin))
                 (a-index2 (1+ (child-index a-outer
@@ -3014,12 +3014,12 @@ Returns outermost AST of context.
                             (append
                              ;; A children before the crossover
                              (subseq children 0 a-index1)
-                             ;; B children up to the inner snippet
+                             ;; B children up to the inner ast
                              (subseq (cdr (ast-ref-ast b-outer))
-                                     b-index1 (if b-snippet b-index2
-                                                  (1+ b-index2)))
-                             ;; The inner snippet if it exists
-                             (when b-snippet (list b-snippet))
+                                     b-index1
+                                     (if b-ast b-index2 (1+ b-index2)))
+                             ;; The inner ast if it exists
+                             (when b-ast (list b-ast))
                              ;; A children after the crossover
                              (subseq children a-index2)))))
            (make-ast-ref :path nil :ast tree))))
@@ -3030,27 +3030,27 @@ Returns outermost AST of context.
            (a-stmts (->> (common-ancestor a a-begin a-end)
                          (get-parent-ast a)
                          (tree-successors a-end)))
-           ;; Build snippet starting a b-outer.
-           (b-snippet (fill-crossover-context context a-stmts))
-           ;; Splice into a-outer to get complete snippet
-           (whole-snippet (splice-snippets a-outer b-outer b-inner b-snippet)))
+           ;; Build ast starting a b-outer.
+           (b-ast (fill-crossover-context context a-stmts))
+           ;; Splice into a-outer to get complete ast
+           (whole-ast (splice-ast a-outer b-outer b-inner b-ast)))
 
       `((:stmt1  . ,a-outer)
-        (:value1 . ,(recontextualize a whole-snippet a-begin))))))
+        (:value1 . ,(recontextualize a whole-ast a-begin))))))
 
 
-(defun combine-snippets (obj inward-snippet outward-snippet)
+(defun combine-crossover-targets (obj inward-target outward-target)
   "DOCFIXME
 * OBJ DOCFIXME
 * INWARD-SNIPPET DOCFIXME
 * OUTWARD-SNIPPET DOCFIXME
 "
-  (let* ((outward-stmt1 (aget :stmt1 outward-snippet))
-         (outward-value1 (aget :value1 outward-snippet))
-         (inward-stmt1 (aget :stmt1 inward-snippet))
-         (inward-value1 (aget :value1 inward-snippet)))
+  (let* ((outward-stmt1 (aget :stmt1 outward-target))
+         (outward-value1 (aget :value1 outward-target))
+         (inward-stmt1 (aget :stmt1 inward-target))
+         (inward-value1 (aget :value1 inward-target)))
    (flet
-       ((replace-in-snippet (outer-stmt inner-stmt value)
+       ((replace-in-target (outer-stmt inner-stmt value)
           (assert (not (equalp outer-stmt inner-stmt)))
           (let* ((inner-path (ast-ref-path inner-stmt))
                  (outer-path (ast-ref-path outer-stmt))
@@ -3062,24 +3062,24 @@ Returns outermost AST of context.
                                   value)))))
 
      (cond
-       ((null inward-snippet) outward-snippet)
-       ((null outward-snippet) inward-snippet)
-       ;; Insert value for outward snippet into inward snippet
+       ((null inward-target) outward-target)
+       ((null outward-target) inward-target)
+       ;; Insert value for outward target into inward target
        ((ancestor-of obj inward-stmt1 outward-stmt1)
-        (replace-in-snippet inward-stmt1 outward-stmt1 outward-value1)
-        inward-snippet)
+        (replace-in-target inward-stmt1 outward-stmt1 outward-value1)
+        inward-target)
 
-       ;; Insert value for inward snippet into outward snippet
+       ;; Insert value for inward target into outward target
        ((ancestor-of obj outward-stmt1 inward-stmt1)
-        (replace-in-snippet outward-stmt1 inward-stmt1 inward-value1)
-        outward-snippet)
+        (replace-in-target outward-stmt1 inward-stmt1 inward-value1)
+        outward-target)
 
        (t
         (let* ((ancestor (common-ancestor obj outward-stmt1 inward-stmt1))
                (value1 (make-ast-ref :ast (ast-ref-ast ancestor)
                                      :path (ast-ref-path ancestor))))
-          (replace-in-snippet value1 inward-stmt1 inward-value1)
-          (replace-in-snippet value1 outward-stmt1 outward-value1)
+          (replace-in-target value1 inward-stmt1 inward-value1)
+          (replace-in-target value1 outward-stmt1 outward-value1)
           `((:stmt1 . ,ancestor) (:value1 . ,value1))))))))
 
 (defmethod update-headers-from-ast ((clang clang) (ast ast-ref) database)
@@ -3242,26 +3242,28 @@ Returns outermost AST of context.
         (match-nesting a (cons a-begin a-end)
                        b (cons b-begin b-end))
 
-      (let* ((outward-snippet
+      (let* ((outward-target
               (when (and a-out b-out)
                 (crossover-2pt-outward variant b
                                        (car a-out) (cdr a-out)
                                        (car b-out) (cdr b-out))))
-             (inward-snippet
+             (inward-target
               (when (and (car a-in) (car b-in))
                 (crossover-2pt-inward variant b
                                        (car a-in) (cdr a-in)
                                        (car b-in) (cdr b-in))))
-             (complete-snippet (combine-snippets a inward-snippet
-                                                 outward-snippet)))
+             (complete-target
+               (combine-crossover-targets a
+                                          inward-target
+                                          outward-target)))
 
 
-        (update-headers-from-ast a (aget :value1 complete-snippet) b)
+        (update-headers-from-ast a (aget :value1 complete-target) b)
 
         (apply-mutation-ops
          variant
-         `((:set (:stmt1  . ,(aget :stmt1 complete-snippet))
-                 (:value1 . ,(aget :value1 complete-snippet)))))
+         `((:set (:stmt1  . ,(aget :stmt1 complete-target))
+                 (:value1 . ,(aget :value1 complete-target)))))
 
         (values variant
                 (cons a-begin a-end)

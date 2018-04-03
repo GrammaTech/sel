@@ -777,9 +777,9 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
        the type DB.
 "
   (let* ((type-hash
-          (when-let ((clang-type (find-if {types-equal type}
-                                          (hash-table-values (types obj)))))
-            (type-hash clang-type)))
+          (&>> (find-if {types-equal (funcall #'from-alist 'clang-type type)}
+                                     (hash-table-values (types obj)))
+               (type-hash)))
          ;; FIXME: should only grab expressions that are valid at
          ;; point. But this is tricky with anything beyond simple
          ;; DeclRefs.
@@ -807,10 +807,9 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
                          (peel-bananas (source-text b)))
                     (make-clang-type :name "int" :array "" :hash 0))))))
 
-
-(defun types-equal (snippet type)
-  "Return T if SNIPPET (an alist) represents the same type as TYPE (a type AST).
+(defun types-equal (type1 type2)
+  "Return T if TYPE1 represents the same type as TYPE2.
 Return NIL otherwise."
-  (and (string= (aget :type snippet) (type-name type))
-       (string= (aget :array snippet) (type-array type))
-       (eq (aget :pointer snippet) (type-pointer type))))
+  (and (string= (type-name type1) (type-name type2))
+       (string= (type-array type1) (type-array type2))
+       (eq (type-pointer type1) (type-pointer type2))))

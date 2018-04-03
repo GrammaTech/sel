@@ -282,7 +282,7 @@
 * OBJ DOCFIXME
 * HASH DOCFIXME
 "
-  (pliny-find-hash obj hash #'snippet->clang-type))
+  (pliny-find-hash obj hash {from-alist 'clang-type}))
 
 (defmethod find-macro ((obj pliny-database) hash)
   "DOCFIXME
@@ -291,7 +291,7 @@
 * HASH DOCFIXME
 "
   ;; FIXME: Update pliny database to support new macro format
-  (pliny-find-hash obj hash #'snippet->clang-macro))
+  (pliny-find-hash obj hash {from-alist 'clang-macro}))
 
 (defun pliny-find-hash (pliny-db hash to-obj-fn)
   "DOCFIXME

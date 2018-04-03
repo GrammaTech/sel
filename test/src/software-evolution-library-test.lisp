@@ -2005,7 +2005,7 @@ statement pick"
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (list (snippet->clang-ast '((:ast-class . :Nothing))))))
+    (let ((*bad-asts* (list (from-alist 'clang-ast '((:ast-class . :Nothing))))))
       (signals no-mutation-targets
         (sel::pick-general *hello-world* #'stmt-asts
                           :filter #'sel::same-class-filter
@@ -3476,11 +3476,11 @@ AST holding STMT is found."
           (error "`stmt-with-text' failed to find ~S in ~S" text obj))))
 
 (defun stmt-starting-with-text (obj text)
-  (find-if (lambda (snippet)
-             (and snippet
+  (find-if (lambda (ast)
+             (and ast
                   (equal 0
                          (search text
-                                 (peel-bananas (source-text snippet))))))
+                                 (peel-bananas (source-text ast))))))
            (asts obj)))
 
 (deftest swap-can-recontextualize ()

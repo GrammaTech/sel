@@ -3,9 +3,6 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(defgeneric ast->snippet (ast)
-  (:documentation "Convert AST to alist representation."))
-
 (defstruct (ast-ref)
   "A reference to an AST at a particular location within the tree."
   (path nil :type list)
@@ -23,6 +20,12 @@ the ast path and source text.
         (format stream ":PATH ~s ~:_ :AST ~s ~:_ :TEXT ~s"
                 (ast-ref-path obj) (car (ast-ref-ast obj))
                 (source-text obj)))))
+
+(defgeneric to-alist (ast)
+  (:documentation "Convert AST to alist representation."))
+
+(defgeneric from-alist (symbol alist)
+  (:documentation "Convert alist to AST."))
 
 (defmacro define-ast (name options doc &rest fields)
   "Define an AST struct.
@@ -74,14 +77,14 @@ This macro also creates AST->SNIPPET and SNIPPET->[NAME] methods.
          ,doc
          ,@(mapcar #'field-def fields))
 
-       (defmethod ast->snippet ((ast ,name))
+       (defmethod to-alist ((ast ,name))
          "Convert AST struct to alist."
          (list ,@(mapcar (lambda (f)
                            `(cons ,(field-snippet-name f)
                                   ,(list (field-accessor f) 'ast)))
                          fields)))
 
-       (defun ,(splice 'snippet-> name) (snippet)
+       (defmethod from-alist ((type (eql ',name)) snippet)
          "Convert alist to AST struct."
          ;; Read all fields from alist
          (,(splice 'make- name)
