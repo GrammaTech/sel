@@ -12,6 +12,7 @@
   id      ;; unique index in heap, sequential starting at 0
   orig-file ;; path of the orignal .asm file that was loaded (if any)
   orig-line ;; line number (0-based) of line in original .asm file (if any)
+  address ;; original address of code or data
   )
 
 ;;; This read-table and package are used for parsing ASM instructions.
@@ -114,7 +115,18 @@
   (let* ((tokens (tokenize-asm-line line))
 	 (info (make-asm-line-info :text line :tokens tokens)))
 
-    ;; determine type of line
+    ;; see if there is a comment: "orig ea=0xnnnnnnnn" which specifies
+    ;; the original address of code or data
+    (let* ((addr-comment "orig ea=0x")
+	   (addr-pos (search addr-comment line :from-end t :test 'equal)))
+      (if addr-pos
+	  (setf (asm-line-info-address info)
+		(parse-integer line
+			       :radix 16
+			       :start (+ (length addr-comment) addr-pos)
+			       :junk-allowed t))))
+    
+    ;; Determine type of line
     (let ((line-type (parse-line-type tokens)))
       (setf (asm-line-info-type info) line-type)
 
