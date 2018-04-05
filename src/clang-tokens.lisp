@@ -351,9 +351,8 @@ SOFTWARE."))
                         (mapcar #'token-from-string type)
                         (list (token-from-string ")")))))
              ;; get all tokens from children
-             (:Var (let ((ast-ls (ast-ref-ast root))
-                          (idents (idents clang root)))
-                     (iter (for item in (cdr ast-ls))
+             (:Var (let ((idents (idents clang root)))
+                     (iter (for item in (ast-children root))
                            (with child = 0)
                            (appending
                             (if (stringp item)

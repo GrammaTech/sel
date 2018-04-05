@@ -15,7 +15,6 @@ techniques."
                uiop
                bordeaux-threads
                cl-arrowz
-               cl-custom-hash-table
                cl-json
                cl-ppcre
                cl-fad

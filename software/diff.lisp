@@ -33,7 +33,7 @@ of range references to an external REFERENCE code array.
 
 Similar to the range approach, but striving for a simpler interface."))
 
-(defmethod copy ((diff diff))
+(defmethod copy ((diff diff) &key)
   "DOCFIXME"
   (let ((copy (make-instance (type-of diff))))
     (setf (fitness copy)   (fitness diff))

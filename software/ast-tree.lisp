@@ -7,8 +7,8 @@
 (define-software ast-tree (source)
   ((ast-root :initarg :ast-root :initform nil :accessor ast-root
              :documentation "Root node of AST.")
-   (asts     :initarg :asts :initform nil
-             :accessor asts :copier :direct
+   (asts     :initarg :asts :reader asts
+             :initform nil :copier :direct
              :type #+sbcl (list (cons keyword *) *) #-sbcl list
              :documentation
              "List of all ASTs.")
@@ -74,14 +74,6 @@ has not been set."))
   (:documentation "Update cached fields in SOFTWARE if these fields have
 not been set."))
 
-(defgeneric rebind-vars (ast var-replacements fun-replacements)
-  (:documentation
-   "Replace variable and function references, returning a new AST."))
-
-(defgeneric replace-in-ast (ast replacements &key test)
-  (:documentation
-   "Make arbitrary replacements within AST, returning a new AST."))
-
 (defgeneric bad-asts (software)
   (:documentation "Return a list of all bad asts in SOFTWARE."))
 
@@ -109,9 +101,6 @@ STMT-POOL for mutation, filtering using FILTER, and throwing a
 values.  Additionally perform any updates to the software object required
 for successful mutation."))
 
-(defgeneric fixup-mutation (operation current before ast after)
-  (:documentation "Adjust mutation result according to syntactic context."))
-
 (defgeneric select-crossover-points (a b)
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
@@ -134,7 +123,7 @@ If no suitable points are found the returned points may be nil."))
     (setf (slot-value obj 'copy-lock) (make-lock "ast-tree-copy"))
     obj))
 
-(defmethod copy :before ((obj ast-tree))
+(defmethod copy :before ((obj ast-tree) &key)
   "Update ASTs in OBJ prior to performing a copy.
 * OBJ ast-tree software object to copy
 "
@@ -174,6 +163,23 @@ the NEW ast-root."
     (setf fitness nil))
   (clear-caches obj))
 
+(defmethod (setf ast-root) :after (new (obj ast-tree))
+  "Ensure the AST paths in NEW are correct after modifying the
+applicative AST tree."
+  (setf (slot-value obj 'ast-root)
+        (update-paths new)))
+
+(defmethod update-paths
+    ((tree ast) &optional path)
+  "Return TREE with all paths updated to begin at PATH"
+  (copy tree
+        :path (reverse path)
+        :children (iter (for c in (ast-children tree))
+                        (for i upfrom 0)
+                        (collect (if (subtypep (type-of c) 'ast)
+                                     (update-paths c (cons i path))
+                                     c)))))
+
 (defmethod ast-root :before ((obj ast-tree))
   "Ensure the `ast-root' field is set on OBJ prior to access."
   (update-asts-if-necessary obj))
@@ -201,16 +207,15 @@ field indicates the object has changed since the last parse."
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
 (defmethod update-caches ((obj ast-tree))
-  (labels ((helper (tree path)
-             ;; Collect all ast-refs
-             (when (listp tree)
-               (cons (make-ast-ref :ast tree :path (reverse path))
-                     (iter (for c in (cdr tree))
-                           (for i upfrom 0)
+  (labels ((collect-asts (tree)
+             ;; Collect all subtrees
+             (unless (null (ast-children tree))
+               (cons tree
+                     (iter (for c in (ast-children tree))
                            (unless (stringp c)
-                             (appending (helper c (cons i path)))))))))
+                             (appending (collect-asts c))))))))
     (setf (slot-value obj 'asts)
-          (cdr (helper (ast-root obj) nil)))))
+          (cdr (collect-asts (ast-root obj))))))
 
 (defmethod update-caches-if-necessary ((obj ast-tree))
   "Update cached fields if these fields have not been set.
@@ -238,7 +243,7 @@ field indicates the object has changed since the last parse."
   "Return all top-level ASTs in ASTS.
 * ASTS list of ASTs to search for roots
 "
-  (remove-if-not [{= 1} #'length #'ast-ref-path] asts))
+  (remove-if-not [{= 1} #'length #'ast-path] asts))
 
 (defmethod ast-at-index ((obj ast-tree) index)
   "Return the AST in OBJ at INDEX.
@@ -247,7 +252,7 @@ field indicates the object has changed since the last parse."
 "
   (nth index (asts obj)))
 
-(defmethod index-of-ast ((obj ast-tree) (ast ast-ref))
+(defmethod index-of-ast ((obj ast-tree) (ast ast))
   "Return the index of AST in OBJ.
 * OBJ object to query for the index of AST
 * AST node to find the index of
@@ -259,20 +264,15 @@ field indicates the object has changed since the last parse."
 * OBJ ast-tree software object with ASTs
 * PATH path to the AST to return
 "
-  (get-ast (ast-root obj) path))
+  (labels ((helper (tree path)
+             (if path
+                 (destructuring-bind (head . tail) path
+                   (helper (nth head (ast-children tree))
+                                tail))
+                 tree)))
+    (helper (ast-root obj) path)))
 
-(defmethod get-ast ((tree list) (path list))
-  "Return the AST in TREE at the given PATH.
-* TREE tree data structure containing ASTs
-* PATH path to the AST to return
-"
-    (if path
-        (destructuring-bind (head . tail) path
-          (get-ast (nth head (cdr tree))
-                   tail))
-        tree))
-
-(defmethod parent-ast-p ((obj ast-tree) possible-parent-ast ast)
+(defmethod parent-ast-p ((obj ast-tree) (possible-parent-ast ast) (ast ast))
   "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
 otherwise.
 * OBJ software object containing AST and its parents
@@ -282,45 +282,40 @@ otherwise.
   (member possible-parent-ast (get-parent-asts obj ast)
           :test #'equalp))
 
-(defmethod get-parent-ast ((obj ast-tree) (ast ast-ref))
+(defmethod get-parent-ast ((obj ast-tree) (ast ast))
   "Return the parent node of AST in OBJ
 * OBJ software object containing AST and its parent
 * AST node to find the parent of
 "
-  (when-let ((path (butlast (ast-ref-path ast))))
-    (make-ast-ref :ast (get-ast obj path)
-                  :path path)))
+  (when-let ((path (butlast (ast-path ast))))
+    (get-ast obj path)))
 
-(defmethod get-parent-asts ((obj ast-tree) (ast ast-ref))
+(defmethod get-parent-asts ((obj ast-tree) (ast ast))
   "Return the parent nodes of AST in OBJ
 * OBJ software object containing AST and its parents
 * AST node to find the parents of
 "
-  (labels ((get-parent-asts-helper (path tree)
+  (labels ((get-parent-asts-helper (subtree path)
              (if (null path)
                  nil
-                 (let ((subtree (nth (car path) (cdr tree)))
-                       (subtree-path (take (- (length (ast-ref-path ast))
-                                              (length (cdr path)))
-                                           (ast-ref-path ast))))
-                   (cons (make-ast-ref :path subtree-path :ast subtree)
-                         (get-parent-asts-helper (cdr path) subtree))))))
-    (-> (get-parent-asts-helper (ast-ref-path ast) (ast-root obj))
+                 (let ((new-subtree (nth (car path) (ast-children subtree))))
+                   (cons new-subtree
+                         (get-parent-asts-helper new-subtree
+                                                 (cdr path)))))))
+    (-> (get-parent-asts-helper (ast-root obj) (ast-path ast))
         (reverse))))
 
-(defmethod get-immediate-children ((obj ast-tree) (ast ast-ref))
+(defmethod get-immediate-children ((obj ast-tree) (ast ast))
   "Return the immediate children of AST in OBJ.
 * OBJ software object containing AST and its children
 * AST node to find the children of
 "
   (declare (ignorable obj))
-  (let ((path (ast-ref-path ast)))
-    (iter (for child in (cdr (ast-ref-ast ast)))
-          (for i upfrom 0)
-          (when (listp child)
-            (collect (make-ast-ref :ast child :path (append path (list i))))))))
+  (iter (for child in (ast-children ast))
+        (when (subtypep (type-of child) 'ast)
+          (collect child))))
 
-(defmethod ast-to-source-range ((obj ast-tree) (ast ast-ref))
+(defmethod ast-to-source-range ((obj ast-tree) (ast ast))
   "Convert AST to pair of SOURCE-LOCATIONS."
   (labels
       ((scan-ast (ast line column)
@@ -334,44 +329,42 @@ otherwise.
                      (setf column 1)))
 
              ;; Subtree
-             (iter (for child in (cdr ast))
+             (iter (for child in (ast-children ast))
                (multiple-value-setq (line column)
                  (scan-ast child line column))))
 
          (values line column))
        (ast-start (ast path line column)
          "Scan to the start of an AST, returning line and column."
-         (bind (((head . tail) path)
-                ((_ . children) ast))
+         (bind (((head . tail) path))
            ;; Scan preceeding ASTs
-           (iter (for child in (subseq children 0 head))
+           (iter (for child in (subseq (ast-children ast) 0 head))
                  (multiple-value-setq (line column)
                    (scan-ast child line column)))
            ;; Recurse into child
            (when tail
              (multiple-value-setq (line column)
-               (ast-start (nth head children) tail line column)))
+               (ast-start (nth head (ast-children ast)) tail line column)))
            (values line column))))
 
-    (when ast
-      (bind (((:values start-line start-col)
-              (ast-start (ast-root obj) (ast-ref-path ast) 1 1))
-             ((:values end-line end-col)
-              (scan-ast (ast-ref-ast ast) start-line start-col)))
-       (make-instance 'source-range
-                      :begin (make-instance 'source-location
-                                            :line start-line
-                                            :column start-col)
-                      :end (make-instance 'source-location
-                                          :line end-line
-                                          :column end-col))))))
+    (bind (((:values start-line start-col)
+            (ast-start (ast-root obj) (ast-path ast) 1 1))
+           ((:values end-line end-col)
+            (scan-ast ast start-line start-col)))
+      (make-instance 'source-range
+                     :begin (make-instance 'source-location
+                                           :line start-line
+                                           :column start-col)
+                     :end (make-instance 'source-location
+                                         :line end-line
+                                         :column end-col)))))
 
 (defmethod ast-source-ranges ((obj ast-tree))
   "Return (AST . SOURCE-RANGE) for each AST in OBJ."
   (labels
       ((source-location (line column)
          (make-instance 'source-location :line line :column column))
-       (scan-ast (ast path line column)
+       (scan-ast (ast line column)
          "Scan entire AST, updating line and column. Return the new values."
          (let* ((begin (source-location line column))
                 (ranges
@@ -384,21 +377,18 @@ otherwise.
                              (setf column 1)))
 
                      ;; Subtree
-                     (iter (for child in (cdr ast))
-                           (for i upfrom 0)
+                     (iter (for child in (ast-children ast))
                            (appending
                             (multiple-value-bind
                                   (ranges new-line new-column)
-                                (scan-ast child (append path (list i))
-                                          line column)
+                                (scan-ast child line column)
                               (setf line new-line
                                     column new-column)
                               ranges)
                             into child-ranges)
                            (finally
                             (return
-                              (cons (cons (make-ast-ref :path path
-                                                        :ast ast)
+                              (cons (cons ast
                                           (make-instance 'source-range
                                                          :begin begin
                                                          :end (source-location
@@ -407,7 +397,7 @@ otherwise.
 
            (values ranges line column))))
 
-    (cdr (scan-ast (ast-root obj) nil 1 1))))
+    (cdr (scan-ast (ast-root obj) 1 1))))
 
 (defmethod asts-containing-source-location
     ((obj ast-tree) (loc source-location))
@@ -432,285 +422,6 @@ otherwise.
                            (ast-source-ranges obj)))))
 
 
-;;; Tree manipulations
-(defun replace-nth-child (ast n replacement)
-  "Return AST with the Nth element of AST replaced with REPLACEMENT.
-* AST ast to modify
-* N element to modify
-* REPLACEMENT replacement for the Nth element
-"
-  (nconc (subseq ast 0 (+ 1 n))
-         (list replacement)
-         (subseq ast (+ 2 n))))
-
-(defmethod replace-ast ((tree list) (location ast-ref)
-                        (replacement ast-ref))
-  "Return the modified TREE with the AST at LOCATION replaced with
-REPLACEMENT.
-* TREE Applicative AST tree to be modified
-* LOCATION AST to be replaced in TREE
-* REPLACEMENT Replacement AST
-"
-  (labels
-    ((non-empty (str)
-       "Return STR only if it's not empty.
-
-asts->tree tends to leave dangling empty strings at the ends of child
-list, and we want to treat them as NIL in most cases.
-"
-       (when (not (emptyp str)) str))
-     (helper (tree path next)
-         (bind (((head . tail) path)
-                ((node . children) tree))
-           (if tail
-               ;; The insertion may need to modify text farther up the
-               ;; tree. Pass down the next bit of non-empty text and
-               ;; get back a new string.
-               (multiple-value-bind (child new-next)
-                   (helper (nth head children) tail
-                           (or (non-empty (nth (1+ head) children))
-                               next))
-                 (if (and new-next (non-empty (nth (1+ head) children)))
-                     ;; The modified text belongs here. Insert it.
-                     (values (nconc (subseq tree 0 (+ 1 head))
-                                    (list child new-next)
-                                    (subseq tree (+ 3 head)))
-                             nil)
-
-                     ;; Otherwise keep passing it up the tree.
-                     (values (replace-nth-child tree head child)
-                             new-next)))
-               (let* ((after (nth (1+ head) children))
-                      (fixed (fixup-mutation :instead
-                                             (car (nth head children))
-                                             (if (positive-integer-p head)
-                                                 (nth (1- head) children)
-                                                 "")
-                                             (ast-ref-ast replacement)
-                                             (or (non-empty after) next))))
-
-                 (if (non-empty after)
-                     ;; fixup-mutation can change the text after the
-                     ;; insertion (e.g. to remove a semicolon). If
-                     ;; that text is part of this AST, just include it
-                     ;; in the list.
-                     (values
-                      (cons node (nconc (subseq children 0 (max 0 (1- head)))
-                                        fixed
-                                        (nthcdr (+ 2 head) children)))
-                      nil)
-
-                     ;; If the text we need to modify came from
-                     ;; farther up the tree, return it instead of
-                     ;; inserting it here.
-                     (values
-                      (cons node (nconc (subseq children 0 (max 0 (1- head)))
-                                         (butlast fixed)
-                                         (nthcdr (+ 2 head) children)))
-                      (lastcar fixed))))))))
-    (helper tree (ast-ref-path location) nil)))
-
-(defmethod remove-ast ((tree list) (location ast-ref))
-  "Return the modified TREE with the AST at LOCATION removed.
-* TREE Applicative AST tree to be modified
-* LOCATION AST to be removed in TREE
-"
-  (labels
-      ((helper (tree path)
-         (bind (((head . tail) path)
-                ((node . children) tree))
-           (if tail
-               ;; Recurse into child
-               (replace-nth-child tree head (helper (nth head children) tail))
-
-               ;; Remove child
-               (cons node
-                     (nconc (subseq children 0 (max 0 (1- head)))
-                            (fixup-mutation
-                             :remove
-                             (car (nth head children))
-                             (if (positive-integer-p head)
-                                 (nth (1- head) children)
-                                 "")
-                             nil
-                             (or (nth (1+ head) children) ""))
-                            (nthcdr (+ 2 head) children)))))))
-    (helper tree (ast-ref-path location))))
-
-(defmethod splice-asts ((tree list) (location ast-ref) (new-asts list))
-  "Splice a list directly into the given location, replacing the original AST.
-
-Can insert ASTs and text snippets. Does minimal syntactic fixups, so
-use carefully.
-
-* TREE Applicative AST tree to be modified
-* LOCATION AST marking location where insertion is to occur
-* NEW-ASTS ASTs to be inserted into TREE
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              ((node . children) tree))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
-
-             ;; Splice into children
-             (cons node
-                   (nconc (subseq children 0 head)
-                          new-asts
-                          (nthcdr (1+ head) children)))))))
-    (helper tree (ast-ref-path location))))
-
-(defmethod insert-ast ((tree list) (location ast-ref)
-                       (replacement ast-ref))
-  "Return the modified TREE with the REPLACEMENT inserted at LOCATION.
-* TREE Applicative AST tree to be modified
-* LOCATION AST marking location where insertion is to occur
-* REPLACEMENT AST to insert
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              ((node . children) tree))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
-
-             ;; Insert into children
-             (cons node
-                   (nconc (subseq children 0 (max 0 (1- head)))
-                          (fixup-mutation :before
-                                          (car (nth head children))
-                                          (if (positive-integer-p head)
-                                              (nth (1- head) children)
-                                              "")
-                                          (ast-ref-ast replacement)
-                                          (or (nth head children) ""))
-                          (nthcdr (1+ head) children)))))))
-    (helper tree (ast-ref-path location))))
-
-(defmethod insert-ast-after ((tree list) (location ast-ref)
-                             (ast ast-ref))
-  "Insert AST immediately after LOCATION in TREE, returning new tree.
-
-Does not modify the original TREE.
-"
-  (labels
-    ((helper (tree path)
-       (bind (((head . tail) path)
-              ((node . children) tree))
-         (if tail
-             ;; Recurse into child
-             (replace-nth-child tree head (helper (nth head children) tail))
-
-             ;; Insert into children
-             (cons node
-                   (nconc (subseq children 0 (max 0 head))
-                          (fixup-mutation :after
-                                          (car (nth head children))
-                                          (nth head children)
-                                          (ast-ref-ast ast)
-                                          (or (nth (1+ head) children) ""))
-                          (nthcdr (+ 2 head) children)))))))
-    (helper tree (ast-ref-path location))))
-
-
-;;; Recontextualization
-(defmethod rebind-vars ((ast ast-ref) var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding
-"
-  (make-ast-ref :path (ast-ref-path ast)
-                :ast (rebind-vars (ast-ref-ast ast)
-                                  var-replacements fun-replacements)))
-
-(defmethod rebind-vars ((ast list)
-                        var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding
-"
-  ;; var-replacements looks like:
-  ;; ( (("(|old-name|)" "(|new-name|)") ... )
-  ;; These name/depth pairs can come directly from ast-unbound-vals.
-
-  ;; fun-replacements are similar, but the pairs are function info
-  ;; lists taken from ast-unbound-funs.
-
-  (destructuring-bind (node . children) ast
-    (let ((new (copy-structure node)))
-      (setf (ast-unbound-vals new)
-            (remove-duplicates
-             (mapcar (lambda (v)
-                       (or (&>> var-replacements
-                                (find-if [{equal v} #'peel-bananas #'car])
-                                (second)
-                                (peel-bananas))
-                           v))
-                     (ast-unbound-vals new))
-             :test #'equal))
-
-      (cons new
-            (mapcar {rebind-vars _ var-replacements fun-replacements}
-                    children)))))
-
-(defmethod rebind-vars ((ast string) var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding
-"
-  (reduce (lambda (new-ast replacement)
-            (replace-all new-ast (first replacement) (second replacement)))
-          (append var-replacements
-                  (mapcar (lambda (fun-replacement)
-                            (list (car (first fun-replacement))
-                                  (car (second fun-replacement))))
-                          fun-replacements))
-          :initial-value ast))
-
-(defmethod replace-in-ast ((ast ast-ref) replacements &key (test #'eq))
-  "Make arbitrary replacements within AST, returning a new AST.
-* AST node to perform modifications to
-* REPLACEMENTS association list of key, value pairs to replace in AST
-* TEST function to test if a given replacement key can be found in AST
-"
-  (make-ast-ref :path (ast-ref-path ast)
-                :ast (replace-in-ast (ast-ref-ast ast) replacements
-                                     :test test)))
-
-(defmethod replace-in-ast ((ast list) replacements &key (test #'eq))
-  "Make arbritrary replacements within AST, returning a new AST.
-* AST node to perform modifications to
-* REPLACEMENTS association list of key, value pairs to replace in AST
-* TEST function to test if a given replacement key can be found in AST
-"
-  (or
-   ;; If replacement found, return it
-   (cdr (find ast replacements :key #'car :test test))
-   ;; Otherwise recurse into children
-   (destructuring-bind (node . children) ast
-     (cons node
-           (mapcar {replace-in-ast _ replacements :test test}
-                   children)))))
-
-(defmethod replace-in-ast (ast replacements &key (test #'eq))
-  "Make arbritrary replacements within AST, returning a new AST.
-* AST node to perform modifications to
-* REPLACEMENTS association list of key, value pairs to replace in AST
-* TEST function to test if a given replacement key can be found in AST
-"
-  (or (cdr (find ast replacements :key #'car :test test))
-      ast))
-
-
 ;;; Genome manipulations
 (defmethod prepend-to-genome ((obj ast-tree) text)
   "Prepend non-AST TEXT to OBJ genome.
@@ -724,10 +435,12 @@ the rebinding
                  text)))
     (with-slots (ast-root) obj
       (setf ast-root
-            (destructuring-bind (first second . rest) (ast-root obj)
-              (list* first
-                     (concatenate 'string (ensure-newline text) second)
-                     rest))))))
+            (copy ast-root
+                  :children
+                  (append (list (concatenate 'string
+                                             (ensure-newline text)
+                                             (car (ast-children ast-root))))
+                          (cdr (ast-children ast-root))))))))
 
 (defmethod append-to-genome ((obj ast-tree) text)
   "Append non-AST TEXT to OBJ genome.  The new text will not be parsed.
@@ -737,11 +450,14 @@ the rebinding
 "
   (with-slots (ast-root) obj
     (setf ast-root
-          (if (stringp (lastcar (ast-root obj)))
-              (append (butlast (ast-root obj))
-                      (list (concatenate 'string (lastcar (ast-root obj))
-                                                 text)))
-              (append (ast-root obj) (list text))))))
+          (copy ast-root
+                :children
+                (if (stringp (lastcar (ast-children ast-root)))
+                    (append (butlast (ast-children ast-root))
+                            (list (concatenate 'string
+                                               (lastcar (ast-children ast-root))
+                                               text)))
+                    (append (ast-children ast-root) (list text)))))))
 
 
 ;; Targeting functions
@@ -864,7 +580,7 @@ excluding those ASTs removed by FILTER.
 second should be included as a possible pick
 * BAD-POOL function returning a pool of 'bad' ASTs in SOFTWARE
 "
-  (pick-general software #'bad-asts :filter filter))
+  (pick-general software bad-pool :filter filter))
 
 
 ;;; Mutations
@@ -964,7 +680,7 @@ MUTATION to SOFTWARE.
 
 ;;; General mutation methods
 (defmethod apply-mutation ((software ast-tree)
-                           (mutation ast-tree-mutation))
+                           (mutation parseable-mutation))
   "Apply MUTATION to SOFTWARE, returning the resulting SOFTWARE.
 * SOFTWARE object to be mutated
 * MUTATION mutation to be performed
@@ -1011,29 +727,87 @@ SOFTWARE.
   software)
 
 
+;;; Generic tree interface
+(defmethod insert-ast ((obj ast-tree) (location list) (ast ast))
+  "Return the modified OBJ with AST inserted at LOCATION.
+* OBJ object to be modified
+* LOCATION path to the AST marking location where insertion is to occur
+* AST AST to insert
+"
+  (insert-ast obj (get-ast obj location) ast))
+
+(defmethod insert-ast ((obj ast-tree) (location ast) (ast ast))
+  "Return the modified OBJ with AST inserted at LOCATION.
+* OBJ object to be modified
+* LOCATION AST marking location where insertion is to occur
+* AST AST to insert
+"
+  (apply-mutation obj (at-targets (make-instance 'ast-tree-insert)
+                                  (list (cons :stmt1 location)
+                                        (cons :value1 ast)))))
+
+(defmethod replace-ast ((obj ast-tree) (location list) (replacement ast))
+  "Return the modified OBJ with the AST at LOCATION replaced with
+REPLACEMENT.
+* OBJ object to be modified
+* LOCATION path to the AST to be replaced in OBJ
+* REPLACEMENT Replacement AST
+"
+  (replace-ast obj (get-ast obj location) replacement))
+
+(defmethod replace-ast ((obj ast-tree) (location ast) (replacement ast))
+  "Return the modified OBJ with the AST at LOCATION replaced with
+REPLACEMENT.
+* OBJ object to be modified
+* LOCATION AST to be replaced in OBJ
+* REPLACEMENT Replacement AST
+"
+  (apply-mutation obj (at-targets (make-instance 'ast-tree-replace)
+                                  (list (cons :stmt1 location)
+                                        (cons :value1 replacement)))))
+
+(defmethod remove-ast ((obj ast-tree) (location list))
+  "Return the modified OBJ with the AST at LOCATION removed.
+* OBJ object to be modified
+* LOCATION path to the AST to be removed in TREE
+"
+  (remove-ast obj (get-ast obj location)))
+
+(defmethod remove-ast ((obj ast-tree) (location ast))
+  "Return the modified OBJ with the AST at LOCATION removed.
+* OBJ object to be modified
+* LOCATION AST to be removed in TREE
+"
+  (apply-mutation obj (at-targets (make-instance 'ast-tree-cut)
+                                  (list (cons :stmt1 location)))))
+
+
 ;;; Interface for ast-diff
 (defvar ast-tree-diff-interface
   (labels       ; Defined w/labels so they're defined at load time.
       ((ast-equal-p (ast-a ast-b)
          (or (eq ast-a ast-b)
              (and (stringp ast-a) (stringp ast-b) (string= ast-a ast-b))
-             (and (consp ast-a) (consp ast-b)
-                  (eq (sel:ast-class (car ast-a)) (sel:ast-class (car ast-b)))
-                  (eq (length ast-a) (length ast-b))
-                  (every #'ast-equal-p (cdr ast-a) (cdr ast-b)))))
+             (and (subtypep (type-of ast-a) 'ast)
+                  (subtypep (type-of ast-b) 'ast)
+                  (eq (ast-class ast-a) (ast-class ast-b))
+                  (eq (length (ast-children ast-a))
+                      (length (ast-children ast-b)))
+                  (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b)))))
        (ast-cost (ast)
-         (if (listp ast)
-             (apply #'+ (mapcar #'ast-cost (cdr ast)))
+         (if (subtypep (type-of ast) 'ast)
+             (apply #'+ (mapcar #'ast-cost (ast-children ast)))
              1))
        (can-recurse (ast-a ast-b)
-         (and (consp ast-a)
-              (consp ast-b)
-              (eq (ast-class (car ast-a))
-                  (ast-class (car ast-b))))))
+         (and (subtypep (type-of ast-a) 'ast)
+              (subtypep (type-of ast-b) 'ast)
+              (eq (ast-class ast-a)
+                  (ast-class ast-b)))))
     (make-instance 'ast-interface
       :equal-p #'ast-equal-p
       :cost #'ast-cost
       :can-recurse #'can-recurse
+      :on-recurse #'ast-children
       :text [#'peel-bananas #'source-text]))
   "AST-DIFF interface for AST-TREE objects.")
 

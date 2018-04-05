@@ -252,10 +252,10 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
 (defgeneric ast-depth (software ast)
   (:documentation "Depth of AST in SOFTWARE. The root node has a depth of 0."))
 
-(defmethod ast-depth ((clang clang) (ast ast-ref))
+(defmethod ast-depth ((clang clang) (ast clang-ast))
   "Depth of AST in CLANG. The root node has a depth of 0
 * CLANG software object
-* AST `AST-REF' pointing to the root of the AST tree in CLANG
+* AST ast pointing to the root of the AST tree in CLANG
 "
   (1- (length (get-parent-asts clang ast))))
 
@@ -263,13 +263,16 @@ The returned vector will have one entry for each ast class listed in `clang-c-as
 (defvar *ast-depths-cache* (make-hash-table :test #'equal)
   "Cache for computing AST depths")
 
-(defmethod ast-depth :around ((clang clang) (ast ast-ref))
+(defmethod ast-depth :around ((clang clang) (ast clang-ast))
   "Depth of AST in CLANG. The root node has a depth of 0
 * CLANG software object
-* AST `AST-REF' pointing to the root of the AST tree in CLANG
+* AST ast pointing to the root of the AST tree in CLANG
 "
-  (let* ((result (gethash ast *ast-depths-cache* (call-next-method))))
-    (setf (gethash ast *ast-depths-cache*)
+  (let* ((result (gethash (cons (ast-node ast) (ast-children ast))
+                          *ast-depths-cache*
+                          (call-next-method))))
+    (setf (gethash (cons (ast-node ast) (ast-children ast))
+                   *ast-depths-cache*)
           result)))
 
 (defgeneric max-depth-ast (software asts)
@@ -476,11 +479,11 @@ an AST."
   (:documentation
    "Return 1 if AST is a statement matching KEYWORD, 0 otherwise."))
 
-(defmethod auto-count-keyword ((keyword string) (ast ast-ref))
+(defmethod auto-count-keyword ((keyword string) (ast clang-ast))
   "Return 1 if AST is a statement matching KEYWORD, 0 otherwise.
 * KEYWORD a string, to be compared against the `ast-class' of AST. See
 also `*clang-c-ast-keywords-auto-count*'.
-* AST a clang `ast-ref'
+* AST a clang ast
 "
   (if (member keyword
               (aget (ast-class ast) *clang-c-ast-keywords-auto-count*)
@@ -491,13 +494,13 @@ also `*clang-c-ast-keywords-auto-count*'.
   (:documentation "Return 1 if KEYWORD occurs anywhere in the text of an AST in
 SOFTWARE, 0 otherwise."))
 
-(defmethod search-keyword ((clang clang) (keyword string) (ast ast-ref))
+(defmethod search-keyword ((clang clang) (keyword string) (ast clang-ast))
   "Return 1 if KEYWORD occurs anywhere in the source text of an AST in CLANG, 0
 otherwise. Only searches ASTs whose `ast-class' is in
 `*clang-c-ast-keywords-search-count*'.
 * CLANG a clang software object
 * KEYWORD a string to be searched for in the `source-text' of AST
-* AST an `ast-ref' in CLANG
+* AST an ast in CLANG
 "
   (let ((ast-class (ast-class ast)))
     (if (not (member keyword

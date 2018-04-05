@@ -420,7 +420,7 @@ instrumentation of function exit.
   (let ((obj (software instrumenter)))
     `(,(make-label "inst_exit"
                    ;; ast-id hash table uses eq, but function-body will
-                   ;; generate a new ast-ref. Search for the original in
+                   ;; generate a new ast. Search for the original in
                    ;; order to look up the id.
                    (write-trace-id instrumenter
                                    (find-if {equalp (function-body obj
@@ -523,24 +523,25 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                              (equalp ast (last-traceable-stmt function)))
                         (instrument-exit instrumenter function
                                          (null return-type)))))))
-         (ast-ref->ast (ast-ref &key (semi nil)
-                        &aux (ast (copy-list (ast-ref-ast ast-ref))))
-           (cond ((eq semi :before)
-                  (labels ((add-semi-before (ast)
-                             (if (stringp (second ast))
-                                 (setf (second ast)
-                                       (concatenate 'string ";"
-                                                    (second ast)))
-                                 (add-semi-before (second ast)))))
-                    (add-semi-before ast)
-                    ast))
-                 ((eq semi :after)
-                  (append ast (list ";")))
-                 ((eq semi :both)
-                  (-<>> (make-ast-ref :ast ast)
-                        (ast-ref->ast <> :semi :before)
-                        (make-ast-ref :ast)
-                        (ast-ref->ast <> :semi :after)))
+         (add-semicolon (ast semi-position)
+           (cond ((eq semi-position :before)
+                  (labels ((add-semi-before (ast children)
+                             (if (stringp (car children))
+                                 (copy ast :children
+                                           (cons (concatenate 'string ";"
+                                                              (car children))
+                                                 (cdr children)))
+                                 (copy ast :children
+                                           (cons (add-semi-before
+                                                   (car children)
+                                                   (ast-children (car children)))
+                                                 (cdr children))))))
+                    (add-semi-before ast (ast-children ast))))
+                 ((eq semi-position :after)
+                  (copy ast :children (append (ast-children ast) (list ";"))))
+                 ((eq semi-position :both)
+                  (-> (add-semicolon ast :before)
+                      (add-semicolon :after)))
                  (t ast)))
          (apply-instrumentation (ast return-type before after)
            "Insert instrumentation around AST."
@@ -549,19 +550,16 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                   (wrap (not (traceable-stmt-p obj ast)))
                   ;; Look up AST again in case its children have been
                   ;; instrumented
-                  (new-ast (make-ast-ref :path (ast-ref-path ast)
-                                         :ast (get-ast obj
-                                                       (ast-ref-path ast))))
-                  (stmts (append (mapcar {ast-ref->ast _ :semi :after} before)
+                  (new-ast (get-ast obj (ast-path ast)))
+                  (stmts (append (mapcar {add-semicolon _ :after} before)
                                  (if (and instrument-exit
                                           (eq (ast-class ast) :ReturnStmt))
                                      (->> (instrument-return instrumenter
                                                              new-ast
                                                              (null return-type))
-                                          (mapcar {ast-ref->ast _ :semi :both}))
-                                     (->> (ast-ref->ast new-ast)
-                                          (list)))
-                                 (mapcar {ast-ref->ast _ :semi :both} after))))
+                                          (mapcar {add-semicolon _ :both}))
+                                     (list new-ast))
+                                 (mapcar {add-semicolon _ :both} after))))
              ;; Wrap in compound statement if needed
              (if wrap
                  (apply-mutation-ops
@@ -616,34 +614,46 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   (labels ((uninstrument-genome-prologue (clang)
              (with-slots (ast-root) clang
                (setf ast-root
-                 (destructuring-bind (first second . rest) (ast-root clang)
-                   (list*
-                     first
-                     (-> second
-                         (replace-all +write-trace-impl+ "")
-                         (replace-all +write-trace-include+ "")
-                         (replace-all +write-trace-file-declaration+ "")
-                         (replace-all +write-trace-file-definition+ "")
-                         (replace-all +write-trace-file-lock-declaration+ "")
-                         (replace-all +write-trace-file-lock-definition+ ""))
-                     rest)))))
+                 (copy ast-root
+                       :children
+                       (append
+                         (-> (ast-children ast-root)
+                             (first)
+                             (replace-all +write-trace-impl+
+                                          "")
+                             (replace-all +write-trace-include+
+                                          "")
+                             (replace-all +write-trace-file-declaration+
+                                          "")
+                             (replace-all +write-trace-file-definition+
+                                          "")
+                             (replace-all +write-trace-file-lock-declaration+
+                                          "")
+                             (replace-all +write-trace-file-lock-definition+
+                                          "")
+                             (list))
+                         (cdr (ast-children ast-root)))))))
            (uninstrument-genome-epilogue (clang)
              (with-slots (ast-root) clang
                (setf ast-root
-                 (if (stringp (lastcar (ast-root clang)))
-                     (append (butlast (ast-root clang))
-                             (-> (subseq (lastcar (ast-root clang))
-                                         0
-                                         (-<>> (split-sequence
-                                                 #\Newline
-                                                 +write-trace-initialization+)
-                                               (take 2)
-                                               (format nil "~{~a~%~}")
-                                               (search <>
-                                                       (lastcar
-                                                         (ast-root clang)))))
-                                 (list)))
-                     (ast-root clang))))))
+                 (copy ast-root
+                       :children
+                       (let ((last-child (-> (ast-root clang)
+                                             (ast-children)
+                                             (lastcar))))
+                         (if (stringp last-child)
+                             (append (butlast (ast-children (ast-root clang)))
+                                     (-> (subseq
+                                           last-child
+                                           0
+                                           (-<>> (split-sequence
+                                                   #\Newline
+                                                   +write-trace-initialization+)
+                                                 (take 2)
+                                                 (format nil "~{~a~%~}")
+                                                 (search <> last-child)))
+                                         (list)))
+                             (ast-children (ast-root clang)))))))))
 
     ;; Remove instrumentation setup code
     (uninstrument-genome-prologue clang)
@@ -660,10 +670,7 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
             (apply-mutation-ops clang
                                 `((:set (:stmt1 . ,ast)
                                         (:value1 .
-                                         ,(->> (get-ast clang (ast-ref-path ast))
-                                               (make-ast-ref
-                                                 :path (ast-ref-path ast)
-                                                 :ast)
+                                         ,(->> (get-ast clang (ast-path ast))
                                                (get-immediate-children clang)
                                                (remove-if [{aget :instrumentation}
                                                            {ast-aux-data}])
@@ -888,7 +895,7 @@ Returns a list of strings containing C source code."))
 "))
 
 (defmethod var-instrument
-  (key (instrumenter instrumenter) (ast ast-ref) &key print-strings)
+  (key (instrumenter instrumenter) (ast clang-ast) &key print-strings)
   "Generate ASTs for variable instrumentation.
 * KEY a function used to pull the variable list out of AST
 * INSTRUMENTER current instrumentation state

@@ -219,7 +219,7 @@
 * LIMIT DOCFIXME
 "
   (let ((features (cond (ast-class
-                         `((:ast--class  . ,ast-class)
+                         `((:class  . ,ast-class)
                            (:random . ,(random 1.0))))
                         ((and full-stmt (eql decls :only))
                          `((:full--stmt . t)
@@ -266,7 +266,7 @@
                  `((:disasm . ,(format nil "~S" target)))))
            (add-ast-class-feature (features)
              (if ast-class
-                 (append features `((:ast--class . ,ast-class)))
+                 (append features `((:class . ,ast-class)))
                  features)))
     (let ((features (-> (add-target-feature)
                         (add-ast-class-feature))))

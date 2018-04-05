@@ -7,7 +7,6 @@
    :bordeaux-threads
    :common-lisp
    :cl-arrowz
-   :cl-custom-hash-table
    :cl-fad
    :cl-ppcre
    :cl-store
@@ -521,11 +520,16 @@
    :collect-fault-loc-traces
    :to-alist
    :from-alist
-   :ast-ref
-   :make-ast-ref
-   :ast-ref-path
-   :ast-ref-ast
+   :ast
+   :ast-path
+   :ast-node
+   :ast-children
+   :make-ast
+   :copy-ast
+   :make-ast-node
+   :copy-ast-node
    :clang-ast
+   :clang-ast-node
    :ast-args
    :ast-children
    :ast-class
@@ -548,10 +552,11 @@
    :ast-base-type
    :ast-bit-field-width
    :ast-aux-data
-   :clang-type
-   :clang-macro
-   :copy-clang-ast
    :make-clang-ast
+   :copy-clang-ast
+   :make-clang-ast-node
+   :copy-clang-ast-node
+   :clang-type
    :type-array
    :type-col
    :type-decl
@@ -570,10 +575,13 @@
    :type-name
    :type-size
    :make-clang-type
+   :copy-clang-type
+   :clang-macro
    :macro-name
    :macro-body
    :macro-hash
    :make-clang-macro
+   :copy-clang-macro
    :roots
    :source-text
    :function-body

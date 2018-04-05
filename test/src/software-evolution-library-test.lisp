@@ -1561,11 +1561,15 @@ suite should be run and nil otherwise."
     (let ((new (copy *hello-world*)))
       (is (slot-value new 'ast-root)
           "ASTs set on copy")
-      (is (eq (slot-value new 'ast-root) (slot-value *hello-world* 'ast-root))
+      (is (ast-equal-p sel::ast-tree-diff-interface
+                            (slot-value new 'ast-root)
+                            (slot-value *hello-world* 'ast-root))
           "Copy and original share ASTs")
 
       (apply-mutation new (make-instance 'clang-swap :object new))
-      (is (eq (slot-value new 'ast-root) (slot-value (copy new) 'ast-root))
+      (is (ast-equal-p sel::ast-tree-diff-interface
+                            (slot-value new 'ast-root)
+                            (slot-value (copy new) 'ast-root))
           "Additional copies do not cause updates"))))
 
 (deftest splits-global-and-stmt-asts ()
@@ -1621,7 +1625,7 @@ suite should be run and nil otherwise."
     (let* ((variant (copy *sqrt*))
            (integer-constant
             (second (remove-if-not
-                     [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
+                     [{equal :IntegerLiteral} #'ast-class]
                      (asts variant)))))
       (apply-mutation variant
         `(clang-replace
@@ -1698,8 +1702,9 @@ suite should be run and nil otherwise."
 (deftest clang-copies-share-asts ()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (is (eq (ast-root *hello-world*)
-              (ast-root variant)))
+      (is (ast-equal-p sel::ast-tree-diff-interface
+                       (ast-root *hello-world*)
+                       (ast-root variant)))
       (is (> (size variant) 0)))))
 
 (deftest clang-mutation-preserves-unmodified-subtrees ()
@@ -1709,8 +1714,9 @@ suite should be run and nil otherwise."
        variant
        `(clang-cut (:stmt1 . ,(stmt-with-text variant
                                               "printf(\"Hello, World!\\n\")"))))
-      (is (eq (ast-ref-ast (stmt-with-text *hello-world* "return 0"))
-              (ast-ref-ast (stmt-with-text variant "return 0")))))))
+      (is (ast-equal-p sel::ast-tree-diff-interface
+                       (stmt-with-text *hello-world* "return 0")
+                       (stmt-with-text variant "return 0"))))))
 
 (deftest crossover-clang-software-object-does-not-crash()
   (with-fixture hello-world-clang
@@ -2005,7 +2011,9 @@ statement pick"
 a no-mutation-targets error when a second statement with the same AST class
 is not to be found"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (list (from-alist 'clang-ast '((:ast-class . :Nothing))))))
+    (let ((*bad-asts* (list (make-clang-ast
+                              :node (from-alist 'clang-ast-node
+                                                '((:class . :Nothing)))))))
       (signals no-mutation-targets
         (sel::pick-general *hello-world* #'stmt-asts
                           :filter #'sel::same-class-filter
@@ -2066,16 +2074,50 @@ is not to be found"
                     (mapcar #'ast-class))))))
 
 (deftest replace-in-ast-subtree ()
-  (let ((subtree '(:sub 1 2)))
-    (equalp (replace-in-ast `(:root (:left 3 4) ,subtree)
-                            `((,subtree (:right 5 6))))
-            '(:root (:left 3 4) (:right 5 6)))))
+  (let ((subtree (make-clang-ast
+                   :node (make-clang-ast-node :class :sub)
+                   :children '("1" "2"))))
+    (is (equalp (replace-in-ast
+                  (make-clang-ast
+                    :node (make-clang-ast-node :class :root)
+                    :children `(,(make-clang-ast
+                                   :node (make-clang-ast-node :class :left)
+                                   :children (list "3" "4"))
+                                ,subtree))
+                  `((,subtree . ,(make-clang-ast
+                                   :node (make-clang-ast-node :class :right)
+                                   :children (list "5" "6"))))
+                  :test #'equalp)
+                (make-clang-ast
+                  :node (make-clang-ast-node :class :root)
+                  :children `(,(make-clang-ast
+                                 :node (make-clang-ast-node :class :left)
+                                 :children (list "3" "4"))
+                              ,(make-clang-ast
+                                 :node (make-clang-ast-node :class :right)
+                                 :children (list "5" "6"))))))))
 
 (deftest replace-in-ast-string ()
-  (equalp (replace-in-ast '(:root (:left "left") (:right "right"))
-                          '(("right" "replacement"))
-                          :test #'equal)
-          '(:root (:left "left") (:right "replacement"))))
+  (is (equalp (replace-in-ast (make-clang-ast
+                                :node (make-clang-ast-node :class :root)
+                                :children
+                                (list (make-clang-ast
+                                        :node (make-clang-ast-node :class :left)
+                                        :children '("left"))
+                                      (make-clang-ast
+                                        :node (make-clang-ast-node :class :right)
+                                        :children '("right"))))
+                              '(("right" . "replacement"))
+                              :test #'equal)
+              (make-clang-ast
+                :node (make-clang-ast-node :class :root)
+                :children
+                (list (make-clang-ast
+                        :node (make-clang-ast-node :class :left)
+                        :children '("left"))
+                      (make-clang-ast
+                        :node (make-clang-ast-node :class :right)
+                        :children '("replacement")))))))
 
 (deftest find-or-add-type-finds-existing-type ()
   (with-fixture gcd-clang
@@ -5217,7 +5259,7 @@ Useful for printing or returning differences in the REPL."
   (with-fixture json-database
     (is (null (-<>> (find-snippets *database* :ast-class "CompoundStmt")
                     (remove "CompoundStmt" <> :test #'string=
-                                              :key {aget :ast-class}))))))
+                                              :key {aget :class}))))))
 
 (deftest json-database-find-snippet-respects-decl ()
   (with-fixture json-database
@@ -5732,7 +5774,10 @@ prints unique counters in the trace"
   (with-fixture gcd-clang
     (let* ((stmt (stmt-starting-with-text *gcd* "if (a == 0)"))
            (index (index-of-ast *gcd* stmt)))
-      (setf (ast-aux-data stmt) '((:foo . t)))
+      (apply-mutation *gcd*
+                      `(clang-replace
+                         (:stmt1 . ,stmt)
+                         (:value1 . ,(copy stmt :aux-data '((:foo . t))))))
 
       (instrument *gcd* :functions
                   (list (lambda (instrumenter ast)
@@ -5747,7 +5792,9 @@ prints unique counters in the trace"
         (is (zerop (nth-value 1 (ignore-phenome-errors
                                   (phenome *gcd* :bin bin))))
             "Successfully compiled instrumented GCD.")
-        (is (equal '((:foo . t)) (ast-aux-data stmt)))
+        (is (member '(:foo . t)
+                    (mappend #'ast-aux-data (asts *gcd*))
+                    :test #'equalp))
         (let ((trace (get-gcd-trace bin)))
           (is (listp trace) "We got a trace.")
           (is (some {aget :scopes} trace))
@@ -7333,8 +7380,8 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((location (stmt-with-text *contexts* "int x = 0"))
           (inserted (list (format nil "/*comment 1*/~%")
-                          (sel::ast-ref-ast (stmt-starting-with-text *contexts*
-                                                                    "int x = 1"))
+                          (stmt-starting-with-text *contexts*
+                                                  "int x = 1")
                           (format nil ";~%/*comment 2*/~%"))))
       (sel::apply-mutation-ops *contexts*
                               `((:splice (:stmt1 . ,location)
@@ -7593,7 +7640,7 @@ prints unique counters in the trace"
       (is (string= "global" (aget :name (car unbound))))
       (is (equalp (stmt-with-text *scopes* "int global")
                   (aget :decl (car unbound))))
-      (is (eq (ast-root *scopes*) (ast-ref-ast (aget :scope (car unbound)))))
+      (is (eq (ast-root *scopes*) (aget :scope (car unbound))))
       (is (aget :type (car unbound))))))
 
 
@@ -8548,7 +8595,7 @@ TODO: Currently it seems to ignore the first car."))
                         "int x; int y; int z; int c;")))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
@@ -8557,7 +8604,7 @@ TODO: Currently it seems to ignore the first car."))
                     :same :same :same :same))))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
@@ -8566,7 +8613,7 @@ TODO: Currently it seems to ignore the first car."))
                     :same :same :same :same))))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
@@ -8585,15 +8632,15 @@ TODO: Currently it seems to ignore the first car."))
                         "int x; int y;")))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
-      (is (sel/ast-diff::ast-equal-p
-           sel::ast-tree-diff-interface
+      (is (ast-equal-p
+           sel::parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
                   '(:same :delete :delete :same :same :same :same))))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
@@ -8601,7 +8648,7 @@ TODO: Currently it seems to ignore the first car."))
                   '(:same :same :same :delete :delete :same :same))))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
@@ -8615,9 +8662,9 @@ TODO: Currently it seems to ignore the first car."))
                            "int x = 1; int y = 5; int z = 3;"))
         (diff (diff-software orig new)))
     (is diff)
-    (is (sel/ast-diff::ast-equal-p sel::ast-tree-diff-interface
-                                   (ast-root (edit-software (copy orig) diff))
-                                   (ast-root new)))
+    (is (ast-equal-p sel::parseable-diff-interface
+                          (ast-root (edit-software (copy orig) diff))
+                          (ast-root new)))
     (is (equalp (mapcar #'car diff)
                 '(:same :same :same :recurse :same :same :same)))))
 
@@ -8632,7 +8679,7 @@ TODO: Currently it seems to ignore the first car."))
                         "/* 1 */ int x; /* 2 */ int y; int z; /* X */")))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
@@ -8640,7 +8687,7 @@ TODO: Currently it seems to ignore the first car."))
                   '(:delete :insert :same :same :same :same :same :same))))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
@@ -8648,7 +8695,7 @@ TODO: Currently it seems to ignore the first car."))
                   '(:same :same :delete :insert :same :same :same :same))))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
-      (is (sel/ast-diff::ast-equal-p
+      (is (ast-equal-p
            sel::ast-tree-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))

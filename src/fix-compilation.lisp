@@ -351,8 +351,8 @@ associated element of `*compilation-fixers*'.
           ;;
           ;; (mapc (lambda (it) (format t "IT:~S~%" it)))
           ;;
-          ;; NOTE: Another potential bug here in which ast-refs are
-          ;;       returned instead of numbers and ast-refs can't be
+          ;; NOTE: Another potential bug here in which asts are
+          ;;       returned instead of numbers and asts can't be
           ;;       compared with `>'.
           (sort <> #'>)
           (remove-if #'zerop)

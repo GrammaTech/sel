@@ -66,10 +66,10 @@
          (add-class (kv)
            (if kv
                (if ast-class
-                   (kv ($ "ast_class" ast-class) kv)
+                   (kv ($ "class" ast-class) kv)
                    kv)
                (when ast-class
-                 ($ "ast_class" ast-class))))
+                 ($ "class" ast-class))))
          (add-full-stmt (kv)
            (if kv
                (if full-stmt

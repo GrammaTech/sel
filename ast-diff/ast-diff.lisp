@@ -1,4 +1,3 @@
-;;; ast-diff.lisp --- diffs between ASTs and other tree structures
 (defpackage :software-evolution-library/ast-diff
   (:nicknames :sel/ast-diff)
   (:use
@@ -15,7 +14,12 @@
    :apply-edit-script
    :diff-elide-same
    :diff-to-html
-   :ast-interface))
+   :ast-interface
+   :ast-equal-p
+   :ast-cost
+   :ast-can-recurse
+   :ast-on-recurse
+   :ast-text))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -48,9 +52,7 @@
   (funcall (slot-value interface 'text) ast))
 
 (defun ast-diff (interface ast-a ast-b
-                 &optional (depth 0)
-                   (max (* (1+ (the fixnum (count-cons ast-a)))
-                           (1+ (the fixnum (count-cons ast-b))))))
+                 &optional (depth 0))
   "Return a least-cost edit script which transforms AST-A into AST-B.
 Also return a second value indicating the cost of the edit.
 
@@ -59,9 +61,9 @@ See APPLY-EDIT-SCRIPT for more details on edit scripts.
 INTERFACE is an AST-INTERFACE object containing the functions need to
 determine equality, cost, etc for ASTs.
 
-ASTs should be cons cells where the CAR stores the node data (not used
-directly by the diff algorithm but may be examined by the interface
-functions), and the CDR is the children.
+ASTs should be AST structs from above or cons cells where the CAR
+stores the node data (not used directly by the diff algorithm but
+may be examined by the interface functions) and the CDR is the children.
 "
   ;; Edit scripts are represented by a (length a) x (length b) grid.
   ;; Each position A,B on the grid stores the diff between (subseq
@@ -80,7 +82,6 @@ functions), and the CDR is the children.
   ;; avoid redundant computation. Each dimension is padded by 1 to
   ;; simplify boundary conditions.
   (declare (optimize speed))
-  (declare (type fixnum max))
   (declare (type fixnum depth))
   (let* ((vec-a (coerce (append (tree-right-walk
                                  (ast-on-recurse interface ast-a)) '(nil))
@@ -93,11 +94,10 @@ functions), and the CDR is the children.
     (labels
         ;; Result is a list of (script cost)
         ((cost (result)
-           (the fixnum (if result (second result) max)))
+           (if result (second result) infinity))
          (script (result)
            (when result (first result)))
          (extend (result script cost)
-           (declare (type fixnum cost))
            (list (cons script (script result))
                  (+ cost (cost result))))
          (compute-diff (index-a index-b)
@@ -105,7 +105,7 @@ functions), and the CDR is the children.
            (declare (type fixnum index-b))
            ;; Moving off the grid is illegal/infinite cost.
            (when (some #'>= (list index-a index-b) (array-dimensions costs))
-             (return-from compute-diff (list nil max)))
+             (return-from compute-diff (list nil infinity)))
 
            ;; Use memoized value if available.
            (&>> (aref costs index-a index-b)
@@ -123,7 +123,7 @@ functions), and the CDR is the children.
                               (compute-diff (1+ index-a) (1+ index-b))))
                   (subtree (when (and can-recurse (not heads-equal))
                              (multiple-value-list
-                              (ast-diff interface head-a head-b (1+ depth) max))))
+                              (ast-diff interface head-a head-b (1+ depth)))))
                   ;; Actions.
                   (same (when heads-equal
                           (extend diagonal
@@ -174,15 +174,18 @@ root of the edit script (and implicitly also the program AST)."
             (follow (cdr edit-script) (cons :d path))))))
     (follow edit-script nil)))
 
-(defun apply-edit-script (interface original script)
-  "Create an edited AST by applying SCRIPT to ORIGINAL.
+(defgeneric apply-edit-script (interface original script)
+  (:documentation "Create an edited AST by applying SCRIPT to ORIGINAL.
 
 An edit script is a sequence of actions, of the following types:
 :same A B  : keep the current AST
 :insert B  : insert B at the current position
 :remove A  : remove the current AST
-:recurse S : recursively apply script S to the current AST
-"
+:recurse S : recursively apply script S to the current AST"))
+
+(defmethod apply-edit-script ((interface ast-interface)
+                              (original list)
+                              (script list))
   (labels
       ((edit (asts script)
          (when script
