@@ -832,7 +832,7 @@ criteria for this search."
                   (multiple-value-bind (,variants ,mutation-infos)
                       (funcall ,step)
                     (when ,every-pre-fn
-                      (mapc ,every-pre-fn variants))
+                      (mapc ,every-pre-fn ,variants))
                     (if (cdr ,variants)
                         ;; Multiple variants. Combine into super-mutant.
                         (let ((super (make-instance 'super-mutant

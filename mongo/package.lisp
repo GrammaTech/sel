@@ -6,7 +6,7 @@
    :metabang-bind
    :named-readtables
    :curry-compose-reader-macros
-   :cl-arrows
+   :cl-arrowz
    :split-sequence
    :cl-ppcre
    :cl-mongo

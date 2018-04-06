@@ -203,12 +203,6 @@ to the depth of 3 within the built jar"
   (compare-file-lists (get-files-jar jar-path)
                       (get-files-project-folder project-path)))
 
-(defvar *java-project-execution-script-template*
-  "#!/bin/bash
-echo \"$@\"
-java -jar ~a $@"
-  "Template for the java execution script to run class files")
-
 (defmethod phenome ((obj java-project) &key (bin (temp-file-name)))
   "Compiles the software object to a jar and converts it to a linux executable"
   (write-genome-to-files obj)

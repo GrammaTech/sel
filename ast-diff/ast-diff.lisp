@@ -5,7 +5,7 @@
    :common-lisp
    :software-evolution-library/utility
    :alexandria
-   :cl-arrows
+   :cl-arrowz
    :named-readtables
    :curry-compose-reader-macros
    :iterate

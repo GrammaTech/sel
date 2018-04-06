@@ -7,7 +7,7 @@
    :metabang-bind
    :named-readtables
    :curry-compose-reader-macros
-   :cl-arrows
+   :cl-arrowz
    :iterate
    :split-sequence
    :stefil
