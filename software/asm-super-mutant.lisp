@@ -11,9 +11,6 @@
 ;;; source code, and input/output specifications, as well as a function
 ;;; boundary deliminator which determines the target of the mutation algorithm.
 ;;;
-
-;;; Performance testing will take advantage of the assembly functionality built
-;;; into SBCL, so, for now, this software class is SBCL-specific.
 ;;;
 (define-software asm-super-mutant (asm-heap super-mutant)
   ((input-spec :initarg :input-spec :accessor input-spec)
@@ -53,6 +50,9 @@
       (format t "~4A: ~A" (reg-contents-name reg)
 	      (bytes-to-string (reg-contents-value reg)))))
 
+;;;
+;;; This struct also is used to specify outputs.
+;;;
 (defstruct input-specification
   regs
   simd-regs 
@@ -177,45 +177,207 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 			     (remove #\space (subseq line pos)))))))
 
 
-(defun parse-input-file (input-name)
-  "Need to implement"
+(defun load-io-file (super-asm filename)
+  "Load the file containing input and output state information"
   (let ((input-spec (make-input-specification
 		     :regs (make-array 16 :fill-pointer 0)
 		     :simd-regs (make-array 16 :fill-pointer 0)
-		     :mem (make-array 0 :fill-pointer 0 :adjustable t))))
-    (with-open-file (input input-name :direction :input)
+		     :mem (make-array 0 :fill-pointer 0 :adjustable t)))
+	(output-spec (make-input-specification
+		     :regs (make-array 16 :fill-pointer 0)
+		     :simd-regs (make-array 16 :fill-pointer 0)
+		     :mem (make-array 0 :fill-pointer 0 :adjustable t)))
+	(parsing-inputs t))
+    (with-open-file (input filename :direction :input)
       (do ((line (get-next-line input) (get-next-line input))
 	   (pos 0 0))
 	  ((null line))
 	(cond ((zerop (length line))) ; do nothing, empty line
+	      ((search "Input data" line) (setf parsing-inputs t))
+	      ((search "Output data" line)(setf parsing-inputs nil))
 	      ((char= (char line 0) #\%) ; register spec?
 	       (let ((spec (parse-reg-spec line pos)))
 		 (if (simd-reg-p (reg-contents-name spec))  ; SIMD register?
-		     (vector-push spec
-				  (input-specification-simd-regs input-spec))
+		     (vector-push
+		       spec
+		       (input-specification-simd-regs
+		       (if parsing-inputs input-spec output-spec)))
 		     ;; else a general-purpose register
-		     (vector-push spec (input-specification-regs input-spec)))))
+		     (vector-push
+		       spec
+		       (input-specification-regs
+		         (if parsing-inputs input-spec output-spec))))))
 	      (t ; assume memory specification
-	       (vector-push-extend (parse-mem-spec line pos)
-				   (input-specification-mem input-spec))))))
-    input-spec))
-
-#|
-for testing, we are going to start with grep.null.asm, lines 18884 to 18914
-(re_compile_pattern)
+	       (vector-push-extend
+		 (parse-mem-spec line pos)
+		   (input-specification-mem
+		    (if parsing-inputs input-spec output-spec)))))))
+    (setf (input-spec super-asm) input-spec)
+    (setf (output-spec super-asm) output-spec))
+  t)
 
 ;;;
-;;; mov 
-(defun init-mem (address bytes mask)
-  ;
-)
+;;; takes 8 bit mask and converts to 8-byte mask, with each
+;;; 1-bit converted to 0xff to mask a full byte.
+;;;
+(defun create-byte-mask (bit-mask)
+  (map 'vector (lambda (x)(if (zerop x) #x00 #xff)) bit-mask))
+
+;;;
+;;; assume bytes are in little-endian order
+;;;
+(defun bytes-to-qword (bytes)
+  (let ((result 0))
+    (iter (for i from 7 downto 0)
+	  (setf result (+ (ash result 8) (aref bytes i))))
+    result))
+
+;;;
+;;; Assume bytes are in big-endian order
+;;;
+(defun be-bytes-to-qword (bytes)
+  (let ((result 0))
+    (iter (for i from 0 to 7)
+	  (setf result (+ (ash result 8) (aref bytes i))))
+    result))
 
 ;;;
 ;;; reg is a string, naming the register i.e. "rax" or "r13".
-;;; qword is an integer containing the 64-bit unsigned contents
-;;; to be stored, in big-endian order (so we need to swap bytes
-;;; to get little-indian).
+;;; bytes is an 8-element byte array containing the 64-bit unsigned contents
+;;; to be stored, in big-endian order
 ;;;
-(defun load-reg (reg qword-bytes)
-;; mov reg, mem   
+(defun load-reg (reg bytes)
+  (format nil "mov qword ~A, 0x~X"
+	  reg
+	  (be-bytes-to-qword bytes)))
+
+;;;
+;;; reg is a string, naming the register i.e. "rax" or "r13".
+;;; bytes is an 8-element byte array containing the 64-bit unsigned contents
+;;; to be compared, in big-endian order
+;;;
+(defun comp-reg (reg bytes)
+  (let ((label (gensym "reg-cmp-")))
+    (list
+      (format nil "push ~A" reg)
+      (format nil "mov qword ~A, 0x~X"
+	  reg
+	  (be-bytes-to-qword bytes))
+      (format nil "cmp qword ~A, [rsp]" reg)
+      (format nil "pop ~A" reg)
+      (format nil "je ~A" label)
+      (format nil
+	  "mov rdi, \"Comparison of register ~A failed: expected 0x~X\""
+	  reg 
+          (be-bytes-to-qword bytes))
+      (format nil "jmp output_comparison_failure")
+      (format nil "~A:" label))))
+  
+
+;;;
+;;; Initialize 8 bytes of memory, using the mask to init only specified bytes.
+;;; Returns list of lines to do the initialization.
+;;;
+(defun init-mem (spec)
+  (let ((addr (memory-spec-addr spec))
+	(mask (memory-spec-mask spec))
+	(bytes (memory-spec-bytes spec)))
+    (if (equal mask #*11111111)  ;; we can ignore the mask
+      (list
+        (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+        (format nil "mov qword rcx, 0x~X" addr)
+        "mov qword [rcx], rax")	
+      (list
+        (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+        (format nil "mov qword rbx, 0x~X"
+		(bytes-to-qword (create-byte-mask mask)))
+        (format nil "mov qword rcx, 0x~X" addr)
+        "and rax, rbx"   ; mask off unwanted bytes of src
+        "not rbx"        ; invert mask
+        "and qword [rcx], rbx" ; mask off bytes which will be overwritten
+        "or qword [rcx], rax"))))
+
+;;;
+;;; Initialize 8 bytes of memory, using the mask to init only specified bytes.
+;;; Returns list of lines to do the initialization.
+;;;
+(defun comp-mem (spec)
+  (let ((addr (memory-spec-addr spec))
+	(mask (memory-spec-mask spec))
+	(bytes (memory-spec-bytes spec))
+	(label (gensym "mem-cmp-")))
+    (if (equal mask #*11111111)  ;; we can ignore the mask
+	(list
+	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+	 (format nil "mov qword rcx, 0x~X" addr)
+	 "cmp qword [rcx], rax"
+	 (format nil "je ~A" label)
+         (format nil
+	   "mov rdi, \"Comparison of address 0x~X failed: expected 0x~X\""
+	   addr 
+           (bytes-to-qword bytes))
+         (format nil "jmp output_comparison_failure")
+         (format nil "~A:" label))
+	(list
+	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+	 (format nil "mov qword rbx, 0x~X" (bytes-to-qword (create-byte-mask mask)))
+	 (format nil "mov qword rcx, 0x~X" addr)
+	 "mov qword rcx, [rcx]"
+	 "and rax, rbx"   ; mask off unwanted bytes of src
+	 "and rcx, rbx" ; mask off unwanted bytes of dest
+	 "cmp rcx, rax"
+	 (format nil "je ~A" label)
+         (format nil
+	   "mov rdi, \"Comparison of address 0x~X failed: expected 0x~X\""
+	   addr 
+           (bytes-to-qword bytes))
+         (format nil "jmp output_comparison_failure")
+         (format nil "~A:" label)))))
+
+;;;
+;;; Return asm-heap containing the lines to set up the environment
+;;; for a fitness test.
+;;; Skip SIMD registers for now.
+;;;
+(defun init-env (asm-super)
+  (let* ((input-spec (input-spec asm-super))
+	 (reg-lines
+	  (iterate
+	    (for x in-vector (input-specification-regs input-spec))
+	    (collect (load-reg (reg-contents-name x)(reg-contents-value x)))))
+	 (mem-lines
+	  (apply 'append
+		 (iterate
+	           (for x in-vector (input-specification-mem input-spec))
+		   (collect (init-mem x)))))
+	 (asm (make-instance 'asm-heap)))
+    (setf (lines asm) (append mem-lines reg-lines))
+    asm))
+
+;;;
+;;; Return an asm-heap containing the lines to check the resulting outputs.
+;;; Skip SIMD registers for now.
+;;;
+(defun check-env (asm-super)
+  (let* ((output-spec (output-spec asm-super))
+	 (reg-lines
+	  (apply 'append
+		 (iterate
+	           (for x in-vector (input-specification-regs output-spec))
+	           (collect
+		       (comp-reg (reg-contents-name x)(reg-contents-value x))))))
+	 (mem-lines
+	  (apply 'append
+		 (iterate
+	           (for x in-vector (input-specification-mem output-spec))
+		   (collect (comp-mem x)))))
+	 (asm (make-instance 'asm-heap)))
+    (setf (lines asm) (append reg-lines mem-lines))
+    asm))
+
+#|
+(defvar *asm-super* (make-instance 'asm-super-mutant))
+(load-io-file *asm-super* 
+  "/u1/rcorman/synth/sel/test/etc/asm-test/grep-io.txt") 
+(setf *heap* (init-env *asm-super*))
 |#
