@@ -53,10 +53,10 @@ each and stores them in a list."
                   stdout stderr)
           (let* ((jar-path (merge-pathnames-as-file *build-dir*
                                                     (build-target obj)))
-                 (files (->> (get-applicable-project-files *build-dir* jar-path)
+                 (files (->> (get-applicable-project-files project-dir jar-path)
                              (mapcar (lambda (file)
                                        (replace-all file
-                                                    (-> *build-dir*
+                                                    (-> project-dir
                                                         (pathname-as-directory)
                                                         (namestring))
                                                     ""))))))
