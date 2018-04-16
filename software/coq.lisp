@@ -153,7 +153,9 @@ See also `tag-loc-info'."
 
 
 (defmethod from-file ((obj coq) file)
-  "Load Coq OBJ from file FILE using."
+  "Load Coq OBJ from file FILE, initializing fields in OBJ.
+Resets the SerAPI process so that imports are loaded but no definitions from the
+file have been added."
   (when (project-file obj)
     (set-load-paths (project-file obj))
     (insert-reset-point))
@@ -198,8 +200,13 @@ Set INCLUDE-IMPORTS to T to include import statements in the result."
          (when (listp ast)
            (collecting (lookup-coq-string ast))))))
 
+(defgeneric coq-type-checks (coq)
+  (:documentation
+   "Return the fraction of ASTs in COQ software object that typecheck."))
+
 (defmethod coq-type-checks ((obj coq))
-  "Return the fraction of ASTs in Coq software OBJ that typecheck."
+  "Return the fraction of ASTs in Coq software OBJ that typecheck.
+Return NIL if source strings cannot be looked up."
   (reset-serapi-process)
   (insert-reset-point)
   (iter (for str in (lookup-source-strings obj :include-imports nil))
