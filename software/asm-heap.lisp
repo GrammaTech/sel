@@ -243,6 +243,38 @@ structs, and storing them in a vector on the LINE-HEAP"
       ((= i index)(setf (aref a i) val))
     (setf (aref a i)(aref a (- i 1)))))
 
+;;;
+;;; Given a textual line of assembler, parse it and add the resulting
+;;; list of asm-line-info structs to the heap.
+;;; Returns the list of new asm-line-info struct.
+;;;
+(defun parse-and-add-to-heap (asm-heap text)
+  (let* ((info-list (parse-asm-line text))
+	 (id (length (line-heap asm-heap))))
+    (dolist (info info-list)
+      (setf (asm-line-info-id info) id)
+      (incf id)
+      (vector-push-extend info (line-heap asm-heap)))
+    info-list))
+
+;;;
+;;; Parses a new line of assembler, adds it to the heap, and inserts
+;;; it at index in the genome. Returns the number of lines inserted.
+;;;
+(defun insert-new-line (asm-heap text index)
+  (let ((info-list (parse-and-add-to-heap asm-heap text)))
+    (dolist (info info-list)
+      (vector-insert (genome asm-heap) index info)
+      (incf index))
+    (length info-list)))
+
+;;;
+;;; Parse and add a list of lines of assembler code.
+;;;
+(defun insert-new-lines (asm-heap line-list index)
+  (dolist (x line-list)
+    (incf index (insert-new-line asm-heap x index))))
+
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-cut))
   "Implement simple-cut mutation on ASM-HEAP."
   (vector-cut (genome asm) (targets mutation))

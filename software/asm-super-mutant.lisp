@@ -14,7 +14,12 @@
 ;;;
 (define-software asm-super-mutant (asm-heap super-mutant)
   ((input-spec :initarg :input-spec :accessor input-spec)
-   (output-spec :initarg :output-spec :accessor output-spec))
+   (output-spec :initarg :output-spec :accessor output-spec)
+   (target-start-index :initarg :target-start-index
+		       :accessor target-start-index)
+   (target-end-index :initarg :target-end-index
+		     :accessor target-end-index)
+   (target-lines :initarg :target-lines :accessor target-lines))
   (:documentation
    "Combine super-mutant capabilities with asm-heap framework."))
 
@@ -257,7 +262,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 ;;; to be compared, in big-endian order
 ;;;
 (defun comp-reg (reg bytes)
-  (let ((label (gensym "reg-cmp-")))
+  (let ((label (gensym "reg_cmp_")))
     (list
       (format nil "push ~A" reg)
       (format nil "mov qword ~A, 0x~X"
@@ -270,7 +275,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	  "mov rdi, \"Comparison of register ~A failed: expected 0x~X\""
 	  reg 
           (be-bytes-to-qword bytes))
-      (format nil "jmp output_comparison_failure")
+      (format nil "jmp $output_comparison_failure")
       (format nil "~A:" label))))
   
 
@@ -305,7 +310,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
   (let ((addr (memory-spec-addr spec))
 	(mask (memory-spec-mask spec))
 	(bytes (memory-spec-bytes spec))
-	(label (gensym "mem-cmp-")))
+	(label (gensym "$mem_cmp_")))
     (if (equal mask #*11111111)  ;; we can ignore the mask
 	(list
 	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
@@ -316,7 +321,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	   "mov rdi, \"Comparison of address 0x~X failed: expected 0x~X\""
 	   addr 
            (bytes-to-qword bytes))
-         (format nil "jmp output_comparison_failure")
+         (format nil "jmp $output_comparison_failure")
          (format nil "~A:" label))
 	(list
 	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
@@ -331,7 +336,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	   "mov rdi, \"Comparison of address 0x~X failed: expected 0x~X\""
 	   addr 
            (bytes-to-qword bytes))
-         (format nil "jmp output_comparison_failure")
+         (format nil "jmp $output_comparison_failure")
          (format nil "~A:" label)))))
 
 ;;;
@@ -365,7 +370,8 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 		 (iterate
 	           (for x in-vector (input-specification-regs output-spec))
 	           (collect
-		       (comp-reg (reg-contents-name x)(reg-contents-value x))))))
+		       (comp-reg (reg-contents-name x)
+				 (reg-contents-value x))))))
 	 (mem-lines
 	  (apply 'append
 		 (iterate
@@ -375,9 +381,155 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
     (setf (lines asm) (append reg-lines mem-lines))
     asm))
 
+(defun target-function (asm-super start-addr end-addr)
+  (let* ((genome (genome asm-super))
+	 (start-index
+	  (position start-addr genome
+		   :key 'asm-line-info-address
+		   :test (lambda (x y)(and y (= x y))))) ;; skip null address
+	 (end-index
+	  (position end-addr genome
+		   :key 'asm-line-info-address
+		   :start (if start-index start-index 0)
+		   :test (lambda (x y)(and y (= x y))))))
+    (setf (target-start-index asm-super) start-index)
+    (setf (target-end-index asm-super) end-index)
+    (setf (target-lines asm-super)
+	  (if (and start-index end-index)
+	      (subseq genome start-index (+ 1 end-index))
+	      nil))))
+
+(defun find-main-line (asm-super)
+  (find "$main:" (genome asm-super) :key 'asm-line-info-text :test 'equal))
+
+(defun find-main-line-position (asm-super)
+  (position "$main:" (genome asm-super) :key 'asm-line-info-text :test 'equal))
+
+;;;
+;;; Look for any label in the text (string starting with $ and ending with : or
+;;; white space) and add suffix text to end of label (should be something like
+;;; "_variant_1"). Returns the result (does not modify passed text).
+;;;
+(defun add-label-suffix (text suffix)
+  (multiple-value-bind (start end register-match-begin register-match-end)
+      (ppcre:scan "\\$\\w+" text)
+    (declare (ignore register-match-begin register-match-end))
+    (if (and (integerp start)(integerp end))
+	(concatenate 'string
+		     (subseq text 0 end)
+		     suffix
+		     (subseq text end))
+	text)))
+
+;;;
+;;; Insert initialization code just before the $main function.
+;;;
+(defun add-init-func (asm-super)
+  (let ((main-pos (find-main-line-position asm-super)))
+    (if main-pos
+	(insert-new-lines asm-super
+			  (append
+			   (list "$super_variant_init:")
+			   (lines (init-env asm-super))
+			   (list "ret" "align 4"))
+			  main-pos))))
+
+;;;
+;;; Insert check results function just before $main function.
+;;;
+(defun add-check-env-func (asm-super)
+  (let ((main-pos (find-main-line-position asm-super)))
+    (if main-pos
+	(insert-new-lines asm-super
+			  (append
+			   (list "$super_variant_check:")
+			   (lines (check-env asm-super))
+			   (list "ret"
+				 "mov rax, 0"  ;; success exit
+				 "$output_comparison_failure:"
+				 "mov rax, 1"  ;; error exit
+				 "ret"
+				 "align 4"))
+			  main-pos))))
+
+;;; Insert a variant function, defined by a name and lines of assembler code,
+;;; just before $main function.
+;;;
+(defun add-variant-func (asm-super name lines)
+  (let* ((main-pos (find-main-line-position asm-super))
+         (suffix (format nil "_~A" (subseq name 1)))
+	 (localized-lines
+	  (mapcar
+	   (lambda (line)
+	      (add-label-suffix line suffix))
+	     lines)))
+    (if main-pos
+	(insert-new-lines
+	 asm-super
+	 (append
+	   (list (format nil "~A:" name))  ; function name
+	   (cdr localized-lines)   ; skip first line, the function name
+	   (list "ret"   ; probably redundant, already in lines
+		 "align 4"))
+	 main-pos))))
+
+(defun add-main-func (asm-super variant-names)
+  (declare (ignore variant-names))
+  (let ((main-pos (find-main-line-position asm-super)))
+    (if main-pos
+      (insert-new-lines
+	 asm-super
+	 (list
+	   "sub rsp, 16" ; add storage on the stack for two instruction counts
+	   "call $super_variant_init"
+           "rdtsc"
+	   "mov [rsp], rax"         ; save instruction counter
+	   "call $variant_1"
+	   "rdtsc"
+	   "mov [rsp+8], rax"       ; save instruction counter
+	   "call $super_variant_check"
+	   "mov rax, 0"             ; need to return possible error codes here
+	   "ret")
+	 (+ main-pos 1)))))         ; insert just after "$main:" label,
+                                    ; replacing previous $main:
+
+(defun generate-file (asm-super output-path)
+  (add-init-func asm-super)
+  (add-check-env-func asm-super)
+  (add-variant-func asm-super "$variant_1"
+		    (map 'list 'asm-line-info-text (target-lines asm-super)))
+  (add-main-func asm-super nil)
+  (with-open-file (os output-path :direction :output :if-exists :supersede)
+    (dolist (line (lines asm-super))
+      (format os "~A~%" line)))
+  (format t "File ~A successfully created.~%" output-path))
+
+(defun create-variant-file (input-source io-file output-path
+		    start-addr end-addr)
+  (let ((asm-super
+	 (from-file (make-instance 'asm-super-mutant) input-source)))
+    (load-io-file asm-super io-file)
+    (target-function asm-super start-addr end-addr) ; nlscan function
+    (generate-file asm-super output-path)))
+
 #|
-(defvar *asm-super* (make-instance 'asm-super-mutant))
+
+(create-variant-file 
+  "/u1/rcorman/synth/sel/test/etc/asm-test/grep.asm"    ; input source asm file
+  "/u1/rcorman/synth/sel/test/etc/asm-test/grep-io.txt" ; io file
+  "/u1/rcorman/synth/grep-variant.asm"                  ; output file name
+  #x4097d0                                              ; start addr of function
+  #x409839)                                             ; end addr of function
+
+(defparameter *asm-super* 
+  (from-file (make-instance 'asm-super-mutant)
+  "/u1/rcorman/synth/sel/test/etc/asm-test/grep.asm"))
+
 (load-io-file *asm-super* 
   "/u1/rcorman/synth/sel/test/etc/asm-test/grep-io.txt") 
-(setf *heap* (init-env *asm-super*))
+
+(target-function *asm-super* #x4097d0 #x409839) ; nlscan function
+
+(generate-file *asm-super* "/u1/rcorman/synth/grep-variant.asm")
+
 |#
