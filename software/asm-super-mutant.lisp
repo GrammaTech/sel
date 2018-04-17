@@ -271,11 +271,11 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
       (format nil "cmp qword ~A, [rsp]" reg)
       (format nil "pop ~A" reg)
       (format nil "je ~A" label)
-      (format nil
-	  "mov rdi, \"Comparison of register ~A failed: expected 0x~X\""
-	  reg 
-          (be-bytes-to-qword bytes))
-      (format nil "jmp $output_comparison_failure")
+      "mov rdi, qword [$stdout@@GLIBC_2.2.5]"
+      "mov rsi, $error_reg_compare"
+      (format nil "mov qword rdx, 0x~X" (be-bytes-to-qword bytes)) ; expected
+      "call $fprintf wrt ..plt"
+      (format nil "jmp $output_reg_comparison_failure")
       (format nil "~A:" label))))
   
 
@@ -317,25 +317,18 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	 (format nil "mov qword rcx, 0x~X" addr)
 	 "cmp qword [rcx], rax"
 	 (format nil "je ~A" label)
-         (format nil
-	   "mov rdi, \"Comparison of address 0x~X failed: expected 0x~X\""
-	   addr 
-           (bytes-to-qword bytes))
          (format nil "jmp $output_comparison_failure")
          (format nil "~A:" label))
 	(list
 	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
-	 (format nil "mov qword rbx, 0x~X" (bytes-to-qword (create-byte-mask mask)))
+	 (format nil "mov qword rbx, 0x~X"
+		 (bytes-to-qword (create-byte-mask mask)))
 	 (format nil "mov qword rcx, 0x~X" addr)
-	 "mov qword rcx, [rcx]"
+	 "mov qword rdx, [rcx]"
 	 "and rax, rbx"   ; mask off unwanted bytes of src
-	 "and rcx, rbx" ; mask off unwanted bytes of dest
-	 "cmp rcx, rax"
+	 "and rdx, rbx" ; mask off unwanted bytes of dest
+	 "cmp rdx, rax"
 	 (format nil "je ~A" label)
-         (format nil
-	   "mov rdi, \"Comparison of address 0x~X failed: expected 0x~X\""
-	   addr 
-           (bytes-to-qword bytes))
          (format nil "jmp $output_comparison_failure")
          (format nil "~A:" label)))))
 
@@ -409,12 +402,18 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 ;;; Look for any label in the text (string starting with $ and ending with : or
 ;;; white space) and add suffix text to end of label (should be something like
 ;;; "_variant_1"). Returns the result (does not modify passed text).
+;;; Do not change labels which are used as data, i.e. referenced in non-branch
+;;; instructions. For now--we will assume branch instructions are all
+;;; ops which start with the letter "j".
 ;;;
 (defun add-label-suffix (text suffix)
   (multiple-value-bind (start end register-match-begin register-match-end)
       (ppcre:scan "\\$\\w+" text)
     (declare (ignore register-match-begin register-match-end))
-    (if (and (integerp start)(integerp end))
+    (if (and (integerp start)
+	     (integerp end)
+	     (or (char= #\j (char (string-trim '(#\space #\tab) text) 0))
+		 (char= #\$ (char (string-trim '(#\space #\tab) text) 0))))
 	(concatenate 'string
 		     (subseq text 0 end)
 		     suffix
@@ -440,17 +439,30 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 (defun add-check-env-func (asm-super)
   (let ((main-pos (find-main-line-position asm-super)))
     (if main-pos
-	(insert-new-lines asm-super
-			  (append
-			   (list "$super_variant_check:")
-			   (lines (check-env asm-super))
-			   (list "ret"
-				 "mov rax, 0"  ;; success exit
-				 "$output_comparison_failure:"
-				 "mov rax, 1"  ;; error exit
-				 "ret"
-				 "align 4"))
-			  main-pos))))
+	(insert-new-lines
+	 asm-super
+	 (append
+	  (list "$super_variant_check:")
+	  (lines (check-env asm-super))
+	  (list "ret"
+		"mov rax, 0"  ;; success exit
+		"$output_comparison_failure:"
+		"mov rdi, qword [$stdout@@GLIBC_2.2.5]"
+		"mov esi, $error_mem_compare"
+	        "mov rdx, rcx"   ; address as param 3
+		"mov rcx, rax"   ; expected results as param 4
+		"call $fprintf wrt ..plt"
+		"mov rax, 1"  ;; error exit
+		"ret"
+		"$output_reg_comparison_failure:"
+		"mov rax, 1"  ;; error exit
+		"ret"
+                "$error_mem_compare:"
+	        "db 'Comparison of address %x failed: expected 0x%x\0'"
+                "$error_reg_compare:"
+	        "db 'Comparison of register failed: expected 0x%x\0'"
+	        "align 4"))
+	 main-pos))))
 
 ;;; Insert a variant function, defined by a name and lines of assembler code,
 ;;; just before $main function.
