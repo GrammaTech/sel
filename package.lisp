@@ -685,6 +685,7 @@
    :type-safe-swap
    :tag-loc-info
    :untag-loc-info
+   :lookup-source-strings
    :coq-type-checks))
 #+allegro
 (set-dispatch-macro-character #\# #\_
