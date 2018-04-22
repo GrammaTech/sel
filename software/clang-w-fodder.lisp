@@ -207,8 +207,9 @@ Returns modified text, and names of bound variables.
                            vars
                            (mapcar {var-type in-scope} vars))
                    (aget :includes snippet)
-                   :macros (mapcar {find-macro database}
-                                   (aget :macros snippet)))))
+                   :macros (->> (mapcar {find-macro database}
+                                        (aget :macros snippet))
+                                (remove-if #'null)))))
           (car asts)
           (error (make-condition 'mutate
                                  :text "Failed to parse fodder"
