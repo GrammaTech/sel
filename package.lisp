@@ -309,7 +309,7 @@
    :constant-fold
    :random-subtree
    :source
-   :ast-tree
+   :parseable
    :clang
    :clang-w-fodder
    :clang-w-binary

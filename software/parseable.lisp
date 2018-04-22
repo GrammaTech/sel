@@ -1,10 +1,11 @@
-;;; ast-tree.lisp --- ast-tree software representation
+;;; parseable.lisp --- software representation which may be
+;;;                    parsed into ASTs
 
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-;;; ast-tree software objects
-(define-software ast-tree (source)
+;;; parseable software objects
+(define-software parseable (source)
   ((ast-root :initarg :ast-root :initform nil :accessor ast-root
              :documentation "Root node of AST.")
    (asts     :initarg :asts :reader asts
@@ -16,9 +17,9 @@
                    :initform t :type boolean
                    :documentation
                    "Have ASTs changed since the last parse?")
-   (copy-lock :initform (make-lock "ast-tree-copy")
+   (copy-lock :initform (make-lock "parseable-copy")
               :copier :none
-              :documentation "Lock while copying ast-reeobjects."))
+              :documentation "Lock while copying parseable objects."))
   (:documentation "Parsed AST tree software representation."))
 
 (defgeneric roots (obj)
@@ -94,9 +95,9 @@ STMT-POOL for mutation, filtering using FILTER, and throwing a
 'no-mutation-targets exception if none are available."))
 
 (defgeneric build-op (software mutation)
-  (:documentation "Build ast-tree operation on SOFTWARE from a MUTATION."))
+  (:documentation "Build operation on SOFTWARE from a MUTATION."))
 
-(defgeneric recontextualize-mutation (ast-tree mutation)
+(defgeneric recontextualize-mutation (parseable mutation)
   (:documentation "Bind free variables and functions in the mutation to concrete
 values.  Additionally perform any updates to the software object required
 for successful mutation."))
@@ -106,26 +107,26 @@ for successful mutation."))
 If no suitable points are found the returned points may be nil."))
 
 
-;;; Core ast-tree methods
-(defvar *ast-tree-obj-code* (register-code 45 'ast-tree)
-  "Object code for serialization of ast-tree software objects.")
+;;; Core parseable methods
+(defvar *parseable-obj-code* (register-code 45 'parseable)
+  "Object code for serialization of parseable software objects.")
 
-(defstore-cl-store (obj ast-tree stream)
+(defstore-cl-store (obj parseable stream)
   ;; NOTE: Does *not* support documentation.
   (let ((copy (copy obj)))
     (setf (slot-value copy 'copy-lock) nil)
-    (output-type-code *ast-tree-obj-code* stream)
+    (output-type-code *parseable-obj-code* stream)
     (cl-store::store-type-object copy stream)))
 
-(defrestore-cl-store (ast-tree stream)
+(defrestore-cl-store (parseable stream)
   ;; NOTE: Does *not* support documentation.
   (let ((obj (cl-store::restore-type-object stream)))
-    (setf (slot-value obj 'copy-lock) (make-lock "ast-tree-copy"))
+    (setf (slot-value obj 'copy-lock) (make-lock "parseable-copy"))
     obj))
 
-(defmethod copy :before ((obj ast-tree) &key)
+(defmethod copy :before ((obj parseable) &key)
   "Update ASTs in OBJ prior to performing a copy.
-* OBJ ast-tree software object to copy
+* OBJ software object to copy
 "
   ;; Update ASTs before copying to avoid duplicates. Lock to prevent
   ;; multiple threads from updating concurrently.
@@ -133,11 +134,11 @@ If no suitable points are found the returned points may be nil."))
     (bordeaux-threads:with-lock-held ((slot-value obj 'copy-lock))
       (update-asts obj))))
 
-(defmethod size ((obj ast-tree))
+(defmethod size ((obj parseable))
   "Return the number of ASTs in OBJ."
   (length (asts obj)))
 
-(defmethod genome ((obj ast-tree))
+(defmethod genome ((obj parseable))
   "Return the source code in OBJ."
   ;; If genome string is stored directly, use that. Otherwise,
   ;; build the genome by walking the AST.
@@ -147,7 +148,7 @@ If no suitable points are found the returned points may be nil."))
            val)
     (peel-bananas (source-text (ast-root obj)))))
 
-(defmethod (setf genome) :before (new (obj ast-tree))
+(defmethod (setf genome) :before (new (obj parseable))
   "Clear ASTs, fitness, and other caches prior to updating the NEW genome."
   (declare (ignorable new))
   (with-slots (ast-root fitness) obj
@@ -155,7 +156,7 @@ If no suitable points are found the returned points may be nil."))
           fitness nil))
   (clear-caches obj))
 
-(defmethod (setf ast-root) :before (new (obj ast-tree))
+(defmethod (setf ast-root) :before (new (obj parseable))
   "Clear fitness and other caches prior to updating
 the NEW ast-root."
   (declare (ignorable new))
@@ -163,7 +164,7 @@ the NEW ast-root."
     (setf fitness nil))
   (clear-caches obj))
 
-(defmethod (setf ast-root) :after (new (obj ast-tree))
+(defmethod (setf ast-root) :after (new (obj parseable))
   "Ensure the AST paths in NEW are correct after modifying the
 applicative AST tree."
   (setf (slot-value obj 'ast-root)
@@ -180,19 +181,19 @@ applicative AST tree."
                                      (update-paths c (cons i path))
                                      c)))))
 
-(defmethod ast-root :before ((obj ast-tree))
+(defmethod ast-root :before ((obj parseable))
   "Ensure the `ast-root' field is set on OBJ prior to access."
   (update-asts-if-necessary obj))
 
-(defmethod size :before ((obj ast-tree))
+(defmethod size :before ((obj parseable))
   "Ensure the `asts' field is set on OBJ prior to access."
   (update-asts-if-necessary obj))
 
-(defmethod asts :before ((obj ast-tree))
+(defmethod asts :before ((obj parseable))
   "Ensure the `asts' field is set on OBJ prior to access."
   (update-caches-if-necessary obj))
 
-(defmethod update-asts :around ((obj ast-tree))
+(defmethod update-asts :around ((obj parseable))
   "Wrap update-asts to only parse OBJ when the `asts-changed-p'
 field indicates the object has changed since the last parse."
   (when (asts-changed-p obj)
@@ -200,13 +201,13 @@ field indicates the object has changed since the last parse."
     (call-next-method))
   (setf (asts-changed-p obj) nil))
 
-(defmethod update-asts-if-necessary ((obj ast-tree))
+(defmethod update-asts-if-necessary ((obj parseable))
   "Parse ASTs in obj if the `ast-root' field has not been set.
 * OBJ object to potentially populate with ASTs
 "
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
-(defmethod update-caches ((obj ast-tree))
+(defmethod update-caches ((obj parseable))
   (labels ((collect-asts (tree)
              ;; Collect all subtrees
              (unless (null (ast-children tree))
@@ -217,13 +218,13 @@ field indicates the object has changed since the last parse."
     (setf (slot-value obj 'asts)
           (cdr (collect-asts (ast-root obj))))))
 
-(defmethod update-caches-if-necessary ((obj ast-tree))
+(defmethod update-caches-if-necessary ((obj parseable))
   "Update cached fields if these fields have not been set.
 * OBJ object to potentially populate with cached fields
 "
   (with-slots (asts) obj (unless asts (update-caches obj))))
 
-(defmethod clear-caches ((obj ast-tree))
+(defmethod clear-caches ((obj parseable))
   "Clear cached fields on OBJ, including `asts' and `asts-changed-p`.
 * OBJ object to clear caches for.
 "
@@ -233,9 +234,9 @@ field indicates the object has changed since the last parse."
 
 
 ;;; Retrieving ASTs
-(defmethod roots ((obj ast-tree))
+(defmethod roots ((obj parseable))
   "Return all top-level ASTs in OBJ.
-* OBJ ast-tree software object to search for roots
+* OBJ software object to search for roots
 "
   (roots (asts obj)))
 
@@ -245,23 +246,23 @@ field indicates the object has changed since the last parse."
 "
   (remove-if-not [{= 1} #'length #'ast-path] asts))
 
-(defmethod ast-at-index ((obj ast-tree) index)
+(defmethod ast-at-index ((obj parseable) index)
   "Return the AST in OBJ at INDEX.
 * OBJ object to retrieve ASTs for
 * INDEX nth AST to retrieve
 "
   (nth index (asts obj)))
 
-(defmethod index-of-ast ((obj ast-tree) (ast ast))
+(defmethod index-of-ast ((obj parseable) (ast ast))
   "Return the index of AST in OBJ.
 * OBJ object to query for the index of AST
 * AST node to find the index of
 "
   (position ast (asts obj) :test #'equalp))
 
-(defmethod get-ast ((obj ast-tree) (path list))
+(defmethod get-ast ((obj parseable) (path list))
   "Return the AST in OBJ at the given PATH.
-* OBJ ast-tree software object with ASTs
+* OBJ software object with ASTs
 * PATH path to the AST to return
 "
   (labels ((helper (tree path)
@@ -272,7 +273,7 @@ field indicates the object has changed since the last parse."
                  tree)))
     (helper (ast-root obj) path)))
 
-(defmethod parent-ast-p ((obj ast-tree) (possible-parent-ast ast) (ast ast))
+(defmethod parent-ast-p ((obj parseable) (possible-parent-ast ast) (ast ast))
   "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
 otherwise.
 * OBJ software object containing AST and its parents
@@ -282,7 +283,7 @@ otherwise.
   (member possible-parent-ast (get-parent-asts obj ast)
           :test #'equalp))
 
-(defmethod get-parent-ast ((obj ast-tree) (ast ast))
+(defmethod get-parent-ast ((obj parseable) (ast ast))
   "Return the parent node of AST in OBJ
 * OBJ software object containing AST and its parent
 * AST node to find the parent of
@@ -290,7 +291,7 @@ otherwise.
   (when-let ((path (butlast (ast-path ast))))
     (get-ast obj path)))
 
-(defmethod get-parent-asts ((obj ast-tree) (ast ast))
+(defmethod get-parent-asts ((obj parseable) (ast ast))
   "Return the parent nodes of AST in OBJ
 * OBJ software object containing AST and its parents
 * AST node to find the parents of
@@ -305,7 +306,7 @@ otherwise.
     (-> (get-parent-asts-helper (ast-root obj) (ast-path ast))
         (reverse))))
 
-(defmethod get-immediate-children ((obj ast-tree) (ast ast))
+(defmethod get-immediate-children ((obj parseable) (ast ast))
   "Return the immediate children of AST in OBJ.
 * OBJ software object containing AST and its children
 * AST node to find the children of
@@ -315,7 +316,7 @@ otherwise.
         (when (subtypep (type-of child) 'ast)
           (collect child))))
 
-(defmethod ast-to-source-range ((obj ast-tree) (ast ast))
+(defmethod ast-to-source-range ((obj parseable) (ast ast))
   "Convert AST to pair of SOURCE-LOCATIONS."
   (labels
       ((scan-ast (ast line column)
@@ -359,7 +360,7 @@ otherwise.
                                          :line end-line
                                          :column end-col)))))
 
-(defmethod ast-source-ranges ((obj ast-tree))
+(defmethod ast-source-ranges ((obj parseable))
   "Return (AST . SOURCE-RANGE) for each AST in OBJ."
   (labels
       ((source-location (line column)
@@ -400,21 +401,21 @@ otherwise.
     (cdr (scan-ast (ast-root obj) 1 1))))
 
 (defmethod asts-containing-source-location
-    ((obj ast-tree) (loc source-location))
+    ((obj parseable) (loc source-location))
   "Return a list of ASTs in OBJ containing LOC."
   (when loc
     (mapcar #'car
             (remove-if-not [{contains _ loc} #'cdr] (ast-source-ranges obj)))))
 
 (defmethod asts-contained-in-source-range
-    ((obj ast-tree) (range source-range))
+    ((obj parseable) (range source-range))
   "Return a list of ASTs in contained in RANGE."
   (when range
     (mapcar #'car
             (remove-if-not [{contains range} #'cdr] (ast-source-ranges obj)))))
 
 (defmethod asts-intersecting-source-range
-    ((obj ast-tree) (range source-range))
+    ((obj parseable) (range source-range))
   "Return a list of ASTs in OBJ intersecting RANGE."
   (when range
     (mapcar #'car
@@ -423,7 +424,7 @@ otherwise.
 
 
 ;;; Genome manipulations
-(defmethod prepend-to-genome ((obj ast-tree) text)
+(defmethod prepend-to-genome ((obj parseable) text)
   "Prepend non-AST TEXT to OBJ genome.
 
 * OBJ object to modify with text
@@ -442,7 +443,7 @@ otherwise.
                                              (car (ast-children ast-root))))
                           (cdr (ast-children ast-root))))))))
 
-(defmethod append-to-genome ((obj ast-tree) text)
+(defmethod append-to-genome ((obj parseable) text)
   "Append non-AST TEXT to OBJ genome.  The new text will not be parsed.
 
 * OBJ object to modify with text
@@ -461,7 +462,7 @@ otherwise.
 
 
 ;; Targeting functions
-(defmethod pick-bad ((obj ast-tree))
+(defmethod pick-bad ((obj parseable))
   "Pick a 'bad' index into a software object.
 Used to target mutation."
   (if (bad-asts obj)
@@ -469,7 +470,7 @@ Used to target mutation."
       (error (make-condition 'no-mutation-targets
                :obj obj :text "No asts to pick from"))))
 
-(defmethod pick-good ((obj ast-tree))
+(defmethod pick-good ((obj parseable))
   "Pick a 'good' index into a software object.
 Used to target mutation."
   (if (good-asts obj)
@@ -477,29 +478,29 @@ Used to target mutation."
       (error (make-condition 'no-mutation-targets
                :obj obj :text "No asts to pick from"))))
 
-(defmethod bad-asts ((obj ast-tree))
+(defmethod bad-asts ((obj parseable))
   "Return a list of all bad asts in OBJ"
   (asts obj))
 
-(defmethod good-asts ((obj ast-tree))
+(defmethod good-asts ((obj parseable))
   "Return a list of all good asts in OBJ"
   (asts obj))
 
-(defmethod good-mutation-targets ((obj ast-tree) &key filter)
+(defmethod good-mutation-targets ((obj parseable) &key filter)
   "Return a list of all good mutation targets in OBJ matching FILTER.
 * OBJ software object to query for good mutation targets
 * FILTER predicate taking an AST parameter to allow for filtering
 "
   (mutation-targets obj :filter filter :stmt-pool #'good-asts))
 
-(defmethod bad-mutation-targets ((obj ast-tree) &key filter)
+(defmethod bad-mutation-targets ((obj parseable) &key filter)
   "Return a list of all bad mutation targets in OBJ matching FILTER.
 * OBJ software object to query for bad mutation targets
 * FILTER predicate taking an AST parameter to allow for filtering
 "
   (mutation-targets obj :filter filter :stmt-pool #'bad-asts))
 
-(defmethod mutation-targets ((obj ast-tree)
+(defmethod mutation-targets ((obj parseable)
                              &key (filter nil)
                                   (stmt-pool #'asts stmt-pool-supplied-p))
   "Return a list of target ASTs from STMT-POOL for mutation, throwing
@@ -544,7 +545,7 @@ pick or false (nil) otherwise."
                                  :stmt-pool second-pool)
                                (random-elt)))))))
 
-(defmethod pick-bad-good ((software ast-tree) &key filter
+(defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))
   "Pick two ASTs from SOFTWARE, first from `bad-pool' followed
 by `good-pool', excluding those ASTs removed by FILTER.
@@ -558,7 +559,7 @@ second should be included as a possible pick
                 :second-pool good-pool
                 :filter filter))
 
-(defmethod pick-bad-bad ((software ast-tree) &key filter
+(defmethod pick-bad-bad ((software parseable) &key filter
                          (bad-pool #'bad-asts))
   "Pick two ASTs from SOFTWARE, both from the `bad-asts' pool,
 excluding those ASTs removed by FILTER.
@@ -571,7 +572,7 @@ second should be included as a possible pick
                 :second-pool bad-pool
                 :filter filter))
 
-(defmethod pick-bad-only ((software ast-tree) &key filter
+(defmethod pick-bad-only ((software parseable) &key filter
                           (bad-pool #'bad-asts))
   "Pick a single AST from SOFTWARE from `bad-pool',
 excluding those ASTs removed by FILTER.
@@ -584,18 +585,18 @@ second should be included as a possible pick
 
 
 ;;; Mutations
-(defclass ast-tree-mutation (mutation)
+(defclass parseable-mutation (mutation)
   ()
-  (:documentation "Specialization of the mutation interface for ast-tree
+  (:documentation "Specialization of the mutation interface for parseable 
 software objects."))
 
-(define-mutation ast-tree-insert (ast-tree-mutation)
+(define-mutation parseable-insert (parseable-mutation)
   ((targeter :initform #'pick-bad-good))
-  (:documentation "Perform an insertion operation on an ast-tree software
+  (:documentation "Perform an insertion operation on a parseable software
 object."))
 
-(defmethod build-op ((mutation ast-tree-insert) software)
-  "Return an association list with the operations to apply a `ast-tree-insert'
+(defmethod build-op ((mutation parseable-insert) software)
+  "Return an association list with the operations to apply a `parseable-insert'
 MUTATION to SOFTWARE.
 * MUTATION defines targets of insertion operation
 * SOFTWARE object to be modified by the mutation
@@ -603,12 +604,12 @@ MUTATION to SOFTWARE.
   (declare (ignorable software))
   `((:insert . ,(targets mutation))))
 
-(define-mutation ast-tree-swap (ast-tree-mutation)
+(define-mutation parseable-swap (parseable-mutation)
   ((targeter :initform #'pick-bad-bad))
-  (:documentation "Perform a swap operation on an ast-tree software object."))
+  (:documentation "Perform a swap operation on a parseable software object."))
 
-(defmethod build-op ((mutation ast-tree-swap) software)
-  "Return an association list with the operations to apply a `ast-tree-swap'
+(defmethod build-op ((mutation parseable-swap) software)
+  "Return an association list with the operations to apply a `parseable-swap'
 MUTATION to SOFTWARE.
 * MUTATION defines targets of the swap operation
 * SOFTWARE object to be modified by the mutation
@@ -620,12 +621,12 @@ MUTATION to SOFTWARE.
           (:stmt2 . ,(aget :stmt1 (targets mutation))))))
 
 ;;; Move
-(define-mutation ast-tree-move (ast-tree-mutation)
+(define-mutation parseable-move (parseable-mutation)
   ((targeter :initform #'pick-bad-bad))
-  (:documentation "Perform a move operation on an ast-tree software object."))
+  (:documentation "Perform a move operation on a parseable software object."))
 
-(defmethod build-op ((mutation ast-tree-move) software)
-  "Return an association list with the operations to apply a `ast-tree-move'
+(defmethod build-op ((mutation parseable-move) software)
+  "Return an association list with the operations to apply a `parseable-move'
 MUTATION to SOFTWARE.
 * MUTATION defines targets of the move operation
 * SOFTWARE object to be modified by the mutation
@@ -636,26 +637,26 @@ MUTATION to SOFTWARE.
     (:cut (:stmt1 . ,(aget :stmt2 (targets mutation))))))
 
 ;;; Replace
-(define-mutation ast-tree-replace (ast-tree-mutation)
+(define-mutation parseable-replace (parseable-mutation)
   ((targeter :initform #'pick-bad-good))
-  (:documentation "Perform a replace operation on an ast-tree
+  (:documentation "Perform a replace operation on a parseable 
 software object."))
 
-(defmethod build-op ((mutation ast-tree-replace) software)
-  "Return an association list with the operations to apply an `ast-tree-replace'
-MUTATION to SOFTWARE.
+(defmethod build-op ((mutation parseable-replace) software)
+  "Return an association list with the operations to apply an
+`parseable-replace' MUTATION to SOFTWARE.
 * MUTATION defines targets of the replace operation
 * SOFTWARE object to be modified by the mutation
 "
   (declare (ignorable software))
   `((:set . ,(targets mutation))))
 
-(define-mutation ast-tree-cut (ast-tree-mutation)
+(define-mutation parseable-cut (parseable-mutation)
   ((targeter :initform #'pick-bad-only))
-  (:documentation "Perform a cut operation on an ast-tree software object."))
+  (:documentation "Perform a cut operation on a parseable software object."))
 
-(defmethod build-op ((mutation ast-tree-cut) software)
-  "Return an association list with the operations to apply a `ast-tree-cut'
+(defmethod build-op ((mutation parseable-cut) software)
+  "Return an association list with the operations to apply a `parseable-cut'
 MUTATION to SOFTWARE.
 * MUTATION defines the targets of the cut operation
 * SOFTWARE object to be modified by the mutation
@@ -664,11 +665,11 @@ MUTATION to SOFTWARE.
   `((:cut . ,(targets mutation))))
 
 ;;; Nop
-(define-mutation ast-tree-nop (ast-tree-mutation)
+(define-mutation parseable-nop (parseable-mutation)
   ()
-  (:documentation "Perform a nop on an ast-tree software object."))
+  (:documentation "Perform a nop on a parseable software object."))
 
-(defmethod build-op ((mutation ast-tree-nop) software)
+(defmethod build-op ((mutation parseable-nop) software)
   "Return an association list with the operations to apply a `nop'
 MUTATION to SOFTWARE.
 * MUATION defines teh targets of the nop operation
@@ -679,7 +680,7 @@ MUTATION to SOFTWARE.
 
 
 ;;; General mutation methods
-(defmethod apply-mutation ((software ast-tree)
+(defmethod apply-mutation ((software parseable)
                            (mutation parseable-mutation))
   "Apply MUTATION to SOFTWARE, returning the resulting SOFTWARE.
 * SOFTWARE object to be mutated
@@ -691,14 +692,14 @@ MUTATION to SOFTWARE.
                       (sort (recontextualize-mutation software mutation)
                             #'ast-later-p :key [{aget :stmt1} #'cdr])))
 
-(defmethod apply-mutation ((obj ast-tree) (op list))
+(defmethod apply-mutation ((obj parseable) (op list))
   "Apply OPS to SOFTWARE, returning the resulting SOFTWARE.
 * OBJ object to be mutated
 * OP mutation to be performed
 "
   (apply-mutation obj (make-instance (car op) :targets (cdr op))))
 
-(defmethod apply-mutation-ops ((software ast-tree) (ops list))
+(defmethod apply-mutation-ops ((software parseable) (ops list))
   "Apply a recontextualized list of OPS to SOFTWARE, returning the resulting
 SOFTWARE.
 * SOFTWARE object to be mutated
@@ -728,7 +729,7 @@ SOFTWARE.
 
 
 ;;; Generic tree interface
-(defmethod insert-ast ((obj ast-tree) (location list) (ast ast))
+(defmethod insert-ast ((obj parseable) (location list) (ast ast))
   "Return the modified OBJ with AST inserted at LOCATION.
 * OBJ object to be modified
 * LOCATION path to the AST marking location where insertion is to occur
@@ -736,17 +737,17 @@ SOFTWARE.
 "
   (insert-ast obj (get-ast obj location) ast))
 
-(defmethod insert-ast ((obj ast-tree) (location ast) (ast ast))
+(defmethod insert-ast ((obj parseable) (location ast) (ast ast))
   "Return the modified OBJ with AST inserted at LOCATION.
 * OBJ object to be modified
 * LOCATION AST marking location where insertion is to occur
 * AST AST to insert
 "
-  (apply-mutation obj (at-targets (make-instance 'ast-tree-insert)
+  (apply-mutation obj (at-targets (make-instance 'parseable-insert)
                                   (list (cons :stmt1 location)
                                         (cons :value1 ast)))))
 
-(defmethod replace-ast ((obj ast-tree) (location list) (replacement ast))
+(defmethod replace-ast ((obj parseable) (location list) (replacement ast))
   "Return the modified OBJ with the AST at LOCATION replaced with
 REPLACEMENT.
 * OBJ object to be modified
@@ -755,35 +756,35 @@ REPLACEMENT.
 "
   (replace-ast obj (get-ast obj location) replacement))
 
-(defmethod replace-ast ((obj ast-tree) (location ast) (replacement ast))
+(defmethod replace-ast ((obj parseable) (location ast) (replacement ast))
   "Return the modified OBJ with the AST at LOCATION replaced with
 REPLACEMENT.
 * OBJ object to be modified
 * LOCATION AST to be replaced in OBJ
 * REPLACEMENT Replacement AST
 "
-  (apply-mutation obj (at-targets (make-instance 'ast-tree-replace)
+  (apply-mutation obj (at-targets (make-instance 'parseable-replace)
                                   (list (cons :stmt1 location)
                                         (cons :value1 replacement)))))
 
-(defmethod remove-ast ((obj ast-tree) (location list))
+(defmethod remove-ast ((obj parseable) (location list))
   "Return the modified OBJ with the AST at LOCATION removed.
 * OBJ object to be modified
 * LOCATION path to the AST to be removed in TREE
 "
   (remove-ast obj (get-ast obj location)))
 
-(defmethod remove-ast ((obj ast-tree) (location ast))
+(defmethod remove-ast ((obj parseable) (location ast))
   "Return the modified OBJ with the AST at LOCATION removed.
 * OBJ object to be modified
 * LOCATION AST to be removed in TREE
 "
-  (apply-mutation obj (at-targets (make-instance 'ast-tree-cut)
+  (apply-mutation obj (at-targets (make-instance 'parseable-cut)
                                   (list (cons :stmt1 location)))))
 
 
 ;;; Interface for ast-diff
-(defvar ast-tree-diff-interface
+(defvar parseable-diff-interface
   (labels       ; Defined w/labels so they're defined at load time.
       ((ast-equal-p (ast-a ast-b)
          (or (eq ast-a ast-b)
@@ -811,14 +812,14 @@ REPLACEMENT.
       :text [#'peel-bananas #'source-text]))
   "AST-DIFF interface for AST-TREE objects.")
 
-(defmethod diff-software ((ast-tree-a ast-tree) (ast-tree-b ast-tree))
-  (ast-diff ast-tree-diff-interface
-            (ast-root ast-tree-a)
-            (ast-root ast-tree-b)))
+(defmethod diff-software ((parseable-a parseable) (parseable-b parseable))
+  (ast-diff parseable-diff-interface
+            (ast-root parseable-a)
+            (ast-root parseable-b)))
 
-(defmethod edit-software ((obj ast-tree) edit-script)
+(defmethod edit-software ((obj parseable) edit-script)
   (setf (ast-root obj)
-        (apply-edit-script ast-tree-diff-interface
+        (apply-edit-script parseable-diff-interface
                            (ast-root obj)
                            edit-script))
   obj)

@@ -6,7 +6,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang (ast-tree)
+(define-software clang (parseable)
   ((stmt-asts :initarg :stmt-asts :reader stmt-asts
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
@@ -811,7 +811,7 @@ only inserting full statements of the same AST class as the preceding
 statement."))
 
 ;;; Swap
-(define-mutation clang-swap (clang-mutation ast-tree-swap)
+(define-mutation clang-swap (clang-mutation parseable-swap)
   ((targeter :initform #'pick-bad-bad))
   (:documentation "Perform a swap operation on a clang software object."))
 
@@ -834,12 +834,12 @@ only full statements of the same AST class.")
   )
 
 ;;; Move
-(define-mutation clang-move (clang-mutation ast-tree-move)
+(define-mutation clang-move (clang-mutation parseable-move)
   ((targeter :initform #'pick-bad-bad))
   (:documentation "Perform a move operation on a clang software object."))
 
 ;;; Replace
-(define-mutation clang-replace (clang-mutation ast-tree-replace)
+(define-mutation clang-replace (clang-mutation parseable-replace)
   ((targeter :initform #'pick-bad-good))
   (:documentation "Perform a replace operation on a clang software object."))
 
@@ -860,7 +860,7 @@ only replacing statements of the same AST class."))
 only replacing full statements of the same AST class."))
 
 ;;; Cut
-(define-mutation clang-cut (clang-mutation ast-tree-cut)
+(define-mutation clang-cut (clang-mutation parseable-cut)
   ((targeter :initform #'pick-bad-only))
   (:documentation "Perform a cut operation on a clang software object."))
 
@@ -870,7 +870,7 @@ only replacing full statements of the same AST class."))
 only cutting full statements."))
 
 ;;; Nop
-(define-mutation clang-nop (clang-mutation ast-tree-nop)
+(define-mutation clang-nop (clang-mutation parseable-nop)
   ()
   (:documentation "Perform a nop on a clang software object."))
 
