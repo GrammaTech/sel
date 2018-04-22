@@ -51,6 +51,7 @@
    :stream-to-string
    :getenv
    :quit
+   :git
    :current-git-commit
    :current-git-branch
    :*temp-dir*

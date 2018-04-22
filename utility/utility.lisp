@@ -29,41 +29,46 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
+(define-condition git (error)
+  ((description :initarg :description :initform nil :reader description))
+  (:report (lambda (condition stream)
+             (format stream "Git failed: ~a" (description condition)))))
+
+(defmacro with-git-directory ((directory git-dir) &rest body)
+  (with-gensyms (recur dir)
+    `(labels
+         ((,recur (,dir)
+            (when (< (length ,dir) 2)
+              (error (make-condition 'git
+                       :description
+                       (format nil "~a is not in a git repository." ,dir))))
+            (handler-case
+                (let ((,git-dir (make-pathname
+                                 :directory (append ,dir (list ".git")))))
+                  (if (probe-file git-dir)
+                      ,@body
+                      (,recur (butlast ,dir))))
+              (error (e)
+                (error (make-condition 'git
+                         :description
+                         (format nil "~a finding git information." e)))))))
+       (,recur ,directory))))
+
 (defun current-git-commit (directory)
-  (labels ((recur (dir)
-             (when (< (length dir) 2)
-               (error "Pathname ~a does not appear in a git repository."
-                      directory))
-             (let ((git-dir (make-pathname
-                             :directory (append dir (list ".git")))))
-               (if (probe-file git-dir)
-                   (with-open-file (git-head-in (merge-pathnames
-                                                 "HEAD" git-dir))
-                     (let ((git-head (read-line git-head-in)))
-                       (if (scan "ref:" git-head)
-                           (with-open-file (ref-in (merge-pathnames
-                                                    (second (split-sequence
-                                                                #\Space
-                                                              git-head))
-                                                    git-dir))
-                             (subseq (read-line ref-in) 0 7)) ; attached head
-                           (subseq git-head 0 7)))) ; detached head
-                   (recur (butlast dir))))))
-    (recur directory)))
+  (with-git-directory (directory git-dir)
+    (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
+      (let ((git-head (read-line git-head-in)))
+        (if (scan "ref:" git-head)
+            (with-open-file (ref-in (merge-pathnames
+                                     (second (split-sequence #\Space git-head))
+                                     git-dir))
+              (subseq (read-line ref-in) 0 7)) ; attached head
+            (subseq git-head 0 7))))))         ; detached head
 
 (defun current-git-branch (directory)
-  (labels ((recur (dir)
-             (when (< (length dir) 2)
-               (error "Pathname ~a does not appear in a git repository."
-                      directory))
-             (let ((git-dir (make-pathname
-                             :directory (append dir (list ".git")))))
-               (if (probe-file git-dir)
-                   (with-open-file
-                       (git-head-in (merge-pathnames "HEAD" git-dir))
-                     (lastcar (split-sequence #\/ (read-line git-head-in))))
-                   (recur (butlast dir))))))
-    (recur directory)))
+  (with-git-directory (directory git-dir)
+    (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
+      (lastcar (split-sequence #\/ (read-line git-head-in))))))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
