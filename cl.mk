@@ -108,7 +108,11 @@ $(MANIFEST): qlfile
 		--eval '(qlot:with-local-quicklisp ("$(USER_QUICK_LISP)") (ql:register-local-projects))' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
 else
-$(MANIFEST):
+$(MANIFEST): qlfile
+	for dependency in $$(awk '{print $$3}' qlfile);do \
+	base=$(USER_QUICK_LISP)/local-projects/$$(basename $$dependency .git); \
+	[ -d $$base ] || git clone $$dependency $$base; \
+	done
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
 		--eval '(ql:register-local-projects)' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
