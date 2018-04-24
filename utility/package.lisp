@@ -209,6 +209,9 @@
    :task-object
    :task-save-result
    :run-task
+   :some-task
+   :pred
+   :some-test-task
    ))
 #+allegro
 (set-dispatch-macro-character #\# #\_

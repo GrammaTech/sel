@@ -1380,7 +1380,25 @@ suite should be run and nil otherwise."
            20))
     (is (= (count "test2" (task-runner-results (second *soft*))
 		  :test 'equal :key (lambda (s) (subseq s 0 5)))
-	   20))))
+           20))))
+
+(deftest some-task-similar-to-some ()
+  (let ((runner1 (run-task (make-instance 'some-task
+                                          :object (iota 10)
+                                          :pred {= 5})
+                           2))
+        (runner2 (run-task (make-instance 'some-task
+                                          :object (iota 10)
+                                          :pred {= 15})
+                           2)))
+    (mapcar #'bt:join-thread (task-runner-workers runner1))
+    (mapcar #'bt:join-thread (task-runner-workers runner2))
+    (is (equal '(T) (task-runner-results runner1)))
+    (is (eql (first (task-runner-results runner1))
+             (some {= 5} (iota 10))))
+    (is (null (task-runner-results runner2)))
+    (is (eql (first (task-runner-results runner2))
+             (some {= 15} (iota 10))))))
 
 
 ;;; ELF representation.
