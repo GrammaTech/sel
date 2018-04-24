@@ -207,7 +207,7 @@ Returns modified text, and names of bound variables.
                    (mapcar #'list
                            vars
                            (mapcar {var-type in-scope} vars))
-                   (aget :includes snippet)
+                   :includes (aget :includes snippet)
                    :macros (->> (mapcar {find-macro database}
                                         (aget :macros snippet))
                                 (remove-if #'null)))))
@@ -303,8 +303,8 @@ AST of the same class."))
   (:documentation "Replace an AST in a clang software object with a full
 statement fodder AST."))
 
-(defun parse-source-snippet (snippet unbound-vals includes &key
-                             macros top-level)
+(defun parse-source-snippet (snippet unbound-vals &key
+                             includes macros top-level)
   "Build ASTs for SNIPPET, returning a list of root asts.
 
 * SNIPPET may include one or more full statements. It should compile in

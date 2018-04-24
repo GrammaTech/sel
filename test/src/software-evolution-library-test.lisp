@@ -2518,35 +2518,40 @@ int x = CHARSIZE;")))
 
 (deftest parse-source-snippet-body-statement ()
   (with-fixture gcd-clang
-    (let ((asts (parse-source-snippet "x + y"
-                                      `(("x" ,(type-from-trace-string "int"))
-                                        ("y" ,(type-from-trace-string "char")))
-                                      nil)))
+    (let ((asts (parse-source-snippet
+                  "x + y"
+                  `(("x" ,(type-from-trace-string "int"))
+                    ("y" ,(type-from-trace-string "char"))))))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
       (is (equalp '(((:name . "y")) ((:name . "x")))
                   (get-unbound-vals *gcd* (car asts)))))))
 
 (deftest parse-source-snippet-handles-includes ()
-  (let ((asts (parse-source-snippet "printf(\"hello\")"
-                                    nil '("<stdio.h>"))))
+  (let ((asts (parse-source-snippet
+                "printf(\"hello\")"
+                nil
+                :includes '("<stdio.h>"))))
     (is (eq 1 (length asts)))
     (is (eq :CallExpr (ast-class (car asts))))
     (is (equalp '("<stdio.h>")
                 (ast-includes (car asts))))))
 
 (deftest parse-source-snippet-multiple-statements ()
-  (let ((asts (parse-source-snippet "x = 1; y = 1"
-                                    `(("x" ,(type-from-trace-string "int"))
-                                      ("y" ,(type-from-trace-string "char")))
-                                    nil)))
+  (let ((asts (parse-source-snippet
+                "x = 1; y = 1"
+                `(("x" ,(type-from-trace-string "int"))
+                  ("y" ,(type-from-trace-string "char")))
+                :includes nil)))
     (is (eq 2 (length asts)))
     (is (eq :BinaryOperator (ast-class (first asts))))
     (is (eq :BinaryOperator (ast-class (second asts))))))
 
 (deftest parse-source-snippet-top-level ()
-  (let ((asts (parse-source-snippet "int foo() { return 1; }" nil nil
-                                    :top-level t)))
+  (let ((asts (parse-source-snippet
+                "int foo() { return 1; }"
+                nil
+                :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
     (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
