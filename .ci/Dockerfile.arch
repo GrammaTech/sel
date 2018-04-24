@@ -2,9 +2,9 @@ FROM base/archlinux as coq-serapi
 RUN pacman -Syu --noconfirm gcc gcc-libs make opam m4 patch
 # Install ocaml 4.06.0 via opam (for SerAPI)
 RUN opam init -j 4 --compiler="4.06.0" -y
-# Configure ocaml, install packages
+# Configure ocaml, install coq-serapi at fixed version
 RUN eval `opam config env` && \
-    opam install coq-serapi
+    opam install coq-serapi=8.7.2+0.4.13
 
 
 FROM docker.grammatech.com:14850/synthesis/cl:arch
