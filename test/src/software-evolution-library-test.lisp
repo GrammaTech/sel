@@ -2557,6 +2557,13 @@ int x = CHARSIZE;")))
     (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
                                                     (car asts)))))))
 
+(deftest parse-source-snippet-preamble ()
+  (let ((asts (parse-source-snippet
+                "int *p = A + 10;"
+                nil
+                :preamble "static int A[10];")))
+    (is (eq :DeclStmt (ast-class (first asts))))))
+
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
