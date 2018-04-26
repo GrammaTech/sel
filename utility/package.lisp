@@ -210,7 +210,7 @@
    :task-save-result
    :run-task
    :some-task
-   :pred
+   :some-task-pred
    :some-test-task
    ))
 #+allegro
