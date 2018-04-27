@@ -122,7 +122,11 @@ to `*sertop-args*'."
     (setf *sertop-path* "sertop.native"))
   (when (getenv "COQLIB")
     (setf *sertop-args*
-          (list (format nil "--coqlib=~a" (getenv "COQLIB"))))))
+          (list (format nil "--coqlib=~a" (getenv "COQLIB")))))
+  (when (getenv "SERTOP_ARGS")
+    (setf *sertop-args*
+          (append *sertop-args*
+                  (split "\\s+" (getenv "SERTOP_ARGS"))))))
 
 ;;;; For timeout, we have a longer *serapi-timeout* - the max time (in seconds)
 ;;;; to wait before determining that a read can't happen - and
@@ -253,6 +257,7 @@ format."
       (finish-output (process-input-stream serapi)))))
 
 (defun sanitize-process-string (string &aux (last nil) (penult nil))
+  "Ensure that special characters are properly escaped in STRING."
   (with-output-to-string (s)
     (iter (for char in (coerce string 'list))
           (cond
