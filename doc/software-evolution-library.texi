@@ -920,7 +920,7 @@ library but are not (yet) installable through Quicklisp.  These should
 be downloaded into your Quicklisp @code{local-projects/} folder.
 
 @itemize
-@item cl-arrows (available from @url{https://github.com/eschulte/cl-arrows})
+@item cl-arrowz (available from @url{https://github.com/eschulte/cl-arrowz})
 @item elf (available from @url{https://github.com/GrammaTech/elf})
 @item trace-db (available from @url{https://github.com/GrammaTech/trace-db})
 @item asdf-encodings (available from @url{https://github.com/GrammaTech/asdf-encodings})
