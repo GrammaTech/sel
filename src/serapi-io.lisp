@@ -56,7 +56,6 @@
            :kill-serapi
            :write-to-serapi
            :read-serapi-response
-           :enable-preserving-case-syntax
            :*sertop-path*
            :*sertop-args*
            :*serapi-timeout*
@@ -85,7 +84,8 @@
            :serapi-timeout-error
            :use-empty-response
            :retry-read
-           :serapi-timeout))
+           :serapi-timeout
+           :serapi-readtable))
 (in-package :software-evolution-library/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defreadtable :serapi-readtable
@@ -252,15 +252,24 @@ format."
       (format (process-input-stream serapi) full-string)
       (finish-output (process-input-stream serapi)))))
 
-(defun sanitize-process-string (string &aux (last nil))
+(defun sanitize-process-string (string &aux (last nil) (penult nil))
   (with-output-to-string (s)
     (iter (for char in (coerce string 'list))
-          (if (eql last #\\)        ; If last char was an escape then,
-              ;; skip inhibited escaped whitespace chars.
-              (unless (member char '(#\n #\t #\r #\b))
-                ;; Double escape non-inhibited escaped chars.
-                (mapc {write-char _ s} (list #\\ #\\ char)))
-              (unless (eql char #\\) (write-char char s))) ; Write non-escaped.
+          (cond
+            ((and (eql penult #\\) (eql last #\\))
+             ;; If two previous chars were escapes then keep them and char
+             ;; (prevent suppressing \\n and similar)
+             (mapc {write-char _ s} (list #\\ #\\ char)))
+            ((and (eql last #\\) (eql char #\"))
+             ;; If we found a \", make sure it's triple escaped
+             (mapc {write-char _ s} (list #\\ #\\ #\\ char)))
+            ((and (eql last #\\) (not (eql char #\\)))
+             ;; If last char is an escape and neither penult nor current is,
+             ;; Skip inhibited escaped whitespace chars, double escape others.
+             (unless (member char '(#\n #\t #\r #\b))
+               (mapc {write-char _ s} (list #\\ #\\ char))))
+            (t (unless (eql char #\\) (write-char char s))))
+          (setf penult last)
           (setf last char))))
 
 (defmethod read-process-string ((process process)
@@ -344,25 +353,12 @@ format."
       ;; in a nice, ready state even if some of the strings are bad.
       (iter (for str in (mapcar #'pre-process strings))
             (with-input-from-string (in str)
-              (restart-case
-                  (let ((value (read in)))
-                    (if (and (listp value)
-                             (equal '|error| (car value)))
-                        (error (make-condition 'serapi-error
-                                               :text (second value)
-                                               :serapi serapi))
-                        (collect value into values)))
-                (return-response-strings (e)
-                  (declare (ignorable e))
-                  :report "Return raw response strings."
-                  (leave strings))
-                (ignore-serapi-error (e)
-                  (declare (ignorable e))
-                  :report "Ignore SerAPI error."
-                  (leave nil))
-                (return-serapi-error (e)
-                  :report "Return SerAPI error."
-                  (leave (append values (list (text e)))))))
+              (let ((value (read in)))
+                (when (and (listp value) (is-error value))
+                  ;; TODO: maybe throw an error here, but in all cases so far
+                  ;; we just want to ignore these unless we're debugging.
+                  (note 3 "WARNING: SerAPI response included error ~a" value))
+                (collect value into values)))
             (finally (return values))))))
 
 ;; We use `insert-reset-point' and `reset-serapi-process' to maintain a sentinel

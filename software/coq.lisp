@@ -224,7 +224,7 @@ Return NIL if source strings cannot be looked up."
   "Look up source strings for Coq OBJ ASTs and write to PATH."
   (with-open-file (out path :direction :output :if-exists :supersede)
     (format out "~{~a~%~^~}"
-            (mapcar #'unescape-string
+            (mapcar #'sel/serapi-io::unescape-string
                     (lookup-source-strings obj :include-imports t)))))
 
 
