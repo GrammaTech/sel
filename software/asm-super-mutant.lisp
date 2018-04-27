@@ -289,13 +289,13 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	(bytes (memory-spec-bytes spec)))
     (if (equal mask #*11111111)  ;; we can ignore the mask
       (list
-        (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+        (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
         (format nil "mov qword rcx, 0x~X" addr)
         "mov qword [rcx], rax")	
       (list
-        (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+        (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
         (format nil "mov qword rbx, 0x~X"
-		(bytes-to-qword (create-byte-mask mask)))
+		(be-bytes-to-qword (create-byte-mask mask)))
         (format nil "mov qword rcx, 0x~X" addr)
         "and rax, rbx"   ; mask off unwanted bytes of src
         "not rbx"        ; invert mask
@@ -313,16 +313,16 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	(label (gensym "$mem_cmp_")))
     (if (equal mask #*11111111)  ;; we can ignore the mask
 	(list
-	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
 	 (format nil "mov qword rcx, 0x~X" addr)
 	 "cmp qword [rcx], rax"
 	 (format nil "je ~A" label)
          (format nil "jmp $output_comparison_failure")
          (format nil "~A:" label))
 	(list
-	 (format nil "mov qword rax, 0x~X" (bytes-to-qword bytes))
+	 (format nil "mov qword rax, 0x~X" (be-bytes-to-qword bytes))
 	 (format nil "mov qword rbx, 0x~X"
-		 (bytes-to-qword (create-byte-mask mask)))
+		 (be-bytes-to-qword (create-byte-mask mask)))
 	 (format nil "mov qword rcx, 0x~X" addr)
 	 "mov qword rdx, [rcx]"
 	 "and rax, rbx"   ; mask off unwanted bytes of src
@@ -349,7 +349,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	           (for x in-vector (input-specification-mem input-spec))
 		   (collect (init-mem x)))))
 	 (asm (make-instance 'asm-heap)))
-    (setf (lines asm) (append mem-lines reg-lines))
+    (setf (lines asm) (append #|mem-lines|# reg-lines))
     asm))
 
 ;;;
