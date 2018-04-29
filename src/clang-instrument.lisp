@@ -109,7 +109,7 @@ static void write_trace_variables(FILE *out, uint32_t n_vars, ...)
               }
           case 8:
               {
-                  int64_t val = va_arg(ap, int);
+                  int64_t val = va_arg(ap, int64_t);
                   fwrite(&val, sizeof(val), 1, out);
                   break;
               }
