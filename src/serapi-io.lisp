@@ -264,7 +264,7 @@ format."
             ((and (eql penult #\\) (eql last #\\))
              ;; If two previous chars were escapes then keep them and char
              ;; (prevent suppressing \\n and similar)
-             (mapc {write-char _ s} (list #\\ #\\ char)))
+             (mapc {write-char _ s} (list #\\ #\\ #\\ #\\ char)))
             ((and (eql last #\\) (eql char #\"))
              ;; If we found a \", make sure it's triple escaped
              (mapc {write-char _ s} (list #\\ #\\ #\\ char)))
@@ -333,7 +333,15 @@ for failed responses it will be an error string."
 
 (defmethod pre-process ((str string))
   "Pre-process STR read in from SerAPI to ensure it's a valid LISP object."
-  (replace-all str "." "\\."))
+  (-<>> (replace-all str "." "\\.")
+        ;; ensure Pp_string items are always wrapped in ""
+        (regex-replace-all "\\(Pp_string\\s+([^\\\"].*?)\\)"
+                          <>
+                          "(Pp_string \"\\1\")")
+        ;; ensure CoqString items are always wrapped in ""
+        (regex-replace-all "\\(CoqString\\s+([^\\\"].*?)\\)"
+                          <>
+                          "(CoqString \"\\1\")")))
 
 (defmethod read-serapi-response ((serapi process))
   "Read FORMS from the SERAPI process over its output stream.
