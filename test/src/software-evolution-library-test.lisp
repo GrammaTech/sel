@@ -2568,6 +2568,22 @@ int x = CHARSIZE;")))
                 :preamble "static int A[10];")))
     (is (eq :DeclStmt (ast-class (first asts))))))
 
+(deftest parse-source-snippet-keep-comments ()
+  (let ((asts1 (parse-source-snippet
+                 "/*POTENTIAL FLAW */ strlen(0);"
+                 nil
+                 :includes '("<string.h>")
+                 :keep-comments t))
+        (asts2 (parse-source-snippet
+                 (format nil "// POTENTIAL FLAW~% strlen(0);")
+                 nil
+                 :includes '("<string.h>")
+                 :keep-comments t)))
+    (is (not (null (search "/*POTENTIAL FLAW */"
+                           (source-text (first asts1))))))
+    (is (not (null (search "// POTENTIAL FLAW"
+                           (source-text (first asts2))))))))
+
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
