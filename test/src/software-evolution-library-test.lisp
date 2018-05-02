@@ -8669,6 +8669,14 @@ int main() { puts(\"~d\"); return 0; }
     ;; *serapi-process isn't killed after with-serapi ends
     (is (eql :RUNNING (process-status *serapi-process*)))))
 
+(deftest serapi-special-character-handling ()
+  (let* ((src "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
+         (sanitized (sel/serapi-io::sanitize-process-string src)))
+    (is (equal sanitized
+               "[[\\\\\\\"expr\\\\\\\" ::== \\\\\\\"coords\\\\\\\" \\\\\\\\n || \\\\\\\"coords\\\\\\\" \\\\\\\\n \\\\\\\"expr\\\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
+    (is (equal (sel/serapi-io::unescape-string sanitized)
+               "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\\\n || \\\\\"coords\\\\\" \\\\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))))
+
 (deftest can-read-write-serapi ()
   (with-fixture serapi
     ;; write basic "Print nat." query and read response
