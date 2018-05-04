@@ -101,6 +101,8 @@
    :show-it
    :equal-it
    :count-cons
+   :tree-right-length
+   :tree-right-walk
    ;; simple utility
    :repeatedly
    :indexed

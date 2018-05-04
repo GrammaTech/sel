@@ -8494,8 +8494,8 @@ int main() { puts(\"~d\"); return 0; }
 
 (defparameter *sexp-diff-interface*
   (labels ((ast-cost (ast)
-             (if (listp ast)
-                 (apply #'+ (mapcar #'ast-cost (cdr ast)))
+             (if (consp ast)
+                 (+ (ast-cost (car ast)) (ast-cost (cdr ast)))
                  1)))
     (make-instance 'ast-interface
       :equal-p #'equalp
@@ -8524,20 +8524,18 @@ TODO: Currently it seems to ignore the first car."))
       (is (= (length script) (length script-sublist))
           "Sublists have no effect on cost when same."))))
 
-(deftest sexp-diff-on-unit-tests-file ()
-  (let ((forms (read-file-forms *this-file*)))
-    (is (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
-                                      '(1 2 3 4) '(1 2 3 4))))
-        "Handles forms from a lisp source file.
-TODO: Currently it seems to error on a non list cons.")
-    ;; TODO: Once the above is passing, add something which makes a
-    ;;       copy of forms with some deep changes and ensures they
-    ;;       have the anticipated weights.
-    ;;
-    ;;       If this is too slow maybe we comment out this test for
-    ;;       now.
-    ))
+(defvar *forms* nil "Forms used in tests.")
+(defixture test-file-forms
+  (:setup (setf *forms* (read-file-forms *this-file*)))
+  (:teardown (setf *forms* nil)))
 
+;; (deftest sexp-diff-on-unit-tests-file ()
+;;   (with-fixture test-file-forms
+;;     (is (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
+;;                                       *forms* *forms*)))
+;;         "Handles forms from a lisp source file.")))
+
+
 (sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects.")
 
 (deftest diff-insert ()

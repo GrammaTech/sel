@@ -25,6 +25,8 @@
          :documentation "Function to calculate cost of an AST subtree.")
    (can-recurse :initarg :can-recurse
                 :documentation "Function to check if a subtree is atomic.")
+   (on-recurse :initarg :on-recurse :initform #'identity
+               :documentation "Function to apply on recursion.")
    (text :initarg :text
          :documentation "Function to return the text of a subtree."))
   (:documentation "Collection of functions for interfacing with ast-diff."))
@@ -38,26 +40,30 @@
 (defmethod ast-can-recurse ((interface ast-interface) ast-a ast-b)
   (funcall (slot-value interface 'can-recurse) ast-a ast-b))
 
+(defmethod ast-on-recurse ((interface ast-interface) ast)
+  (funcall (slot-value interface 'on-recurse) ast))
+
 (defmethod ast-text ((interface ast-interface) ast)
   (funcall (slot-value interface 'text) ast))
 
 (defun ast-diff (interface ast-a ast-b)
   "Return a least-cost edit script which transforms AST-A into AST-B.
+Also return a second value indicating the cost of the edit.
 
 See APPLY-EDIT-SCRIPT for more details on edit scripts.
 
 INTERFACE is an AST-INTERFACE object containing the functions need to
 determine equality, cost, etc for ASTs.
 
-ASTs should be lists where the CAR stores the node data (not used
+ASTs should be cons cells where the CAR stores the node data (not used
 directly by the diff algorithm but may be examined by the interface
 functions), and the CDR is the children.
 "
-  ;; Edit scripts are represented by a (length a) x (length b).  Each
-  ;; position A,B on the grid stores the diff between (subseq ast-a A)
-  ;; and (subseq ast-b B), along with its cost. The problem then
-  ;; reduces to finding the least-cost path from the upper-left to
-  ;; lower-right corners of the grid.
+  ;; Edit scripts are represented by a (length a) x (length b) grid.
+  ;; Each position A,B on the grid stores the diff between (subseq
+  ;; ast-a A) and (subseq ast-b B), along with its cost. The problem
+  ;; then reduces to finding the least-cost path from the upper-left
+  ;; to lower-right corners of the grid.
 
   ;; Along the way we can make the following moves:
   ;; Delete the head of AST-A (move right in the grid)
@@ -69,11 +75,16 @@ functions), and the CDR is the children.
   ;; Intermediate results are cached a in two-dimensional array to
   ;; avoid redundant computation. Each dimension is padded by 1 to
   ;; simplify boundary conditions.
-  (let ((costs (make-array (mapcar #'length (list ast-a ast-b))
-                           :initial-element nil))
-        (vec-a (coerce (append (cdr ast-a) '(nil)) 'vector))
-        (vec-b (coerce (append (cdr ast-b) '(nil)) 'vector)))
+  (let* ((vec-a (coerce (append (tree-right-walk
+                                 (ast-on-recurse interface ast-a)) '(nil))
+                        'vector))
+         (vec-b (coerce (append (tree-right-walk
+                                 (ast-on-recurse interface ast-b)) '(nil))
+                        'vector))
+         (costs (make-array (list (length vec-a) (length vec-b))
+                            :initial-element nil)))
     (labels
+        ;; Result is a list of (script cost)
         ((cost (result)
            (if result (second result) infinity))
          (script (result)
@@ -86,7 +97,7 @@ functions), and the CDR is the children.
            (when (some #'>= (list index-a index-b) (array-dimensions costs))
              (return-from compute-diff (list nil infinity)))
 
-           ;; Use memoized value if available
+           ;; Use memoized value if available.
            (&>> (aref costs index-a index-b)
                 (return-from compute-diff))
 
@@ -94,17 +105,16 @@ functions), and the CDR is the children.
                   (head-b (aref vec-b index-b))
                   (heads-equal (ast-equal-p interface head-a head-b))
                   (can-recurse (ast-can-recurse interface head-a head-b))
-                  ;; Compute neighbors
+                  ;; Compute neighbors.
                   (down (compute-diff index-a (1+ index-b)))
                   (across (compute-diff (1+ index-a) index-b))
-                  ;; Only compute diagonal and recursive costs if
-                  ;; needed.
+                  ;; Only compute diagonal and recursive costs if needed.
                   (diagonal (when (or heads-equal can-recurse)
                               (compute-diff (1+ index-a) (1+ index-b))))
                   (subtree (when (and can-recurse (not heads-equal))
                              (multiple-value-list
                               (ast-diff interface head-a head-b))))
-                  ;; Actions
+                  ;; Actions.
                   (same (when heads-equal
                           (extend diagonal
                                   (list :same head-a head-b)
@@ -119,8 +129,8 @@ functions), and the CDR is the children.
                                   (cons :delete head-a)
                                   (ast-cost interface (aref vec-a index-a)))))
              ;; Pick the best action.
-             ;; Note: illegal actions will have infinite cost so we
-             ;; don't have to consider them specially here.
+             ;; Note: Illegal actions will have infinite cost so we
+             ;;       don't have to consider them specially here.
              (setf (aref costs index-a index-b)
                    (cond
                      ((and (<= (cost same) (cost insert))
@@ -133,8 +143,8 @@ functions), and the CDR is the children.
                       insert)
                      (t delete))))))
       ;; Pre-fill the grid for the target state.
-      (setf (aref costs (1- (length vec-a)) (1- (length vec-b)))
-            '(nil 0))
+      (setf (aref costs (1- (length vec-a)) (1- (length vec-b))) '(nil 0))
+      ;; Compute diff from the start (top,left) to the target (bottom,right).
       (values-list (compute-diff 0 0)))))
 
 (defun apply-edit-script (interface original script)

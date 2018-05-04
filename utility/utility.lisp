@@ -754,6 +754,23 @@ Optional argument OUT specifies an output stream."
          (count-cons (cdr cons-cell)))
       1))
 
+(defun tree-right-length (tree &aux (size 1))
+  "Return the length of the right spine of TREE."
+  (declare (optimize speed))
+  (iter (while (consp tree))
+        (setf tree (cdr tree))
+        (incf (the fixnum size)))
+  (the fixnum size))
+
+(defun tree-right-walk (tree)
+  "Return the right spine of TREE as a list."
+  (declare (optimize speed))
+  (if tree
+      (if (consp tree)
+          (cons (car tree) (tree-right-walk (cdr tree)))
+          (list tree))
+      nil))
+
 
 ;;;; Generic utility functions
 (defun plist-get (item list &key (test #'eql) &aux last)

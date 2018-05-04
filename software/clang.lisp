@@ -4458,6 +4458,7 @@ http://astyle.sourceforge.net/astyle.html#_Usage"))
       :equal-p #'ast-equal-p
       :cost #'ast-cost
       :can-recurse #'can-recurse
+      :on-recurse #'cdr
       :text [#'peel-bananas #'source-text]))
   "AST-DIFF interface for CLANG objects.")
 
