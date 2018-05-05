@@ -8657,6 +8657,12 @@ TODO: Currently it seems to ignore the first car."))
       (is (equalp (mapcar #'car diff-c)
                   '(:same :same :same :same :same :same :delete :insert))))))
 
+(deftest diff-real-text ()
+  (with-fixture binary-search-clang
+    (let ((var (copy *binary-search*)))
+      (mutate var)
+      (diff-software *binary-search* var))))
+
 
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
