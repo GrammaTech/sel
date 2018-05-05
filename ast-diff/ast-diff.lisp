@@ -46,7 +46,10 @@
 (defmethod ast-text ((interface ast-interface) ast)
   (funcall (slot-value interface 'text) ast))
 
-(defun ast-diff (interface ast-a ast-b &optional (depth 0))
+(defun ast-diff (interface ast-a ast-b
+                 &optional (depth 0)
+                   (max (* (1+ (the fixnum (count-cons ast-a)))
+                           (1+ (the fixnum (count-cons ast-b))))))
   "Return a least-cost edit script which transforms AST-A into AST-B.
 Also return a second value indicating the cost of the edit.
 
@@ -75,6 +78,9 @@ functions), and the CDR is the children.
   ;; Intermediate results are cached a in two-dimensional array to
   ;; avoid redundant computation. Each dimension is padded by 1 to
   ;; simplify boundary conditions.
+  (declare (optimize speed))
+  (declare (type fixnum max))
+  (declare (type fixnum depth))
   (let* ((vec-a (coerce (append (tree-right-walk
                                  (ast-on-recurse interface ast-a)) '(nil))
                         'vector))
@@ -86,16 +92,19 @@ functions), and the CDR is the children.
     (labels
         ;; Result is a list of (script cost)
         ((cost (result)
-           (if result (second result) infinity))
+           (the fixnum (if result (second result) max)))
          (script (result)
            (when result (first result)))
          (extend (result script cost)
+           (declare (type fixnum cost))
            (list (cons script (script result))
                  (+ cost (cost result))))
          (compute-diff (index-a index-b)
+           (declare (type fixnum index-a))
+           (declare (type fixnum index-b))
            ;; Moving off the grid is illegal/infinite cost.
            (when (some #'>= (list index-a index-b) (array-dimensions costs))
-             (return-from compute-diff (list nil infinity)))
+             (return-from compute-diff (list nil max)))
 
            ;; Use memoized value if available.
            (&>> (aref costs index-a index-b)
@@ -113,7 +122,7 @@ functions), and the CDR is the children.
                               (compute-diff (1+ index-a) (1+ index-b))))
                   (subtree (when (and can-recurse (not heads-equal))
                              (multiple-value-list
-                              (ast-diff interface head-a head-b (1+ depth)))))
+                              (ast-diff interface head-a head-b (1+ depth) max))))
                   ;; Actions.
                   (same (when heads-equal
                           (extend diagonal

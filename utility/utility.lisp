@@ -749,10 +749,10 @@ Optional argument OUT specifies an output stream."
 (defun count-cons (cons-cell)
   "Count and return the number of cons cells used in CONS-CELL."
   ;; TODO: extend to map over the fields in an object.
-  (if (consp cons-cell)
-      (+ (count-cons (car cons-cell))
-         (count-cons (cdr cons-cell)))
-      1))
+  (the fixnum (if (consp cons-cell)
+                  (+ (count-cons (car cons-cell))
+                     (count-cons (cdr cons-cell)))
+                  1)))
 
 (defun tree-right-length (tree &aux (size 1))
   "Return the length of the right spine of TREE."
