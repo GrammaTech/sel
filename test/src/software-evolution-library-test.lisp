@@ -6206,7 +6206,7 @@ prints unique counters in the trace"
 
 (deftest which-test ()
   (is (null (which "dsjafpoarue")))
-  (is (not (null (which "clang")))))
+  (is (not (null (which "ls")))))
 
 
 ;;;; Project tests.
@@ -8536,7 +8536,8 @@ TODO: Currently it seems to ignore the first car."))
 ;;         "Handles forms from a lisp source file.")))
 
 
-(sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects.")
+(sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects."
+            (clang-mutate-available-p))
 
 (deftest diff-insert ()
   (let ((orig (from-string (make-instance 'clang)
