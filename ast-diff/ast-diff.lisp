@@ -46,7 +46,7 @@
 (defmethod ast-text ((interface ast-interface) ast)
   (funcall (slot-value interface 'text) ast))
 
-(defun ast-diff (interface ast-a ast-b)
+(defun ast-diff (interface ast-a ast-b &optional (depth 0))
   "Return a least-cost edit script which transforms AST-A into AST-B.
 Also return a second value indicating the cost of the edit.
 
@@ -113,7 +113,7 @@ functions), and the CDR is the children.
                               (compute-diff (1+ index-a) (1+ index-b))))
                   (subtree (when (and can-recurse (not heads-equal))
                              (multiple-value-list
-                              (ast-diff interface head-a head-b))))
+                              (ast-diff interface head-a head-b (1+ depth)))))
                   ;; Actions.
                   (same (when heads-equal
                           (extend diagonal
@@ -132,16 +132,18 @@ functions), and the CDR is the children.
              ;; Note: Illegal actions will have infinite cost so we
              ;;       don't have to consider them specially here.
              (setf (aref costs index-a index-b)
-                   (cond
-                     ((and (<= (cost same) (cost insert))
-                           (<= (cost same) (cost delete)))
-                      same)
-                     ((and (<= (cost recurse) (cost insert))
-                           (<= (cost recurse) (cost delete)))
-                      recurse)
-                     ((< (cost insert) (cost delete))
-                      insert)
-                     (t delete))))))
+                   (let ((it (cond
+                               ((and (<= (cost same) (cost insert))
+                                     (<= (cost same) (cost delete)))
+                                same)
+                               ((and (<= (cost recurse) (cost insert))
+                                     (<= (cost recurse) (cost delete)))
+                                recurse)
+                               ((< (cost insert) (cost delete))
+                                insert)
+                               (t delete))))
+                     ;; (format t "~a ~a ~a ~a~%" depth index-a index-b (cost it))
+                     it)))))
       ;; Pre-fill the grid for the target state.
       (setf (aref costs (1- (length vec-a)) (1- (length vec-b))) '(nil 0))
       ;; Compute diff from the start (top,left) to the target (bottom,right).
