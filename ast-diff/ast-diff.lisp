@@ -13,6 +13,7 @@
   (:export
    :ast-diff
    :apply-edit-script
+   :diff-elide-same
    :diff-to-html
    :ast-interface))
 (in-package :software-evolution-library/ast-diff)
@@ -157,6 +158,21 @@ functions), and the CDR is the children.
       (setf (aref costs (1- (length vec-a)) (1- (length vec-b))) '(nil 0))
       ;; Compute diff from the start (top,left) to the target (bottom,right).
       (values-list (compute-diff 0 0)))))
+
+(defun diff-elide-same (edit-script)
+  "Return the non-same subset of EDIT-SCRIPT with path information.
+Path's are represented as a sequence of car (:A) and cdr (:D) from the
+root of the edit script (and implicitly also the program AST)."
+  (labels
+      ((follow (edit-script path)
+         (when edit-script
+           (append
+            (case (caar edit-script)
+              (:same nil)
+              (:recurse (follow (cdar edit-script) (cons :a path)))
+              (t (list (cons (reverse path) (car edit-script)))))
+            (follow (cdr edit-script) (cons :d path))))))
+    (follow edit-script nil)))
 
 (defun apply-edit-script (interface original script)
   "Create an edited AST by applying SCRIPT to ORIGINAL.

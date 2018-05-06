@@ -8663,6 +8663,13 @@ TODO: Currently it seems to ignore the first car."))
       (mutate var)
       (diff-software *binary-search* var))))
 
+(deftest diff-elide-same-test ()
+  (with-fixture binary-search-clang
+    (let ((var (copy *binary-search*)))
+      (setf var (mutate var))
+      (is (every [{member _ '(:delete :insert)} #'second]
+                 (diff-elide-same (diff-software *binary-search* var)))))))
+
 
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
