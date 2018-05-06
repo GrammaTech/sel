@@ -16,7 +16,7 @@
 (defun pick-target-condition (software)
   "Return the AST counter of a randomly selected guard statement in SOFTWARE.
 * SOFTWARE software object with conditional AST(s)"
-  (ast-counter (random-elt (guard-statements software))))
+  (1+ (index-of-ast software (random-elt (guard-statements software)))))
 
 (defun pick-if-stmt (software)
   "Return the AST for a randomly selected `if' statement in SOFTWARE.
@@ -111,12 +111,13 @@ a refine-condition MUTATION to SOFTWARE."
   ((targeter
     :initform
     (lambda (software)
-      (ast-counter
-            (random-elt
-             (->> (asts software)
-                  (remove-if-not #'ast-full-stmt)
-                  (remove-if [{eq :Function} #'ast-class])
-                  (remove-if [{eq :DeclStmt} #'ast-class]))))))
+      (->> (asts software)
+           (remove-if-not #'ast-full-stmt)
+           (remove-if [{eq :Function} #'ast-class])
+           (remove-if [{eq :DeclStmt} #'ast-class])
+           (random-elt)
+           (index-of-ast software)
+           (1+))))
    (abst-cond :accessor abst-cond :initform nil))
   (:documentation "Guard a statement with an abstract condition.
 E.g., foo\; becomes if(abst_cond()) foo\;."))

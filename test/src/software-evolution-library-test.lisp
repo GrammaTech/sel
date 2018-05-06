@@ -5321,7 +5321,7 @@ Useful for printing or returning differences in the REPL."
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
                                     :filter {remove-if-not
-                                             [{eq 93} #'ast-counter]}
+                                             [{eq 92} {index-of-ast *gcd*}]}
                                     :trace-file :stderr)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)

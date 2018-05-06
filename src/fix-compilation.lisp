@@ -180,9 +180,10 @@ associated element of `*compilation-fixers*'.
                                       {ast-later-p _ decl-stmt}»
                                  (asts obj))))
 
-            (apply-clang-mutate-ops obj
-                          `((:insert-value (:stmt1 . ,(ast-counter stmt1))
-                                           (:value1 . ,text)))))))))
+            (apply-clang-mutate-ops
+              obj
+              `((:insert-value (:stmt1 . ,(1+ (index-of-ast obj stmt1)))
+                               (:value1 . ,text)))))))))
   obj)
 
 ;; For clang software objects with no fodder database,
@@ -379,17 +380,18 @@ associated element of `*compilation-fixers*'.
     (when variable
       ;; Run through clang-mutate to get accurate counters
       (update-asts obj)
-      (loop :for ast
-            :in (reverse (asts obj))
-            :when (and (eq (ast-class ast) :DeclStmt)
+      (iter (for ast in (reverse (asts obj)))
+            (for i downfrom (length (asts obj)))
+            (when (and (eq (ast-class ast) :DeclStmt)
                        (scan (concatenate 'string variable "\\s*=")
                              (source-text ast)))
-            :do (let ((text (regex-replace variable (source-text ast)
-                                           (concatenate 'string "*" variable))))
-                  (apply-clang-mutate-ops obj
-                    `((:set . ((:stmt1 . ,(ast-counter ast))
-                               (:value1 . ,text)))))
-                  (return obj))))
+              (let ((text (regex-replace variable
+                                         (source-text ast)
+                                         (concatenate 'string "*" variable))))
+                (apply-clang-mutate-ops obj
+                  `((:set . ((:stmt1 . ,i)
+                             (:value1 . ,text)))))
+                (return obj)))))
     obj))
 
 (register-fixer

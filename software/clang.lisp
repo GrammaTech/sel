@@ -121,16 +121,14 @@ See http://clang.llvm.org/."))
   (body nil :type (or string null)))
 
 (defmethod print-object ((obj clang-ast-node) stream)
-  "Print a representation of the clang-ast-node OBJ to STREAM,
-including the AST counter and AST class.
+  "Print a representation of the clang-ast-node OBJ to STREAM.
 * OBJ clang-ast to print
 * STREAM stream to print OBJ to
 "
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
-        (format stream "~a ~a"
-                (ast-counter obj) (ast-class obj)))))
+        (format stream "~a" (ast-class obj)))))
 
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
