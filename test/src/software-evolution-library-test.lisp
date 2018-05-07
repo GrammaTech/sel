@@ -8685,27 +8685,35 @@ int main() { puts(\"~d\"); return 0; }
     (let ((response (read-serapi-response *serapi-process*)))
       (is response)
       (is (= 5 (length response)))
-      ;; Why not use the #! macro here?
       (is (member #!'(Answer TestQ Ack) response :test #'equal))
       (is (member #!'(Answer TestQ Completed) response :test #'equal)))))
+
+(deftest can-run-coq-vernacular ()
+  (with-fixture serapi
+    (let ((vernac "Print nat."))
+      (write-to-serapi *serapi-process*
+                       #!`((TestQ (Query () (Vernac ,VERNAC)))))
+      (let ((resp1 (read-serapi-response *serapi-process*))
+            (resp2 (run-coq-vernacular vernac :qtag #!'TestQ)))
+        (is (equal resp1 resp2))))))
 
 (deftest is-type-works ()
   (let ((resp1 #!'(Answer TestQ Ack))
         (resp2 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
-    (is (is-type #!'Answer resp1))
-    (is (is-type #!'Feedback resp2))
-    (is (not (is-type #!'Answer resp2)))
-    (is (not (is-type #!'Feedback resp1)))))
+    (is (sel/serapi-io::is-type #!'Answer resp1))
+    (is (sel/serapi-io::is-type #!'Feedback resp2))
+    (is (not (sel/serapi-io::is-type #!'Answer resp2)))
+    (is (not (sel/serapi-io::is-type #!'Feedback resp1)))))
 
 (deftest feedback-parsing-works ()
   (let ((resp1 #!'(Feedback ((id 1) (route 0) (contents Processed))))
         (resp2 #!'(Answer TestQ Ack)))
-    (is (eql 1 (feedback-id resp1)))
-    (is (eql 0 (feedback-route resp1)))
-    (is (eql #!'Processed (feedback-contents resp1)))
-    (is (not (feedback-id resp2)))
-    (is (not (feedback-route resp2)))
-    (is (not (feedback-contents resp2)))))
+    (is (eql 1 (sel/serapi-io::feedback-id resp1)))
+    (is (eql 0 (sel/serapi-io::feedback-route resp1)))
+    (is (eql #!'Processed (sel/serapi-io::feedback-contents resp1)))
+    (is (not (sel/serapi-io::feedback-id resp2)))
+    (is (not (sel/serapi-io::feedback-route resp2)))
+    (is (not (sel/serapi-io::feedback-contents resp2)))))
 
 (deftest message-content-works ()
   (let ((resp1
@@ -8714,8 +8722,21 @@ int main() { puts(\"~d\"); return 0; }
               (contents (Message Notice () (Some (AST (tree)) here))))))
         (resp2 #!'(Answer TestQ Ack)))
     (is (equal #!'(Some (AST (tree)) here)
-               (message-content (feedback-contents resp1))))
-    (is (not (message-content (feedback-contents resp2))))))
+               (sel/serapi-io::message-content
+                (sel/serapi-io::feedback-contents resp1))))
+    (is (not (sel/serapi-io::message-content
+              (sel/serapi-io::feedback-contents resp2))))))
+
+(deftest message-level-works ()
+  (let ((resp1
+         #!'(Feedback
+             ((id 1) (route 0)
+              (contents (Message Notice () (Some (AST (tree)) here))))))
+        (resp2 #!'(Answer TestQ Ack)))
+    (is (eql #!'Notice (sel/serapi-io::message-level
+                        (sel/serapi-io::feedback-contents resp1))))
+    (is (not (sel/serapi-io::message-level
+              (sel/serapi-io::feedback-contents resp2))))))
 
 (deftest answer-parsing-works ()
   (let ((resp1 #!'(Answer TestQ Ack))
@@ -8725,28 +8746,31 @@ int main() { puts(\"~d\"); return 0; }
                    (ObjList ((CoqString "Inductive binop..."))))))
     ;; verify answer-content
     (is (equal (list #!'Ack nil (lastcar resp3) (lastcar resp4))
-               (mapcar #'answer-content
+               (mapcar #'sel/serapi-io::answer-content
                        (list resp1 resp2 resp3 resp4))))
 
     ;; verify answer-string
     (is (equal (list nil nil nil)
-               (mapcar (lambda (resp)
-                         (answer-string (answer-content resp)))
+               (mapcar [#'sel/serapi-io::answer-string
+                        #'sel/serapi-io::answer-content]
                        (list resp1 resp2 resp3))))
     (is (equal "Inductive binop..."
-               (answer-string (answer-content resp4))))
+               (sel/serapi-io::answer-string
+                (sel/serapi-io::answer-content resp4))))
 
     ;; verify answer-ast
     (is (equal (list nil nil nil)
-               (mapcar (lambda (resp)
-                         (answer-ast (answer-content resp)))
+               (mapcar [#'sel/serapi-io::answer-ast
+                        #'sel/serapi-io::answer-content]
                        (list resp1 resp2 resp4))))
     (is (equal #!'(NIL more-stuff)
-               (answer-ast (answer-content resp3))))))
+               (sel/serapi-io::answer-ast
+                (sel/serapi-io::answer-content resp3))))))
 
 (deftest end-of-response-parsing-works ()
   (let ((resp1 #!'(Answer TestQ Completed))
-        (resp2 #!'("Sexplib.Conv.Of_sexp_error" (Failure "Failure message") etc))
+        (resp2 #!'("Sexplib.Conv.Of_sexp_error" (Failure "Failure message")
+                   etc))
         (resp3 #!'(Answer TestQ Ack)))
     (is (equal (list t t nil)
                (mapcar #'is-terminating (list resp1 resp2 resp3))))
@@ -8759,8 +8783,9 @@ int main() { puts(\"~d\"); return 0; }
         (resp3 #!'(Feedback ((id 1) (route 0) (contents Processed)))))
     (is (equal (list 2 nil nil)
                (iter (for i in (list resp1 resp2 resp3))
-                     (collecting (when-let ((content (answer-content i)))
-                                   (added-id content))))))))
+                     (collecting
+                      (when-let ((content (sel/serapi-io::answer-content i)))
+                        (sel/serapi-io::added-id content))))))))
 
 (deftest can-add-and-lookup-coq-string ()
   (with-fixture serapi
@@ -8788,8 +8813,8 @@ int main() { puts(\"~d\"); return 0; }
       (write-to-serapi *serapi-process* #!`((Query () (Vernac "Print test."))))
       (let ((resp1 (read-serapi-response *serapi-process*))
             (resp2 (lookup-coq-pp "test")))
-        (equal (message-content (feedback-contents (nth 1 resp1)))
-               resp2)))))
+        (is (equal resp2 (coq-message-contents resp1)))
+        (is (some {eql #!'Notice } (coq-message-levels resp1)))))))
 
 (deftest can-load-coq-file ()
   (with-fixture serapi
@@ -8803,8 +8828,8 @@ int main() { puts(\"~d\"); return 0; }
 (defixture ls-test
   (:setup (setf *coq* (make-instance
                        'coq
-                       :genome (copy-tree'(a (b ((c d) a))
-                                           (b (() (c d e) ())))))))
+                       :genome (copy-tree '(a (b ((c d) a))
+                                            (b (() (c d e) ())))))))
   (:teardown
    (setf (genome *coq*) nil)
    (setf *coq* nil)))
@@ -8851,15 +8876,13 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest can-lookup-pretty-printed-repr-2 ()
   (with-fixture math
-    (write-to-serapi *serapi-process* #!`((Query () (Vernac "Print binop."))))
-    (let ((resp1 (read-serapi-response *serapi-process*))
-          (resp2 (lookup-coq-pp "binop")))
+    (let ((resp1 (run-coq-vernacular "Print binop."))
+          (resp2 (first (lookup-coq-pp "binop"))))
       ;; one of the messages in resp1 has the pretty-printed repr. we would
       ;; get by using lookup-coq-pp
-      (is (some (lambda (resp) (equal resp2 resp))
-                (mapcar (lambda (resp)
-                          (message-content (feedback-contents resp)))
-                        resp1))))))
+      (let ((msgs (coq-message-contents resp1)))
+        (is (= 1 (length msgs)))
+        (is (equal resp2 (first msgs)))))))
 
 (deftest verify-asts-match ()
   (with-fixture total-maps
