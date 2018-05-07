@@ -488,6 +488,26 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
                 (enclosing-traceable-stmt obj)))
          (first-traceable-stmt (proto)
            (first (get-immediate-children obj (function-body obj proto))))
+         (instrument-asts (obj)
+           "Generate instrumentation for all ASTs in OBJ.  As a side-effect,
+update POINTS after instrumenting ASTs."
+           (-<>> (asts obj)
+                 (remove-if-not {can-be-made-traceable-p obj})
+                 (funcall filter)
+                 (sort <> #'ast-later-p)
+                 ;; Generate all instrumentation before applying changes
+                 (mapcar
+                   (lambda (ast)
+                     (prog1
+                         (instrument-ast ast
+                                         (mappend {funcall _ instrumenter ast}
+                                                  functions)
+                                         (mappend {funcall _ instrumenter ast}
+                                                  functions-after)
+                                         (when points
+                                           (aget ast points :test #'equalp)))
+                       (when points
+                         (setf (aget ast points :test #'equalp) nil)))))))
          (instrument-ast (ast extra-stmts extra-stmts-after aux-values)
            "Generate instrumentation for AST.
 Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER).
@@ -543,13 +563,10 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                   (-> (add-semicolon ast :before)
                       (add-semicolon :after)))
                  (t ast)))
-         (apply-instrumentation (ast return-type before after)
-           "Insert instrumentation around AST."
-           (let* ((*matching-free-var-retains-name-bias* 1.0)
-                  (*matching-free-function-retains-name-bias* 1.0)
-                  (wrap (not (traceable-stmt-p obj ast)))
-                  ;; Look up AST again in case its children have been
+         (create-value (obj ast return-type before after)
+           (let* (;; Look up AST again in case its children have been
                   ;; instrumented
+                  (wrap (not (traceable-stmt-p obj ast)))
                   (new-ast (get-ast obj (ast-path ast)))
                   (stmts (append (mapcar {add-semicolon _ :after} before)
                                  (if (and instrument-exit
@@ -562,36 +579,34 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
                                  (mapcar {add-semicolon _ :both} after))))
              ;; Wrap in compound statement if needed
              (if wrap
-                 (apply-mutation-ops
-                  obj
-                  `((:set (:stmt1 . ,ast)
-                          (:value1 . ,(make-statement
-                                        :CompoundStmt
-                                        :FullStmt
-                                        `("{" ,@(interleave stmts ";") ";}")
-                                        :full-stmt t
-                                        :aux-data '((:instrumentation t)))))))
-                 (apply-mutation-ops
-                  obj
-                  `((:splice (:stmt1 . ,ast)
-                             (:value1 . ,stmts))))))))
-      (-<>> (asts obj)
-            (remove-if-not {can-be-made-traceable-p obj})
-            (funcall filter)
-            (sort <> #'ast-later-p)
-            ;; Generate all instrumentation before applying changes
-            (mapcar (lambda (ast)
-                      (prog1
-                          (instrument-ast ast
-                                          (mappend {funcall _ instrumenter ast}
-                                                   functions)
-                                          (mappend {funcall _ instrumenter ast}
-                                                   functions-after)
-                                          (when points
-                                            (aget ast points :test #'equalp)))
-                        (when points
-                          (setf (aget ast points :test #'equalp) nil)))))
-            (mapc {apply #'apply-instrumentation})))
+                 (make-statement
+                   :CompoundStmt
+                   :FullStmt
+                   `("{" ,@(interleave stmts ";") ";}")
+                   :full-stmt t
+                   :aux-data '((:instrumentation t)))
+                 stmts))))
+
+    ;; Apply mutations to instrument OBJ.
+    ;; Note: These mutations are sent as a list to `apply-mutation-ops`
+    ;; and are performed sequently.  This offers a performance improvement
+    ;; over calling `apply-mutation-ops` multiple times.
+    (apply-mutation-ops
+      obj
+      (iter (for (ast return-type before after) in (instrument-asts obj))
+            (collect (if (not (traceable-stmt-p obj ast))
+                         `(:set (:stmt1 . ,ast)
+                                (:value1 . ,{create-value obj
+                                                          ast
+                                                          return-type
+                                                          before
+                                                          after}))
+                         `(:splice (:stmt1 . ,ast)
+                                   (:value1 . ,{create-value obj
+                                                             ast
+                                                             return-type
+                                                             before
+                                                             after})))))))
 
     ;; Warn about any leftover un-inserted points.
     (mapc (lambda (point)
@@ -662,27 +677,32 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
     ;; Remove instrumented ASTs - blocks first, then individual statements
     (let ((*matching-free-var-retains-name-bias* 1.0)
           (*matching-free-function-retains-name-bias* 1.0))
-      (iter (for ast in (->> (asts clang)
-                             (remove-if-not [{aget :instrumentation}
-                                             {ast-aux-data}])
-                             (remove-if-not {block-p clang})
-                             (reverse)))
-            (apply-mutation-ops clang
-                                `((:set (:stmt1 . ,ast)
-                                        (:value1 .
-                                         ,(->> (get-ast clang (ast-path ast))
+      (apply-mutation-ops
+        clang
+        (iter (for ast in (->> (asts clang)
+                               (remove-if-not [{aget :instrumentation}
+                                               {ast-aux-data}])
+                               (remove-if-not {block-p clang})
+                               (reverse)))
+              (collect `(:set (:stmt1 . ,ast)
+                              (:value1 .
+                               ,{get-ast clang
+                                         (->> (get-ast clang (ast-path ast))
                                                (get-immediate-children clang)
-                                               (remove-if [{aget :instrumentation}
-                                                           {ast-aux-data}])
-                                               (first)))))))
+                                               (remove-if
+                                                 [{aget :instrumentation}
+                                                  {ast-aux-data}])
+                                               (first)
+                                               (ast-path))})))))
 
-      (iter (for ast in (->> (asts clang)
-                             (remove-if-not [{aget :instrumentation}
-                                             {ast-aux-data}])
-                             (remove-if {block-p clang})
-                             (reverse)))
-            (apply-mutation-ops clang `((:splice (:stmt1 . ,ast)
-                                                 (:value1 . nil)))))))
+      (apply-mutation-ops
+        clang
+        (iter (for ast in (->> (asts clang)
+                               (remove-if-not [{aget :instrumentation}
+                                               {ast-aux-data}])
+                               (remove-if {block-p clang})
+                               (reverse)))
+              (collect `(:splice (:stmt1 . ,ast) (:value1 . nil)))))))
 
   ;; Return the software object
   clang)

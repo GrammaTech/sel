@@ -709,7 +709,9 @@ SOFTWARE.
         (with-slots (ast-root) software
           (iter (for (op . properties) in ops)
                 (let ((stmt1 (aget :stmt1 properties))
-                      (value1 (aget :value1 properties)))
+                      (value1 (if (functionp (aget :value1 properties))
+                                  (funcall (aget :value1 properties))
+                                  (aget :value1 properties))))
                   (setf ast-root
                         (ecase op
                           (:set
