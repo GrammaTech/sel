@@ -109,9 +109,9 @@ load path, with a nickname if one was provided in the PROJECT-FILE."
                 (let* ((split-line (split-sequence #\Space line))
                        (rel-dir (second split-line))
                        (nickname (third split-line)))
-                  (lib-add (namestring
-                            (cl-fad:merge-pathnames-as-file dir rel-dir))
-                           :lib-name nickname))))))))
+                  (add-coq-lib (namestring
+                                (cl-fad:merge-pathnames-as-file dir rel-dir))
+                               :lib-name nickname))))))))
 
 (defgeneric reset-and-load-imports (coq &key imports)
   (:documentation
