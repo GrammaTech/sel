@@ -9985,6 +9985,8 @@ int main() { puts(\"~d\"); return 0; }
 
 (defsuite test-serapi "Coq SerAPI interaction." (serapi-available-p))
 
+(in-readtable :serapi-readtable)
+
 (defixture serapi
   (:setup (sleep 0.1)
           (setf *serapi-process* (make-serapi))
@@ -10191,9 +10193,32 @@ int main() { puts(\"~d\"); return 0; }
     (let ((ids (load-coq-file (coq-test-dir "NatBinop.v"))))
       (is (equal '(2 3 4) ids)))))
 
+(deftest can-lookup-coq-types ()
+  (with-fixture serapi
+    ;; Look up some built-in Coq types
+    (is (equal (check-coq-type "True") '("True" :COLON "Prop")))
+    (is (equal (check-coq-type "true") '("true" :COLON "bool")))
+    (is (equal (check-coq-type "nat")  '("nat" :COLON "Set")))
+    (is (equal (check-coq-type "7")    '("7" :COLON "nat")))
+    (is (equal (check-coq-type "negb") '("negb" :COLON "bool" :-> "bool")))
+    (is (equal (check-coq-type "plus")
+               '("Nat.add" :COLON "nat" :-> "nat" :-> "nat")))))
+
+(deftest can-search-coq-types ()
+  ;; NOTE: may need to change if Coq version or default load libraries change.
+  (with-fixture serapi
+    (let* ((fns (search-coq-type "nat -> nat -> nat -> nat"))
+           (fn-names (mapcar #'car fns)))
+      (is (= 3 (length fns)))
+      (is (every {member _ '("Nat.log2_iter" "Nat.sqrt_iter" "Nat.bitwise")
+                         :test #'equal}
+                 fn-names)))))
+
 
 ;;; Test Coq software objects
 (defsuite test-coq "Coq software object tests." (serapi-available-p))
+
+(in-readtable :serapi-readtable)
 
 (defixture ls-test
   (:setup (setf *coq* (make-instance
