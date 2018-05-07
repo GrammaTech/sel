@@ -62,15 +62,8 @@
            :*sertop-args*
            :*serapi-timeout*
            :*serapi-process*
-           :is-type
-           :feedback-id
-           :feedback-route
-           :feedback-contents
-           :message-content
-           :answer-content
-           :answer-string
-           :answer-ast
-           :added-id
+           :coq-message-contents
+           :coq-message-levels
            :is-terminating
            :is-error
            :is-loc-info
@@ -78,10 +71,13 @@
            :lookup-coq-pp
            :lookup-coq-string
            :add-coq-string
-           :lib-add
+           :add-coq-lib
            :lookup-coq-ast
            :coq-ast-to-string
            :cancel-coq-asts
+           :run-coq-vernacular
+           :check-coq-type
+           :search-coq-type
            :load-coq-file
            :serapi-timeout-error
            :use-empty-response
@@ -480,6 +476,38 @@ Return NIL if MESSAGE is not a Message response."
       (and (eql (find-symbol "Message") msg-sym)
            m))))
 
+(defun message-level (message)
+  "For a Message response from SerAPI, MESSAGE, return the message level.
+Return NIL if MESSAGE is not a Message response. As of Coq 8.7.2, message levels
+defined in coq/lib/feedback.ml include Debug, Info, Notice, Warning, Error."
+  (intern "Message" *package*)
+  (match message
+    (`(,msg-sym ,lvl ,_ ,_)
+      (and (eql (find-symbol "Message") msg-sym)
+           lvl))))
+
+(defun coq-message-contents (response)
+  "For a SerAPI response, return the contents of any `Message' structures.
+This is useful for fetching results of Coq vernacular queries."
+  (intern "Feedback" *package*)
+  (intern "Message" *package*)
+  (iter (for sexpr in response)
+        (when (is-type (find-symbol "Feedback") sexpr)
+          (let ((contents (feedback-contents sexpr)))
+            (when (is-type (find-symbol "Message") contents)
+              (collecting (message-content contents)))))))
+
+(defun coq-message-levels (response)
+  "For a SerAPI response, return the level of the first `Message' structure.
+This is useful for verifying success of a Coq vernacular query."
+  (intern "Feedback" *package*)
+  (intern "Message" *package*)
+  (iter (for sexpr in response)
+        (when (is-type (find-symbol "Feedback") sexpr)
+          (let ((contents (feedback-contents sexpr)))
+            (when (is-type (find-symbol "Message") contents)
+              (collecting (message-level contents)))))))
+
 (defun answer-content (sexpr)
   "For an Answer response from SerAPI, SEXPR, return the content.
 Return NIL if SEXPR is not an Answer response."
@@ -536,9 +564,11 @@ for failed responses it will be tagged as an error."
 command or an invalid Coq command, NIL otherwise."
   (intern "Sexplib.Conv.Of_sexp_error" *package*)
   (intern "CoqExn" *package*)
+  (intern "Error" *package*)
   (or (is-type (find-symbol "Sexplib.Conv.Of_sexp_error") sexpr)
       (equal (car sexpr) "Sexplib.Conv.Of_sexp_error")
-      (is-type (find-symbol "CoqExn") (answer-content sexpr))))
+      (is-type (find-symbol "CoqExn") (answer-content sexpr))
+      (equal (find-symbol "Error") (message-level sexpr))))
 
 (defun is-loc-info (sexpr)
   "Return T if SEXPR is a list of Coq location info, NIL otherwise."
@@ -577,23 +607,79 @@ otherwise."
        (or (is-type (find-symbol "VernacImport") (second sexpr))
            (is-type (find-symbol "VernacRequire") (second sexpr)))))
 
+(defun add-period (coq-string)
+  (if (ends-with-subseq "." (trim-whitespace coq-string))
+      coq-string
+      (concatenate 'string coq-string ".")))
+
+(defun run-coq-vernacular (vernac &key (qtag (gensym "q")))
+  (let ((vernac (add-period vernac)))
+    (write-to-serapi *serapi-process* #!`((,QTAG (Query () (Vernac ,VERNAC)))))
+    (read-serapi-response *serapi-process*)))
+
 (defgeneric lookup-coq-pp (ast-name &key qtag)
   (:documentation
    "Look up and return a Coq representation of AST-NAME.
 Optionally, tag the lookup query with QTAG."))
 
 (defmethod lookup-coq-pp ((ast-name string) &key (qtag (gensym "q")))
-  (let* ((vernac (concatenate 'string "Print " ast-name "."))
-         (query #!`((,QTAG (Query () (Vernac ,VERNAC))))))
-    (write-to-serapi *serapi-process* query)
+  (let ((vernac (format nil "Print ~a." ast-name)))
+    (coq-message-contents (run-coq-vernacular vernac :qtag qtag))))
 
-    (intern "Feedback" *package*)
-    (intern "Message" *package*)
-    (iter (for sexpr in (read-serapi-response *serapi-process*))
-        (when (is-type (find-symbol "Feedback") sexpr)
-          (let ((contents (feedback-contents sexpr)))
-            (when (is-type (find-symbol "Message") contents)
-              (leave (message-content contents))))))))
+(defun tokenize-type (type-string)
+  (labels ((tokenize (str)
+             (let ((splitting-tokens (list #\: #\( #\))))
+               (cond
+                 ((emptyp str) nil)
+                 ((equal str "->") (list :->))
+                 ((equal str "forall") (list :forall))
+                 ((equal str "exists") (list :exists))
+                 ((equal str ":") (list :colon))
+                 ((equal str "(") (list :l-paren))
+                 ((equal str ")") (list :r-paren))
+                 ((some {find _ str :test #'char=} splitting-tokens)
+                  (iter (for token in splitting-tokens)
+                        (when-let ((idx (position token str :test #'char=)))
+                          (leave (mappend #'tokenize
+                                          (list (subseq str 0 idx)
+                                                (subseq str idx (1+ idx))
+                                                (subseq str (1+ idx))))))))
+                 (t (list str))))))
+    (mappend #'tokenize (split "\\s+" type-string))))
+
+(defgeneric check-coq-type (coq-expr &key qtag)
+  (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
+Optionally use QTAG to tag the query."))
+
+(defmethod check-coq-type ((coq-expr string) &key (qtag (gensym "q")))
+  "Look up and return the type of a COQ-EXPR string using Coq's `Check'."
+  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr))))
+    (if (member #!'Error (coq-message-levels response))
+        (error (make-condition 'serapi-error
+                               :text (coq-message-contents response)
+                               :serapi *serapi-process*))
+        (-<> (coq-message-contents response)
+             (remove #!'Pp_empty <>)
+             (car)
+             (lookup-coq-string <> :input-format #!'CoqPp)
+             (tokenize-type)))))
+
+(defun search-coq-type (coq-type &key (qtag (gensym "q")))
+  "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
+Results include functions parameterized by values of types other than COQ-TYPE
+as long as the final result returned by the function is of type COQ-TYPE.
+E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
+  (flet ((parenthesize (str)
+           (let ((str (trim-whitespace str)))
+             (if (and (starts-with-subseq "(" str)
+                      (ends-with-subseq ")" str))
+                 str
+                 (format nil "(~a)" str)))))
+    (->> (format nil "SearchPattern ~a." (parenthesize coq-type))
+         (run-coq-vernacular)
+         (coq-message-contents)
+         (mapcar [#'tokenize-type
+                  {lookup-coq-string _ :input-format '|CoqPp|}]))))
 
 (defun find-coq-string-in-objlist (response)
   "For SerAPI response list RESPONSE, return a CoqString answer if there is one.
@@ -654,9 +740,7 @@ Return a list of the AST-IDs created as a result. Optionally, provide a QTAG for
 the submission."
   (unless (emptyp coq-string)
     ;; ensure coq string ends with .
-    (let* ((coq-string (if (ends-with-subseq "." coq-string)
-                           coq-string
-                           (concatenate 'string coq-string ".")))
+    (let* ((coq-string (add-period coq-string))
            (add #!`((,QTAG (Add () ,COQ-STRING)))))
       ;; submit to SerAPI
       (write-to-serapi *serapi-process* add)
@@ -668,7 +752,7 @@ the submission."
               (when (is-type (find-symbol "Added") answer)
                 (collecting (added-id answer))))))))
 
-(defun lib-add (path &key lib-name (has-ml "true") (qtag (gensym "l")))
+(defun add-coq-lib (path &key lib-name (has-ml "true") (qtag (gensym "l")))
   "Add directory PATH to the Coq and, optionally, ML load paths in SerAPI.
 Return the SerAPI response.
 * LIB-NAME an optional prefix to use when importing from the directory. E.g.,

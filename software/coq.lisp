@@ -140,8 +140,8 @@ load path, with a nickname if one was provided in the PROJECT-FILE."
                 (let* ((split-line (split-sequence #\Space line))
                        (rel-dir (second split-line))
                        (nickname (third split-line)))
-                  (lib-add (namestring
-                            (merge-pathnames-as-file dir rel-dir))
+                  (add-coq-lib (namestring
+                                (merge-pathnames-as-file dir rel-dir))
                            :lib-name nickname))))))))
 
 (defgeneric reset-and-load-imports (coq &key imports)
@@ -396,7 +396,7 @@ condition."
 (defmethod apply-mutation ((obj coq) (mutation type-safe-swap))
   "Apply a `type-safe-swap' MUTATION to Coq object OBJ."
   (bind (((s1 s2) (targets mutation)))
-    ;; (note 3 "Applying `type-safe-swap' mutation with targets: (~a ~a)" s1 s2)
+    (note 3 "Applying `type-safe-swap' mutation with targets: (~a ~a)" s1 s2)
     (let ((s1 (max s1 s2))
           (s2 (min s1 s2)))
       (with-slots (genome) obj
