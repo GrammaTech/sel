@@ -200,8 +200,11 @@ After BODY is executed the temporary file is removed."
      ,@body))
 
 (defmacro with-cwd (dir &rest body)
-  "Change the current working directory to dir and execute body"
-  (with-gensyms (orig)
+  "Change the current working directory to dir and execute body.
+WARNING: This function is not thread safe.  Execution in a threaded
+environment may causes execution outside of the intended directory or
+may lose the original working directory."
+  (with-gensyms (orig new)
     `(let ((,orig (getcwd)))
        (unwind-protect
          (progn (cd ,(car dir)) ,@body)
