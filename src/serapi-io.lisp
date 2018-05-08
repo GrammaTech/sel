@@ -76,12 +76,28 @@
            :run-coq-vernacular
            :check-coq-type
            :search-coq-type
+           :tokenize-coq-type
            :load-coq-file
            :serapi-timeout-error
            :use-empty-response
            :retry-read
            :serapi-timeout
-           :serapi-readtable))
+           :serapi-readtable
+           ;; Building Coq expressions
+           :wrap-coq-constr-expr
+           :make-coq-integer
+           :make-coq-ident
+           :make-coq-var-reference
+           :make-coq-application
+           :make-coq-name
+           :make-coq-lname
+           :make-coq-local-binder-exprs
+           :make-coq-lambda
+           :make-coq-if
+           :make-coq-case-pattern
+           :make-coq-match
+           :make-coq-definition
+           ))
 (in-package :software-evolution-library/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defreadtable :serapi-readtable
@@ -266,9 +282,11 @@ format."
              (mapc {write-char _ s} (list #\\ #\\ #\\ char)))
             ((and (eql last #\\) (not (eql char #\\)))
              ;; If last char is an escape and neither penult nor current is,
-             ;; Skip inhibited escaped whitespace chars, double escape others.
-             (unless (member char '(#\n #\t #\r #\b))
-               (mapc {write-char _ s} (list #\\ #\\ char))))
+             ;; Replace inhibited escaped whitespace chars with space, double
+             ;; escape others.
+             (if (member char '(#\n #\t #\r #\b))
+                 (write-char #\Space s)
+                 (mapc {write-char _ s} (list #\\ #\\ char))))
             (t (unless (eql char #\\) (write-char char s))))
           (setf penult last)
           (setf last char))))
@@ -380,6 +398,12 @@ format."
 Add Coq `*dummy-stmt*' to `*serapi-process*' and update `reset-points' with the
 AST ID. See also `reset-serapi-process'."
   (let ((ast-ids (add-coq-string *dummy-stmt*)))
+    ;; Adding dummy statement will often require running Exec in cases where
+    ;; Message output would be generated. Running Exec when it's not needed
+    ;; isn't a problem, but failure to run it when it is needed causes
+    ;; Message output to be included with the following query which would likely
+    ;; cause confusion and/or errors.
+    (mapcar [#'run-coq-vernacular {format nil "Exec ~a."}] ast-ids)
     (if (listp ast-ids)
         ;; if there's more than one ast-id, we reset to the smallest (first)
         (push (first ast-ids) (reset-points *serapi-process*))
@@ -627,61 +651,6 @@ Optionally, tag the lookup query with QTAG."))
   (let ((vernac (format nil "Print ~a." ast-name)))
     (coq-message-contents (run-coq-vernacular vernac :qtag qtag))))
 
-(defun tokenize-type (type-string)
-  (labels ((tokenize (str)
-             (let ((splitting-tokens (list #\: #\( #\))))
-               (cond
-                 ((emptyp str) nil)
-                 ((equal str "->") (list :->))
-                 ((equal str "forall") (list :forall))
-                 ((equal str "exists") (list :exists))
-                 ((equal str ":") (list :colon))
-                 ((equal str "(") (list :l-paren))
-                 ((equal str ")") (list :r-paren))
-                 ((some {find _ str :test #'char=} splitting-tokens)
-                  (iter (for token in splitting-tokens)
-                        (when-let ((idx (position token str :test #'char=)))
-                          (leave (mappend #'tokenize
-                                          (list (subseq str 0 idx)
-                                                (subseq str idx (1+ idx))
-                                                (subseq str (1+ idx))))))))
-                 (t (list str))))))
-    (mappend #'tokenize (split "\\s+" type-string))))
-
-(defgeneric check-coq-type (coq-expr &key qtag)
-  (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
-Optionally use QTAG to tag the query."))
-
-(defmethod check-coq-type ((coq-expr string) &key (qtag (gensym "q")))
-  "Look up and return the type of a COQ-EXPR string using Coq's `Check'."
-  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr))))
-    (if (member #!'Error (coq-message-levels response))
-        (error (make-condition 'serapi-error
-                               :text (coq-message-contents response)
-                               :serapi *serapi-process*))
-        (-<> (coq-message-contents response)
-             (remove #!'Pp_empty <>)
-             (car)
-             (lookup-coq-string <> :input-format #!'CoqPp)
-             (tokenize-type)))))
-
-(defun search-coq-type (coq-type &key (qtag (gensym "q")))
-  "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
-Results include functions parameterized by values of types other than COQ-TYPE
-as long as the final result returned by the function is of type COQ-TYPE.
-E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
-  (flet ((parenthesize (str)
-           (let ((str (trim-whitespace str)))
-             (if (and (starts-with-subseq "(" str)
-                      (ends-with-subseq ")" str))
-                 str
-                 (format nil "(~a)" str)))))
-    (->> (format nil "SearchPattern ~a." (parenthesize coq-type))
-         (run-coq-vernacular)
-         (coq-message-contents)
-         (mapcar [#'tokenize-type
-                  {lookup-coq-string _ :input-format '|CoqPp|}]))))
-
 (defun find-coq-string-in-objlist (response)
   "For SerAPI response list RESPONSE, return a CoqString answer if there is one.
 Return NIL otherwise. Some responses may contain two newlines followed by a
@@ -805,3 +774,200 @@ Return a list of IDs for the ASTs that were added."
                        (while line)
                        (concatenating (format nil "~a~%" line)))))
       (add-coq-string lines :qtag qtag))))
+
+
+;; Type lookup and search
+(defun tokenize-coq-type (type-string)
+  (labels ((find-matching-paren (str pos depth)
+             (cond
+               ((equal pos (length str)) nil)
+               ((and (equal (elt str pos) #\)) (zerop depth))
+                pos)
+               ((equal (elt str pos) #\))
+                (find-matching-paren str (1+ pos) (1- depth)))
+               ((equal (elt str pos) #\()
+                (find-matching-paren str (1+ pos) (1+ depth)))
+               (t (find-matching-paren str (1+ pos) depth))))
+           (tokenize (str)
+             (let ((str (trim-whitespace str))
+                   (split-tokens (list #\: #\( #\) #\Space #\Tab #\Newline)))
+               (cond
+                 ((emptyp str) nil)
+                 ((starts-with-subseq "->" str)
+                  (cons :-> (tokenize (subseq str 2))))
+                 ((starts-with-subseq "forall" str)
+                  (cons :forall (tokenize (subseq str 6))))
+                 ((starts-with-subseq "exists" str)
+                  (cons :exists (tokenize (subseq str 6))))
+                 ((starts-with-subseq ":" str)
+                  (cons :colon (tokenize (subseq str 1))))
+                 ((starts-with-subseq "(" str)
+                  (let ((end-paren (find-matching-paren str 1 0)))
+                    (cons (tokenize (subseq str 1 end-paren))
+                          (tokenize (subseq str (1+ end-paren))))))
+                 ((starts-with-subseq ")" str) nil)
+                 (t
+                  (let ((next-token (position-if {member _ split-tokens} str)))
+                    (if next-token
+                        (cons (subseq str 0 next-token)
+                              (tokenize (subseq str next-token)))
+                        (list (subseq str 0)))))))))
+    (tokenize type-string)))
+
+(defgeneric check-coq-type (coq-expr &key qtag)
+  (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
+Optionally use QTAG to tag the query."))
+
+(defmethod check-coq-type ((coq-expr string) &key (qtag (gensym "q")))
+  "Look up and return the type of a COQ-EXPR string using Coq's `Check'."
+  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr))))
+    (if (member #!'Error (coq-message-levels response))
+        (error (make-condition 'serapi-error
+                               :text (coq-message-contents response)
+                               :serapi *serapi-process*))
+        (-<> (coq-message-contents response)
+             (remove #!'Pp_empty <>)
+             (car)
+             (lookup-coq-string <> :input-format #!'CoqPp)
+             (tokenize-coq-type)))))
+
+(defun search-coq-type (coq-type &key (qtag (gensym "q")))
+  "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
+Results include functions parameterized by values of types other than COQ-TYPE
+as long as the final result returned by the function is of type COQ-TYPE.
+E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
+  (flet ((parenthesize (str)
+           (let ((str (trim-whitespace str)))
+             (if (and (starts-with-subseq "(" str)
+                      (ends-with-subseq ")" str))
+                 str
+                 (format nil "(~a)" str)))))
+    (->> (format nil "SearchPattern ~a." (parenthesize coq-type))
+         (run-coq-vernacular)
+         (coq-message-contents)
+         (mapcar [#'tokenize-coq-type
+                  {lookup-coq-string _ :input-format '|CoqPp|}]))))
+
+
+;;; Building Coq expressions
+
+(defun wrap-coq-constr-expr (expr)
+  #!`((v ,EXPR) (loc ())))
+
+(defun make-coq-integer (x)
+  "Wrap integer X in CPrim and Numeral tags."
+  (wrap-coq-constr-expr #!`(CPrim (Numeral ,X true))))
+
+(defun make-coq-ident (id)
+  #!`(Ident (() (Id ,ID))))
+
+(defun make-coq-var-reference (id)
+  "Wrap Coq variable ID in CRef and Ident tags."
+  (wrap-coq-constr-expr #!`(CRef ,(MAKE-COQ-IDENT ID) ())))
+
+(defun make-coq-application (fun &rest params)
+  "Wrap Coq function FUN and parameters PARAMS in a CApp tag.
+Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
+`make-coq-var-reference' or similar)."
+  (wrap-coq-constr-expr
+   #!`(CApp (() ,FUN)
+            ,(MAPCAR #'LIST
+                     PARAMS
+                     (REPEATEDLY (LENGTH PARAMS) ())))))
+
+(defun make-coq-name (id)
+  #!`(Name (Id ,ID)))
+
+(defun make-coq-lname (id)
+  (list () (make-coq-name id)))
+
+(defun make-coq-local-binder-exprs (type params &optional param-types)
+  ;; assumes (length params) == (length param-types)
+  (let ((num-param-types (length param-types))
+        (param-types (coerce param-types 'vector)))
+    (iter (for param in params)
+          (for i upfrom 0)
+          (let ((param-type (or (and (> num-param-types i)
+                                     (elt param-types i))
+                                #!`(CHole ((BinderType ,(MAKE-COQ-NAME PARAM)))
+                                          IntroAnonymous
+                                          ()))))
+            (collecting #!`(,TYPE (,(MAKE-COQ-LNAME PARAM))
+                                  (Default Explicit)
+                                  ,PARAM-TYPE))))))
+
+;; TODO: Can we switch to using `make-coq-local-binder-exprs'?
+(defun make-coq-lambda (params body)
+  (if (null params)
+      body
+      (let ((lname (make-coq-lname (car params)))
+            (chole (wrap-coq-constr-expr
+                    #!`(CHole ((BinderType ,(MAKE-COQ-NAME (CAR PARAMS))))
+                              IntroAnonymous
+                              ()))))
+        (wrap-coq-constr-expr
+         #!`(CLambdaN (((,LNAME)
+                        (Default Explicit)
+                        ,CHOLE))
+                      ,(MAKE-COQ-LAMBDA (CDR PARAMS) BODY))))))
+
+(defun make-coq-if (test then else)
+  (wrap-coq-constr-expr
+   #!`(CIf ,TEST
+           (() ())
+           ,THEN
+           ,ELSE)))
+
+(defun make-coq-case-pattern (pattern-type &rest pattern-args)
+  (intern "CPatAtom" *package*)
+  (intern "CPatNotation" *package*)
+  (intern "CPatCstr" *package*)
+  (intern "_" *package*)
+  (wrap-coq-constr-expr
+   (match pattern-type
+     ;; CPatAtom
+     ((guard cpatatom (eql cpatatom (find-symbol "CPatAtom")))
+      (cond
+        ((equal (first pattern-args) "_")
+         #!`(CPatAtom ()))
+        ((first pattern-args)
+         #!`(CPatAtom (,(MAKE-COQ-IDENT (FIRST PATTERN-ARGS)))))
+        (t nil)))
+     ;; CPatNotation
+     ((guard cpatnotation (eql cpatnotation (find-symbol "CPatNotation")))
+      (let ((notation (first pattern-args))
+            (notation-subs (cdr pattern-args)))
+        #!`(CPatNotation ,NOTATION
+                         (,NOTATION-SUBS ())
+                         ())))
+     ((guard cpatcstr (eql cpatcstr (find-symbol "CPatCstr")))
+      (let ((ref (first pattern-args))
+            (exprs (cdr pattern-args)))
+        #!`(CPatCstr ,REF
+                     ()
+                     ,EXPRS)))
+     (otherwise ()))))
+
+(defun make-coq-match (style test &rest branches)
+  (let ((split-branches (iter (for (pat result) on branches by #'cddr)
+                              (collecting #!`(() (((()  (,PAT))) ,RESULT))))))
+    (wrap-coq-constr-expr
+     #!`(CCases ,STYLE
+                ()
+                ;; assume TEST is just a single item and no in/as clauses
+                ((,TEST () ()))
+                ,SPLIT-BRANCHES))))
+
+(defun make-coq-definition (name params return-type body)
+  (let ((binders (make-coq-local-binder-exprs
+                  #!'CLocalAssum
+                  (mapcar #'first params)
+                  (mapcar #'second params))))
+    #!`(() (VernacDefinition
+            (() Definition)
+            ((() (Id ,NAME)) ())
+            (DefineBody
+                ,BINDERS
+                ()
+              ,BODY
+              (,RETURN-TYPE))))))
