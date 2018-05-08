@@ -10161,7 +10161,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest (can-add-and-lookup-coq-string :long-running) ()
   (with-fixture serapi
-    (let* ((add-str "Inductive test :=  | T1 : test  | T2 : test.")
+    (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
       (is (= 1 (length id)))
       (is (integerp (first id)))
@@ -10170,7 +10170,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest (can-convert-ast-to-string :long-running) ()
   (with-fixture serapi
-    (let* ((add-str "Inductive test :=  | T1 : test  | T2 : test.")
+    (let* ((add-str "Inductive test :=   | T1 : test   | T2 : test.")
            (id (add-coq-string add-str)))
       (is (= 1 (length id)))
       (is (integerp (first id)))
@@ -10180,7 +10180,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest (can-lookup-pretty-printed-repr-1 :long-running) ()
   (with-fixture serapi
-    (let ((add-str "Inductive test :=  | T1 : test  | T2 : test."))
+    (let ((add-str "Inductive test :=   | T1 : test   | T2 : test."))
       (add-coq-string add-str)
       (write-to-serapi *serapi-process* #!`((Query () (Vernac "Print test."))))
       (let ((resp1 (read-serapi-response *serapi-process*))
@@ -10192,6 +10192,20 @@ int main() { puts(\"~d\"); return 0; }
   (with-fixture serapi
     (let ((ids (load-coq-file (coq-test-dir "NatBinop.v"))))
       (is (equal '(2 3 4) ids)))))
+
+(deftest can-tokenize-coq-types ()
+  (let ((test1 "test1 : nat -> bool")
+        (test2 "test2 : (bool -> (bool -> bool)) -> (bool -> nat) -> nat)")
+        (test3 "test3 : a -> ((b -> (c -> d) -> e) -> f) -> g"))
+    (is (equal (tokenize-coq-type test1)
+               '("test1" :COLON "nat" :-> "bool")))
+    (is (equal (tokenize-coq-type test2)
+               '("test2" :COLON ("bool" :-> ("bool" :-> "bool")) :->
+                 ("bool" :-> "nat") :-> "nat")))
+    (is (equal (tokenize-coq-type test3)
+               '("test3" :COLON "a" :->
+                 (("b" :-> ("c" :-> "d") :-> "e") :-> "f")
+                 :-> "g")))))
 
 (deftest can-lookup-coq-types ()
   (with-fixture serapi
@@ -10213,6 +10227,28 @@ int main() { puts(\"~d\"); return 0; }
       (is (every {member _ '("Nat.log2_iter" "Nat.sqrt_iter" "Nat.bitwise")
                          :test #'equal}
                  fn-names)))))
+
+(deftest can-create-coq-expressions-1 ()
+  (with-fixture serapi
+    ;; Nat.add 5 3
+    (let ((e-ast1 (make-coq-application (make-coq-var-reference "plus")
+                                        (make-coq-integer 5)
+                                        (make-coq-integer 3)))
+          (e-ast2 (make-coq-match
+                   #!'RegularStyle
+                   (make-coq-application (make-coq-var-reference "S")
+                                         (make-coq-var-reference "O"))
+                   (make-coq-case-pattern #!'CPatAtom "O")
+                   (make-coq-integer 0)
+                   (make-coq-case-pattern
+                    #!'CPatCstr
+                    (make-coq-ident "S")
+                    (make-coq-case-pattern #!'CPatAtom "_"))
+                   (make-coq-integer 1))))
+      (let ((e-str1 (lookup-coq-string e-ast1 :input-format #!'CoqExpr))
+            (e-str2 (lookup-coq-string e-ast2 :input-format #!'CoqExpr)))
+        (is (equal e-str1 "plus 5 3"))
+        (is (equal e-str2 "match S O with | O => 0 | S _ => 1 end"))))))
 
 
 ;;; Test Coq software objects
