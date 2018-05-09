@@ -5978,14 +5978,15 @@ prints unique counters in the trace"
       (phenome *soft* :bin bin)
       (is (string=
            (concatenate 'string "__sel_bar" '(#\Newline))
-           (with-output-to-string (stdout)
-             (start-test bin (make-instance
-                              'test-case
-                              :program-name bin
-                              :program-args '("__sel_foo"))
+           (stream-to-string
+            (process-output-stream
+             (start-test bin
+                         (make-instance 'test-case
+                                        :program-name bin
+                                        :program-args '("__sel_foo"))
                          :wait t
-                         :output stdout
-                         :env '(("__sel_foo" . "__sel_bar")))))))))
+                         :output :stream
+                         :env '(("__sel_foo" . "__sel_bar"))))))))))
 
 
 ;;;; Tests of declaration and type databases on clang objects.

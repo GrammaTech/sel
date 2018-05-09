@@ -78,6 +78,7 @@
    :process-error-stream
    :process-exit-code
    :process-status
+   :process-running-p
    :signal-process
    ;; Shell execution
    :*shell-debug*

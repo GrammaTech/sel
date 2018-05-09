@@ -96,38 +96,40 @@ This is a convenience method whose default behavior is simply to run
 "
   (flet ((bin-sub (bin it)
            (if (eq :bin it) bin it)))
-    (let ((real-name (bin-sub (namestring phenome) (program-name test-case)))
-          (real-args (mapcar {bin-sub (namestring phenome)}
-                             (program-args test-case))))
+    (let ((real-cmd (mapcar {bin-sub (namestring phenome)}
+                            (cons (program-name test-case)
+                                  (program-args test-case))))
+          ;; Backwards compatible: we used to use :error to refer to the error
+          ;; output stream, but uiop:run-program standardizes to :error-output
+          (extra-keys (mapcar (lambda (it) (if (eq it :error) :error-output it))
+                              extra-keys)))
       (when *shell-debug*
-        (format t "  cmd: ~a ~{~a ~}~%" real-name real-args))
-      (make-instance 'process
-        :os-process
-        #+sbcl
-        (apply #'sb-ext:run-program real-name real-args
-               ;; Ensure environment values are specified as a list of
-               ;; KEY=VALUE strings expected by SBCL's :environment
-               ;; keyword argument to `sb-ext:run-program'.
-               (iter (for arg in extra-keys)
-                     (for prev previous arg)
-                     (cond ((eq arg :env)
-                            (collect :environment))
-                           ((eq prev :env)
-                            (collect (append
-                                      (mapcar (lambda-bind ((key . value))
-                                                (concatenate 'string
-                                                  key "=" value))
-                                              arg)
-                                      (sb-ext:posix-environ))))
-                           (t (collect arg)))))
-        #+ccl
-        (apply #'ccl:run-program real-name real-args extra-keys)
-        #+ecl
-        (nth-value 2 (apply #'ext:run-program real-name real-args
-                            (mapcar (lambda (it) (if (eq it :env) :environ it))
-                                    extra-keys)))
-        #-(or sbcl ccl ecl)
-        (error "`START-TEST' only supported for SBCL, CCL, or ECL.")))))
+        (format t "  cmd: ~{~a ~}~%" real-cmd))
+      (make-instance
+       'process
+       :os-process
+       (apply #'uiop:launch-program real-cmd
+              #+sbcl
+              ;; Ensure environment values are specified as a list of
+              ;; KEY=VALUE strings expected by SBCL's :environment
+              ;; keyword argument to `sb-ext:run-program'.
+              (iter (for arg in extra-keys)
+                    (for prev previous arg)
+                    (cond ((eq arg :env)
+                           (collect :environment))
+                          ((eq prev :env)
+                           (collect (append
+                                     (mapcar (lambda-bind ((key . value))
+                                               (concatenate 'string
+                                                            key "=" value))
+                                             arg)
+                                     (sb-ext:posix-environ))))
+                          (t (collect arg))))
+              #+ccl
+              extra-keys
+              #+ecl
+              (mapcar (lambda (it) (if (eq it :env) :environ it))
+                      extra-keys))))))
 
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
   "DOCFIXME
@@ -136,40 +138,38 @@ This is a convenience method whose default behavior is simply to run
 * KILL-SIGNAL DOCFIXME
 * TIMEOUT DOCFIXME
 "
-  (flet ((running-p (process)
-           (eq :running (process-status process))))
-    (when (and kill-signal (running-p test-process))
-      ;; If process is running and there's a kill signal, send it.
-      (signal-process test-process kill-signal))
+  (when (and kill-signal (process-running-p test-process))
+    ;; If process is running and there's a kill signal, send it.
+    (signal-process test-process kill-signal))
+
+  ;; If still running and there's a timeout, sleep.
+  (when (and (process-running-p test-process)
+             (and timeout (>= timeout 0)))
+    (sleep timeout))
+
+  ;; If still running, send SIGKILL.
+  (when (process-running-p test-process)
+    (signal-process test-process 9)
 
     ;; If still running and there's a timeout, sleep.
-    (when (and (running-p test-process)
+    (when (and (process-running-p test-process)
                (and timeout (>= timeout 0)))
       (sleep timeout))
 
-    ;; If still running, send SIGKILL.
-    (when (running-p test-process)
-      (signal-process test-process 9)
+    ;; If it's *still* running, warn someone.
+    (when (process-running-p test-process)
+      (note 0 "WARNING: Unable to kill process ~a" test-process)))
 
-      ;; If still running and there's a timeout, sleep.
-      (when (and (running-p test-process)
-                 (and timeout (>= timeout 0)))
-        (sleep timeout))
-
-      ;; If it's *still* running, warn someone.
-      (when (running-p test-process)
-        (note 0 "WARNING: Unable to kill process ~a" test-process)))
-
-    ;; Now that we've made every effort to kill it, read the output.
-    (let* ((stdout (stream-to-string (process-output-stream test-process)))
-           ;; Can't read from error stream if it's the same as stdout.
-           (stderr (unless (eq (process-output-stream test-process)
-                               (process-error-stream test-process))
-                     (stream-to-string (process-error-stream test-process))))
-           (exit-code (process-exit-code test-process)))
-      (when *shell-debug*
-        (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
-      (values stdout stderr exit-code))))
+  ;; Now that we've made every effort to kill it, read the output.
+  (let* ((stdout (stream-to-string (process-output-stream test-process)))
+         ;; Can't read from error stream if it's the same as stdout.
+         (stderr (unless (eq (process-output-stream test-process)
+                             (process-error-stream test-process))
+                   (stream-to-string (process-error-stream test-process))))
+         (exit-code (process-exit-code test-process)))
+    (when *shell-debug*
+      (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
+    (values stdout stderr exit-code)))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
 		     &key &allow-other-keys)
