@@ -43,56 +43,56 @@ synthesis)."))
 
 (defgeneric start-test (phenome test-case &rest extra-keys
                         &key &allow-other-keys)
-  (:documentation "Start an external process to run TEST-CASE on PHENOME and return the `process'.
-
-This is essentially a wrapper around the SBCL or CCL `run-program' methods and any EXTRA-KEYS will be passed through to that method.
+  (:documentation "Start an external process to run TEST-CASE on PHENOME.
+Return the `process'.
 
 * PHENOME the phenome of the `software' object under test.
 * TEST-CASE the `test-case' to run.
-* EXTRA-KEYS additional keyword arguments to pass to the SBCL or CCL `run-program' method. 
-
-Some EXTRA-KEYS that may be useful are:
-* :output and :error - to specify how output and error streams are
-  handled. In some cases, these are sent to /dev/null by default,
-  making output inaccessible after the process completes, so it's
-  often useful to set one or both of these to `:stream' to capture the
-  output.
-
-* :wait - whether to wait for the process to complete before
-  continuing. The default is to wait; however, some
-  components (such as `traceable') may elect not to wait and
-  instead to stream results through a named pipe.
-
-* :env - to set environment variables  
-"))
+* EXTRA-KEYS additional keyword arguments."))
 
 
 (defgeneric finish-test (test-process &key kill-signal timeout)
-  (:documentation "Ensure that TEST-PROCESS either runs to completion or is killed; return the standard output, error output, and process exit code as strings.
+  (:documentation
+   "Ensure that TEST-PROCESS either runs to completion or is killed.
+Return the standard output, error output, and process exit code as strings.
 
 * TEST-PROCESS the `process' associated with the test case.
 
-* KILL-SIGNAL if TEST-PROCESS is still running when `finish-test' is called, this signal will be sent to TEST-PROCESS in an effort to kill it.
+* KILL-SIGNAL if TEST-PROCESS is still running when `finish-test' is called,
+this signal will be sent to TEST-PROCESS in an effort to kill it.
 
-* TIMEOUT if TEST-PROCESS is still running when `finish-test' is called, the Lisp process will sleep for this many seconds, then check if TEST-PROCESS is still running and send a SIGKILL signal if so.
+* TIMEOUT if TEST-PROCESS is still running when `finish-test' is called, the
+Lisp process will sleep for this many seconds, then check if TEST-PROCESS is
+still running and send a SIGKILL signal if so.
 "))
 
 
 (defgeneric run-test (phenome test-case &rest extra-keys &key &allow-other-keys)
   (:documentation "Run TEST-CASE on PHENOME and return the results.
-
-This is a convenience method whose default behavior is simply to run
-`start-test' and `finish-test'.
-"))
+Return the standard output, error output, and process exit code as strings."))
 
 
 (defmethod start-test (phenome (test-case test-case) &rest extra-keys
-		       &key &allow-other-keys)
-  "DOCFIXME
+                       &key &allow-other-keys)
+  "Start an external process to run TEST-CASE on PHENOME.
+Return the `process'. This is a wrapper around `uiop:launch-program', and any
+EXTRA-KEYS will be passed through to that method.
 
-* PHENOME DOCFIXME
-* TEST-CASE DOCFIXME
-* EXTRA-KEYS DOCFIXME
+* PHENOME the phenome of the `software' object under test.
+* TEST-CASE the `test-case' to run.
+* EXTRA-KEYS additional keyword arguments to pass to `uiop:launch-program'.
+
+Some EXTRA-KEYS that may be useful are:
+* :output and :error-output - to specify how output and error streams are
+  handled. In some cases, these are sent to /dev/null by default, making 
+  inaccessible after the process completes, so it's often useful to set one or
+  both of these to `:stream' to capture the output.
+
+* :wait - whether to wait for the process to complete before continuing.
+  The default is to wait; however, some components (such as `traceable') may
+  elect not to wait and instead to stream results through a named pipe.
+
+* :env - to set environment variables
 "
   (flet ((bin-sub (bin it)
            (if (eq :bin it) bin it)))
@@ -132,11 +132,17 @@ This is a convenience method whose default behavior is simply to run
                       extra-keys))))))
 
 (defmethod finish-test ((test-process process) &key kill-signal timeout)
-  "DOCFIXME
+  "Ensure that TEST-PROCESS either runs to completion or is killed.
+Return the standard output, error output, and process exit code as strings.
 
-* TEST-PROCESS DOCFIXME
-* KILL-SIGNAL DOCFIXME
-* TIMEOUT DOCFIXME
+* TEST-PROCESS the `process' associated with the test case.
+
+* KILL-SIGNAL if TEST-PROCESS is still running when `finish-test' is called,
+this signal will be sent to TEST-PROCESS in an effort to kill it.
+
+* TIMEOUT if TEST-PROCESS is still running when `finish-test' is called, the
+Lisp process will sleep for this many seconds, then check if TEST-PROCESS is
+still running and send a SIGKILL signal if so.
 "
   (when (and kill-signal (process-running-p test-process))
     ;; If process is running and there's a kill signal, send it.
@@ -172,13 +178,10 @@ This is a convenience method whose default behavior is simply to run
     (values stdout stderr exit-code)))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
-		     &key &allow-other-keys)
-  "DOCFIXME
-
-* PHENOME DOCFIXME
-* TEST-CASE DOCFIXME
-* EXTRA-KEYS DOCFIXME
-"
+                     &key &allow-other-keys)
+  "Run TEST-CASE on PHENOME and return the results.
+Return three values: output printed to standard out, error output, and exit
+status. Th default behavior is simply to run `start-test' and `finish-test'."
   (finish-test (apply #'start-test phenome test-case extra-keys)))
 
 (defmethod evaluate (phenome (obj test-case) &rest extra-keys
@@ -194,7 +197,8 @@ test output, to determine the fitness score.
 
 - OBJ the `test-case' to run.
 
-- EXTRA-KEYS additional keyword arguments to pass to the SBCL or CCL `run-program' method. See the `start-test' documentation for more information.
+- EXTRA-KEYS additional keyword arguments to pass to `run-test'. See the
+`start-test' documentation for more information.
 "  
   (multiple-value-bind (stdout stderr exit-code)
       (apply #'run-test phenome obj extra-keys)
@@ -203,10 +207,10 @@ test output, to determine the fitness score.
 
 (defmethod evaluate (phenome (test-suite test-suite) &rest extra-keys
                      &key &allow-other-keys)
-  "Evaluate all test-cases in TEST-SUITE collecting their output.
-By default, sum results of applying `evaluate' to each test-case using `reduce'.
-Keyword arguments :function and :initial-value may be used as in `reduce' to
-specify an aggregation function and starting value."
+  "Evaluate all test-cases in TEST-SUITE aggregating their output.
+By default, sum the results of applying `evaluate' to each test-case using
+`reduce'. Keyword arguments `:function' and `:initial-value' may be used as in
+`reduce' to specify an aggregation function and starting value."
   (let ((keys (plist-drop :function (plist-drop :initial-value extra-keys))))
     (apply #'reduce (or (plist-get :function extra-keys) #'+)
            (mapcar (lambda (test) (apply #'evaluate phenome test keys))
