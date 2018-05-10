@@ -152,23 +152,15 @@ See `insert-reset-point'.")
 (defun make-serapi (&optional (program *sertop-path*) (args *sertop-args*))
   "Start up SerAPI and return a PROCESS object to interact with."
   (note 3 "Creating new serapi instance.")
-  #+sbcl
-  (make-instance
-   'serapi-process
-   :os-process (sb-ext:run-program program args
-                                   :input :stream
-                                   :output :stream
-                                   :wait nil
-                                   :search t))
-  #+ccl
-  (make-instance
-   'serapi-process
-   :os-process (ccl:run-program program args
-                                :input :stream
-                                :output :stream
-                                :wait nil))
-  #- (or sbcl ccl)
-  (error "CL-SERAPI-LIB currently only supports SBCL and CCL."))
+  (make-instance 'serapi-process
+                 :os-process
+                 (apply #'uiop:launch-program (cons program args)
+                        (append
+                         (list
+                          :input :stream
+                          :output :stream
+                          :wait nil)
+                         #+sbcl (list :search t)))))
 
 (define-condition serapi-error (error)
   ((text :initarg :text :initform nil :reader text)
