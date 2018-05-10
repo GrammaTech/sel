@@ -25,7 +25,7 @@
    :trace-db)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-library/utility :quit)
-  (:shadowing-import-from :uiop :getenv)
+  (:shadowing-import-from :uiop :getenv :directory-exists-p)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
@@ -38,7 +38,7 @@
    :parse-body :simple-style-warning)
   (:shadowing-import-from
    :cl-fad
-   :pathname-as-directory :directory-exists-p
+   :pathname-as-directory
    :pathname-directory-pathname :pathname-root-p
    :merge-pathnames-as-directory :merge-pathnames-as-file
    :pathname-parent-directory :pathname-equal
