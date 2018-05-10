@@ -542,6 +542,7 @@
    :ast-bit-field-width
    :ast-aux-data
    :clang-type
+   :clang-macro
    :copy-clang-ast
    :make-clang-ast
    :type-array
