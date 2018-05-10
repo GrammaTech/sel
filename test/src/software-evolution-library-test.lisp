@@ -1561,13 +1561,13 @@ suite should be run and nil otherwise."
     (let ((new (copy *hello-world*)))
       (is (slot-value new 'ast-root)
           "ASTs set on copy")
-      (is (ast-equal-p sel::parseable-diff-interface
+      (is (ast-equal-p parseable-diff-interface
                        (slot-value new 'ast-root)
                        (slot-value *hello-world* 'ast-root))
           "Copy and original share ASTs")
 
       (apply-mutation new (make-instance 'clang-swap :object new))
-      (is (ast-equal-p sel::parseable-diff-interface
+      (is (ast-equal-p parseable-diff-interface
                        (slot-value new 'ast-root)
                        (slot-value (copy new) 'ast-root))
           "Additional copies do not cause updates"))))
@@ -1702,7 +1702,7 @@ suite should be run and nil otherwise."
 (deftest clang-copies-share-asts ()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (is (ast-equal-p sel::parseable-diff-interface
+      (is (ast-equal-p parseable-diff-interface
                        (ast-root *hello-world*)
                        (ast-root variant)))
       (is (> (size variant) 0)))))
@@ -1714,7 +1714,7 @@ suite should be run and nil otherwise."
        variant
        `(clang-cut (:stmt1 . ,(stmt-with-text variant
                                               "printf(\"Hello, World!\\n\")"))))
-      (is (ast-equal-p sel::parseable-diff-interface
+      (is (ast-equal-p parseable-diff-interface
                        (stmt-with-text *hello-world* "return 0")
                        (stmt-with-text variant "return 0"))))))
 
@@ -8596,7 +8596,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
@@ -8605,7 +8605,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
@@ -8614,7 +8614,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
@@ -8633,7 +8633,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
@@ -8641,7 +8641,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
@@ -8649,7 +8649,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
@@ -8662,9 +8662,9 @@ TODO: Currently it seems to ignore the first car."))
                            "int x = 1; int y = 5; int z = 3;"))
         (diff (diff-software orig new)))
     (is diff)
-    (is (ast-equal-p sel::parseable-diff-interface
-                          (ast-root (edit-software (copy orig) diff))
-                          (ast-root new)))
+    (is (ast-equal-p parseable-diff-interface
+                     (ast-root (edit-software (copy orig) diff))
+                     (ast-root new)))
     (is (equalp (mapcar #'car diff)
                 '(:same :same :same :recurse :same :same :same)))))
 
@@ -8680,7 +8680,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-a (diff-software orig a)))
       (is diff-a)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
@@ -8688,7 +8688,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-b (diff-software orig b)))
       (is diff-b)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
@@ -8696,7 +8696,7 @@ TODO: Currently it seems to ignore the first car."))
     (let ((diff-c (diff-software orig c)))
       (is diff-c)
       (is (ast-equal-p
-           sel::parseable-diff-interface
+           parseable-diff-interface
            (ast-root (edit-software (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)

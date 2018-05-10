@@ -681,6 +681,7 @@
    :super-mutant
    :diff-software
    :edit-software
+   :parseable-diff-interface
    ;; Coq exports
    :coq
    :coq-project
