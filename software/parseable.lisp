@@ -1,5 +1,4 @@
-;;; parseable.lisp --- software representation which may be
-;;;                    parsed into ASTs
+;;; parseable.lisp --- software which may be parsed into ASTs
 
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
