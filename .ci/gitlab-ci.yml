@@ -99,8 +99,10 @@ trigger_evo-rings:
 pages:
   stage: deploy-and-cleanup
   script:
-    - docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
-    - docker cp $(docker ps -alq):/public ./
+    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch.container
+    - mkdir -p $(dirname ${CONTAINER_FILE})
+    - docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-arch --cidfile=${CONTAINER_FILE} /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
+    - docker cp $(cat ${CONTAINER_FILE}):/public ./
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
   artifacts:
