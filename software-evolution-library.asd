@@ -300,3 +300,22 @@ techniques."
   :licence "GPL V3"
   :depends-on (software-evolution-library/ast-diff cl-who)
   :components ((:file "ast-diff/ast-diff-html")))
+
+(defsystem "software-evolution-library/clang-diff"
+  :description "Calculate difference between two C/C++ programs."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrowz
+               named-readtables
+               curry-compose-reader-macros
+               iterate
+               uiop
+               software-evolution-library/utility
+               software-evolution-library/ast-diff
+               software-evolution-library)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/clang-diff"
+  :entry-point "software-evolution-library/clang-diff::run-clang-diff"
+  :components ((:file "ast-diff/clang-diff")))
