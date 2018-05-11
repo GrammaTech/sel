@@ -95,6 +95,7 @@
    :parse-numbers
    :trim-whitespace
    :make-terminal-raw
+   :getopts
    :which
    ;; forensic
    :arglist

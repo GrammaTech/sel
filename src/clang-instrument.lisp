@@ -1014,25 +1014,6 @@ OBJ a clang software object
 
 
 ;;;; Command line
-(defmacro getopts (&rest forms)
-  "Collect command-line options from ARGS in an executable.
-
-For usage see the definition of `clang-instrument'.  E.g.,
-
-    (getopts
-      (\"-c\" \"--compiler\" (setf (compiler original) (pop args)))
-      (\"-e\" \"--exit\" (setf instrument-exit t))
-      (\"-F\" \"--flags\" (setf (flags original) (split-sequence #\, (pop args))))
-      #| ... |#)
-"
-  (let ((arg (gensym)))
-    `(loop :for ,arg = (pop args) :while ,arg :do
-        (cond
-          ,@(mapcar (lambda-bind ((short long . body))
-                      `((or (string= ,arg ,short) (string= ,arg ,long)) ,@body))
-                    forms)
-          (:otherwise (error "Unrecognized argument:~a" ,arg))))))
-
 (defun run-clang-instrument ()
   "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
   (clang-instrument (cons (argv0) *command-line-arguments*)))
@@ -1089,7 +1070,7 @@ Built with SEL version ~a, and ~a version ~a.~%"
           original (from-file original path))
 
     ;; Options.
-    (getopts
+    (getopts (args)
       ("-c" "--compiler" (setf (compiler original) (pop args)))
       ("-e" "--exit" (setf instrument-exit t))
       ("-F" "--flags" (setf (flags original) (split-sequence #\, (pop args))))

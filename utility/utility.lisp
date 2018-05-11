@@ -633,6 +633,33 @@ See 'man 3 termios' for more information."
              (when (probe-file fullpath)
                (return fullpath)))))
 
+(defmacro getopts (args-and-opts &rest forms)
+  "Collect command-line options from ARGS in an executable.
+
+For usage see the definition of `clang-instrument'.  E.g.,
+
+    (getopts
+      (\"-c\" \"--compiler\" (setf (compiler original) (pop args)))
+      (\"-e\" \"--exit\" (setf instrument-exit t))
+      (\"-F\" \"--flags\" (setf (flags original) (split-sequence #\, (pop args))))
+      #| ... |#)
+"
+  (let ((arg (gensym))
+        (getopts-block (gensym))
+        (unknown (or (plist-get :unknown (cdr args-and-opts)) :error)))
+    `(block ,getopts-block
+       (loop :for ,arg = (pop ,(car args-and-opts)) :while ,arg :do
+          (cond
+            ,@(mapcar (lambda-bind ((short long . body))
+                        `((or (string= ,arg ,short) (string= ,arg ,long))
+                          ,@body))
+                      forms)
+            (:otherwise
+             ,(case unknown
+               (:error `(error "Unrecognized argument:~a" ,arg))
+               (:return `(progn (push ,arg ,(car args-and-opts))
+                                (return-from ,getopts-block))))))))))
+
 
 ;;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)
