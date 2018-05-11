@@ -335,7 +335,8 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 (defmethod process-exit-code ((process process))
   "Return the exit code for PROCESS, or nil if PROCESS has not exited."
-  (slot-value (os-process process) 'uiop/launch-program::exit-code))
+  (and (not (process-running-p process))
+       (wait-process (os-process process))))
 
 (defgeneric process-status (process)
   (:documentation "Return the status of PROCESS.
