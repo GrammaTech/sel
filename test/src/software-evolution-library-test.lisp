@@ -21,7 +21,10 @@
 (defun run-testbot (&rest a)
   (declare (ignorable a))
   (testbot-test #'test "SEL" +software-evolution-library-branch+))
-(defun run-batch (&rest a) (declare (ignorable a)) (batch-test #'test))
+(defun run-batch (&rest a)
+  (declare (ignorable a))
+  #+ccl (setf *interactive-streams-initialized* nil)
+  (batch-test #'test))
 
 (defsuite* test)                        ; The root test suite.
 
