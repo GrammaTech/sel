@@ -293,3 +293,10 @@ techniques."
                software-evolution-library/utility)
   :in-order-to ((test-op (test-op "software-evolution-library/test")))
   :components ((:file "ast-diff/ast-diff")))
+
+(defsystem "software-evolution-library/ast-diff-html"
+  :description "Compute differences between ASTs and other tree structures."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (software-evolution-library/ast-diff cl-who)
+  :components ((:file "ast-diff/ast-diff-html")))
