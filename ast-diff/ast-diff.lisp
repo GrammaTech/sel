@@ -1,3 +1,31 @@
+;;; ast-diff.lisp --- diffs between ASTs and other tree structures
+;;
+;; From http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer
+;;
+;;; TODO:
+;; Costed structure
+;; - cache s expression length and cost
+;; - struct outside algorithm
+;;
+;; Skipping identical prefixes and suffixes
+;;
+;; Add cost of switch, two grids
+;;
+;; Lazy “switch” creation
+;;
+;; Profile
+;;
+;; A-star
+;;
+;; Sub-diff for text (customizable)
+;;
+;; Lisp differ
+;; - collect comments
+;; - is diff in comments
+;; - command line ex’s suitable for use by git
+;;
+;; C differ
+;; - command line ex’s suitable for use by git
 (defpackage :software-evolution-library/ast-diff
   (:nicknames :sel/ast-diff)
   (:use
