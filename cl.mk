@@ -64,7 +64,7 @@ ifneq (,$(findstring ecl, $(LISP)))
 # TODO: Figure out how to set --heap-size appropriately.
 LISP_FLAGS = --norc
 else
-LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init
+LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init --batch
 endif
 endif
 else
