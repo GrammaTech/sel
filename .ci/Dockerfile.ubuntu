@@ -8,34 +8,45 @@ RUN eval `opam config env` && \
     opam install coq-serapi=8.7.2+0.4.13
 
 
-FROM docker.grammatech.com:14850/synthesis/cl
+# FROM cl-ubuntu as cl
+# FROM java-mutator-ubuntu as java-mutator
+# FROM clang-mutate-ubuntu as clang-mutate
+FROM docker.grammatech.com:14850/synthesis/cl as cl
+FROM docker.grammatech.com:14850/synthesis/java-mutator as java-mutator
+FROM docker.grammatech.com:14850/synthesis/clang-mutate as clang-mutate
+FROM ubuntu:16.04
 
 RUN apt-get -y update && \
-    apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev \
-        unzip opam
+    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip
+
+RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz
+RUN tar xf astyle_3.1_linux.tar.gz
+RUN cd astyle/build/gcc && make release
+RUN cp astyle/build/gcc/bin/astyle /usr/bin
+RUN rm -rf astyle
+RUN rm -rf astyle_3.1_linux.tar.gz
 
 COPY --from=coq-serapi /root/.opam /root/.opam
+COPY --from=clang-mutate /usr/synth/ /usr/synth/
+COPY --from=cl /usr/synth/quicklisp /usr/synth/quicklisp
+COPY --from=cl /usr/synth/lib/ccl /usr/synth/lib/ccl
+COPY --from=cl /usr/synth/lib/sbcl /usr/synth/lib/sbcl
+COPY --from=cl /usr/synth/bin/ccl /usr/synth/bin/ccl
+COPY --from=cl /usr/synth/bin/sbcl /usr/synth/bin/sbcl
+COPY --from=cl /usr/synth/share/ccl /usr/synth/share/ccl
+COPY --from=cl /usr/synth/share/doc/ccl /usr/synth/share/doc/ccl
+COPY --from=cl /usr/synth/share/doc/sbcl /usr/synth/share/doc/sbcl
+COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
 
-RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz && \
-    tar xf astyle_3.1_linux.tar.gz && \
-    cd astyle/build/gcc && \
-    make release && \
-    cp bin/astyle /usr/synth/bin && \
-    cd - && \
-    rm -rf astyle && \
-    rm -rf astyle_3.1_linux.tar.gz
-
-ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:$PATH \
-    GT_DOCKER_CHOWN_PATHS="" \
-    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH \
+ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
+    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 \
     SERAPI=/root/.opam/4.06.0/bin/sertop \
     COQLIB=/root/.opam/4.06.0/lib/coq/
 
 ARG GT
 COPY . /gt/sel
 
-RUN cd /gt/sel && make
-
 WORKDIR /gt/sel
-
+RUN make
 CMD /bin/bash

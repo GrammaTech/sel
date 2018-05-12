@@ -15,16 +15,17 @@ stages:
 
 .build-template: &build
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     - if [ "$OS" = "ubuntu" ];
       then
-          docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
+          export TAG=latest;
       else
-          docker pull $DOCKER_REGISTRY/synthesis/cl:$OS;
+          export TAG=${OS};
       fi
-
-    - cp .ci/Dockerfile.$OS Dockerfile
-    - docker build --build-arg=GT=yes -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/cl:${TAG}
+    - docker build --build-arg=GT=yes -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS} .
 
 build-ubuntu:
   stage: build-ubuntu
