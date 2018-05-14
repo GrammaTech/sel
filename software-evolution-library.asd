@@ -310,6 +310,7 @@ techniques."
                cl-arrowz
                named-readtables
                curry-compose-reader-macros
+               metabang-bind
                iterate
                uiop
                software-evolution-library/utility
