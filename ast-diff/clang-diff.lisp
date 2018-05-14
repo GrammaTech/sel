@@ -43,13 +43,16 @@
                          unified raw)
   "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
   (declare (ignorable unified))
-  (when (or (not args)
-            (< (length args) 1)
-            (string= (subseq (car args) 0 (min 2 (length (car args))))
-                     "-h")
-            (string= (subseq (car args) 0 (min 3 (length (car args))))
-                     "--h"))
-    (format t "Usage: ~a [OPTION]... FILES
+  (flet ((report (fmt &rest args)
+           (apply #'format *error-output* (concatenate 'string "~a: " fmt)
+                  self args)))
+    (when (or (not args)
+              (< (length args) 1)
+              (string= (subseq (car args) 0 (min 2 (length (car args))))
+                       "-h")
+              (string= (subseq (car args) 0 (min 3 (length (car args))))
+                       "--h"))
+      (format t "Usage: ~a [OPTION]... FILES
 Compare FILES line by line.
 
 Options:
@@ -57,34 +60,35 @@ Options:
  -U NUM, --unified NUM     output NUM (default 3) lines of unified context
 
 Built with SEL version ~a, and ~a version ~a.~%"
-            self +software-evolution-library-version+
-            (lisp-implementation-type) (lisp-implementation-version))
-    (quit))
-  ;; Argument handling and checking.
-  (getopts (args :unknown :return)
-    ("-U" "--unified" (setf unified (parse-number (pop args))))
-    ("-r" "--raw" (setf raw t)))
-  (when (= (length args) 1)
-    (format *error-output* "~a: missing operand after '~a'~%" self (car args))
-    (format *error-output* "~a: Try '~a --help' for more information." self self)
-    (quit 2))
-  (when (> (length args) 2)
-    (format *error-output* "~a: extra operand '~a'~%" self (third args))
-    (format *error-output* "~a: Try '~a --help' for more information." self self)
-    (quit 2))
-  (when (some #'identity
-              (mapcar (lambda (file)
-                        (unless (probe-file file)
-                          (format *error-output*
-                                  "~a: ~a: No such file or directory~%"
-                                  self (third args))
-                          t))
-                      args))
-    (quit 2))
-  ;; Create the diff.
-  (let ((diff (diff-software (from-file (make-instance 'clang) (first args))
-                             (from-file (make-instance 'clang) (second args)))))
-    ;; Print according to the RAW option.
-    (if raw (pprint diff) (print-diff diff))
-    ;; Only exit with 0 if the two inputs match.
-    (quit (if (every [{eql :same} #'car] diff) 0 1))))
+              self +software-evolution-library-version+
+              (lisp-implementation-type) (lisp-implementation-version))
+      (quit))
+    ;; Argument handling and checking.
+    (getopts (args :unknown :return)
+      ("-U" "--unified" (setf unified (parse-number (pop args))))
+      ("-r" "--raw" (setf raw t)))
+    (when (= (length args) 1)
+      (report "missing operand after '~a'~%" (car args))
+      (report "Try '~a --help' for more information." self)
+      (quit 2))
+    (when (> (length args) 2)
+      (report "extra operand '~a'~%" (third args))
+      (report "Try '~a --help' for more information." self)
+      (quit 2))
+    (when (some #'identity
+                (mapcar (lambda (file)
+                          (unless (probe-file file)
+                            (format *error-output*
+                                    "~a: ~a: No such file or directory~%"
+                                    self (third args))
+                            t))
+                        args))
+      (quit 2))
+    ;; Create the diff.
+    (let ((diff
+           (diff-software (from-file (make-instance 'clang) (first args))
+                          (from-file (make-instance 'clang) (second args)))))
+      ;; Print according to the RAW option.
+      (if raw (pprint diff) (print-diff diff))
+      ;; Only exit with 0 if the two inputs match.
+      (quit (if (every [{eql :same} #'car] diff) 0 1)))))
