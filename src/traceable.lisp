@@ -5,9 +5,6 @@
 (defvar *trace-open-timeout* 10
   "Timeout (in seconds) when opening pipe to collect traces.")
 
-(defvar *process-kill-timeout* 10
-  "Timeout (in seconds) before killing a process with SIGKILL")
-
 (define-software traceable (software)
   ((traces :initarg :traces :accessor traces :initform nil :copier :direct
            :documentation "Execution traces from execution of the software."))
@@ -145,7 +142,7 @@ times."))
                            (unless (probe-file handshake-file)
                              (return t))
 
-                           (unless (eq :running (process-status proc))
+                           (unless (process-running-p proc)
                              (note 4 "Test process exited")
                              (return nil))
 
@@ -161,8 +158,7 @@ times."))
                                                      (program-args test-case))))
                                         :max max))))
                   (finally
-                   (finish-test proc :kill-signal 15
-                                     :timeout *process-kill-timeout*)
+                   (finish-test proc)
                    (restart-case
                        ;; This usually indicates a problem with the
                        ;; test script or the instrumentation
@@ -293,8 +289,7 @@ times."))
                         :bin bin)))
             (ignore-empty-trace ()
               :report "Ignore empty trace"))
-            (finish-test proc :kill-signal 15
-                          :timeout *process-kill-timeout*)))
+            (finish-test proc)))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
       (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)
