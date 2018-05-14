@@ -1,4 +1,11 @@
 ;;; clang-diff.lisp --- render ast diffs to html
+;;
+;; TODO: Add instructions for setting up git-difftool to use.
+;;       - This can be done using the "-x" command to git-difftool
+;;       - This can be done with configuration
+;;         difftool.<tool>.path = $SEL/bin/clang-diff
+;;         difftool.<tool>.cmd = clang-diff $LOCAL $REMOTE|colordiff
+;;
 (defpackage :software-evolution-library/clang-diff
   (:nicknames :sel/clang-diff)
   (:use :common-lisp
