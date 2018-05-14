@@ -488,6 +488,8 @@
    :clang-project
    :project-dir
    :compilation-database
+   :*process-sleep-interval*
+   :*process-kill-timeout*
    :test-suite
    :test-cases
    :test-case

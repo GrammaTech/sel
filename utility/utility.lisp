@@ -354,20 +354,12 @@ One of :running, :stopped, :signaled, or :exited."
   "Return T if PROCESS is running, NIL otherwise."
   (uiop:process-alive-p (os-process process)))
 
-(defgeneric signal-process (process signal-number)
-  (:documentation "Send the signal SIGNAL-NUMBER to PROCESS."))
+(defgeneric kill-process (process &key urgent)
+  (:documentation
+   "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL."))
 
-(defmethod signal-process ((process process) (signal-number integer))
-  "Send the signal SIGNAL-NUMBER to PROCESS."
-  (multiple-value-bind (stdout stderr errno)
-      (shell "kill -~d -$(ps -o pgid= ~d | ~
-                          grep -o '[0-9]*' | ~
-                          head -n 1 | ~
-                          tr -d ' ')"
-             signal-number
-             (process-id process))
-    (declare (ignorable stdout stderr))
-    (zerop errno)))
+(defmethod kill-process (process &key urgent)
+  (uiop/launch-program::terminate-process (os-process process) :urgent urgent))
 
 
 ;;;; Shell and system command helpers

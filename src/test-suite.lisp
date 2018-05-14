@@ -2,6 +2,12 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
+(defvar *process-sleep-interval* 0.1
+  "Frequency (in seconds) at which to check if a process has completed.")
+
+(defvar *process-kill-timeout* 10
+  "Timeout (in seconds) before killing a process with SIGKILL")
+
 (defclass test-suite ()
   ((test-cases
     :initarg :test-cases :initform nil :accessor test-cases :type list
@@ -51,19 +57,12 @@ Return the `process'.
 * EXTRA-KEYS additional keyword arguments."))
 
 
-(defgeneric finish-test (test-process &key kill-signal timeout)
+(defgeneric finish-test (test-process)
   (:documentation
    "Ensure that TEST-PROCESS either runs to completion or is killed.
 Return the standard output, error output, and process exit code as strings.
 
 * TEST-PROCESS the `process' associated with the test case.
-
-* KILL-SIGNAL if TEST-PROCESS is still running when `finish-test' is called,
-this signal will be sent to TEST-PROCESS in an effort to kill it.
-
-* TIMEOUT if TEST-PROCESS is still running when `finish-test' is called, the
-Lisp process will sleep for this many seconds, then check if TEST-PROCESS is
-still running and send a SIGKILL signal if so.
 "))
 
 
@@ -131,36 +130,40 @@ Some EXTRA-KEYS that may be useful are:
               (mapcar (lambda (it) (if (eq it :env) :environ it))
                       extra-keys))))))
 
-(defmethod finish-test ((test-process process) &key kill-signal timeout)
+(defmethod finish-test ((test-process process))
   "Ensure that TEST-PROCESS either runs to completion or is killed.
 Return the standard output, error output, and process exit code as strings.
 
 * TEST-PROCESS the `process' associated with the test case.
 
-* KILL-SIGNAL if TEST-PROCESS is still running when `finish-test' is called,
-this signal will be sent to TEST-PROCESS in an effort to kill it.
-
-* TIMEOUT if TEST-PROCESS is still running when `finish-test' is called, the
-Lisp process will sleep for this many seconds, then check if TEST-PROCESS is
-still running and send a SIGKILL signal if so.
+See also `*process-sleep-interval*' and `*process-kill-timeout*'. If
+TEST-PROCESS is still running when `finish-test' is called, alternate between
+sleeping for `*process-sleep-interval*' seconds and checking again until either
+`*process-kill-timeout*' seconds have elapsed or the process completes. After
+the timeout, send a SIGTERM signal if TEST-PROCESS is still running, sleep for
+`*process-sleep-interval*' seconds once more and then if the process is still
+running, send a SIGKILL signal.
 "
-  (when (and kill-signal (process-running-p test-process))
-    ;; If process is running and there's a kill signal, send it.
-    (signal-process test-process kill-signal))
-
-  ;; If still running and there's a timeout, sleep.
+  ;; If still running and there are timeout and sleep intervals, sleep up to
+  ;; timeout, checking if process is still running every sleep-interval seconds.
   (when (and (process-running-p test-process)
-             (and timeout (>= timeout 0)))
-    (sleep timeout))
+             timeout (> timeout 0)
+             sleep-interval (> sleep-interval 0))
+    (iter (for i below (floor (/ timeout sleep-interval)))
+          (if (process-running-p test-process)
+              (sleep sleep-interval)
+              (leave t))))
 
-  ;; If still running, send SIGKILL.
+  ;; Send a non-urgent kill signal (SIGTERM)
   (when (process-running-p test-process)
-    (signal-process test-process 9)
+      (kill-process test-process))
 
-    ;; If still running and there's a timeout, sleep.
-    (when (and (process-running-p test-process)
-               (and timeout (>= timeout 0)))
-      (sleep timeout))
+  ;; If still running, sleep short interval, then send an urgent kill signal
+  ;; (SIGKILL).
+  (when (process-running-p test-process)
+    (sleep sleep-interval)
+    (when (process-running-p test-process)
+      (kill-process test-process :urgent t))
 
     ;; If it's *still* running, warn someone.
     (when (process-running-p test-process)
@@ -172,7 +175,8 @@ still running and send a SIGKILL signal if so.
          (stderr (unless (eq (process-output-stream test-process)
                              (process-error-stream test-process))
                    (stream-to-string (process-error-stream test-process))))
-         (exit-code (process-exit-code test-process)))
+         (exit-code (or (process-exit-code test-process)
+                        (wait-process (os-process test-process)))))
     (when *shell-debug*
       (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
     (values stdout stderr exit-code)))

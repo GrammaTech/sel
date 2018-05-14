@@ -79,7 +79,7 @@
    :process-exit-code
    :process-status
    :process-running-p
-   :signal-process
+   :kill-process
    ;; Shell execution
    :*shell-debug*
    :*shell-error-codes*
