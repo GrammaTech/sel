@@ -596,7 +596,7 @@ See 'man 3 termios' for more information."
              (when (probe-file fullpath)
                (return fullpath)))))
 
-(defmacro getopts (args-and-opts &rest forms)
+(defmacro getopts (args-and-opts &body forms)
   "Collect command-line options from ARGS in an executable.
 
 For usage see the definition of `clang-instrument'.  E.g.,
