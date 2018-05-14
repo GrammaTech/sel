@@ -5967,9 +5967,10 @@ prints unique counters in the trace"
       (phenome *soft* :bin bin)
       (let ((proc (start-test bin
                               (make-instance 'test-case :program-name bin)
-                              :wait nil)))
-        (finish-test proc :kill-signal 15 :timeout 4)
-        (is (not (eq :running (process-status proc)))
+                              :wait nil))
+            (*process-kill-timeout* 4))
+        (finish-test proc)
+        (is (not (process-running-p proc))
             "finish-test did not kill a long running process")))))
 
 (deftest env-variables-passed-through-to-test-suites ()
