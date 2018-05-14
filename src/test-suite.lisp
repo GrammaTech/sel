@@ -147,21 +147,22 @@ running, send a SIGKILL signal.
   ;; If still running and there are timeout and sleep intervals, sleep up to
   ;; timeout, checking if process is still running every sleep-interval seconds.
   (when (and (process-running-p test-process)
-             timeout (> timeout 0)
-             sleep-interval (> sleep-interval 0))
-    (iter (for i below (floor (/ timeout sleep-interval)))
+             *process-kill-timeout* (> *process-kill-timeout* 0)
+             *process-sleep-interval* (> *process-sleep-interval* 0))
+    (iter (for i below (floor (/ *process-kill-timeout*
+                                 *process-sleep-interval*)))
           (if (process-running-p test-process)
-              (sleep sleep-interval)
+              (sleep *process-sleep-interval*)
               (leave t))))
 
   ;; Send a non-urgent kill signal (SIGTERM)
   (when (process-running-p test-process)
-      (kill-process test-process))
+    (kill-process test-process))
 
   ;; If still running, sleep short interval, then send an urgent kill signal
   ;; (SIGKILL).
   (when (process-running-p test-process)
-    (sleep sleep-interval)
+    (sleep *process-sleep-interval*)
     (when (process-running-p test-process)
       (kill-process test-process :urgent t))
 
