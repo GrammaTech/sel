@@ -77,7 +77,6 @@
    :process-output-stream
    :process-error-stream
    :process-exit-code
-   :process-status
    :process-running-p
    :kill-process
    ;; Shell execution

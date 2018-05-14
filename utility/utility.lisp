@@ -338,15 +338,6 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (and (not (process-running-p process))
        (wait-process (os-process process))))
 
-(defgeneric process-status (process)
-  (:documentation "Return the status of PROCESS.
-One of :running, :stopped, :signaled, or :exited."))
-
-(defmethod process-status ((process process))
-  "Return the status of PROCESS.
-One of :running, :stopped, :signaled, or :exited."
-  (uiop/launch-program::%process-status (os-process process)))
-
 (defgeneric process-running-p (process)
   (:documentation "Return T if PROCESS is running, NIL otherwise."))
 
