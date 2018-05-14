@@ -389,7 +389,7 @@ See also `insert-reset-point'."
 
 (defmethod kill-serapi ((serapi serapi-process) &key (signal 9))
   "Ensure SerAPI process is terminated."
-  (signal-process serapi signal)
+  (kill-process serapi :urgent (eql signal 9))
   (setf (reset-points serapi) nil))
 
 (defmacro with-serapi ((&optional (process *serapi-process*))
@@ -400,7 +400,7 @@ Uses default path and arguments for sertop (`*sertop-path*' and
   (let ((old-proc (gensym)))
     `(let ((,old-proc
             ;; save old process
-            (when (and ,process (eql :RUNNING (process-status ,process)))
+            (when (and ,process (process-running-p ,process))
               ,process)))
        (let ((*serapi-process* (or ,old-proc (make-serapi))))
          (unwind-protect
