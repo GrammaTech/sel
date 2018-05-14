@@ -8742,10 +8742,10 @@ TODO: Currently it seems to ignore the first car."))
   (is *sertop-path*)
   (let ((serapi (make-serapi)))
     (is serapi)
-    (is (eql :running (process-status serapi)))
+    (is (process-running-p serapi))
     (kill-serapi serapi)
     (sleep 0.1)
-    (is (not (eql :running (process-status serapi))))))
+    (is (not (process-running-p serapi)))))
 
 (deftest with-serapi-creates-new-process ()
   (is (not *serapi-process*))
@@ -8761,7 +8761,7 @@ TODO: Currently it seems to ignore the first car."))
 
 (deftest with-serapi-can-capture-process ()
   (with-fixture serapi
-    (is (eql :running (process-status *serapi-process*)))
+    (is (process-running-p *serapi-process*))
     (let ((serproc (make-serapi)))
       ;; serproc is a different process than *serapi-process*
       (is (not (eq serproc *serapi-process*)))
@@ -8775,10 +8775,10 @@ TODO: Currently it seems to ignore the first car."))
                     (read-serapi-response serproc)
                     :test #'equal)))
       ;; serproc isn't killed after with-serapi ends
-      (is (eql :running (process-status serproc)))
+      (is (process-running-p serproc))
       (kill-serapi serproc))
     ;; *serapi-process isn't killed after with-serapi ends
-    (is (eql :RUNNING (process-status *serapi-process*)))))
+    (is (process-running-p *serapi-process*))))
 
 (deftest serapi-special-character-handling ()
   (let* ((src "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
