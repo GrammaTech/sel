@@ -58,11 +58,7 @@
                            (build-target clang-project)
                            stdout stderr))))
            (relativize (clang-project path)
-             (replace-all (-> (if (-> (pathname-as-directory path)
-                                      (directory-exists-p))
-                                  (pathname-as-directory path)
-                                  path)
-                              (canonical-pathname)
+             (replace-all (-> (canonical-pathname path)
                               (namestring))
                           (-> (project-dir clang-project)
                               (pathname-as-directory)
@@ -121,9 +117,11 @@
                                     (->> (pathname-as-directory f)
                                          (get-project-path clang-project))
                                     (->> (merge-pathnames-as-directory
-                                           (->> (aget :directory entry)
-                                                (make-pathname :directory))
-                                           (make-pathname :directory f))
+                                           (make-pathname :directory
+                                                          (aget :directory
+                                                                entry))
+                                           (make-pathname :directory
+                                                          (list :relative f)))
                                          (pathname-as-directory)
                                          (get-project-path clang-project)))
                                 f)))
