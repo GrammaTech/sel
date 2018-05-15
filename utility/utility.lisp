@@ -343,7 +343,7 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 (defmethod process-running-p ((process process))
   "Return T if PROCESS is running, NIL otherwise."
-  (uiop:process-alive-p (os-process process)))
+  (process-alive-p (os-process process)))
 
 (defgeneric kill-process (process &key urgent)
   (:documentation
