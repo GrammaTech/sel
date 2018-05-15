@@ -74,7 +74,7 @@ else
 ifneq (,$(findstring ecl, $(LISP)))
 LISP_FLAGS = --norc
 else
-LISP_FLAGS = --quiet --no-init
+LISP_FLAGS = --quiet --no-init --batch
 endif
 endif
 endif
