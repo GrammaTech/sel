@@ -47,7 +47,12 @@
    :ast-cost
    :ast-can-recurse
    :ast-on-recurse
-   :ast-text))
+   :ast-text
+   :costed-list
+   :ccar
+   :ccdr
+   :clength
+   :ccost))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -79,8 +84,58 @@
 (defmethod ast-text ((interface ast-interface) ast)
   (funcall (slot-value interface 'text) ast))
 
-(defun ast-diff (interface ast-a ast-b
-                 &optional (depth 0))
+(defstruct (costed-list (:conc-name c))
+  "Lists with a cost associated with every cons."
+  ;; Used below to both:
+  ;; - hold edit scripts with accumulating costs.
+  ;; - hold costed versions of the input ASTs with associated costs.
+  (car nil)
+  (cdr nil)
+  (length 0 :type fixnum)
+  (cost 0 :type fixnum))
+
+(defmethod ccons ((car costed-list) (cdr costed-list))
+  (make-costed-list :car car
+                    :cdr cdr
+                    :length (1+ (clength cdr))
+                    :cost (+ (ccost car) (ccost cdr))))
+
+(defun list-to-costed-list (interface ast)
+  (reduce (lambda (acc el)
+            (if (consp el)
+                (ccons (list-to-costed-list interface el)
+                       acc)
+                (ccons (make-costed-list
+                        :car el
+                        :length 1
+                        :cost (ast-cost interface el))
+                       acc)))
+          (reverse (tree-right-walk ast))
+          :initial-value (make-costed-list)))
+
+(defmethod costed-list-to-list ((clist costed-list))
+  (labels ((to-list (clist)
+             (cons (if (costed-list-p (ccar clist))
+                       (costed-list-to-list (ccar clist))
+                       (ccar clist))
+                   (if (costed-list-p (ccdr clist))
+                       (costed-list-to-list (ccdr clist))
+                       (ccdr clist)))))
+    (values (to-list clist) (ccost clist))))
+
+(defmethod cnull ((clist costed-list))
+  (zerop (clength clist)))
+
+;;; TODO: Fix this nonsense:
+;; SEL/TEST> (ast-diff *sexp-diff-interface* '(1 2 3 4) '(1 2 (2 4 5) 3 88))
+;; ((:SAME . 1) (:SAME . 2) (:DELETE . 3) (:DELETE . 4) NIL)
+;; 14
+;; SEL/TEST> (ast-diff *sexp-diff-interface* '(1 2 3 4 88) '(1 2 (2 4 5) 3 88))
+;; ((:SAME . 1) (:SAME . 2) (:INSERT 2 4 5) (:SAME . 3) (:DELETE . 4) (:SAME . 88)
+;;  NIL)
+;; 4
+;; TODO: Also, the apply-append thing is gross.
+(defun ast-diff (interface ast-a ast-b)
   "Return a least-cost edit script which transforms AST-A into AST-B.
 Also return a second value indicating the cost of the edit.
 
@@ -110,82 +165,91 @@ may be examined by the interface functions) and the CDR is the children.
   ;; avoid redundant computation. Each dimension is padded by 1 to
   ;; simplify boundary conditions.
   (declare (optimize speed))
-  (declare (type fixnum depth))
-  (let* ((vec-a (coerce (append (tree-right-walk
-                                 (ast-on-recurse interface ast-a)) '(nil))
-                        'vector))
-         (vec-b (coerce (append (tree-right-walk
-                                 (ast-on-recurse interface ast-b)) '(nil))
-                        'vector))
-         (costs (make-array (list (length vec-a) (length vec-b))
-                            :initial-element nil)))
+  (let* ((costed-a (list-to-costed-list interface (ast-on-recurse interface ast-a)))
+         (costed-b (list-to-costed-list interface (ast-on-recurse interface ast-b)))
+         (maximum-cost (+ (ccost costed-a) (ccost costed-b) 1)))
     (labels
-        ;; Result is a list of (script cost)
-        ((cost (result)
-           (if result (second result) infinity))
-         (script (result)
-           (when result (first result)))
-         (extend (result script cost)
-           (list (cons script (script result))
-                 (+ cost (cost result))))
-         (compute-diff (index-a index-b)
-           (declare (type fixnum index-a))
-           (declare (type fixnum index-b))
-           ;; Moving off the grid is illegal/infinite cost.
-           (when (some #'>= (list index-a index-b) (array-dimensions costs))
-             (return-from compute-diff (list nil infinity)))
+        ((recursive-diff (costed-a costed-b)
+           (let ((costs (make-array (list (clength costed-a)
+                                          (clength costed-b))
+                                    :initial-element nil)))
+             ;; Compute diff from start (top,left) to the target (bottom,right).
+             (let ((it (compute-diff costed-a costed-b costs)))
+               ;; (format t "RECURSIVE:~S~%" it)
+               it)))
 
-           ;; Use memoized value if available.
-           (&>> (aref costs index-a index-b)
-                (return-from compute-diff))
+         (memoized-compute-diff (costed-a costed-b costs)
+           ;; (format t "COMPUTE-DIFF:~S~%" (list costed-a costed-b costs))
+           ;; Finished when both trees are empty.
+           (when (and (cnull costed-a)
+                      (cnull costed-b))
+             (return-from memoized-compute-diff (make-costed-list)))
+           ;; Moving off the grid is illegal.
+           (when (or (cnull costed-a)
+                     (cnull costed-b))
+             ;; Compute a maximum cost.
+             ;; (format t "OUTSIDE:~S~%" (make-costed-list :cost maximum-cost))
+             (return-from memoized-compute-diff
+               (make-costed-list :cost maximum-cost)))
 
-           (let* ((head-a (aref vec-a index-a))
-                  (head-b (aref vec-b index-b))
-                  (heads-equal (ast-equal-p interface head-a head-b))
-                  (can-recurse (ast-can-recurse interface head-a head-b))
-                  ;; Compute neighbors.
-                  (down (compute-diff index-a (1+ index-b)))
-                  (across (compute-diff (1+ index-a) index-b))
-                  ;; Only compute diagonal and recursive costs if needed.
-                  (diagonal (when (or heads-equal can-recurse)
-                              (compute-diff (1+ index-a) (1+ index-b))))
-                  (subtree (when (and can-recurse (not heads-equal))
-                             (multiple-value-list
-                              (ast-diff interface head-a head-b (1+ depth)))))
-                  ;; Actions.
-                  (same (when heads-equal
-                          (extend diagonal
-                                  (list :same head-a head-b)
-                                  0)))
-                  (recurse (extend diagonal
-                                   (cons :recurse (script subtree))
-                                   (cost subtree)))
-                  (insert (extend down
-                                  (cons :insert head-b)
-                                  (ast-cost interface (aref vec-b index-b))) )
-                  (delete (extend across
-                                  (cons :delete head-a)
-                                  (ast-cost interface (aref vec-a index-a)))))
-             ;; Pick the best action.
-             ;; Note: Illegal actions will have infinite cost so we
-             ;;       don't have to consider them specially here.
-             (setf (aref costs index-a index-b)
-                   (let ((it (cond
-                               ((and (<= (cost same) (cost insert))
-                                     (<= (cost same) (cost delete)))
-                                same)
-                               ((and (<= (cost recurse) (cost insert))
-                                     (<= (cost recurse) (cost delete)))
-                                recurse)
-                               ((< (cost insert) (cost delete))
-                                insert)
-                               (t delete))))
-                     ;; (format t "~a ~a ~a ~a~%" depth index-a index-b (cost it))
-                     it)))))
-      ;; Pre-fill the grid for the target state.
-      (setf (aref costs (1- (length vec-a)) (1- (length vec-b))) '(nil 0))
-      ;; Compute diff from the start (top,left) to the target (bottom,right).
-      (values-list (compute-diff 0 0)))))
+           (destructuring-bind (pos-a pos-b)
+               (destructuring-bind (size-a size-b) (array-dimensions costs)
+                 (declare (type fixnum size-a))
+                 (declare (type fixnum size-b))
+                 (list (- size-a (clength costed-a))
+                       (- size-b (clength costed-b))))
+
+             ;; Use memoized value if available.
+             (when-let ((memoized (aref costs pos-a pos-b)))
+               ;; (format t "MEMOIZED:~S~%" memoized)
+               (return-from memoized-compute-diff memoized))
+
+             (setf (aref costs pos-a pos-b)
+                   (compute-diff costed-a costed-b costs))))
+
+         (compute-diff (costed-a costed-b costs)
+           (declare (type (SIMPLE-ARRAY T) costs))
+           (let ((insert (ccons (multiple-value-bind (list cost)
+                                    (costed-list-to-list (ccar costed-b))
+                                  (make-costed-list :car :insert :cdr (apply #'append list) :cost cost))
+                                (memoized-compute-diff costed-a (ccdr costed-b) costs)))
+                 (delete (ccons (multiple-value-bind (list cost)
+                                    (costed-list-to-list (ccar costed-a))
+                                  (make-costed-list :car :delete :cdr (apply #'append list) :cost cost))
+                                (memoized-compute-diff (ccdr costed-a) costed-b costs)))
+                 diagonal)
+
+             ;; Try diagonal is the cheapest when heads are equal.
+             (if (ast-equal-p interface (ccar costed-a) (ccar costed-b))
+                 (let ((same (ccons (make-costed-list
+                                     :car :same
+                                     :cdr (apply #'append (costed-list-to-list (ccar costed-a)))
+                                     :cost 0)
+                                    (setf diagonal
+                                          (memoized-compute-diff
+                                           (ccdr costed-a) (ccdr costed-b)
+                                           costs)))))
+                   (when (and (<= (ccost same) (ccost insert))
+                              (<= (ccost same) (ccost delete)))
+                     (return-from compute-diff same)))
+                 ;; Try recursion if not same can recurse.
+                 (when (ast-can-recurse interface (ccar costed-a) (ccar costed-b))
+                   (let* ((subtree (recursive-diff (ccar costed-a) (ccar costed-b)))
+                          (recurse (ccons (multiple-value-bind (list cost)
+                                              (costed-list-to-list subtree)
+                                            (make-costed-list
+                                             :car :recurse
+                                             :cdr (apply #'append list)
+                                             :cost cost))
+                                          diagonal)))
+                     (when (and (<= (ccost recurse) (ccost insert))
+                                (<= (ccost recurse) (ccost delete)))
+                       (return-from compute-diff recurse)))))
+             ;; Else return the cheapest of insert or delete.
+             (if (< (ccost insert) (ccost delete))
+                 insert
+                 delete))))
+      (costed-list-to-list (recursive-diff costed-a costed-b)))))
 
 (defun diff-elide-same (edit-script)
   "Return the non-same subset of EDIT-SCRIPT with path information.
