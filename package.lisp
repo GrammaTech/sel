@@ -356,6 +356,7 @@
    :assembler
    :asm-flags
    :redirect-file
+   :linker-script
    :weak-symbols
    :elf-risc-max-displacement
    :ops                      ; <- might want to fold this into `lines'
