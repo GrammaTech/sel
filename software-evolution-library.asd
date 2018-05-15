@@ -127,6 +127,7 @@ techniques."
                trace-db
                uiop
                optima
+               fare-quasiquote
                fare-quasiquote-extras)
   :components
   ((:module test
@@ -225,6 +226,7 @@ techniques."
                software-evolution-library/utility
                bordeaux-threads
                optima
+               fare-quasiquote
                fare-quasiquote-extras)
   :components ((:file "src/serapi-io")))
 
