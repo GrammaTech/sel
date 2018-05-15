@@ -3733,40 +3733,52 @@ Useful for printing or returning differences in the REPL."
               (genome-string (fix-compilation *broken-gcc* 1))))))
 
 (deftest fix-compilation-inserts-declaration-and-initializes ()
-  (with-fixture broken-compilation
-    (is (scan (quote-meta-chars "missing_variable =")
-              (genome (fix-compilation *broken-clang* 4)))))
-  (with-fixture broken-compilation-gcc
-    (is (scan (quote-meta-chars "missing_variable =")
-              ;; Without the retries this test can fail stochastically.
-              (iter (for fixed = (fix-compilation
-                                  (handler-bind
-                                      ((mutate
-                                        (lambda (e)
-                                          (declare (ignorable e))
-                                          (invoke-restart 'keep-partial-asts))))
-                                    (copy *broken-gcc*))
-                                  4))
-                    (unless (zerop (length (genome fixed)))
-                      (return (genome fixed))))))))
+  (let ((sel::*compilation-fixers*
+         (remove-if-not
+           «or {starts-with-subseq ":(\\d+):\\d+: error: use of undeclared"}
+               {starts-with-subseq ":(\\d+):\\d+: error: (‘|')(\\S+)(’|')"}»
+           sel::*compilation-fixers*
+           :key #'car)))
+    (with-fixture broken-compilation
+      (is (scan (quote-meta-chars "missing_variable =")
+                (genome (fix-compilation *broken-clang* 4)))))
+    (with-fixture broken-compilation-gcc
+      (is (scan (quote-meta-chars "missing_variable =")
+                ;; Without the retries this test can fail stochastically.
+                (iter (for fixed = (fix-compilation
+                                    (handler-bind
+                                        ((mutate
+                                          (lambda (e)
+                                            (declare (ignorable e))
+                                            (invoke-restart 'keep-partial-asts))))
+                                      (copy *broken-gcc*))
+                                    4))
+                      (unless (zerop (length (genome fixed)))
+                        (return (genome fixed)))))))))
 
 (deftest fix-compilation-declare-var-as-pointer ()
-  (with-temp-file (genome ".c")
-    (string-to-file "int main(int argc, char **argv) {
-                      int y = 0;
-                      return *y;
-                    }"
-                    genome)
-    (let ((broken-clang (from-file (make-instance 'clang
-                                     :compiler "clang"
-                                     :flags '("-m32" "-O0" "-g"))
-                                   genome))
-          (broken-gcc   (from-file (make-instance 'clang
-                                     :compiler "gcc"
-                                     :flags '("-m32" "-O0" "-g"))
-                                   genome)))
-      (is (phenome-p (fix-compilation broken-clang 1)))
-      (is (phenome-p (fix-compilation broken-gcc 1))))))
+  (let ((sel::*compilation-fixers*
+         (remove-if-not
+           «or {starts-with-subseq ":(\\d+):(\\d+): error: invalid type arg"}
+               {starts-with-subseq ":(\\d+):(\\d+): error: indirection requir"}»
+           sel::*compilation-fixers*
+           :key #'car)))
+    (with-temp-file (genome ".c")
+      (string-to-file "int main(int argc, char **argv) {
+                        int y = 0;
+                        return *y;
+                      }"
+                      genome)
+      (let ((broken-clang (from-file (make-instance 'clang
+                                       :compiler "clang"
+                                       :flags '("-m32" "-O0" "-g"))
+                                     genome))
+            (broken-gcc   (from-file (make-instance 'clang
+                                       :compiler "gcc"
+                                       :flags '("-m32" "-O0" "-g"))
+                                     genome)))
+        (is (phenome-p (fix-compilation broken-clang 1)))
+        (is (phenome-p (fix-compilation broken-gcc 1)))))))
 
 
 ;;;; Crossover tests.

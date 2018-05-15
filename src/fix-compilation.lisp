@@ -355,9 +355,8 @@ associated element of `*compilation-fixers*'.
           ;; NOTE: Another potential bug here in which asts are
           ;;       returned instead of numbers and asts can't be
           ;;       compared with `>'.
-          (sort <> #'>)
-          (remove-if #'zerop)
-          (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}]))))
+          (sort <> #'ast-later-p)
+          (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt1}]))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"
