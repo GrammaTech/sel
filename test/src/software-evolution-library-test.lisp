@@ -6267,6 +6267,13 @@ prints unique counters in the trace"
   (is (null (which "dsjafpoarue")))
   (is (not (null (which "ls")))))
 
+(deftest shell-directory-test ()
+  (multiple-value-bind (stdout stderr errno)
+      (shell "pwd" :directory "/tmp/")
+    (is (equal "/tmp" (trim-whitespace stdout)))
+    (is (equal "" stderr))
+    (is (zerop errno))))
+
 
 ;;;; Project tests.
 (sel-suite* clang-project-tests "Project tests."
