@@ -372,10 +372,15 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 (defun shell (control-string &rest format-arguments &aux input)
   "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
-Return (values stdout stderr errno).  Raise a `shell-command-failed'
-exception depending on the combination of errno with
-`*shell-error-codes*' and `*shell-non-error-codes*'.  Optionally print
-debug information depending on the value of `*shell-debug*'."
+Return (values stdout stderr errno).  FORMAT-ARGUMENTS up to the first
+keyword are passed to `format' with CONTROL-STRING to construct the
+shell command.  All subsequent elements of FORMAT-ARGUMENTS are passed
+through as keyword arguments to `uiop:run-program'.
+
+Raise a `shell-command-failed' exception depending on the combination
+of errno with `*shell-error-codes*' and `*shell-non-error-codes*'.
+
+Optionally print debug information if `*shell-debug*' is non-nil."
   (let ((format-arguments (take-until #'keywordp format-arguments))
         (run-program-arguments (drop-until #'keywordp format-arguments)))
     ;; Manual handling of an :input keyword argument.
@@ -441,8 +446,8 @@ debug information depending on the value of `*shell-debug*'."
                      (not (find errno *shell-non-error-codes*)))
                 (find errno *shell-error-codes*))
         (restart-case (error (make-condition 'shell-command-failed
-                                             :exit-code errno
-                                             :command cmd))
+                               :exit-code errno
+                               :command cmd))
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
