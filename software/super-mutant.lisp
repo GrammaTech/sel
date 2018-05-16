@@ -243,7 +243,7 @@ BASE is typically a member of MUTANTS."))
 (defmethod create-super-soft ((base clang) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
-         (unless (ast-equal-p parseable-diff-interface f1 f2)
+         (unless (ast-equal-p f1 f2)
            (unless (string= (ast-name f1) (ast-name f2))
              (error (make-condition 'mutate
                                     :text "Mismatched function names"
@@ -283,7 +283,7 @@ There are several cases here:
                (progn
                  ;; Top-level decls must be identical across variants.
                  (mapc (lambda (ast)
-                         (unless (ast-equal-p parseable-diff-interface head ast)
+                         (unless (ast-equal-p head ast)
                            (error (make-condition 'mutate
                                                   :text
                                                   "Mismatched global decls"))))
@@ -294,7 +294,7 @@ There are several cases here:
                      ;; Insert decls
                      (cons nil (car non-null-asts))))
                ;; Functions
-               (if (every {ast-equal-p parseable-diff-interface head} non-null-asts)
+               (if (every {ast-equal-p head} non-null-asts)
                    ;; All identical (but may be missing in some mutants)
                    (cons (car asts) (car non-null-asts))
                    ;; Function bodies may differ as long as name and arguments
@@ -334,10 +334,7 @@ true, create a complete function decl which contains the body."
                                 (declare (ignorable decl))
                                 ;; Add default case to make the
                                 ;; compiler happy.
-                                (list (if (ast-equal-p
-                                            parseable-diff-interface
-                                            decl
-                                            (caar variants))
+                                (list (if (ast-equal-p decl (caar variants))
                                           (cons t indices)
                                           indices)
                                       (list body (make-break-stmt))))

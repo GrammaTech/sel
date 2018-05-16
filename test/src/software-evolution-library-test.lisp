@@ -1561,14 +1561,12 @@ suite should be run and nil otherwise."
     (let ((new (copy *hello-world*)))
       (is (slot-value new 'ast-root)
           "ASTs set on copy")
-      (is (ast-equal-p parseable-diff-interface
-                       (slot-value new 'ast-root)
+      (is (ast-equal-p (slot-value new 'ast-root)
                        (slot-value *hello-world* 'ast-root))
           "Copy and original share ASTs")
 
       (apply-mutation new (make-instance 'clang-swap :object new))
-      (is (ast-equal-p parseable-diff-interface
-                       (slot-value new 'ast-root)
+      (is (ast-equal-p (slot-value new 'ast-root)
                        (slot-value (copy new) 'ast-root))
           "Additional copies do not cause updates"))))
 
@@ -1702,8 +1700,7 @@ suite should be run and nil otherwise."
 (deftest clang-copies-share-asts ()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
-      (is (ast-equal-p parseable-diff-interface
-                       (ast-root *hello-world*)
+      (is (ast-equal-p (ast-root *hello-world*)
                        (ast-root variant)))
       (is (> (size variant) 0)))))
 
@@ -1714,8 +1711,7 @@ suite should be run and nil otherwise."
        variant
        `(clang-cut (:stmt1 . ,(stmt-with-text variant
                                               "printf(\"Hello, World!\\n\")"))))
-      (is (ast-equal-p parseable-diff-interface
-                       (stmt-with-text *hello-world* "return 0")
+      (is (ast-equal-p (stmt-with-text *hello-world* "return 0")
                        (stmt-with-text variant "return 0"))))))
 
 (deftest crossover-clang-software-object-does-not-crash()
@@ -8558,37 +8554,48 @@ int main() { puts(\"~d\"); return 0; }
 ;;;; AST Diff tests
 (sel-suite* ast-diff-tests "AST-level diffs of Sexprs.")
 
-(defparameter *sexp-diff-interface*
-  (labels ((ast-cost (ast)
-             (if (consp ast)
-                 (+ (ast-cost (car ast)) (ast-cost (cdr ast)))
-                 1)))
-    (make-instance 'ast-interface
-      :equal-p #'equalp
-      :cost #'ast-cost
-      :can-recurse (lambda (left right) (and (consp left) (consp right)))
-      :text {format nil "~S"})))
-
 (deftest sexp-diff-equal-zero-cost ()
-  (is (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
-                                    '(1 2 3 4) '(1 2 3 4))))
+  (is (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4))))
       "Equal should have 0 cost."))
 
 (deftest sexp-diff-non-equal-first-element ()
-  (is (not (zerop (nth-value 1 (ast-diff *sexp-diff-interface*
-                                         '(1 2 3 4) '(0 2 3 4)))))
-      "Difference in first car is caught.
-TODO: Currently it seems to ignore the first car."))
+  (is (not (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(0 2 3 4)))))
+      "Difference in first car is caught."))
 
 (deftest sexp-diff-simple-sublist-test ()
   (multiple-value-bind (script cost)
-      (ast-diff *sexp-diff-interface* '(1 '(1 2 3 4) 3 4) '(1 '(1 2 3 4) 3 5))
+      (ast-diff '(1 '(1 2 3 4) 3 4) '(1 '(1 2 3 4) 3 5))
     (multiple-value-bind (script-sublist cost-sublist)
-        (ast-diff *sexp-diff-interface* '(1 2 3 4) '(1 2 3 5))
+        (ast-diff '(1 2 3 4) '(1 2 3 5))
       (is (= (length script) (length script-sublist))
           "Sublists have no effect on script when same.")
       (is (= (length script) (length script-sublist))
           "Sublists have no effect on cost when same."))))
+
+(deftest ast-diff-one-added-at-the-end ()
+  (multiple-value-bind (diff cost) (ast-diff '(1 2) '(1 2 3))
+    (is (= 1 cost) "Cost of a single addition at the end is one.")
+    (is (= 3 (length diff)))))
+
+(deftest ast-diff-recurses-into-subtree ()
+  (multiple-value-bind (diff cost)
+      (ast-diff '(1 (1 2 3 4 5) 2) '(1 (1 2 4 5) 3))
+    (is (= 3 cost) "Cost of a sub-tree diff performed recursion.")
+    (is (equalp '(:same :recurse :delete :insert) (mapcar #'car diff)))))
+
+(deftest ast-diff-nested-recursion-into-subtree ()
+  (multiple-value-bind (diff cost) (ast-diff '(((1 nil 3)) 3) '(((1 2 3)) 3))
+    (is (= 2 cost) "Cost of a nested sub-tree diff performed recursion.")
+    (is (equalp '(:recurse :same) (mapcar #'car diff)))))
+
+(defun ast-diff-and-patch-equal-p (orig new)
+  (ast-equal-p new (ast-patch orig (ast-diff orig new))))
+
+(deftest ast-diff-and-patch-is-equal-simple ()
+  (is (ast-diff-and-patch-equal-p '(1 2 3 4) '(1 2 z 4))))
+
+(deftest ast-diff-and-patch-is-equal-recurse ()
+  (is (ast-diff-and-patch-equal-p '(1 2 (1 2 3 4) 4) '(1 2 (1 2 z 4) 4))))
 
 (defvar *forms* nil "Forms used in tests.")
 (defixture test-file-forms
@@ -8605,6 +8612,14 @@ TODO: Currently it seems to ignore the first car."))
 (sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects."
             (clang-mutate-available-p))
 
+(deftest diff-gets-back-on-track ()     ; TODO: Fix this.
+  (is (= 2 (nth-value
+            1
+            (ast-diff (from-string (make-instance 'clang)
+                                   "int a; int b; int c; int d;")
+                      (from-string (make-instance 'clang)
+                                   "int a; int z; int b; int c; int d;"))))))
+
 (deftest diff-insert ()
   (let ((orig (from-string (make-instance 'clang)
                            "int x; int y; int z;"))
@@ -8614,29 +8629,25 @@ TODO: Currently it seems to ignore the first car."))
                         "int x; int b; int y; int z;"))
         (c (from-string (make-instance 'clang)
                         "int x; int y; int z; int c;")))
-    (let ((diff-a (diff-software orig a)))
+    (let ((diff-a (ast-diff orig a)))
       (is diff-a)
-      (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-a))
-           (ast-root a)))
+      (is (ast-equal-p (ast-root (ast-patch (copy orig) diff-a))
+                       (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
                   '(:same :insert :insert :same :same
                     :same :same :same :same))))
-    (let ((diff-b (diff-software orig b)))
+    (let ((diff-b (ast-diff orig b)))
       (is diff-b)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-b))
+           (ast-root (ast-patch (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
                   '(:same :same :same :insert :insert
                     :same :same :same :same))))
-    (let ((diff-c (diff-software orig c)))
+    (let ((diff-c (ast-diff orig c)))
       (is diff-c)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-c))
+           (ast-root (ast-patch (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
                   '(:same :same :same :same :same
@@ -8651,40 +8662,37 @@ TODO: Currently it seems to ignore the first car."))
                         "int x; int z;"))
         (c (from-string (make-instance 'clang)
                         "int x; int y;")))
-    (let ((diff-a (diff-software orig a)))
+    (let ((diff-a (ast-diff orig a)))
       (is diff-a)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-a))
+           (ast-root (ast-patch (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
                   '(:same :delete :delete :same :same :same :same))))
-    (let ((diff-b (diff-software orig b)))
+    (let ((diff-b (ast-diff orig b)))
       (is diff-b)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-b))
+           (ast-root (ast-patch (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
                   '(:same :same :same :delete :delete :same :same))))
-    (let ((diff-c (diff-software orig c)))
+    (let ((diff-c (ast-diff orig c)))
       (is diff-c)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-c))
+           (ast-root (ast-patch (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
                   '(:same :same :same :same :delete :delete :same))))))
 
+;;; TODO: Fix failing test, should recurse but doesn't.
 (deftest diff-recursive ()
   (let* ((orig (from-string (make-instance 'clang)
                            "int x = 1; int y = 2; int z = 3;"))
         (new (from-string (make-instance 'clang)
                            "int x = 1; int y = 5; int z = 3;"))
-        (diff (diff-software orig new)))
+        (diff (ast-diff orig new)))
     (is diff)
-    (is (ast-equal-p parseable-diff-interface
-                     (ast-root (edit-software (copy orig) diff))
+    (is (ast-equal-p (ast-root (ast-patch (copy orig) diff))
                      (ast-root new)))
     (is (equalp (mapcar #'car diff)
                 '(:same :same :same :recurse :same :same :same)))))
@@ -8698,27 +8706,24 @@ TODO: Currently it seems to ignore the first car."))
                         "/* 1 */ int x; /* X */ int y; int z; /* 3 */"))
         (c (from-string (make-instance 'clang)
                         "/* 1 */ int x; /* 2 */ int y; int z; /* X */")))
-    (let ((diff-a (diff-software orig a)))
+    (let ((diff-a (ast-diff orig a)))
       (is diff-a)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-a))
+           (ast-root (ast-patch (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
                   '(:delete :insert :same :same :same :same :same :same))))
-    (let ((diff-b (diff-software orig b)))
+    (let ((diff-b (ast-diff orig b)))
       (is diff-b)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-b))
+           (ast-root (ast-patch (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
                   '(:same :same :delete :insert :same :same :same :same))))
-    (let ((diff-c (diff-software orig c)))
+    (let ((diff-c (ast-diff orig c)))
       (is diff-c)
       (is (ast-equal-p
-           parseable-diff-interface
-           (ast-root (edit-software (copy orig) diff-c))
+           (ast-root (ast-patch (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
                   '(:same :same :same :same :same :same :delete :insert))))))
@@ -8727,14 +8732,14 @@ TODO: Currently it seems to ignore the first car."))
   (with-fixture binary-search-clang
     (let ((var (copy *binary-search*)))
       (mutate var)
-      (diff-software *binary-search* var))))
+      (ast-diff *binary-search* var))))
 
 (deftest diff-elide-same-test ()
   (with-fixture binary-search-clang
     (let ((var (copy *binary-search*)))
       (setf var (mutate var))
       (is (every [{member _ '(:delete :insert)} #'second]
-                 (diff-elide-same (diff-software *binary-search* var)))))))
+                 (ast-diff-elide-same (ast-diff *binary-search* var)))))))
 
 
 ;;; Test SerAPI (low-level Coq interaction)

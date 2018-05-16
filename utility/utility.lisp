@@ -1169,6 +1169,23 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 
 
 ;;;; debugging helpers
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *compile-w/tracing* nil
+    "Controls compilation of tracing information with the `traced' macro."))
+
+(defmacro traced ((fn &rest args))
+  "Trace wrapped function call when `*compile-w/tracing*' is non-nil.
+This is useful for `flet' and `labels' functions which can't be traced
+with `cl-user:trace'."
+  (if *compile-w/tracing*
+      (let ((result-sym (gensym)))
+        `(progn (format t "  X: ~S ~S~%" ',fn (list ,@args))
+                (let ((,result-sym (,fn ,@args)))
+                  (format t ,(format nil "  X: ~a returned~~%      ~~S~~%" fn)
+                          ,result-sym)
+                  ,result-sym)))
+      `(,fn ,@args)))
+
 (defvar *note-level* 0 "Enables execution notes.")
 (defvar *note-out* '(t) "Targets of notation.")
 

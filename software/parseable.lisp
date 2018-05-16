@@ -586,7 +586,7 @@ second should be included as a possible pick
 ;;; Mutations
 (defclass parseable-mutation (mutation)
   ()
-  (:documentation "Specialization of the mutation interface for parseable 
+  (:documentation "Specialization of the mutation interface for parseable
 software objects."))
 
 (define-mutation parseable-insert (parseable-mutation)
@@ -638,7 +638,7 @@ MUTATION to SOFTWARE.
 ;;; Replace
 (define-mutation parseable-replace (parseable-mutation)
   ((targeter :initform #'pick-bad-good))
-  (:documentation "Perform a replace operation on a parseable 
+  (:documentation "Perform a replace operation on a parseable
 software object."))
 
 (defmethod build-op ((mutation parseable-replace) software)
@@ -784,43 +784,10 @@ REPLACEMENT.
                                   (list (cons :stmt1 location)))))
 
 
-;;; Interface for ast-diff
-(defvar parseable-diff-interface
-  (labels       ; Defined w/labels so they're defined at load time.
-      ((ast-equal-p (ast-a ast-b)
-         (or (eq ast-a ast-b)
-             (and (stringp ast-a) (stringp ast-b) (string= ast-a ast-b))
-             (and (subtypep (type-of ast-a) 'ast)
-                  (subtypep (type-of ast-b) 'ast)
-                  (eq (ast-class ast-a) (ast-class ast-b))
-                  (eq (length (ast-children ast-a))
-                      (length (ast-children ast-b)))
-                  (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b)))))
-       (ast-cost (ast)
-         (if (subtypep (type-of ast) 'ast)
-             (apply #'+ (mapcar #'ast-cost (ast-children ast)))
-             1))
-       (can-recurse (ast-a ast-b)
-         (and (subtypep (type-of ast-a) 'ast)
-              (subtypep (type-of ast-b) 'ast)
-              (eq (ast-class ast-a)
-                  (ast-class ast-b)))))
-    (make-instance 'ast-interface
-      :equal-p #'ast-equal-p
-      :cost #'ast-cost
-      :can-recurse #'can-recurse
-      :on-recurse #'ast-children
-      :text [#'peel-bananas #'source-text]))
-  "AST-DIFF interface for AST-TREE objects.")
+;;; Customization for ast-diff.
+(defmethod ast-diff ((parseable-a parseable) (parseable-b parseable))
+  (ast-diff (ast-root parseable-a) (ast-root parseable-b)))
 
-(defmethod diff-software ((parseable-a parseable) (parseable-b parseable))
-  (ast-diff parseable-diff-interface
-            (ast-root parseable-a)
-            (ast-root parseable-b)))
-
-(defmethod edit-software ((obj parseable) edit-script)
-  (setf (ast-root obj)
-        (apply-edit-script parseable-diff-interface
-                           (ast-root obj)
-                           edit-script))
+(defmethod ast-patch ((obj parseable) (diff list))
+  (setf (ast-root obj) (ast-patch (ast-root obj) diff))
   obj)

@@ -534,11 +534,23 @@ use carefully.
 
 
 ;;; AST diffs 
-(defmethod apply-edit-script ((interface ast-interface)
-                              (original ast)
-                              (script list))
-  (copy original
-        :children (cdr (apply-edit-script interface
-                                          (cons (ast-node original)
-                                                (ast-children original))
-                                          script))))
+(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
+  (and (eq (ast-class ast-a) (ast-class ast-b))
+       (eq (length (ast-children ast-a))
+           (length (ast-children ast-b)))
+       (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+
+(defmethod ast-cost ((ast ast))
+  (apply #'+ (mapcar #'ast-cost (ast-children ast))))
+
+(defmethod ast-can-recurse ((ast-a ast) (ast-b ast))
+  (eq (ast-class ast-a) (ast-class ast-b)))
+
+(defmethod ast-on-recurse ((ast ast))
+  (ast-children ast))
+
+(defmethod ast-un-recurse ((ast ast) sub-asts)
+  (copy ast :children sub-asts))
+
+(defmethod ast-text ((ast ast))
+  (peel-bananas (source-text ast)))

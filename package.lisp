@@ -682,9 +682,8 @@
    :java-project
    :get-files-jar
    :super-mutant
-   :diff-software
-   :edit-software
-   :parseable-diff-interface
+   :ast-diff
+   :ast-patch
    ;; Coq exports
    :coq
    :coq-project

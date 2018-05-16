@@ -32,7 +32,7 @@
     (labels ((text (content)
                (etypecase content
                  (string content)
-                 (clang-ast (ast-text parseable-diff-interface content))
+                 (clang-ast (ast-text content))
                  (list (mapconcat #'text content "")))))
       (mapc (lambda-bind ((type &rest content))
               (ecase type

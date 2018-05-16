@@ -169,6 +169,8 @@
    :keep-lines-after-matching
    :resolve-function-includes
    ;; debugging
+   :*compile-w/tracing*
+   :traced
    :*note-level*
    :*note-out*
    :replace-stdout-in-note-targets
