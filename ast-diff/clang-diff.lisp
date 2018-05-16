@@ -34,9 +34,9 @@
                  (string content)
                  (clang-ast (ast-text content))
                  (list (mapconcat #'text content "")))))
-      (mapc (lambda-bind ((type &rest content))
+      (mapc (lambda-bind ((type . content))
               (ecase type
-                (:same (write (text (car content)) :stream stream))
+                (:same (write (text content) :stream stream))
                 (:delete (write "[-" :stream stream)
                          (write (text content) :stream stream)
                          (write "-]" :stream stream))
@@ -93,9 +93,10 @@ Built with SEL version ~a, and ~a version ~a.~%"
       (quit 2))
     ;; Create the diff.
     (let ((diff
-           (diff-software (from-file (make-instance 'clang) (first args))
-                          (from-file (make-instance 'clang) (second args)))))
+           (ast-diff (from-file (make-instance 'clang) (first args))
+                     (from-file (make-instance 'clang) (second args)))))
       ;; Print according to the RAW option.
       (if raw (pprint diff) (print-diff diff))
       ;; Only exit with 0 if the two inputs match.
-      (quit (if (every [{eql :same} #'car] diff) 0 1)))))
+      ;; (quit (if (every [{eql :same} #'car] diff) 0 1))
+      )))
