@@ -39,7 +39,7 @@
   (format nil "~{ ~2,'0X~}" (concatenate 'list ba)))
 
 (defmethod print-object ((mem memory-spec) stream)
-  (Format stream "~16,'0X: ~T~A ~A"
+  (format stream "~16,'0X: ~T~A ~A"
 	  (memory-spec-addr mem)
 	  (Memory-spec-mask mem)
 	  (bytes-to-string (memory-spec-bytes mem))))
@@ -49,11 +49,8 @@
   value)   ; integer value (64 bits for gen. purpose, 256 bit for SIMD)
 
 (defmethod print-object ((reg reg-contents) stream)
-  (if (simd-reg-p (reg-contents-name reg))
-      (format stream "~4A: ~A" (reg-contents-name reg)
-	      (bytes-to-string (reg-contents-value reg)))
-      (format t "~4A: ~A" (reg-contents-name reg)
-	      (bytes-to-string (reg-contents-value reg)))))
+  (format stream "~4A: ~A" (reg-contents-name reg)
+    (bytes-to-string (reg-contents-value reg))))
 
 ;;;
 ;;; This struct also is used to specify outputs.
@@ -505,6 +502,34 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	 (+ main-pos 1)))))         ; insert just after "$main:" label,
                                     ; replacing previous $main:
 
+(defun format-reg-specs (io-spec &optional (stream t))
+  (iter (for reg-spec in-vector (input-specification-regs io-spec))
+    (format stream "    dq ~16,'0X  ; ~A~%"
+      (be-bytes-to-qword
+       (reg-contents-value reg-spec))
+      (reg-contents-name reg-spec))))
+
+;;;
+;;; for each memory entry, add three qwords: address, data, mask.
+;;; The mask is in the format (eg.): 0xff00000000000000
+;;; (this means the high byte only is used)
+;;; The list is terminated with an address of 0.
+;;;
+(defun format-mem-specs (io-spec &optional (stream t))
+  (iter (for spec in-vector (input-specification-mem io-spec))
+    (let ((addr (memory-spec-addr spec))
+	  (mask (memory-spec-mask spec))
+	  (bytes (memory-spec-bytes spec)))
+      (format stream "    dq 0x~16,'0X~%    dq 0x~16,'0X~%    dq 0x~A~%"
+	      addr
+	      (be-bytes-to-qword bytes)
+	      (apply 'concatenate 'string
+			   (map 'list
+				(lambda (x)
+				  (if (= x 1) "FF" "00"))
+				mask)))))
+  (format stream "    dq 0~%"))    ; and with zero address
+    
 (defun generate-file (asm-super output-path)
   (add-init-func asm-super)
   (add-check-env-func asm-super)
@@ -543,5 +568,11 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 (target-function *asm-super* #x4097d0 #x409839) ; nlscan function
 
 (generate-file *asm-super* "/u1/rcorman/synth/grep-variant.asm")
+
+(defparameter *asm-super* 
+  (from-file (make-instance 'asm-super-mutant)
+  "/u1/rcorman/temp/asm-test.asm"))
+
+(target-function *asm-super* #x4005f6 #x400625)
 
 |#
