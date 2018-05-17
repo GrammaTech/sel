@@ -8603,15 +8603,29 @@ int main() { puts(\"~d\"); return 0; }
 (deftest ast-diff-nested-dotted-list ()
   (is (= 2 (nth-value 1 (ast-diff '((1 . 2)) '((1 . 1)))))))
 
-;; (defvar *forms* nil "Forms used in tests.")
-;; (defixture test-file-forms
-;;   (:setup (setf *forms* (read-file-forms *this-file*)))
-;;   (:teardown (setf *forms* nil)))
+(deftest ast-diff-nested-dotted-list ()
+  (is (= 2 (nth-value 1 (ast-diff '((1 . 2)) '((1 . 1)))))))
 
-;; (deftest sexp-diff-on-unit-tests-file ()
-;;   (with-fixture test-file-forms
-;;     (is (zerop (nth-value 1 (ast-diff *forms* *forms*)))
-;;         "Handles forms from a lisp source file.")))
+(deftest ast-diff-mixed-proper-improper-list ()
+  (is (= 2 (nth-value 1 (ast-diff (cons 1 nil) (cons 1 1))))))
+
+(deftest ast-diff-double-insert ()
+  (is (= 2 (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4 5 6))))))
+
+(defvar *forms* nil "Forms used in tests.")
+(defixture sel-asd-file-forms
+  (:setup (setf *forms* (read-file-forms
+                         (make-pathname
+                          :name "software-evolution-library"
+                          :type "asd"
+                          :directory
+                          (butlast (pathname-directory *this-file*) 2)))))
+  (:teardown (setf *forms* nil)))
+
+(deftest sexp-diff-on-ast-file ()
+  (with-fixture sel-asd-file-forms
+    (is (zerop (nth-value 1 (ast-diff *forms* *forms*)))
+        "Handles forms from a lisp source file.")))
 
 
 (sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects."
@@ -8649,7 +8663,6 @@ int main() { puts(\"~d\"); return 0; }
       (is (equalp (mapcar #'car diff-b)
                   '(:same :same :same :insert :insert
                     :same :same :same :same))))
-    #+(or )                             ; TODO: Fix failing.
     (let ((diff-c (ast-diff orig c)))
       (is diff-c)
       (is (ast-equal-p

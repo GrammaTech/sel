@@ -180,7 +180,6 @@ The following generic functions may be specialized to configure
 differencing of specialized AST structures.; `ast-equal-p',
 `ast-cost', `ast-can-recurse', and `ast-on-recurse'."))
 
-;;; TODO: Fix failing test, should recurse but doesn't.
 (defmethod ast-diff ((ast-a t) (ast-b t))
   ;; Edit scripts are represented by a (length a) x (length b) grid.
   ;; Each position A,B on the grid stores the diff between (subseq
@@ -198,18 +197,26 @@ differencing of specialized AST structures.; `ast-equal-p',
   ;; Intermediate results are cached a in two-dimensional array to
   ;; avoid redundant computation.
   (declare (optimize speed))
-  (let* ((costed-a (to-costed (ast-on-recurse ast-a)))
-         (costed-b (to-costed (ast-on-recurse ast-b))))
+  (let ((costed-a (to-costed (ast-on-recurse ast-a)))
+        (costed-b (to-costed (ast-on-recurse ast-b))))
     (labels
-        ((recursive-diff (costed-a costed-b)
+        ((insert-across (costed-a costed-b costs)
+           (ccons (ccons (make-costed :obj :insert) (ccar costed-b))
+                  (memoized-compute-diff costed-a (ccdr costed-b) costs)))
+
+         (delete-down (costed-a costed-b costs)
+           (ccons (ccons (make-costed :obj :delete) (ccar costed-a))
+                  (memoized-compute-diff (ccdr costed-a) costed-b costs)))
+
+         (recursive-diff (costed-a costed-b)
            (let ((costs (make-array (list (clength costed-a)
                                           (clength costed-b))
                                     :initial-element nil)))
 
              ;; Compute diff from start (top,left) to the target (bottom,right).
              (compute-diff costed-a costed-b costs)
-             ;; The following may be used to return or print the
-             ;; memoized costs grid.
+             ;; NOTE: The following may be used to return or print the
+             ;;       memoized costs grid.
              #+(or )
              (multiple-value-bind (diff cost)
                  (compute-diff costed-a costed-b costs)
@@ -230,26 +237,33 @@ differencing of specialized AST structures.; `ast-equal-p',
          (memoized-compute-diff (costed-a costed-b costs)
            ;; (format t "~a ~a~%" (corig costed-a) (corig costed-b))
 
-           ;; Check memoized.
-           (destructuring-bind (pos-a pos-b)
+           (destructuring-bind (pos-a pos-b) ; Position in memoization array.
                (destructuring-bind (size-a size-b) (array-dimensions costs)
                  (declare (type fixnum size-a))
                  (declare (type fixnum size-b))
                  (list (- size-a (clength costed-a))
                        (- size-b (clength costed-b))))
 
-             ;; Check for nulls.
+             ;; Use memoized value if available.
+             (when-let ((memoized (aref costs pos-a pos-b)))
+               (return-from memoized-compute-diff memoized))
+
+             ;; Special handling when nulls are present.
              (when (and (cnull costed-a) (cnull costed-b)) ; Both are null.
                (return-from memoized-compute-diff
                  (make-costed)))
              (when (cnull costed-a)       ; Just original is null.
                (return-from memoized-compute-diff
-                 (ccons (ccons (make-costed :obj :insert) (ccar costed-b))
-                        (make-costed))))
+                 (if (cconsp costed-b)
+                     (insert-across costed-a costed-b costs)
+                     (ccons (ccons (make-costed :obj :insert) costed-b)
+                            (ccons (make-costed :obj :delete) costed-a)))))
              (when (cnull costed-b)       ; Just new is null.
                (return-from memoized-compute-diff
-                 (ccons (ccons (make-costed :obj :delete) (ccar costed-a))
-                        (make-costed))))
+                 (if (cconsp costed-a)
+                     (delete-down costed-a costed-b costs)
+                     (ccons (ccons (make-costed :obj :delete) costed-a)
+                            (ccons (make-costed :obj :insert) costed-b)))))
 
              ;; Both trees are down to a single atomic element.
              (when (and (= (clength costed-a) 1)
@@ -261,30 +275,25 @@ differencing of specialized AST structures.; `ast-equal-p',
                      (ccons (ccons (make-costed :obj :delete) costed-a)
                             (ccons (make-costed :obj :insert) costed-b)))))
 
-             ;; Use memoized value if available.
-             (when-let ((memoized (aref costs pos-a pos-b)))
-               (return-from memoized-compute-diff memoized))
-
              (setf (aref costs pos-a pos-b)
                    (compute-diff costed-a costed-b costs))))
 
          (compute-diff (costed-a costed-b costs)
            (declare (type (SIMPLE-ARRAY T) costs))
            (let ((insert (if (cconsp costed-b)
-                             (ccons (ccons (make-costed :obj :insert) (ccar costed-b))
-                                    (memoized-compute-diff costed-a (ccdr costed-b) costs))
+                             (insert-across costed-a costed-b costs)
                              (ccons (make-costed :obj :insert) costed-b)))
                  (delete (if (cconsp costed-a)
-                             (ccons (ccons (make-costed :obj :delete) (ccar costed-a))
-                                    (memoized-compute-diff (ccdr costed-a) costed-b costs))
+                             (delete-down costed-a costed-b costs)
                              (ccons (make-costed :obj :delete) costed-a))))
 
              ;; Try diagonal is the cheapest when heads are equal.
              (when (and (cconsp costed-a) (cconsp costed-b))
                (if (ast-equal-p (ccar costed-a) (ccar costed-b))
-                   (let ((same (ccons (make-costed :obj (ccons (make-costed :obj :same)
-                                                               (ccar costed-a))
-                                                   :cost 0)
+                   (let ((same (ccons (make-costed
+                                       :obj (ccons (make-costed :obj :same)
+                                                   (ccar costed-a))
+                                       :cost 0)
                                       (memoized-compute-diff ; Diagonal.
                                        (ccdr costed-a) (ccdr costed-b)
                                        costs))))
@@ -293,8 +302,11 @@ differencing of specialized AST structures.; `ast-equal-p',
                        (return-from compute-diff same)))
                    ;; Try recursion if not same can recurse.
                    (when (ast-can-recurse (ccar costed-a) (ccar costed-b))
-                     (let* ((subtree (recursive-diff (to-costed (ast-on-recurse (corig (ccar costed-a))))
-                                                     (to-costed (ast-on-recurse (corig (ccar costed-b))))))
+                     (let* ((subtree (recursive-diff
+                                      (to-costed (ast-on-recurse
+                                                  (corig (ccar costed-a))))
+                                      (to-costed (ast-on-recurse
+                                                  (corig (ccar costed-b))))))
                             (recurse (ccons (ccons (make-costed :obj :recurse)
                                                    subtree)
                                             (memoized-compute-diff ; Diagonal.
