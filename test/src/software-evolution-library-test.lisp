@@ -8565,8 +8565,10 @@ int main() { puts(\"~d\"); return 0; }
 (deftest sexp-diff-simple-sublist-test ()
   (multiple-value-bind (script cost)
       (ast-diff '(1 '(1 2 3 4) 3 4) '(1 '(1 2 3 4) 3 5))
+    (declare (ignorable cost))
     (multiple-value-bind (script-sublist cost-sublist)
         (ast-diff '(1 2 3 4) '(1 2 3 5))
+      (declare (ignorable cost-sublist))
       (is (= (length script) (length script-sublist))
           "Sublists have no effect on script when same.")
       (is (= (length script) (length script-sublist))
@@ -8599,9 +8601,6 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest ast-diff-simple-dotted-list ()
   (is (= 2 (nth-value 1 (ast-diff '(1 . 1) '(1 . 2))))))
-
-(deftest ast-diff-nested-dotted-list ()
-  (is (= 2 (nth-value 1 (ast-diff '((1 . 2)) '((1 . 1)))))))
 
 (deftest ast-diff-nested-dotted-list ()
   (is (= 2 (nth-value 1 (ast-diff '((1 . 2)) '((1 . 1)))))))
@@ -8774,6 +8773,7 @@ int main() { puts(\"~d\"); return 0; }
           (setf *serapi-process* (make-serapi))
           (handler-bind ((serapi-timeout-error
                           (lambda (c)
+                            (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
             (read-serapi-response *serapi-process*)))
   (:teardown
@@ -8967,6 +8967,7 @@ int main() { puts(\"~d\"); return 0; }
           (setf *serapi-process* (make-serapi))
           (handler-bind ((serapi-timeout-error
                           (lambda (c)
+                            (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
             (read-serapi-response *serapi-process*))
           (setf *coq* (from-file (make-instance 'coq)
@@ -8981,6 +8982,7 @@ int main() { puts(\"~d\"); return 0; }
           (setf *serapi-process* (make-serapi))
           (handler-bind ((serapi-timeout-error
                           (lambda (c)
+                            (declare (ignorable c))
                             (invoke-restart 'use-empty-response))))
             (read-serapi-response *serapi-process*))
           (setf *coq* (from-file (make-instance 'coq)

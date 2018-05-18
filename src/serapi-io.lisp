@@ -410,7 +410,9 @@ Uses default path and arguments for sertop (`*sertop-path*' and
                            ;; the process is created, but don't propagate the
                            ;; error if there isn't.
                            ((serapi-timeout-error
-                             (lambda (c) (invoke-restart 'use-empty-response))))
+                             (lambda (c)
+                               (declare (ignorable c))
+                               (invoke-restart 'use-empty-response))))
                          (read-serapi-response *serapi-process*)))
                      ,@body)
            (unless ,old-proc (kill-serapi *serapi-process*)))))))
