@@ -686,7 +686,8 @@
    :tag-loc-info
    :untag-loc-info
    :lookup-source-strings
-   :coq-type-checks))
+   :coq-type-checks
+   :synthesize-typed-coq-expression))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
