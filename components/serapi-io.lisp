@@ -909,6 +909,9 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
 ;;; Building Coq expressions
 
 (defun wrap-coq-constr-expr (expr)
+  "Create a Coq ConstrExpr by wrapping EXPR with v and loc tags.
+Generally, this will be used by the `make-coq-*' functions and won't need to be
+invoked directly."
   #!`((v ,EXPR) (loc ())))
 
 (defun make-coq-integer (x)
@@ -916,6 +919,7 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
   (wrap-coq-constr-expr #!`(CPrim (Numeral ,X true))))
 
 (defun make-coq-ident (id)
+  "Wrap ID in Ident and Id tags."
   #!`(Ident (() (Id ,ID))))
 
 (defun make-coq-var-reference (id)
@@ -933,12 +937,17 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
                      (REPEATEDLY (LENGTH PARAMS) ())))))
 
 (defun make-coq-name (id)
+  "Wrap ID in Name and Id tags."
   #!`(Name (Id ,ID)))
 
 (defun make-coq-lname (id)
   (list () (make-coq-name id)))
 
 (defun make-coq-local-binder-exprs (type params &optional param-types)
+  "Create a list of local binder expressions.
+If present, PARAM-TYPES is the same length as PARAMS and indicates the type of
+each param. If absent, a CHole tag is used to indicate that the type is
+unspecified."
   ;; assumes (length params) == (length param-types)
   (let ((num-param-types (length param-types))
         (param-types (coerce param-types 'vector)))
@@ -955,6 +964,7 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
 
 ;; TODO: Can we switch to using `make-coq-local-binder-exprs'?
 (defun make-coq-lambda (params body)
+  "Create a Coq lambda expression from PARAMS and BODY."
   (if (null params)
       body
       (let ((lname (make-coq-lname (car params)))
@@ -969,6 +979,7 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
                       ,(MAKE-COQ-LAMBDA (CDR PARAMS) BODY))))))
 
 (defun make-coq-if (test then else)
+  "Create a Coq If expression: if TEST then THEN else ELSE."
   (wrap-coq-constr-expr
    #!`(CIf ,TEST
            (() ())
@@ -976,6 +987,7 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
            ,ELSE)))
 
 (defun make-coq-case-pattern (pattern-type &rest pattern-args)
+  "Create cases for a Coq match statement."
   (intern "CPatAtom" *package*)
   (intern "CPatNotation" *package*)
   (intern "CPatCstr" *package*)
@@ -1006,6 +1018,11 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
      (otherwise ()))))
 
 (defun make-coq-match (style test &rest branches)
+  "Create a Coq match expression.
+STYLE indicates the style of the match (e.g., #!'RegularStyle).
+TEST is the expression being matched against.
+BRANCHES are the match cases and will generally be constructed with 
+`make-coq-case-pattern'."
   (let ((split-branches (iter (for (pat result) on branches by #'cddr)
                               (collecting #!`(() (((()  (,PAT))) ,RESULT))))))
     (wrap-coq-constr-expr
@@ -1016,6 +1033,12 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
                 ,SPLIT-BRANCHES))))
 
 (defun make-coq-definition (name params return-type body)
+  "Create a Coq function definition.
+NAME - the name of the function.
+PARAMS - a list of pairs indicating the name and type of each input parameter to
+the function.
+RETURN-TYPE - the function's return type.
+BODY - the function body."
   (let ((binders (make-coq-local-binder-exprs
                   #!'CLocalAssum
                   (mapcar #'first params)
