@@ -93,6 +93,8 @@ Built with SEL version ~a, and ~a version ~a.~%"
            (ast-diff (from-file (make-instance 'clang) (first args))
                      (from-file (make-instance 'clang) (second args)))))
       ;; Print according to the RAW option.
-      (if raw (pprint diff) (print-diff diff))
+      (if raw
+          (writeln (ast-diff-elide-same diff) :readably t)
+          (print-diff diff))
       ;; Only exit with 0 if the two inputs match.
       (quit (if (every [{eql :same} #'car] diff) 0 1)))))
