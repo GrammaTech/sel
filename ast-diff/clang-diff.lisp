@@ -47,9 +47,8 @@
             diff))))
 
 (defun run-clang-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                         unified raw)
+                         raw)
   "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
-  (declare (ignorable unified))
   (flet ((report (fmt &rest args)
            (apply #'format *error-output* (concatenate 'string "~a: " fmt)
                   self args)))
@@ -64,7 +63,6 @@ Compare FILES line by line.
 
 Options:
  -r, --raw                 output diff in raw Sexp (default is as text)
- -U NUM, --unified NUM     output NUM (default 3) lines of unified context
 
 Built with SEL version ~a, and ~a version ~a.~%"
               self +software-evolution-library-version+
@@ -72,7 +70,6 @@ Built with SEL version ~a, and ~a version ~a.~%"
       (quit))
     ;; Argument handling and checking.
     (getopts (args :unknown :return)
-      ("-U" "--unified" (setf unified (parse-number (pop args))))
       ("-r" "--raw" (setf raw t)))
     (when (= (length args) 1)
       (report "missing operand after '~a'~%" (car args))
@@ -98,5 +95,4 @@ Built with SEL version ~a, and ~a version ~a.~%"
       ;; Print according to the RAW option.
       (if raw (pprint diff) (print-diff diff))
       ;; Only exit with 0 if the two inputs match.
-      ;; (quit (if (every [{eql :same} #'car] diff) 0 1))
-      )))
+      (quit (if (every [{eql :same} #'car] diff) 0 1)))))
