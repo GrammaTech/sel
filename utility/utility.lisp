@@ -1480,7 +1480,7 @@ The resulting file may be fed directly to the flamegraph tool as follows.
                                :if-exists :supersede)
             (profile-to-flame-graph out))
 
-    shell$ profile.data|flamegraph > profile.svg
+    shell$ cat profile.data|flamegraph > profile.svg
 
 See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
   (progn

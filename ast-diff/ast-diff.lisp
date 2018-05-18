@@ -348,6 +348,9 @@ Prefix and postfix returned as additional values."
                          (return-from compute-diff recurse))))))
              ;; Else return the cheapest of insert or delete.
              (if (< (ccost insert) (ccost delete)) insert delete))))
+      (declare (inline insert-across))
+      (declare (inline delete-down))
+      (declare (inline compute-diff))
 
       (unless (or unique-a unique-b)
         (return-from ast-diff
@@ -366,6 +369,59 @@ Prefix and postfix returned as additional values."
 
       (multiple-value-call #'add-common
         (from-costed (recursive-diff (to-costed unique-a) (to-costed unique-b)))))))
+
+;;; Profiling Information for `ast-diff':
+;;
+;; Run the below form to test performance at increasing sizes (results
+;; table below as well).  The result is n^2 performance until memory
+;; pressure kicks in (between 500 and 1000 on SBCL).
+;;
+;;   (CCL is ~2× as slow as SBCL, but uses much less memory.)
+;;
+;; Top functions by percent runtime:
+;;  ~20% make-costed
+;;  ~10% ccons
+;; ~0.2% to-costed
+;; --------------------
+;; ~95% memoized-compute-diff
+;; ~85% recursive-diff
+;; ~40% recurse
+;;
+#+(or )
+(iter (for base in '(2 10 20 50 100 200 500 1000 2000 5000))
+                (let ((orig (iota base))
+                      (other (iota base)))
+                  (setf (nth 1 other) 'x
+                        (nth (1- base) other) 'z)
+                  (format t "Base:~A~%" base)
+                  (time (dotimes (n 10) (ast-diff orig other)))))
+;; SBCL 1.4.6
+;; ============================================================
+;; size	runtime	bytes-consed
+;; 2	0.000	32752
+;; 10	0.001	687904
+;; 20	0.005	813248
+;; 50	0.029	973968
+;; 100	0.127	326336
+;; 200	0.561	251744
+;; 500	2.296	680432
+;; -------------------------[memory bottleneck]
+;; 1000	36.370	382080
+;; 2000	188.012	716048
+;; ============================================================
+;;
+;; CCL Version 1.12-dev  LinuxX8664
+;; ============================================================
+;; size	runtime		bytes-consed
+;; 2	0.000095	18560
+;; 10	0.002498	677760
+;; 20	0.015647	2815360
+;; 50	0.096857	17964160
+;; 100	0.531638	72332160
+;; 200	2.022867	290268160
+;; 500	13.442549	1817676147
+;; 1000	73.954506	7275356147
+;; ============================================================
 
 (defun ast-diff-elide-same (edit-script)
   "Return the non-same subset of EDIT-SCRIPT with path information.
