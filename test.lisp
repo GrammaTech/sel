@@ -10389,3 +10389,23 @@ int main() { puts(\"~d\"); return 0; }
                             :object *coq*
                             :targets (list 7 0)))
     (is (equal '(a) (genome *coq*)))))
+
+(deftest can-synthesize-coq-expressions ()
+  (with-fixture serapi
+    (let* ((types (list "false : bool"
+                        "true : bool"
+                        "negb : bool -> bool"
+                        "orb : bool -> bool -> bool"))
+           (scopes (mapcar #'tokenize-coq-type types))
+           (result1 (synthesize-typed-coq-expression "bool" scopes 2))
+           (result2 (synthesize-typed-coq-expression "bool -> bool" scopes 2)))
+      ;; Spot-check result1
+      (iter (for expected in '("false" "true" "(negb false)" "(negb true)"
+                               "((orb true) (negb false))" "((orb true) true)"))
+            (is (member expected result1 :test #'equal)))
+      ;; Complete check result2
+      (iter (for expected in '("negb" "(orb false)" "(orb true)"
+                               "(orb (negb false))" "(orb (negb true))"))
+            (is (member expected result2 :test #'equal)))
+      (is (= 14 (length result1)))
+      (is (=  5 (length result2))))))

@@ -99,6 +99,7 @@
            :make-coq-case-pattern
            :make-coq-match
            :make-coq-definition
+           :coq-function-definition-p
            ))
 (in-package :software-evolution-library/components/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -1051,3 +1052,20 @@ BODY - the function body."
                 ()
               ,BODY
               (,RETURN-TYPE))))))
+
+(defun coq-function-definition-p (sexpr &optional function-name)
+  "Return T if SEXPR is a Coq VernacDefinition expression.
+If FUNCTION-NAME is specified, only return T if SEXPR defines a function
+named FUNCTION-NAME."
+  (intern "VernacDefinition" *package*)
+  (intern "Id" *package*)
+  (when function-name
+    (intern function-name *package*))
+  (match sexpr
+    ((guard `(,_ (,vernac-def ,_ ((,_ (,id ,name)) ,_) ,_))
+            (and (eql vernac-def
+                      (find-symbol "VernacDefinition" *package*))
+                 (eql id (find-symbol "Id" *package*))))
+     (or (not function-name)
+         (and function-name (eql (find-symbol function-name *package*)
+                                 name))))))
