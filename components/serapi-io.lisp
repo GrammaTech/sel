@@ -400,7 +400,10 @@ AST ID. See also `reset-serapi-process'."
     ;; isn't a problem, but failure to run it when it is needed causes
     ;; Message output to be included with the following query which would likely
     ;; cause confusion and/or errors.
-    (mapcar [#'run-coq-vernacular {format nil "Exec ~a."}] ast-ids)
+    (mapc (lambda (ast-id)
+            (write-to-serapi *serapi-process* #!`((Exec ,AST-ID)))
+            (read-serapi-response *serapi-process*))
+            ast-ids)
     (if (listp ast-ids)
         ;; if there's more than one ast-id, we reset to the smallest (first)
         (push (first ast-ids) (reset-points *serapi-process*))
@@ -978,11 +981,11 @@ Assumes that FUN and all PARAMS are appropriately wrapped (e.g., with
   (intern "CPatCstr" *package*)
   (intern "_" *package*)
   (wrap-coq-constr-expr
-   (match pattern-type
+   (match (find-symbol pattern-type)
      ;; CPatAtom
      ((guard cpatatom (eql cpatatom (find-symbol "CPatAtom")))
       (cond
-        ((equal (first pattern-args) "_")
+        ((equal (first pattern-args) (find-symbol "_"))
          #!`(CPatAtom ()))
         ((first pattern-args)
          #!`(CPatAtom (,(MAKE-COQ-IDENT (FIRST PATTERN-ARGS)))))
