@@ -1,11 +1,22 @@
 ;;; clang-diff.lisp --- render ast diffs to html
-;;
-;; TODO: Add instructions for setting up git-difftool to use.
-;;       - This can be done using the "-x" command to git-difftool
-;;       - This can be done with configuration
-;;         difftool.<tool>.path = $SEL/bin/clang-diff
-;;         difftool.<tool>.cmd = clang-diff $LOCAL $REMOTE|colordiff
-;;
+;;;
+;;; 
+;;; The following git configuration will register clang-diff as a tool
+;;; to be used with @code{git difftool}.
+;;;
+;;;     # Set clang-diff as the default difftool.
+;;;     [diff]
+;;;     	tool = clang-diff
+;;;
+;;;     # Command-line to use with clang-diff.  Piping through
+;;;     # colordiff is optional but nice to highlight diffs.
+;;;     [difftool "clang-diff"]
+;;;     	cmd = "clang-diff $LOCAL $REMOTE|colordiff"
+;;;
+;;;     # Optionally don't prompt.
+;;;     [difftool]
+;;;     	prompt = false
+;;;
 (defpackage :software-evolution-library/clang-diff
   (:nicknames :sel/clang-diff)
   (:use :common-lisp
@@ -46,8 +57,15 @@
                 (:recurse (print-diff content stream))))
             diff))))
 
+(setf *note-out* *error-output*)
+(defun handle-set-verbose-argument (level)
+  (when (>= level 4) (setf *shell-debug* t))
+  (setf *note-level* level))
+
 (defun run-clang-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                         raw)
+                         raw flags
+                         (on-parse-error 'error)
+                         (comp-db (probe-file "compile_commands.json")))
   "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
   (flet ((report (fmt &rest args)
            (apply #'format *error-output* (concatenate 'string "~a: " fmt)
@@ -63,6 +81,12 @@ Compare FILES line by line.
 
 Options:
  -r, --raw                 output diff in raw Sexp (default is as text)
+ -C, --comp-db [PATH]      path to clang compilation database
+ -v, --verbose [NUM]       verbosity level 0-4
+ -e, --errors [OPT]        how to handle parse errors 0-2
+                            ignore---silently ignore
+                            warn-----warn and ignore
+                            error----error and quit (default)
 
 Built with SEL version ~a, and ~a version ~a.~%"
               self +software-evolution-library-version+
@@ -70,7 +94,11 @@ Built with SEL version ~a, and ~a version ~a.~%"
       (quit))
     ;; Argument handling and checking.
     (getopts (args :unknown :return)
-      ("-r" "--raw" (setf raw t)))
+      ("-r" "--raw" (setf raw t))
+      ("-C" "--comp-db" (setf comp-db (pop args)))
+      ("-v" "--verbose" (handle-set-verbose-argument
+                         (parse-integer (pop args))))
+      ("-e" "--errors" (setf on-parse-error (intern (pop args) :clang-diff))))
     (when (= (length args) 1)
       (report "missing operand after '~a'~%" (car args))
       (report "Try '~a --help' for more information." self)
@@ -88,10 +116,23 @@ Built with SEL version ~a, and ~a version ~a.~%"
                             t))
                         args))
       (quit 2))
+    ;; Setup clang-mutate options.
+    (setf flags (list "-I" (pwd)))
+    (when comp-db
+      (push (list "-C" comp-db)
+            *clang-mutate-additional-args*))
     ;; Create the diff.
     (let ((diff
-           (ast-diff (from-file (make-instance 'clang) (first args))
-                     (from-file (make-instance 'clang) (second args)))))
+           (handler-bind ((mutate ; Ignore clang-mutate errors.
+                            (lambda (e)
+                              (ecase on-parse-error
+                                (ignore (invoke-restart 'keep-partial-asts))
+                                (warn (warn "Parse error: ~a" e)
+                                      (invoke-restart 'keep-partial-asts))
+                                (error (error e))))))
+             (ast-diff
+              (from-file (make-instance 'clang :flags flags) (first args))
+              (from-file (make-instance 'clang :flags flags) (second args))))))
       ;; Print according to the RAW option.
       (if raw
           (writeln (ast-diff-elide-same diff) :readably t)
