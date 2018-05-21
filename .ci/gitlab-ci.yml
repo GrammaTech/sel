@@ -18,9 +18,19 @@ stages:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     - if [ "$OS" = "ubuntu" ];
       then
-          docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
+          if [ -z "${CI_BUILD_REF_NAME##*-release}" ];
+          then
+              docker pull $DOCKER_REGISTRY/synthesis/cl:$CI_BUILD_REF_NAME;
+          else
+              docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
+          fi
       else
-          docker pull $DOCKER_REGISTRY/synthesis/cl:$OS;
+          if [ -z "${CI_BUILD_REF_NAME##*-release}" ];
+          then
+              docker pull $DOCKER_REGISTRY/synthesis/cl:$CI_BUILD_REF_NAME-$OS;
+          else
+              docker pull $DOCKER_REGISTRY/synthesis/cl:$OS;
+          fi
       fi
 
     - cp .ci/Dockerfile.$OS Dockerfile
@@ -40,6 +50,24 @@ build-arch:
 
 .run-template: &run
   script:
+    # If on release branch, tag the image with its branch name and push.
+    - if [ -z "${CI_BUILD_REF_NAME##*-release}" ];
+      then
+          if [ "$OS" = "ubuntu" ];
+          then
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
+          elif [ "$OS" = "arch" ];
+          then
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME-arch;
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME-arch;
+          fi
+      fi
+
     # If on master branch, push test results to DataManager and push
     # up a new "latest" image, otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];

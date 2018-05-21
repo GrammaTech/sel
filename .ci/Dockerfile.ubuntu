@@ -8,7 +8,7 @@ RUN eval `opam config env` && \
     opam install coq-serapi=8.7.2+0.4.13
 
 
-FROM docker.grammatech.com:14850/synthesis/cl
+FROM docker.grammatech.com:14850/synthesis/cl:brass-rr3-release
 
 RUN apt-get -y update && \
     apt-get -y install man-db graphviz texinfo pandoc pkg-config libffi-dev \

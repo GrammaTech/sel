@@ -7,7 +7,7 @@ RUN eval `opam config env` && \
     opam install coq-serapi=8.7.2+0.4.13
 
 
-FROM docker.grammatech.com:14850/synthesis/cl:arch
+FROM docker.grammatech.com:14850/synthesis/cl:brass-rr3-release-arch
 
 ENV PATH=/gt/sel/bin:$PATH \
     LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH
