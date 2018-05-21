@@ -51,7 +51,10 @@ build-arch:
 .run-template: &run
   script:
     # If on master branch, push test results to DataManager and push
-    # up a new "latest" image, otherwise, run locally.
+    # up a new "latest" image.
+    # If on release branch, tag push test results to DataManager and push
+    # up an image tagged with the branch name.
+    # Otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
       then
           if [ "$OS" = "ubuntu" ];
@@ -69,8 +72,6 @@ build-arch:
           else
               docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
           fi
-      # If on release branch, tag push test results to DataManager and push
-      # up an image tagged with the branch name.
       elif [ -z "${CI_BUILD_REF_NAME##*-release}" ];
       then
           if [ "$OS" = "ubuntu" ];
