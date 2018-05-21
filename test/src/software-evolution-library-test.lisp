@@ -8861,19 +8861,19 @@ int main() { puts(\"~d\"); return 0; }
 (deftest can-create-coq-expressions-1 ()
   (with-fixture serapi
     ;; Nat.add 5 3
-    (let ((e-ast1 (make-coq-application (make-coq-var-reference "plus")
+    (let ((e-ast1 (make-coq-application (make-coq-var-reference #!'plus)
                                         (make-coq-integer 5)
                                         (make-coq-integer 3)))
           (e-ast2 (make-coq-match
                    #!'RegularStyle
-                   (make-coq-application (make-coq-var-reference "S")
-                                         (make-coq-var-reference "O"))
-                   (make-coq-case-pattern #!'CPatAtom "O")
+                   (make-coq-application (make-coq-var-reference #!'S)
+                                         (make-coq-var-reference #!'O))
+                   (make-coq-case-pattern "CPatAtom" #!'O)
                    (make-coq-integer 0)
                    (make-coq-case-pattern
-                    #!'CPatCstr
-                    (make-coq-ident "S")
-                    (make-coq-case-pattern #!'CPatAtom "_"))
+                    "CPatCstr"
+                    (make-coq-ident #!'S)
+                    (make-coq-case-pattern "CPatAtom" #!'_))
                    (make-coq-integer 1))))
       (let ((e-str1 (lookup-coq-string e-ast1 :input-format #!'CoqExpr))
             (e-str2 (lookup-coq-string e-ast2 :input-format #!'CoqExpr)))
