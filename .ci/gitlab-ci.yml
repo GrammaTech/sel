@@ -50,24 +50,6 @@ build-arch:
 
 .run-template: &run
   script:
-    # If on release branch, tag the image with its branch name and push.
-    - if [ -z "${CI_BUILD_REF_NAME##*-release}" ];
-      then
-          if [ "$OS" = "ubuntu" ];
-          then
-              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
-              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
-              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
-              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
-          elif [ "$OS" = "arch" ];
-          then
-              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
-              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME-arch;
-              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
-              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME-arch;
-          fi
-      fi
-
     # If on master branch, push test results to DataManager and push
     # up a new "latest" image, otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
@@ -86,6 +68,23 @@ build-arch:
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:arch;
           else
               docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
+          fi
+      # If on release branch, tag push test results to DataManager and push
+      # up an image tagged with the branch name.
+      elif [ -z "${CI_BUILD_REF_NAME##*-release}" ];
+      then
+          if [ "$OS" = "ubuntu" ];
+          then
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME;
+          elif [ "$OS" = "arch" ];
+          then
+              docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check-testbot";
+              docker tag ${LOCAL_IMAGE_NAME}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME-arch;
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH:$CI_BUILD_REF_NAME-arch;
           fi
       else
           docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS} /bin/bash -c "cd /gt/sel && make check";
