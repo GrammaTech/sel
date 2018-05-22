@@ -8764,8 +8764,6 @@ int main() { puts(\"~d\"); return 0; }
   (set-serapi-paths)
   (zerop (nth-value 2 (shell "which ~a" *sertop-path*))))
 
-(setf *serapi-timeout* 1.0)
-
 (sel-suite* test-serapi "Coq SerAPI interaction." (serapi-available-p))
 
 (defixture serapi
