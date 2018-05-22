@@ -45,7 +45,7 @@
                          raw flags
                          (on-parse-error 'error)
                          (comp-db (probe-file "compile_commands.json")))
-  "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
+  "Run a clang diff on *COMMAND-LINE-ARGUMENTS*."
   (flet ((report (fmt &rest args)
            (apply #'format *error-output* (concatenate 'string "~a: " fmt)
                   self args)))
@@ -56,7 +56,7 @@
               (string= (subseq (car args) 0 (min 3 (length (car args))))
                        "--h"))
       (format t "Usage: ~a [OPTION]... FILES
-Compare FILES line by line.
+Compare C/C++ source files AST by AST.
 
 Options:
  -r, --raw                 output diff in raw Sexp (default is as text)
@@ -103,12 +103,12 @@ Built with SEL version ~a, and ~a version ~a.~%"
     ;; Create the diff.
     (let ((diff
            (handler-bind ((mutate ; Ignore clang-mutate errors.
-                            (lambda (e)
-                              (ecase on-parse-error
-                                (ignore (invoke-restart 'keep-partial-asts))
-                                (warn (warn "Parse error: ~a" e)
-                                      (invoke-restart 'keep-partial-asts))
-                                (error (error e))))))
+                           (lambda (e)
+                             (ecase on-parse-error
+                               (ignore (invoke-restart 'keep-partial-asts))
+                               (warn (warn "Parse error: ~a" e)
+                                     (invoke-restart 'keep-partial-asts))
+                               (error (error e))))))
              (ast-diff
               (from-file (make-instance 'clang :flags flags) (first args))
               (from-file (make-instance 'clang :flags flags) (second args))))))

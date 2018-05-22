@@ -166,8 +166,8 @@
 (defmethod ast-text ((ast string))
   ast)
 
-(defmethod ast-text ((ast list))
-  (mapconcat #'ast-text ast ""))
+(defmethod ast-text ((ast cons))
+  (concatenate 'string (ast-text (car ast)) (ast-text (cdr ast))))
 
 
 ;;; Main interface to calculating ast differences.
