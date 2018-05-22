@@ -322,3 +322,24 @@ techniques."
   :build-pathname "bin/clang-diff"
   :entry-point "software-evolution-library/clang-diff::run-clang-diff"
   :components ((:file "ast-diff/clang-diff")))
+
+(defsystem "software-evolution-library/lisp-diff"
+  :description "Calculate difference between two C/C++ programs."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrowz
+               named-readtables
+               curry-compose-reader-macros
+               metabang-bind
+               iterate
+               uiop
+               software-evolution-library/utility
+               software-evolution-library/ast-diff
+               eclector-concrete-syntax-tree
+               concrete-syntax-tree)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/lisp-diff"
+  :entry-point "software-evolution-library/lisp-diff::run-lisp-diff"
+  :components ((:file "ast-diff/lisp-diff")))

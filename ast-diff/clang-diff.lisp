@@ -1,4 +1,4 @@
-;;; clang-diff.lisp --- render ast diffs to html
+;;; clang-diff.lisp --- Calculate and render Lisp AST diffs at the command line
 ;;;
 ;;; 
 ;;; The following git configuration will register clang-diff as a tool
@@ -33,8 +33,7 @@
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
-   :if-let :emptyp :featurep)
-  (:export :diff-to-html))
+   :if-let :emptyp :featurep))
 (in-package :software-evolution-library/clang-diff)
 (in-readtable :curry-compose-reader-macros)
 
