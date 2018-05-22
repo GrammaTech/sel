@@ -139,8 +139,15 @@ times."))
                      (iter (while (not (timeout-p start-time)))
                            ;; The instrumented process will complete the
                            ;; handshake by deleting the file.
-                           (unless (probe-file handshake-file)
-                             (return t))
+                           (handler-case
+                               (unless (probe-file handshake-file)
+                                 (return t))
+                             (error (e)
+                               ;; A race condition exists in the SBCL 1.4.7
+                               ;; `probe-file' where if the handshake
+                               ;; file is deleted during the execution
+                               ;; of the function, an error will be thrown.
+                               (declare (ignorable e))))
 
                            (unless (process-running-p proc)
                              (note 4 "Test process exited")
