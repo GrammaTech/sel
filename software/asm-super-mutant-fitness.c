@@ -1,3 +1,9 @@
+//
+// File: asm-super-mutant.c
+// Contents: C harness to run and test various asm-super-mutant
+// software objects, to determine which variant has the best fitness
+// for each test.
+// 
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,14 +12,51 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <papi.h>
 
+// variant function pointer
+// This is defined to take no arguments and return nothing.
+// In reality the functions it calls may expect arguments and may
+// return them, but those are taken care of in the register and memory
+// initialization and checking code. So for our purposes, we just call
+// the pointer as if it were a standalone block.
+//
 typedef void (*vfunc)();
+                              
 
 extern vfunc variant_table[]; // 0-terminated array of variant
-                              // function pointers
-#define NUM_INPUT_REGS 15
-#define NUM_OUTPUT_REGS 9
-#define RSP_INDEX 3  // index into output_regs where RSP is stored
+                              // function pointers, defined in the asm file
+#define NUM_INPUT_REGS 15     // number of live input registers
+#define NUM_OUTPUT_REGS 9     // number of live output registers
+#define RSP_INDEX 3           // index within output register set where RSP is stored
+
+// Expected input registers:
+//    rax
+//    rbx
+//    rcx
+//    rdx
+//    rsp
+//    rbp
+//    rsi
+//    rdi
+//    r8
+//    r9
+//    r10
+//    r12
+//    r13
+//    r14
+//    r15
+//
+// Expected output registers:
+//    rax
+//    rbx
+//    rdx
+//    rsp
+//    rbp
+//    r12
+//    r13
+//    r14
+//    r15
 
 #define PAGE_SIZE 4096
 #define PAGE_MASK 0xfffffffffffff000
@@ -31,6 +74,7 @@ unsigned long result_regs[NUM_OUTPUT_REGS]; // for storing the
                                             // resulting values
 
 static unsigned long test_offset = 0;
+static int EventSet = PAPI_NULL;
 
 #define timer_start(name) \
     unsigned long name; \
@@ -140,15 +184,22 @@ static unsigned long test_offset = 0;
 //
 void init_pages() {
     unsigned long* p = input_mem;
-    while (*p) {
-        unsigned long* addr = (unsigned long*)*p;
-        p += 3;
-        // allocate pages the first time
-        void* anon = mmap((unsigned long*)(((unsigned long)addr) & PAGE_MASK), PAGE_SIZE,
+    for (int k = 0; k < num_tests; k++) {
+        while (*p) {
+            unsigned long* addr = (unsigned long*)*p;
+            p += 3;
+            // allocate pages the first time
+            unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
+            void* anon = mmap(page_addr, PAGE_SIZE,
                           PROT_READ|PROT_WRITE,
                           MAP_ANONYMOUS|MAP_PRIVATE,
                           -1,
                           0);
+            fprintf(stdout, "Allocated page at address 0x%lx, result: %lx\n",
+                   (unsigned long)page_addr,
+                   (unsigned long)anon);
+        }
+        p++;
     }
 }
 
@@ -190,9 +241,13 @@ int check_results(int test) {
     // check registers
     for (int i = 0; i < NUM_OUTPUT_REGS; i++) {
         if (output_regs[test * NUM_OUTPUT_REGS + i] != result_regs[i]) {
-           printf("Test failed at register: %s, expected: %lx, "
+            fprintf(stdout, "Test %d failed at register: %s, expected: %lx, "
                    "found: %lx, orig rsp: %lx\n",
-                   output_reg_names[i], output_regs[i], result_regs[i], save_rsp);
+                  test,
+                  output_reg_names[i],
+                  output_regs[i],
+                  result_regs[i],
+                  save_rsp);
             success = 0;
         }
     }
@@ -215,15 +270,17 @@ int check_results(int test) {
         unsigned long data = *p++;
         unsigned long mask = *p++;
 
-        unsigned long* rsp = (unsigned long*)output_regs[RSP_INDEX];
+        unsigned long* rsp = (unsigned long*)output_regs[test * NUM_OUTPUT_REGS + RSP_INDEX];
         if (addr < rsp && (rsp - addr) < 64)
             continue;    // ignore changes in the 1024 below the top
                          // of the stack (i.e. not on the stack, which
                          // grows down) 
         if ((*addr & mask) != (data & mask)) {
-            printf("Test failed at addr: %lx, expected: %lx, "
+            fprintf(stderr, "Test %d failed at addr: %lx, expected: %lx, "
                    "mask: %lx, found: %lx, orig rsp: %lx\n",
-                   (unsigned long)addr, data, mask, *addr, save_rsp);
+                   test,
+                   (unsigned long)addr,
+                   data, mask, *addr, save_rsp);
             success = 0;
         }
     }    
@@ -238,47 +295,80 @@ static vfunc execaddr = 0;
 
 
 unsigned long run_variant(int v, int test) {
+    long_long start_value[1];
+    long_long end_value[1];
+    long_long stop_value[1];
+    int retval;
+    
     test_offset = test * NUM_INPUT_REGS * sizeof(unsigned long);
     execaddr = variant_table[v];
     init_mem(test);
     timer_start(start);
+    //PAPI_reset(EventSet);
+    retval = PAPI_start(EventSet);  // start PAPI counting
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_start() error: %d\n", retval);
+        exit(1);
+    }
+
+    retval = PAPI_read(EventSet, start_value);     // get PAPI count
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_read() error: %d\n", retval);
+        exit(1);
+    }
+
     init_regs();
     execaddr();
     copy_result_regs();
     timer_elapsed(start, elapsed);
+    retval = PAPI_read(EventSet, end_value);     // get PAPI count
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_read() error: %d\n", retval);
+        exit(1);
+    }
+
+    retval = PAPI_stop(EventSet, stop_value);
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_stop() error: %d\n", retval);
+        exit(1);
+    }
+
+    long_long elapsed_instructions = end_value[0] - start_value[0];
+    
     int res = check_results(test);   // make sure all the registers had expected
                                  // output values
-    printf("variant %d valid: %s elapsed: %ld\n", v,
-           (res ? "yes" : "no"),
-           elapsed);
     
-    return res == 0 ? 0 : elapsed;
+    fprintf(stdout, "variant %d valid: %s instructions: %lld\n", v,
+           (res ? "yes" : "no"),
+           elapsed_instructions);
+  
+    return res == 0 ? 0 : elapsed_instructions;
 }
-
-#define NUM_ITERATIONS 10
 
 unsigned long run_variant_tests(int v) {
     unsigned long total = 0;
     unsigned long result;
-    for (int j = 0; j < NUM_ITERATIONS; j++) {
-        for (int k = 0; k < num_tests; k++) {
-            result = run_variant(v, k);
-            if (result == 0)
-                return 0;
-            // we only tally the first test case for performance
-            if (j > 0 && k == 0)    // ignore first test result as outlier
-                total += result;
-        }
+    fprintf(stdout, "Running tests for variant %d\n", v);
+    for (int k = 0; k < num_tests; k++) {
+        result = run_variant(v, k);
+        if (result == 0)
+            return 0;
+        // we only compare the first test case for performance
+        if (k == 0)
+            total = result;
     }
-    return total / (NUM_ITERATIONS - 1);
+    fprintf(stdout, "Returning %ld\n", total);
+    return total;
 }
 
 void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
-    printf("Caught segfault at address %p\n", si->si_addr);
+    fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
     // try to make the memory page read/write
     unsigned long addr = (unsigned long)(si->si_addr);
     unsigned long page_start = addr & PAGE_MASK;
-    int ret = mprotect((unsigned long*)addr, PAGE_SIZE, PROT_READ|PROT_WRITE);
+    fprintf(stdout, "Attempting to make page %lx have read/write permission.\n",
+           page_start);
+    int ret = mprotect((unsigned long*)page_start, PAGE_SIZE, PROT_READ|PROT_WRITE);
     if (ret < 0) {
         switch (errno) {
         case EACCES:  printf("Error: EACCESS\n"); break;
@@ -289,6 +379,35 @@ void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
         exit(errno);
     }
     // otherwise continue
+}
+
+void papi_init() {
+    int retval = PAPI_library_init(PAPI_VER_CURRENT);
+    
+    if (retval != PAPI_VER_CURRENT && retval > 0) {
+        fprintf(stderr,"PAPI library version mismatch!\n");
+        exit(1);
+    }
+    if (retval < 0) {
+        fprintf(stderr, "PAPI initialization error: %d\n", retval);
+        exit(1);
+    }
+    fprintf(stdout, "PAPI Version Number %d.%d.%d\n",
+            PAPI_VERSION_MAJOR(retval),
+            PAPI_VERSION_MINOR(retval),
+            PAPI_VERSION_REVISION(retval));
+
+    // Create an event set, containint Total Instructions Executed counter
+    retval = PAPI_create_eventset(&EventSet);
+    if (retval < 0) {
+        fprintf(stderr, "PAPI_create_eventset()  error: %d\n", retval);
+        exit(1);
+    }
+    retval = PAPI_add_event(EventSet, PAPI_TOT_INS);
+        if (retval < 0) {
+        fprintf(stderr, "PAPI_add_event()  error: %d\n", retval);
+        exit(1);
+    }
 }
 
 //
@@ -307,8 +426,10 @@ int main(int argc, char* argv[]) {
 
     // show the page size
     long sz = sysconf(_SC_PAGESIZE);
-    printf("Page size: %ld\n", sz);
+    fprintf(stdout, "Page size: %ld\n", sz);
 
+    papi_init();
+    
     init_pages(); // allocate any referenced pages
     
     unsigned long best = 0;
@@ -321,10 +442,10 @@ int main(int argc, char* argv[]) {
         }
     }
     if (best > 0)
-        printf("Best fitness: variant %d, elapsed: %ld\n", best_index, best);
+        fprintf(stdout, "Best fitness: variant %d, elapsed: %ld\n", best_index, best);
     else
     {
-        printf("No variant passed the tests.\n");
+        fprintf(stdout, "No variant passed the tests.\n");
         return 1;
     }
     return 0;
