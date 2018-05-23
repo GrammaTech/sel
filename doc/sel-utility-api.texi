@@ -51,8 +51,6 @@
    @item @refutilitygeneric{process-id}
    @item @refutilitygeneric{process-input-stream}
    @item @refutilitygeneric{process-output-stream}
-   @item @refutilitygeneric{process-status}
-   @item @refutilitygeneric{signal-process}
   @end itemize
 
 @item Variables
@@ -153,8 +151,6 @@
 @include include/fun-sel-slash-utility-process-id.texinfo
 @include include/fun-sel-slash-utility-process-input-stream.texinfo
 @include include/fun-sel-slash-utility-process-output-stream.texinfo
-@include include/fun-sel-slash-utility-process-status.texinfo
-@include include/fun-sel-slash-utility-signal-process.texinfo
 
 @section Documentation
 

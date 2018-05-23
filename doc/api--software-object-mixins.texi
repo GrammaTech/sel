@@ -102,7 +102,7 @@ Class @code{diff}
 @item Class @refapiclass{diff}
 @item Methods
   @itemize
-  @item @refapimethod{copy ((diff diff))}
+  @item @refapimethod{copy ((diff diff) &key)}
   @item @refapimethod{genome ((diff diff))}
   @item @refapimethod{reference ((diff diff))}
   @end itemize

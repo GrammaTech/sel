@@ -32,7 +32,7 @@ More information about instrumentation is provided in section
   @item Methods
     @itemize
 @c whitespace in this reference is important
-    @item @refapimethod{var-instrument (key (instrumenter instrumenter) (ast ast-ref) &key
+    @item @refapimethod{var-instrument (key (instrumenter instrumenter) (ast clang-ast) &key
                   print-strings)}
     @end itemize
   @end itemize

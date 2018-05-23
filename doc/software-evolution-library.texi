@@ -316,40 +316,55 @@ are given in remainder of this section.
  max-time                | fitness          |         pick-good
  target                  | ...              |         pick-bad
  period                  +------------------+         mutate
- period-func                 |     |                  crossover
- filter      +---------------+     |
-             | +---------------+---+-----+------+----------------+----------+
-+------------+ |               |         |      |                |          |
-|     +---------------+  +-------------+ | +-------------+  +------------+  |
-|     |      AST      |  |     ELF     | | |    lisp     |  |    asm     |  |
-|     |---------------|  |-------------| | |-------------|  |------------|  |
-|     |   Abstract    |  | Executable  | | | lisp source |  |  assembly  |  |
-|     |  Syntax Tree  |  |  Linkable   | | +-------------+  |    code    |  |
-|     +---------------+  |   Format    | |                  +------------+  |
-|             |          +-------------+ +--------+             |           |
-|    +--------------+-------------------+         |   +------------------+  |
-|    |              |                   |         |   |     asm-range    |  |
-| +-------+  +----------------+   +----------+    |   |------------------|  |
-| | Clang |  |       CIL      |   |   LLVM   |    |   | memory efficient |  |
-| |-------|  |----------------|   |----------|    |   +------------------+  |
-| | C AST |  | C Intermediate |   | LLVM IR  |  +--------------+   +-------------+
-| +-------+  |    Language    |   +----------+  |    forth     |   |     Java    |
-|    |       +----------------+                 |--------------|   |-------------|
-|    +------------------------------+           | forth source |   | Java source |
-+---------------------+             |           +--------------+   +-------------+
-                      |             |
-                +------------+     +-------------------+
-                | Searchable |  +--| Clang with Fodder |
-                +------------+  |  +-------------------+
-                      |   +-----+
-                      |   |
-            +-----------------+  +--------------------+
-         +--| Fodder Database |--| In Memory Database |
-         |  +-----------------+  +--------------------+
-         |            |                    |
-    +----------+ +----------+         +---------+
-    | Pliny DB | | Mongo DB |         | JSON DB |
-    +----------+ +----------+         +---------+
+ period-func                       |                  crossover
+ filter                            |
+               +-------------------+----------+---------+---------------+
+               |                   |          |         |               |
+     +-----------------+    +-------------+   |  +-------------+  +------------+
+     |     Source      |    |     ELF     |   |  |    lisp     |  |    asm     |
+     +-----------------+    |-------------|   |  |-------------|  |------------|
+     | Textual source  |    | Executable  |   |  | lisp source |  |  assembly  |
+     |  representation |    |  Linkable   |   |  +-------------+  |    code    |
+     +-----------------+    |   Format    |   |                   +------------+
+               |            +-------------+   |                         |
+               |                              |                         |
+       +---------+------------+          +--------------+   +------------------+
+       |         |            |          |    forth     |   |     asm-range    |
++-------------+  |   +----------------+  |--------------|   |------------------|
+|     Java    |  |   |       CIL      |  | forth source |   | memory efficient |
+|-------------|  |   |----------------|  +--------------+   +------------------+
+| Java source |  |   | C Intermediate |
++-------------+  |   |    Language    |
+                 |   +----------------+
+                 |
+        +--------+------------+
+        |                     |
+  +----------+          +-------------+
+  |   LLVM   |          |  Parseable  |
+  |----------|          +-------------+
+  | LLVM IR  |          | Parsed ASTs |
+  +----------+          +-------------+
+                              |
+                          +-------+
+                          | Clang |
+                          |-------|
+                          | C AST |
+                          +-------+
+                              |
+                              |
+                              |
+    +------------+     +-------------------+
+    | Searchable |  +--| Clang with Fodder |
+    +------------+  |  +-------------------+
+          |   +-----+
+          |   |
+        +-----------------+  +--------------------+
+     +--| Fodder Database |--| In Memory Database |
+     |  +-----------------+  +--------------------+
+     |            |                    |
++----------+ +----------+         +---------+
+| Pliny DB | | Mongo DB |         | JSON DB |
++----------+ +----------+         +---------+
 @end example
 @caption{Software Evolution API.  Exported functions and variables are
 shown along with the software object class hierarchy.}
@@ -363,7 +378,7 @@ The Software Evolution Library represents software as @emph{software
 objects} which all inherit from the base @refapiclass{software} class.
 Currently many subclasses of software are defined.  These classes may
 inherit from other software sub-classes, e.g. most tree-structured
-source code software objects inherit from the @refapiclass{ast} class.
+source code software objects inherit from the @refapiclass{parseable} class.
 The inheritance tree of software objects is shown graphically in
 @ref{fig:overview}.
 
@@ -392,7 +407,7 @@ with an indicate of their relative maturity.
       @tab @refapiclass{elf-mips} @*  @refapiclass{elf-cisc}
       @tab mature (not recommended)
 
-@item linked Java source
+@item Java source
       @tab @refapiclass{java}
       @tab experimental
 
@@ -542,7 +557,7 @@ binary.
 
 New software objects should inherit from the most-relevant base
 class. For source code based software objects, this is the
-@refapiclass{ast} class. To define a new software object type from an
+@refapiclass{parseable} class. To define a new software object type from an
 existing base class, use the @refapimacro{define-software} macro.  All
 software objects should ultimately inherit from the
 @refapiclass{software} class.

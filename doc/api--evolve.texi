@@ -34,7 +34,6 @@ Evolutionary Search
 @item Variables
   @itemize
   @item @refapivariable{*cross-chance*}
-  @item @refapivariable{*crossover-function-probability*}  
   @item @refapivariable{*crossover-stats*}
   @item @refapivariable{*fitness-evals*}
   @item @refapivariable{*fitness-predicate*}
@@ -72,7 +71,6 @@ Evolutionary Search
 
 
 @include include/var-sel-star-cross-chance-star.texinfo
-@include include/var-sel-star-crossover-function-probability-star.texinfo
 @include include/var-sel-star-crossover-stats-star.texinfo
 @include include/var-sel-star-fitness-evals-star.texinfo
 @include include/var-sel-star-fitness-predicate-star.texinfo
