@@ -24,7 +24,6 @@
         :cl-arrowz
         :named-readtables
         :curry-compose-reader-macros
-        :metabang-bind
         :iterate
         :uiop
         :software-evolution-library/utility
@@ -36,25 +35,6 @@
    :if-let :emptyp :featurep))
 (in-package :software-evolution-library/clang-diff)
 (in-readtable :curry-compose-reader-macros)
-
-(defun print-diff (diff &optional (stream *standard-output*))
-  (let ((*print-escape* nil))
-    (labels ((text (content)
-               (etypecase content
-                 (string content)
-                 (clang-ast (ast-text content))
-                 (list (mapconcat #'text content "")))))
-      (mapc (lambda-bind ((type . content))
-              (ecase type
-                (:same (write (text content) :stream stream))
-                (:delete (write "[-" :stream stream)
-                         (write (text content) :stream stream)
-                         (write "-]" :stream stream))
-                (:insert (write "{+" :stream stream)
-                         (write (text content) :stream stream)
-                         (write "+}" :stream stream))
-                (:recurse (print-diff content stream))))
-            diff))))
 
 (setf *note-out* *error-output*)
 (defun handle-set-verbose-argument (level)

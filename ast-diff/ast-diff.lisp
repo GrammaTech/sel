@@ -25,6 +25,7 @@
    :cl-arrowz
    :named-readtables
    :curry-compose-reader-macros
+   :metabang-bind
    :iterate
    :cl-who)
   (:export
@@ -47,7 +48,8 @@
    ;; :cdar
    :ast-diff
    :ast-diff-elide-same
-   :ast-patch))
+   :ast-patch
+   :print-diff))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -160,6 +162,12 @@
 
 (defmethod ast-text ((ast costed))
   (ast-text (cobj ast)))
+
+(defmethod ast-text ((ast string))
+  ast)
+
+(defmethod ast-text ((ast list))
+  (mapconcat #'ast-text ast ""))
 
 
 ;;; Main interface to calculating ast differences.
@@ -462,3 +470,17 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                         (edit (cdr asts) (cdr script)))
                (:insert (cons args (edit asts (cdr script)))))))))
     (ast-un-recurse original (edit (ast-on-recurse original) script))))
+
+(defun print-diff (diff &optional (stream *standard-output*))
+  (let ((*print-escape* nil))
+    (mapc (lambda-bind ((type . content))
+            (ecase type
+              (:same (write (ast-text content) :stream stream))
+              (:delete (write "[-" :stream stream)
+                       (write (ast-text content) :stream stream)
+                       (write "-]" :stream stream))
+              (:insert (write "{+" :stream stream)
+                       (write (ast-text content) :stream stream)
+                       (write "+}" :stream stream))
+              (:recurse (print-diff content stream))))
+          diff)))
