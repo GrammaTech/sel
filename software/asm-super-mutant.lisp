@@ -13,8 +13,10 @@
 ;;;
 ;;;
 (define-software asm-super-mutant (asm-heap super-mutant)
-  ((input-spec :initarg :input-spec :accessor input-spec)
-   (output-spec :initarg :output-spec :accessor output-spec)
+  ((input-spec :initarg :input-spec :accessor input-spec
+	       :initform (make-array 0 :fill-pointer 0 :adjustable t))
+   (output-spec :initarg :output-spec :accessor output-spec
+		:initform (make-array 0 :fill-pointer 0 :adjustable t))
    (target-start-index :initarg :target-start-index
 		       :accessor target-start-index)
    (target-end-index :initarg :target-end-index
@@ -178,25 +180,33 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	 :value (parse-bytes 8
 			     (remove #\space (subseq line pos)))))))
 
+(defun new-io-spec ()
+  (make-input-specification
+   :regs (make-array 16 :fill-pointer 0)
+   :simd-regs (make-array 16 :fill-pointer 0)
+   :mem (make-array 0 :fill-pointer 0 :adjustable t)))
 
 (defun load-io-file (super-asm filename)
   "Load the file containing input and output state information"
-  (let ((input-spec (make-input-specification
-		     :regs (make-array 16 :fill-pointer 0)
-		     :simd-regs (make-array 16 :fill-pointer 0)
-		     :mem (make-array 0 :fill-pointer 0 :adjustable t)))
-	(output-spec (make-input-specification
-		     :regs (make-array 16 :fill-pointer 0)
-		     :simd-regs (make-array 16 :fill-pointer 0)
-		     :mem (make-array 0 :fill-pointer 0 :adjustable t)))
+  (let ((input-spec (new-io-spec))
+	(output-spec (new-io-spec))
 	(parsing-inputs t))
     (with-open-file (input filename :direction :input)
       (do ((line (get-next-line input) (get-next-line input))
 	   (pos 0 0))
-	  ((null line))
+	  ((null line)
+	   (when (> (length (input-specification-regs output-spec)) 0)
+	         (vector-push-extend output-spec (output-spec super-asm))))
 	(cond ((zerop (length line))) ; do nothing, empty line
-	      ((search "Input data" line) (setf parsing-inputs t))
-	      ((search "Output data" line)(setf parsing-inputs nil))
+	      ((search "Input data" line)
+	       (when (> (length (input-specification-regs output-spec)) 0)
+	         (vector-push-extend output-spec (output-spec super-asm))
+	         (setf output-spec (new-io-spec)))
+	       (setf parsing-inputs t))
+	      ((search "Output data" line)
+	       (vector-push-extend input-spec (input-spec super-asm))
+	       (setf input-spec (new-io-spec))
+	       (setf parsing-inputs nil))
 	      ((char= (char line 0) #\%) ; register spec?
 	       (let ((spec (parse-reg-spec line pos)))
 		 (if (simd-reg-p (reg-contents-name spec))  ; SIMD register?
@@ -213,9 +223,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	       (vector-push-extend
 		 (parse-mem-spec line pos)
 		   (input-specification-mem
-		    (if parsing-inputs input-spec output-spec)))))))
-    (setf (input-spec super-asm) input-spec)
-    (setf (output-spec super-asm) output-spec))
+		    (if parsing-inputs input-spec output-spec))))))))
   t)
 
 ;;;
@@ -346,7 +354,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	           (for x in-vector (input-specification-mem input-spec))
 		   (collect (init-mem x)))))
 	 (asm (make-instance 'asm-heap)))
-    (setf (lines asm) (append #|mem-lines|# reg-lines))
+    (setf (lines asm) (append mem-lines reg-lines))
     asm))
 
 ;;;
@@ -375,13 +383,13 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
   (let* ((genome (genome asm-super))
 	 (start-index
 	  (position start-addr genome
-		   :key 'asm-line-info-address
-		   :test (lambda (x y)(and y (= x y))))) ;; skip null address
+		    :key 'asm-line-info-address
+		    :test (lambda (x y)(and y (= x y))))) ;; skip null address
 	 (end-index
 	  (position end-addr genome
-		   :key 'asm-line-info-address
-		   :start (if start-index start-index 0)
-		   :test (lambda (x y)(and y (= x y))))))
+		    :key 'asm-line-info-address
+		    :start (if start-index start-index 0)
+		    :test (lambda (x y)(and y (= x y))))))
     (setf (target-start-index asm-super) start-index)
     (setf (target-end-index asm-super) end-index)
     (setf (target-lines asm-super)
@@ -418,96 +426,56 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	text)))
 
 ;;;
-;;; Insert initialization code just before the $main function.
+;;; Insert prolog code at the beginning of the file.
 ;;;
-(defun add-init-func (asm-super)
-  (let ((main-pos (find-main-line-position asm-super)))
-    (if main-pos
-	(insert-new-lines asm-super
-			  (append
-			   (list "$super_variant_init:")
-			   (lines (init-env asm-super))
-			   (list "ret" "align 4"))
-			  main-pos))))
+(defun add-prolog (asm-super)
+  (insert-new-lines
+   asm-super
+   (list
+    "; -------------- Globals (exported) ---------------"
+    "	global variant_table"
+    "	global input_regs"
+    "	global output_regs"
+    "	global input_mem"
+    "	global output_mem"
+    "	global num_tests"
+    ""
+    "; -------------- Stack Vars ---------------"
+    "      $is_even.var_4 equ -4"
+    ""
+    "; -------------- Stack --------------"
+    "section .note.GNU-stack noalloc noexec nowrite progbits"
+    ""
+    "; ----------- Code & Data ------------"
+    "section .text exec nowrite  align=16"	
+    "      align 4")
+   0))
 
+;;; Append a variant function, defined by the name and
+;;; lines of assembler code, 
 ;;;
-;;; Insert check results function just before $main function.
-;;;
-(defun add-check-env-func (asm-super)
-  (let ((main-pos (find-main-line-position asm-super)))
-    (if main-pos
-	(insert-new-lines
-	 asm-super
-	 (append
-	  (list "$super_variant_check:")
-	  (lines (check-env asm-super))
-	  (list "ret"
-		"mov rax, 0"  ;; success exit
-		"$output_comparison_failure:"
-		"mov rdi, qword [$stdout@@GLIBC_2.2.5]"
-		"mov esi, $error_mem_compare"
-	        "mov rdx, rcx"   ; address as param 3
-		"mov rcx, rax"   ; expected results as param 4
-		"call $fprintf wrt ..plt"
-		"mov rax, 1"  ;; error exit
-		"ret"
-		"$output_reg_comparison_failure:"
-		"mov rax, 1"  ;; error exit
-		"ret"
-                "$error_mem_compare:"
-	        "db 'Comparison of address %x failed: expected 0x%x\0'"
-                "$error_reg_compare:"
-	        "db 'Comparison of register failed: expected 0x%x\0'"
-	        "align 4"))
-	 main-pos))))
-
-;;; Insert a variant function, defined by a name and lines of assembler code,
-;;; just before $main function.
-;;;
-(defun add-variant-func (asm-super name lines)
-  (let* ((main-pos (find-main-line-position asm-super))
-         (suffix (format nil "_~A" (subseq name 1)))
+(defun add-variant-func (asm-variant name lines)
+  (let* ((suffix (format nil "_~A" name))
 	 (localized-lines
 	  (mapcar
 	   (lambda (line)
-	      (add-label-suffix line suffix))
-	     lines)))
-    (if main-pos
-	(insert-new-lines
-	 asm-super
-	 (append
-	   (list (format nil "~A:" name))  ; function name
-	   (cdr localized-lines)   ; skip first line, the function name
-	   (list "ret"   ; probably redundant, already in lines
-		 "align 4"))
-	 main-pos))))
+	     (add-label-suffix line suffix))
+	   lines)))
+    (insert-new-lines
+     asm-variant
+     (append
+      (list (format nil "~A:" name))  ; function name
+      (cdr localized-lines)   ; skip first line, the function name
+      (list "ret"   ; probably redundant, already in lines
+	    "align 4"))
+     (length (genome asm-variant)))))
 
-(defun add-main-func (asm-super variant-names)
-  (declare (ignore variant-names))
-  (let ((main-pos (find-main-line-position asm-super)))
-    (if main-pos
-      (insert-new-lines
-	 asm-super
-	 (list
-	   "sub rsp, 16" ; add storage on the stack for two instruction counts
-	   "call $super_variant_init"
-           "rdtsc"
-	   "mov [rsp], rax"         ; save instruction counter
-	   "call $variant_1"
-	   "rdtsc"
-	   "mov [rsp+8], rax"       ; save instruction counter
-	   "call $super_variant_check"
-	   "mov rax, 0"             ; need to return possible error codes here
-	   "ret")
-	 (+ main-pos 1)))))         ; insert just after "$main:" label,
-                                    ; replacing previous $main:
-
-(defun format-reg-specs (io-spec &optional (stream t))
+(defun format-reg-specs (io-spec)
   (iter (for reg-spec in-vector (input-specification-regs io-spec))
-    (format stream "    dq ~16,'0X  ; ~A~%"
-      (be-bytes-to-qword
-       (reg-contents-value reg-spec))
-      (reg-contents-name reg-spec))))
+	(collect
+	    (format nil "    dq 0x~16,'0X  ; ~A"
+		(be-bytes-to-qword (reg-contents-value reg-spec))
+		(reg-contents-name reg-spec)))))
 
 ;;;
 ;;; for each memory entry, add three qwords: address, data, mask.
@@ -515,31 +483,94 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 ;;; (this means the high byte only is used)
 ;;; The list is terminated with an address of 0.
 ;;;
-(defun format-mem-specs (io-spec &optional (stream t))
-  (iter (for spec in-vector (input-specification-mem io-spec))
-    (let ((addr (memory-spec-addr spec))
-	  (mask (memory-spec-mask spec))
-	  (bytes (memory-spec-bytes spec)))
-      (format stream "    dq 0x~16,'0X~%    dq 0x~16,'0X~%    dq 0x~A~%"
-	      addr
-	      (be-bytes-to-qword bytes)
-	      (apply 'concatenate 'string
-			   (map 'list
-				(lambda (x)
-				  (if (= x 1) "FF" "00"))
-				mask)))))
-  (format stream "    dq 0~%"))    ; and with zero address
-    
-(defun generate-file (asm-super output-path)
-  (add-init-func asm-super)
-  (add-check-env-func asm-super)
-  (add-variant-func asm-super "$variant_1"
-		    (map 'list 'asm-line-info-text (target-lines asm-super)))
-  (add-main-func asm-super nil)
-  (with-open-file (os output-path :direction :output :if-exists :supersede)
-    (dolist (line (lines asm-super))
-      (format os "~A~%" line)))
-  (format t "File ~A successfully created.~%" output-path))
+(defun format-mem-specs (io-spec)
+  (let ((lines
+	 (iter (for spec in-vector (input-specification-mem io-spec))
+	       (collect
+		   (let ((addr (memory-spec-addr spec))
+			 (mask (memory-spec-mask spec))
+			 (bytes (memory-spec-bytes spec)))
+		     (format
+		      nil
+		      "    dq 0x~16,'0X~%    dq 0x~16,'0X~%    dq 0x~A~%"
+		      addr
+		      (be-bytes-to-qword bytes)
+		      (apply 'concatenate 'string
+			     (map 'list
+				  (lambda (x)
+				    (if (= x 1) "FF" "00"))
+				  mask))))))))
+    (append lines (list "    dq 0"))))    ; and with zero address
+
+(defun add-variant-table (asm num-variants)
+  (insert-new-lines
+   asm
+   (list
+    ""
+    ";;;  table of function pointers, 0-terminated"
+    "variant_table:")
+   (length (genome asm)))
+  (dotimes (i num-variants)
+    (insert-new-line
+     asm
+     (format nil "        dq variant_~D" i)
+     (length (genome asm))))
+  (insert-new-line asm "        dq 0" (length (genome asm))))
+
+(defun format-reg-info (asm-variants spec-vec label)
+  (insert-new-lines asm-variants (list "" label) (length (genome asm-variants)))
+  (dotimes (i (length spec-vec))
+    (insert-new-lines
+     asm-variants
+     (format-reg-specs (aref spec-vec i))
+     (length (genome asm-variants)))
+    (insert-new-line asm-variants "" (length (genome asm-variants)))))
+
+(defun format-mem-info (asm-variants spec-vec label)
+  (insert-new-lines asm-variants (list "" label) (length (genome asm-variants)))
+  (dotimes (i (length spec-vec))
+    (insert-new-lines
+     asm-variants
+     (format-mem-specs (aref spec-vec i))
+     (length (genome asm-variants)))
+    (insert-new-line asm-variants "" (length (genome asm-variants)))))
+
+(defun add-io-tests (asm-super asm-variants)
+  "Copy the i/o data from the asm-super into the asm-variants assembly file"
+  (insert-new-lines
+   asm-variants
+   (list
+      ""    
+      ";;;  number of test cases"
+      "num_tests:")
+   (length (genome asm-variants)))
+  (insert-new-line
+   asm-variants
+   (format nil "        dq ~d" (length (input-spec asm-super)))
+   (length (genome asm-variants)))
+  (format-reg-info asm-variants (input-spec asm-super) "input_regs:")
+  (format-reg-info asm-variants (output-spec asm-super) "output_regs:")
+  (format-mem-info asm-variants (input-spec asm-super) "input_mem:")
+  (format-mem-info asm-variants (output-spec asm-super) "output_mem:"))
+  
+(defun generate-file (asm-super output-path number-of-variants)
+  (let ((asm-variants (make-instance 'asm-heap)))
+    (setf (lines asm-variants) (list))  ;; empty heap
+    (add-prolog asm-variants)
+    (add-variant-func
+     asm-variants
+     "variant_0"
+     (map 'list 'asm-line-info-text (target-lines asm-super)))
+    (add-variant-func
+     asm-variants
+     "variant_1"
+     (map 'list 'asm-line-info-text (target-lines asm-super)))
+    (add-variant-table asm-variants number-of-variants)
+    (add-io-tests asm-super asm-variants)
+    (with-open-file (os output-path :direction :output :if-exists :supersede)
+      (dolist (line (lines asm-variants))
+	(format os "~A~%" line)))
+    (format t "File ~A successfully created.~%" output-path)))
 
 (defun create-variant-file (input-source io-file output-path
 		    start-addr end-addr)
@@ -547,7 +578,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	 (from-file (make-instance 'asm-super-mutant) input-source)))
     (load-io-file asm-super io-file)
     (target-function asm-super start-addr end-addr) ; nlscan function
-    (generate-file asm-super output-path)))
+    (generate-file asm-super output-path 2)))
 
 #|
 
@@ -571,8 +602,15 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 
 (defparameter *asm-super* 
   (from-file (make-instance 'asm-super-mutant)
-  "/u1/rcorman/temp/asm-test.asm"))
+  "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.asm"))
+(load-io-file *asm-super* "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.io")
 
 (target-function *asm-super* #x4005f6 #x400625)
+
+(create-variant-file
+  "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.asm"
+  "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.io"
+  "/u1/rcorman/synth/sel/test/etc/asm-test/is_even.asm"
+   #x4005f6 #x400625))
 
 |#
