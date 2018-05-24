@@ -1,8 +1,18 @@
 #!/bin/bash
 
-ccl --quiet --no-init \
-    --load ${USER_QUICK_LISP:-quicklisp}/setup.lisp \
-    --eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-    --eval '(ql:quickload :software-evolution-library)' \
-    --load doc/examples/003-neutral \
-    --eval '(quit)'
+if [[ $LISP == "sbcl" ]] || [[ $LISP == "SBCL" ]]; then
+    SBCL_HOME=${SBCL_HOME:-$(dirname $(which sbcl))/../lib/sbcl} \
+    sbcl --no-sysinit --no-userinit \
+         --load ${USER_QUICK_LISP:-quicklisp}/setup.lisp \
+         --eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+         --eval '(ql:quickload :software-evolution-library)' \
+         --load doc/examples/003-neutral \
+         --eval '(quit)'
+else
+    ccl --quiet --no-init \
+        --load ${USER_QUICK_LISP:-quicklisp}/setup.lisp \
+        --eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+        --eval '(ql:quickload :software-evolution-library)' \
+        --load doc/examples/003-neutral \
+        --eval '(quit)'
+fi
