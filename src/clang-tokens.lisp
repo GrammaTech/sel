@@ -223,9 +223,7 @@ SOFTWARE."))
                                        :start comma)))
                      ;; split a-ls on : to get types
                      (types (mapcar [#'token-from-string #'first {split ":\\s*"}]
-                                    a-ls))
-                     ;; indices of children to tokenize
-                     (types-children (iota (length types) :start 1)))
+                                    a-ls)))
                 (assert (= (length types) (1- (length children))))
                 (append (list (token-from-string "generic")
                               (token-from-string "("))
