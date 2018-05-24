@@ -1,3 +1,6 @@
+(in-package :software-evolution-library)
+(in-readtable :curry-compose-reader-macros)
+
 
 ;;; Software Object with an executable
 (defclass software-exe (software)

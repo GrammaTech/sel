@@ -22,6 +22,7 @@ a `clang-w-fodder' software OBJ from STRING.
 * OBJ object to be populated from source in STRING
 * STRING source code to populate OBJ with
 "
+  (declare (ignorable string))
   (assert (not (null *database*))))
 
 (defgeneric pick-snippet (clang-w-fodder &key full class pt decl)

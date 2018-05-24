@@ -183,7 +183,6 @@ if not given.
 
 (defun make-literal (value &optional (kind (etypecase value
                                              (integer :integer)
-                                             (fixnum :integer)
                                              (single-float :float)
                                              (simple-array :string)))
                      &rest rest)

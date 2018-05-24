@@ -114,8 +114,7 @@ copy of the original current file.
   "DOCFIXME"
   (if (current-file obj)
       (size (current-file obj))
-      (loop for (p . c) in (evolve-files obj)
-         summing (size c))))
+      (reduce #'+ (mapcar [#'size #'car] (evolve-files obj)))))
 
 (defun pick-file (obj)
   "Randomly pick one evolved file. Return its index in the alist."

@@ -46,6 +46,8 @@ techniques."
             :components
             ((:file "simple")
              (:file "lisp" :depends-on ("simple"))
+             ;; (:file "with-exe")
+             ;; (:file "lisp-ext" :depends-on ("lisp" "simple"))
              (:file "expression" :depends-on ("lisp"))
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))

@@ -74,6 +74,7 @@
 * EXTRA-DATA DOCFIXME
 * OBJ DOCFIXME
 "
+  (declare (ignorable extra-data))
   (when (ancestors obj)
     (setf (car (ancestors obj))
           (append (car (ancestors obj))

@@ -115,6 +115,8 @@
    :plist-merge
    :counts
    :proportional-pick
+   :position-extremum
+   :position-extremum-rand
    :partition
    :random-bool
    :random-elt-with-decay
