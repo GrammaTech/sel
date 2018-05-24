@@ -15,7 +15,6 @@ techniques."
                uiop
                bordeaux-threads
                cl-arrowz
-               cl-custom-hash-table
                cl-json
                cl-ppcre
                cl-fad
@@ -47,6 +46,8 @@ techniques."
             :components
             ((:file "simple")
              (:file "lisp" :depends-on ("simple"))
+             ;; (:file "with-exe")
+             ;; (:file "lisp-ext" :depends-on ("lisp" "simple"))
              (:file "expression" :depends-on ("lisp"))
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
@@ -56,14 +57,16 @@ techniques."
              (:file "elf-cisc" :depends-on ("elf"))
              (:file "elf-risc" :depends-on ("elf"))
              (:file "elf-mips" :depends-on ("elf-risc"))
+             (:file "source")
              (:file "ast")
-             (:file "cil" :depends-on ("ast"))
-             (:file "java" :depends-on ("ast"))
-             (:file "clang" :depends-on ("ast"))
+             (:file "parseable" :depends-on ("source" "ast"))
+             (:file "cil" :depends-on ("source"))
+             (:file "java" :depends-on ("source"))
+             (:file "clang" :depends-on ("parseable" "ast"))
              (:file "clang-expression" :depends-on ("clang" "expression"))
              (:file "clang-w-fodder" :depends-on ("clang"))
              (:file "forth" :depends-on ("simple"))
-             (:file "llvm" :depends-on ("ast"))
+             (:file "llvm" :depends-on ("source"))
              (:file "project")
              (:file "clang-project" :depends-on ("project" "clang"))
              (:file "java-project" :depends-on ("project" "java"))
@@ -91,7 +94,6 @@ techniques."
              (:file "test-suite")
              (:file "condition-synthesis" :depends-on ("test-suite"))
              (:file "fault-loc" :depends-on ("test-suite"))
-             (:file "generate-helpers")
              (:file "multi-objective")
              (:file "clang-tokens")))))
 
@@ -127,6 +129,7 @@ techniques."
                trace-db
                uiop
                optima
+               fare-quasiquote
                fare-quasiquote-extras)
   :components
   ((:module test
@@ -225,6 +228,7 @@ techniques."
                software-evolution-library/utility
                bordeaux-threads
                optima
+               fare-quasiquote
                fare-quasiquote-extras)
   :components ((:file "src/serapi-io")))
 
@@ -293,3 +297,51 @@ techniques."
                software-evolution-library/utility)
   :in-order-to ((test-op (test-op "software-evolution-library/test")))
   :components ((:file "ast-diff/ast-diff")))
+
+(defsystem "software-evolution-library/ast-diff-html"
+  :description "Compute differences between ASTs and other tree structures."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (software-evolution-library/ast-diff cl-who)
+  :components ((:file "ast-diff/ast-diff-html")))
+
+(defsystem "software-evolution-library/clang-diff"
+  :description "Calculate difference between two C/C++ programs."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrowz
+               named-readtables
+               curry-compose-reader-macros
+               metabang-bind
+               iterate
+               uiop
+               software-evolution-library/utility
+               software-evolution-library/ast-diff
+               software-evolution-library)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/clang-diff"
+  :entry-point "software-evolution-library/clang-diff::run-clang-diff"
+  :components ((:file "ast-diff/clang-diff")))
+
+(defsystem "software-evolution-library/lisp-diff"
+  :description "Calculate difference between two C/C++ programs."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (alexandria
+               closer-mop
+               cl-arrowz
+               named-readtables
+               curry-compose-reader-macros
+               metabang-bind
+               iterate
+               uiop
+               software-evolution-library/utility
+               software-evolution-library/ast-diff
+               eclector-concrete-syntax-tree
+               concrete-syntax-tree)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/lisp-diff"
+  :entry-point "software-evolution-library/lisp-diff::run-lisp-diff"
+  :components ((:file "ast-diff/lisp-diff")))

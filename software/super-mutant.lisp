@@ -243,7 +243,7 @@ BASE is typically a member of MUTANTS."))
 (defmethod create-super-soft ((base clang) mutants)
   (labels
       ((ensure-functions-compatible (f1 f2 mutant)
-         (unless (eq f1 f2)
+         (unless (ast-equal-p f1 f2)
            (unless (string= (ast-name f1) (ast-name f2))
              (error (make-condition 'mutate
                                     :text "Mismatched function names"
@@ -283,7 +283,7 @@ There are several cases here:
                (progn
                  ;; Top-level decls must be identical across variants.
                  (mapc (lambda (ast)
-                         (unless (eq (ast-ref-ast head) (ast-ref-ast ast))
+                         (unless (ast-equal-p head ast)
                            (error (make-condition 'mutate
                                                   :text
                                                   "Mismatched global decls"))))
@@ -294,26 +294,24 @@ There are several cases here:
                      ;; Insert decls
                      (cons nil (car non-null-asts))))
                ;; Functions
-               (if (every [{eq (ast-ref-ast head)} #'ast-ref-ast]
-                          non-null-asts)
+               (if (every {ast-equal-p head} non-null-asts)
                    ;; All identical (but may be missing in some mutants)
                    (cons (car asts) (car non-null-asts))
                    ;; Function bodies may differ as long as name and arguments
                    ;; are the same. Collect all unique variants, along with the
                    ;; mutants they came from.
-                   (let ((variants (make-hash-table)))
-                     (mapc (lambda-bind ((i ref) mutant)
-                             (when ref
-                               (ensure-functions-compatible head ref mutant)
-                               (let ((ast (ast-ref-ast ref))
-                                     (body (function-body mutant ref)))
+                   (let ((variants (make-hash-table :test #'equalp)))
+                     (mapc (lambda-bind ((i ast) mutant)
+                             (when ast
+                               (ensure-functions-compatible head ast mutant)
+                               (let ((body (function-body mutant ast)))
                                  (unless body
                                    (error
                                     (make-condition 'mutate
                                                     :text
                                                     (format nil
                                                             "Missing body for ~a"
-                                                            (ast-name ref))
+                                                            (ast-name ast))
                                                     :obj mutant)))
                                  (if-let ((value (gethash ast variants)))
                                    (pushnew i (third value))
@@ -336,7 +334,7 @@ true, create a complete function decl which contains the body."
                                 (declare (ignorable decl))
                                 ;; Add default case to make the
                                 ;; compiler happy.
-                                (list (if (eq decl (caar variants))
+                                (list (if (ast-equal-p decl (caar variants))
                                           (cons t indices)
                                           indices)
                                       (list body (make-break-stmt))))
@@ -348,14 +346,13 @@ true, create a complete function decl which contains the body."
                       (make-block))))
            (if make-decl
                (let ((decl (caar variants)))
-                 (->> (replace-nth-child decl
-                                         (position-if «and #'listp
-                                                           [{eq :CompoundStmt}
-                                                            #'ast-class
-                                                            #'car]»
-                                                      (cdr decl))
-                                         (ast-ref-ast body))
-                      (make-ast-ref :ast)))
+                 (replace-nth-child decl
+                                    (position-if «and [{subtypep _ 'ast}
+                                                       #'type-of]
+                                                      [{eq :CompoundStmt}
+                                                       #'ast-class]»
+                                                 (ast-children decl))
+                                    body))
                body)))
        (create-mutation-ops (variants-list)
          (iter (for (orig . variants) in variants-list)

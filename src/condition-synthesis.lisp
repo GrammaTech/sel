@@ -16,7 +16,7 @@
 (defun pick-target-condition (software)
   "Return the AST counter of a randomly selected guard statement in SOFTWARE.
 * SOFTWARE software object with conditional AST(s)"
-  (ast-counter (random-elt (guard-statements software))))
+  (1+ (index-of-ast software (random-elt (guard-statements software)))))
 
 (defun pick-if-stmt (software)
   "Return the AST for a randomly selected `if' statement in SOFTWARE.
@@ -111,12 +111,13 @@ a refine-condition MUTATION to SOFTWARE."
   ((targeter
     :initform
     (lambda (software)
-      (ast-counter
-            (random-elt
-             (->> (asts software)
-                  (remove-if-not #'ast-full-stmt)
-                  (remove-if [{eq :Function} #'ast-class])
-                  (remove-if [{eq :DeclStmt} #'ast-class]))))))
+      (->> (asts software)
+           (remove-if-not #'ast-full-stmt)
+           (remove-if [{eq :Function} #'ast-class])
+           (remove-if [{eq :DeclStmt} #'ast-class])
+           (random-elt)
+           (index-of-ast software)
+           (1+))))
    (abst-cond :accessor abst-cond :initform nil))
   (:documentation "Guard a statement with an abstract condition.
 E.g., foo\; becomes if(abst_cond()) foo\;."))
@@ -777,9 +778,9 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
        the type DB.
 "
   (let* ((type-hash
-          (when-let ((clang-type (find-if {types-equal type}
-                                          (hash-table-values (types obj)))))
-            (type-hash clang-type)))
+          (&>> (find-if {types-equal (funcall #'from-alist 'clang-type type)}
+                                     (hash-table-values (types obj)))
+               (type-hash)))
          ;; FIXME: should only grab expressions that are valid at
          ;; point. But this is tricky with anything beyond simple
          ;; DeclRefs.
@@ -807,10 +808,9 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
                          (peel-bananas (source-text b)))
                     (make-clang-type :name "int" :array "" :hash 0))))))
 
-
-(defun types-equal (snippet type)
-  "Return T if SNIPPET (an alist) represents the same type as TYPE (a type AST).
+(defun types-equal (type1 type2)
+  "Return T if TYPE1 represents the same type as TYPE2.
 Return NIL otherwise."
-  (and (string= (aget :type snippet) (type-name type))
-       (string= (aget :array snippet) (type-array type))
-       (eq (aget :pointer snippet) (type-pointer type))))
+  (and (string= (type-name type1) (type-name type2))
+       (string= (type-array type1) (type-array type2))
+       (eq (type-pointer type1) (type-pointer type2))))

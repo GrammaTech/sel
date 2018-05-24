@@ -29,41 +29,46 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
+(define-condition git (error)
+  ((description :initarg :description :initform nil :reader description))
+  (:report (lambda (condition stream)
+             (format stream "Git failed: ~a" (description condition)))))
+
+(defmacro with-git-directory ((directory git-dir) &rest body)
+  (with-gensyms (recur dir)
+    `(labels
+         ((,recur (,dir)
+            (when (< (length ,dir) 2)
+              (error (make-condition 'git
+                       :description
+                       (format nil "~a is not in a git repository." ,dir))))
+            (handler-case
+                (let ((,git-dir (make-pathname
+                                 :directory (append ,dir (list ".git")))))
+                  (if (probe-file git-dir)
+                      ,@body
+                      (,recur (butlast ,dir))))
+              (error (e)
+                (error (make-condition 'git
+                         :description
+                         (format nil "~a finding git information." e)))))))
+       (,recur ,directory))))
+
 (defun current-git-commit (directory)
-  (labels ((recur (dir)
-             (when (< (length dir) 2)
-               (error "Pathname ~a does not appear in a git repository."
-                      directory))
-             (let ((git-dir (make-pathname
-                             :directory (append dir (list ".git")))))
-               (if (probe-file git-dir)
-                   (with-open-file (git-head-in (merge-pathnames
-                                                 "HEAD" git-dir))
-                     (let ((git-head (read-line git-head-in)))
-                       (if (scan "ref:" git-head)
-                           (with-open-file (ref-in (merge-pathnames
-                                                    (second (split-sequence
-                                                                #\Space
-                                                              git-head))
-                                                    git-dir))
-                             (subseq (read-line ref-in) 0 7)) ; attached head
-                           (subseq git-head 0 7)))) ; detached head
-                   (recur (butlast dir))))))
-    (recur directory)))
+  (with-git-directory (directory git-dir)
+    (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
+      (let ((git-head (read-line git-head-in)))
+        (if (scan "ref:" git-head)
+            (with-open-file (ref-in (merge-pathnames
+                                     (second (split-sequence #\Space git-head))
+                                     git-dir))
+              (subseq (read-line ref-in) 0 7)) ; attached head
+            (subseq git-head 0 7))))))         ; detached head
 
 (defun current-git-branch (directory)
-  (labels ((recur (dir)
-             (when (< (length dir) 2)
-               (error "Pathname ~a does not appear in a git repository."
-                      directory))
-             (let ((git-dir (make-pathname
-                             :directory (append dir (list ".git")))))
-               (if (probe-file git-dir)
-                   (with-open-file
-                       (git-head-in (merge-pathnames "HEAD" git-dir))
-                     (lastcar (split-sequence #\/ (read-line git-head-in))))
-                   (recur (butlast dir))))))
-    (recur directory)))
+  (with-git-directory (directory git-dir)
+    (with-open-file (git-head-in (merge-pathnames "HEAD" git-dir))
+      (lastcar (split-sequence #\/ (read-line git-head-in))))))
 
 #+sbcl
 (locally (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
@@ -195,7 +200,10 @@ After BODY is executed the temporary file is removed."
      ,@body))
 
 (defmacro with-cwd (dir &rest body)
-  "Change the current working directory to dir and execute body"
+  "Change the current working directory to dir and execute body.
+WARNING: This function is not thread safe.  Execution in a threaded
+environment may causes execution outside of the intended directory or
+may lose the original working directory."
   (with-gensyms (orig)
     `(let ((,orig (getcwd)))
        (unwind-protect
@@ -297,106 +305,52 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (:documentation "Return the process id for PROCESS"))
 
 (defmethod process-id ((process process))
-  "DOCFIXME"
-  #+sbcl
-  (sb-ext:process-pid (os-process process))
-  #+ccl
-  (ccl:external-process-id (os-process process))
-  #+ecl
-  (ext:external-process-pid (os-process process))
-  #-(or sbcl ccl ecl)
-  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+  "Return the process id for PROCESS."
+  (process-info-pid (os-process process)))
 
 (defgeneric process-input-stream (process)
   (:documentation "Return the input stream for PROCESS."))
 
 (defmethod process-input-stream ((process process))
-  "DOCFIXME"
-  #+sbcl
-  (sb-ext:process-input (os-process process))
-  #+ccl
-  (ccl:external-process-input-stream (os-process process))
-  #+ecl
-  (ext:external-process-input (os-process process))
-  #-(or sbcl ccl ecl)
-  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+  "Return the input stream for PROCESS."
+  (process-info-input (os-process process)))
 
 (defgeneric process-output-stream (process)
   (:documentation "Return the output stream for PROCESS."))
 
 (defmethod process-output-stream ((process process))
-  "DOCFIXME"
-  #+sbcl
-  (sb-ext:process-output (os-process process))
-  #+ccl
-  (ccl:external-process-output-stream (os-process process))
-  #+ecl
-  (ext:external-process-output (os-process process))
-  #-(or sbcl ccl ecl)
-  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+  "Return the output stream for PROCESS."
+  (process-info-output (os-process process)))
 
 (defgeneric process-error-stream (process)
   (:documentation "Return the error stream for PROCESS."))
 
 (defmethod process-error-stream ((process process))
-  "DOCFIXME"
-  #+sbcl
-  (sb-ext:process-error (os-process process))
-  #+ccl
-  (ccl:external-process-error-stream (os-process process))
-  #+ecl
-  (ext:external-process-error-stream (os-process process))
-  #-(or sbcl ccl ecl)
-  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+  "Return the error stream for PROCESS."
+  (process-info-error-output (os-process process)))
 
 (defgeneric process-exit-code (process)
-  (:documentation "Return the exit code for PROCESS, or nil if PROCESS has not
-exited."))
+  (:documentation
+   "Return the exit code for PROCESS, or nil if PROCESS has not exited."))
 
 (defmethod process-exit-code ((process process))
-  "DOCFIXME"
-  #+sbcl
-  (sb-ext:process-exit-code (os-process process))
-  #+(or ccl ecl)
-  (multiple-value-bind (status code)
-      #+ccl (ccl:external-process-status (os-process process))
-      #+ecl (ext:external-process-status (os-process process))
-    (declare (ignorable status))
-    code)
-  #-(or sbcl ccl ecl)
-  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+  "Return the exit code for PROCESS, or nil if PROCESS has not exited."
+  (and (not (process-running-p process))
+       (wait-process (os-process process))))
 
-(defgeneric process-status (process)
-  (:documentation "Return the status of PROCESS: one of :running, :stopped,
-:signaled, or :exited."))
+(defgeneric process-running-p (process)
+  (:documentation "Return T if PROCESS is running, NIL otherwise."))
 
-(defmethod process-status ((process process))
-  "DOCFIXME"
-  #+sbcl
-  (sb-ext:process-status (os-process process))
-  #+ (or ccl ecl)
-  (multiple-value-bind (status code)
-      #+ccl (ccl:external-process-status (os-process process))
-      #+ecl (ext:external-process-status (os-process process))
-    (declare (ignorable code))
-    status)
-  #-(or sbcl ccl ecl)
-  (error "`PROCESS' only implemented for SBCL, CCL, or ECL."))
+(defmethod process-running-p ((process process))
+  "Return T if PROCESS is running, NIL otherwise."
+  (process-alive-p (os-process process)))
 
-(defgeneric signal-process (process signal-number)
-  (:documentation "Send the signal SIGNAL-NUMBER to PROCESS."))
+(defgeneric kill-process (process &key urgent)
+  (:documentation
+   "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL."))
 
-(defmethod signal-process ((process process) (signal-number integer))
-  "DOCFIXME"
-  (multiple-value-bind (stdout stderr errno)
-      (shell "kill -~d -$(ps -o pgid= ~d | ~
-                          grep -o '[0-9]*' | ~
-                          head -n 1 | ~
-                          tr -d ' ')"
-             signal-number
-             (process-id process))
-    (declare (ignorable stdout stderr))
-    (zerop errno)))
+(defmethod kill-process (process &key urgent)
+  (uiop/launch-program::terminate-process (os-process process) :urgent urgent))
 
 
 ;;;; Shell and system command helpers
@@ -418,75 +372,84 @@ exited."))
 
 (defun shell (control-string &rest format-arguments &aux input)
   "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
-Return (values stdout stderr errno).  Raise a `shell-command-failed'
-exception depending on the combination of errno with
-`*shell-error-codes*' and `*shell-non-error-codes*'.  Optionally print
-debug information depending on the value of `*shell-debug*'."
-  ;; Manual handling of an :input keyword argument.
-  (when-let ((input-arg (plist-get :input format-arguments)))
-    (setq input
-          (if (stringp input-arg)
-              (make-string-input-stream input-arg)
-              input-arg))
-    (setq format-arguments (take-until {eq :input} format-arguments)))
-  (let ((cmd (apply #'format (list* nil control-string format-arguments)))
-        (stdout-str nil)
-        (stderr-str nil)
-        (errno nil))
-    (when *shell-debug*
-      (format t "  cmd: ~a~%" cmd)
-      (when input
-        (format t "  input: ~a~%" input)))
+Return (values stdout stderr errno).  FORMAT-ARGUMENTS up to the first
+keyword are passed to `format' with CONTROL-STRING to construct the
+shell command.  All subsequent elements of FORMAT-ARGUMENTS are passed
+through as keyword arguments to `uiop:run-program'.
 
-    ;; Direct shell execution with `uiop/run-program:run-program'.
-    #-ccl
-    (progn
-      (setf stdout-str (make-array '(0)
-                                   :element-type
-                                   #+sbcl 'extended-char
-                                   #-sbcl 'character
-                                   :fill-pointer 0 :adjustable t))
-      (setf stderr-str (make-array '(0)
-                                   :element-type
-                                   #+sbcl 'extended-char
-                                   #-sbcl 'character
-                                   :fill-pointer 0 :adjustable t))
-      (with-output-to-string (stderr stderr-str)
-        (with-output-to-string (stdout stdout-str)
-          (setf errno (nth-value 2 (run-program
-                                    cmd
-                                    :force-shell t
-                                    :ignore-error-status t
-                                    :input input
-                                    :output stdout
-                                    :error-output stderr))))))
-    #+ccl
-    (progn
-      (with-temp-file (stdout-file)
-        (with-temp-file (stderr-file)
-          (setf errno (nth-value 2 (run-program
-                                    (format nil "~a 1>~a 2>~a"
-                                            cmd stdout-file stderr-file)
-                                    :force-shell t
-                                    :ignore-error-status t
-                                    :input input)))
-          (setf stdout-str (if (probe-file stdout-file)
-                               (file-to-string stdout-file)
-                               ""))
-          (setf stderr-str (if (probe-file stderr-file)
-                               (file-to-string stderr-file)
-                               "")))))
-    (when *shell-debug*
-      (format t "~&stdout:~a~%stderr:~a~%errno:~a"
-              stdout-str stderr-str errno))
-    (when (or (and *shell-non-error-codes*
-                   (not (find errno *shell-non-error-codes*)))
-              (find errno *shell-error-codes*))
-      (restart-case (error (make-condition 'shell-command-failed
-                             :exit-code errno
-                             :command cmd))
-        (ignore-shell-error () "Ignore error and continue")))
-    (values stdout-str stderr-str errno)))
+Raise a `shell-command-failed' exception depending on the combination
+of errno with `*shell-error-codes*' and `*shell-non-error-codes*'.
+
+Optionally print debug information if `*shell-debug*' is non-nil."
+  (let ((format-arguments (take-until #'keywordp format-arguments))
+        (run-program-arguments (drop-until #'keywordp format-arguments)))
+    ;; Manual handling of an :input keyword argument.
+    (when-let ((input-arg (plist-get :input run-program-arguments)))
+      (setq input
+            (if (stringp input-arg)
+                (make-string-input-stream input-arg)
+                input-arg))
+      (setq run-program-arguments (plist-drop :input run-program-arguments)))
+    (let ((cmd (apply #'format (list* nil control-string format-arguments)))
+          (stdout-str nil)
+          (stderr-str nil)
+          (errno nil))
+      (when *shell-debug*
+        (format t "  cmd: ~a~%" cmd)
+        (when input
+          (format t "  input: ~a~%" input)))
+
+      ;; Direct shell execution with `uiop/run-program:run-program'.
+      #-ccl
+      (progn
+        (setf stdout-str (make-array '(0)
+                                     :element-type
+                                     #+sbcl 'extended-char
+                                     #-sbcl 'character
+                                     :fill-pointer 0 :adjustable t))
+        (setf stderr-str (make-array '(0)
+                                     :element-type
+                                     #+sbcl 'extended-char
+                                     #-sbcl 'character
+                                     :fill-pointer 0 :adjustable t))
+        (with-output-to-string (stderr stderr-str)
+          (with-output-to-string (stdout stdout-str)
+            (setf errno (nth-value 2 (apply #'run-program
+                                            cmd
+                                            :force-shell t
+                                            :ignore-error-status t
+                                            :input input
+                                            :output stdout
+                                            :error-output stderr
+                                            run-program-arguments))))))
+      #+ccl
+      (progn
+        (with-temp-file (stdout-file)
+          (with-temp-file (stderr-file)
+            (setf errno (nth-value 2 (apply #'run-program
+                                            (format nil "~a 1>~a 2>~a"
+                                                    cmd stdout-file stderr-file)
+                                            :force-shell t
+                                            :ignore-error-status t
+                                            :input input
+                                            run-program-arguments)))
+            (setf stdout-str (if (probe-file stdout-file)
+                                 (file-to-string stdout-file)
+                                 ""))
+            (setf stderr-str (if (probe-file stderr-file)
+                                 (file-to-string stderr-file)
+                                 "")))))
+      (when *shell-debug*
+        (format t "~&stdout:~a~%stderr:~a~%errno:~a"
+                stdout-str stderr-str errno))
+      (when (or (and *shell-non-error-codes*
+                     (not (find errno *shell-non-error-codes*)))
+                (find errno *shell-error-codes*))
+        (restart-case (error (make-condition 'shell-command-failed
+                               :exit-code errno
+                               :command cmd))
+          (ignore-shell-error () "Ignore error and continue")))
+      (values stdout-str stderr-str errno))))
 
 (defmacro write-shell-file
     ((stream-var file shell &optional args) &rest body)
@@ -625,6 +588,33 @@ See 'man 3 termios' for more information."
              (when (probe-file fullpath)
                (return fullpath)))))
 
+(defmacro getopts (args-and-opts &body forms)
+  "Collect command-line options from ARGS in an executable.
+
+For usage see the definition of `clang-instrument'.  E.g.,
+
+    (getopts
+      (\"-c\" \"--compiler\" (setf (compiler original) (pop args)))
+      (\"-e\" \"--exit\" (setf instrument-exit t))
+      (\"-F\" \"--flags\" (setf (flags original) (split-sequence #\, (pop args))))
+      #| ... |#)
+"
+  (let ((arg (gensym))
+        (getopts-block (gensym))
+        (unknown (or (plist-get :unknown (cdr args-and-opts)) :error)))
+    `(block ,getopts-block
+       (loop :for ,arg = (pop ,(car args-and-opts)) :while ,arg :do
+          (cond
+            ,@(mapcar (lambda-bind ((short long . body))
+                        `((or (string= ,arg ,short) (string= ,arg ,long))
+                          ,@body))
+                      forms)
+            (:otherwise
+             ,(case unknown
+               (:error `(error "Unrecognized argument:~a" ,arg))
+               (:return `(progn (push ,arg ,(car args-and-opts))
+                                (return-from ,getopts-block))))))))))
+
 
 ;;;; generic forensic functions over arbitrary objects
 (defun my-slot-definition-name (el)
@@ -744,10 +734,27 @@ Optional argument OUT specifies an output stream."
 (defun count-cons (cons-cell)
   "Count and return the number of cons cells used in CONS-CELL."
   ;; TODO: extend to map over the fields in an object.
-  (if (consp cons-cell)
-      (+ (count-cons (car cons-cell))
-         (count-cons (cdr cons-cell)))
-      1))
+  (the fixnum (if (consp cons-cell)
+                  (+ (count-cons (car cons-cell))
+                     (count-cons (cdr cons-cell)))
+                  1)))
+
+(defun tree-right-length (tree &aux (size 1))
+  "Return the length of the right spine of TREE."
+  (declare (optimize speed))
+  (iter (while (consp tree))
+        (setf tree (cdr tree))
+        (incf (the fixnum size)))
+  (the fixnum size))
+
+(defun tree-right-walk (tree)
+  "Return the right spine of TREE as a list."
+  (declare (optimize speed))
+  (if tree
+      (if (consp tree)
+          (cons (car tree) (tree-right-walk (cdr tree)))
+          (list tree))
+      nil))
 
 
 ;;;; Generic utility functions
@@ -1162,6 +1169,23 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 
 
 ;;;; debugging helpers
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *compile-w/tracing* nil
+    "Controls compilation of tracing information with the `traced' macro."))
+
+(defmacro traced ((fn &rest args))
+  "Trace wrapped function call when `*compile-w/tracing*' is non-nil.
+This is useful for `flet' and `labels' functions which can't be traced
+with `cl-user:trace'."
+  (if *compile-w/tracing*
+      (let ((result-sym (gensym)))
+        `(progn (format t "  X: ~S ~S~%" ',fn (list ,@args))
+                (let ((,result-sym (,fn ,@args)))
+                  (format t ,(format nil "  X: ~a returned~~%      ~~S~~%" fn)
+                          ,result-sym)
+                  ,result-sym)))
+      `(,fn ,@args)))
+
 (defvar *note-level* 0 "Enables execution notes.")
 (defvar *note-out* '(t) "Targets of notation.")
 
@@ -1456,7 +1480,7 @@ The resulting file may be fed directly to the flamegraph tool as follows.
                                :if-exists :supersede)
             (profile-to-flame-graph out))
 
-    shell$ profile.data|flamegraph > profile.svg
+    shell$ cat profile.data|flamegraph > profile.svg
 
 See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
   (progn

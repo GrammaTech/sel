@@ -3,4 +3,3 @@ git cl-arrowz https://github.com/eschulte/cl-arrowz.git
 git elf http://git.grammatech.com/research/elf.git
 git testbot http://git.grammatech.com/synthesis/testbot.git
 git trace-db http://git.grammatech.com/research/trace-db.git
-git asdf-encodings http://git.grammatech.com/synthesis/asdf-encodings.git

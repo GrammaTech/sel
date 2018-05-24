@@ -41,7 +41,7 @@
                           (macro-database-ht db))
                  snippet))
           (t ;; ASTs
-             (when-let ((ast-class (aget :ast-class snippet)))
+             (when-let ((ast-class (aget :class snippet)))
                (setf (ast-database-list db)
                      (cons snippet (ast-database-list db)))
                (setf (ast-database-full-stmt-list db)

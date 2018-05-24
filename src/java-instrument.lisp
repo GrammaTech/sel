@@ -6,7 +6,7 @@
 ;;;; Instrumentation
 
 (defclass java-instrumenter (instrumenter)
-  ((file-id :accessor file-id :initform 0))
+  ((file-id :accessor file-id :initform nil))
   (:documentation "Handles instrumentation for JAVA software objects."))
 
 (defmethod instrumented-p ((obj java))
@@ -28,10 +28,14 @@
                       trace-file trace-env
                       instrument-exit filter))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
-    (java-jar-exec (format nil "-instrument ~a -out=~a -file=~a"
-                           src-file
-                           (directory-namestring src-file)
-                           (file-id instrumenter)))
+    (if (null (file-id instrumenter))
+        (java-jar-exec (format nil "-instrument ~a -out=~a"
+                               src-file
+                               (directory-namestring src-file)))
+        (java-jar-exec (format nil "-instrument ~a -out=~a -file=~a"
+                               src-file
+                               (directory-namestring src-file)
+                               (file-id instrumenter))))
     (setf (genome obj) (file-to-string src-file)))
 
   obj)

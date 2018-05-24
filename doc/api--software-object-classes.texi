@@ -55,7 +55,8 @@ Software Object Classes
 
   @item Utility subclasses: base classes for language back ends
      @itemize
-     @item @ref{api-software-objects-ast, @code{ast}}
+     @item @ref{api-software-objects-parseable, @code{parseable}}
+     @item @ref{api-software-objects-source, @code{source}}
      @item @ref{api-software-objects-simple, @code{simple}}
        @itemize
        @item @ref{api-software-objects-light, @code{light}}
@@ -77,7 +78,8 @@ Software Object Classes
 @end itemize
 
 @include include/class-sel-software.texinfo
-@include include/class-sel-ast.texinfo
+@include include/class-sel-source.texinfo
+@include include/class-sel-parseable.texinfo
 @include include/class-sel-asm.texinfo
 @include include/class-sel-csurf-asm.texinfo
 @include include/class-sel-cil.texinfo
@@ -123,14 +125,18 @@ Class @code{software}
 @item Subclasses
   @itemize
 
-  @item @ref{api-software-objects-ast, @code{ast}}
+  @item @ref{api-software-objects-source, @code{source}}
     @itemize
     @item @ref{api-software-objects-cil, @code{cil}}
-    @item @ref{api-software-objects-clang, @code{clang}}
-      @itemize
-      @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
-      @end itemize
+    @item @refapiclass{java}
     @item @ref{api-software-objects-llvm, @code{llvm}}
+    @item @ref{api-software-objects-parseable, @code{parseable}}
+      @itemize
+      @item @ref{api-software-objects-clang, @code{clang}}
+        @itemize
+        @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
+        @end itemize
+      @end itemize
     @end itemize
  
   @item @ref{api-software-objects-project, @code{project}}
@@ -200,7 +206,6 @@ Class @code{software}
   @item Applying @ref{api-mutations,Mutations}
     @itemize
     @item @refapigeneric{apply-all-mutations}
-    @item @refapigeneric{apply-mutation-ops}
     @item @refapigeneric{apply-mutations}
     @item @refapigeneric{apply-mutation}
     @item @refapigeneric{apply-picked-mutations}
@@ -215,7 +220,7 @@ Class @code{software}
 @c whitespace in this reference is important
   @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key max
                  (bin (temp-file-name)) &aux (delete-bin-p t))}
-@c whitespace in this reference is important  
+@c whitespace in this reference is important
   @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key max
                   (bin (temp-file-name)) &aux (args (list bin bin))
                                   (delete-bin-p t))}
@@ -230,7 +235,6 @@ Class @code{software}
 @include include/fun-sel-expression.texinfo
 @include include/fun-sel-pick-mutation-type.texinfo
 @include include/fun-sel-apply-all-mutations.texinfo
-@include include/fun-sel-apply-mutation-ops.texinfo
 @include include/fun-sel-apply-mutation.texinfo
 @include include/fun-sel-apply-mutations.texinfo
 @include include/fun-sel-apply-picked-mutations.texinfo
@@ -245,150 +249,53 @@ Class @code{software}
 @c ----------------------------------------
 
 
-@anchor{api-software-objects-ast}
-@subsubsection Class @code{ast}
+@anchor{api-software-objects-source}
+@subsubsection Class @code{source}
 @c done
 
 [
 @ref{SEL API, API} |
 @ref{api-software-objects, Software Objects} |
 @ref{api-software-object-classes,Software Object Classes} |
-Class @code{ast}
+Class @code{source}
 ]
 
 @itemize
-@item Class @refapiclass{ast}
+@item Class @refapiclass{source}
 
 @item Subclasses
   @itemize
   @item @ref{api-software-objects-cil, @code{cil}}
-  @item @ref{api-software-objects-clang, @code{clang}}
+  @item @ref{api-software-objects-parseable, @code{parseable}}
     @itemize
-    @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
+    @item @ref{api-software-objects-clang, @code{clang}}
+      @itemize
+      @item @ref{api-software-objects-clang-w-fodder, @code{clang-w-fodder}}
+      @end itemize
     @end itemize
   @item @ref{api-software-objects-llvm, @code{llvm}}
   @end itemize
 
 @item Generic Functions
   @itemize
-  @item @refapigeneric{ast-depth}
-  @item @refapigeneric{asts}  
-  @item @refapigeneric{get-ast-types}
   @item @refapigeneric{select-crossover-points}
   @end itemize
 
 @item Methods
   @itemize
-  @item @refapimethod{crossover ((a ast) (b ast))}
-  @item @refapimethod{from-file ((ast ast) path)}
-  @item @refapimethod{genome-string ((ast ast) &optional stream)}
-  @item @refapimethod{(setf genome-string) (text (obj ast))}
-  @item @refapimethod{lines ((ast ast))}
-  @item @refapimethod{mutate ((ast ast))}
-  @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
-  @item @refapimethod{size ((ast ast))}  
+  @item @refapimethod{crossover ((a source) (b source))}
+  @item @refapimethod{from-file ((obj source) path)}
+  @item @refapimethod{genome-string ((obj source) &optional stream)}
+  @item @refapimethod{(setf genome-string) (text (obj source))}
+  @item @refapimethod{lines ((obj source))}
+  @item @refapimethod{mutate ((obj source))}
+  @item @refapimethod{phenome ((obj source) &key (bin (temp-file-name)))}
+  @item @refapimethod{size ((obj source))}
   @end itemize
 
-@item ASTs
-  @itemize
-  
-  @item Structure @refapistruct{ast-ref}  
-
-  @item Generic Functions
-    @itemize
-    @item @refapigeneric{ast->snippet}
-    @item @refapigeneric{ast-declarations}
-    @item @refapigeneric{declared-type}
-    @item @refapigeneric{full-stmt-p}
-    @item @refapigeneric{function-body}
-    @item @refapigeneric{replace-in-ast}    
-    @item @refapigeneric{source-text}
-    @end itemize
-
-  @item Functions
-    @itemize
-    @item @refapifunction{ast-to-source-range}
-    @item @refapifunction{ast-later-p}
-    @item @refapifunction{full-stmt-filter}
-    @item @refapifunction{function-decl-p}    
-    @item @refapifunction{make-array-subscript-expr}
-    @item @refapifunction{make-block}
-    @item @refapifunction{make-call-expr}
-    @item @refapifunction{make-cast-expr}
-    @item @refapifunction{make-for-stmt}
-    @item @refapifunction{make-if-stmt}
-    @item @refapifunction{make-label}
-    @item @refapifunction{make-literal}
-    @item @refapifunction{make-operator}
-    @item @refapifunction{make-parens}
-    @item @refapifunction{make-statement}
-    @item @refapifunction{make-var-decl}
-    @item @refapifunction{make-var-reference}
-    @item @refapifunction{make-while-stmt}
-    @item @refapifunction{same-class-filter}
-    @item @refapifunction{(setf ast-ref)}
-    
-    @end itemize
-
-  @item Methods
-    @itemize
-    @item @refapimethod{ast-declarations ((ast ast-ref))}
-    @item @refapimethod{ast-depth ((clang clang) (ast ast-ref))}    
-    @item @refapimethod{full-stmt-p ((obj clang) (stmt ast-ref))}
-    @item @refapimethod{function-body ((software clang) (ast ast-ref))}
-    @item @refapimethod{get-ast-types ((software clang) (ast ast-ref))}
-    @item @refapimethod{replace-in-ast (ast replacements &key (test #'eq))}
-    @item @refapimethod{replace-in-ast ((ast list) replacements &key (test #'eq))}
-    @item @refapimethod{replace-in-ast ((ast ast-ref) replacements &key (test #'eq))}
-    @item @refapimethod{source-text ((ast string))}
-    @item @refapimethod{source-text ((ast list))}
-    @item @refapimethod{source-text ((ast ast-ref))}
-    @end itemize
-  @end itemize
 @end itemize
 
-@c defun ast-from-file
-@c defmethod (setf lines)
-@c defun ast-to-file
-@c defmethod line-breaks
-
-
-@include include/fun-sel-ast-depth.texinfo
-@include include/fun-sel-asts.texinfo
-@include include/fun-sel-get-ast-types.texinfo
 @include include/fun-sel-select-crossover-points.texinfo
-
-
-@include include/struct-sel-ast-ref.texinfo
-
-@include include/fun-sel-ast-gt-snippet.texinfo
-@include include/fun-sel-ast-declarations.texinfo
-@include include/fun-sel-declared-type.texinfo
-@include include/fun-sel-full-stmt-p.texinfo
-@include include/fun-sel-function-body.texinfo
-@include include/fun-sel-replace-in-ast.texinfo
-@include include/fun-sel-source-text.texinfo
-
-@include include/fun-sel-ast-later-p.texinfo
-@include include/fun-sel-ast-to-source-range.texinfo
-@include include/fun-sel-full-stmt-filter.texinfo
-@include include/fun-sel-function-decl-p.texinfo
-@include include/fun-sel-make-array-subscript-expr.texinfo
-@include include/fun-sel-make-block.texinfo
-@include include/fun-sel-make-call-expr.texinfo
-@include include/fun-sel-make-cast-expr.texinfo
-@include include/fun-sel-make-for-stmt.texinfo
-@include include/fun-sel-make-if-stmt.texinfo
-@include include/fun-sel-make-label.texinfo
-@include include/fun-sel-make-literal.texinfo
-@include include/fun-sel-make-operator.texinfo
-@include include/fun-sel-make-parens.texinfo
-@include include/fun-sel-make-statement.texinfo
-@include include/fun-sel-make-var-decl.texinfo
-@include include/fun-sel-make-var-reference.texinfo
-@include include/fun-sel-make-while-stmt.texinfo
-@include include/fun-sel-same-class-filter.texinfo
-@include include/fun-sel-setf-ast-ref.texinfo
 @c ----------------------------------------
 
 
@@ -413,6 +320,95 @@ Class @code{cil}
   @end itemize
 @end itemize
 
+@c ----------------------------------------
+
+@anchor{api-software-objects-parseable}
+@subsubsection Class @code{parseable}
+[
+@ref{SEL API, API} |
+@ref{api-software-objects, Software Objects} |
+@ref{api-software-object-classes,Software Object Classes} |
+Class @code{parseable}
+]
+
+
+
+@itemize
+
+@item Class @refapiclass{parseable}
+
+@item Subclass
+  @itemize
+  @item @ref{api-software-objects-clang, @code{clang}}
+  @end itemize
+
+@item Generic Functions
+  @itemize
+  @item @refapigeneric{build-op}
+  @item @refapigeneric{get-ast}
+  @item @refapigeneric{get-immediate-children}
+  @item @refapigeneric{get-unbound-funs}
+  @item @refapigeneric{get-unbound-vals}
+  @item @refapigeneric{roots}
+  @item @refapigeneric{size}
+  @item @refapigeneric{update-asts}
+  @end itemize
+
+@c defvar *parseable-obj-code*
+
+@item Methods
+  @itemize
+    @item @refapimethod{get-ast ((obj parseable) (path list))}
+    @item @refapimethod{get-immediate-children ((obj parseable) (ast ast))}
+    @item @refapimethod{roots ((obj parseable))}
+    @item @refapimethod{size ((obj parseable))}
+  @end itemize
+
+@end itemize
+
+@include include/fun-sel-build-op.texinfo
+@include include/fun-sel-get-ast.texinfo
+@include include/fun-sel-get-immediate-children.texinfo
+@include include/fun-sel-get-unbound-funs.texinfo
+@include include/fun-sel-get-unbound-vals.texinfo
+@include include/fun-sel-roots.texinfo
+@include include/fun-sel-update-asts.texinfo
+
+@itemize
+
+@item ASTs
+  @itemize
+
+  @item Structure @refapistruct{ast}
+
+  @item Generic Functions
+    @itemize
+    @item @refapigeneric{source-text}
+    @item @refapigeneric{replace-in-ast}
+    @end itemize
+
+  @item Functions
+    @itemize
+    @item @refapifunction{ast-later-p}
+    @end itemize
+
+  @item Methods
+    @itemize
+    @item @refapimethod{source-text ((str string))}
+    @item @refapimethod{source-text ((node ast-node))}
+    @item @refapimethod{source-text ((ast ast))}
+    @item @refapimethod{replace-in-ast ((ast ast) replacements &key (test #'equalp))}
+    @item @refapimethod{replace-in-ast ((ast string) replacements &key (test #'equalp))}
+    @end itemize
+  @end itemize
+
+@end itemize
+
+@include include/fun-sel-ast-later-p.texinfo
+@include include/fun-sel-replace-in-ast.texinfo
+@include include/fun-sel-source-text.texinfo
+
+@include include/struct-sel-ast.texinfo
 @c ----------------------------------------
 
 @anchor{api-software-objects-clang}
@@ -474,55 +470,39 @@ Class @code{clang}
   @item @refapigeneric{adjust-stmt-range}
   @item @refapigeneric{bad-stmts}
   @item @refapigeneric{block-p}
-  @item @refapigeneric{build-op}
   @item @refapigeneric{can-be-made-traceable-p}
   @item @refapigeneric{clang-tidy}
   @item @refapigeneric{enclosing-full-stmt}
   @item @refapigeneric{find-var-type}
   @item @refapigeneric{force-include}
   @item @refapigeneric{function-containing-ast}
-  @item @refapigeneric{get-ast}
-  @item @refapigeneric{get-immediate-children}
   @item @refapigeneric{get-parent-full-stmt}
-  @item @refapigeneric{get-unbound-funs}
-  @item @refapigeneric{get-unbound-vals}
   @item @refapigeneric{get-vars-in-scope}
   @item @refapigeneric{good-stmts}
   @item @refapigeneric{astyle}
-  @item @refapigeneric{parent-ast-p}
   @item @refapigeneric{pick-guarded-compound}
   @item @refapigeneric{random-point-in-function}
-  @item @refapigeneric{roots}
   @item @refapigeneric{scopes}
   @item @refapigeneric{select-intraprocedural-pair}
-  @item @refapigeneric{size}
   @item @refapigeneric{stmt-range}
   @item @refapigeneric{type-from-trace-string}
   @item @refapigeneric{type-trace-string}    
-  @item @refapigeneric{update-asts}
   @item @refapigeneric{wrap-ast}
   @item @refapigeneric{wrap-child}
   @end itemize
-@c @item remove-ast
-@c @item splice-asts
-@c @item insert-ast
-@c @item insert-ast-after
 @c @item find-or-add-type
-@c @item replace-ast
 @c @item pick-generic
 @c  @item pick-bad-only
 
 @item Variables
    @itemize
-   @item @refapivariable{*allow-bindings-to-globals-bias*}
    @item @refapivariable{*clang-max-json-size*}
    @item @refapivariable{*clang-mutation-types*}
    @item @refapivariable{*clang-json-required-aux*}
    @item @refapivariable{*clang-json-required-fields*}
+   @item @refapivariable{*clang-mutate-additional-args*}
    @end itemize
 
-
-@c defvar *clang-obj-code*
 
 @item Methods
   @itemize
@@ -531,125 +511,71 @@ Class @code{clang}
   @item @refapimethod{add-type ((obj clang) (type null))}
   @item @refapimethod{add-type ((obj clang) (type clang-type))}
   @item @refapimethod{adjust-stmt-range ((clang clang) start end)}
-  @item @refapimethod{all-ast-node-types ((clang clang))}
-  @item @refapimethod{all-keywords ((clang clang))}
-  @item @refapimethod{apply-mutation ((clang clang) (op list))}
   @item @refapimethod{apply-mutation ((software clang) (mutation clang-mutation))}
-  @item @refapimethod{ast-depth ((clang clang) (ast ast-ref))}
-  @item @refapimethod{ast-depth around ((clang clang) (ast ast-ref))}
-  @item @refapimethod{ast-node-types ((clang clang))}
-  @item @refapimethod{asts ((clang clang))}
-  @item @refapimethod{asts before ((obj clang))}
   @item @refapimethod{bad-stmts ((clang clang))}
   @item @refapimethod{bi-grams-hashtable-to-feature ((clang clang) (bi-grams hash-table))}
-  @item @refapimethod{block-p ((obj clang) (stmt ast-ref))}
+  @item @refapimethod{block-p ((obj clang) (stmt clang-ast))}
   @item @refapimethod{build-op ((mutation coalesce-while-loop) (obj clang))}
   @item @refapimethod{build-op ((mutation explode-for-loop) (obj clang))}
-  @item @refapimethod{can-be-made-traceable-p ((obj clang) (ast ast-ref))}
+  @item @refapimethod{can-be-made-traceable-p ((obj clang) (ast clang-ast))}
   @item @refapimethod{clang-tidy ((clang clang) &aux errno)}
-  @item @refapimethod{copy before ((obj clang))}
   @item @refapimethod{crossover ((a clang) (b clang))}
-  @item @refapimethod{delete-decl-stmts ((obj clang) (block ast-ref) (replacements list))}
-  @item @refapimethod{enclosing-full-stmt ((obj clang) (stmt ast-ref))}
-  @item @refapimethod{expression ((obj clang) (ast ast-ref))}  
+  @item @refapimethod{delete-decl-stmts ((obj clang) (block clang-ast) (replacements list))}
+  @item @refapimethod{enclosing-full-stmt ((obj clang) (stmt clang-ast))}
+  @item @refapimethod{expression ((obj clang) (ast clang-ast))}
   @item @refapimethod{find-macro ((obj clang) hash)}
   @item @refapimethod{find-type ((obj clang) hash)}
   @item @refapimethod{find-var-type ((obj clang) (variable list))}
   @item @refapimethod{force-include ((obj clang) include)}
   @item @refapimethod{from-file ((obj clang) path)}
-  @item @refapimethod{function-containing-ast ((clang clang) (ast ast-ref))}
-  @item @refapimethod{get-ast ((obj clang) (path list))}
-  @item @refapimethod{get-ast-types ((software clang) (ast ast-ref))}
+  @item @refapimethod{function-containing-ast ((clang clang) (ast clang-ast))}
+  @item @refapimethod{get-ast-types ((software clang) (ast clang-ast))}
   @item @refapimethod{get-entry ((obj clang))}
-  @item @refapimethod{get-immediate-children ((clang clang) (ast ast-ref))}
-  @item @refapimethod{get-parent-full-stmt ((clang clang) (ast ast-ref))}
+  @item @refapimethod{get-parent-full-stmt ((clang clang) (ast clang-ast))}
+  @item @refapimethod{get-unbound-funs ((software clang) (ast clang-ast-node))}
   @item @refapimethod{get-unbound-funs ((software clang) (ast clang-ast))}
-  @item @refapimethod{get-unbound-funs ((software clang) (ast ast-ref))}
+  @item @refapimethod{get-unbound-vals ((software clang) (ast clang-ast-node))}
   @item @refapimethod{get-unbound-vals ((software clang) (ast clang-ast))}
-  @item @refapimethod{get-unbound-vals ((software clang) (ast ast-ref))}
-  @item @refapimethod{get-vars-in-scope ((obj clang) (ast ast-ref) &optional (keep-globals t))}
+  @item @refapimethod{get-vars-in-scope ((obj clang) (ast clang-ast) &optional (keep-globals t))}
   @item @refapimethod{good-stmts ((clang clang))}
   @item @refapimethod{astyle ((obj clang) &optional style &aux errno)}
   @item @refapimethod{instrument ((obj clang) &rest args)}
   @item @refapimethod{instrumented-p ((clang clang))}  
   @item @refapimethod{max-depth-ast ((clang clang) asts)}
-  @item @refapimethod{parent-ast-p ((clang clang) possible-parent-ast ast)}
-  @item @refapimethod{pick-bad-bad ((software clang) &key filter)}
-  @item @refapimethod{pick-bad-good ((software clang) &key filter)}
+  @item @refapimethod{full-stmt-p ((obj clang) (stmt clang-ast))}
   @item @refapimethod{pick-guarded-compound ((obj clang))}
   @item @refapimethod{pick-mutation-type ((obj clang))}
   @item @refapimethod{random-point-in-function ((clang clang) function)}
-  @item @refapimethod{roots ((obj clang))}
-  @item @refapimethod{scopes ((software clang) (ast ast-ref))}
+  @item @refapimethod{scopes ((software clang) (ast clang-ast))}
   @item @refapimethod{select-crossover-points ((a clang) (b clang))}
   @item @refapimethod{select-intraprocedural-pair ((clang clang))}
-  @item @refapimethod{size ((obj clang))}
-    @itemize
-    @item @refapimethod{size before ((obj clang))}
-    @end itemize
-  @item @refapimethod{stmt-range ((software clang) #'ast-ref)}
-  @item @refapimethod{update-asts ((obj clang) &key clang-mutate-args)}
+  @item @refapimethod{update-asts ((obj clang))}
   @item @refapimethod{uninstrument ((clang clang))}
-  @item @refapimethod{wrap-ast ((obj clang) (ast ast-ref))}
-  @item @refapimethod{wrap-child ((obj clang) (ast ast-ref) (index integer))}
+  @item @refapimethod{wrap-ast ((obj clang) (ast clang-ast))}
+  @item @refapimethod{wrap-child ((obj clang) (ast clang-ast) (index integer))}
   @end itemize
 
-@c defmethod clang-mutate
-
-@anchor{api-software-objects-clang-asts}
-@item Clang ASTs
-
-  @itemize
-
-  @item AST Structures
-    @itemize
-    @item @refapistruct{clang-ast}
-    @item @refapistruct{clang-type}
-    @end itemize
-
-  @item Variable @refapivariable{*clang-ast-aux-fields*}
-
   @item Functions
-    @itemize
-    @item @refapifunction{snippet->clang-ast}
-    @item @refapifunction{snippet->clang-macro}
-    @item @refapifunction{snippet->clang-type}    
-    @end itemize
-
-  @item Methods
-    @itemize
-    @item @refapimethod{ast->snippet ((ast clang-ast))}
-    @item @refapimethod{ast->snippet ((ast clang-macro))}
-    @item @refapimethod{ast->snippet ((ast clang-type))}
-    @item @refapimethod{ast-declarations ((ast clang-type))}
-    @item @refapimethod{ast-declarations ((ast clang-ast))}
-    @item @refapimethod{declared-type ((ast clang-ast) variable-name)}
-    @item @refapimethod{expression ((obj clang) (ast ast-ref))}
-    @item @refapimethod{full-stmt-p ((obj clang) (stmt ast-ref))}
-    @item @refapimethod{function-body ((software clang) (ast ast-ref))}    
-    @item @refapimethod{replace-in-ast ((ast ast-ref) replacements &key (test #'eq))}
-    @item @refapimethod{replace-in-ast ((ast list) replacements  &key (test #'eq))}
-    @item @refapimethod{replace-in-ast (ast replacements &key (test #'eq))}
-    @item @refapimethod{source-text ((ast ast-ref))}
-    @item @refapimethod{source-text ((ast list))}
-    @item @refapimethod{source-text ((ast string))}
-    @item @refapimethod{type-trace-string ((type clang-type) &key (qualified t))}
-    @item @refapimethod{type-from-trace-string ((name string))}
-    @end itemize
-
-  @item See also
-    @itemize
-    @item @refapigeneric{add-type}
-    @item @refapifunction{full-stmt-filter}
-    @item @refapigeneric{get-ast}
-    @item @refapimethod{pick-bad-bad ((software clang) &key filter)}
-    @item @refapimethod{pick-bad-good ((software clang) &key filter)} 
-    @item @refapifunction{same-class-filter}  
-    @end itemize
+  @itemize
+  @item @refapifunction{make-array-subscript-expr}
+  @item @refapifunction{make-block}
+  @item @refapifunction{make-call-expr}
+  @item @refapifunction{make-cast-expr}
+  @item @refapifunction{make-for-stmt}
+  @item @refapifunction{make-if-stmt}
+  @item @refapifunction{make-label}
+  @item @refapifunction{make-literal}
+  @item @refapifunction{make-operator}
+  @item @refapifunction{make-parens}
+  @item @refapifunction{make-statement}
+  @item @refapifunction{make-var-decl}
+  @item @refapifunction{make-var-reference}
+  @item @refapifunction{make-while-stmt}
   @end itemize
 
 @end itemize
 
+@c defmethod clang-mutate
 
 @include include/fun-sel-add-include.texinfo
 @include include/fun-sel-add-macro.texinfo
@@ -657,41 +583,34 @@ Class @code{clang}
 @include include/fun-sel-adjust-stmt-range.texinfo
 @include include/fun-sel-bad-stmts.texinfo
 @include include/fun-sel-block-p.texinfo
-@include include/fun-sel-build-op.texinfo
 @include include/fun-sel-can-be-made-traceable-p.texinfo
 @include include/fun-sel-clang-tidy.texinfo
 @include include/fun-sel-enclosing-full-stmt.texinfo
 @include include/fun-sel-find-var-type.texinfo
 @include include/fun-sel-force-include.texinfo
+@include include/fun-sel-full-stmt-p.texinfo
 @include include/fun-sel-function-containing-ast.texinfo
-@include include/fun-sel-get-ast.texinfo
-@include include/fun-sel-get-immediate-children.texinfo
+@include include/fun-sel-get-ast-types.texinfo
 @include include/fun-sel-get-parent-full-stmt.texinfo
-@include include/fun-sel-get-unbound-funs.texinfo
-@include include/fun-sel-get-unbound-vals.texinfo
 @include include/fun-sel-get-vars-in-scope.texinfo
 @include include/fun-sel-good-stmts.texinfo
 @include include/fun-sel-astyle.texinfo
-@include include/fun-sel-parent-ast-p.texinfo
 @include include/fun-sel-pick-guarded-compound.texinfo
-@include include/fun-sel-prepend-to-genome.texinfo
 @include include/fun-sel-random-point-in-function.texinfo
-@include include/fun-sel-roots.texinfo
 @include include/fun-sel-scopes.texinfo
 @include include/fun-sel-select-intraprocedural-pair.texinfo
 @include include/fun-sel-stmt-range.texinfo
 @include include/fun-sel-type-from-trace-string.texinfo
 @include include/fun-sel-type-trace-string.texinfo
 @include include/fun-sel-typedef-type.texinfo
-@include include/fun-sel-update-asts.texinfo
 @include include/fun-sel-wrap-ast.texinfo
 @include include/fun-sel-wrap-child.texinfo
 
-@include include/var-sel-star-allow-bindings-to-globals-bias-star.texinfo
 @include include/var-sel-star-clang-max-json-size-star.texinfo
 @include include/var-sel-star-clang-mutation-types-star.texinfo
 @include include/var-sel-star-clang-json-required-aux-star.texinfo
 @include include/var-sel-star-clang-json-required-fields-star.texinfo
+@include include/var-sel-star-clang-mutate-additional-args-star.texinfo
 
 @include include/class-sel-clang-mutation.texinfo
 @include include/class-sel-clang-cut.texinfo
@@ -718,6 +637,20 @@ Class @code{clang}
 @include include/class-sel-rename-variable.texinfo
 @include include/class-sel-swap-decls.texinfo
 
+@include include/fun-sel-make-array-subscript-expr.texinfo
+@include include/fun-sel-make-block.texinfo
+@include include/fun-sel-make-call-expr.texinfo
+@include include/fun-sel-make-cast-expr.texinfo
+@include include/fun-sel-make-for-stmt.texinfo
+@include include/fun-sel-make-if-stmt.texinfo
+@include include/fun-sel-make-label.texinfo
+@include include/fun-sel-make-literal.texinfo
+@include include/fun-sel-make-operator.texinfo
+@include include/fun-sel-make-parens.texinfo
+@include include/fun-sel-make-statement.texinfo
+@include include/fun-sel-make-var-decl.texinfo
+@include include/fun-sel-make-var-reference.texinfo
+@include include/fun-sel-make-while-stmt.texinfo
 
 @c defmacro define-ast
 @c define-ast clang-macro
@@ -726,10 +659,6 @@ Class @code{clang}
 @c defun fixup-mutation
 @c defun replace-nth-child
 @c defmethod replace-ast
-@c defmethod remove-ast
-@c defmethod splice-asts
-@c defmethod insert-ast
-@c defmethod insert-ast-after
 @c defgeneric rebind-vars
 @c defmethod pick-bad-only
 @c defun pick-general
@@ -738,13 +667,9 @@ Class @code{clang}
 
 @include include/struct-sel-clang-ast.texinfo
 @include include/struct-sel-clang-type.texinfo
+@include include/struct-sel-clang-macro.texinfo
 
 @include include/var-sel-star-clang-ast-aux-fields-star.texinfo
-
-
-@include include/fun-sel-snippet-gt-clang-ast.texinfo
-@include include/fun-sel-snippet-gt-clang-macro.texinfo
-@include include/fun-sel-snippet-gt-clang-type.texinfo
 
 @c ----------------------------------------
 
@@ -923,7 +848,6 @@ Class @code{clang-project}
 @item Class @refapiclass{clang-project}
 @item Methods
   @itemize
-  @item @refapimethod{asts ((obj clang-project))}
   @item @refapimethod{clang-tidy ((clang-project clang-project))}
   @item @refapimethod{from-file ((clang-project clang-project) project-dir)}
   @item @refapimethod{astyle ((clang-project clang-project) &optional style)}
@@ -1002,7 +926,6 @@ Class @code{simple}
   @item @refapimethod{lines ((simple simple))}
   @item @refapimethod{mcmc-step ((simple simple))}
   @item @refapimethod{mutate ((simple simple))}
-  @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
   @item @refapimethod{pick-mutation-type ((obj simple))}
   @item @refapimethod{size ((obj simple))}
   @item @refapimethod{to-file ((simple simple) file)}
@@ -1066,7 +989,7 @@ Class @code{asm}
   @itemize
   @item @refapimethod{apply-mutation ((asm asm) (mutation asm-replace-operand))}
   @item @refapimethod{apply-path ((asm asm) key addresses &aux applied)}
-  @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
+  @item @refapimethod{phenome ((asm asm) &key (bin (temp-file-name)))}
   @item @refapimethod{pick-mutation-type ((asm asm))}
   @end itemize
 @end itemize
@@ -1355,7 +1278,7 @@ Class @code{forth}
   @itemize
   @item @refapimethod{from-file ((forth forth) path &aux strings)}
   @item @refapimethod{genome-string ((forth forth) &optional stream)}
-  @item @refapimethod{phenome ((obj ast) &key (bin (temp-file-name)))}
+  @item @refapimethod{phenome ((forth forth) &key (bin (temp-file-name)))}
   @end itemize
 @end itemize
 
@@ -1556,7 +1479,7 @@ Class @code{clang-expression}
   @end itemize
 @item Methods
   @itemize
-  @item @refapimethod{expression ((obj clang) (ast ast-ref))}
+  @item @refapimethod{expression ((obj clang) (ast clang-ast))}
   @end itemize
 @end itemize
 

@@ -25,6 +25,9 @@
    (redirect-file
     :initarg :redirect-file :accessor redirect-file :initform nil
     :documentation "CodeSurfer redirect file to redirect elf copy relocations.")
+   (linker-script
+    :initarg :linker-script :accessor linker-script :initform nil
+    :documentation "CodeSurfer linker script to pin section locations.")
    (weak-symbols
     :initarg :weak-symbols :accessor weak-symbols :initform nil
     :copier :direct
@@ -108,8 +111,11 @@ set."
                     (shell "~a -o ~a ~a ~{~a~^ ~}"
                            (or (linker asm) *asm-linker*)
                            bin obj
-                           (append (flags asm) (list "--dynamic-linker"
-                                                     *dynamic-linker-path*)))
+                           (append (flags asm)
+                                   (when (linker-script asm)
+                                     (list "-T" (linker-script asm)))
+                                   (list "--dynamic-linker"
+                                         *dynamic-linker-path*)))
                   (if (or (not (zerop errno)) (not (redirect-file asm)))
                       ;; Errors linking.
                       (values bin (max errno 1) stderr stdout src)
@@ -131,7 +137,12 @@ Currently only populates the `weak-symbols' field from the log."
            ;; allow for qualified paths).
            (and program (ends-with-subseq program (first cmd) :test #'equal)))
          (extract-linker-flags
-             (cmd &aux (linker-flags-to-keep '("-z" "-T")))
+             (cmd &aux (linker-flags-to-keep
+                        (cons "-z"
+                              (when (linker-script csurf-asm)
+                                '("-Ttext" "-Tbss" "-Tdata"
+                                  "-Trodata-segment"
+                                  "-Tldata-segment")))))
            ;; Return a list of the flags for a linker command from
            ;; CMD.  CMD is a list of strings representing a command.
            ;; Remove the first element which is the program name.

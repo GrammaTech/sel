@@ -7,7 +7,6 @@
    :bordeaux-threads
    :common-lisp
    :cl-arrowz
-   :cl-custom-hash-table
    :cl-fad
    :cl-ppcre
    :cl-store
@@ -26,7 +25,7 @@
    :trace-db)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-library/utility :quit)
-  (:shadowing-import-from :uiop :getenv)
+  (:shadowing-import-from :uiop :getenv :directory-exists-p)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
@@ -39,7 +38,7 @@
    :parse-body :simple-style-warning)
   (:shadowing-import-from
    :cl-fad
-   :pathname-as-directory :directory-exists-p
+   :pathname-as-directory
    :pathname-directory-pathname :pathname-root-p
    :merge-pathnames-as-directory :merge-pathnames-as-file
    :pathname-parent-directory :pathname-equal
@@ -153,7 +152,6 @@
    :prototypes
    :functions
    :get-entry
-   :ast
    :asts
    :stmt-asts
    :non-stmt-asts
@@ -253,7 +251,8 @@
    :*allow-bindings-to-globals-bias*
    :*clang-json-required-fields*
    :*clang-json-required-aux*
-   *clang-ast-aux-fields*
+   :*clang-ast-aux-fields*
+   :*clang-mutate-additional-args*
    :*database*
    :*mmm-processing-seconds*
    ;; evolution functions
@@ -281,6 +280,7 @@
    :original
    :asm
    :asm-heap
+   :asm-line-info
    :asm-line-info-text
    :asm-line-info-tokens
    :asm-line-info-type
@@ -308,6 +308,8 @@
    :lisp
    :constant-fold
    :random-subtree
+   :source
+   :parseable
    :clang
    :clang-w-fodder
    :clang-w-binary
@@ -354,6 +356,7 @@
    :assembler
    :asm-flags
    :redirect-file
+   :linker-script
    :weak-symbols
    :elf-risc-max-displacement
    :ops                      ; <- might want to fold this into `lines'
@@ -486,12 +489,13 @@
    :clang-project
    :project-dir
    :compilation-database
+   :*process-sleep-interval*
+   :*process-kill-timeout*
    :test-suite
    :test-cases
    :test-case
    :program-name
    :program-args
-   :os-process
    :start-test
    :finish-test
    :run-test
@@ -517,8 +521,18 @@
    :rinard-write-out
    :rinard-read-in
    :collect-fault-loc-traces
-   :generate-helpers
+   :to-alist
+   :from-alist
+   :ast
+   :ast-path
+   :ast-node
+   :ast-children
+   :make-ast
+   :copy-ast
+   :make-ast-node
+   :copy-ast-node
    :clang-ast
+   :clang-ast-node
    :ast-args
    :ast-children
    :ast-class
@@ -541,9 +555,11 @@
    :ast-base-type
    :ast-bit-field-width
    :ast-aux-data
-   :clang-type
-   :copy-clang-ast
    :make-clang-ast
+   :copy-clang-ast
+   :make-clang-ast-node
+   :copy-clang-ast-node
+   :clang-type
    :type-array
    :type-col
    :type-decl
@@ -562,15 +578,14 @@
    :type-name
    :type-size
    :make-clang-type
+   :copy-clang-type
+   :clang-macro
    :macro-name
    :macro-body
    :macro-hash
    :make-clang-macro
+   :copy-clang-macro
    :roots
-   :ast->snippet
-   :snippet->clang-ast
-   :snippet->clang-type
-   :snippet->clang-macro
    :source-text
    :function-body
    :stmt-range
@@ -578,10 +593,6 @@
    :get-unbound-vals
    :get-unbound-funs
    :scopes
-   :ast-ref
-   :make-ast-ref
-   :ast-ref-path
-   :ast-ref-ast
    :index-of-ast
    :ast-at-index
    :ast-later-p
@@ -669,11 +680,13 @@
    :java-make-literal
    :java-number
    :java-project
+   :get-files-jar
    :super-mutant
-   :diff-software
-   :edit-software
+   :ast-diff
+   :ast-patch
    ;; Coq exports
    :coq
+   :coq-project
    :ast-ids
    :project-file
    :file-source
@@ -682,7 +695,9 @@
    :init-coq-project
    :type-safe-swap
    :tag-loc-info
-   :untag-loc-info))
+   :untag-loc-info
+   :lookup-source-strings
+   :coq-type-checks))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

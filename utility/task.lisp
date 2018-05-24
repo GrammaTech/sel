@@ -224,3 +224,45 @@
 (defun task-runner-workers-count (runner)
   "Returns the number of running threads."
   (length (task-runner-workers runner)))
+
+
+;; Implementation of `some-task': mimics the behavior of `some'
+;; except that results are stored as a list (due to implementation of
+;; `task-save-result').
+(defclass some-task (task)
+  ((pred :initarg :pred :accessor some-task-pred
+         :documentation "Predicate used by `some'."))
+  (:documentation "Task for applying `some' in parallel.
+The OBJECT field is a list on whose elements SOME-TASK-PRED is applied."))
+
+(defclass some-test-task (task)
+  ((pred :initarg :pred :accessor some-task-pred
+         :documentation "Predicate used by `some'."))
+  (:documentation "Task to apply predicate SOME-TASK-PRED to OBJECT."))
+
+(defmethod task-job ((task some-task) runner)
+  "Return the generating function for `some-task'.
+Create new subtasks for each item in the list until either applying the
+predicate SOME-TASK-PRED in TASK succeeds or there are no more items in the
+list."
+  (let ((ls (task-object task)))
+    (lambda ()
+      ;; Stop creating new tasks after a result is found or no elements remain.
+      (when (and ls (not (task-runner-results runner)))
+        (prog1
+            (make-instance 'some-test-task
+                           :object (car ls)
+                           :pred (some-task-pred task))
+          (setf ls (cdr ls)))))))
+
+(defmethod process-task ((task some-test-task) runner)
+  "Process a single TASK by applying SOME-TASK-PRED to the OBJECT in TASK.
+NOTE: Since `task-save-result' pushes results to a list, it's possible for up to
+N results to be saved (where N is the number of running threads), so `first'
+should be used to retrieve one result. Additionally, due to differences in
+timing, it's possible that the result won't match that of `some', since `some'
+promises to find the first while `some-task' may return any element satisfying
+`some-task-pred'."
+  (when (not (task-runner-results runner))
+    (when-let ((result (funcall (some-task-pred task) (task-object task))))
+      (task-save-result runner result))))

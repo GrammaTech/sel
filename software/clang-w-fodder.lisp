@@ -22,6 +22,7 @@ a `clang-w-fodder' software OBJ from STRING.
 * OBJ object to be populated from source in STRING
 * STRING source code to populate OBJ with
 "
+  (declare (ignorable string))
   (assert (not (null *database*))))
 
 (defgeneric pick-snippet (clang-w-fodder &key full class pt decl)
@@ -207,8 +208,9 @@ Returns modified text, and names of bound variables.
                            vars
                            (mapcar {var-type in-scope} vars))
                    (aget :includes snippet)
-                   :macros (mapcar {find-macro database}
-                                   (aget :macros snippet)))))
+                   :macros (->> (mapcar {find-macro database}
+                                        (aget :macros snippet))
+                                (remove-if #'null)))))
           (car asts)
           (error (make-condition 'mutate
                                  :text "Failed to parse fodder"
@@ -303,7 +305,7 @@ statement fodder AST."))
 
 (defun parse-source-snippet (snippet unbound-vals includes &key
                              macros top-level)
-  "Build ASTs for SNIPPET, returning a list of root ast-refs.
+  "Build ASTs for SNIPPET, returning a list of root asts.
 
 * SNIPPET may include one or more full statements. It should compile in
   a context where all UNBOUND-VALS are defined and all INCLUDES are
@@ -339,18 +341,17 @@ statement fodder AST."))
              (obj (make-instance 'clang :genome (concatenate 'string
                                                   preamble wrapped)))
              (block-children (if top-level
-                                 (->> (make-ast-ref :ast (ast-root obj))
-                                      (get-immediate-children obj))
+                                 (->> (ast-root obj)
+                                      (get-immediate-children obj)
+                                      (mapcar #'copy))
                                  (->> (functions obj)
                                       (first)
                                       (function-body obj)
-                                      (get-immediate-children obj)))))
-        (mapc (lambda (ast)
-                ;; These ASTs are not part of any genome so clear their paths
-                (setf (ast-ref-path ast) nil))
-              (subseq block-children
-                      (1+ (position-if [{string= "__snippet_marker"} #'car
-                                        #'ast-declares]
-                                       block-children)))))
+                                      (get-immediate-children obj)
+                                      (mapcar #'copy)))))
+        (subseq block-children
+                (1+ (position-if [{string= "__snippet_marker"} #'car
+                                  #'ast-declares]
+                                 block-children))))
     ;; If error parsing simply return nil.
     (mutate (e) (declare (ignorable e)) nil)))

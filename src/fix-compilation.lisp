@@ -135,11 +135,10 @@ associated element of `*compilation-fixers*'.
                     (list (format nil "~a ~a;" (random-type) variable-name))
                     (drop (1- line-number) lines)))
       ;; Find the ID of the declaration.
-      (let* ((decl-stmt (find-if (lambda (snippet)
-                                   (and (eq (ast-class snippet)
+      (let* ((decl-stmt (find-if (lambda (ast)
+                                   (and (eq (ast-class ast)
                                             :DeclStmt)
-                                        (= (->> snippet
-                                                (ast-to-source-range obj)
+                                        (= (->> (ast-to-source-range obj ast)
                                                 (begin)
                                                 (line))
                                            line-number)))
@@ -181,9 +180,10 @@ associated element of `*compilation-fixers*'.
                                       {ast-later-p _ decl-stmt}»
                                  (asts obj))))
 
-            (apply-clang-mutate-ops obj
-                          `((:insert-value (:stmt1 . ,(ast-counter stmt1))
-                                           (:value1 . ,text)))))))))
+            (apply-clang-mutate-ops
+              obj
+              `((:insert-value (:stmt1 . ,(1+ (index-of-ast obj stmt1)))
+                               (:value1 . ,text)))))))))
   obj)
 
 ;; For clang software objects with no fodder database,
@@ -352,12 +352,11 @@ associated element of `*compilation-fixers*'.
           ;;
           ;; (mapc (lambda (it) (format t "IT:~S~%" it)))
           ;;
-          ;; NOTE: Another potential bug here in which ast-refs are
-          ;;       returned instead of numbers and ast-refs can't be
+          ;; NOTE: Another potential bug here in which asts are
+          ;;       returned instead of numbers and asts can't be
           ;;       compared with `>'.
-          (sort <> #'>)
-          (remove-if #'zerop)
-          (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt}]))))
+          (sort <> #'ast-later-p)
+          (mapc [{apply-mutation obj} {list 'clang-cut} {cons :stmt1}]))))
 
 (register-fixer
  ": undefined reference to `(\\S+)'"
@@ -380,17 +379,18 @@ associated element of `*compilation-fixers*'.
     (when variable
       ;; Run through clang-mutate to get accurate counters
       (update-asts obj)
-      (loop :for ast
-            :in (reverse (asts obj))
-            :when (and (eq (ast-class ast) :DeclStmt)
+      (iter (for ast in (reverse (asts obj)))
+            (for i downfrom (length (asts obj)))
+            (when (and (eq (ast-class ast) :DeclStmt)
                        (scan (concatenate 'string variable "\\s*=")
                              (source-text ast)))
-            :do (let ((text (regex-replace variable (source-text ast)
-                                           (concatenate 'string "*" variable))))
-                  (apply-clang-mutate-ops obj
-                    `((:set . ((:stmt1 . ,(ast-counter ast))
-                               (:value1 . ,text)))))
-                  (return obj))))
+              (let ((text (regex-replace variable
+                                         (source-text ast)
+                                         (concatenate 'string "*" variable))))
+                (apply-clang-mutate-ops obj
+                  `((:set . ((:stmt1 . ,i)
+                             (:value1 . ,text)))))
+                (return obj)))))
     obj))
 
 (register-fixer

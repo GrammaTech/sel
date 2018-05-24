@@ -5,9 +5,6 @@
 (defvar *trace-open-timeout* 10
   "Timeout (in seconds) when opening pipe to collect traces.")
 
-(defvar *process-kill-timeout* 10
-  "Timeout (in seconds) before killing a process with SIGKILL")
-
 (define-software traceable (software)
   ((traces :initarg :traces :accessor traces :initform nil :copier :direct
            :documentation "Execution traces from execution of the software."))
@@ -142,10 +139,17 @@ times."))
                      (iter (while (not (timeout-p start-time)))
                            ;; The instrumented process will complete the
                            ;; handshake by deleting the file.
-                           (unless (probe-file handshake-file)
-                             (return t))
+                           (handler-case
+                               (unless (probe-file handshake-file)
+                                 (return t))
+                             (error (e)
+                               ;; A race condition exists in the SBCL 1.4.7
+                               ;; `probe-file' where if the handshake
+                               ;; file is deleted during the execution
+                               ;; of the function, an error will be thrown.
+                               (declare (ignorable e))))
 
-                           (unless (eq :running (process-status proc))
+                           (unless (process-running-p proc)
                              (note 4 "Test process exited")
                              (return nil))
 
@@ -161,8 +165,7 @@ times."))
                                                      (program-args test-case))))
                                         :max max))))
                   (finally
-                   (finish-test proc :kill-signal 15
-                                     :timeout *process-kill-timeout*)
+                   (finish-test proc)
                    (restart-case
                        ;; This usually indicates a problem with the
                        ;; test script or the instrumentation
@@ -273,31 +276,27 @@ times."))
                                 :env (list (cons *instrument-log-env-name*
                                                  pipe))
                                 :wait nil)))
-          (iter (for i upfrom 0)
-                (while (and (eq :running (process-status proc))
-                            (add-trace
-                              (traces obj) pipe *trace-open-timeout*
-                              (list (cons :input
-                                          (cons (program-name test-case)
-                                                (program-args test-case))))
-                              :max max)))
-                (finally
-                 (finish-test proc :kill-signal 15
-                                   :timeout *process-kill-timeout*)
-                 (restart-case
-                     ;; This usually indicates a problem with the
-                     ;; test script or the instrumentation
-                     (when (zerop i)
-                       (error (make-condition 'trace-error
-                               :text (format nil
-                                       "No traces collected for test case ~s ~s."
-                                       test-case
+          (restart-case
+              (unless (add-trace (traces obj)
+                                 pipe
+                                 *trace-open-timeout*
+                                 (list (cons :input
                                        (cons (program-name test-case)
-                                             (program-args test-case)))
-                               :obj test-case
-                               :bin bin)))
-                    (ignore-empty-trace ()
-                      :report "Ignore empty trace"))))))
+                                             (program-args test-case))))
+                                 :max max)
+                ;; This usually indicates a problem with the
+                ;; test script or the instrumentation
+                (error (make-condition 'trace-error
+                        :text (format nil
+                                "No traces collected for test case ~s ~s."
+                                test-case
+                                (cons (program-name test-case)
+                                      (program-args test-case)))
+                        :obj test-case
+                        :bin bin)))
+            (ignore-empty-trace ()
+              :report "Ignore empty trace"))
+            (finish-test proc)))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
       (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)

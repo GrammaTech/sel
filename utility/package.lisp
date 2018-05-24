@@ -51,6 +51,7 @@
    :stream-to-string
    :getenv
    :quit
+   :git
    :current-git-commit
    :current-git-branch
    :*temp-dir*
@@ -70,13 +71,14 @@
    :directory-p
    ;; Process wrapper
    :process
+   :os-process
    :process-id
    :process-input-stream
    :process-output-stream
    :process-error-stream
    :process-exit-code
-   :process-status
-   :signal-process
+   :process-running-p
+   :kill-process
    ;; Shell execution
    :*shell-debug*
    :*shell-error-codes*
@@ -93,12 +95,15 @@
    :parse-numbers
    :trim-whitespace
    :make-terminal-raw
+   :getopts
    :which
    ;; forensic
    :arglist
    :show-it
    :equal-it
    :count-cons
+   :tree-right-length
+   :tree-right-walk
    ;; simple utility
    :repeatedly
    :indexed
@@ -110,6 +115,8 @@
    :plist-merge
    :counts
    :proportional-pick
+   :position-extremum
+   :position-extremum-rand
    :partition
    :random-bool
    :random-elt-with-decay
@@ -164,6 +171,8 @@
    :keep-lines-after-matching
    :resolve-function-includes
    ;; debugging
+   :*compile-w/tracing*
+   :traced
    :*note-level*
    :*note-out*
    :replace-stdout-in-note-targets
@@ -207,6 +216,9 @@
    :task-object
    :task-save-result
    :run-task
+   :some-task
+   :some-task-pred
+   :some-test-task
    ))
 #+allegro
 (set-dispatch-macro-character #\# #\_

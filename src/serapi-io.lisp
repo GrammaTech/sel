@@ -56,7 +56,6 @@
            :kill-serapi
            :write-to-serapi
            :read-serapi-response
-           :enable-preserving-case-syntax
            :*sertop-path*
            :*sertop-args*
            :*serapi-timeout*
@@ -85,7 +84,8 @@
            :serapi-timeout-error
            :use-empty-response
            :retry-read
-           :serapi-timeout))
+           :serapi-timeout
+           :serapi-readtable))
 (in-package :software-evolution-library/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defreadtable :serapi-readtable
@@ -122,7 +122,11 @@ to `*sertop-args*'."
     (setf *sertop-path* "sertop.native"))
   (when (getenv "COQLIB")
     (setf *sertop-args*
-          (list (format nil "--coqlib=~a" (getenv "COQLIB"))))))
+          (list (format nil "--coqlib=~a" (getenv "COQLIB")))))
+  (when (getenv "SERTOP_ARGS")
+    (setf *sertop-args*
+          (append *sertop-args*
+                  (split "\\s+" (getenv "SERTOP_ARGS"))))))
 
 ;;;; For timeout, we have a longer *serapi-timeout* - the max time (in seconds)
 ;;;; to wait before determining that a read can't happen - and
@@ -148,23 +152,15 @@ See `insert-reset-point'.")
 (defun make-serapi (&optional (program *sertop-path*) (args *sertop-args*))
   "Start up SerAPI and return a PROCESS object to interact with."
   (note 3 "Creating new serapi instance.")
-  #+sbcl
-  (make-instance
-   'serapi-process
-   :os-process (sb-ext:run-program program args
-                                   :input :stream
-                                   :output :stream
-                                   :wait nil
-                                   :search t))
-  #+ccl
-  (make-instance
-   'serapi-process
-   :os-process (ccl:run-program program args
-                                :input :stream
-                                :output :stream
-                                :wait nil))
-  #- (or sbcl ccl)
-  (error "CL-SERAPI-LIB currently only supports SBCL and CCL."))
+  (make-instance 'serapi-process
+                 :os-process
+                 (apply #'uiop:launch-program (cons program args)
+                        (append
+                         (list
+                          :input :stream
+                          :output :stream
+                          :wait nil)
+                         #+sbcl (list :search t)))))
 
 (define-condition serapi-error (error)
   ((text :initarg :text :initform nil :reader text)
@@ -252,15 +248,25 @@ format."
       (format (process-input-stream serapi) full-string)
       (finish-output (process-input-stream serapi)))))
 
-(defun sanitize-process-string (string &aux (last nil))
+(defun sanitize-process-string (string &aux (last nil) (penult nil))
+  "Ensure that special characters are properly escaped in STRING."
   (with-output-to-string (s)
     (iter (for char in (coerce string 'list))
-          (if (eql last #\\)        ; If last char was an escape then,
-              ;; skip inhibited escaped whitespace chars.
-              (unless (member char '(#\n #\t #\r #\b))
-                ;; Double escape non-inhibited escaped chars.
-                (mapc {write-char _ s} (list #\\ #\\ char)))
-              (unless (eql char #\\) (write-char char s))) ; Write non-escaped.
+          (cond
+            ((and (eql penult #\\) (eql last #\\))
+             ;; If two previous chars were escapes then keep them and char
+             ;; (prevent suppressing \\n and similar)
+             (mapc {write-char _ s} (list #\\ #\\ #\\ #\\ char)))
+            ((and (eql last #\\) (eql char #\"))
+             ;; If we found a \", make sure it's triple escaped
+             (mapc {write-char _ s} (list #\\ #\\ #\\ char)))
+            ((and (eql last #\\) (not (eql char #\\)))
+             ;; If last char is an escape and neither penult nor current is,
+             ;; Skip inhibited escaped whitespace chars, double escape others.
+             (unless (member char '(#\n #\t #\r #\b))
+               (mapc {write-char _ s} (list #\\ #\\ char))))
+            (t (unless (eql char #\\) (write-char char s))))
+          (setf penult last)
           (setf last char))))
 
 (defmethod read-process-string ((process process)
@@ -319,7 +325,15 @@ for failed responses it will be an error string."
 
 (defmethod pre-process ((str string))
   "Pre-process STR read in from SerAPI to ensure it's a valid LISP object."
-  (replace-all str "." "\\."))
+  (-<>> (replace-all str "." "\\.")
+        ;; ensure Pp_string items are always wrapped in ""
+        (regex-replace-all "\\(Pp_string\\s+([^\\\"].*?)\\)"
+                          <>
+                          "(Pp_string \"\\1\")")
+        ;; ensure CoqString items are always wrapped in ""
+        (regex-replace-all "\\(CoqString\\s+([^\\\"].*?)\\)"
+                          <>
+                          "(CoqString \"\\1\")")))
 
 (defmethod read-serapi-response ((serapi process))
   "Read FORMS from the SERAPI process over its output stream.
@@ -344,25 +358,12 @@ format."
       ;; in a nice, ready state even if some of the strings are bad.
       (iter (for str in (mapcar #'pre-process strings))
             (with-input-from-string (in str)
-              (restart-case
-                  (let ((value (read in)))
-                    (if (and (listp value)
-                             (equal '|error| (car value)))
-                        (error (make-condition 'serapi-error
-                                               :text (second value)
-                                               :serapi serapi))
-                        (collect value into values)))
-                (return-response-strings (e)
-                  (declare (ignorable e))
-                  :report "Return raw response strings."
-                  (leave strings))
-                (ignore-serapi-error (e)
-                  (declare (ignorable e))
-                  :report "Ignore SerAPI error."
-                  (leave nil))
-                (return-serapi-error (e)
-                  :report "Return SerAPI error."
-                  (leave (append values (list (text e)))))))
+              (let ((value (read in)))
+                (when (and (listp value) (is-error value))
+                  ;; TODO: maybe throw an error here, but in all cases so far
+                  ;; we just want to ignore these unless we're debugging.
+                  (note 3 "WARNING: SerAPI response included error ~a" value))
+                (collect value into values)))
             (finally (return values))))))
 
 ;; We use `insert-reset-point' and `reset-serapi-process' to maintain a sentinel
@@ -388,7 +389,7 @@ See also `insert-reset-point'."
 
 (defmethod kill-serapi ((serapi serapi-process) &key (signal 9))
   "Ensure SerAPI process is terminated."
-  (signal-process serapi signal)
+  (kill-process serapi :urgent (eql signal 9))
   (setf (reset-points serapi) nil))
 
 (defmacro with-serapi ((&optional (process *serapi-process*))
@@ -399,7 +400,7 @@ Uses default path and arguments for sertop (`*sertop-path*' and
   (let ((old-proc (gensym)))
     `(let ((,old-proc
             ;; save old process
-            (when (and ,process (eql :RUNNING (process-status ,process)))
+            (when (and ,process (process-running-p ,process))
               ,process)))
        (let ((*serapi-process* (or ,old-proc (make-serapi))))
          (unwind-protect
@@ -409,7 +410,9 @@ Uses default path and arguments for sertop (`*sertop-path*' and
                            ;; the process is created, but don't propagate the
                            ;; error if there isn't.
                            ((serapi-timeout-error
-                             (lambda (c) (invoke-restart 'use-empty-response))))
+                             (lambda (c)
+                               (declare (ignorable c))
+                               (invoke-restart 'use-empty-response))))
                          (read-serapi-response *serapi-process*)))
                      ,@body)
            (unless ,old-proc (kill-serapi *serapi-process*)))))))

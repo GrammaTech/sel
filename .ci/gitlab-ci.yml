@@ -15,16 +15,17 @@ stages:
 
 .build-template: &build
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     - if [ "$OS" = "ubuntu" ];
       then
-          docker pull $DOCKER_REGISTRY/synthesis/cl:latest;
+          export TAG=latest;
       else
-          docker pull $DOCKER_REGISTRY/synthesis/cl:$OS;
+          export TAG=${OS};
       fi
-
-    - cp .ci/Dockerfile.$OS Dockerfile
-    - docker build --build-arg=GT=yes -f Dockerfile -t ${LOCAL_IMAGE_NAME}-${OS} .
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/cl:${TAG}
+    - docker build --build-arg=GT=yes -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS} .
 
 build-ubuntu:
   stage: build-ubuntu
@@ -99,8 +100,10 @@ trigger_evo-rings:
 pages:
   stage: deploy-and-cleanup
   script:
-    - docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
-    - docker cp $(docker ps -alq):/public ./
+    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch.container
+    - mkdir -p $(dirname ${CONTAINER_FILE})
+    - docker run -e LOCAL_USER=root -e GT=yes --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-arch /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
+    - docker cp $(cat ${CONTAINER_FILE}):/public ./
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu
   artifacts:

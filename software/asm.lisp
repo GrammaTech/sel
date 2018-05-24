@@ -39,7 +39,7 @@ Note this is required as no `from-file' method is defined on the
   (setf (lines asm) (split-sequence #\Newline (file-to-string file)))
   asm)
 
-(defmethod copy ((asm asm-range))
+(defmethod copy ((asm asm-range) &key)
   "Customized copy for `asm-range' software objects.
 Ensures deep copies are made of the genome (ranges) but shallow copies
 are made of the reference base genome."

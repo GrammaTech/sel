@@ -165,7 +165,6 @@ objects.
 @c software objects / ast @include include/fun-sel-function-body.texinfo
 @c SOFTWARE OBJECTS / CLANG @include include/fun-sel-function-containing-ast.texinfo
 @c software objects / ast @include include/fun-sel-function-decl-p.texinfo
-@include include/fun-sel-generate-helpers.texinfo
 @c evolve @include include/fun-sel-generational-evolve.texinfo
 @c SOFTWARE OBJECTS @include include/fun-sel-genome.texinfo
 @c SOFTWARE OBJECTS /ELF @include include/fun-sel-genome-bytes.texinfo

@@ -18,7 +18,7 @@
 * LISP-EXE DOCFIXME
 * FILE DOCFIXME
 "
-  (with-open-file (in path)
+  (with-open-file (in file)
     (setf (genome lisp-exe)
           (loop :for form = (read in nil :eof)
              :until (eq form :eof)

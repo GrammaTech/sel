@@ -223,9 +223,7 @@ SOFTWARE."))
                                        :start comma)))
                      ;; split a-ls on : to get types
                      (types (mapcar [#'token-from-string #'first {split ":\\s*"}]
-                                    a-ls))
-                     ;; indices of children to tokenize
-                     (types-children (iota (length types) :start 1)))
+                                    a-ls)))
                 (assert (= (length types) (1- (length children))))
                 (append (list (token-from-string "generic")
                               (token-from-string "("))
@@ -351,9 +349,8 @@ SOFTWARE."))
                         (mapcar #'token-from-string type)
                         (list (token-from-string ")")))))
              ;; get all tokens from children
-             (:Var (let ((ast-ls (ast-ref-ast root))
-                          (idents (idents clang root)))
-                     (iter (for item in (cdr ast-ls))
+             (:Var (let ((idents (idents clang root)))
+                     (iter (for item in (ast-children root))
                            (with child = 0)
                            (appending
                             (if (stringp item)

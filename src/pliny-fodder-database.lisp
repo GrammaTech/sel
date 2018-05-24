@@ -219,7 +219,7 @@
 * LIMIT DOCFIXME
 "
   (let ((features (cond (ast-class
-                         `((:ast--class  . ,ast-class)
+                         `((:class  . ,ast-class)
                            (:random . ,(random 1.0))))
                         ((and full-stmt (eql decls :only))
                          `((:full--stmt . t)
@@ -266,7 +266,7 @@
                  `((:disasm . ,(format nil "~S" target)))))
            (add-ast-class-feature (features)
              (if ast-class
-                 (append features `((:ast--class . ,ast-class)))
+                 (append features `((:class . ,ast-class)))
                  features)))
     (let ((features (-> (add-target-feature)
                         (add-ast-class-feature))))
@@ -282,7 +282,7 @@
 * OBJ DOCFIXME
 * HASH DOCFIXME
 "
-  (pliny-find-hash obj hash #'snippet->clang-type))
+  (pliny-find-hash obj hash {from-alist 'clang-type}))
 
 (defmethod find-macro ((obj pliny-database) hash)
   "DOCFIXME
@@ -291,7 +291,7 @@
 * HASH DOCFIXME
 "
   ;; FIXME: Update pliny database to support new macro format
-  (pliny-find-hash obj hash #'snippet->clang-macro))
+  (pliny-find-hash obj hash {from-alist 'clang-macro}))
 
 (defun pliny-find-hash (pliny-db hash to-obj-fn)
   "DOCFIXME

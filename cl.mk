@@ -64,7 +64,7 @@ ifneq (,$(findstring ecl, $(LISP)))
 # TODO: Figure out how to set --heap-size appropriately.
 LISP_FLAGS = --norc
 else
-LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init
+LISP_FLAGS = --stack-size $(LISP_STACK) --quiet --no-init --batch
 endif
 endif
 else
@@ -74,7 +74,7 @@ else
 ifneq (,$(findstring ecl, $(LISP)))
 LISP_FLAGS = --norc
 else
-LISP_FLAGS = --quiet --no-init
+LISP_FLAGS = --quiet --no-init --batch
 endif
 endif
 endif
@@ -108,7 +108,11 @@ $(MANIFEST): qlfile
 		--eval '(qlot:with-local-quicklisp ("$(USER_QUICK_LISP)") (ql:register-local-projects))' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
 else
-$(MANIFEST):
+$(MANIFEST): qlfile
+	for dependency in $$(awk '{print $$3}' qlfile);do \
+	base=$(USER_QUICK_LISP)/local-projects/$$(basename $$dependency .git); \
+	[ -d $$base ] || git clone $$dependency $$base; \
+	done
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
 		--eval '(ql:register-local-projects)' \
 		--eval '#+sbcl (exit) #+ccl (quit)'

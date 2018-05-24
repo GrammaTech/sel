@@ -13,7 +13,7 @@
 
 
 ;;; llvm software objects
-(define-software llvm (ast)
+(define-software llvm (source)
   ((ext      :initarg :ext      :accessor ext      :initform "ll")
    (compiler :initarg :compiler :accessor compiler :initform "llc")
    (linker   :initarg :linker   :accessor linker   :initform "gcc"))

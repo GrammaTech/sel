@@ -12,32 +12,26 @@
 (genome (mutate (copy *sqrt*)))
 
 ;;; Show the integer literals ASTs.
-(remove-if-not [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
+(remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
                (asts *sqrt*))
 
 ;;; Show the text of the integer literal ASTs.
-(mapcar [#'source-text #'ast-ref-ast]
-        (remove-if-not [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
+(mapcar #'source-text
+        (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
                        (asts *sqrt*)))
 
 ;;; Replace the interesting AST with a random value.
 (defun second-integer-to-rand (obj &optional (rand (random 10000)))
-  (setf (ast-ref (second
-                  (remove-if-not
-                   [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
-                   (asts obj)))
-                 obj)
-        (make-literal rand))
-  obj)
+  (replace-ast obj
+               (second (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
+                                      (asts obj)))
+               (make-literal rand)))
 
 (defun rand-integer-to-rand (obj &optional (rand (random 10000)))
-  (setf (ast-ref (random-elt
-                  (remove-if-not
-                   [{equal :INTEGERLITERAL} #'ast-class #'car #'ast-ref-ast]
-                   (asts obj)))
-                 obj)
-        (make-literal rand))
-  obj)
+  (replace-ast obj
+               (random-elt (remove-if-not [{equal :INTEGERLITERAL} #'ast-class]
+                                          (asts obj)))
+               (make-literal rand)))
 
 ;;; Evaluate fitness (looking at cycles to execute).
 (defun test-sqrt (obj &aux (total 0))

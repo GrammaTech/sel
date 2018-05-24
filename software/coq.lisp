@@ -153,7 +153,9 @@ See also `tag-loc-info'."
 
 
 (defmethod from-file ((obj coq) file)
-  "Load Coq OBJ from file FILE using."
+  "Load Coq OBJ from file FILE, initializing fields in OBJ.
+Resets the SerAPI process so that imports are loaded but no definitions from the
+file have been added."
   (when (project-file obj)
     (set-load-paths (project-file obj))
     (insert-reset-point))
@@ -193,13 +195,19 @@ Set INCLUDE-IMPORTS to T to include import statements in the result."
   (append
    (when include-imports
      (iter (for import in (imports obj))
-           (collecting (lookup-coq-string import))))
+           (when import
+             (collecting (lookup-coq-string import)))))
    (iter (for ast in (unannotated-genome obj))
-         (when (listp ast)
+         (when (and ast (listp ast))
            (collecting (lookup-coq-string ast))))))
 
+(defgeneric coq-type-checks (coq)
+  (:documentation
+   "Return the fraction of ASTs in COQ software object that typecheck."))
+
 (defmethod coq-type-checks ((obj coq))
-  "Return the fraction of ASTs in Coq software OBJ that typecheck."
+  "Return the fraction of ASTs in Coq software OBJ that typecheck.
+Return NIL if source strings cannot be looked up."
   (reset-serapi-process)
   (insert-reset-point)
   (iter (for str in (lookup-source-strings obj :include-imports nil))
@@ -216,7 +224,7 @@ Set INCLUDE-IMPORTS to T to include import statements in the result."
   "Look up source strings for Coq OBJ ASTs and write to PATH."
   (with-open-file (out path :direction :output :if-exists :supersede)
     (format out "~{~a~%~^~}"
-            (mapcar #'unescape-string
+            (mapcar #'sel/serapi-io::unescape-string
                     (lookup-source-strings obj :include-imports t)))))
 
 
@@ -231,7 +239,7 @@ subtree in genome and the subtree itself."))
 Unlike `filter-subtrees', PREDICATE accepts two parameters: the index of the
 subtree in genome and the subtree itself."
   (iter (for i below (size lisp))
-        (when (funcall predicate i (sel::subtree (genome lisp) i))
+        (when (funcall predicate i (subtree (genome lisp) i))
           (collect i))))
 
 (defun non-located-stmts (tree)

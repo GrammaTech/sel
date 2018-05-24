@@ -187,9 +187,10 @@ which maps (test-casel: position)"
 * OBJ software object under test
 * STMT-COUNTS aggregated trace results, collected from `rinard-incremental'
 "
+  (declare (ignorable obj))
   (note 2 "Start rinard")
-  (let ((stmt-counts-vals (loop for key being the hash-keys of stmt-counts
-                             using (hash-value val) collecting val)))
+  (let ((stmt-counts-vals (loop for value being the hash-values of stmt-counts
+                             collecting value )))
     (let ((sorted (sort stmt-counts-vals #'rinard-compare)))
       ;; Comment in to print out the actual fault loc list with counts.
       ;; (print-rinard sorted)

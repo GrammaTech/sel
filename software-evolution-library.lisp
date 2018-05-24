@@ -4,25 +4,24 @@
 
 
 ;;; Software Object
-;;;
-;;; TODO: The following two don't work when SEL is installed in qlot
-;;;       by another project.  Instead you get the version/branch of
-;;;       the enclosing project.
-;;;
 (defvar +software-evolution-library-version+
   (eval-when (:compile-toplevel :load-toplevel :execute)
-    (current-git-commit (pathname-directory
-                         #.(or *compile-file-truename*
-                               *load-truename*
-                               *default-pathname-defaults*))))
+    (handler-case
+        (current-git-commit (pathname-directory
+                             #.(or *compile-file-truename*
+                                   *load-truename*
+                                   *default-pathname-defaults*)))
+      (git (e) (declare (ignorable e)) "UNKNOWN")))
   "Current version of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defvar +software-evolution-library-branch+
   (eval-when (:compile-toplevel :load-toplevel :execute)
-    (current-git-branch (pathname-directory
-                         #.(or *compile-file-truename*
-                               *load-truename*
-                               *default-pathname-defaults*))))
+    (handler-case
+        (current-git-branch (pathname-directory
+                             #.(or *compile-file-truename*
+                                   *load-truename*
+                                   *default-pathname-defaults*)))
+      (git (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defclass software ()
@@ -53,7 +52,7 @@ slot in DIRECT-SLOTS may be one of the following:
          ,@options)
      ;; Define the copy method
      ,(unless (null direct-slots)
-        `(defmethod copy :around ((obj ,name))
+        `(defmethod copy :around ((obj ,name) &key)
                     (let ((copy (call-next-method)))
                       (with-slots ,(mapcar #'car direct-slots) copy
                         (setf
@@ -141,11 +140,11 @@ first value from the `phenome' method."
 (defmethod (setf fitness-extra-data) (extra-data (obj software))
   (declare (ignorable extra-data)))
 
-(defgeneric copy (software)
+(defgeneric copy (software &key)
   (:documentation "Copy the software.
 Return a deep copy of a software object."))
 
-(defmethod copy ((obj software))
+(defmethod copy ((obj software) &key)
   (make-instance (class-of obj) :fitness (fitness obj)))
 
 (defgeneric size (software)
@@ -192,6 +191,12 @@ Used to target mutation."))
 Used to target mutation."))
 (defmethod pick-bad-bad ((software software) &key)
   (list (pick-bad software) (pick-bad software)))
+
+(defgeneric pick-bad-only (software &key)
+  (:documentation "Pick a single 'bad' index into a software object.
+Used to target mutation."))
+(defmethod pick-bad-only ((software software) &key)
+  (list (pick-bad software)))
 
 (defgeneric mutate (software)
   (:documentation "Mutate the software.  May throw a `mutate' error."))
@@ -551,7 +556,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
            :type (or software null)
            :documentation "The software object to be mutated.")
    (targets :initarg :targets :reader get-targets :initform nil
-            :type (or list fixnum ast-ref)
+            :type (or list fixnum ast)
             :documentation "A calculated target set."))
   (:documentation "The base class of all software mutations."))
 

@@ -39,6 +39,7 @@ each and stores them in a list."
 
   (setf (project-dir obj) project-dir)
   (with-temp-build-dir (project-dir)
+    (note 3 "Building java project")
     (multiple-value-bind (stdout stderr exit-code)
         (shell "cd ~a && ~a ~a"
                *build-dir* (build-command obj) (build-target obj))
@@ -52,10 +53,10 @@ each and stores them in a list."
                   stdout stderr)
           (let* ((jar-path (merge-pathnames-as-file *build-dir*
                                                     (build-target obj)))
-                 (files (->> (get-applicable-project-files *build-dir* jar-path)
+                 (files (->> (get-applicable-project-files project-dir jar-path)
                              (mapcar (lambda (file)
                                        (replace-all file
-                                                    (-> *build-dir*
+                                                    (-> project-dir
                                                         (pathname-as-directory)
                                                         (namestring))
                                                     ""))))))
@@ -69,12 +70,15 @@ each and stores them in a list."
                                  initialization progress: ~a/~a"
                               i (length files))
                         (handler-case
-                            (collect
-                              (cons entry
-                                    (-> (make-instance (java-class obj))
-                                        (from-file (merge-pathnames-as-file
-                                                     *build-dir*
-                                                     entry)))))
+                            (let ((java-obj (from-file
+                                              (make-instance (java-class obj))
+                                              (merge-pathnames-as-file
+                                                *build-dir*
+                                                entry))))
+                              (if (not (zerop (size java-obj)))
+                                  (collect (cons entry java-obj))
+                                  (note 3 "Stmt size of file is 0, ~
+                                           ignoring file ~a" entry)))
                           (mutate (e)
                             (declare (ignorable e))
                             (note 3 "Failed to initialize object, ~
@@ -103,27 +107,18 @@ each and stores them in a list."
 and returns the list of jars extracted for the next
 extraction iteration"
   (note 3 "Extracting jars from ~a" jar-name)
-
-  (shell "unzip -jo ~a/~a '*\.jar' -d ~a" folder jar-name folder)
-  (let ((stdout-str (make-array '(0)
-                                 :element-type
-                                 #+sbcl 'extended-char
-                                 #-sbcl 'character
-                                 :fill-pointer 0 :adjustable t)))
-    (with-output-to-string (stdout stdout-str)
-      (run-program (format nil "jar tf ~a/~a | grep -o '[^/]*.jar$'"
-                           folder
-                           jar-name)
-                   :force-shell t
-                   :ignore-error-status t
-                   :output stdout))
-    (let ((jar-files
-            (unless (emptyp (trim-whitespace stdout-str))
-              (split-sequence #\Newline
-                              (string-trim '(#\Newline) stdout-str)))))
-      (note 3 "Extracted ~a jars from ~a"
-            (length jar-files) jar-name)
-      jar-files)))
+  (let ((jar-files (run-command-split-newline
+                     (format nil "jar tf ~a/~a | grep -o '[^/]*.jar$'"
+                             folder
+                             jar-name))))
+    (if jar-files
+        (progn
+          (shell "unzip -jo ~a/~a '*\.jar' -d ~a" folder jar-name folder)
+          (note 3 "Extracted ~a jars from ~a"
+                (length jar-files)
+                jar-name))
+        (note 3 "No jars in jar ~a" jar-name))
+    jar-files))
 
 (defun get-files-project-folder (project-path)
   "Returns a list of all files with ext java"
@@ -140,55 +135,70 @@ extraction iteration"
             (length project-files))
       project-files)))
 
+(defun get-files-with-ext-in-dir (folder ext)
+  "Returns a list of file paths with the ext file extension"
+  (run-command-split-newline
+    (format nil "find ~a -type f -name '*\.~a'" folder ext)))
+
+(defun run-command-split-newline (command)
+  "Executes a command and splits output by newline"
+  (let ((stdout-str (make-array '(0)
+                                :element-type
+                                #+sbcl 'extended-char
+                                #-sbcl 'character
+                                :fill-pointer 0 :adjustable t)))
+    (with-output-to-string (stdout stdout-str)
+        (run-program command
+                     :force-shell t
+                     :ignore-error-status t
+                     :output stdout)
+      (unless (emptyp (trim-whitespace stdout-str))
+        (split-sequence #\Newline (string-trim '(#\Newline) stdout-str))))))
+
 (defun get-files-jar (jar-path)
-  "Returns a list of class files in a jar.
+  "Returns a list of class files in a jar or directory.
 Jars within jars are recursivly extracted
 to the depth of 3 within the built jar"
   (note 3 "Extracting jars within built jar")
-
   (with-temp-dir (sandbox)
-    (shell "cp ~a ~a" jar-path sandbox)
-    (iter (with paths = (list (format nil "~a.~a"
-                                      (pathname-name (pathname jar-path))
-                                      (pathname-type (pathname jar-path)))))
-          (for i from 1 to 4)
-          (setf paths
-                (iter (for path in paths)
-                      (appending (extract-jars-in-jar sandbox path)))))
+    (let ((jar-paths
+            (if (directory-exists-p jar-path)
+                (progn
+                  (note 3 "Searching for jars in folder ~a" jar-path)
+                  (get-files-with-ext-in-dir jar-path "jar"))
+                (progn
+                  (note 3 "Single jar will be used for java-project" jar-path)
+                  (list jar-path)))))
+      (note 3 "Source jars for java-project are ~a" jar-paths)
+      (shell "cp ~{~a~^ ~} ~a" jar-paths sandbox)
+      (iter (with paths = (iter (for path in jar-paths)
+                                (collect
+                                  (format nil "~a.~a"
+                                          (pathname-name (pathname path))
+                                          (pathname-type (pathname path))))))
+            (for i from 1 to 4)
+            (setf paths
+                  (iter (for path in paths)
+                        (appending (extract-jars-in-jar sandbox path)))))
 
-    (let ((jar-files (->> (shell (format nil "ls ~a" sandbox))
-                          (string-trim '(#\Newline))
-                          (split-sequence #\Newline))))
-      (note 3 "~a jar files extracted from built jar"
-            (- (length jar-files) 1))
-      (let ((class-files
-              (iter (for jar-file in jar-files)
-                    (appending
-                      (let ((stdout-str (make-array '(0)
-                                                    :element-type
-                                                    #+sbcl 'extended-char
-                                                    #-sbcl 'character
-                                                    :fill-pointer 0
-                                                    :adjustable t)))
-                        (with-output-to-string (stdout stdout-str)
-                          (run-program
+      (let ((jar-files (get-files-with-ext-in-dir sandbox "jar")))
+        (note 3 "~a jar files extracted from built jar"
+              (- (length jar-files) 1))
+        (let ((class-files
+                (iter (for jar-file in jar-files)
+                      (appending
+                        (extract-filename-list
+                          (run-command-split-newline
                             (format nil
-                                    "jar tf ~a/~a | ~
-                                     grep -o '[^/]*.class$'"
-                                    sandbox jar-file)
-                            :force-shell t
-                            :ignore-error-status t
-                            :output stdout))
-                        (->> (string-trim '(#\Newline) stdout-str)
-                             (split-sequence #\Newline)
-                             (extract-filename-list)))))))
-        (note 3 "~a class files extracted from jars"
-              (length class-files))
-        class-files))))
+                                    "jar tf ~a | grep -o '[^/]*.class$'"
+                                    jar-file)))))))
+          (note 3 "~a class files extracted from jars" (length class-files))
+          class-files)))))
 
 (defun compare-file-lists (jar-files project-files)
   "Compare the lists, returns full path list if filename is in both lists"
   (note 3 "Producing intersection of class files and project files")
+
   (let ((applicable-project-files
           (iter (for path in project-files)
                 (when (find (get-filename path) jar-files :test #'equal)
@@ -214,11 +224,10 @@ to the depth of 3 within the built jar"
     (restart-case
         (if (zerop exit)
             (with-temp-file-of (script-file) *java-execution-script-template*
-              (shell "cat ~a ~a > ~a && chmod +x ~a"
-                     script-file
+              (shell "cp -p -r ~a ~a"
                      (merge-pathnames-as-file *build-dir*
                                               (build-target obj))
-                     bin bin))
+                     bin))
             (error (make-condition 'phenome
                      :text stderr :obj obj :loc *build-dir*)))
       (retry-project-build ()

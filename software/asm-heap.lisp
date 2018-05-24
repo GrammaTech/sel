@@ -211,6 +211,11 @@ structs, and storing them in a vector on the LINE-HEAP"
        (line-heap asm))
   asm)
 
+(defmethod to-file ((asm asm-heap) file)
+  "Save the assembly for ASM to FILE."
+  (with-open-file (out file :direction :output :if-exists :supersede)
+    (genome-string asm out)))
+
 (defun vector-cut (a index)
   "Destructively remove and return an element from a vector with a fill pointer."
   (let ((deleted (aref a index)))
