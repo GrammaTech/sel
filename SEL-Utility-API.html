@@ -100,8 +100,6 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
    </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002did"><code>process-id</code></a>
    </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dinput_002dstream"><code>process-input-stream</code></a>
    </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002doutput_002dstream"><code>process-output-stream</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dstatus"><code>process-status</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003asignal_002dprocess"><code>signal-process</code></a>
   </li></ul>
 
 </li><li> Variables
@@ -266,11 +264,28 @@ higher on the stack and therefore have priority over other tasks.
 <dd><p>Return a job for the *jobs* stack. This is a function which,
  when called, returns the next task in the series.
 </p></dd></dl>
+<a name="Method-sel_002futility_003atask_002djob-_0028_0028task-some_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-task_002djob-_005bsel_002futility_005d-2"></a>Method: <strong>task-job [sel/utility]</strong> <em>(task some-task) runner</em></dt>
+<dd><p>Return the generating function for &lsquo;some-task&rsquo;.
+Create new subtasks for each item in the list until either applying the
+predicate <code>some-task-pred</code> in <code>task</code> succeeds or there are no more items in the
+list.
+</p></dd></dl>
 <a name="index-process_002dtask-_005bsel_002futility_005d"></a>
 <a name="Generic_002dFunction-sel_002futility_003aprocess_002dtask"></a><dl>
 <dt><a name="index-process_002dtask-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-task [sel/utility]</strong> <em>task runner</em></dt>
 <dd><p>Process the object, including evaluate fitness, push new Jobs, and
  store interesting results
+</p></dd></dl>
+<a name="Method-sel_002futility_003aprocess_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-_005bsel_002futility_005d-2"></a>Method: <strong>process-task [sel/utility]</strong> <em>(task some-test-task) runner</em></dt>
+<dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
+<code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
+<code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
+should be used to retrieve one result. Additionally, due to differences in
+timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;some&rsquo;, since &lsquo;some&rsquo;
+promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
+&lsquo;some-task-pred&rsquo;.
 </p></dd></dl>
 <a name="index-task_002dsave_002dresult-_005bsel_002futility_005d"></a>
 <a name="Function-sel_002futility_003atask_002dsave_002dresult"></a><dl>
@@ -293,7 +308,7 @@ higher on the stack and therefore have priority over other tasks.
 </p>
 <p>Slots:
 </p><ul>
-<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility::os-process</span><!-- /@w --></code>
+<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
 
 <p>The underlying process object (compiler-specific).
 This field will not usually need to be accessed directly: use methods
@@ -312,17 +327,16 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
 </p></dd></dl>
 <a name="Method-sel_002futility_003aprocess_002derror_002dstream-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002derror_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-error-stream [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return the error stream for <code>process</code>.
 </p></dd></dl>
 <a name="index-process_002dexit_002dcode-_005bsel_002futility_005d"></a>
 <a name="Generic_002dFunction-sel_002futility_003aprocess_002dexit_002dcode"></a><dl>
 <dt><a name="index-process_002dexit_002dcode-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-exit-code [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not
-exited.
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
 </p></dd></dl>
 <a name="Method-sel_002futility_003aprocess_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002dexit_002dcode-_005bsel_002futility_005d-2"></a>Method: <strong>process-exit-code [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
 </p></dd></dl>
 <a name="index-process_002did-_005bsel_002futility_005d"></a>
 <a name="Generic_002dFunction-sel_002futility_003aprocess_002did"></a><dl>
@@ -331,7 +345,7 @@ exited.
 </p></dd></dl>
 <a name="Method-sel_002futility_003aprocess_002did-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002did-_005bsel_002futility_005d-2"></a>Method: <strong>process-id [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return the process id for <code>process</code>.
 </p></dd></dl>
 <a name="index-process_002dinput_002dstream-_005bsel_002futility_005d"></a>
 <a name="Generic_002dFunction-sel_002futility_003aprocess_002dinput_002dstream"></a><dl>
@@ -340,7 +354,7 @@ exited.
 </p></dd></dl>
 <a name="Method-sel_002futility_003aprocess_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002dinput_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-input-stream [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return the input stream for <code>process</code>.
 </p></dd></dl>
 <a name="index-process_002doutput_002dstream-_005bsel_002futility_005d"></a>
 <a name="Generic_002dFunction-sel_002futility_003aprocess_002doutput_002dstream"></a><dl>
@@ -349,26 +363,7 @@ exited.
 </p></dd></dl>
 <a name="Method-sel_002futility_003aprocess_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002doutput_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-output-stream [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="index-process_002dstatus-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002dstatus"></a><dl>
-<dt><a name="index-process_002dstatus-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-status [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the status of <code>process:</code> one of :running, :stopped,
-:signaled, or :exited.
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002dstatus-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dstatus-_005bsel_002futility_005d-2"></a>Method: <strong>process-status [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="index-signal_002dprocess-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003asignal_002dprocess"></a><dl>
-<dt><a name="index-signal_002dprocess-_005bsel_002futility_005d-1"></a>Generic Function: <strong>signal-process [sel/utility]</strong> <em>process signal-number</em></dt>
-<dd><p>Send the signal <code>signal-number</code> to <code>process</code>.
-</p></dd></dl>
-<a name="Method-sel_002futility_003asignal_002dprocess-_0028_0028process-process_0029-_0028signal_002dnumber-integer_0029_0029"></a><dl>
-<dt><a name="index-signal_002dprocess-_005bsel_002futility_005d-2"></a>Method: <strong>signal-process [sel/utility]</strong> <em>(process process) (signal-number integer)</em></dt>
-<dd><p><code>docfixme</code>
+<dd><p>Return the output stream for <code>process</code>.
 </p></dd></dl>
 
 <a name="Documentation-1"></a>
@@ -428,7 +423,10 @@ The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
 <a name="index-with_002dcwd-_005bsel_002futility_005d"></a>
 <a name="Macro-sel_002futility_003awith_002dcwd"></a><dl>
 <dt><a name="index-with_002dcwd-_005bsel_002futility_005d-1"></a>Macro: <strong>with-cwd [sel/utility]</strong> <em>dir &amp;rest body</em></dt>
-<dd><p>Change the current working directory to dir and execute body
+<dd><p>Change the current working directory to dir and execute body.
+<code>warning:</code> This function is not thread safe.  Execution in a threaded
+environment may causes execution outside of the intended directory or
+may lose the original working directory.
 </p></dd></dl>
 <a name="index-with_002dtemp_002dfile-_005bsel_002futility_005d"></a>
 <a name="Macro-sel_002futility_003awith_002dtemp_002dfile"></a><dl>
@@ -625,7 +623,7 @@ The resulting file may be fed directly to the flamegraph tool as follows.
 </dd>
 </dl>
 
-<p>shell$ profile.data|flamegraph <code>&gt;</code> profile.svg
+<p>shell$ cat profile.data|flamegraph <code>&gt;</code> profile.svg
 </p>
 <p>See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html.
 </p></dd></dl>
@@ -672,10 +670,15 @@ replace &lsquo;t&rsquo; in the &lsquo;*note-out*&rsquo; list.
 <a name="Function-sel_002futility_003ashell"></a><dl>
 <dt><a name="index-shell-_005bsel_002futility_005d-1"></a>Function: <strong>shell [sel/utility]</strong> <em>control-string &amp;rest format-arguments</em></dt>
 <dd><p>Apply <code>control-string</code> to <code>format-arguments</code> and execute the result with a shell.
-Return (values stdout stderr errno).  Raise a &lsquo;shell-command-failed&rsquo;
-exception depending on the combination of errno with
-&lsquo;*shell-error-codes*&rsquo; and &lsquo;*shell-non-error-codes*&rsquo;.  Optionally print
-debug information depending on the value of &lsquo;*shell-debug*&rsquo;.
+Return (values stdout stderr errno).  <code>format-arguments</code> up to the first
+keyword are passed to &lsquo;format&rsquo; with <code>control-string</code> to construct the
+shell command.  All subsequent elements of <code>format-arguments</code> are passed
+through as keyword arguments to &lsquo;uiop:run-program&rsquo;.
+</p>
+<p>Raise a &lsquo;shell-command-failed&rsquo; exception depending on the combination
+of errno with &lsquo;*shell-error-codes*&rsquo; and &lsquo;*shell-non-error-codes*&rsquo;.
+</p>
+<p>Optionally print debug information if &lsquo;*shell-debug*&rsquo; is non-nil.
 </p></dd></dl>
 <a name="index-show_002dit-_005bsel_002futility_005d"></a>
 <a name="Function-sel_002futility_003ashow_002dit"></a><dl>
