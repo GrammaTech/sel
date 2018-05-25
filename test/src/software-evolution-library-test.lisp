@@ -5343,8 +5343,8 @@ Useful for printing or returning differences in the REPL."
 (deftest instrumentation-insertion-w-filter-test ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
-                          :filter {remove-if-not
-                                   [{eq 92} {index-of-ast *gcd*}]}
+                          :filter (lambda (obj ast)
+                                    (eq 92 (index-of-ast obj ast)))
                           :trace-file :stderr)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)

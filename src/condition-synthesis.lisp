@@ -413,9 +413,10 @@ for the guard statement(s) in the repair targets.
       (instrument software :trace-file trace-file-name
                   :functions (list inst-reps)
                   ;; Only instrument within relevant functions
-                  :filter {remove-if-not [{member _ inst-functions
-                                                  :test #'equalp}
-                                       {function-containing-ast software}]}))))
+                  :filter (lambda (obj ast)
+                            (member (function-containing-ast obj ast)
+                                    inst-functions
+                                    :test #'equalp))))))
 
 (defun read-abst-conds-and-envs (trace-results-file)
   "For trace file TRACE-RESULTS-FILE, read in the environments and
