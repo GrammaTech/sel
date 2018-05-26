@@ -1,29 +1,76 @@
 ;;;;
-;;;; asm-super-mutant.lisp --- combine super-mutant functionalities
-;;;; with asm-heap
+;;;; asm-super-mutant.lisp --- combine SUPER-MUTANT functionalities
+;;;; with ASM-HEAP
 ;;;;
+
+;;; ASM-SUPER-MUTANT software object
+;;;
+;;; This consists of:
+;;;
+;;; -The ASM-HEAP, which is typically based on a file of assembly
+;;;  source code
+;;;
+;;; -Input/output specifications, in a specific file format as generated using
+;;;  the Intel monitoring application and our Python scripts
+;;;
+;;; -Boundary deliminators which determines the target of the mutation
+;;;  algorithm
+;;;
+;;; The ASM-SUPER-MUTANT object itself contains the whole original binary
+;;; application (in assembler source format).
+;;;
+;;; Note that the struct INPUT-SPECIFICATION is a bit of a misnomer, as it is
+;;; used here for both input specification and output specification (their
+;;; formats are identical so we use the same struct for both).
+;;;
+;;; SUPER-MUTANT slots:
+;;;   MUTANTS will contain a list of ASM-HEAP objects.
+;;;   SUPER-SOFT caches a combined ASM-HEAP representing the output fitness
+;;;   program.
+;;;   PHENOME-RESULTS caches the results obtained from calling the PHENOME
+;;;   method.
+;;;
 
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-;;; asm-super-mutant software objects
-;;; This will consist of an asm-heap, which is based on a file of assembly
-;;; source code, and input/output specifications, as well as a function
-;;; boundary deliminator which determines the target of the mutation algorithm.
-;;;
-;;;
 (define-software asm-super-mutant (asm-heap super-mutant)
-  ((input-spec :initarg :input-spec :accessor input-spec
-	       :initform (make-array 0 :fill-pointer 0 :adjustable t))
-   (output-spec :initarg :output-spec :accessor output-spec
-		:initform (make-array 0 :fill-pointer 0 :adjustable t))
-   (target-start-index :initarg :target-start-index
-		       :accessor target-start-index)
-   (target-end-index :initarg :target-end-index
-		     :accessor target-end-index)
-   (target-lines :initarg :target-lines :accessor target-lines))
-  (:documentation
-   "Combine super-mutant capabilities with asm-heap framework."))
+  ((input-spec
+    :initarg :input-spec
+    :accessor input-spec
+    :initform (make-array 0 :fill-pointer 0 :adjustable t)
+    :documentation
+      "Vector of INPUT-SPECIFICATION structs, one for each test case.") 
+   (output-spec
+    :initarg :output-spec
+    :accessor output-spec
+    :initform (make-array 0 :fill-pointer 0 :adjustable t)
+    :documentation
+    "Vector of INPUT-SPECIFICATION structs, one for each test case.")
+   (target-start-index
+    :initarg :target-start-index
+    :accessor target-start-index
+    :documentation "Integer index represents the first line of target code.")
+   (target-end-index
+    :initarg :target-end-index
+    :accessor target-end-index
+    :documentation "Intege index represents the last line of target code.")
+   (target-lines
+    :initarg :target-lines
+    :accessor target-lines
+    :documentation "Cache the lines of the target code, as they are used often.")
+   (assembler
+    :initarg :assembler
+    :accessor assembler
+    :initform "nasm"
+    :documentation "Assembler to use for assembling.")
+   (fitness-harness
+    :initarg :fitness-harness
+    :accessor fitness-harness
+    :initform "./asm-super-mutant-fitness.c"
+    :documentation "Pathname to the fitness harness file (C program source)"))
+   (:documentation
+   "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
 ;;;
 ;;; all the SIMD register names start with 'y'
@@ -63,12 +110,22 @@
   mem)   ;; vector of memory-spec to indicate all memory inputs
 
 (defmethod print-object ((spec input-specification) stream)
+  (print-unreadable-object (spec stream)
+    (format
+      stream
+      "input-specification: ~D registers, ~D SIMD registers, ~D memory addrs"
+      (length (input-specification-regs spec))
+      (length (input-specification-simd-regs spec))
+      (length (input-specification-mem spec)))))
+#|
+(defmethod print-object ((spec input-specification) stream)
   (iter (for reg in-vector (input-specification-regs spec))
 	(print reg))
   (iter (for reg in-vector (input-specification-simd-regs spec))
 	(print reg))
   (iter (for mem in-vector (input-specification-mem spec))
 	(print mem)))
+|#
 
 #|
 Jonathan's comments about the format:
@@ -115,6 +172,8 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
   (let ((line (read-line input nil 'eof)))
     (if (stringp line)
 	(trim-whitespace line))))  ;; returns nil if end-of-file
+
+(defparameter *fitness-harness* "./asm-super-mutant-fitness.c")
 
 ;;;
 ;;; The string argument should consist only of hex digits (at least in the first
@@ -557,20 +616,27 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
   (let ((asm-variants (make-instance 'asm-heap)))
     (setf (lines asm-variants) (list))  ;; empty heap
     (add-prolog asm-variants)
-    (add-variant-func
-     asm-variants
-     "variant_0"
-     (map 'list 'asm-line-info-text (target-lines asm-super)))
-    (add-variant-func
-     asm-variants
-     "variant_1"
-     (map 'list 'asm-line-info-text (target-lines asm-super)))
+    (let ((count 0))
+      (dolist (v (mutants asm-super))
+        (add-variant-func
+          asm-variants
+          (format nil "variant_~D" count)
+	  (lines v))
+	(incf count)))
     (add-variant-table asm-variants number-of-variants)
     (add-io-tests asm-super asm-variants)
+    (setf (super-soft asm-super) asm-variants)  ;; cache the asm-heap
     (with-open-file (os output-path :direction :output :if-exists :supersede)
       (dolist (line (lines asm-variants))
 	(format os "~A~%" line)))
-    (format t "File ~A successfully created.~%" output-path)))
+    (format t "File ~A successfully created.~%" output-path)
+    output-path))
+
+(defun create-target (asm-super)
+  "Returns an ASM-HEAP software object which contains only the target lines."
+  (let ((asm (make-instance 'asm-heap)))
+    (setf (lines asm)(map 'list 'asm-line-info-text (target-lines asm-super)))
+    asm))
 
 (defun create-variant-file (input-source io-file output-path
 		    start-addr end-addr)
@@ -579,6 +645,55 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
     (load-io-file asm-super io-file)
     (target-function asm-super start-addr end-addr) ; nlscan function
     (generate-file asm-super output-path 2)))
+
+(defmethod phenome ((asm asm-super-mutant)
+		    &key (bin (temp-file-name "out"))
+		         (src (temp-file-name "asm")))
+  "Create ASM file, assemble it, and link to create binary BIN."
+  (let ((src (generate-file asm src (length (mutants asm))))) 
+    (with-temp-file (obj "o")
+      ;; Assemble.
+      (multiple-value-bind (stdout stderr errno)
+        (shell "~a -f elf64 -o ~a ~a" (assembler asm) obj src)
+	(declare (ignorable stdout stderr))
+        (if (zerop errno)
+            ;; Link.
+	    (multiple-value-bind (stdout stderr errno)
+		(shell "clang -g -o ~a ~a ~a ~a"
+		       bin
+		       (fitness-harness asm)
+		       obj
+		       "/usr/lib/x86_64-linux-gnu/libpapi.so.5.4.3")
+	      (setf (phenome-results asm)
+		    (list bin errno stderr stdout src))
+	      (values bin errno stderr stdout src)))))))
+
+(defmethod test-fitness ((asm asm-super-mutant))
+  "Create ASM file, assemble it, and link to create binary BIN."
+  (with-temp-file (bin)
+    (multiple-value-bind (bin-path errno stderr stdout src)
+	(phenome asm :bin bin)
+      (declare (ignorable errno stderr stdout src))
+      ;; run the program
+      (multiple-value-bind (stdout stderr errno)
+	  (shell "~a" bin-path)
+	(declare (ignorable stderr errno))
+	(let ((test-results
+	       (read-from-string
+		(concatenate 'string "#(" stdout ")"))))
+	  (if (zerop errno)
+	      (let* ((num-tests (length (input-spec asm)))
+		     (num-variants (/ (length test-results) num-tests))
+		     (results '()))
+		(dotimes (i num-variants)
+		  (let ((variant-results
+			 (subseq test-results
+				 (* i num-tests) (* (+ i 1) num-tests))))
+		    (setf (fitness (elt (mutants asm) i)) variant-results)
+		    (push variant-results results)))
+		(setf test-results (nreverse results))))
+	  (setf (fitness asm) test-results)
+	  test-results)))))		    
 
 #|
 
@@ -600,17 +715,16 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 
 (generate-file *asm-super* "/u1/rcorman/synth/grep-variant.asm")
 
+;; test with odd-even.asm, function is_even()
 (defparameter *asm-super* 
   (from-file (make-instance 'asm-super-mutant)
   "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.asm"))
 (load-io-file *asm-super* "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.io")
-
 (target-function *asm-super* #x4005f6 #x400625)
 
-(create-variant-file
-  "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.asm"
-  "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.io"
-  "/u1/rcorman/synth/sel/test/etc/asm-test/is_even.asm"
-   #x4005f6 #x400625))
+;; add a variant to the population (currently just a duplicate)
+(defun add-variant (asm-super)
+  (let ((v (create-target asm-super)))
+    (push v (mutants asm-super))))
 
 |#
