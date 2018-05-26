@@ -28,7 +28,9 @@ extern vfunc variant_table[]; // 0-terminated array of variant
                               // function pointers, defined in the asm file
 #define NUM_INPUT_REGS 15     // number of live input registers
 #define NUM_OUTPUT_REGS 9     // number of live output registers
-#define RSP_INDEX 3           // index within output register set where RSP is stored
+#define RSP_INDEX 3           // index within output register set
+                              // where RSP is stored
+#define DEBUG 1
 
 // Expected input registers:
 //    rax
@@ -195,9 +197,11 @@ void init_pages() {
                           MAP_ANONYMOUS|MAP_PRIVATE,
                           -1,
                           0);
-            fprintf(stdout, "Allocated page at address 0x%lx, result: %lx\n",
+#if DEBUG
+            fprintf(stderr, "Allocated page at address 0x%lx, result: %lx\n",
                    (unsigned long)page_addr,
                    (unsigned long)anon);
+#endif
         }
         p++;
     }
@@ -241,7 +245,7 @@ int check_results(int test) {
     // check registers
     for (int i = 0; i < NUM_OUTPUT_REGS; i++) {
         if (output_regs[test * NUM_OUTPUT_REGS + i] != result_regs[i]) {
-            fprintf(stdout, "Test %d failed at register: %s, expected: %lx, "
+            fprintf(stderr, "Test %d failed at register: %s, expected: %lx, "
                    "found: %lx, orig rsp: %lx\n",
                   test,
                   output_reg_names[i],
@@ -337,28 +341,21 @@ unsigned long run_variant(int v, int test) {
     
     int res = check_results(test);   // make sure all the registers had expected
                                  // output values
-    
-    fprintf(stdout, "variant %d valid: %s instructions: %lld\n", v,
+#if DEBUG
+    fprintf(stderr, "variant %d valid: %s instructions: %lld\n", v,
            (res ? "yes" : "no"),
            elapsed_instructions);
-  
+#endif
     return res == 0 ? 0 : elapsed_instructions;
 }
 
-unsigned long run_variant_tests(int v) {
-    unsigned long total = 0;
-    unsigned long result;
-    fprintf(stdout, "Running tests for variant %d\n", v);
+void run_variant_tests(int v, unsigned long test_results[]) {
+#if DEBUG
+    fprintf(stderr, "Running tests for variant %d\n", v);
+#endif
     for (int k = 0; k < num_tests; k++) {
-        result = run_variant(v, k);
-        if (result == 0)
-            return 0;
-        // we only compare the first test case for performance
-        if (k == 0)
-            total = result;
+        test_results[k] = run_variant(v, k);        
     }
-    fprintf(stdout, "Returning %ld\n", total);
-    return total;
 }
 
 void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
@@ -366,15 +363,15 @@ void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
     // try to make the memory page read/write
     unsigned long addr = (unsigned long)(si->si_addr);
     unsigned long page_start = addr & PAGE_MASK;
-    fprintf(stdout, "Attempting to make page %lx have read/write permission.\n",
+    fprintf(stderr, "Attempting to make page %lx have read/write permission.\n",
            page_start);
     int ret = mprotect((unsigned long*)page_start, PAGE_SIZE, PROT_READ|PROT_WRITE);
     if (ret < 0) {
         switch (errno) {
-        case EACCES:  printf("Error: EACCESS\n"); break;
-        case EINVAL:   printf("Error: EINVAL\n"); break;
-        case ENOMEM:   printf("Error: ENOMEM\n"); break;
-        default:       printf("Error: unknown code %d\n", errno);
+        case EACCES:  fprintf(stderr, "Error: EACCESS\n"); break;
+        case EINVAL:  fprintf(stderr, "Error: EINVAL\n"); break;
+        case ENOMEM:  fprintf(stderr, "Error: ENOMEM\n"); break;
+        default:      fprintf(stderr, "Error: unknown code %d\n", errno);
         }
         exit(errno);
     }
@@ -392,11 +389,12 @@ void papi_init() {
         fprintf(stderr, "PAPI initialization error: %d\n", retval);
         exit(1);
     }
-    fprintf(stdout, "PAPI Version Number %d.%d.%d\n",
+#ifdef DEBUG
+    fprintf(stderr, "PAPI Version Number %d.%d.%d\n",
             PAPI_VERSION_MAJOR(retval),
             PAPI_VERSION_MINOR(retval),
             PAPI_VERSION_REVISION(retval));
-
+#endif
     // Create an event set, containint Total Instructions Executed counter
     retval = PAPI_create_eventset(&EventSet);
     if (retval < 0) {
@@ -426,27 +424,45 @@ int main(int argc, char* argv[]) {
 
     // show the page size
     long sz = sysconf(_SC_PAGESIZE);
-    fprintf(stdout, "Page size: %ld\n", sz);
-
+#if DEBUG
+    fprintf(stderr, "Page size: %ld\n", sz);
+#endif
     papi_init();
     
     init_pages(); // allocate any referenced pages
     
     unsigned long best = 0;
     int best_index = -1;
+    int num_variants = 0;
+
+    // count the number of variants by scanning the table, looking for
+    // terminating 0
+    for (int i = 0; variant_table[i]; i++)
+        num_variants++;
+#if DEBUG
+    fprintf(stderr, "Number of variants: %d\n", num_variants);
+#endif
+    unsigned long* test_results =
+        (unsigned long*)malloc(sizeof(unsigned long) * num_tests * num_variants);
+    unsigned long* p = test_results;
+    
+    for (int i = 0; i < (num_tests * num_variants); i++)
+        test_results[i] = ULONG_MAX;   // set fitness to max to
+                                       // initialize
+    
     for (int i = 0; variant_table[i]; i++) {
-        unsigned long result = run_variant_tests(i);
-        if (result > 0 && (best == 0 || result < best)) {
-            best = result;
-            best_index = i;
-        }
+        run_variant_tests(i, test_results + (i * num_tests));
     }
-    if (best > 0)
-        fprintf(stdout, "Best fitness: variant %d, elapsed: %ld\n", best_index, best);
-    else
-    {
-        fprintf(stdout, "No variant passed the tests.\n");
-        return 1;
+
+    // output the results, with all the tests results for one variant
+    // on each line.
+    // Note: this is the only thing sent to stdout by this program.
+    //
+    for (int i = 0; i < num_variants; i++) {
+        for (int j = 0; j < num_tests; j++)
+            fprintf(stdout, "%lu ", test_results[i * num_tests + j]);
+        fprintf(stdout, "\n");
     }
+    free(test_results);
     return 0;
 }
