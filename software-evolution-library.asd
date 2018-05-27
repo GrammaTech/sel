@@ -279,7 +279,7 @@ techniques."
                named-readtables
                curry-compose-reader-macros
                iterate
-               cl-who
+               cl-heap
                software-evolution-library/utility)
   :in-order-to ((test-op (test-op "software-evolution-library/test")))
   :components ((:file "ast-diff/ast-diff")))

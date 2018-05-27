@@ -16,6 +16,8 @@
 ;;;     [difftool]
 ;;;     	prompt = false
 ;;;
+;;; See Eclector/code/parse-result/second-climacs-test.lisp
+;;;
 (defpackage :software-evolution-library/lisp-diff
   (:nicknames :sel/lisp-diff)
   (:use :common-lisp

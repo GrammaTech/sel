@@ -27,7 +27,7 @@
    :curry-compose-reader-macros
    :metabang-bind
    :iterate
-   :cl-who)
+   :cl-heap)
   (:export
    :ast-equal-p
    :ast-cost
@@ -59,7 +59,7 @@
   "Objects with a cost and length."
   (obj nil)
   (orig nil)
-  (length 1 :type fixnum)
+  (length 0 :type fixnum)
   (cost 0 :type fixnum))
 
 (defun to-costed (obj)
@@ -82,11 +82,11 @@
                  costed)))
     (values (recurse costed) (ccost costed))))
 
-(defmethod ccons ((car costed) (cdr costed) &key orig)
+(defmethod ccons ((car costed) (cdr costed) &key orig cost)
   (make-costed :obj (cons car cdr)
                :orig orig
                :length (1+ (clength cdr))
-               :cost (+ (ccost car) (ccost cdr))))
+               :cost (or cost (+ (ccost car) (ccost cdr)))))
 
 (defmethod cconsp ((costed costed))
   (consp (cobj costed)))
@@ -99,6 +99,18 @@
 
 (defmethod ccdr ((costed costed))
   (cdr (cobj costed)))
+
+(defmethod creverse ((costed costed))
+  (labels ((helper (it acc)
+             (if (cconsp it)
+                 (helper (ccdr it) (ccons (ccar it) acc))
+                 (if (cnull it)
+                     acc
+                     (ccons it acc)))))
+    (helper costed (make-costed))))
+
+(defmethod clast ((costed costed))
+  (if (cconsp costed) (clast (ccdr costed)) costed))
 
 
 ;;; Interface functions.
@@ -199,171 +211,159 @@ Prefix and postfix returned as additional values."
                    (finally (return common)))))
     (let* ((prefix (prefix list-a list-b))
            (pre-length (length prefix))
-           (remaining-a (drop pre-length list-a))
-           (remaining-b (drop pre-length list-b)))
+           (a (drop pre-length list-a))
+           (b (drop pre-length list-b)))
       ;; If either list is completely consumed by the prefix, return here.
-      (if (or (null remaining-a) (null remaining-b))
-          (values remaining-a remaining-b prefix nil)
+      (if (or (null a) (null b))
+          (values a b prefix nil)
           ;; Calculate the postfix (less the prefix) if necessary.
-          (let* ((postfix (prefix (reverse remaining-a) (reverse remaining-b)))
+          (let* ((postfix (prefix (reverse a) (reverse b)))
                  (post-length (length postfix)))
-            (values (butlast remaining-a post-length)
-                    (butlast remaining-b post-length)
+            (values (butlast a post-length)
+                    (butlast b post-length)
                     prefix
                     (reverse postfix)))))))
 
+(defun make-cache (total-a total-b)
+  (make-array (list (1+ (clength total-a)) (1+ (clength total-b)))
+              :initial-element nil))
+
+(defun recursive-diff (total-a total-b
+                       &aux
+                         (from (make-cache total-a total-b))
+                         (fringe (make-instance 'priority-queue))
+                         (open (make-cache total-a total-b))
+                         (total-open 0)
+                         (closed (make-cache total-a total-b))
+                         (g (make-cache total-a total-b))
+                         (f (make-cache total-a total-b)))
+  (labels
+      ((heuristic (a-pos b-pos)
+         ;; Currently the heuristic is the minimum distance to
+         ;; the diagonal.
+         ;;
+         ;; NOTE: Should probably change this to actually return the
+         ;;       costs of the deletion/insertion of the elements to
+         ;;       get to the diagonal.
+         (min (abs (- a-pos (clength total-a)))
+              (abs (- b-pos (clength total-b)))))
+       (reconstruct-path- (a b)
+         (if (and (zerop a) (zerop b))
+             (make-costed)
+             (destructuring-bind ((new-a . new-b) . edge) (aref from a b)
+               (ccons edge (reconstruct-path- new-a new-b)))))
+       (reconstruct-path (last-a last-b a b)
+         (creverse
+          ;; Handle cdr of final cons.  This must be special-cased
+          ;; because when nil (a list) this is ignored by functions
+          ;; expecting lists (not cons trees).
+          (if (ast-equal-p last-a last-b)
+              (ccons
+               (ccons (make-costed :obj :same) last-a :cost 0)
+               (reconstruct-path- a b))
+              (ccons (ccons (make-costed :obj :insert) last-b)
+                     (ccons (ccons (make-costed :obj :delete) last-a)
+                            (reconstruct-path- a b)))))))
+
+    (setf (aref g 0 0) 0
+          (aref f 0 0) (heuristic 0 0)
+          (aref open 0 0) t
+          total-open (1+ total-open))
+
+    (enqueue fringe (cons total-a total-b)
+             (aref f 0 0))
+
+    (do ((current (dequeue fringe) (dequeue fringe)))
+        ((zerop total-open)
+         (reconstruct-path (clast total-a) (clast total-b)
+                           (clength total-a) (clength total-b)))
+
+      (let* ((a (car current)) (b (cdr current))
+             (pos-a (- (clength total-a) (clength a)))
+             (pos-b (- (clength total-b) (clength b))))
+
+        (when (and (zerop (clength a))
+                   (zerop (clength b)))
+          (reconstruct-path a b (clength a) (clength b)))
+
+        (when (aref open pos-a pos-b) (decf total-open))
+        (setf (aref open pos-a pos-b) nil
+              (aref closed pos-a pos-b) t)
+
+        (labels                         ; Handle all neighbors.
+            ((add (neighbor edge)
+               (destructuring-bind (next-a next-b)
+                   (list (- (clength total-a) (clength (car neighbor)))
+                         (- (clength total-b) (clength (cdr neighbor))))
+                 (unless (aref closed next-a next-b)
+                   (unless (aref open next-a next-b) (incf total-open))
+                   (setf (aref open next-a next-b) t)
+                   (let ((tentative
+                          (+ (aref g pos-a pos-b)
+                             (ccost edge)))
+                         (value (aref g next-a next-b)))
+                     ;; Neighbor is an improvement.
+                     (when (or (null value) (< tentative value))
+                       (setf (aref from next-a next-b)
+                             (cons (cons pos-a pos-b) edge)
+                             (aref g next-a next-b) tentative
+                             (aref f next-a next-b)
+                             (+ tentative (heuristic next-a next-b)))
+                       (enqueue fringe neighbor
+                                (aref f next-a next-b))))))))
+
+          ;; Check neighbors: diagonal, recurse, insert, delete.
+          (when (and (cconsp a) (cconsp b))
+            (cond
+              ((ast-equal-p (ccar a) (ccar b)) ; Diagonal.
+               (add (cons (ccdr a) (ccdr b))
+                    (ccons (make-costed :obj :same) (ccar a) :cost 0)))
+              ((ast-can-recurse (ccar a) (ccar b)) ; Recurse.
+               (add (cons (ccdr a) (ccdr b))
+                    (ccons (make-costed :obj :recurse)
+                           (recursive-diff
+                            (to-costed (ast-on-recurse (corig (ccar a))))
+                            (to-costed (ast-on-recurse (corig (ccar b))))))))))
+          (if (cconsp b)                ; Insert.
+              (add (cons a (ccdr b))
+                   (ccons (make-costed :obj :insert) (ccar b)))
+              (add (cons a (make-costed))
+                   (ccons (make-costed :obj :insert) b)))
+          (if (cconsp a)                ; Delete.
+              (add (cons (ccdr a) b)
+                   (ccons (make-costed :obj :delete) (ccar a)))
+              (add (cons (make-costed) b)
+                   (ccons (make-costed :obj :delete) a))))))))
+
 (defmethod ast-diff ((ast-a t) (ast-b t))
-  ;; Edit scripts are represented by a (length a) x (length b) grid.
-  ;; Each position A,B on the grid stores the diff between (subseq
-  ;; ast-a A) and (subseq ast-b B), along with its cost. The problem
-  ;; then reduces to finding the least-cost path from the upper-left
-  ;; to lower-right corners of the grid.
-  ;;
-  ;; Along the way we can make the following moves:
-  ;; Delete the head of AST-A (move right in the grid)
-  ;; Insert the head of AST-B (move down in the grid)\
-  ;; If the head of AST-A and AST-B are equal, move diagonally.
-  ;; Recursively edit the head of AST-A to match the head of AST-B,
-  ;; and move diagonally.
-  ;;
-  ;; Intermediate results are cached a in two-dimensional array to
-  ;; avoid redundant computation.
-  (declare (optimize speed))
   ;; Drop common prefix and postfix, just run the diff on different middle.
   (multiple-value-bind (unique-a unique-b prefix postfix)
       (remove-common-prefix-and-suffix (ast-on-recurse ast-a)
                                        (ast-on-recurse ast-b))
-    (labels
-        ((add-common (diff cost)
-           (values
-            (let ((diff (if prefix
-                            (append (mapcar (lambda (it) (cons :same it)) prefix)
-                                    diff)
-                            diff)))
-              (if postfix
-                  (append diff (mapcar (lambda (it) (cons :same it)) postfix))
-                  diff))
-            cost))
-
-         (insert-across (costed-a costed-b costs)
-           (ccons (ccons (make-costed :obj :insert) (ccar costed-b))
-                  (memoized-compute-diff costed-a (ccdr costed-b) costs)))
-
-         (delete-down (costed-a costed-b costs)
-           (ccons (ccons (make-costed :obj :delete) (ccar costed-a))
-                  (memoized-compute-diff (ccdr costed-a) costed-b costs)))
-
-         (recursive-diff (costed-a costed-b)
-           (let ((costs (make-array (list (clength costed-a)
-                                          (clength costed-b))
-                                    :initial-element nil)))
-
-             ;; Compute diff from start (top,left) to end (bottom,right).
-             (compute-diff costed-a costed-b costs)
-             ;; NOTE: The following may be used to return or print the
-             ;;       memoized costs grid.
-             #+(or )
-             (multiple-value-bind (diff cost)
-                 (compute-diff costed-a costed-b costs)
-               ;; Print the grid of costs which can be informative.
-               (let ((cost-ret (make-array (list (clength costed-a)
-                                                 (clength costed-b))
-                                           :initial-element nil)))
-                 (dotimes (x (clength costed-a) cost-ret)
-                   (dotimes (y (clength costed-b))
-                     (format t "~4,d "
-                             (setf (aref cost-ret x y)
-                                   (if (aref costs x y)
-                                       (ccost (aref costs x y))
-                                       -1))))
-                   (format t "~%")))
-               (values diff cost))))
-
-         (memoized-compute-diff (costed-a costed-b costs)
-           ;; (format t "~a ~a~%" (corig costed-a) (corig costed-b))
-           (destructuring-bind (pos-a pos-b) ; Place in memoization array.
-               (destructuring-bind (size-a size-b) (array-dimensions costs)
-                 (declare (type fixnum size-a))
-                 (declare (type fixnum size-b))
-                 (list (- size-a (clength costed-a))
-                       (- size-b (clength costed-b))))
-             ;; Use memoized value if available.
-             (when-let ((memoized (aref costs pos-a pos-b)))
-               (return-from memoized-compute-diff memoized))
-             ;; Special handling when nulls are present.
-             (when (and (cnull costed-a) (cnull costed-b)) ; Both are null.
-               (return-from memoized-compute-diff
-                 (make-costed)))
-             (when (cnull costed-a)     ; Just original is null.
-               (return-from memoized-compute-diff
-                 (if (cconsp costed-b)
-                     (insert-across costed-a costed-b costs)
-                     (ccons (ccons (make-costed :obj :insert) costed-b)
-                            (ccons (make-costed :obj :delete) costed-a)))))
-             (when (cnull costed-b)     ; Just new is null.
-               (return-from memoized-compute-diff
-                 (if (cconsp costed-a)
-                     (delete-down costed-a costed-b costs)
-                     (ccons (ccons (make-costed :obj :delete) costed-a)
-                            (ccons (make-costed :obj :insert) costed-b)))))
-             ;; Both trees are down to a single atomic element.
-             (when (and (= (clength costed-a) 1)
-                        (= (clength costed-b) 1))
-               (return-from memoized-compute-diff
-                 (if (ast-equal-p (cobj costed-a) (cobj costed-b))
-                     (ccons (make-costed :obj :same)
-                            (make-costed :obj (cobj costed-a)))
-                     (ccons (ccons (make-costed :obj :delete) costed-a)
-                            (ccons (make-costed :obj :insert) costed-b)))))
-             (setf (aref costs pos-a pos-b)
-                   (compute-diff costed-a costed-b costs))))
-
-         (compute-diff (costed-a costed-b costs)
-           (declare (type (simple-array t) costs))
-           (let ((insert (if (cconsp costed-b)
-                             (insert-across costed-a costed-b costs)
-                             (ccons (make-costed :obj :insert) costed-b)))
-                 (delete (if (cconsp costed-a)
-                             (delete-down costed-a costed-b costs)
-                             (ccons (make-costed :obj :delete) costed-a))))
-             ;; Try diagonal is the cheapest when heads are equal.
-             (when (and (cconsp costed-a) (cconsp costed-b))
-               (if (ast-equal-p (ccar costed-a) (ccar costed-b))
-                   (let ((same (ccons (make-costed
-                                       :obj (ccons (make-costed :obj :same)
-                                                   (ccar costed-a))
-                                       :cost 0)
-                                      (memoized-compute-diff ; Diagonal.
-                                       (ccdr costed-a) (ccdr costed-b)
-                                       costs))))
-                     (when (and (<= (ccost same) (ccost insert))
-                                (<= (ccost same) (ccost delete)))
-                       (return-from compute-diff same)))
-                   ;; Try recursion if not same can recurse.
-                   (when (ast-can-recurse (ccar costed-a) (ccar costed-b))
-                     (let* ((subtree (recursive-diff
-                                      (to-costed (ast-on-recurse
-                                                  (corig (ccar costed-a))))
-                                      (to-costed (ast-on-recurse
-                                                  (corig (ccar costed-b))))))
-                            (recurse (ccons (ccons (make-costed :obj :recurse)
-                                                   subtree)
-                                            (memoized-compute-diff ; Diagonal.
-                                             (ccdr costed-a) (ccdr costed-b)
-                                             costs))))
-                       (when (and (<= (ccost recurse) (ccost insert))
-                                  (<= (ccost recurse) (ccost delete)))
-                         (return-from compute-diff recurse))))))
-             ;; Else return the cheapest of insert or delete.
-             (if (< (ccost insert) (ccost delete)) insert delete))))
-      (declare (inline insert-across))
-      (declare (inline delete-down))
-      (declare (inline compute-diff))
-
+    ;; NOTE: We assume that the top level is a list (not a cons tree).
+    ;; This is true for any ASTs parsed from a source file as a
+    ;; sequence of READs.
+    (labels ((add-common (diff cost)
+               ;; Some special handling is required to interface
+               ;; between the list model of the common pre-/post-fixes
+               ;; and the cons-tree model of the calculated diff.
+               (values
+                (let ((diff (if (equal '(:same) (lastcar diff))
+                                (butlast diff)
+                                diff)))
+                  (let ((diff (if prefix
+                                  (append (mapcar (lambda (it) (cons :same it)) prefix)
+                                          diff)
+                                  diff)))
+                    (if postfix
+                        (append diff
+                                (mapcar (lambda (it) (cons :same it)) postfix))
+                        diff)))
+                cost)))
       (unless (or unique-a unique-b)
         (return-from ast-diff
           (multiple-value-call #'add-common
-            (values (mapcar (lambda (el) (cons :same el)) prefix) 0))))
+            (values nil 0))))
       (when (null unique-a)
         (return-from ast-diff
           (multiple-value-call #'add-common
@@ -459,7 +459,10 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 (defmethod ast-patch ((original t) (script list))
   (labels
       ((edit (asts script)
-         (when script
+         (when (and script
+                    ;; NOTE: Again handle the difference between
+                    ;; top-level lists and sub-element cons-trees.
+                    (not (and (null asts) (equal '(:same) (car script)))))
            (destructuring-bind (action . args) (car script)
              (ecase action
                (:recurse (cons (ast-patch (car asts) args)
