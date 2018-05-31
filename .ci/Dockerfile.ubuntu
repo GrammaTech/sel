@@ -17,7 +17,7 @@ FROM docker.grammatech.com:14850/synthesis/clang-mutate as clang-mutate
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
-    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip
+    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect
 
 RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz
 RUN tar xf astyle_3.1_linux.tar.gz
