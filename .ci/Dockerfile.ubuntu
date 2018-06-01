@@ -45,6 +45,7 @@ ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
     COQLIB=/root/.opam/4.06.0/lib/coq/
 
 ARG GT
+ARG REPORT
 COPY . /gt/sel
 
 WORKDIR /gt/sel
