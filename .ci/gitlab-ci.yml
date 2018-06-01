@@ -29,14 +29,14 @@ build-ubuntu-ccl:
   stage: build
   variables:
     OS: 'ubuntu'
-    LISP: 'sbcl'
+    LISP: 'ccl'
   <<: *build
 
 build-ubuntu-sbcl:
   stage: build
   variables:
     OS: 'ubuntu'
-    LISP: 'ccl'
+    LISP: 'sbcl'
   <<: *build
 
 build-arch-ccl:
