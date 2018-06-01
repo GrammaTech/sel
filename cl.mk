@@ -15,7 +15,7 @@
 # LONG_BIN_TESTS ----- List of longer running command line tests
 #                      Used by the `real-check' target.
 
-.PHONY: test-artifacts check-testbot check real-check clean more-clean real-clean Dockerfile
+.PHONY: test-artifacts check unit-check real-check clean more-clean real-clean Dockerfile
 
 .SECONDARY:
 
@@ -83,6 +83,10 @@ ifneq ($(GT),)
 LISP_FLAGS += --eval "(push :GT *features*)"
 endif
 
+ifneq ($(REPORT),)
+LISP_FLAGS += --eval "(push :REPORT *features*)"
+endif
+
 all: $(addprefix bin/, $(BINS))
 
 ifneq ($(GT),)
@@ -128,54 +132,27 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	--eval '(asdf:make :$(PACKAGE_NAME)/$* :type :program :monolithic t)' \
 	--eval '(quit)'
 
-
-# Test executable
-BINS += $(PACKAGE_NICKNAME)-test
-BINS += $(PACKAGE_NICKNAME)-testbot
-
-TEST_LISP_DEPS ?= $(wildcard test/src/*.lisp)
-TEST_LISP_LIBS += $(PACKAGE_NAME)/test
-
 bin:
 	mkdir -p $@
-
-bin/$(PACKAGE_NICKNAME)-test: $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST) | bin
-	@rm -f $@
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
-	--load $(USER_QUICK_LISP)/setup.lisp \
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME)/run-test)' \
-	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make :$(PACKAGE_NAME)/run-test :type :program :monolithic t)' \
-	--eval '(quit)'
-
-bin/$(PACKAGE_NICKNAME)-testbot: $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST) | bin
-	@rm -f $@
-	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
-	--load $(USER_QUICK_LISP)/setup.lisp \
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME)/run-testbot-test)' \
-	--eval '(setf $(PACKAGE_NAME)::*lisp-interaction* nil)' \
-	--eval '(asdf:make :$(PACKAGE_NAME)/run-testbot-test :type :program :monolithic t)' \
-	--eval '(quit)'
 
 
 ## Testing
 TEST_ARTIFACTS ?=
+TEST_LISP_DEPS ?= $(wildcard test/src/*.lisp)
+TEST_LISP_LIBS += $(PACKAGE_NAME)/test
 
 test-artifacts: $(TEST_ARTIFACTS)
 
-unit-check: bin/$(PACKAGE_NICKNAME)-test test-artifacts | bin
-	@$<
+unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(USER_QUICK_LISP)/setup.lisp \
+	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
+	--eval '(uiop:quit (if (asdf:test-system :$(PACKAGE_NAME)) 0 1))'
 
 check: unit-check bin-check
 
 real-check: check long-bin-check
-
-unit-check-testbot: bin/$(PACKAGE_NICKNAME)-testbot test-artifacts | bin
-	@$<
-
-check-testbot: unit-check-testbot bin-check
 
 
 ## Interactive testing
@@ -272,7 +249,7 @@ Dockerfile: Dockerfile.$(OS)
 
 ## Cleaning
 clean:
-	rm -f bin/$(PACKAGE_NICKNAME)-test bin/$(PACKAGE_NICKNAME)-testbot $(addprefix bin/, $(BINS))
+	rm -f $(addprefix bin/, $(BINS))
 	rm -f $(TEST_ARTIFACTS)
 
 more-clean: clean

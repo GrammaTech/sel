@@ -18,13 +18,10 @@
              (is (apply ,function ,args-sym)))
            ,@lists)))
 
-(defun run-testbot (&rest a)
-  (declare (ignorable a))
-  (testbot-test #'test "SEL" +software-evolution-library-branch+))
 (defun run-batch (&rest a)
   (declare (ignorable a))
   #+ccl (setf *interactive-streams-initialized* nil)
-  (batch-test #'test))
+  (batch-test #'test "SEL" +software-evolution-library-branch+))
 
 (defsuite* test)                        ; The root test suite.
 

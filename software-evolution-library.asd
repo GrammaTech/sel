@@ -141,20 +141,6 @@ techniques."
   :perform (test-op (o c)
                     (symbol-call :software-evolution-library/test '#:test)))
 
-(defsystem "software-evolution-library/run-test"
-  :description "Compiled basic test binary for SEL."
-  :depends-on (software-evolution-library/test)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/sel-test"
-  :entry-point "software-evolution-library/test::run-batch")
-
-(defsystem "software-evolution-library/run-testbot-test"
-  :description "Compiled basic test binary for SEL."
-  :depends-on (software-evolution-library/test)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/sel-testbot"
-  :entry-point "software-evolution-library/test::run-testbot")
-
 
 ;;;; Subsystems.
 (defsystem "software-evolution-library/utility"
