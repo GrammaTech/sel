@@ -1202,8 +1202,6 @@ suite should be run and nil otherwise."
                     (genome (homologous-crossover *gcd* (copy *gcd*)))))))
 
 (deftest homologous-crossover-with-cut ()
-  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
-  ;; depends on whether crossover target is before or after cut.
   (with-fixture gcd-asm
     (number-genome *gcd*)
     (let ((variant (copy *gcd*))
@@ -1216,10 +1214,13 @@ suite should be run and nil otherwise."
       (multiple-value-bind (crossed cross-a cross-b)
           (homologous-crossover *gcd* variant)
         (declare (ignorable cross-a cross-b))
-        ;; If copied before cut, size is 1 smaller. Otherwise, it's the same
-        (if (< cross-b target)
-            (is (= (1- (size *gcd*)) (size crossed)))
-            (is (= (size *gcd*) (size crossed))))))))
+        ;; If copied before cut, size is 1 smaller. If after it's the
+        ;; same.  If equal it could go either way
+        (cond
+          ((< cross-b target) (is (= (1- (size *gcd*)) (size crossed))))
+          ((= cross-b target) (is (or (= (1- (size *gcd*)) (size crossed))
+                                      (= (size *gcd*) (size crossed)))))
+          ((> cross-b target) (is (= (size *gcd*) (size crossed)))))))))
 
 (deftest homologous-crossover-with-insert ()
   ;; NOTE: If crossover changes, this test may fail sporadically: behavior
@@ -3201,15 +3202,22 @@ int x = CHARSIZE;")))
 (deftest able-to-apply-composed-mutation ()
   (compose-mutations swap-and-cut (clang-swap clang-cut))
   (with-fixture hello-world-clang-w-fitness
-    (let* ((variant (copy *hello-world*))
-           (op (make-instance 'swap-and-cut :object variant)))
-      (apply-mutation variant op)
-      (is (different-asts (asts variant)
-                          (asts *hello-world*)))
-      (is (not (equal (genome variant)
-                      (genome *hello-world*))))
-      (is (< (size variant)
-             (size *hello-world*))))))
+    (let (variant op)
+      ;; Multiple tries to get around stochastic failures.
+      ;; The mutation may make random choices which fail the test.
+      (is (iter (as count upfrom 0)
+                (setf variant (copy *hello-world*))
+                (setf op (make-instance 'swap-and-cut :object variant))
+                (apply-mutation variant op)
+                (when (and (different-asts (asts variant)
+                                           (asts *hello-world*))
+                           (not (equal (genome variant)
+                                       (genome *hello-world*)))
+                           (< (size variant)
+                              (size *hello-world*)))
+                  (return t))
+                (when (> count 100)
+                  (return nil)))))))
 
 
 ;;;; Ancestry tests.
