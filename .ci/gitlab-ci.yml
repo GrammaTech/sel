@@ -60,9 +60,12 @@ build-arch-sbcl:
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
       then
           docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes ${LOCAL_IMAGE_NAME}-${LISP}-${OS} /bin/bash -c "cd /gt/sel && unbuffer make check";
+          if [ "$LISP" = "ccl" ];
+          then
           docker tag ${LOCAL_IMAGE_NAME}-${LISP}-${OS} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
-          docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
-          docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
+              docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+              docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
+          fi
       else
           docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${LISP}-${OS} /bin/bash -c "cd /gt/sel && unbuffer make check";
       fi
