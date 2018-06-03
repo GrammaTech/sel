@@ -51,7 +51,7 @@ More information about instrumentation is provided in section
     @c the whitespace in this reference is important
     @item @refapimethod{instrument ((instrumenter clang-instrumenter) &key points functions
               functions-after trace-file trace-env instrument-exit
-                          (filter #'identity))}
+                          (filter (constantly t)))}
     @end itemize
   @end itemize
 @end itemize
