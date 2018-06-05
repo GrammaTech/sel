@@ -14,7 +14,7 @@ techniques."
                closer-mop
                uiop
                bordeaux-threads
-               cl-arrowz
+               arrow-macros
                cl-json
                cl-ppcre
                cl-fad
@@ -112,7 +112,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                cl-store
                named-readtables
                curry-compose-reader-macros
@@ -158,7 +158,7 @@ techniques."
                named-readtables
                curry-compose-reader-macros
                bordeaux-threads
-               cl-arrowz
+               arrow-macros
                iterate
                split-sequence
                cl-ppcre
@@ -180,7 +180,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrowz
+               arrow-macros
                iterate
                split-sequence
                cl-ppcre
@@ -205,7 +205,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrowz
+               arrow-macros
                iterate
                split-sequence
                cl-ppcre
@@ -226,7 +226,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrowz
+               arrow-macros
                split-sequence
                cl-ppcre
                cl-store
@@ -246,7 +246,7 @@ techniques."
   :version "0.0.0"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                cxml
@@ -276,7 +276,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                iterate
@@ -298,7 +298,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                metabang-bind
@@ -318,7 +318,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                metabang-bind

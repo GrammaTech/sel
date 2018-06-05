@@ -900,12 +900,12 @@ Returns a list of strings containing C source code."))
                      into var-args))))))
           (finally
            (return
-             (->> (append (&> (make-instrumentation-ast "write_trace_variables"
-                                                        var-args)
-                              (list))
-                          (&> (make-instrumentation-ast "write_trace_blobs"
-                                                        blob-args)
-                              (list)))
+             (->> (append (some-> (make-instrumentation-ast "write_trace_variables"
+                                                            var-args)
+                            (list))
+                          (some-> (make-instrumentation-ast "write_trace_blobs"
+                                                            blob-args)
+                            (list)))
                   (remove-if #'null)))))))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
@@ -925,8 +925,8 @@ Returns a list of strings containing C source code."))
 "
   (iter (for var in (funcall key ast))
         (when-let* ((software (software instrumenter))
-                    (type (&>> (find-var-type software var)
-                               (typedef-type software)))
+                    (type (some->> (find-var-type software var)
+                            (typedef-type software)))
                     (name (aget :name var))
                     ;; Don't instrument nameless variables
                     (has-name (not (emptyp name))))

@@ -779,9 +779,9 @@ expressions can be passed as EXTRA-INSTRUMENTATION-EXPRS to
        the type DB.
 "
   (let* ((type-hash
-          (&>> (find-if {types-equal (funcall #'from-alist 'clang-type type)}
-                                     (hash-table-values (types obj)))
-               (type-hash)))
+          (some->> (find-if {types-equal (funcall #'from-alist 'clang-type type)}
+                            (hash-table-values (types obj)))
+            (type-hash)))
          ;; FIXME: should only grab expressions that are valid at
          ;; point. But this is tricky with anything beyond simple
          ;; DeclRefs.

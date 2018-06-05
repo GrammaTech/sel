@@ -530,19 +530,19 @@ SECOND-POOL are methods on SOFTWARE which return a list of ASTs.  An
 optional filter function having the signature 'f ast &optional first-pick',
 may be passed, returning true if the given AST should be included as a possible
 pick or false (nil) otherwise."
-  (let ((first-pick (&> (mutation-targets software :filter filter
+  (let ((first-pick (some-> (mutation-targets software :filter filter
                                                    :stmt-pool first-pool)
                         (random-elt))))
     (if (null second-pool)
         (list (cons :stmt1 first-pick))
         (list (cons :stmt1 first-pick)
-              (cons :stmt2 (&> (mutation-targets software
-                                 :filter (lambda (ast)
-                                           (if filter
-                                               (funcall filter ast first-pick)
-                                               t))
-                                 :stmt-pool second-pool)
-                               (random-elt)))))))
+              (cons :stmt2 (some-> (mutation-targets software
+                                                     :filter (lambda (ast)
+                                                               (if filter
+                                                                   (funcall filter ast first-pick)
+                                                                   t))
+                                                     :stmt-pool second-pool)
+                             (random-elt)))))))
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))

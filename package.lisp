@@ -6,7 +6,7 @@
    :uiop
    :bordeaux-threads
    :common-lisp
-   :cl-arrowz
+   :arrow-macros
    :cl-fad
    :cl-ppcre
    :cl-store

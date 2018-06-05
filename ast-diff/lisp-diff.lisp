@@ -20,7 +20,7 @@
   (:nicknames :sel/lisp-diff)
   (:use :common-lisp
         :alexandria
-        :cl-arrowz
+        :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
         :metabang-bind

@@ -21,7 +21,7 @@
   (:nicknames :sel/clang-diff)
   (:use :common-lisp
         :alexandria
-        :cl-arrowz
+        :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
         :iterate

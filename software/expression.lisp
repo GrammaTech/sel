@@ -140,7 +140,7 @@
 (defmethod pick-bad-binop-left ((obj expression))
   "DOCFIXME"
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
-    (&>> (iter (for i below (size obj))
+    (some->> (iter (for i below (size obj))
                (collect (list i (subtree (genome obj) i))))
          (remove-if-not (lambda-bind ((i subtree))
                           (declare (ignorable i))
@@ -154,7 +154,7 @@
 (defmethod pick-bad-binop-right ((obj expression))
   "DOCFIXME"
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
-    (&>> (iter (for i below (size obj))
+    (some->> (iter (for i below (size obj))
                (collect (list i (subtree (genome obj) i))))
          (remove-if-not (lambda-bind ((i subtree))
                           (declare (ignorable i))
