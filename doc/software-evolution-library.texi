@@ -935,10 +935,8 @@ library but are not (yet) installable through Quicklisp.  These should
 be downloaded into your Quicklisp @code{local-projects/} folder.
 
 @itemize
-@item cl-arrowz (available from @url{https://github.com/eschulte/cl-arrowz})
-@item elf (available from @url{https://github.com/GrammaTech/elf})
 @item trace-db (available from @url{https://github.com/GrammaTech/trace-db})
-@item asdf-encodings (available from @url{https://github.com/GrammaTech/asdf-encodings})
+@item command-line-arguments (available from @url{https://github.com/eschulte/command-line-arguments})
 @end itemize
 
 Depending on the type of software object used the following may also
