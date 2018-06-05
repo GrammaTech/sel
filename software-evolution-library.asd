@@ -139,7 +139,8 @@ techniques."
              (:file "software-evolution-library-test"
                     :depends-on ("package")))))
   :perform (test-op (o c)
-                    (symbol-call :software-evolution-library/test '#:test)))
+                    (symbol-call :software-evolution-library/test
+                                 '#:run-batch)))
 
 
 ;;;; Subsystems.

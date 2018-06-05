@@ -148,7 +148,8 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
-	--eval '(uiop:quit (if (asdf:test-system :$(PACKAGE_NAME)) 0 1))'
+	--eval '(asdf:test-system :$(PACKAGE_NAME))' \
+	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
 check: unit-check bin-check
 
