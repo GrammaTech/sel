@@ -492,15 +492,17 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
    asm-super
    (list
     "; -------------- Globals (exported) ---------------"
-    "	global variant_table"
-    "	global input_regs"
-    "	global output_regs"
-    "	global input_mem"
-    "	global output_mem"
-    "	global num_tests"
+    "        global variant_table"
+    "        global input_regs"
+    "        global output_regs"
+    "        global input_mem"
+    "        global output_mem"
+    "        global num_tests"
+    "        global save_return_address"    ; save address to return to
+    "        global result_return_address   ; keep track of what we found"
     ""
     "; -------------- Stack Vars ---------------"
-    "      $is_even.var_4 equ -4"
+    "        $is_even.var_4 equ -4"
     ""
     "; -------------- Stack --------------"
     "section .note.GNU-stack noalloc noexec nowrite progbits"
@@ -509,6 +511,33 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
     "section .text exec nowrite  align=16"	
     "      align 4")
    0))
+
+;;;
+;;; Replace a RET operation with:
+;;;    	pop qword [result_return_address]
+;;;	jmp qword [save_return_address]
+;;;
+;;; This accomplishes the same thing, but ensures that we will be returning
+;;  to the correct address (in case stack is corrupted).
+;;; It also caches the stack return value so the C harness can determine
+;;; whether there was a problem with the stack.
+;;;
+;;; The passed argument is a vector of asm-line-info, and this returns
+;;; a list of asm-line-info.
+;;;
+(defun handle-ret-ops (asm-lines)
+  (let ((new-lines '()))
+    (iter (for line in-vector asm-lines)
+	  (if (eq (asm-line-info-opcode line) 'sel/asm::ret)
+	      (progn
+		(push (car (parse-asm-line
+			    "        pop qword [result_return_address]"))
+		      new-lines)
+	        (push (car (parse-asm-line
+			    "        jmp qword [save_return_address]"))
+		      new-lines))
+	      (push line new-lines)))
+    (nreverse new-lines)))
 
 ;;; Append a variant function, defined by the name and
 ;;; lines of assembler code, 
@@ -523,7 +552,10 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
     (insert-new-lines
      asm-variant
      (append
-      (list (format nil "~A:" name))  ; function name
+      (list
+       (format nil "~A:" name)  ; function name
+       "        pop qword [save_return_address] ; save the return address"
+       "        push qword [save_return_address]")
       (cdr localized-lines)   ; skip first line, the function name
       (list "ret"   ; probably redundant, already in lines
 	    "align 4"))
@@ -594,6 +626,19 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
      (length (genome asm-variants)))
     (insert-new-line asm-variants "" (length (genome asm-variants)))))
 
+(defun add-return-address-vars (asm-variants)
+  (insert-new-lines
+   asm-variants
+   (list
+        ""
+	"section .bss noexec write align=1"
+        "        ; save address to return back to, in case the stack gets messed up"
+        "        save_return_address: resb 8"
+        "        ; save the address found on the stack (should normally be the same)"
+        "        result_return_address: resb 8"
+        "")
+   (length (genome asm-variants))))
+   
 (defun add-io-tests (asm-super asm-variants)
   "Copy the i/o data from the asm-super into the asm-variants assembly file"
   (insert-new-lines
@@ -621,10 +666,11 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
         (add-variant-func
           asm-variants
           (format nil "variant_~D" count)
-	  (lines v))
+	  (mapcar 'asm-line-info-text (handle-ret-ops (genome v))))
 	(incf count)))
     (add-variant-table asm-variants number-of-variants)
     (add-io-tests asm-super asm-variants)
+    (add-return-address-vars asm-variants)
     (setf (super-soft asm-super) asm-variants)  ;; cache the asm-heap
     (with-open-file (os output-path :direction :output :if-exists :supersede)
       (dolist (line (lines asm-variants))
@@ -659,7 +705,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
         (if (zerop errno)
             ;; Link.
 	    (multiple-value-bind (stdout stderr errno)
-		(shell "clang -g -o ~a ~a ~a ~a"
+		(shell "clang -g -lrt -o ~a ~a ~a ~a"
 		       bin
 		       (fitness-harness asm)
 		       obj
@@ -695,6 +741,37 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	  (setf (fitness asm) test-results)
 	  test-results)))))		    
 
+(defun add-simple-cut-variant (asm-super i)
+  (let* ((orig (create-target asm-super))
+         (variant (apply-mutation orig 
+           (make-instance 'simple-cut :object orig :targets i))))
+    (push variant (mutants asm-super))))
+
+;;;
+;;; Returns a population of variants, to be added to the asm-super mutants list.
+;;; It will not do simple-cut operations on label declaration lines (which will
+;;; simply break compilation). It will also skip the first instruction which is
+;;; typically "push rbp", as this will cause the return address to be lost and
+;;; definitely break.
+;;;
+(defun create-all-simple-cut-variants (asm-super)
+  (let* ((orig (create-target asm-super))
+	 (lines (genome orig))
+	 (variants '())
+	 (index 0))
+    (iter (for line in-vector lines)
+      (unless
+	  (or ;(= index 14) ;; causes infinite loop
+		  (eq (asm-line-info-type line) ':label-decl))
+        (push
+	  (apply-mutation
+	    (copy orig) 
+	    (make-instance 'simple-cut :object orig :targets index))
+	  variants)
+	(format t "Cutting index ~D, line: ~A~%" index (asm-line-info-text line)))
+      (incf index))
+    (nreverse variants)))
+
 #|
 
 (create-variant-file 
@@ -719,6 +796,8 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 (defparameter *asm-super* 
   (from-file (make-instance 'asm-super-mutant)
   "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.asm"))
+(setf (fitness-harness *asm-super*) 
+  "/u1/rcorman/synth/sel/software/asm-super-mutant-fitness.c")
 (load-io-file *asm-super* "/u1/rcorman/synth/sel/test/etc/asm-test/odd-even.io")
 (target-function *asm-super* #x4005f6 #x400625)
 
@@ -726,5 +805,9 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 (defun add-variant (asm-super)
   (let ((v (create-target asm-super)))
     (push v (mutants asm-super))))
+
+(setf (mutants *asm-super*) (create-all-simple-cut-variants *asm-super*))
+(push (create-target *asm-super*) (mutants *asm-super*))  ;; add original
+(phenome *asm-super* :src "is_even-1.asm" :bin "is_even-1.out")
 
 |#
