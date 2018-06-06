@@ -18,7 +18,7 @@ Classes:
     @item @ref{api-searchability-in-memory-database, @code {in-memory-database}}
       @itemize
       @item @ref{api-searchability-json-database, @code{json-database}}
-      @end itemize 
+      @end itemize
     @item @ref{api-searchability-pliny-database, @code{pliny-database}}
     @end itemize
   @end itemize
@@ -44,7 +44,7 @@ Class @code{searchable}
     @item @ref{api-searchability-in-memory-database, @code{in-memory-database}}
       @itemize
       @item @ref{api-searchability-json-database, @code{json-database}}
-      @end itemize 
+      @end itemize
     @item @ref{api-searchability-pliny-database, @code{pliny-database}}
     @end itemize
   @end itemize
@@ -57,20 +57,12 @@ Class @code{searchable}
 
 @item Methods
   @itemize
-@c whitespace in this reference is important
-  @item @refapimethod{similar-snippets ((db searchable) target &key key ast-class limit
-                    (predicate #'<) (metric #'diff-scalar) (filter #'null)
-                                      (limit-considered infinity))}
-@c whitespace in this reference is important
-  @item @refapimethod{weighted-pick ((obj searchable) target weight &key key limit ast-class
-                 (predicate #'<) (metric #'diff-scalar) (filter #'null)
-                                (limit-considered infinity))}
+  @item @refapimethod{similar-snippets,similar-snippets}
+  @item @refapimethod{weighted-pick,weighted-pick}
   @end itemize
 @end itemize
 
-@include include/class-sel-searchable.texinfo
-@include include/fun-sel-similar-snippets.texinfo
-@include include/fun-sel-weighted-pick.texinfo
+
 
 @c ----------------------------------------
 @anchor{api-searchability-fodder-database}
@@ -90,7 +82,7 @@ Class @code{fodder-database}
   @item @ref{api-searchability-in-memory-database, @code{in-memory-database}}
     @itemize
     @item @ref{api-searchability-json-database, @code{json-database}}
-    @end itemize 
+    @end itemize
   @item @ref{api-searchability-pliny-database, @code{pliny-database}}
   @end itemize
 @item Generic Methods
@@ -102,12 +94,7 @@ Class @code{fodder-database}
   @end itemize
 @end itemize
 
-@include include/class-sel-fodder-database.texinfo
 
-@include include/fun-sel-database-emptyp.texinfo
-@include include/fun-sel-find-macro.texinfo
-@include include/fun-sel-find-snippets.texinfo
-@include include/fun-sel-find-type.texinfo
 
 
 @c ----------------------------------------
@@ -129,15 +116,15 @@ Class @code{in-memory-database}
   @end itemize
 @item Methods
   @itemize
-  @item @refapimethod{size ((db in-memory-database))}
-  @item @refapimethod{database-emptyp ((db in-memory-database))}
-  @item @refapimethod{find-macro ((db in-memory-database) hash)}
-  @item @refapimethod{find-snippets ((db in-memory-database) &key ast-class full-stmt decls limit)}
-  @item @refapimethod{find-type ((db in-memory-database) hash)}
+  @item @refapimethod{size,size}
+  @item @refapimethod{database-emptyp,database-emptyp}
+  @item @refapimethod{find-macro,find-macro}
+  @item @refapimethod{find-snippets,find-snippets}
+  @item @refapimethod{find-type,find-type}
   @end itemize
 @end itemize
 
-@include include/class-sel-in-memory-database.texinfo
+
 
 
 @c ----------------------------------------
@@ -160,7 +147,7 @@ Class @code{json-database}
 @c defmethod load-json-with-caching
 @c defun se-json-identifier-name-to-key
 
-@include include/class-sel-json-database.texinfo
+
 
 
 @c ----------------------------------------
@@ -178,33 +165,12 @@ Class @code{pliny-database}
 @item Class @refapiclass{pliny-database}
 @item Methods
   @itemize
-  @item @refapimethod{database-emptyp ((obj pliny-database))}
-  @item @refapimethod{find-macro ((obj pliny-database) hash)}
-@c whitespace in this reference is important
-  @item @refapimethod{find-snippets ((obj pliny-database) &key ast-class full-stmt decls
-                 (limit (- (expt 2 32) 1)))}
-  @item @refapimethod{find-type ((obj pliny-database) hash)}
-  @item @refapimethod{from-file ((obj pliny-database) db)}
-  @item @refapimethod{from-string ((obj pliny-database) arg)}
-@c whitespace in this reference is important
-  @item @refapimethod{similar-snippets ((obj pliny-database) target &key predicate metric key
-                    ast-class limit-considered (limit (- (expt 2 32) 1))
-                                      (filter #'null))}
+  @item @refapimethod{database-emptyp,database-emptyp}
+  @item @refapimethod{find-macro,find-macro}
+  @item @refapimethod{find-snippets,find-snippets}
+  @item @refapimethod{find-type,find-type}
+  @item @refapimethod{from-file,from-file}
+  @item @refapimethod{from-string,from-string}
+  @item @refapimethod{similar-snippets,similar-snippets}
   @end itemize
 @end itemize
-
-@c defclass json-false
-@c defmethod cl-json:encode-json
-@c defvar *json-false*
-@c defclass json-true
-@c defvar *json-true*
-@c define-condition pliny-query-failed
-@c defmethod features-to-weights
-@c defmethod start-server
-@c defmethod load-server
-@c defmethod shutdown-server
-@c defmethod print-object
-@c defun pliny-find-hash
-@c defgeneric execute-query
-
-@include include/class-sel-pliny-database.texinfo

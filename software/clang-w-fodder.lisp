@@ -207,7 +207,7 @@ Returns modified text, and names of bound variables.
                    (mapcar #'list
                            vars
                            (mapcar {var-type in-scope} vars))
-                   (aget :includes snippet)
+                   :includes (aget :includes snippet)
                    :macros (->> (mapcar {find-macro database}
                                         (aget :macros snippet))
                                 (remove-if #'null)))))
@@ -303,8 +303,8 @@ AST of the same class."))
   (:documentation "Replace an AST in a clang software object with a full
 statement fodder AST."))
 
-(defun parse-source-snippet (snippet unbound-vals includes &key
-                             macros top-level)
+(defun parse-source-snippet (snippet unbound-vals &key
+                             includes macros preamble top-level)
   "Build ASTs for SNIPPET, returning a list of root asts.
 
 * SNIPPET may include one or more full statements. It should compile in
@@ -317,41 +317,52 @@ statement fodder AST."))
 
 * MACROS is a list of macros to define
 
+* PREAMBLE source to add prior to snippet
+
 * TOP-LEVEL indicates that the snippet is a construct which can exist
   outside a function body, such as a type or function declaration.
 "
   (handler-case
-      (let* ((preamble
+      (let* ((dependency-source
               (format nil "
 /* generated includes */
 ~{#include ~a~&~}
 ~{#define ~a~&~}
 /* generated declarations */
 ~:{~a ~a;~%~}~%
+/* preamble */
+~a
 "
                       includes
                       (mapcar #'macro-body macros)
                       (mapcar «list [#'type-decl-string #'second] #'first»
-                              unbound-vals)))
+                              unbound-vals)
+                      (or preamble "")))
              (wrapped (format nil
                               (if top-level
                                   "int __snippet_marker;~%~a~%"
-                                  "void main() {int __snippet_marker; ~a;}")
+                                  "void main() {int __snippet_marker; ~a;~%}")
                               snippet))
-             (obj (make-instance 'clang :genome (concatenate 'string
-                                                  preamble wrapped)))
+             (obj (make-instance 'clang
+                    :flags (list "-Wno-everything")
+                    :genome (concatenate 'string
+                                         dependency-source
+                                         wrapped)))
              (block-children (if top-level
                                  (->> (ast-root obj)
                                       (get-immediate-children obj)
                                       (mapcar #'copy))
                                  (->> (functions obj)
-                                      (first)
+                                      (lastcar)
                                       (function-body obj)
                                       (get-immediate-children obj)
                                       (mapcar #'copy)))))
         (subseq block-children
                 (1+ (position-if [{string= "__snippet_marker"} #'car
                                   #'ast-declares]
-                                 block-children))))
+                                 block-children))
+                (if (equal :NullStmt (ast-class (lastcar block-children)))
+                    (1- (length block-children))
+                    (length block-children))))
     ;; If error parsing simply return nil.
     (mutate (e) (declare (ignorable e)) nil)))

@@ -26,11 +26,3 @@ Note: MCMC Search is experimental and unsupported.
   @item @refapivariable{*mcmc-fodder*}
   @end itemize
 @end itemize
-
-
-@include include/fun-sel-mcmc-step.texinfo
-@include include/macro-sel-mcmc.texinfo
-@include include/var-sel-star-mcmc-fodder-star.texinfo
-
-
-

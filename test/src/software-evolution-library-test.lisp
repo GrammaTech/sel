@@ -18,10 +18,10 @@
              (is (apply ,function ,args-sym)))
            ,@lists)))
 
-(defun run-testbot (&rest a)
+(defun run-batch (&rest a)
   (declare (ignorable a))
-  (testbot-test #'test "SEL" +software-evolution-library-branch+))
-(defun run-batch (&rest a) (declare (ignorable a)) (batch-test #'test))
+  #+ccl (setf *interactive-streams-initialized* nil)
+  (batch-test #'test "SEL" +software-evolution-library-branch+))
 
 (defsuite* test)                        ; The root test suite.
 
@@ -1199,8 +1199,6 @@ suite should be run and nil otherwise."
                     (genome (homologous-crossover *gcd* (copy *gcd*)))))))
 
 (deftest homologous-crossover-with-cut ()
-  ;; NOTE: If crossover changes, this test may fail sporadically: behavior
-  ;; depends on whether crossover target is before or after cut.
   (with-fixture gcd-asm
     (number-genome *gcd*)
     (let ((variant (copy *gcd*))
@@ -1213,10 +1211,13 @@ suite should be run and nil otherwise."
       (multiple-value-bind (crossed cross-a cross-b)
           (homologous-crossover *gcd* variant)
         (declare (ignorable cross-a cross-b))
-        ;; If copied before cut, size is 1 smaller. Otherwise, it's the same
-        (if (< cross-b target)
-            (is (= (1- (size *gcd*)) (size crossed)))
-            (is (= (size *gcd*) (size crossed))))))))
+        ;; If copied before cut, size is 1 smaller. If after it's the
+        ;; same.  If equal it could go either way
+        (cond
+          ((< cross-b target) (is (= (1- (size *gcd*)) (size crossed))))
+          ((= cross-b target) (is (or (= (1- (size *gcd*)) (size crossed))
+                                      (= (size *gcd*) (size crossed)))))
+          ((> cross-b target) (is (= (size *gcd*) (size crossed)))))))))
 
 (deftest homologous-crossover-with-insert ()
   ;; NOTE: If crossover changes, this test may fail sporadically: behavior
@@ -1360,9 +1361,15 @@ suite should be run and nil otherwise."
 (sel-suite* task-runner-tests "TASK-RUNNER tests.")
 
 ;; simple test to see if the whole file parsed correctly
-(deftest task-runner-1 ()
-  (with-fixture task-runner
-    (is (= (length (task-runner-results (first *soft*))) 20))))
+(deftest task-runner-1 ( )
+  (let (length)
+    (is (iter (as count upfrom 0)
+              (with-fixture task-runner
+                (setf length (length (task-runner-results (first *soft*)))))
+              (when (= length 20)
+                (return t))
+              (when (> count 100)
+                (return nil))))))
 
 (deftest task-runner-2 ()
   (with-fixture task-runner
@@ -2515,39 +2522,51 @@ int x = CHARSIZE;")))
 
 (deftest parse-source-snippet-body-statement ()
   (with-fixture gcd-clang
-    (let ((asts (parse-source-snippet "x + y"
-                                      `(("x" ,(type-from-trace-string "int"))
-                                        ("y" ,(type-from-trace-string "char")))
-                                      nil)))
+    (let ((asts (parse-source-snippet
+                  "x + y"
+                  `(("x" ,(type-from-trace-string "int"))
+                    ("y" ,(type-from-trace-string "char"))))))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
       (is (equalp '(((:name . "y")) ((:name . "x")))
                   (get-unbound-vals *gcd* (car asts)))))))
 
 (deftest parse-source-snippet-handles-includes ()
-  (let ((asts (parse-source-snippet "printf(\"hello\")"
-                                    nil '("<stdio.h>"))))
+  (let ((asts (parse-source-snippet
+                "printf(\"hello\")"
+                nil
+                :includes '("<stdio.h>"))))
     (is (eq 1 (length asts)))
     (is (eq :CallExpr (ast-class (car asts))))
     (is (equalp '("<stdio.h>")
                 (ast-includes (car asts))))))
 
 (deftest parse-source-snippet-multiple-statements ()
-  (let ((asts (parse-source-snippet "x = 1; y = 1"
-                                    `(("x" ,(type-from-trace-string "int"))
-                                      ("y" ,(type-from-trace-string "char")))
-                                    nil)))
+  (let ((asts (parse-source-snippet
+                "x = 1; y = 1"
+                `(("x" ,(type-from-trace-string "int"))
+                  ("y" ,(type-from-trace-string "char")))
+                :includes nil)))
     (is (eq 2 (length asts)))
     (is (eq :BinaryOperator (ast-class (first asts))))
     (is (eq :BinaryOperator (ast-class (second asts))))))
 
 (deftest parse-source-snippet-top-level ()
-  (let ((asts (parse-source-snippet "int foo() { return 1; }" nil nil
-                                    :top-level t)))
+  (let ((asts (parse-source-snippet
+                "int foo() { return 1; }"
+                nil
+                :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
     (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
                                                     (car asts)))))))
+
+(deftest parse-source-snippet-preamble ()
+  (let ((asts (parse-source-snippet
+                "int *p = A + 10;"
+                nil
+                :preamble "static int A[10];")))
+    (is (eq :DeclStmt (ast-class (first asts))))))
 
 (deftest simply-able-to-load-a-clang-w-fodder-software-object()
   (with-fixture hello-world-clang-w-fodder
@@ -2690,10 +2709,10 @@ int x = CHARSIZE;")))
 (deftest find-var-type-returns-correct-type ()
   (flet
       ((get-var-type (var stmt-text)
-         (&>> (stmt-with-text *soft* stmt-text)
-              (get-vars-in-scope *soft*)
-              (find-if [{string= var} {aget :name}])
-              (find-var-type *soft*))))
+         (some->> (stmt-with-text *soft* stmt-text)
+                  (get-vars-in-scope *soft*)
+                  (find-if [{string= var} {aget :name}])
+                  (find-var-type *soft*))))
     (with-fixture type-of-var-clang
       (let ((var-type1 (get-var-type "a" "return 0"))
             (var-type2 (get-var-type "a" "return 1"))
@@ -2716,23 +2735,23 @@ int x = CHARSIZE;")))
 
 (deftest find-var-type-handles-missing-declaration-type ()
   (with-fixture type-of-var-missing-decl-type-clang
-    (is (null (&>> (stmt-with-text *soft* "dirs[0] = L")
-                   (get-vars-in-scope *soft*)
-                   (find-if [{string= "dirs"} {aget :name}])
-                   (find-var-type *soft*))))))
+    (is (null (some->> (stmt-with-text *soft* "dirs[0] = L")
+                       (get-vars-in-scope *soft*)
+                       (find-if [{string= "dirs"} {aget :name}])
+                       (find-var-type *soft*))))))
 
 (deftest typedef-type-returns-correct-type ()
   (with-fixture typedef-type-clang
-    (let ((type1 (&>> (stmt-with-text *soft* "gint a")
-                      (get-ast-types *soft*)
-                      (car)
-                      (find-type *soft*)
-                      (typedef-type *soft*)))
-          (type2 (&>> (stmt-with-text *soft* "gchar *b")
-                      (get-ast-types *soft*)
-                      (car)
-                      (find-type *soft*)
-                      (typedef-type *soft*))))
+    (let ((type1 (some->> (stmt-with-text *soft* "gint a")
+                          (get-ast-types *soft*)
+                          (car)
+                          (find-type *soft*)
+                          (typedef-type *soft*)))
+          (type2 (some->> (stmt-with-text *soft* "gchar *b")
+                          (get-ast-types *soft*)
+                          (car)
+                          (find-type *soft*)
+                          (typedef-type *soft*))))
       (is (equal "int"  (type-name type1)))
       (is (equal nil    (type-pointer type1)))
       (is (equal "char" (type-name type2)))
@@ -3186,15 +3205,22 @@ int x = CHARSIZE;")))
 (deftest able-to-apply-composed-mutation ()
   (compose-mutations swap-and-cut (clang-swap clang-cut))
   (with-fixture hello-world-clang-w-fitness
-    (let* ((variant (copy *hello-world*))
-           (op (make-instance 'swap-and-cut :object variant)))
-      (apply-mutation variant op)
-      (is (different-asts (asts variant)
-                          (asts *hello-world*)))
-      (is (not (equal (genome variant)
-                      (genome *hello-world*))))
-      (is (< (size variant)
-             (size *hello-world*))))))
+    (let (variant op)
+      ;; Multiple tries to get around stochastic failures.
+      ;; The mutation may make random choices which fail the test.
+      (is (iter (as count upfrom 0)
+                (setf variant (copy *hello-world*))
+                (setf op (make-instance 'swap-and-cut :object variant))
+                (apply-mutation variant op)
+                (when (and (different-asts (asts variant)
+                                           (asts *hello-world*))
+                           (not (equal (genome variant)
+                                       (genome *hello-world*)))
+                           (< (size variant)
+                              (size *hello-world*)))
+                  (return t))
+                (when (> count 100)
+                  (return nil)))))))
 
 
 ;;;; Ancestry tests.
@@ -5328,8 +5354,8 @@ Useful for printing or returning differences in the REPL."
 (deftest instrumentation-insertion-w-filter-test ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
-                          :filter {remove-if-not
-                                   [{eq 92} {index-of-ast *gcd*}]}
+                          :filter (lambda (obj ast)
+                                    (eq 92 (index-of-ast obj ast)))
                           :trace-file :stderr)))
       ;; Instrumented compiles and runs.
       (with-temp-file (bin)
@@ -7230,10 +7256,10 @@ prints unique counters in the trace"
                #\;
                (find-function *contexts* "unbraced_body"))))
     (is (eq :NullStmt
-            (&>> (stmt-starting-with-text *contexts* "if (2)")
-                 (get-immediate-children *contexts*)
-                 (second)
-                 (ast-class))))))
+            (some->> (stmt-starting-with-text *contexts* "if (2)")
+                     (get-immediate-children *contexts*)
+                     (second)
+                     (ast-class))))))
 
 (deftest cut-braced-body-adds-nullstmt ()
   (with-fixture contexts
@@ -7245,10 +7271,10 @@ prints unique counters in the trace"
                #\;
                (find-function *contexts* "braced_body"))))
     (is (eq :NullStmt
-            (&>> (stmt-starting-with-text *contexts* "if (1)")
-                 (get-immediate-children *contexts*)
-                 (second)
-                 (ast-class))))))
+            (some->> (stmt-starting-with-text *contexts* "if (1)")
+                     (get-immediate-children *contexts*)
+                     (second)
+                     (ast-class))))))
 
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
@@ -8539,9 +8565,9 @@ int main() { puts(\"~d\"); return 0; }
     (evaluate (lambda (obj)
                 ;; Proxies are the same type as mutants
                 (is (eq 'clang (type-of obj)))
-                (cons (&>> (phenome obj)
-                           (shell)
-                           (parse-integer))
+                (cons (some->> (phenome obj)
+                               (shell)
+                               (parse-integer))
                       (genome obj)))
               super)
     ;; Each variant printed the appropriate number

@@ -14,7 +14,7 @@ techniques."
                closer-mop
                uiop
                bordeaux-threads
-               cl-arrowz
+               arrow-macros
                cl-json
                cl-ppcre
                cl-fad
@@ -112,7 +112,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                cl-store
                named-readtables
                curry-compose-reader-macros
@@ -139,21 +139,8 @@ techniques."
              (:file "software-evolution-library-test"
                     :depends-on ("package")))))
   :perform (test-op (o c)
-                    (symbol-call :software-evolution-library/test '#:test)))
-
-(defsystem "software-evolution-library/run-test"
-  :description "Compiled basic test binary for SEL."
-  :depends-on (software-evolution-library/test)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/sel-test"
-  :entry-point "software-evolution-library/test::run-batch")
-
-(defsystem "software-evolution-library/run-testbot-test"
-  :description "Compiled basic test binary for SEL."
-  :depends-on (software-evolution-library/test)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/sel-testbot"
-  :entry-point "software-evolution-library/test::run-testbot")
+                    (symbol-call :software-evolution-library/test
+                                 '#:run-batch)))
 
 
 ;;;; Subsystems.
@@ -171,7 +158,7 @@ techniques."
                named-readtables
                curry-compose-reader-macros
                bordeaux-threads
-               cl-arrowz
+               arrow-macros
                iterate
                split-sequence
                cl-ppcre
@@ -193,7 +180,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrowz
+               arrow-macros
                iterate
                split-sequence
                cl-ppcre
@@ -218,7 +205,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrowz
+               arrow-macros
                iterate
                split-sequence
                cl-ppcre
@@ -239,7 +226,7 @@ techniques."
                metabang-bind
                named-readtables
                curry-compose-reader-macros
-               cl-arrowz
+               arrow-macros
                split-sequence
                cl-ppcre
                cl-store
@@ -259,7 +246,7 @@ techniques."
   :version "0.0.0"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                cxml
@@ -289,7 +276,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                iterate
@@ -311,7 +298,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                metabang-bind
@@ -331,7 +318,7 @@ techniques."
   :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
-               cl-arrowz
+               arrow-macros
                named-readtables
                curry-compose-reader-macros
                metabang-bind

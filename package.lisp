@@ -6,7 +6,7 @@
    :uiop
    :bordeaux-threads
    :common-lisp
-   :cl-arrowz
+   :arrow-macros
    :cl-fad
    :cl-ppcre
    :cl-store
@@ -173,6 +173,7 @@
    :wrap-ast
    :wrap-child
    :can-be-made-traceable-p
+   :traceable-stmt-p
    :get-make-parent-full-stmt
    :get-immediate-children
    :extend-to-enclosing

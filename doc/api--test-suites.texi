@@ -29,19 +29,11 @@ Class @code{test-suite}
 
 @item Methods
   @itemize
-@c whitespace in this reference is important
-  @item @refapimethod{collect-traces ((obj software) (test-suite test-suite) &key max
-                  (bin (temp-file-name)) &aux (args (list bin bin))
-                  (delete-bin-p t))}
-@c whitespace in this reference is important
-  @item @refapimethod{evaluate (phenome (test-suite test-suite) &rest extra-keys &key
-                    &allow-other-keys)}
+  @item @refapimethod{collect-traces,collect-traces}
+  @item @refapimethod{evaluate,evaluate}
   @end itemize
 @end itemize
 
-
-
-@include include/class-sel-test-suite.texinfo
 
 
 @c ----------------------------------------
@@ -68,16 +60,9 @@ Class @code{test-case}
 @item Methods
   @itemize
 @c whitespace in this reference is important
-  @item @refapimethod{collect-trace ((obj software) (test-case test-case) &key max
-                 (bin (temp-file-name)) &aux (delete-bin-p t))}
-  @item @refapimethod{evaluate (phenome (obj test-case) &rest extra-keys &key &allow-other-keys)}
-  @item @refapimethod{run-test (phenome (test-case test-case) &rest extra-keys &key &allow-other-keys)}
-  @item @refapimethod{start-test (phenome (test-case test-case) &rest extra-keys &key
-                      &allow-other-keys)}
+  @item @refapimethod{collect-trace,collect-trace}
+  @item @refapimethod{evaluate,evaluate}
+  @item @refapimethod{run-test,run-test}
+  @item @refapimethod{start-test,start-test}
   @end itemize
 @end itemize
-
-@include include/class-sel-test-case.texinfo
-@include include/fun-sel-finish-test.texinfo
-@include include/fun-sel-run-test.texinfo
-@include include/fun-sel-start-test.texinfo

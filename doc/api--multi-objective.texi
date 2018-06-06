@@ -5,7 +5,7 @@
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 Multi-Objective Fitness
 ]
 
@@ -23,7 +23,7 @@ For more information, see @ref{Multi-objective Fitness}.
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 @ref{api-multi-objective, Multi-Objective Fitness} |
 Multi-Objective Optimization
 ]
@@ -34,8 +34,7 @@ Multi-Objective Optimization
 @end itemize
 
 
-@include include/fun-sel-multi-objective-scalar.texinfo
-@include include/fun-sel-pick-least-crowded.texinfo
+
 @c defun dominates-all
 @c defun crowding-distance
 
@@ -44,7 +43,7 @@ Multi-Objective Optimization
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 @ref{api-multi-objective, Multi-Objective Fitness} |
 Pareto Selection
 ]
@@ -54,8 +53,6 @@ Pareto Selection
 @item Variable @refapivariable{*pareto-comparison-set-size*}
 @end itemize
 
-@include include/fun-sel-pareto-selector.texinfo
-@include include/var-sel-star-pareto-comparison-set-size-star.texinfo
 
 
 @anchor{api-multi-objective-lexicase}
@@ -63,7 +60,7 @@ Pareto Selection
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 @ref{api-multi-objective, Multi-Objective Fitness} |
 Lexicase Selection
 ]
@@ -76,9 +73,3 @@ Lexicase Selection
   @end itemize
 @item Variable @refapivariable{*lexicase-key*}
 @end itemize
-
-
-@include include/fun-sel-lexicase-select-best.texinfo
-@include include/fun-sel-lexicase-select.texinfo
-@include include/var-sel-star-lexicase-key-star.texinfo
-@c defun lexicase-better-p

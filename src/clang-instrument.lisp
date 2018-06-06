@@ -455,7 +455,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 (defmethod instrument
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
-       (filter #'identity))
+       (filter (constantly t)))
   "Use INSTRUMENTER to instrument a clang software object.
 
 * INSTRUMENTER current instrumentation state
@@ -466,6 +466,8 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 * TRACE-ENV trace output to file specified by ENV variable
 * INSTRUMENT-EXIT print counter of function body before exit
 * FILTER function to select a subset of ASTs for instrumentation
+         function should take a software object and an AST parameters,
+         returning nil if the AST should be filtered from instrumentation
 * POSTPROCESS-FUNCTIONS functions to execute after instrumentation"
   (let* ((obj (software instrumenter))
          (entry (get-entry obj))
@@ -493,7 +495,7 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 update POINTS after instrumenting ASTs."
            (-<>> (asts obj)
                  (remove-if-not {can-be-made-traceable-p obj})
-                 (funcall filter)
+                 (remove-if-not {funcall filter obj})
                  (sort <> #'ast-later-p)
                  ;; Generate all instrumentation before applying changes
                  (mapcar
@@ -898,12 +900,12 @@ Returns a list of strings containing C source code."))
                      into var-args))))))
           (finally
            (return
-             (->> (append (&> (make-instrumentation-ast "write_trace_variables"
-                                                        var-args)
-                              (list))
-                          (&> (make-instrumentation-ast "write_trace_blobs"
-                                                        blob-args)
-                              (list)))
+             (->> (append (some-> (make-instrumentation-ast "write_trace_variables"
+                                                            var-args)
+                                  (list))
+                          (some-> (make-instrumentation-ast "write_trace_blobs"
+                                                            blob-args)
+                                  (list)))
                   (remove-if #'null)))))))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)
@@ -923,8 +925,8 @@ Returns a list of strings containing C source code."))
 "
   (iter (for var in (funcall key ast))
         (when-let* ((software (software instrumenter))
-                    (type (&>> (find-var-type software var)
-                               (typedef-type software)))
+                    (type (some->> (find-var-type software var)
+                                   (typedef-type software)))
                     (name (aget :name var))
                     ;; Don't instrument nameless variables
                     (has-name (not (emptyp name))))

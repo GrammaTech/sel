@@ -31,9 +31,7 @@ More information about instrumentation is provided in section
 
   @item Methods
     @itemize
-@c whitespace in this reference is important
-    @item @refapimethod{var-instrument (key (instrumenter instrumenter) (ast clang-ast) &key
-                  print-strings)}
+    @item @refapimethod{var-instrument,var-instrument}
     @end itemize
   @end itemize
 
@@ -48,49 +46,7 @@ More information about instrumentation is provided in section
 
   @item Methods
     @itemize
-    @c the whitespace in this reference is important
-    @item @refapimethod{instrument ((instrumenter clang-instrumenter) &key points functions
-              functions-after trace-file trace-env instrument-exit
-                          (filter #'identity))}
+    @item @refapimethod{instrument,instrument}
     @end itemize
   @end itemize
 @end itemize
-
-@c ----------------------------------------
-
-@c defvar *instrument-log-env-name*
-@c defvar *instrument-handshake-env-name*
-@c define-constant +write-trace-include+
-@c define-constant +write-trace-impl+
-@c define-constant +write-trace-initialization+
-@c define-constant +write-trace-file-definition+
-@c define-constant +write-trace-file-declaration+
-@c defun array-or-pointer-type
-@c defun get-ast-id
-@c defmethod initialize-instance :after
-@c defgeneric write-trace-id
-@c defgeneric write-trace-aux
-@c defgeneric write-end-entry
-@c defgeneric instrument-return
-@c defgeneric instrument-exit
-@c defgeneric instrument-c-exprs
-@c defun initialize-tracing
-@c defmacro getopts
-@c defun initialize-tracing
-
-@include include/class-sel-instrumenter.texinfo
-
-@include include/fun-sel-get-entry.texinfo
-@include include/fun-sel-instrumented-p.texinfo
-@include include/fun-sel-instrument.texinfo
-@include include/fun-sel-instrumentation-files.texinfo
-@include include/fun-sel-uninstrument.texinfo
-@include include/fun-sel-var-instrument.texinfo
-
-@include include/constant-sel-plus-instrument-log-variable-name-plus.texinfo
-
-@c ----------------------------------------
-
-@include include/class-sel-clang-instrumenter.texinfo
-@include include/fun-sel-clang-instrument.texinfo
-@c ----------------------------------------

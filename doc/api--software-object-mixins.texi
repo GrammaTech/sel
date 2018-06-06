@@ -72,15 +72,6 @@ Class @code{adaptive-mutation}
 @c defvar *mutation-results-queue-lock*
 @c defun queue-mutation
 
-@include include/class-sel-adaptive-mutation.texinfo
-@include include/fun-sel-adaptive-analyze-mutation.texinfo
-@include include/fun-sel-update-mutation-types.texinfo
-
-@include include/var-sel-star-bias-toward-dynamic-mutation-star.texinfo
-@include include/var-sel-star-better-bias-star.texinfo
-@include include/var-sel-star-same-bias-star.texinfo
-@include include/var-sel-star-worse-bias-star.texinfo
-@include include/var-sel-star-dead-bias-star.texinfo
 
 @c ----------------------------------------
 
@@ -102,16 +93,15 @@ Class @code{diff}
 @item Class @refapiclass{diff}
 @item Methods
   @itemize
-  @item @refapimethod{copy ((diff diff) &key)}
-  @item @refapimethod{genome ((diff diff))}
-  @item @refapimethod{reference ((diff diff))}
+  @item @refapimethod{copy,copy}
+  @item @refapimethod{genome,genome}
+  @item @refapimethod{reference,reference}
   @end itemize
 @end itemize
 
 @c defmethod original
 @c defmethod (setf genome)
 
-@include include/class-sel-diff.texinfo
 
 @c ----------------------------------------
 
@@ -135,16 +125,14 @@ Class @code{sw-range}
 
 @item Methods
   @itemize
-  @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-cut))}
-  @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-insert))}
-  @item @refapimethod{apply-mutation ((range sw-range) (mutation simple-swap))}
-  @item @refapimethod{from-file ((range sw-range) path)}
-  @item @refapimethod{lines ((range sw-range))}
-  @item @refapimethod{one-point-crossover ((a sw-range) (b sw-range))}
-  @item @refapimethod{reference ((range sw-range))}
-  @item @refapimethod{(setf reference) (new (range sw-range))}
-  @item @refapimethod{size ((range sw-range))}
-  @item @refapimethod{two-point-crossover ((a sw-range) (b sw-range))}
+  @item @refapimethod{apply-mutation,apply-mutation} : multiple methods with mutations @refapiclass{simple-cut}, @refapiclass{simple-insert}, @refapiclass{  simple-swap}
+  @item @refapimethod{from-file,from-file}
+  @item @refapimethod{lines,lines}
+  @item @refapimethod{one-point-crossover,one-point-crossover}
+  @item @refapimethod{reference,referencce}
+  @item @refapimethod{reference,(setf reference)}
+  @item @refapimethod{size,size}
+  @item @refapimethod{two-point-crossover,two-point-crossover}
 
   @end itemize
 @end itemize
@@ -158,8 +146,4 @@ Class @code{sw-range}
 @c defun range-subseq
 
 
-@include include/class-sel-sw-range.texinfo
-
-@include include/fun-sel-reference.texinfo
-@include include/fun-sel-setf-reference.texinfo
 

@@ -22,7 +22,7 @@
    :common-lisp
    :software-evolution-library/utility
    :alexandria
-   :cl-arrowz
+   :arrow-macros
    :named-readtables
    :curry-compose-reader-macros
    :metabang-bind

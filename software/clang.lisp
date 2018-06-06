@@ -549,8 +549,8 @@ VARIABLE-NAME should be declared in AST."
 
 (defmethod find-var-type ((obj clang) (variable list))
   "Return the type of VARIABLE in SOFTWARE"
-  (&>> (aget :type variable)
-       (find-type obj)))
+  (some->> (aget :type variable)
+           (find-type obj)))
 
 (defgeneric typedef-type (software type)
   (:documentation "Return the underlying type if TYPE is a typedef"))
@@ -1075,10 +1075,10 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                             (make-for-stmt (ast-syn-ctx ast)
                                            precedent
                                            condition
-                                           (&>> children (lastcar))
-                                           (&>> children
-                                                (butlast)
-                                                (make-block))))))
+                                           (some->> children (lastcar))
+                                           (some->> children
+                                                    (butlast)
+                                                    (make-block))))))
           ;; Possibly consume the preceding full statement.
           ,@(when precedent
                   ;; Delete precedent
@@ -1131,14 +1131,14 @@ MUTATION to CLANG.
     ((is-decl (ast)
        (eq :DeclStmt (ast-class ast)))
      (pick-another-decl-in-block (ast)
-       (&>> (enclosing-block clang ast)
-            (get-immediate-children clang)
-            (remove-if-not [{eq :DeclStmt} #'ast-class])
-            (remove-if {equalp ast})
-            (random-elt))))
-    (if-let ((decl (&> (bad-mutation-targets clang
-                         :filter «and #'is-decl #'pick-another-decl-in-block»)
-                       (random-elt))))
+       (some->> (enclosing-block clang ast)
+                (get-immediate-children clang)
+                (remove-if-not [{eq :DeclStmt} #'ast-class])
+                (remove-if {equalp ast})
+                (random-elt))))
+    (if-let ((decl (some-> (bad-mutation-targets clang
+                                                 :filter «and #'is-decl #'pick-another-decl-in-block»)
+                           (random-elt))))
             `((:stmt1 . ,decl)
               (:stmt2 . ,(pick-another-decl-in-block decl))))))
 
@@ -1200,11 +1200,11 @@ to expand.
                                          (eq :UnaryOperator))
                                     (->> (ast-opcode ast)
                                          (equal "--")))))
-    (let ((ast (&> (bad-mutation-targets clang
-                     :filter «or #'compound-assign-op
-                                 #'increment-op
-                                 #'decrement-op»)
-                   (random-elt))))
+    (let ((ast (some-> (bad-mutation-targets clang
+                                             :filter «or #'compound-assign-op
+                                                         #'increment-op
+                                                         #'decrement-op»)
+                       (random-elt))))
       `((:stmt1 . ,ast)
         (:literal1 .
            ,(let* ((children (get-immediate-children clang ast))
@@ -2300,8 +2300,8 @@ made full by wrapping with curly braces, return that."))
     ;; Wrap AST in a CompoundStmt to make it traceable.
     ((can-be-made-traceable-p obj ast) ast)
     (:otherwise
-     (&>> (get-parent-ast obj ast)
-          (enclosing-traceable-stmt obj)))))
+     (some->> (get-parent-ast obj ast)
+              (enclosing-traceable-stmt obj)))))
 
 (defgeneric traceable-stmt-p (software ast)
   (:documentation
@@ -2789,11 +2789,11 @@ the rebinding
                 :unbound-vals
                 (remove-duplicates
                   (mapcar (lambda (v)
-                            (or (&>> (find-if [{equal v} #'peel-bananas
-                                               #'car]
-                                              var-replacements)
-                                     (second)
-                                     (peel-bananas))
+                            (or (some->> (find-if [{equal v} #'peel-bananas
+                                                   #'car]
+                                                  var-replacements)
+                                         (second)
+                                         (peel-bananas))
                                 v))
                           (ast-unbound-vals ast))
                   :test #'equal))
@@ -3351,8 +3351,8 @@ within a function body, return null."))
   "DOCFIXME
 * CLANG DOCFIXME
 "
-  (when-let (stmt1 (&>> (remove-if {function-body-p clang} (stmt-asts clang))
-                        (random-elt)))
+  (when-let (stmt1 (some->> (remove-if {function-body-p clang} (stmt-asts clang))
+                            (random-elt)))
     (values (index-of-ast clang stmt1)
             (random-point-in-function
              clang
@@ -3498,7 +3498,7 @@ http://astyle.sourceforge.net/astyle.html#_Usage"))
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
-              (shell "astyle --style=~a ~a" (or style "kr") src)
+              (shell "astyle --suffix=none --style=~a ~a" (or style "kr") src)
             (declare (ignorable stdout stderr))
             (setf errno exit)
             (if (zerop exit)

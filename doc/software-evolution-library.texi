@@ -63,8 +63,12 @@ A copy of the license is included in the section entitled
 @ref{Generic-Function \name\, @code{\name\}}
 @end macro
 
-@macro refapimethod{name}
-@ref{Method \name\, @code{\name\}}
+@c Don't link to the method itself since method links are fragile
+@c especially in the presence of ongoing development. Instead link to
+@c the generic function but with the option of using different link
+@c text.
+@macro refapimethod{name,txt}
+@ref{Generic-Function \name\, @code{\txt\}}
 @end macro
 
 
@@ -441,21 +445,16 @@ classes and mixins (which may be added to a software objects
 inheritance tree to provide additional functionality) are described in
 the following subsections.
 
-Software Object Classes (see also
-@ref{api-software-object-classes,Software Object Classes} in the API):
 @menu
+Software Object Classes (see also @ref{api-software-object-classes,Software Object Classes} in the API)
 * C/C++ with @code{clang}::     C language source code ASTs
 * Assembler with @code{asm}::   Assembler represented as a vector
 * Executables with @code{csurf-asm}:: Executables manipulated as an
                                       assembler vector
 * Java with @code{java}::       Java language source code ASTs
 * Coq with @code{coq}::         Coq language source code ASTs
-@end menu
 
-Software Object Mixins (see also
-@ref{api-software-object-mixins,Software Object Class ``Mixins''} in
-the API):
-@menu
+Software Object Mixins (see also @ref{api-software-object-mixins,Software Object Class ``Mixins''} in the API)
 * Ancestor tracking with @code{ancestral}:: Collect history of applied
                                         mutations and crossover events.
 * Lighter asm alternatives @code{light}/@code{range}/@code{diff}::
@@ -935,10 +934,8 @@ library but are not (yet) installable through Quicklisp.  These should
 be downloaded into your Quicklisp @code{local-projects/} folder.
 
 @itemize
-@item cl-arrowz (available from @url{https://github.com/eschulte/cl-arrowz})
-@item elf (available from @url{https://github.com/GrammaTech/elf})
 @item trace-db (available from @url{https://github.com/GrammaTech/trace-db})
-@item asdf-encodings (available from @url{https://github.com/GrammaTech/asdf-encodings})
+@item command-line-arguments (available from @url{https://github.com/eschulte/command-line-arguments})
 @end itemize
 
 Depending on the type of software object used the following may also
@@ -1143,8 +1140,10 @@ Executing this code will print output resembling the following.
   @item @refapigeneric{mutate}
   @item @refapigeneric{phenome}
   @end itemize
-@item [sel/utility] Macro @ref{Macro sel/utility:with-temp-file, @code{with-temp-file}}
-@item [sel/utility] Function @ref{Function sel/utility:shell, @code{shell}}
+@c @item [sel/utility] Macro @ref{Macro sel/utility:with-temp-file, @code{with-temp-file}}
+@c @item [sel/utility] Function @ref{Function sel/utility:shell, @code{shell}}
+@item [sel/utility] Macro @ref{Macro with-temp-file, @code{with-temp-file}}
+@item [sel/utility] Function @ref{Function shell, @code{shell}}
 @end itemize
 
 
@@ -1310,15 +1309,46 @@ with the following.
 @include troubleshooting.texi
 
 
-@node SEL API, Troubleshooting, SEL Utility API, Top
+@node SEL API, SEL Utility API, Troubleshooting, Top
 @appendix SEL API
 @include include/sb-texinfo.texinfo
+
+SEL is a Lisp @emph{package}, in essence, a container for symbols
+allowing the creation of separate namespaces within a program. See
+@url{http://www.gigamonkeys.com/book/programming-in-the-large-packages-and-symbols.html}
+for more information on the definition and use of packages in Common
+Lisp.
+
+@menu
+* SEL API Concept Index :: Structured description of the SEL API contents.
+* SEL API Details :: Documentation for each SEL API artifact.
+@end menu
+
+
+@node SEL API Concept Index, SEL API Details, SEL API, SEL API
+@unnumberedsec SEL API Concept Index
+@include sel-api-index.texi
+
+@node SEL API Details, SEL Utility API, SEL API Concept Index, SEL API
+@unnumberedsec SEL API Details
 @include sel-api.texi
 
-@node SEL Utility API, SEL View API, SEL API, Top
 
+@node SEL Utility API, SEL View API, SEL API, Top
 @appendix SEL Utility API
 @cindex utility
+
+@itemize
+@item @ref{utility-api-contents,SEL Utility API Contents}
+@item @ref{utility-api-details,SEL Utility API Details}
+@end itemize
+
+@anchor{utility-api-contents}
+@section SEL Utility API Contents
+@include sel-utility-api-index.texi
+
+@anchor{utility-api-details}
+@section SEL Utility API Details
 @include sel-utility-api.texi
 
 
@@ -1329,6 +1359,19 @@ with the following.
 
 @cindex view
 
+
+
+@itemize
+@item @ref{view-api-contents,SEL View API Contents}
+@item @ref{view-api-details,SEL View API Details}
+@end itemize
+
+@anchor{view-api-contents}
+@section SEL View API Contents
+@include sel-view-api-index.texi
+
+@anchor{view-api-details}
+@section SEL View API Details
 @include sel-view-api.texi
 
 
