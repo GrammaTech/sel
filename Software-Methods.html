@@ -101,10 +101,10 @@ binary.
 
 <p>New software objects should inherit from the most-relevant base
 class. For source code based software objects, this is the
-<a href="SEL-API.html#Class-parseable"><code>parseable</code></a> class. To define a new software object type from an
-existing base class, use the <a href="SEL-API.html#Macro-define_002dsoftware"><code>define-software</code></a> macro.  All
+<a href="SEL-API-Details.html#Class-parseable"><code>parseable</code></a> class. To define a new software object type from an
+existing base class, use the <a href="SEL-API-Details.html#Macro-define_002dsoftware"><code>define-software</code></a> macro.  All
 software objects should ultimately inherit from the
-<a href="SEL-API.html#Class-software"><code>software</code></a> class.
+<a href="SEL-API-Details.html#Class-software"><code>software</code></a> class.
 </p>
 <div class="lisp">
 <pre class="lisp">(define-software new-software-type (base-software-type)
@@ -122,46 +122,46 @@ programs or in heuristic search.
 <ul>
 <li> Recover <a href="Software-Objects.html#Software-Objects">genome and phenome</a>.
     <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-genome"><code>genome</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-phenome"><code>phenome</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-genome"><code>genome</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-phenome"><code>phenome</code></a>
     </li></ul>
 
 </li><li> Get genome properties.
     <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-genome_002dstring"><code>genome-string</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-lines"><code>lines</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-size"><code>size</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-genome_002dstring"><code>genome-string</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-lines"><code>lines</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-size"><code>size</code></a>
     </li></ul>
 
-</li><li> <a href="SEL-API.html#Generic_002dFunction-copy"><code>copy</code></a>
+</li><li> <a href="SEL-API-Details.html#Generic_002dFunction-copy"><code>copy</code></a>
 
 </li><li> Pick an index into the genome.
     <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-pick"><code>pick</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-pick_002dgood"><code>pick-good</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-pick_002dbad_002dgood"><code>pick-bad-good</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-pick_002dbad_002dbad"><code>pick-bad-bad</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-pick"><code>pick</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-pick_002dgood"><code>pick-good</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-pick_002dbad_002dgood"><code>pick-bad-good</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-pick_002dbad_002dbad"><code>pick-bad-bad</code></a>
     </li></ul>
 
 </li><li> Perform crossover on two software objects.
     <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-crossover"><code>crossover</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-one_002dpoint_002dcrossover"><code>one-point-crossover</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-two_002dpoint_002dcrossover"><code>two-point-crossover</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-crossover"><code>crossover</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-one_002dpoint_002dcrossover"><code>one-point-crossover</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-two_002dpoint_002dcrossover"><code>two-point-crossover</code></a>
     </li></ul>
 
 
 </li><li> Input/Output.
     <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-from_002dstring"><code>from-string</code></a>
-    </li><li> <a href="SEL-API.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dstring"><code>from-string</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>
     </li></ul>
 
-</li><li> <a href="SEL-API.html#Generic_002dFunction-mutate"><code>mutate</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-evaluate"><code>evaluate</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-fitness_002dextra_002ddata"><code>fitness-extra-data</code></a>
+</li><li> <a href="SEL-API-Details.html#Generic_002dFunction-mutate"><code>mutate</code></a>
+</li><li> <a href="SEL-API-Details.html#Generic_002dFunction-evaluate"><code>evaluate</code></a>
+</li><li> <a href="SEL-API-Details.html#Generic_002dFunction-fitness_002dextra_002ddata"><code>fitness-extra-data</code></a>
 </li></ul>
 
 

@@ -70,15 +70,15 @@ Next: <a href="Global-Variables.html#Global-Variables" accesskey="n" rel="next">
 
 
 <p>SEL provides a variety of operations that apply <em>mutations</em> to
-modify code. These mutations are represented as <a href="SEL-API.html#Class-mutation"><code>mutation</code></a>
+modify code. These mutations are represented as <a href="SEL-API-Details.html#Class-mutation"><code>mutation</code></a>
 objects.
 </p>
 
 
-<p>See section <a href="SEL-API.html#api_002dmutations">API | Mutations</a> for full API
+<p>See section <a href="SEL-API-Concept-Index.html#api_002dmutations">API | Mutations</a> for full API
 documentation. We provide a brief outline here.
 </p>
-<p>New <a href="SEL-API.html#Class-mutation"><code>mutation</code></a> subclasses should derive from the
+<p>New <a href="SEL-API-Details.html#Class-mutation"><code>mutation</code></a> subclasses should derive from the
 most-relevant base class. To define a new mutation from an existing
 base class, use
 </p>
@@ -90,12 +90,12 @@ base class, use
 <p>The mutation may be initialized with two functions; a targeter and
 picker. The targeter is a function which, given a software object,
 returns a list of mutation targets; this function defaults to
-<a href="SEL-API.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>. The picker is a function which, given a software
+<a href="SEL-API-Details.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>. The picker is a function which, given a software
 object, returns a random mutation target; this function defaults to a
-random element returned by <a href="SEL-API.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>.
+random element returned by <a href="SEL-API-Details.html#Generic_002dFunction-pick_002dbad"><code>pick-bad</code></a>.
 </p>
 <p>After creating a software object and a mutation, use the
-<a href="SEL-API.html#Generic_002dFunction-apply_002dmutation"><code>apply-mutation</code></a> method to create a new mutant.
+<a href="SEL-API-Details.html#Generic_002dFunction-apply_002dmutation"><code>apply-mutation</code></a> method to create a new mutant.
 </p>
 
 

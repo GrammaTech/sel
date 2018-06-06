@@ -77,7 +77,7 @@ Next: <a href="Style-Features.html#Style-Features" accesskey="n" rel="next">Styl
 <a name="pareto_002dselection"></a><a name="Pareto-Selection"></a>
 <h4 class="subsection">3.2.1 Pareto Selection</h4>
 
-<p>Function <a href="SEL-API.html#Function-pareto_002dselector"><code>pareto-selector</code></a> compares each candidate
+<p>Function <a href="SEL-API-Details.html#Function-pareto_002dselector"><code>pareto-selector</code></a> compares each candidate
 against a random comparison set, preferring candidates which dominate
 the comparison set. This will select for individuals along the Pareto
 front of the population.
@@ -95,7 +95,7 @@ the same number of objectives) across the entire population.
 <a name="lexicase_002dselection"></a><a name="Lexicase-Selection"></a>
 <h4 class="subsection">3.2.2 Lexicase Selection</h4>
 
-<p>Function <a href="SEL-API.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a> performs lexicase
+<p>Function <a href="SEL-API-Details.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a> performs lexicase
 selection: a form of multi-objective optimization which prioritizes
 objectives in a different order for each selection event.
 </p>
@@ -106,27 +106,27 @@ objectives in a different order for each selection event.
 <h4 class="subsection">3.2.3 API Support for Multi-Objective Fitness</h4>
 
 <p>API support for multi-objective fitness is documented in section
-<a href="SEL-API.html#api_002dmulti_002dobjective">API | Multi-Objective Fitness</a>.
+<a href="SEL-API-Concept-Index.html#api_002dmulti_002dobjective">API | Multi-Objective Fitness</a>.
 </p>
 
 <ul>
-<li> Set variable <a href="SEL-API.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate*</code></a> to specify how
+<li> Set variable <a href="SEL-API-Details.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate*</code></a> to specify how
 fitness values should be compared. Note that this applies across all
 objectives: it is not possible to maximize some objectives while
 minimizing others.
 
-</li><li> Set variable <a href="SEL-API.html#Variable-_002atournament_002dselector_002a"><code>*tournament-selector*</code></a> to specify the
+</li><li> Set variable <a href="SEL-API-Details.html#Variable-_002atournament_002dselector_002a"><code>*tournament-selector*</code></a> to specify the
 selector function to use for multi-objective optimization. There are
 currently two such functions:
   <ul>
-<li> <a href="SEL-API.html#Function-pareto_002dselector"><code>pareto-selector</code></a>
-  </li><li> <a href="SEL-API.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a>
+<li> <a href="SEL-API-Details.html#Function-pareto_002dselector"><code>pareto-selector</code></a>
+  </li><li> <a href="SEL-API-Details.html#Function-lexicase_002dselect_002dbest"><code>lexicase-select-best</code></a>
   </li></ul>
 
-</li><li> Set variable <a href="SEL-API.html#Variable-_002atournament_002dtie_002dbreaker_002a"><code>*tournament-tie-breaker*</code></a> to specify how
+</li><li> Set variable <a href="SEL-API-Details.html#Variable-_002atournament_002dtie_002dbreaker_002a"><code>*tournament-tie-breaker*</code></a> to specify how
 the tournament should break ties in the case where the selector
 produces multiple winners. A useful tie-breaker for multi-objective
-optimization is <a href="SEL-API.html#Function-pick_002dleast_002dcrowded"><code>pick-least-crowded</code></a>, which promotes
+optimization is <a href="SEL-API-Details.html#Function-pick_002dleast_002dcrowded"><code>pick-least-crowded</code></a>, which promotes
 diversity by selecting individuals that are farther from their
 neighbors in fitness space.
 

@@ -25,7 +25,7 @@ A copy of the license is included in the section entitled
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="index.html#Top" rel="up" title="Top">
 <link href="SEL-View-API.html#SEL-View-API" rel="next" title="SEL View API">
-<link href="SEL-API.html#SEL-API" rel="prev" title="SEL API">
+<link href="SEL-API-Details.html#SEL-API-Details" rel="prev" title="SEL API Details">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -64,246 +64,120 @@ ul.no-bullet {list-style: none}
 Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View API</a>, Previous: <a href="SEL-API.html#SEL-API" accesskey="p" rel="prev">SEL API</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
-
 <a name="SEL-Utility-API-1"></a>
 <h2 class="appendix">Appendix B SEL Utility API</h2>
 <a name="index-utility"></a>
 
-
-
-
-
-
-
-
-<a name="Contents"></a>
-<h3 class="section">B.1 Contents</h3>
 <ul>
-<li> <a href="#tasks">Tasks</a>
+<li> <a href="#utility_002dapi_002dcontents">SEL Utility API Contents</a>
+</li><li> <a href="#utility_002dapi_002ddetails">SEL Utility API Details</a>
+</li></ul>
+
+<a name="utility_002dapi_002dcontents"></a><a name="SEL-Utility-API-Contents"></a>
+<h3 class="section">B.1 SEL Utility API Contents</h3>
+
+
+
+
+
+
+
+
+<ul>
+<li> Tasks
   <ul>
-<li> <a href="#Structure-sel_002futility_003atask_002drunner"><code>task-runner</code></a>
-   </li><li> <a href="#Variable-sel_002futility_003a_002atask_002drunner_002a"><code>*task-runner*</code></a>
-   </li><li> <a href="#Class-sel_002futility_003atask"><code>task</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003atask_002djob"><code>task-job</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dtask"><code>process-task</code></a>
-   </li><li> <a href="#Function-sel_002futility_003atask_002dsave_002dresult"><code>task-save-result</code></a>
-   </li><li> <a href="#Function-sel_002futility_003arun_002dtask"><code>run-task</code></a>
+<li> <a href="#Structure-task_002drunner"><code>task-runner</code></a>
+   </li><li> <a href="#Variable-_002atask_002drunner_002a"><code>*task-runner*</code></a>
+   </li><li> <a href="#Class-task"><code>task</code></a>
+   </li><li> <a href="#Generic_002dFunction-task_002djob"><code>task-job</code></a>
+   </li><li> <a href="#Generic_002dFunction-process_002dtask"><code>process-task</code></a>
+   </li><li> <a href="#Function-task_002dsave_002dresult"><code>task-save-result</code></a>
+   </li><li> <a href="#Function-run_002dtask"><code>run-task</code></a>
   </li></ul>
 
-</li><li> <a href="#doc_002dprocess_002dmethods">Process Methods</a>
+<a name="doc_002dprocess_002dmethods"></a></li><li> Process Methods
       wraps around SBCL- or CCL-specific representations of
       external processes
   <ul>
-<li> <a href="#Class-sel_002futility_003aprocess"><code>process</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002derror_002dstream"><code>process-error-stream</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dexit_002dcode"><code>process-exit-code</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002did"><code>process-id</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002dinput_002dstream"><code>process-input-stream</code></a>
-   </li><li> <a href="#Generic_002dFunction-sel_002futility_003aprocess_002doutput_002dstream"><code>process-output-stream</code></a>
+<li> <a href="#Class-process"><code>process</code></a>
+   </li><li> <a href="#Generic_002dFunction-process_002derror_002dstream"><code>process-error-stream</code></a>
+   </li><li> <a href="#Generic_002dFunction-process_002dexit_002dcode"><code>process-exit-code</code></a>
+   </li><li> <a href="#Generic_002dFunction-process_002did"><code>process-id</code></a>
+   </li><li> <a href="#Generic_002dFunction-process_002dinput_002dstream"><code>process-input-stream</code></a>
+   </li><li> <a href="#Generic_002dFunction-process_002doutput_002dstream"><code>process-output-stream</code></a>
   </li></ul>
 
 </li><li> Variables
   <ul>
-<li> <a href="#Variable-sel_002futility_003a_002abash_002dshell_002a"><code>*bash-shell*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002anote_002dlevel_002a"><code>*note-level*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002anote_002dout_002a"><code>*note-out*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002aprofile_002ddot_002dmin_002dratio_002a"><code>*profile-dot-min-ratio*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002ashell_002ddebug_002a"><code>*shell-debug*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002ashell_002derror_002dcodes_002a"><code>*shell-error-codes*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002ashell_002dnon_002derror_002dcodes_002a"><code>*shell-non-error-codes*</code></a>
-  </li><li> <a href="#Variable-sel_002futility_003a_002atemp_002ddir_002a"><code>*temp-dir*</code></a>
+<li> <a href="#Variable-_002abash_002dshell_002a"><code>*bash-shell*</code></a>
+  </li><li> <a href="#Variable-_002anote_002dlevel_002a"><code>*note-level*</code></a>
+  </li><li> <a href="#Variable-_002anote_002dout_002a"><code>*note-out*</code></a>
+  </li><li> <a href="#Variable-_002aprofile_002ddot_002dmin_002dratio_002a"><code>*profile-dot-min-ratio*</code></a>
+  </li><li> <a href="#Variable-_002ashell_002ddebug_002a"><code>*shell-debug*</code></a>
+  </li><li> <a href="#Variable-_002ashell_002derror_002dcodes_002a"><code>*shell-error-codes*</code></a>
+  </li><li> <a href="#Variable-_002ashell_002dnon_002derror_002dcodes_002a"><code>*shell-non-error-codes*</code></a>
+  </li><li> <a href="#Variable-_002atemp_002ddir_002a"><code>*temp-dir*</code></a>
   </li></ul>
 
 </li><li> Macros
   <ul>
-<li> <a href="#Macro-sel_002futility_003aread_002dshell"><code>read-shell</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003aread_002dshell_002dfile"><code>read-shell-file</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003awith_002dcwd"><code>with-cwd</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003awith_002dtemp_002dfile"><code>with-temp-file</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003awith_002dtemp_002dfile_002dof"><code>with-temp-file-of</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003awith_002dtemp_002dfile_002dof_002dbytes"><code>with-temp-file-of-bytes</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003awrite_002dshell_002dfile"><code>write-shell-file</code></a>
-  </li><li> <a href="#Macro-sel_002futility_003axz_002dpipe"><code>xz-pipe</code></a>
+<li> <a href="#Macro-read_002dshell"><code>read-shell</code></a>
+  </li><li> <a href="#Macro-read_002dshell_002dfile"><code>read-shell-file</code></a>
+  </li><li> <a href="#Macro-with_002dcwd"><code>with-cwd</code></a>
+  </li><li> <a href="#Macro-with_002dtemp_002dfile"><code>with-temp-file</code></a>
+  </li><li> <a href="#Macro-with_002dtemp_002dfile_002dof"><code>with-temp-file-of</code></a>
+  </li><li> <a href="#Macro-with_002dtemp_002dfile_002dof_002dbytes"><code>with-temp-file-of-bytes</code></a>
+  </li><li> <a href="#Macro-write_002dshell_002dfile"><code>write-shell-file</code></a>
+  </li><li> <a href="#Macro-xz_002dpipe"><code>xz-pipe</code></a>
   </li></ul>
 
 </li><li> Functions
   <ul>
-<li> <a href="#Function-sel_002futility_003aaddrs"><code>addrs</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aaget"><code>aget</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aalist_002dfilter"><code>alist-filter</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aarglist"><code>arglist</code></a>
-  </li><li> <a href="#Function-sel_002futility_003abinary_002dsearch"><code>binary-search</code></a>
-  </li><li> <a href="#Function-sel_002futility_003acalculate_002daddr_002dmap"><code>calculate-addr-map</code></a>
-  </li><li> <a href="#Function-sel_002futility_003achunks"><code>chunks</code></a>
-  </li><li> <a href="#Function-sel_002futility_003acount_002dcons"><code>count-cons</code></a>
-  </li><li> <a href="#Function-sel_002futility_003acounts"><code>counts</code></a>
-  </li><li> <a href="#Function-sel_002futility_003acumulative_002ddistribution"><code>cumulative-distribution</code></a>
-  </li><li> <a href="#Function-sel_002futility_003adiff_002dscalar"><code>diff-scalar</code></a>
-  </li><li> <a href="#Function-sel_002futility_003adrop"><code>drop</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aequal_002dit"><code>equal-it</code></a>
-  </li><li> <a href="#Function-sel_002futility_003afunction_002dlines"><code>function-lines</code></a>
-  </li><li> <a href="#Function-sel_002futility_003agdb_002ddisassemble"><code>gdb-disassemble</code></a>
-  </li><li> <a href="#Function-sel_002futility_003agetenv"><code>getenv</code></a>
-  </li><li> <a href="#Function-sel_002futility_003agetter"><code>getter</code></a>
-  </li><li> <a href="#Function-sel_002futility_003ain_002ddirectory"><code>in-directory</code></a>
-  </li><li> <a href="#Function-sel_002futility_003amake_002dterminal_002draw"><code>make-terminal-raw</code></a>
-  </li><li> <a href="#Function-sel_002futility_003anormalize_002dprobabilities"><code>normalize-probabilities</code></a>
-  </li><li> <a href="#Function-sel_002futility_003apad"><code>pad</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aparse_002dnumber"><code>parse-number</code></a>
-  </li><li> <a href="#Function-sel_002futility_003apartition"><code>partition</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aplist_002dmerge"><code>plist-merge</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aprofile_002dto_002ddot_002dgraph"><code>profile-to-dot-graph</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aprofile_002dto_002dflame_002dgraph"><code>profile-to-flame-graph</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aquit"><code>quit</code></a>
-  </li><li> <a href="#Function-sel_002futility_003arandom_002dhash_002dtable_002dkey"><code>random-hash-table-key</code></a>
-  </li><li> <a href="#Function-sel_002futility_003arandom_002dsample_002dwith_002dreplacement"><code>random-sample-with-replacement</code></a>
-  </li><li> <a href="#Function-sel_002futility_003arandom_002dsample_002dwithout_002dreplacement"><code>random-sample-without-replacement</code></a>
-  </li><li> <a href="#Function-sel_002futility_003areplace_002dall"><code>replace-all</code></a>
-  </li><li> <a href="#Function-sel_002futility_003areplace_002dstdout_002din_002dnote_002dtargets"><code>replace-stdout-in-note-targets</code></a>
-  </li><li> <a href="#Function-sel_002futility_003ashell"><code>shell</code></a>
-  </li><li> <a href="#Function-sel_002futility_003ashow_002dit"><code>show-it</code></a>
-  </li><li> <a href="#Function-sel_002futility_003atake"><code>take</code></a>
-  </li><li> <a href="#Function-sel_002futility_003atranspose"><code>transpose</code></a>
-  </li><li> <a href="#Function-sel_002futility_003aun_002dcumulative_002ddistribution"><code>un-cumulative-distribution</code></a>
+<li> <a href="#Function-addrs"><code>addrs</code></a>
+  </li><li> <a href="#Function-aget"><code>aget</code></a>
+  </li><li> <a href="#Function-alist_002dfilter"><code>alist-filter</code></a>
+  </li><li> <a href="#Function-arglist"><code>arglist</code></a>
+  </li><li> <a href="#Function-binary_002dsearch"><code>binary-search</code></a>
+  </li><li> <a href="#Function-calculate_002daddr_002dmap"><code>calculate-addr-map</code></a>
+  </li><li> <a href="#Function-chunks"><code>chunks</code></a>
+  </li><li> <a href="#Function-count_002dcons"><code>count-cons</code></a>
+  </li><li> <a href="#Function-counts"><code>counts</code></a>
+  </li><li> <a href="#Function-cumulative_002ddistribution"><code>cumulative-distribution</code></a>
+  </li><li> <a href="#Function-diff_002dscalar"><code>diff-scalar</code></a>
+  </li><li> <a href="#Function-drop"><code>drop</code></a>
+  </li><li> <a href="#Function-equal_002dit"><code>equal-it</code></a>
+  </li><li> <a href="#Function-function_002dlines"><code>function-lines</code></a>
+  </li><li> <a href="#Function-gdb_002ddisassemble"><code>gdb-disassemble</code></a>
+  </li><li> <a href="#Function-getenv"><code>getenv</code></a>
+  </li><li> <a href="#Function-getter"><code>getter</code></a>
+  </li><li> <a href="#Function-in_002ddirectory"><code>in-directory</code></a>
+  </li><li> <a href="#Function-make_002dterminal_002draw"><code>make-terminal-raw</code></a>
+  </li><li> <a href="#Function-normalize_002dprobabilities"><code>normalize-probabilities</code></a>
+  </li><li> <a href="#Function-pad"><code>pad</code></a>
+  </li><li> <a href="#Function-parse_002dnumber"><code>parse-number</code></a>
+  </li><li> <a href="#Function-partition"><code>partition</code></a>
+  </li><li> <a href="#Function-plist_002dmerge"><code>plist-merge</code></a>
+  </li><li> <a href="#Function-profile_002dto_002ddot_002dgraph"><code>profile-to-dot-graph</code></a>
+  </li><li> <a href="#Function-profile_002dto_002dflame_002dgraph"><code>profile-to-flame-graph</code></a>
+  </li><li> <a href="#Function-quit"><code>quit</code></a>
+  </li><li> <a href="#Function-random_002dhash_002dtable_002dkey"><code>random-hash-table-key</code></a>
+  </li><li> <a href="#Function-random_002dsample_002dwith_002dreplacement"><code>random-sample-with-replacement</code></a>
+  </li><li> <a href="#Function-random_002dsample_002dwithout_002dreplacement"><code>random-sample-without-replacement</code></a>
+  </li><li> <a href="#Function-replace_002dall"><code>replace-all</code></a>
+  </li><li> <a href="#Function-replace_002dstdout_002din_002dnote_002dtargets"><code>replace-stdout-in-note-targets</code></a>
+  </li><li> <a href="#Function-shell"><code>shell</code></a>
+  </li><li> <a href="#Function-show_002dit"><code>show-it</code></a>
+  </li><li> <a href="#Function-take"><code>take</code></a>
+  </li><li> <a href="#Function-transpose"><code>transpose</code></a>
+  </li><li> <a href="#Function-un_002dcumulative_002ddistribution"><code>un-cumulative-distribution</code></a>
   </li></ul>
 </li></ul>
 
-<a name="tasks"></a><a name="Tasks"></a>
-<h3 class="section">B.2 Tasks</h3>
-
-
-<p>Functions to run multiple tasks (such as mutations and fitness
-tests) on multiple threads.
-</p>
-<p>This module makes use of Bordeaux Threads. See the documentation
-here:
-https://trac.common-lisp.net/bordeaux-threads/wiki/ApiDocumentation
-</p>
-<ul>
-<li> Job: a function which returns a series of Tasks, one Task each
-       time it is called. When the series is exhausted, it will
-       return <code>nil</code>.
-
-</li><li> Task: a thin wrapper over a Lisp object (typically a <code>software</code>
-        instance, but could be anything).  The task can be used to
-        customize how to process the object after fitness testing
-        (basically a completion routine) and to customize how it
-        spins off child Jobs.
-
-</li><li> Worker: one or more Worker threads can be created to process
-          Jobs.  When all jobs are finished, all the Worker
-          threads will exit.  Therefore you create Jobs first,
-          then the Workers.
-
-</li></ul>
-<p>Example use:
-</p>
-<div class="lisp">
-<pre class="lisp">    (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*)
-                             10))
-     ;; When (task-runner-worker-count *runner*) = 0,
-     ;; it means all threads are finished.
-</pre></div>
-
-
-<p>A <code>task</code> is an operation to be performed by the multi-threaded
-<code>task-runner</code>. A <code>task</code> can be customized by the client to generate
-a job (child series of tasks) by implementing the <code>task-job</code> method,
-and the code to be performed when processing a <code>task</code> is defined by the
-<code>process-task</code> method.
-</p>
-<p>A job is a Lisp function, which takes no arguments, and which will
-produce a <code>task</code> each time it is called, or <code>nil</code> when all of its tasks are
-complete. Think of a job as a lazy sequence of <code>task</code>.
-</p>
-<p><code>task-runner-jobs</code> is a stack of jobs. Worker threads will call the
-first job on the stack, and process the task returned.
-</p>
-<p>A task may add 1 or more jobs to the top of the stack, causing worker
-threads to immediately start processing those jobs since they are now
-higher on the stack and therefore have priority over other tasks.
-</p>
-<p>When the <code>jobs</code> stack is empty/NIL, then all worker threads will exit.
-</p>
-<a name="Tasks-API"></a>
-<h4 class="subsection">B.2.1 Tasks API</h4>
-
-
-<a name="index-task_002drunner-_005bsel_002futility_005d"></a>
-<a name="Structure-sel_002futility_003atask_002drunner"></a><dl>
-<dt><a name="index-task_002drunner-_005bsel_002futility_005d-1"></a>Structure: <strong>task-runner [sel/utility]</strong></dt>
-<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
-</p>
-<p>The state needed to run multi-threaded tasks and associated jobs.
-</p><ul>
-<li> jobs:         stack of current jobs to execute
-</li><li> workers:      list running worker threads
-</li><li> results:      result objects collected by worker threads
-</li><li> jobs-lock:    (internal) used to synchronize jobs stack
-</li><li> results-lock: (internal) used to synchronnize results list
-</li><li> workers-lock: (internal) used to synchronize worker list
-</li><li> completed-jobs: number of jobs that have been executed and finished
-</li><li> completed-tasks: number of tasks that have finished
-</li></ul>
-</dd></dl>
-<a name="index-_002atask_002drunner_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002atask_002drunner_002a"></a><dl>
-<dt><a name="index-_002atask_002drunner_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*task-runner* [sel/utility]</strong></dt>
-<dd><p>Bind <code>*task-runner*</code> for worker threads
-</p></dd></dl>
-<a name="index-task-_005bsel_002futility_005d"></a>
-<a name="Class-sel_002futility_003atask"></a><dl>
-<dt><a name="index-task-_005bsel_002futility_005d-1"></a>Class: <strong>task [sel/utility]</strong></dt>
-<dd><p>Class precedence list: <code>task, standard-object, t</code>
-</p>
-<p>Base class for all task classes.
-</p></dd></dl>
-<a name="index-task_002djob-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003atask_002djob"></a><dl>
-<dt><a name="index-task_002djob-_005bsel_002futility_005d-1"></a>Generic Function: <strong>task-job [sel/utility]</strong> <em>task runner</em></dt>
-<dd><p>Return a job for the *jobs* stack. This is a function which,
- when called, returns the next task in the series.
-</p></dd></dl>
-<a name="Method-sel_002futility_003atask_002djob-_0028_0028task-some_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-task_002djob-_005bsel_002futility_005d-2"></a>Method: <strong>task-job [sel/utility]</strong> <em>(task some-task) runner</em></dt>
-<dd><p>Return the generating function for &lsquo;some-task&rsquo;.
-Create new subtasks for each item in the list until either applying the
-predicate <code>some-task-pred</code> in <code>task</code> succeeds or there are no more items in the
-list.
-</p></dd></dl>
-<a name="index-process_002dtask-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002dtask"></a><dl>
-<dt><a name="index-process_002dtask-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-task [sel/utility]</strong> <em>task runner</em></dt>
-<dd><p>Process the object, including evaluate fitness, push new Jobs, and
- store interesting results
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-_005bsel_002futility_005d-2"></a>Method: <strong>process-task [sel/utility]</strong> <em>(task some-test-task) runner</em></dt>
-<dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
-<code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
-<code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
-should be used to retrieve one result. Additionally, due to differences in
-timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;some&rsquo;, since &lsquo;some&rsquo;
-promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
-&lsquo;some-task-pred&rsquo;.
-</p></dd></dl>
-<a name="index-task_002dsave_002dresult-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003atask_002dsave_002dresult"></a><dl>
-<dt><a name="index-task_002dsave_002dresult-_005bsel_002futility_005d-1"></a>Function: <strong>task-save-result [sel/utility]</strong> <em>runner obj</em></dt>
-<dd><p>Save a result object.
-</p></dd></dl>
-<a name="index-run_002dtask-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003arun_002dtask"></a><dl>
-<dt><a name="index-run_002dtask-_005bsel_002futility_005d-1"></a>Function: <strong>run-task [sel/utility]</strong> <em>task &amp;optional num-workers</em></dt>
-<dd><p>Create a <code>task-runner</code>, using the specified task as the first job.
-</p></dd></dl>
-
-<a name="doc_002dprocess_002dmethods"></a><a name="Process-Methods"></a>
-<h3 class="section">B.3 Process Methods</h3>
-
-<a name="index-process-_005bsel_002futility_005d"></a>
-<a name="Class-sel_002futility_003aprocess"></a><dl>
-<dt><a name="index-process-_005bsel_002futility_005d-1"></a>Class: <strong>process [sel/utility]</strong></dt>
+<a name="utility_002dapi_002ddetails"></a><a name="SEL-Utility-API-Details"></a>
+<h3 class="section">B.2 SEL Utility API Details</h3>
+<a name="index-process"></a>
+<a name="Class-process"></a><dl>
+<dt><a name="index-process-1"></a>Class: <strong>process</strong></dt>
 <dd><p>Class precedence list: <code>process, standard-object, t</code>
 </p>
 <p>Slots:
@@ -320,165 +194,159 @@ This field will not usually need to be accessed directly: use methods
 <p>Object representing an external process.
 Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
 </p></dd></dl>
-<a name="index-process_002derror_002dstream-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002derror_002dstream"></a><dl>
-<dt><a name="index-process_002derror_002dstream-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-error-stream [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the error stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002derror_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002derror_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-error-stream [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p>Return the error stream for <code>process</code>.
-</p></dd></dl>
-<a name="index-process_002dexit_002dcode-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002dexit_002dcode"></a><dl>
-<dt><a name="index-process_002dexit_002dcode-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-exit-code [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dexit_002dcode-_005bsel_002futility_005d-2"></a>Method: <strong>process-exit-code [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
-</p></dd></dl>
-<a name="index-process_002did-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002did"></a><dl>
-<dt><a name="index-process_002did-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-id [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the process id for <code>process</code>
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002did-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002did-_005bsel_002futility_005d-2"></a>Method: <strong>process-id [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p>Return the process id for <code>process</code>.
-</p></dd></dl>
-<a name="index-process_002dinput_002dstream-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002dinput_002dstream"></a><dl>
-<dt><a name="index-process_002dinput_002dstream-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-input-stream [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dinput_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-input-stream [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
-</p></dd></dl>
-<a name="index-process_002doutput_002dstream-_005bsel_002futility_005d"></a>
-<a name="Generic_002dFunction-sel_002futility_003aprocess_002doutput_002dstream"></a><dl>
-<dt><a name="index-process_002doutput_002dstream-_005bsel_002futility_005d-1"></a>Generic Function: <strong>process-output-stream [sel/utility]</strong> <em>process</em></dt>
-<dd><p>Return the output stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-sel_002futility_003aprocess_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002doutput_002dstream-_005bsel_002futility_005d-2"></a>Method: <strong>process-output-stream [sel/utility]</strong> <em>(process process)</em></dt>
-<dd><p>Return the output stream for <code>process</code>.
-</p></dd></dl>
+<a name="index-some_002dtest_002dtask"></a>
+<a name="Class-some_002dtest_002dtask"></a><dl>
+<dt><a name="index-some_002dtest_002dtask-1"></a>Class: <strong>some-test-task</strong></dt>
+<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
 
-<a name="Documentation-1"></a>
-<h3 class="section">B.4 Documentation</h3>
+<p>Predicate used by &lsquo;some&rsquo;.
+</p></li></ul>
 
-<a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002abash_002dshell_002a"></a><dl>
-<dt><a name="index-_002abash_002dshell_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*bash-shell* [sel/utility]</strong></dt>
+<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
+</p></dd></dl>
+<a name="index-task"></a>
+<a name="Class-task"></a><dl>
+<dt><a name="index-task-1"></a>Class: <strong>task</strong></dt>
+<dd><p>Class precedence list: <code>task, standard-object, t</code>
+</p>
+<p>Base class for all task classes.
+</p></dd></dl>
+<a name="index-_002abash_002dshell_002a"></a>
+<a name="Variable-_002abash_002dshell_002a"></a><dl>
+<dt><a name="index-_002abash_002dshell_002a-1"></a>Variable: <strong>*bash-shell*</strong></dt>
 <dd><p>Bash shell for use in &lsquo;read-shell&rsquo;.
 </p></dd></dl>
-<a name="index-_002anote_002dlevel_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002anote_002dlevel_002a"></a><dl>
-<dt><a name="index-_002anote_002dlevel_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*note-level* [sel/utility]</strong></dt>
+<a name="index-_002acompile_002dw_002ftracing_002a"></a>
+<a name="Variable-_002acompile_002dw_002ftracing_002a"></a><dl>
+<dt><a name="index-_002acompile_002dw_002ftracing_002a-1"></a>Variable: <strong>*compile-w/tracing*</strong></dt>
+<dd><p>Controls compilation of tracing information with the &lsquo;traced&rsquo; macro.
+</p></dd></dl>
+<a name="index-_002anote_002dlevel_002a"></a>
+<a name="Variable-_002anote_002dlevel_002a"></a><dl>
+<dt><a name="index-_002anote_002dlevel_002a-1"></a>Variable: <strong>*note-level*</strong></dt>
 <dd><p>Enables execution notes.
 </p></dd></dl>
-<a name="index-_002anote_002dout_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002anote_002dout_002a"></a><dl>
-<dt><a name="index-_002anote_002dout_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*note-out* [sel/utility]</strong></dt>
+<a name="index-_002anote_002dout_002a"></a>
+<a name="Variable-_002anote_002dout_002a"></a><dl>
+<dt><a name="index-_002anote_002dout_002a-1"></a>Variable: <strong>*note-out*</strong></dt>
 <dd><p>Targets of notation.
 </p></dd></dl>
-<a name="index-_002aprofile_002ddot_002dmin_002dratio_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002aprofile_002ddot_002dmin_002dratio_002a"></a><dl>
-<dt><a name="index-_002aprofile_002ddot_002dmin_002dratio_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*profile-dot-min-ratio* [sel/utility]</strong></dt>
+<a name="index-_002aprofile_002ddot_002dmin_002dratio_002a"></a>
+<a name="Variable-_002aprofile_002ddot_002dmin_002dratio_002a"></a><dl>
+<dt><a name="index-_002aprofile_002ddot_002dmin_002dratio_002a-1"></a>Variable: <strong>*profile-dot-min-ratio*</strong></dt>
 <dd><p>Minimum percentage ratio to include a node in the profile dot graph.
 </p></dd></dl>
-<a name="index-_002ashell_002ddebug_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002ashell_002ddebug_002a"></a><dl>
-<dt><a name="index-_002ashell_002ddebug_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*shell-debug* [sel/utility]</strong></dt>
+<a name="index-_002ashell_002ddebug_002a"></a>
+<a name="Variable-_002ashell_002ddebug_002a"></a><dl>
+<dt><a name="index-_002ashell_002ddebug_002a-1"></a>Variable: <strong>*shell-debug*</strong></dt>
 <dd><p>Set to true to print shell invocations.
 </p></dd></dl>
-<a name="index-_002ashell_002derror_002dcodes_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002ashell_002derror_002dcodes_002a"></a><dl>
-<dt><a name="index-_002ashell_002derror_002dcodes_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*shell-error-codes* [sel/utility]</strong></dt>
+<a name="index-_002ashell_002derror_002dcodes_002a"></a>
+<a name="Variable-_002ashell_002derror_002dcodes_002a"></a><dl>
+<dt><a name="index-_002ashell_002derror_002dcodes_002a-1"></a>Variable: <strong>*shell-error-codes*</strong></dt>
 <dd><p>Raise a condition on these exit codes.
 </p></dd></dl>
-<a name="index-_002ashell_002dnon_002derror_002dcodes_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002ashell_002dnon_002derror_002dcodes_002a"></a><dl>
-<dt><a name="index-_002ashell_002dnon_002derror_002dcodes_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*shell-non-error-codes* [sel/utility]</strong></dt>
+<a name="index-_002ashell_002dnon_002derror_002dcodes_002a"></a>
+<a name="Variable-_002ashell_002dnon_002derror_002dcodes_002a"></a><dl>
+<dt><a name="index-_002ashell_002dnon_002derror_002dcodes_002a-1"></a>Variable: <strong>*shell-non-error-codes*</strong></dt>
 <dd><p>Raise a condition on any but these exit codes.
 </p></dd></dl>
-<a name="index-_002atemp_002ddir_002a-_005bsel_002futility_005d"></a>
-<a name="Variable-sel_002futility_003a_002atemp_002ddir_002a"></a><dl>
-<dt><a name="index-_002atemp_002ddir_002a-_005bsel_002futility_005d-1"></a>Variable: <strong>*temp-dir* [sel/utility]</strong></dt>
+<a name="index-_002atask_002drunner_002a"></a>
+<a name="Variable-_002atask_002drunner_002a"></a><dl>
+<dt><a name="index-_002atask_002drunner_002a-1"></a>Variable: <strong>*task-runner*</strong></dt>
+<dd><p>Bind <code>*task-runner*</code> for worker threads
+</p></dd></dl>
+<a name="index-_002atemp_002ddir_002a"></a>
+<a name="Variable-_002atemp_002ddir_002a"></a><dl>
+<dt><a name="index-_002atemp_002ddir_002a-1"></a>Variable: <strong>*temp-dir*</strong></dt>
 <dd><p>Set to non-nil for a custom temporary directory.
 </p></dd></dl>
-<a name="index-read_002dshell-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003aread_002dshell"></a><dl>
-<dt><a name="index-read_002dshell-_005bsel_002futility_005d-1"></a>Macro: <strong>read-shell [sel/utility]</strong> <em>(stream-var shell) &amp;rest body</em></dt>
+<a name="index-getopts"></a>
+<a name="Macro-getopts"></a><dl>
+<dt><a name="index-getopts-1"></a>Macro: <strong>getopts</strong> <em>args-and-opts &amp;body forms</em></dt>
+<dd><p>Collect command-line options from <code>args</code> in an executable.
+</p>
+<p>For usage see the definition of &lsquo;clang-instrument&rsquo;.  <code>e</code>.g.,
+</p>
+<div class="lisp">
+<pre class="lisp">    (getopts
+      (&quot;-c&quot; &quot;--compiler&quot; (setf (compiler original) (pop args)))
+      (&quot;-e&quot; &quot;--exit&quot; (setf instrument-exit t))
+      (&quot;-F&quot; &quot;--flags&quot; (setf (flags original) (split-sequence #, (pop args))))
+      #| ... |#)
+</pre></div>
+</dd></dl>
+<a name="index-read_002dshell"></a>
+<a name="Macro-read_002dshell"></a><dl>
+<dt><a name="index-read_002dshell-1"></a>Macro: <strong>read-shell</strong> <em>(stream-var shell) &amp;rest body</em></dt>
 <dd><p>Executes <code>body</code> with <code>stream-var</code> holding the output of <code>shell</code>.
 The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
 </p></dd></dl>
-<a name="index-read_002dshell_002dfile-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003aread_002dshell_002dfile"></a><dl>
-<dt><a name="index-read_002dshell_002dfile-_005bsel_002futility_005d-1"></a>Macro: <strong>read-shell-file [sel/utility]</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
+<a name="index-read_002dshell_002dfile"></a>
+<a name="Macro-read_002dshell_002dfile"></a><dl>
+<dt><a name="index-read_002dshell_002dfile-1"></a>Macro: <strong>read-shell-file</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
 <dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> from <code>file</code>.
 </p></dd></dl>
-<a name="index-with_002dcwd-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003awith_002dcwd"></a><dl>
-<dt><a name="index-with_002dcwd-_005bsel_002futility_005d-1"></a>Macro: <strong>with-cwd [sel/utility]</strong> <em>dir &amp;rest body</em></dt>
+<a name="index-traced"></a>
+<a name="Macro-traced"></a><dl>
+<dt><a name="index-traced-1"></a>Macro: <strong>traced</strong> <em>(fn &amp;rest args)</em></dt>
+<dd><p>Trace wrapped function call when &lsquo;*compile-w/tracing*&rsquo; is non-nil.
+This is useful for &lsquo;flet&rsquo; and &lsquo;labels&rsquo; functions which can&rsquo;t be traced
+with &lsquo;cl-user:trace&rsquo;.
+</p></dd></dl>
+<a name="index-with_002dcwd"></a>
+<a name="Macro-with_002dcwd"></a><dl>
+<dt><a name="index-with_002dcwd-1"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
 <dd><p>Change the current working directory to dir and execute body.
 <code>warning:</code> This function is not thread safe.  Execution in a threaded
 environment may causes execution outside of the intended directory or
 may lose the original working directory.
 </p></dd></dl>
-<a name="index-with_002dtemp_002dfile-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003awith_002dtemp_002dfile"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile-_005bsel_002futility_005d-1"></a>Macro: <strong>with-temp-file [sel/utility]</strong> <em>spec &amp;rest body</em></dt>
-<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
-After <code>body</code> is executed the temporary file is removed.
+<a name="index-with_002dtemp_002ddir_002dof"></a>
+<a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
+<dt><a name="index-with_002dtemp_002ddir_002dof-1"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
+<dd><p>Populate <code>spec</code> with the path to a temporary directory with the contents
+of <code>dir</code> and execute <code>body</code>
 </p></dd></dl>
-<a name="index-with_002dtemp_002dfile_002dof-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003awith_002dtemp_002dfile_002dof"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile_002dof-_005bsel_002futility_005d-1"></a>Macro: <strong>with-temp-file-of [sel/utility]</strong> <em>spec str &amp;rest body</em></dt>
+<a name="index-with_002dtemp_002dfile_002dof"></a>
+<a name="Macro-with_002dtemp_002dfile_002dof"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof-1"></a>Macro: <strong>with-temp-file-of</strong> <em>spec str &amp;rest body</em></dt>
 <dd><p><code>spec</code> should be a list of the variable used to reference the file
 and an optional extension.
 </p></dd></dl>
-<a name="index-with_002dtemp_002dfile_002dof_002dbytes-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003awith_002dtemp_002dfile_002dof_002dbytes"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes-_005bsel_002futility_005d-1"></a>Macro: <strong>with-temp-file-of-bytes [sel/utility]</strong> <em>spec bytes &amp;rest body</em></dt>
+<a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>
+<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes-1"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
 <dd><p><code>spec</code> should be a list of the variable used to reference the file
 and an optional extension.
 </p></dd></dl>
-<a name="index-write_002dshell_002dfile-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003awrite_002dshell_002dfile"></a><dl>
-<dt><a name="index-write_002dshell_002dfile-_005bsel_002futility_005d-1"></a>Macro: <strong>write-shell-file [sel/utility]</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
-<dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> to <code>file</code>.
-</p></dd></dl>
-<a name="index-xz_002dpipe-_005bsel_002futility_005d"></a>
-<a name="Macro-sel_002futility_003axz_002dpipe"></a><dl>
-<dt><a name="index-xz_002dpipe-_005bsel_002futility_005d-1"></a>Macro: <strong>xz-pipe [sel/utility]</strong> <em>(in-stream in-file) (out-stream out-file) &amp;rest body</em></dt>
+<a name="index-xz_002dpipe"></a>
+<a name="Macro-xz_002dpipe"></a><dl>
+<dt><a name="index-xz_002dpipe-1"></a>Macro: <strong>xz-pipe</strong> <em>(in-stream in-file) (out-stream out-file) &amp;rest body</em></dt>
 <dd><p>Executes <code>body</code> with <code>in-stream</code> and <code>out-stream</code> read/writing data from xz files.
 </p></dd></dl>
-<a name="index-addrs-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aaddrs"></a><dl>
-<dt><a name="index-addrs-_005bsel_002futility_005d-1"></a>Function: <strong>addrs [sel/utility]</strong> <em>phenome function</em></dt>
-<dd><p>Return the numerical addresses of the lines (in order) of <code>function</code>.
-</p></dd></dl>
-<a name="index-aget-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aaget"></a><dl>
-<dt><a name="index-aget-_005bsel_002futility_005d-1"></a>Function: <strong>aget [sel/utility]</strong> <em>item list &amp;key test</em></dt>
+<a name="index-aget"></a>
+<a name="Function-aget"></a><dl>
+<dt><a name="index-aget-1"></a>Function: <strong>aget</strong> <em>item list &amp;key test</em></dt>
 <dd><p>Get <code>key</code> from association list <code>list</code>.
 </p></dd></dl>
-<a name="index-alist_002dfilter-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aalist_002dfilter"></a><dl>
-<dt><a name="index-alist_002dfilter-_005bsel_002futility_005d-1"></a>Function: <strong>alist-filter [sel/utility]</strong> <em>keep-keys alist</em></dt>
+<a name="index-alist_002dfilter"></a>
+<a name="Function-alist_002dfilter"></a><dl>
+<dt><a name="index-alist_002dfilter-1"></a>Function: <strong>alist-filter</strong> <em>keep-keys alist</em></dt>
 <dd><p>Remove all keys from <code>alist</code> except those in <code>keep-keys</code>.
 </p></dd></dl>
-<a name="index-arglist-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aarglist"></a><dl>
-<dt><a name="index-arglist-_005bsel_002futility_005d-1"></a>Function: <strong>arglist [sel/utility]</strong> <em>fname</em></dt>
+<a name="index-arglist"></a>
+<a name="Function-arglist"></a><dl>
+<dt><a name="index-arglist-1"></a>Function: <strong>arglist</strong> <em>fname</em></dt>
 <dd><p>Return the argument list of <code>fname</code>.
 </p></dd></dl>
-<a name="index-binary_002dsearch-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003abinary_002dsearch"></a><dl>
-<dt><a name="index-binary_002dsearch-_005bsel_002futility_005d-1"></a>Function: <strong>binary-search [sel/utility]</strong> <em>value array &amp;key low high test</em></dt>
+<a name="index-binary_002dsearch"></a>
+<a name="Function-binary_002dsearch"></a><dl>
+<dt><a name="index-binary_002dsearch-1"></a>Function: <strong>binary-search</strong> <em>value array &amp;key low high test</em></dt>
 <dd><p>Perform a binary search for <code>value</code> on a sorted <code>array</code>.
 Optional keyword parameters:
 <code>low:</code>  Lower bound
@@ -487,125 +355,275 @@ Optional keyword parameters:
 Return -1 if arg is less than value, 1 if arg is greater than value,
 and 0 otherwise.
 </p></dd></dl>
-<a name="index-calculate_002daddr_002dmap-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003acalculate_002daddr_002dmap"></a><dl>
-<dt><a name="index-calculate_002daddr_002dmap-_005bsel_002futility_005d-1"></a>Function: <strong>calculate-addr-map [sel/utility]</strong> <em>lines phenome genome</em></dt>
-<dd><p>Calculate a map of memory address to offsets in <code>lines</code>.
-<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an <code>asm</code> object,
-<code>phenome</code> should be the phenome of an <code>asm</code> object and <code>genome</code> should be
-the genome of an <code>asm</code> object.
-</p></dd></dl>
-<a name="index-chunks-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003achunks"></a><dl>
-<dt><a name="index-chunks-_005bsel_002futility_005d-1"></a>Function: <strong>chunks [sel/utility]</strong> <em>list size &amp;optional include-remainder-p</em></dt>
+<a name="index-chunks"></a>
+<a name="Function-chunks"></a><dl>
+<dt><a name="index-chunks-1"></a>Function: <strong>chunks</strong> <em>list size &amp;optional include-remainder-p</em></dt>
 <dd><p>Return subsequent chunks of <code>list</code> of size <code>size</code>.
 </p></dd></dl>
-<a name="index-count_002dcons-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003acount_002dcons"></a><dl>
-<dt><a name="index-count_002dcons-_005bsel_002futility_005d-1"></a>Function: <strong>count-cons [sel/utility]</strong> <em>cons-cell</em></dt>
+<a name="index-count_002dcons"></a>
+<a name="Function-count_002dcons"></a><dl>
+<dt><a name="index-count_002dcons-1"></a>Function: <strong>count-cons</strong> <em>cons-cell</em></dt>
 <dd><p>Count and return the number of cons cells used in <code>cons-cell</code>.
 </p></dd></dl>
-<a name="index-counts-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003acounts"></a><dl>
-<dt><a name="index-counts-_005bsel_002futility_005d-1"></a>Function: <strong>counts [sel/utility]</strong> <em>list &amp;key test key frac</em></dt>
+<a name="index-counts"></a>
+<a name="Function-counts"></a><dl>
+<dt><a name="index-counts-1"></a>Function: <strong>counts</strong> <em>list &amp;key test key frac</em></dt>
 <dd><p>Return an alist keyed by the unique elements of list holding their counts.
 Keyword argument <code>frac</code> will return fractions instead of raw counts.
 </p></dd></dl>
-<a name="index-cumulative_002ddistribution-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003acumulative_002ddistribution"></a><dl>
-<dt><a name="index-cumulative_002ddistribution-_005bsel_002futility_005d-1"></a>Function: <strong>cumulative-distribution [sel/utility]</strong> <em>alist</em></dt>
+<a name="index-cumulative_002ddistribution"></a>
+<a name="Function-cumulative_002ddistribution"></a><dl>
+<dt><a name="index-cumulative_002ddistribution-1"></a>Function: <strong>cumulative-distribution</strong> <em>alist</em></dt>
 <dd><p>Cumulative distribution function.
 Return an updated version of <code>alist</code> in which the cdr of each element is
 transformed from an instant to a cumulative probability.
 </p></dd></dl>
-<a name="index-diff_002dscalar-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003adiff_002dscalar"></a><dl>
-<dt><a name="index-diff_002dscalar-_005bsel_002futility_005d-1"></a>Function: <strong>diff-scalar [sel/utility]</strong> <em>original-seq modified-seq</em></dt>
+<a name="index-diff_002dscalar"></a>
+<a name="Function-diff_002dscalar"></a><dl>
+<dt><a name="index-diff_002dscalar-1"></a>Function: <strong>diff-scalar</strong> <em>original-seq modified-seq</em></dt>
 <dd><p>Return an integer representing the diff size of two sequences
 Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <code>o</code> is the length of the
 original diff region and <code>m</code> is the length of the modified diff
 region.
 </p></dd></dl>
-<a name="index-drop-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003adrop"></a><dl>
-<dt><a name="index-drop-_005bsel_002futility_005d-1"></a>Function: <strong>drop [sel/utility]</strong> <em>n seq</em></dt>
+<a name="index-directory_002dp"></a>
+<a name="Function-directory_002dp"></a><dl>
+<dt><a name="index-directory_002dp-1"></a>Function: <strong>directory-p</strong> <em>pathname</em></dt>
+<dd><p>Return a directory version of <code>pathname</code> if it indicates a directory.
+</p></dd></dl>
+<a name="index-drop"></a>
+<a name="Function-drop"></a><dl>
+<dt><a name="index-drop-1"></a>Function: <strong>drop</strong> <em>n seq</em></dt>
 <dd><p>Return <code>seq</code> less the first <code>n</code> items.
 </p></dd></dl>
-<a name="index-equal_002dit-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aequal_002dit"></a><dl>
-<dt><a name="index-equal_002dit-_005bsel_002futility_005d-1"></a>Function: <strong>equal-it [sel/utility]</strong> <em>obj1 obj2 &amp;optional trace</em></dt>
+<a name="index-enhanced_002dcopy_002dseq"></a>
+<a name="Function-enhanced_002dcopy_002dseq"></a><dl>
+<dt><a name="index-enhanced_002dcopy_002dseq-1"></a>Function: <strong>enhanced-copy-seq</strong> <em>sequence</em></dt>
+<dd><p>Copies any type of array (except :displaced-to) and lists. Otherwise returns <code>nil</code>.
+</p></dd></dl>
+<a name="index-equal_002dit"></a>
+<a name="Function-equal_002dit"></a><dl>
+<dt><a name="index-equal_002dit-1"></a>Function: <strong>equal-it</strong> <em>obj1 obj2 &amp;optional trace</em></dt>
 <dd><p>Equal over objects and lists.
 </p></dd></dl>
-<a name="index-function_002dlines-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003afunction_002dlines"></a><dl>
-<dt><a name="index-function_002dlines-_005bsel_002futility_005d-1"></a>Function: <strong>function-lines [sel/utility]</strong> <em>lines</em></dt>
+<a name="index-function_002dlines"></a>
+<a name="Function-function_002dlines"></a><dl>
+<dt><a name="index-function_002dlines-1"></a>Function: <strong>function-lines</strong> <em>lines</em></dt>
 <dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
 <code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an <code>asm</code> object.
 </p></dd></dl>
-<a name="index-gdb_002ddisassemble-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003agdb_002ddisassemble"></a><dl>
-<dt><a name="index-gdb_002ddisassemble-_005bsel_002futility_005d-1"></a>Function: <strong>gdb-disassemble [sel/utility]</strong> <em>phenome function</em></dt>
+<a name="index-gdb_002ddisassemble"></a>
+<a name="Function-gdb_002ddisassemble"></a><dl>
+<dt><a name="index-gdb_002ddisassemble-1"></a>Function: <strong>gdb-disassemble</strong> <em>phenome function</em></dt>
 <dd><p>Return the raw gdb disassembled code of <code>function</code> in <code>phenome</code>.
 </p></dd></dl>
-<a name="index-getenv-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003agetenv"></a><dl>
-<dt><a name="index-getenv-_005bsel_002futility_005d-1"></a>Function: <strong>getenv [sel/utility]</strong> <em>name</em></dt>
+<a name="index-getenv"></a>
+<a name="Function-getenv"></a><dl>
+<dt><a name="index-getenv-1"></a>Function: <strong>getenv</strong> <em>name</em></dt>
 <dd><p>Returns the value of an environment variable
 </p></dd></dl>
-<a name="index-getter-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003agetter"></a><dl>
-<dt><a name="index-getter-_005bsel_002futility_005d-1"></a>Function: <strong>getter [sel/utility]</strong> <em>key</em></dt>
+<a name="index-getter"></a>
+<a name="Function-getter"></a><dl>
+<dt><a name="index-getter-1"></a>Function: <strong>getter</strong> <em>key</em></dt>
 <dd><p>Return a function which gets <code>key</code> from an association list.
 </p></dd></dl>
-<a name="index-in_002ddirectory-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003ain_002ddirectory"></a><dl>
-<dt><a name="index-in_002ddirectory-_005bsel_002futility_005d-1"></a>Function: <strong>in-directory [sel/utility]</strong> <em>directory path</em></dt>
+<a name="index-in_002ddirectory"></a>
+<a name="Function-in_002ddirectory"></a><dl>
+<dt><a name="index-in_002ddirectory-1"></a>Function: <strong>in-directory</strong> <em>directory path</em></dt>
 <dd><p>Return <code>path</code> based in <code>directory</code>.
 Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
 pathname (i.e., ending in a &quot;/&quot;).
 </p></dd></dl>
-<a name="index-make_002dterminal_002draw-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003amake_002dterminal_002draw"></a><dl>
-<dt><a name="index-make_002dterminal_002draw-_005bsel_002futility_005d-1"></a>Function: <strong>make-terminal-raw [sel/utility]</strong></dt>
+<a name="index-kill_002dprocess"></a>
+<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
+<dt><a name="index-kill_002dprocess-1"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
+<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
+</p></dd></dl>
+<a name="index-make_002dterminal_002draw"></a>
+<a name="Function-make_002dterminal_002draw"></a><dl>
+<dt><a name="index-make_002dterminal_002draw-1"></a>Function: <strong>make-terminal-raw</strong></dt>
 <dd><p>Place the terminal into &rsquo;raw&rsquo; mode, no echo non canonical.
 This allows characters to be read directly without waiting for a newline.
 See &rsquo;man 3 termios&rsquo; for more information.
 </p></dd></dl>
-<a name="index-normalize_002dprobabilities-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003anormalize_002dprobabilities"></a><dl>
-<dt><a name="index-normalize_002dprobabilities-_005bsel_002futility_005d-1"></a>Function: <strong>normalize-probabilities [sel/utility]</strong> <em>alist</em></dt>
+<a name="index-normalize_002dprobabilities"></a>
+<a name="Function-normalize_002dprobabilities"></a><dl>
+<dt><a name="index-normalize_002dprobabilities-1"></a>Function: <strong>normalize-probabilities</strong> <em>alist</em></dt>
 <dd><p>Normalize <code>alist</code> so sum of second elements is equal to 1.
 </p></dd></dl>
-<a name="index-pad-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003apad"></a><dl>
-<dt><a name="index-pad-_005bsel_002futility_005d-1"></a>Function: <strong>pad [sel/utility]</strong> <em>list n &amp;optional elem</em></dt>
+<a name="index-pad"></a>
+<a name="Function-pad"></a><dl>
+<dt><a name="index-pad-1"></a>Function: <strong>pad</strong> <em>list n &amp;optional elem</em></dt>
 <dd><p>Pad <code>list</code> to a length of <code>n</code> with <code>elem</code>
 </p></dd></dl>
-<a name="index-parse_002dnumber-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aparse_002dnumber"></a><dl>
-<dt><a name="index-parse_002dnumber-_005bsel_002futility_005d-1"></a>Function: <strong>parse-number [sel/utility]</strong> <em>string</em></dt>
+<a name="index-pairs"></a>
+<a name="Function-pairs"></a><dl>
+<dt><a name="index-pairs-1"></a>Function: <strong>pairs</strong> <em>lst</em></dt>
+<dd><p>Return all pairs of elements in <code>lst</code>.
+</p>
+<p>For example (pairs &rsquo;(a b c)) <code>=&gt;</code> (&rsquo;(a . b) &rsquo;(a . c) &rsquo;(b . c))
+</p></dd></dl>
+<a name="index-parse_002dnumber"></a>
+<a name="Function-parse_002dnumber"></a><dl>
+<dt><a name="index-parse_002dnumber-1"></a>Function: <strong>parse-number</strong> <em>string</em></dt>
 <dd><p>Parse the number located at the front of <code>string</code> or return an error.
 </p></dd></dl>
-<a name="index-partition-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003apartition"></a><dl>
-<dt><a name="index-partition-_005bsel_002futility_005d-1"></a>Function: <strong>partition [sel/utility]</strong> <em>test list</em></dt>
+<a name="index-partition"></a>
+<a name="Function-partition"></a><dl>
+<dt><a name="index-partition-1"></a>Function: <strong>partition</strong> <em>test list</em></dt>
 <dd><p>Return a list of lists of elements of <code>list</code> which do and do not satisfy <code>test</code>.
 The first list holds elements of <code>list</code> which satisfy <code>test</code>, the second
 holds those which do not.
 </p></dd></dl>
-<a name="index-plist_002dmerge-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aplist_002dmerge"></a><dl>
-<dt><a name="index-plist_002dmerge-_005bsel_002futility_005d-1"></a>Function: <strong>plist-merge [sel/utility]</strong> <em>plist-1 plist-2</em></dt>
+<a name="index-plist_002dmerge"></a>
+<a name="Function-plist_002dmerge"></a><dl>
+<dt><a name="index-plist_002dmerge-1"></a>Function: <strong>plist-merge</strong> <em>plist-1 plist-2</em></dt>
 <dd><p>Merge arguments into a single plist with unique keys, prefer PLIST-1 items.
 </p></dd></dl>
-<a name="index-profile_002dto_002ddot_002dgraph-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aprofile_002dto_002ddot_002dgraph"></a><dl>
-<dt><a name="index-profile_002dto_002ddot_002dgraph-_005bsel_002futility_005d-1"></a>Function: <strong>profile-to-dot-graph [sel/utility]</strong> <em>stream</em></dt>
+<a name="index-position_002dextremum"></a>
+<a name="Function-position_002dextremum"></a><dl>
+<dt><a name="index-position_002dextremum-1"></a>Function: <strong>position-extremum</strong> <em>list predicate key</em></dt>
+<dd><p>Returns the position in <code>list</code> of the element maximizing <code>key</code>.
+</p></dd></dl>
+<a name="index-position_002dextremum_002drand"></a>
+<a name="Function-position_002dextremum_002drand"></a><dl>
+<dt><a name="index-position_002dextremum_002drand-1"></a>Function: <strong>position-extremum-rand</strong> <em>list predicate key</em></dt>
+<dd><p>Randomly returns one of position in <code>list</code> maximizing <code>key</code>.
+</p></dd></dl>
+<a name="index-process_002derror_002dstream"></a>
+<a name="Generic_002dFunction-process_002derror_002dstream"></a><dl>
+<dt><a name="index-process_002derror_002dstream-1"></a>Generic Function: <strong>process-error-stream</strong> <em>process</em></dt>
+<dd><p>Return the error stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002derror_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002derror_002dstream-2"></a>Method: <strong>process-error-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the error stream for <code>process</code>.
+</p></dd></dl>
+<a name="index-process_002dexit_002dcode"></a>
+<a name="Generic_002dFunction-process_002dexit_002dcode"></a><dl>
+<dt><a name="index-process_002dexit_002dcode-1"></a>Generic Function: <strong>process-exit-code</strong> <em>process</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
+</p></dd></dl>
+<a name="Method-process_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dexit_002dcode-2"></a>Method: <strong>process-exit-code</strong> <em>(process process)</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
+</p></dd></dl>
+<a name="index-process_002did"></a>
+<a name="Generic_002dFunction-process_002did"></a><dl>
+<dt><a name="index-process_002did-1"></a>Generic Function: <strong>process-id</strong> <em>process</em></dt>
+<dd><p>Return the process id for <code>process</code>
+</p></dd></dl>
+<a name="Method-process_002did-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002did-2"></a>Method: <strong>process-id</strong> <em>(process process)</em></dt>
+<dd><p>Return the process id for <code>process</code>.
+</p></dd></dl>
+<a name="index-process_002dinput_002dstream"></a>
+<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-1"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-2"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="index-process_002doutput_002dstream"></a>
+<a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
+<dt><a name="index-process_002doutput_002dstream-1"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002doutput_002dstream-2"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="index-process_002drunning_002dp"></a>
+<a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
+<dt><a name="index-process_002drunning_002dp-1"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
+<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
+</p></dd></dl>
+<a name="Method-process_002drunning_002dp-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002drunning_002dp-2"></a>Method: <strong>process-running-p</strong> <em>(process process)</em></dt>
+<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
+</p></dd></dl>
+<a name="index-process_002dtask"></a>
+<a name="Generic_002dFunction-process_002dtask"></a><dl>
+<dt><a name="index-process_002dtask-1"></a>Generic Function: <strong>process-task</strong> <em>task runner</em></dt>
+<dd><p>Process the object, including evaluate fitness, push new Jobs, and
+ store interesting results
+</p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
+<dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
+<code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
+<code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
+should be used to retrieve one result. Additionally, due to differences in
+timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;some&rsquo;, since &lsquo;some&rsquo;
+promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
+&lsquo;some-task-pred&rsquo;.
+</p></dd></dl>
+<a name="index-task_002drunner"></a>
+<a name="Structure-task_002drunner"></a><dl>
+<dt><a name="index-task_002drunner-1"></a>Structure: <strong>task-runner</strong></dt>
+<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
+</p>
+<p>The state needed to run multi-threaded tasks and associated jobs.
+</p><ul>
+<li> jobs:         stack of current jobs to execute
+</li><li> workers:      list running worker threads
+</li><li> results:      result objects collected by worker threads
+</li><li> jobs-lock:    (internal) used to synchronize jobs stack
+</li><li> results-lock: (internal) used to synchronnize results list
+</li><li> workers-lock: (internal) used to synchronize worker list
+</li><li> completed-jobs: number of jobs that have been executed and finished
+</li><li> completed-tasks: number of tasks that have finished
+</li></ul>
+</dd></dl>
+<a name="index-some_002dtask"></a>
+<a name="Class-some_002dtask"></a><dl>
+<dt><a name="index-some_002dtask-1"></a>Class: <strong>some-task</strong></dt>
+<dd><p>Class precedence list: <code>some-task, task, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
+
+<p>Predicate used by &lsquo;some&rsquo;.
+</p></li></ul>
+
+<p>Task for applying &lsquo;some&rsquo; in parallel.
+The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
+</p></dd></dl>
+<a name="index-with_002dtemp_002dfile"></a>
+<a name="Macro-with_002dtemp_002dfile"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile-1"></a>Macro: <strong>with-temp-file</strong> <em>spec &amp;rest body</em></dt>
+<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
+After <code>body</code> is executed the temporary file is removed.
+</p></dd></dl>
+<a name="index-write_002dshell_002dfile"></a>
+<a name="Macro-write_002dshell_002dfile"></a><dl>
+<dt><a name="index-write_002dshell_002dfile-1"></a>Macro: <strong>write-shell-file</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> to <code>file</code>.
+</p></dd></dl>
+<a name="index-addrs"></a>
+<a name="Function-addrs"></a><dl>
+<dt><a name="index-addrs-1"></a>Function: <strong>addrs</strong> <em>phenome function</em></dt>
+<dd><p>Return the numerical addresses of the lines (in order) of <code>function</code>.
+</p></dd></dl>
+<a name="index-calculate_002daddr_002dmap"></a>
+<a name="Function-calculate_002daddr_002dmap"></a><dl>
+<dt><a name="index-calculate_002daddr_002dmap-1"></a>Function: <strong>calculate-addr-map</strong> <em>lines phenome genome</em></dt>
+<dd><p>Calculate a map of memory address to offsets in <code>lines</code>.
+<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an <code>asm</code> object,
+<code>phenome</code> should be the phenome of an <code>asm</code> object and <code>genome</code> should be
+the genome of an <code>asm</code> object.
+</p></dd></dl>
+<a name="index-profile_002dto_002ddot_002dgraph"></a>
+<a name="Function-profile_002dto_002ddot_002dgraph"></a><dl>
+<dt><a name="index-profile_002dto_002ddot_002dgraph-1"></a>Function: <strong>profile-to-dot-graph</strong> <em>stream</em></dt>
 <dd><p>Write profile to <code>stream</code>.
 </p></dd></dl>
-<a name="index-profile_002dto_002dflame_002dgraph-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aprofile_002dto_002dflame_002dgraph"></a><dl>
-<dt><a name="index-profile_002dto_002dflame_002dgraph-_005bsel_002futility_005d-1"></a>Function: <strong>profile-to-flame-graph [sel/utility]</strong> <em>stream</em></dt>
+<a name="index-profile_002dto_002dflame_002dgraph"></a>
+<a name="Function-profile_002dto_002dflame_002dgraph"></a><dl>
+<dt><a name="index-profile_002dto_002dflame_002dgraph-1"></a>Function: <strong>profile-to-flame-graph</strong> <em>stream</em></dt>
 <dd><p>Write FlameGraph profile data to <code>stream</code>.
 The resulting file may be fed directly to the flamegraph tool as follows.
 </p>
@@ -627,36 +645,36 @@ The resulting file may be fed directly to the flamegraph tool as follows.
 </p>
 <p>See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html.
 </p></dd></dl>
-<a name="index-quit-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aquit"></a><dl>
-<dt><a name="index-quit-_005bsel_002futility_005d-1"></a>Function: <strong>quit [sel/utility]</strong> <em>&amp;optional code finish-output</em></dt>
+<a name="index-quit"></a>
+<a name="Function-quit"></a><dl>
+<dt><a name="index-quit-1"></a>Function: <strong>quit</strong> <em>&amp;optional code finish-output</em></dt>
 <dd><p>Quits from the Lisp world, with the given exit status if provided.
 This is designed to abstract away the implementation specific quit forms.
 </p></dd></dl>
-<a name="index-random_002dhash_002dtable_002dkey-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003arandom_002dhash_002dtable_002dkey"></a><dl>
-<dt><a name="index-random_002dhash_002dtable_002dkey-_005bsel_002futility_005d-1"></a>Function: <strong>random-hash-table-key [sel/utility]</strong> <em>hash-tbl</em></dt>
+<a name="index-random_002dhash_002dtable_002dkey"></a>
+<a name="Function-random_002dhash_002dtable_002dkey"></a><dl>
+<dt><a name="index-random_002dhash_002dtable_002dkey-1"></a>Function: <strong>random-hash-table-key</strong> <em>hash-tbl</em></dt>
 <dd><p>Return a random key in a hash table
 </p></dd></dl>
-<a name="index-random_002dsample_002dwith_002dreplacement-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003arandom_002dsample_002dwith_002dreplacement"></a><dl>
-<dt><a name="index-random_002dsample_002dwith_002dreplacement-_005bsel_002futility_005d-1"></a>Function: <strong>random-sample-with-replacement [sel/utility]</strong> <em>range size</em></dt>
+<a name="index-random_002dsample_002dwith_002dreplacement"></a>
+<a name="Function-random_002dsample_002dwith_002dreplacement"></a><dl>
+<dt><a name="index-random_002dsample_002dwith_002dreplacement-1"></a>Function: <strong>random-sample-with-replacement</strong> <em>range size</em></dt>
 <dd><p>Return a random sample of <code>size</code> numbers in <code>range</code> with replacement.
 </p></dd></dl>
-<a name="index-random_002dsample_002dwithout_002dreplacement-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003arandom_002dsample_002dwithout_002dreplacement"></a><dl>
-<dt><a name="index-random_002dsample_002dwithout_002dreplacement-_005bsel_002futility_005d-1"></a>Function: <strong>random-sample-without-replacement [sel/utility]</strong> <em>range size</em></dt>
+<a name="index-random_002dsample_002dwithout_002dreplacement"></a>
+<a name="Function-random_002dsample_002dwithout_002dreplacement"></a><dl>
+<dt><a name="index-random_002dsample_002dwithout_002dreplacement-1"></a>Function: <strong>random-sample-without-replacement</strong> <em>range size</em></dt>
 <dd><p>Return a random sample of <code>size</code> numbers in <code>range</code> without replacement.
 </p></dd></dl>
-<a name="index-replace_002dall-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003areplace_002dall"></a><dl>
-<dt><a name="index-replace_002dall-_005bsel_002futility_005d-1"></a>Function: <strong>replace-all [sel/utility]</strong> <em>string part replacement &amp;key test</em></dt>
+<a name="index-replace_002dall"></a>
+<a name="Function-replace_002dall"></a><dl>
+<dt><a name="index-replace_002dall-1"></a>Function: <strong>replace-all</strong> <em>string part replacement &amp;key test</em></dt>
 <dd><p>Returns a new string in which all the occurences of the part
 is replaced with replacement.
 </p></dd></dl>
-<a name="index-replace_002dstdout_002din_002dnote_002dtargets-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003areplace_002dstdout_002din_002dnote_002dtargets"></a><dl>
-<dt><a name="index-replace_002dstdout_002din_002dnote_002dtargets-_005bsel_002futility_005d-1"></a>Function: <strong>replace-stdout-in-note-targets [sel/utility]</strong> <em>&amp;optional targets</em></dt>
+<a name="index-replace_002dstdout_002din_002dnote_002dtargets"></a>
+<a name="Function-replace_002dstdout_002din_002dnote_002dtargets"></a><dl>
+<dt><a name="index-replace_002dstdout_002din_002dnote_002dtargets-1"></a>Function: <strong>replace-stdout-in-note-targets</strong> <em>&amp;optional targets</em></dt>
 <dd><p>Replace &lsquo;t&rsquo; which is a place holder for &lsquo;*standard-output*&rsquo;.
 Ideally we would like to set the value of &lsquo;*note-out*&rsquo; to a list
 holding &lsquo;*standard-output*&rsquo;, however in compiled binaries the value of
@@ -666,9 +684,14 @@ performing the replacement on the fly when &lsquo;note&rsquo; is called.  To
 specify a particular value for &lsquo;*standard-output*&rsquo; the user may
 replace &lsquo;t&rsquo; in the &lsquo;*note-out*&rsquo; list.
 </p></dd></dl>
-<a name="index-shell-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003ashell"></a><dl>
-<dt><a name="index-shell-_005bsel_002futility_005d-1"></a>Function: <strong>shell [sel/utility]</strong> <em>control-string &amp;rest format-arguments</em></dt>
+<a name="index-run_002dtask"></a>
+<a name="Function-run_002dtask"></a><dl>
+<dt><a name="index-run_002dtask-1"></a>Function: <strong>run-task</strong> <em>task &amp;optional num-workers</em></dt>
+<dd><p>Create a <code>task-runner</code>, using the specified task as the first job.
+</p></dd></dl>
+<a name="index-shell"></a>
+<a name="Function-shell"></a><dl>
+<dt><a name="index-shell-1"></a>Function: <strong>shell</strong> <em>control-string &amp;rest format-arguments</em></dt>
 <dd><p>Apply <code>control-string</code> to <code>format-arguments</code> and execute the result with a shell.
 Return (values stdout stderr errno).  <code>format-arguments</code> up to the first
 keyword are passed to &lsquo;format&rsquo; with <code>control-string</code> to construct the
@@ -680,25 +703,75 @@ of errno with &lsquo;*shell-error-codes*&rsquo; and &lsquo;*shell-non-error-code
 </p>
 <p>Optionally print debug information if &lsquo;*shell-debug*&rsquo; is non-nil.
 </p></dd></dl>
-<a name="index-show_002dit-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003ashow_002dit"></a><dl>
-<dt><a name="index-show_002dit-_005bsel_002futility_005d-1"></a>Function: <strong>show-it [sel/utility]</strong> <em>hd &amp;optional out</em></dt>
+<a name="index-show_002dit"></a>
+<a name="Function-show_002dit"></a><dl>
+<dt><a name="index-show_002dit-1"></a>Function: <strong>show-it</strong> <em>hd &amp;optional out</em></dt>
 <dd><p>Print the fields of a elf, section or program header.
 Optional argument <code>out</code> specifies an output stream.
 </p></dd></dl>
-<a name="index-take-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003atake"></a><dl>
-<dt><a name="index-take-_005bsel_002futility_005d-1"></a>Function: <strong>take [sel/utility]</strong> <em>n seq</em></dt>
+<a name="index-tails"></a>
+<a name="Function-tails"></a><dl>
+<dt><a name="index-tails-1"></a>Function: <strong>tails</strong> <em>lst</em></dt>
+<dd><p>Return all final segments of the <code>lst</code>, longest first.
+</p>
+<p>For example (tails &rsquo;(a b c)) <code>=&gt;</code> (&rsquo;(a b c) &rsquo;(b c) &rsquo;(c))
+</p></dd></dl>
+<a name="index-take"></a>
+<a name="Function-take"></a><dl>
+<dt><a name="index-take-1"></a>Function: <strong>take</strong> <em>n seq</em></dt>
 <dd><p>Return the first <code>n</code> items of <code>seq</code>.
 </p></dd></dl>
-<a name="index-transpose-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003atranspose"></a><dl>
-<dt><a name="index-transpose-_005bsel_002futility_005d-1"></a>Function: <strong>transpose [sel/utility]</strong> <em>matrix</em></dt>
+<a name="index-task_002djob"></a>
+<a name="Generic_002dFunction-task_002djob"></a><dl>
+<dt><a name="index-task_002djob-1"></a>Generic Function: <strong>task-job</strong> <em>task runner</em></dt>
+<dd><p>Return a job for the *jobs* stack. This is a function which,
+ when called, returns the next task in the series.
+</p></dd></dl>
+<a name="Method-task_002djob-_0028_0028task-some_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-task_002djob-2"></a>Method: <strong>task-job</strong> <em>(task some-task) runner</em></dt>
+<dd><p>Return the generating function for &lsquo;some-task&rsquo;.
+Create new subtasks for each item in the list until either applying the
+predicate <code>some-task-pred</code> in <code>task</code> succeeds or there are no more items in the
+list.
+</p></dd></dl>
+<a name="index-task_002drunner_002dcreate_002dworker"></a>
+<a name="Function-task_002drunner_002dcreate_002dworker"></a><dl>
+<dt><a name="index-task_002drunner_002dcreate_002dworker-1"></a>Function: <strong>task-runner-create-worker</strong> <em>runner</em></dt>
+<dd><p>Create a new worker thread.
+</p></dd></dl>
+<a name="index-task_002drunner_002dremaining_002djobs"></a>
+<a name="Function-task_002drunner_002dremaining_002djobs"></a><dl>
+<dt><a name="index-task_002drunner_002dremaining_002djobs-1"></a>Function: <strong>task-runner-remaining-jobs</strong> <em>runner</em></dt>
+<dd><p>Returns the number of jobs remaining.
+</p></dd></dl>
+<a name="index-task_002drunner_002dworkers_002dcount"></a>
+<a name="Function-task_002drunner_002dworkers_002dcount"></a><dl>
+<dt><a name="index-task_002drunner_002dworkers_002dcount-1"></a>Function: <strong>task-runner-workers-count</strong> <em>runner</em></dt>
+<dd><p>Returns the number of running threads.
+</p></dd></dl>
+<a name="index-task_002dsave_002dresult"></a>
+<a name="Function-task_002dsave_002dresult"></a><dl>
+<dt><a name="index-task_002dsave_002dresult-1"></a>Function: <strong>task-save-result</strong> <em>runner obj</em></dt>
+<dd><p>Save a result object.
+</p></dd></dl>
+<a name="index-transpose"></a>
+<a name="Function-transpose"></a><dl>
+<dt><a name="index-transpose-1"></a>Function: <strong>transpose</strong> <em>matrix</em></dt>
 <dd><p>Simple matrix transposition.
 </p></dd></dl>
-<a name="index-un_002dcumulative_002ddistribution-_005bsel_002futility_005d"></a>
-<a name="Function-sel_002futility_003aun_002dcumulative_002ddistribution"></a><dl>
-<dt><a name="index-un_002dcumulative_002ddistribution-_005bsel_002futility_005d-1"></a>Function: <strong>un-cumulative-distribution [sel/utility]</strong> <em>alist</em></dt>
+<a name="index-tree_002dright_002dlength"></a>
+<a name="Function-tree_002dright_002dlength"></a><dl>
+<dt><a name="index-tree_002dright_002dlength-1"></a>Function: <strong>tree-right-length</strong> <em>tree</em></dt>
+<dd><p>Return the length of the right spine of <code>tree</code>.
+</p></dd></dl>
+<a name="index-tree_002dright_002dwalk"></a>
+<a name="Function-tree_002dright_002dwalk"></a><dl>
+<dt><a name="index-tree_002dright_002dwalk-1"></a>Function: <strong>tree-right-walk</strong> <em>tree</em></dt>
+<dd><p>Return the right spine of <code>tree</code> as a list.
+</p></dd></dl>
+<a name="index-un_002dcumulative_002ddistribution"></a>
+<a name="Function-un_002dcumulative_002ddistribution"></a><dl>
+<dt><a name="index-un_002dcumulative_002ddistribution-1"></a>Function: <strong>un-cumulative-distribution</strong> <em>alist</em></dt>
 <dd><p>Undo the &lsquo;cumulative-distribution&rsquo; function.
 </p></dd></dl>
 

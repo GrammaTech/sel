@@ -145,7 +145,7 @@ returned each time the function is invoked.
          one of the latest branching conditions that was incorrect.
 
 </li><li> Do this up to a specified cut-off (defined in
-         <a href="SEL-API.html#Variable-_002aabst_002dcond_002dattempts_002a"><code>*abst-cond-attempts*</code></a>).
+         <a href="SEL-API-Details.html#Variable-_002aabst_002dcond_002dattempts_002a"><code>*abst-cond-attempts*</code></a>).
 
 </li><li> If no series is found that causes the unit test to
          pass, re-run the test with a default value of 1 before giving
@@ -165,7 +165,7 @@ returned each time the function is invoked.
          periodically for a period of increasing length.
 
 </li><li> Do this up to a specified cut-off (defined in
-         <a href="SEL-API.html#Variable-_002aabst_002dcond_002dattempts_002a"><code>*abst-cond-attempts*</code></a>).
+         <a href="SEL-API-Details.html#Variable-_002aabst_002dcond_002dattempts_002a"><code>*abst-cond-attempts*</code></a>).
 
 </li><li> If no series is found that causes the unit test to
          pass, re-run the test with a default value of 1 before giving
@@ -200,7 +200,7 @@ applied, and tested. If this condition repairs all unit tests, it is
 returned as the solution. If it improves the fitness (i.e., causes
 more unit tests to pass than before), then it is retained as the
 &ldquo;current best&rdquo; solution. In this case, up to
-<a href="SEL-API.html#Variable-_002asynth_002dcondition_002dattempts_002a"><code>*synth-condition-attempts*</code></a> other conditions are
+<a href="SEL-API-Details.html#Variable-_002asynth_002dcondition_002dattempts_002a"><code>*synth-condition-attempts*</code></a> other conditions are
 tested to see if they offer additional improvements to the fitness.
 </p>
 
@@ -208,27 +208,27 @@ tested to see if they offer additional improvements to the fitness.
 <h4 class="subsection">3.5.2 API Support for Condition Synthesis</h4>
 
 <p>API support for style features is documented in section
-<a href="SEL-API.html#api_002dcondition_002dsynthesis">API | Condition Synthesis</a>. We provide a
+<a href="SEL-API-Concept-Index.html#api_002dcondition_002dsynthesis">API | Condition Synthesis</a>. We provide a
 brief overview here.
 </p>
-<a name="condition_002dsynthesis_002dmutations"></a><p>Mutations (subclasses of <a href="SEL-API.html#Class-mutation"><code>mutation</code></a>)
+<a name="condition_002dsynthesis_002dmutations"></a><p>Mutations (subclasses of <a href="SEL-API-Details.html#Class-mutation"><code>mutation</code></a>)
 </p>
 <ul>
-<li> <a href="SEL-API.html#Class-add_002dcondition"><code>add-condition</code></a>
-</li><li> <a href="SEL-API.html#Class-if_002dto_002dwhile_002dtighten_002dcondition"><code>if-to-while-tighten-condition</code></a>
-</li><li> <a href="SEL-API.html#Class-if_002dto_002dwhile"><code>if-to-while</code></a>
-</li><li> <a href="SEL-API.html#Class-insert_002delse_002dif"><code>insert-else-if</code></a>
-</li><li> <a href="SEL-API.html#Class-loosen_002dcondition"><code>loosen-condition</code></a>
-</li><li> <a href="SEL-API.html#Class-tighten_002dcondition"><code>tighten-condition</code></a>
+<li> <a href="SEL-API-Details.html#Class-add_002dcondition"><code>add-condition</code></a>
+</li><li> <a href="SEL-API-Details.html#Class-if_002dto_002dwhile_002dtighten_002dcondition"><code>if-to-while-tighten-condition</code></a>
+</li><li> <a href="SEL-API-Details.html#Class-if_002dto_002dwhile"><code>if-to-while</code></a>
+</li><li> <a href="SEL-API-Details.html#Class-insert_002delse_002dif"><code>insert-else-if</code></a>
+</li><li> <a href="SEL-API-Details.html#Class-loosen_002dcondition"><code>loosen-condition</code></a>
+</li><li> <a href="SEL-API-Details.html#Class-tighten_002dcondition"><code>tighten-condition</code></a>
 </li></ul>
 
 
 <p>Methods on Mutations
 </p>
 <ul>
-<li> <a href="SEL-API.html#Function-synthesize_002dcondition"><code>synthesize-condition</code></a>
-</li><li> <a href="SEL-API.html#Generic_002dFunction-valid_002dtargets"><code>valid-targets</code></a>
-</li><li> <a href="SEL-API.html#Function-instrumentation_002dexprs"><code>instrumentation-exprs</code></a>
+<li> <a href="SEL-API-Details.html#Function-synthesize_002dcondition"><code>synthesize-condition</code></a>
+</li><li> <a href="SEL-API-Details.html#Generic_002dFunction-valid_002dtargets"><code>valid-targets</code></a>
+</li><li> <a href="SEL-API-Details.html#Function-instrumentation_002dexprs"><code>instrumentation-exprs</code></a>
 </li></ul>
 
 

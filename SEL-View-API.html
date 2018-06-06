@@ -71,94 +71,98 @@ Next: <a href="General-Lisp-Advice.html#General-Lisp-Advice" accesskey="n" rel="
 
 
 
+<ul>
+<li> <a href="#view_002dapi_002dcontents">SEL View API Contents</a>
+</li><li> <a href="#view_002dapi_002ddetails">SEL View API Details</a>
+</li></ul>
+
+<a name="view_002dapi_002dcontents"></a><a name="SEL-View-API-Contents"></a>
+<h3 class="section">C.1 SEL View API Contents</h3>
 
 
 
-<a name="Contents-1"></a>
-<h3 class="section">C.1 Contents</h3>
 
 <ul>
 <li> Variables
   <ul>
-<li> <a href="#Variable-sel_002fview_003a_002aview_002dapplication_002dname_002a"><code>*view-application-name*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dapplication_002dversion_002a"><code>*view-application-version*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002ddelay_002a"><code>*view-delay*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dfunctions_002a"><code>*view-functions*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dlength_002a"><code>*view-length*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dmax_002dbest_002dlines_002a"><code>*view-max-best-lines*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dmax_002dbest_002doffset_002a"><code>*view-max-best-offset*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dmax_002dmutations_002a"><code>*view-max-mutations*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dmax_002dnote_002dlines_002a"><code>*view-max-note-lines*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dmutation_002dheader_002dp_002a"><code>*view-mutation-header-p*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002drun_002dname_002a"><code>*view-run-name*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002drunning_002a"><code>*view-running*</code></a>
-  </li><li> <a href="#Variable-sel_002fview_003a_002aview_002dstream_002a"><code>*view-stream*</code></a>
+<li> <a href="#Variable-_002aview_002dapplication_002dname_002a"><code>*view-application-name*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dapplication_002dversion_002a"><code>*view-application-version*</code></a>
+  </li><li> <a href="#Variable-_002aview_002ddelay_002a"><code>*view-delay*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dfunctions_002a"><code>*view-functions*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dlength_002a"><code>*view-length*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dmax_002dbest_002dlines_002a"><code>*view-max-best-lines*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dmax_002dbest_002doffset_002a"><code>*view-max-best-offset*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dmax_002dmutations_002a"><code>*view-max-mutations*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dmax_002dnote_002dlines_002a"><code>*view-max-note-lines*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dmutation_002dheader_002dp_002a"><code>*view-mutation-header-p*</code></a>
+  </li><li> <a href="#Variable-_002aview_002drun_002dname_002a"><code>*view-run-name*</code></a>
+  </li><li> <a href="#Variable-_002aview_002drunning_002a"><code>*view-running*</code></a>
+  </li><li> <a href="#Variable-_002aview_002dstream_002a"><code>*view-stream*</code></a>
   </li></ul>
 </li><li> Constants
   <ul>
-<li> <a href="#Constant-sel_002fview_003a_002bb_002dh_002b"><code>+b-h+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dhb_002b"><code>+b-hb+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dht_002b"><code>+b-ht+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dlb_002b"><code>+b-lb+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dlt_002b"><code>+b-lt+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002drb_002b"><code>+b-rb+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002drt_002b"><code>+b-rt+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dstart_002b"><code>+b-start+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dstop_002b"><code>+b-stop+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dv_002b"><code>+b-v+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dvl_002b"><code>+b-vl+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dvr_002b"><code>+b-vr+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bb_002dx_002b"><code>+b-x+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bceol_002b"><code>+ceol+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dblk_002b"><code>+color-blk+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dblu_002b"><code>+color-blu+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dbri_002b"><code>+color-bri+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dbrn_002b"><code>+color-brn+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dcya_002b"><code>+color-cya+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dgra_002b"><code>+color-gra+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dgrn_002b"><code>+color-grn+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dlbl_002b"><code>+color-lbl+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dlcy_002b"><code>+color-lcy+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dlgn_002b"><code>+color-lgn+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dlrd_002b"><code>+color-lrd+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dmgn_002b"><code>+color-mgn+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dnor_002b"><code>+color-nor+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dpin_002b"><code>+color-pin+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dred_002b"><code>+color-red+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002drst_002b"><code>+color-rst+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcolor_002dyel_002b"><code>+color-yel+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcursor_002dhide_002b"><code>+cursor-hide+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bcursor_002dshow_002b"><code>+cursor-show+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002breset_002dg1_002b"><code>+reset-g1+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bset_002dg1_002b"><code>+set-g1+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bterm_002dclear_002b"><code>+term-clear+</code></a>
-  </li><li> <a href="#Constant-sel_002fview_003a_002bterm_002dhome_002b"><code>+term-home+</code></a>
+<li> <a href="#Constant-_002bb_002dh_002b"><code>+b-h+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dhb_002b"><code>+b-hb+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dht_002b"><code>+b-ht+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dlb_002b"><code>+b-lb+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dlt_002b"><code>+b-lt+</code></a>
+  </li><li> <a href="#Constant-_002bb_002drb_002b"><code>+b-rb+</code></a>
+  </li><li> <a href="#Constant-_002bb_002drt_002b"><code>+b-rt+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dstart_002b"><code>+b-start+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dstop_002b"><code>+b-stop+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dv_002b"><code>+b-v+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dvl_002b"><code>+b-vl+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dvr_002b"><code>+b-vr+</code></a>
+  </li><li> <a href="#Constant-_002bb_002dx_002b"><code>+b-x+</code></a>
+  </li><li> <a href="#Constant-_002bceol_002b"><code>+ceol+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dblk_002b"><code>+color-blk+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dblu_002b"><code>+color-blu+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dbri_002b"><code>+color-bri+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dbrn_002b"><code>+color-brn+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dcya_002b"><code>+color-cya+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dgra_002b"><code>+color-gra+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dgrn_002b"><code>+color-grn+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dlbl_002b"><code>+color-lbl+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dlcy_002b"><code>+color-lcy+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dlgn_002b"><code>+color-lgn+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dlrd_002b"><code>+color-lrd+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dmgn_002b"><code>+color-mgn+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dnor_002b"><code>+color-nor+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dpin_002b"><code>+color-pin+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dred_002b"><code>+color-red+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002drst_002b"><code>+color-rst+</code></a>
+  </li><li> <a href="#Constant-_002bcolor_002dyel_002b"><code>+color-yel+</code></a>
+  </li><li> <a href="#Constant-_002bcursor_002dhide_002b"><code>+cursor-hide+</code></a>
+  </li><li> <a href="#Constant-_002bcursor_002dshow_002b"><code>+cursor-show+</code></a>
+  </li><li> <a href="#Constant-_002breset_002dg1_002b"><code>+reset-g1+</code></a>
+  </li><li> <a href="#Constant-_002bset_002dg1_002b"><code>+set-g1+</code></a>
+  </li><li> <a href="#Constant-_002bterm_002dclear_002b"><code>+term-clear+</code></a>
+  </li><li> <a href="#Constant-_002bterm_002dhome_002b"><code>+term-home+</code></a>
   </li></ul>
-</li><li> Macro <a href="#Macro-sel_002fview_003awith_002ddelayed_002dinvocation"><code>with-delayed-invocation</code></a>
-</li><li> Function <a href="#Function-sel_002fview_003aview_002dstart"><code>view-start</code></a>
+</li><li> Macro <a href="#Macro-with_002ddelayed_002dinvocation"><code>with-delayed-invocation</code></a>
+</li><li> Function <a href="#Function-view_002dstart"><code>view-start</code></a>
 </li></ul>
 
-<a name="Documentation-2"></a>
-<h3 class="section">C.2 Documentation</h3>
-
-<a name="index-_002aview_002dapplication_002dname_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dapplication_002dname_002a"></a><dl>
-<dt><a name="index-_002aview_002dapplication_002dname_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-application-name* [sel/view]</strong></dt>
+<a name="view_002dapi_002ddetails"></a><a name="SEL-View-API-Details"></a>
+<h3 class="section">C.2 SEL View API Details</h3>
+<a name="index-_002aview_002dapplication_002dname_002a"></a>
+<a name="Variable-_002aview_002dapplication_002dname_002a"></a><dl>
+<dt><a name="index-_002aview_002dapplication_002dname_002a-1"></a>Variable: <strong>*view-application-name*</strong></dt>
 <dd><p>Name of the application using the view.
 </p></dd></dl>
-<a name="index-_002aview_002dapplication_002dversion_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dapplication_002dversion_002a"></a><dl>
-<dt><a name="index-_002aview_002dapplication_002dversion_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-application-version* [sel/view]</strong></dt>
+<a name="index-_002aview_002dapplication_002dversion_002a"></a>
+<a name="Variable-_002aview_002dapplication_002dversion_002a"></a><dl>
+<dt><a name="index-_002aview_002dapplication_002dversion_002a-1"></a>Variable: <strong>*view-application-version*</strong></dt>
 <dd><p>Version string of the application using the view.
 </p></dd></dl>
-<a name="index-_002aview_002ddelay_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002ddelay_002a"></a><dl>
-<dt><a name="index-_002aview_002ddelay_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-delay* [sel/view]</strong></dt>
+<a name="index-_002aview_002ddelay_002a"></a>
+<a name="Variable-_002aview_002ddelay_002a"></a><dl>
+<dt><a name="index-_002aview_002ddelay_002a-1"></a>Variable: <strong>*view-delay*</strong></dt>
 <dd><p>Seconds to wait between updating the view.
 </p></dd></dl>
-<a name="index-_002aview_002dfunctions_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dfunctions_002a"></a><dl>
-<dt><a name="index-_002aview_002dfunctions_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-functions* [sel/view]</strong></dt>
+<a name="index-_002aview_002dfunctions_002a"></a>
+<a name="Variable-_002aview_002dfunctions_002a"></a><dl>
+<dt><a name="index-_002aview_002dfunctions_002a-1"></a>Variable: <strong>*view-functions*</strong></dt>
 <dd><p>List of the functions called to populate the view.
 View functions return functions which print view information.  All
 functions in this list should return functions to do the printing.
@@ -169,240 +173,240 @@ avoiding flickering in the terminal display.  The
 &lsquo;with-delayed-invocation&rsquo; macro helps with the caching of computation
 and returning of quickly-executing printing functions.
 </p></dd></dl>
-<a name="index-_002aview_002dlength_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dlength_002a"></a><dl>
-<dt><a name="index-_002aview_002dlength_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-length* [sel/view]</strong></dt>
+<a name="index-_002aview_002dlength_002a"></a>
+<a name="Variable-_002aview_002dlength_002a"></a><dl>
+<dt><a name="index-_002aview_002dlength_002a-1"></a>Variable: <strong>*view-length*</strong></dt>
 <dd><p>Dynamically bind to use modify.
 </p></dd></dl>
-<a name="index-_002aview_002dmax_002dbest_002dlines_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dmax_002dbest_002dlines_002a"></a><dl>
-<dt><a name="index-_002aview_002dmax_002dbest_002dlines_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-max-best-lines* [sel/view]</strong></dt>
+<a name="index-_002aview_002dmax_002dbest_002dlines_002a"></a>
+<a name="Variable-_002aview_002dmax_002dbest_002dlines_002a"></a><dl>
+<dt><a name="index-_002aview_002dmax_002dbest_002dlines_002a-1"></a>Variable: <strong>*view-max-best-lines*</strong></dt>
 <dd><p>Number of lines of the best candidate to show.
 </p></dd></dl>
-<a name="index-_002aview_002dmax_002dbest_002doffset_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dmax_002dbest_002doffset_002a"></a><dl>
-<dt><a name="index-_002aview_002dmax_002dbest_002doffset_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-max-best-offset* [sel/view]</strong></dt>
+<a name="index-_002aview_002dmax_002dbest_002doffset_002a"></a>
+<a name="Variable-_002aview_002dmax_002dbest_002doffset_002a"></a><dl>
+<dt><a name="index-_002aview_002dmax_002dbest_002doffset_002a-1"></a>Variable: <strong>*view-max-best-offset*</strong></dt>
 <dd><p>Offset into the lines of the best candidate to show.
 </p></dd></dl>
-<a name="index-_002aview_002dmax_002dmutations_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dmax_002dmutations_002a"></a><dl>
-<dt><a name="index-_002aview_002dmax_002dmutations_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-max-mutations* [sel/view]</strong></dt>
+<a name="index-_002aview_002dmax_002dmutations_002a"></a>
+<a name="Variable-_002aview_002dmax_002dmutations_002a"></a><dl>
+<dt><a name="index-_002aview_002dmax_002dmutations_002a-1"></a>Variable: <strong>*view-max-mutations*</strong></dt>
 <dd><p>Maximum number of mutations to show.
 </p></dd></dl>
-<a name="index-_002aview_002dmax_002dnote_002dlines_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dmax_002dnote_002dlines_002a"></a><dl>
-<dt><a name="index-_002aview_002dmax_002dnote_002dlines_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-max-note-lines* [sel/view]</strong></dt>
+<a name="index-_002aview_002dmax_002dnote_002dlines_002a"></a>
+<a name="Variable-_002aview_002dmax_002dnote_002dlines_002a"></a><dl>
+<dt><a name="index-_002aview_002dmax_002dnote_002dlines_002a-1"></a>Variable: <strong>*view-max-note-lines*</strong></dt>
 <dd><p>Maximum number of lines of notes to show.
 </p></dd></dl>
-<a name="index-_002aview_002dmutation_002dheader_002dp_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dmutation_002dheader_002dp_002a"></a><dl>
-<dt><a name="index-_002aview_002dmutation_002dheader_002dp_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-mutation-header-p* [sel/view]</strong></dt>
+<a name="index-_002aview_002dmutation_002dheader_002dp_002a"></a>
+<a name="Variable-_002aview_002dmutation_002dheader_002dp_002a"></a><dl>
+<dt><a name="index-_002aview_002dmutation_002dheader_002dp_002a-1"></a>Variable: <strong>*view-mutation-header-p*</strong></dt>
 <dd><p>Show headers of mutation stats.
 </p></dd></dl>
-<a name="index-_002aview_002drun_002dname_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002drun_002dname_002a"></a><dl>
-<dt><a name="index-_002aview_002drun_002dname_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-run-name* [sel/view]</strong></dt>
+<a name="index-_002aview_002drun_002dname_002a"></a>
+<a name="Variable-_002aview_002drun_002dname_002a"></a><dl>
+<dt><a name="index-_002aview_002drun_002dname_002a-1"></a>Variable: <strong>*view-run-name*</strong></dt>
 <dd><p>Set the name of the current run.
 For example a description of the evolution target.
 </p></dd></dl>
-<a name="index-_002aview_002drunning_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002drunning_002a"></a><dl>
-<dt><a name="index-_002aview_002drunning_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-running* [sel/view]</strong></dt>
+<a name="index-_002aview_002drunning_002a"></a>
+<a name="Variable-_002aview_002drunning_002a"></a><dl>
+<dt><a name="index-_002aview_002drunning_002a-1"></a>Variable: <strong>*view-running*</strong></dt>
 <dd><p>Set to nil to terminate the view thread.
 </p></dd></dl>
-<a name="index-_002aview_002dstream_002a-_005bsel_002fview_005d"></a>
-<a name="Variable-sel_002fview_003a_002aview_002dstream_002a"></a><dl>
-<dt><a name="index-_002aview_002dstream_002a-_005bsel_002fview_005d-1"></a>Variable: <strong>*view-stream* [sel/view]</strong></dt>
+<a name="index-_002aview_002dstream_002a"></a>
+<a name="Variable-_002aview_002dstream_002a"></a><dl>
+<dt><a name="index-_002aview_002dstream_002a-1"></a>Variable: <strong>*view-stream*</strong></dt>
 <dd><p>Dynamically bind to use modify.
 </p></dd></dl>
-<a name="index-_002bb_002dh_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dh_002b"></a><dl>
-<dt><a name="index-_002bb_002dh_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-h+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dh_002b"></a>
+<a name="Constant-_002bb_002dh_002b"></a><dl>
+<dt><a name="index-_002bb_002dh_002b-1"></a>Constant: <strong>+b-h+</strong></dt>
 <dd><p>Horizontal line
 </p></dd></dl>
-<a name="index-_002bb_002dhb_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dhb_002b"></a><dl>
-<dt><a name="index-_002bb_002dhb_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-hb+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dhb_002b"></a>
+<a name="Constant-_002bb_002dhb_002b"></a><dl>
+<dt><a name="index-_002bb_002dhb_002b-1"></a>Constant: <strong>+b-hb+</strong></dt>
 <dd><p>Horizontal, branch bottom
 </p></dd></dl>
-<a name="index-_002bb_002dht_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dht_002b"></a><dl>
-<dt><a name="index-_002bb_002dht_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-ht+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dht_002b"></a>
+<a name="Constant-_002bb_002dht_002b"></a><dl>
+<dt><a name="index-_002bb_002dht_002b-1"></a>Constant: <strong>+b-ht+</strong></dt>
 <dd><p>Horizontal, branch top
 </p></dd></dl>
-<a name="index-_002bb_002dlb_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dlb_002b"></a><dl>
-<dt><a name="index-_002bb_002dlb_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-lb+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dlb_002b"></a>
+<a name="Constant-_002bb_002dlb_002b"></a><dl>
+<dt><a name="index-_002bb_002dlb_002b-1"></a>Constant: <strong>+b-lb+</strong></dt>
 <dd><p>Left bottom corner
 </p></dd></dl>
-<a name="index-_002bb_002dlt_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dlt_002b"></a><dl>
-<dt><a name="index-_002bb_002dlt_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-lt+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dlt_002b"></a>
+<a name="Constant-_002bb_002dlt_002b"></a><dl>
+<dt><a name="index-_002bb_002dlt_002b-1"></a>Constant: <strong>+b-lt+</strong></dt>
 <dd><p>Left top corner
 </p></dd></dl>
-<a name="index-_002bb_002drb_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002drb_002b"></a><dl>
-<dt><a name="index-_002bb_002drb_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-rb+ [sel/view]</strong></dt>
+<a name="index-_002bb_002drb_002b"></a>
+<a name="Constant-_002bb_002drb_002b"></a><dl>
+<dt><a name="index-_002bb_002drb_002b-1"></a>Constant: <strong>+b-rb+</strong></dt>
 <dd><p>Right bottom corner
 </p></dd></dl>
-<a name="index-_002bb_002drt_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002drt_002b"></a><dl>
-<dt><a name="index-_002bb_002drt_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-rt+ [sel/view]</strong></dt>
+<a name="index-_002bb_002drt_002b"></a>
+<a name="Constant-_002bb_002drt_002b"></a><dl>
+<dt><a name="index-_002bb_002drt_002b-1"></a>Constant: <strong>+b-rt+</strong></dt>
 <dd><p>Right top corner
 </p></dd></dl>
-<a name="index-_002bb_002dstart_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dstart_002b"></a><dl>
-<dt><a name="index-_002bb_002dstart_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-start+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dstart_002b"></a>
+<a name="Constant-_002bb_002dstart_002b"></a><dl>
+<dt><a name="index-_002bb_002dstart_002b-1"></a>Constant: <strong>+b-start+</strong></dt>
 <dd><p>Enter G1 drawing mode
 </p></dd></dl>
-<a name="index-_002bb_002dstop_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dstop_002b"></a><dl>
-<dt><a name="index-_002bb_002dstop_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-stop+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dstop_002b"></a>
+<a name="Constant-_002bb_002dstop_002b"></a><dl>
+<dt><a name="index-_002bb_002dstop_002b-1"></a>Constant: <strong>+b-stop+</strong></dt>
 <dd><p>Leave G1 drawing mode
 </p></dd></dl>
-<a name="index-_002bb_002dv_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dv_002b"></a><dl>
-<dt><a name="index-_002bb_002dv_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-v+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dv_002b"></a>
+<a name="Constant-_002bb_002dv_002b"></a><dl>
+<dt><a name="index-_002bb_002dv_002b-1"></a>Constant: <strong>+b-v+</strong></dt>
 <dd><p>Vertical line
 </p></dd></dl>
-<a name="index-_002bb_002dvl_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dvl_002b"></a><dl>
-<dt><a name="index-_002bb_002dvl_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-vl+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dvl_002b"></a>
+<a name="Constant-_002bb_002dvl_002b"></a><dl>
+<dt><a name="index-_002bb_002dvl_002b-1"></a>Constant: <strong>+b-vl+</strong></dt>
 <dd><p>Vertical, branch left
 </p></dd></dl>
-<a name="index-_002bb_002dvr_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dvr_002b"></a><dl>
-<dt><a name="index-_002bb_002dvr_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-vr+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dvr_002b"></a>
+<a name="Constant-_002bb_002dvr_002b"></a><dl>
+<dt><a name="index-_002bb_002dvr_002b-1"></a>Constant: <strong>+b-vr+</strong></dt>
 <dd><p>Vertical, branch right
 </p></dd></dl>
-<a name="index-_002bb_002dx_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bb_002dx_002b"></a><dl>
-<dt><a name="index-_002bb_002dx_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+b-x+ [sel/view]</strong></dt>
+<a name="index-_002bb_002dx_002b"></a>
+<a name="Constant-_002bb_002dx_002b"></a><dl>
+<dt><a name="index-_002bb_002dx_002b-1"></a>Constant: <strong>+b-x+</strong></dt>
 <dd><p>Cross
 </p></dd></dl>
-<a name="index-_002bceol_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bceol_002b"></a><dl>
-<dt><a name="index-_002bceol_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+ceol+ [sel/view]</strong></dt>
+<a name="index-_002bceol_002b"></a>
+<a name="Constant-_002bceol_002b"></a><dl>
+<dt><a name="index-_002bceol_002b-1"></a>Constant: <strong>+ceol+</strong></dt>
 <dd><p>Clear to end of line.
 </p></dd></dl>
-<a name="index-_002bcolor_002dblk_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dblk_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dblk_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-blk+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dblk_002b"></a>
+<a name="Constant-_002bcolor_002dblk_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dblk_002b-1"></a>Constant: <strong>+color-blk+</strong></dt>
 <dd><p>Color <code>blk</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dblu_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dblu_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dblu_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-blu+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dblu_002b"></a>
+<a name="Constant-_002bcolor_002dblu_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dblu_002b-1"></a>Constant: <strong>+color-blu+</strong></dt>
 <dd><p>Color <code>blu</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dbri_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dbri_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dbri_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-bri+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dbri_002b"></a>
+<a name="Constant-_002bcolor_002dbri_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dbri_002b-1"></a>Constant: <strong>+color-bri+</strong></dt>
 <dd><p>Color <code>bri</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dbrn_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dbrn_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dbrn_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-brn+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dbrn_002b"></a>
+<a name="Constant-_002bcolor_002dbrn_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dbrn_002b-1"></a>Constant: <strong>+color-brn+</strong></dt>
 <dd><p>Color <code>brn</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dcya_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dcya_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dcya_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-cya+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dcya_002b"></a>
+<a name="Constant-_002bcolor_002dcya_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dcya_002b-1"></a>Constant: <strong>+color-cya+</strong></dt>
 <dd><p>Color <code>cya</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dgra_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dgra_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dgra_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-gra+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dgra_002b"></a>
+<a name="Constant-_002bcolor_002dgra_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dgra_002b-1"></a>Constant: <strong>+color-gra+</strong></dt>
 <dd><p>Color <code>gra</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dgrn_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dgrn_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dgrn_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-grn+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dgrn_002b"></a>
+<a name="Constant-_002bcolor_002dgrn_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dgrn_002b-1"></a>Constant: <strong>+color-grn+</strong></dt>
 <dd><p>Color <code>grn</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dlbl_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dlbl_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dlbl_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-lbl+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dlbl_002b"></a>
+<a name="Constant-_002bcolor_002dlbl_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dlbl_002b-1"></a>Constant: <strong>+color-lbl+</strong></dt>
 <dd><p>Color <code>lbl</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dlcy_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dlcy_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dlcy_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-lcy+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dlcy_002b"></a>
+<a name="Constant-_002bcolor_002dlcy_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dlcy_002b-1"></a>Constant: <strong>+color-lcy+</strong></dt>
 <dd><p>Color <code>lcy</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dlgn_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dlgn_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dlgn_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-lgn+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dlgn_002b"></a>
+<a name="Constant-_002bcolor_002dlgn_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dlgn_002b-1"></a>Constant: <strong>+color-lgn+</strong></dt>
 <dd><p>Color <code>lgn</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dlrd_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dlrd_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dlrd_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-lrd+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dlrd_002b"></a>
+<a name="Constant-_002bcolor_002dlrd_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dlrd_002b-1"></a>Constant: <strong>+color-lrd+</strong></dt>
 <dd><p>Color <code>lrd</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dmgn_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dmgn_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dmgn_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-mgn+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dmgn_002b"></a>
+<a name="Constant-_002bcolor_002dmgn_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dmgn_002b-1"></a>Constant: <strong>+color-mgn+</strong></dt>
 <dd><p>Color <code>mgn</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dnor_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dnor_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dnor_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-nor+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dnor_002b"></a>
+<a name="Constant-_002bcolor_002dnor_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dnor_002b-1"></a>Constant: <strong>+color-nor+</strong></dt>
 <dd><p>Color <code>nor</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dpin_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dpin_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dpin_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-pin+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dpin_002b"></a>
+<a name="Constant-_002bcolor_002dpin_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dpin_002b-1"></a>Constant: <strong>+color-pin+</strong></dt>
 <dd><p>Color <code>pin</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dred_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dred_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dred_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-red+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dred_002b"></a>
+<a name="Constant-_002bcolor_002dred_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dred_002b-1"></a>Constant: <strong>+color-red+</strong></dt>
 <dd><p>Color <code>red</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002drst_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002drst_002b"></a><dl>
-<dt><a name="index-_002bcolor_002drst_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-rst+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002drst_002b"></a>
+<a name="Constant-_002bcolor_002drst_002b"></a><dl>
+<dt><a name="index-_002bcolor_002drst_002b-1"></a>Constant: <strong>+color-rst+</strong></dt>
 <dd><p>Color <code>rst</code>.
 </p></dd></dl>
-<a name="index-_002bcolor_002dyel_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcolor_002dyel_002b"></a><dl>
-<dt><a name="index-_002bcolor_002dyel_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+color-yel+ [sel/view]</strong></dt>
+<a name="index-_002bcolor_002dyel_002b"></a>
+<a name="Constant-_002bcolor_002dyel_002b"></a><dl>
+<dt><a name="index-_002bcolor_002dyel_002b-1"></a>Constant: <strong>+color-yel+</strong></dt>
 <dd><p>Color <code>yel</code>.
 </p></dd></dl>
-<a name="index-_002bcursor_002dhide_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcursor_002dhide_002b"></a><dl>
-<dt><a name="index-_002bcursor_002dhide_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+cursor-hide+ [sel/view]</strong></dt>
+<a name="index-_002bcursor_002dhide_002b"></a>
+<a name="Constant-_002bcursor_002dhide_002b"></a><dl>
+<dt><a name="index-_002bcursor_002dhide_002b-1"></a>Constant: <strong>+cursor-hide+</strong></dt>
 <dd><p>Hide the cursor.
 </p></dd></dl>
-<a name="index-_002bcursor_002dshow_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bcursor_002dshow_002b"></a><dl>
-<dt><a name="index-_002bcursor_002dshow_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+cursor-show+ [sel/view]</strong></dt>
+<a name="index-_002bcursor_002dshow_002b"></a>
+<a name="Constant-_002bcursor_002dshow_002b"></a><dl>
+<dt><a name="index-_002bcursor_002dshow_002b-1"></a>Constant: <strong>+cursor-show+</strong></dt>
 <dd><p>Show the cursor.
 </p></dd></dl>
-<a name="index-_002breset_002dg1_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002breset_002dg1_002b"></a><dl>
-<dt><a name="index-_002breset_002dg1_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+reset-g1+ [sel/view]</strong></dt>
+<a name="index-_002breset_002dg1_002b"></a>
+<a name="Constant-_002breset_002dg1_002b"></a><dl>
+<dt><a name="index-_002breset_002dg1_002b-1"></a>Constant: <strong>+reset-g1+</strong></dt>
 <dd><p>Reset G1 to <code>ascii</code>
 </p></dd></dl>
-<a name="index-_002bset_002dg1_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bset_002dg1_002b"></a><dl>
-<dt><a name="index-_002bset_002dg1_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+set-g1+ [sel/view]</strong></dt>
+<a name="index-_002bset_002dg1_002b"></a>
+<a name="Constant-_002bset_002dg1_002b"></a><dl>
+<dt><a name="index-_002bset_002dg1_002b-1"></a>Constant: <strong>+set-g1+</strong></dt>
 <dd><p>Set G1 for box drawing
 </p></dd></dl>
-<a name="index-_002bterm_002dclear_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bterm_002dclear_002b"></a><dl>
-<dt><a name="index-_002bterm_002dclear_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+term-clear+ [sel/view]</strong></dt>
+<a name="index-_002bterm_002dclear_002b"></a>
+<a name="Constant-_002bterm_002dclear_002b"></a><dl>
+<dt><a name="index-_002bterm_002dclear_002b-1"></a>Constant: <strong>+term-clear+</strong></dt>
 <dd><p>Clear terminal.
 </p></dd></dl>
-<a name="index-_002bterm_002dhome_002b-_005bsel_002fview_005d"></a>
-<a name="Constant-sel_002fview_003a_002bterm_002dhome_002b"></a><dl>
-<dt><a name="index-_002bterm_002dhome_002b-_005bsel_002fview_005d-1"></a>Constant: <strong>+term-home+ [sel/view]</strong></dt>
+<a name="index-_002bterm_002dhome_002b"></a>
+<a name="Constant-_002bterm_002dhome_002b"></a><dl>
+<dt><a name="index-_002bterm_002dhome_002b-1"></a>Constant: <strong>+term-home+</strong></dt>
 <dd><p>Set terminal back to home (top left).
 </p></dd></dl>
-<a name="index-with_002ddelayed_002dinvocation-_005bsel_002fview_005d"></a>
-<a name="Macro-sel_002fview_003awith_002ddelayed_002dinvocation"></a><dl>
-<dt><a name="index-with_002ddelayed_002dinvocation-_005bsel_002fview_005d-1"></a>Macro: <strong>with-delayed-invocation [sel/view]</strong> <em>spec &amp;rest body</em></dt>
+<a name="index-with_002ddelayed_002dinvocation"></a>
+<a name="Macro-with_002ddelayed_002dinvocation"></a><dl>
+<dt><a name="index-with_002ddelayed_002dinvocation-1"></a>Macro: <strong>with-delayed-invocation</strong> <em>spec &amp;rest body</em></dt>
 <dd><p>Take a form with a function marked as <code>delayed</code>.
 Argument <code>spec</code> should be a list holding a function name, and optionally
 a form to evaluate to determine if the invocation should be
@@ -410,9 +414,9 @@ run (otherwise an empty function is returned).  Rewrite into a form
 which calculates all arguments and returns a lambda calling the
 delayed function on the arguments.
 </p></dd></dl>
-<a name="index-view_002dstart-_005bsel_002fview_005d"></a>
-<a name="Function-sel_002fview_003aview_002dstart"></a><dl>
-<dt><a name="index-view_002dstart-_005bsel_002fview_005d-1"></a>Function: <strong>view-start [sel/view]</strong></dt>
+<a name="index-view_002dstart"></a>
+<a name="Function-view_002dstart"></a><dl>
+<dt><a name="index-view_002dstart-1"></a>Function: <strong>view-start</strong></dt>
 <dd><p>Start a viewing thread regularly updating &lsquo;view-status&rsquo;.
 Optional argument <code>delay</code> controls the rate at which the view refreshes.
 </p></dd></dl>

@@ -76,11 +76,11 @@ implementation: a mutant that passes every test case in the script.
 <p>As before, we use the <code>test</code> function defined in the
 <a href="Evaluation.html#Evaluation">Evaluation</a> example to measure the fitness of each program
 variant. This time, <code>test</code> is used as the fitness test in
-applying <a href="SEL-API.html#Macro-evolve"><code>evolve</code></a> to a <a href="SEL-API.html#Variable-_002apopulation_002a"><code>*population*</code></a>
+applying <a href="SEL-API-Details.html#Macro-evolve"><code>evolve</code></a> to a <a href="SEL-API-Details.html#Variable-_002apopulation_002a"><code>*population*</code></a>
 initialized with 100 copies of the original program. Variable
-<a href="SEL-API.html#Variable-_002atarget_002dfitness_002dp_002a"><code>*target-fitness-p*</code></a> is set up so that the search will
+<a href="SEL-API-Details.html#Variable-_002atarget_002dfitness_002dp_002a"><code>*target-fitness-p*</code></a> is set up so that the search will
 terminate when a member of the population has a fitness value that
-indicates it is passing all of the tests; <a href="SEL-API.html#Macro-evolve"><code>evolve</code></a>&rsquo;s
+indicates it is passing all of the tests; <a href="SEL-API-Details.html#Macro-evolve"><code>evolve</code></a>&rsquo;s
 keyword argument <code>:max-evals</code> ensures that execution will always
 terminate after at most 100 fitness evaluations.
 </p>
@@ -137,18 +137,18 @@ terminate after at most 100 fitness evaluations.
 
 
 <ul>
-<li> Class <a href="SEL-API.html#Class-asm"><code>asm</code></a>
-</li><li> Macro <a href="SEL-API.html#Macro-evolve"><code>evolve</code></a>
+<li> Class <a href="SEL-API-Details.html#Class-asm"><code>asm</code></a>
+</li><li> Macro <a href="SEL-API-Details.html#Macro-evolve"><code>evolve</code></a>
 </li><li> Methods
   <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-copy"><code>copy</code></a>
-  </li><li> <a href="SEL-API.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-copy"><code>copy</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
   </li></ul>
 </li><li> Variables
   <ul>
-<li> <a href="SEL-API.html#Variable-_002apopulation_002a"><code>*population*</code></a>
-  </li><li> <a href="SEL-API.html#Variable-_002atarget_002dfitness_002dp_002a"><code>*target-fitness-p*</code></a>
-  </li><li> <a href="SEL-API.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate*</code></a>
+<li> <a href="SEL-API-Details.html#Variable-_002apopulation_002a"><code>*population*</code></a>
+  </li><li> <a href="SEL-API-Details.html#Variable-_002atarget_002dfitness_002dp_002a"><code>*target-fitness-p*</code></a>
+  </li><li> <a href="SEL-API-Details.html#Variable-_002afitness_002dpredicate_002a"><code>*fitness-predicate*</code></a>
   </li></ul>
 </li></ul>
 
@@ -157,7 +157,7 @@ terminate after at most 100 fitness evaluations.
 <h4 class="subsection">4.2.5 Parallel Repair</h4>
 <a name="index-parallel-repair"></a>
 
-<p>Evolution may be parallelized by calling <a href="SEL-API.html#Macro-evolve"><code>evolve</code></a> in multiple
+<p>Evolution may be parallelized by calling <a href="SEL-API-Details.html#Macro-evolve"><code>evolve</code></a> in multiple
 threads.
 </p>
 <p>For example a parallel version of the previous example would

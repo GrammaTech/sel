@@ -74,13 +74,13 @@ runs. Traces can be saved to a file or read over a pipe for immediate
 use.
 </p>
 <p>Software objects which need to support trace collection should include
-an <code>instrument</code> method and derive from <a href="SEL-API.html#Class-traceable"><code>traceable</code></a>.
+an <code>instrument</code> method and derive from <a href="SEL-API-Details.html#Class-traceable"><code>traceable</code></a>.
 </p>
 
 <a name="Instrumenting"></a>
 <h4 class="subsection">3.7.1 Instrumenting</h4>
 
-<p>The <a href="SEL-API.html#Generic_002dFunction-instrument"><code>instrument</code></a> method inserts instrumentation code
+<p>The <a href="SEL-API-Details.html#Generic_002dFunction-instrument"><code>instrument</code></a> method inserts instrumentation code
 into a software object. By default the instrumentation will print
 program locations as they are executed.
 </p>
@@ -117,8 +117,8 @@ primitive types are instrumented.
 <h4 class="subsection">3.7.2 Traces</h4>
 
 <p>To collect traces, pass an instrumented version of the software object
-to the <a href="SEL-API.html#Generic_002dFunction-collect_002dtraces"><code>collect-traces</code></a> method along with a
-<a href="SEL-API.html#Class-test_002dsuite"><code>test-suite</code></a> of test cases you wish to execute on the
+to the <a href="SEL-API-Details.html#Generic_002dFunction-collect_002dtraces"><code>collect-traces</code></a> method along with a
+<a href="SEL-API-Details.html#Class-test_002dsuite"><code>test-suite</code></a> of test cases you wish to execute on the
 instrumented object.
 </p>
 <p>The trace format can store program locations, variables, and auxiliary
@@ -135,7 +135,7 @@ because CFFI (which is used to wrap the trace library) does not
 support long doubles.
 
 </li><li> The <code>:print-strings</code> option to
-<a href="SEL-API.html#Generic_002dFunction-var_002dinstrument"><code>var-instrument</code></a> does not print the contents of
+<a href="SEL-API-Details.html#Generic_002dFunction-var_002dinstrument"><code>var-instrument</code></a> does not print the contents of
 wide-character strings.
 
 

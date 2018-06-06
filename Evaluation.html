@@ -75,16 +75,16 @@ variant and keep track of the evaluation results.
 gcd test cases. Our fitness function will be the number of test cases
 for which a program produces the correct solution.
 </p>
-<p>Once a fitness value for a <a href="SEL-API.html#Class-software"><code>software</code></a> object is
+<p>Once a fitness value for a <a href="SEL-API-Details.html#Class-software"><code>software</code></a> object is
 established, it can be recorded in the object&rsquo;s <code>fitness</code> field.
 </p>
 
 <p>The example code below has two main components:
 </p>
 <ul>
-<li> A <code>test</code> function that harnesses the <code>test.sh</code> script to evaluate the fitness of an individual <a href="SEL-API.html#Class-asm"><code>asm</code></a> object.
+<li> A <code>test</code> function that harnesses the <code>test.sh</code> script to evaluate the fitness of an individual <a href="SEL-API-Details.html#Class-asm"><code>asm</code></a> object.
 
-</li><li> A loop in which ten mutants of the   <a href="SEL-API.html#Class-asm"><code>asm</code></a> object corresponding to the original <code>gcd.s</code> program are generated, their fitness assessed, and the results printed.
+</li><li> A loop in which ten mutants of the   <a href="SEL-API-Details.html#Class-asm"><code>asm</code></a> object corresponding to the original <code>gcd.s</code> program are generated, their fitness assessed, and the results printed.
 </li></ul>
 
 
@@ -147,16 +147,16 @@ established, it can be recorded in the object&rsquo;s <code>fitness</code> field
 <h4 class="subsubheading">API components in this example</h4>
 
 <ul>
-<li> Class <a href="SEL-API.html#Class-asm"><code>asm</code></a>
+<li> Class <a href="SEL-API-Details.html#Class-asm"><code>asm</code></a>
 </li><li> Methods
   <ul>
-<li> <a href="SEL-API.html#Generic_002dFunction-copy"><code>copy</code></a>
-  </li><li> <a href="SEL-API.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
-  </li><li> <a href="SEL-API.html#Generic_002dFunction-mutate"><code>mutate</code></a>
-  </li><li> <a href="SEL-API.html#Generic_002dFunction-phenome"><code>phenome</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-copy"><code>copy</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-mutate"><code>mutate</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-phenome"><code>phenome</code></a>
   </li></ul>
-</li><li> [sel/utility] Macro <a href="SEL-Utility-API.html#Macro-sel_002futility_003awith_002dtemp_002dfile"><code>with-temp-file</code></a>
-</li><li> [sel/utility] Function <a href="SEL-Utility-API.html#Function-sel_002futility_003ashell"><code>shell</code></a>
+</li><li> [sel/utility] Macro <a href="SEL-Utility-API.html#Macro-with_002dtemp_002dfile"><code>with-temp-file</code></a>
+</li><li> [sel/utility] Function <a href="SEL-Utility-API.html#Function-shell"><code>shell</code></a>
 </li></ul>
 
 

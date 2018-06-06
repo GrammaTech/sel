@@ -69,10 +69,10 @@ Next: <a href="Software-Methods.html#Software-Methods" accesskey="n" rel="next">
 <a name="index-software-objects"></a>
 
 <p>The Software Evolution Library represents software as <em>software
-objects</em> which all inherit from the base <a href="SEL-API.html#Class-software"><code>software</code></a> class.
+objects</em> which all inherit from the base <a href="SEL-API-Details.html#Class-software"><code>software</code></a> class.
 Currently many subclasses of software are defined.  These classes may
 inherit from other software sub-classes, e.g. most tree-structured
-source code software objects inherit from the <a href="SEL-API.html#Class-parseable"><code>parseable</code></a> class.
+source code software objects inherit from the <a href="SEL-API-Details.html#Class-parseable"><code>parseable</code></a> class.
 The inheritance tree of software objects is shown graphically in
 <a href="Implementation.html#fig_003aoverview">Figure 2.1</a>.
 </p>
@@ -83,16 +83,16 @@ with an indicate of their relative maturity.
 
 <table>
 <thead><tr><th>Software type</th><th>SEL Class</th><th>Maturity</th></tr></thead>
-<tr><td>C and C++ source</td><td><a href="SEL-API.html#Class-clang"><code>clang</code></a></td><td>mature</td></tr>
-<tr><td>compiled assembler (ASM)</td><td><a href="SEL-API.html#Class-asm"><code>asm</code></a></td><td>mature</td></tr>
-<tr><td>linked ELF binaries <br> (manipulated as assembler)</td><td><a href="SEL-API.html#Class-csurf_002dasm"><code>csurf-asm</code></a></td><td>mature</td></tr>
-<tr><td>linked ELF binaries</td><td><a href="SEL-API.html#Class-elf_002dmips"><code>elf-mips</code></a> <br>  <a href="SEL-API.html#Class-elf_002dcisc"><code>elf-cisc</code></a></td><td>mature (not recommended)</td></tr>
-<tr><td>Java source</td><td><a href="SEL-API.html#Class-java"><code>java</code></a></td><td>experimental</td></tr>
-<tr><td>LLVM IR</td><td><a href="SEL-API.html#Class-llvm"><code>llvm</code></a></td><td>experimental</td></tr>
-<tr><td>CIL</td><td><a href="SEL-API.html#Class-cil"><code>cil</code></a></td><td>experimental</td></tr>
-<tr><td>LISP</td><td><a href="SEL-API.html#Class-lisp"><code>lisp</code></a></td><td>experimental</td></tr>
-<tr><td>Coq source</td><td><a href="SEL-API.html#Class-coq"><code>coq</code></a></td><td>experimental</td></tr>
-<tr><td>Forth</td><td><a href="SEL-API.html#Class-forth"><code>forth</code></a></td><td>experimental</td></tr>
+<tr><td>C and C++ source</td><td><a href="SEL-API-Details.html#Class-clang"><code>clang</code></a></td><td>mature</td></tr>
+<tr><td>compiled assembler (ASM)</td><td><a href="SEL-API-Details.html#Class-asm"><code>asm</code></a></td><td>mature</td></tr>
+<tr><td>linked ELF binaries <br> (manipulated as assembler)</td><td><a href="SEL-API-Details.html#Class-csurf_002dasm"><code>csurf-asm</code></a></td><td>mature</td></tr>
+<tr><td>linked ELF binaries</td><td><a href="SEL-API-Details.html#Class-elf_002dmips"><code>elf-mips</code></a> <br>  <a href="SEL-API-Details.html#Class-elf_002dcisc"><code>elf-cisc</code></a></td><td>mature (not recommended)</td></tr>
+<tr><td>Java source</td><td><a href="SEL-API-Details.html#Class-java"><code>java</code></a></td><td>experimental</td></tr>
+<tr><td>LLVM IR</td><td><a href="SEL-API-Details.html#Class-llvm"><code>llvm</code></a></td><td>experimental</td></tr>
+<tr><td>CIL</td><td><a href="SEL-API-Details.html#Class-cil"><code>cil</code></a></td><td>experimental</td></tr>
+<tr><td>LISP</td><td><a href="SEL-API-Details.html#Class-lisp"><code>lisp</code></a></td><td>experimental</td></tr>
+<tr><td>Coq source</td><td><a href="SEL-API-Details.html#Class-coq"><code>coq</code></a></td><td>experimental</td></tr>
+<tr><td>Forth</td><td><a href="SEL-API-Details.html#Class-forth"><code>forth</code></a></td><td>experimental</td></tr>
 </table>
 <div class="float-caption"><p><strong>Table 2.1: </strong>Supported software objects listed with relative maturity.</p></div></div>
 <p>These classes may also inherit from <em>mixin</em> classes which provide
@@ -102,10 +102,9 @@ classes and mixins (which may be added to a software objects
 inheritance tree to provide additional functionality) are described in
 the following subsections.
 </p>
-<p>Software Object Classes (see also
-<a href="SEL-API.html#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> in the API):
-</p><table class="menu" border="0" cellspacing="0">
-<tr><td align="left" valign="top">&bull; <a href="C_002fC_002b_002b-with-clang.html#C_002fC_002b_002b-with-clang" accesskey="1">C/C++ with <code>clang</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">C language source code ASTs
+<table class="menu" border="0" cellspacing="0">
+<tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">Software Object Classes (see also <a href="SEL-API-Concept-Index.html#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> in the API)
+</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="C_002fC_002b_002b-with-clang.html#C_002fC_002b_002b-with-clang" accesskey="1">C/C++ with <code>clang</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">C language source code ASTs
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Assembler-with-asm.html#Assembler-with-asm" accesskey="2">Assembler with <code>asm</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Assembler represented as a vector
 </td></tr>
@@ -116,16 +115,13 @@ the following subsections.
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Coq-with-coq.html#Coq-with-coq" accesskey="5">Coq with <code>coq</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Coq language source code ASTs
 </td></tr>
-</table>
+<tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
 
-<p>Software Object Mixins (see also
-<a href="SEL-API.html#api_002dsoftware_002dobject_002dmixins">Software Object Class &ldquo;Mixins&rdquo;</a> in
-the API):
-</p><table class="menu" border="0" cellspacing="0">
-<tr><td align="left" valign="top">&bull; <a href="Ancestor-tracking-with-ancestral.html#Ancestor-tracking-with-ancestral" accesskey="1">Ancestor tracking with <code>ancestral</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Collect history of applied
+Software Object Mixins (see also <a href="SEL-API-Concept-Index.html#api_002dsoftware_002dobject_002dmixins">Software Object Class &ldquo;Mixins&rdquo;</a> in the API)
+</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="Ancestor-tracking-with-ancestral.html#Ancestor-tracking-with-ancestral" accesskey="6">Ancestor tracking with <code>ancestral</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Collect history of applied
                                         mutations and crossover events.
 </td></tr>
-<tr><td align="left" valign="top">&bull; <a href="Lighter-asm-alternatives-light_002frange_002fdiff.html#Lighter-asm-alternatives-light_002frange_002fdiff" accesskey="2">Lighter asm alternatives <code>light</code>/<code>range</code>/<code>diff</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
+<tr><td align="left" valign="top">&bull; <a href="Lighter-asm-alternatives-light_002frange_002fdiff.html#Lighter-asm-alternatives-light_002frange_002fdiff" accesskey="7">Lighter asm alternatives <code>light</code>/<code>range</code>/<code>diff</code></a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">
                                         Lighter weight alternatives to
                                         <code>simple</code> software.
 </td></tr>
