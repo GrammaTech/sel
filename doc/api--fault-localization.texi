@@ -28,12 +28,3 @@ See also  the manual section on @ref{Fault Localization}.
   @item @refapimethod{collect-fault-loc-traces,collect-fault-loc-traces}
   @end itemize
 @end itemize
-
-
-@c defun stmts-in-file
-@c defun add-to-pos
-@c defun pp-stmt-counts
-@c defun pp-positions
-@c defun rinard-compare
-@c defun print-rinard
-@c defstruct stmt-counts

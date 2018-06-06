@@ -57,39 +57,3 @@ Condition synthesis details and an example are provided in section
 
 @c @item @ref{api-condition-synthesis-constants, Constants}
 @end itemize
-
-
-@c @include include/fun-sel-abs-cond-expr.texinfo
-@c @include include/fun-sel-refined-condition.texinfo
-@c @include include/fun-sel-build-op.texinfo
-@c @include include/fun-sel-contains-abstract-condition.texinfo
-@c @include include/fun-sel-and-not-connector.texinfo
-@c @include include/fun-sel-apply-best-cond-mutation.texinfo
-@c @include include/fun-sel-build-failed.texinfo
-@c @include include/fun-sel-build.texinfo
-@c @include include/fun-sel-collect-negative-conds-and-envs.texinfo
-@c @include include/fun-sel-collect-positive-conds-and-envs.texinfo
-@c @include include/fun-sel-collect-tests.texinfo
-@c @include include/fun-sel-entails.texinfo
-@c @include include/fun-sel-find-best-condition.texinfo
-@c @include include/fun-sel-flip.texinfo
-@c @include include/fun-sel-get-abst-cond-locs.texinfo
-@c @include include/fun-sel-get-parent-control-stmt.texinfo
-@c @include include/fun-sel-guard-statements.texinfo
-@c @include include/fun-sel-improves-fitness.texinfo
-@c @include include/fun-sel-instrument-abst-cond-traces.texinfo
-@c @include include/fun-sel-instrument-values.texinfo
-@c @include include/fun-sel-make-source.texinfo
-@c @include include/fun-sel-or-connector.texinfo
-@c @include include/fun-sel-pick-if-statement.texinfo
-@c @include include/fun-sel-pick-target-condition.texinfo
-@c @include include/fun-sel-read-abst-conds-and-envs.texinfo
-@c @include include/fun-sel-run-test-case.texinfo
-@c @include include/fun-sel-synthesize-conditions.texinfo
-@c @include include/fun-sel-tails.texinfo
-@c @include include/fun-sel-types-equal.texinfo
-@c trace-file
-@c max-trace-length
-
-
-@c abst-cond-source

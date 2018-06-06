@@ -40,7 +40,7 @@ Software Object Classes
        @item @ref{api-software-objects-elf-risc, @code{elf-risc}}
          @itemize
          @item @ref{api-software-objects-elf-mips, @code{elf-mips}}
-         @end itemize 
+         @end itemize
        @end itemize
      @item @ref{api-software-objects-forth, @code{forth}}
      @item @ref{api-software-objects-lisp, @code{lisp}}
@@ -111,12 +111,12 @@ Class @code{software}
         @end itemize
       @end itemize
     @end itemize
- 
+
   @item @ref{api-software-objects-project, @code{project}}
     @itemize
     @item @ref{api-software-objects-clang-project, @code{clang-project}}
     @end itemize
-    
+
   @item @ref{api-software-objects-simple, @code{simple}}
     @itemize
     @item @ref{api-software-objects-asm,@code{asm}}
@@ -135,9 +135,9 @@ Class @code{software}
       @item @ref{api-software-objects-elf-risc, @code{elf-risc}}
         @itemize
         @item @ref{api-software-objects-elf-mips, @code{elf-mips}}
-        @end itemize 
+        @end itemize
       @end itemize
-     @item @ref{api-software-objects-forth, @code{forth}}     
+     @item @ref{api-software-objects-forth, @code{forth}}
      @item @ref{api-software-objects-light, @code{light}}
      @item @ref{api-software-objects-lisp, @code{lisp}}
        @itemize
@@ -159,14 +159,14 @@ Class @code{software}
   @item @refapigeneric{copy}
   @item @refapigeneric{delete-decl-stmts}
   @item @refapigeneric{expression}
-  @item @refapigeneric{one-point-crossover}  
+  @item @refapigeneric{one-point-crossover}
   @item @refapigeneric{two-point-crossover}
   @item @refapigeneric{from-file}
   @item @refapigeneric{from-string}
   @item @refapigeneric{genome}
   @item @refapigeneric{genome-string}
   @item @refapigeneric{lines}
-  @item @refapigeneric{mutate}  
+  @item @refapigeneric{mutate}
   @item @refapigeneric{phenome}
   @item @refapigeneric{pick}
   @item @refapigeneric{pick-bad}
@@ -337,7 +337,7 @@ Class @code{parseable}
 
   @item Methods
     @itemize
-    @item @refapimethod{source-text,source-text} : multiple methods for arguments of type string, @refapistruct{ast}, @refapistruct{ast-node} 
+    @item @refapimethod{source-text,source-text} : multiple methods for arguments of type string, @refapistruct{ast}, @refapistruct{ast-node}
     @item @refapimethod{replace-in-ast,replace-in-ast} : multiple methods for arguments of type string, @refapistruct{ast}
     @end itemize
   @end itemize
@@ -373,8 +373,8 @@ Class @code{clang}
   @itemize
   @item @refapiclass{clang-mutation}
   @item @refapiclass{clang-cut}
-  @item @refapiclass{clang-cut-full}  
-  @item @refapiclass{clang-insert}  
+  @item @refapiclass{clang-cut-full}
+  @item @refapiclass{clang-insert}
   @item @refapiclass{clang-insert-full}
   @item @refapiclass{clang-insert-same}
   @item @refapiclass{clang-insert-full-same}
@@ -383,15 +383,15 @@ Class @code{clang}
   @item @refapiclass{clang-swap-same}
   @item @refapiclass{clang-swap-full-same}
   @item @refapiclass{clang-move}
-  @item @refapiclass{clang-nop}  
-  @item @refapiclass{clang-promote-guarded}  
+  @item @refapiclass{clang-nop}
+  @item @refapiclass{clang-promote-guarded}
   @item @refapiclass{clang-replace}
   @item @refapiclass{clang-replace-full}
   @item @refapiclass{clang-replace-full-same}
   @item @refapiclass{clang-replace-same}
   @item @refapiclass{coalesce-while-loop}
   @item @refapiclass{cut-decl}
-  @item @refapiclass{expand-arithmatic-op}  
+  @item @refapiclass{expand-arithmatic-op}
   @item @refapiclass{explode-for-loop}
   @item @refapiclass{rename-variable}
   @item @refapiclass{swap-decls}
@@ -422,7 +422,7 @@ Class @code{clang}
   @item @refapigeneric{select-intraprocedural-pair}
   @item @refapigeneric{stmt-range}
   @item @refapigeneric{type-from-trace-string}
-  @item @refapigeneric{type-trace-string}    
+  @item @refapigeneric{type-trace-string}
   @item @refapigeneric{wrap-ast}
   @item @refapigeneric{wrap-child}
   @end itemize
@@ -570,7 +570,7 @@ Class @code{clang-w-fodder}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
   @item @refapimethod{pick-snippet,pick-snippet}
   @end itemize
-  
+
 @end itemize
 
 @c defun pick-bad-fodder
@@ -718,9 +718,9 @@ Class @code{simple}
     @item @ref{api-software-objects-elf-risc, @code{elf-risc}}
       @itemize
       @item @ref{api-software-objects-elf-mips, @code{elf-mips}}
-      @end itemize 
+      @end itemize
     @end itemize
-  @item @ref{api-software-objects-forth, @code{forth}}     
+  @item @ref{api-software-objects-forth, @code{forth}}
   @item @ref{api-software-objects-light, @code{light}}
   @item @ref{api-software-objects-lisp, @code{lisp}}
     @itemize
@@ -731,13 +731,13 @@ Class @code{simple}
     @end itemize
   @item @ref{api-software-objects-sw-range, @code{sw-range}}
   @end itemize
-  
+
 
 @item Variables
   @itemize
   @item @refapivariable{*simple-mutation-types*}
   @end itemize
-  
+
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation} multiple methods for mutations @refapiclass{simple-cut}, @refapiclass{simple-insert}, @refapiclass{simple-swap}
@@ -864,7 +864,7 @@ Class @code{elf}
   @item @ref{api-software-objects-elf-risc, @code{elf-risc}}
     @itemize
     @item @ref{api-software-objects-elf-mips, @code{elf-mips}}
-    @end itemize 
+    @end itemize
   @end itemize
 
 @item Generic Functions
@@ -1031,7 +1031,7 @@ Class @code{elf-risc}
   @itemize
   @item @refapivariable{elf-risc-max-displacement}
   @end itemize
-  
+
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation}
@@ -1043,16 +1043,6 @@ Class @code{elf-risc}
 
 @end itemize
 
-@c defun risc-genome-from-elf
-@c defmethod (setf lines)
-@c defmethod elf-replace
-@c defmethod elf-cut
-@c defmethod elf-insert
-@c defmethod elf-swap
-
-
-
-@c ----------------------------------------
 @anchor{api-software-objects-elf-mips}
 @subsubsection Class @code{elf-mips}
 
@@ -1066,7 +1056,6 @@ Class @code{elf-mips}
 @itemize
 @item Class @refapiclass{elf-mips}
 @end itemize
-
 
 @c ----------------------------------------
 @anchor{api-software-objects-forth}
@@ -1111,10 +1100,6 @@ Class @code{light}
   @end itemize
 @end itemize
 
-@c defmethod (setf lines)
-
-@c ----------------------------------------
-
 @anchor{api-software-objects-lisp}
 @subsubsection Class @code{lisp}
 
@@ -1144,14 +1129,14 @@ Class @code{lisp}
   @item @refapiclass{lisp-replace}
   @item @refapiclass{lisp-swap}
   @end itemize
-  
+
 @item Variable @refapivariable{*lisp-mutation-types*}
 
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation,apply-mutation} : multiple methods with the various @ref{api-lisp-mutations, mutations} from the list above.
-  @item @refapimethod{crossover, crossover} 
-  @item @refapimethod{from-file, from_file} 
+  @item @refapimethod{crossover, crossover}
+  @item @refapimethod{from-file, from_file}
   @item @refapimethod{genome-string,genome-string}
   @item @refapimethod{mutate,mutate}
   @item @refapimethod{pick-mutation-type,pick-mutation-type}
@@ -1159,16 +1144,6 @@ Class @code{lisp}
   @item @refapimethod{to-file,to-file}
   @end itemize
 @end itemize
-
-@c defun tree-size
-@c defun subtree
-@c defun find-subtree-if
-@c defmacro set-subtree
-@c defsetf subtree
-@c defmethod filter-subtrees
-
-
-@c ----------------------------------------
 
 @anchor{api-software-objects-expression}
 @subsubsection Class @code{expression}
@@ -1201,38 +1176,17 @@ Class @code{expression}
   @item @refapiclass{demote-binop-left}
   @item @refapiclass{demote-binop-right}
   @item @refapiclass{mult-divide}
-  @item @refapiclass{random-subtree}  
+  @item @refapiclass{random-subtree}
   @item @refapiclass{subtract-add-tree}
   @item @refapiclass{subtract-add}
   @end itemize
-  
+
 @item Methods
   @itemize
   @item @refapimethod{apply-mutation, apply-mutation} : multiple methods with the various @ref{api-expression-mutations,mutations} listed above.
   @item @refapimethod{pick-mutation-type, pick-mutation-type}
   @end itemize
 @end itemize
-
-@c defmethod operators
-@c defmethod operator-to-function
-@c defmethod constants
-@c defvar *expression-mutation-types*
-@c defmethod target-operator
-@c defmethod operator-subtrees
-@c defmethod constant-subtrees
-@c defgeneric pick-bad-binop-left
-@c defgeneric pick-bad-binop-right
-@c define-mutation double-half
-@c defmethod target-subtree
-@c defmethod random-subtree
-@c defmethod all-subtrees
-@c defmethod constant-fold
-@c defun choose
-@c defmethod evaluate-expression
-@c defun expression-unbound-vars
-
-
-@c ----------------------------------------
 
 @anchor{api-software-objects-clang-expression}
 @subsubsection Class @code{clang-expression}
@@ -1249,21 +1203,10 @@ Class @code{clang-expression}
 @item Functions
   @itemize
   @item @refapifunction{expression-intern}
-  @item @refapifunction{expression-to-c}  
+  @item @refapifunction{expression-to-c}
   @end itemize
 @item Methods
   @itemize
   @item @refapimethod{expression, expression ((obj clang) (ast clang-ast))}
   @end itemize
 @end itemize
-
-@c defun clang-expression-opcode
-@c defmethod operator-to-function
-@c defmethod evaluate-expression
-@c defmethod operators
-
-@c ----------------------------------------
-
-
-@c ----------------------------------------
-

@@ -23,8 +23,8 @@ Evolutionary Search
   @item @refapifunction{incorporate}
   @item @refapifunction{mutant}
   @item @refapifunction{simple-evaluate}
-  @item @refapifunction{simple-reproduce}  
-  @item @refapifunction{tournament}    
+  @item @refapifunction{simple-reproduce}
+  @item @refapifunction{tournament}
   @end itemize
 @item Macros
   @itemize
@@ -40,7 +40,7 @@ Evolutionary Search
   @item @refapivariable{*fitness-scalar-fn*}
   @item @refapivariable{*generations*}
   @item @refapivariable{*max-population-size*}
-  @item @refapivariable{*mut-rate*}  
+  @item @refapivariable{*mut-rate*}
   @item @refapivariable{*population*}
   @item @refapivariable{*running*}
   @item @refapivariable{*start-time*}
@@ -53,7 +53,3 @@ Evolutionary Search
   @item @refapivariable{*worst-fitness-p*}
   @end itemize
 @end itemize
-
-
-
-

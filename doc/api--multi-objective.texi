@@ -5,7 +5,7 @@
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 Multi-Objective Fitness
 ]
 
@@ -23,7 +23,7 @@ For more information, see @ref{Multi-objective Fitness}.
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 @ref{api-multi-objective, Multi-Objective Fitness} |
 Multi-Objective Optimization
 ]
@@ -43,7 +43,7 @@ Multi-Objective Optimization
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 @ref{api-multi-objective, Multi-Objective Fitness} |
 Pareto Selection
 ]
@@ -60,7 +60,7 @@ Pareto Selection
 
 [
 @ref{SEL API, API} |
-@ref{api-heuristic-search, Heuristic Search} | 
+@ref{api-heuristic-search, Heuristic Search} |
 @ref{api-multi-objective, Multi-Objective Fitness} |
 Lexicase Selection
 ]
@@ -73,6 +73,3 @@ Lexicase Selection
   @end itemize
 @item Variable @refapivariable{*lexicase-key*}
 @end itemize
-
-
-@c defun lexicase-better-p

@@ -66,5 +66,3 @@ Class @code{test-case}
   @item @refapimethod{start-test,start-test}
   @end itemize
 @end itemize
-
-

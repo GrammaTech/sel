@@ -45,4 +45,3 @@ See also  the manual section on @ref{Style Features}.
     @end itemize
   @end itemize
 @end itemize
-

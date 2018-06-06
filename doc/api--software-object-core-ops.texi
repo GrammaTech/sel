@@ -15,7 +15,7 @@ See also the manual section on @ref{Software Methods}.
   @item @refapigeneric{copy}
   @item @refapigeneric{crossover}
   @item @refapigeneric{evaluate}
-  @item @refapigeneric{fitness-extra-data}  
+  @item @refapigeneric{fitness-extra-data}
   @item @refapigeneric{from-file}
   @item @refapigeneric{from-string}
   @item @refapigeneric{genome}
@@ -32,7 +32,4 @@ See also the manual section on @ref{Software Methods}.
   @item @refapigeneric{size}
   @item @refapigeneric{to-file}
   @item @refapigeneric{two-point-crossover}
-  @end itemize
-
-
-
+@end itemize

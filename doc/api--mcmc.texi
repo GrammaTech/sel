@@ -26,8 +26,3 @@ Note: MCMC Search is experimental and unsupported.
   @item @refapivariable{*mcmc-fodder*}
   @end itemize
 @end itemize
-
-
-
-
-

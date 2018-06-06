@@ -78,5 +78,3 @@
 @item Macro @refviewmacro{with-delayed-invocation}
 @item Function @refviewfunction{view-start}
 @end itemize
-
-

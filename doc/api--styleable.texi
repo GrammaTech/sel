@@ -16,7 +16,7 @@ See also  the manual section on @ref{Style Features}.
 @itemize
 @item Class @refapiclass{styleable}
 @item Subclass @ref{api-style-features-class-style-project, API | Style Features | Class @code{style-project}})
-      
+
 @item Generic Functions
   @itemize
   @item @refapigeneric{merge-styleables}
@@ -65,7 +65,7 @@ See also  the manual section on @ref{Style Features}.
 
 @item Methods
   @itemize
-@c whitespace in this reference is important  
+@c whitespace in this reference is important
   @item @refapimethod{extract-baseline-features,extract-baseline-features}
   @item @refapimethod{extract-features,extract-features}
   @item @refapimethod{extract-feature,extract-feature}
@@ -98,7 +98,7 @@ See also  the manual section on @ref{Style Features}.
   @itemize
   @item @refapifunction{update-project-features}
   @end itemize
-  
+
 @item Methods
   @itemize
   @item @c the whitespace in the ref is required
@@ -107,5 +107,3 @@ See also  the manual section on @ref{Style Features}.
 
 @item See also @ref{api-style-features-class-style-feature,Class @code{style-feature}}
 @end itemize
-
-

@@ -39,4 +39,3 @@ objects.
 @include api--supporting-objects.texi
 
 @c ----------------------------
-

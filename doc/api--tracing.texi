@@ -29,8 +29,3 @@ provided in section @ref{Tracing}.
   @item @refapigeneric{type-trace-string}
   @end itemize
 @end itemize
-
-
-
-@c defvar  *trace-open-timeout*
-@c defvar *process-kill-timeout*

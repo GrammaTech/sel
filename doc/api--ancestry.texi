@@ -22,11 +22,3 @@ Class @code{ancestral}
   @item @refapimethod{fitness-extra-data,(setf fitness-extra-data) around}
   @end itemize
 @end itemize
-
-@c defvar *next-ancestry-id*
-@c defmethod save-ancestry
-@c defun node-parents
-@c defun fitness-color
-@c defun to-node-descr
-@c defun ancestry-graph
-@c defun graphviz

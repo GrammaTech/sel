@@ -53,8 +53,3 @@ See also the @refapiclass{software} methods for @ref{api-software-object-applyin
   @item @refapimethod{at-targets,at-targets}
   @end itemize
 @end itemize
-
-@c summarize-mutation-stats
-@c *max-saved-mutation-improvements*
-
-
