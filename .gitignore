@@ -32,6 +32,13 @@
 *.vrb
 *.svg
 
+# Generated documentation
+doc/sel-api.texi
+doc/sel-serapi-io-api.texi
+doc/sel-utility-api.texi
+doc/sel-view-api.texi
+
+
 # Backup files
 *~
 

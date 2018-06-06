@@ -42,5 +42,7 @@ Clang C Tokenizer
 More information about the tokenizer component is provided in section
 @ref{Clang C Tokenizer}.
 
-@include include/fun-sel-tokens.texinfo
+@itemize
+@item Generic Function @refapigeneric{tokens} and its methods
+@end itemize
 @c condition unhandled-token-class

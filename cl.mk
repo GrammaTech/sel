@@ -278,7 +278,7 @@ doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(progn (list $(LOADS) $(cparen))' \
-	--script .ci/.generate-api-docs includes $(DOC_PACKAGES)
+	--script .ci/.generate-api-docs packages $(DOC_PACKAGES)
 
 gh-pages: doc
 	rsync -aruv doc/$(PACKAGE_NAME)/ . --exclude .gitignore

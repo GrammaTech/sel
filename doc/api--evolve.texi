@@ -55,39 +55,5 @@ Evolutionary Search
 @end itemize
 
 
-@include include/fun-sel-crossed.texinfo
-@include include/fun-sel-default-random-winner.texinfo
-@include include/fun-sel-default-select-best.texinfo
-@include include/fun-sel-fitness-better-p.texinfo
-@include include/fun-sel-fitness-equal-p.texinfo
-@include include/fun-sel-mutant.texinfo
-@include include/fun-sel-generational-evolve.texinfo
-@include include/fun-sel-incorporate.texinfo
-@include include/fun-sel-simple-evaluate.texinfo
-@include include/fun-sel-simple-reproduce.texinfo
-@include include/fun-sel-tournament.texinfo
-
-@include include/macro-sel-evolve.texinfo
-
-
-@include include/var-sel-star-cross-chance-star.texinfo
-@include include/var-sel-star-crossover-stats-star.texinfo
-@include include/var-sel-star-fitness-evals-star.texinfo
-@include include/var-sel-star-fitness-predicate-star.texinfo
-@include include/var-sel-star-fitness-scalar-fn-star.texinfo
-@include include/var-sel-star-generations-star.texinfo
-@include include/var-sel-star-max-population-size-star.texinfo
-@include include/var-sel-star-mut-rate-star.texinfo
-@include include/var-sel-star-population-star.texinfo
-@include include/var-sel-star-running-star.texinfo
-@include include/var-sel-star-start-time-star.texinfo
-@include include/var-sel-star-target-fitness-p-star.texinfo
-@include include/var-sel-star-tournament-eviction-size-star.texinfo
-@include include/var-sel-star-tournament-selector-star.texinfo
-@include include/var-sel-star-tournament-size-star.texinfo
-@include include/var-sel-star-tournament-tie-breaker-star.texinfo
-@include include/var-sel-star-tie-breaker-predicate-star.texinfo
-@include include/var-sel-star-worst-fitness-p-star.texinfo
-
 
 

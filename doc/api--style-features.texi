@@ -18,7 +18,7 @@ See also  the manual section on @ref{Style Features}.
 @item Macro @refapimacro{define-feature}
 @item Methods
   @itemize
-  @item @refapimethod{extract-feature ((style styleable) (feature style-feature))}
+  @item @refapimethod{extract-feature,extract-feature}
   @end itemize
 
 @anchor{api-style-features-vectors}
@@ -41,18 +41,8 @@ See also  the manual section on @ref{Style Features}.
 
   @item Methods
     @itemize
-    @item @refapimethod{to-feature-vector ((feature-values hash-table) (sorted-keys list))}
+    @item @refapimethod{to-feature-vector,to-feature-vector}
     @end itemize
   @end itemize
 @end itemize
 
-@include include/class-sel-style-feature.texinfo
-@include include/macro-sel-define-feature.texinfo
-
-
-@include include/fun-sel-diff-feature-vectors.texinfo
-@include include/fun-sel-merge-max.texinfo
-@include include/fun-sel-merge-means.texinfo
-@include include/fun-sel-merge-normalized.texinfo
-@include include/fun-sel-normalize-vector.texinfo
-@include include/fun-sel-to-feature-vector.texinfo
