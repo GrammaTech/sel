@@ -2710,9 +2710,9 @@ int x = CHARSIZE;")))
   (flet
       ((get-var-type (var stmt-text)
          (some->> (stmt-with-text *soft* stmt-text)
-           (get-vars-in-scope *soft*)
-           (find-if [{string= var} {aget :name}])
-           (find-var-type *soft*))))
+                  (get-vars-in-scope *soft*)
+                  (find-if [{string= var} {aget :name}])
+                  (find-var-type *soft*))))
     (with-fixture type-of-var-clang
       (let ((var-type1 (get-var-type "a" "return 0"))
             (var-type2 (get-var-type "a" "return 1"))
@@ -2736,22 +2736,22 @@ int x = CHARSIZE;")))
 (deftest find-var-type-handles-missing-declaration-type ()
   (with-fixture type-of-var-missing-decl-type-clang
     (is (null (some->> (stmt-with-text *soft* "dirs[0] = L")
-                (get-vars-in-scope *soft*)
-                (find-if [{string= "dirs"} {aget :name}])
-                (find-var-type *soft*))))))
+                       (get-vars-in-scope *soft*)
+                       (find-if [{string= "dirs"} {aget :name}])
+                       (find-var-type *soft*))))))
 
 (deftest typedef-type-returns-correct-type ()
   (with-fixture typedef-type-clang
     (let ((type1 (some->> (stmt-with-text *soft* "gint a")
-                   (get-ast-types *soft*)
-                   (car)
-                   (find-type *soft*)
-                   (typedef-type *soft*)))
+                          (get-ast-types *soft*)
+                          (car)
+                          (find-type *soft*)
+                          (typedef-type *soft*)))
           (type2 (some->> (stmt-with-text *soft* "gchar *b")
-                   (get-ast-types *soft*)
-                   (car)
-                   (find-type *soft*)
-                   (typedef-type *soft*))))
+                          (get-ast-types *soft*)
+                          (car)
+                          (find-type *soft*)
+                          (typedef-type *soft*))))
       (is (equal "int"  (type-name type1)))
       (is (equal nil    (type-pointer type1)))
       (is (equal "char" (type-name type2)))
@@ -7257,9 +7257,9 @@ prints unique counters in the trace"
                (find-function *contexts* "unbraced_body"))))
     (is (eq :NullStmt
             (some->> (stmt-starting-with-text *contexts* "if (2)")
-              (get-immediate-children *contexts*)
-              (second)
-              (ast-class))))))
+                     (get-immediate-children *contexts*)
+                     (second)
+                     (ast-class))))))
 
 (deftest cut-braced-body-adds-nullstmt ()
   (with-fixture contexts
@@ -7272,9 +7272,9 @@ prints unique counters in the trace"
                (find-function *contexts* "braced_body"))))
     (is (eq :NullStmt
             (some->> (stmt-starting-with-text *contexts* "if (1)")
-              (get-immediate-children *contexts*)
-              (second)
-              (ast-class))))))
+                     (get-immediate-children *contexts*)
+                     (second)
+                     (ast-class))))))
 
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
@@ -8566,8 +8566,8 @@ int main() { puts(\"~d\"); return 0; }
                 ;; Proxies are the same type as mutants
                 (is (eq 'clang (type-of obj)))
                 (cons (some->> (phenome obj)
-                           (shell)
-                           (parse-integer))
+                               (shell)
+                               (parse-integer))
                       (genome obj)))
               super)
     ;; Each variant printed the appropriate number

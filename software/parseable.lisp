@@ -532,7 +532,7 @@ may be passed, returning true if the given AST should be included as a possible
 pick or false (nil) otherwise."
   (let ((first-pick (some-> (mutation-targets software :filter filter
                                                    :stmt-pool first-pool)
-                        (random-elt))))
+                            (random-elt))))
     (if (null second-pool)
         (list (cons :stmt1 first-pick))
         (list (cons :stmt1 first-pick)
@@ -542,7 +542,7 @@ pick or false (nil) otherwise."
                                                                    (funcall filter ast first-pick)
                                                                    t))
                                                      :stmt-pool second-pool)
-                             (random-elt)))))))
+                                   (random-elt)))))))
 
 (defmethod pick-bad-good ((software parseable) &key filter
                           (bad-pool #'bad-asts) (good-pool #'good-asts))

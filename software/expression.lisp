@@ -142,10 +142,10 @@
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
     (some->> (iter (for i below (size obj))
                (collect (list i (subtree (genome obj) i))))
-         (remove-if-not (lambda-bind ((i subtree))
-                          (declare (ignorable i))
-                          (and (binopp subtree) (binopp (second subtree)))))
-         (random-elt))))
+             (remove-if-not (lambda-bind ((i subtree))
+                              (declare (ignorable i))
+                              (and (binopp subtree) (binopp (second subtree)))))
+             (random-elt))))
 
 (defgeneric pick-bad-binop-right (software)
   (:documentation
@@ -156,10 +156,10 @@
   (flet ((binopp (subtree) (and (listp subtree) (= 3 (length subtree)))))
     (some->> (iter (for i below (size obj))
                (collect (list i (subtree (genome obj) i))))
-         (remove-if-not (lambda-bind ((i subtree))
-                          (declare (ignorable i))
-                          (and (binopp subtree) (binopp (third subtree)))))
-         (random-elt))))
+             (remove-if-not (lambda-bind ((i subtree))
+                              (declare (ignorable i))
+                              (and (binopp subtree) (binopp (third subtree)))))
+             (random-elt))))
 
 ;; TODO: Combine with `demote-binop-right' implementation.
 (define-mutation demote-binop-left (mutation)

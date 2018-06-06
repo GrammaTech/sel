@@ -550,7 +550,7 @@ VARIABLE-NAME should be declared in AST."
 (defmethod find-var-type ((obj clang) (variable list))
   "Return the type of VARIABLE in SOFTWARE"
   (some->> (aget :type variable)
-    (find-type obj)))
+           (find-type obj)))
 
 (defgeneric typedef-type (software type)
   (:documentation "Return the underlying type if TYPE is a typedef"))
@@ -1077,8 +1077,8 @@ This mutation will transform 'A;while(B);C' into 'for(A;B;C)'."))
                                            condition
                                            (some->> children (lastcar))
                                            (some->> children
-                                             (butlast)
-                                             (make-block))))))
+                                                    (butlast)
+                                                    (make-block))))))
           ;; Possibly consume the preceding full statement.
           ,@(when precedent
                   ;; Delete precedent
@@ -1132,13 +1132,13 @@ MUTATION to CLANG.
        (eq :DeclStmt (ast-class ast)))
      (pick-another-decl-in-block (ast)
        (some->> (enclosing-block clang ast)
-         (get-immediate-children clang)
-         (remove-if-not [{eq :DeclStmt} #'ast-class])
-         (remove-if {equalp ast})
-         (random-elt))))
+                (get-immediate-children clang)
+                (remove-if-not [{eq :DeclStmt} #'ast-class])
+                (remove-if {equalp ast})
+                (random-elt))))
     (if-let ((decl (some-> (bad-mutation-targets clang
                                                  :filter «and #'is-decl #'pick-another-decl-in-block»)
-                     (random-elt))))
+                           (random-elt))))
             `((:stmt1 . ,decl)
               (:stmt2 . ,(pick-another-decl-in-block decl))))))
 
@@ -1204,7 +1204,7 @@ to expand.
                                              :filter «or #'compound-assign-op
                                                          #'increment-op
                                                          #'decrement-op»)
-                 (random-elt))))
+                       (random-elt))))
       `((:stmt1 . ,ast)
         (:literal1 .
            ,(let* ((children (get-immediate-children clang ast))
@@ -2301,7 +2301,7 @@ made full by wrapping with curly braces, return that."))
     ((can-be-made-traceable-p obj ast) ast)
     (:otherwise
      (some->> (get-parent-ast obj ast)
-       (enclosing-traceable-stmt obj)))))
+              (enclosing-traceable-stmt obj)))))
 
 (defgeneric traceable-stmt-p (software ast)
   (:documentation
@@ -2792,8 +2792,8 @@ the rebinding
                             (or (some->> (find-if [{equal v} #'peel-bananas
                                                    #'car]
                                                   var-replacements)
-                                  (second)
-                                  (peel-bananas))
+                                         (second)
+                                         (peel-bananas))
                                 v))
                           (ast-unbound-vals ast))
                   :test #'equal))
@@ -3352,7 +3352,7 @@ within a function body, return null."))
 * CLANG DOCFIXME
 "
   (when-let (stmt1 (some->> (remove-if {function-body-p clang} (stmt-asts clang))
-                     (random-elt)))
+                            (random-elt)))
     (values (index-of-ast clang stmt1)
             (random-point-in-function
              clang
