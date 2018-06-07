@@ -303,6 +303,7 @@ techniques."
                metabang-bind
                iterate
                uiop
+               split-sequence
                software-evolution-library/view
                software-evolution-library/utility
                software-evolution-library/ast-diff

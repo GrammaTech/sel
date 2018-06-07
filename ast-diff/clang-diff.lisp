@@ -16,6 +16,22 @@
 ;;;     [difftool]
 ;;;     	prompt = false
 ;;;
+;;; To help clang resolve includes it may be necessary to add include
+;;; paths to the invocation of clang-diff.  E.g., putting the
+;;; following in the .git/config of a particular repo with headers in
+;;; a "src/" subdirectory will ensure clang can find those headers.
+;;; (By default -I takes "." passing the working directory to clang.)
+;;;
+;;;     [difftool "clang-diff"]
+;;;     	cmd = "clang-diff -I .,src $LOCAL $REMOTE"
+;;;
+;;; TODO:
+;;;  - Implement a string diff to recurse into strings.
+;;;    (This should have a configurable separator.)
+;;;  - Work on clang-diff tool's git configuration (or maybe this has
+;;;    to be implemented in clang-diff itself) to limit application by
+;;;    extension.
+;;;
 (defpackage :software-evolution-library/clang-diff
   (:nicknames :sel/clang-diff)
   (:use :common-lisp
@@ -25,6 +41,7 @@
         :curry-compose-reader-macros
         :iterate
         :uiop
+        :split-sequence
         :software-evolution-library/utility
         :software-evolution-library/ast-diff
         :software-evolution-library)
@@ -43,7 +60,7 @@
   (setf *note-level* level))
 
 (defun run-clang-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                         raw flags (colorp t)
+                         raw flags (includes '(".")) (colorp t)
                          (on-parse-error 'error)
                          (comp-db (probe-file "compile_commands.json")))
   "Run a clang diff on *COMMAND-LINE-ARGUMENTS*."
@@ -63,6 +80,8 @@ Options:
  -r, --raw                 output diff in raw Sexp (default is as text)
  -c, --comp-db [PATH]      path to clang compilation database
  -C, --no-color            inhibit color printing
+ -I [DIRS]                 include ,-delimited DIRS in flags to clang
+                           default \".\" includes current working directory
  -v, --verbose [NUM]       verbosity level 0-4
  -e, --errors [OPT]        how to handle parse errors 0-2
                             ignore---silently ignore
@@ -78,6 +97,8 @@ Built with SEL version ~a, and ~a version ~a.~%"
       ("-r" "--raw" (setf raw t))
       ("-c" "--comp-db" (setf comp-db (pop args)))
       ("-C" "--no-color" (setf colorp nil))
+      ("-I" "-I" (setf includes (split-sequence #\, (pop args)
+                                                :remove-empty-subseqs t)))
       ("-v" "--verbose" (handle-set-verbose-argument
                          (parse-integer (pop args))))
       ("-e" "--errors" (setf on-parse-error (intern (pop args) :clang-diff))))
@@ -100,8 +121,7 @@ Built with SEL version ~a, and ~a version ~a.~%"
       (quit 2))
     ;; Setup clang-mutate options.
     (setf flags
-          (list "-I" (pwd)
-                "-I" (concatenate 'string (pwd) "/src")))
+          (mappend [{list "-I"} {concatenate 'string (pwd) "/"}] includes))
     (when comp-db
       (push (cons :build-path comp-db)
             *clang-mutate-additional-args*))
