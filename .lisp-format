@@ -3,3 +3,5 @@
       (directory-files (concat (getenv "QUICK_LISP")
                                "/dists/quicklisp/software/") t "slime-v*"))
 (require 'slime)
+(put 'make-instance 'lisp-indent-function 1)
+(put 'if-let 'lisp-indent-function 1)
