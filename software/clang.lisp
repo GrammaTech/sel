@@ -1909,8 +1909,8 @@ the mutation operations to be performed as an association list.
                          &key script
                          &aux value1-file value2-file)
   "DOCFIXME
-* OBJ DOCFIXME
-* OP DOCFIXME
+* OBJ Clang software object
+* OP List of (Action . Options) for the clang-mutate command line.
 * SCRIPT DOCFIXME
 * VALUE1-FILE DOCFIXME
 * VALUE2-FILE DOCFIXME
@@ -1955,7 +1955,8 @@ the mutation operations to be performed as an association list.
                    (:dwarf-src-file-path
                     (format nil "-dwarf-filepath-mapping=~a=~a"
                             value src-file))
-                   (:cfg "-cfg"))))
+                   (:cfg "-cfg")
+                   (:build-path (format nil "-p=~a" value)))))
              (field-opt (field)
                (ecase field
                  (:counter "counter")

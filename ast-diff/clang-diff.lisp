@@ -98,7 +98,7 @@ Built with SEL version ~a, and ~a version ~a.~%"
     ;; Setup clang-mutate options.
     (setf flags (list "-I" (pwd)))
     (when comp-db
-      (push (list "-C" comp-db)
+      (push (cons :build-path comp-db)
             *clang-mutate-additional-args*))
     ;; Create the diff.
     (let ((diff
