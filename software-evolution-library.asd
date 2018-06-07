@@ -8,7 +8,6 @@ interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
   :licence "GPL V3"
-  :in-order-to ((test-op (test-op "software-evolution-library/test")))
   ;; :homepage "http://GrammaTech.github.io/sel"
   :depends-on (alexandria
                closer-mop
@@ -280,7 +279,7 @@ techniques."
                named-readtables
                curry-compose-reader-macros
                iterate
-               cl-who
+               cl-heap
                software-evolution-library/utility)
   :in-order-to ((test-op (test-op "software-evolution-library/test")))
   :components ((:file "ast-diff/ast-diff")))
