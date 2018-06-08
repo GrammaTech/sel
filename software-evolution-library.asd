@@ -325,6 +325,7 @@ techniques."
                metabang-bind
                iterate
                uiop
+               software-evolution-library/view
                software-evolution-library/utility
                software-evolution-library/ast-diff
                eclector-concrete-syntax-tree

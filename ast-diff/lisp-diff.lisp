@@ -36,7 +36,9 @@
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
    :if-let :emptyp :featurep)
-  (:shadowing-import-from :eclector.parse-result :read))
+  (:shadowing-import-from :eclector.parse-result :read)
+  (:shadowing-import-from :software-evolution-library/view
+                          +color-RED+ +color-GRN+ +color-RST+))
 (in-package :software-evolution-library/lisp-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -189,7 +191,7 @@
   (setf *note-level* level))
 
 (defun run-lisp-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                        raw flags)
+                        raw flags (colorp t))
   "Run a lisp difference on *COMMAND-LINE-ARGUMENTS*."
   (flet ((report (fmt &rest args)
            (apply #'format *error-output* (concatenate 'string "~a: " fmt)
@@ -205,6 +207,7 @@ Compare Lisp source FILES AST by AST.
 
 Options:
  -r, --raw                 output diff in raw Sexp (default is as text)
+ -C, --no-color            inhibit color printing
  -v, --verbose [NUM]       verbosity level 0-4
 
 Built with ~a version ~a.~%"
@@ -213,6 +216,7 @@ Built with ~a version ~a.~%"
     ;; Argument handling and checking.
     (getopts (args :unknown :return)
       ("-r" "--raw" (setf raw t))
+      ("-C" "--no-color" (setf colorp nil))
       ("-v" "--verbose" (handle-set-verbose-argument
                          (parse-integer (pop args)))))
     (when (= (length args) 1)
@@ -241,6 +245,12 @@ Built with ~a version ~a.~%"
       ;; Print according to the RAW option.
       (if raw
           (writeln (ast-diff-elide-same diff) :readably t)
-          (print-diff diff))
+          (if colorp
+              (print-diff diff *standard-output*
+                          (format nil "~a[-" +color-RED+)
+                          (format nil "-]~a" +color-RST+)
+                          (format nil "~a{+" +color-GRN+)
+                          (format nil "+}~a" +color-RST+))
+              (print-diff diff)))
       ;; Only exit with 0 if the two inputs match.
       (quit (if (every [{eql :same} #'car] diff) 0 1)))))
