@@ -3448,6 +3448,7 @@ within a function body, return null."))
                  "-readability-else-after-return"
                  "-readability-function-size"
                  "-readability-identifier-naming"
+                 "-readability-implicit-bool-conversion"
                  "-readability-non-const-parameter"
                  "-readability-redundant-control-flow"
                  "-readability-redundant-declaration")
