@@ -386,8 +386,8 @@ void end_timer() {
 
 #define SIG SIGVTALRM
 //#define SIG SIGRTMIN
-#define CLOCKID CLOCK_REALTIME
-//#define CLOCKID CLOCK_THREAD_CPUTIME_ID
+//#define CLOCKID CLOCK_REALTIME
+#define CLOCKID CLOCK_THREAD_CPUTIME_ID
 
 timer_t setup_timer() {
 
