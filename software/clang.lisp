@@ -3490,21 +3490,24 @@ the given list of CHECKS."))
             (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
 
-(defgeneric astyle (software &optional style)
+(defgeneric astyle (software &optional style options)
   (:documentation "Apply Artistic Style to the software.
 Documentation can be found at
 http://astyle.sourceforge.net/astyle.html#_Usage"))
 
-(defmethod astyle ((obj clang) &optional style &aux errno)
+(defmethod astyle
+    ((obj clang) &optional (style "kr") (options '("--add-braces")) &aux errno)
   "Apply Artistic Style to OBJ.
 * OBJ object to format and return
 * STYLE style to utilize
+* OPTIONS list of additional options to astyle
 * ERRNO Exit code of astyle binary
 "
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
-              (shell "astyle --suffix=none --style=~a ~a" (or style "kr") src)
+              (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
+                     options style src)
             (declare (ignorable stdout stderr))
             (setf errno exit)
             (if (zerop exit)

@@ -185,9 +185,10 @@
   (apply-to-project clang-project {clang-tidy _ checks})
   clang-project)
 
-(defmethod astyle ((clang-project clang-project) &optional style)
+(defmethod astyle ((clang-project clang-project) &optional style options)
   "Apply Artistic Style to CLANG-PROJECT.
 * CLANG-PROJECT project to format and return
 * STYLE style to utilize
+* OPTIONS list of additional options to astyle
 "
-  (apply-to-project clang-project {astyle _ style}))
+  (apply-to-project clang-project {astyle _ style options}))
