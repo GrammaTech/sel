@@ -33,7 +33,7 @@ extern vfunc variant_table[]; // 0-terminated array of variant
 #define NUM_OUTPUT_REGS 9     // number of live output registers
 #define RSP_INDEX 3           // index within output register set
                               // where RSP is stored
-#define DEBUG 1
+#define DEBUG 0               // set this to 1, to turn on debugging messages
 
 // Expected input registers:
 //    rax
@@ -250,25 +250,29 @@ const char* output_reg_names[NUM_OUTPUT_REGS] = {
 // Assumes the output register values have been copied
 // into result_regs[] (via copy_result_regs macro).
 //
-int check_results(int test) {
+int check_results(int variant, int test) {
     int success = 1;
 
     // check that the return address did not get messed up by stack
     // corruption
     if (result_return_address == 1) {
-        fprintf(stderr, "Test timed out and was terminated.\n");
+        fprintf(stderr, "Variant %d, test %d timed out and was terminated.\n",
+                variant, test);
     }
     
     if (save_return_address != result_return_address) {
+#if DEBUG
         fprintf(stderr, "Expected return address: %lx, found: %lx\n",
                 save_return_address,
                 result_return_address);
+#endif
         success = 0;
     }
     
     // check registers
     for (int i = 0; i < NUM_OUTPUT_REGS; i++) {
         if (output_regs[test * NUM_OUTPUT_REGS + i] != result_regs[i]) {
+#if DEBUG
             fprintf(stderr, "Test %d failed at register: %s, expected: %lx, "
                    "found: %lx, orig rsp: %lx\n",
                   test,
@@ -276,6 +280,7 @@ int check_results(int test) {
                   output_regs[i],
                   result_regs[i],
                   save_rsp);
+#endif
             success = 0;
         }
     }
@@ -476,7 +481,7 @@ unsigned long run_variant(int v, int test) {
     
     long_long elapsed_instructions = end_value[0] - start_value[0];
     
-    int res = check_results(test);   // make sure all the registers had expected
+    int res = check_results(v, test);   // make sure all the registers had expected
                                  // output values
 #if DEBUG
     fprintf(stderr, "variant %d valid: %s instructions: %lld\n", v,

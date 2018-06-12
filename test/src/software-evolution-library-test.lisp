@@ -108,6 +108,7 @@ suite should be run and nil otherwise."
   :test #'equalp
   :documentation "Location of the clang-format example directory")
 
+
 (define-constant +huf-dir+ (append +etc-dir+ (list "huf"))
   :test #'equalp
   :documentation "Location of the huf example directory")
@@ -252,6 +253,11 @@ suite should be run and nil otherwise."
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
   :documentation "Path to asm-test examples.")
+
+(define-constant +software-dir+
+    (append (butlast (butlast sel/test::+etc-dir+)) (list "software"))
+  :test #'equalp
+  :documentation "Path to sel/software directory (software source components)")
 
 (define-constant +coq-test-dir+ (append +etc-dir+ (list "coq"))
   :test #'equalp
@@ -422,6 +428,11 @@ suite should be run and nil otherwise."
                  :type (pathname-type filename)
                  :directory +asm-test-dir+))
 
+(defun software-dir (filename)
+  (make-pathname :name (pathname-name filename)
+                 :type (pathname-type filename)
+                 :directory +software-dir+))
+
 (defun coq-test-dir (filename)
   (make-pathname :name (pathname-name filename)
                  :type (pathname-type filename)
@@ -510,6 +521,16 @@ suite should be run and nil otherwise."
 (defixture gcd-asm-heap
   (:setup (setf *gcd* (from-file (make-instance 'asm-heap) (gcd-dir "gcd.s"))))
   (:teardown (setf *gcd* nil)))
+
+(defixture odd-even-asm-super
+  (:setup
+    (setf *soft* (from-file (make-instance 'asm-super-mutant)
+			   (asm-test-dir "odd-even.asm"))
+	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
+    (load-io-file *soft* (asm-test-dir "odd-even.io"))
+    (target-function *soft* #x4005f6 #x400625))
+
+  (:teardown (setf *soft* nil)))
 
 (defixture gcd-elf
   (:setup
@@ -1322,6 +1343,24 @@ suite should be run and nil otherwise."
       (setf variant (apply-mutation variant mutation))
       (is (not (equalp (genome variant) (genome *gcd*))))
       (is (= (length (genome variant)) (length (genome *gcd*)))))))
+
+
+;;; ASM-SUPER-MUTANT representation.
+(deftest asm-super-mutant-finds-improved-version ()
+  (with-fixture odd-even-asm-super
+    ;; add target function, and all possible single-cut variants
+    (setf (mutants *soft*)
+	  (cons (create-target *soft*)
+		(create-all-simple-cut-variants *soft*)))
+    (test-fitness *soft*)
+    (let ((best
+	   (lexicase-select-best
+	    (mutants *soft*)
+	    :predicate (lambda (x y) (< x y))))) ; lower number is better
+      ;; is the first test result of the first best "better" (lower
+      ;; number) than the first test result of the original version?
+      (is (< (elt (fitness (first best)) 0)
+	     (elt (fitness (elt (mutants *soft*) 0)) 0))))))
 
 
 ;;; CSURF-ASM representation.
