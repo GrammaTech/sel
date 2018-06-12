@@ -215,7 +215,6 @@ void map_pages(unsigned long* p) {
 
 void init_pages() {
     map_pages(input_mem);
-    // map_pages(output_mem);
 }
 
 //
@@ -365,7 +364,7 @@ static sigset_t mask;
 
 void start_timer() {
     timer.it_value.tv_nsec = 0;
-    timer.it_value.tv_sec = 2;
+    timer.it_value.tv_sec = 1;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_nsec = 0;
     if (timer_settime(timerid, 0, &timer, NULL) == -1) {
@@ -398,7 +397,7 @@ timer_t setup_timer() {
     memset(&sev, 0, sizeof(sev));
     
     tsa.sa_sigaction = timer_sigaction;
-    tsa.sa_flags = SA_SIGINFO | SA_ONSTACK;
+    tsa.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
     sigemptyset(&tsa.sa_mask);
     if (sigaction(SIG, &tsa, 0) == -1) {
         fprintf(stderr, "sigaction() error\n");
@@ -443,15 +442,7 @@ unsigned long run_variant(int v, int test) {
     //PAPI_reset(EventSet);
 
     start_timer();  // start POSIX timer
-    
-#if DEBUG
-    fprintf(stderr, "Timer %ld started\n", (long)timerid);
-    struct itimerspec is2;
-    int ret = timer_gettime(timerid, &is2);
-    fprintf(stderr, "Time remaining: %ld seconds, %ld nanoseconds\n",
-            is2.it_value.tv_sec, is2.it_value.tv_nsec);
-#endif
-    
+        
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
         fprintf(stderr, "PAPI_start() error: %d\n", retval);
@@ -471,10 +462,6 @@ unsigned long run_variant(int v, int test) {
 //    timer_elapsed(start, elapsed);
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
-#if DEBUG
-    fprintf(stderr, "Timer %ld stopped\n", (long)timerid);
-//    fprintf(stderr, "Timer %ld overrun: %d\n", (long)timerid, timer_getoverrun(timerid));
-#endif
 
     if (retval < 0) {
         fprintf(stderr, "PAPI_read() error: %d\n", retval);
@@ -501,7 +488,7 @@ unsigned long run_variant(int v, int test) {
 
 void run_variant_tests(int v, unsigned long test_results[]) {
 #if DEBUG
-    fprintf(stderr, "Running tests for variant %d\n", v);
+    fprintf(stderr, "Testing variant %d: ", v);
 #endif
     for (int k = 0; k < num_tests; k++) {
         test_results[k] = run_variant(v, k);
