@@ -178,11 +178,11 @@
   (apply-to-project clang-project {clang-format _ style})
   clang-project)
 
-(defmethod clang-tidy ((clang-project clang-project))
+(defmethod clang-tidy ((clang-project clang-project) &optional checks)
   "Apply `clang-tidy' to CLANG-PROJECT.
 * CLANG-PROJECT project to tidy and return
 "
-  (apply-to-project clang-project #'clang-tidy)
+  (apply-to-project clang-project {clang-tidy _ checks})
   clang-project)
 
 (defmethod astyle ((clang-project clang-project) &optional style)

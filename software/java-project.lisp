@@ -251,5 +251,6 @@ to the depth of 3 within the built jar"
   (declare (ignorable style))
   java-project)
 
-(defmethod clang-tidy ((java-project java-project))
+(defmethod clang-tidy ((java-project java-project) &optional checks)
+  (declare (ignorable checks))
   java-project)

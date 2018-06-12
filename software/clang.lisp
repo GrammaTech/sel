@@ -3423,12 +3423,31 @@ within a function body, return null."))
 
 
 ;;; Formatting methods
-(defgeneric clang-tidy (software)
-  (:documentation "Apply the software fixing command line, part of Clang."))
+(defgeneric clang-tidy (software &optional checks)
+  (:documentation "Apply the software fixing clang tool, optionally using
+the given list of CHECKS."))
 
-(defmethod clang-tidy ((clang clang) &aux errno)
+(defmethod clang-tidy
+    ((clang clang) &optional (checks '("cppcore-guidelines*"
+                                       "misc*"
+                                       "-misc-macro-parentheses"
+                                       "-misc-static-assert"
+                                       "-misc-unused-parameters"
+                                       "-modernize*"
+                                       "performance*"
+                                       "-performance-unnecessary-value-param"
+                                       "readability*"
+                                       "-readability-else-after-return"
+                                       "-readability-function-size"
+                                       "-readability-identifier-naming"
+                                       "-readability-implicit-bool-conversion"
+                                       "-readability-non-const-parameter"
+                                       "-readability-redundant-control-flow"
+                                       "-readability-redundant-declaration"))
+     &aux errno)
   "Apply clang-tidy to OBJ.
 * CLANG object to tidy and return
+* CHECKS list of clang-tidy checks to apply
 * ERRNO Exit code of clang-tidy
 "
   (setf (genome clang)
@@ -3436,22 +3455,7 @@ within a function body, return null."))
           (multiple-value-bind (stdout stderr exit)
               (shell
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-               '("cppcore-guidelines*"
-                 "misc*"
-                 "-misc-macro-parentheses"
-                 "-misc-static-assert"
-                 "-misc-unused-parameters"
-                 "-modernize*"
-                 "performance*"
-                 "-performance-unnecessary-value-param"
-                 "readability*"
-                 "-readability-else-after-return"
-                 "-readability-function-size"
-                 "-readability-identifier-naming"
-                 "-readability-implicit-bool-conversion"
-                 "-readability-non-const-parameter"
-                 "-readability-redundant-control-flow"
-                 "-readability-redundant-declaration")
+               checks
                src
                (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))

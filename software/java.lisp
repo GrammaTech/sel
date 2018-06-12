@@ -211,6 +211,7 @@ insert)."
   obj)
 
 ;;; TODO: Rename to `clang-tidy' to `tidy'.
-(defmethod clang-tidy ((obj java))
+(defmethod clang-tidy ((obj java) &optional checks)
   "This method has no effect on Java objects."
+  (declare (ignorable checks))
   obj)
