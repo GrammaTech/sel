@@ -706,8 +706,7 @@
    :target-function
    :mutants
    :create-all-simple-cut-variants
-   :create-target
-   :test-fitness))
+   :create-target))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

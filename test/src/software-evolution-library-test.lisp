@@ -1352,7 +1352,7 @@ suite should be run and nil otherwise."
     (setf (mutants *soft*)
 	  (cons (create-target *soft*)
 		(create-all-simple-cut-variants *soft*)))
-    (test-fitness *soft*)
+    (sel::test-fitness *soft*)
     (let ((best
 	   (lexicase-select-best
 	    (mutants *soft*)
