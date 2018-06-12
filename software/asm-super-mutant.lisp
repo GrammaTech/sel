@@ -810,4 +810,10 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 (push (create-target *asm-super*) (mutants *asm-super*))  ;; add original
 (phenome *asm-super* :src "is_even-1.asm" :bin "is_even-1.out")
 
+(test-fitness *asm-super*)
+
+(mapcar 'fitness
+  (lexicase-select-best (mutants *asm-super*) 
+    :predicate (lambda (x y) (< x y))))   ;; lower fitness number is better
+
 |#
