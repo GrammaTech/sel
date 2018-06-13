@@ -692,6 +692,11 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
     (target-function asm-super start-addr end-addr) ; nlscan function
     (generate-file asm-super output-path 2)))
 
+(defvar *lib-papi*
+  (or (probe-file "/usr/lib/x86_64-linux-gnu/libpapi.so.5.4.3")
+      (probe-file "/usr/lib/libpapi.so.5.6.1"))
+  "Path to papi library.  See http://icl.cs.utk.edu/papi/.")
+
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name "out"))
 		      (src (temp-file-name "asm")))
@@ -714,11 +719,11 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
         (when (zerop errno)
           ;; Link.
 	  (multiple-value-bind (stdout stderr errno)
-	      (shell "clang -g -lrt -o ~a ~a ~a ~a"
+	      (shell "clang -no-pie -g -lrt -o ~a ~a ~a ~a"
 		     bin
 		     (fitness-harness asm)
 		     obj
-		     "/usr/lib/x86_64-linux-gnu/libpapi.so.5.4.3")
+		     *lib-papi*)
             (restart-case
                 (unless (zerop errno)
                   (error (make-condition 'phenome :text stderr :obj asm :loc obj)))

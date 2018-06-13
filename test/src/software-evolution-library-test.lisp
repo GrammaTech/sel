@@ -1346,9 +1346,14 @@ suite should be run and nil otherwise."
 
 
 ;;; ASM-SUPER-MUTANT representation.
+(sel-suite* asm-super-mutant-tests
+            "ASM-SUPER-MUTANT representation."
+            ;; Only run these tests if we found libpapi.so.
+            *lib-papi*)
+
 (deftest asm-super-mutant-finds-improved-version ()
   (with-fixture odd-even-asm-super
-    ;; add target function, and all possible single-cut variants
+    ;; Add target function, and all possible single-cut variants.
     (setf (mutants *soft*)
 	  (cons (create-target *soft*)
 		(create-all-simple-cut-variants *soft*)))
@@ -1356,8 +1361,8 @@ suite should be run and nil otherwise."
     (let ((best
 	   (lexicase-select-best
 	    (mutants *soft*)
-	    :predicate (lambda (x y) (< x y))))) ; lower number is better
-      ;; is the first test result of the first best "better" (lower
+	    :predicate (lambda (x y) (< x y))))) ; Lower number is better.
+      ;; Is the first test result of the first best "better" (lower
       ;; number) than the first test result of the original version?
       (is (< (elt (fitness (first best)) 0)
 	     (elt (fitness (elt (mutants *soft*) 0)) 0))))))

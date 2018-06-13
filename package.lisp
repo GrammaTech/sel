@@ -701,6 +701,7 @@
    :coq-type-checks
    ;; asm-super-mutant
    :asm-super-mutant
+   :*lib-papi*
    :fitness-harness
    :load-io-file
    :target-function
