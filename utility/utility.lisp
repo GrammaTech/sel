@@ -693,6 +693,15 @@ Optional argument OUT specifies an output stream."
                :initial-value t))
       (t (equal obj1 obj2)))))
 
+(defmacro with-quiet-compilation (&body body)
+  `(let ((*load-verbose* nil)
+         (*compile-verbose* nil)
+         (*load-print* nil)
+         (*compile-print* nil)
+         (uiop/lisp-build:*uninteresting-conditions*
+          uiop/lisp-build:*usual-uninteresting-conditions*))
+     ,@body))
+
 (defmacro repeatedly (times &rest body)
   (let ((ignored (gensym)))
     `(loop :for ,ignored :below ,times :collect ,@body)))
