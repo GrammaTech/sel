@@ -694,25 +694,43 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 
 (defmethod phenome ((asm asm-super-mutant)
 		    &key (bin (temp-file-name "out"))
-		         (src (temp-file-name "asm")))
+		      (src (temp-file-name "asm")))
   "Create ASM file, assemble it, and link to create binary BIN."
   (let ((src (generate-file asm src (length (mutants asm))))) 
     (with-temp-file (obj "o")
       ;; Assemble.
       (multiple-value-bind (stdout stderr errno)
-        (shell "~a -f elf64 -o ~a ~a" (assembler asm) obj src)
+          (shell "~a -f elf64 -o ~a ~a" (assembler asm) obj src)
 	(declare (ignorable stdout stderr))
-        (if (zerop errno)
-            ;; Link.
-	    (multiple-value-bind (stdout stderr errno)
-		(shell "clang -g -lrt -o ~a ~a ~a ~a"
-		       bin
-		       (fitness-harness asm)
-		       obj
-		       "/usr/lib/x86_64-linux-gnu/libpapi.so.5.4.3")
-	      (setf (phenome-results asm)
-		    (list bin errno stderr stdout src))
-	      (values bin errno stderr stdout src)))))))
+        (restart-case
+            (unless (zerop errno)
+              (error (make-condition 'phenome :text stderr :obj asm :loc src)))
+          (retry-project-build ()
+            :report "Retry `phenome' assemble on OBJ."
+            (phenome obj :bin bin))
+          (return-nil-for-bin ()
+            :report "Allow failure returning NIL for bin."
+            (setf bin nil)))
+        (when (zerop errno)
+          ;; Link.
+	  (multiple-value-bind (stdout stderr errno)
+	      (shell "clang -g -lrt -o ~a ~a ~a ~a"
+		     bin
+		     (fitness-harness asm)
+		     obj
+		     "/usr/lib/x86_64-linux-gnu/libpapi.so.5.4.3")
+            (restart-case
+                (unless (zerop errno)
+                  (error (make-condition 'phenome :text stderr :obj asm :loc obj)))
+              (retry-project-build ()
+                :report "Retry `phenome' link on OBJ."
+                (phenome obj :bin bin))
+              (return-nil-for-bin ()
+                :report "Allow failure returning NIL for bin."
+                (setf bin nil)))
+	    (setf (phenome-results asm)
+		  (list bin errno stderr stdout src))
+	    (values bin errno stderr stdout src)))))))
 
 (defmethod test-fitness ((asm asm-super-mutant))
   "Create ASM file, assemble it, and link to create binary BIN."
@@ -768,7 +786,8 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 	    (copy orig) 
 	    (make-instance 'simple-cut :object orig :targets index))
 	  variants)
-	(format t "Cutting index ~D, line: ~A~%" index (asm-line-info-text line)))
+	;; (format t "Cutting index ~D, line: ~A~%" index (asm-line-info-text line))
+        )
       (incf index))
     (nreverse variants)))
 
