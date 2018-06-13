@@ -15,11 +15,13 @@
 ;; package argument and the results should be committed.
 ;;
 (load "~/.sbclrc" :if-does-not-exist nil)
+(require :uiop)
+(setf uiop/lisp-build:*uninteresting-conditions*
+      uiop/lisp-build:*usual-uninteresting-conditions*)
 (require :sb-introspect)
 (require :alexandria)
 (require :split-sequence)
 (require :cl-ppcre)
-(require :uiop)
 (load ".ci/.sb-texinfo/docstrings.lisp")
 (in-package :sb-texinfo)
 
