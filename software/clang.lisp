@@ -3496,7 +3496,8 @@ Documentation can be found at
 http://astyle.sourceforge.net/astyle.html#_Usage"))
 
 (defmethod astyle
-    ((obj clang) &optional (style "kr") (options '("--add-braces")) &aux errno)
+    ((obj clang) &optional (style "kr") (options '("--add-brackets"))
+     &aux errno)
   "Apply Artistic Style to OBJ.
 * OBJ object to format and return
 * STYLE style to utilize
