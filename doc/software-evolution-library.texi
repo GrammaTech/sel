@@ -896,10 +896,10 @@ are given in remainder of this section.
 @cindex tracing
 @include tracing.texi
 
-@node Super-Mutants, Usage, Tracing, Components
+@node Super-Mutants, Clang Super-Mutants, Tracing, Components
 @section Super-Mutants
 @cindex super-mutants
-@include include/super-mutants.texi
+@include include/super-mutant.texi
 
 @node Usage, Installation, Implementation, Top
 @chapter Usage

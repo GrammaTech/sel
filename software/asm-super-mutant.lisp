@@ -1,27 +1,30 @@
-;;;;
-;;;; asm-super-mutant.lisp --- combine SUPER-MUTANT functionalities
-;;;; with ASM-HEAP
-;;;;
-
-;;; ASM-SUPER-MUTANT software object
+;;;; asm-super-mutant.lisp --- combine SUPER-MUTANT with ASM-HEAP
 ;;;
-;;; This consists of:
+;;; DOCFIXME: write a description of how ASM-SUPER-MUTANT objects
+;;; are implemented and what happens at run time.  Along the lines of
+;;; (i) we compile a C harness which loops through every variant
+;;; executing each inside of a harness which performs
+;;;...sandboxing... and ...I/O checking...
 ;;;
-;;; -The ASM-HEAP, which is typically based on a file of assembly
-;;;  source code
+;;; ASM-SUPER-MUTANT software object consists of:
 ;;;
-;;; -Input/output specifications, in a specific file format as generated using
-;;;  the Intel monitoring application and our Python scripts
+;;; * The ASM-HEAP, which is typically based on a file of assembly
+;;;   source code
 ;;;
-;;; -Boundary deliminators which determines the target of the mutation
-;;;  algorithm
+;;; * Input/output specifications, in a specific file format as
+;;;   generated using the Intel monitoring application and our Python
+;;;   scripts
 ;;;
-;;; The ASM-SUPER-MUTANT object itself contains the whole original binary
-;;; application (in assembler source format).
+;;; * Boundary deliminators which determines the target of the
+;;;   mutation algorithm
 ;;;
-;;; Note that the struct INPUT-SPECIFICATION is a bit of a misnomer, as it is
-;;; used here for both input specification and output specification (their
-;;; formats are identical so we use the same struct for both).
+;;; The ASM-SUPER-MUTANT object itself contains the whole original
+;;; binary application (in assembler source format).
+;;;
+;;; Note that the struct INPUT-SPECIFICATION is a bit of a misnomer,
+;;; as it is used here for both input specification and output
+;;; specification (their formats are identical so we use the same
+;;; struct for both).
 ;;;
 ;;; SUPER-MUTANT slots:
 ;;;   MUTANTS will contain a list of ASM-HEAP objects.
@@ -30,6 +33,7 @@
 ;;;   PHENOME-RESULTS caches the results obtained from calling the PHENOME
 ;;;   method.
 ;;;
+;;; @texi{asm-super-mutant}
 
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)

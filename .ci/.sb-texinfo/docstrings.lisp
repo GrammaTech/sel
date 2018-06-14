@@ -481,7 +481,7 @@ with #\@. Optionally downcase the result."
 (defun unescape-for-texinfo (string &aux last-char)
   "Unescape obvious texinfo commands in STRING.
 STRING is assumed to be the result of `escape-for-texinfo'."
-  (let ((w/o-braces '("section" "subsection" "subsubsection"))
+  (let ((w/o-braces '("section" "subsection" "subsubsection" "cindex" "node" "include"))
         (w/braces '("uref" "ref" "url" "code"))
         (braces 0))
     (flet ((subword-at (i word)
@@ -521,7 +521,7 @@ STRING is assumed to be the result of `escape-for-texinfo'."
 
 ;;; line markups
 
-(defvar *not-symbols* '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO"))
+(defvar *not-symbols* '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO" "ASM"))
 
 (defun frob-ellipsis (line)
   ;; READ-FROM-STRING chokes on ... so replace it.
@@ -535,7 +535,8 @@ STRING is assumed to be the result of `escape-for-texinfo'."
   ;; This would be a good application for a regex ...
   (let (result)
     (flet ((grab (start end)
-             (unless (member (subseq line start end) *not-symbols*)
+             (unless (member (subseq line start end) *not-symbols*
+                             :test #'string=)
                (push (list start end) result)))
            (got-symbol-p (start)
              (let ((end (when (< start (length line))

@@ -20,20 +20,22 @@
 ;;; will return a wrapper which invokes the super-mutant with the
 ;;; desired mutations enabled.
 ;;;
-;;; @subsection Limitations
+;;; Super-mutants are currently only implemented for the specific
+;;; software objects mentioned in the following subsections of this
+;;; section.
 ;;;
-;;; * Super-mutants are currently only implemented for CLANG and
-;;;   CLANG-PROJECT software objects.
+;;; @node Clang Super-Mutants, ASM Super-Mutants, Super-Mutants, Super-Mutants
+;;; @subsection Clang Super-Mutants
+;;; @cindex clang-super-mutants
 ;;;
-;;; * Global variable declarations must match across all
-;;;   mutants. Declarations may be added or deleted, however.
+;;; Super mutants composed of CLANG and CLANG-PROJECT software objects
+;;; work by combining the genomes of multiple objects into a single
+;;; software object, identifying functions with differences between
+;;; objects, and wrapping the bodies of those functions in SWITCH
+;;; statements switching on the value of an environment variable which
+;;; controls which mutant is exercised in any given execution.
 ;;;
-;;; * Functions must have identical arguments and return types across
-;;;   all mutants. Functions may be added or deleted, but all existing
-;;;   copies must match.
-;;;
-;;;
-;;; @subsection Interactions Between Mutants
+;;; @subsubsection Interactions Between Mutants
 ;;;
 ;;; When combining multiple genomes, there is some risk of
 ;;; interactions between the individual mutants. These primarily
@@ -51,7 +53,7 @@
 ;;; functionally indistinguishable from that of the individual
 ;;; mutants.
 ;;;
-;;; @subsection Performance Considerations
+;;; @subsubsection Performance Considerations
 ;;;
 ;;; The super-mutant genome will introduce a GETENV call and a SWITCH
 ;;; statement. If these are placed in a performance-critical function,
@@ -69,7 +71,13 @@
 ;;; error will be raised and the entire super-mutant discarded. This
 ;;; can lead to wasted mutations.
 ;;;
-;;; @texi{super-mutants}
+;;; @node ASM Super-Mutants, Usage, Clang Super-Mutants, Super-Mutants
+;;; @subsection ASM Super Mutants
+;;; @cindex asm-super-mutants
+;;;
+;;; @include include/asm-super-mutant.texi
+;;;
+;;; @texi{super-mutant}
 
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
