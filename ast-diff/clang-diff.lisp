@@ -1,6 +1,6 @@
 ;;; clang-diff.lisp --- Calculate and render Lisp AST diffs at the command line
 ;;;
-;;; 
+;;;
 ;;; The following git configuration will register clang-diff as a tool
 ;;; to be used with @code{git difftool}.
 ;;;
@@ -8,14 +8,29 @@
 ;;;     [diff]
 ;;;     	tool = clang-diff
 ;;;
-;;;     # Command-line to use with clang-diff.  Piping through
-;;;     # colordiff is optional but nice to highlight diffs.
+;;;     # Command-line to use with clang-diff.
 ;;;     [difftool "clang-diff"]
-;;;     	cmd = "clang-diff $LOCAL $REMOTE|colordiff"
+;;;     	cmd = "clang-diff $LOCAL $REMOTE
 ;;;
 ;;;     # Optionally don't prompt.
 ;;;     [difftool]
 ;;;     	prompt = false
+;;;
+;;; To help clang resolve includes it may be necessary to add include
+;;; paths to the invocation of clang-diff.  E.g., putting the
+;;; following in the .git/config of a particular repo with headers in
+;;; a "src/" subdirectory will ensure clang can find those headers.
+;;; (By default -I takes "." passing the working directory to clang.)
+;;;
+;;;     [difftool "clang-diff"]
+;;;     	cmd = "clang-diff -I .,src $LOCAL $REMOTE"
+;;;
+;;; TODO:
+;;;  - Implement a string diff to recurse into strings.
+;;;    (This should have a configurable separator.)
+;;;  - Work on clang-diff tool's git configuration (or maybe this has
+;;;    to be implemented in clang-diff itself) to limit application by
+;;;    extension.
 ;;;
 (defpackage :software-evolution-library/clang-diff
   (:nicknames :sel/clang-diff)
@@ -26,13 +41,16 @@
         :curry-compose-reader-macros
         :iterate
         :uiop
+        :split-sequence
         :software-evolution-library/utility
         :software-evolution-library/ast-diff
         :software-evolution-library)
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
-   :if-let :emptyp :featurep))
+   :if-let :emptyp :featurep)
+  (:shadowing-import-from :software-evolution-library/view
+                          +color-RED+ +color-GRN+ +color-RST+))
 (in-package :software-evolution-library/clang-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -42,7 +60,7 @@
   (setf *note-level* level))
 
 (defun run-clang-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                         raw flags
+                         raw flags (includes '(".")) (colorp t)
                          (on-parse-error 'error)
                          (comp-db (probe-file "compile_commands.json")))
   "Run a clang diff on *COMMAND-LINE-ARGUMENTS*."
@@ -60,7 +78,10 @@ Compare C/C++ source files AST by AST.
 
 Options:
  -r, --raw                 output diff in raw Sexp (default is as text)
- -C, --comp-db [PATH]      path to clang compilation database
+ -c, --comp-db [PATH]      path to clang compilation database
+ -C, --no-color            inhibit color printing
+ -I [DIRS]                 include ,-delimited DIRS in flags to clang
+                           default \".\" includes current working directory
  -v, --verbose [NUM]       verbosity level 0-4
  -e, --errors [OPT]        how to handle parse errors 0-2
                             ignore---silently ignore
@@ -74,7 +95,10 @@ Built with SEL version ~a, and ~a version ~a.~%"
     ;; Argument handling and checking.
     (getopts (args :unknown :return)
       ("-r" "--raw" (setf raw t))
-      ("-C" "--comp-db" (setf comp-db (pop args)))
+      ("-c" "--comp-db" (setf comp-db (pop args)))
+      ("-C" "--no-color" (setf colorp nil))
+      ("-I" "-I" (setf includes (split-sequence #\, (pop args)
+                                                :remove-empty-subseqs t)))
       ("-v" "--verbose" (handle-set-verbose-argument
                          (parse-integer (pop args))))
       ("-e" "--errors" (setf on-parse-error (intern (pop args) :clang-diff))))
@@ -96,9 +120,10 @@ Built with SEL version ~a, and ~a version ~a.~%"
                         args))
       (quit 2))
     ;; Setup clang-mutate options.
-    (setf flags (list "-I" (pwd)))
+    (setf flags
+          (mappend [{list "-I"} {concatenate 'string (pwd) "/"}] includes))
     (when comp-db
-      (push (list "-C" comp-db)
+      (push (cons :build-path comp-db)
             *clang-mutate-additional-args*))
     ;; Create the diff.
     (let ((diff
@@ -115,6 +140,12 @@ Built with SEL version ~a, and ~a version ~a.~%"
       ;; Print according to the RAW option.
       (if raw
           (writeln (ast-diff-elide-same diff) :readably t)
-          (print-diff diff))
+          (if colorp
+              (print-diff diff *standard-output*
+                          (format nil "~a[-" +color-RED+)
+                          (format nil "-]~a" +color-RST+)
+                          (format nil "~a{+" +color-GRN+)
+                          (format nil "+}~a" +color-RST+))
+              (print-diff diff)))
       ;; Only exit with 0 if the two inputs match.
       (quit (if (every [{eql :same} #'car] diff) 0 1)))))

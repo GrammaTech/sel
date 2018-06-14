@@ -2,7 +2,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(defstruct asm-line-info
+(defstruct (asm-line-info (:copier copy-asm-line-info))
   text    ;; original text
   tokens  ;; list of tokens after parsing
   type    ;; empty (white space/comments), decl, data, label-decl, op)
@@ -12,6 +12,7 @@
   id      ;; unique index in heap, sequential starting at 0
   orig-file ;; path of the orignal .asm file that was loaded (if any)
   orig-line ;; line number (0-based) of line in original .asm file (if any)
+  address ;; original address of code or data
   )
 
 ;;; This read-table and package are used for parsing ASM instructions.
@@ -29,11 +30,27 @@
 		     nil
 		     *assembler-x86-readtable*)
 
-(set-macro-character #\[ (lambda (stream ch)(declare (ignore stream ch)) :left-brace)
+(set-macro-character #\[ (lambda (stream ch)
+			   (declare (ignore stream ch))
+			   :\[)
 		     nil
 		     *assembler-x86-readtable*)
 
-(set-macro-character #\] (lambda (stream ch)(declare (ignore stream ch)) :right-brace)
+(set-macro-character #\] (lambda (stream ch)
+			   (declare (ignore stream ch))
+			   :\])
+		     nil
+		     *assembler-x86-readtable*)
+
+(set-macro-character #\+ (lambda (stream ch)
+			   (declare (ignore stream ch))
+			   :+)
+		     nil
+		     *assembler-x86-readtable*)
+
+(set-macro-character #\* (lambda (stream ch)
+			   (declare (ignore stream ch))
+			   :*)
 		     nil
 		     *assembler-x86-readtable*)
 
@@ -114,7 +131,18 @@
   (let* ((tokens (tokenize-asm-line line))
 	 (info (make-asm-line-info :text line :tokens tokens)))
 
-    ;; determine type of line
+    ;; see if there is a comment: "orig ea=0xnnnnnnnn" which specifies
+    ;; the original address of code or data
+    (let* ((addr-comment "orig ea=0x")
+	   (addr-pos (search addr-comment line :from-end t :test 'equal)))
+      (if addr-pos
+	  (setf (asm-line-info-address info)
+		(parse-integer line
+			       :radix 16
+			       :start (+ (length addr-comment) addr-pos)
+			       :junk-allowed t))))
+    
+    ;; Determine type of line
     (let ((line-type (parse-line-type tokens)))
       (setf (asm-line-info-type info) line-type)
 
@@ -138,14 +166,39 @@
                              (list info)))))
 	(:empty (list info))
 	(:op (setf (asm-line-info-opcode info) (first tokens))
-	     (setf (asm-line-info-operands info)
-		   (remove-if
-		    (lambda (tok)
-                      (member tok '(:colon :comma :left-brace :right-brace)))
-		    (rest tokens)))
+	     (let ((comma-pos (position ':comma (rest tokens))))
+	       (setf (asm-line-info-operands info)
+		     (if comma-pos
+			 (list
+			  (subseq (rest tokens) 0 comma-pos)
+			  (subseq (rest tokens) (+ comma-pos 1)))
+			 (list (rest tokens)))))
 	     (list info))
 	(:data (list info))
 	(:decl (list info))))))
+
+;;;
+;;; Convert an operand (from ASM-LINE-INFO-OPERANDS list) to text string.
+;;;
+(defun format-asm-operand (op) ; list of tokens
+  (format nil "~{~A~}"
+	  (mapcar (lambda (x)
+		 (if (member x '(sel/asm::qword
+				 sel/asm::dword
+				 sel/asm::word
+				 sel/asm::byte))
+		     (format nil "~A " x)
+		     x))
+		  op)))
+
+(defun update-asm-line-info-text (asm-line)
+  "Update the TEXT field of ASM-LINE-INFO after updated operation or operands."
+  (when (eq (asm-line-info-type asm-line) ':op)
+    (setf (asm-line-info-text asm-line)
+	(format nil "~A ~{~A~^, ~}"
+		(asm-line-info-opcode asm-line)
+		(mapcar 'format-asm-operand
+			(asm-line-info-operands asm-line))))))
 
 
 ;;; asm-heap software objects
@@ -231,6 +284,38 @@ structs, and storing them in a vector on the LINE-HEAP"
       ((= i index)(setf (aref a i) val))
     (setf (aref a i)(aref a (- i 1)))))
 
+;;;
+;;; Given a textual line of assembler, parse it and add the resulting
+;;; list of asm-line-info structs to the heap.
+;;; Returns the list of new asm-line-info struct.
+;;;
+(defun parse-and-add-to-heap (asm-heap text)
+  (let* ((info-list (parse-asm-line text))
+	 (id (length (line-heap asm-heap))))
+    (dolist (info info-list)
+      (setf (asm-line-info-id info) id)
+      (incf id)
+      (vector-push-extend info (line-heap asm-heap)))
+    info-list))
+
+;;;
+;;; Parses a new line of assembler, adds it to the heap, and inserts
+;;; it at index in the genome. Returns the number of lines inserted.
+;;;
+(defun insert-new-line (asm-heap text index)
+  (let ((info-list (parse-and-add-to-heap asm-heap text)))
+    (dolist (info info-list)
+      (vector-insert (genome asm-heap) index info)
+      (incf index))
+    (length info-list)))
+
+;;;
+;;; Parse and add a list of lines of assembler code.
+;;;
+(defun insert-new-lines (asm-heap line-list index)
+  (dolist (x line-list)
+    (incf index (insert-new-line asm-heap x index))))
+
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-cut))
   "Implement simple-cut mutation on ASM-HEAP."
   (vector-cut (genome asm) (targets mutation))
@@ -264,8 +349,43 @@ The new genome contains only the elements in the designated range."
     (setf (genome new) new-genome)
     new))
 
+(defmethod apply-mutation ((asm asm-heap) (mutation asm-replace-operand))
+  "Apply an asm-replace-operand MUTATION to ASM-HEAP, return the resulting 
+software. The MUTATION targets are a pair of instruction indices pointing 
+to a \"bad\" instruction (whose operand will be replaced) and 
+a \"good\" instruction (whose operand will be used as the replacement). 
+If either instruction lacks an operand, a `no-mutation-targets' condition 
+is raised."
+  (let ((bad-good (targets mutation)))
+    (assert (listp bad-good) (mutation)
+            "Requires mutations targets to be a list of two elements.")
+    ;; NOTE: assumes instructions start with :code symbol
+    (let* ((genome (genome asm))
+           (bad (first bad-good))
+	   (good (second bad-good))
+           (bad-instr (elt genome bad))
+	   (good-instr (elt genome good))
+           (bad-operands (asm-line-info-operands bad-instr))
+           (good-operands (asm-line-info-operands good-instr)))
+      (when (or (null bad-operands) (null good-operands))
+        (error (make-condition 'no-mutation-targets
+                               :text "No operands in instruction(s)"
+                               :obj asm)))
+      (let ((new-instr (copy-asm-line-info bad-instr)))
+	;; update one of the operands with a randomly selected operand from
+	;; the good statement
+	(setf (elt (asm-line-info-operands new-instr)
+		   (random (length (asm-line-info-operands new-instr))))
+	      (random-elt good-operands))
+	;; update the text since we changed the operand
+	(update-asm-line-info-text new-instr)
+	;; update the genome with the newly modified instruction
+        (setf (elt genome bad) new-instr)  
+        asm))))
+
 (defmethod pick-mutation-type ((asm asm-heap))
   (random-pick *simple-mutation-types*))
+
 
 #|
    Not implemented yet --RGC

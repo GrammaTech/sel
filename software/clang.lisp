@@ -1909,8 +1909,8 @@ the mutation operations to be performed as an association list.
                          &key script
                          &aux value1-file value2-file)
   "DOCFIXME
-* OBJ DOCFIXME
-* OP DOCFIXME
+* OBJ Clang software object
+* OP List of (Action . Options) for the clang-mutate command line.
 * SCRIPT DOCFIXME
 * VALUE1-FILE DOCFIXME
 * VALUE2-FILE DOCFIXME
@@ -1955,7 +1955,8 @@ the mutation operations to be performed as an association list.
                    (:dwarf-src-file-path
                     (format nil "-dwarf-filepath-mapping=~a=~a"
                             value src-file))
-                   (:cfg "-cfg"))))
+                   (:cfg "-cfg")
+                   (:build-path (format nil "-p=~a" value)))))
              (field-opt (field)
                (ecase field
                  (:counter "counter")
@@ -3422,12 +3423,31 @@ within a function body, return null."))
 
 
 ;;; Formatting methods
-(defgeneric clang-tidy (software)
-  (:documentation "Apply the software fixing command line, part of Clang."))
+(defgeneric clang-tidy (software &optional checks)
+  (:documentation "Apply the software fixing clang tool, optionally using
+the given list of CHECKS."))
 
-(defmethod clang-tidy ((clang clang) &aux errno)
+(defmethod clang-tidy
+    ((clang clang) &optional (checks '("cppcore-guidelines*"
+                                       "misc*"
+                                       "-misc-macro-parentheses"
+                                       "-misc-static-assert"
+                                       "-misc-unused-parameters"
+                                       "-modernize*"
+                                       "performance*"
+                                       "-performance-unnecessary-value-param"
+                                       "readability*"
+                                       "-readability-else-after-return"
+                                       "-readability-function-size"
+                                       "-readability-identifier-naming"
+                                       "-readability-implicit-bool-conversion"
+                                       "-readability-non-const-parameter"
+                                       "-readability-redundant-control-flow"
+                                       "-readability-redundant-declaration"))
+     &aux errno)
   "Apply clang-tidy to OBJ.
 * CLANG object to tidy and return
+* CHECKS list of clang-tidy checks to apply
 * ERRNO Exit code of clang-tidy
 "
   (setf (genome clang)
@@ -3435,21 +3455,7 @@ within a function body, return null."))
           (multiple-value-bind (stdout stderr exit)
               (shell
                "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-               '("cppcore-guidelines*"
-                 "misc*"
-                 "-misc-macro-parentheses"
-                 "-misc-static-assert"
-                 "-misc-unused-parameters"
-                 "-modernize*"
-                 "performance*"
-                 "-performance-unnecessary-value-param"
-                 "readability*"
-                 "-readability-else-after-return"
-                 "-readability-function-size"
-                 "-readability-identifier-naming"
-                 "-readability-non-const-parameter"
-                 "-readability-redundant-control-flow"
-                 "-readability-redundant-declaration")
+               checks
                src
                (mapconcat #'identity (flags clang) " "))
             (declare (ignorable stdout stderr))
@@ -3484,21 +3490,25 @@ within a function body, return null."))
             (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
 
-(defgeneric astyle (software &optional style)
+(defgeneric astyle (software &optional style options)
   (:documentation "Apply Artistic Style to the software.
 Documentation can be found at
 http://astyle.sourceforge.net/astyle.html#_Usage"))
 
-(defmethod astyle ((obj clang) &optional style &aux errno)
+(defmethod astyle
+    ((obj clang) &optional (style "kr") (options '("--add-brackets"))
+     &aux errno)
   "Apply Artistic Style to OBJ.
 * OBJ object to format and return
 * STYLE style to utilize
+* OPTIONS list of additional options to astyle
 * ERRNO Exit code of astyle binary
 "
   (with-temp-file-of (src (ext obj)) (genome obj)
     (setf (genome obj)
           (multiple-value-bind (stdout stderr exit)
-              (shell "astyle --suffix=none --style=~a ~a" (or style "kr") src)
+              (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
+                     options style src)
             (declare (ignorable stdout stderr))
             (setf errno exit)
             (if (zerop exit)

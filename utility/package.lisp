@@ -105,6 +105,7 @@
    :tree-right-length
    :tree-right-walk
    ;; simple utility
+   :with-quiet-compilation
    :repeatedly
    :indexed
    :different-it

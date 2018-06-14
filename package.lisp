@@ -698,7 +698,16 @@
    :tag-loc-info
    :untag-loc-info
    :lookup-source-strings
-   :coq-type-checks))
+   :coq-type-checks
+   ;; asm-super-mutant
+   :asm-super-mutant
+   :*lib-papi*
+   :fitness-harness
+   :load-io-file
+   :target-function
+   :mutants
+   :create-all-simple-cut-variants
+   :create-target))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

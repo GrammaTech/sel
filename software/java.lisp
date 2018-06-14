@@ -205,12 +205,13 @@ insert)."
   obj)
 
 ;; TODO: Artistic style can be used with JAVA objects
-(defmethod astyle ((obj java) &optional style)
+(defmethod astyle ((obj java) &optional style options)
   "This method currently has not effect on Java objects."
-  (declare (ignorable style))
+  (declare (ignorable style options))
   obj)
 
 ;;; TODO: Rename to `clang-tidy' to `tidy'.
-(defmethod clang-tidy ((obj java))
+(defmethod clang-tidy ((obj java) &optional checks)
   "This method has no effect on Java objects."
+  (declare (ignorable checks))
   obj)

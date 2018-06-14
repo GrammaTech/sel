@@ -50,7 +50,8 @@ techniques."
              (:file "expression" :depends-on ("lisp"))
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
-             (:file "asm-heap"  :depends-on ("asm"))
+             (:file "asm-heap" :depends-on ("asm"))
+	     (:file "asm-super-mutant" :depends-on ("asm-heap"))
              (:file "csurf-asm" :depends-on ("asm-heap"))
              (:file "elf"  :depends-on ("diff"))
              (:file "elf-cisc" :depends-on ("elf"))
@@ -303,6 +304,8 @@ techniques."
                metabang-bind
                iterate
                uiop
+               split-sequence
+               software-evolution-library/view
                software-evolution-library/utility
                software-evolution-library/ast-diff
                software-evolution-library)
