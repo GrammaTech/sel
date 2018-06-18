@@ -109,6 +109,13 @@
 (in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
 
+(defvar *coq-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((type-safe-swap .  5)
+      (sexp-swap      .  5))))
+  "Cumulative distribution fo normalized probabilities of weighted mutations.")
+
 ;; Coq object
 (define-software coq (sexp)
   ((ast-ids
@@ -417,7 +424,7 @@ condition."
 (defmethod pick-mutation-type ((obj coq))
   "Randomly select a mutation that may be performed on OBJ."
   (declare (ignorable obj))
-  (random-pick (list (cons 'type-safe-swap 0.8) (cons 'sexp-swap 1.0))))
+  (random-pick *coq-mutation-types*))
 
 (defmethod stmt-range ((obj coq) (function string))
   "Return a list of the indices of the first and last ASTs of FUNCTION in OBJ.
