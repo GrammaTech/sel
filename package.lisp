@@ -676,10 +676,13 @@
    ;; Coq exports
    :coq
    :coq-project
-   :ast-ids
    :project-file
    :file-source
    :imports
+   :coq-modules
+   :coq-sections
+   :coq-definitions
+   :*coq-mutation-types*
    :reset-and-load-imports
    :init-coq-project
    :type-safe-swap
