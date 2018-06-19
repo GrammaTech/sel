@@ -118,10 +118,7 @@
 
 ;; Coq object
 (define-software coq (sexp)
-  ((ast-ids
-    :initarg :ast-ids :accessor ast-ids :initform nil :copier copy-tree
-    :documentation "List of IDs for the ASTs when they were loaded.")
-   (project-file
+  ((project-file
     :initarg :project-file :accessor project-file :initform nil :copier :direct
     :documentation "Path to _CoqProject file, if it exists.")
    (file-source
@@ -130,7 +127,21 @@
    (imports
     :initarg :imports :accessor imports :initform nil
     :copier copy-list
-    :documentation "ASTs for imports, not part of genome."))
+    :documentation "ASTs for imports, not part of genome.")
+   (coq-modules
+    :initarg :modules :accessor coq-modules :initform nil
+    :copier copy-list
+    :documentation "List of Modules defined by this object.")
+   (coq-sections
+    :initarg :sections :accessor coq-sections :initform nil
+    :copier copy-list
+    :documentation "List of Sections defined by this object.")
+   (coq-definitions
+    :initarg :definitions :accessor coq-definitions :initform nil
+    :copier copy-list
+    :documentation
+    "List of values defined in this object.
+Includes Definition, Inductive, Fixpoint, Parameter, etc.")))
   (:documentation "Coq software object."))
 
 (defun set-load-paths (project-file)
@@ -198,25 +209,32 @@ file have been added."
     (set-load-paths (project-file obj))
     (insert-reset-point))
   (bind ((ast-ids (load-coq-file file))
-         ((import-asts import-strs asts new-ids)
+         ((import-asts import-strs asts modules sections definitions)
           (iter (for id in ast-ids)
-                (let ((ast (lookup-coq-ast id))
-                      (str (lookup-coq-string id)))
+                (let ((ast (lookup-coq-ast id)))
+                  ;; Collect all ASTs except imports into genome.
                   (if (is-import-ast ast)
                       ;; separate out import asts
                       (progn
                         (collect ast into imports)
-                        (collect str into import-strs))
-                      ;; save non-import asts and strings
-                      (progn
-                        (collect ast into asts)
-                        (collect id into new-ids))))
+                        (collect (lookup-coq-string id) into import-strs))
+                      ;; save non-import asts
+                      (collect ast into asts))
+                  (when-let ((module (is-coq-module-ast ast)))
+                    (collect module into modules))
+                  (when-let ((section (is-coq-section-ast ast)))
+                    (collect section into sections))
+                  (when-let ((definition (is-coq-definition-ast ast)))
+                    (collect definition into definitions)))
                 (finally
-                 (return (list imports import-strs asts new-ids))))))
+                 (return (list imports import-strs asts
+                               modules sections definitions))))))
     (setf (genome obj) (tag-loc-info asts))
-    (setf (ast-ids obj) new-ids)
     (setf (file-source obj) file)
     (setf (imports obj) import-asts)
+    (setf (coq-modules obj) modules)
+    (setf (coq-sections obj) sections)
+    (setf (coq-definitions obj) coq-definitions)
 
     ;; load imports and update reset-point
     (reset-and-load-imports obj :imports import-strs)
@@ -250,10 +268,8 @@ Return NIL if source strings cannot be looked up."
   (insert-reset-point)
   (iter (for str in (lookup-source-strings obj :include-imports nil))
         (let ((new-ids (add-coq-string str)))
-          (appending new-ids into new-ast-ids)
           (sum (if new-ids 1 0) into typecheck-sum))
         (finally
-         (setf (ast-ids obj) new-ast-ids)
          (return (if (zerop (length (genome obj)))
                      0
                      (/ typecheck-sum (length (genome obj))))))))
