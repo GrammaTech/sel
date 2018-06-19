@@ -141,7 +141,7 @@ first value from the `phenome' method."
 (defmethod (setf fitness-extra-data) (extra-data (obj software))
   (declare (ignorable extra-data)))
 
-(defgeneric copy (software &key)
+(defgeneric copy (software &key &allow-other-keys)
   (:documentation "Copy the software.
 Return a deep copy of a software object."))
 
@@ -181,19 +181,19 @@ Used to target mutation."))
 Used to target mutation."))
 (defmethod pick-bad  ((software software)) (random (size software)))
 
-(defgeneric pick-bad-good (software &key)
+(defgeneric pick-bad-good (software &key &allow-other-keys)
   (:documentation "Pick a 'bad' and a 'good' indexes into a software object.
 Used to target mutation."))
 (defmethod pick-bad-good ((software software) &key)
   (list (pick-bad software) (pick-good software)))
 
-(defgeneric pick-bad-bad (software &key)
+(defgeneric pick-bad-bad (software &key &allow-other-keys)
   (:documentation "Pick two 'bad' indexes into a software object.
 Used to target mutation."))
 (defmethod pick-bad-bad ((software software) &key)
   (list (pick-bad software) (pick-bad software)))
 
-(defgeneric pick-bad-only (software &key)
+(defgeneric pick-bad-only (software &key &allow-other-keys)
   (:documentation "Pick a single 'bad' index into a software object.
 Used to target mutation."))
 (defmethod pick-bad-only ((software software) &key)
@@ -580,7 +580,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
         (setf (slot-value mut 'targets)
               (funcall (targeter mut) (object mut))))))
 
-(defgeneric at-targets (mutation targets &key)
+(defgeneric at-targets (mutation targets &key &allow-other-keys)
   (:documentation "Return a copy of MUTATION with `targets' set to TARGETS."))
 
 (defmethod at-targets ((mut mutation) targets &key (object (object mut)))
