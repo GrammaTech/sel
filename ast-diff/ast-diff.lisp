@@ -49,7 +49,10 @@
    :ast-diff
    :ast-diff-elide-same
    :ast-patch
-   :print-diff))
+   :print-diff
+   ;; Merge functions
+   :chunk
+   :diff3))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -492,3 +495,73 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                        (write insert-end :stream stream))
               (:recurse (print-diff content stream delete-start delete-end insert-start insert-end))))
           (if (equalp '(:same) (lastcar diff)) (butlast diff) diff))))
+
+
+;;; Merge algorithms
+(defun chunk (o-a o-b &aux chunks stable unstable leftp)
+  "Group two diffs against the same original into stable and unstable chunks.
+See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
+  (labels
+      ((two (sym-a sym-b)
+         (or (setf leftp (and (eql sym-a (caar o-a)) (eql sym-b (caar o-b))))
+             (and (eql sym-a (caar o-b)) (eql sym-b (caar o-a)))))
+       (flush-unstable ()
+         (when unstable
+           (appendf chunks (list (cons :unstable unstable)))
+           (setf unstable nil)))
+       (flush-stable ()
+         (when stable
+           (appendf chunks (list (cons :stable stable)))
+           (setf stable nil))))
+    (iter (while (and o-a o-b))
+          (cond
+            ;; Stable
+            ((two :same :same)
+             (flush-unstable)
+             (appendf stable (list (list (pop o-a) (pop o-b)))))
+            ((two :recurse :recurse)
+             (flush-stable) (flush-unstable)
+             (appendf chunks
+                      (list (cons :recurse
+                                  (chunk (cdr (pop o-a))
+                                         (cdr (pop o-b)))))))
+            ;; Unstable
+            ((or (two :same :delete)
+                 (two :recurse :delete)
+                 (two :same :recurse)
+                 (two :delete :delete)
+                 (two :insert :insert))
+             (flush-stable)
+             (appendf unstable (list (list (pop o-a) (pop o-b)))))
+            ((or (two :same :insert)
+                 (two :recurse :insert))
+             (flush-stable)
+             (appendf unstable (list (if leftp
+                                         (list nil (pop o-b))
+                                         (list (pop o-a) nil)))))
+            (t (error "Unanticipated state when chunking: ~a ~a."
+                      (caar o-a) (caar o-b)))))
+    (flush-stable) (flush-unstable)
+    chunks))
+
+(defun diff3 (original branch-a branch-b)
+  (labels ((map-chunks (function chunks)
+             (when chunks
+               (cons (if (eql :recurse (caar chunks))
+                         (map-chunks function (cdar chunks))
+                         (funcall function (car chunks)))
+                     (map-chunks function (cdr chunks))))))
+    (map-chunks
+     (lambda (chunk)
+       (format t "~a:~a~%" (car chunk) (mapcar {mapcar #'car} (cdr chunk)))
+       (ecase (car chunk)
+         (:stable (cdaadr chunk))       ; Return the text of chunk.
+         (:unstable
+          ;; TODO: Unstable Cases:
+          ;; - changed only in A
+          ;; - changed only in B
+          ;; - falsely conflicting
+          ;; - truly conflicting
+          )))
+     (chunk (ast-diff original branch-a)
+            (ast-diff original branch-b)))))
