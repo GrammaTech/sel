@@ -4,23 +4,24 @@
 
 
 ;;; Software Object
+(defvar +software-evolution-library-dir+
+  (pathname-directory
+   #.(or *compile-file-truename*
+         *load-truename*
+         *default-pathname-defaults*))
+  "Path to directory holding SOFTWARE-EVOLUTION-LIBRARY.")
+
 (defvar +software-evolution-library-version+
   (eval-when (:compile-toplevel :load-toplevel :execute)
     (handler-case
-        (current-git-commit (pathname-directory
-                             #.(or *compile-file-truename*
-                                   *load-truename*
-                                   *default-pathname-defaults*)))
+        (current-git-commit +software-evolution-library-dir+)
       (git (e) (declare (ignorable e)) "UNKNOWN")))
   "Current version of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defvar +software-evolution-library-branch+
   (eval-when (:compile-toplevel :load-toplevel :execute)
     (handler-case
-        (current-git-branch (pathname-directory
-                             #.(or *compile-file-truename*
-                                   *load-truename*
-                                   *default-pathname-defaults*)))
+        (current-git-branch +software-evolution-library-dir+)
       (git (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
