@@ -1,24 +1,45 @@
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/auto-merge
+  (:nicknames :sel/auto-merge)
+  (:use
+   :common-lisp
+   :software-evolution-library
+   :software-evolution-library/ast-diff
+   :software-evolution-library/utility
+   :alexandria
+   :arrow-macros
+   :named-readtables
+   :curry-compose-reader-macros
+   :metabang-bind
+   :iterate))
+(in-package :software-evolution-library/auto-merge)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;; Three parts of the merge.
+(defparameter +gcd-dir+
+  (append +software-evolution-library-dir+ '("test" "etc" "gcd")))
+
 (defparameter *orig*
   (from-file (make-instance 'clang)
              (make-pathname :name "gcd-wo-curlies"
                             :type "c"
-                            :directory sel/test::+gcd-dir+)))
+                            :directory +gcd-dir+)))
 
 (defparameter *fix*
   (from-file (make-instance 'clang)
              (make-pathname :name "gcd-wo-curlies-fix"
                             :type "c"
-                            :directory sel/test::+gcd-dir+)))
+                            :directory +gcd-dir+)))
 
 (defparameter *prose*
   (from-file (make-instance 'clang)
              (make-pathname :name "gcd-wo-curlies-prose"
                             :type "c"
-                            :directory sel/test::+gcd-dir+)))
+                            :directory +gcd-dir+)))
+
+
+;;; diff3
+(diff3 *orig* *fix* *prose*)
 
 
 ;;; Three test suites.
@@ -299,8 +320,13 @@
 ;;;      feature.  This sort of tool (with super-mutants) would also
 ;;;      automate the compilation of binaries to support A/B testing.
 ;;;
-;;; 2. Fault localization (tarantula style).  We would have three sets of
-;;;    tests; original tests O, and tests added by new branches A and B.
+;;; 2. Implement the diff3 merge algorithm over-top of our AST
+;;;    differences.  This is a proven method of resolving most
+;;;    differences.
+;;;
+;;; 3. Fault localization (tarantula style), could be used to resolve
+;;;    further differences.  We would have three sets of tests;
+;;;    original tests O, and tests added by new branches A and B.
 ;;;    Thus every statement in the programs falls into the superset of
 ;;;    {O,A,B} = {∅, {A}, {B}, {O}, {A,B}, {A,O}, {B,O}, {A,B,O}}.
 ;;;
@@ -313,11 +339,11 @@
 ;;;    - for all others seed an initial population with random choices, or
 ;;;      both concatenate, or something...
 ;;;
-;;; 3. Next would be determining a good fitness function, mutation
-;;;    operations, etc...
+;;; 4. Order the set of possible resolutions in priority order (using
+;;;    the heuristics in (2) and (3) above, then begin running through
+;;;    the combined test suite to see if any pass.  Return on the
+;;;    first version which passes all tests.  Accumulate imperfect
+;;;    versions in a population.
 ;;;
-;;; Questions:
-;;; - Should we consider gum-tree as a diff alternative?  Are moves important?
-;;; - Will we ever want to touch code outside of the difference areas.
-;;; - Should we constrain ourselves to what e-diff provides?
-;;;
+;;; 5. If none found in the first pass, then begin an evolutionary
+;;;    search.
