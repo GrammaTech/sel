@@ -491,29 +491,33 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 ;;;
 ;;; Insert prolog code at the beginning of the file.
 ;;;
-(defun add-prolog (asm-super)
+(defun add-prolog (asm-super num-variants)
   (insert-new-lines
    asm-super
-   (list
-    "; -------------- Globals (exported) ---------------"
-    "        global variant_table"
-    "        global input_regs"
-    "        global output_regs"
-    "        global input_mem"
-    "        global output_mem"
-    "        global num_tests"
-    "        global save_return_address"    ; save address to return to
-    "        global result_return_address   ; keep track of what we found"
-    ""
-    "; -------------- Stack Vars ---------------"
-    "        $is_even.var_4 equ -4"
-    ""
-    "; -------------- Stack --------------"
-    "section .note.GNU-stack noalloc noexec nowrite progbits"
-    ""
-    "; ----------- Code & Data ------------"
-    "section .text exec nowrite  align=16"
-    "      align 4")
+   (append
+     (list
+       "; -------------- Globals (exported) ---------------"
+       "        global variant_table"
+       "        global input_regs"
+       "        global output_regs"
+       "        global input_mem"
+       "        global output_mem"
+       "        global num_tests"
+       "        global save_return_address"    ; save address to return to
+       "        global result_return_address   ; keep track of what we found")
+     (iter (for i from 0 below num-variants)
+	   (collect (format nil "        global variant_~D" i)))
+     (list
+       ""
+       "; -------------- Stack Vars ---------------"
+       "        $is_even.var_4 equ -4"
+       ""
+       "; -------------- Stack --------------"
+       "section .note.GNU-stack noalloc noexec nowrite progbits"
+       ""
+       "; ----------- Code & Data ------------"
+       "section .text exec nowrite  align=16"
+       "      align 4"))
    0))
 
 ;;;
@@ -664,7 +668,7 @@ the byte at 0x7fbbc1fcf769 has value 0x04, and so forth. Note that bytes
 (defun generate-file (asm-super output-path number-of-variants)
   (let ((asm-variants (make-instance 'asm-heap)))
     (setf (lines asm-variants) (list))  ;; empty heap
-    (add-prolog asm-variants)
+    (add-prolog asm-variants number-of-variants)
     (let ((count 0))
       (dolist (v (mutants asm-super))
         (add-variant-func

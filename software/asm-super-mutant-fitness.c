@@ -65,6 +65,7 @@ extern vfunc variant_table[]; // 0-terminated array of variant
 
 #define PAGE_SIZE 4096
 #define PAGE_MASK 0xfffffffffffff000
+#define RSP_POS 3  // position of stack pointer in output registers
 
 extern unsigned long input_regs[NUM_INPUT_REGS];
 extern unsigned long output_regs[NUM_OUTPUT_REGS];
@@ -131,6 +132,7 @@ static int EventSet = PAPI_NULL;
         "movq 0x10(%rbx), %rcx\n\t" \
         "movq 0x18(%rbx), %rdx\n\t" \
         "movq 0x20(%rbx), %rsp\n\t" \
+        "add $8, %rsp\n\t"          \
         "movq 0x28(%rbx), %rbp\n\t" \
         "movq 0x30(%rbx), %rsi\n\t" \
         "movq 0x38(%rbx), %rdi\n\t" \
@@ -271,13 +273,14 @@ int check_results(int variant, int test) {
     
     // check registers
     for (int i = 0; i < NUM_OUTPUT_REGS; i++) {
-        if (output_regs[test * NUM_OUTPUT_REGS + i] != result_regs[i]) {
+        if (i != RSP_POS
+            && output_regs[test * NUM_OUTPUT_REGS + i] != result_regs[i]) {
 #if DEBUG
             fprintf(stderr, "Test %d failed at register: %s, expected: %lx, "
                    "found: %lx, orig rsp: %lx\n",
                   test,
                   output_reg_names[i],
-                  output_regs[i],
+                  output_regs[test * NUM_OUTPUT_REGS + i],
                   result_regs[i],
                   save_rsp);
 #endif
