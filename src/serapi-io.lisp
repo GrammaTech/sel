@@ -65,7 +65,10 @@
            :is-terminating
            :is-error
            :is-loc-info
-           :is-import-ast
+           :is-coq-import-ast
+           :is-coq-module-ast
+           :is-coq-section-ast
+           :is-coq-definition-ast
            :lookup-coq-pp
            :lookup-coq-string
            :add-coq-string
@@ -624,9 +627,8 @@ command or an invalid Coq command, NIL otherwise."
                 t))
          (otherwise nil))))
 
-(defun is-import-ast (sexpr)
-  "Return T if SEXPR is tagged as as VernacImport or VernacRequire, NIL
-otherwise."
+(defun is-coq-import-ast (sexpr)
+  "Return T if SEXPR is tagged as VernacImport or VernacRequire, NIL otherwise."
   ;; ASTs for imports have length 2 where the first element is located info
   ;; and the second is either VernacImport or VernacRequire.
   (intern "VernacImport" *package*)
@@ -635,6 +637,89 @@ otherwise."
        (is-loc-info (first sexpr))
        (or (is-type (find-symbol "VernacImport") (second sexpr))
            (is-type (find-symbol "VernacRequire") (second sexpr)))))
+
+(defun is-coq-module-ast (sexpr)
+  "Return module name if SEXPR is tagged as defining a module, NIL otherwise.
+Module tags include VernacDefineModule, VernacDeclareModule,
+VernacDeclareModuleType."
+  (intern "VernacDefineModule" *package*)
+  (intern "VernacDeclareModule" *package*)
+  (intern "VernacDeclareModuleType" *package*)
+  (intern "Id" *package*)
+  (and (listp sexpr)
+       (match sexpr
+         ((guard `(,_ (,vernac-tag ,_ (,_ (,id-tag ,module-name)) . ,_))
+                 (and (or (eql vernac-tag (find-symbol "VernacDefineModule"))
+                          (eql vernac-tag (find-symbol "VernacDeclareModule")))
+                      (eql id-tag (find-symbol "Id"))))
+          module-name)
+         ((guard `(,_ (,vernac-tag (,_ (,id-tag ,module-name)) . ,_))
+                 (and (eql vernac-tag (find-symbol "VernacDeclareModuleType"))
+                      (eql id-tag (find-symbol "Id"))))
+          module-name)
+         (otherwise nil))))
+
+(defun is-coq-section-ast (sexpr)
+  "Return section name if SEXPR is tagged as VernacBeginSection, NIL otherwise."
+  (intern "VernacBeginSection" *package*)
+  (intern "Id" *package*)
+  (and (listp sexpr)
+       (match sexpr
+         ((guard `(,_ (,section-tag (,_ (,id-tag ,section-name))))
+                 (and (eql section-tag (find-symbol "VernacBeginSection"))
+                      (eql id-tag (find-symbol "Id"))))
+          section-name)
+         (otherwise nil))))
+
+(defun is-coq-definition-ast (sexpr)
+  "Return definition name if SEXPR is tagged as a definition, NIL otherwise.
+Definition tags include VernacAssumption (e.g., parameters or axioms),
+VernacDefinition, VernacInductive, VernacFixpoint, VernacCoFixpoint."
+  ;; NOTE: may want to add VernacStartTheoremProof for theorems and lemmas.
+  ;; See coq/stm/vernac_classifier.ml for grammar hints.
+  (intern "VernacAssumption" *package*)
+  (intern "VernacDefinition" *package*)
+  (intern "VernacInductive" *package*)
+  (intern "VernacFixpoint" *package*)
+  (intern "VernacCoFixpoint" *package*)
+  (flet ((parse-assumption-ids (sexpr)
+           (and (listp sexpr)
+                (match sexpr
+                  ((guard `(,_ ((((,_ (,id-tag ,name)) ,_)) . ,_))
+                          (eql id-tag (find-symbol "Id")))
+                   name)
+                  (otherwise nil))))
+         (parse-inductive-ids (sexpr)
+           (and (listp sexpr)
+                (match sexpr
+                  ((guard `(((,_ ((,_ (,id-tag ,name)) ,_)) . ,_) ,_)
+                          (eql id-tag (find-symbol "Id")))
+                   name)
+                  (otherwise nil))))
+         (parse-fixpoint-ids (sexpr)
+           (and (listp sexpr)
+                (match sexpr
+                  ((guard `((((,_ (,id-tag ,name)) ,_) . ,_) ,_)
+                          (eql id-tag (find-symbol "Id")))
+                   name)
+                  (otherwise nil)))))
+    (and (listp sexpr)
+         (match sexpr
+           ((guard `(,_ (,fixpoint-tag ,_ ,ls))
+                   (or (eql fixpoint-tag (find-symbol "VernacFixpoint"))
+                       (eql fixpoint-tag (find-symbol "VernacCoFixpoint"))))
+            (first (mapcar #'parse-fixpoint-ids ls)))
+           ((guard `(,_ (,assumption-tag ,_ ,_ ,ls))
+                   (eql assumption-tag (find-symbol "VernacAssumption")))
+            (first (mapcar #'parse-assumption-ids ls)))
+           ((guard `(,_ (,definition-tag ,_ ((,_ (,id-tag ,name)) ,_) ,_))
+                   (and (eql definition-tag (find-symbol "VernacDefinition"))
+                        (eql id-tag (find-symbol "Id"))))
+            name)
+           ((guard `(,_ (,inductive-tag ,_ ,_ ,_ ,ls))
+                   (eql inductive-tag (find-symbol "VernacInductive")))
+            (first (mapcar #'parse-inductive-ids ls)))
+           (otherwise nil)))))
 
 (defun add-period (coq-string)
   (if (ends-with-subseq "." (trim-whitespace coq-string))
