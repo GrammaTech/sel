@@ -1529,7 +1529,7 @@ tools should be to maximize the level of verbosity, e.g. @code{-v 5}.
 
 @menu
 * Use the compiler(s)::
-* Whitespace::
+* Formatting::
 * Comments::
 * Use existing utility functions::
 * Packages::
@@ -1547,7 +1547,7 @@ is generally applicable.  Specifically the sections on
 and
 @url{http://google.github.io/styleguide/lispguide.xml#Comment_semicolons,Comment semicolons}.
 
-@node Use the compiler(s), Whitespace, SEL Coding Standards, SEL Coding Standards
+@node Use the compiler(s), Formatting, SEL Coding Standards, SEL Coding Standards
 @appendixsec Use the compiler(s)
 
 
@@ -1559,9 +1559,10 @@ that can easily slip through testing.  This will also ensure
 @ref{Portability,portability}.
 
 
-@node Whitespace, Comments, Use the compiler(s), SEL Coding Standards
-@appendixsec Whitespace
+@node Formatting, Comments, Use the compiler(s), SEL Coding Standards
+@appendixsec Formatting
 
+All code should conform to the following standards:
 @itemize
 @item no tabs
 @item no closing parenthesis on lines by themselves
@@ -1573,8 +1574,33 @@ that can easily slip through testing.  This will also ensure
 @item no whitespace following an open-paren
 @end itemize
 
+The
+@url{https://github.com/eschulte/lisp-format/blob/master/lisp-format,lisp-format}
+utility may be used to automatically check and fix code formatting.
+See the comments at the top of the lisp-format script for more
+information.  The git-lisp-format script (adopted from
+@url{https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format,git-clang-format})
+integrates lisp-format with git, enabling the easy application of
+lisp-format to all lines that differ between the working directory and
+a given commit, which defaults to HEAD.  To automatically run
+``@code{git lisp-format}'' before every commit and abort the commit
+when re-formatting is needed, save the following shell script to
+@code{.git/hooks/pre-commit} in the base of this repository and mark
+it as executable.
 
-@node Comments, Use existing utility functions, Whitespace, SEL Coding Standards
+@verbatim
+#!/bin/bash
+OUTPUT=$(git lisp-format --diff)
+if [ "${OUTPUT}" == "no modified files to format" ] ||
+   [ "${OUTPUT}" == "lisp-format did not modify any files" ];then
+    exit 0
+else
+    echo "Run git lisp-format, then commit."
+    exit 1
+fi
+@end verbatim
+
+@node Comments, Use existing utility functions, Formatting, SEL Coding Standards
 @appendixsec Comments (number of semicolons matters)
 
 @itemize

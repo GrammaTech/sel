@@ -1,0 +1,269 @@
+#!/bin/bash
+:; exec emacs -Q --script "$0" -- "$@" # -*- emacs-lisp -*-
+;;; lisp-format --- A tool to format lisp code.  Designed to mimic clang-format.
+
+;;; Author: Eric Schulte <schulte.eric@gmail.com>
+;;; Copyright (c) 2018 Eric Schulte
+;;; MIT License
+
+;;; Permission is hereby granted, free of charge, to any person
+;;; obtaining a copy of this software and associated documentation
+;;; files (the "Software"), to deal in the Software without
+;;; restriction, including without limitation the rights to use, copy,
+;;; modify, merge, publish, distribute, sublicense, and/or sell copies
+;;; of the Software, and to permit persons to whom the Software is
+;;; furnished to do so, subject to the following conditions:
+;;;
+;;; The above copyright notice and this permission notice shall be
+;;; included in all copies or substantial portions of the Software.
+;;;
+;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+;;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+;;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+;;; HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+;;; WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+;;; DEALINGS IN THE SOFTWARE.
+
+;;; Commentary:
+;;;
+;;; This lisp-format script aims to provide the same functionality as
+;;; clang-format only for lisp languages instead of for C languages.
+;;; Emacs is used to perform formatting.  The behavior of clang-format
+;;; is followed as closely as possible with the goal of a direct drop
+;;; in replacement in most contexts.
+;;;
+;;; This script is suitable for (re)formatting lisp code using an
+;;; external process.  This script may be marked as executable and
+;;; executed directly on the command line as follows.
+;;;
+;;;     chmod +x lisp-format
+;;;     ./lisp-format -h
+;;;
+;;; This script is appropriate for use in git commit hooks.  In fact
+;;; the git-clang-format script [1] may be trivially converted into a
+;;; git-lisp-format script as follows.
+;;;
+;;;     cat git-clang-format \
+;;;         |sed 's/clang-format/lisp-format/g;s/clangFormat/lispFormat/' \
+;;;         > git-lisp-format
+;;;
+;;;     # find the definition of "default_extensions" and change to:
+;;;     #      default_extensions = ','.join(['lisp','cl','asd','scm','el'])
+;;;
+;;;     chmod +x git-lisp-format
+;;;
+;;; After the resulting git-lisp-format is added to your path then git
+;;; can execute this file by running "git lisp-format."
+;;;
+;;; See [2] for an example description of a work flow leveraging git
+;;; hooks and git-clang-format to ensure that code is well formatted
+;;; before every commit (i.e., by adding [3] to an executable file
+;;; named pre-commit in a repository's .git/hooks/ directory).  This
+;;; work flow may be trivially adopted to use git-lisp-format for
+;;; lispy code.
+;;;
+;;; Clang-format allows for customized "styles" to be specified by
+;;; writing .clang-format files in the base of code repository and
+;;; passing the -style=file flag to clang-format.  Lisp-format
+;;; supports the same using .lisp-format files.  These files may hold
+;;; arbitrary emacs-lisp code, and they will be loaded before every
+;;; run of lisp-format.  An example file (which will load slime before
+;;; indenting, assuming you have slime installed via quicklisp) is
+;;; shown below.
+;;;
+;;;     ;;; -*- emacs-lisp -*-
+;;;     (mapc (lambda (dir) (add-to-list 'load-path dir))
+;;;           (directory-files (concat "~/quicklisp/dists/quicklisp/software/")
+;;;                            t "slime-v*"))
+;;;     (require 'slime)
+;;;
+;;; As described in the "git lisp-format -h" output, you can use "git
+;;; config" to change the default style to "file" with the following
+;;; command (run in a git repository).
+;;;
+;;;     git config lispFormat.style "file"
+;;;
+;;; Running the above and adding a .lisp-format file to the based of a
+;;; git repository enables customization of the lisp-format behavior.
+;;;
+;;; [1] https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format
+;;; [2] https://dx13.co.uk/articles/2015/4/3/Setting-up-git-clang-format.html
+;;; [3] .git/hooks/pre-commit
+;;;
+;;;         #!/bin/bash
+;;;         OUTPUT=$(git lisp-format --diff)
+;;;         if [ "${OUTPUT}" == "no modified files to format" ] ||
+;;;            [ "${OUTPUT}" == "lisp-format did not modify any files" ];then
+;;;             exit 0
+;;;         else
+;;;             echo "Run git lisp-format, then commit."
+;;;             exit 1
+;;;         fi
+;;;
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
+
+(pop argv)                              ; Remove the leading "--".
+
+
+;;; 0. Process the options and arguments (files).
+(defvar inplace nil)
+(defvar offsets nil)
+(defvar lengths nil)
+(defvar lines nil)
+(defvar style :default)
+
+(defun starts-with-p (substring string)
+  (let ((sub-length (length substring)))
+    (and (>= (length string) sub-length)
+         (string= (subseq string 0 sub-length) substring))))
+
+(defun abort (code fmt &rest args)
+  (apply #'message fmt args)
+  ;; (message "EXIT:%S" code)
+  (kill-emacs 2))
+
+(defmacro getopts (&rest forms)
+  "Collect command-line options from ARGS in an executable."
+  (let ((arg (gensym))
+        (getopts-block (gensym)))
+    `(block ,getopts-block
+       (loop for ,arg = (pop argv) while ,arg do
+             (cond
+              ,@(mapcar (lambda (form)
+                          `((starts-with-p ,(car form) ,arg)
+                            (when (and (> (length ,arg) ,(length (car form)))
+                                       (= ?\= (aref ,arg ,(length (car form)))))
+                              (push (subseq ,arg (1+ ,(length (car form))))
+                                    argv))
+                            ,@(cdr form)))
+                        forms)
+              ((starts-with-p "-" ,arg)
+               (abort 2 (concat
+                         "lisp-format: Unknown command line argument '%s'."
+                         "  Try: 'lisp-format -help'") ,arg))
+              (t (push ,arg argv) (return-from ,getopts-block)))))))
+
+(defun find-file-recursively (file directory)
+  (let ((current (expand-file-name file directory)))
+    (if (file-exists-p current)
+        current
+      (let ((parent-directory
+             (file-name-directory (directory-file-name directory))))
+        (if (string= "/" parent-directory)
+            nil
+          (find-file-recursively file parent-directory))))))
+
+(defun show-help ()
+  (abort 0 "OVERVIEW: A tool to format common-lisp/emacs-lisp/scheme code.
+
+If no arguments are specified, it formats the code from standard input
+and writes the result to the standard output.
+If <file>s are given, it reformats the files. If -i is specified
+together with <file>s, the files are edited in-place. Otherwise, the
+result is written to the standard output.
+
+USAGE: lisp-format [options] [<file> ...]
+
+OPTIONS:
+  -assume-filename=<string> - When reading from stdin, lisp-format assumes this
+                              filename to look for a style config file (with
+                              -style=file) and to determine the language.
+  -fallback-style=<string>  - The name of the predefined style used as a
+                              fallback in case lisp-format is invoked with
+                              -style=file, but can not find the .lisp-format
+                              file to use.
+                              Use -fallback-style=none to skip formatting.
+  -help                     - Display available options (-help-hidden for more)
+  -i                        - Inplace edit <file>s, if specified.
+  -length=<uint>            - Format a range of this length (in bytes).
+                              Multiple ranges can be formatted by specifying
+                              several -offset and -length pairs.
+                              When only a single -offset is specified without
+                              -length, lisp-format will format up to the end
+                              of the file.
+                              Can only be used with one input file.
+  -lines=<string>           - <start line>:<end line> - format a range of
+                              lines (both 1-based).
+                              Multiple ranges can be formatted by specifying
+                              several -lines arguments.
+                              Can't be used with -offset and -length.
+                              Can only be used with one input file.
+  -offset=<uint>            - Format a range starting at this byte offset.
+                              Multiple ranges can be formatted by specifying
+                              several -offset and -length pairs.
+                              Can only be used with one input file.
+  -style=<string>           - Coding style, currently supports:
+                                LLVM, Google, Chromium, Mozilla, WebKit.
+                              Use -style=file to load style configuration from
+                              .lisp-format file located in one of the parent
+                              directories of the source file (or current
+                              directory for stdin).
+                              Use -style=\"{key: value, ...}\" to set specific
+                              parameters, e.g.:
+                                -style=\"{BasedOnStyle: llvm, IndentWidth: 8}\"
+DEFERRED OPTIONS (maybe one day):
+  -output-replacements-xml  - Output replacements as XML.
+  -sort-includes            - If set, overrides the include sorting behavior
+                              determined by the SortIncludes style flag
+  -cursor=<uint>            - The position of the cursor when invoking
+                              lisp-format from an editor integration
+  -dump-config              - Dump configuration options to stdout and exit.
+                              Can be used with -style option.
+  -version                  - Display the version of this program"))
+
+(getopts
+  ("-h" (show-help))
+  ("--help" (show-help))
+  ("-i" (setf inplace t))
+  ("-length" (push (string-to-number (pop argv)) lengths))
+  ("-lines" (push (mapcar #'string-to-number (split-string (pop argv) ":"))
+                  lines))
+  ("-offset" (push (string-to-number (pop argv)) offsets))
+  ("-style" (setf style (intern (concat ":" (pop argv))))))
+
+;;; 1. For every target file
+(do ((file (pop argv) (pop argv)))
+    ((null file))
+  (unless (file-exists-p file)
+    (abort "No such file or directory: '%s'" file))
+  ;;    0. Read the style file if one is present.
+  (when (eql style :file)
+    (let ((lisp-format-file
+           (find-file-recursively
+            ".lisp-format" (file-name-directory (expand-file-name file)))))
+      (if lisp-format-file
+          (let ((inhibit-message t))
+            (load lisp-format-file t t))
+        (error "No '.lisp-format' file found in '%s' or parent directories."
+               (file-name-directory (expand-file-name file))))))
+  ;; In a new buffer or visiting the file:
+  (save-window-excursion
+    (find-file file)
+    (let (point-ranges)
+      ;;    0. Figure out the regions in terms of points (offsets and lengths)
+      (if (or offsets lengths lines)
+          (progn
+            (loop for offset in offsets ; From offsets and lengths.
+                  for length in lengths
+                  do (push (cons offset (+ offset length)) point-ranges))
+            (mapc (lambda (range)                  ; From lines.
+                    (destructuring-bind (start end) range
+                      (push (cons (point-at-bol start) (point-at-eol end))
+                            point-ranges)))
+                  lines))
+        (setf point-ranges (list (cons (point-min) (point-max)))))
+
+      (mapc (lambda (pair)
+              (destructuring-bind (start . end) pair
+                ;; 1. Indent (for every start/end pair)
+                (let ((inhibit-message t))
+                  (indent-region start end))
+                ;; 2. Remove trailing whitespace (for every start/end pair)
+                (delete-trailing-whitespace start end)))
+            point-ranges))
+    (if inplace
+        (basic-save-buffer nil)
+      (princ (buffer-string)))))
