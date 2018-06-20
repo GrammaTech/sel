@@ -110,7 +110,7 @@
     :copier copy-list
     :documentation
     "List of values defined in this object.
-Includes Definition, Inductive, Fixpoint, Parameter, etc.")))
+Includes Definition, Inductive, Fixpoint, Parameter, etc."))
   (:documentation "Coq software object."))
 
 (defun set-load-paths (project-file)
@@ -182,7 +182,7 @@ file have been added."
           (iter (for id in ast-ids)
                 (let ((ast (lookup-coq-ast id)))
                   ;; Collect all ASTs except imports into genome.
-                  (if (is-import-ast ast)
+                  (if (is-coq-import-ast ast)
                       ;; separate out import asts
                       (progn
                         (collect ast into imports)
@@ -203,7 +203,7 @@ file have been added."
     (setf (imports obj) import-asts)
     (setf (coq-modules obj) modules)
     (setf (coq-sections obj) sections)
-    (setf (coq-definitions obj) coq-definitions)
+    (setf (coq-definitions obj) definitions)
 
     ;; load imports and update reset-point
     (reset-and-load-imports obj :imports import-strs)
