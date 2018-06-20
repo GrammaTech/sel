@@ -1680,8 +1680,8 @@ Check the ``Utilities'' package of SEL (see @ref{SEL Utility API}).
 @appendixsec Packages
 
 Only use packages which are explicitly included in your current
-package.  E.g., calling @code{cl-fad:foo} just because @code{cl-fad} happens to
-be loaded in the lisp image every time you've run tests is @emph{not}
+package.  E.g., calling @code{cl-ppcre:foo} just because @code{cl-ppcre} happens
+to be loaded in the lisp image every time you've run tests is @emph{not}
 acceptable.  Instead the @code{:use} option to @code{defpackage} should
 explicitly include the required package and if necessary @code{:shadow} and
 @code{:shadowing-import-from} should be used to limit the symbols imported.

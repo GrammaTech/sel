@@ -54,12 +54,13 @@ each and stores them in a list."
           (let* ((jar-path (merge-pathnames-as-file *build-dir*
                                                     (build-target obj)))
                  (files (->> (get-applicable-project-files project-dir jar-path)
-                             (mapcar (lambda (file)
-                                       (replace-all file
-                                                    (-> project-dir
-                                                        (pathname-as-directory)
-                                                        (namestring))
-                                                    ""))))))
+                             (mapcar
+                               (lambda (file)
+                                 (replace-all
+                                   file
+                                   (namestring
+                                     (ensure-directory-pathname project-dir))
+                                   ""))))))
             (note 3 "~a project files identified" (length files))
             (note 3 "Starting java software object initialization")
             (setf (evolve-files obj)

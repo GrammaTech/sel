@@ -69,6 +69,9 @@
    :ensure-path-is-string
    :in-directory
    :directory-p
+   :canonical-pathname
+   :merge-pathnames-as-directory
+   :merge-pathnames-as-file
    ;; Process wrapper
    :process
    :os-process

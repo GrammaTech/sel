@@ -45,10 +45,9 @@
                             :test #'equalp
                             :key (lambda (entry)
                                    (merge-pathnames-as-file
-                                     (pathname-as-directory
+                                     (ensure-directory-pathname
                                        (aget :directory entry))
-                                     (pathname-as-file
-                                       (aget :file entry))))
+                                     (aget :file entry)))
                             :from-end t)))
                    (error "Failed to create compilation database for project.~%~
                            build command: ~a ~a~%~
@@ -61,7 +60,7 @@
              (replace-all (-> (canonical-pathname path)
                               (namestring))
                           (-> (project-dir clang-project)
-                              (pathname-as-directory)
+                              (ensure-directory-pathname)
                               (canonical-pathname)
                               (namestring))
                           ""))
@@ -73,27 +72,26 @@
                                                    (namestring))
                                                (-> path
                                                    (canonical-pathname)
-                                                   (pathname-as-directory)
+                                                   (ensure-directory-pathname)
                                                    (namestring))))
                                   *build-dir*
                                   (project-dir clang-project))
                               (canonical-pathname)
-                              (pathname-as-directory)
+                              (ensure-directory-pathname)
                               (namestring))
                           (-> (project-dir clang-project)
                               (canonical-pathname)
-                              (pathname-as-directory)
+                              (ensure-directory-pathname)
                               (namestring))))
            (create-evolve-files (clang-project)
              (iter (for entry in (compilation-database clang-project))
                    (collect
                      (let ((file-path
-                             (->> (merge-pathnames-as-file
-                                    (pathname-as-directory
-                                      (aget :directory entry))
-                                    (pathname-as-file
-                                      (aget :file entry)))
-                                  (get-project-path clang-project))))
+                             (-<>> (aget :directory entry)
+                                   (ensure-directory-pathname)
+                                   (merge-pathnames-as-file <>
+                                                            (aget :file entry))
+                                   (get-project-path clang-project))))
                        (cons (relativize clang-project file-path)
                              (-> (make-instance (clang-class clang-project)
                                                 :compiler (get-compiler entry)
@@ -114,7 +112,7 @@
                           (collect
                             (if (string= p "-I")
                                 (if (starts-with-subseq "/" f)
-                                    (->> (pathname-as-directory f)
+                                    (->> (ensure-directory-pathname f)
                                          (get-project-path clang-project))
                                     (->> (merge-pathnames-as-directory
                                            (make-pathname :directory
@@ -122,7 +120,7 @@
                                                                 entry))
                                            (make-pathname :directory
                                                           (list :relative f)))
-                                         (pathname-as-directory)
+                                         (ensure-directory-pathname)
                                          (get-project-path clang-project)))
                                 f)))
                     (remove-if {string= (aget :file entry)})
@@ -130,11 +128,10 @@
                                   (namestring (project-dir clang-project))))
                     (append (list "-I"
                                   (->> (merge-pathnames-as-directory
-                                         (pathname-as-directory
+                                         (ensure-directory-pathname
                                            (aget :directory entry))
-                                         (pathname-as-file
-                                           (aget :file entry)))
-                                       (pathname-as-directory)
+                                         (aget :file entry))
+                                       (ensure-directory-pathname)
                                        (get-project-path clang-project))))))))
     (setf (project-dir clang-project)
           (-> (truename project-dir)

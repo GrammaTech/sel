@@ -7,7 +7,6 @@
    :bordeaux-threads
    :common-lisp
    :arrow-macros
-   :cl-fad
    :cl-ppcre
    :cl-store
    :named-readtables
@@ -36,13 +35,6 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file :copy-stream
    :parse-body :simple-style-warning)
-  (:shadowing-import-from
-   :cl-fad
-   :pathname-as-directory
-   :pathname-directory-pathname :pathname-root-p
-   :merge-pathnames-as-directory :merge-pathnames-as-file
-   :pathname-parent-directory :pathname-equal
-   :directory-pathname-p :file-exists-p)
   (:export
    :+software-evolution-library-version+
    :+software-evolution-library-branch+

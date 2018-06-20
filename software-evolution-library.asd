@@ -16,7 +16,6 @@ techniques."
                arrow-macros
                cl-json
                cl-ppcre
-               cl-fad
                cl-store
                named-readtables
                curry-compose-reader-macros
