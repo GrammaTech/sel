@@ -1715,7 +1715,19 @@ particular implementation must be protected by @code{#+impl} guards.
 
 Write documentation strings for @emph{every} function @emph{always}.
 Also, ensure every @code{defmethod} has a @code{defgeneric} which has
-a documentation string.
+a documentation string.  The following formatting should be used for
+docstrings.
+
+@verbatim
+Brief description (maximum 79 characters).
+
+Longer description if necessary. This may span multiple lines, but
+should adhere to the standard 79-character limit.
+
+Paragraph breaks are also OK in the longer description.
+* PARAM-A description of param
+* PARAM-B description of param
+@end verbatim
 
 @subsection For files and modules
 
