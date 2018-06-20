@@ -3428,22 +3428,24 @@ within a function body, return null."))
 the given list of CHECKS."))
 
 (defmethod clang-tidy
-    ((clang clang) &optional (checks '("cppcore-guidelines*"
-                                       "misc*"
-                                       "-misc-macro-parentheses"
-                                       "-misc-static-assert"
-                                       "-misc-unused-parameters"
-                                       "-modernize*"
-                                       "performance*"
-                                       "-performance-unnecessary-value-param"
-                                       "readability*"
-                                       "-readability-else-after-return"
-                                       "-readability-function-size"
-                                       "-readability-identifier-naming"
-                                       "-readability-implicit-bool-conversion"
-                                       "-readability-non-const-parameter"
-                                       "-readability-redundant-control-flow"
-                                       "-readability-redundant-declaration"))
+    ((clang clang)
+     &optional (checks '("cppcore-guidelines*"
+                         "misc*"
+                         "-misc-macro-parentheses"
+                         "-misc-static-assert"
+                         "-misc-unused-parameters"
+                         "-modernize*"
+                         "performance*"
+                         "-performance-unnecessary-value-param"
+                         "readability*"
+                         "-readability-else-after-return"
+                         "-readability-function-size"
+                         "-readability-identifier-naming"
+                         "-readability-implicit-bool-conversion"
+                         "-readability-inconsistent-declaration-parameter-name"
+                         "-readability-non-const-parameter"
+                         "-readability-redundant-control-flow"
+                         "-readability-redundant-declaration"))
      &aux errno)
   "Apply clang-tidy to OBJ.
 * CLANG object to tidy and return
