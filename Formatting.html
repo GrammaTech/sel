@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Formatting (Software Evolution Library)</title>
+
+<meta name="description" content="Formatting (Software Evolution Library)">
+<meta name="keywords" content="Formatting (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="SEL-Coding-Standards.html#SEL-Coding-Standards" rel="up" title="SEL Coding Standards">
+<link href="Comments.html#Comments" rel="next" title="Comments">
+<link href="Use-the-compiler_0028s_0029.html#Use-the-compiler_0028s_0029" rel="prev" title="Use the compiler(s)">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="Formatting"></a>
+<div class="header">
+<p>
+Next: <a href="Comments.html#Comments" accesskey="n" rel="next">Comments</a>, Previous: <a href="Use-the-compiler_0028s_0029.html#Use-the-compiler_0028s_0029" accesskey="p" rel="prev">Use the compiler(s)</a>, Up: <a href="SEL-Coding-Standards.html#SEL-Coding-Standards" accesskey="u" rel="up">SEL Coding Standards</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<a name="Formatting-1"></a>
+<h3 class="appendixsec">E.2 Formatting</h3>
+
+<p>All code should conform to the following standards:
+</p><ul>
+<li> no tabs
+</li><li> no closing parenthesis on lines by themselves
+</li><li> indent everything as would GNU Emacs
+</li><li> typically only include vertical whitespace between top-level
+   forms, sections of large functions may be demarcated by vertical
+   whitespace but it is better to use smaller functions
+</li><li> no trailing whitespace
+</li><li> no whitespace following an open-paren
+</li><li> lines should be limited to a maximum of 79 characters
+</li></ul>
+
+<p>Google&rsquo;s <a href="http://google.github.io/styleguide/lispguide.xml">Common
+Lisp guide</a> is generally applicable.  Specifically the sections on
+<a href="http://google.github.io/styleguide/lispguide.xml#Formatting">Formatting</a>
+and
+<a href="http://google.github.io/styleguide/lispguide.xml#Comment_semicolons">Comment
+semicolons</a>.
+</p>
+<p>The
+<a href="https://github.com/eschulte/lisp-format/blob/master/lisp-format">lisp-format</a>
+utility may be used to automatically check and fix code formatting.
+See the comments at the top of the lisp-format script for more
+information.  The git-lisp-format script (adopted from
+<a href="https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/git-clang-format">git-clang-format</a>)
+integrates lisp-format with git, enabling the easy application of
+lisp-format to all lines that differ between the working directory and
+a given commit, which defaults to HEAD.  To automatically run
+&ldquo;<code>git lisp-format</code>&rdquo; before every commit and abort the commit
+when re-formatting is needed, save the following shell script to
+<code>.git/hooks/pre-commit</code> in the base of this repository and mark
+it as executable.
+</p>
+<pre class="verbatim">#!/bin/bash
+OUTPUT=$(git lisp-format --diff)
+if [ &quot;${OUTPUT}&quot; == &quot;no modified files to format&quot; ] ||
+   [ &quot;${OUTPUT}&quot; == &quot;lisp-format did not modify any files&quot; ];then
+    exit 0
+else
+    echo &quot;Run git lisp-format, then commit.&quot;
+    exit 1
+fi
+</pre>
+
+
+
+
+</body>
+</html>

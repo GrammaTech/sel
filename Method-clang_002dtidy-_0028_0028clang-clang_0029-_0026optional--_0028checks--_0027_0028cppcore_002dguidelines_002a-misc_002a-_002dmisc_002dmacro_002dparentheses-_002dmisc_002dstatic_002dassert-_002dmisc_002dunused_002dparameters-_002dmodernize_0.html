@@ -18,20 +18,23 @@ A copy of the license is included in the section entitled
             (checks
              '(cppcore-guidelines* misc* -misc-macro-parentheses -misc-static-assert -misc-unused-parameters -modernize* performance*
                -performance-unnecessary-value-param readability* -readability-else-after-return -readability-function-size -readability-identifier-naming
-               -readability-implicit-bool-conversion -readability-non-const-parameter -readability-redundant-control-flow -readability-redundant-declaration))
+               -readability-implicit-bool-conversion -readability-inconsistent-declaration-parameter-name -readability-non-const-parameter
+               -readability-redundant-control-flow -readability-redundant-declaration))
             &amp;aux errno) (Software Evolution Library)</title>
 
 <meta name="description" content="Method clang-tidy ((clang clang) &amp;optional
             (checks
              '(cppcore-guidelines* misc* -misc-macro-parentheses -misc-static-assert -misc-unused-parameters -modernize* performance*
                -performance-unnecessary-value-param readability* -readability-else-after-return -readability-function-size -readability-identifier-naming
-               -readability-implicit-bool-conversion -readability-non-const-parameter -readability-redundant-control-flow -readability-redundant-declaration))
+               -readability-implicit-bool-conversion -readability-inconsistent-declaration-parameter-name -readability-non-const-parameter
+               -readability-redundant-control-flow -readability-redundant-declaration))
             &amp;aux errno) (Software Evolution Library)">
 <meta name="keywords" content="Method clang-tidy ((clang clang) &amp;optional
             (checks
              '(cppcore-guidelines* misc* -misc-macro-parentheses -misc-static-assert -misc-unused-parameters -modernize* performance*
                -performance-unnecessary-value-param readability* -readability-else-after-return -readability-function-size -readability-identifier-naming
-               -readability-implicit-bool-conversion -readability-non-const-parameter -readability-redundant-control-flow -readability-redundant-declaration))
+               -readability-implicit-bool-conversion -readability-inconsistent-declaration-parameter-name -readability-non-const-parameter
+               -readability-redundant-control-flow -readability-redundant-declaration))
             &amp;aux errno) (Software Evolution Library)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
@@ -64,16 +67,17 @@ ul.no-bullet {list-style: none}
 -->
 </style>
 
-<meta http-equiv="Refresh" content="0; url=SEL-API-Details.html#Method-clang_002dtidy-_0028_0028clang-clang_0029-_0026optional--_0028checks--_0027_0028cppcore_002dguidelines_002a-misc_002a-_002dmisc_002dmacro_002dparentheses-_002dmisc_002dstatic_002dassert-_002dmisc_002dunused_002dparameters-_002dmodernize_002a-performance_002a--_002dperformance_002dunnecessary_002dvalue_002dparam-readability_002a-_002dreadability_002delse_002dafter_002dreturn-_002dreadability_002dfunction_002dsize-_002dreadability_002didentifier_002dnaming--_002dreadability_002dimplicit_002dbool_002dconversion-_002dreadability_002dnon_002dconst_002dparameter-_002dreadability_002dredundant_002dcontrol_002dflow-_002dreadability_002dredundant_002ddeclaration_0029_0029--_0026aux-errno_0029">
+<meta http-equiv="Refresh" content="0; url=SEL-API-Details.html#Method-clang_002dtidy-_0028_0028clang-clang_0029-_0026optional--_0028checks--_0027_0028cppcore_002dguidelines_002a-misc_002a-_002dmisc_002dmacro_002dparentheses-_002dmisc_002dstatic_002dassert-_002dmisc_002dunused_002dparameters-_002dmodernize_002a-performance_002a--_002dperformance_002dunnecessary_002dvalue_002dparam-readability_002a-_002dreadability_002delse_002dafter_002dreturn-_002dreadability_002dfunction_002dsize-_002dreadability_002didentifier_002dnaming--_002dreadability_002dimplicit_002dbool_002dconversion-_002dreadability_002dinconsistent_002ddeclaration_002dparameter_002dname-_002dreadability_002dnon_002dconst_002dparameter--_002dreadability_002dredundant_002dcontrol_002dflow-_002dreadability_002dredundant_002ddeclaration_0029_0029--_0026aux-errno_0029">
 
 </head>
 
 <body lang="en">
 
-<p>The node you are looking for is at <a href="SEL-API-Details.html#Method-clang_002dtidy-_0028_0028clang-clang_0029-_0026optional--_0028checks--_0027_0028cppcore_002dguidelines_002a-misc_002a-_002dmisc_002dmacro_002dparentheses-_002dmisc_002dstatic_002dassert-_002dmisc_002dunused_002dparameters-_002dmodernize_002a-performance_002a--_002dperformance_002dunnecessary_002dvalue_002dparam-readability_002a-_002dreadability_002delse_002dafter_002dreturn-_002dreadability_002dfunction_002dsize-_002dreadability_002didentifier_002dnaming--_002dreadability_002dimplicit_002dbool_002dconversion-_002dreadability_002dnon_002dconst_002dparameter-_002dreadability_002dredundant_002dcontrol_002dflow-_002dreadability_002dredundant_002ddeclaration_0029_0029--_0026aux-errno_0029">Method clang-tidy ((clang clang) &amp;optional
+<p>The node you are looking for is at <a href="SEL-API-Details.html#Method-clang_002dtidy-_0028_0028clang-clang_0029-_0026optional--_0028checks--_0027_0028cppcore_002dguidelines_002a-misc_002a-_002dmisc_002dmacro_002dparentheses-_002dmisc_002dstatic_002dassert-_002dmisc_002dunused_002dparameters-_002dmodernize_002a-performance_002a--_002dperformance_002dunnecessary_002dvalue_002dparam-readability_002a-_002dreadability_002delse_002dafter_002dreturn-_002dreadability_002dfunction_002dsize-_002dreadability_002didentifier_002dnaming--_002dreadability_002dimplicit_002dbool_002dconversion-_002dreadability_002dinconsistent_002ddeclaration_002dparameter_002dname-_002dreadability_002dnon_002dconst_002dparameter--_002dreadability_002dredundant_002dcontrol_002dflow-_002dreadability_002dredundant_002ddeclaration_0029_0029--_0026aux-errno_0029">Method clang-tidy ((clang clang) &amp;optional
             (checks
              '(cppcore-guidelines* misc* -misc-macro-parentheses -misc-static-assert -misc-unused-parameters -modernize* performance*
                -performance-unnecessary-value-param readability* -readability-else-after-return -readability-function-size -readability-identifier-naming
-               -readability-implicit-bool-conversion -readability-non-const-parameter -readability-redundant-control-flow -readability-redundant-declaration))
+               -readability-implicit-bool-conversion -readability-inconsistent-declaration-parameter-name -readability-non-const-parameter
+               -readability-redundant-control-flow -readability-redundant-declaration))
             &amp;aux errno)</a>.</p>
 </body>
