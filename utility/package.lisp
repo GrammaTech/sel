@@ -136,6 +136,7 @@
    :repeatedly
    :indexed
    :different-it
+   :mapt
    :plist-get
    :plist-keys
    :plist-drop-if

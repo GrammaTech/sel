@@ -850,6 +850,13 @@ Optional argument OUT specifies an output stream."
 
 
 ;;;; Generic utility functions
+(defun mapt (function tree)
+  "Like `mapcar' but TREE is a cons tree instead of a proper list."
+  (if (consp tree)
+      (cons (mapt function (car tree))
+            (mapt function (cdr tree)))
+      (funcall function tree)))
+
 (defun plist-get (item list &key (test #'eql) &aux last)
   (loop :for element :in list :do
      (cond
