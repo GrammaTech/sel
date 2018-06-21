@@ -351,6 +351,7 @@
    :redirect-file
    :linker-script
    :weak-symbols
+   :linked-files
    :elf-risc-max-displacement
    :ops                      ; <- might want to fold this into `lines'
    ;; software backend specific methods

@@ -1370,7 +1370,19 @@
 (deftest parser-test-5 ()
   (with-fixture csurf-asm-calc
     (is (= (iter (for x in-vector (genome *soft*))
-		 (counting (eq (asm-line-info-type x) :op))) 283))))
+                 (counting (eq (asm-line-info-type x) :op))) 283))))
+
+(deftest csurf-asm-configures ()
+  (with-fixture csurf-asm-calc
+    (apply-config *soft* (asm-test-dir "calc.log"))
+    (is (= 5 (length (weak-symbols *soft*))))
+    (iter (for str in '("_Jv_RegisterClasses" "_ITM_registerTMCloneTable"
+                        "_ITM_deregisterTMCloneTable" "__imp___gmon_start__"
+                        "__gmon_start__"))
+          (is (member str (weak-symbols *soft*) :test #'equal)))
+    (is (= 1 (length (linked-files *soft*))))
+    (is (equal "/lib/x86_64-linux-gnu/libc.so.6"
+               (first (linked-files *soft*))))))
 
 
 ;;;
