@@ -8612,7 +8612,7 @@ int main() { puts(\"~d\"); return 0; }
   (set-serapi-paths)
   (zerop (nth-value 2 (shell "which ~a" *sertop-path*))))
 
-(setf *serapi-timeout* 1.0)
+(setf *serapi-timeout* 10.0)
 
 (sel-suite* test-serapi "Coq SerAPI interaction." (serapi-available-p))
 
@@ -8927,13 +8927,18 @@ int main() { puts(\"~d\"); return 0; }
   (with-fixture math
     (is *coq*)
     (is (typep *coq* 'coq))
-    (is (= 3 (length (genome *coq*)) (length (ast-ids *coq*))))
-    (is (not (imports *coq*))))
+    (is (= 3 (length (genome *coq*)) (length (coq-definitions *coq*))))
+    (is (not (imports *coq*)))
+    (is (not (coq-modules *coq*)))
+    (is (not (coq-sections *coq*))))
   (with-fixture total-maps
     (is *coq*)
     (is (typep *coq* 'coq))
-    (is (= 172 (length (genome *coq*)) (length (ast-ids *coq*))))
-    (is (= 4 (length (imports *coq*))))))
+    (is (= 172 (length (genome *coq*))))
+    (is (= 4 (length (imports *coq*))))
+    (is (not (coq-modules *coq*)))
+    (is (not (coq-sections *coq*)))
+    (is (= 12 (length (coq-definitions *coq*))))))
 
 (deftest can-lookup-pretty-printed-repr-2 ()
   (with-fixture math
@@ -8944,12 +8949,6 @@ int main() { puts(\"~d\"); return 0; }
       (let ((msgs (coq-message-contents resp1)))
         (is (= 1 (length msgs)))
         (is (equal resp2 (first msgs)))))))
-
-(deftest verify-asts-match ()
-  (with-fixture total-maps
-    (iter (for ast-id in (ast-ids *coq*))
-          (for ast in (genome *coq*))
-          (is (equal ast (tag-loc-info (lookup-coq-ast ast-id)))))))
 
 
 (deftest find-nearest-type-works ()
@@ -9035,5 +9034,5 @@ int main() { puts(\"~d\"); return 0; }
       (iter (for expected in '("negb" "(orb false)" "(orb true)"
                                "(orb (negb false))" "(orb (negb true))"))
             (is (member expected result2 :test #'equal)))
-      (is (= 14 (length result1)))
-      (is (=  5 (length result2))))))
+      (is (<= 14 (length result1)))
+      (is (<=  5 (length result2))))))
