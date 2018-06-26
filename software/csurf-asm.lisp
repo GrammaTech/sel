@@ -120,13 +120,15 @@ set."
                                    (linked-files asm)
                                    (list "--dynamic-linker"
                                          *dynamic-linker-path*)))
-                  (if (or (not (zerop errno)) (not (redirect-file asm)))
-                      ;; Errors linking.
-                      (values bin (max errno 1) stderr stdout src)
-                      ;; Elf copy-redirect.
-                      (multiple-value-bind (stdout stderr errno)
-                          (elf-copy-redirect bin (redirect-file asm))
-                        (values bin errno stderr stdout src))))))))))
+                  (cond
+                    ((not (zerop errno)) ; Errors linking
+                     (values bin (max errno 1) stderr stdout src))
+                    ((not (redirect-file asm)) ; Link success, no redirect
+                     (values bin errno stderr stdout src))
+                    (t (multiple-value-bind (stdout stderr errno)
+                           ;; Link successful, handle redirect
+                           (elf-copy-redirect bin (redirect-file asm))
+                         (values bin errno stderr stdout src)))))))))))
 
 
 ;; Parsing csurf output (for asm/linker flags, weak symbols, redirects)
