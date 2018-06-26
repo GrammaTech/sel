@@ -223,6 +223,8 @@
    :some-task
    :some-task-pred
    :some-test-task
+   :starts-with-p
+   :ends-with-p
    ))
 #+allegro
 (set-dispatch-macro-character #\# #\_

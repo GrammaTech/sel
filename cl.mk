@@ -148,6 +148,7 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
+	--eval '(setq sel/stefil+:*long-tests* t)' \
 	--eval '(sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME)))' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 

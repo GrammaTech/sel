@@ -122,7 +122,7 @@ techniques."
                software-evolution-library/utility
                software-evolution-library/ast-diff
                split-sequence
-               stefil
+	       software-evolution-library/stefil-plus
                uuid
                #+gt testbot
                trace-db
@@ -333,3 +333,17 @@ techniques."
   :build-pathname "bin/lisp-diff"
   :entry-point "software-evolution-library/lisp-diff::run-lisp-diff"
   :components ((:file "ast-diff/lisp-diff")))
+
+(defsystem "software-evolution-library/stefil-plus"
+  :description "Adds some enhancements to the STEFIL test framework."
+  :version "0.0.0"
+  :licence "GPL V3"
+  :depends-on (iterate
+	       uiop
+	       stefil
+	       software-evolution-library/utility)
+  :components
+  ((:module stefil-plus
+            :pathname "test/src"
+            :components
+            ((:file "stefil-plus")))))

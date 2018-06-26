@@ -11,6 +11,8 @@
                           :type "lisp"
                           :directory (pathname-directory *this-file*)))
 
+(defroot test)                          ; The root test suite.
+
 ;; Disable clang-format and any other helpers
 (defmacro every-is (function &rest lists)
   (let ((args-sym (gensym "args")))
@@ -20,37 +22,8 @@
 
 (defun run-batch (&rest a)
   (declare (ignorable a))
-  #+ccl (setf *interactive-streams-initialized* nil)
+  #+ccl (setf ccl::*interactive-streams-initialized* nil)
   (batch-test #'test "SEL" +software-evolution-library-branch+))
-
-(defsuite* test)                        ; The root test suite.
-
-(defmacro sel-suite* (name documentation &optional (test-pre-check t))
-  "Define NAME with DOCUMENTATION in the top level `test'.
-Optional TEST-PRE-CHECK if present should be one of the following:
-:SILENT --- silently skip this test suite
-NIL ------- skip this test suite with the default warning
-Otherwise - test-pre-check will be invoked at runtime
-return non-nil when the test
-suite should be run and nil otherwise."
-  (with-gensyms (test)
-    `(progn
-       (when (or (boundp ',name) (fboundp ',name))
-         (warn "Defining ~a with `sel-suite*' overwrites existing definition."
-               ',name))
-       (defsuite* (,name :in test :documentation ,documentation) ()
-         (let ((,test (find-test ',name)))
-           (cond
-             ((stefil::test-was-run-p ,test)
-              (warn "Skipped executing already run tests suite ~S"
-                    (stefil::name-of ,test)))
-             ,@(if (eq test-pre-check :silent)
-                   '()
-                   `(,@(if test-pre-check
-                           `((,test-pre-check (run-child-tests)))
-                           nil)
-                       (t (warn "Skipped executing disabled tests suite ~S."
-                                (stefil::name-of ,test)))))))))))
 
 (defvar *genome*      nil "Genome used in tests.")
 (defvar *soft*        nil "Software used in tests.")
@@ -1083,7 +1056,8 @@ suite should be run and nil otherwise."
 
 
 ;;; ASM representation.
-(sel-suite* asm-tests "ASM representation.")
+(defsuite asm-tests "ASM representation.")
+
 
 
 (deftest simple-read ()
@@ -1202,7 +1176,7 @@ suite should be run and nil otherwise."
         ;; (is (some [{equal :cut} #'caar] (second (edits new))))
         ))))
 
-(deftest asm-can-form-a-phenome ()
+(deftest (asm-can-form-a-phenome :long-running) ()
   (with-fixture gcd-asm
     (with-temp-file (bin)
       (ignore-phenome-errors
@@ -1346,7 +1320,7 @@ suite should be run and nil otherwise."
 
 
 ;;; ASM-SUPER-MUTANT representation.
-(sel-suite* asm-super-mutant-tests
+(defsuite asm-super-mutant-tests
             "ASM-SUPER-MUTANT representation."
             ;; Only run these tests if we found libpapi.so.
             *lib-papi*)
@@ -1369,7 +1343,7 @@ suite should be run and nil otherwise."
 
 
 ;;; CSURF-ASM representation.
-(sel-suite* csurf-asm-tests "CSURF-ASM representation.")
+(defsuite csurf-asm-tests "CSURF-ASM representation.")
 
 (deftest dynamic-linker-path-has-been-set ()
   (is *dynamic-linker-path* "Ensure `*dynamic-linker-path*' has been set."))
@@ -1402,10 +1376,10 @@ suite should be run and nil otherwise."
 ;;;
 ;;; Test the TASK-RUNNER modules.
 ;;;
-(sel-suite* task-runner-tests "TASK-RUNNER tests.")
+(defsuite task-runner-tests "TASK-RUNNER tests.")
 
 ;; simple test to see if the whole file parsed correctly
-(deftest task-runner-1 ( )
+(deftest (task-runner-1 :long-running) ( )
   (let (length)
     (is (iter (as count upfrom 0)
               (with-fixture task-runner
@@ -1415,18 +1389,18 @@ suite should be run and nil otherwise."
               (when (> count 100)
                 (return nil))))))
 
-(deftest task-runner-2 ()
+(deftest (task-runner-2 :long-running) ()
   (with-fixture task-runner
     (is (= (length (task-runner-results (second *soft*))) 20))))
 
-(deftest task-runner-3 ()
+(deftest (task-runner-3 :long-running) ()
   (with-fixture task-runner
     (is (= (task-runner-completed-tasks (first *soft*)) 20))
     (is (= (task-runner-completed-tasks (second *soft*)) 20))
     (is (= (task-runner-completed-jobs (first *soft*)) 1))
     (is (= (task-runner-completed-jobs (second *soft*)) 1))))
 
-(deftest task-runner-4 ()
+(deftest (task-runner-4 :long-running) ()
   (with-fixture task-runner
     (is (= (count "test1" (task-runner-results (first *soft*))
 		  :test 'equal :key (lambda (s) (subseq s 0 5)))
@@ -1458,7 +1432,7 @@ suite should be run and nil otherwise."
 ;;;
 ;;; NOTE: Currently failing because not populating .text section.
 ;;;
-(sel-suite* elf-tests "ELF representation." :silent)
+(defsuite elf-tests "ELF representation." :silent)
 
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
@@ -1579,7 +1553,7 @@ suite should be run and nil otherwise."
 (defun clang-mutate-available-p ()
   (zerop (nth-value 2 (shell "which clang-mutate"))))
 
-(sel-suite* clang-tests "Clang representation." (clang-mutate-available-p))
+(defsuite clang-tests "Clang representation." (clang-mutate-available-p))
 
 (deftest simply-able-to-load-a-clang-software-object()
   (with-fixture hello-world-clang
@@ -1621,7 +1595,7 @@ suite should be run and nil otherwise."
                        (slot-value (copy new) 'ast-root))
           "Additional copies do not cause updates"))))
 
-(deftest splits-global-and-stmt-asts ()
+(deftest (splits-global-and-stmt-asts :long-running) ()
   (with-fixture huf-clang
     (is (find-if [{string= "\"this is an example for huffman encoding\""}
                   #'source-text]
@@ -1953,7 +1927,7 @@ suite should be run and nil otherwise."
                       (search "<system.h>" (genome copy) :from-end t)))
           "<system.h> should have been added twice to the software object"))))
 
-(deftest clang-expression-test ()
+(deftest (clang-expression-test :long-running) ()
   (flet ((test-conversion (obj pair)
            (destructuring-bind (text expected-expression) pair
              (let ((result (expression obj (stmt-with-text obj text))))
@@ -2227,7 +2201,7 @@ int x = CHARSIZE;")))
 ;;; apply-mutation, adjusting the good and bad picks to get
 ;;; predictable results. And they check the results of each mutation
 ;;; in as much detail as possible.
-(sel-suite* clang-mutations "Detailed clang mutation tests."
+(defsuite clang-mutations "Detailed clang mutation tests."
             (clang-mutate-available-p))
 
 (defixture gcd-clang-control-picks
@@ -2408,7 +2382,7 @@ int x = CHARSIZE;")))
         (is (equal (mapcar #'ast-class (asts variant))
                    (mapcar #'ast-class (asts *hello-world*))))))))
 
-(deftest unguard-conditional-compound-statements ()
+(deftest (unguard-conditional-compound-statements :long-running) ()
   (flet ((subsequent-lines-p (genome-string first second)
            (-<>> genome-string
                  (split-sequence #\Newline)
@@ -2560,7 +2534,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Clang w/ mutation fodder representation.
-(sel-suite* clang-w-fodder-tests "Clang w/ mutation fodder representation."
+(defsuite clang-w-fodder-tests "Clang w/ mutation fodder representation."
             (clang-mutate-available-p))
 
 
@@ -2653,7 +2627,7 @@ int x = CHARSIZE;")))
         (is (string/= (genome variant)
                       (genome *hello-world*)))))))
 
-(deftest insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder ()
+(deftest (insert-decl-rename-lengthens-and-insinuates-a-clang-w-fodder :long-running) ()
   (with-fixture gcd-clang-w-fodder
     (let ((var (copy *gcd*))
           (mut (make-instance 'insert-fodder-decl-rep :object *gcd*)))
@@ -2721,7 +2695,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Clang utility methods.
-(sel-suite* clang-utility "Clang utility methods."
+(defsuite clang-utility "Clang utility methods."
             (clang-mutate-available-p))
 
 
@@ -2741,14 +2715,14 @@ int x = CHARSIZE;")))
                            (stmt-with-text *hello-world* "0")
                            (stmt-with-text *hello-world* "return 0"))))))
 
-(deftest tidy-a-clang-software-object()
+(deftest (tidy-a-clang-software-object :long-running) ()
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
       (clang-tidy variant)
       (is (= (size variant)
              (size *hello-world*))))))
 
-(deftest tidy-adds-braces ()
+(deftest (tidy-adds-braces :long-running) ()
   (with-fixture tidy-adds-braces-clang
     (let ((variant (copy *soft*)))
       (clang-tidy variant)
@@ -2756,7 +2730,7 @@ int x = CHARSIZE;")))
                     (remove-if-not [{eq :CompoundStmt} #'ast-class])
                     (length)))))))
 
-(deftest format-a-clang-software-object ()
+(deftest (format-a-clang-software-object :long-running) ()
   (flet ((run (obj)
            (with-temp-file (bin)
              (phenome obj :bin bin)
@@ -2853,10 +2827,10 @@ int x = CHARSIZE;")))
 (defun java-mutate-available-p ()
   (zerop (nth-value 2 (shell "which java-mutator"))))
 
-(sel-suite* java-tests "JAVA representation." (java-mutate-available-p))
+(defsuite java-tests "JAVA representation." (java-mutate-available-p))
 
 ;; Copy software object.
-(deftest java-test-copy ()
+(deftest (java-test-copy :long-running) ()
   "Checks that when a deep copy of a software object is created. If the
   genome is updated in the original whenever the copy is modified, then
   there is a problem with the directives for the genome slot value
@@ -2867,7 +2841,7 @@ int x = CHARSIZE;")))
         (setf (slot-value temporary-obj 'genome) "new genome")
         (is (not (equal (genome temporary-obj) (genome *soft*))))))))
 
-(deftest insert_testsimple ()
+(deftest (insert_testsimple :long-running) ()
   "Check if print stmt was inserted in the new genome, but not in original."
   (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
     (with-fixture general-fixture-java
@@ -2913,15 +2887,15 @@ int x = CHARSIZE;")))
             "Instrumented version of ~a does include ~a." file target)))))
 
 ;;; Instrumentation tests.
-(deftest instrument-testsimple ()
+(deftest (instrument-testsimple :long-running) ()
   "Currently checks whether file was modified with instrumentation commands."
   (is-genome-modified-by-instrumentation-of "TestSimple"))
 
-(deftest instrument-testsimple-with-one-pck ()
+(deftest (instrument-testsimple-with-one-pck :long-running) ()
   "Similar to `instrument_testsimple', but with one package name."
   (is-genome-modified-by-instrumentation-of "TestSimple_package_name"))
 
-(deftest instrument-testsimple-with-mult-pcks ()
+(deftest (instrument-testsimple-with-mult-pcks :long-running) ()
   "Similar to `instrument_testsimple', but with long package name."
   (is-genome-modified-by-instrumentation-of "TestSimple_longer_package_name"))
 
@@ -2934,15 +2908,15 @@ int x = CHARSIZE;")))
         (phenome *soft* :bin bin)
         (is (probe-file bin))))))
 
-(deftest phenome-testsimple ()
+(deftest (phenome-testsimple :long-running) ()
   "Runs the phenome function and checks if execution script was created."
   (is-phenome-execution-script-created-for "TestSimple"))
 
-(deftest phenome-testsimple-with-one-pck ()
+(deftest (phenome-testsimple-with-one-pck :long-running) ()
   "Runs the phenome function and checks if execution script was created."
   (is-phenome-execution-script-created-for "TestSimple_package_name"))
 
-(deftest phenome-testsimple-with-mult-pcks ()
+(deftest (phenome-testsimple-with-mult-pcks :long-running) ()
   "Runs the phenome function and checks if execution script was created."
   (is-phenome-execution-script-created-for "TestSimple_longer_package_name"))
 
@@ -2961,20 +2935,20 @@ int x = CHARSIZE;")))
                         (get-trace <> 0))
                   target)))))
 
-(deftest collect-traces-testsimple ()
+(deftest (collect-traces-testsimple :long-running) ()
   "Check exact output of collect-traces with the expected result."
   (is-exact-output-of-collect-traces-expected-for "TestSimple"))
 
-(deftest collect-traces-testsimple-with-one-pck ()
+(deftest (collect-traces-testsimple-with-one-pck :long-running) ()
   "Similar to `collect-traces-testsimple', but with one package name."
   (is-exact-output-of-collect-traces-expected-for "TestSimple_package_name"))
 
-(deftest collect-traces-testsimple-with-mult-pcks ()
+(deftest (collect-traces-testsimple-with-mult-pcks :long-running) ()
   "Similar to `collect-traces-testsimple', but with longer package name."
   (is-exact-output-of-collect-traces-expected-for
    "TestSimple_longer_package_name"))
 
-(deftest collect-traces-testsimple-whileforifprint ()
+(deftest (collect-traces-testsimple-whileforifprint :long-running) ()
   "Similar to `collect-traces-testsimple', but with larger trace file."
   (is-exact-output-of-collect-traces-expected-for
    "TestSimple_WhileForIfPrint"
@@ -3001,7 +2975,7 @@ int x = CHARSIZE;")))
       ((:C . 13) (:SCOPES . (("k" "int" 2)("test1" "int" 3)))))
      (:INPUT :BIN))))
 
-(deftest collect-traces-testsimple-whileforifprint-2 ()
+(deftest (collect-traces-testsimple-whileforifprint-2 :long-running) ()
   "Similar to `collect-traces-testsimple', but with larger trace file."
   (is-exact-output-of-collect-traces-expected-for
    "TestSimple_WhileForIfPrint_2"
@@ -3039,7 +3013,7 @@ int x = CHARSIZE;")))
   (:teardown
    (setf *soft* nil)))
 
-(deftest java-project-test ()
+(deftest (java-project-test :long-running) ()
   (with-fixture java-project
     (is (equal "./gt-harness.sh build" (build-command *soft*)))
     (is (equal 2 (length (evolve-files *soft*))))
@@ -3049,13 +3023,13 @@ int x = CHARSIZE;")))
               (evolve-files *soft*) :key #'car :test #'string=))
     (is (equal "java" (compiler (cdr (first (evolve-files *soft*))))))))
 
-(deftest java-build-folder-jar-test ()
+(deftest (java-build-folder-jar-test :long-running) ()
   "Tests if applicable file names in a build-folder are found."
   (with-temp-dir-of (temp-dir) (make-pathname :directory +java-jars-dir+)
                     (is (equal 9 (length (get-files-jar temp-dir))))))
 
 ;;;; Range representation.
-(sel-suite* range-representation "Range representation.")
+(defsuite range-representation "Range representation.")
 
 
 (deftest range-size ()
@@ -3181,7 +3155,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Mutation analysis and statistics collection tests.
-(sel-suite* mutation-analysis
+(defsuite mutation-analysis
             "Mutation analysis and statistics collection tests."
             (clang-mutate-available-p))
 
@@ -3284,7 +3258,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Ancestry tests.
-(sel-suite* clang-ancestry "Ancestry tests."
+(defsuite clang-ancestry "Ancestry tests."
             (clang-mutate-available-p))
 
 
@@ -3339,7 +3313,7 @@ int x = CHARSIZE;")))
                       (first (plist-get :cross-with
                                         (first (ancestors crossed))))))))))
 
-(deftest graphing-ancestry ()
+(deftest (graphing-ancestry :long-running) ()
   (with-fixture hello-world-clang-w-ancestry
     (apply-mutation *hello-world*
       (make-instance 'clang-cut
@@ -3364,7 +3338,7 @@ int x = CHARSIZE;")))
 
 
 ;;; CSURF-ASM ancestry tests.
-(sel-suite* csurf-asm-ancestry "Ancestry tests.")
+(defsuite csurf-asm-ancestry "Ancestry tests.")
 
 
 (defclass csurf-asm-w/ancestry (csurf-asm ancestral) ())
@@ -3402,7 +3376,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Diff tests.
-(sel-suite* diff-tests "Diff tests.")
+(defsuite diff-tests "Diff tests.")
 
 
 (defmacro with-static-reference (software &rest body)
@@ -3522,7 +3496,7 @@ int x = CHARSIZE;")))
 
 
 ;;;; Population tests.
-(sel-suite* population-tests "Population tests."
+(defsuite population-tests "Population tests."
             (clang-mutate-available-p))
 
 
@@ -3607,7 +3581,7 @@ AST holding STMT is found."
                                  (peel-bananas (source-text ast))))))
            (asts obj)))
 
-(deftest swap-can-recontextualize ()
+(deftest (swap-can-recontextualize :long-running) ()
   (with-fixture huf-clang
     ;; NOTE: Without the retries recontectualization can fail
     ;;       stochastically, not all possible rebinding variables
@@ -3643,7 +3617,7 @@ Useful for printing or returning differences in the REPL."
                                              (lines modified))
                     stream))
 
-(deftest swap-makes-expected-change ()
+(deftest (swap-makes-expected-change :long-running) ()
   (with-fixture huf-clang
     (let ((variant (copy *huf*))
           (text-1 "n > 0")
@@ -3671,7 +3645,7 @@ Useful for printing or returning differences in the REPL."
                                    (lines *huf*)
                                    (lines variant))))))))))
 
-(deftest swap-at-different-levels-can-recontextualize ()
+(deftest (swap-at-different-levels-can-recontextualize :long-running) ()
   (with-fixture huf-clang
     (let ((variant (copy *huf*))
           (text-1 "n > 0")
@@ -3705,7 +3679,7 @@ Useful for printing or returning differences in the REPL."
         (every-is [{not} {scan "\/\* no bound vars in scope \/\*"}]
                   string-diffs)))))
 
-(deftest insert-can-recontextualize ()
+(deftest (insert-can-recontextualize :long-running) ()
   (with-fixture huf-clang
     (let ((variant (copy *huf*)))
       (apply-mutation variant
@@ -3716,7 +3690,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text variant "n > 0")))))
       (is (phenome-p variant)))))
 
-(deftest insert-makes-expected-change ()
+(deftest (insert-makes-expected-change :long-running) ()
   (with-fixture huf-clang
     (let ((variant (copy *huf*)))
       (apply-mutation variant
@@ -3764,7 +3738,7 @@ Useful for printing or returning differences in the REPL."
 
 ;; huf.c only contains one user function with 3 parameters,
 ;; check that random-function-name can find it.
-(deftest finds-function-binding ()
+(deftest (finds-function-binding :long-running) ()
   (with-fixture huf-clang
     (is (string= "inttobits"
                  (random-function-name (functions *huf*)
@@ -3773,7 +3747,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Fix compilation tests.
-(sel-suite* fix-compilation-tests "Fix compilation tests."
+(defsuite fix-compilation-tests "Fix compilation tests."
             (clang-mutate-available-p))
 
 
@@ -3806,7 +3780,7 @@ Useful for printing or returning differences in the REPL."
                   (make-instance 'json-database :json-stream in))))
   (:teardown (setf *database* nil)))
 
-(deftest fix-compilation-inserts-missing-include ()
+(deftest (fix-compilation-inserts-missing-include :long-running) ()
   (with-fixture broken-compilation
     (is (scan (format nil "\#include <~a>" "stdio.h")
               (genome-string (fix-compilation *broken-clang* 1)))))
@@ -3814,7 +3788,7 @@ Useful for printing or returning differences in the REPL."
     (is (scan (format nil "\#include <~a>" "stdio.h")
               (genome-string (fix-compilation *broken-gcc* 1))))))
 
-(deftest fix-compilation-inserts-declaration-and-initializes ()
+(deftest (fix-compilation-inserts-declaration-and-initializes :long-running) ()
   (let ((sel::*compilation-fixers*
          (remove-if-not
           «or {starts-with-subseq ":(\\d+):\\d+: error: use of undeclared"}
@@ -3838,7 +3812,7 @@ Useful for printing or returning differences in the REPL."
                       (unless (zerop (length (genome fixed)))
                         (return (genome fixed)))))))))
 
-(deftest fix-compilation-declare-var-as-pointer ()
+(deftest (fix-compilation-declare-var-as-pointer :long-running) ()
   (let ((sel::*compilation-fixers*
          (remove-if-not
           «or {starts-with-subseq ":(\\d+):(\\d+): error: invalid type arg"}
@@ -3864,7 +3838,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Crossover tests.
-(sel-suite* clang-crossover "Crossover tests."
+(defsuite clang-crossover "Crossover tests."
             (clang-mutate-available-p))
 
 
@@ -4425,7 +4399,7 @@ Useful for printing or returning differences in the REPL."
                 (->> (stmt-starting-with-text *soft* "case 2:")
                      (block-predeccessor *soft*))))))
 
-(deftest crossover-2pt-outward-fib-test ()
+(deftest (crossover-2pt-outward-fib-test :long-running) ()
   (with-fixture fib-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4471,7 +4445,7 @@ Useful for printing or returning differences in the REPL."
                                (first)))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-outward-collatz-test ()
+(deftest (crossover-2pt-outward-collatz-test :long-running) ()
   (with-fixture collatz-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4505,7 +4479,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text *collatz* "return k"))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-outward-no-compound-stmt-test ()
+(deftest (crossover-2pt-outward-no-compound-stmt-test :long-running) ()
   (with-fixture crossover-no-compound-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4563,7 +4537,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text *soft* "return 0"))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-inward-fib-test ()
+(deftest (crossover-2pt-inward-fib-test :long-running) ()
   (with-fixture fib-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4599,7 +4573,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text *fib* "x = x + y"))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-inward-collatz-test ()
+(deftest (crossover-2pt-inward-collatz-test :long-running) ()
   (with-fixture collatz-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4654,7 +4628,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text *collatz* "++k"))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-inward-no-compound-stmt-test ()
+(deftest (crossover-2pt-inward-no-compound-stmt-test :long-running) ()
   (with-fixture crossover-no-compound-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4728,7 +4702,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-starting-with-text *soft* "for (j = 0"))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-inward-switch-stmt-test ()
+(deftest (crossover-2pt-inward-switch-stmt-test :long-running) ()
   (with-fixture crossover-switch-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4784,7 +4758,7 @@ Useful for printing or returning differences in the REPL."
         (is (phenome-p variant))
         (is (equalp effective-a-pts target-a-pts))))))
 
-(deftest crossover-can-match-nesting ()
+(deftest (crossover-can-match-nesting :long-running) ()
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "--d"))
            (a-stmt2 (stmt-with-text *scopes* "int e"))
@@ -4816,7 +4790,7 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (equalp effective-a-pts target-a-pts))))))
 
-(deftest crossover-can-rebind-text ()
+(deftest (crossover-can-rebind-text :long-running) ()
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int b"))
            (a-stmt2 (stmt-with-text *scopes* "int c"))
@@ -4869,7 +4843,7 @@ Useful for printing or returning differences in the REPL."
                 (when (> count 100) (return nil)))
           "Able to crossover entire text of a function with 100 tries."))))
 
-(deftest crossover-a-single-statement-the-first ()
+(deftest (crossover-a-single-statement-the-first :long-running) ()
   ;; A single statement (the first one)
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int a"))
@@ -4939,7 +4913,7 @@ Useful for printing or returning differences in the REPL."
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
-(deftest crossover-a-statement-and-one-ancestor ()
+(deftest (crossover-a-statement-and-one-ancestor :long-running) ()
   ;; A statement and one of its ancestors
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "c = 4"))
@@ -4967,7 +4941,7 @@ Useful for printing or returning differences in the REPL."
                 (when (> count 100) (return nil)))
           "Able to crossover a statement and a ancestor with 100 tries."))))
 
-(deftest crossover-a-statement-with-multiple-statements ()
+(deftest (crossover-a-statement-with-multiple-statements :long-running) ()
   ;; Replace a single statement with multiple statements
   (with-fixture scopes-clang
     (let ((a-stmt (stmt-with-text *scopes* "int b"))
@@ -5010,7 +4984,7 @@ Useful for printing or returning differences in the REPL."
         (is (not (stmt-with-text variant "int b" :no-error)))
         (is (not (stmt-with-text variant "b = 1" :no-error)))))))
 
-(deftest intraprocedural-2pt-crossover-does-not-crash ()
+(deftest (intraprocedural-2pt-crossover-does-not-crash :long-running) ()
   (with-fixture intraprocedural-2pt-crossover-bug-clang
     (let ((variant (intraprocedural-2pt-crossover
                     (copy *soft*)
@@ -5024,7 +4998,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Misc. mutation tests.
-(sel-suite* misc-mutations "Misc. mutation tests."
+(defsuite misc-mutations "Misc. mutation tests."
             (clang-mutate-available-p))
 
 
@@ -5038,7 +5012,7 @@ Useful for printing or returning differences in the REPL."
     (when-let* ((ast (stmt-with-text *scopes* "int f, g" :no-error)))
       (is (= 2 (length (ast-declares ast)))))))
 
-(deftest pick-for-loop-works ()
+(deftest (pick-for-loop-works :long-running) ()
   (with-fixture scopes-clang
     (is (eq :ForStmt (->> (sel::pick-for-loop *scopes*)
                           (aget :stmt1)
@@ -5060,7 +5034,7 @@ Useful for printing or returning differences in the REPL."
         (is (= (run-and-get-return var) (run-and-get-return *scopes*))
             "Exploded for loop doesn't change program behavior.")))))
 
-(deftest explode-for-loop-mutation-works ()
+(deftest (explode-for-loop-mutation-works :long-running) ()
   "Test conversion of for loop variants computing factorials to while loops"
   (let ((simple-loop       (from-file (make-instance 'clang)
                                       (explode-for-loop-dir
@@ -5107,7 +5081,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (scan (quote-meta-chars "for") (genome no-increment))))
       (is (not (scan (quote-meta-chars "for") (genome no-body)))))))
 
-(deftest pick-while-loop-works ()
+(deftest (pick-while-loop-works :long-running) ()
   (with-fixture scopes-clang
     (is (eq :WhileStmt (->> (sel::pick-while-loop *scopes*)
                             (aget :stmt1)
@@ -5143,7 +5117,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (scan (quote-meta-chars "while") (genome var)))
           "Coalesced while loop contains no while loop."))))
 
-(deftest delete-decl-stmts-works ()
+(deftest (delete-decl-stmts-works :long-running) ()
   (with-fixture scopes-clang
     (let ((variant (copy *scopes*)))
       (apply-mutation
@@ -5173,7 +5147,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
-(deftest swap-decls-works ()
+(deftest (swap-decls-works :long-running) ()
   (with-fixture scopes-clang
     ;; Check if the basic swap-decls mutation works.
     (let ((variant (copy *scopes*))
@@ -5185,7 +5159,7 @@ Useful for printing or returning differences in the REPL."
       (is (not (equal (genome-string *scopes*)
                       (genome-string variant)))))))
 
-(deftest rename-variable-works ()
+(deftest (rename-variable-works :long-running) ()
   (with-fixture scopes-clang
     (let ((variant (copy *scopes*))
           (*bad-asts*
@@ -5272,7 +5246,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Adaptive-mutation tests.
-(sel-suite* adaptive-mutation-tests "Adaptive-mutation tests.")
+(defsuite adaptive-mutation-tests "Adaptive-mutation tests.")
 
 
 (deftest bad-cut-changes-mutation-probability ()
@@ -5337,7 +5311,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Database tests.
-(sel-suite* database "Database tests.")
+(defsuite database "Database tests.")
 
 
 (defixture json-database
@@ -5374,7 +5348,7 @@ Useful for printing or returning differences in the REPL."
 
 
 ;;;; Instrumentation tests.
-(sel-suite* instrumentation "Instrumentation tests."
+(defsuite instrumentation "Instrumentation tests."
             (clang-mutate-available-p))
 
 
@@ -5391,12 +5365,13 @@ Useful for printing or returning differences in the REPL."
         (is (listp trace))
         trace))))
 
+
 (deftest instrumented-p-test ()
   (with-fixture gcd-clang
     (is (not (instrumented-p *gcd*)))
     (is (instrumented-p (instrument (copy *gcd*))))))
 
-(deftest instrumentation-insertion-test ()
+(deftest (instrumentation-insertion-test :long-running) ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*) :trace-file :stderr)))
       ;; Do we insert the right number of printf statements?
@@ -5411,7 +5386,7 @@ Useful for printing or returning differences in the REPL."
           (is (every {aget :c} trace))
           (is (= 15 (length trace))))))))
 
-(deftest instrumentation-insertion-w-filter-test ()
+(deftest (instrumentation-insertion-w-filter-test :long-running) ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
                           :filter (lambda (obj ast)
@@ -5426,7 +5401,7 @@ Useful for printing or returning differences in the REPL."
           (is (every {aget :c} trace))
           (is (= 1 (length trace))))))))
 
-(deftest instrumentation-insertion-w-function-exit-test ()
+(deftest (instrumentation-insertion-w-function-exit-test :long-running) ()
   (with-fixture gcd-clang
     (let ((instrumented (instrument (copy *gcd*)
                           :instrument-exit t
@@ -5454,7 +5429,7 @@ Useful for printing or returning differences in the REPL."
           (is (every {aget :c} trace))
           (is (= 16 (length trace))))))))
 
-(deftest instrumentation-insertion-w-points-test ()
+(deftest (instrumentation-insertion-w-points-test :long-running) ()
   (with-fixture gcd-clang
     (let ((instrumented
            (handler-bind ((warning #'muffle-warning))
@@ -5477,7 +5452,7 @@ Useful for printing or returning differences in the REPL."
                       {aget :aux}]
                      trace)))))))
 
-(deftest instrumentation-insertion-w-trace-file-test ()
+(deftest (instrumentation-insertion-w-trace-file-test :long-running) ()
   (with-fixture gcd-clang
     (with-temp-file (trace)
       (with-temp-file (bin)
@@ -5492,7 +5467,7 @@ Useful for printing or returning differences in the REPL."
             (is (zerop errno))
             (is (probe-file trace))))))))
 
-(deftest instrumentation-handles-missing-curlies-test ()
+(deftest (instrumentation-handles-missing-curlies-test :long-running) ()
   (with-fixture gcd-wo-curlies-clang
     (let ((instrumented (instrument (copy *gcd*) :trace-file :stderr)))
       ;; Ensure we were able to instrument an else branch w/o curlies.
@@ -5512,7 +5487,7 @@ Useful for printing or returning differences in the REPL."
         (is (probe-file bin))
         (is (not (emptyp (get-gcd-trace bin))))))))
 
-(deftest instrumentation-insertion-w-points-and-added-blocks-test ()
+(deftest (instrumentation-insertion-w-points-and-added-blocks-test :long-running) ()
   (with-fixture gcd-wo-curlies-clang
     (let* ((cookie 1234)
            (instrumented
@@ -5535,7 +5510,7 @@ Useful for printing or returning differences in the REPL."
                        trace)
               "The point trace value ~S appears in the trace" cookie))))))
 
-(deftest instrumentation-after-insertion-mutation-test ()
+(deftest (instrumentation-after-insertion-mutation-test :long-running) ()
   "Ensure after applying an insert mutation, the instrumented software
 prints unique counters in the trace"
   (with-fixture gcd-clang
@@ -5585,7 +5560,7 @@ prints unique counters in the trace"
                (genome instrumented))
               "instrumentation was not added for the original statement"))))))
 
-(deftest instrumentation-print-unbound-vars ()
+(deftest (instrumentation-print-unbound-vars :long-running) ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions
@@ -5610,7 +5585,7 @@ prints unique counters in the trace"
         (is (> (length trace) (count-if {aget :scopes} trace))
             "Variable list not populated in every trace element.")))))
 
-(deftest instrumentation-print-in-scope-vars ()
+(deftest (instrumentation-print-in-scope-vars :long-running) ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions
@@ -5643,7 +5618,7 @@ prints unique counters in the trace"
     (or (null var)
         (equal (aref var 2) value))))
 
-(deftest instrumentation-print-strings ()
+(deftest (instrumentation-print-strings :long-running) ()
   (with-fixture c-strings
     (handler-bind ((warning #'muffle-warning))
       (instrument *soft* :functions
@@ -5669,7 +5644,7 @@ prints unique counters in the trace"
                    trace)
             "Variable 'x' always has expected value.")))))
 
-(deftest instrumentation-print-cpp-strings ()
+(deftest (instrumentation-print-cpp-strings :long-running) ()
   (with-fixture cpp-strings
     (handler-bind ((warning #'muffle-warning))
       (instrument *soft* :functions
@@ -5692,7 +5667,7 @@ prints unique counters in the trace"
                    trace)
             "Variable 'x' always has expected value.")))))
 
-(deftest instrumentation-print-vars-after ()
+(deftest (instrumentation-print-vars-after :long-running) ()
   (with-fixture gcd-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *gcd* :functions-after
@@ -5714,7 +5689,7 @@ prints unique counters in the trace"
         (is (not (null (mappend {aget :SCOPES} trace)))
             "Variable list not always empty.")))))
 
-(deftest instrumentation-print-vars-handles-shadowing ()
+(deftest (instrumentation-print-vars-handles-shadowing :long-running) ()
   (with-fixture shadow-clang
     (handler-bind ((warning #'muffle-warning))
       (instrument *soft* :functions
@@ -5816,7 +5791,7 @@ prints unique counters in the trace"
                     (make-pathname :directory +grep-prj-dir+))))
   (:teardown (setf *project* nil)))
 
-(deftest can-instrument-clang-project ()
+(deftest (can-instrument-clang-project :long-running) ()
   (with-fixture clang-project
     (instrument *project* :functions
                 (list (lambda (instrumenter ast)
@@ -5864,7 +5839,7 @@ prints unique counters in the trace"
                      (genome soft)))
           "No code to print variables in the instrumented source."))))
 
-(deftest instrumentation-preserves-aux-data ()
+(deftest (instrumentation-preserves-aux-data :long-running) ()
   (with-fixture gcd-clang
     (let* ((stmt (stmt-starting-with-text *gcd* "if (a == 0)"))
            (index (index-of-ast *gcd* stmt)))
@@ -5896,7 +5871,7 @@ prints unique counters in the trace"
                          [{eq index} {aget :c}]»
                      trace)))))))
 
-(deftest uninstrument-instrument-is-identity ()
+(deftest (uninstrument-instrument-is-identity :long-running) ()
   (with-fixture gcd-clang
     (let ((orig (copy *gcd*))
           (instrumented (copy *gcd*)))
@@ -5984,7 +5959,7 @@ prints unique counters in the trace"
 
 
 ;;;; Traceable tests.
-(sel-suite* traceable-tests "Traceable tests."
+(defsuite traceable-tests "Traceable tests."
             (clang-mutate-available-p))
 
 
@@ -6018,7 +5993,7 @@ prints unique counters in the trace"
                         :program-name (car input)
                         :program-args (cdr input))))))
 
-(deftest run-traceable-gcd ()
+(deftest (run-traceable-gcd :long-running) ()
   (with-fixture traceable-gcd
     (instrument *gcd*)
     (collect-traces *gcd* *gcd-test-suite*)
@@ -6027,7 +6002,7 @@ prints unique counters in the trace"
     (is (= (length (traces *gcd*)) (length *gcd-inputs*)))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
 
-(deftest run-traceable-gcd-w/collect-traces ()
+(deftest (run-traceable-gcd-w/collect-traces :long-running) ()
   (with-fixture traceable-gcd
     (instrument *gcd*)
     (collect-traces *gcd* *gcd-test-suite*)
@@ -6055,7 +6030,7 @@ prints unique counters in the trace"
     (is (not (probe-file (phenome-dir obj)))
         "collect-traces did not remove a phenome directory")))
 
-(deftest long-running-program-killed-test ()
+(deftest (long-running-program-killed-test :long-running) ()
   (with-fixture long-running-program-clang
     (with-temp-file (bin)
       (phenome *soft* :bin bin)
@@ -6067,7 +6042,7 @@ prints unique counters in the trace"
         (is (not (process-running-p proc))
             "finish-test did not kill a long running process")))))
 
-(deftest env-variables-passed-through-to-test-suites ()
+(deftest (env-variables-passed-through-to-test-suites :long-running) ()
   (with-fixture print-env-clang
     (with-temp-file (bin)
       (phenome *soft* :bin bin)
@@ -6085,12 +6060,12 @@ prints unique counters in the trace"
 
 
 ;;;; Tests of declaration and type databases on clang objects.
-(sel-suite* declaration-type-databases
+(defsuite declaration-type-databases
             "Tests of declaration and type databases on clang objects."
             (clang-mutate-available-p))
 
 
-(deftest huf-knows-types ()
+(deftest (huf-knows-types :long-running) ()
   (with-fixture huf-clang
     (is (and (hash-table-p (types *huf*))
              (not (zerop (hash-table-count (types *huf*)))))
@@ -6106,7 +6081,7 @@ prints unique counters in the trace"
                        (hash-table-values (types *huf*))))
         "Huf has three different \"int\" types (some are array and pointer).")))
 
-(deftest huf-finds-type-info-for-variables ()
+(deftest (huf-finds-type-info-for-variables :long-running) ()
   (with-fixture huf-clang
     (let ((type (->> (stmt-with-text *huf* "p = test")
                      (get-vars-in-scope *huf*)
@@ -6120,7 +6095,7 @@ prints unique counters in the trace"
 
 
 ;;;; Lisp representation.
-(sel-suite* lisp-tests "Lisp representation.")
+(defsuite lisp-tests "Lisp representation.")
 
 
 (defvar *clang-expr*  nil "The clang expression (lisp) software object.")
@@ -6196,7 +6171,7 @@ prints unique counters in the trace"
 
 
 ;;;; Mutations and evaluation of clang expressions in Lisp form.
-(sel-suite* clang-expression-tests
+(defsuite clang-expression-tests
             "Mutation and evaluation of clang expressions in Lisp form."
             (clang-mutate-available-p))
 
@@ -6307,7 +6282,7 @@ prints unique counters in the trace"
 
 
 ;;;; Utility tests.
-(sel-suite* utility "Utility tests.")
+(defsuite utility "Utility tests.")
 
 
 (deftest intersects-does-not-include-endpoints ()
@@ -6358,7 +6333,7 @@ prints unique counters in the trace"
 
 
 ;;;; Project tests.
-(sel-suite* clang-project-tests "Project tests."
+(defsuite clang-project-tests "Project tests."
             (clang-mutate-available-p))
 
 
@@ -6468,23 +6443,23 @@ prints unique counters in the trace"
 
 
 ;;;; Tests that require bear.
-(sel-suite* bear-tests "Clang representation."
+(defsuite bear-tests "Clang representation."
             (lambda () (zerop (nth-value 2 (shell "which bear")))))
 
-(deftest able-to-create-a-bear-project ()
+(deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (equal "make" (build-command *project*)))
     (is (equal "grep" (build-target *project*)))
     (is (equal 1 (length (evolve-files *project*))))))
 
-(deftest able-to-copy-a-bear-project ()
+(deftest (able-to-copy-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
     (is (copy *project*)
         "Able to copy a project built with bear.")))
 
 
 ;;;; Condition synthesis tests.
-(sel-suite* condition-synthesis "Condition synthesis tests."
+(defsuite condition-synthesis "Condition synthesis tests."
             (clang-mutate-available-p))
 
 
@@ -6552,7 +6527,7 @@ prints unique counters in the trace"
                       '( :neq "z"  "int" "2"))
                 :test #'equal))))
 
-(deftest tiny-test-repair-works ()
+(deftest (tiny-test-repair-works :long-running) ()
   (handler-bind
       ((mutate ; TODO: Instrumentation in synthesize-condition should be fixed.
         (lambda (e)
@@ -6569,7 +6544,7 @@ prints unique counters in the trace"
         (is repaired-prog)
         (is (stmt-with-text repaired-prog "(x > 5) || (x == 5)"))))))
 
-(deftest test-tighten-repair ()
+(deftest (test-tighten-repair :long-running) ()
   (handler-bind
       ((mutate ; TODO: Instrumentation in synthesize-condition should be fixed.
         (lambda (e)
@@ -6586,7 +6561,7 @@ prints unique counters in the trace"
         (is repaired-prog)
         (is (stmt-with-text repaired-prog "(x >= 5) && !(x == 5)"))))))
 
-(deftest test-add-condition-repair-target-24 ()
+(deftest (test-add-condition-repair-target-24 :long-running) ()
   (handler-bind
       ((mutate ; TODO: Instrumentation in synthesize-condition should be fixed.
         (lambda (e)
@@ -6613,7 +6588,7 @@ prints unique counters in the trace"
                  repaired-prog
                  (second (get-immediate-children repaired-prog outer)))))))))))
 
-(deftest test-add-condition-repair-target-30 ()
+(deftest (test-add-condition-repair-target-30 :long-running) ()
   (handler-bind
       ((mutate ; TODO: Instrumentation in synthesize-condition should be fixed.
         (lambda (e)
@@ -6642,7 +6617,7 @@ prints unique counters in the trace"
                  repaired-prog
                  (second (get-immediate-children repaired-prog outer)))))))))))
 
-(deftest test-if-to-while-repair ()
+(deftest (test-if-to-while-repair :long-running) ()
   (handler-bind
       ((mutate ; TODO: Instrumentation in synthesize-condition should be fixed.
         (lambda (e)
@@ -6670,7 +6645,7 @@ prints unique counters in the trace"
 
 
 ;;;; Selection tests.
-(sel-suite* selection "Selection tests.")
+(defsuite selection "Selection tests.")
 
 
 (deftest select-best-single-winner ()
@@ -6929,7 +6904,7 @@ prints unique counters in the trace"
 
 
 ;;;; Style features tests.
-(sel-suite* style-features "Style features tests."
+(defsuite style-features "Style features tests."
             (clang-mutate-available-p))
 
 
@@ -7009,7 +6984,7 @@ prints unique counters in the trace"
                              (asts *variety*))))
             (finally (return t))))))
 
-(deftest ast-keywords-auto-counts ()
+(deftest (ast-keywords-auto-counts :long-running) ()
   (with-fixture variety-clang
     (let ((auto-counts
            (iter (for keyword in sel::*clang-c-keywords*)
@@ -7139,7 +7114,7 @@ prints unique counters in the trace"
 
 
 ;;;; Clang syntactic contexts.
-(sel-suite* clang-syntactic-contexts "Clang syntactic contexts."
+(defsuite clang-syntactic-contexts "Clang syntactic contexts."
             (clang-mutate-available-p))
 
 
@@ -7307,7 +7282,7 @@ prints unique counters in the trace"
                                {ancestor-of *contexts* function}»
                           (stmt-asts *contexts*)))))))
 
-(deftest cut-unbraced-body-adds-nullstmt ()
+(deftest (cut-unbraced-body-adds-nullstmt :long-running) ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2")))
       (sel::apply-mutation-ops *contexts*
@@ -7523,7 +7498,7 @@ prints unique counters in the trace"
 
 
 ;;;; Clang scope and type tests.
-(sel-suite* clang-scopes-and-types "Clang scope and type tests."
+(defsuite clang-scopes-and-types "Clang scope and type tests."
             (clang-mutate-available-p))
 
 
@@ -7748,7 +7723,7 @@ prints unique counters in the trace"
 
 
 ;;;; Types and traces tests.
-(sel-suite* type-traces-tests "Types and traces tests."
+(defsuite type-traces-tests "Types and traces tests."
             (clang-mutate-available-p))
 
 
@@ -8033,7 +8008,7 @@ prints unique counters in the trace"
 
 
 ;;;; Clang tokenizer tests.
-(sel-suite* clang-tokenizer "Clang tokenizer tests."
+(defsuite clang-tokenizer "Clang tokenizer tests."
             (clang-mutate-available-p))
 
 
@@ -8250,10 +8225,10 @@ prints unique counters in the trace"
                                         ;(format t "GOLD: ~{~a~^,~}~%" gold-set-prefix)
               (is (equal bad-stmts gold-set-prefix)))))))))
 
-(sel-suite* clang-super-mutants "Super mutants of clang objects."
+(defsuite clang-super-mutants "Super mutants of clang objects."
             (clang-mutate-available-p))
 
-(deftest super-mutant-genome-works ()
+(deftest (super-mutant-genome-works :long-running) ()
   (with-fixture fib-clang
     (let* ((mutant-a (copy *fib*))
            (mutant-b (copy *fib*))
@@ -8271,7 +8246,7 @@ prints unique counters in the trace"
         (is (genome super))
         (is (phenome-p super))))))
 
-(deftest super-mutant-genome-preserves-unvarying-functions ()
+(deftest (super-mutant-genome-preserves-unvarying-functions :long-running) ()
   "Switch should be omitted in functions which are the same across all mutants."
   (with-fixture huf-clang
     (let ((mutant-a (copy *huf*))
@@ -8305,7 +8280,7 @@ prints unique counters in the trace"
                                          (get-immediate-children obj))))))
                 (functions obj))))))
 
-(deftest super-mutant-genome-has-union-of-global-decls ()
+(deftest (super-mutant-genome-has-union-of-global-decls :long-running) ()
   (with-fixture gcd-clang
     (let* ((mutant-a (->>
                       `(clang-insert (:stmt1 . ,(car (asts *gcd*)))
@@ -8341,7 +8316,7 @@ prints unique counters in the trace"
                   (equal decls
                          '("double a" "double b" "double c" "double r1")))))))))
 
-(deftest super-mutant-genome-has-union-of-functions ()
+(deftest (super-mutant-genome-has-union-of-functions :long-running) ()
   (with-fixture huf-clang
     (let* ((mutant-a (copy *huf*))
            (mutant-b (copy *huf*))
@@ -8381,7 +8356,7 @@ prints unique counters in the trace"
                          '("_heap_create" "_heap_destroy" "_heap_sort"
                            "_heap_remove" "_heap_add")))))))))
 
-(deftest super-mutant-genome-can-insert-merged-function ()
+(deftest (super-mutant-genome-can-insert-merged-function :long-running) ()
   (with-fixture huf-clang
     (let* ((mutant-a (copy *huf*))
            (mutant-b (copy *huf*))
@@ -8432,7 +8407,7 @@ prints unique counters in the trace"
     (is (genome (make-instance 'super-mutant
                   :mutants (list (copy mutant) (copy mutant)))))))
 
-(deftest super-mutant-genome-detects-incompatible-functions ()
+(deftest (super-mutant-genome-detects-incompatible-functions :long-running) ()
   ;; These all fail because ast-args is set by clang-mutate and does not
   ;; update upon mutation
   ;; (let* ((base (from-string (make-instance 'clang)
@@ -8613,7 +8588,7 @@ prints unique counters in the trace"
     ;; desired number of variants and evaluate all of them.
     (is (eq *fitness-evals* 4))))
 
-(deftest super-mutant-evaluate-works ()
+(deftest (super-mutant-evaluate-works :long-running) ()
   (let* ((template "#include <stdio.h>
 int main() { puts(\"~d\"); return 0; }
 ")
@@ -8638,7 +8613,7 @@ int main() { puts(\"~d\"); return 0; }
 
 
 ;;;; AST Diff tests
-(sel-suite* ast-diff-tests "AST-level diffs of Sexprs.")
+(defsuite ast-diff-tests "AST-level diffs of Sexprs.")
 
 (deftest sexp-diff-equal-zero-cost ()
   (is (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4))))
@@ -8713,10 +8688,10 @@ int main() { puts(\"~d\"); return 0; }
         "Handles forms from a lisp source file.")))
 
 
-(sel-suite* clang-ast-diff-tests "AST-level diffs of clang objects."
+(defsuite clang-ast-diff-tests "AST-level diffs of clang objects."
             (clang-mutate-available-p))
 
-(deftest diff-gets-back-on-track ()
+(deftest (diff-gets-back-on-track :long-running) ()
   (is (= 2 (nth-value
             1
             (ast-diff (from-string (make-instance 'clang)
@@ -8724,7 +8699,7 @@ int main() { puts(\"~d\"); return 0; }
                       (from-string (make-instance 'clang)
                                    "int a; int z; int b; int c; int d;"))))))
 
-(deftest diff-insert ()
+(deftest (diff-insert :long-running) ()
   (let ((orig (from-string (make-instance 'clang)
                            "int x; int y; int z;"))
         (a (from-string (make-instance 'clang)
@@ -8757,7 +8732,7 @@ int main() { puts(\"~d\"); return 0; }
                   '(:same :same :same :same :same
                     :same :insert :insert :same))))))
 
-(deftest diff-delete ()
+(deftest (diff-delete :long-running) ()
   (let ((orig (from-string (make-instance 'clang)
                            "int x; int y; int z;"))
         (a (from-string (make-instance 'clang)
@@ -8788,7 +8763,7 @@ int main() { puts(\"~d\"); return 0; }
       (is (equalp (mapcar #'car diff-c)
                   '(:same :same :same :same :delete :delete :same))))))
 
-(deftest diff-recursive ()
+(deftest (diff-recursive :long-running) ()
   (let* ((orig (from-string (make-instance 'clang)
                             "int x = 1; int y = 2; int z = 3;"))
          (new (from-string (make-instance 'clang)
@@ -8800,7 +8775,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equalp (mapcar #'car diff)
                 '(:same :same :same :recurse :same :same :same)))))
 
-(deftest diff-text-changes ()
+(deftest (diff-text-changes :long-running) ()
   (let ((orig (from-string (make-instance 'clang)
                            "/* 1 */ int x; /* 2 */ int y; int z; /* 3 */"))
         (a (from-string (make-instance 'clang)
@@ -8852,7 +8827,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (setf *serapi-timeout* 30)
 
-(sel-suite* test-serapi "Coq SerAPI interaction." (serapi-available-p))
+(defsuite test-serapi "Coq SerAPI interaction." (serapi-available-p))
 
 (defixture serapi
   (:setup (sleep 0.1)
@@ -8875,7 +8850,7 @@ int main() { puts(\"~d\"); return 0; }
     (sleep 0.1)
     (is (not (process-running-p serapi)))))
 
-(deftest with-serapi-creates-new-process ()
+(deftest (with-serapi-creates-new-process :long-running) ()
   (is (not *serapi-process*))
   (with-serapi ()
     ;; locally binds `*serapi-process*'
@@ -8887,7 +8862,7 @@ int main() { puts(\"~d\"); return 0; }
   ;; `*serapi-process*' goes out of scope at end
   (is (not *serapi-process*)))
 
-(deftest with-serapi-can-capture-process ()
+(deftest (with-serapi-can-capture-process :long-running) ()
   (with-fixture serapi
     (is (process-running-p *serapi-process*))
     (let ((serproc (make-serapi)))
@@ -8916,7 +8891,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (equal (sel/serapi-io::unescape-string sanitized)
                "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\\\n || \\\\\"coords\\\\\" \\\\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))))
 
-(deftest can-read-write-serapi ()
+(deftest (can-read-write-serapi :long-running) ()
   (with-fixture serapi
     ;; write basic "Print nat." query and read response
     (write-to-serapi *serapi-process*
@@ -9001,7 +8976,7 @@ int main() { puts(\"~d\"); return 0; }
                      (collecting (when-let ((content (answer-content i)))
                                    (added-id content))))))))
 
-(deftest can-add-and-lookup-coq-string ()
+(deftest (can-add-and-lookup-coq-string :long-running) ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=  | T1 : test  | T2 : test.")
            (id (add-coq-string add-str)))
@@ -9010,7 +8985,7 @@ int main() { puts(\"~d\"); return 0; }
       (let ((lookup-str (lookup-coq-string (first id))))
         (is (equal add-str lookup-str))))))
 
-(deftest can-convert-ast-to-string ()
+(deftest (can-convert-ast-to-string :long-running) ()
   (with-fixture serapi
     (let* ((add-str "Inductive test :=  | T1 : test  | T2 : test.")
            (id (add-coq-string add-str)))
@@ -9020,7 +8995,7 @@ int main() { puts(\"~d\"); return 0; }
              (ast-str (lookup-coq-string lookup-ast)))
         (is (equal add-str ast-str))))))
 
-(deftest can-lookup-pretty-printed-repr-1 ()
+(deftest (can-lookup-pretty-printed-repr-1 :long-running) ()
   (with-fixture serapi
     (let ((add-str "Inductive test :=  | T1 : test  | T2 : test."))
       (add-coq-string add-str)
@@ -9030,14 +9005,14 @@ int main() { puts(\"~d\"); return 0; }
         (equal (message-content (feedback-contents (nth 1 resp1)))
                resp2)))))
 
-(deftest can-load-coq-file ()
+(deftest (can-load-coq-file :long-running) ()
   (with-fixture serapi
     (let ((ids (load-coq-file (coq-test-dir "NatBinop.v"))))
       (is (equal '(2 3 4) ids)))))
 
 
 ;;; Test Coq software objects
-(sel-suite* test-coq "Coq software object tests." (serapi-available-p))
+(defsuite test-coq "Coq software object tests." (serapi-available-p))
 
 (defixture ls-test
   (:setup (setf *coq* (make-instance
@@ -9078,7 +9053,7 @@ int main() { puts(\"~d\"); return 0; }
    (kill-serapi *serapi-process*)
    (setf *serapi-process* nil)))
 
-(deftest from-file-sets-fields ()
+(deftest (from-file-sets-fields :long-running) ()
   (with-fixture math
     (is *coq*)
     (is (typep *coq* 'coq))
@@ -9090,7 +9065,7 @@ int main() { puts(\"~d\"); return 0; }
     (is (= 172 (length (genome *coq*)) (length (ast-ids *coq*))))
     (is (= 4 (length (imports *coq*))))))
 
-(deftest can-lookup-pretty-printed-repr-2 ()
+(deftest (can-lookup-pretty-printed-repr-2 :long-running) ()
   (with-fixture math
     (write-to-serapi *serapi-process* #!`((Query () (Vernac "Print binop."))))
     (let ((resp1 (read-serapi-response *serapi-process*))
@@ -9102,7 +9077,7 @@ int main() { puts(\"~d\"); return 0; }
                           (message-content (feedback-contents resp)))
                         resp1))))))
 
-(deftest verify-asts-match ()
+(deftest (verify-asts-match :long-running) ()
   (with-fixture total-maps
     (iter (for ast-id in (ast-ids *coq*))
           (for ast in (genome *coq*))
