@@ -10,7 +10,13 @@
 (defvar *orig* (from-file (make-instance 'asm) "test/etc/gcd/gcd.s"))
 
 ;; the results of `mutate' are a mutated object MUTANT and a `mutation' EDIT
-(multiple-value-bind (mutant edit) (mutate (copy *orig*))
+(multiple-value-bind (mutant edit)
+    (handler-bind
+        ((no-mutation-targets
+          (lambda (e)
+            (declare (ignorable e))
+            (invoke-restart 'try-another-mutation))))
+      (mutate (copy *orig*)))
   (let ((temp (temp-file-name "s")))
     ;; save MUTANT to temp file TEMP
     (to-file mutant temp)

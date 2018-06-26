@@ -99,7 +99,7 @@
   "Add to the Coq load paths using contents of _CoqProject file PROJECT-FILE.
 For each \"-R\" or \"-I\" line in PROJECT-FILE, add the directory to the Coq
 load path, with a nickname if one was provided in the PROJECT-FILE."
-  (let ((dir (cl-fad:pathname-directory-pathname project-file)))
+  (let ((dir (pathname-directory-pathname project-file)))
     (when project-file
       (with-open-file (in project-file)
         (iter (for line = (read-line in nil nil))
@@ -110,7 +110,7 @@ load path, with a nickname if one was provided in the PROJECT-FILE."
                        (rel-dir (second split-line))
                        (nickname (third split-line)))
                   (lib-add (namestring
-                            (cl-fad:merge-pathnames-as-file dir rel-dir))
+                            (merge-pathnames-as-file dir rel-dir))
                            :lib-name nickname))))))))
 
 (defgeneric reset-and-load-imports (coq &key imports)

@@ -284,6 +284,89 @@ pathname (i.e., ending in a \"/\")."
       (directory-exists-p (pathname-as-directory pathname))))
 
 
+;;;; Utilities from cl-fad.
+;;;
+;;; The following three functions (`merge-pathnames-as-file',
+;;; `merge-pathnames-as-directory', and `canonical-pathname') were
+;;; adapted from cl-fad.  The CL-FAD license applies to the source for
+;;; these functions and is included below:
+;;;
+;;; Copyright (c) 2004, Peter Seibel.  All rights reserved.
+;;; Copyright (c) 2004-2010, Dr. Edmund Weitz.  All rights reserved.
+;;;
+;;; Redistribution and use in source and binary forms, with or without
+;;; modification, are permitted provided that the following conditions
+;;; are met:
+;;;
+;;;   * Redistributions of source code must retain the above copyright
+;;;     notice, this list of conditions and the following disclaimer.
+;;;
+;;;   * Redistributions in binary form must reproduce the above
+;;;     copyright notice, this list of conditions and the following
+;;;     disclaimer in the documentation and/or other materials
+;;;     provided with the distribution.
+;;;
+;;; THIS SOFTWARE IS PROVIDED BY THE AUTHORS 'AS IS' AND ANY EXPRESSED
+;;; OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;;; ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+;;; DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+;;; DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+;;; GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+;;; WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;
+;;;
+(defun canonical-pathname (path)
+  "Remove redundant information from PATH."
+  (iter (with full-dir = (or (pathname-directory (pathname path))
+                             (list :relative)))
+        (with canon-dir = (if (member (first full-dir) '(:relative :absolute))
+                              (list (pop full-dir))
+                              (list :relative)))
+        (while full-dir)
+        (cond ((string= "." (first full-dir))
+               (pop full-dir))
+              ((eql :back (second full-dir))
+               (pop full-dir)
+               (pop full-dir))
+              (t (push (pop full-dir) canon-dir)))
+        (finally (return (make-pathname :defaults (pathname path)
+                                        :directory (nreverse canon-dir))))))
+
+(defun merge-pathnames-as-directory (&rest pathnames)
+  "Given a list of pathnames, this returns a single
+directory pathname containing the logical concatenation of them all."
+  (if (null pathnames)
+      (make-pathname)
+      (let* ((pathnames (mapcar #'pathname pathnames))
+             (defaults (first pathnames))
+             (dir (pathname-directory defaults)))
+        (make-pathname
+          :defaults defaults
+          :directory (iter (for pathname in (rest pathnames))
+                           (for directory = (pathname-directory pathname))
+                           (cond ((eq :absolute (first directory))
+                                  (setf dir directory))
+                                 ((eq :relative (first directory))
+                                  (setf dir (append dir (rest directory)))))
+                           (finally (return dir)))
+          :name nil :type nil))))
+
+(defun merge-pathnames-as-file (&rest pathnames)
+  "Given a list of pathnames returns a single filename pathname
+containing the logical concatenation of them all."
+  (if (null pathnames)
+      (make-pathname)
+      (let ((file-name (first (last pathnames))))
+        (make-pathname :defaults (apply #'merge-pathnames-as-directory pathnames)
+                       :name (pathname-name file-name)
+                       :type (pathname-type file-name)
+                       :version (pathname-version file-name)))))
+
+
 ;;;; Process wrapping
 ;;;
 ;;; TODO: What is the benefit of this wrapper layer?  Just interop
