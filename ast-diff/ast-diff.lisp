@@ -52,7 +52,8 @@
    :print-diff
    ;; Merge functions
    :chunk
-   :diff3))
+   :diff3
+   :show-chunks))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 
@@ -555,13 +556,23 @@ See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
      (lambda (chunk)
        (format t "~a:~a~%" (car chunk) (mapcar {mapcar #'car} (cdr chunk)))
        (ecase (car chunk)
-         (:stable (cdaadr chunk))       ; Return the text of chunk.
+         (:stable (cons :stable (cdaadr chunk))) ; Return the text of chunk.
          (:unstable
           ;; TODO: Unstable Cases:
           ;; - changed only in A
           ;; - changed only in B
           ;; - falsely conflicting
           ;; - truly conflicting
-          )))
+          chunk)))               ; Already labeled :unstable.
      (chunk (ast-diff original branch-a)
             (ast-diff original branch-b)))))
+
+;;; TODO: printing clang-ast-node should use a safer printer ~s.
+(defun show-chunks (chunks &optional (stream t))
+  (mapc (lambda (chunk)
+          (if (keywordp (car chunk))
+              (ecase (car chunk)
+                (:stable (format stream "~a" (cdr chunk)))
+                (:unstable (format stream "+{UNSTABLE}+")))
+              (show-chunks chunk)))
+        chunks))
