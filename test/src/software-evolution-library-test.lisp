@@ -5957,6 +5957,61 @@ prints unique counters in the trace"
       (is (equal (genome orig) (genome (uninstrument instrumented)))
           "(uninstrument (instrument obj ...)) is not an identity"))))
 
+(defun do-multi-threaded-instrument-clang-test (obj)
+  (let ((st-instrumented
+          (instrument (copy obj)
+                      :functions
+                      (list (lambda (instrumenter ast)
+                              (var-instrument {get-vars-in-scope
+                                                (software instrumenter)}
+                                              instrumenter
+                                              ast)))
+                      :num-threads 1))
+        (mt-instrumented
+          (instrument (copy obj)
+                      :functions
+                      (list (lambda (instrumenter ast)
+                              (var-instrument {get-vars-in-scope
+                                                (software instrumenter)}
+                                              instrumenter
+                                              ast)))
+                      :num-threads 4)))
+    (is (equalp (mapcar #'ast-class (asts st-instrumented))
+                (mapcar #'ast-class (asts mt-instrumented)))
+        "`instrument` should yield the same ASTs regardless of the ~
+         number of threads utilized.")
+
+    (uninstrument st-instrumented :num-threads 1)
+    (uninstrument mt-instrumented :num-threads 4)
+    (is (equalp (mapcar #'ast-class (asts st-instrumented))
+                (mapcar #'ast-class (asts mt-instrumented)))
+        "`uninstrument` should yield the same ASTs regardless of the ~
+         number of threads utilized.")))
+
+(deftest multi-threaded-clang-instrument-test ()
+  (with-fixture clang-project
+    (do-multi-threaded-instrument-clang-test *project*))
+  (with-fixture grep-bear-project
+    (do-multi-threaded-instrument-clang-test *project*)))
+
+(deftest multi-threaded-java-instrument-test ()
+  (with-fixture java-project
+    (let ((st-instrumented
+            (instrument (copy *soft*) :num-threads 1))
+          (mt-instrumented
+            (instrument (copy *soft*) :num-threads 4)))
+      (is (equalp (genome st-instrumented)
+                  (genome mt-instrumented))
+          "`instrument` should yield the same genome regardless of the ~
+           number of threads utilized.")
+
+      (uninstrument st-instrumented :num-threads 1)
+      (uninstrument mt-instrumented :num-threads 4)
+      (is (equalp (genome st-instrumented)
+                  (genome mt-instrumented))
+          "`uninstrument` should yield the same genome regardless of the ~
+           number of threads utilized."))))
+
 
 ;;;; Traceable tests.
 (defsuite traceable-tests "Traceable tests."
@@ -6450,7 +6505,7 @@ prints unique counters in the trace"
   (with-fixture grep-bear-project
     (is (equal "make" (build-command *project*)))
     (is (equal "grep" (build-target *project*)))
-    (is (equal 1 (length (evolve-files *project*))))))
+    (is (not (zerop (length (genome *project*)))))))
 
 (deftest (able-to-copy-a-bear-project :long-running) ()
   (with-fixture grep-bear-project

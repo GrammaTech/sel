@@ -156,6 +156,7 @@
    :binary-search
    :tails
    :pairs
+   :make-thread-safe-hash-table
    ;;; Source and binary locations and ranges
    :source-location
    :line
@@ -220,6 +221,7 @@
    :task-object
    :task-save-result
    :run-task
+   :run-task-and-block
    :some-task
    :some-task-pred
    :some-test-task

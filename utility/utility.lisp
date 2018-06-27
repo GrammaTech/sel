@@ -1180,6 +1180,15 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
         (appending (iter (for b in rest)
                          (collecting (cons a b))))))
 
+(defun make-thread-safe-hash-table (&rest args)
+  "Create a thread safe hash table with the given ARGS"
+  #+(or sbcl ecl)
+  (apply #'make-hash-table :synchronized t args)
+  #+ccl
+  (apply #'make-hash-table :shared :lock-free args)
+  #-(or ccl sbcl ecl)
+  (error "unsupported implementation for thread-safe hashtables"))
+
 
 ;;;; Source and binary locations and ranges.
 (defclass source-location ()
