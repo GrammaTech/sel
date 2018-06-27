@@ -39,7 +39,7 @@
 
 
 ;;; diff3
-(diff3 *orig* *fix* *prose*)
+(defparameter *chunks* (diff3 *orig* *fix* *prose*))
 
 
 ;;; Three test suites.
