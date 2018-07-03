@@ -159,7 +159,7 @@ real-check: check long-bin-check
 ## Interactive testing
 SWANK_PORT ?= 4005
 swank: $(USER_QUICK_LISP)/setup.lisp
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
+	$(LISP_HOME) $(LISP)					\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :swank)'				\
