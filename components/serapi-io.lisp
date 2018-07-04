@@ -67,10 +67,10 @@
            :is-terminating
            :is-error
            :is-loc-info
-           :is-coq-import-ast
-           :is-coq-module-ast
-           :is-coq-section-ast
-           :is-coq-definition-ast
+           :coq-import-ast-p
+           :coq-module-ast-p
+           :coq-section-ast-p
+           :coq-definition-ast-p
            :lookup-coq-pp
            :lookup-coq-string
            :add-coq-string
@@ -155,7 +155,7 @@ to `*sertop-args*'."
 ;;;; possible every *serapi-sleep-interval* seconds until the timeout has
 ;;;; elapsed. E.g., for timeout of 1 and sleep-interval 0.1, we would try to
 ;;;; read every .1s until either 1s elapsed or it was possible to read
-(defparameter *serapi-timeout* 2
+(defparameter *serapi-timeout* 30
   "Maximum amount of time to wait before determining that no data can be read.")
 
 (defparameter *serapi-sleep-interval* 0.1
@@ -626,7 +626,7 @@ command or an invalid Coq command, NIL otherwise."
                 t))
          (otherwise nil))))
 
-(defun is-coq-import-ast (sexpr)
+(defun coq-import-ast-p (sexpr)
   "Return T if SEXPR is tagged as VernacImport or VernacRequire, NIL otherwise."
   ;; ASTs for imports have length 2 where the first element is located info
   ;; and the second is either VernacImport or VernacRequire.
@@ -637,7 +637,7 @@ command or an invalid Coq command, NIL otherwise."
        (or (is-type (find-symbol "VernacImport") (second sexpr))
            (is-type (find-symbol "VernacRequire") (second sexpr)))))
 
-(defun is-coq-module-ast (sexpr)
+(defun coq-module-ast-p (sexpr)
   "Return module name if SEXPR is tagged as defining a module, NIL otherwise.
 Module tags include VernacDefineModule, VernacDeclareModule,
 VernacDeclareModuleType."
@@ -658,7 +658,7 @@ VernacDeclareModuleType."
           module-name)
          (otherwise nil))))
 
-(defun is-coq-section-ast (sexpr)
+(defun coq-section-ast-p (sexpr)
   "Return section name if SEXPR is tagged as VernacBeginSection, NIL otherwise."
   (intern "VernacBeginSection" *package*)
   (intern "Id" *package*)
@@ -670,7 +670,7 @@ VernacDeclareModuleType."
           section-name)
          (otherwise nil))))
 
-(defun is-coq-definition-ast (sexpr)
+(defun coq-definition-ast-p (sexpr)
   "Return definition name if SEXPR is tagged as a definition, NIL otherwise.
 Definition tags include VernacAssumption (e.g., parameters or axioms),
 VernacDefinition, VernacInductive, VernacFixpoint, VernacCoFixpoint."
