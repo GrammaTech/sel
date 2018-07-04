@@ -180,20 +180,23 @@ file have been added."
   (bind ((ast-ids (load-coq-file file))
          ((import-asts import-strs asts modules sections definitions)
           (iter (for id in ast-ids)
+                (with initial-imports = t)
                 (let ((ast (lookup-coq-ast id)))
                   ;; Collect all ASTs except imports into genome.
-                  (if (is-coq-import-ast ast)
-                      ;; separate out import asts
+                  (if (and initial-imports (coq-import-ast-p ast))
+                      ;; separate out import asts at top of file
                       (progn
                         (collect ast into imports)
                         (collect (lookup-coq-string id) into import-strs))
-                      ;; save non-import asts
-                      (collect ast into asts))
-                  (when-let ((module (is-coq-module-ast ast)))
+                      ;; all other asts
+                      (progn
+                        (setf initial-imports nil)
+                        (collect ast into asts)))
+                  (when-let ((module (coq-module-ast-p ast)))
                     (collect module into modules))
-                  (when-let ((section (is-coq-section-ast ast)))
+                  (when-let ((section (coq-section-ast-p ast)))
                     (collect section into sections))
-                  (when-let ((definition (is-coq-definition-ast ast)))
+                  (when-let ((definition (coq-definition-ast-p ast)))
                     (collect definition into definitions)))
                 (finally
                  (return (list imports import-strs asts
