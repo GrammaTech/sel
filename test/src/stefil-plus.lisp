@@ -65,12 +65,16 @@
            :without-debugging :without-test-progress-printing
            :run-failed-tests
            :*debug-on-unexpected-error*
-           :*debug-on-assertion-failure*))
+           :*debug-on-assertion-failure*
+	   :long-running-p
+	   :long-running))
 
 (in-package :sel/stefil+)
 
 (defconstant *long-suite-suffix* "-LONG"
   "Suffix for version of suite which contains long running tests.")
+
+(declaim (declaration long-running))    ;; allow (declare (long-running t))
 
 (defvar *root-suite* nil
   "Default suite in which `sel-suite*' should define tests.")
@@ -102,15 +106,16 @@ return non-nil when the test suite should be run and nil otherwise."
   (let ((long-name (intern (format nil "~A~A" name *long-suite-suffix*))))
     (with-gensyms (test)
       (assert *root-suite* (*root-suite*)
-              "Default suite *root-suite* must be set to use `sel-suite*'.")
+              "Default suite *root-suite* must be set to use `DEFSUITE'.")
       `(progn
 	 (when (or (boundp ',name) (fboundp ',name))
-	   (warn "Defining ~a with `sel-suite*' overwrites existing definition."
+	   (warn "Defining ~a with `DEFSUITE' overwrites existing definition."
 		 ',name))
 	 (when (or (boundp ',long-name) (fboundp ',long-name))
-	   (warn "Defining ~a with `sel-suite*' overwrites existing definition."
+	   (warn "Defining ~a with `DEFSUITE' overwrites existing definition."
 		 ',long-name))
-	 (defsuite* (,name :in ,*root-suite* :documentation ,documentation) ()
+	 (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
+			   :documentation ,documentation) ()
 	   (let ((,test (find-test ',name)))
 	     (cond
 	       ((stefil::test-was-run-p ,test)
@@ -124,7 +129,9 @@ return non-nil when the test suite should be run and nil otherwise."
 			     nil)
 			 (t (warn "Skipped executing disabled tests suite ~S."
 				  (stefil::name-of ,test))))))))
-	 (defsuite* (,long-name :in ,*root-suite* :documentation ,documentation)
+	 (defsuite* (,long-name :in
+				,(intern (symbol-name *root-suite*) *package*)
+				:documentation ,documentation)
              ()
 	   (let ((,test (find-test ',long-name)))
 	     (cond
@@ -191,7 +198,9 @@ values."
 		       (/ (- ,end-time ,start-time)
 		          internal-time-units-per-second))))
        (declare (special *time-threshold*))
-       (if (> ,elapsed *time-threshold*)
+       (if (and
+	    (> ,elapsed *time-threshold*)
+	    (not (long-running-p ,test-name)))
 	   (warn 'test-exceeds-time-threshold
 	         :name ,test-name
 	         :time ,elapsed))
@@ -206,16 +215,42 @@ values."
 - When the test is executed, if the execution time (real time) is longer
   than *TIME-THRESHOLD* seconds, a warning is output."
 
-  (let ((long-running nil))
+  (let ((long-running nil)
+	(decls-or-doc '())
+	(body-remaining '()))
     (when (listp name)
       (if (member ':long-running name)
 	  (setf long-running t))
       (if (symbolp (first name))
 	  (setf name (first name))))
+
+    ;; separate the declarations and doc strings from remaining forms
+    (do ((b body (cdr b)))
+	((null b))
+      (if (or (stringp (car b))
+	      (and (listp (car b)) (eq (caar b) 'declare)))
+	  (push (car b) decls-or-doc)
+	  (progn (setf body-remaining b) (return))))
+    
     (if long-running
         `(let ((stefil::*suite*
 	        (find-test
 	         (find-long-running-suite
 	          (stefil::name-of stefil::*suite*)))))
-           (stefil::deftest ,name ,args (check-time ',name (progn ,@body))))
-        `(stefil::deftest ,name ,args (check-time ',name (progn ,@body))))))
+           (stefil::deftest ,name ,args
+	     ,@(append (nreverse decls-or-doc) '((declare (long-running t))))
+			    (check-time ',name (progn ,@body-remaining))))
+        `(stefil::deftest ,name ,args ,@(nreverse decls-or-doc)
+			  (check-time ',name (progn ,@body-remaining))))))
+
+(defun long-running-p (test)
+  "Given the name of a test, returns true iff test has been flagged 
+long-running."
+  (let ((test-obj (find-test test)))
+    (and test-obj
+	 (find-if
+	  (lambda (x)
+	    (and (listp x)
+		 (equalp x '(declare (sel/stefil+::long-running t)))))
+	  (stefil::declarations-of test-obj))
+	 t)))
