@@ -1086,6 +1086,15 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
         (appending (iter (for b in rest)
                          (collecting (cons a b))))))
 
+(defmethod filter-subtrees (predicate (tree list))
+  (when (and tree (listp tree))
+    (append
+     (when (funcall predicate tree) (list tree))
+     (when (listp (car tree))
+       (filter-subtrees predicate (car tree)))
+     (when (listp (cdr tree))
+       (filter-subtrees predicate (cdr tree))))))
+
 
 ;;;; Source and binary locations and ranges.
 (defclass source-location ()
