@@ -70,6 +70,7 @@
            :coq-import-ast-p
            :coq-module-ast-p
            :coq-section-ast-p
+           :coq-assumption-ast-p
            :coq-definition-ast-p
            :lookup-coq-pp
            :lookup-coq-string
@@ -670,25 +671,36 @@ VernacDeclareModuleType."
           section-name)
          (otherwise nil))))
 
-(defun coq-definition-ast-p (sexpr)
-  "Return definition name if SEXPR is tagged as a definition, NIL otherwise.
-Definition tags include VernacAssumption (e.g., parameters or axioms),
-VernacDefinition, VernacInductive, VernacFixpoint, VernacCoFixpoint."
-  ;; NOTE: may want to add VernacStartTheoremProof for theorems and lemmas.
-  ;; See coq/stm/vernac_classifier.ml for grammar hints.
+(defun coq-assumption-ast-p (sexpr)
+  "Return name of Parameter, Variable, etc. if SEXPR is tagged VernacAssumption.
+Otherwise return NIL."
   (intern "VernacAssumption" *package*)
-  (intern "VernacDefinition" *package*)
-  (intern "VernacInductive" *package*)
-  (intern "VernacFixpoint" *package*)
-  (intern "VernacCoFixpoint" *package*)
   (flet ((parse-assumption-ids (sexpr)
            (and (listp sexpr)
                 (match sexpr
                   ((guard `(,_ ((((,_ (,id-tag ,name)) ,_)) . ,_))
                           (eql id-tag (find-symbol "Id")))
                    name)
-                  (otherwise nil))))
-         (parse-inductive-ids (sexpr)
+                  (otherwise nil)))))
+    (and (listp sexpr)
+         (match sexpr
+           ((guard `(,_ (,assumption-tag ,_ ,_ ,ls))
+                   (eql assumption-tag (find-symbol "VernacAssumption")))
+            (first (mapcar #'parse-assumption-ids ls)))
+           (otherwise nil)))))
+
+(defun coq-definition-ast-p (sexpr)
+  "Return definition name if SEXPR is tagged as a definition, NIL otherwise.
+Definition tags include VernacDefinition, VernacInductive, VernacFixpoint,
+VernacCoFixpoint."
+  ;; NOTE: may want to add VernacStartTheoremProof for theorems and lemmas.
+  ;; See coq/stm/vernac_classifier.ml for grammar hints.
+  (intern "VernacDefinition" *package*)
+  (intern "VernacInductive" *package*)
+  (intern "VernacFixpoint" *package*)
+  (intern "VernacCoFixpoint" *package*)
+  (intern "Id" *package*)
+  (flet ((parse-inductive-ids (sexpr)
            (and (listp sexpr)
                 (match sexpr
                   ((guard `(((,_ ((,_ (,id-tag ,name)) ,_)) . ,_) ,_)
@@ -708,9 +720,6 @@ VernacDefinition, VernacInductive, VernacFixpoint, VernacCoFixpoint."
                    (or (eql fixpoint-tag (find-symbol "VernacFixpoint"))
                        (eql fixpoint-tag (find-symbol "VernacCoFixpoint"))))
             (first (mapcar #'parse-fixpoint-ids ls)))
-           ((guard `(,_ (,assumption-tag ,_ ,_ ,ls))
-                   (eql assumption-tag (find-symbol "VernacAssumption")))
-            (first (mapcar #'parse-assumption-ids ls)))
            ((guard `(,_ (,definition-tag ,_ ((,_ (,id-tag ,name)) ,_) ,_))
                    (and (eql definition-tag (find-symbol "VernacDefinition"))
                         (eql id-tag (find-symbol "Id"))))
@@ -918,6 +927,37 @@ Return a list of IDs for the ASTs that were added."
                        (concatenating (format nil "~a~%" line)))))
       (add-coq-string lines :qtag qtag))))
 
+(defun list-coq-libraries (&key (imported-only t)
+                             (keep-prefix "Coq.")
+                             (qtag (gensym "v")))
+  (intern "Pp_string" *package*)
+  (let ((all-loaded
+         (->> (run-coq-vernacular (format nil "Print Libraries.") :qtag qtag)
+              (coq-message-contents)
+              ;; filter message contents to just include strings
+              (filter-subtrees [{eql (find-symbol "Pp_string")} #'car])
+              ;; remove spaces
+              (mapcar [#'trim-whitespace #'second])
+              ;; remove empty strings
+              (remove-if #'emptyp)
+              ;; remove leading "Loaded and imported" string
+              (cdr)))
+        (end-of-imports-str "Loaded and not imported"))
+    (cond
+      ;; keep only loaded and imported library names that start with prefix
+      ((and imported-only keep-prefix)
+       (remove-if-not
+        {starts-with-subseq keep-prefix}
+        (cdr (take-until {starts-with-subseq end-of-imports-str} all-loaded))))
+      ;; keep only loaded and imported library names
+      (imported-only
+       (cdr (take-until {starts-with-subseq end-of-imports-str} all-loaded)))
+      ;; keep all loaded library names that start with prefix
+      (keep-prefix
+       (remove-if-not {starts-with-subseq keep-prefix} all-loaded))
+      ;; list all loaded library names
+      (t (remove-if {starts-with-subseq end-of-imports-str} all-loaded)))))
+
 
 ;; Type lookup and search
 (defun tokenize-coq-type (type-string)
@@ -933,17 +973,21 @@ Return a list of IDs for the ASTs that were added."
                (t (find-matching-paren str (1+ pos) depth))))
            (tokenize (str)
              (let ((str (trim-whitespace str))
-                   (split-tokens (list #\: #\( #\) #\Space #\Tab #\Newline)))
+                   (split-tokens (list #\: #\( #\) #\[ #\] #\Space #\Tab
+                                       #\Newline)))
                (cond
                  ((emptyp str) nil)
                  ((starts-with-subseq "->" str)
                   (cons :-> (tokenize (subseq str 2))))
-                 ((starts-with-subseq "forall" str)
+                 ((starts-with-subseq "forall " str)
                   (cons :forall (tokenize (subseq str 6))))
-                 ((starts-with-subseq "exists" str)
+                 ((starts-with-subseq "exists " str)
                   (cons :exists (tokenize (subseq str 6))))
                  ((starts-with-subseq ":" str)
                   (cons :colon (tokenize (subseq str 1))))
+                 ((or (starts-with-subseq "[" str)
+                      (starts-with-subseq "]" str))
+                  (cons (subseq str 0 1) (tokenize (subseq str 1))))
                  ((starts-with-subseq "(" str)
                   (let ((end-paren (find-matching-paren str 1 0)))
                     (cons (tokenize (subseq str 1 end-paren))
@@ -961,8 +1005,9 @@ Return a list of IDs for the ASTs that were added."
   (:documentation "Look up and return the type of a Coq expression COQ-EXPR.
 Optionally use QTAG to tag the query."))
 
-(defmethod check-coq-type ((coq-expr string) &key (qtag (gensym "q")))
-  "Look up and return the type of a COQ-EXPR string using Coq's `Check'."
+(defmethod check-coq-type (coq-expr &key (qtag (gensym "q")))
+  "Look up and return the type of a COQ-EXPR using Coq's `Check'.
+COQ-EXPR will be coerced to a string via the `format' ~a directive."
   (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr))))
     (if (member #!'Error (coq-message-levels response))
         (error (make-condition 'serapi-error
@@ -974,7 +1019,7 @@ Optionally use QTAG to tag the query."))
              (lookup-coq-string <> :input-format #!'CoqPp)
              (tokenize-coq-type)))))
 
-(defun search-coq-type (coq-type &key (qtag (gensym "q")))
+(defun search-coq-type (coq-type &key module (qtag (gensym "q")))
   "Return a list of tokenized types of values whose \"final\" type is COQ-TYPE.
 Results include functions parameterized by values of types other than COQ-TYPE
 as long as the final result returned by the function is of type COQ-TYPE.
@@ -985,7 +1030,14 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
                       (ends-with-subseq ")" str))
                  str
                  (format nil "(~a)" str)))))
-    (->> (format nil "SearchPattern ~a." (parenthesize coq-type))
+    ;; Translates to vernacular:
+    ;; SearchPattern (coq-type) inside module. or
+    ;; SearchPattern (coq-type).
+    (->> (format nil "SearchPattern ~a ~a."
+                 (parenthesize coq-type)
+                 (if module
+                     (format nil "inside ~a" module)
+                     (format nil "")))
          (run-coq-vernacular)
          (coq-message-contents)
          (mapcar [#'tokenize-coq-type
@@ -1154,3 +1206,51 @@ named FUNCTION-NAME."
      (or (not function-name)
          (and function-name (eql (find-symbol function-name *package*)
                                  name))))))
+
+(defun lookup-qualified-coq-names (coq-type)
+  "For a Coq type COQ-TYPE, look up the qualified names (using Locate).
+Return a list of strings representing the possible qualified names.
+COQ-TYPE may be either a string or a symbol."
+  (intern "Pp_string" *package*)
+  (let* ((resp (run-coq-vernacular (format nil "Locate ~a." coq-type)))
+         (strings (mapcar #'second (filter-subtrees
+                                    [{eql (find-symbol "Pp_string")} #'car]
+                                    resp))))
+    (unless (starts-with-subseq "No object" (car strings))
+      ;; TODO: not certain this is correct for all types, but assumes that
+      ;; results are things like "Constant qualid" or "Notation qualid", so the
+      ;; qualids are the "even" elements of the list of strings in the result.
+      (iter (for odd in strings by #'cddr)
+            (for even in (cdr strings) by #'cddr)
+            (collecting (if (starts-with-subseq "SerTop." even)
+                            (subseq even 7)
+                            even))))))
+
+(defun parse-coq-function-locals (sexpr)
+  ;; NOTE: may want to add VernacStartTheoremProof for theorems and lemmas.
+  ;; See coq/stm/vernac_classifier.ml for grammar hints.
+  (intern "CLocalAssum" *package*)
+  (intern "Name" *package*)
+  (intern "Id" *package*)
+  (when (listp sexpr)
+    (when-let ((local-assums (filter-subtrees
+                              [{eql (find-symbol "CLocalAssum")} #'car]
+                              sexpr))
+               (fn-name (coq-definition-ast-p sexpr)))
+      (flet ((parse-ids (ids-ls)
+               (iter (for the-id in ids-ls)
+                     (collecting
+                      (match the-id
+                        ((guard `(,_ (,name-tag (,id-tag ,name)))
+                                (and (eql name-tag (find-symbol "Name"))
+                                     (eql id-tag (find-symbol "Id"))))
+                         name))))))
+        (iter (for assum in local-assums)
+              (appending
+               (match assum
+                 ((guard `(,c-local-assum ,ids-ls ,_ ((,_ ,type) ,_))
+                         (eql c-local-assum (find-symbol "CLocalAssum")))
+                  (let ((ids (parse-ids ids-ls)))
+                    (mapcar #'list
+                            ids
+                            (repeatedly (length ids) type)))))))))))
