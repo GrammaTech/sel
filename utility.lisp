@@ -285,10 +285,10 @@
       (setf (readtable-case *readtable*) :preserve)
       (cl-user::read stream t nil t)))
   (handler-bind ((style-warning #'muffle-warning))
-    (defreadtable :sel-readtable
-        ;; Define an SEL readtable which combines CCRM with a #! reader
-        ;; macro for preserving case reads.  Both can be useful generally.
-        (:merge :curry-compose-reader-macros)
+  (defreadtable :sel-readtable
+    ;; Define an SEL readtable which combines CCRM with a #! reader
+    ;; macro for preserving case reads.  Both can be useful generally.
+    (:merge :curry-compose-reader-macros)
       (:dispatch-macro-char #\# #\! #'read-preserving-case)))
 
   (in-readtable :sel-readtable))
@@ -442,15 +442,15 @@ SET-UTF8-ENCODING. "
                                 :if-exists if-exists
                                 :external-format external-format)
              (format out "~a" string))))
-    (when (and (file-exists-p path)
-               (not (member :user-write (file-permissions path))))
-      (restart-case
-          (error (make-condition 'file-access
-                                 :path path
-                                 :operation :write))
-        (set-file-writable ()
-          (format nil "Forcefully set ~a to be writable" path)
-          (push :user-write (file-permissions path)))))
+  (when (and (file-exists-p path)
+             (not (member :user-write (file-permissions path))))
+    (restart-case
+        (error (make-condition 'file-access
+                 :path path
+                 :operation :write))
+      (set-file-writable ()
+        (format nil "Forcefully set ~a to be writable" path)
+        (push :user-write (file-permissions path)))))
     (restart-case
         (run-write)
       (set-utf8-encoding ()
@@ -1282,13 +1282,13 @@ Optional argument OUT specifies an output stream."
       ((class-slots (class-of obj1))
        (reduce
         (lambda (acc slot)
-          (and acc (equal-it (slot-value obj1 slot) (slot-value obj2 slot)
-                             trace1)))
+                 (and acc (equal-it (slot-value obj1 slot) (slot-value obj2 slot)
+                                    trace1)))
         (remove-if [{member _ inhibit-slots :test #'string= :key #'symbol-name}
                     #'symbol-name]
-                   (mapcar #'slot-definition-name
+               (mapcar #'slot-definition-name
                            (class-slots (class-of obj1))))
-        :initial-value t))
+               :initial-value t))
       (t (equal obj1 obj2)))))
 
 (defvar *uninteresting-conditions* nil
@@ -1718,6 +1718,15 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
   (iter (for (a . rest) in (tails lst))
         (appending (iter (for b in rest)
                          (collecting (cons a b))))))
+
+(defmethod filter-subtrees (predicate (tree list))
+  (when (and tree (listp tree))
+    (append
+     (when (funcall predicate tree) (list tree))
+     (when (listp (car tree))
+       (filter-subtrees predicate (car tree)))
+     (when (listp (cdr tree))
+       (filter-subtrees predicate (cdr tree))))))
 
 (defun make-thread-safe-hash-table (&rest args)
   "Create a thread safe hash table with the given ARGS"
