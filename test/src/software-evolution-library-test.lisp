@@ -5988,13 +5988,19 @@ prints unique counters in the trace"
         "`uninstrument` should yield the same ASTs regardless of the ~
          number of threads utilized.")))
 
-(deftest multi-threaded-clang-instrument-test ()
+(defsuite clang-instrumentation-tests "Tests for Clang instrumentation."
+  (clang-mutate-available-p))
+
+(deftest (multi-threaded-clang-instrument-test :long-running) ()
   (with-fixture clang-project
     (do-multi-threaded-instrument-clang-test *project*))
   (with-fixture grep-bear-project
     (do-multi-threaded-instrument-clang-test *project*)))
 
-(deftest multi-threaded-java-instrument-test ()
+(defsuite java-instrumentation-tests "Tests for Java instrumentation."
+  (zerop (nth-value 2 (shell "which java-mutator"))))
+
+(deftest (multi-threaded-java-instrument-test :long-running) ()
   (with-fixture java-project
     (let ((st-instrumented
             (instrument (copy *soft*) :num-threads 1))
