@@ -71,7 +71,9 @@
 
 (in-package :sel/stefil+)
 
-(defconstant *long-suite-suffix* "-LONG"
+(define-constant *long-suite-suffix* "-LONG"
+  :test #'string=
+  :documentation
   "Suffix for version of suite which contains long running tests.")
 
 (declaim (declaration long-running))    ;; allow (declare (long-running t))
