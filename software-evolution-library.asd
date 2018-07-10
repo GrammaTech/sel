@@ -336,7 +336,7 @@ techniques."
 (defsystem "software-evolution-library/lisp-diff"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
-  :description "Calculate difference between two C/C++ programs."
+  :description "Calculate difference between two lisp programs."
   :version "0.0.0"
   :depends-on (alexandria
                closer-mop
