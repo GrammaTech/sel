@@ -3,6 +3,7 @@
   (:use
    :common-lisp
    :alexandria
+   :closer-mop
    :uiop
    :osicat-posix
    :metabang-bind
@@ -16,6 +17,10 @@
    :cl-dot
    :diff)
   (:shadow :read)
+  (:shadowing-import-from
+   :closer-mop
+   :standard-method :standard-class :standard-generic-function
+   :defmethod :defgeneric)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from :uiop :quit)

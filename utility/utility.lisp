@@ -700,22 +700,6 @@ For usage see the definition of `clang-instrument'.  E.g.,
 
 
 ;;;; generic forensic functions over arbitrary objects
-(defun my-slot-definition-name (el)
-  #+sbcl
-  (sb-mop::slot-definition-name el)
-  #+ccl
-  (ccl:slot-definition-name el)
-  #-(or sbcl ccl)
-  (clos::slot-definition-name el))
-
-(defun my-class-slots (el)
-  #+sbcl
-  (sb-mop::class-slots el)
-  #+ccl
-  (ccl:class-slots el)
-  #-(or sbcl ccl)
-  (clos::class-slots el))
-
 #+sbcl
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'sb-introspect))
@@ -748,7 +732,7 @@ Optional argument OUT specifies an output stream."
      (let ((val (slot-value hd slot)))
        (format (or out t) "~s:~a " slot val)
        (list slot val)))
-   (mapcar #'my-slot-definition-name (my-class-slots (class-of hd)))))
+   (mapcar #'slot-definition-name (class-slots (class-of hd)))))
 
 (defun equal-it (obj1 obj2 &optional trace)
   "Equal over objects and lists."
@@ -767,12 +751,12 @@ Optional argument OUT specifies an output stream."
                         (mapcar #'cons (coerce obj1 'list) (coerce obj2 'list))
                         (mapcar #'cons obj1 obj2))
                     :initial-value t)))
-      ((my-class-slots (class-of obj1))
+      ((class-slots (class-of obj1))
        (reduce (lambda (acc slot)
                  (and acc (equal-it (slot-value obj1 slot) (slot-value obj2 slot)
                                     trace1)))
-               (mapcar #'my-slot-definition-name
-                       (my-class-slots (class-of obj1)))
+               (mapcar #'slot-definition-name
+                       (class-slots (class-of obj1)))
                :initial-value t))
       (t (equal obj1 obj2)))))
 
@@ -812,14 +796,14 @@ Optional argument OUT specifies an output stream."
       ((and (consp obj1) (consp obj2))
        (and (different-it (car obj1) (car obj2))
             (different-it (cdr obj1) (cdr obj2))))
-      ((my-class-slots (class-of obj1))
+      ((class-slots (class-of obj1))
        (reduce (lambda (acc slot)
                  (and acc (or (different-it
                                (slot-value obj1 slot) (slot-value obj2 slot)
                                trace1)
                               (format t "~&  ~a" slot))))
-               (mapcar #'my-slot-definition-name
-                       (my-class-slots (class-of obj1)))
+               (mapcar #'slot-definition-name
+                       (class-slots (class-of obj1)))
                :initial-value t))
       (t (or (equal obj1 obj2) (format t "~&~a!=~a" obj1 obj2))))))
 

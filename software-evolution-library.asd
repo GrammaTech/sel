@@ -148,6 +148,7 @@ techniques."
   :version "0.0.0"
   :licence "GPL V3"
   :depends-on (alexandria
+               closer-mop
                uiop
                ;; https://gitlab.common-lisp.net/asdf/asdf-encodings
                asdf-encodings
