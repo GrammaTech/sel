@@ -40,6 +40,20 @@
    :ftruncate
    :link
    :close)
+  #+sbcl
+  (:shadowing-import-from
+   :sb-posix
+   :tcgetattr
+   :termios-lflag
+   :termios-lflag
+   :icanon
+   :echo
+   :echoe
+   :echok
+   :echonl
+   :echo
+   :tcsetattr
+   :tcsanow)
   (:export
    :infinity
    ;; OS

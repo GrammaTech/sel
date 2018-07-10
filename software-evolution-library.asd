@@ -153,6 +153,7 @@ techniques."
                asdf-encodings
                cffi ; Work around a bug in which :babel isn't found for :osicat.
                osicat
+               #+sbcl sb-posix
                metabang-bind
                named-readtables
                curry-compose-reader-macros
