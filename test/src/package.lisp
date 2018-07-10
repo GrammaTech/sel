@@ -10,13 +10,13 @@
    :arrow-macros
    :iterate
    :split-sequence
-   :stefil
    :cl-ppcre
    :cl-store
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/serapi-io
    :software-evolution-library/ast-diff
+   :software-evolution-library/stefil-plus
    #+gt :testbot
    :trace-db
    :uiop)
@@ -31,7 +31,7 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
-  (:export :test :batch-test :testbot-test :sel-suite*))
+  (:export :test :batch-test :testbot-test))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))

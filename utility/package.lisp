@@ -3,6 +3,7 @@
   (:use
    :common-lisp
    :alexandria
+   :closer-mop
    :uiop
    :osicat-posix
    :metabang-bind
@@ -16,6 +17,10 @@
    :cl-dot
    :diff)
   (:shadow :read)
+  (:shadowing-import-from
+   :closer-mop
+   :standard-method :standard-class :standard-generic-function
+   :defmethod :defgeneric)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from :uiop :quit)
@@ -40,6 +45,20 @@
    :ftruncate
    :link
    :close)
+  #+sbcl
+  (:shadowing-import-from
+   :sb-posix
+   :tcgetattr
+   :termios-lflag
+   :termios-lflag
+   :icanon
+   :echo
+   :echoe
+   :echok
+   :echonl
+   :echo
+   :tcsetattr
+   :tcsanow)
   (:export
    :infinity
    ;; OS
@@ -156,6 +175,7 @@
    :binary-search
    :tails
    :pairs
+   :make-thread-safe-hash-table
    ;;; Source and binary locations and ranges
    :source-location
    :line
@@ -220,9 +240,12 @@
    :task-object
    :task-save-result
    :run-task
+   :run-task-and-block
    :some-task
    :some-task-pred
    :some-test-task
+   :starts-with-p
+   :ends-with-p
    ))
 #+allegro
 (set-dispatch-macro-character #\# #\_

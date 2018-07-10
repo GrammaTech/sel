@@ -263,24 +263,49 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 
 (defclass clang-instrumenter (instrumenter)
   ((names :accessor names
-          :initform (make-hash-table :test #'equal))
+          :initarg :names
+          :initform (make-hash-table :test #'equal)
+          :documentation "Mapping of names to indices.")
    (types :accessor types
-          :initform (make-hash-table :test #'equal))
+          :initarg :types
+          :initform (make-hash-table :test #'equal)
+          :documentation "Mapping of trace type strings to indices.")
    (type-descriptions :accessor type-descriptions
-          :initform (make-hash-table :test #'equal))
-   (ast-ids :accessor ast-ids :initform nil))
+                      :initarg :type-descriptions
+                      :initform (make-hash-table :test #'equal)
+                      :documentation "Mapping of type descriptions to indices.")
+   (ast-ids :accessor ast-ids
+            :initarg :ast-ids
+            :initform nil
+            :documentation "Mapping of ASTs to trace ids."))
   (:documentation "Handles instrumentation for clang software objects."))
 
-(defmethod initialize-instance :after ((instance clang-instrumenter) &key)
-  ;; Values are the same as index-of-ast, but without the linear
-  ;; search.
-  (when (software instance)
-    (setf (ast-ids instance)
-          (iter (for ast in (asts (software instance)))
-                (for i upfrom 0)
-                (with ht = (make-hash-table :test #'eq))
-                (setf (gethash ast ht) i)
-                (finally (return ht))))))
+(defclass instrument-clang-object-task (task)
+  ((instrument-args :initarg :instrument-args
+                    :accessor task-instrument-args
+                    :documentation "List of keyword arguments to instrument."))
+  (:documentation "Task for instrumenting a single clang software object."))
+
+(defclass instrument-clang-project-task (task)
+  ((names :initarg :names
+          :accessor task-names
+          :documentation "Mapping of names to indices.")
+   (types :initarg :types
+          :accessor task-types
+          :documentation "Mapping of trace type strings to indices.")
+   (type-descriptions :initarg :type-descriptions
+                      :accessor task-type-descriptions
+                      :documentation "Mapping of type descriptions to indices.")
+   (instrument-args :initarg :instrument-args
+                    :accessor task-instrument-args
+                    :documentation "List of keyword arguments to instrument."))
+  (:documentation "Task for instrumenting a clang project."))
+
+(defclass uninstrument-clang-object-task  (task) ()
+  (:documentation "Task for uninstrumenting a single clang software object."))
+
+(defclass uninstrument-clang-project-task (task) ()
+  (:documentation "Task for uninstrumenting a clang project."))
 
 
 (defun array-or-pointer-type (type)
@@ -449,13 +474,19 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 * OBJ the software object to instrument
 * ARGS additional arguments are passed through to the instrumenter method.
 "
-  (apply #'instrument (make-instance 'clang-instrumenter :software obj)
+  (apply #'instrument (make-instance 'clang-instrumenter
+                        :software obj
+                        :ast-ids (iter (for ast in (asts obj))
+                                       (for i upfrom 0)
+                                       (with ht = (make-hash-table :test #'eq))
+                                       (setf (gethash ast ht) i)
+                                       (finally (return ht))))
          args))
 
 (defmethod instrument
     ((instrumenter clang-instrumenter)
      &key points functions functions-after trace-file trace-env instrument-exit
-       (filter (constantly t)))
+       (filter (constantly t)) (num-threads 1))
   "Use INSTRUMENTER to instrument a clang software object.
 
 * INSTRUMENTER current instrumentation state
@@ -468,7 +499,8 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 * FILTER function to select a subset of ASTs for instrumentation
          function should take a software object and an AST parameters,
          returning nil if the AST should be filtered from instrumentation
-* POSTPROCESS-FUNCTIONS functions to execute after instrumentation"
+* NUM-THREADS number of threads to use for instrumentation"
+  (declare (ignorable num-threads))
   (let* ((obj (software instrumenter))
          (entry (get-entry obj))
          ;; Promote every counter key in POINTS to the enclosing full
@@ -626,8 +658,15 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
     obj))
 
-(defmethod uninstrument ((clang clang))
+(defmethod process-task ((task instrument-clang-object-task) runner)
+  "Perform instrumentation on the TASK's software object using the
+TASK's instrumentation arguments."
+  (declare (ignorable runner))
+  (apply #'instrument (task-object task) (task-instrument-args task)))
+
+(defmethod uninstrument ((clang clang) &key (num-threads 1))
   "Remove instrumentation from CLANG"
+  (declare (ignorable num-threads))
   (labels ((uninstrument-genome-prologue (clang)
              (with-slots (ast-root) clang
                (setf ast-root
@@ -709,6 +748,11 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
   ;; Return the software object
   clang)
 
+(defmethod process-task ((task uninstrument-clang-object-task) runner)
+  "Remove instrumentation from the TASK's software object."
+  (declare (ignorable runner))
+  (uninstrument (task-object task)))
+
 (defmethod instrumentation-files ((clang-project clang-project))
   "Return files in CLANG-PROJECT in the order which they would be instrumented
 * CLANG-PROJECT an instrumented project
@@ -726,64 +770,86 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 "
   (some #'instrumented-p (mapcar #'cdr (evolve-files clang-project))))
 
-(defmethod instrument ((clang-project clang-project) &rest args)
+(defmethod task-job ((task instrument-clang-project-task) runner)
+  "Return an instrumentation job for the next software object in
+TASK's project to be modified."
+  (declare (ignorable runner))
+  (let ((file-id -1)
+        (objs (mapcar #'cdr (instrumentation-files (task-object task)))))
+    (lambda ()
+      (when-let ((obj (pop objs)))
+        (incf file-id)
+        (make-instance 'instrument-clang-object-task
+          :object (make-instance 'clang-instrumenter
+                    :software obj
+                    :names (task-names task)
+                    :types (task-types task)
+                    :type-descriptions (task-type-descriptions task)
+                    :ast-ids (iter (with ht = (make-hash-table :test #'eq))
+                                   (for ast in (asts obj))
+                                   (for ast-i upfrom 0)
+                                   (setf (gethash ast ht)
+                                         (logior (ash 1 63)   ; flag bit
+                                                 (ash file-id ; file ID
+                                                      +trace-id-statement-bits+)
+                                                 ast-i))      ; AST ID
+                                   (finally (return ht))))
+          :instrument-args (task-instrument-args task))))))
+
+(defmethod instrument ((clang-project clang-project) &rest args
+    &aux (names (make-thread-safe-hash-table :test #'equalp))
+         (types (make-thread-safe-hash-table :test #'equalp))
+         (type-descriptions (make-thread-safe-hash-table :test #'equalp)))
   "Instrument CLANG-PROJECT to print AST index before each full statement.
 
 * CLANG-PROJECT the project to instrument
 * ARGS passed through to the instrument method on underlying software objects.
 "
-  (let ((instrumenter (make-instance 'clang-instrumenter))
-        (files (if (current-file clang-project)
-                   (list (current-file clang-project))
-                   (mapcar #'cdr (instrumentation-files clang-project)))))
-    (labels
-        ((check-ids (file-id ast-id)
-           (assert (< file-id (ash 1 +trace-id-file-bits+)))
-           (assert (< ast-id (ash 1 +trace-id-statement-bits+))))
-         (instrument-file (obj index)
-           ;; Send object through clang-mutate to get accurate counters
-           (setf (software instrumenter) obj)
+  ;; Instrument the project
+  (run-task-and-block (make-instance 'instrument-clang-project-task
+                        :object clang-project
+                        :names names
+                        :types types
+                        :type-descriptions type-descriptions
+                        :instrument-args args)
+                      (or (plist-get :num-threads args) 1))
 
-           ;; Set AST ids for new file
-           (setf (ast-ids instrumenter) (make-hash-table :test #'eq))
-           (iter (for ast in (asts obj))
-                 (for ast-i upfrom 0)
-                 (check-ids index ast-i)
-                 (setf (gethash ast (ast-ids instrumenter))
-                       (logior (ash 1 63)                            ; flag bit
-                               (ash index +trace-id-statement-bits+) ; file ID
-                               ast-i)))                              ; AST ID
-           (apply #'instrument instrumenter args)))
-
-      ;; Fully instrument evolve-files
-      ;; Defer any files with main() to the end, because they need
-      ;; code for trace headers which depends on the instrumentation
-      ;; of other files.
-      (iter (for obj in files)
-            (for i upfrom 0)
-            (instrument-file obj i))
-
-      ;; Insert log setup code in other-files
-      (iter (for obj in (mapcar #'cdr (other-files clang-project)))
-            (setf (software instrumenter) obj)
-            (when-let ((entry (get-entry obj)))
-              (initialize-tracing instrumenter
-                                  (plist-get :trace-file args)
-                                  (plist-get :trace-env args)
-                                  entry)
-              (prepend-to-genome obj +write-trace-impl+)
-              (prepend-to-genome obj +write-trace-include+)))))
+  ;; Insert log setup code in other-files
+  (iter (for obj in (mapcar #'cdr (other-files clang-project)))
+        (when-let ((entry (get-entry obj)))
+          (initialize-tracing (make-instance 'clang-instrumenter
+                                :software obj
+                                :names names
+                                :types types
+                                :type-descriptions type-descriptions)
+                              (plist-get :trace-file args)
+                              (plist-get :trace-env args)
+                              entry)
+          (prepend-to-genome obj +write-trace-impl+)
+          (prepend-to-genome obj +write-trace-include+)))
 
   clang-project)
 
-(defmethod uninstrument ((clang-project clang-project))
+(defmethod task-job ((task uninstrument-clang-project-task) runner)
+  "Return an uninstrument job for the next software object in
+TASK's project to be modified."
+  (declare (ignorable runner))
+  (let ((objs (append (->> (task-object task)
+                           (instrumentation-files)
+                           (mapcar #'cdr))
+                      (->> (task-object task)
+                           (other-files)
+                           (mapcar #'cdr)
+                           (remove-if-not #'get-entry)))))
+    (lambda ()
+      (when-let ((obj (pop objs)))
+        (make-instance 'uninstrument-clang-object-task :object obj)))))
+
+(defmethod uninstrument ((clang-project clang-project) &key (num-threads 1))
   "Remove instrumentation from CLANG-PROJECT"
-  (iter (for (src-file . obj) in
-             (append (instrumentation-files clang-project)
-                     (remove-if-not [{get-entry} #'cdr]
-                                    (other-files clang-project))))
-        (declare (ignorable src-file))
-        (uninstrument obj))
+  (run-task-and-block (make-instance 'uninstrument-clang-project-task
+                        :object clang-project)
+                      num-threads)
   clang-project)
 
 (defgeneric instrument-c-exprs (instrumenter exprs-and-types print-strings)
@@ -900,12 +966,10 @@ Returns a list of strings containing C source code."))
                      into var-args))))))
           (finally
            (return
-             (->> (append (some-> (make-instrumentation-ast "write_trace_variables"
-                                                            var-args)
-                                  (list))
-                          (some-> (make-instrumentation-ast "write_trace_blobs"
-                                                            blob-args)
-                                  (list)))
+             (->> (append (list (make-instrumentation-ast "write_trace_variables"
+                                                          var-args))
+                          (list (make-instrumentation-ast "write_trace_blobs"
+                                                          blob-args)))
                   (remove-if #'null)))))))
 
 (defgeneric var-instrument (key instrumenter ast &key print-strings)

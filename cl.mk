@@ -148,6 +148,7 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
+	--eval '(setq sel/stefil+:*long-tests* t)' \
 	--eval '(sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME)))' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
@@ -159,7 +160,7 @@ real-check: check long-bin-check
 ## Interactive testing
 SWANK_PORT ?= 4005
 swank: $(USER_QUICK_LISP)/setup.lisp
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
+	$(LISP_HOME) $(LISP)					\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :swank)'				\

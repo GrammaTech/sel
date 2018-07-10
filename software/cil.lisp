@@ -39,7 +39,7 @@ See http://kerneis.github.io/cil/."))
 
 (defmethod instrument ((cil cil) &key points functions functions-after
                                       trace-file trace-env
-                                      instrument-exit filter)
+                                      instrument-exit filter num-threads)
   "Instrument CIL for traced execution.
 Optionally specify the name of the file in which to save trace data."
   (unless (null trace-env)
@@ -56,5 +56,8 @@ Optionally specify the name of the file in which to save trace data."
   (unless (null filter)
     (warn
      "Custom filter not supported for CIL software objects."))
+  (unless (null num-threads)
+    (warn
+     "Multi-threaded instrumented not supported for CIL software objects."))
   (apply-mutation cil (list :trace trace-file))
   cil)

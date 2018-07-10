@@ -1,9 +1,18 @@
 PROJECT=software-evolution-library
+DESTDIR?=/usr
+DATAROOTDIR?=/share
+INFODIR?=$(DATAROOTDIR)/info
 
 all: info html clang-instrument.1.gz
 
-info: $(PROJECT).texi
+info: $(PROJECT).info
+
+$(PROJECT).info: $(PROJECT).texi
 	makeinfo $<
+
+install: $(PROJECT).info
+	install -m 644 $< "$(DESTDIR)$(INFODIR)"
+	install-info --info-dir="$(DESTDIR)$(INFODIR)" "$(DESTDIR)$(INFODIR)/$<"
 
 html: $(PROJECT).texi
 	makeinfo --html $<

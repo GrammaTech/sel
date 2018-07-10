@@ -217,6 +217,16 @@
       (task-runner-create-worker runner))
     runner))
 
+(defun run-task-and-block (task &optional (num-workers 1))
+  "Create a TASK-RUNNER, using the specified task as the first job,
+blocking until completion"
+  (let ((*task-runner* (make-task-runner)))
+    (task-runner-add-job *task-runner* (task-job task *task-runner*))
+    (dotimes (i num-workers)
+      (start-worker))
+    (mapcar #'join-thread (task-runner-workers *task-runner*))
+    *task-runner*))
+
 (defun task-runner-remaining-jobs (runner)
   "Returns the number of jobs remaining."
   (length (task-runner-jobs runner)))
