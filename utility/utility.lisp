@@ -700,9 +700,6 @@ For usage see the definition of `clang-instrument'.  E.g.,
 
 
 ;;;; generic forensic functions over arbitrary objects
-#+sbcl
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require 'sb-introspect))
 (defun arglist (fname)
   "Return the argument list of FNAME."
   ;; Taken from swank/backend:arglist.
@@ -1499,10 +1496,6 @@ that function may be declared.")
 ;; https://techfak.uni-bielefeld.de/~jmoringe/call-graph.html.
 (defvar *profile-dot-min-ratio* 1/200
   "Minimum percentage ratio to include a node in the profile dot graph.")
-
-#+sbcl
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require :sb-sprof))
 
 #+sbcl
 (defmethod cl-dot:graph-object-node

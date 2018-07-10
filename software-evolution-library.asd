@@ -155,6 +155,8 @@ techniques."
                cffi ; Work around a bug in which :babel isn't found for :osicat.
                osicat
                #+sbcl sb-posix
+               #+sbcl sb-introspect
+               #+sbcl sb-sprof
                metabang-bind
                named-readtables
                curry-compose-reader-macros
