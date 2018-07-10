@@ -1,4 +1,6 @@
 (defsystem "software-evolution-library"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "programmatic modification and evaluation of extant software"
   :long-description "A common interface abstracts over multiple
 types of software objects including abstract syntax trees parsed from
@@ -7,7 +9,6 @@ Mutation and evaluation methods are implemented on top of this
 interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
-  :licence "GPL V3"
   ;; :homepage "http://GrammaTech.github.io/sel"
   :depends-on (alexandria
                closer-mop
@@ -97,6 +98,8 @@ techniques."
              (:file "clang-tokens")))))
 
 (defsystem "software-evolution-library/clang-instrument"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Compiled clang-instrument binary from SEL."
   :depends-on (software-evolution-library)
   :build-operation "asdf:program-op"
@@ -106,9 +109,10 @@ techniques."
 
 ;;;; Tests.
 (defsystem "software-evolution-library/test"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
                arrow-macros
@@ -144,9 +148,10 @@ techniques."
 
 ;;;; Subsystems.
 (defsystem "software-evolution-library/utility"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Utility functions for the SOFTWARE-EVOLUTION-LIBRARY package."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
                uiop
@@ -177,6 +182,8 @@ techniques."
              (:file "task" :depends-on ("package"))))))
 
 (defsystem "software-evolution-library/view"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Viewing functions for the SOFTWARE-EVOLUTION-LIBRARY."
   :version "0.0.0"
   :depends-on (alexandria
@@ -202,6 +209,8 @@ techniques."
              (:file "view" :depends-on ("package"))))))
 
 (defsystem "software-evolution-library/serapi-io"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "serialization interface for Coq"
   :version "0.0.0"
   :depends-on (alexandria
@@ -223,6 +232,8 @@ techniques."
   :components ((:file "src/serapi-io")))
 
 (defsystem "software-evolution-library/mongo"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Mongo database functions for the SOFTWARE-EVOLUTION-LIBRARY."
   :version "0.0.0"
   :depends-on (alexandria
@@ -245,6 +256,8 @@ techniques."
   :in-order-to ((test-op (test-op "software-evolution-library/mongo-test"))))
 
 (defsystem "software-evolution-library/mongo-test"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Test the SOFTWARE-EVOLUTION-LIBRARY/MONGO package."
   :version "0.0.0"
   :depends-on (alexandria
@@ -274,9 +287,10 @@ techniques."
                                  '#:test)))
 
 (defsystem "software-evolution-library/ast-diff"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Compute differences between ASTs and other tree structures."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
                arrow-macros
@@ -289,16 +303,18 @@ techniques."
   :components ((:file "ast-diff/ast-diff")))
 
 (defsystem "software-evolution-library/ast-diff-html"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Compute differences between ASTs and other tree structures."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (software-evolution-library/ast-diff cl-who)
   :components ((:file "ast-diff/ast-diff-html")))
 
 (defsystem "software-evolution-library/clang-diff"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Calculate difference between two C/C++ programs."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
                arrow-macros
@@ -318,9 +334,10 @@ techniques."
   :components ((:file "ast-diff/clang-diff")))
 
 (defsystem "software-evolution-library/lisp-diff"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Calculate difference between two C/C++ programs."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (alexandria
                closer-mop
                arrow-macros
@@ -339,9 +356,10 @@ techniques."
   :components ((:file "ast-diff/lisp-diff")))
 
 (defsystem "software-evolution-library/stefil-plus"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
   :description "Adds some enhancements to the STEFIL test framework."
   :version "0.0.0"
-  :licence "GPL V3"
   :depends-on (iterate
 	       uiop
 	       stefil
