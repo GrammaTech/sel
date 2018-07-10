@@ -888,6 +888,22 @@ statement.
 <dt><a name="index-clang_002dinstrumenter"></a>Class: <strong>clang-instrumenter</strong></dt>
 <dd><p>Class precedence list: <code>clang-instrumenter, instrumenter, standard-object, t</code>
 </p>
+<p>Slots:
+</p><ul>
+<li> <code>names</code> &mdash; initarg: <code>:names<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::names</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::names)</span><!-- /@w --></code>
+
+<p>Mapping of names to indices.
+</p></li><li> <code>types</code> &mdash; initarg: <code>:types<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:types</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:types)</span><!-- /@w --></code>
+
+<p>Mapping of trace type strings to indices.
+</p></li><li> <code>type-descriptions</code> &mdash; initarg: <code><span class="nolinebreak">:type-descriptions</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::type-descriptions</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::type-descriptions)</span><!-- /@w --></code>
+
+<p>Mapping of type descriptions to indices.
+</p></li><li> <code>ast-ids</code> &mdash; initarg: <code><span class="nolinebreak">:ast-ids</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:ast-ids</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:ast-ids)</span><!-- /@w --></code>
+
+<p>Mapping of ASTs to trace ids.
+</p></li></ul>
+
 <p>Handles instrumentation for clang software objects.
 </p></dd></dl>
 <a name="Class-clang_002dmove"></a><dl>
@@ -3865,7 +3881,7 @@ Keyword arguments are as follows:
 <dd><p>Incorporate <code>software</code> into <code>population</code>, keeping <code>population</code> size constant.
 </p></dd></dl>
 <a name="Generic_002dFunction-instrument"></a><dl>
-<dt><a name="index-instrument"></a>Generic Function: <strong>instrument</strong> <em>obj &amp;key points functions functions-after trace-file trace-env instrument-exit filter</em></dt>
+<dt><a name="index-instrument"></a>Generic Function: <strong>instrument</strong> <em>obj &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads</em></dt>
 <dd><p>Instrument <code>obj</code> to print <code>ast</code> index before each full statement.
 </p>
 <p>The indices printed here are not clang-mutate counters, but rather the
@@ -3879,9 +3895,10 @@ position of the ast in (asts obj).
   <code>trace-env</code> <code>------------</code> trace output to file specified by <code>env</code> variable
   <code>instrument-exit</code> <code>------</code> print counter of function body before exit
   <code>filter</code> <code>---------------</code> function to select a subset of ASTs for instrumentation
+  <code>num-threads</code> <code>----------</code> number of threads to use for instrumentation
 </p></dd></dl>
-<a name="Method-instrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026rest-args_0029"></a><dl>
-<dt><a name="index-instrument-1"></a>Method: <strong>instrument</strong> <em>(clang-project clang-project) &amp;rest args</em></dt>
+<a name="Method-instrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026rest-args-_0026aux-_0028names-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029--_0028types-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029-_0028type_002ddescriptions-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029_0029"></a><dl>
+<dt><a name="index-instrument-1"></a>Method: <strong>instrument</strong> <em>(clang-project clang-project) &amp;rest args &amp;aux (names (make-thread-safe-hash-table test (function equalp))) (types (make-thread-safe-hash-table test (function equalp))) (type-descriptions (make-thread-safe-hash-table test (function equalp)))</em></dt>
 <dd><p>Instrument <code>clang-project</code> to print <code>ast</code> index before each full statement.
 </p>
 <ul>
@@ -3889,8 +3906,8 @@ position of the ast in (asts obj).
 </li><li> <code>args</code> passed through to the instrument method on underlying software objects.
 </li></ul>
 </dd></dl>
-<a name="Method-instrument-_0028_0028instrumenter-clang_002dinstrumenter_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-_0028filter-_0028constantly-t_0029_0029_0029"></a><dl>
-<dt><a name="index-instrument-2"></a>Method: <strong>instrument</strong> <em>(instrumenter clang-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (constantly t))</em></dt>
+<a name="Method-instrument-_0028_0028instrumenter-clang_002dinstrumenter_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-_0028filter-_0028constantly-t_0029_0029--_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-instrument-2"></a>Method: <strong>instrument</strong> <em>(instrumenter clang-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (constantly t)) (num-threads 1)</em></dt>
 <dd><p>Use <code>instrumenter</code> to instrument a clang software object.
 </p>
 <ul>
@@ -3904,7 +3921,7 @@ position of the ast in (asts obj).
 </li><li> <code>filter</code> function to select a subset of ASTs for instrumentation
          function should take a software object and an <code>ast</code> parameters,
          returning nil if the <code>ast</code> should be filtered from instrumentation
-</li><li> <code>postprocess-functions</code> functions to execute after instrumentation
+</li><li> <code>num-threads</code> number of threads to use for instrumentation
 </li></ul>
 </dd></dl>
 <a name="Method-instrument-_0028_0028obj-clang_0029-_0026rest-args_0029"></a><dl>
@@ -3917,8 +3934,8 @@ Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its ins
 </li><li> <code>args</code> additional arguments are passed through to the instrumenter method.
 </li></ul>
 </dd></dl>
-<a name="Method-instrument-_0028_0028cil-cil_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-filter_0029"></a><dl>
-<dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(cil cil) &amp;key points functions functions-after trace-file trace-env instrument-exit filter</em></dt>
+<a name="Method-instrument-_0028_0028cil-cil_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-filter-num_002dthreads_0029"></a><dl>
+<dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(cil cil) &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads</em></dt>
 <dd><p>Instrument <code>cil</code> for traced execution.
 Optionally specify the name of the file in which to save trace data.
 </p></dd></dl>
@@ -5516,15 +5533,22 @@ the result
 </li></ul>
 </dd></dl>
 <a name="Generic_002dFunction-uninstrument"></a><dl>
-<dt><a name="index-uninstrument"></a>Generic Function: <strong>uninstrument</strong> <em>obj</em></dt>
+<dt><a name="index-uninstrument"></a>Generic Function: <strong>uninstrument</strong> <em>obj &amp;key num-threads</em></dt>
 <dd><p>Remove instrumentation from <code>obj</code>
+</p>
+<p>Keyword arguments are as follows:
+  <code>num-threads</code> <code>----------</code> number of threads to use for uninstrumenting
 </p></dd></dl>
-<a name="Method-uninstrument-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
-<dt><a name="index-uninstrument-1"></a>Method: <strong>uninstrument</strong> <em>(clang-project clang-project)</em></dt>
+<a name="Method-uninstrument-_0028_0028java_002dproject-java_002dproject_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-uninstrument-1"></a>Method: <strong>uninstrument</strong> <em>(java-project java-project) &amp;key (num-threads 1)</em></dt>
+<dd><p>Remove instrumentation from <code>java-project</code>.
+</p></dd></dl>
+<a name="Method-uninstrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-uninstrument-2"></a>Method: <strong>uninstrument</strong> <em>(clang-project clang-project) &amp;key (num-threads 1)</em></dt>
 <dd><p>Remove instrumentation from <code>clang-project</code>
 </p></dd></dl>
-<a name="Method-uninstrument-_0028_0028clang-clang_0029_0029"></a><dl>
-<dt><a name="index-uninstrument-2"></a>Method: <strong>uninstrument</strong> <em>(clang clang)</em></dt>
+<a name="Method-uninstrument-_0028_0028clang-clang_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-uninstrument-3"></a>Method: <strong>uninstrument</strong> <em>(clang clang) &amp;key (num-threads 1)</em></dt>
 <dd><p>Remove instrumentation from <code>clang</code>
 </p></dd></dl>
 <a name="Function-untag_002dloc_002dinfo"></a><dl>
