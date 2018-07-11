@@ -94,9 +94,11 @@
 (defvar *time-threshold* 1.0 "Time threshold for tests (in seconds).")
 
 (defmacro defroot (name)
-  `(progn (defsuite* ,name)
-          (eval-when (:compile-toplevel :load-toplevel :execute)
-            (setf sel/stefil+::*root-suite* ',name))))
+  (let ((local-name (intern (symbol-name name) *package*)))
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (stefil::defsuite ,local-name)
+       (setf sel/stefil+::*root-suite* ',local-name)
+       (setf (stefil::parent-of (stefil::find-test ',local-name)) nil))))
 
 (defmacro defsuite (name documentation &optional (test-pre-check t))
   "Define NAME with DOCUMENTATION.
@@ -107,9 +109,10 @@ Otherwise - test-pre-check will be invoked at runtime
 return non-nil when the test suite should be run and nil otherwise."
   (let ((long-name (intern (format nil "~A~A" name *long-suite-suffix*))))
     (with-gensyms (test)
-      (assert *root-suite* (*root-suite*)
-              "Default suite *root-suite* must be set to use `DEFSUITE'.")
       `(progn
+         (assert *root-suite* (*root-suite*)
+              "Default suite *root-suite* must be set to use `DEFSUITE'.")
+
 	 (when (or (boundp ',name) (fboundp ',name))
 	   (warn "Defining ~a with `DEFSUITE' overwrites existing definition."
 		 ',name))
