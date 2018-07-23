@@ -1402,7 +1402,9 @@ and Common Lisp in particular.
 @item
 The web site @url{http://articulate-lisp.com/,Articulate Common Lisp},
 includes a comprehensive startup guide and introduction to the lisp
-language including sections on choosing an
+language.
+
+This includes sections on choosing an
 @url{http://articulate-lisp.com/implementations/summary.html,
 implementation}, using @url{http://articulate-lisp.com/quicklisp.html,
 Quicklisp}, and defining new libraries with
