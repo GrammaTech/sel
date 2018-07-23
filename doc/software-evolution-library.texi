@@ -1399,6 +1399,15 @@ The @url{http://cliki.net/Getting+Started,Getting Started} guide provided on @ur
 This is a fairly complete guide to starting out with Lisp in general
 and Common Lisp in particular.
 
+@item
+The web site @url{http://articulate-lisp.com/,Articulate Common Lisp},
+includes a comprehensive startup guide and introduction to the lisp
+language including sections on choosing an
+@url{http://articulate-lisp.com/implementations/summary.html,
+implementation}, using @url{http://articulate-lisp.com/quicklisp.html,
+Quicklisp}, and defining new libraries with
+@url{http://articulate-lisp.com/project/new-project.html, ASDF}.
+
 @item @url{http://www.gigamonkeys.com/book/,Practical Common Lisp}.
 
 Especially, @url{
