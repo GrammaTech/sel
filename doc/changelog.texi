@@ -1,0 +1,48 @@
+@c https://keepachangelog.com/en/0.3.0/
+@c
+@c Any change in the version number should merit an entry in this
+@c changelog.  Especially minor version or greater or anything that
+@c fixes a bug or a security issue.  Any breaking changes ABSOLUTELY
+@c must be mentioned in this changelog.
+@c
+@c Format for each entry is as follows.
+@c 
+@c     @subsection YYYY-MM-DD v.X.X.X -- Textual Description
+@c     @cindex changelog-YYYY-MM-DD
+@c     @cindex v.X.X.X
+@c
+@c     List of breaking or important changes.  Every breaking change
+@c     should be accompanied by an example of how to change existing
+@c     code in response to the change.
+@c
+@c Changelog entries with multiple changes should grouped them by:
+@c - Added
+@c - Changed
+@c - Deprecated
+@c - Removed
+@c - Fixed
+@c - Security
+@c
+
+SEL will use @url{https://semver.org/,semantic versioning} to
+determine increments to version numbers.  This ChangeLog will be
+roughly organized as described at
+@url{https://keepachangelog.com/en/0.3.0/,Keep a ChangeLog}.  Most
+importantly every version will include at least one ChangeLog entry,
+and the entries will be sorted in reverse chronological order with the
+most recent at the top.  Every entry will be named and indexed by date
+and version number.  Working notes may be accumulated in a special
+``Unreleased'' section at the top of the ChangeLog.
+
+
+@subsection 2018-07-25 v0.0.0 -- Unreleased
+@cindex changelog-unreleased
+
+
+@subsection 2018-07-25 v0.0.0 -- Initial Release to Quicklisp
+@cindex changelog-2018-07-25
+@cindex v0.0.0
+
+Initial changelog entry for version v.0.0.0 of the
+SOFTWARE-EVOLUTION-LIBRARY (SEL) Package.  This is the version
+initially appearing in the 2018-07 Quicklisp release.

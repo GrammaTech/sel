@@ -107,6 +107,7 @@ SEL API Reference
 Appendices
 * General Lisp Advice::         Information for those new to Common Lisp
 * SEL Coding Standards::        Guidance for contribution to SEL
+* ChangeLog::                   Chronological log of notable changes by version
 * Licensing::                   Licensing for SEL and for this documentation.
 * Index::                       Complete index.
 
@@ -1784,7 +1785,7 @@ better indentation behavior, in which case it might be acceptable (but
 I can't think of one now).
 
 
-@node Judicious use of arrow macros, Map instead of iterate, Map instead of iterate, SEL Coding Standards
+@node Judicious use of arrow macros, ChangeLog, Map instead of iterate, SEL Coding Standards
 @appendixsec Judicious use of ``arrow'' (@code{->}, @code{->>}, etc...) macros
 
 We sometimes over-use the @code{->} and @code{->>} macros.  These
@@ -1811,7 +1812,11 @@ is nicer than this.
 @end lisp
 
 
-@node Licensing, Copying, SEL Utility API, Top
+@node ChangeLog, Licensing, SEL Coding Standards, Top
+@appendixsec ChangeLog
+@include changelog.texi
+
+@node Licensing, Copying, ChangeLog, Top
 @appendix Licensing
 @menu
 * Copying::                     The GNU General Public License gives
