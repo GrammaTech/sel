@@ -97,38 +97,57 @@ set."
   ;; as weakly required.  The first value returned will be the name of
   ;; the binary on success, but may be the name of the object file if
   ;; there is a failure prior to linking.
-  (with-temp-file-of (src "s") (genome-string asm)
-    (with-temp-file (obj)
-      ;; Assemble.
-      (multiple-value-bind (stdout stderr errno)
-          (shell "~a -o ~a ~a ~{~a~^ ~}"
-                 (assembler asm) obj src (asm-flags asm))
-        (if (not (zerop errno))
-            (values obj errno stderr stdout src)
-            ;; Mark __gmon_start__ et al. as weakly required.
-            (if (elf-weaken-gmon-start obj (weak-symbols asm))
-                ;; Errors in `elf-weaken-gmon-start'.
-                (values obj (max errno 1) stderr stdout src)
-                ;; Link.
-                (multiple-value-bind (stdout stderr errno)
-                    (shell "~a -o ~a ~a ~{~a~^ ~}"
-                           (or (linker asm) *asm-linker*)
-                           bin obj
-                           (append (flags asm)
-                                   (when (linker-script asm)
-                                     (list "-T" (linker-script asm)))
-                                   (linked-files asm)
-                                   (list "--dynamic-linker"
-                                         *dynamic-linker-path*)))
-                  (cond
-                    ((not (zerop errno)) ; Errors linking
-                     (values bin (max errno 1) stderr stdout src))
-                    ((not (redirect-file asm)) ; Link success, no redirect
-                     (values bin errno stderr stdout src))
-                    (t (multiple-value-bind (stdout stderr errno)
-                           ;; Link successful, handle redirect
-                           (elf-copy-redirect bin (redirect-file asm))
-                         (values bin errno stderr stdout src)))))))))))
+  (flet ((build-linker-flags (file-ls)
+           (iter (for file in file-ls)
+                 (if (probe-file file)
+                     ;; use file path if available
+                     (collecting file)
+                     ;; otherwise use -l
+                     (progn
+                       (collecting "-l")
+                       (if (starts-with-subseq
+                            "lib"
+                            (pathname-name file))
+                           ;; drop suffix and lib: libc -> -lc
+                           (collecting
+                            (subseq (pathname-file file) 3))
+                           ;; non-standard name, use :name
+                           (collecting (format nil ":~a"
+                                               (file-namestring file)))))))))
+    (with-temp-file-of (src "s") (genome-string asm)
+      (with-temp-file (obj)
+        ;; Assemble.
+        (multiple-value-bind (stdout stderr errno)
+            (shell "~a -o ~a ~a ~{~a~^ ~}"
+                   (assembler asm) obj src (asm-flags asm))
+          (if (not (zerop errno))
+              (values obj errno stderr stdout src)
+              ;; Mark __gmon_start__ et al. as weakly required.
+              (if (elf-weaken-gmon-start obj (weak-symbols asm))
+                  ;; Errors in `elf-weaken-gmon-start'.
+                  (values obj (max errno 1) stderr stdout src)
+                  ;; Link.
+                  (multiple-value-bind (stdout stderr errno)
+                      (shell
+                       "~a -o ~a ~a ~{~a~^ ~}"
+                       (or (linker asm) *asm-linker*)
+                       bin obj
+                       (append (flags asm)
+                               (when (linker-script asm)
+                                 (list "-T" (linker-script asm)))
+                               (when (linked-files asm)
+                                 (build-linker-flags (linked-files asm)))
+                               (list "--dynamic-linker"
+                                     *dynamic-linker-path*)))
+                    (cond
+                      ((not (zerop errno)) ; Errors linking
+                       (values bin (max errno 1) stderr stdout src))
+                      ((not (redirect-file asm)) ; Link success, no redirect
+                       (values bin errno stderr stdout src))
+                      (t (multiple-value-bind (stdout stderr errno)
+                             ;; Link successful, handle redirect
+                             (elf-copy-redirect bin (redirect-file asm))
+                           (values bin errno stderr stdout src))))))))))))
 
 
 ;; Parsing csurf output (for asm/linker flags, weak symbols, redirects)
