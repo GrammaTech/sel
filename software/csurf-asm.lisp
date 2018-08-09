@@ -112,7 +112,7 @@ set."
                            (collecting
                             (subseq (pathname-file file) 3))
                            ;; non-standard name, use :name
-                           (collecting (format nil ":~a"
+                           (collecting (format nil " :~a"
                                                (file-namestring file)))))))))
     (with-temp-file-of (src "s") (genome-string asm)
       (with-temp-file (obj)
@@ -194,7 +194,6 @@ Currently only populates the `weak-symbols' field from the log."
                  ;; Current arg is a path: it starts with /, is a file, and
                  ;; isn't a flag param (i.e., prev-str isn't a single dash flag)
                  (when (and (starts-with-subseq "/" str)
-                            (file-exists-p str)
                             (not (equal "--dynamic-linker" prev-str))
                             (or (starts-with-subseq "--" prev-str)
                                 (not (starts-with-subseq "-" prev-str))))
