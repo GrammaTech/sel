@@ -110,7 +110,7 @@ set."
                             (pathname-name file))
                            ;; drop suffix and lib: libc -> -lc
                            (collecting
-                            (subseq (pathname-file file) 3))
+                            (subseq (pathname-name file) 3))
                            ;; non-standard name, use :name
                            (collecting (format nil " :~a"
                                                (file-namestring file)))))))))
