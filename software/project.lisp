@@ -115,7 +115,7 @@ copy of the original current file.
        do (string-to-file (genome c) (full-path path)))))
 
 (defmethod size ((obj project))
-  "DOCFIXME"
+  "Either return the size of `current-file', if it's non-nil, or of all files."
   (if (current-file obj)
       (size (current-file obj))
       (reduce #'+ (mapcar [#'size #'cdr] (evolve-files obj)))))
