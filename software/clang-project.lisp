@@ -68,37 +68,39 @@
 
 (defun compilation-db-flags (clang-project entry)
   "Return the flags for ENTRY in a compilation database."
-  (let ((flags (-<>> (or (aget :command entry) "")
-                 (replace-all <> "-I" "-I ")
-                 (split-sequence #\Space <>
-                                 :remove-empty-subseqs t)
-                 (cdr))))
-    (->> (iter (for f in flags)
-               (for p previous f)
-               (collect
-                   (if (string= p "-I")
-                       (if (starts-with-subseq "/" f)
-                           (->> (ensure-directory-pathname f)
-                             (project-path clang-project))
-                           (->> (merge-pathnames-as-directory
-                                 (make-pathname :directory
-                                                (aget :directory
-                                                      entry))
-                                 (make-pathname :directory
-                                                (list :relative f)))
-                             (ensure-directory-pathname)
-                             (project-path clang-project)))
-                       f)))
-      (remove-if {string= (aget :file entry)})
-      (append (list "-I"
-                    (namestring (project-dir clang-project))))
-      (append (list "-I"
-                    (->> (merge-pathnames-as-directory
-                          (ensure-directory-pathname
-                           (aget :directory entry))
-                          (aget :file entry))
-                      (ensure-directory-pathname)
-                      (project-path clang-project)))))))
+  (->> (iter (for f in (->> (or (aget :arguments entry)
+                                (cdr (split-sequence
+                                         #\Space (or (aget :command entry) "")
+                                         :remove-empty-subseqs t)))
+                         (mappend (lambda (arg) ; Split leading "-I".
+                                    (split-sequence #\Space
+                                      (replace-all arg "-I" "-I ")
+                                      :remove-empty-subseqs t)))))
+             (for p previous f)
+             (collect
+                 (if (string= p "-I")
+                     (if (starts-with-subseq "/" f)
+                         (->> (ensure-directory-pathname f)
+                           (project-path clang-project))
+                         (->> (merge-pathnames-as-directory
+                               (make-pathname :directory
+                                              (aget :directory
+                                                    entry))
+                               (make-pathname :directory
+                                              (list :relative f)))
+                           (ensure-directory-pathname)
+                           (project-path clang-project)))
+                     f)))
+    (remove-if {string= (aget :file entry)})
+    (append (list "-I"
+                  (namestring (project-dir clang-project))))
+    (append (list "-I"
+                  (->> (merge-pathnames-as-directory
+                        (ensure-directory-pathname
+                         (aget :directory entry))
+                        (aget :file entry))
+                    (ensure-directory-pathname)
+                    (project-path clang-project))))))
 
 (defmethod from-file ((clang-project clang-project) project-dir)
   "Populate CLANG-PROJECT from the source code in PROJECT-DIR.
