@@ -26,7 +26,7 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
   (:documentation "DOCFIXME"))
 
 (defun copy-files (files)
-  "DOCFIXME"
+  "Copier for `evolve-files' and `other-files' on `project' software objects."
   (loop for (p . c) in files
      collecting (cons p (copy c))))
 
