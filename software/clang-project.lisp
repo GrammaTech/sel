@@ -6,15 +6,17 @@
   ((project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil
-                :documentation "Source directory containing the project")
+                :documentation "Source directory containing the project.")
    (compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil
-                         :documentation "Compilation database for the project")
+                         :documentation "Compilation database for the project.
+See https://clang.llvm.org/docs/JSONCompilationDatabase.html for
+information on the format of compilation databases.")
    (clang-class :initarg :clang-class
                 :accessor clang-class
                 :initform 'clang
-                :documentation "Clang subclass to utilize in the project"))
+                :documentation "Clang subclass to utilize in the project."))
   (:documentation "Project specialization for clang software objects."))
 
 (defgeneric project-path (project path)
