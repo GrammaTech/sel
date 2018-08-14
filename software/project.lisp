@@ -106,9 +106,13 @@ copy of the original current file.
   (:documentation "Overwrite evolved files with current genome."))
 
 (defmethod write-genome-to-files ((obj project))
-  "DOCFIXME"
-  (loop for (path . c) in (all-files obj)
-     do (string-to-file (genome c) (full-path path))))
+  (handler-bind ((file-access
+                  (lambda (c)
+                    (warn "Changing permission to ~a to ~a"
+                          (file-access-operation c) (file-access-path c))
+                    (invoke-restart 'set-file-writable))))
+    (loop for (path . c) in (all-files obj)
+       do (string-to-file (genome c) (full-path path)))))
 
 (defmethod size ((obj project))
   "DOCFIXME"
