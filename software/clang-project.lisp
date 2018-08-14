@@ -75,7 +75,10 @@
                          (mappend (lambda (arg) ; Split leading "-I".
                                     (split-sequence #\Space
                                       (replace-all arg "-I" "-I ")
-                                      :remove-empty-subseqs t)))))
+                                      :remove-empty-subseqs t)))
+                         (mapcar (lambda (arg) ; Wrap quotes for the shell.
+                                   (regex-replace
+                                    "\"([^\"]*)\"" arg "'\"\\1\"'")))))
              (for p previous f)
              (collect
                  (if (string= p "-I")
