@@ -104,8 +104,8 @@
            (get-flags (entry)
              (let ((flags (-<>> (or (aget :command entry) "")
                                 (replace-all <> "-I" "-I ")
-                                (split-sequence #\Space)
-                                (remove-if {string= ""})
+                                (split-sequence #\Space <>
+                                                :remove-empty-subseqs t)
                                 (cdr))))
                (->> (iter (for f in flags)
                           (for p previous f)
