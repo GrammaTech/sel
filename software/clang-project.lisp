@@ -70,17 +70,20 @@ information on the format of compilation databases.")
 
 (defun compilation-db-flags (clang-project entry)
   "Return the flags for ENTRY in a compilation database."
-  (->> (iter (for f in (->> (or (aget :arguments entry)
+  ;; Get flags from :arguments or :command field.  These fields handle quote
+  ;; escaping differently; see
+  ;; https://clang.llvm.org/docs/JSONCompilationDatabase.html.
+  (->> (iter (for f in (->> (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
+                                          (regex-replace
+                                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
+                                        (aget :arguments entry))
                                 (cdr (split-sequence
                                          #\Space (or (aget :command entry) "")
                                          :remove-empty-subseqs t)))
                          (mappend (lambda (arg) ; Split leading "-I".
                                     (split-sequence #\Space
                                       (replace-all arg "-I" "-I ")
-                                      :remove-empty-subseqs t)))
-                         (mapcar (lambda (arg) ; Wrap quotes for the shell.
-                                   (regex-replace
-                                    "\"([^\"]*)\"" arg "'\"\\1\"'")))))
+                                      :remove-empty-subseqs t)))))
              (for p previous f)
              (collect
                  (if (string= p "-I")
