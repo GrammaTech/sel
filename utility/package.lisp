@@ -24,6 +24,7 @@
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from :uiop :quit)
+  (:shadowing-import-from :osicat :file-permissions)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
@@ -65,6 +66,10 @@
    :file-to-string
    :use-encoding
    :file-to-bytes
+   :file-access
+   :file-access-operation
+   :file-access-path
+   :set-file-writable
    :string-to-file
    :bytes-to-file
    :stream-to-string

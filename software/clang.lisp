@@ -2005,10 +2005,11 @@ the mutation operations to be performed as an association list.
                  (:decls "decls")
                  (:macros "macros")
                  (:none "none"))))
-    (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key))
+    (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key)
+          (cmd-fmt "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"))
       (unwind-protect
-        (multiple-value-bind (stdout stderr exit)
-            (shell "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"
+           (multiple-value-bind (stdout stderr exit)
+            (shell cmd-fmt
                    (command-opt (car op))
                    (mapcar #'option-opt (cdr op))
                    src-file
@@ -2030,7 +2031,14 @@ the mutation operations to be performed as an association list.
               (unless (zerop exit)
                 (error
                  (make-condition 'mutate
-                   :text (format nil "clang-mutate exit ~d, ~s" exit stderr)
+                   :text (format nil "clang-mutate exit ~d~%cmd:~s~%stderr:~s"
+                                 exit
+                                 (format nil cmd-fmt
+                                         (command-opt (car op))
+                                         (mapcar #'option-opt (cdr op))
+                                         src-file
+                                         (flags obj))
+                                 stderr)
                    :obj obj :op op)))
             (keep-partial-asts ()
               :report "Ignore error retaining partial ASTs for software object."

@@ -26,7 +26,7 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
   (:documentation "DOCFIXME"))
 
 (defun copy-files (files)
-  "DOCFIXME"
+  "Copier for `evolve-files' and `other-files' on `project' software objects."
   (loop for (p . c) in files
      collecting (cons p (copy c))))
 
@@ -106,12 +106,16 @@ copy of the original current file.
   (:documentation "Overwrite evolved files with current genome."))
 
 (defmethod write-genome-to-files ((obj project))
-  "DOCFIXME"
-  (loop for (path . c) in (all-files obj)
-     do (string-to-file (genome c) (full-path path))))
+  (handler-bind ((file-access
+                  (lambda (c)
+                    (warn "Changing permission to ~a to ~a"
+                          (file-access-operation c) (file-access-path c))
+                    (invoke-restart 'set-file-writable))))
+    (loop for (path . c) in (all-files obj)
+       do (string-to-file (genome c) (full-path path)))))
 
 (defmethod size ((obj project))
-  "DOCFIXME"
+  "Either return the size of `current-file', if it's non-nil, or of all files."
   (if (current-file obj)
       (size (current-file obj))
       (reduce #'+ (mapcar [#'size #'cdr] (evolve-files obj)))))

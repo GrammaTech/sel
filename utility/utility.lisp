@@ -127,7 +127,26 @@
             (collect char into chars)
             (finally (return (coerce chars 'string)))))))
 
+(define-condition file-access (error)
+  ((file-access-path :initarg :path :initform nil
+                     :reader file-access-path)
+   (file-access-operation :initarg :operation :initform nil
+                          :reader file-access-operation))
+  (:report (lambda (condition stream)
+             (format stream "Unable to ~a file ~a"
+                     (file-access-operation condition)
+                     (file-access-path condition)))))
+
 (defun string-to-file (string path &key (if-exists :supersede))
+  (when (and (file-exists-p path)
+             (not (member :user-write (file-permissions path))))
+    (restart-case
+        (error (make-condition 'file-access
+                 :path path
+                 :operation :write))
+      (set-file-writable ()
+        (format nil "Forcefully set ~a to be writable" path)
+        (push :user-write (file-permissions path)))))
   (with-open-file (out path :direction :output :if-exists if-exists)
     (format out "~a" string))
   path)

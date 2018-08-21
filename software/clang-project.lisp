@@ -6,16 +6,109 @@
   ((project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil
-                :documentation "Source directory containing the project")
+                :documentation "Source directory containing the project.")
    (compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil
-                         :documentation "Compilation database for the project")
+                         :documentation "Compilation database for the project.
+See https://clang.llvm.org/docs/JSONCompilationDatabase.html for
+information on the format of compilation databases.")
    (clang-class :initarg :clang-class
                 :accessor clang-class
                 :initform 'clang
-                :documentation "Clang subclass to utilize in the project"))
+                :documentation "Clang subclass to utilize in the project."))
   (:documentation "Project specialization for clang software objects."))
+
+(defgeneric project-path (project path)
+  (:documentation "Expand PATH relative to PROJECT.")
+  (:method ((obj project) path)
+    (replace-all (namestring (canonical-pathname path))
+                 (-> (if (and *build-dir*
+                              (search (namestring *build-dir*)
+                                      (namestring
+                                       (ensure-directory-pathname
+                                        (canonical-pathname path)))))
+                         *build-dir*
+                         (project-dir obj))
+                   (canonical-pathname)
+                   (ensure-directory-pathname)
+                   (namestring))
+                 (-> (project-dir obj)
+                   (canonical-pathname)
+                   (ensure-directory-pathname)
+                   (namestring)))))
+
+(defgeneric create-evolve-files (clang-project)
+  (:documentation
+   "Create the evolve files for CLANG-PROJECT from the `compilation-database'.")
+  (:method ((clang-project clang-project))
+    (flet ((get-compiler (entry)
+             (->> (aget :command entry)
+               (split-sequence #\Space)
+               (first)))
+           (relativize (clang-project path)
+             (replace-all (-> (canonical-pathname path)
+                            (namestring))
+                          (-> (project-dir clang-project)
+                            (ensure-directory-pathname)
+                            (canonical-pathname)
+                            (namestring))
+                          "")))
+      (iter (for entry in (compilation-database clang-project))
+            (collect
+                (let ((file-path
+                       (-<>> (aget :directory entry)
+                         (ensure-directory-pathname)
+                         (merge-pathnames-as-file <>
+                                                  (aget :file entry))
+                         (project-path clang-project))))
+                  (cons (relativize clang-project file-path)
+                        (-> (make-instance (clang-class clang-project)
+                              :compiler (get-compiler entry)
+                              :flags (compilation-db-flags clang-project entry))
+                          (from-file file-path)))))))))
+
+(defun compilation-db-flags (clang-project entry)
+  "Return the flags for ENTRY in a compilation database."
+  ;; Get flags from :arguments or :command field.  These fields handle quote
+  ;; escaping differently; see
+  ;; https://clang.llvm.org/docs/JSONCompilationDatabase.html.
+  (->> (iter (for f in (->> (or (mapcar (lambda (arg) ; Wrap quotes for the shell.
+                                          (regex-replace
+                                           "\"([^\"]*)\"" arg "'\"\\1\"'"))
+                                        (aget :arguments entry))
+                                (cdr (split-sequence
+                                         #\Space (or (aget :command entry) "")
+                                         :remove-empty-subseqs t)))
+                         (mappend (lambda (arg) ; Split leading "-I".
+                                    (split-sequence #\Space
+                                      (replace-all arg "-I" "-I ")
+                                      :remove-empty-subseqs t)))))
+             (for p previous f)
+             (collect
+                 (if (string= p "-I")
+                     (if (starts-with-subseq "/" f)
+                         (->> (ensure-directory-pathname f)
+                           (project-path clang-project))
+                         (->> (merge-pathnames-as-directory
+                               (make-pathname :directory
+                                              (aget :directory
+                                                    entry))
+                               (make-pathname :directory
+                                              (list :relative f)))
+                           (ensure-directory-pathname)
+                           (project-path clang-project)))
+                     f)))
+    (remove-if {string= (aget :file entry)})
+    (append (list "-I"
+                  (namestring (project-dir clang-project))))
+    (append (list "-I"
+                  (->> (merge-pathnames-as-directory
+                        (ensure-directory-pathname
+                         (aget :directory entry))
+                        (aget :file entry))
+                    (ensure-directory-pathname)
+                    (project-path clang-project))))))
 
 (defmethod from-file ((clang-project clang-project) project-dir)
   "Populate CLANG-PROJECT from the source code in PROJECT-DIR.
@@ -55,84 +148,7 @@
                            stderr: ~a~%"
                            (build-command clang-project)
                            (build-target clang-project)
-                           stdout stderr))))
-           (relativize (clang-project path)
-             (replace-all (-> (canonical-pathname path)
-                              (namestring))
-                          (-> (project-dir clang-project)
-                              (ensure-directory-pathname)
-                              (canonical-pathname)
-                              (namestring))
-                          ""))
-           (get-project-path (clang-project path)
-             (replace-all (-> (canonical-pathname path)
-                              (namestring))
-                          (-> (if (and *build-dir*
-                                       (search (-> *build-dir*
-                                                   (namestring))
-                                               (-> path
-                                                   (canonical-pathname)
-                                                   (ensure-directory-pathname)
-                                                   (namestring))))
-                                  *build-dir*
-                                  (project-dir clang-project))
-                              (canonical-pathname)
-                              (ensure-directory-pathname)
-                              (namestring))
-                          (-> (project-dir clang-project)
-                              (canonical-pathname)
-                              (ensure-directory-pathname)
-                              (namestring))))
-           (create-evolve-files (clang-project)
-             (iter (for entry in (compilation-database clang-project))
-                   (collect
-                     (let ((file-path
-                             (-<>> (aget :directory entry)
-                                   (ensure-directory-pathname)
-                                   (merge-pathnames-as-file <>
-                                                            (aget :file entry))
-                                   (get-project-path clang-project))))
-                       (cons (relativize clang-project file-path)
-                             (-> (make-instance (clang-class clang-project)
-                                                :compiler (get-compiler entry)
-                                                :flags (get-flags entry))
-                                 (from-file file-path)))))))
-           (get-compiler (entry)
-             (->> (aget :command entry)
-                  (split-sequence #\Space)
-                  (first)))
-           (get-flags (entry)
-             (let ((flags (-<>> (or (aget :command entry) "")
-                                (replace-all <> "-I" "-I ")
-                                (split-sequence #\Space)
-                                (remove-if {string= ""})
-                                (cdr))))
-               (->> (iter (for f in flags)
-                          (for p previous f)
-                          (collect
-                            (if (string= p "-I")
-                                (if (starts-with-subseq "/" f)
-                                    (->> (ensure-directory-pathname f)
-                                         (get-project-path clang-project))
-                                    (->> (merge-pathnames-as-directory
-                                           (make-pathname :directory
-                                                          (aget :directory
-                                                                entry))
-                                           (make-pathname :directory
-                                                          (list :relative f)))
-                                         (ensure-directory-pathname)
-                                         (get-project-path clang-project)))
-                                f)))
-                    (remove-if {string= (aget :file entry)})
-                    (append (list "-I"
-                                  (namestring (project-dir clang-project))))
-                    (append (list "-I"
-                                  (->> (merge-pathnames-as-directory
-                                         (ensure-directory-pathname
-                                           (aget :directory entry))
-                                         (aget :file entry))
-                                       (ensure-directory-pathname)
-                                       (get-project-path clang-project))))))))
+                           stdout stderr)))))
     (setf (project-dir clang-project)
           (-> (truename project-dir)
               (canonical-pathname)))

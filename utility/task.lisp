@@ -173,8 +173,6 @@
 ;;;
 (defun start-worker ()
   (let ((runner *task-runner*))  ;; get the special variable binding
-    (bt:with-lock-held ((task-runner-workers-lock runner))
-      (push (current-thread) (task-runner-workers runner)))
     (worker-thread-task runner)))  ;; begin worker loop
 
 (defun task-save-result (runner obj)
@@ -185,10 +183,12 @@
 (let ((worker-id -1))
   (defun task-runner-create-worker (runner)
     "Create a new worker thread."
-    (let ((bt:*default-special-bindings* (acons '*task-runner* runner nil)))
-      (bt:make-thread 'start-worker
-		    :name (format nil "~A-~D" "software-mutator"
-				  (incf worker-id))))))
+    (let ((*default-special-bindings* (acons '*task-runner* runner nil)))
+      (with-lock-held ((task-runner-workers-lock runner))
+        (push (make-thread 'start-worker
+                :name (format nil "~A-~D" "software-mutator"
+                              (incf worker-id)))
+              (task-runner-workers runner))))))
 
 ;;
 ;; Re-initialize, overwrite any previous results.
@@ -220,12 +220,9 @@
 (defun run-task-and-block (task &optional (num-workers 1))
   "Create a TASK-RUNNER, using the specified task as the first job,
 blocking until completion"
-  (let ((*task-runner* (make-task-runner)))
-    (task-runner-add-job *task-runner* (task-job task *task-runner*))
-    (dotimes (i num-workers)
-      (start-worker))
-    (mapcar #'join-thread (task-runner-workers *task-runner*))
-    *task-runner*))
+  (let ((runner (run-task task num-workers)))
+    (mapcar #'join-thread (task-runner-workers runner))
+    runner))
 
 (defun task-runner-remaining-jobs (runner)
   "Returns the number of jobs remaining."

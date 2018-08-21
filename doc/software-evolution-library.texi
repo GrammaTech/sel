@@ -918,7 +918,22 @@ are given in remainder of this section.
 @node Installation, Examples, Usage, Usage
 @section Installation
 
-The source code for the Software Evolution library is available at
+The Software Evolution Library (SEL) requires one of the following
+supported lisp distributions.  (Relatively recent versions of these
+implementations are required because of the use of new features of
+ASDF/UIOP.)
+
+@multitable {} {} {}
+
+@headitem  Implementation @tab Minimum Version @tab URL
+
+@item Steel Bank Common Lisp (SBCL) @tab 1.4 @tab @url{https://www.cliki.net/SBCL}
+
+@item Clozure Common Lisp (CCL) @tab 1.12-dev @tab @url{https://www.cliki.net/CCL}
+
+@end multitable
+
+The source code for SEL is available at
 @url{https://github.com/GrammaTech/sel}.  The following Common Lisp
 packages are required by this library, all of which are installable
 through Quicklisp (see @url{http://www.quicklisp.org/}).
