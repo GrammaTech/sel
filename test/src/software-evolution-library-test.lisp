@@ -8771,7 +8771,7 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest end-of-response-parsing-works ()
   (let ((resp1 #!'(Answer TestQ Completed))
-        (resp2 #!'("Sexplib.Conv.Of_sexp_error" (Failure "Failure message")
+        (resp2 #!'(Sexplib.Conv.Of_sexp_error (Failure "Failure message")
                    etc))
         (resp3 #!'(Answer TestQ Ack)))
     (is (equal (list t t nil)
@@ -9023,16 +9023,26 @@ int main() { puts(\"~d\"); return 0; }
                         "true : bool"
                         "negb : bool -> bool"
                         "orb : bool -> bool -> bool"))
-           (scopes (mapcar #'tokenize-coq-type types))
-           (result1 (synthesize-typed-coq-expression "bool" scopes 2))
-           (result2 (synthesize-typed-coq-expression "bool -> bool" scopes 2)))
+           (tokenized-types (mapcar #'tokenize-coq-type types))
+           (env (mapcar (lambda (ty)
+                          (append (take 1 ty)
+                                  (list (make-coq-var-reference (first ty)))
+                                  (cdr ty)))
+                        tokenized-types))
+           (result1-asts (synthesize-typed-coq-expression "bool" env 2))
+           (result1-strs (mapcar {lookup-coq-string _ :input-format #!'CoqExpr }
+                                 result1-asts))
+           (result2-asts (synthesize-typed-coq-expression "bool -> bool" env 2))
+           (result2-strs (mapcar {lookup-coq-string _ :input-format #!'CoqExpr }
+                                 result2-asts)))
+      ;; Verify number of results
+      (is (<= 14 (length result1-asts)))
+      (is (<=  5 (length result2-asts)))
       ;; Spot-check result1
-      (iter (for expected in '("false" "true" "(negb false)" "(negb true)"
-                               "((orb true) (negb false))" "((orb true) true)"))
-            (is (member expected result1 :test #'equal)))
+      (iter (for expected in '("false" "true" "negb false" "negb true"
+                               "(orb true) (negb false)" "(orb true) true"))
+            (is (member expected result1-strs :test #'equal)))
       ;; Complete check result2
-      (iter (for expected in '("negb" "(orb false)" "(orb true)"
-                               "(orb (negb false))" "(orb (negb true))"))
-            (is (member expected result2 :test #'equal)))
-      (is (<= 14 (length result1)))
-      (is (<=  5 (length result2))))))
+      (iter (for expected in '("negb" "orb false" "orb true"
+                               "orb (negb false)" "orb (negb true)"))
+            (is (member expected result2-strs :test #'equal))))))

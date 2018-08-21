@@ -82,11 +82,19 @@
            :search-coq-type
            :tokenize-coq-type
            :load-coq-file
+           :serapi-readtable
+           ;; Error handling
            :serapi-timeout-error
            :use-empty-response
            :retry-read
            :serapi-timeout
-           :serapi-readtable
+           :serapi-error
+           :serapi-error-ast
+           :serapi-backtrace
+           :serapi-error-text
+           :serapi-error-proc
+           :cancel-ast
+           :kill-serapi-process
            ;; Building Coq expressions
            :wrap-coq-constr-expr
            :make-coq-integer
@@ -188,21 +196,27 @@ See `insert-reset-point'.")
   (error "CL-SERAPI-LIB currently only supports SBCL and CCL."))
 
 (define-condition serapi-error (error)
-  ((text :initarg :text :initform nil :reader text)
-   (serapi :initarg :serapi :initform nil :reader serapi))
+  ((text :initarg :text :initform nil :accessor serapi-error-text)
+   (serapi :initarg :serapi :initform nil :reader serapi-error-proc)
+   (error-ast :initarg :error-ast :initform nil :accessor serapi-error-ast)
+   (backtrace :initarg :backtrace :initform nil :accessor serapi-backtrace))
   (:report (lambda (condition stream)
-             (format stream "SERAPI: ~a~%~S"
-                     (text condition) (serapi condition))))
+             (format stream "SerAPI or Coq exception~a: ~a~%~a"
+                     (if (serapi-error-ast condition)
+                         (format nil " in AST ~a" (serapi-error-ast condition))
+                         "")
+                     (serapi-error-text condition)
+                     (serapi-backtrace condition))))
   (:documentation
    "Condition raised if errors are detected in the SerAPI process."))
 
 (define-condition serapi-timeout-error (error)
-  ((text :initarg :text :initform nil :reader text)
+  ((text :initarg :text :initform nil :accessor serapi-error-text)
    (serapi-timeout :initarg :serapi-timeout :initform nil
                    :reader serapi-timeout))
   (:report (lambda (condition stream)
              (format stream "Time limit of ~a seconds exceeded: ~a."
-                     (serapi-timeout condition) (text condition))))
+                     (serapi-timeout condition) (serapi-error-text condition))))
   (:documentation
    "Condition raised if timeout is exceeded."))
 
@@ -340,7 +354,7 @@ maximum of TIMEOUT seconds. Return NIL if no data becomes available."
   "Check if STR is an error message.
 Errors may result from either an improperly formed SerAPI command or an invalid
 Coq command."
-  (or (starts-with-subseq "(\"Sexplib.Conv.Of_sexp_error\"" str)
+  (or (starts-with-subseq "(Sexplib.Conv.Of_sexp_error" str)
       (search "CoqExn" str :from-end t)))
 
 (defmethod is-terminating ((str string))
@@ -387,9 +401,17 @@ format."
             (with-input-from-string (in str)
               (let ((value (read in)))
                 (when (and (listp value) (is-error value))
-                  ;; TODO: maybe throw an error here, but in all cases so far
-                  ;; we just want to ignore these unless we're debugging.
-                  (note 3 "WARNING: SerAPI response included error ~a" value))
+                  (restart-case
+                      (error (parse-error-message
+                              (make-condition 'serapi-error
+                                              :serapi serapi)
+                              value))
+                    (cancel-ast (ast)
+                      :report "Cancel ASTs and continue."
+                      (cancel-coq-asts ast))
+                    (kill-serapi-process ()
+                      :report "Kill SerAPI process."
+                      (kill-serapi serapi))))
                 (collect value into values)))
             (finally (return values))))))
 
@@ -599,9 +621,35 @@ command or an invalid Coq command, NIL otherwise."
   (intern "CoqExn" *package*)
   (intern "Error" *package*)
   (or (is-type (find-symbol "Sexplib.Conv.Of_sexp_error") sexpr)
-      (equal (car sexpr) "Sexplib.Conv.Of_sexp_error")
       (is-type (find-symbol "CoqExn") (answer-content sexpr))
       (equal (find-symbol "Error") (message-level sexpr))))
+
+(defun parse-error-message (condition sexpr)
+  (intern "Sexplib.Conv.Of_sexp_error" *package*)
+  (intern "CoqExn" *package*)
+  (intern "Backtrace" *package*)
+  (intern "Error" *package*)
+  (cond
+    ((is-type (find-symbol "Sexplib.Conv.Of_sexp_error") sexpr)
+     (setf (serapi-error-text condition) sexpr))
+    ((is-type (find-symbol "CoqExn") (answer-content sexpr))
+     (let* ((err-info (answer-content sexpr))
+            (info-len (length err-info)))
+       (when err-info
+         ;; Set error-ast if present
+         (when (and (>= info-len 3) (nth 2 err-info))
+           ;; NOTE: Based on CoqExn Stateid's in serapi_protocol.mli
+           ;; The ID of the earliest AST in the problem range (if known).
+           (setf (serapi-error-ast condition) (caar (nth 2 err-info))))
+         ;; Set backtrace info if present
+         (when-let ((backtrace (and (>= info-len 4) (nth 3 err-info))))
+           (when (and (is-type (find-symbol "Backtrace") backtrace)
+                      (lastcar backtrace))
+             (setf (serapi-backtrace condition) (lastcar backtrace))))
+         (when (>= info-len 5)
+           (setf (serapi-error-text condition) (nth 5 err-info))))))
+    (t nil))
+  condition)
 
 (defun is-loc-info (sexpr)
   "Return T if SEXPR is a list of Coq location info, NIL otherwise."
@@ -815,10 +863,15 @@ the submission."
 
       ;; read/parse response
       (intern "Added" *package*)
-      (iter (for sexpr in (read-serapi-response *serapi-process*))
-            (when-let ((answer (answer-content sexpr)))
-              (when (is-type (find-symbol "Added") answer)
-                (collecting (added-id answer))))))))
+      (let ((added-ids
+             (iter (for sexpr in (read-serapi-response *serapi-process*))
+                   (when-let ((answer (answer-content sexpr)))
+                     (when (is-type (find-symbol "Added") answer)
+                       (collecting (added-id answer)))))))
+        (iter (for added in added-ids)
+              (write-to-serapi *serapi-process* #!`((,QTAG (Exec ,ADDED))))
+              (read-serapi-response *serapi-process*))
+        added-ids))))
 
 (defun add-coq-lib (path &key lib-name (has-ml "true") (qtag (gensym "l")))
   "Add directory PATH to the Coq and, optionally, ML load paths in SerAPI.
@@ -979,7 +1032,7 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
     ;; Translates to vernacular:
     ;; SearchPattern (coq-type) inside module. or
     ;; SearchPattern (coq-type).
-    (->> (format nil "SearchPattern ~a ~a."
+    (->> (format nil "SearchPattern ~a ~a"
                  (parenthesize coq-type)
                  (if module
                      (format nil "inside ~a" module)
@@ -1007,8 +1060,20 @@ invoked directly."
   #!`(Ident (() (Id ,ID))))
 
 (defun make-coq-var-reference (id)
-  "Wrap Coq variable ID in CRef and Ident tags."
-  (wrap-coq-constr-expr #!`(CRef ,(MAKE-COQ-IDENT ID) ())))
+  "Wrap Coq variable ID in CRef and either Ident or Qualid tags.
+Use Ident for unqualified names and Qualid for qualified names."
+  (let ((quals (reverse (split-sequence #\. (string id)))))
+    (mapc {intern _ *package*} quals)
+    (flet ((make-dirpath-ls (quals)
+             (mapcar [{list #!'Id } #'find-symbol] (cdr quals))))
+      (when (and quals (listp quals))
+        (if (= 1 (length quals))
+            (wrap-coq-constr-expr #!`(CRef ,(MAKE-COQ-IDENT ID) ()))
+            (wrap-coq-constr-expr
+             #!`(CRef
+                 (Qualid (() (Ser_Qualid (DirPath ,(MAKE-DIRPATH-LS QUALS))
+                                         (Id ,(FIND-SYMBOL (CAR QUALS))))))
+                 ())))))))
 
 (defun make-coq-application (fun &rest params)
   "Wrap Coq function FUN and parameters PARAMS in a CApp tag.
@@ -1105,7 +1170,7 @@ unspecified."
   "Create a Coq match expression.
 STYLE indicates the style of the match (e.g., #!'RegularStyle).
 TEST is the expression being matched against.
-BRANCHES are the match cases and will generally be constructed with 
+BRANCHES are the match cases and will generally be constructed with
 `make-coq-case-pattern'."
   (let ((split-branches (iter (for (pat result) on branches by #'cddr)
                               (collecting #!`(() (((()  (,PAT))) ,RESULT))))))

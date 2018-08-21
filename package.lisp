@@ -684,13 +684,16 @@
    :coq-definitions
    :*coq-mutation-types*
    :reset-and-load-imports
+   :load-coq-object
    :init-coq-project
    :type-safe-swap
    :tag-loc-info
    :untag-loc-info
    :lookup-source-strings
    :coq-type-checks
-   :synthesize-typed-coq-expression))
+   :synthesize-typed-coq-expression
+   :cancel-asts-and-retry-load
+   :recreate-serapi-process-and-retry))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
