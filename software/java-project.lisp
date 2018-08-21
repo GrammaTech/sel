@@ -32,62 +32,51 @@
                 :documentation "Java subclass to utilize in the project")))
 
 (defmethod from-file ((obj java-project) project-dir)
-  "Java-project from-file builds the project, extracts relevant
-java files in project and creates java software object for
-each and stores them in a list."
-  (note 3 "Initializing Java project")
-
+  "Build project and extract relevant java source files."
   (setf (project-dir obj) project-dir)
   (with-temp-build-dir (project-dir)
-    (note 3 "Building java project")
     (multiple-value-bind (stdout stderr exit-code)
-        (shell "cd ~a && ~a ~a"
-               *build-dir* (build-command obj) (build-target obj))
+        (shell "cd ~a && ~a" *build-dir* (build-command obj))
       (if (not (zerop exit-code))
           (error "Failed to build java project for project.~%~
-                  build-command: ~a ~a~%~
+                  build-command: ~a~%~
                   stdout: ~a~%~
                   stderr: ~a~%"
-                  (build-command obj)
-                  (build-target obj)
-                  stdout stderr)
-          (let* ((jar-path (merge-pathnames-as-file *build-dir*
-                                                    (build-target obj)))
-                 (files (->> (get-applicable-project-files project-dir jar-path)
-                             (mapcar
-                               (lambda (file)
-                                 (replace-all
-                                   file
-                                   (namestring
+                 (build-command obj)
+                 stdout stderr)
+          (setf (evolve-files obj)
+                (iter (for entry in
+                           (->> (merge-pathnames-as-file
+                                 *build-dir*
+                                 ;; FIXME: The following artificially
+                                 ;; limits Java projects to a single
+                                 ;; build artifact and should be
+                                 ;; generalized as in
+                                 ;; clang-project.lisp.
+                                 (first (artifacts obj)))
+                                (get-applicable-project-files project-dir)
+                                (mapcar
+                                 (lambda (file)
+                                   (replace-all
+                                    file
+                                    (namestring
                                      (ensure-directory-pathname project-dir))
-                                   ""))))))
-            (note 3 "~a project files identified" (length files))
-            (note 3 "Starting java software object initialization")
-            (setf (evolve-files obj)
-                  (iter (for entry in files)
-                        (for i upfrom 1)
-                        (note 3 "Initializing ~a" entry)
-                        (note 4 "Software object ~
-                                 initialization progress: ~a/~a"
-                              i (length files))
-                        (handler-case
-                            (let ((java-obj (from-file
-                                              (make-instance (java-class obj))
-                                              (merge-pathnames-as-file
-                                                *build-dir*
-                                                entry))))
-                              (if (not (zerop (size java-obj)))
-                                  (collect (cons entry java-obj))
-                                  (note 3 "Stmt size of file is 0, ~
-                                           ignoring file ~a" entry)))
-                          (mutate (e)
-                            (declare (ignorable e))
-                            (note 3 "Failed to initialize object, ~
-                                     ignoring file ~a"
-                                  entry)))))))))
-
-  (note 3 "~a files are applicable for mutation"
-        (length (evolve-files obj)))
+                                    "")))))
+                      (for i upfrom 1)
+                      (handler-case
+                          (let ((java-obj (from-file
+                                           (make-instance (java-class obj))
+                                           (merge-pathnames-as-file
+                                            *build-dir*
+                                            entry))))
+                            (if (not (zerop (size java-obj)))
+                                (collect (cons entry java-obj))
+                                (warn "Ignoring file ~a with 0 statements"
+                                      entry)))
+                        (mutate (e)
+                          (declare (ignorable e))
+                          (warn "Ignoring file ~a, failed to initialize"
+                                entry))))))))
   obj)
 
 (defmethod to-file ((java-project java-project) path)

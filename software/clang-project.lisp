@@ -121,10 +121,8 @@ information on the format of compilation databases.")
            database or 'bear' installation on your PATH")
   (labels ((create-compilation-database (clang-project)
              (multiple-value-bind (stdout stderr errno)
-                 (shell "cd ~a && bear ~a ~a"
-                        *build-dir*
-                        (build-command clang-project)
-                        (build-target clang-project))
+                 (shell "cd ~a && bear ~a"
+                        *build-dir* (build-command clang-project))
                (declare (ignorable errno))
                (or (and (probe-file (make-pathname
                                       :directory (directory-namestring
@@ -143,11 +141,10 @@ information on the format of compilation databases.")
                                      (aget :file entry)))
                             :from-end t)))
                    (error "Failed to create compilation database for project.~%~
-                           build command: ~a ~a~%~
+                           build command: ~a~%~
                            stdout: ~a~%~
                            stderr: ~a~%"
                            (build-command clang-project)
-                           (build-target clang-project)
                            stdout stderr)))))
     (setf (project-dir clang-project)
           (-> (truename project-dir)

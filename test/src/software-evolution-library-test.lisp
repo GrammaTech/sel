@@ -3016,11 +3016,10 @@ int x = CHARSIZE;")))
          (from-file
           (make-instance 'java-project
             :build-command "./gt-harness.sh build"
-            :build-target
-            (format nil
-                    "target/~
+            :artifacts
+            (list (format nil "target/~
                         simpleMultifileMaven-1.~
-                        0-SNAPSHOT-jar-with-dependencies.jar"))
+                        0-SNAPSHOT-jar-with-dependencies.jar")))
           (make-pathname :directory +maven-prj-dir+))))
   (:teardown
    (setf *soft* nil)))
@@ -5744,8 +5743,8 @@ prints unique counters in the trace"
   (:setup
    (setf *project*
          (-> (make-instance 'clang-project
-               :build-command "make"
-               :build-target "foo"
+               :build-command "make foo"
+               :artifacts '("foo")
                :compilation-database
                `(((:file .
                          ,(-> (make-pathname :directory +multi-file-dir+
@@ -5772,8 +5771,8 @@ prints unique counters in the trace"
   (:setup
    (setf *project*
          (-> (make-instance 'clang-project
-               :build-command "make"
-               :build-target "grep"
+               :build-command "make grep"
+               :artifacts '("grep")
                :compilation-database
                (list
                 (list
@@ -5798,8 +5797,8 @@ prints unique counters in the trace"
   (:setup
    (setf *project*
          (from-file (make-instance 'clang-project
-                      :build-command "make"
-                      :build-target "grep")
+                      :build-command "make grep"
+                      :artifacts '("grep"))
                     (make-pathname :directory +grep-prj-dir+))))
   (:teardown (setf *project* nil)))
 
@@ -6462,8 +6461,8 @@ prints unique counters in the trace"
 
 (deftest clang-project-test ()
   (with-fixture grep-project
-    (is (equal "make" (build-command *project*)))
-    (is (equal "grep" (build-target *project*)))
+    (is (equal "make grep" (build-command *project*)))
+    (is (equalp '("grep") (artifacts *project*)))
     (is (equal 1 (length (evolve-files *project*))))
     (is (equal "grep.c" (car (first (evolve-files *project*)))))
     (is (equal "cc" (compiler (cdr (first (evolve-files *project*))))))
@@ -6521,8 +6520,8 @@ prints unique counters in the trace"
 
 (deftest (able-to-create-a-bear-project :long-running) ()
   (with-fixture grep-bear-project
-    (is (equal "make" (build-command *project*)))
-    (is (equal "grep" (build-target *project*)))
+    (is (equal "make grep" (build-command *project*)))
+    (is (equalp '("grep") (artifacts *project*)))
     (is (not (zerop (length (genome *project*)))))))
 
 (deftest (able-to-copy-a-bear-project :long-running) ()

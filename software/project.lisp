@@ -5,9 +5,9 @@
 (define-software project (software)
   ((build-command :initarg :build-command :accessor build-command :initform nil
                   :documentation "Shell command to build the project.")
-   (build-target :initarg :build-target :accessor build-target :initform nil
-                 :documentation "The executable to build.
-Passed as an argument to BUILD-COMMAND.")
+   (artifacts :initarg :artifacts :accessor artifacts :initform nil
+              :documentation
+              "Artifacts (e.g., executables) of the project build.")
    (evolve-files :initarg :evolve-files :accessor evolve-files :initform nil
                  :documentation
                  "Files within the project to mutate.
@@ -282,16 +282,19 @@ path within BODY."
          (delete-directory-tree ,build-dir :validate t)))))
 
 (defmethod phenome ((obj project) &key (bin (temp-file-name)))
-  "DOCFIXME"
+  "Build the software project OBJ and copy build artifact(s) to BIN."
   (write-genome-to-files obj)
   ;; Build the object and copy it to desired location.
   (multiple-value-bind (stdout stderr exit)
-      (shell "cd ~a && ~a ~a" *build-dir*
-             (build-command obj) (build-target obj))
+      (shell "cd ~a && ~a" *build-dir* (build-command obj))
     (restart-case
         (if (zerop exit)
-            (shell "cp -r ~a ~a"
-                   (namestring (full-path (build-target obj))) bin)
+            (progn
+              (when (> (length (artifacts obj)) 1)
+                (shell "mkdir ~a" bin))
+              (iter (for artifact in (artifacts obj))
+                    (shell "cp -r ~a ~a"
+                           (namestring (full-path artifact)) bin)))
             (error (make-condition 'phenome
                      :text stderr :obj obj :loc *build-dir*)))
       (retry-project-build ()
