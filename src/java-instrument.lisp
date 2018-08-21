@@ -70,9 +70,6 @@
     (lambda ()
       (when-let ((file (pop files)))
         (incf file-id)
-        (note 3 "Instrumenting ~a" (car file))
-        (note 4 "Instrument progress: ~a/~a"
-              file-id (length (instrumentation-files (task-object task))))
         (make-instance 'instrument-java-object-task
           :object (make-instance 'java-instrumenter
                     :software (cdr file)
@@ -93,9 +90,6 @@
     (lambda ()
       (when-let ((file (pop files)))
         (incf file-id)
-        (note 3 "Uninstrumenting ~a" (car file))
-        (note 4 "Uninstrument progress: ~a/~a"
-              file-id (length (instrumentation-files (task-object task))))
         (make-instance 'uninstrument-java-object-task
           :object (cdr file))))))
 
