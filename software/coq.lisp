@@ -269,20 +269,41 @@ Set INCLUDE-IMPORTS to T to include import statements in the result."
          (when (and ast (listp ast))
            (collecting (lookup-coq-string ast))))))
 
+(defun lookup-coq-import-strings (coq)
+  "Return a list of the string names of modules imported at top of file."
+  (remove-if «or {equal "Require"} {equal "Import"}»
+             (mappend [{split "\\s+"} #'lookup-coq-string]
+                      (imports coq))))
+
 (defun load-coq-object (coq &key (include-imports t) num-asts)
   "Load the first NUM-ASTS ASTs of the COQ genome.
 If NUM-ASTS is NIL, load all ASTs. INCLUDE-IMPORTS (default T) specifies that
 imports should be loaded first."
-  (when include-imports
-    (iter (for import in (imports coq))
-          (when import
-            (when-let ((str (lookup-coq-string import)))
-              (add-coq-string str)))))
-  (let ((num-asts (or num-asts (length (unannotated-genome coq)))))
-    (iter (for ast in (take num-asts (unannotated-genome coq)))
-          (when (and ast (listp ast))
-            (when-let ((str (lookup-coq-string ast)))
-              (appending (add-coq-string str)))))))
+  (restart-case
+      (let ((ast-ids nil))
+        (when include-imports
+          (iter (for import in (imports coq))
+                (when import
+                  (when-let ((str (lookup-coq-string import)))
+                    (add-coq-string str)))))
+        (let ((num-asts (or num-asts (length (unannotated-genome coq)))))
+          (iter (for ast in (take num-asts (unannotated-genome coq)))
+                (when (and ast (listp ast))
+                  (when-let ((str (lookup-coq-string ast)))
+                    (append ast-ids (add-coq-string str))))
+                (finally (return ast-ids)))))
+    (cancel-asts-and-retry-load (ast)
+      :report "Cancel ASTs and retry loading object."
+      (cancel-coq-asts ast-ids)
+      (load-coq-object coq :include-imports include-imports :num-asts num-asts))
+    (recreate-serapi-process-and-retry ()
+      :report "Create a new SerAPI process and retry loading object."
+      (kill-serapi *serapi-process*)
+      (setf *serapi-process* (make-serapi))
+      (unless include-imports
+        (reset-and-load-imports coq))
+      (load-coq-object coq :include-imports include-imports
+                       :num-asts num-asts))))
 
 (defgeneric coq-type-checks (coq)
   (:documentation
@@ -494,22 +515,46 @@ Assumes FUNCTION is defined in a top-level AST in OBJ."
       (check-coq-type assum-name)
     (reset-serapi-process)))
 
-(defun parse-coq-function-local-types (coq ast-num fn-name local-names)
+(defun parse-coq-function-local-types (coq ast-num)
   (reset-and-load-imports coq)
   (insert-reset-point)
-  ;; load object up through AST we care about
-  (load-coq-object coq :include-imports nil
-                   :num-asts (1+ ast-num))
-  (let ((type (split-sequence :-> (cddr (check-coq-type fn-name)))))
+  ;; Load object up through AST we care about, handling errors if they occur.
+  (load-coq-object coq :include-imports nil :num-asts (1+ ast-num))
+  (bind ((coq-ast (nth ast-num (unannotated-genome coq)))
+         (fn-name (coq-definition-ast-p coq-ast))
+         (local-names
+          (mapcar #'first (sel/serapi-io::parse-coq-function-locals coq-ast)))
+         (type (split-sequence :-> (cddr (check-coq-type fn-name)))))
     (reset-serapi-process)
     (mapcar #'append
             (mapcar #'list
                     (mapcar #'string local-names)
                     (mapcar #'make-coq-var-reference local-names)
                     (repeatedly (length local-names) :COLON))
-             type)))
+            type)))
 
-(defun build-environment (coq &key num-asts modules whitelist-defs)
+(defun unqualify-coq-modules (env modules)
+  ;; env is ((term :COLON type ...) ...)
+  ;; Need to unqualify any qualified terms or types. Type may contain nested
+  ;; lists.
+  (labels ((unqualify-term (term module)
+             (cond
+               ((null term) nil)
+               ((listp term)
+                (cons (unqualify-term (car term) module)
+                      (unqualify-term (cdr term) module)))
+               ((and (stringp term)
+                     (starts-with-subseq (format nil "~a." module)
+                                         term))
+                (subseq term (1+ (length module))))
+               (t term))))
+    (iter (for module in (mapcar #'string modules))
+          ;; update env with unqualified module references
+          (setf env (unqualify-term env module))
+          (finally (return env)))))
+
+(defun build-environment (coq &key num-asts modules whitelist-defs
+                                imported-modules)
   (reset-and-load-imports coq)
   (insert-reset-point)
   (load-coq-object coq :include-imports nil
@@ -520,26 +565,24 @@ Assumes FUNCTION is defined in a top-level AST in OBJ."
       (let ((types (append (search-coq-type "Type")
                            (search-coq-type "Set"))))
         (iter (for module in (or modules (list nil)))
-              (let ((vals (mappend [{search-coq-type _ :module module} #'first]
+              (let ((vals (mappend [{unqualify-coq-modules _ imported-modules}
+                                    {search-coq-type _ :module module}
+                                    #'first]
                                    types)))
                 (mapc (lambda (type)
-                        (when (some {ends-with-subseq _ (first type)
-                                                      :test #'equal}
-                                    whitelist-defs)
+                        (when (or (not whitelist-defs)
+                                  (some {ends-with-subseq _ (first type)
+                                                          :test #'equal}
+                                        whitelist-defs))
                           (collecting type into mod-types)))
-                      (append vals types)))
-              ;; (appending (mappend [{search-coq-type _ :module module}
-              ;;                      #'first]
-              ;;                     types)
-              ;;            into mod-types)
+                      vals))
               (finally
                (return
                  (mapcar (lambda (ty)
                            (if (listp ty)
-                               (cons
-                                (car ty)
-                                (cons (make-coq-var-reference (car ty))
-                                      (cdr ty)))
+                               (cons (car ty)
+                                     (cons (make-coq-var-reference (car ty))
+                                           (cdr ty)))
                                ty))
                          mod-types)))))
     ;; reset after loading coq software object
@@ -555,7 +598,26 @@ SCOPES is a list of variables with tokenized types (e.g., as generated by
 `search-coq-type').
 DEPTH is a number limiting the search depth. Functions will be applied to no
 more than DEPTH parameters."
-  (bind (((:flet extend-env (type scopes))
+  (bind (((:labels type-matches (ty1 ty2))
+          "Return T if ty1 and ty2 are strings representing the same type.
+Must account for the possibility that ty1 and ty2 might be either qualified or
+unqualified type names."
+          (cond
+            ((and (null ty1) (null ty2)) t)
+            ;; For strings, check if one is a suffix of the other
+            ;; (essentially ignoring qualification)
+            ((and (stringp ty1) (stringp ty2))
+             (or (ends-with-subseq ty1 ty2)
+                 (ends-with-subseq ty2 ty1)))
+            ;; For symbols, convert to strings and check for match
+            ((and (symbolp ty1) (symbolp ty2))
+             (type-matches (string ty1) (string ty2)))
+            ;; Two type lists of the same length: check that every element
+            ;; matches.
+            ((and (listp ty1) (listp ty2) (= (length ty1) (length ty2)))
+             (every #'identity (mapcar #'type-matches ty1 ty2)))
+            (t nil)))
+         ((:flet extend-env (type scopes))
           "Return a list of curried function calls applying function TYPE to
 every variable in SCOPES whose type matches that of TYPE's first parameter.
 E.g., for type \"bool\", the list includes \"(implb true) : bool -> bool\" and
@@ -567,11 +629,7 @@ E.g., for type \"bool\", the list includes \"(implb true) : bool -> bool\" and
             (when (< 1 (length split-type))
               ;; Iterate over SCOPES, finding items with the correct type.
               (iter (for (scope-name scope-ast colon . scope-ty) in scopes)
-                    (when (or (equal (car split-type) scope-ty)
-                              ;; Splitting parenthesized lists adds an extra
-                              ;; set of parens, so use caar to ignore them.
-                              (and (listp (car split-type))
-                                   (equal (caar split-type) scope-ty)))
+                    (when (type-matches (car split-type) scope-ty)
                       (collecting
                        ;; Format as a tokenized type whose name is the curried
                        ;; function call.
@@ -598,7 +656,7 @@ pairs of expressions from RESULT-EXPRS."
          (search-type (tokenize-coq-type type)))
     (if (zerop depth)
         (iter (for (name ast colon . scope-type) in scopes)
-              (when (equal search-type scope-type)
+              (when (type-matches search-type scope-type)
                 (collecting ast into exact-names))
               (when (equal (tokenize-coq-type "bool") scope-type)
                 (collecting name into bool-names)
