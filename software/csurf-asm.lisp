@@ -105,12 +105,13 @@ set."
                      ;; otherwise use -l
                      (progn
                        (collecting "-l")
-                       (if (starts-with-subseq
-                            "lib"
-                            (pathname-name file))
-                           ;; drop suffix and lib: libc -> -lc
-                           (collecting
-                            (subseq (pathname-name file) 3))
+                       (if (starts-with-subseq "lib" (pathname-name file))
+                           (let ((basename (pathname-name file)))
+                             ;; drop suffix(es) and lib: libc.so.6 -> -lc
+                             (collecting
+                              (subseq basename 3
+                                      (or (position #\. basename)
+                                          (length basename)))))
                            ;; non-standard name, use :name
                            (collecting (format nil " :~a"
                                                (file-namestring file)))))))))

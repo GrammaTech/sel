@@ -1386,6 +1386,16 @@
     (is (equal "/lib/x86_64-linux-gnu/libc.so.6"
                (first (linked-files *soft*))))))
 
+(deftest csurf-asm-can-compile ()
+  (with-fixture csurf-asm-calc
+    (apply-config *soft* (asm-test-dir "calc.log"))
+    (with-temp-file (bin)
+      (multiple-value-bind (bin errno)
+          (with-cwd (temp-dir) (phenome *orig* :bin bin))
+        (is (zerop errno) "Calc compilation successful.")
+        (is (= 4 (parse-number (shell "~a + 2 2" bin)))
+            "Calc executable is executable and functional.")))))
+
 
 ;;;
 ;;; Test the TASK-RUNNER modules.
