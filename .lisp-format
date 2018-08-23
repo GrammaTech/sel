@@ -1,4 +1,5 @@
 ;;; -*- emacs-lisp -*-
+(set-default 'indent-tabs-mode nil)
 (mapc (lambda (dir) (add-to-list 'load-path dir))
       (directory-files (concat (getenv "QUICK_LISP")
                                "/dists/quicklisp/software/") t "slime-v*"))
