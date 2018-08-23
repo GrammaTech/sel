@@ -35,9 +35,25 @@ and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
 
-@subsection 2018-07-25 v0.0.0 -- Unreleased
-@cindex changelog-unreleased
+@subsection 2018-08-21 v0.0.1 -- Unreleased
+@cindex changelog-2018-08-21
+@cindex v0.0.1
 
+@itemize
+
+@item @b{Change @code{build-target} to @code{artifacts}}
+
+Changed the software @ref{project} class as well as
+@ref{clang-project} and @ref{java-project} to replace the
+@{build-target} field with a @code{artifacts} field.  This changes
+what was previously a single string to a list of strings so that
+projects may now build multiple artifacts (e.g., an executable and
+multiple libraries).  This also changes the use of the project
+@code{build-command}.  Previously the @code{build-target} was appended
+to the @code{build-command} as a target, now the @code{build-command}
+should be self-contained and will be run as is.
+
+@end itemize
 
 @subsection 2018-07-25 v0.0.0 -- Initial Release to Quicklisp
 @cindex changelog-2018-07-25

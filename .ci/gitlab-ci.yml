@@ -24,6 +24,12 @@ stages:
     - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/cl:${TAG}
     - docker build --build-arg=GT=yes -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
+    - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];
+      then
+          docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}:${CI_BUILD_REF_NAME};
+          docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
+          docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}:${CI_BUILD_REF_NAME};
+      fi
 
 build-ubuntu-ccl:
   stage: build
@@ -59,15 +65,15 @@ build-arch-sbcl:
     # up a new "latest" image, otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
       then
-          docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /gt/sel && unbuffer make check";
+          docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP}-${CI_BUILD_REF_NAME} /bin/bash -c "cd /gt/sel && unbuffer make check";
           if [ "$LISP" = "ccl" ];
           then
-          docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
+          docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP}-${CI_BUILD_REF_NAME} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
               docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
           fi
       else
-          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /gt/sel && unbuffer make check";
+          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP}-${CI_BUILD_REF_NAME} /bin/bash -c "cd /gt/sel && unbuffer make check";
       fi
 
 run-ubuntu-ccl:
@@ -130,14 +136,14 @@ trigger_shaker:
 pages:
   stage: deploy-and-cleanup
   script:
-    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch-sbcl.container
+    - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch-sbcl-${CI_BUILD_REF_NAME}.container
     - mkdir -p $(dirname ${CONTAINER_FILE})
     - docker run -e LOCAL_USER=root -e GT=yes --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-arch-sbcl /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(cat ${CONTAINER_FILE}):/public ./
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl-${CI_BUILD_REF_NAME}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl-${CI_BUILD_REF_NAME}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl-${CI_BUILD_REF_NAME}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl-${CI_BUILD_REF_NAME}
   artifacts:
     paths:
       - public
@@ -147,9 +153,9 @@ pages:
 cleanup:
   stage: deploy-and-cleanup
   script:
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl-${CI_BUILD_REF_NAME}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl-${CI_BUILD_REF_NAME}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl-${CI_BUILD_REF_NAME}
+    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl-${CI_BUILD_REF_NAME}
   except:
     - master

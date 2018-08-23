@@ -467,7 +467,7 @@
    :traceable-project
    :apply-to-project
    :build-command
-   :build-target
+   :artifacts
    :current-file
    :with-current-file
    :evolve-files
