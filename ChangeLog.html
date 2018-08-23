@@ -78,10 +78,25 @@ and version number.  Working notes may be accumulated in a special
 &ldquo;Unreleased&rdquo; section at the top of the ChangeLog.
 </p>
 
-<a name="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Unreleased"></a>
-<h4 class="subsection">E.13.1 2018-07-25 v0.0.0 &ndash; Unreleased</h4>
-<a name="index-changelog_002dunreleased"></a>
+<a name="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></a>
+<h4 class="subsection">E.13.1 2018-08-21 v0.0.1 &ndash; Unreleased</h4>
+<a name="index-changelog_002d2018_002d08_002d21"></a>
+<a name="index-v0_002e0_002e1"></a>
 
+<ul>
+<li> <b>Change <code>build-target</code> to <code>artifacts</code></b>
+
+<p>Changed the software <code>project</code> class as well as
+<code>clang-project</code> and <code>java-project</code> to replace the
+<code>build-target</code> field with a <code>artifacts</code> field.  This changes
+what was previously a single string to a list of strings so that
+projects may now build multiple artifacts (e.g., an executable and
+multiple libraries).  This also changes the use of the project
+<code>build-command</code>.  Previously the <code>build-target</code> was appended
+to the <code>build-command</code> as a target, now the <code>build-command</code>
+should be self-contained and will be run as is.
+</p>
+</li></ul>
 
 <a name="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></a>
 <h4 class="subsection">E.13.2 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h4>
