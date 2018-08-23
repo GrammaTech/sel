@@ -43,8 +43,8 @@ and version number.  Working notes may be accumulated in a special
 
 @item @b{Change @code{build-target} to @code{artifacts}}
 
-Changed the software @ref{project} class as well as
-@ref{clang-project} and @ref{java-project} to replace the
+Changed the software @code{project} class as well as
+@code{clang-project} and @code{java-project} to replace the
 @{build-target} field with a @code{artifacts} field.  This changes
 what was previously a single string to a list of strings so that
 projects may now build multiple artifacts (e.g., an executable and
