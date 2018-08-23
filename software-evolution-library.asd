@@ -51,7 +51,7 @@ techniques."
              (:file "diff" :depends-on ("simple"))
              (:file "asm"  :depends-on ("simple"))
              (:file "asm-heap" :depends-on ("asm"))
-	     (:file "asm-super-mutant" :depends-on ("asm-heap"))
+             (:file "asm-super-mutant" :depends-on ("asm-heap"))
              (:file "csurf-asm" :depends-on ("asm-heap"))
              (:file "elf"  :depends-on ("diff"))
              (:file "elf-cisc" :depends-on ("elf"))
@@ -126,7 +126,7 @@ techniques."
                software-evolution-library/utility
                software-evolution-library/ast-diff
                split-sequence
-	       software-evolution-library/stefil-plus
+               software-evolution-library/stefil-plus
                uuid
                #+gt testbot
                trace-db
@@ -361,9 +361,9 @@ techniques."
   :description "Adds some enhancements to the STEFIL test framework."
   :version "0.0.0"
   :depends-on (iterate
-	       uiop
-	       stefil
-	       software-evolution-library/utility)
+               uiop
+               stefil
+               software-evolution-library/utility)
   :components
   ((:module stefil-plus
             :pathname "test/src"
