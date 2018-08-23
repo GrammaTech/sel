@@ -45,7 +45,7 @@ and version number.  Working notes may be accumulated in a special
 
 Changed the software @code{project} class as well as
 @code{clang-project} and @code{java-project} to replace the
-@{build-target} field with a @code{artifacts} field.  This changes
+@code{build-target} field with a @code{artifacts} field.  This changes
 what was previously a single string to a list of strings so that
 projects may now build multiple artifacts (e.g., an executable and
 multiple libraries).  This also changes the use of the project
