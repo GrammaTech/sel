@@ -107,6 +107,8 @@ Some EXTRA-KEYS that may be useful are:
        'process
        :os-process
        (apply #'uiop:launch-program real-cmd
+              :output :stream
+              :error :stream
               #+sbcl
               ;; Ensure environment values are specified as a list of
               ;; KEY=VALUE strings expected by SBCL's :environment
