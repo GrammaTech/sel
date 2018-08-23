@@ -214,31 +214,12 @@ to the depth of 3 within the built jar"
   (compare-file-lists (get-files-jar jar-path)
                       (get-files-project-folder project-path)))
 
-(defmethod phenome ((obj java-project) &key (bin (temp-file-name)))
+(defmethod phenome :after ((obj java-project) &key (bin (temp-file-name)))
   "Compiles the software object to a jar and converts it to a linux executable"
-  (write-genome-to-files obj)
-  (note 3 "Compiling project")
-  ;; Build the object
-  (multiple-value-bind (stdout stderr exit)
-      (shell "cd ~a && ~a ~a" *build-dir*
-             (build-command obj) (build-target obj))
-    (restart-case
-        (if (zerop exit)
-            (with-temp-file-of (script-file) *java-execution-script-template*
-              (shell "cp -p -r ~a ~a"
-                     (merge-pathnames-as-file *build-dir*
-                                              (build-target obj))
-                     bin))
-            (error (make-condition 'phenome
-                     :text stderr :obj obj :loc *build-dir*)))
-      (retry-project-build ()
-        :report "Retry `phenome' on OBJ."
-        (phenome obj :bin bin))
-      (return-nil-for-bin ()
-        :report "Allow failure returning NIL for bin."
-        (setf bin nil)))
-    (values bin exit stderr stdout
-            (mapcar [#'full-path #'first] (evolve-files obj)))))
+  (with-temp-file-of (script-file) *java-execution-script-template*
+    (shell "cp -p -r ~a ~a"
+           (merge-pathnames-as-file *build-dir* (build-target obj))
+           bin)))
 
 (defmethod flags ((obj java-project))
   (declare (ignorable obj))
