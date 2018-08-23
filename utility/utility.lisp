@@ -1323,6 +1323,12 @@ replace `t' in the `*note-out*' list."
   ;; Always return nil.
   nil)
 
+(defmacro with-warnings-as-notes (note-level &body forms)
+  `(handler-bind ((warning (lambda (c)
+                             (note ,note-level "~&~A~%" c)
+                             (invoke-restart 'muffle-warning))))
+     ,@forms))
+
 #+sbcl
 (defun trace-memory ()
   (when (>= *note-level* 2)

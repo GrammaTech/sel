@@ -206,6 +206,7 @@
    :*note-out*
    :replace-stdout-in-note-targets
    :note
+   :with-warnings-as-notes
    :trace-memory
    :*shell-count*
    ;; diff computing
