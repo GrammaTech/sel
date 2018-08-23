@@ -214,13 +214,6 @@ to the depth of 3 within the built jar"
   (compare-file-lists (get-files-jar jar-path)
                       (get-files-project-folder project-path)))
 
-(defmethod phenome :after ((obj java-project) &key (bin (temp-file-name)))
-  "Compiles the software object to a jar and converts it to a linux executable"
-  (with-temp-file-of (script-file) *java-execution-script-template*
-    (shell "cp -p -r ~a ~a"
-           (merge-pathnames-as-file *build-dir* (build-target obj))
-           bin)))
-
 (defmethod flags ((obj java-project))
   (declare (ignorable obj))
   nil)
