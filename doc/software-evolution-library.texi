@@ -1828,7 +1828,7 @@ is nicer than this.
 
 
 @node ChangeLog, Licensing, SEL Coding Standards, Top
-@appendixsec ChangeLog
+@appendix ChangeLog
 @include changelog.texi
 
 @node Licensing, Copying, ChangeLog, Top
