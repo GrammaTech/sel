@@ -34,8 +34,7 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
-
-@subsection 2018-08-21 v0.0.1 -- Unreleased
+@appendixsec 2018-08-21 v0.0.1 -- Unreleased
 @cindex changelog-2018-08-21
 @cindex v0.0.1
 
@@ -55,7 +54,7 @@ should be self-contained and will be run as is.
 
 @end itemize
 
-@subsection 2018-07-25 v0.0.0 -- Initial Release to Quicklisp
+@appendixsec 2018-07-25 v0.0.0 -- Initial Release to Quicklisp
 @cindex changelog-2018-07-25
 @cindex v0.0.0
 
