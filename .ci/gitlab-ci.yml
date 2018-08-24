@@ -26,9 +26,9 @@ stages:
     - docker build --build-arg=GT=yes -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP}-${CI_BUILD_REF_NAME} .
     - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];
       then
-          docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP}-${CI_BUILD_REF_NAME} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}:${CI_BUILD_REF_NAME};
+          docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP}-${CI_BUILD_REF_NAME} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${LISP}:${CI_BUILD_REF_NAME};
           docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
-          docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}:${CI_BUILD_REF_NAME};
+          docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${LISP}:${CI_BUILD_REF_NAME};
       fi
 
 build-ubuntu-ccl:
