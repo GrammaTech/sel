@@ -69,7 +69,7 @@
   (cost 0 :type fixnum)
   (hash nil :type (or null fixnum)))
 
-#+sbcl (declaim (optimize sb-cover:store-coverage-data))
+;; #+sbcl (declaim (optimize sb-cover:store-coverage-data))
 
 ;; (declaim (inline reduce-on))
 (defun reduce-on (combining-fn tail-fn x &key (recur-p #'consp) (next #'cdr))
@@ -982,4 +982,4 @@ as the test of a hash table."
 ;;; This could be tied in with a general mechanism for hash consing
 ;;; of ASTs.
 
-#+sbcl (declaim (optimize (sb-cover:store-coverage-data 0)))
+;; #+sbcl (declaim (optimize (sb-cover:store-coverage-data 0)))
