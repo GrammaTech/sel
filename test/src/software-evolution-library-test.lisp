@@ -8687,6 +8687,21 @@ int main() { puts(\"~d\"); return 0; }
 ;;;; AST Diff tests
 (defsuite ast-diff-tests "AST-level diffs of Sexprs.")
 
+(deftest sexp-diff-empty ()
+  (is (equalp (multiple-value-list (ast-diff nil nil))
+	      '(nil 0))
+      "Simplest case -- empty list to itself."))
+
+(deftest sexp-diff-empty-to-nonempty ()
+  (is (equalp (multiple-value-list (ast-diff nil '(1)))
+	      '(((:insert . 1)) 1))
+      "Empty list vs. list of one atom"))
+
+(deftest sexp-diff-nonempty-to-empty ()
+  (is (equalp (multiple-value-list (ast-diff '(1) nil))
+	      '(((:delete . 1)) 1))
+      "List of one atom vs. empty list"))
+
 (deftest sexp-diff-equal-zero-cost ()
   (is (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4))))
       "Equal should have 0 cost."))
@@ -8694,6 +8709,29 @@ int main() { puts(\"~d\"); return 0; }
 (deftest sexp-diff-non-equal-first-element ()
   (is (not (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(0 2 3 4)))))
       "Difference in first car is caught."))
+
+(deftest sexp-shuffled-elements1 ()
+  (is (equalp (ast-patch '(1 2 3 4)
+			 (ast-diff '(1 2 3 4) '(1 4 3 2)))
+	      '(1 4 3 2))
+      "Shuffled elements create a correct diff"))
+
+(deftest sexp-shuffled-elements2 ()
+  (is (equalp (ast-patch '(1 2 3 4)
+			 (ast-diff '(1 2 3 4) '(1 4 3 5 2)))
+	      '(1 4 3 5 2))
+      "Shuffled elements create a correct diff"))
+
+(deftest sexp-shuffled-elements3 ()
+  (is (equalp (ast-patch '(1 2 3 5 4)
+			 (ast-diff '(1 2 3 5 4) '(1 4 3 2)))
+	      '(1 4 3 2))
+      "Shuffled elements create a correct diff"))
+
+(deftest sexp-two-differences ()
+  (is (equalp (ast-patch '(1 2 3 4 5) (ast-diff '(1 2 3 4 5) '(1 6 3 7 5)))
+	      '(1 6 3 7 5))
+      "Two lists that differ in two non-adjacent places"))
 
 (deftest sexp-diff-simple-sublist-test ()
   (multiple-value-bind (script cost)
@@ -8716,7 +8754,7 @@ int main() { puts(\"~d\"); return 0; }
   (multiple-value-bind (diff cost)
       (ast-diff '(1 (1 2 3 4 5) 2) '(1 (1 2 4 5) 3))
     (is (= 3 cost) "Cost of a sub-tree diff performed recursion.")
-    (is (equalp '(:same :recurse :delete :insert) (mapcar #'car diff)))))
+    (is (equalp '(:same :recurse :insert :delete) (mapcar #'car diff)))))
 
 (deftest ast-diff-nested-recursion-into-subtree ()
   (multiple-value-bind (diff cost) (ast-diff '(((1 nil 3)) 3) '(((1 2 3)) 3))
