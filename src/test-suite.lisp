@@ -94,21 +94,29 @@ Some EXTRA-KEYS that may be useful are:
 "
   (flet ((bin-sub (bin it)
            (if (eq :bin it) bin it)))
-    (let ((real-cmd (mapcar {bin-sub (namestring phenome)}
-                            (cons (program-name test-case)
-                                  (program-args test-case))))
-          ;; Backwards compatible: we used to use :error to refer to the error
-          ;; output stream, but uiop:run-program standardizes to :error-output
-          (extra-keys (mapcar (lambda (it) (if (eq it :error) :error-output it))
-                              extra-keys)))
+    (let* ((real-cmd (mapcar {bin-sub (namestring phenome)}
+                             (cons (program-name test-case)
+                                   (program-args test-case))))
+           (output (or (plist-get :output extra-keys) :stream))
+           ;; Backwards compatible: we used to use :error to refer to the error
+           ;; output stream, but uiop:run-program standardizes to :error-output
+           (error-output (or (plist-get :error-output extra-keys)
+                             (plist-get :error extra-keys)
+                             :stream)))
+
+      (plist-drop :output extra-keys)
+      (plist-drop :error-output extra-keys)
+      (plist-drop :error extra-keys)
+
       (when *shell-debug*
         (format t "  cmd: ~{~a ~}~%" real-cmd))
+
       (make-instance
        'process
        :os-process
        (apply #'uiop:launch-program real-cmd
-              :output :stream
-              :error :stream
+              :output output
+              :error-output error-output
               #+sbcl
               ;; Ensure environment values are specified as a list of
               ;; KEY=VALUE strings expected by SBCL's :environment
