@@ -69,18 +69,9 @@
   (cost 0 :type fixnum)
   (hash nil :type (or null fixnum)))
 
-#|
-(defun to-costed (obj)
-  (labels ((recurse (obj)
-             (if (consp obj)
-                 (ccons (recurse (car obj))
-                        (recurse (cdr obj))
-                        :orig obj)
-                 (make-costed :obj obj :orig obj :cost (ast-cost obj)))))
-    (recurse obj)))
-|#
+#+sbcl (declaim (optimize sb-cover:store-coverage-data))
 
-(declaim (inline reduce-on))
+;; (declaim (inline reduce-on))
 (defun reduce-on (combining-fn tail-fn x &key (recur-p #'consp) (next #'cdr))
   "Use COMBINING-FN to combine, last to first, the values obtained by calling NEXT
 zero or more times on X, until RECUR-P is false, at which point TAIL-FN is applied
@@ -140,7 +131,9 @@ instead to that last value."
     (helper costed (make-costed))))
 
 (defmethod clast ((costed costed))
-  (if (cconsp costed) (clast (ccdr costed)) costed))
+  (iter (while (cconsp costed))
+	(setf costed (ccdr costed)))
+  costed)
 
 
 ;;; Interface functions.
@@ -158,7 +151,6 @@ instead to that last value."
 
 (defmethod ast-equal-p ((ast-a costed) (ast-b costed))
   (ast-equal-p (cobj ast-a) (cobj ast-b)))
-;;  (= (ast-hash ast-a) (ast-hash ast-b)))
 
 (defgeneric ast-cost (ast)
   (:documentation "Return cost of AST."))
@@ -170,11 +162,6 @@ instead to that last value."
   (+ (iter (sum (ast-cost (pop ast)))
 	   (while (consp ast)))
      (ast-cost ast)))
-#|
-  (if (consp ast)
-      (+ (ast-cost (car ast)) (ast-cost (cdr ast)))
-      1))
-|#
 
 (defmethod ast-cost ((ast costed))
   (ast-cost (cobj ast)))
@@ -208,7 +195,7 @@ instead to that last value."
   (:documentation "Return textual representation of AST."))
 
 (defmethod ast-text ((ast t))
-  (write ast :stream nil :readably t))
+  (format nil "~A" ast))
 
 (defmethod ast-text ((ast costed))
   (ast-text (cobj ast)))
@@ -218,22 +205,22 @@ instead to that last value."
 
 (defmethod ast-text ((ast cons))
   (concatenate 'string (ast-text (car ast)) (ast-text (cdr ast))))
-
+
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
 integer.  It should be the case that (ast-equal-p x y) implies
 (eql (ast-hash x) (ast-hash y)), and that if (not (ast-equal-p x y))
 then the equality of the hashes is unlikely."))
 
-;;; Hashing on trees is done by computing, for each subtree,
-;;; its own hash function, then combining them with a polynomial
-;;; in a prime p whose coefficients are linear functions
-;;; of the subtree hashes.  All hashes are themselves computed
-;;; mod another prime that is close to a power of 2.
-
 (defconstant +ast-hash-base+ (- (ash 1 56) 5)
   "A prime that is close to a power of 2")
 
+;; All hash values are of typer HASH-TYPE.
+;; This was chosen to be large enough that collisions
+;; are unlikely.  However, a collision can be expected
+;; if hashing more than about (ash 1 28) (~ 256 million)
+;; ASTs.  The value was chosen so the base is a fixnum
+;; in both SBCL and CCL (64 bit).
 (deftype hash-type () '(integer 0 (#.(- (ash 1 56) 5))))
 
 (let ((a-coeffs
@@ -296,6 +283,8 @@ modile +AST-HASH-BASE+"
 	  (c2 38665981814718286))
       (mod (+ (* c1 i) c2) +ast-hash-base+)))
 
+  ;; could have specialized methods on strings
+  ;; to speed up that common case
   (defmethod ast-hash ((s vector))
     (apply #'ast-combine-hash-values
 	   38468922606716016
@@ -306,9 +295,15 @@ modile +AST-HASH-BASE+"
     ;; Assumes not a circular list
     (apply #'ast-combine-hash-values
 	   16335929882652762
-	   (iter (collect (ast-hash (if (consp l) (car l) l)))
-		 (while (consp l))
-		 (pop l))))
+	   (iter
+	    (collect (if (consp l)
+			 (ast-hash (car l))
+			 ;; add a constant to distinguish (X Y)
+			 ;; from (X . Y)
+			 (+ 41019876016299766
+			    (ast-hash l))))
+	    (while (consp l))
+	    (pop l))))
 
   (defmethod ast-hash ((n null))
     46757794301535766)
@@ -343,9 +338,19 @@ modile +AST-HASH-BASE+"
 		  (ast-hash (cobj c))))))
 
   )
-      
 
 
+(defun ast-hash-with-check (ast table)
+  "Calls AST-HASH, but checks that if two ASTs have the same hash value,
+they are actually equal.  If not, the second one gets a new, fresh hash
+value that is used instead."
+  (let* ((hash (ast-hash ast))
+	 (old-ast (gethash hash table)))
+    (when (and old-ast (not (ast-equal-p ast old-ast)))
+      (iter (incf hash) ; this may be >= +ast-hash-base+, but that's ok
+	    (while (gethash hash table)))
+      (setf (gethash hash table) ast))
+    hash))
 
 ;;; Main interface to calculating ast differences.
 (defgeneric ast-diff (ast-a ast-b)
@@ -393,6 +398,8 @@ Prefix and postfix returned as additional values."
   (make-array (list (1+ (clength total-a)) (1+ (clength total-b)))
 	      :initial-element nil))
 
+;;; Simple queue.  This must be implemented in a library somewhere
+;;; in Quicklisp.
 (defun make-simple-queue ()
   (cons nil nil))
 
@@ -412,9 +419,9 @@ Prefix and postfix returned as additional values."
 (defun recursive-diff (total-a total-b &key (upper-bound most-positive-fixnum)
                        &aux
                          (from (make-cache total-a total-b))
-			 ;; FRINGE is a priority queue used to order
+			 ;; FRINGE is a queue used to order
 			 ;; visits of 'open' nodes.  An open node should only
-			 ;; be put on the priority queue when all its
+			 ;; be put on the queue when all its
 			 ;; predecessors are closed.
                          ;; (fringe (make-instance 'priority-queue))
 			 (fringe (make-simple-queue))
@@ -431,7 +438,7 @@ Prefix and postfix returned as additional values."
 			 (ltb (clength total-b))
 			 )
   ;; UPPER-BOUND is a limit beyond which we give up on
-  ;; pursuing edges
+  ;; pursuing edges.  This is not currently exploited.
   (labels
       ((%enqueue (node)
 	 ;; (enqueue fringe node cost)
@@ -460,7 +467,6 @@ Prefix and postfix returned as additional values."
        (%pos-a (a) (- lta (clength a)))
        (%pos-b (b) (- ltb (clength b))))
 
-    #+ast-diff-debug (format t "Open 0,0~%" 0 0)
     (setf (aref g 0 0) 0  ;; initial node reachable at zero cost
           (aref open 0 0) t
           total-open (1+ total-open))
@@ -469,8 +475,7 @@ Prefix and postfix returned as additional values."
 
     (do ((current (%dequeue) (%dequeue)))
         ((zerop total-open)
-         (reconstruct-path (clast total-a) (clast total-b)
-                           (clength total-a) (clength total-b)))
+         (reconstruct-path (clast total-a) (clast total-b) lta ltb))
 
       (let* ((a (car current)) (b (cdr current))
              (pos-a (%pos-a a))
@@ -483,16 +488,13 @@ Prefix and postfix returned as additional values."
         (when (aref open pos-a pos-b) (decf total-open))
         (setf (aref open pos-a pos-b) nil
               (aref closed pos-a pos-b) t)
-	#+ast-diff-debug (format t "Close ~A,~A~%" pos-a pos-b)
 
         (labels                         ; Handle all neighbors.
             ((add (neighbor edge)
-               (destructuring-bind (next-a next-b)
-                   (list (- (clength total-a) (clength (car neighbor)))
-                         (- (clength total-b) (clength (cdr neighbor))))
+	       (let ((next-a (%pos-a (car neighbor)))
+		     (next-b (%pos-b (cdr neighbor))))
                  (unless (aref closed next-a next-b) ; should never happen?
 		   (unless (aref open next-a next-b)
-		     #+ast-diff-debug (format t "Open ~A,~A~%" next-a next-b)
 		     (incf total-open)
 		     (setf (aref open next-a next-b) t))
 		   (let ((tentative
@@ -502,11 +504,6 @@ Prefix and postfix returned as additional values."
 		     ;; Neighbor is an improvement.
 		     (when (and (or (null value) (< tentative value))
 				(< tentative upper-bound))
-		       #+ast-diff-debug
-		       (progn
-			 (format t "Found better edge of cost ~A~%from ~A,~A to ~A,~A~%"
-				 (ccost edge) pos-a pos-b next-a next-b)
-			 (format t "Old cost ~A, new cost ~A~%" value tentative))
 		       (setf (aref from next-a next-b)
 			     (cons (cons pos-a pos-b) edge)
 			     value tentative
@@ -523,12 +520,11 @@ Prefix and postfix returned as additional values."
 	     (%recursive (a b)
 	       (let ((i (%pos-a a))
 		     (j (%pos-b b)))
-		 #+ast-diff-debug
-		 (format t "%recursive: ~A,~A~%~A~%~A~%" i j a b)
 		 (or (aref r-cache i j)
 		     (setf (aref r-cache i j)
-			   (recursive-diff (to-costed (ast-on-recurse (corig (ccar a))))
-					   (to-costed (ast-on-recurse (corig (ccar b))))))))))
+			   (recursive-diff
+			    (to-costed (ast-on-recurse (corig (ccar a))))
+			    (to-costed (ast-on-recurse (corig (ccar b))))))))))
 
           ;; Check neighbors: diagonal, recurse, insert, delete.
           (when (and (cconsp a) (cconsp b))
@@ -577,16 +573,16 @@ Prefix and postfix returned as additional values."
                         diff)))
                 cost)))
       (unless (or unique-a unique-b)
-        (return-from ast-diff
+        (return-from ast-diff-on-lists
           (multiple-value-call #'add-common
             (values nil 0))))
       (when (null unique-a)
-        (return-from ast-diff
+        (return-from ast-diff-on-lists
           (multiple-value-call #'add-common
             (values (mapcar (lambda (el) (cons :insert el)) unique-b)
                     (1- (ccost (to-costed unique-b))))))) ; 1- for trailing nil.
       (when (null unique-b)
-        (return-from ast-diff
+        (return-from ast-diff-on-lists
           (multiple-value-call #'add-common
             (values (mapcar (lambda (el) (cons :delete el)) unique-a)
                     (1- (ccost (to-costed unique-a))))))) ; 1- for trailing nil.
@@ -595,43 +591,52 @@ Prefix and postfix returned as additional values."
         (from-costed (recursive-diff (to-costed unique-a) (to-costed unique-b)))))))
 
 (defmethod ast-diff ((ast-a t) (ast-b t))
-  (setf ast-a (ast-on-recurse ast-a))
-  (setf ast-b (ast-on-recurse ast-b))
-  (let* ((hashes-a (mapcar #'ast-hash ast-a))
-	 (hashes-b (mapcar #'ast-hash ast-b))
+  (let ((new-ast-a (ast-on-recurse ast-a))
+	(new-ast-b (ast-on-recurse ast-b)))
+    (unless (and (proper-list-p new-ast-a) (proper-list-p new-ast-b))
+      (return-from ast-diff (ast-diff-on-lists ast-a ast-b)))
+    (setf ast-a new-ast-a ast-b new-ast-b))
+  (let* ((table (make-hash-table))
+	 (hashes-a (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-a))
+	 (hashes-b (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-b))
 	 (subseq-triples (good-common-subsequences hashes-a hashes-b))
 	 diff-a common-a diff-b common-b)
     ;; split ast-a and ast-b into subsequences
+    ;; Get lists of subsequences on which they differ, and subsequences on
+    ;; which they are equal.  Some of the former may be empty.
     (setf (values diff-a common-a)
 	  (split-into-subsequences ast-a (mapcar (lambda (x) (list (car x) (caddr x))) subseq-triples)))
     (setf (values diff-b common-b)
 	  (split-into-subsequences ast-b (mapcar (lambda (x) (list (cadr x) (caddr x))) subseq-triples)))
     (assert (= (length diff-a) (length diff-b)))
     (assert (= (length common-a) (length common-b)))
-    (format t "subseq-triples = ~A~%" subseq-triples)
+    ;; (assert (= (length diff-a) (1+ (length common-a))))
     (let ((overall-diff nil)
 	  (overall-cost 0))
       (iter (for da in (reverse diff-a))
-	  (for db in (reverse diff-b))
-	  (for ca in (reverse (cons nil common-a)))
-	  ;; (for cb in common-b)
-	  (multiple-value-bind (diff cost)
-	      (ast-diff-on-lists da db)
-	    (when (and overall-diff (equalp (lastcar diff) '(:same)))
-	      (assert (>= cost 1))
-	      (decf cost)
-	      (setf diff (butlast diff)))
-	    (setf overall-diff (append diff overall-diff))
-	    (incf overall-cost cost))
-	  (setf overall-diff (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
+	    (for db in (reverse diff-b))
+	    (for ca in (reverse (cons nil common-a)))
+	    ;; (for cb in (reverse (cons nil common-b)))
+	    ;; (assert (ast-equal-p ca cb))
+	    (multiple-value-bind (diff cost)
+		(ast-diff-on-lists da db)
+	      (when (and overall-diff (equalp (lastcar diff) '(:same)))
+		(assert (>= cost 1))
+		(decf cost)
+		(setf diff (butlast diff)))
+	      (setf overall-diff (append diff overall-diff))
+	      (incf overall-cost cost))
+	    (setf overall-diff (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
       (values overall-diff overall-cost))))
 
 (defun split-into-subsequences (seq subseq-indices &aux (n (length seq)))
   "Given list SEQ and a list of pairs SUBSEQ-INDICES, which are start/length indices
 for disjoint nonempty subsequences of SEQ, return a list of the N+1 subsequences between these
 subsequences (some possibly empty), as well as the N subsequences themselves."
-  (assert (every (lambda (x) (and (<= 0 (car x)) (< (car x) n) (<= 1 (cadr x)))) subseq-indices))
-  (assert (every (lambda (x y) (<= (+ (car x) (cadr x)) (car y))) subseq-indices (cdr subseq-indices)))
+  (assert (every (lambda (x) (and (<= 0 (car x)) (< (car x) n) (<= 1 (cadr x))))
+		 subseq-indices))
+  (assert (every (lambda (x y) (<= (+ (car x) (cadr x)) (car y)))
+		 subseq-indices (cdr subseq-indices)))
   (let ((pos 0)
 	(common nil)
 	(diff nil))
@@ -667,6 +672,9 @@ subsequences (some possibly empty), as well as the N subsequences themselves."
                         (nth (1- base) other) 'z)
                   (format t "Base:~A~%" base)
                   (time (dotimes (n 10) (ast-diff orig other)))))
+
+;;; These numbers are obsolete; re-run them.
+
 ;; SBCL 1.4.6
 ;; ============================================================
 ;; size	runtime	bytes-consed
@@ -847,8 +855,7 @@ start2 len), where 0 <= start1 < (length s1), 0 <= start2
 < (length s2), and (every test (subseq s1 start1 len) (subseq s2
 start2 len)) is true. The list is sorted into increasing order
 by the CADDR of the elements.  TEST must be suitable for use
-in a hash table (that is, EQ, EQL, EQUAL, EQUALP, or function
-equivalents of these)."
+as the test of a hash table."
   (assert (listp s1))
   (assert (listp s2))
   (let ((table1 (make-hash-table :test test))
@@ -856,7 +863,7 @@ equivalents of these)."
     ;; POS1 and POS2 are hash tables mapping the
     ;; elements of s1 and s2 to the positions they
     ;; have in each list.  Arrange so the indices
-    ;; are in increasing order.
+    ;; in each list are in increasing order.
     (flet ((%collect (s h)
 	     (iter (for x in s) (for i from 0)
                    (push i (gethash x h))))
@@ -889,15 +896,18 @@ equivalents of these)."
 	  (p1 s1)
 	  (p2 s2))
       (labels ((cut ()
+		 "Terminate the current common segment"
 		 (when (> len 0)
 		   (push (list start1 start2 len) result)
 		   (setf len 0)))
 	       (chop1 ()
+		 "Advance the cursor in s1"
 		 (let ((i (pop (gethash (car p1) table1))))
 		   (assert (eql i pos1)))
 		 (incf pos1)
 		 (pop p1))
 	       (chop2 ()
+		 "Advance the cursor in s2"
 		 (let ((i (pop (gethash (car p2) table2))))
 		   (assert (eql i pos2)))
 		 (incf pos2)
@@ -915,7 +925,7 @@ equivalents of these)."
 		 ;; list
 		 ((funcall test (car p1) (car p2))
 		  ;; Extended the common subsequence, or start
-		  ;; one if none is in process
+		  ;; one if none is in progress
 		  (if (= len 0)
 		      (setf start1 pos1 start2 pos2 len 1)
 		      (incf len))
@@ -936,3 +946,40 @@ equivalents of these)."
 	(if (> len 0)
 	    (nreconc result (list (list start1 start2 len)))
 	    (nreverse result))))))
+
+;;; Comments on further algorithm improvements
+;;;
+;;; The "good enough" algorithm could be made slightly better
+;;; by allowing limited lookahead.  With k lookahead it could
+;;; run in O(k max(m,n)) time, m and n the lengths of the sequences.
+;;;
+;;; The hash function has not been fully tuned for speed.
+;;;
+;;; RECURSIVE-DIFF has an UPPER-BOUND argument.  This is not used
+;;; now, but could be used to speed up the slow part of the algorithm
+;;; if we want an exact solution rather than the "good enough" solution.
+;;; Use the cost of the "good enough" solution to provide an upper bound
+;;; for the exact solution.   Also, recursive calls could provide their
+;;; own upper bounds based on the optimum path to the node from which
+;;; the call is being made.
+;;;
+;;; The dynamic programming algorithm uses O(mn) space.  It can be
+;;; changed to use linear space.  There are various schemes in the
+;;; literature for doing LCS and edit distance in linear space.
+;;; A simple one is as follows: note that we can compute the length
+;;; of the LCS (or the edit distance) in linear space by scanning
+;;; the array keeping just two rows.  We cannot reconstruct the
+;;; edit from this, but we can record which entry on the m/2 row
+;;; was in the final optimal solution.  Once we have done that,
+;;; the parts before and after that point can be recomputed
+;;; recursively.
+;;;
+;;; The speed on C programs is now dominated by the time needed
+;;; for Clang to parse the C and send the AST to Lisp.
+;;;
+;;; It may be useful to have a hash function on ASTs that produces
+;;; smaller integers, and use ast-hash-with-check to handle collisions.
+;;; This could be tied in with a general mechanism for hash consing
+;;; of ASTs.
+
+#+sbcl (declaim (optimize (sb-cover:store-coverage-data 0)))
