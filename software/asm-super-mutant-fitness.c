@@ -1,9 +1,12 @@
 //
-// File: asm-super-mutant.c
+// File: asm-super-mutant-fitness.c
 // Contents: C harness to run and test various asm-super-mutant
 // software objects, to determine which variant has the best fitness
 // for each test.
-// 
+//
+#define __x86_64__ 1
+#define __USE_GNU 1
+
 #include <signal.h>
 #include <time.h>
 #include <stdio.h>
@@ -13,6 +16,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <sys/ucontext.h>
+#include <sys/syscall.h>
 #include <errno.h>
 #include <setjmp.h>
 #include <papi.h>
@@ -31,9 +36,10 @@ extern vfunc variant_table[]; // 0-terminated array of variant
                               // function pointers, defined in the asm file
 #define NUM_INPUT_REGS 15     // number of live input registers
 #define NUM_OUTPUT_REGS 9     // number of live output registers
-#define RSP_INDEX 3           // index within output register set
+#define RSP_OUTPUT_INDEX 3    // index within output register set
                               // where RSP is stored
-#define DEBUG 0               // set this to 1, to turn on debugging messages
+#define RSP_INPUT_INDEX 4     // index of RSP on input registers
+#define DEBUG 1               // set this to 1, to turn on debugging messages
 
 // Expected input registers:
 //    rax
@@ -189,6 +195,23 @@ static int EventSet = PAPI_NULL;
        "pop %rax\n\t");
 
 //
+// Map a single page as read/write, given an address that falls on
+// that page
+void map_page(unsigned long* addr) {
+    unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
+    void* anon = mmap(page_addr, PAGE_SIZE,
+                          PROT_READ|PROT_WRITE,
+                              MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED /*|MAP_UNINITIALIZED*/,
+                          -1,
+                          0);
+#if DEBUG
+    fprintf(stderr, "Allocated page at address 0x%lx, result: %lx\n",
+           (unsigned long)page_addr,
+           (unsigned long)anon);
+#endif
+}
+
+//
 // Traverse the mem inputs, three qwords at a time.
 // Ensure all pages that are referenced are committed.
 // When we get to a null address, we've reached the end of the inputs.
@@ -197,26 +220,16 @@ void map_pages(unsigned long* p) {
     for (int k = 0; k < num_tests; k++) {
         while (*p) {
             unsigned long* addr = (unsigned long*)*p;
+            map_page(addr);
             p += 3;
-            // allocate pages the first time
-            unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
-            void* anon = mmap(page_addr, PAGE_SIZE,
-                          PROT_READ|PROT_WRITE,
-                          MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
-                          -1,
-                          0);
-#if DEBUG
-            fprintf(stderr, "Allocated page at address 0x%lx, result: %lx\n",
-                   (unsigned long)page_addr,
-                   (unsigned long)anon);
-#endif
         }
         p++;
     }
 }
 
 void init_pages() {
-    map_pages(input_mem);
+    map_page((unsigned long*)(input_regs[RSP_INPUT_INDEX]));  // map the initial stack page
+    map_pages(input_mem); // map pages indicated by the memory i/o
 }
 
 //
@@ -306,7 +319,8 @@ int check_results(int variant, int test) {
         unsigned long data = *p++;
         unsigned long mask = *p++;
 
-        unsigned long* rsp = (unsigned long*)output_regs[test * NUM_OUTPUT_REGS + RSP_INDEX];
+        unsigned long* rsp = (unsigned long*)output_regs[test * NUM_OUTPUT_REGS
+                                                         + RSP_OUTPUT_INDEX];
         if (addr < rsp && (rsp - addr) < 64)
             continue;    // ignore changes in the 1024 below the top
                          // of the stack (i.e. not on the stack, which
@@ -323,37 +337,33 @@ int check_results(int variant, int test) {
     return success;
 }
 
-void segfault_sigaction(int signal, siginfo_t *si, void *arg) {
-    //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
-    //asm(" movq save_return_address, %rbx\n\t");
-    // asm(" jmp *%rbx\n\t");
+// Unblock a signal.  Unless we do this, the signal may only be sent once.
+static void unblock_signal(int signum)
+{
+    sigset_t sigs;
+    sigemptyset(&sigs);
+    sigaddset(&sigs, signum);
+    sigprocmask(SIG_UNBLOCK, &sigs, NULL);
+}
+
+static void sigunblock() {
+    // Unblock the signal
+    sigset_t sa_mask;
+    sigemptyset(&sa_mask);
+    sigaddset(&sa_mask, SIGSEGV);
+    sigaddset(&sa_mask, SIGBUS);
+    sigprocmask(SIG_UNBLOCK, &sa_mask, NULL);
+}
     
-    // try to make the memory page read/write
-    unsigned long addr = (unsigned long)(si->si_addr);
-    unsigned long page_start = addr & PAGE_MASK;
-    //fprintf(stderr, "Attempting to make page %lx have read/write permission.\n",
-    //        page_start);
-    int ret = mprotect((unsigned long*)page_start, PAGE_SIZE, PROT_READ|PROT_WRITE);
-    if (ret < 0) {
-        unsigned long* page_addr = (unsigned long*)(((unsigned long)addr) & PAGE_MASK);
-        void* anon = mmap(page_addr, PAGE_SIZE,
-                          PROT_READ|PROT_WRITE,
-                          MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED,
-                          -1,
-                          0);
-        if (anon == page_addr)
-            return;
-    }        
-    if (ret < 0) {
-        switch (errno) {
-        case EACCES:  fprintf(stderr, "Error: EACCESS\n"); break;
-        case EINVAL:  fprintf(stderr, "Error: EINVAL\n"); break;
-        case ENOMEM:  fprintf(stderr, "Error: ENOMEM\n"); break;
-            //default:      fprintf(stderr, "Error: unknown code %d\n", errno);
-        }
-        exit(errno);
-    }
-    // otherwise continue
+#define REG_RIP 16
+
+void segfault_sigaction(int signal, siginfo_t *si, void *context) {
+    //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
+
+    //unblock_signal(signal);
+    
+    ucontext_t* p = (ucontext_t*)context;
+    p->uc_mcontext.gregs[REG_RIP] = (greg_t)save_return_address;
 }
 
 void timer_sigaction(int signal, siginfo_t *si, void *arg) {
@@ -371,7 +381,7 @@ static struct sigaction tsa;
 static sigset_t mask;
 
 void start_timer() {
-    timer.it_value.tv_nsec = 10000000;  // .01 second timeout
+    timer.it_value.tv_nsec = 1000000;  // .001 second timeout
     timer.it_value.tv_sec = 0;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_nsec = 0;
@@ -446,11 +456,12 @@ unsigned long run_variant(int v, int test) {
     test_offset = test * NUM_INPUT_REGS * sizeof(unsigned long);
     execaddr = variant_table[v];
     init_mem(test);
-//    timer_start(start);
+    //timer_start(start);
     //PAPI_reset(EventSet);
 
     start_timer();  // start POSIX timer
-        
+    sigunblock();
+    
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
         fprintf(stderr, "PAPI_start() error: %d\n", retval);
@@ -470,7 +481,8 @@ unsigned long run_variant(int v, int test) {
 //    timer_elapsed(start, elapsed);
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
-
+    sigunblock();
+    
     if (retval < 0) {
         fprintf(stderr, "PAPI_read() error: %d\n", retval);
         exit(1);
@@ -500,6 +512,8 @@ void run_variant_tests(int v, unsigned long test_results[]) {
 #endif
     for (int k = 0; k < num_tests; k++) {
         test_results[k] = run_variant(v, k);
+        if (test_results[k] == ULONG_MAX)
+            return;             // quit on the first failure
     }
 }
 
@@ -534,8 +548,45 @@ void papi_init() {
     }
 }
 
-unsigned char sig_stack_bytes[SIGSTKSZ];
-stack_t signal_stack = { sig_stack_bytes, 0, SIGSTKSZ };
+unsigned char sig_stack_bytes[SIGSTKSZ + 8];
+stack_t signal_stack = { sig_stack_bytes + 8, 0, SIGSTKSZ };
+
+#if 0
+#define RESTORE(name, syscall) RESTORE2 (name, syscall)
+#define RESTORE2(name, syscall)			\
+asm						\
+  (						\
+   ".text\n"					\
+   ".byte 0  # Yes, this really is necessary\n" \
+   ".align 16\n"				\
+   "__" #name ":\n"				\
+   "	movq $" #syscall ", %rax\n"		\
+   "	syscall\n"				\
+   );
+
+/* The return code for realtime-signals.  */
+RESTORE (restore_rt, __NR_rt_sigreturn)
+void restore_rt (void) asm ("__restore_rt")
+  __attribute__ ((visibility ("hidden")));
+
+struct kernel_sigaction 
+{
+    void (*k_sa_sigaction)(int,siginfo_t *,void *);
+    unsigned long k_sa_flags;
+    void (*k_sa_restorer) (void);
+    sigset_t k_sa_mask;
+};
+
+void setup_kernel_handler(int sig) {
+    // we need to use a kernel handler
+    struct kernel_sigaction act;
+    act.k_sa_sigaction = segfault_sigaction;
+    sigemptyset(&act.k_sa_mask);
+    act.k_sa_flags = SA_SIGINFO|SA_NODEFER|SA_ONSTACK;
+    act.k_sa_restorer = restore_rt;
+    syscall(SYS_rt_sigaction, sig, &act, NULL, _NSIG / 8);
+}
+#endif
 
 //
 //
@@ -545,18 +596,23 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Error installing alternate signal stack\n");
         exit(1);
     }
+    sigunblock();
     
     struct sigaction sa;
     memset(&sa, 0, sizeof(struct sigaction));
     sigemptyset(&sa.sa_mask);
     sa.sa_sigaction = segfault_sigaction;
-    sa.sa_flags = SA_SIGINFO; // | SA_ONSTACK;
+    sa.sa_flags = SA_SIGINFO|SA_NODEFER|SA_RESTART|SA_ONSTACK;
 
     if (sigaction(SIGSEGV, &sa, NULL) == -1) {
         fprintf(stderr, "Error installing segfault signal handler\n");
         exit(1);
     }
-
+    if (sigaction(SIGBUS, &sa, NULL) == -1) {
+        fprintf(stderr, "Error installing segfault signal handler\n");
+        exit(1);
+    }
+    
     setup_timer();
     
     // show the page size
