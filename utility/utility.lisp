@@ -451,8 +451,8 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
   (:documentation
    "Send a kill signal to PROCESS. If URGENT is T, send SIGKILL."))
 
-;; (defmethod kill-process (process &key urgent)
-;;   (uiop/launch-program::terminate-process (os-process process) :urgent urgent))
+(defmethod kill-process (process &key urgent)
+  (uiop/launch-program::terminate-process (os-process process) :urgent urgent))
 
 
 ;;;; Shell and system command helpers
