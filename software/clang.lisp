@@ -6,7 +6,10 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang (parseable)
+(define-software clang (parseable
+                        astyleable
+                        clang-formattable
+                        clang-tidyable)
   ((stmt-asts :initarg :stmt-asts :reader stmt-asts
               :initform nil :copier :direct
               :type #+sbcl (list (cons keyword *) *) #-sbcl list
@@ -3428,101 +3431,3 @@ within a function body, return null."))
 * STMT ast to test if a function body
 "
   (find-if [{equalp stmt} {function-body clang}] (functions clang)))
-
-
-;;; Formatting methods
-(defgeneric clang-tidy (software &optional checks)
-  (:documentation "Apply the software fixing clang tool, optionally using
-the given list of CHECKS."))
-
-(defmethod clang-tidy
-    ((clang clang)
-     &optional (checks '("cppcore-guidelines*"
-                         "misc*"
-                         "-misc-macro-parentheses"
-                         "-misc-static-assert"
-                         "-misc-unused-parameters"
-                         "-modernize*"
-                         "performance*"
-                         "-performance-unnecessary-value-param"
-                         "readability*"
-                         "-readability-else-after-return"
-                         "-readability-function-size"
-                         "-readability-identifier-naming"
-                         "-readability-implicit-bool-conversion"
-                         "-readability-inconsistent-declaration-parameter-name"
-                         "-readability-non-const-parameter"
-                         "-readability-redundant-control-flow"
-                         "-readability-redundant-declaration"))
-     &aux errno)
-  "Apply clang-tidy to OBJ.
-* CLANG object to tidy and return
-* CHECKS list of clang-tidy checks to apply
-* ERRNO Exit code of clang-tidy
-"
-  (setf (genome clang)
-        (with-temp-file-of (src (ext clang)) (genome clang)
-          (multiple-value-bind (stdout stderr exit)
-              (shell
-               "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-               checks
-               src
-               (mapconcat #'identity (flags clang) " "))
-            (declare (ignorable stdout stderr))
-            (setf errno exit)
-            (if (zerop exit) (file-to-string src) (genome clang)))))
-  (values clang errno))
-
-(defmethod clang-format ((obj clang) &optional style &aux errno)
-  "Apply clang-format to OBJ.
-* OBJ object to format and return
-* STYLE clang-format style to utilize
-* ERRNO Exit code of clang-format
-"
-  (with-temp-file-of (src (ext obj)) (genome obj)
-    (setf (genome obj)
-          (multiple-value-bind (stdout stderr exit)
-              (shell "clang-format ~a ~a"
-                     (if style
-                         (format nil "-style=~a" style)
-                         (format nil
-                                 "-style='{BasedOnStyle: Google,~
-                                AllowShortBlocksOnASingleLine: false,~
-                                AllowShortCaseLabelsOnASingleLine: false,~
-                                AllowShortFunctionsOnASingleLine: false,~
-                                AllowShortIfStatementsOnASingleLine: false,~
-                                AllowShortLoopsOnASingleLine: false,~
-                                ReflowComments: false,~
-                                SortIncludes: false}'"))
-                     src)
-            (declare (ignorable stderr))
-            (setf errno exit)
-            (if (zerop exit) stdout (genome obj)))))
-  (values obj errno))
-
-(defgeneric astyle (software &optional style options)
-  (:documentation "Apply Artistic Style to the software.
-Documentation can be found at
-http://astyle.sourceforge.net/astyle.html#_Usage"))
-
-(defmethod astyle
-    ((obj clang) &optional (style "kr") (options '("--add-brackets"))
-     &aux errno)
-  "Apply Artistic Style to OBJ.
-* OBJ object to format and return
-* STYLE style to utilize
-* OPTIONS list of additional options to astyle
-* ERRNO Exit code of astyle binary
-"
-  (with-temp-file-of (src (ext obj)) (genome obj)
-    (setf (genome obj)
-          (multiple-value-bind (stdout stderr exit)
-              (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
-                     options style src)
-            (declare (ignorable stdout stderr))
-            (setf errno exit)
-            (if (zerop exit)
-                (file-to-string src)
-                (genome obj)))))
-  (values obj errno))
-

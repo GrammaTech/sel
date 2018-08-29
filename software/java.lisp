@@ -33,7 +33,7 @@ exit 0")
  "Error exit code from the java-mutator.jar")
 
 
-(define-software java (source)
+(define-software java (source astyleable)
   ((genome    :initarg :genome :initform nil
               :copier :direct)
    (compiler  :initarg :compiler
@@ -196,22 +196,4 @@ insert)."
               (concatenate 'string
                            (format nil "import ~a;~&" include)
                            (genome obj)))))
-  obj)
-
-;;; TODO: Rename `clang-format' to `format' (or something that won't
-;;;       conflict with a core CL function name.
-(defmethod clang-format ((obj java) &optional style)
-  (declare (ignorable style))
-  obj)
-
-;; TODO: Artistic style can be used with JAVA objects
-(defmethod astyle ((obj java) &optional style options)
-  "This method currently has not effect on Java objects."
-  (declare (ignorable style options))
-  obj)
-
-;;; TODO: Rename to `clang-tidy' to `tidy'.
-(defmethod clang-tidy ((obj java) &optional checks)
-  "This method has no effect on Java objects."
-  (declare (ignorable checks))
   obj)

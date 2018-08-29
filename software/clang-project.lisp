@@ -2,7 +2,10 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang-project (project)
+(define-software clang-project (project
+                                astyleable-project
+                                clang-formattable-project
+                                clang-tidyable-project)
   ((project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil
@@ -179,35 +182,3 @@ information on the format of compilation databases.")
   (if (current-file obj)
       (asts (current-file obj))
       (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj)))))
-
-(defmethod clang-format ((clang-project clang-project)
-                         &optional (style nil style-p))
-  "Apply `clang-format' to CLANG-PROJECT.
-* CLANG-PROJECT project to format and return
-* STYLE `clang-format' style to utilize
-"
-  (apply-to-project clang-project
-                    (if style-p {clang-format _ style} #'clang-format))
-  clang-project)
-
-(defmethod clang-tidy ((clang-project clang-project)
-                       &optional (checks nil checks-p))
-  "Apply `clang-tidy' to CLANG-PROJECT.
-* CLANG-PROJECT project to tidy and return
-"
-  (apply-to-project clang-project
-                    (if checks-p {clang-tidy _ checks} #'clang-tidy))
-  clang-project)
-
-(defmethod astyle ((clang-project clang-project)
-                   &optional (style nil style-p) (options nil options-p))
-  "Apply Artistic Style to CLANG-PROJECT.
-* CLANG-PROJECT project to format and return
-* STYLE style to utilize
-* OPTIONS list of additional options to astyle
-"
-  (apply-to-project clang-project
-                    (cond
-                      (options-p {astyle _ style options})
-                      (style-p {astyle _ style})
-                      (t #'astyle))))

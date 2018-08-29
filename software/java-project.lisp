@@ -18,7 +18,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software java-project (project)
+(define-software java-project (project astyleable-project)
   ((project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil
@@ -167,7 +167,3 @@ to the depth of 3 within the built jar"
   "Get list of files that are both in project folder and in jar"
   (compare-file-lists (get-files-jar jar-path)
                       (get-files-project-folder project-path)))
-
-(defmethod astyle ((java-project java-project) &optional style options)
-  (declare (ignorable style options))
-  java-project)

@@ -85,6 +85,7 @@ techniques."
              (:file "java-instrument" :depends-on ("instrument"))
              (:file "traceable" :depends-on ("test-suite"))
              (:file "fix-compilation")
+             (:file "formattable")
              (:file "searchable")
              (:file "fodder-database" :depends-on ("searchable"))
              (:file "in-memory-fodder-database" :depends-on ("fodder-database"))
