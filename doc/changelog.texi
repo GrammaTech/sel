@@ -34,6 +34,20 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
+@appendixsec 2018-10-17 v0.0.2 -- Unreleased
+@cindex changelog-2018-10-17
+@cindex v0.0.2
+
+@itemize
+
+@item Removed tool-specific code formatting methods from software objects
+
+All calls to tool-specific formatting routines (e.g. @code{clang-tidy},
+@code{clang-format}, etc.) should be replaced with the generic
+@code{format-genome} method.
+
+@end itemize
+
 @appendixsec 2018-08-21 v0.0.1 -- Unreleased
 @cindex changelog-2018-08-21
 @cindex v0.0.1

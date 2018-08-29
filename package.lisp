@@ -121,9 +121,6 @@
    :adjust-stmt-range
    :random-point-in-function
    :select-intraprocedural-pair
-   :astyle
-   :clang-tidy
-   :clang-format
    :clang-mutate
    :update-headers-from-snippet
    :to-file
@@ -620,6 +617,11 @@
    :type-from-trace-string
    :trace-error
    :bin
+   ;; code formatting
+   :format-genome
+   :astyle
+   :clang-tidy
+   :clang-format
    ;; style features
    :style-feature
    :feature-name

@@ -86,6 +86,7 @@ techniques."
              (:file "traceable" :depends-on ("test-suite"))
              (:file "fix-compilation")
              (:file "searchable")
+             (:file "formatting")
              (:file "fodder-database" :depends-on ("searchable"))
              (:file "in-memory-fodder-database" :depends-on ("fodder-database"))
              (:file "json-fodder-database" :depends-on ("in-memory-fodder-database"))

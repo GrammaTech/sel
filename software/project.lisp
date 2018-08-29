@@ -155,6 +155,10 @@ software objects in it's `evolve-files'."))
     ;; Add filenames to crossover points for better stats
     (values new (cons point-a file) (cons point-b file))))
 
+(defmethod format-genome ((project project) &key)
+  "Apply a code formatting tool to each file in PROJECT."
+  (apply-to-project project #'format-genome))
+
 (defmethod apply-to-project ((project project) function)
   "Mapcar FUNCTION over `all-files' of PROJECT."
   (values project (mapcar [function #'cdr] (all-files project))))

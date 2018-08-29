@@ -198,20 +198,8 @@ insert)."
                            (genome obj)))))
   obj)
 
-;;; TODO: Rename `clang-format' to `format' (or something that won't
-;;;       conflict with a core CL function name.
-(defmethod clang-format ((obj java) &optional style)
-  (declare (ignorable style))
-  obj)
-
-;; TODO: Artistic style can be used with JAVA objects
-(defmethod astyle ((obj java) &optional style options)
-  "This method currently has not effect on Java objects."
-  (declare (ignorable style options))
-  obj)
-
-;;; TODO: Rename to `clang-tidy' to `tidy'.
-(defmethod clang-tidy ((obj java) &optional checks)
-  "This method has no effect on Java objects."
-  (declare (ignorable checks))
-  obj)
+
+;;; Implement the generic format-genome method for JAVA objects.
+(defmethod format-genome ((obj java) &key)
+  "Apply Artistic Style to OBJ to format the software."
+  (astyle obj))

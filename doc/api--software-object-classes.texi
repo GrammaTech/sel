@@ -406,8 +406,6 @@ Class @code{clang}
   @item @refapigeneric{adjust-stmt-range}
   @item @refapigeneric{bad-stmts}
   @item @refapigeneric{block-p}
-  @item @refapigeneric{can-be-made-traceable-p}
-  @item @refapigeneric{clang-tidy}
   @item @refapigeneric{enclosing-full-stmt}
   @item @refapigeneric{find-var-type}
   @item @refapigeneric{force-include}
@@ -415,7 +413,6 @@ Class @code{clang}
   @item @refapigeneric{get-parent-full-stmt}
   @item @refapigeneric{get-vars-in-scope}
   @item @refapigeneric{good-stmts}
-  @item @refapigeneric{astyle}
   @item @refapigeneric{pick-guarded-compound}
   @item @refapigeneric{random-point-in-function}
   @item @refapigeneric{scopes}
@@ -447,13 +444,11 @@ Class @code{clang}
   @item @refapimethod{add-type,add-type} : multiple methods with different types for type argument
   @item @refapimethod{adjust-stmt-range,adjust-stmt-range}
   @item @refapimethod{apply-mutation,apply-mutation}
-  @item @refapimethod{astyle,astyle}
   @item @refapimethod{bad-stmts,bad-stmts}
   @item @refapimethod{bi-grams-hashtable-to-feature,bi-grams-hashtable-to-feature}
   @item @refapimethod{block-p,block-p}
   @item @refapimethod{build-op,build-op} : multiple methods with different mutation argument types
   @item @refapimethod{can-be-made-traceable-p,can-be-made-traceable-p}
-  @item @refapimethod{clang-tidy,clang-tidy}
   @item @refapimethod{crossover,crossover}
   @item @refapimethod{delete-decl-stmts,delete-decl-stmts}
   @item @refapimethod{enclosing-full-stmt,enclosing-full-stmt}
@@ -462,6 +457,7 @@ Class @code{clang}
   @item @refapimethod{find-type,find-type}
   @item @refapimethod{find-var-type,find-var-type}
   @item @refapimethod{force-include,force-include}
+  @item @refapimethod{format-genome,format-genome}
   @item @refapimethod{from-file,from-file}
   @item @refapimethod{function-containing-ast,function-containing-ast}
   @item @refapimethod{full-stmt-p,full-stmt-p}
@@ -670,9 +666,8 @@ Class @code{clang-project}
 @item Class @refapiclass{clang-project}
 @item Methods
   @itemize
-  @item @refapimethod{astyle,astyle}
-  @item @refapimethod{clang-tidy,clang-tidy}
   @item @refapimethod{from-file,from-file}
+  @item @refapimethod{format-genome,format-genome}
   @item @refapimethod{instrument,instrument}
   @item @refapimethod{instrumentation-files,instrumentation-files}
   @item @refapimethod{instrumented-p,instrumented-p}
@@ -680,8 +675,6 @@ Class @code{clang-project}
   @item @refapimethod{uninstrument,uninstrument}
   @end itemize
 @end itemize
-
-@c defmethod clang-format
 
 @c ----------------------------------------
 
