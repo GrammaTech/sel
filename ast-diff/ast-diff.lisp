@@ -78,29 +78,29 @@ zero or more times on X, until RECUR-P is false, at which point TAIL-FN is appli
 instead to that last value."
   (let ((stack nil))
     (iter (while (funcall recur-p x))
-	  (push x stack)
-	  (setf x (funcall next x)))
+          (push x stack)
+          (setf x (funcall next x)))
     (let ((result (funcall tail-fn x)))
       (iter (while stack)
-	    (setf result (funcall combining-fn (pop stack) result)))
+            (setf result (funcall combining-fn (pop stack) result)))
       result)))
 
 (defun to-costed (obj)
   (labels ((recurse (obj)
-	     (reduce-on
-	      (lambda (obj cdr) (ccons (recurse (car obj)) cdr :orig obj))
-	      (lambda (obj) (make-costed :obj obj :orig obj :cost (ast-cost obj)))
-	      obj)))
+             (reduce-on
+              (lambda (obj cdr) (ccons (recurse (car obj)) cdr :orig obj))
+              (lambda (obj) (make-costed :obj obj :orig obj :cost (ast-cost obj)))
+              obj)))
     (recurse obj)))
 
 (defmethod from-costed ((costed costed))
   (labels ((recurse (costed)
-	     (reduce-on
-	      (lambda (costed rest) (cons (recurse (ccar costed)) rest))
-	      (lambda (x) (if (costed-p x) (or (corig x) (recurse (cobj x))) x))
-	      costed
-	      :recur-p (lambda (x) (and (costed-p x) (not (corig x)) (cconsp x)))
-	      :next #'ccdr)))
+             (reduce-on
+              (lambda (costed rest) (cons (recurse (ccar costed)) rest))
+              (lambda (x) (if (costed-p x) (or (corig x) (recurse (cobj x))) x))
+              costed
+              :recur-p (lambda (x) (and (costed-p x) (not (corig x)) (cconsp x)))
+              :next #'ccdr)))
     (values (recurse costed) (ccost costed))))
 
 (defmethod ccons ((car costed) (cdr costed) &key orig cost)
@@ -132,7 +132,7 @@ instead to that last value."
 
 (defmethod clast ((costed costed))
   (iter (while (cconsp costed))
-	(setf costed (ccdr costed)))
+        (setf costed (ccdr costed)))
   costed)
 
 
@@ -145,8 +145,8 @@ instead to that last value."
 
 (defmethod ast-equal-p ((ast-a cons) (ast-b cons))
   (and (iter (while (consp ast-a))
-	     (while (consp ast-b))
-	     (always (ast-equal-p (pop ast-a) (pop ast-b))))
+             (while (consp ast-b))
+             (always (ast-equal-p (pop ast-a) (pop ast-b))))
        (ast-equal-p ast-a ast-b)))
 
 (defmethod ast-equal-p ((ast-a costed) (ast-b costed))
@@ -160,7 +160,7 @@ instead to that last value."
 
 (defmethod ast-cost ((ast cons))
   (+ (iter (sum (ast-cost (pop ast)))
-	   (while (consp ast)))
+           (while (consp ast)))
      (ast-cost ast)))
 
 (defmethod ast-cost ((ast costed))
@@ -225,35 +225,35 @@ then the equality of the hashes is unlikely."))
 
 (let ((a-coeffs
        (make-array '(32)
-		   :element-type 'hash-type
-		   :initial-contents
-		   '(44772186367934537 40884819141045381 18268751919527175
-		     12224412045766723 44747874473306482 6291300198851882
-		     38208267184329 70824722016654862 68884710530037769
-		     29266014118849078 16305173046113233 25526167110167858
-		     69548398139113011 11845686404586539 13141703249234454
-		     58585138257101406 63771603587465066 51818145761636769
-		     11215313718595996 967321057564179 35579009383009840
-		     21233262920564958 27885154493097833 45638112046788574
-		     71667767543649984 11593336377822139 39832262451031385
-		     64366124578464487 48093511540653115 11187607290745617
-		     1718667612180730 55488393644215208)))
+                   :element-type 'hash-type
+                   :initial-contents
+                   '(44772186367934537 40884819141045381 18268751919527175
+                     12224412045766723 44747874473306482 6291300198851882
+                     38208267184329 70824722016654862 68884710530037769
+                     29266014118849078 16305173046113233 25526167110167858
+                     69548398139113011 11845686404586539 13141703249234454
+                     58585138257101406 63771603587465066 51818145761636769
+                     11215313718595996 967321057564179 35579009383009840
+                     21233262920564958 27885154493097833 45638112046788574
+                     71667767543649984 11593336377822139 39832262451031385
+                     64366124578464487 48093511540653115 11187607290745617
+                     1718667612180730 55488393644215208)))
 
       (b-coeffs
        (make-array '(32)
-		   :element-type 'hash-type
-		   :initial-contents
-		   '(15306130497698622 6962715537831413 23627614633074126
-		     35426347469777435 6253504779322026 2685667771697079
-		     12213574155663012 62015044820424341 63393789689534801
-		     69752150146675013 21434622207040062 43200883849464758
-		     23422157842437395 36720647208217461 67805387065755295
-		     66857677050011714 71090740635621717 70425600738754230
-		     56933545028670640 59684532028279319 54864461040550518
-		     69504815912533426 35116612914715710 41513442981972055
-		     4229361750527463 40744199140651635 33853319307875640
-		     16951454121230159 31253281007319553 32992004582179554
-		     13913708511125320 47256219783059968)))
+                   :element-type 'hash-type
+                   :initial-contents
+                   '(15306130497698622 6962715537831413 23627614633074126
+                     35426347469777435 6253504779322026 2685667771697079
+                     12213574155663012 62015044820424341 63393789689534801
+                     69752150146675013 21434622207040062 43200883849464758
+                     23422157842437395 36720647208217461 67805387065755295
+                     66857677050011714 71090740635621717 70425600738754230
+                     56933545028670640 59684532028279319 54864461040550518
+                     69504815912533426 35116612914715710 41513442981972055
+                     4229361750527463 40744199140651635 33853319307875640
+                     16951454121230159 31253281007319553 32992004582179554
+                     13913708511125320 47256219783059968)))
       (p 13211719))
 
   (declare (type (and simple-array (vector hash-type 32)) a-coeffs b-coeffs))
@@ -265,77 +265,77 @@ then the equality of the hashes is unlikely."))
     "Given a list of hash values, combine them using a polynomial in P,
 modile +AST-HASH-BASE+"
     (let ((result 0)
-	  (hb +ast-hash-base+))
+          (hb +ast-hash-base+))
       (declare (type hash-type result))
       (iter (for i from 0 below (ash 1 30))
-	    (for hv in args)
-	    (let* ((im (logand i 31))
-		   (a (aref a-coeffs im))
-		   (b (aref b-coeffs im)))
-	      ;; RESULT is squared to avoid linearity
-	      ;; Without this, trees that have certain permutations of leaf
-	      ;; values can be likely to hash to the same integer.
-	      (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+            (for hv in args)
+            (let* ((im (logand i 31))
+                   (a (aref a-coeffs im))
+                   (b (aref b-coeffs im)))
+              ;; RESULT is squared to avoid linearity
+              ;; Without this, trees that have certain permutations of leaf
+              ;; values can be likely to hash to the same integer.
+              (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
       result))
   
   (defmethod ast-hash ((i integer))
     (let ((c1 34188292748050745)
-	  (c2 38665981814718286))
+          (c2 38665981814718286))
       (mod (+ (* c1 i) c2) +ast-hash-base+)))
 
   ;; could have specialized methods on strings
   ;; to speed up that common case
   (defmethod ast-hash ((s vector))
     (apply #'ast-combine-hash-values
-	   38468922606716016
-	   (length s)
-	   (map 'list #'ast-hash s)))
+           38468922606716016
+           (length s)
+           (map 'list #'ast-hash s)))
 
   (defmethod ast-hash ((l cons))
     ;; Assumes not a circular list
     (apply #'ast-combine-hash-values
-	   16335929882652762
-	   (iter
-	    (collect (if (consp l)
-			 (ast-hash (car l))
-			 ;; add a constant to distinguish (X Y)
-			 ;; from (X . Y)
-			 (+ 41019876016299766
-			    (ast-hash l))))
-	    (while (consp l))
-	    (pop l))))
+           16335929882652762
+           (iter
+            (collect (if (consp l)
+                         (ast-hash (car l))
+                         ;; add a constant to distinguish (X Y)
+                         ;; from (X . Y)
+                         (+ 41019876016299766
+                            (ast-hash l))))
+            (while (consp l))
+            (pop l))))
 
   (defmethod ast-hash ((n null))
     46757794301535766)
 
   (defmethod ast-hash ((c character))
     (let ((c1 3310905730158464)
-	  (c2 4019805890044232))
+          (c2 4019805890044232))
       (mod (+ (* c1 (char-int c)) c2) +ast-hash-base+)))
 
   (defmethod ast-hash ((s symbol))
     (or (get s 'hash)
-	(setf (get s 'hash)
-	      (ast-combine-hash-values
-	       30932222477428348
-	       (ast-hash (symbol-package s))
-	       (ast-hash (symbol-name s))))))
+        (setf (get s 'hash)
+              (ast-combine-hash-values
+               30932222477428348
+               (ast-hash (symbol-package s))
+               (ast-hash (symbol-name s))))))
 
   (defmethod ast-hash ((p package))
     (ast-hash (package-name p)))
 
   (defmethod ast-hash ((c costed))
     (or (chash c)
-	(setf (chash c)
-	      (if (consp (cobj c))
-		  (ast-hash
-		   (nconc
-		    (iter (while (and (typep c 'costed)
-				      (typep (cobj c) 'cons)))
-			  (collect (car (cobj c)))
-			  (setf c (cdr (cobj c))))
-		    c))
-		  (ast-hash (cobj c))))))
+        (setf (chash c)
+              (if (consp (cobj c))
+                  (ast-hash
+                   (nconc
+                    (iter (while (and (typep c 'costed)
+                                      (typep (cobj c) 'cons)))
+                          (collect (car (cobj c)))
+                          (setf c (cdr (cobj c))))
+                    c))
+                  (ast-hash (cobj c))))))
 
   )
 
@@ -345,10 +345,10 @@ modile +AST-HASH-BASE+"
 they are actually equal.  If not, the second one gets a new, fresh hash
 value that is used instead."
   (let* ((hash (ast-hash ast))
-	 (old-ast (gethash hash table)))
+         (old-ast (gethash hash table)))
     (when (and old-ast (not (ast-equal-p ast old-ast)))
       (iter (incf hash) ; this may be >= +ast-hash-base+, but that's ok
-	    (while (gethash hash table)))
+            (while (gethash hash table)))
       (setf (gethash hash table) ast))
     hash))
 
@@ -396,7 +396,7 @@ Prefix and postfix returned as additional values."
 
 (defun make-cache (total-a total-b)
   (make-array (list (1+ (clength total-a)) (1+ (clength total-b)))
-	      :initial-element nil))
+              :initial-element nil))
 
 ;;; Simple queue.  This must be implemented in a library somewhere
 ;;; in Quicklisp.
@@ -409,7 +409,7 @@ Prefix and postfix returned as additional values."
     ((cdr sq)
      (let ((r (nreverse (cdr sq))))
        (setf (car sq) (cdr r)
-	     (cdr sq) nil)
+             (cdr sq) nil)
        (car r)))
     (t nil)))
 
@@ -419,34 +419,34 @@ Prefix and postfix returned as additional values."
 (defun recursive-diff (total-a total-b &key (upper-bound most-positive-fixnum)
                        &aux
                          (from (make-cache total-a total-b))
-			 ;; FRINGE is a queue used to order
-			 ;; visits of 'open' nodes.  An open node should only
-			 ;; be put on the queue when all its
-			 ;; predecessors are closed.
+                         ;; FRINGE is a queue used to order
+                         ;; visits of 'open' nodes.  An open node should only
+                         ;; be put on the queue when all its
+                         ;; predecessors are closed.
                          ;; (fringe (make-instance 'priority-queue))
-			 (fringe (make-simple-queue))
-			 ;; When T, the node is stored in the priority queue already
+                         (fringe (make-simple-queue))
+                         ;; When T, the node is stored in the priority queue already
                          (open (make-cache total-a total-b))
                          (total-open 0)
-			 ;; When CLOSED is T, the node has been processed
+                         ;; When CLOSED is T, the node has been processed
                          (closed (make-cache total-a total-b))
-			 ;; For closed nodes, G is the actual minimum cost
-			 ;; of reaching the node.
+                         ;; For closed nodes, G is the actual minimum cost
+                         ;; of reaching the node.
                          (g (make-cache total-a total-b))
-			 (r-cache (make-cache total-a total-b))
-			 (lta (clength total-a))
-			 (ltb (clength total-b))
-			 )
+                         (r-cache (make-cache total-a total-b))
+                         (lta (clength total-a))
+                         (ltb (clength total-b))
+                         )
   ;; UPPER-BOUND is a limit beyond which we give up on
   ;; pursuing edges.  This is not currently exploited.
   (labels
       ((%enqueue (node)
-	 ;; (enqueue fringe node cost)
-	 (simple-queue-enqueue fringe node)
-	 )
+         ;; (enqueue fringe node cost)
+         (simple-queue-enqueue fringe node)
+         )
        (%dequeue ()
-	 ;; (dequeue fringe)
-	 (simple-queue-dequeue fringe))
+         ;; (dequeue fringe)
+         (simple-queue-dequeue fringe))
        (reconstruct-path- (a b)
          (if (and (zerop a) (zerop b))
              (make-costed)
@@ -491,40 +491,40 @@ Prefix and postfix returned as additional values."
 
         (labels                         ; Handle all neighbors.
             ((add (neighbor edge)
-	       (let ((next-a (%pos-a (car neighbor)))
-		     (next-b (%pos-b (cdr neighbor))))
+               (let ((next-a (%pos-a (car neighbor)))
+                     (next-b (%pos-b (cdr neighbor))))
                  (unless (aref closed next-a next-b) ; should never happen?
-		   (unless (aref open next-a next-b)
-		     (incf total-open)
-		     (setf (aref open next-a next-b) t))
-		   (let ((tentative
-			  (+ (aref g pos-a pos-b)
-			     (ccost edge)))
-			 (value (aref g next-a next-b)))
-		     ;; Neighbor is an improvement.
-		     (when (and (or (null value) (< tentative value))
-				(< tentative upper-bound))
-		       (setf (aref from next-a next-b)
-			     (cons (cons pos-a pos-b) edge)
-			     value tentative
-			     (aref g next-a next-b) tentative))
-		     ;; Only enqueue if ALL predecessors are closed
-		     (when (and value
-				(if (= next-a 0)
-				    (aref closed next-a (1- next-b))
-				    (and (aref closed (1- next-a) next-b)
-					 (or (= next-b 0)
-					     (and (aref closed (1- next-a) (1- next-b))
-						  (aref closed next-a (1- next-b)))))))
-		       (%enqueue neighbor))))))
-	     (%recursive (a b)
-	       (let ((i (%pos-a a))
-		     (j (%pos-b b)))
-		 (or (aref r-cache i j)
-		     (setf (aref r-cache i j)
-			   (recursive-diff
-			    (to-costed (ast-on-recurse (corig (ccar a))))
-			    (to-costed (ast-on-recurse (corig (ccar b))))))))))
+                   (unless (aref open next-a next-b)
+                     (incf total-open)
+                     (setf (aref open next-a next-b) t))
+                   (let ((tentative
+                          (+ (aref g pos-a pos-b)
+                             (ccost edge)))
+                         (value (aref g next-a next-b)))
+                     ;; Neighbor is an improvement.
+                     (when (and (or (null value) (< tentative value))
+                                (< tentative upper-bound))
+                       (setf (aref from next-a next-b)
+                             (cons (cons pos-a pos-b) edge)
+                             value tentative
+                             (aref g next-a next-b) tentative))
+                     ;; Only enqueue if ALL predecessors are closed
+                     (when (and value
+                                (if (= next-a 0)
+                                    (aref closed next-a (1- next-b))
+                                    (and (aref closed (1- next-a) next-b)
+                                         (or (= next-b 0)
+                                             (and (aref closed (1- next-a) (1- next-b))
+                                                  (aref closed next-a (1- next-b)))))))
+                       (%enqueue neighbor))))))
+             (%recursive (a b)
+               (let ((i (%pos-a a))
+                     (j (%pos-b b)))
+                 (or (aref r-cache i j)
+                     (setf (aref r-cache i j)
+                           (recursive-diff
+                            (to-costed (ast-on-recurse (corig (ccar a))))
+                            (to-costed (ast-on-recurse (corig (ccar b))))))))))
 
           ;; Check neighbors: diagonal, recurse, insert, delete.
           (when (and (cconsp a) (cconsp b))
@@ -535,7 +535,7 @@ Prefix and postfix returned as additional values."
               ((ast-can-recurse (ccar a) (ccar b)) ; Recurse.
                (add (cons (ccdr a) (ccdr b))
                     (ccons (make-costed :obj :recurse)
-			   (%recursive a b))))))
+                           (%recursive a b))))))
           (if (cconsp b)                ; Insert.
               (add (cons a (ccdr b))
                    (ccons (make-costed :obj :insert) (ccar b)))
@@ -592,41 +592,41 @@ Prefix and postfix returned as additional values."
 
 (defmethod ast-diff ((ast-a t) (ast-b t))
   (let ((new-ast-a (ast-on-recurse ast-a))
-	(new-ast-b (ast-on-recurse ast-b)))
+        (new-ast-b (ast-on-recurse ast-b)))
     (unless (and (proper-list-p new-ast-a) (proper-list-p new-ast-b))
       (return-from ast-diff (ast-diff-on-lists ast-a ast-b)))
     (setf ast-a new-ast-a ast-b new-ast-b))
   (let* ((table (make-hash-table))
-	 (hashes-a (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-a))
-	 (hashes-b (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-b))
-	 (subseq-triples (good-common-subsequences hashes-a hashes-b))
-	 diff-a common-a diff-b common-b)
+         (hashes-a (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-a))
+         (hashes-b (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-b))
+         (subseq-triples (good-common-subsequences2 hashes-a hashes-b))
+         diff-a common-a diff-b common-b)
     ;; split ast-a and ast-b into subsequences
     ;; Get lists of subsequences on which they differ, and subsequences on
     ;; which they are equal.  Some of the former may be empty.
     (setf (values diff-a common-a)
-	  (split-into-subsequences ast-a (mapcar (lambda (x) (list (car x) (caddr x))) subseq-triples)))
+          (split-into-subsequences ast-a (mapcar (lambda (x) (list (car x) (caddr x))) subseq-triples)))
     (setf (values diff-b common-b)
-	  (split-into-subsequences ast-b (mapcar (lambda (x) (list (cadr x) (caddr x))) subseq-triples)))
+          (split-into-subsequences ast-b (mapcar (lambda (x) (list (cadr x) (caddr x))) subseq-triples)))
     (assert (= (length diff-a) (length diff-b)))
     (assert (= (length common-a) (length common-b)))
     ;; (assert (= (length diff-a) (1+ (length common-a))))
     (let ((overall-diff nil)
-	  (overall-cost 0))
+          (overall-cost 0))
       (iter (for da in (reverse diff-a))
-	    (for db in (reverse diff-b))
-	    (for ca in (reverse (cons nil common-a)))
-	    ;; (for cb in (reverse (cons nil common-b)))
-	    ;; (assert (ast-equal-p ca cb))
-	    (multiple-value-bind (diff cost)
-		(ast-diff-on-lists da db)
-	      (when (and overall-diff (equalp (lastcar diff) '(:same)))
-		(assert (>= cost 1))
-		(decf cost)
-		(setf diff (butlast diff)))
-	      (setf overall-diff (append diff overall-diff))
-	      (incf overall-cost cost))
-	    (setf overall-diff (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
+            (for db in (reverse diff-b))
+            (for ca in (reverse (cons nil common-a)))
+            ;; (for cb in (reverse (cons nil common-b)))
+            ;; (assert (ast-equal-p ca cb))
+            (multiple-value-bind (diff cost)
+                (ast-diff-on-lists da db)
+              (when (and overall-diff (equalp (lastcar diff) '(:same)))
+                (assert (>= cost 1))
+                (decf cost)
+                (setf diff (butlast diff)))
+              (setf overall-diff (append diff overall-diff))
+              (incf overall-cost cost))
+            (setf overall-diff (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
       (values overall-diff overall-cost))))
 
 (defun split-into-subsequences (seq subseq-indices &aux (n (length seq)))
@@ -634,16 +634,16 @@ Prefix and postfix returned as additional values."
 for disjoint nonempty subsequences of SEQ, return a list of the N+1 subsequences between these
 subsequences (some possibly empty), as well as the N subsequences themselves."
   (assert (every (lambda (x) (and (<= 0 (car x)) (< (car x) n) (<= 1 (cadr x))))
-		 subseq-indices))
+                 subseq-indices))
   (assert (every (lambda (x y) (<= (+ (car x) (cadr x)) (car y)))
-		 subseq-indices (cdr subseq-indices)))
+                 subseq-indices (cdr subseq-indices)))
   (let ((pos 0)
-	(common nil)
-	(diff nil))
+        (common nil)
+        (diff nil))
     (iter (for (start len) in subseq-indices)
-	  (push (subseq seq pos start) diff)
-	  (push (subseq seq start (+ start len)) common)
-	  (setf pos (+ start len)))
+          (push (subseq seq pos start) diff)
+          (push (subseq seq start (+ start len)) common)
+          (setf pos (+ start len)))
     (values (nreconc diff (list (subseq seq pos))) (nreverse common))))
 
 
@@ -677,30 +677,30 @@ subsequences (some possibly empty), as well as the N subsequences themselves."
 
 ;; SBCL 1.4.6
 ;; ============================================================
-;; size	runtime	bytes-consed
-;; 2	0.000	32752
-;; 10	0.001	687904
-;; 20	0.005	813248
-;; 50	0.029	973968
-;; 100	0.127	326336
-;; 200	0.561	251744
-;; 500	2.296	680432
+;; size        runtime        bytes-consed
+;; 2        0.000        32752
+;; 10        0.001        687904
+;; 20        0.005        813248
+;; 50        0.029        973968
+;; 100        0.127        326336
+;; 200        0.561        251744
+;; 500        2.296        680432
 ;; -------------------------[memory bottleneck]
-;; 1000	36.370	382080
-;; 2000	188.012	716048
+;; 1000        36.370        382080
+;; 2000        188.012        716048
 ;; ============================================================
 ;;
 ;; CCL Version 1.12-dev  LinuxX8664
 ;; ============================================================
-;; size	runtime		bytes-consed
-;; 2	0.000095	18560
-;; 10	0.002498	677760
-;; 20	0.015647	2815360
-;; 50	0.096857	17964160
-;; 100	0.531638	72332160
-;; 200	2.022867	290268160
-;; 500	13.442549	1817676147
-;; 1000	73.954506	7275356147
+;; size        runtime                bytes-consed
+;; 2        0.000095        18560
+;; 10        0.002498        677760
+;; 20        0.015647        2815360
+;; 50        0.096857        17964160
+;; 100        0.531638        72332160
+;; 200        2.022867        290268160
+;; 500        13.442549        1817676147
+;; 1000        73.954506        7275356147
 ;; ============================================================
 
 (defun ast-diff-elide-same (edit-script)
@@ -859,17 +859,17 @@ as the test of a hash table."
   (assert (listp s1))
   (assert (listp s2))
   (let ((table1 (make-hash-table :test test))
-	(table2 (make-hash-table :test test)))
+        (table2 (make-hash-table :test test)))
     ;; POS1 and POS2 are hash tables mapping the
     ;; elements of s1 and s2 to the positions they
     ;; have in each list.  Arrange so the indices
     ;; in each list are in increasing order.
     (flet ((%collect (s h)
-	     (iter (for x in s) (for i from 0)
+             (iter (for x in s) (for i from 0)
                    (push i (gethash x h))))
-	   (%order (h)
-	     (iter (for (x l) in-hashtable h)
-		   (setf (gethash x h) (nreverse l)))))
+           (%order (h)
+             (iter (for (x l) in-hashtable h)
+                   (setf (gethash x h) (nreverse l)))))
       (%collect s1 table1)
       (%collect s2 table2)
       (%order table1)
@@ -888,65 +888,171 @@ as the test of a hash table."
     ;; diffs of programs this doesn't much matter, as the chance
     ;; of hash collisions for unequal trees should be very small.
     (let ((result nil)
-	  (pos1 0)
-	  (pos2 0)
-	  (start1 0)
-	  (start2 0)
-	  (len 0)
-	  (p1 s1)
-	  (p2 s2))
+          (pos1 0)
+          (pos2 0)
+          (start1 0)
+          (start2 0)
+          (len 0)
+          (p1 s1)
+          (p2 s2))
       (labels ((cut ()
-		 "Terminate the current common segment"
-		 (when (> len 0)
-		   (push (list start1 start2 len) result)
-		   (setf len 0)))
-	       (chop1 ()
-		 "Advance the cursor in s1"
-		 (let ((i (pop (gethash (car p1) table1))))
-		   (assert (eql i pos1)))
-		 (incf pos1)
-		 (pop p1))
-	       (chop2 ()
-		 "Advance the cursor in s2"
-		 (let ((i (pop (gethash (car p2) table2))))
-		   (assert (eql i pos2)))
-		 (incf pos2)
-		 (pop p2)))
-	(loop
-	   (cond ((null p1) (return))
-		 ((null p2) (return))
-		 ((null (gethash (car p1) table2))
-		  (cut)
-		  (chop1))
-		 ((null (gethash (car p2) table1))
-		  (cut)
-		  (chop2))
-		 ;; Both (car p1) and (car p2) occur in the other
-		 ;; list
-		 ((funcall test (car p1) (car p2))
-		  ;; Extended the common subsequence, or start
-		  ;; one if none is in progress
-		  (if (= len 0)
-		      (setf start1 pos1 start2 pos2 len 1)
-		      (incf len))
-		  (chop1)
-		  (chop2))
-		 ;; Cannot continue the sequence, but both
-		 ;; elements occur in the other sequence after
-		 ;; this point.  Skip the element whose next match
-		 ;; in the other list is farthest away.  It might
-		 ;; be best to skip both, but that's not greedy.
-		 (t
-		  (cut)
-		  (let ((m1 (car (gethash (car p1) table2)))
-			(m2 (car (gethash (car p2) table1))))
-		    (if (<= (- m2 pos1) (- m1 pos2))
-			(chop1)
-			(chop2))))))
-	(if (> len 0)
-	    (nreconc result (list (list start1 start2 len)))
-	    (nreverse result))))))
-
+                 "Terminate the current common segment"
+                 (when (> len 0)
+                   (push (list start1 start2 len) result)
+                   (setf len 0)))
+               (chop1 ()
+                 "Advance the cursor in s1"
+                 (let ((i (pop (gethash (car p1) table1))))
+                   (assert (eql i pos1)))
+                 (incf pos1)
+                 (pop p1))
+               (chop2 ()
+                 "Advance the cursor in s2"
+                 (let ((i (pop (gethash (car p2) table2))))
+                   (assert (eql i pos2)))
+                 (incf pos2)
+                 (pop p2)))
+        (loop
+           (cond ((null p1) (return))
+                 ((null p2) (return))
+                 ((null (gethash (car p1) table2))
+                  (cut)
+                  (chop1))
+                 ((null (gethash (car p2) table1))
+                  (cut)
+                  (chop2))
+                 ;; Both (car p1) and (car p2) occur in the other
+                 ;; list
+                 ((funcall test (car p1) (car p2))
+                  ;; Extended the common subsequence, or start
+                  ;; one if none is in progress
+                  (if (= len 0)
+                      (setf start1 pos1 start2 pos2 len 1)
+                      (incf len))
+                  (chop1)
+                  (chop2))
+                 ;; Cannot continue the sequence, but both
+                 ;; elements occur in the other sequence after
+                 ;; this point.  Skip the element whose next match
+                 ;; in the other list is farthest away.  It might
+                 ;; be best to skip both, but that's not greedy.
+                 (t
+                  (cut)
+                  (let* ((h1 (gethash (car p1) table2))
+                         (h2 (gethash (car p2) table1))
+                         (l1 (length h1))
+                         (l2 (length h2))
+                         (m1 (car h1))
+                         (m2 (car h2)))
+                    (cond
+                      ((< l1 l2) (chop1))
+                      ((< l2 l1) (chop2))
+                      ((<= (- m2 pos1) (- m1 pos2))
+                       (chop1))
+                      (t (chop2)))))))
+        (if (> len 0)
+            (nreconc result (list (list start1 start2 len)))
+            (nreverse result))))))
+
+;;; Another algorithm for good common subsequences, more
+;;; robust in the face of elements that occur with high frequency.
+;;; Instead, focus on elements that occur just once in each list,
+;;; and grow subsequences from those.
+
+(defstruct gcs
+  (count 0 :type fixnum)
+  (positions-1 nil :type list)
+  (positions-2 nil :type list))
+
+(defun good-common-subsequences2 (s1 s2 &key (test #'eql))
+  (let* ((table (make-hash-table :test test))
+         (v1 (map 'vector #'identity s1))
+         (v2 (map 'vector #'identity s2))
+         (l1 (length v1))
+         (l2 (length v2)))
+    (macrolet ((init-table (v fn)
+                 `(iter (for x in-vector ,v)
+                        (for i from 0)
+                        (let ((g (gethash x table)))
+                          (unless g (setf (gethash x table) (setf g (make-gcs))))
+                          (incf (gcs-count g))
+                          (push i (,fn g))))))
+      (init-table v1 gcs-positions-1)
+      (init-table v2 gcs-positions-2))
+    #+gcs2-debug
+    (progn
+      (format t "v1 = ~A~%" v1)
+      (format t "v2 = ~A~%" v2)
+      (format t "l1 = ~a~%" l1)
+      (format t "l1 = ~a~%" l2))
+    ;; Walk v1, find those elements that occur just once in each
+    ;; sequence.  When found, grow the largest common contiguous
+    ;; subsequence around each of the two points.  These may
+    ;; end up being out of order, and perhaps overlapping, so
+    ;; we'll select the ones to actually use by a greedy algorithm.
+    (let ((candidates nil)
+          (i 0))
+      (iter (while (< i l1))
+	    #+gcs2-debug (format t "i = ~A~%" i)
+            (let* ((x (svref v1 i))
+                   (g (gethash x table)))
+	      #+gcs2-debug (format t "x = ~A, g = ~A~%" x g)
+              (if (and (= (gcs-count g) 2)
+		       (gcs-positions-1 g)
+		       (gcs-positions-2 g))
+                ;; x occurs precisely once in each sequence
+                (let ((j (car (gcs-positions-2 g))))
+                  (assert (= (car (gcs-positions-1 g)) i))
+                  (let ((start1 i)
+                        (start2 j)
+                        (end1 (1+ i))
+                        (end2 (1+ j)))
+                    (iter (while (> start1 0))
+                          (while (> start2 0))
+                          (while (funcall test
+					  (svref v1 (1- start1))
+                                          (svref v2 (1- start2))))
+                          (decf start1)
+                          (decf start2))
+                    (iter (while (< end1 l1))
+                          (while (< end2 l2))
+                          (while (funcall test (svref v1 end1)
+					  (svref v2 end2)))
+                          (incf end1)
+                          (incf end2))
+                    ;; At this point, the subsequences of v1 and v2
+		    ;; from start1 to end1-1 and start2 to end2-1 are
+		    ;; maximal contiguous subsequences containing
+		    ;; v1[i] and v2[j]. Record them.
+                    (push (list start1 start2 (- end1 start1))
+			  candidates)
+                    (setf i end1)))
+                (incf i))))
+      (setf candidates (nreverse candidates))
+      #+gcs2-debug (format t "candidates = ~A~%" candidates)
+      ;; sort subsequences into decreasing order by length
+      (setf candidates (stable-sort candidates #'> :key #'caddr))
+      #+gcs2-debug (format t "candidates = ~A~%" candidates)
+      ;; All candidates should be disjoint
+      (let ((selected-triples nil))
+	(iter (for triple in candidates)
+	      (for (s21 s22 l2) = triple)
+	      (when
+		  ;; Reject triples when they break ordering with previous triples
+		  ;; The triples should never overlap
+		  (iter (for (s11 s12 l1) in selected-triples)
+			(assert (/= s11 s21))
+			(always (if (< s21 s11)
+				    (and (<= (+ s21 l2) s11)
+					 (<= (+ s22 l2) s12))
+				    (and (>= s21 (+ s11 l1))
+					 (>= s22 (+ s12 l1))))))
+		(push triple selected-triples)))
+	(sort selected-triples #'< :key #'car)
+	))))
+	
+			 
+
 ;;; Comments on further algorithm improvements
 ;;;
 ;;; The "good enough" algorithm could be made slightly better

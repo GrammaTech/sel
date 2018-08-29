@@ -118,4 +118,30 @@ a valid patch.  Return :FAIL (and other values) if not."
     (unless (equalp y patched-x)
       (values :fail x y patched-x diff))))
 
-      
+(defun random-sequence (n &key (m 5))
+  (iter (repeat n) (collect (random m))))
+
+(defun test-gcs2 (n)
+  (let ((s1 (random-sequence n))
+	(s2 (random-sequence n)))
+    ;; (format t "s1 = ~A, s2 = ~A~%" s1 s2)
+    (let ((triples (good-common-subsequences2 s1 s2)))
+      ;; Verify
+      (if
+       (and (iter (for (s1 s2 l) in triples)
+		  (always (<= 0 s1))
+		  (always (< 0 l))
+		  (always (<= (+ s1 l) n))
+		  (always (<= 0 s2))
+		  (always (<= (+ s2 l) n)))
+	    (iter (for (s1 s2 l) in triples)
+		  (for (s1-2 s2-2 l-2) in (cdr triples))
+		  (always (<= (+ s1 l) s1-2))
+		  (always (<= (+ s2 l) s2-2)))
+	    (iter (for (p1 p2 l) in triples)
+		  (always (equal (subseq s1 p1 (+ p1 l))
+				 (subseq s2 p2 (+ p2 l))))))
+       nil
+       (list s1 s2 triples)))))
+
+		  
