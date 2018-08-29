@@ -6,3 +6,4 @@
 (require 'slime)
 (put 'make-instance 'lisp-indent-function 1)
 (put 'if-let 'lisp-indent-function 1)
+(put 'define-software 'lisp-indent-function 3)
