@@ -860,6 +860,7 @@ are given in remainder of this section.
 * Fault Localization::          Identify or prioritize likely-faulty code
 * Tracing::                     Trace execution of software
 * Super-Mutants::               Evaluate multiple variants in a single genome
+* AST Differencing::            Calculate AST tree-differences of software
 @end menu
 
 @node Test Suites, Multi-objective Fitness, Components, Components
@@ -901,6 +902,11 @@ are given in remainder of this section.
 @section Super-Mutants
 @cindex super-mutants
 @include include/super-mutant.texi
+
+@node AST Differencing, @code{clang-diff}, Super-Mutants, Components
+@section AST Differencing
+@cindex ast-differencing
+@include include/ast-diff.texi
 
 @node Usage, Installation, Implementation, Top
 @chapter Usage

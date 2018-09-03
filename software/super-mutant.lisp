@@ -71,7 +71,7 @@
 ;;; error will be raised and the entire super-mutant discarded. This
 ;;; can lead to wasted mutations.
 ;;;
-;;; @node ASM Super-Mutants, Usage, Clang Super-Mutants, Super-Mutants
+;;; @node ASM Super-Mutants, AST Differencing, Clang Super-Mutants, Super-Mutants
 ;;; @subsection ASM Super Mutants
 ;;; @cindex asm-super-mutants
 ;;;

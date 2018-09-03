@@ -1,43 +1,34 @@
 ;;; ast-diff.lisp --- diffs between ASTs and other tree structures
 ;;;
-;;; Originally adopted from:
-;;; http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer
+;;; The @code{software-evolution-library/ast-diff} library provides
+;;; for the differencing of software objects.  A general tree
+;;; differencing algorithm (originally adopted from
+;;; @url{http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer}
+;;; is used to difference tree genomes.  Optimizations are made which
+;;; assume the common cases of differences typically found in software
+;;; development in which most top-level subtrees have no differences.
+;;; This library is used to define the @code{clang-diff} and
+;;; @code{lisp-diff} command-line executables.  These executables
+;;; provide for AST-level differencing and may be used as a
+;;; replacement for common line- or word-based differencing tools
+;;; during software development.
 ;;;
-;;; Comments on further algorithm improvements
+;;; @menu
+;;; * @code{clang-diff}::           Command-line AST-differences for C/C++ files
+;;; * @code{lisp-diff}::            Command-line AST-differences for Lisp files
+;;; @end menu
+;;; 
+;;; @node @code{clang-diff}, @code{lisp-diff}, AST Differencing, AST Differencing
+;;; @subsection @code{clang-diff}
+;;; @cindex clang-diff
+;;; @include include/clang-diff.texi
 ;;;
-;;; The "good enough" algorithm could be made slightly better
-;;; by allowing limited lookahead.  With k lookahead it could
-;;; run in O(k max(m,n)) time, m and n the lengths of the sequences.
+;;; @node @code{lisp-diff}, Usage, @code{clang-diff}, AST Differencing
+;;; @subsection @code{lisp-diff}
+;;; @cindex lisp-diff
+;;; @include include/lisp-diff.texi
 ;;;
-;;; The hash function has not been fully tuned for speed.
-;;;
-;;; RECURSIVE-DIFF has an UPPER-BOUND argument.  This is not used
-;;; now, but could be used to speed up the slow part of the algorithm
-;;; if we want an exact solution rather than the "good enough" solution.
-;;; Use the cost of the "good enough" solution to provide an upper bound
-;;; for the exact solution.   Also, recursive calls could provide their
-;;; own upper bounds based on the optimum path to the node from which
-;;; the call is being made.
-;;;
-;;; The dynamic programming algorithm uses O(mn) space.  It can be
-;;; changed to use linear space.  There are various schemes in the
-;;; literature for doing LCS and edit distance in linear space.
-;;; A simple one is as follows: note that we can compute the length
-;;; of the LCS (or the edit distance) in linear space by scanning
-;;; the array keeping just two rows.  We cannot reconstruct the
-;;; edit from this, but we can record which entry on the m/2 row
-;;; was in the final optimal solution.  Once we have done that,
-;;; the parts before and after that point can be recomputed
-;;; recursively.
-;;;
-;;; The speed on C programs is now dominated by the time needed
-;;; for Clang to parse the C and send the AST to Lisp.
-;;;
-;;; It may be useful to have a hash function on ASTs that produces
-;;; smaller integers, and use ast-hash-with-check to handle collisions.
-;;; This could be tied in with a general mechanism for hash consing
-;;; of ASTs.
-;;;
+;;; @texi{ast-diff}
 (defpackage :software-evolution-library/ast-diff
   (:nicknames :sel/ast-diff)
   (:use
@@ -80,6 +71,40 @@
    :show-chunks))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
+;;; Comments on further algorithm improvements
+;;;
+;;; The "good enough" algorithm could be made slightly better
+;;; by allowing limited lookahead.  With k lookahead it could
+;;; run in O(k max(m,n)) time, m and n the lengths of the sequences.
+;;;
+;;; The hash function has not been fully tuned for speed.
+;;;
+;;; RECURSIVE-DIFF has an UPPER-BOUND argument.  This is not used
+;;; now, but could be used to speed up the slow part of the algorithm
+;;; if we want an exact solution rather than the "good enough" solution.
+;;; Use the cost of the "good enough" solution to provide an upper bound
+;;; for the exact solution.   Also, recursive calls could provide their
+;;; own upper bounds based on the optimum path to the node from which
+;;; the call is being made.
+;;;
+;;; The dynamic programming algorithm uses O(mn) space.  It can be
+;;; changed to use linear space.  There are various schemes in the
+;;; literature for doing LCS and edit distance in linear space.
+;;; A simple one is as follows: note that we can compute the length
+;;; of the LCS (or the edit distance) in linear space by scanning
+;;; the array keeping just two rows.  We cannot reconstruct the
+;;; edit from this, but we can record which entry on the m/2 row
+;;; was in the final optimal solution.  Once we have done that,
+;;; the parts before and after that point can be recomputed
+;;; recursively.
+;;;
+;;; The speed on C programs is now dominated by the time needed
+;;; for Clang to parse the C and send the AST to Lisp.
+;;;
+;;; It may be useful to have a hash function on ASTs that produces
+;;; smaller integers, and use ast-hash-with-check to handle collisions.
+;;; This could be tied in with a general mechanism for hash consing
+;;; of ASTs.
 
 
 ;;; Supporting structures.

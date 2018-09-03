@@ -1,7 +1,8 @@
 ;;; lisp-diff.lisp --- Calculate and render Lisp AST diffs at the command line
 ;;;
 ;;; The following git configuration will register lisp-diff as a tool
-;;; to be used with @code{git difftool}.
+;;; to be used with @code{git difftool} (see
+;;; @url{https://git-scm.com/docs/git-difftool}).
 ;;;
 ;;;     # Set lisp-diff as the default difftool.
 ;;;     [diff]
@@ -16,8 +17,12 @@
 ;;;     [difftool]
 ;;;     	prompt = false
 ;;;
-;;; See Eclector/code/parse-result/second-climacs-test.lisp
+;;; See @code{Eclector/code/parse-result/second-climacs-test.lisp}.
+;;; Note that this requires the @code{wip-parse-result-protocol-2}
+;;; branch of Eclector (see
+;;; @url{https://github.com:robert-strandh/Eclector}).
 ;;;
+;;; @texi{lisp-diff}
 (defpackage :software-evolution-library/lisp-diff
   (:nicknames :sel/lisp-diff)
   (:use :common-lisp
@@ -36,7 +41,8 @@
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
    :if-let :emptyp :featurep)
   (:shadowing-import-from :concrete-syntax-tree
-                          :first :rest :source :cst :cons-cst :atom-cst :raw))
+                          :first :rest :source :cst :cons-cst :atom-cst :raw)
+  (:export :run-lisp-diff))
 (in-package :software-evolution-library/lisp-diff)
 (in-readtable :curry-compose-reader-macros)
 

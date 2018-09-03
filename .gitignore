@@ -33,11 +33,15 @@
 *.svg
 
 # Generated documentation
+doc/software-evolution-library/
+doc/include/
 doc/sel-api.texi
 doc/sel-serapi-io-api.texi
 doc/sel-utility-api.texi
 doc/sel-view-api.texi
-
+doc/sel-ast-diff-api.texi
+doc/sel-clang-diff-api.texi
+doc/sel-lisp-diff-api.texi
 
 # Backup files
 *~
