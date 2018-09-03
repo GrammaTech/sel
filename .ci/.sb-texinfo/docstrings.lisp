@@ -523,7 +523,7 @@ STRING is assumed to be the result of `escape-for-texinfo'."
 ;;; line markups
 
 (defvar *not-symbols*
-  '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO" "ASM" "C" "C++" "AST"))
+  '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO" "ASM" "C" "C++" "AST" "*"))
 
 (defun frob-ellipsis (line)
   ;; READ-FROM-STRING chokes on ... so replace it.
@@ -650,6 +650,7 @@ an item in an itemization."
        for line = (svref lines line-number)
        for indentation = (indentation line)
        for offset = (maybe-itemize-offset line)
+       when (search "@end menu" line) do (setf result nil)
        do (cond
             ((not indentation)
              ;; empty line -- inserts paragraph.
