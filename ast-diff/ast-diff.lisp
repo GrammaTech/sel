@@ -1,21 +1,43 @@
 ;;; ast-diff.lisp --- diffs between ASTs and other tree structures
-;;
-;; From http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer
-;;
-;;; TODO:
-;; - Add cost of switch, two grids
-;; - Lazy “switch” creation
-;; - Profile
-;; - A-star
-;; - Sub-diff for text (customizable)
-;;
-;; Lisp differ
-;; - collect comments
-;; - is diff in comments
-;; - command line ex’s suitable for use by git
-;;
-;; C differ
-;; - command line ex’s suitable for use by git
+;;;
+;;; Originally adopted from:
+;;; http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer
+;;;
+;;; Comments on further algorithm improvements
+;;;
+;;; The "good enough" algorithm could be made slightly better
+;;; by allowing limited lookahead.  With k lookahead it could
+;;; run in O(k max(m,n)) time, m and n the lengths of the sequences.
+;;;
+;;; The hash function has not been fully tuned for speed.
+;;;
+;;; RECURSIVE-DIFF has an UPPER-BOUND argument.  This is not used
+;;; now, but could be used to speed up the slow part of the algorithm
+;;; if we want an exact solution rather than the "good enough" solution.
+;;; Use the cost of the "good enough" solution to provide an upper bound
+;;; for the exact solution.   Also, recursive calls could provide their
+;;; own upper bounds based on the optimum path to the node from which
+;;; the call is being made.
+;;;
+;;; The dynamic programming algorithm uses O(mn) space.  It can be
+;;; changed to use linear space.  There are various schemes in the
+;;; literature for doing LCS and edit distance in linear space.
+;;; A simple one is as follows: note that we can compute the length
+;;; of the LCS (or the edit distance) in linear space by scanning
+;;; the array keeping just two rows.  We cannot reconstruct the
+;;; edit from this, but we can record which entry on the m/2 row
+;;; was in the final optimal solution.  Once we have done that,
+;;; the parts before and after that point can be recomputed
+;;; recursively.
+;;;
+;;; The speed on C programs is now dominated by the time needed
+;;; for Clang to parse the C and send the AST to Lisp.
+;;;
+;;; It may be useful to have a hash function on ASTs that produces
+;;; smaller integers, and use ast-hash-with-check to handle collisions.
+;;; This could be tied in with a general mechanism for hash consing
+;;; of ASTs.
+;;;
 (defpackage :software-evolution-library/ast-diff
   (:nicknames :sel/ast-diff)
   (:use
@@ -73,9 +95,9 @@
 
 ;; (declaim (inline reduce-on))
 (defun reduce-on (combining-fn tail-fn x &key (recur-p #'consp) (next #'cdr))
-  "Use COMBINING-FN to combine, last to first, the values obtained by calling NEXT
-zero or more times on X, until RECUR-P is false, at which point TAIL-FN is applied
-instead to that last value."
+  "Use COMBINING-FN to combine, last to first, the values obtained by
+calling NEXT zero or more times on X, until RECUR-P is false, at which
+point TAIL-FN is applied instead to that last value."
   (let ((stack nil))
     (iter (while (funcall recur-p x))
           (push x stack)
@@ -205,6 +227,7 @@ instead to that last value."
 
 (defmethod ast-text ((ast cons))
   (concatenate 'string (ast-text (car ast)) (ast-text (cdr ast))))
+
 
 (defgeneric ast-hash (ast)
   (:documentation "A hash value for the AST, which is a nonnegative
@@ -223,6 +246,7 @@ then the equality of the hashes is unlikely."))
 ;; in both SBCL and CCL (64 bit).
 (deftype hash-type () '(integer 0 (#.(- (ash 1 56) 5))))
 
+;;; FIXME: Add a comment describing how a-coeffs and b-coeffs were generated.
 (let ((a-coeffs
        (make-array '(32)
                    :element-type 'hash-type
@@ -257,7 +281,7 @@ then the equality of the hashes is unlikely."))
       (p 13211719))
 
   (declare (type (and simple-array (vector hash-type 32)) a-coeffs b-coeffs))
-  
+
   ;; functions, methods defined here can use a-coeffs, b-coeffs
   ;; at lower cost than special variables
 
@@ -277,7 +301,7 @@ modile +AST-HASH-BASE+"
               ;; values can be likely to hash to the same integer.
               (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
       result))
-  
+
   (defmethod ast-hash ((i integer))
     (let ((c1 34188292748050745)
           (c2 38665981814718286))
@@ -335,10 +359,7 @@ modile +AST-HASH-BASE+"
                           (collect (car (cobj c)))
                           (setf c (cdr (cobj c))))
                     c))
-                  (ast-hash (cobj c))))))
-
-  )
-
+                  (ast-hash (cobj c)))))))
 
 (defun ast-hash-with-check (ast table)
   "Calls AST-HASH, but checks that if two ASTs have the same hash value,
@@ -351,6 +372,7 @@ value that is used instead."
             (while (gethash hash table)))
       (setf (gethash hash table) ast))
     hash))
+
 
 ;;; Main interface to calculating ast differences.
 (defgeneric ast-diff (ast-a ast-b)
@@ -414,7 +436,7 @@ Prefix and postfix returned as additional values."
     (t nil)))
 
 (defun simple-queue-enqueue (sq val)
-  (push val (cdr sq)))    
+  (push val (cdr sq)))
 
 (defun recursive-diff (total-a total-b &key (upper-bound most-positive-fixnum)
                        &aux
@@ -673,8 +695,8 @@ subsequences (some possibly empty), as well as the N subsequences themselves."
                   (format t "Base:~A~%" base)
                   (time (dotimes (n 10) (ast-diff orig other)))))
 
-;;; These numbers are obsolete; re-run them.
-
+;;; NOTE: These numbers are obsolete; re-run them.
+;;
 ;; SBCL 1.4.6
 ;; ============================================================
 ;; size        runtime        bytes-consed
@@ -845,8 +867,8 @@ See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
               (show-chunks chunk)))
         chunks))
 
-;;; Find "good" common subsequences of two sequences
-;;; This is intended to run in linear time
+;;; Find "good" common subsequences of two sequences.
+;;; This is intended to run in linear time.
 
 (defun good-common-subsequences (s1 s2 &key (test #'eql))
   "Find good common subsequences of two lists s1 and s2, under
@@ -954,10 +976,10 @@ as the test of a hash table."
             (nreconc result (list (list start1 start2 len)))
             (nreverse result))))))
 
-;;; Another algorithm for good common subsequences, more
-;;; robust in the face of elements that occur with high frequency.
-;;; Instead, focus on elements that occur just once in each list,
-;;; and grow subsequences from those.
+;;; Another algorithm for good common subsequences, more robust in the
+;;; face of elements that occur with high frequency.  Instead, focus
+;;; on elements that occur just once in each list, and grow
+;;; subsequences from those.
 
 (defstruct gcs
   (count 0 :type fixnum)
@@ -1038,8 +1060,9 @@ as the test of a hash table."
 	(iter (for triple in candidates)
 	      (for (s21 s22 l2) = triple)
 	      (when
-		  ;; Reject triples when they break ordering with previous triples
-		  ;; The triples should never overlap
+		  ;; Reject triples when they break ordering with
+		  ;; previous triples The triples should never
+		  ;; overlap.
 		  (iter (for (s11 s12 l1) in selected-triples)
 			(assert (/= s11 s21))
 			(always (if (< s21 s11)
@@ -1048,44 +1071,4 @@ as the test of a hash table."
 				    (and (>= s21 (+ s11 l1))
 					 (>= s22 (+ s12 l1))))))
 		(push triple selected-triples)))
-	(sort selected-triples #'< :key #'car)
-	))))
-	
-			 
-
-;;; Comments on further algorithm improvements
-;;;
-;;; The "good enough" algorithm could be made slightly better
-;;; by allowing limited lookahead.  With k lookahead it could
-;;; run in O(k max(m,n)) time, m and n the lengths of the sequences.
-;;;
-;;; The hash function has not been fully tuned for speed.
-;;;
-;;; RECURSIVE-DIFF has an UPPER-BOUND argument.  This is not used
-;;; now, but could be used to speed up the slow part of the algorithm
-;;; if we want an exact solution rather than the "good enough" solution.
-;;; Use the cost of the "good enough" solution to provide an upper bound
-;;; for the exact solution.   Also, recursive calls could provide their
-;;; own upper bounds based on the optimum path to the node from which
-;;; the call is being made.
-;;;
-;;; The dynamic programming algorithm uses O(mn) space.  It can be
-;;; changed to use linear space.  There are various schemes in the
-;;; literature for doing LCS and edit distance in linear space.
-;;; A simple one is as follows: note that we can compute the length
-;;; of the LCS (or the edit distance) in linear space by scanning
-;;; the array keeping just two rows.  We cannot reconstruct the
-;;; edit from this, but we can record which entry on the m/2 row
-;;; was in the final optimal solution.  Once we have done that,
-;;; the parts before and after that point can be recomputed
-;;; recursively.
-;;;
-;;; The speed on C programs is now dominated by the time needed
-;;; for Clang to parse the C and send the AST to Lisp.
-;;;
-;;; It may be useful to have a hash function on ASTs that produces
-;;; smaller integers, and use ast-hash-with-check to handle collisions.
-;;; This could be tied in with a general mechanism for hash consing
-;;; of ASTs.
-
-;; #+sbcl (declaim (optimize (sb-cover:store-coverage-data 0)))
+	(sort selected-triples #'< :key #'car)))))
