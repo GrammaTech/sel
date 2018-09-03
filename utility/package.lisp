@@ -136,6 +136,7 @@
    :repeatedly
    :indexed
    :different-it
+   :mapt
    :plist-get
    :plist-keys
    :plist-drop-if
@@ -206,6 +207,7 @@
    :*note-out*
    :replace-stdout-in-note-targets
    :note
+   :with-warnings-as-notes
    :trace-memory
    :*shell-count*
    ;; diff computing

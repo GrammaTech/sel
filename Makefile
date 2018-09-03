@@ -10,13 +10,19 @@ PACKAGE_NICKNAME = sel
 DOC_PACKAGES =	software-evolution-library		\
 		software-evolution-library/utility	\
 		software-evolution-library/view		\
-		software-evolution-library/serapi-io
+		software-evolution-library/serapi-io	\
+		software-evolution-library/ast-diff	\
+		software-evolution-library/clang-diff	\
+		software-evolution-library/lisp-diff
 
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard src/*.lisp)		\
 	$(wildcard software/*.lisp)	\
-	$(wildcard utility/*.lisp)
+	$(wildcard utility/*.lisp)	\
+	$(wildcard ast-diff/*.lisp)	\
+	$(wildcard clang-diff/*.lisp)	\
+	$(wildcard lisp-diff/*.lisp)
 
 TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \

@@ -2,7 +2,8 @@
 ;;;
 ;;;
 ;;; The following git configuration will register clang-diff as a tool
-;;; to be used with @code{git difftool}.
+;;; to be used with @code{git difftool} (see
+;;; @url{https://git-scm.com/docs/git-difftool}).
 ;;;
 ;;;     # Set clang-diff as the default difftool.
 ;;;     [diff]
@@ -25,13 +26,7 @@
 ;;;     [difftool "clang-diff"]
 ;;;     	cmd = "clang-diff -I .,src $LOCAL $REMOTE"
 ;;;
-;;; TODO:
-;;;  - Implement a string diff to recurse into strings.
-;;;    (This should have a configurable separator.)
-;;;  - Work on clang-diff tool's git configuration (or maybe this has
-;;;    to be implemented in clang-diff itself) to limit application by
-;;;    extension.
-;;;
+;;; @texi{clang-diff}
 (defpackage :software-evolution-library/clang-diff
   (:nicknames :sel/clang-diff)
   (:use :common-lisp
@@ -50,9 +45,16 @@
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
    :if-let :emptyp :featurep)
   (:shadowing-import-from :software-evolution-library/view
-                          +color-RED+ +color-GRN+ +color-RST+))
+                          +color-RED+ +color-GRN+ +color-RST+)
+  (:export :run-clang-diff))
 (in-package :software-evolution-library/clang-diff)
 (in-readtable :curry-compose-reader-macros)
+;;; TODO:
+;;;  - Implement a string diff to recurse into strings.
+;;;    (This should have a configurable separator.)
+;;;  - Work on clang-diff tool's git configuration (or maybe this has
+;;;    to be implemented in clang-diff itself) to limit application by
+;;;    extension.
 
 (setf *note-out* *error-output*)
 (defun handle-set-verbose-argument (level)
