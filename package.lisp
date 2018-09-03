@@ -36,6 +36,7 @@
    :if-let :ensure-function :ensure-gethash :copy-file :copy-stream
    :parse-body :simple-style-warning)
   (:export
+   :+software-evolution-library-dir+
    :+software-evolution-library-version+
    :+software-evolution-library-branch+
    ;; software objects

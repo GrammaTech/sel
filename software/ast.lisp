@@ -12,7 +12,8 @@
 
 
 ;;; Data structure definitions
-(defstruct ast-node "Base type of immutable portion of ast nodes.")
+(defstruct ast-node "Base type of immutable portion of ast nodes."
+  (hash nil :type (or null fixnum)))	   
 
 (defstruct (ast (:constructor make-raw-ast))
   "Base type of sub-tree of an applicative AST tree."
@@ -541,7 +542,8 @@ use carefully.
        (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
 
 (defmethod ast-cost ((ast ast))
-  (apply #'+ (mapcar #'ast-cost (ast-children ast))))
+  ;; (apply #'+ (mapcar #'ast-cost (ast-children ast)))
+  (reduce #'+ (ast-children ast) :initial-value 0 :key #'ast-cost))
 
 (defmethod ast-can-recurse ((ast-a ast) (ast-b ast))
   (eq (ast-class ast-a) (ast-class ast-b)))
@@ -554,3 +556,13 @@ use carefully.
 
 (defmethod ast-text ((ast ast))
   (peel-bananas (source-text ast)))
+
+(defmethod ast-hash ((ast ast))
+  ;; should have place to cache this?
+  (let ((node (ast-node ast)))
+    (unless node (call-next-method))
+    (or (ast-node-hash node)
+	(setf (ast-node-hash node)
+	      (ast-hash (cons (ast-class ast) (ast-children ast)))))))
+
+

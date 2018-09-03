@@ -70,12 +70,6 @@
           :raw (subseq *string* (car source) (cdr source)))
         *comments*))
 
-(defun maptree (fn tree)
-  (if (consp tree)
-      (cons (maptree fn (car tree))
-            (maptree fn (cdr tree)))
-      (funcall fn tree)))
-
 (defun read-file-forms-and-extras (file &key count)
   "Read forms and comments from FILE returned interleaved in a tree."
   (check-type count (or null integer))
