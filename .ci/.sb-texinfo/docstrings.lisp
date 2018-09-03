@@ -604,6 +604,28 @@ variables if the symbol in question is contained in symbols
         (setf last (second symbol/index)))
       (write-string (subseq line last) result))))
 
+;;; example sections
+
+(defun example-section-p (line line-number lines)
+  "Returns T if the given LINE looks like start of example code --
+ie. if it starts with 4 whitespace and the previous line is empty"
+  (let ((offset (indentation line)))
+    (and offset
+         (= 4 offset)
+         (empty-p (1- line-number) lines))))
+
+(defun collect-example-section (lines line-number)
+  (flet ((maybe-line (index)
+           (and (< index (length lines)) (svref lines index))))
+    (let ((example (loop for index = line-number then (1+ index)
+                      for line = (maybe-line index)
+                      while (or (indentation line)
+                                ;; Allow empty lines in middle of example sections.
+                                (let ((next (1+ index)))
+                                  (example-section-p (maybe-line next) next lines)))
+                      collect line)))
+     (values (length example) `("@example" ,@example "@end example")))))
+
 ;;; lisp sections
 
 (defun lisp-section-p (line line-number lines)
@@ -775,6 +797,9 @@ followed another tabulation label or a tabulation body."
       (loop for line-number from 0 below (length lines)
             for line = (svref lines line-number)
             do (cond
+                 ((with-maybe-section line-number
+                    (and (example-section-p line line-number lines)
+                         (collect-example-section lines line-number))))
                  ((with-maybe-section line-number
                     (and (lisp-section-p line line-number lines)
                          (collect-lisp-section lines line-number))))
