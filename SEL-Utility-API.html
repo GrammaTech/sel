@@ -288,8 +288,8 @@ The <code>object</code> field is a list on whose elements <code>some-task-pred</
 </p>
 <p>For usage see the definition of &lsquo;clang-instrument&rsquo;.  <code>e</code>.g.,
 </p>
-<div class="lisp">
-<pre class="lisp">    (getopts
+<div class="example">
+<pre class="example">    (getopts
       (&quot;-c&quot; &quot;--compiler&quot; (setf (compiler original) (pop args)))
       (&quot;-e&quot; &quot;--exit&quot; (setf instrument-exit t))
       (&quot;-F&quot; &quot;--flags&quot; (setf (flags original) (split-sequence #, (pop args))))
@@ -310,20 +310,8 @@ The <code>object</code> field is a list on whose elements <code>some-task-pred</
 This is useful for &lsquo;flet&rsquo; and &lsquo;labels&rsquo; functions which can&rsquo;t be traced
 with &lsquo;cl-user:trace&rsquo;.
 </p></dd></dl>
-<a name="Macro-with_002dcwd"></a><dl>
-<dt><a name="index-with_002dcwd"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
-<dd><p>Change the current working directory to dir and execute body.
-<code>warning:</code> This function is not thread safe.  Execution in a threaded
-environment may causes execution outside of the intended directory or
-may lose the original working directory.
-</p></dd></dl>
 <a name="Macro-with_002dtemp_002dfile_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002dfile_002dof"></a>Macro: <strong>with-temp-file-of</strong> <em>spec str &amp;rest body</em></dt>
-<dd><p><code>spec</code> should be a list of the variable used to reference the file
-and an optional extension.
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
 <dd><p><code>spec</code> should be a list of the variable used to reference the file
 and an optional extension.
 </p></dd></dl>
@@ -398,10 +386,6 @@ Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <
 original diff region and <code>m</code> is the length of the modified diff
 region.
 </p></dd></dl>
-<a name="Function-drop"></a><dl>
-<dt><a name="index-drop"></a>Function: <strong>drop</strong> <em>n seq</em></dt>
-<dd><p>Return <code>seq</code> less the first <code>n</code> items.
-</p></dd></dl>
 <a name="Function-ends_002dwith_002dp"></a><dl>
 <dt><a name="index-ends_002dwith_002dp"></a>Function: <strong>ends-with-p</strong> <em>str1 str2</em></dt>
 <dd><p>Determine whether &lsquo;str1&lsquo; ends with &lsquo;str2&lsquo;
@@ -437,15 +421,13 @@ region.
 Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
 pathname (i.e., ending in a &quot;/&quot;).
 </p></dd></dl>
-<a name="Function-make_002dterminal_002draw"></a><dl>
-<dt><a name="index-make_002dterminal_002draw"></a>Function: <strong>make-terminal-raw</strong></dt>
-<dd><p>Place the terminal into &rsquo;raw&rsquo; mode, no echo non canonical.
-This allows characters to be read directly without waiting for a newline.
-See &rsquo;man 3 termios&rsquo; for more information.
-</p></dd></dl>
 <a name="Function-make_002dthread_002dsafe_002dhash_002dtable"></a><dl>
 <dt><a name="index-make_002dthread_002dsafe_002dhash_002dtable"></a>Function: <strong>make-thread-safe-hash-table</strong> <em>&amp;rest args</em></dt>
 <dd><p>Create a thread safe hash table with the given <code>args</code>
+</p></dd></dl>
+<a name="Function-mapt"></a><dl>
+<dt><a name="index-mapt"></a>Function: <strong>mapt</strong> <em>function tree</em></dt>
+<dd><p>Like &lsquo;mapcar&rsquo; but <code>tree</code> is a cons tree instead of a proper list.
 </p></dd></dl>
 <a name="Function-merge_002dpathnames_002das_002dfile"></a><dl>
 <dt><a name="index-merge_002dpathnames_002das_002dfile"></a>Function: <strong>merge-pathnames-as-file</strong> <em>&amp;rest pathnames</em></dt>
@@ -561,6 +543,13 @@ promises to find the first while &lsquo;some-task&rsquo; may return any element 
 <dd><p>Executes <code>body</code> with <code>stream-var</code> holding the output of <code>shell</code>.
 The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
 </p></dd></dl>
+<a name="Macro-with_002dcwd"></a><dl>
+<dt><a name="index-with_002dcwd"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
+<dd><p>Change the current working directory to dir and execute body.
+<code>warning:</code> This function is not thread safe.  Execution in a threaded
+environment may causes execution outside of the intended directory or
+may lose the original working directory.
+</p></dd></dl>
 <a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002ddir_002dof"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
 <dd><p>Populate <code>spec</code> with the path to a temporary directory with the contents
@@ -571,9 +560,24 @@ of <code>dir</code> and execute <code>body</code>
 <dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
 After <code>body</code> is executed the temporary file is removed.
 </p></dd></dl>
+<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
+<dd><p><code>spec</code> should be a list of the variable used to reference the file
+and an optional extension.
+</p></dd></dl>
 <a name="Function-directory_002dp"></a><dl>
 <dt><a name="index-directory_002dp"></a>Function: <strong>directory-p</strong> <em>pathname</em></dt>
 <dd><p>Return a directory version of <code>pathname</code> if it indicates a directory.
+</p></dd></dl>
+<a name="Function-drop"></a><dl>
+<dt><a name="index-drop"></a>Function: <strong>drop</strong> <em>n seq</em></dt>
+<dd><p>Return <code>seq</code> less the first <code>n</code> items.
+</p></dd></dl>
+<a name="Function-make_002dterminal_002draw"></a><dl>
+<dt><a name="index-make_002dterminal_002draw"></a>Function: <strong>make-terminal-raw</strong></dt>
+<dd><p>Place the terminal into &rsquo;raw&rsquo; mode, no echo non canonical.
+This allows characters to be read directly without waiting for a newline.
+See &rsquo;man 3 termios&rsquo; for more information.
 </p></dd></dl>
 <a name="Function-merge_002dpathnames_002das_002ddirectory"></a><dl>
 <dt><a name="index-merge_002dpathnames_002das_002ddirectory"></a>Function: <strong>merge-pathnames-as-directory</strong> <em>&amp;rest pathnames</em></dt>
@@ -593,22 +597,21 @@ directory pathname containing the logical concatenation of them all.
 <dd><p>Write FlameGraph profile data to <code>stream</code>.
 The resulting file may be fed directly to the flamegraph tool as follows.
 </p>
-<p><code>repl&gt;</code> (sb-sprof:start-profiling)
-</p>
+<div class="example">
+<pre class="example">    REPL&gt; (sb-sprof:start-profiling)
+</pre></div>
+
 <p>...do some work...
 </p>
-
-<dl compact="compact">
-<dt><em><code>repl&gt;</code> (with-open-file (out &quot;profile.data&quot;</em></dt>
-<dd><p>:direction :output
+<div class="example">
+<pre class="example">    REPL&gt; (with-open-file (out &quot;profile.data&quot;
+                               :direction :output
                                :if-exists :supersede)
             (profile-to-flame-graph out))
-</p>
-</dd>
-</dl>
 
-<p>shell$ cat profile.data|flamegraph <code>&gt;</code> profile.svg
-</p>
+    shell$ cat profile.data|flamegraph &gt; profile.svg
+</pre></div>
+
 <p>See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html.
 </p></dd></dl>
 <a name="Function-quit"></a><dl>

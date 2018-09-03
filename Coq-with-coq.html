@@ -126,14 +126,14 @@ syntax trees (ASTs) and is described in-depth in its own section.
 </li><li> <code>file-source</code> path to the Coq source file this object represents
 </li><li> <code>imports</code> list of ASTs representing load or require statements
 </li><li> <code>genome</code> list of ASTs representing the Coq source, excluding imports
-</li><li> <code>ast-ids</code> list of <code>ast</code> IDs assigned to ASTs in the genome
+</li><li> <code>ast-ids</code> list of AST IDs assigned to ASTs in the genome
 </li><li> <code>fitness</code> fitness of the object last time it was evaluated
 
 </li></ul>
 <p>The recommended way to create a Coq software object is using &lsquo;from-file&rsquo;:
 </p>
-<div class="lisp">
-<pre class="lisp">    (with-serapi ()
+<div class="example">
+<pre class="example">    (with-serapi ()
       (from-file (make-instance 'coq :project-file &quot;/path/to/_CoqProject&quot;)
                  &quot;/path/to/Foo.v&quot;))
 </pre></div>
@@ -167,11 +167,11 @@ arbitrary subtrees.
 </p>
 <p>Additional mutations are forthcoming.
 </p>
-<p>In the <code>ast</code> representations provided by Coq, many statements include location
-information tying <code>ast</code> nodes to locations in the source file. To help reduce
-the size of the <code>ast</code>, &lsquo;from-file&rsquo; replaces the full location information with
+<p>In the AST representations provided by Coq, many statements include location
+information tying AST nodes to locations in the source file. To help reduce
+the size of the AST, &lsquo;from-file&rsquo; replaces the full location information with
 the list &lsquo;(:loc nil)&rsquo;. This ensures that it&rsquo;s clear where the location
-information was without overly cluttering the <code>ast</code>. The implementation of
+information was without overly cluttering the AST. The implementation of
 &lsquo;lookup-source-strings&rsquo; ensures that these are removed prior to sending the
 ASTs to sertop to look up source strings. The default implementations of
 &lsquo;pick-bad&rsquo; and &lsquo;pick-good&rsquo; for Coq objects exclude &ldquo;located&rdquo; statements.

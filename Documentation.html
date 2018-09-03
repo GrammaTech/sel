@@ -72,8 +72,18 @@ Next: <a href="Don_0027t-use-superfluous-let-or-let_002a-bindings.html#Don_0027t
 
 <p>Write documentation strings for <em>every</em> function <em>always</em>.
 Also, ensure every <code>defmethod</code> has a <code>defgeneric</code> which has
-a documentation string.
+a documentation string.  The following formatting should be used for
+docstrings.
 </p>
+<pre class="verbatim">Brief description (maximum 79 characters).
+
+Longer description if necessary. This may span multiple lines, but
+should adhere to the standard 79-character limit.
+
+Paragraph breaks are also OK in the longer description.
+* PARAM-A description of param
+* PARAM-B description of param
+</pre>
 <a name="For-files-and-modules"></a>
 <h4 class="subsection">E.9.2 For files and modules</h4>
 
