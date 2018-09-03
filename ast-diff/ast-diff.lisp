@@ -3,7 +3,7 @@
 ;;; The @code{software-evolution-library/ast-diff} library provides
 ;;; for the differencing of software objects.  A general tree
 ;;; differencing algorithm (originally adopted from
-;;; @url{http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer}
+;;; @url{http://thume.ca/2017/06/17/tree-diffing/#a-tree-diff-optimizer})
 ;;; is used to difference tree genomes.  Optimizations are made which
 ;;; assume the common cases of differences typically found in software
 ;;; development in which most top-level subtrees have no differences.
