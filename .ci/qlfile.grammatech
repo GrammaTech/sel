@@ -1,2 +1,2 @@
 git testbot http://git.grammatech.com/synthesis/testbot.git
-git trace-db http://git.grammatech.com/research/trace-db.git
+git trace-db http://git.grammatech.com/research/trace-db.git :branch hash-consing

@@ -1,1 +1,1 @@
-git trace-db https://github.com/grammatech/trace-db.git
+git trace-db https://github.com/grammatech/trace-db.git :branch hash-consing
