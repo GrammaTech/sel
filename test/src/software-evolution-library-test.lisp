@@ -501,7 +501,9 @@
 			   (asm-test-dir "odd-even.asm"))
 	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
     (load-io-file *soft* (asm-test-dir "odd-even.io"))
-    (target-function *soft* #x4005f6 #x400625))
+    (target-function-name *soft* "is_even")
+    (setf (sel::var-table *soft*)
+	  (sel::parse-sanity-file (asm-test-dir "odd-even.nm"))))
 
   (:teardown (setf *soft* nil)))
 
@@ -1331,7 +1333,7 @@
     (setf (mutants *soft*)
 	  (cons (create-target *soft*)
 		(create-all-simple-cut-variants *soft*)))
-    (sel::test-fitness *soft*)
+    (evaluate nil *soft*)
     (let ((best
 	   (lexicase-select-best
 	    (mutants *soft*)
