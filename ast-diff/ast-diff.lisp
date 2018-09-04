@@ -305,7 +305,7 @@ then the equality of the hashes is unlikely."))
                      13913708511125320 47256219783059968)))
       (p 13211719))
 
-  (declare (type (and simple-array (vector hash-type 32)) a-coeffs b-coeffs))
+  (declare (type (or simple-array (vector hash-type 32)) a-coeffs b-coeffs))
 
   ;; functions, methods defined here can use a-coeffs, b-coeffs
   ;; at lower cost than special variables
