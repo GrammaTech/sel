@@ -30,7 +30,7 @@
 // the pointer as if it were a standalone block.
 //
 typedef void (*vfunc)();
-                              
+
 
 extern vfunc variant_table[]; // 0-terminated array of variant
                               // function pointers, defined in the asm file
@@ -248,7 +248,7 @@ void init_mem(int test) {
         count--;
     }
     // p should now be positioned at the correct test data
-        
+
     while (*p) {
         unsigned long* addr = (unsigned long*)*p++;
         unsigned long data = *p++;
@@ -274,7 +274,7 @@ int check_results(int variant, int test) {
         fprintf(stderr, "Variant %d, test %d timed out and was terminated.\n",
                 variant, test);
     }
-    
+
     if (save_return_address != result_return_address) {
 #if DEBUG
         fprintf(stderr, "Expected return address: %lx, found: %lx\n",
@@ -283,7 +283,7 @@ int check_results(int variant, int test) {
 #endif
         success = 0;
     }
-    
+
     // check registers
     for (int i = 0; i < NUM_OUTPUT_REGS; i++) {
         if (i != RSP_POS
@@ -313,7 +313,7 @@ int check_results(int variant, int test) {
         count--;
     }
     // p should now be positioned at the correct test data
-    
+
     while (*p) {
         unsigned long* addr = (unsigned long*)*p++;
         unsigned long data = *p++;
@@ -324,7 +324,7 @@ int check_results(int variant, int test) {
         if (addr < rsp && (rsp - addr) < 64)
             continue;    // ignore changes in the 1024 below the top
                          // of the stack (i.e. not on the stack, which
-                         // grows down) 
+                         // grows down)
         if ((*addr & mask) != (data & mask)) {
             fprintf(stderr, "Test %d failed at addr: %lx, expected: %lx, "
                    "mask: %lx, found: %lx, orig rsp: %lx\n",
@@ -333,7 +333,7 @@ int check_results(int variant, int test) {
                    data, mask, *addr, save_rsp);
             success = 0;
         }
-    }    
+    }
     return success;
 }
 
@@ -354,14 +354,14 @@ static void sigunblock() {
     sigaddset(&sa_mask, SIGBUS);
     sigprocmask(SIG_UNBLOCK, &sa_mask, NULL);
 }
-    
+
 #define REG_RIP 16
 
 void segfault_sigaction(int signal, siginfo_t *si, void *context) {
     //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
 
     //unblock_signal(signal);
-    
+
     ucontext_t* p = (ucontext_t*)context;
     p->uc_mcontext.gregs[REG_RIP] = (greg_t)save_return_address;
 }
@@ -413,7 +413,7 @@ timer_t setup_timer() {
     memset(&tsa, 0, sizeof(tsa));
     memset(&timer, 0, sizeof(timer));
     memset(&sev, 0, sizeof(sev));
-    
+
     tsa.sa_sigaction = timer_sigaction;
     tsa.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
     sigemptyset(&tsa.sa_mask);
@@ -452,7 +452,7 @@ unsigned long run_variant(int v, int test) {
     long_long end_value[1];
     long_long stop_value[1];
     int retval;
-    
+
     test_offset = test * NUM_INPUT_REGS * sizeof(unsigned long);
     execaddr = variant_table[v];
     init_mem(test);
@@ -461,7 +461,7 @@ unsigned long run_variant(int v, int test) {
 
     start_timer();  // start POSIX timer
     sigunblock();
-    
+
     retval = PAPI_start(EventSet);  // start PAPI counting
     if (retval < 0) {
         fprintf(stderr, "PAPI_start() error: %d\n", retval);
@@ -482,7 +482,7 @@ unsigned long run_variant(int v, int test) {
     retval = PAPI_read(EventSet, end_value);     // get PAPI count
     end_timer();  // stop POSIX timer
     sigunblock();
-    
+
     if (retval < 0) {
         fprintf(stderr, "PAPI_read() error: %d\n", retval);
         exit(1);
@@ -493,9 +493,9 @@ unsigned long run_variant(int v, int test) {
         fprintf(stderr, "PAPI_stop() error: %d\n", retval);
         exit(1);
     }
-    
+
     long_long elapsed_instructions = end_value[0] - start_value[0];
-    
+
     int res = check_results(v, test);   // make sure all the registers had expected
                                  // output values
 #if DEBUG
@@ -519,7 +519,7 @@ void run_variant_tests(int v, unsigned long test_results[]) {
 
 void papi_init() {
     int retval = PAPI_library_init(PAPI_VER_CURRENT);
-    
+
     if (retval != PAPI_VER_CURRENT && retval > 0) {
         fprintf(stderr,"PAPI library version mismatch!\n");
         exit(1);
@@ -569,7 +569,7 @@ RESTORE (restore_rt, __NR_rt_sigreturn)
 void restore_rt (void) asm ("__restore_rt")
   __attribute__ ((visibility ("hidden")));
 
-struct kernel_sigaction 
+struct kernel_sigaction
 {
     void (*k_sa_sigaction)(int,siginfo_t *,void *);
     unsigned long k_sa_flags;
@@ -597,7 +597,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     sigunblock();
-    
+
     struct sigaction sa;
     memset(&sa, 0, sizeof(struct sigaction));
     sigemptyset(&sa.sa_mask);
@@ -612,18 +612,18 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Error installing segfault signal handler\n");
         exit(1);
     }
-    
+
     setup_timer();
-    
+
     // show the page size
     long sz = sysconf(_SC_PAGESIZE);
 #if DEBUG
     fprintf(stderr, "Page size: %ld\n", sz);
 #endif
     papi_init();
-    
+
     init_pages(); // allocate any referenced pages
-    
+
     unsigned long best = 0;
     int best_index = -1;
     int num_variants = 0;
@@ -638,11 +638,11 @@ int main(int argc, char* argv[]) {
     unsigned long* test_results =
         (unsigned long*)malloc(sizeof(unsigned long) * num_tests * num_variants);
     unsigned long* p = test_results;
-    
+
     for (int i = 0; i < (num_tests * num_variants); i++)
         test_results[i] = ULONG_MAX;   // set fitness to max to
                                        // initialize
-    
+
     for (int i = 0; variant_table[i]; i++) {
         run_variant_tests(i, test_results + (i * num_tests));
     }
