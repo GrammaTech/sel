@@ -7,6 +7,7 @@
                cl-ppcre
                named-readtables
                curry-compose-reader-macros
+               uiop
                software-evolution-library
                software-evolution-library/utility)
   :components ((:file "neutral")))

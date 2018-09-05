@@ -8,6 +8,7 @@
                curry-compose-reader-macros
                cl-store
                bordeaux-threads
+               uiop
                software-evolution-library
                software-evolution-library/utility)
   :components ((:file "repair")))

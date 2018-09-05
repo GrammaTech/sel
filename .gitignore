@@ -45,6 +45,7 @@ doc/sel-lisp-diff-api.texi
 
 # Backup files
 *~
+*.swp
 
 # Binaries
 soft-ev
