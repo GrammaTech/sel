@@ -3,17 +3,26 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defstruct (asm-line-info (:copier copy-asm-line-info))
-  text    ;; original text
-  tokens  ;; list of tokens after parsing
-  type    ;; empty (white space/comments), decl, data, label-decl, op)
-  label   ;; for operations which refer to labels
-  opcode  ;; for operations
-  operands;; the operands that are associated with the opcode
-  id      ;; unique index in heap, sequential starting at 0
-  orig-file ;; path of the orignal .asm file that was loaded (if any)
-  orig-line ;; line number (0-based) of line in original .asm file (if any)
-  address ;; original address of code or data
-  )
+  text     ; original text
+  tokens   ; list of tokens after parsing
+  type     ; empty (white space/comments), decl, data, label-decl, op)
+  label    ; for operations which refer to labels
+  opcode   ; for operations
+  operands ; the operands that are associated with the opcode
+  id       ; unique index in heap, sequential starting at 0
+  orig-file   ; path of the orignal .asm file that was loaded (if any)
+  orig-line ; line number (0-based) of line in original .asm file (if any)
+  address)  ; original address of code or data
+
+(defstruct function-index-entry
+  "Entry into the index, which is a vector of all the functions in the file."
+  name              ; function name
+  start-line        ; first line index, zero-based, of genome
+  start-address     ; address of first line
+  end-line          ; last line index, zero-based, of genome
+  end-address       ; address of last line
+  is-leaf           ; true, if function does not make any calls
+  declarations)     ; list of declaration lines found for the function
 
 ;;; This read-table and package are used for parsing ASM instructions.
 (defvar *assembler-x86-readtable* (copy-readtable))
@@ -141,7 +150,7 @@
 			       :radix 16
 			       :start (+ (length addr-comment) addr-pos)
 			       :junk-allowed t))))
-    
+
     ;; Determine type of line
     (let ((line-type (parse-line-type tokens)))
       (setf (asm-line-info-type info) line-type)
@@ -213,12 +222,21 @@
 ;;
 ;;
 (define-software asm-heap (asm)
-  ((line-heap :initarg :line-heap :accessor line-heap))
+  ((line-heap :initarg :line-heap :accessor line-heap)
+   (function-index :initarg :function-index :initform nil
+		   :accessor function-index
+		   :documentation "Create this on demand."))
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
 Similar to RANGE, but allows for adding and mutating lines, and should
 be able to handle type of mutation we need. The GENOME is a vector of
 references into the asm-heap (asm-line-info) describes the code."))
+
+(defmethod function-index ((asm asm-heap))
+  "If FUNCTION-INDEX slot contains an index, return it. Otherwise create
+the index and return it."
+  (or (slot-value asm 'function-index)
+      (setf (slot-value asm 'function-index) (create-asm-function-index asm))))
 
 (defmethod size ((asm asm-heap))
   "Return the number of lines in the program."
@@ -254,7 +272,9 @@ structs, and storing them in a vector on the LINE-HEAP"
                              :initial-contents asm-infos)))
       (setf (line-heap asm) heap)
       ;; Make a copy for this instance.
-      (setf (genome asm)(line-heap-copy heap)))))
+      (setf (genome asm)(line-heap-copy heap))))
+  ;; Create and cache function index.
+  asm)
 
 (defmethod from-file ((asm asm-heap) file)
   "Initialize an `asm-heap' software object from a file."
@@ -350,11 +370,11 @@ The new genome contains only the elements in the designated range."
     new))
 
 (defmethod apply-mutation ((asm asm-heap) (mutation asm-replace-operand))
-  "Apply an asm-replace-operand MUTATION to ASM-HEAP, return the resulting 
-software. The MUTATION targets are a pair of instruction indices pointing 
-to a \"bad\" instruction (whose operand will be replaced) and 
-a \"good\" instruction (whose operand will be used as the replacement). 
-If either instruction lacks an operand, a `no-mutation-targets' condition 
+  "Apply an asm-replace-operand MUTATION to ASM-HEAP, return the resulting
+software. The MUTATION targets are a pair of instruction indices pointing
+to a \"bad\" instruction (whose operand will be replaced) and
+a \"good\" instruction (whose operand will be used as the replacement).
+If either instruction lacks an operand, a `no-mutation-targets' condition
 is raised."
   (let ((bad-good (targets mutation)))
     (assert (listp bad-good) (mutation)
@@ -380,12 +400,163 @@ is raised."
 	;; update the text since we changed the operand
 	(update-asm-line-info-text new-instr)
 	;; update the genome with the newly modified instruction
-        (setf (elt genome bad) new-instr)  
+        (setf (elt genome bad) new-instr)
         asm))))
 
 (defmethod pick-mutation-type ((asm asm-heap))
   (random-pick *simple-mutation-types*))
 
+(defun function-name-from-label (name)
+  "Given a label like $FOO1, returns \"FOO\""
+  (subseq (symbol-name name) 1))
+
+(defun function-label-p (label-name)
+  "Returns true if the passed symbol represents a valid function name.
+The heuristic is that if it starts with #\$ and doesn't start with the
+known prefixes that are auto-generated in the code, we consider it a
+function name."
+  (let ((name (symbol-name label-name)))
+    (and
+     (char= (elt name 0) #\$)
+     (not
+      (or (starts-with-p name "$LOC_")
+	  (starts-with-p name "$BB_FALLTHROUGH_")
+	  (starts-with-p name "$UNK_"))))))
+
+(defun line-is-function-label (asm-line-info)
+  "Returns true if the passed line-info represents a name of a function."
+  (and (asm-line-info-label asm-line-info)
+       (function-label-p (asm-line-info-label asm-line-info))))
+
+(defun extract-function-name-from-decl (decl-name)
+  (let ((name (symbol-name decl-name)))
+    (subseq name 1 (position #\. name))))
+
+(defun extract-function-declarations (asm)
+  "Traverse the asm-heap, and collect declarations associated with
+each function. The function name is determined from the declaration.
+The declarations are stored in a hash-table, keyed to the function
+name. The resulting hash-table is returned."
+  (let ((table (make-hash-table :test 'equalp))
+	(genome (genome asm)))
+    (iter (for x in-vector genome)
+	  (if (eq (asm-line-info-type x) ':decl)
+	      (push
+	        x
+	        (gethash
+		 (extract-function-name-from-decl
+		  (first (asm-line-info-tokens x)))
+		 table))))
+    table))
+
+(defun create-asm-function-index (asm)
+  "Traverse the passed asm-heap, and collect a function-index-entry
+for each function. The result is a vector of function-index-entry."
+  (let ((table (extract-function-declarations asm))
+	(entries '())
+	(i 0)
+	(genome (genome asm)))
+    (iter (while (< i (length genome)))
+	  (let ((info (elt genome i)))
+	    (if (line-is-function-label info)
+		;; look for the end of the function
+		(let ((start-index i)
+		      (name (function-name-from-label
+			     (asm-line-info-label info)))
+		      (leaf t))
+		  (incf i)
+		  (iter (while (< i (length genome)))
+			(let ((info2 (elt genome i)))
+			  (if (eq (asm-line-info-opcode info2)
+				  'sel/asm::call)
+			      (setf leaf nil)) ;found a call, so not a leaf
+			  (when (or
+				 (eq (asm-line-info-opcode info2)
+				     'sel/asm::ret)
+				 (and
+				  (eq (asm-line-info-type info2)
+				      :decl)
+				  (eq (first (asm-line-info-tokens info2))
+				      'sel/asm::align))
+				 (line-is-function-label info2))
+			    (push
+			     (make-function-index-entry
+			      :name name
+			      :start-line start-index
+			      :start-address (asm-line-info-address info)
+			      :end-line i
+			      :end-address (asm-line-info-address info2)
+			      :is-leaf leaf
+			      :declarations (gethash name table)) entries)
+			    (return)))
+			(incf i)))))
+	  (incf i))
+    (setf entries
+	  (remove-if (lambda (x)
+		       (or (null (function-index-entry-start-address x))
+			   (null (function-index-entry-end-address x))))
+		     (nreverse entries)))
+    (make-array (length entries) :initial-contents entries)))
+
+(defun asm-labels (asm)
+  "Return a hashtable of the labels in the asm-heap"
+  (let ((ht (make-hash-table :test 'equalp)))
+      (iter (for x in-vector (genome asm))
+	    (and (asm-line-info-label x)
+		 (setf (gethash
+			(function-name-from-label (asm-line-info-label x))
+			ht) t)))
+      ht))
+
+(defgeneric load-function-bounds (software-obj file)
+  (:documentation
+   "Load function boundaries into FUNCTION-BOUNDS for OBJ from FILE.")
+  (:method ((asm asm-heap) file)
+    (flet ((get-hex-val (s)
+             (when (starts-with-subseq "0x" s)
+               (values (parse-integer s :start 2 :radix 16))))
+           (index-of-addr (asm addr)
+             ;; Return the line index (0-based) of the line of the
+             ;; genome which matches the passed address.
+             (position addr (genome asm)
+                       :test 'eql :key 'asm-line-info-address)))
+      (when (probe-file file)
+        (let ((valid-fn-labels (asm-labels asm))
+	      (entries '())
+	      (table (extract-function-declarations asm)))
+          (with-open-file (in file)
+            (iter (for line = (read-line in nil))
+                  (while line)
+                  ;; Line is formatted:
+                  ;; fn-name start-ea end-ea leaf-or-non-leaf
+                  (let ((split-line (split "\\s+" line)))
+                    (when (>= (length split-line) 4)
+                      (let ((fn-name (first split-line))
+                            (start-ea (second split-line))
+                            (end-ea (third split-line)))
+                        ;; Check valid start/end EAs
+                        (when (and (not (string= "BADEA" start-ea))
+                                   (not (string= "BADEA" end-ea))
+                                   ;; Only keep functions matching labels in OBJ
+                                   (gethash fn-name valid-fn-labels))
+		          (let ((start-addr (get-hex-val start-ea))
+			        (end-addr (get-hex-val end-ea)))
+			    (push
+			     (make-function-index-entry
+			      :name fn-name
+			      :start-line (index-of-addr asm start-addr)
+			      :start-address start-addr
+			      :end-line (index-of-addr asm end-addr)
+			      :end-address end-addr
+			      :is-leaf (string= "leaf" (fourth split-line))
+			      :declarations (gethash fn-name table))
+			     entries))))))))
+          (setf entries (remove-if
+		         (lambda (x)
+		           (or (null (function-index-entry-start-address x))
+			       (null (function-index-entry-end-address x))))
+		         (nreverse entries)))
+          (make-array (length entries) :initial-contents entries))))))
 
 #|
    Not implemented yet --RGC
@@ -416,8 +587,7 @@ is raised."
                   (range-subseq (genome b) 0 (first points))
                   (range-subseq (genome a) (first points) (second points))
                   (range-subseq (genome b) (second points)))))
-          (values new points))
-        (values (copy a) nil))))
+          (values new points))        (values (copy a) nil))))
 
 (setf *orig* (from-file (make-instance
                    'asm-heap)
@@ -425,4 +595,15 @@ is raised."
                    :name "calc.null"
                    :type "asm"
                    :directory "/u1/rcorman/synth/shaker/test/etc/calc/GTX.FILES")))
+
+(dotimes (i (length g))
+  (let ((info (elt g i)))
+    (if (and (asm-line-info-label info)
+             (not (starts-with-p (symbol-name (asm-line-info-label info)) "$LOC_"))
+	     (not (starts-with-p (symbol-name (asm-line-info-label info)) "$BB_FALLTHROUGH_"))
+             (not (starts-with-p (symbol-name (asm-line-info-label info)) "$UNK_")))
+      (format t "~A ~A ~A~%" 
+        (first (asm-line-info-tokens info)) 
+        (asm-line-info-orig-line info)
+        (asm-line-info-text info)))))
 |#

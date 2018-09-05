@@ -3,16 +3,17 @@
   (:use :common-lisp
         :alexandria
         :metabang-bind
+        :named-readtables
         :curry-compose-reader-macros
         :cl-store
         :split-sequence
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/command-line)
+        :command-line-arguments)
   (:export :main))
 (in-package :repair)
-(enable-curry-compose-reader-macros)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;; Configuration Fitness and Runtime

@@ -4,13 +4,15 @@
 (defpackage :repair-clang
   (:use :common-lisp
         :alexandria
+        :named-readtables
+        :curry-compose-reader-macros
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/view
-        :command-line)
+        :software-evolution-library/view)
   (:import-from :uiop/image :*command-line-arguments*)
   (:export :repair-clang))
 (in-package :repair-clang)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;; Configuration Fitness and Runtime

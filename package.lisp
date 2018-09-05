@@ -699,9 +699,15 @@
    :fitness-harness
    :load-io-file
    :target-function
+   :target-function-name
    :mutants
    :create-all-simple-cut-variants
-   :create-target))
+   :create-target
+   :line-heap
+   :function-index
+   :evaluate-asm
+   :asm-super-mutant-test-function
+   :leaf-functions))
 #+allegro
 (set-dispatch-macro-character #\# #\_
                               #'(lambda (s c n) (declare (ignore s c n)) nil))
