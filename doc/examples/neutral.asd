@@ -5,8 +5,8 @@
                split-sequence
                metabang-bind
                cl-ppcre
+               named-readtables
                curry-compose-reader-macros
                software-evolution-library
-               software-evolution-library/utility
-               software-evolution-library/command-line)
+               software-evolution-library/utility)
   :components ((:file "neutral")))

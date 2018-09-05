@@ -7,11 +7,10 @@
         :cl-ppcre
         :curry-compose-reader-macros
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/command-line)
+        :software-evolution-library/utility)
   (:export :main))
 (in-package :neutral)
-(enable-curry-compose-reader-macros)
+(in-readtable :curry-compose-reader-macros)
 
 (defvar help "Usage: ~a SCRIPT ORIGINAL [OPTIONS...]
 

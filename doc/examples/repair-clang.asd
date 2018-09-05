@@ -5,8 +5,7 @@
                software-evolution-library
                software-evolution-library/utility
                software-evolution-library/view
-               uiop
-               command-line)
+               uiop)
   :build-operation "asdf:program-op"
   :build-pathname "bin/repair-clang"
   :entry-point "repair-clang::run-repair-clang"
