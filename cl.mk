@@ -107,7 +107,7 @@ $(MANIFEST): qlfile
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
 		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 		--eval '(ql:quickload :qlot)' \
-		--eval '(qlot:install :$(PACKAGE_NAME))' \
+		--eval '(let ((asdf::*default-source-registry-exclusions* (list "doc" ".ci"))) (qlot:install :$(PACKAGE_NAME)))' \
 		--eval '(qlot:quickload :$(PACKAGE_NAME))' \
 		--eval '(qlot:with-local-quicklisp ("$(USER_QUICK_LISP)") (ql:register-local-projects))' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
