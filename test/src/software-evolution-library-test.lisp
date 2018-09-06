@@ -6423,43 +6423,8 @@ prints unique counters in the trace"
                                      ("s2" . ,*s2*)))))
   (:teardown (setf *project* nil)))
 
-(deftest with-current-file-by-name ()
-  (with-fixture project
-    (with-current-file (*project* "s1")
-      (is (eq (current-file *project*) *s1*)))
-    (with-current-file (*project* "s2")
-      (is (eq (current-file *project*) *s2*)))))
-
-(deftest with-current-file-by-object ()
-  (with-fixture project
-    (with-current-file (*project* *s1*)
-      (is (eq (current-file *project*) *s1*)))
-    (with-current-file (*project* *s2*)
-      (is (eq (current-file *project*) *s2*)))))
-
 (defmethod test-method ((obj simple) value)
   value)
-
-(deftest current-file-forwards-methods ()
-  (with-fixture project
-    (with-current-file (*project* "s2")
-      (is (eq (test-method *project* 1) 1)))))
-
-(deftest current-file-survives-copy ()
-  (with-fixture project
-    (with-current-file (*project* "s2")
-      (let ((copy (copy *project*)))
-        (is (string= (genome (current-file copy))
-                     "s2-genome"))))))
-
-(deftest with-current-file-unsets-copy ()
-  (with-fixture project
-    (let (copy)
-      (with-current-file (*project* "s2")
-        (setf copy (copy *project*)))
-      ;; Exiting with-current-file should clear the current file of
-      ;; copies of the project.
-      (is (null (current-file copy))))))
 
 (deftest clang-project-test ()
   (with-fixture grep-project

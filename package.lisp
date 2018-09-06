@@ -469,8 +469,6 @@
    :apply-to-project
    :build-command
    :artifacts
-   :current-file
-   :with-current-file
    :evolve-files
    :other-files
    :instrumentation-files

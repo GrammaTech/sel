@@ -52,6 +52,15 @@ multiple libraries).  This also changes the use of the project
 to the @code{build-command} as a target, now the @code{build-command}
 should be self-contained and will be run as is.
 
+@item @b{Remove @code{current-file} and @code{with-current-file}}
+
+Changed the software @code{project} class to remove the
+@code{current-file} behavior.  This removes some potentially confusing
+behavior in which projects would override @code{no-applicable-method}
+to dispatch to the current-file (if set).  This makes it hard to have
+software objects inherit from both a project and from the type of that
+project.
+
 @end itemize
 
 @appendixsec 2018-07-25 v0.0.0 -- Initial Release to Quicklisp
