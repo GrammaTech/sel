@@ -620,7 +620,6 @@ Class @code{project}
 @item Macros
   @itemize
   @item @refapimacro{with-build-dir}
-  @item @refapimacro{with-current-file}
   @item @refapimacro{with-temp-build-dir}
   @end itemize
 
@@ -649,7 +648,6 @@ Class @code{project}
 @end itemize
 
 @c defun copy-files
-@c defmethod current-file
 @c defmethod no-applicable-method :around
 @c defmethod all-files
 @c defmethod (setf genome)

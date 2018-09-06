@@ -169,9 +169,15 @@ information on the format of compilation databases.")
 
 (defmethod asts ((obj clang-project))
   "Return a list of all ASTs in the project OBJ."
-  (if (current-file obj)
-      (asts (current-file obj))
-      (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj)))))
+  (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj))))
+
+(defmethod update-asts ((obj clang-project))
+  "Call `update-asts' on all `evolve-files' of OBJ."
+  (mapc [#'update-asts #'cdr] (evolve-files obj)))
+
+(defmethod update-caches ((obj clang-project))
+  "Call `update-caches' on all `evolve-files' of OBJ."
+  (mapc [#'update-caches #'cdr] (evolve-files obj)))
 
 (defmethod clang-format ((clang-project clang-project)
                          &optional (style nil style-p))

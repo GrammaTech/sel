@@ -3,104 +3,49 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software project (software)
-  ((build-command :initarg :build-command :accessor build-command :initform nil
-                  :documentation "Shell command to build the project.")
-   (artifacts :initarg :artifacts :accessor artifacts :initform nil
-              :documentation
-              "Artifacts (e.g., executables) of the project build.")
-   (evolve-files :initarg :evolve-files :accessor evolve-files :initform nil
-                 :documentation
-                 "Files within the project to mutate.
+    ((build-command :initarg :build-command :accessor build-command
+                    :initform nil
+                    :documentation "Shell command to build the project.")
+     (artifacts :initarg :artifacts :accessor artifacts :initform nil
+                :documentation
+                "Artifacts (e.g., executables) of the project build.")
+     (evolve-files :initarg :evolve-files :accessor evolve-files
+                   :initform nil
+                   :documentation
+                   "Files within the project to mutate.
 This holds a list of cons cells of the form (path . software-object-for-path)."
-                 :copier copy-files)
-   (other-files
-    :initarg :other-files :accessor other-files :initform nil
-    :documentation
-    "Source files which may be used (e.g., instrumented) but not evolved.
+                   :copier copy-files)
+     (other-files
+      :initarg :other-files :accessor other-files :initform nil
+      :documentation
+      "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
-    :copier copy-files)
-   ;; Implementation of this is tricky: use with-current-file rather
-   ;; than setting it directly.
-   (current-file-name :initform nil :accessor current-file-name
-                      :documentation "Delegate method calls to this file."))
-  (:documentation "DOCFIXME"))
+      :copier copy-files))
+  (:documentation
+   "A project is composed of multiple component software objects.
+E.g., a multi-file C software project may include multiple clang
+software objects in it's `evolve-files'."))
 
 (defun copy-files (files)
   "Copier for `evolve-files' and `other-files' on `project' software objects."
   (loop for (p . c) in files
      collecting (cons p (copy c))))
 
-(defmethod current-file ((project project))
-  "The software object representing the currently selected file within
-PROJECT. Or NIL if current file is unset."
-  (aget (car (current-file-name project))
-        (all-files project)
-        :test #'string=))
-
-(defmacro with-current-file ((project file) &body body)
-  "Bind the current file of PROJECT to FILE in BODY.
-
-FILE can be either a software object or the filename, but it must
-designate one of the component files of PROJECT.
-
-Within BODY, all unrecognized methods will be forwarded to the
-current-file. Copies of PROJECT will have their current file set to a
-copy of the original current file.
-"
-  (let ((orig-file (gensym))
-        (new-name (gensym)))
-    `(let ((,orig-file (car (current-file-name ,project)))
-           (,new-name ,(if (stringp file)
-                           file
-                           `(car (find ,file (all-files ,project)
-                                       :key #'cdr)))))
-       ,@(unless (stringp file)
-           `((assert ,new-name
-                     nil "~s is not a file of project ~s." ,file ,project)))
-       (unwind-protect
-            ;; Set current-file-name to a single-element list
-            ;; containing the file name. Storing the name rather than
-            ;; the file ensures that copies of PROJECT will have their
-            ;; current-file bound to the corresponding object.
-            (progn (setf (slot-value ,project 'current-file-name)
-                         (list ,new-name))
-                   ,@body)
-         (progn
-           ;; Set the first element of the list back to the original value.
-           ;; Copies of PROJECT will have a reference to the same
-           ;; list, so destructively modifying it will reset the
-           ;; current file of copies as well.
-           (setf (car (current-file-name ,project)) ,orig-file))))))
-
-(defmethod no-applicable-method :around (method &rest args)
-  "Forward method calls to current-file of projects."
-  (let ((receiver (car args)))
-    (if (and (typep receiver 'project)
-             (current-file receiver))
-        (apply method (current-file receiver) (cdr args))
-        (call-next-method))))
-
 (defmethod all-files ((obj project))
-  "DOCFIXME"
+  "Returns concatenation of `evolve-files' and `other-files'."
   (append (evolve-files obj) (other-files obj)))
 
 (defmethod genome ((obj project))
-  "DOCFIXME"
-  (if (current-file obj)
-      (genome (current-file obj))
-      ;; If no current file, join all genomes with separators.
-      (format nil "~{~a~%~}"
-              (loop for (f . c) in (all-files obj)
-                 collect "=============================="
-                 collect f
-                 collect "=============================="
-                 collect (genome c)))))
+  "Returns all genomes joined with separators."
+  (format nil "~{~a~%~}"
+          (loop for (f . c) in (all-files obj)
+             collect "=============================="
+             collect f
+             collect "=============================="
+             collect (genome c))))
 
 (defmethod (setf genome) (text (project project))
-  "DOCFIXME"
-  (assert (current-file project) nil
-          "Genome setting is only allowed when current-file is set.")
-  (setf (genome (current-file project)) text))
+  (error "Can only set the genome of component files of a project."))
 
 (defgeneric write-genome-to-files (obj)
   (:documentation "Overwrite evolved files with current genome."))
@@ -115,10 +60,8 @@ copy of the original current file.
        do (string-to-file (genome c) (full-path path)))))
 
 (defmethod size ((obj project))
-  "Either return the size of `current-file', if it's non-nil, or of all files."
-  (if (current-file obj)
-      (size (current-file obj))
-      (reduce #'+ (mapcar [#'size #'cdr] (evolve-files obj)))))
+  "Return summed size across all `evolve-files'."
+  (reduce #'+ (mapcar [#'size #'cdr] (evolve-files obj))))
 
 (defun pick-file (obj)
   "Randomly pick one evolved file. Return its index in the alist."
@@ -142,12 +85,9 @@ copy of the original current file.
 ;; This isn't used in normal operation (because mutate just dispatches
 ;; to the individual files), but it's handy for debugging.
 (defmethod apply-mutation ((obj project) op)
-  "DOCFIXME"
-  (if (current-file obj)
-      (apply-mutation (current-file obj) op)
-      (destructuring-bind (file . mutation) op
-        (apply-mutation (aget file (evolve-files obj) :test #'equal)
-          mutation))))
+  (destructuring-bind (file . mutation) op
+    (apply-mutation (aget file (evolve-files obj) :test #'equal)
+                    mutation)))
 
 (defmethod apply-mutations ((project project) (mut mutation) n)
   "DOCFIXME"
@@ -167,9 +107,7 @@ copy of the original current file.
            (incorporate (project src-file obj)
              (setf (aget src-file (evolve-files project) :test #'equal) obj)
              project))
-    (iter (for evolve-file in (if (current-file project)
-                                  (list (current-file project))
-                                  (evolve-files project)))
+    (iter (for evolve-file in (evolve-files project))
           (while (< (length results) n))
           (multiple-value-bind (single-file-results single-file-mutations)
               (apply-mutations-single-file evolve-file
@@ -197,9 +135,7 @@ copy of the original current file.
     (iter (for i upfrom 0)
           (while (and (< (length results) n)
                       (< i (* n (ceiling (/ (size project) 1000))))))
-          (bind ((evolve-file (or (current-file project)
-                                  (nth (pick-file project)
-                                       (evolve-files project))))
+          (bind ((evolve-file (nth (pick-file project) (evolve-files project)))
                  ((:values result mutation)
                   (apply-mutation-single-file evolve-file mut)))
             (while (and result mutation))
@@ -219,13 +155,9 @@ copy of the original current file.
     ;; Add filenames to crossover points for better stats
     (values new (cons point-a file) (cons point-b file))))
 
-(defmethod apply-to-project ((project project) f)
-  "DOCFIXME"
-  (values project
-          (iterate (for file in (if (current-file project)
-                                    (list (current-file project))
-                                    (mapcar #'cdr (all-files project))))
-                   (collect (funcall f file)))))
+(defmethod apply-to-project ((project project) function)
+  "Mapcar FUNCTION over `all-files' of PROJECT."
+  (values project (mapcar function (all-files project))))
 
 
 ;;;; Build directory handling.
