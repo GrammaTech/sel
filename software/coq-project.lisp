@@ -11,7 +11,7 @@
 (in-package :software-evolution-library)
 (in-readtable :serapi-readtable)
 
-(define-software coq-project (project)
+(define-software coq-project (project coq)
   ((project-file :initarg :project-file :accessor project-file :initform nil
                  :copier :direct
                  :documentation "Path to _CoqProject file, if it exists."))

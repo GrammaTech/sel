@@ -2,7 +2,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang-project (project)
+(define-software clang-project (project clang)
   ((project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil

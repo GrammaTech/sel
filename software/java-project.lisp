@@ -18,7 +18,7 @@
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software java-project (project)
+(define-software java-project (project java)
   ((project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil
