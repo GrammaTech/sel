@@ -308,8 +308,6 @@
    :clang-w-fodder
    :clang-w-binary
    :clang-w-fodder-and-binary
-   :clang-traceable
-   :clang-traceable-project
    :bytes
    :diff-data
    :recontextualize
@@ -465,7 +463,6 @@
    :demote-binop-right
    :eval-error
    :project
-   :traceable-project
    :apply-to-project
    :build-command
    :artifacts
