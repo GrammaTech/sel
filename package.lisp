@@ -587,6 +587,7 @@
    :index-of-ast
    :ast-at-index
    :ast-later-p
+   :to-clang-ast
    :make-statement
    :make-literal
    :make-operator

@@ -130,6 +130,41 @@ See http://clang.llvm.org/."))
       (print-unreadable-object (obj stream :type t)
         (format stream "~a" (ast-class obj)))))
 
+(defmacro to-clang-ast (spec)
+  "Walk a potentially recursive clang-ast SPEC creating a `clang-ast'.
+A SPEC should have the form
+
+    (clang-ast-class <optional-keyword-args-to-`make-clang-ast-node'>
+                     CHILDREN)
+
+where CHILDREN may themselves be specifications suitable for passing
+to `to-clang-ast'.  E.g.,
+
+    (to-clang-ast (:callexpr (:implicitcastexpr
+                              :includes '(\"<string.h>\")
+                              \"\" \"(|strcpy|)\" \"\")
+                             \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"
+  (labels ((convert-to-node (spec)
+             (destructuring-bind (class &rest options-and-children) spec
+               (multiple-value-bind (keys children)
+                   (iter (for item in options-and-children)
+                         (with previous)
+                         (if (or (keywordp previous)
+                                 (keywordp item))
+                             ;; Collect keyword arguments.
+                             (collect item into keys)
+                             ;; Process lists as new AST nodes.
+                             (if (listp item)
+                                 (collect (convert-to-node item) into children)
+                                 (collect item into children)))
+                         (setf previous item)
+                         (finally (return (values keys children))))
+                 `(make-clang-ast
+                   :node (make-clang-ast-node
+                          :class ',(intern (symbol-name class)) ,@keys)
+                   :children (list ,@children))))))
+    (convert-to-node spec)))
+
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
                          types unbound-funs unbound-vals declares includes
