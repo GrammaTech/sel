@@ -526,6 +526,7 @@
    :ast-args
    :ast-children
    :ast-class
+   :ast-text
    :ast-counter
    :ast-declares
    :ast-expr-type
