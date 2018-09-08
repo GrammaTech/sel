@@ -6,6 +6,7 @@
         :alexandria
         :named-readtables
         :curry-compose-reader-macros
+        :uiop/image
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/view)
@@ -63,8 +64,7 @@ Options:
  -h,--help ------------- show this help message
    ,--view ------------- display a view of evolution progress
  -v,--verbose NUM ------ verbosity level 0-4
- -V,--version ---------- print version and exit
- -w,--work-dir DIR ----- use an sh-runner/work directory~%")
+ -V,--version ---------- print version and exit")
         (version
          (format nil
           #+ccl "repair version ~a using Clozure Common Lisp (CCL)~%"
@@ -94,14 +94,12 @@ Options:
     (setf *num-tests* (parse-integer (pop args)))
 
     ;; process optional command line flags
-    (getopts args
+    (getopts (args)
       ("-v" "--verbose"
             (let ((lvl (parse-integer (pop args))))
               (when (>= lvl 4) (setf *shell-debug* t))
               (setf *note-level* lvl)))
-      ("" "--view" (setf show-view t))
-      ("-w" "--work-dir"
-            (setf *work-dir* (pop args))))
+      ("" "--view" (setf show-view t)))
 
     ;; write out version information
     (note 1 version)
@@ -155,7 +153,8 @@ Options:
     ;; it probably indicates an issue
     (setf (fitness *orig*) (run *orig*))
     (when (= (fitness *orig*) 0)
-      (throw-error "Original program has bad fitness!"))
+      (format *error-output* "Original program has bad fitness!")
+      (quit))
     
     ;; initialize the population
     (unless *population* ;; don't re-populate an existing population

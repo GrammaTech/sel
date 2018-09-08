@@ -8,9 +8,9 @@
         :cl-store
         :split-sequence
         :bordeaux-threads
+        :uiop/image
         :software-evolution-library
-        :software-evolution-library/utility
-        :command-line-arguments)
+        :software-evolution-library/utility)
   (:export :main))
 (in-package :repair)
 (in-readtable :curry-compose-reader-macros)
@@ -51,7 +51,6 @@ Options:
  -h,--help ------------- show this help message
  -v,--verbose NUM ------ verbosity level 0-4
  -V,--version ---------- print version and exit
- -w,--work-dir DIR ----- use an sh-runner/work directory
  -t,--target-fitness N - set target fitness to N~%")
         (version
          (format nil
@@ -64,7 +63,7 @@ Options:
     (setf *note-level* 1)
 
     ;; process command line options
-    (getopts args
+    (getopts (args)
       ("-v" "--verbose"   (let ((lvl (parse-integer (pop args))))
                             (when (>= lvl 4) (setf *shell-debug* t))
                             (setf *note-level* lvl)))
@@ -73,8 +72,7 @@ Options:
                                   (lambda (obj)
                                     (or (= target (fitness obj))
                                         (funcall *fitness-predicate*
-                                                 (fitness obj) target))))))
-      ("-w" "--work-dir"  (setf *work-dir*       (pop args))))
+                                                 (fitness obj) target)))))))
 
     ;; check command line arguments
     (when (or (<= (length args) 2)
@@ -121,7 +119,8 @@ Options:
                                  ; passing tests and error out if
                                  ; fitness is less than expected
                                  ; passsing
-      (throw-error "Original program has bad fitness!"))
+      (format *error-output* "Original program has bad fitness!")
+      (quit))
 
     ;; save the original
     (store *orig* (make-pathname :directory *res-dir*

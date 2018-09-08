@@ -11,23 +11,11 @@
   (:documentation
    "Instrumentable software with support for collecting dynamic traces."))
 
-(define-software clang-traceable (clang traceable) ()
-  (:documentation
-   "Specialization of the traceable interface for clang software objects."))
-
 (define-software java-traceable (java traceable) ()
   (:documentation
    "Specialization of the traceable interface for java software objects."))
 
-(define-software traceable-project (project traceable) ()
-  (:documentation "Specialization of the traceable interace for project
-software objects."))
-
-(define-software clang-traceable-project (clang-project traceable-project) ()
-  (:documentation "Specialization of the traceable interface for clang
-project software objects."))
-
-(define-software java-traceable-project (java-project traceable-project) ()
+(define-software java-traceable-project (java-project traceable) ()
   (:documentation "Specialization of the traceable interface for java
 project software objects."))
 

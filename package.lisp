@@ -308,8 +308,6 @@
    :clang-w-fodder
    :clang-w-binary
    :clang-w-fodder-and-binary
-   :clang-traceable
-   :clang-traceable-project
    :bytes
    :diff-data
    :recontextualize
@@ -465,12 +463,9 @@
    :demote-binop-right
    :eval-error
    :project
-   :traceable-project
    :apply-to-project
    :build-command
    :artifacts
-   :current-file
-   :with-current-file
    :evolve-files
    :other-files
    :instrumentation-files
@@ -531,6 +526,7 @@
    :ast-args
    :ast-children
    :ast-class
+   :ast-text
    :ast-counter
    :ast-declares
    :ast-expr-type
@@ -591,6 +587,7 @@
    :index-of-ast
    :ast-at-index
    :ast-later-p
+   :to-clang-ast
    :make-statement
    :make-literal
    :make-operator

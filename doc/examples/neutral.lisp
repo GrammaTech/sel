@@ -6,11 +6,11 @@
         :metabang-bind
         :cl-ppcre
         :curry-compose-reader-macros
+        :uiop/image
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :main))
 (in-package :neutral)
-(in-readtable :curry-compose-reader-macros)
 
 (defvar help "Usage: ~a SCRIPT ORIGINAL [OPTIONS...]
 
@@ -65,7 +65,7 @@ Options:
          (res-dir "neutral-variants")
          orig previous collected linker flags)
 
-    (getopts args
+    (getopts (args)
       ("-l" "--linker"  (setf linker (pop args)))
       ("-L" "--lflags"  (setf flags
                               (split-sequence #\Space (pop args)
@@ -95,7 +95,8 @@ Options:
                    0))))
       (setf (fitness orig) (test orig))
       (when (zerop (fitness orig))
-        (throw-error "original program has no fitness"))
+        (format *error-output* "original program has no fitness")
+        (quit))
       (format t "~&original fitness ~d~%" (fitness orig))
       (let ((neutral (fitness orig)))
         (loop :for step :below steps :do
@@ -112,9 +113,9 @@ Options:
                           :type (pathname-type path)
                           :name
                           (let ((fmt (format nil "~~~d,'0d-~~~d,'0d-~~~d,'0d"
-                                             (1+ (ceiling (log steps 10)))
-                                             (2+ (ceiling (log num 10)))
-                                             (1+ (ceiling (log neutral 10))))))
+                                             (+ 1 (ceiling (log steps 10)))
+                                             (+ 2 (ceiling (log num 10)))
+                                             (+ 1 (ceiling (log neutral 10))))))
                             (format nil fmt step i (fitness new))))))
                     (with-open-file (out filename :direction :output)
                       (genome-string new out))))))
