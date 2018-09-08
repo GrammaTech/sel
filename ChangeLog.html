@@ -95,6 +95,15 @@ multiple libraries).  This also changes the use of the project
 to the <code>build-command</code> as a target, now the <code>build-command</code>
 should be self-contained and will be run as is.
 </p>
+</li><li> <b>Remove <code>current-file</code> and <code>with-current-file</code></b>
+
+<p>Changed the software <code>project</code> class to remove the
+<code>current-file</code> behavior.  This removes some potentially confusing
+behavior in which projects would override <code>no-applicable-method</code>
+to dispatch to the current-file (if set).  This makes it hard to have
+software objects inherit from both a project and from the type of that
+project.
+</p>
 </li></ul>
 
 <a name="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></a>
@@ -106,6 +115,11 @@ should be self-contained and will be run as is.
 SOFTWARE-EVOLUTION-LIBRARY (SEL) Package.  This is the version
 initially appearing in the 2018-07 Quicklisp release.
 </p>
+<hr>
+<div class="header">
+<p>
+Next: <a href="Licensing.html#Licensing" accesskey="n" rel="next">Licensing</a>, Previous: <a href="SEL-Coding-Standards.html#SEL-Coding-Standards" accesskey="p" rel="prev">SEL Coding Standards</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
 
 
 
