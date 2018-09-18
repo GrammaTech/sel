@@ -8913,6 +8913,115 @@ int main() { puts(\"~d\"); return 0; }
                  (ast-diff-elide-same (ast-diff *binary-search* var)))))))
 
 
+;;;; AST merge3 tests
+(defsuite ast-merge3 "Tests of SEL/AST-DIFF:MERGE3"
+  (clang-mutate-available-p))
+
+(deftest sexp-merge3-empty ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 nil nil nil))
+	      '(nil nil))
+      "Simplest case"))
+
+(deftest sexp-merge3-insert-first ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 nil '(a) nil))
+	      '(((:insert . a)) nil))
+      "Adding one element in first change"))
+
+(deftest sexp-merge3-insert-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 nil nil '(a)))
+	      '(((:insert . a)) nil))
+      "Adding one element in second change"))
+
+(deftest sexp-merge3-insert-both ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 nil '(a) '(a)))
+	      '(((:insert . a)) nil))
+      "Adding one element in both changes"))
+
+(deftest sexp-merge3-delete-first ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a) nil '(a)))
+	      '(((:delete . a)) nil))
+      "Deleting one element in first change"))
+
+(deftest sexp-merge3-delete-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a) '(a) nil))
+	      '(((:delete . a)) nil))
+      "Deleting one element in second change"))
+
+(deftest sexp-merge3-delete-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a) nil nil))
+	      '(((:delete . a)) nil))
+      "Deleting one element in both changes"))
+
+(deftest sexp-merge3-recursive-first ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '((a)) '((a b)) '((a))))
+	      '(((:recurse (:same . a) (:insert . b) (:same))) nil))
+      "Recurse in first change"))
+
+(deftest sexp-merge3-recursive-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '((a)) '((a)) '((a b))))
+	      '(((:recurse (:same . a) (:insert . b) (:same))) nil))
+      "Recurse in first change"))
+
+(deftest sexp-merge3-recursive-both ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '((a)) '((a b)) '((a b))))
+	      '(((:recurse (:same . a) (:insert . b) (:same))) nil))
+      "Recurse in both changes"))
+
+(deftest sexp-merge3-insert-delete ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a) '(a b) ()))
+	      '(((:delete . a) (:insert . b)) nil))
+      "Insert and delete in the same place."))
+
+(deftest sexp-merge3-delete-insert ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a) '() '(a b)))
+	      '(((:delete . a) (:insert . b)) nil))
+      "Delete and insert in the same place."))
+
+(deftest sexp-merge3-insert2 ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a d) '(a b c d) '(a d)))
+	      '(((:same . a) (:insert . b) (:insert . c) (:same . d)) nil))
+      "Two insertions"))
+
+(deftest sexp-merge3-insert3 ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(d) '(d) '(a b c d)))
+	      '(((:insert . a) (:insert . b) (:insert . c) (:same . d)) nil))
+      "Three insertions"))
+
+(deftest sexp-merge3-delete2 ()
+   (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a b c d) '(a d) '(a b c d)))
+	      '(((:same . a) (:delete . b) (:delete . c) (:same . d)) nil))
+       "Two deletions"))
+
+(deftest sexp-merge3-delete3 ()
+   (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a b c d e) '(a b c d e) '(a e)))
+	      '(((:same . a) (:delete . b) (:delete . c) (:delete . d) (:same . e)) nil))
+       "Three deletions"))
+
+(deftest sexp-merge3-unstable-inserts ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(x 0) '(x 1) '(x 2)))
+	      '(((:same . x) (:insert . 1) (:insert . 2) (:delete . 0))
+		(((:insert . 1) (:insert . 2)))))
+      "Two insertions at the same point"))
+
+(deftest sexp-merge3-unstable-recurse-insert/delete ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(x (a) y) '(x (b) y) '(x c y)))
+	      '(((:same . x)
+		 (:insert . c)
+		 (:recurse (:insert . b) (:delete . a) (:same))
+		 (:same . y))
+		(((:recurse (:insert . b) (:delete . a) (:same)) (:delete a)))))
+      "recurse and deletion at same point (unstable)"))
+
+(deftest sexp-merge3-unstable-insert/delete-recurse ()
+  (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(x (a) y) '(x c y) '(x (b) y)))
+	      '(((:same . x)
+		 (:insert . c)
+		 (:recurse (:insert . b) (:delete . a) (:same))
+		 (:same . y))
+		(((:delete a) (:recurse (:insert . b) (:delete . a) (:same))))))
+      "deletion and recurse at same point (unstable)"))
+
+
 ;;; Test SerAPI (low-level Coq interaction)
 (defun serapi-available-p ()
   (set-serapi-paths)
