@@ -105,12 +105,13 @@ set."
                      ;; otherwise use -l
                      (progn
                        (collecting "-l")
-                       (if (starts-with-subseq
-                            "lib"
-                            (pathname-name file))
-                           ;; drop suffix and lib: libc -> -lc
-                           (collecting
-                            (subseq (pathname-name file) 3))
+                       (if (starts-with-subseq "lib" (pathname-name file))
+                           (let ((basename (pathname-name file)))
+                             ;; drop suffix(es) and lib: libc.so.6 -> -lc
+                             (collecting
+                              (subseq basename 3
+                                      (or (position #\. basename)
+                                          (length basename)))))
                            ;; non-standard name, use :name
                            (collecting (format nil " :~a"
                                                (file-namestring file)))))))))
@@ -191,13 +192,24 @@ Currently only populates the `weak-symbols' field from the log."
            (iter (for str in (cdr cmd))
                  (for i upfrom 0)
                  (with prev-str = (car cmd))
+                 (with dropped-first-o-file = nil)
                  ;; Current arg is a path: it starts with /, is a file, and
                  ;; isn't a flag param (i.e., prev-str isn't a single dash flag)
+                 ;; Additionally, we drop the first .o file on the assumption
+                 ;; that it links the code contained in this software object.
                  (when (and (starts-with-subseq "/" str)
                             (not (equal "--dynamic-linker" prev-str))
                             (or (starts-with-subseq "--" prev-str)
-                                (not (starts-with-subseq "-" prev-str))))
+                                (not (starts-with-subseq "-" prev-str)))
+                            ;; drop first .o file
+                            (or (not (ends-with-subseq ".o" str))
+                                (and (ends-with-subseq ".o" str)
+                                     dropped-first-o-file)))
                    (collect str into files-to-link))
+                 ;; indicate when first .o file in command has been dropped
+                 (when (and (ends-with-subseq ".o" str)
+                            (not dropped-first-o-file))
+                   (setf dropped-first-o-file t))
                  (setf prev-str str)
                  (finally (return files-to-link)))))
     (let ((cmd (->> (subseq bracket-cmd 1 (1- (length bracket-cmd)))
