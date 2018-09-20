@@ -211,6 +211,28 @@ Used to target mutation."))
                           #+ccl :shared #+ccl :lock-free)
   "Variable to hold mutation statistics.")
 
+(defgeneric create-super (variant &optional rest-variants)
+  (:documentation "Create an appropriately typed super-mutant and populate
+with variant . rest-variants"))
+
+(defmethod create-super ((variant software) &optional rest-variants)
+  "Creates a SUPER-MUTANT and populates variants. Returns the super-mutant."
+  (let ((inst (make-instance 'super-mutant)))
+    (setf (mutants inst)(cons variant rest-variants))
+    inst))
+
+;;;
+;;; Note that we can't method dispatch on the types in a list, so
+;;; we dispatch on the first item of the list. This is a helper
+;;; function to simplify the process of pulling out a variant to
+;;; dispatch on. The list of variants should all contain the same
+;;; type of software object, and presumably be related to each other
+;;; such that they can be assigned to a common super-mutant.
+;;;
+(defun create-and-populate-super (variant-list)
+  "Create and populate a super-mutant with supplied list of variants."
+  (create-super (first variant-list) (rest variant-list)))
+
 (defvar *max-saved-mutation-improvements* 24
   "Maximum number of mutation improvements to hold on to.")
 
@@ -841,8 +863,7 @@ criteria for this search."
                       (mapc ,every-pre-fn ,variants))
                     (if (cdr ,variants)
                         ;; Multiple variants. Combine into super-mutant.
-                        (let ((super (make-instance 'super-mutant
-                                                    :mutants ,variants)))
+                        (let ((super (create-and-populate-super ,variants)))
                           (genome super)
                           (evaluate ,test super))
                         ;; Single variant. Evaluate directly.
@@ -908,11 +929,11 @@ Other keyword arguments are used as defined in the `-search' function."
                   &key
                     max-evals max-time period period-fn
                     every-pre-fn every-post-fn filter analyze-mutation-fn
-                    (super-mutant-count 1))
+                    (super-mutant-count 0))
   "Evolves `*population*' using `new-individual' and TEST.
 
 * SUPER-MUTANT-COUNT evaluate this number of mutants at once in a
-  combined genome
+  combined genome. If count = 0, disable super-mutants.
 
 Other keyword arguments are used as defined in the `-search' function.
 "
