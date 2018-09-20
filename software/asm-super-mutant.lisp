@@ -120,11 +120,11 @@
 ;;;   functions) are supported.
 ;;; * The fitness test program does not do full sandboxing. It does protect
 ;;;   against segment violations (those will typically result in a
-;;;   +worst-fitness+ rating) but a function variant could potentially write
+;;;   +worst-c-fitness+ rating) but a function variant could potentially write
 ;;;   on other code or data without triggering a segment violation, and this
 ;;;   will not get trapped. When that happens it will possibly invalidate
 ;;;   further fitness tests, or cause the whole fitness program to crash,
-;;;   resulting in all variants to come back as +worst-fitness+.
+;;;   resulting in all variants to come back as +worst-c-fitness+.
 ;;;
 ;;; @texi{asm-super-mutant}
 
@@ -180,7 +180,7 @@
    "Combine SUPER-MUTANT capabilities with ASM-HEAP framework."))
 
 ;; C 64-bit unsigned long MAXINT, is the worst possible fitness score
-(defconstant +worst-fitness+ #xffffffffffffffff)
+(defconstant +worst-c-fitness+ #xffffffffffffffff)
 
 ;;;
 ;;; all the SIMD register names start with 'y'
@@ -536,7 +536,7 @@ while 0x7fbbc1fcf768 is not (indicated with ".").
 		 (iterate
 	           (for x in-vector (input-specification-mem input-spec))
 		   (collect (init-mem x)))))
-	 (asm (make-instance 'asm-heap)))
+	 (asm (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm) (append mem-lines reg-lines))
     asm))
 
@@ -558,7 +558,7 @@ while 0x7fbbc1fcf768 is not (indicated with ".").
 		 (iterate
 	           (for x in-vector (input-specification-mem output-spec))
 		   (collect (comp-mem x)))))
-	 (asm (make-instance 'asm-heap)))
+	 (asm (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm) (append reg-lines mem-lines))
     asm))
 
@@ -610,16 +610,19 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 ;;; "_variant_1"). Returns the result (does not modify passed text).
 ;;; Do not change labels which are used as data, i.e. referenced in non-branch
 ;;; instructions. For now--we will assume branch instructions are all
-;;; ops which start with the letter "j".
+;;; ops which start with the letter "j". Also do not change labels used as
+;;; branch targets if the name contains #\@ (signifies non-local label).
 ;;;
 (defun add-label-suffix (text suffix)
   (multiple-value-bind (start end register-match-begin register-match-end)
-      (ppcre:scan "\\$\\w+" text)
+      (ppcre:scan "\\$[\\w@]+" text)
     (declare (ignore register-match-begin register-match-end))
     (if (and (integerp start)
 	     (integerp end)
-	     (or (char= #\j (char (string-trim '(#\space #\tab) text) 0))
-		 (char= #\$ (char (string-trim '(#\space #\tab) text) 0))))
+	     (or
+	      (and (char= #\j (char (string-trim '(#\space #\tab) text) 0))
+		   (not (find #\@ text :start start :end end)))
+	      (char= #\$ (char (string-trim '(#\space #\tab) text) 0))))
 	(concatenate 'string
 		     (subseq text 0 end)
 		     suffix
@@ -659,6 +662,20 @@ a symbol, the SYMBOL-NAME of the symbol is used."
      "section .text exec nowrite  align=16"
      "      align 4"))
    0))
+
+(defun add-externs (asm asm-super)
+  (insert-new-lines
+   asm
+   (append
+    (list
+     ""
+     "; -------------- Externs ---------------")
+    (iter (for x in-vector (genome asm-super))
+	  (if (and (eq (asm-line-info-type x) ':decl)
+		   (eq (first (asm-line-info-tokens x)) 'sel/asm::extern))
+	      (collect (asm-line-info-text x))))
+    (list ""))
+   (length (genome asm))))
 
 ;;;
 ;;; Replace a RET operation with:
@@ -810,12 +827,19 @@ a symbol, the SYMBOL-NAME of the symbol is used."
   (format-mem-info asm-variants (input-spec asm-super) "input_mem:")
   (format-mem-info asm-variants (output-spec asm-super) "output_mem:"))
 
+;;;
+;;; considers the variants have the same super-owner if its super-owner's
+;;; genome is equalp to the target asm-super-mutant
+;;;
 (defun generate-file (asm-super output-path number-of-variants)
-  (let ((asm-variants (make-instance 'asm-heap)))
+  (let ((asm-variants (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm-variants) (list))  ;; empty heap
     (add-prolog asm-variants number-of-variants (target-info asm-super))
+    ;(add-externs asm-variants asm-super) ;this creates linker problem currently
     (let ((count 0))
       (dolist (v (mutants asm-super))
+	(assert (equalp (genome (super-owner v)) (genome asm-super)) (v)
+                "Variant is not owned by this asm-super-mutant")
         (add-variant-func
 	 asm-variants
 	 (format nil "variant_~D" count)
@@ -834,7 +858,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 
 (defun create-target (asm-super)
   "Returns an ASM-HEAP software object which contains only the target lines."
-  (let ((asm (make-instance 'asm-heap)))
+  (let ((asm (make-instance 'asm-heap :super-owner asm-super)))
     (setf (lines asm)(map 'list 'asm-line-info-text (target-lines asm-super)))
     asm))
 
@@ -843,7 +867,7 @@ a symbol, the SYMBOL-NAME of the symbol is used."
   (let ((asm-super
 	 (from-file (make-instance 'asm-super-mutant) input-source)))
     (load-io-file asm-super io-file)
-    (target-function asm-super start-addr end-addr) ; nlscan function
+    (target-function asm-super start-addr end-addr)
     (generate-file asm-super output-path 2)))
 
 (defvar *lib-papi*
@@ -898,45 +922,55 @@ a symbol, the SYMBOL-NAME of the symbol is used."
 		     &rest extra-keys
 		     &key
 		       &allow-other-keys)
-  "Create phenome (binary executable) and call it to generate fitness results.
+  "Create phenome (binary executable) and call it to generate fitness results. 
 The variants need to already be created (stored in mutants slot) and the io-file
 needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
-  (declare (ignore extra-keys test))  ;; currently ignore the test argument
-  (with-temp-file (bin)
-    (multiple-value-bind (bin-path phenome-errno stderr stdout src)
-        (handler-case (phenome asm-super :bin bin)
-          (phenome () (values nil 1 "" "" nil)))
+  (declare (ignore extra-keys test))  ; currently ignore the test argument
+  
+  (let* ((*fitness-predicate* #'<)    ; lower fitness number is better
+	 (*worst-fitness* (worst-numeric-fitness)))
+    (with-temp-file (bin)
+      (multiple-value-bind (bin-path phenome-errno stderr stdout src)
 
-      (declare (ignorable phenome-errno stderr stdout src))
-      (let ((test-results nil))
-	(if (zerop phenome-errno)
-	    ;; run the fitness program
-	    (multiple-value-bind (stdout stderr errno)
-		(shell "~a" bin-path)
-	      (declare (ignorable stderr errno))
-	      (if (/= errno 0)
-		  (setf phenome-errno errno)
-		  (setf test-results
-		    (read-from-string
-		     (concatenate 'string "#(" stdout ")"))))))
-	(if (null test-results)
-	    ;; create array of +worst-fitness+
-	    (setf test-results
-		  (make-array (* (length (mutants asm-super))
-				 (length (input-spec asm-super)))
-			      :initial-element +worst-fitness+)))
-	(let* ((num-tests (length (input-spec asm-super)))
-	       (num-variants (/ (length test-results) num-tests))
-	       (results '()))
-	  (dotimes (i num-variants)
-	    (let ((variant-results
-		   (subseq test-results
-			   (* i num-tests) (* (+ i 1) num-tests))))
-	      (setf (fitness (elt (mutants asm-super) i))
-		    variant-results)
-	      (push variant-results results)))
-	  (setf test-results (nreverse results)))
-	(setf (fitness asm-super) test-results)))))
+	  ;;(handler-case
+	      (phenome asm-super :bin bin)
+	  ;;  (phenome () (values nil 1 "" "" nil)))
+	
+	(declare (ignorable phenome-errno stderr stdout src))
+	(let ((test-results nil))
+	  (if (zerop phenome-errno)
+	      ;; run the fitness program
+	      (multiple-value-bind (stdout stderr errno)
+		  (shell "~a" bin-path)
+		(declare (ignorable stderr errno))
+		(if (/= errno 0)
+		    (setf phenome-errno errno)
+		    (setf test-results
+			  (read-from-string
+			   (concatenate 'string "#(" stdout ")"))))))
+	  (if (null test-results)
+	      ;; create array of *worst-fitness*
+	      (setf test-results
+		    (make-array (* (length (mutants asm-super))
+				   (length (input-spec asm-super)))
+				:initial-element *worst-fitness*)))
+	  (let* ((num-tests (length (input-spec asm-super)))
+		 (num-variants (/ (length test-results) num-tests))
+		 (results '()))
+	    ;; any that came back +worst-c-fitness+ replace with *worst-fitness*
+	    (dotimes (i (length test-results))
+	      (if (= (elt test-results i) +worst-c-fitness+)
+		  (setf (elt test-results i) *worst-fitness*)))
+	    ;; set fitness vector for each mutant
+	    (dotimes (i num-variants)
+	      (let ((variant-results
+		     (subseq test-results
+			     (* i num-tests) (* (+ i 1) num-tests))))
+		(setf (fitness (elt (mutants asm-super) i))
+		      variant-results)
+		(push variant-results results)))
+	    (setf test-results (nreverse results)))
+	  (setf (fitness asm-super) test-results))))))
 
 (defun add-simple-cut-variant (asm-super i)
   (let* ((orig (create-target asm-super))
@@ -988,8 +1022,8 @@ NIL if not found."
    (genome asm-super)))
 
 (defun extract-section (asm-super section-name)
-  "Given the name (string) of a section, extract all the lines from
-the named section into a new asm-heap, and return that. If not found,
+  "Given the name (string) of a section, extract all the lines from 
+the named section into a new asm-heap, and return that. If not found, 
 returns NIL."
   (let ((named-section-pos (find-named-section asm-super section-name)))
     (if named-section-pos
@@ -997,7 +1031,7 @@ returns NIL."
 				:start (+ named-section-pos 1))))
 	  (if (null end)
 	      (setf end (- (length (genome asm-super)) 1)))
-	  (let ((section (make-instance 'asm-heap)))
+	  (let ((section (make-instance 'asm-heap :super-owner asm-super)))
 	    (setf (lines section)
 		  (map 'list 'asm-line-info-text
 		       (subseq (genome asm-super) named-section-pos end)))
