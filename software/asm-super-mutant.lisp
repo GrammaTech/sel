@@ -171,6 +171,11 @@
     :accessor assembler
     :initform "nasm"
     :documentation "Assembler to use for assembling.")
+   (io-dir
+    :initarg :io-dir
+    :accessor io-dir
+    :initform nil
+    :documentation "Directory containing i/o files")
    (fitness-harness
     :initarg :fitness-harness
     :accessor fitness-harness
@@ -596,6 +601,11 @@ a symbol, the SYMBOL-NAME of the symbol is used."
        asm
        (function-index-entry-start-address index-entry)
        (function-index-entry-end-address index-entry))
+      (load-io-file
+       asm
+       (merge-pathnames
+	(pathname (io-dir asm))
+	(make-pathname :name function-name)))
       (setf (target-info asm) index-entry))))
 
 (defun find-main-line (asm-super)
@@ -959,8 +969,11 @@ needs to have been loaded, along with the var-table by PARSE-SANITY-FILE."
 		 (results '()))
 	    ;; any that came back +worst-c-fitness+ replace with *worst-fitness*
 	    (dotimes (i (length test-results))
-	      (if (= (elt test-results i) +worst-c-fitness+)
-		  (setf (elt test-results i) *worst-fitness*)))
+	      (let ((test-result (aref test-results i)))
+	        (assert (> test-result 0) (test-result)
+			"The fitness cannot be zero")
+		(if (= (elt test-results i) +worst-c-fitness+)
+		    (setf (elt test-results i) *worst-fitness*))))
 	    ;; set fitness vector for each mutant
 	    (dotimes (i num-variants)
 	      (let ((variant-results
@@ -1067,25 +1080,23 @@ included in the disassembly file). Returns a vector of var-rec."
 (defun setup-test-function (asm-path func-name mutants-generator
 			    &key io-dir
 			      var-address-file
-			      fitness-file-dir
+			      fitness-file
 			      function-bounds-file)
   "Create asm-super-mutant from .asm file at asm-path. Load i/o file
 from <io/dir>/func-name. Run fitness tests on specified function,
 and return optimal variant and fitness result.
 Returns the created softare object."
-  (let ((asm-super (from-file (make-instance 'asm-super-mutant) asm-path)))
-    (if function-bounds-file
-	(setf (function-index asm-super)
-	      (load-function-bounds asm-super function-bounds-file)))
-    (setf (fitness-harness asm-super)
-	  (merge-pathnames (pathname fitness-file-dir)
-			   (make-pathname :name "asm-super-mutant-fitness.c")))
-    (load-io-file asm-super (merge-pathnames (pathname io-dir)
-					  (make-pathname :name func-name)))
-    (target-function-name asm-super func-name)
+  (let ((asm-super
+	 (from-file
+	  (make-instance 'asm-super-mutant
+			 :io-dir io-dir
+			 :function-bounds-file function-bounds-file
+			 :fitness-harness fitness-file
+			 :var-table (parse-sanity-file var-address-file))
+	  asm-path)))
 
-    ;; parse the variables and addresses from the sanity file
-    (setf (var-table asm-super) (sel::parse-sanity-file var-address-file))
+    ;; select the function we want to work on
+    (target-function-name asm-super func-name)
 
     ;; Add variants
     (setf (mutants asm-super)
@@ -1097,7 +1108,7 @@ Returns the created softare object."
 (defun asm-super-mutant-test-function (asm-path func-name mutants-generator
 		      &key io-dir
 			var-address-file
-			fitness-file-dir
+			fitness-file
 			function-bounds-file)
   "Create asm-super-mutant from .asm file at asm-path. Load i/o file
 from <io/dir>/func-name. Run fitness tests on specified function,
@@ -1111,7 +1122,7 @@ representing the MUTANTS (variants) of the target function."
 		    mutants-generator
 		    :io-dir io-dir
 		    :var-address-file var-address-file
-		    :fitness-file-dir fitness-file-dir
+		    :fitness-file fitness-file
 		    :function-bounds-file function-bounds-file)))
     (evaluate nil asm-super)
 

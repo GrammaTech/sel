@@ -168,7 +168,9 @@ we are excluding CALL instructions."
 	(:label-decl (let* ((label (first tokens))
                             (label-end (position #\: line))
                             (line1 (subseq line 0 (+ label-end 1)))
-                            (line2 (subseq line (+ label-end 1)))
+                            (line2 (concatenate 'string
+				    "       "
+				    (subseq line (+ label-end 1))))
                             (next-info (parse-asm-line line2))) ;; recurse!
                        (setf (asm-line-info-text info) line1)
                        (setf (asm-line-info-tokens info) (list label ':colon))
@@ -234,6 +236,10 @@ we are excluding CALL instructions."
    (function-index :initarg :function-index :initform nil
 		   :accessor function-index
 		   :documentation "Create this on demand.")
+   (function-bounds-file
+    :initarg :function-bounds-file
+    :initform nil :accessor function-bounds-file
+    :documentation "If this is present, use it to create function index")
    (super-owner :initarg :super-owner :accessor super-owner :initform nil
 		:documentation
 		"If present, contains asm-super-mutant instance."))
@@ -253,7 +259,10 @@ references into the asm-heap (asm-line-info) describes the code."))
   "If FUNCTION-INDEX slot contains an index, return it. Otherwise create
 the index and return it."
   (or (slot-value asm 'function-index)
-      (setf (slot-value asm 'function-index) (create-asm-function-index asm))))
+      (setf (slot-value asm 'function-index)
+	    (if (function-bounds-file asm)
+		(load-function-bounds asm (function-bounds-file asm))
+		(create-asm-function-index asm)))))
 
 (defmethod size ((asm asm-heap))
   "Return the number of lines in the program."
