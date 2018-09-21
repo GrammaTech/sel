@@ -448,7 +448,7 @@ void destroy_timer(timer_t timerid) {
 }
 
 //
-// returns the elapsed time (in instruction clock counts), or 0
+// returns the elapsed time (in instruction clock counts), or ULONG_MAX
 // if the outputs did not match expected outputs.
 //
 static vfunc execaddr = 0;
@@ -501,7 +501,7 @@ unsigned long run_variant(int v, int test) {
     }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
-
+    
     int res = check_results(v, test);   // make sure all the registers had expected
                                  // output values
 #if DEBUG
