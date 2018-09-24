@@ -1,59 +1,71 @@
-;;;
-;;; Testing ASM-SUPER-MUTANT
+;;; asm-super-mutant-test.lisp --- Demonstrate and tests ASM-SUPER-MUTANT
 ;;;
 ;;; To test function zerostat, first make sure parameters below are
-;;; set correctly for your environment.
-;;; Then execute:
+;;; set correctly for your environment.  Then execute:
 ;;;
-;;;     (evolve-function-test "<func-name>" :max-evals 10000)
-;;;     eg: (evolve-function-test "zerostat" :max-evals 10000)
+;;;    (evolve-function-test "<func-name>" :max-evals 10000)
+;;;    ;; e.g., (evolve-function-test "zerostat" :max-evals 10000)
 ;;;
 ;;; This binds *SOFT* to the ASM-SUPER-MUTANT master software object.
-;;; It binds SEL:*POPULATION* to the population currently being evaluated.
-;;; It binds *TR* to the TASK-RUNNER instance returned by EVOLVE-FUNCTION-TEST.
+;;; It binds SEL:*POPULATION* to the population currently being
+;;; evaluated.  It binds *TR* to the TASK-RUNNER instance returned by
+;;; EVOLVE-FUNCTION-TEST.
 ;;;
 ;;; You can query the current status of the EVOLVE process by:
 ;;;
-;;; TR
+;;;     TR
 ;;;
-;;; The symbol TR expends to (FIRST (TASK-RUNNER-RESULTS *TR*)), which is the
-;;; most recent progress update of EVOLVE. It will update every 1000
-;;; fitness tests.
+;;; The symbol TR expends to (FIRST (TASK-RUNNER-RESULTS *TR*)), which
+;;; is the most recent progress update of EVOLVE. It will update every
+;;; 1000 fitness tests.
 ;;;
 ;;; At any time you can use (SHOW-RESULTS *TR*) to get a report, or
 ;;; (SHOW-RESULTS *TR* :VERBOSE T) to get a longer report with complete
 ;;; progress history.
 ;;;
-;;; The variable SEL:*RUNNING* is true if EVOLVE is continuing. You can cancel
-;;; the process at any time by:
+;;; The variable SEL:*RUNNING* is true if EVOLVE is continuing. You
+;;; can cancel the process at any time by:
+;;;
 ;;;     (SETF *RUNNING* NIL)
 ;;;
-;;; If you cancel, (SHOW-RESULTS *TR*) will give a report of progress up until
-;;; it was canceled.
+;;; If you cancel, (SHOW-RESULTS *TR*) will give a report of progress
+;;; up until it was canceled.
 ;;;
-;;; When the EVOLVE task completes successfully, it will generate a report
-;;; in <*io-dir*>/<func-name>-report.txt. Subsequent EVOLVE runs of the same
-;;; function will overwrite the report file.
+;;; When the EVOLVE task completes successfully, it will generate a
+;;; report in <*io-dir*>/<func-name>-report.txt. Subsequent EVOLVE
+;;; runs of the same function will overwrite the report file.
 ;;;
+;;; TODO: Turn this into a nightly test run from sel/test/bin/.  We
+;;;       should commit the minimum required from grep.asm, the
+;;;       zerostat I/O pairs, the address file, and the function
+;;;       bounds file.
+(in-package :software-evolution-library/test)
 
-(in-package :sel/test)
+
+;;; Variables used in the below example usage and tests.
+(defparameter asm-super-base-dir
+  (pathname (concatenate 'string
+                         (trim-whitespace (shell "pwd")) "/")))
 
-(defparameter *asm-path* "~/tests/grep-testing/grep.asm"
+(defparameter *asm-path*
+  (merge-pathnames "grep-testing/grep.asm" asm-super-base-dir)
   "Path to master asm file i.e. grep")
 
-(defparameter *io-dir* "~/tests/grep-testing/io5/"
+(defparameter *io-dir*
+  (merge-pathnames "grep-testing/io5/" asm-super-base-dir)
   "Directory containing i/o files for fitness testing")
 
 (defparameter *var-address-file*
-  "~/tests/grep-testing/grep.null-sanity.nm"
+  (merge-pathnames "grep-testing/grep.null-sanity.nm" asm-super-base-dir)
   "Path to sanity file containing data addresses")
 
 (defparameter *fitness-file*
-  "~/quicklisp/local-projects/sel/software/asm-super-mutant-fitness.c"
+  (merge-pathnames "software/asm-super-mutant-fitness.c"
+                   (make-pathname :directory +software-evolution-library-dir+))
   "Path to directory containing fitness harness")
 
 (defparameter *function-bounds-file*
-  "~/tests/grep-testing/grep.null.fn-bnds.txt"
+  (merge-pathnames "grep-testing/grep.null.fn-bnds.txt" asm-super-base-dir)
   "Path to file containing functional bounds by address")
 
 (defparameter *tr*
@@ -67,18 +79,8 @@
   nil
   "ASM-SUPER-MUTANT instance with alternate (expanded) tests applied")
 
-(defun simple-cut-generator (asm-super)
-  "generates all single-cut variants of the target function"
-  (cons (create-target asm-super)
-	(create-all-simple-cut-variants asm-super)))
-
-(defun create-1024-originals (asm-super)
-  "Creates a list of 1024 copies of the original, target function"
-  (let ((variants '()))
-    (dotimes (i 1024)
-      (push (create-target asm-super) variants))
-    variants))
-
+
+;;; Utility functions for evaluating/evolving asm-super software objects.
 (defun exclude-func (asm-super name)
   "Sets named function to non-leaf false (which excludes it)"
   (let ((fstat-func (find name (function-index asm-super)
@@ -128,11 +130,79 @@ is found."
 			    0
 			    (* 100d0 (- (float (/ best orig)) 1d0)))))))))
 
-(defun evolve-tests (asm-path func-name mutant-generator
-		     &key io-dir var-address-file fitness-file
+(defun setup-test-function (asm-path func-name
+			    &key
+                              (mutants-generator
+                               (lambda (asm-super)
+                                 ;; Creates 1024 copies of the original.
+                                 (iter (for _ below *max-population-size*)
+                                       (collect (create-target asm-super)))))
+                              io-dir
+			      var-address-file
+			      fitness-file
+			      function-bounds-file)
+  "Create asm-super-mutant from .asm file at asm-path.
+Load i/o file from <io/dir>/func-name.  Run fitness tests on specified
+function, and return optimal variant and fitness result.  Returns the
+created softare object."
+  (let ((asm-super
+	 (from-file
+	  (make-instance 'asm-super-mutant
+	    :io-dir io-dir
+	    :function-bounds-file function-bounds-file
+	    :fitness-harness fitness-file
+	    :var-table (parse-sanity-file var-address-file))
+	  asm-path)))
+
+    ;; Select the function we want to work on.
+    (target-function-name asm-super func-name)
+
+    ;; Add variants (by default *max-population-size* copies of the original).
+    (setf (mutants asm-super)
+          (coerce (funcall mutants-generator asm-super) 'list))
+
+    asm-super))
+
+(defun asm-super-mutant-test-function
+    (asm-path func-name
+     &key
+       (mutants-generator nil mutants-generator-p)
+       io-dir
+       var-address-file
+       fitness-file
+       function-bounds-file)
+  "Create asm-super-mutant from .asm file at asm-path.
+Load i/o file from <io/dir>/func-name. Run fitness tests on specified
+function, and return optimal variant and fitness result.
+MUTANTS-GENERATOR should be a function which takes a fully set up
+ASM-SUPER-MUTANT instance, and returns a sequence of ASM-HEAP
+instances representing the MUTANTS (variants) of the target function."
+  (let ((asm-super (apply #'setup-test-function
+                          asm-path
+		          func-name
+		          :io-dir io-dir
+		          :var-address-file var-address-file
+		          :fitness-file fitness-file
+		          :function-bounds-file function-bounds-file
+                          (when mutants-generator-p
+                            (list :mutants-generator mutants-generator)))))
+    (evaluate nil asm-super)
+
+    ;; Fitness is per variant/per test case--use lexicase to pick the
+    ;; best variants.
+    (let ((best (lexicase-select-best (mutants asm-super)))) ; Lower number is better.
+      (values
+       (first best)
+       (reduce '+ (fitness (first best)))
+       ;; Total of all tests from first best variant.
+       (reduce '+ (fitness (elt (mutants asm-super) 0)))))))
+
+(defun evolve-tests (asm-path func-name
+		     &key mutant-generator io-dir var-address-file fitness-file
 		       function-bounds-file max-evals period period-fn)
   (let ((asm-super
-	 (sel::setup-test-function asm-path func-name mutant-generator
+	 (sel::setup-test-function asm-path func-name
+                                   :mutant-generator mutant-generator
 				   :io-dir io-dir
 				   :var-address-file var-address-file
 				   :fitness-file fitness-file
@@ -162,28 +232,6 @@ is found."
 	    :period period
 	    :period-fn period-fn)))
 
-(defun population-report ()
-  (format
-   nil
-   "fitness evals: ~D, min-size: ~F, max-size: ~F, ~
-                       min-fitness: ~F, orig-fitness: ~F"
-   *fitness-evals*
-   (reduce 'min (mapcar 'size *population*))
-   (reduce 'max (mapcar 'size *population*))
-   (reduce 'min (mapcar (lambda (x) (reduce '+ (fitness x))) *population*))
-   (reduce '+ (fitness (first (mutants *soft*))))))
-
-(defun output-population-status ()
-  (format
-   t
-   "fitness evals: ~D, min-size: ~F, max-size: ~F, ~
-                       min-fitness: ~F, orig-fitness: ~F~%"
-   *fitness-evals*
-   (reduce 'min (mapcar 'size *population*))
-   (reduce 'max (mapcar 'size *population*))
-   (reduce 'min (mapcar (lambda (x) (reduce '+ (fitness x))) *population*))
-   (reduce '+ (fitness (first (mutants *soft*))))))
-   
 (defun evolve-function-test (func-name
 			     &key
 			       (max-evals 1000)
@@ -199,9 +247,8 @@ is found."
 	  (task-save-result runner1 "Started fitness tests")
 	  (let ((start-time (get-internal-real-time)))
 	    (evolve-tests
-	     "~/synth/grep-single-file/grep.asm"
+	     *asm-path*
 	     func-name
-	     'create-1024-originals
 	     :io-dir *io-dir*
 	     :var-address-file *var-address-file*
 	     :fitness-file *fitness-file*
@@ -212,7 +259,20 @@ is found."
 	     (lambda ()
 	       (task-save-result
 		runner1
-		(population-report))))
+		(flet ((sum (x) (reduce #'+ x)))
+                  (format
+                   nil "~{~{~a~^:~}~^ ~}~%"
+                   `((:evals ,*fitness-evals*)
+                     (:min-size
+                      ,(reduce 'min (mapcar 'size *population*)))
+                     (:max-size
+                      ,(reduce 'max (mapcar 'size *population*)))
+                     (:min-fit
+                      ,(reduce 'min (mapcar [#'sum #'fitness] *population*)))
+                     (:max-fit
+                      ,(reduce 'max (mapcar [#'sum #'fitness] *population*)))
+                     (:orig-fit
+                      ,(sum (fitness (first (mutants *master*)))))))))))
 	    (task-save-result
 	     runner1
 	     (format nil "Elapsed time: ~G seconds"
@@ -222,14 +282,10 @@ is found."
 	      (with-output-file (of report-path :if-exists :supersede)
 		(show-results runner1 :stream of :verbose t))))))
 
-(defun get-best-variant (population)
-  "Return the best variant from population (list of variants)"
-  (first (sort (copy-list population) '<
-	       :key (lambda (x)(reduce '+ (fitness x))))))
-
 (defun evaluate-expanded-tests (func-name alt-io-dir)
   "Run the best variant against an alternate set of tests"
-  (let* ((best-variant (get-best-variant *population*))
+  (let* ((best-variant (extremum *population* *fitness-predicate*
+                                 :key [{reduce #'+} #'fitness]))
 	 (*soft*
 	  (sel::setup-test-function
 	   *asm-path*
@@ -257,8 +313,9 @@ is found."
 	   (asm-line-info-label (elt (genome (first (mutants super))) 0)))
 	  *fitness-evals*)
   (let* ((min-size (reduce 'min (mapcar 'size population)))
-	(max-size (reduce 'max (mapcar 'size population)))
-	 (best-variant (get-best-variant population))
+	 (max-size (reduce 'max (mapcar 'size population)))
+	 (best-variant (extremum *population* *fitness-predicate*
+                                 :key [{reduce #'+} #'fitness]))
 	 (orig (first (mutants super)))
 	 (best-fitness (reduce '+ (fitness best-variant)))
 	 (orig-fitness (reduce '+ (fitness orig))))
@@ -275,7 +332,7 @@ is found."
     (dolist (x (lines (create-target super)))
       (format stream "        ~A~%" x))
     (format stream "~%Best variant: ~%-----------------------~%")
-    (dolist (x (lines (get-best-variant population)))
+    (dolist (x (lines best-variant))
       (format stream "        ~A~%" x))
 
     ;; print progress results
@@ -291,43 +348,30 @@ is found."
        :length 100 :stream stream)
       (terpri stream))))
 
-;; symbol TR expands to show most recent progress of task-runner *tr*
+;; Symbol TR expands to show most recent progress of task-runner *tr*.
 (define-symbol-macro tr (first (task-runner-results *tr*)))
 
+
+;;; Example usage of the above.
+
 #+ignore
-;; to evolve a function
+;; To evolve a function.
 (evolve-function-test "nlscan" :max-evals 1000)
 
 #+ignore
-;; to output the results file
-(with-output-file (of "~/synth/result.txt" :if-exists :supersede)
-  (show-results *tr* :stream of))
-
-#+ignore
-;; to stop all evolve search loops
-(setf *running* nil)
-
-#+ignore
-;; to query status of the task runner *tr*
+;; To output the results.
 (show-results *tr*)
 
 #+ignore
-(setf *soft*
-      (sel::setup-test-function
-       *asm-path*
-       "nlscan"
-       'create-1000-originals
-       *io-dir*
-       *var-address-file*
-       *fitness-file*
-       *function-bounds-file*))
+;; Stop all evolve search loops.
+(setf *running* nil)
 
 #+ignore
-;; run the fitness tests
-(evaluate nil *soft*)
+;; Query status of the task runner *tr*.
+(show-results *tr*)
 
 #+ignore
-;; test each leaf function in the function index
+;; Test each leaf function in the function index.
 (test-all-leaf-functions
  *asm-path*
  *io-dir*
@@ -336,7 +380,7 @@ is found."
  *function-bounds-file*)
 
 #+ignore
-;; to stop or debug a runaway thread
+;; Stop or debug a runaway thread.
 (bt::interrupt-thread
  (first (task-runner-workers *tr*))
  (lambda ()
@@ -344,8 +388,11 @@ is found."
     (make-condition 'simple-error :format-control "interrupted"))))
 
 #|
-leaf functions of grep
---------------
+
+Results of playing with some leaf functions of grep.
+
+leaf function
+-------------
 _fini
 fstat    ; not really a leaf, jumps to a linked library function
 cwexec
@@ -370,100 +417,3 @@ register_tm_clones
 deregister_tm_clones
 
 |#
-
-;; possible demo script
-;; simple use of ASM-SUPER-MUTANT to do one generation
-;;
-#+step-1
-(setf *master*
-      (from-file
-	  (make-instance 'asm-super-mutant
-			 :io-dir *io-dir*
-			 :function-bounds-file *function-bounds-file*
-			 :fitness-harness *fitness-file*
-			 :var-table (sel::parse-sanity-file *var-address-file*))
-	  *asm-path*))
-
-#+step-2
-(target-function-name *master* "zeroset")
-
-#+step-3
-;; create the variants as children of the super
-(setf (mutants *master*) (simple-cut-generator *master*))
-
-#+step-4
-(evaluate nil *master*)
-
-#+step-5
-(setf *best*
-      (first
-       (lexicase-select-best (mutants *master*)
-			     :predicate (lambda (x y) (<= x y)))))
-
-#+step-6
-(fitness *best*)
-
-#+step-7
-(reduce '+ (fitness *best*))  ; overall best score
-
-;; to demo EVOLVE either use the recommended method (top of this file)
-;; or this method which is more granular
-
-#+step-1
-(setf *master*
-      (from-file
-	  (make-instance 'asm-super-mutant
-			 :io-dir *io-dir*
-			 :function-bounds-file *function-bounds-file*
-			 :fitness-harness *fitness-file*
-			 :var-table (sel::parse-sanity-file *var-address-file*))
-	  *asm-path*))
-
-#+step-2
-(target-function-name *master* "zeroset")
-
-#+step-3
-(setf (mutants *master*) (create-1024-originals *master*))
-
-#+step-4
-(evaluate nil *master*)
-
-#+step-5
-(setf *population* (mutants *master*))
-
-#+step-6
-(progn ; configure special vars
-  (setf *tournament-selector* #'lexicase-select-best)
-  (setf *fitness-predicate* #'<)
-  (setf *max-population-size* 1024)
-  (setf *print-length* 10)
-  (setf *fitness-evals* 0)
-  (setf *cross-chance* 2/3)
-  (setf *mut-rate* 2/3)
-  (setf *simple-mutation-types* '((SIMPLE-CUT . 1/3) (SIMPLE-SWAP . 1))))
-
-#+step-7
-(evolve nil :super-mutant-count 400
-	    :max-evals 10000
-	    :filter
-	    (lambda (v)
-	      (> (size v) 5))
-	    :period 1000
-	    :period-fn #'output-population-status)
-
-#+step-8
-(setf *best*
-      (first
-       (lexicase-select-best *population*
-			     :predicate (lambda (x y) (<= x y)))))
-
-#+step-9
-;; best overall fitness
-(reduce '+ (fitness *best*))
-
-#+ignore
-;;; steps 1-9 above basically are similar to  executing this command:
-(evolve-function-test "zeroset" :max-evals 10000)
-
-#+ignore
-(show-results *tr* :verbose t)

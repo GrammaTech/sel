@@ -483,7 +483,7 @@ with #\@. Optionally downcase the result."
 STRING is assumed to be the result of `escape-for-texinfo'."
   (let ((w/o-braces '("section" "subsection" "subsubsection" "cindex" "node"
                       "include" "end" "menu"))
-        (w/braces '("uref" "ref" "url" "code"))
+        (w/braces '("uref" "ref" "pxref" "url" "code" "anchor"))
         (braces 0))
     (flet ((subword-at (i word)
              (string= (subseq string i (min (+ i (length word))))
@@ -523,7 +523,8 @@ STRING is assumed to be the result of `escape-for-texinfo'."
 ;;; line markups
 
 (defvar *not-symbols*
-  '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO" "ASM" "C" "C++" "AST" "*"))
+  '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO" "ASM" "C" "C++" "AST" "*" "I/O"
+    "PAPI"))
 
 (defun frob-ellipsis (line)
   ;; READ-FROM-STRING chokes on ... so replace it.
