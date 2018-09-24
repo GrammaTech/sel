@@ -66,10 +66,6 @@ Next: <a href="SEL-Utility-API.html#SEL-Utility-API" accesskey="n" rel="next">SE
 <hr>
 <a name="SEL-API-Details-1"></a>
 <h3 class="unnumberedsec">SEL API Details</h3>
-<a name="Constant-_002bc_002darithmetic_002dassignment_002doperators_002b"></a><dl>
-<dt><a name="index-_002bc_002darithmetic_002dassignment_002doperators_002b"></a>Constant: <strong>+c-arithmetic-assignment-operators+</strong></dt>
-<dd><p>C arithmetic assignment operators.
-</p></dd></dl>
 <a name="Constant-_002bc_002dbitwise_002dbinary_002doperators_002b"></a><dl>
 <dt><a name="index-_002bc_002dbitwise_002dbinary_002doperators_002b"></a>Constant: <strong>+c-bitwise-binary-operators+</strong></dt>
 <dd><p>C bitwise operators on two arguments.
@@ -499,6 +495,12 @@ mutations as an optional second value.
 <li> <code>function-index</code> &mdash; initarg: <code><span class="nolinebreak">:function-index</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:function-index</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:function-index)</span><!-- /@w --></code>
 
 <p>Create this on demand.
+</p></li><li> <code>function-bounds-file</code> &mdash; initarg: <code><span class="nolinebreak">:function-bounds-file</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::function-bounds-file</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::function-bounds-file)</span><!-- /@w --></code>
+
+<p>If this is present, use it to create function index
+</p></li><li> <code>super-owner</code> &mdash; initarg: <code><span class="nolinebreak">:super-owner</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::super-owner</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::super-owner)</span><!-- /@w --></code>
+
+<p>If present, contains asm-super-mutant instance.
 </p></li></ul>
 
 <p>Alternative to <code>simple</code> software objects which should use less memory.
@@ -544,7 +546,7 @@ with an operand in the second.
 </p></li><li> <code>target-end-index</code> &mdash; initarg: <code><span class="nolinebreak">:target-end-index</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::target-end-index</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::target-end-index)</span><!-- /@w --></code>
 
 <p>Integer index represents the last line of target code.
-</p></li><li> <code>target-info</code> &mdash; initarg: <code><span class="nolinebreak">:target-info</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::target-info</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::target-info)</span><!-- /@w --></code>
+</p></li><li> <code>target-info</code> &mdash; initarg: <code><span class="nolinebreak">:target-info</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:target-info</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:target-info)</span><!-- /@w --></code>
 
 <p>Function index entry of the target function
 </p></li><li> <code>target-lines</code> &mdash; initarg: <code><span class="nolinebreak">:target-lines</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::target-lines</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::target-lines)</span><!-- /@w --></code>
@@ -553,6 +555,9 @@ with an operand in the second.
 </p></li><li> <code>assembler</code> &mdash; initarg: <code>:assembler<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:assembler</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:assembler)</span><!-- /@w --></code>
 
 <p>Assembler to use for assembling.
+</p></li><li> <code>io-dir</code> &mdash; initarg: <code><span class="nolinebreak">:io-dir</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library::io-dir</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::io-dir)</span><!-- /@w --></code>
+
+<p>Directory containing I/O files
 </p></li><li> <code>fitness-harness</code> &mdash; initarg: <code><span class="nolinebreak">:fitness-harness</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:fitness-harness</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:fitness-harness)</span><!-- /@w --></code>
 
 <p>Pathname to the fitness harness file <code>(c program source)</code>
@@ -1789,8 +1794,15 @@ After picking a crossover point in <code>software-a</code>, try to find the same
 <code>software-b</code>. Ideally, if A and <code>b</code> are identical, &lsquo;homologous-crossover&rsquo; always
 results in a genome that matches those of A and <code>b</code>.
 </p></dd></dl>
+<a name="Method-homologous_002dcrossover-_0028_0028a-asm_002dheap_0029-_0028b-asm_002dheap_0029_0029"></a><dl>
+<dt><a name="index-homologous_002dcrossover-1"></a>Method: <strong>homologous-crossover</strong> <em>(a asm-heap) (b asm-heap)</em></dt>
+<dd><p>Crossover at a similar point in asm objects, A and <code>b</code>.
+After picking a crossover point in A, try to find the same point in <code>b</code>. If A and
+<code>b</code> are identical, this implementation always results in a genome that matches
+those of A and <code>b</code>.
+</p></dd></dl>
 <a name="Method-homologous_002dcrossover-_0028_0028a-asm_0029-_0028b-asm_0029_0029"></a><dl>
-<dt><a name="index-homologous_002dcrossover-1"></a>Method: <strong>homologous-crossover</strong> <em>(a asm) (b asm)</em></dt>
+<dt><a name="index-homologous_002dcrossover-2"></a>Method: <strong>homologous-crossover</strong> <em>(a asm) (b asm)</em></dt>
 <dd><p>Crossover at a similar point in asm objects, A and <code>b</code>.
 After picking a crossover point in A, try to find the same point in <code>b</code>. If A and
 <code>b</code> are identical, this implementation always results in a genome that matches
@@ -2333,6 +2345,10 @@ synthesis).
 <dd><p>Maximum number of combinations for abst_cond() values to attempt before
 discarding a repair.
 </p></dd></dl>
+<a name="Variable-_002abetter_002dbias_002a"></a><dl>
+<dt><a name="index-_002abetter_002dbias_002a"></a>Variable: <strong>*better-bias*</strong></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
 <a name="Variable-_002abias_002dtoward_002ddynamic_002dmutation_002a"></a><dl>
 <dt><a name="index-_002abias_002dtoward_002ddynamic_002dmutation_002a"></a>Variable: <strong>*bias-toward-dynamic-mutation*</strong></dt>
 <dd><p>Degree to which dynamic weights are emphasized over default weights.
@@ -2369,6 +2385,10 @@ threads by creating separate build directory per thread.
 <dt><a name="index-_002aclang_002dw_002dfodder_002dnew_002dmutation_002dtypes_002a"></a>Variable: <strong>*clang-w-fodder-new-mutation-types*</strong></dt>
 <dd><p>Fodder mutation types.
 </p></dd></dl>
+<a name="Variable-_002adatabase_002a"></a><dl>
+<dt><a name="index-_002adatabase_002a"></a>Variable: <strong>*database*</strong></dt>
+<dd><p>Database utilized for fodder selection
+</p></dd></dl>
 <a name="Variable-_002adead_002dbias_002a"></a><dl>
 <dt><a name="index-_002adead_002dbias_002a"></a>Variable: <strong>*dead-bias*</strong></dt>
 <dd><p><code>docfixme</code>
@@ -2401,17 +2421,9 @@ threads by creating separate build directory per thread.
 <dt><a name="index-_002agenerations_002a"></a>Variable: <strong>*generations*</strong></dt>
 <dd><p>Holds the running generation count.
 </p></dd></dl>
-<a name="Variable-_002alexicase_002dkey_002a"></a><dl>
-<dt><a name="index-_002alexicase_002dkey_002a"></a>Variable: <strong>*lexicase-key*</strong></dt>
-<dd><p>Optional key function for components of test vector.
-</p></dd></dl>
 <a name="Variable-_002alib_002dpapi_002a"></a><dl>
 <dt><a name="index-_002alib_002dpapi_002a"></a>Variable: <strong>*lib-papi*</strong></dt>
 <dd><p>Path to papi library.  See http://icl.cs.utk.edu/papi/.
-</p></dd></dl>
-<a name="Variable-_002alisp_002dmutation_002dtypes_002a"></a><dl>
-<dt><a name="index-_002alisp_002dmutation_002dtypes_002a"></a>Variable: <strong>*lisp-mutation-types*</strong></dt>
-<dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Variable-_002amatching_002dfree_002dfunction_002dretains_002dname_002dbias_002a"></a><dl>
 <dt><a name="index-_002amatching_002dfree_002dfunction_002dretains_002dname_002dbias_002a"></a>Variable: <strong>*matching-free-function-retains-name-bias*</strong></dt>
@@ -2422,6 +2434,10 @@ already in scope, it will keep that name.
 <dt><a name="index-_002amatching_002dfree_002dvar_002dretains_002dname_002dbias_002a"></a>Variable: <strong>*matching-free-var-retains-name-bias*</strong></dt>
 <dd><p>The probability that if a free variable&rsquo;s original name matches a name
 already in scope, it will keep that name.
+</p></dd></dl>
+<a name="Variable-_002amax_002dpopulation_002dsize_002a"></a><dl>
+<dt><a name="index-_002amax_002dpopulation_002dsize_002a"></a>Variable: <strong>*max-population-size*</strong></dt>
+<dd><p>Maximum allowable population size.
 </p></dd></dl>
 <a name="Variable-_002amcmc_002dfodder_002a"></a><dl>
 <dt><a name="index-_002amcmc_002dfodder_002a"></a>Variable: <strong>*mcmc-fodder*</strong></dt>
@@ -2441,6 +2457,10 @@ elements.
 <a name="Variable-_002amutation_002dimprovements_002a"></a><dl>
 <dt><a name="index-_002amutation_002dimprovements_002a"></a>Variable: <strong>*mutation-improvements*</strong></dt>
 <dd><p>List of recent mutation improvements cons&rsquo;d with *fitness-evals*.
+</p></dd></dl>
+<a name="Variable-_002amutation_002dstats_002a"></a><dl>
+<dt><a name="index-_002amutation_002dstats_002a"></a>Variable: <strong>*mutation-stats*</strong></dt>
+<dd><p>Variable to hold mutation statistics.
 </p></dd></dl>
 <a name="Variable-_002apareto_002dcomparison_002dset_002dsize_002a"></a><dl>
 <dt><a name="index-_002apareto_002dcomparison_002dset_002dsize_002a"></a>Variable: <strong>*pareto-comparison-set-size*</strong></dt>
@@ -2497,6 +2517,10 @@ written to as part of a running search process.
 <a name="Constant-_002bc_002dbitwise_002dassignment_002doperators_002b"></a><dl>
 <dt><a name="index-_002bc_002dbitwise_002dassignment_002doperators_002b"></a>Constant: <strong>+c-bitwise-assignment-operators+</strong></dt>
 <dd><p>C bitwise assignment operators.
+</p></dd></dl>
+<a name="Constant-_002bc_002dnumeric_002dtypes_002b"></a><dl>
+<dt><a name="index-_002bc_002dnumeric_002dtypes_002b"></a>Constant: <strong>+c-numeric-types+</strong></dt>
+<dd><p>C Numeric type names.
 </p></dd></dl>
 <a name="Constant-_002bc_002drelational_002doperators_002b"></a><dl>
 <dt><a name="index-_002bc_002drelational_002doperators_002b"></a>Constant: <strong>+c-relational-operators+</strong></dt>
@@ -2601,34 +2625,6 @@ address and the cdr is the value.
 <p>C abstract syntax trees using C Intermediate Language <code>(cil)</code>.
 See http://kerneis.github.io/cil/.
 </p></dd></dl>
-<a name="Class-parseable"></a><dl>
-<dt><a name="index-parseable"></a>Class: <strong>parseable</strong></dt>
-<dd><p>Class precedence list: <code>parseable, source, software, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>ast-root</code> &mdash; initarg: <code><span class="nolinebreak">:ast-root</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:ast-root</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:ast-root)</span><!-- /@w --></code>
-
-<p>Root node of AST.
-</p></li><li> <code>asts</code> &mdash; initarg: <code>:asts<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:asts</span><!-- /@w --></code>
-
-<p>List of all ASTs.
-</p></li><li> <code>asts-changed-p</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library::asts-changed-p</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::asts-changed-p)</span><!-- /@w --></code>
-
-<p>Have ASTs changed since the last parse?
-</p></li><li> <code>copy-lock</code> &mdash; 
-
-<p>Lock while copying parseable objects.
-</p></li></ul>
-
-<p>Parsed AST tree software representation.
-</p></dd></dl>
-<a name="Class-style_002dproject"></a><dl>
-<dt><a name="index-style_002dproject"></a>Class: <strong>style-project</strong></dt>
-<dd><p>Class precedence list: <code>style-project, styleable, project, software, standard-object, t</code>
-</p>
-<p>A project with style-features.
-</p></dd></dl>
 <a name="Variable-ast_002dkeyword_002dtf_002dfeature"></a><dl>
 <dt><a name="index-ast_002dkeyword_002dtf_002dfeature"></a>Variable: <strong>ast-keyword-tf-feature</strong></dt>
 <dd><p>Term frequency of keywords in an AST.
@@ -2685,6 +2681,161 @@ http://astyle.sourceforge.net/astyle.html#_Usage
 <dt><a name="index-astyle-3"></a>Method: <strong>astyle</strong> <em>(obj java) &amp;optional style options</em></dt>
 <dd><p>This method currently has not effect on Java objects.
 </p></dd></dl>
+<a name="Generic_002dFunction-avg_002ddepth_002dast_002dextractor"></a><dl>
+<dt><a name="index-avg_002ddepth_002dast_002dextractor"></a>Generic Function: <strong>avg-depth-ast-extractor</strong> <em>software</em></dt>
+<dd><p>Return 1-element feature vector of the average depth of ASTs in <code>software</code>.
+</p></dd></dl>
+<a name="Generic_002dFunction-build_002dop"></a><dl>
+<dt><a name="index-build_002dop"></a>Generic Function: <strong>build-op</strong> <em>software mutation</em></dt>
+<dd><p>Build operation on <code>software</code> from a <code>mutation</code>.
+</p></dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-insert_002delse_002dif_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-1"></a>Method: <strong>build-op</strong> <em>(mutation insert-else-if) software</em></dt>
+<dd><p>Return an association list with the operations to apply
+an insert-else-if <code>mutation</code> to <code>software</code>.
+</p></dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-if_002dto_002dwhile_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-2"></a>Method: <strong>build-op</strong> <em>(mutation if-to-while) software</em></dt>
+<dd><p>Return an association list with the operations to apply
+an if-to-while <code>mutation</code> to <code>software</code>
+</p></dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-if_002dto_002dwhile_002dtighten_002dcondition_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-3"></a>Method: <strong>build-op</strong> <em>(mutation if-to-while-tighten-condition) software</em></dt>
+<dd><p>Return an association list with the operations to apply
+an if-to-while-tighten-condition <code>mutation</code> to <code>software</code>.
+</p></dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-add_002dcondition_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-4"></a>Method: <strong>build-op</strong> <em>(mutation add-condition) software</em></dt>
+<dd><p>Return an association list with the operations to apply
+a add-condition <code>mutation</code> to <code>software</code>.
+</p></dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-refine_002dcondition_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-5"></a>Method: <strong>build-op</strong> <em>(mutation refine-condition) software</em></dt>
+<dd><p>Return an association list with the operations to apply
+a refine-condition <code>mutation</code> to <code>software</code>.
+</p></dd></dl>
+<a name="Method-build_002dop-_0028_0028mut-insert_002dfodder_002ddecl_002drep_0029-_0028obj-clang_002dw_002dfodder_0029_0029"></a><dl>
+<dt><a name="index-build_002dop-6"></a>Method: <strong>build-op</strong> <em>(mut insert-fodder-decl-rep) (obj clang-w-fodder)</em></dt>
+<dd><p>Return an association list with the operations to apply a
+&lsquo;insert-fodder-decl-rep&rsquo; <code>mut</code> to <code>obj</code>.
+</p><ul>
+<li> <code>mut</code> defines the targets of the insertion operation
+</li><li> <code>obj</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-rename_002dvariable_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-7"></a>Method: <strong>build-op</strong> <em>(mutation rename-variable) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;rename-variable&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines the targets of the rename-variable operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-cut_002ddecl_0029-clang_0029"></a><dl>
+<dt><a name="index-build_002dop-8"></a>Method: <strong>build-op</strong> <em>(mutation cut-decl) clang</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;cut-decl&rsquo;
+<code>mutation</code> to <code>clang</code>.
+</p><ul>
+<li> <code>mutation</code> defines the targets of the cut-decl operation
+</li><li> <code>clang</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-coalesce_002dwhile_002dloop_0029-_0028obj-clang_0029_0029"></a><dl>
+<dt><a name="index-build_002dop-9"></a>Method: <strong>build-op</strong> <em>(mutation coalesce-while-loop) (obj clang)</em></dt>
+<dd><p>Return an association list with the operations to apply a
+&lsquo;coalesce-while-loop&rsquo; <code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines the targets of the coalesce-while-loop operation
+</li><li> <code>obj</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-explode_002dfor_002dloop_0029-_0028obj-clang_0029_0029"></a><dl>
+<dt><a name="index-build_002dop-10"></a>Method: <strong>build-op</strong> <em>(mutation explode-for-loop) (obj clang)</em></dt>
+<dd><p>Return an association list with the operations to apply an
+&lsquo;explode-for-loop&rsquo; <code>mutation</code> to <code>obj</code>.
+</p><ul>
+<li> <code>mutation</code> defines the targets of the explode-for-loop operation
+</li><li> <code>obj</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-clang_002dpromote_002dguarded_0029-software-_0026aux-_0028guarded-_0028targets-mutation_0029_0029_0029"></a><dl>
+<dt><a name="index-build_002dop-11"></a>Method: <strong>build-op</strong> <em>(mutation clang-promote-guarded) software &amp;aux (guarded (targets mutation))</em></dt>
+<dd><p>Return an association list with the operations to apply a
+&lsquo;clang-promote-guarded&rsquo; <code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines the targets of the cut operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-clang_002dinsert_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-12"></a>Method: <strong>build-op</strong> <em>(mutation clang-insert) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;clang-insert&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines targets of insertion operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-parseable_002dnop_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-13"></a>Method: <strong>build-op</strong> <em>(mutation parseable-nop) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;nop&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>muation</code> defines teh targets of the nop operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-parseable_002dcut_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-14"></a>Method: <strong>build-op</strong> <em>(mutation parseable-cut) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;parseable-cut&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines the targets of the cut operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-parseable_002dreplace_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-15"></a>Method: <strong>build-op</strong> <em>(mutation parseable-replace) software</em></dt>
+<dd><p>Return an association list with the operations to apply an
+&lsquo;parseable-replace&rsquo; <code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines targets of the replace operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-parseable_002dmove_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-16"></a>Method: <strong>build-op</strong> <em>(mutation parseable-move) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;parseable-move&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines targets of the move operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-parseable_002dswap_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-17"></a>Method: <strong>build-op</strong> <em>(mutation parseable-swap) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;parseable-swap&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines targets of the swap operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Method-build_002dop-_0028_0028mutation-parseable_002dinsert_0029-software_0029"></a><dl>
+<dt><a name="index-build_002dop-18"></a>Method: <strong>build-op</strong> <em>(mutation parseable-insert) software</em></dt>
+<dd><p>Return an association list with the operations to apply a &lsquo;parseable-insert&rsquo;
+<code>mutation</code> to <code>software</code>.
+</p><ul>
+<li> <code>mutation</code> defines targets of insertion operation
+</li><li> <code>software</code> object to be modified by the mutation
+</li></ul>
+</dd></dl>
+<a name="Function-clang_002dinstrument"></a><dl>
+<dt><a name="index-clang_002dinstrument"></a>Function: <strong>clang-instrument</strong> <em>args</em></dt>
+<dd><p>Interface to the command line instrumentation tool.
+* <code>args</code> command-line arguments
+</p></dd></dl>
 <a name="Generic_002dFunction-clang_002dtidy"></a><dl>
 <dt><a name="index-clang_002dtidy"></a>Generic Function: <strong>clang-tidy</strong> <em>software &amp;optional checks</em></dt>
 <dd><p>Apply the software fixing clang tool, optionally using
@@ -2726,6 +2877,29 @@ are made of the reference base genome.
 </p></dd></dl>
 <a name="Method-copy-_0028_0028diff-diff_0029-_0026key_0029"></a><dl>
 <dt><a name="index-copy-2"></a>Method: <strong>copy</strong> <em>(diff diff) &amp;key</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Generic_002dFunction-coq_002dtype_002dchecks"></a><dl>
+<dt><a name="index-coq_002dtype_002dchecks"></a>Generic Function: <strong>coq-type-checks</strong> <em>coq</em></dt>
+<dd><p>Return the fraction of ASTs in <code>coq</code> software object that typecheck.
+</p></dd></dl>
+<a name="Method-coq_002dtype_002dchecks-_0028_0028obj-coq_0029_0029"></a><dl>
+<dt><a name="index-coq_002dtype_002dchecks-1"></a>Method: <strong>coq-type-checks</strong> <em>(obj coq)</em></dt>
+<dd><p>Return the fraction of ASTs in Coq software <code>obj</code> that typecheck.
+Return <code>nil</code> if source strings cannot be looked up.
+</p></dd></dl>
+<a name="Generic_002dFunction-elf"></a><dl>
+<dt><a name="index-elf"></a>Generic Function: <strong>elf</strong> <em>elf</em></dt>
+<dd><p>Return the <code>elf:elf</code> object associated with <code>elf</code>.
+This takes the &lsquo;base&rsquo; of <code>elf</code> (which should not be changed), copies it,
+and applies the changed data in &lsquo;genome&rsquo; of <code>elf</code>.
+</p></dd></dl>
+<a name="Method-elf-_0028_0028elf-elf_002drisc_0029_0029"></a><dl>
+<dt><a name="index-elf-1"></a>Method: <strong>elf</strong> <em>(elf elf-risc)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-elf-_0028_0028elf-elf_002dcisc_0029_0029"></a><dl>
+<dt><a name="index-elf-2"></a>Method: <strong>elf</strong> <em>(elf elf-cisc)</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
 <a name="Condition-phenome"></a><dl>
@@ -2783,6 +2957,12 @@ Instead of directly holding code in the <code>genome</code>, each <code>genome</
 of range references to an external <code>reference</code> code array.
 </p>
 <p>Similar to the range approach, but striving for a simpler interface.
+</p></dd></dl>
+<a name="Class-elf"></a><dl>
+<dt><a name="index-elf-3"></a>Class: <strong>elf</strong></dt>
+<dd><p>Class precedence list: <code>elf, simple, software, standard-object, t</code>
+</p>
+<p><code>docfixme</code>
 </p></dd></dl>
 <a name="Class-elf_002drisc"></a><dl>
 <dt><a name="index-elf_002drisc"></a>Class: <strong>elf-risc</strong></dt>
@@ -2978,11 +3158,6 @@ slot in <code>direct-slots</code> may be one of the following:
             to copy the slot.
 </li></ul>
 </dd></dl>
-<a name="Function-clang_002dinstrument"></a><dl>
-<dt><a name="index-clang_002dinstrument"></a>Function: <strong>clang-instrument</strong> <em>args</em></dt>
-<dd><p>Interface to the command line instrumentation tool.
-* <code>args</code> command-line arguments
-</p></dd></dl>
 <a name="Function-crossed"></a><dl>
 <dt><a name="index-crossed"></a>Function: <strong>crossed</strong> <em>&amp;optional a b</em></dt>
 <dd><p>Generate a new individual from <code>*population*</code> using crossover.
@@ -3062,59 +3237,6 @@ returns two values: the extracted feature vector and its metadata.
 <dd><p>Handle errors in &lsquo;phenome&rsquo; execution by returning nil as the
 first value from the &lsquo;phenome&rsquo; method.
 </p></dd></dl>
-<a name="Macro-to_002dclang_002dast"></a><dl>
-<dt><a name="index-to_002dclang_002dast"></a>Macro: <strong>to-clang-ast</strong> <em>spec</em></dt>
-<dd><p>Walk a potentially recursive clang-ast <code>spec</code> creating a &lsquo;clang-ast&rsquo;.
-A <code>spec</code> should have the form
-</p>
-<div class="example">
-<pre class="example">    (clang-ast-class &lt;optional-keyword-args-to-`make-clang-ast-node'&gt;
-                     CHILDREN)
-</pre></div>
-
-<p>where <code>children</code> may themselves be specifications suitable for passing
-to &lsquo;to-clang-ast&rsquo;.  <code>e</code>.g.,
-</p>
-<div class="example">
-<pre class="example">    (to-clang-ast (:callexpr (:implicitcastexpr
-                              :includes '(&quot;&lt;string.h&gt;&quot;)
-                              &quot;&quot; &quot;(|strcpy|)&quot; &quot;&quot;)
-                             &quot;(&quot; &quot;arg-1&quot; &quot;,&quot; &quot;arg-2&quot; &quot;)&quot;))
-</pre></div>
-</dd></dl>
-<a name="Function-asm_002dsuper_002dmutant_002dtest_002dfunction"></a><dl>
-<dt><a name="index-asm_002dsuper_002dmutant_002dtest_002dfunction"></a>Function: <strong>asm-super-mutant-test-function</strong> <em>asm-path func-name mutants-generator &amp;key io-dir var-address-file fitness-file-dir function-bounds-file</em></dt>
-<dd><p>Create asm-super-mutant from .asm file at asm-path. Load i/o file
-from &lt;io/dir&gt;/func-name. Run fitness tests on specified function,
-and return optimal variant and fitness result.
-<code>mutants-generator</code> should be a function which takes a fully set up
-<code>asm-super-mutant</code> instance, and returns a sequence of <code>asm-heap</code> instances
-representing the <code>mutants</code> (variants) of the target function.
-</p></dd></dl>
-<a name="Function-diff_002dfeature_002dvectors"></a><dl>
-<dt><a name="index-diff_002dfeature_002dvectors"></a>Function: <strong>diff-feature-vectors</strong> <em>vec1 vec2</em></dt>
-<dd><p>Return a vector of the absolute differences between items in VEC1 and VEC2.
-</p></dd></dl>
-<a name="Generic_002dFunction-elf"></a><dl>
-<dt><a name="index-elf"></a>Generic Function: <strong>elf</strong> <em>elf</em></dt>
-<dd><p>Return the <code>elf:elf</code> object associated with <code>elf</code>.
-This takes the &lsquo;base&rsquo; of <code>elf</code> (which should not be changed), copies it,
-and applies the changed data in &lsquo;genome&rsquo; of <code>elf</code>.
-</p></dd></dl>
-<a name="Method-elf-_0028_0028elf-elf_002drisc_0029_0029"></a><dl>
-<dt><a name="index-elf-1"></a>Method: <strong>elf</strong> <em>(elf elf-risc)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-elf-_0028_0028elf-elf_002dcisc_0029_0029"></a><dl>
-<dt><a name="index-elf-2"></a>Method: <strong>elf</strong> <em>(elf elf-cisc)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Class-elf"></a><dl>
-<dt><a name="index-elf-3"></a>Class: <strong>elf</strong></dt>
-<dd><p>Class precedence list: <code>elf, simple, software, standard-object, t</code>
-</p>
-<p><code>docfixme</code>
-</p></dd></dl>
 <a name="Function-error_002dfuncs"></a><dl>
 <dt><a name="index-error_002dfuncs"></a>Function: <strong>error-funcs</strong> <em>software bad-traces good-traces</em></dt>
 <dd><p>Find statements which call error functions.
@@ -3127,11 +3249,6 @@ not itself faulty, so it&rsquo;s useful to identify their callers instead.
 <dt><a name="index-expression_002dintern"></a>Function: <strong>expression-intern</strong> <em>string</em></dt>
 <dd><p>Intern <code>string</code> for symbolic use in an expression.
 This is used to intern string names by &lsquo;expression&rsquo;.
-</p></dd></dl>
-<a name="Function-expression_002dto_002dc"></a><dl>
-<dt><a name="index-expression_002dto_002dc"></a>Function: <strong>expression-to-c</strong> <em>expression</em></dt>
-<dd><p>Format <code>expression</code> as C source code.
-* <code>expression</code> an expression tree
 </p></dd></dl>
 <a name="Function-find_002dbest_002dcondition"></a><dl>
 <dt><a name="index-find_002dbest_002dcondition"></a>Function: <strong>find-best-condition</strong> <em>recorded-results envs conditions</em></dt>
@@ -3232,10 +3349,6 @@ sleeping for &lsquo;*process-sleep-interval*&rsquo; seconds and checking again u
 the timeout, send a <code>sigterm</code> signal if <code>test-process</code> is still running, sleep for
 &lsquo;*process-sleep-interval*&rsquo; seconds once more and then if the process is still
 running, send a <code>sigkill</code> signal.
-</p></dd></dl>
-<a name="Function-fitness_002dbetter_002dp"></a><dl>
-<dt><a name="index-fitness_002dbetter_002dp"></a>Function: <strong>fitness-better-p</strong> <em>fitness-a fitness-b</em></dt>
-<dd><p>Check if <code>fitness-a</code> is strictly better than <code>fitness-b</code>.
 </p></dd></dl>
 <a name="Generic_002dFunction-force_002dinclude"></a><dl>
 <dt><a name="index-force_002dinclude"></a>Generic Function: <strong>force-include</strong> <em>software include</em></dt>
@@ -3369,6 +3482,39 @@ Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 <dt><a name="index-from_002dfile-20"></a>Method: <strong>from-file</strong> <em>(simple simple) path</em></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
+<a name="Generic_002dFunction-from_002dstring"></a><dl>
+<dt><a name="index-from_002dstring"></a>Generic Function: <strong>from-string</strong> <em>software string</em></dt>
+<dd><p>Initialize <code>software</code> with contents of <code>string</code>.
+</p></dd></dl>
+<a name="Method-from_002dstring-_0028_0028obj-pliny_002ddatabase_0029-arg_0029"></a><dl>
+<dt><a name="index-from_002dstring-1"></a>Method: <strong>from-string</strong> <em>(obj pliny-database) arg</em></dt>
+<dd><p>Parse a database argument in the form &quot;&lt;HOST|FILE&gt;:PORT&quot;
+</p></dd></dl>
+<a name="Method-from_002dstring-before-_0028_0028obj-ancestral_0029-string_0029"></a><dl>
+<dt><a name="index-before-from_002dstring"></a>Method: <strong>before from-string</strong> <em>(obj ancestral) string</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>obj</code> <code>docfixme</code>
+</li><li> <code>string</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<a name="Method-from_002dstring-before-_0028_0028obj-clang_002dw_002dfodder_0029-string_0029"></a><dl>
+<dt><a name="index-before-from_002dstring-1"></a>Method: <strong>before from-string</strong> <em>(obj clang-w-fodder) string</em></dt>
+<dd><p>Ensure the fodder database has been initialized prior to creating
+a &lsquo;clang-w-fodder&rsquo; software <code>obj</code> from <code>string</code>.
+</p><ul>
+<li> <code>obj</code> object to be populated from source in <code>string</code>
+</li><li> <code>string</code> source code to populate <code>obj</code> with
+</li></ul>
+</dd></dl>
+<a name="Method-from_002dstring-_0028_0028obj-clang_0029-string_0029"></a><dl>
+<dt><a name="index-from_002dstring-2"></a>Method: <strong>from-string</strong> <em>(obj clang) string</em></dt>
+<dd><p>Populate <code>obj</code> with the source code in <code>string</code>
+</p><ul>
+<li> <code>obj</code> to be populated from source in <code>string</code>
+</li><li> <code>string</code> source code to populate <code>obj</code> with
+</li></ul>
+</dd></dl>
 <a name="Function-full_002dstmt_002dfilter"></a><dl>
 <dt><a name="index-full_002dstmt_002dfilter"></a>Function: <strong>full-stmt-filter</strong> <em>ast &amp;optional first-pick</em></dt>
 <dd><p>Targeting filter returning true if AST is a full statement.
@@ -3401,10 +3547,6 @@ Note this is required as no &lsquo;from-file&rsquo; method is defined on the
 </li><li> AST ast to search for the parent function of
 </li></ul>
 </dd></dl>
-<a name="Function-function_002ddecl_002dp"></a><dl>
-<dt><a name="index-function_002ddecl_002dp"></a>Function: <strong>function-decl-p</strong> <em>ast</em></dt>
-<dd><p>Is AST a function (or method/constructor/destructor) decl?
-</p></dd></dl>
 <a name="Function-generational_002devolve"></a><dl>
 <dt><a name="index-generational_002devolve"></a>Function: <strong>generational-evolve</strong> <em>reproduce evaluate-pop select &amp;key every-pre-fn every-post-fn analyze-mutation-fn test period period-fn max-generations max-evals max-time filter</em></dt>
 <dd><p>Evolves &lsquo;*population*&rsquo; using <code>reproduce</code> <code>evaluate-pop</code> and <code>select</code>.
@@ -3534,65 +3676,6 @@ The result should be a simple array of type &rsquo;(UNSIGNED-BYTE 8).
 
 <p>insert an (empty) else-if clause after an existing if, e.g., if(foo) bar; becomes if(foo) bar; else if(abst_cond()) ;.
 </p></dd></dl>
-<a name="Generic_002dFunction-instrument"></a><dl>
-<dt><a name="index-instrument"></a>Generic Function: <strong>instrument</strong> <em>obj &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads</em></dt>
-<dd><p>Instrument <code>obj</code> to print AST index before each full statement.
-</p>
-<p>The indices printed here are not clang-mutate counters, but rather the
-position of the ast in (asts obj).
-</p>
-<p>Keyword arguments are as follows:
-  <code>points</code> <code>---------------</code> alist of additional values to print at specific points
-  <code>functions</code> <code>------------</code> functions to calculate instrumentation at each point
-  <code>functions-after</code> <code>------</code> functions to calculate instrumentation after each point
-  <code>trace-file</code> <code>-----------</code> file for trace output
-  <code>trace-env</code> <code>------------</code> trace output to file specified by <code>env</code> variable
-  <code>instrument-exit</code> <code>------</code> print counter of function body before exit
-  <code>filter</code> <code>---------------</code> function to select a subset of ASTs for instrumentation
-  <code>num-threads</code> <code>----------</code> number of threads to use for instrumentation
-</p></dd></dl>
-<a name="Method-instrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026rest-args-_0026aux-_0028names-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029--_0028types-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029-_0028type_002ddescriptions-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029_0029"></a><dl>
-<dt><a name="index-instrument-1"></a>Method: <strong>instrument</strong> <em>(clang-project clang-project) &amp;rest args &amp;aux (names (make-thread-safe-hash-table test (function equalp))) (types (make-thread-safe-hash-table test (function equalp))) (type-descriptions (make-thread-safe-hash-table test (function equalp)))</em></dt>
-<dd><p>Instrument <code>clang-project</code> to print AST index before each full statement.
-</p>
-<ul>
-<li> <code>clang-project</code> the project to instrument
-</li><li> <code>args</code> passed through to the instrument method on underlying software objects.
-</li></ul>
-</dd></dl>
-<a name="Method-instrument-_0028_0028instrumenter-clang_002dinstrumenter_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-_0028filter-_0028constantly-t_0029_0029--_0028num_002dthreads-1_0029_0029"></a><dl>
-<dt><a name="index-instrument-2"></a>Method: <strong>instrument</strong> <em>(instrumenter clang-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (constantly t)) (num-threads 1)</em></dt>
-<dd><p>Use <code>instrumenter</code> to instrument a clang software object.
-</p>
-<ul>
-<li> <code>instrumenter</code> current instrumentation state
-</li><li> <code>points</code> alist of additional values to print at specific points
-</li><li> <code>functions</code>  functions to calculate instrumentation at each point
-</li><li> <code>functions-after</code> functions to calculate instrumentation after each point
-</li><li> <code>trace-file</code> file or stream (stdout/stderr) for trace output
-</li><li> <code>trace-env</code> trace output to file specified by <code>env</code> variable
-</li><li> <code>instrument-exit</code> print counter of function body before exit
-</li><li> <code>filter</code> function to select a subset of ASTs for instrumentation
-         function should take a software object and an AST parameters,
-         returning nil if the AST should be filtered from instrumentation
-</li><li> <code>num-threads</code> number of threads to use for instrumentation
-</li></ul>
-</dd></dl>
-<a name="Method-instrument-_0028_0028obj-clang_0029-_0026rest-args_0029"></a><dl>
-<dt><a name="index-instrument-3"></a>Method: <strong>instrument</strong> <em>(obj clang) &amp;rest args</em></dt>
-<dd><p>Instrumentation for clang software objects.
-Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its instrument method.
-</p>
-<ul>
-<li> <code>obj</code> the software object to instrument
-</li><li> <code>args</code> additional arguments are passed through to the instrumenter method.
-</li></ul>
-</dd></dl>
-<a name="Method-instrument-_0028_0028cil-cil_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-filter-num_002dthreads_0029"></a><dl>
-<dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(cil cil) &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads</em></dt>
-<dd><p>Instrument <code>cil</code> for traced execution.
-Optionally specify the name of the file in which to save trace data.
-</p></dd></dl>
 <a name="Generic_002dFunction-instrumentation_002dfiles"></a><dl>
 <dt><a name="index-instrumentation_002dfiles"></a>Generic Function: <strong>instrumentation-files</strong> <em>project</em></dt>
 <dd><p>Return files in <code>project</code> in the order which they would be instrumented
@@ -3644,186 +3727,77 @@ project software objects.
 
 <p><code>docfixme</code>
 </p></dd></dl>
-<a name="Variable-_002abetter_002dbias_002a"></a><dl>
-<dt><a name="index-_002abetter_002dbias_002a"></a>Variable: <strong>*better-bias*</strong></dt>
+<a name="Generic_002dFunction-lookup_002dsource_002dstrings"></a><dl>
+<dt><a name="index-lookup_002dsource_002dstrings"></a>Generic Function: <strong>lookup-source-strings</strong> <em>software &amp;key include-imports</em></dt>
+<dd><p>Return a list of source strings for the ASTs in <code>software</code>.
+Set <code>include-imports</code> to <code>t</code> to include import statements in the result.
+</p></dd></dl>
+<a name="Method-lookup_002dsource_002dstrings-_0028_0028obj-coq_0029-_0026key-include_002dimports_0029"></a><dl>
+<dt><a name="index-lookup_002dsource_002dstrings-1"></a>Method: <strong>lookup-source-strings</strong> <em>(obj coq) &amp;key include-imports</em></dt>
+<dd><p>Return a list of source strings for the ASTs in <code>coq</code>.
+Set <code>include-imports</code> to <code>t</code> to include import statements in the result.
+</p></dd></dl>
+<a name="Class-loosen_002dcondition"></a><dl>
+<dt><a name="index-loosen_002dcondition"></a>Class: <strong>loosen-condition</strong></dt>
+<dd><p>Class precedence list: <code>loosen-condition, refine-condition, clang-mutation, mutation, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Add an abstract condition to make a guard more permissive.
+<code>e</code>.g., if(foo) becomes if(foo || abst_cond()).
+</p></dd></dl>
+<a name="Class-parseable"></a><dl>
+<dt><a name="index-parseable"></a>Class: <strong>parseable</strong></dt>
+<dd><p>Class precedence list: <code>parseable, source, software, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>ast-root</code> &mdash; initarg: <code><span class="nolinebreak">:ast-root</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:ast-root</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library:ast-root)</span><!-- /@w --></code>
+
+<p>Root node of AST.
+</p></li><li> <code>asts</code> &mdash; initarg: <code>:asts<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:asts</span><!-- /@w --></code>
+
+<p>List of all ASTs.
+</p></li><li> <code>asts-changed-p</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library::asts-changed-p</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library::asts-changed-p)</span><!-- /@w --></code>
+
+<p>Have ASTs changed since the last parse?
+</p></li><li> <code>copy-lock</code> &mdash; 
+
+<p>Lock while copying parseable objects.
+</p></li></ul>
+
+<p>Parsed AST tree software representation.
+</p></dd></dl>
+<a name="Class-style_002dproject"></a><dl>
+<dt><a name="index-style_002dproject"></a>Class: <strong>style-project</strong></dt>
+<dd><p>Class precedence list: <code>style-project, styleable, project, software, standard-object, t</code>
+</p>
+<p>A project with style-features.
+</p></dd></dl>
+<a name="Variable-_002alexicase_002dkey_002a"></a><dl>
+<dt><a name="index-_002alexicase_002dkey_002a"></a>Variable: <strong>*lexicase-key*</strong></dt>
+<dd><p>Optional key function for components of test vector.
+</p></dd></dl>
+<a name="Variable-_002alisp_002dmutation_002dtypes_002a"></a><dl>
+<dt><a name="index-_002alisp_002dmutation_002dtypes_002a"></a>Variable: <strong>*lisp-mutation-types*</strong></dt>
 <dd><p><code>docfixme</code>
 </p></dd></dl>
-<a name="Variable-_002amax_002dpopulation_002dsize_002a"></a><dl>
-<dt><a name="index-_002amax_002dpopulation_002dsize_002a"></a>Variable: <strong>*max-population-size*</strong></dt>
-<dd><p>Maximum allowable population size.
-</p></dd></dl>
-<a name="Variable-_002amutation_002dstats_002a"></a><dl>
-<dt><a name="index-_002amutation_002dstats_002a"></a>Variable: <strong>*mutation-stats*</strong></dt>
-<dd><p>Variable to hold mutation statistics.
+<a name="Constant-_002bc_002darithmetic_002dassignment_002doperators_002b"></a><dl>
+<dt><a name="index-_002bc_002darithmetic_002dassignment_002doperators_002b"></a>Constant: <strong>+c-arithmetic-assignment-operators+</strong></dt>
+<dd><p>C arithmetic assignment operators.
 </p></dd></dl>
 <a name="Variable-ast_002dfull_002dstmt_002dbi_002dgrams_002dfeature"></a><dl>
 <dt><a name="index-ast_002dfull_002dstmt_002dbi_002dgrams_002dfeature"></a>Variable: <strong>ast-full-stmt-bi-grams-feature</strong></dt>
 <dd><p>Number of occurrences of AST node type bi-grams in each full statement in
 an AST.
-</p></dd></dl>
-<a name="Generic_002dFunction-avg_002ddepth_002dast_002dextractor"></a><dl>
-<dt><a name="index-avg_002ddepth_002dast_002dextractor"></a>Generic Function: <strong>avg-depth-ast-extractor</strong> <em>software</em></dt>
-<dd><p>Return 1-element feature vector of the average depth of ASTs in <code>software</code>.
-</p></dd></dl>
-<a name="Generic_002dFunction-build_002dop"></a><dl>
-<dt><a name="index-build_002dop"></a>Generic Function: <strong>build-op</strong> <em>software mutation</em></dt>
-<dd><p>Build operation on <code>software</code> from a <code>mutation</code>.
-</p></dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-insert_002delse_002dif_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-1"></a>Method: <strong>build-op</strong> <em>(mutation insert-else-if) software</em></dt>
-<dd><p>Return an association list with the operations to apply
-an insert-else-if <code>mutation</code> to <code>software</code>.
-</p></dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-if_002dto_002dwhile_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-2"></a>Method: <strong>build-op</strong> <em>(mutation if-to-while) software</em></dt>
-<dd><p>Return an association list with the operations to apply
-an if-to-while <code>mutation</code> to <code>software</code>
-</p></dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-if_002dto_002dwhile_002dtighten_002dcondition_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-3"></a>Method: <strong>build-op</strong> <em>(mutation if-to-while-tighten-condition) software</em></dt>
-<dd><p>Return an association list with the operations to apply
-an if-to-while-tighten-condition <code>mutation</code> to <code>software</code>.
-</p></dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-add_002dcondition_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-4"></a>Method: <strong>build-op</strong> <em>(mutation add-condition) software</em></dt>
-<dd><p>Return an association list with the operations to apply
-a add-condition <code>mutation</code> to <code>software</code>.
-</p></dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-refine_002dcondition_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-5"></a>Method: <strong>build-op</strong> <em>(mutation refine-condition) software</em></dt>
-<dd><p>Return an association list with the operations to apply
-a refine-condition <code>mutation</code> to <code>software</code>.
-</p></dd></dl>
-<a name="Method-build_002dop-_0028_0028mut-insert_002dfodder_002ddecl_002drep_0029-_0028obj-clang_002dw_002dfodder_0029_0029"></a><dl>
-<dt><a name="index-build_002dop-6"></a>Method: <strong>build-op</strong> <em>(mut insert-fodder-decl-rep) (obj clang-w-fodder)</em></dt>
-<dd><p>Return an association list with the operations to apply a
-&lsquo;insert-fodder-decl-rep&rsquo; <code>mut</code> to <code>obj</code>.
-</p><ul>
-<li> <code>mut</code> defines the targets of the insertion operation
-</li><li> <code>obj</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-rename_002dvariable_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-7"></a>Method: <strong>build-op</strong> <em>(mutation rename-variable) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;rename-variable&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines the targets of the rename-variable operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-cut_002ddecl_0029-clang_0029"></a><dl>
-<dt><a name="index-build_002dop-8"></a>Method: <strong>build-op</strong> <em>(mutation cut-decl) clang</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;cut-decl&rsquo;
-<code>mutation</code> to <code>clang</code>.
-</p><ul>
-<li> <code>mutation</code> defines the targets of the cut-decl operation
-</li><li> <code>clang</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-coalesce_002dwhile_002dloop_0029-_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-build_002dop-9"></a>Method: <strong>build-op</strong> <em>(mutation coalesce-while-loop) (obj clang)</em></dt>
-<dd><p>Return an association list with the operations to apply a
-&lsquo;coalesce-while-loop&rsquo; <code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines the targets of the coalesce-while-loop operation
-</li><li> <code>obj</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-explode_002dfor_002dloop_0029-_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-build_002dop-10"></a>Method: <strong>build-op</strong> <em>(mutation explode-for-loop) (obj clang)</em></dt>
-<dd><p>Return an association list with the operations to apply an
-&lsquo;explode-for-loop&rsquo; <code>mutation</code> to <code>obj</code>.
-</p><ul>
-<li> <code>mutation</code> defines the targets of the explode-for-loop operation
-</li><li> <code>obj</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-clang_002dpromote_002dguarded_0029-software-_0026aux-_0028guarded-_0028targets-mutation_0029_0029_0029"></a><dl>
-<dt><a name="index-build_002dop-11"></a>Method: <strong>build-op</strong> <em>(mutation clang-promote-guarded) software &amp;aux (guarded (targets mutation))</em></dt>
-<dd><p>Return an association list with the operations to apply a
-&lsquo;clang-promote-guarded&rsquo; <code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines the targets of the cut operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-clang_002dinsert_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-12"></a>Method: <strong>build-op</strong> <em>(mutation clang-insert) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;clang-insert&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines targets of insertion operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-parseable_002dnop_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-13"></a>Method: <strong>build-op</strong> <em>(mutation parseable-nop) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;nop&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>muation</code> defines teh targets of the nop operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-parseable_002dcut_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-14"></a>Method: <strong>build-op</strong> <em>(mutation parseable-cut) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;parseable-cut&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines the targets of the cut operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-parseable_002dreplace_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-15"></a>Method: <strong>build-op</strong> <em>(mutation parseable-replace) software</em></dt>
-<dd><p>Return an association list with the operations to apply an
-&lsquo;parseable-replace&rsquo; <code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines targets of the replace operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-parseable_002dmove_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-16"></a>Method: <strong>build-op</strong> <em>(mutation parseable-move) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;parseable-move&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines targets of the move operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-parseable_002dswap_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-17"></a>Method: <strong>build-op</strong> <em>(mutation parseable-swap) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;parseable-swap&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines targets of the swap operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Method-build_002dop-_0028_0028mutation-parseable_002dinsert_0029-software_0029"></a><dl>
-<dt><a name="index-build_002dop-18"></a>Method: <strong>build-op</strong> <em>(mutation parseable-insert) software</em></dt>
-<dd><p>Return an association list with the operations to apply a &lsquo;parseable-insert&rsquo;
-<code>mutation</code> to <code>software</code>.
-</p><ul>
-<li> <code>mutation</code> defines targets of insertion operation
-</li><li> <code>software</code> object to be modified by the mutation
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-coq_002dtype_002dchecks"></a><dl>
-<dt><a name="index-coq_002dtype_002dchecks"></a>Generic Function: <strong>coq-type-checks</strong> <em>coq</em></dt>
-<dd><p>Return the fraction of ASTs in <code>coq</code> software object that typecheck.
-</p></dd></dl>
-<a name="Method-coq_002dtype_002dchecks-_0028_0028obj-coq_0029_0029"></a><dl>
-<dt><a name="index-coq_002dtype_002dchecks-1"></a>Method: <strong>coq-type-checks</strong> <em>(obj coq)</em></dt>
-<dd><p>Return the fraction of ASTs in Coq software <code>obj</code> that typecheck.
-Return <code>nil</code> if source strings cannot be looked up.
-</p></dd></dl>
-<a name="Macro-define_002dmutation"></a><dl>
-<dt><a name="index-define_002dmutation"></a>Macro: <strong>define-mutation</strong> <em>class-name superclasses slots &amp;rest options</em></dt>
-<dd><p>Like &lsquo;defclass&rsquo; but inherits <code>targeter</code> slot-options from <code>mutation</code>.
-Also, ensures <code>mutation</code> is a member of superclasses
 </p></dd></dl>
 <a name="Macro-evolve"></a><dl>
 <dt><a name="index-evolve"></a>Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn super-mutant-count</em></dt>
@@ -3831,51 +3805,55 @@ Also, ensures <code>mutation</code> is a member of superclasses
 </p>
 <ul>
 <li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
-  combined genome
+  combined genome. If count <code>=</code> 0, disable super-mutants.
 
 </li></ul>
 <p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
 </p></dd></dl>
+<a name="Macro-to_002dclang_002dast"></a><dl>
+<dt><a name="index-to_002dclang_002dast"></a>Macro: <strong>to-clang-ast</strong> <em>spec</em></dt>
+<dd><p>Walk a potentially recursive clang-ast <code>spec</code> creating a &lsquo;clang-ast&rsquo;.
+A <code>spec</code> should have the form
+</p>
+<div class="example">
+<pre class="example">    (clang-ast-class &lt;optional-keyword-args-to-`make-clang-ast-node'&gt;
+                     CHILDREN)
+</pre></div>
+
+<p>where <code>children</code> may themselves be specifications suitable for passing
+to &lsquo;to-clang-ast&rsquo;.  <code>e</code>.g.,
+</p>
+<div class="example">
+<pre class="example">    (to-clang-ast (:callexpr (:implicitcastexpr
+                              :includes '(&quot;&lt;string.h&gt;&quot;)
+                              &quot;&quot; &quot;(|strcpy|)&quot; &quot;&quot;)
+                             &quot;(&quot; &quot;arg-1&quot; &quot;,&quot; &quot;arg-2&quot; &quot;)&quot;))
+</pre></div>
+</dd></dl>
 <a name="Function-asm_002dnth_002dinstruction"></a><dl>
 <dt><a name="index-asm_002dnth_002dinstruction"></a>Function: <strong>asm-nth-instruction</strong> <em>asm n</em></dt>
 <dd><p>Extract the string portion of the Nth instruction from the genome of ASM.
 </p></dd></dl>
-<a name="Generic_002dFunction-from_002dstring"></a><dl>
-<dt><a name="index-from_002dstring"></a>Generic Function: <strong>from-string</strong> <em>software string</em></dt>
-<dd><p>Initialize <code>software</code> with contents of <code>string</code>.
+<a name="Function-diff_002dfeature_002dvectors"></a><dl>
+<dt><a name="index-diff_002dfeature_002dvectors"></a>Function: <strong>diff-feature-vectors</strong> <em>vec1 vec2</em></dt>
+<dd><p>Return a vector of the absolute differences between items in VEC1 and VEC2.
 </p></dd></dl>
-<a name="Method-from_002dstring-_0028_0028obj-pliny_002ddatabase_0029-arg_0029"></a><dl>
-<dt><a name="index-from_002dstring-1"></a>Method: <strong>from-string</strong> <em>(obj pliny-database) arg</em></dt>
-<dd><p>Parse a database argument in the form &quot;&lt;HOST|FILE&gt;:PORT&quot;
+<a name="Function-expression_002dto_002dc"></a><dl>
+<dt><a name="index-expression_002dto_002dc"></a>Function: <strong>expression-to-c</strong> <em>expression</em></dt>
+<dd><p>Format <code>expression</code> as C source code.
+* <code>expression</code> an expression tree
 </p></dd></dl>
-<a name="Method-from_002dstring-before-_0028_0028obj-ancestral_0029-string_0029"></a><dl>
-<dt><a name="index-before-from_002dstring"></a>Method: <strong>before from-string</strong> <em>(obj ancestral) string</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>obj</code> <code>docfixme</code>
-</li><li> <code>string</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Method-from_002dstring-before-_0028_0028obj-clang_002dw_002dfodder_0029-string_0029"></a><dl>
-<dt><a name="index-before-from_002dstring-1"></a>Method: <strong>before from-string</strong> <em>(obj clang-w-fodder) string</em></dt>
-<dd><p>Ensure the fodder database has been initialized prior to creating
-a &lsquo;clang-w-fodder&rsquo; software <code>obj</code> from <code>string</code>.
-</p><ul>
-<li> <code>obj</code> object to be populated from source in <code>string</code>
-</li><li> <code>string</code> source code to populate <code>obj</code> with
-</li></ul>
-</dd></dl>
-<a name="Method-from_002dstring-_0028_0028obj-clang_0029-string_0029"></a><dl>
-<dt><a name="index-from_002dstring-2"></a>Method: <strong>from-string</strong> <em>(obj clang) string</em></dt>
-<dd><p>Populate <code>obj</code> with the source code in <code>string</code>
-</p><ul>
-<li> <code>obj</code> to be populated from source in <code>string</code>
-</li><li> <code>string</code> source code to populate <code>obj</code> with
-</li></ul>
-</dd></dl>
+<a name="Function-fitness_002dbetter_002dp"></a><dl>
+<dt><a name="index-fitness_002dbetter_002dp"></a>Function: <strong>fitness-better-p</strong> <em>fitness-a fitness-b</em></dt>
+<dd><p>Check if <code>fitness-a</code> is strictly better than <code>fitness-b</code>.
+</p></dd></dl>
 <a name="Function-full_002dpath"></a><dl>
 <dt><a name="index-full_002dpath"></a>Function: <strong>full-path</strong> <em>rel-path</em></dt>
 <dd><p>Prepend current build directory to a relative path.
+</p></dd></dl>
+<a name="Function-function_002ddecl_002dp"></a><dl>
+<dt><a name="index-function_002ddecl_002dp"></a>Function: <strong>function-decl-p</strong> <em>ast</em></dt>
+<dd><p>Is AST a function (or method/constructor/destructor) decl?
 </p></dd></dl>
 <a name="Function-get_002dfiles_002djar"></a><dl>
 <dt><a name="index-get_002dfiles_002djar"></a>Function: <strong>get-files-jar</strong> <em>jar-path</em></dt>
@@ -3936,29 +3914,74 @@ to the depth of 3 within the built jar
 </li><li> <code>filter</code> predicate taking an AST parameter to allow for filtering
 </li></ul>
 </dd></dl>
-<a name="Function-incorporate"></a><dl>
-<dt><a name="index-incorporate"></a>Function: <strong>incorporate</strong> <em>software</em></dt>
-<dd><p>Incorporate <code>software</code> into <code>population</code>, keeping <code>population</code> size constant.
+<a name="Generic_002dFunction-instrument"></a><dl>
+<dt><a name="index-instrument"></a>Generic Function: <strong>instrument</strong> <em>obj &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads</em></dt>
+<dd><p>Instrument <code>obj</code> to print AST index before each full statement.
+</p>
+<p>The indices printed here are not clang-mutate counters, but rather the
+position of the ast in (asts obj).
+</p>
+<p>Keyword arguments are as follows:
+  <code>points</code> <code>---------------</code> alist of additional values to print at specific points
+  <code>functions</code> <code>------------</code> functions to calculate instrumentation at each point
+  <code>functions-after</code> <code>------</code> functions to calculate instrumentation after each point
+  <code>trace-file</code> <code>-----------</code> file for trace output
+  <code>trace-env</code> <code>------------</code> trace output to file specified by <code>env</code> variable
+  <code>instrument-exit</code> <code>------</code> print counter of function body before exit
+  <code>filter</code> <code>---------------</code> function to select a subset of ASTs for instrumentation
+  <code>num-threads</code> <code>----------</code> number of threads to use for instrumentation
 </p></dd></dl>
-<a name="Generic_002dFunction-instrumented_002dp"></a><dl>
-<dt><a name="index-instrumented_002dp"></a>Generic Function: <strong>instrumented-p</strong> <em>obj</em></dt>
-<dd><p>Return true if <code>obj</code> is instrumented
-</p></dd></dl>
-<a name="Method-instrumented_002dp-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
-<dt><a name="index-instrumented_002dp-1"></a>Method: <strong>instrumented-p</strong> <em>(clang-project clang-project)</em></dt>
-<dd><p>Return true if <code>clang-project</code> is instrumented
-* <code>clang-project</code> a clang-project software object
-</p></dd></dl>
-<a name="Method-instrumented_002dp-_0028_0028clang-clang_0029_0029"></a><dl>
-<dt><a name="index-instrumented_002dp-2"></a>Method: <strong>instrumented-p</strong> <em>(clang clang)</em></dt>
-<dd><p>Return true if <code>clang</code> is instrumented
-* <code>clang</code> a clang software object
+<a name="Method-instrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026rest-args-_0026aux-_0028names-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029--_0028types-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029-_0028type_002ddescriptions-_0028make_002dthread_002dsafe_002dhash_002dtable-test-_0023_0027equalp_0029_0029_0029"></a><dl>
+<dt><a name="index-instrument-1"></a>Method: <strong>instrument</strong> <em>(clang-project clang-project) &amp;rest args &amp;aux (names (make-thread-safe-hash-table test (function equalp))) (types (make-thread-safe-hash-table test (function equalp))) (type-descriptions (make-thread-safe-hash-table test (function equalp)))</em></dt>
+<dd><p>Instrument <code>clang-project</code> to print AST index before each full statement.
+</p>
+<ul>
+<li> <code>clang-project</code> the project to instrument
+</li><li> <code>args</code> passed through to the instrument method on underlying software objects.
+</li></ul>
+</dd></dl>
+<a name="Method-instrument-_0028_0028instrumenter-clang_002dinstrumenter_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-_0028filter-_0028constantly-t_0029_0029--_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-instrument-2"></a>Method: <strong>instrument</strong> <em>(instrumenter clang-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (constantly t)) (num-threads 1)</em></dt>
+<dd><p>Use <code>instrumenter</code> to instrument a clang software object.
+</p>
+<ul>
+<li> <code>instrumenter</code> current instrumentation state
+</li><li> <code>points</code> alist of additional values to print at specific points
+</li><li> <code>functions</code>  functions to calculate instrumentation at each point
+</li><li> <code>functions-after</code> functions to calculate instrumentation after each point
+</li><li> <code>trace-file</code> file or stream (stdout/stderr) for trace output
+</li><li> <code>trace-env</code> trace output to file specified by <code>env</code> variable
+</li><li> <code>instrument-exit</code> print counter of function body before exit
+</li><li> <code>filter</code> function to select a subset of ASTs for instrumentation
+         function should take a software object and an AST parameters,
+         returning nil if the AST should be filtered from instrumentation
+</li><li> <code>num-threads</code> number of threads to use for instrumentation
+</li></ul>
+</dd></dl>
+<a name="Method-instrument-_0028_0028obj-clang_0029-_0026rest-args_0029"></a><dl>
+<dt><a name="index-instrument-3"></a>Method: <strong>instrument</strong> <em>(obj clang) &amp;rest args</em></dt>
+<dd><p>Instrumentation for clang software objects.
+Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its instrument method.
+</p>
+<ul>
+<li> <code>obj</code> the software object to instrument
+</li><li> <code>args</code> additional arguments are passed through to the instrumenter method.
+</li></ul>
+</dd></dl>
+<a name="Method-instrument-_0028_0028cil-cil_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-filter-num_002dthreads_0029"></a><dl>
+<dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(cil cil) &amp;key points functions functions-after trace-file trace-env instrument-exit filter num-threads</em></dt>
+<dd><p>Instrument <code>cil</code> for traced execution.
+Optionally specify the name of the file in which to save trace data.
 </p></dd></dl>
 <a name="Class-light"></a><dl>
 <dt><a name="index-light"></a>Class: <strong>light</strong></dt>
 <dd><p>Class precedence list: <code>light, simple, software, standard-object, t</code>
 </p>
 <p><code>docfixme</code>
+</p></dd></dl>
+<a name="Function-incorporate"></a><dl>
+<dt><a name="index-incorporate"></a>Function: <strong>incorporate</strong> <em>software</em></dt>
+<dd><p>Incorporate <code>software</code> into <code>population</code>, keeping <code>population</code> size constant.
 </p></dd></dl>
 <a name="Function-java_002dmake_002dliteral"></a><dl>
 <dt><a name="index-java_002dmake_002dliteral"></a>Function: <strong>java-make-literal</strong> <em>kind value</em></dt>
@@ -4017,61 +4040,9 @@ use lexicase-style selection in tournament selection.
 <p>Low Level Virtual Machine <code>(llvm) </code>intermediate representation <code>(ir)</code>.
 See http://llvm.org).
 </p></dd></dl>
-<a name="Generic_002dFunction-lookup_002dsource_002dstrings"></a><dl>
-<dt><a name="index-lookup_002dsource_002dstrings"></a>Generic Function: <strong>lookup-source-strings</strong> <em>software &amp;key include-imports</em></dt>
-<dd><p>Return a list of source strings for the ASTs in <code>software</code>.
-Set <code>include-imports</code> to <code>t</code> to include import statements in the result.
-</p></dd></dl>
-<a name="Method-lookup_002dsource_002dstrings-_0028_0028obj-coq_0029-_0026key-include_002dimports_0029"></a><dl>
-<dt><a name="index-lookup_002dsource_002dstrings-1"></a>Method: <strong>lookup-source-strings</strong> <em>(obj coq) &amp;key include-imports</em></dt>
-<dd><p>Return a list of source strings for the ASTs in <code>coq</code>.
-Set <code>include-imports</code> to <code>t</code> to include import statements in the result.
-</p></dd></dl>
-<a name="Class-loosen_002dcondition"></a><dl>
-<dt><a name="index-loosen_002dcondition"></a>Class: <strong>loosen-condition</strong></dt>
-<dd><p>Class precedence list: <code>loosen-condition, refine-condition, clang-mutation, mutation, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Add an abstract condition to make a guard more permissive.
-<code>e</code>.g., if(foo) becomes if(foo || abst_cond()).
-</p></dd></dl>
-<a name="Class-replace_002dfodder_002dsame"></a><dl>
-<dt><a name="index-replace_002dfodder_002dsame"></a>Class: <strong>replace-fodder-same</strong></dt>
-<dd><p>Class precedence list: <code>replace-fodder-same, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Replace an AST in a clang software object with a fodder
-AST of the same class.
-</p></dd></dl>
-<a name="Variable-_002adatabase_002a"></a><dl>
-<dt><a name="index-_002adatabase_002a"></a>Variable: <strong>*database*</strong></dt>
-<dd><p>Database utilized for fodder selection
-</p></dd></dl>
 <a name="Variable-_002atarget_002dfitness_002dp_002a"></a><dl>
 <dt><a name="index-_002atarget_002dfitness_002dp_002a"></a>Variable: <strong>*target-fitness-p*</strong></dt>
 <dd><p>Predicate indicating whether an individual has reached the target fitness.
-</p></dd></dl>
-<a name="Constant-_002bc_002dnumeric_002dtypes_002b"></a><dl>
-<dt><a name="index-_002bc_002dnumeric_002dtypes_002b"></a>Constant: <strong>+c-numeric-types+</strong></dt>
-<dd><p>C Numeric type names.
 </p></dd></dl>
 <a name="Variable-ast_002dnode_002dtype_002dtf_002dfeature"></a><dl>
 <dt><a name="index-ast_002dnode_002dtype_002dtf_002dfeature"></a>Variable: <strong>ast-node-type-tf-feature</strong></dt>
@@ -4786,6 +4757,23 @@ If <code>prototype</code> has an empty function body in <code>software</code> re
 
 <p>Add an additional Boolean clause to an if condition.
 </p></dd></dl>
+<a name="Class-replace_002dfodder_002dsame"></a><dl>
+<dt><a name="index-replace_002dfodder_002dsame"></a>Class: <strong>replace-fodder-same</strong></dt>
+<dd><p>Class precedence list: <code>replace-fodder-same, clang-replace, clang-mutation, parseable-replace, parseable-mutation, mutation, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Replace an AST in a clang software object with a fodder
+AST of the same class.
+</p></dd></dl>
 <a name="Class-software"></a><dl>
 <dt><a name="index-software"></a>Class: <strong>software</strong></dt>
 <dd><p>Class precedence list: <code>software, standard-object, t</code>
@@ -4814,6 +4802,11 @@ total fraction of decl, swap, and cut mutations from
 and replace mutations are decreased precipitously to make room for the
 new fodder mutations.  Fodder mutations make up 2/5 of all
 mutations.
+</p></dd></dl>
+<a name="Macro-define_002dmutation"></a><dl>
+<dt><a name="index-define_002dmutation"></a>Macro: <strong>define-mutation</strong> <em>class-name superclasses slots &amp;rest options</em></dt>
+<dd><p>Like &lsquo;defclass&rsquo; but inherits <code>targeter</code> slot-options from <code>mutation</code>.
+Also, ensures <code>mutation</code> is a member of superclasses
 </p></dd></dl>
 <a name="Generic_002dFunction-evaluate"></a><dl>
 <dt><a name="index-evaluate"></a>Generic Function: <strong>evaluate</strong> <em>function software &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
@@ -4853,6 +4846,20 @@ test output, to determine the fitness score.
 <dd><p>Create phenome (binary executable) and call it to generate fitness results.
 The variants need to already be created (stored in mutants slot) and the io-file
 needs to have been loaded, along with the var-table by <code>parse-sanity-file</code>.
+</p></dd></dl>
+<a name="Generic_002dFunction-instrumented_002dp"></a><dl>
+<dt><a name="index-instrumented_002dp"></a>Generic Function: <strong>instrumented-p</strong> <em>obj</em></dt>
+<dd><p>Return true if <code>obj</code> is instrumented
+</p></dd></dl>
+<a name="Method-instrumented_002dp-_0028_0028clang_002dproject-clang_002dproject_0029_0029"></a><dl>
+<dt><a name="index-instrumented_002dp-1"></a>Method: <strong>instrumented-p</strong> <em>(clang-project clang-project)</em></dt>
+<dd><p>Return true if <code>clang-project</code> is instrumented
+* <code>clang-project</code> a clang-project software object
+</p></dd></dl>
+<a name="Method-instrumented_002dp-_0028_0028clang-clang_0029_0029"></a><dl>
+<dt><a name="index-instrumented_002dp-2"></a>Method: <strong>instrumented-p</strong> <em>(clang clang)</em></dt>
+<dd><p>Return true if <code>clang</code> is instrumented
+* <code>clang</code> a clang software object
 </p></dd></dl>
 <a name="Macro-sequence_002dmutations"></a><dl>
 <dt><a name="index-sequence_002dmutations"></a>Macro: <strong>sequence-mutations</strong> <em>class-name mut-a mut-b &amp;rest options</em></dt>
@@ -5146,34 +5153,6 @@ Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-pr
 </li><li> :env <code>-</code> to set environment variables
 </li></ul>
 </dd></dl>
-<a name="Condition-trace_002derror"></a><dl>
-<dt><a name="index-trace_002derror"></a>Condition: <strong>trace-error</strong></dt>
-<dd><p>Class precedence list: <code>trace-error, error, serious-condition, condition, t</code>
-</p>
-<p>Error thrown when trace collection fails unexpectedly
-</p></dd></dl>
-<a name="Class-rename_002dvariable"></a><dl>
-<dt><a name="index-rename_002dvariable"></a>Class: <strong>rename-variable</strong></dt>
-<dd><p>Class precedence list: <code>rename-variable, clang-mutation, mutation, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p>Replace a variable in a statement with another in scope variable name.
-</p></dd></dl>
-<a name="Class-searchable"></a><dl>
-<dt><a name="index-searchable"></a>Class: <strong>searchable</strong></dt>
-<dd><p>Class precedence list: <code>searchable, standard-object, t</code>
-</p>
-<p><code>docfixme</code>
-</p></dd></dl>
 <a name="Class-sw_002drange"></a><dl>
 <dt><a name="index-sw_002drange"></a>Class: <strong>sw-range</strong></dt>
 <dd><p>Class precedence list: <code>sw-range, simple, software, standard-object, t</code>
@@ -5181,51 +5160,6 @@ Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-pr
 <p>Alternative to <code>simple</code> software objects which should use less memory.
 Instead of directly holding code in the <code>genome</code>, each <code>genome</code> is a list
 of range references to an external <code>reference</code> code array.
-</p></dd></dl>
-<a name="Function-get_002dfresh_002dancestry_002did"></a><dl>
-<dt><a name="index-get_002dfresh_002dancestry_002did"></a>Function: <strong>get-fresh-ancestry-id</strong></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Function-merge_002dnormalized"></a><dl>
-<dt><a name="index-merge_002dnormalized"></a>Function: <strong>merge-normalized</strong> <em>vec1 denom1 vec2 denom2</em></dt>
-<dd><p>Merge two vectors VEC1 and VEC2 which have been normalized using the
-denominators DENOM1 and DENOM2, respectively
-</p><ul>
-<li> VEC1 normalized vector of numeric values
-</li><li> DENOM1 denominator used to normalize VEC1
-</li><li> VEC2 normalized vector of numeric values
-</li><li> DENOM2 denominator used to normalize VEC2
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-merge_002dstyleables"></a><dl>
-<dt><a name="index-merge_002dstyleables"></a>Generic Function: <strong>merge-styleables</strong> <em>styleable1 styleable2 &amp;key result</em></dt>
-<dd><p>Merge all feature vectors from STYLEABLE1 and STYLEABLE2.
-Update and return <code>result</code> to be a &lsquo;styleable&rsquo; object containing the merged
-feature vectors and metadata.
-</p></dd></dl>
-<a name="Method-merge_002dstyleables-_0028_0028style1-styleable_0029-_0028style2-styleable_0029-_0026key-_0028result-_0028make_002dinstance-_0027styleable_0029_0029_0029"></a><dl>
-<dt><a name="index-merge_002dstyleables-1"></a>Method: <strong>merge-styleables</strong> <em>(style1 styleable) (style2 styleable) &amp;key (result (make-instance (quote styleable)))</em></dt>
-<dd><p>Merge all feature vectors from STYLE1 and STYLE2. Update and return <code>result</code>
-to be a &lsquo;styleable&rsquo; object containing the merged feature vectors and metadata.
-</p><ul>
-<li> STYLE1 a styleable software object
-</li><li> STYLE2 a styleable software object
-</li><li> <code>result</code> a styleable software object in which to save merged vectors. May be
-</li></ul>
-<p>&lsquo;eq&rsquo; to STYLE1 or STYLE2.
-</p></dd></dl>
-<a name="Function-multi_002dobjective_002dscalar"></a><dl>
-<dt><a name="index-multi_002dobjective_002dscalar"></a>Function: <strong>multi-objective-scalar</strong> <em>fitness</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Generic_002dFunction-pick_002dguarded_002dcompound"></a><dl>
-<dt><a name="index-pick_002dguarded_002dcompound"></a>Generic Function: <strong>pick-guarded-compound</strong> <em>software</em></dt>
-<dd><p>Pick a guarded compound statement in <code>software</code>.
-</p></dd></dl>
-<a name="Method-pick_002dguarded_002dcompound-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-pick_002dguarded_002dcompound-1"></a>Method: <strong>pick-guarded-compound</strong> <em>(obj clang)</em></dt>
-<dd><p>Return a guarded statement in <code>obj</code> from the &lsquo;bad-stmts&rsquo; pool.
-* <code>obj</code> software object to pick from
 </p></dd></dl>
 <a name="Function-random_002dfunction_002dname"></a><dl>
 <dt><a name="index-random_002dfunction_002dname"></a>Function: <strong>random-function-name</strong> <em>protos &amp;key original-name arity</em></dt>
@@ -5236,99 +5170,10 @@ to be a &lsquo;styleable&rsquo; object containing the merged feature vectors and
 </li><li> <code>arity</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-replace_002din_002dast"></a><dl>
-<dt><a name="index-replace_002din_002dast"></a>Generic Function: <strong>replace-in-ast</strong> <em>ast replacements &amp;key test</em></dt>
-<dd><p>Make arbitrary replacements within AST, returning a new
-AST.
-</p></dd></dl>
-<a name="Method-replace_002din_002dast-_0028_0028ast-string_0029-replacements-_0026key-_0028test-_0023_0027equalp_0029_0029"></a><dl>
-<dt><a name="index-replace_002din_002dast-1"></a>Method: <strong>replace-in-ast</strong> <em>(ast string) replacements &amp;key (test (function equalp))</em></dt>
-<dd><p>Make arbritrary replacements within AST, returning a new AST.
-</p><ul>
-<li> AST node to perform modifications to
-</li><li> <code>replacements</code> association list of key, value pairs to replace in AST
-</li><li> <code>test</code> function to test if a given replacement key can be found in AST
-</li></ul>
-</dd></dl>
-<a name="Method-replace_002din_002dast-_0028_0028ast-ast_0029-replacements-_0026key-_0028test-_0023_0027equalp_0029_0029"></a><dl>
-<dt><a name="index-replace_002din_002dast-2"></a>Method: <strong>replace-in-ast</strong> <em>(ast ast) replacements &amp;key (test (function equalp))</em></dt>
-<dd><p>Make arbritrary replacements within AST, returning a new AST.
-</p><ul>
-<li> AST node to perform modifications to
-</li><li> <code>replacements</code> association list of key, value pairs to replace in AST
-</li><li> <code>test</code> function to test if a given replacement key can be found in AST
-</li></ul>
-</dd></dl>
-<a name="Function-rinard_002dincremental"></a><dl>
-<dt><a name="index-rinard_002dincremental"></a>Function: <strong>rinard-incremental</strong> <em>trace-stream stmt-counts is-good-trace cur_test</em></dt>
-<dd><p>Process a single trace&rsquo;s output, return the aggregated results.
-</p><ul>
-<li> <code>trace-stream</code> an open file representing the trace result, generally
-        with statments of the form (<code>(f . x) </code>(C . Y)) where <code>x</code> is the
-        file id and <code>y</code> is the statement id
-</li><li> <code>stmt-counts</code> aggregated results, returned from this function
-</li><li> <code>is-good-trace</code> test outcome was positive/negative
-</li><li> CUR_TEST unique test identifier
-</li></ul>
-</dd></dl>
-<a name="Generic_002dFunction-scopes"></a><dl>
-<dt><a name="index-scopes"></a>Generic Function: <strong>scopes</strong> <em>software ast</em></dt>
-<dd><p>Return lists of variables in each enclosing scope.
-Each variable is represented by an alist containing <code>:name</code>, <code>:decl</code>, <code>:type</code>,
-and <code>:scope</code>.
-</p></dd></dl>
-<a name="Method-scopes-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></a><dl>
-<dt><a name="index-scopes-1"></a>Method: <strong>scopes</strong> <em>(software clang) (ast clang-ast)</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>software</code> <code>docfixme</code>
-</li><li> AST <code>docfixme</code>
-</li></ul>
-</dd></dl>
 <a name="Function-simple_002devaluate"></a><dl>
 <dt><a name="index-simple_002devaluate"></a>Function: <strong>simple-evaluate</strong> <em>test new-children</em></dt>
 <dd><p>Evaluate <code>new-children</code> using <code>test</code> assigning each a fitness.
 </p></dd></dl>
-<a name="Function-simple_002dreproduce"></a><dl>
-<dt><a name="index-simple_002dreproduce"></a>Function: <strong>simple-reproduce</strong> <em>population</em></dt>
-<dd><p>Reproduce using every individual in <code>population</code>.
-Return a list of the resulting children and as optional extra value a
-list of the mutations applied to produce those children.
-</p></dd></dl>
-<a name="Generic_002dFunction-source_002dtext"></a><dl>
-<dt><a name="index-source_002dtext"></a>Generic Function: <strong>source-text</strong> <em>ast</em></dt>
-<dd><p>Source code corresponding to an AST.
-</p></dd></dl>
-<a name="Method-source_002dtext-_0028_0028str-string_0029_0029"></a><dl>
-<dt><a name="index-source_002dtext-1"></a>Method: <strong>source-text</strong> <em>(str string)</em></dt>
-<dd><p>Return the source code corresponding to <code>str</code>.
-* <code>str</code> string to retrieve source code for
-</p></dd></dl>
-<a name="Method-source_002dtext-_0028_0028node-ast_002dnode_0029_0029"></a><dl>
-<dt><a name="index-source_002dtext-2"></a>Method: <strong>source-text</strong> <em>(node ast-node)</em></dt>
-<dd><p>Return a source text representation of a single, immutable,
-AST node.
-</p></dd></dl>
-<a name="Method-source_002dtext-_0028_0028ast-ast_0029_0029"></a><dl>
-<dt><a name="index-source_002dtext-3"></a>Method: <strong>source-text</strong> <em>(ast ast)</em></dt>
-<dd><p>Return the source code corresponding to AST.
-* AST ast to retrieve source code for
-</p></dd></dl>
-<a name="Generic_002dFunction-stmt_002drange"></a><dl>
-<dt><a name="index-stmt_002drange"></a>Generic Function: <strong>stmt-range</strong> <em>software function</em></dt>
-<dd><p>The indices of the first and last statements in a function.
-</p>
-<p>Return as a list of (first-index last-index). Indices are positions in
-the list returned by (asts software).
-</p></dd></dl>
-<a name="Method-stmt_002drange-_0028_0028software-clang_0029-_0023_0027clang_002dast_0029"></a><dl>
-<dt><a name="index-stmt_002drange-1"></a>Method: <strong>stmt-range</strong> <em>(software clang) (function clang-ast)</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> <code>software</code> <code>docfixme</code>
-</li><li> <code>function</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
 <a name="Function-stmts_002din_002dfile"></a><dl>
 <dt><a name="index-stmts_002din_002dfile"></a>Function: <strong>stmts-in-file</strong> <em>trace file-id</em></dt>
 <dd><p><code>docfixme</code>
@@ -5366,11 +5211,6 @@ Return a list of synthesized condition triples, by prepending :eq or :neq to eac
 assignment in the environments in <code>env</code>.
 * <code>envs</code> a list of environments, each of which contains a list of triples:
 (&quot;var&quot; &quot;type&quot; &quot;value&quot;).
-</p></dd></dl>
-<a name="Function-tag_002dloc_002dinfo"></a><dl>
-<dt><a name="index-tag_002dloc_002dinfo"></a>Function: <strong>tag-loc-info</strong> <em>sexpr</em></dt>
-<dd><p>Return <code>sexpr</code> with Coq location info replaced by &lsquo;(:loc NIL)&rsquo;.
-See also &lsquo;is-loc-info&rsquo; and &lsquo;untag-loc-info&rsquo;.
 </p></dd></dl>
 <a name="Function-target_002dfunction"></a><dl>
 <dt><a name="index-target_002dfunction"></a>Function: <strong>target-function</strong> <em>asm-super start-addr end-addr</em></dt>
@@ -5448,6 +5288,173 @@ Optional argument <code>roots</code> limits to tokens below elements of <code>ro
 </li><li> <code>roots</code> limit to tokens below elements of <code>root</code> ASTs in <code>clang</code>
 </li></ul>
 </dd></dl>
+<a name="Condition-trace_002derror"></a><dl>
+<dt><a name="index-trace_002derror"></a>Condition: <strong>trace-error</strong></dt>
+<dd><p>Class precedence list: <code>trace-error, error, serious-condition, condition, t</code>
+</p>
+<p>Error thrown when trace collection fails unexpectedly
+</p></dd></dl>
+<a name="Class-rename_002dvariable"></a><dl>
+<dt><a name="index-rename_002dvariable"></a>Class: <strong>rename-variable</strong></dt>
+<dd><p>Class precedence list: <code>rename-variable, clang-mutation, mutation, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p>Replace a variable in a statement with another in scope variable name.
+</p></dd></dl>
+<a name="Class-searchable"></a><dl>
+<dt><a name="index-searchable"></a>Class: <strong>searchable</strong></dt>
+<dd><p>Class precedence list: <code>searchable, standard-object, t</code>
+</p>
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Function-get_002dfresh_002dancestry_002did"></a><dl>
+<dt><a name="index-get_002dfresh_002dancestry_002did"></a>Function: <strong>get-fresh-ancestry-id</strong></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Function-merge_002dnormalized"></a><dl>
+<dt><a name="index-merge_002dnormalized"></a>Function: <strong>merge-normalized</strong> <em>vec1 denom1 vec2 denom2</em></dt>
+<dd><p>Merge two vectors VEC1 and VEC2 which have been normalized using the
+denominators DENOM1 and DENOM2, respectively
+</p><ul>
+<li> VEC1 normalized vector of numeric values
+</li><li> DENOM1 denominator used to normalize VEC1
+</li><li> VEC2 normalized vector of numeric values
+</li><li> DENOM2 denominator used to normalize VEC2
+</li></ul>
+</dd></dl>
+<a name="Generic_002dFunction-merge_002dstyleables"></a><dl>
+<dt><a name="index-merge_002dstyleables"></a>Generic Function: <strong>merge-styleables</strong> <em>styleable1 styleable2 &amp;key result</em></dt>
+<dd><p>Merge all feature vectors from STYLEABLE1 and STYLEABLE2.
+Update and return <code>result</code> to be a &lsquo;styleable&rsquo; object containing the merged
+feature vectors and metadata.
+</p></dd></dl>
+<a name="Method-merge_002dstyleables-_0028_0028style1-styleable_0029-_0028style2-styleable_0029-_0026key-_0028result-_0028make_002dinstance-_0027styleable_0029_0029_0029"></a><dl>
+<dt><a name="index-merge_002dstyleables-1"></a>Method: <strong>merge-styleables</strong> <em>(style1 styleable) (style2 styleable) &amp;key (result (make-instance (quote styleable)))</em></dt>
+<dd><p>Merge all feature vectors from STYLE1 and STYLE2. Update and return <code>result</code>
+to be a &lsquo;styleable&rsquo; object containing the merged feature vectors and metadata.
+</p><ul>
+<li> STYLE1 a styleable software object
+</li><li> STYLE2 a styleable software object
+</li><li> <code>result</code> a styleable software object in which to save merged vectors. May be
+</li></ul>
+<p>&lsquo;eq&rsquo; to STYLE1 or STYLE2.
+</p></dd></dl>
+<a name="Function-multi_002dobjective_002dscalar"></a><dl>
+<dt><a name="index-multi_002dobjective_002dscalar"></a>Function: <strong>multi-objective-scalar</strong> <em>fitness</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Generic_002dFunction-pick_002dguarded_002dcompound"></a><dl>
+<dt><a name="index-pick_002dguarded_002dcompound"></a>Generic Function: <strong>pick-guarded-compound</strong> <em>software</em></dt>
+<dd><p>Pick a guarded compound statement in <code>software</code>.
+</p></dd></dl>
+<a name="Method-pick_002dguarded_002dcompound-_0028_0028obj-clang_0029_0029"></a><dl>
+<dt><a name="index-pick_002dguarded_002dcompound-1"></a>Method: <strong>pick-guarded-compound</strong> <em>(obj clang)</em></dt>
+<dd><p>Return a guarded statement in <code>obj</code> from the &lsquo;bad-stmts&rsquo; pool.
+* <code>obj</code> software object to pick from
+</p></dd></dl>
+<a name="Generic_002dFunction-replace_002din_002dast"></a><dl>
+<dt><a name="index-replace_002din_002dast"></a>Generic Function: <strong>replace-in-ast</strong> <em>ast replacements &amp;key test</em></dt>
+<dd><p>Make arbitrary replacements within AST, returning a new
+AST.
+</p></dd></dl>
+<a name="Method-replace_002din_002dast-_0028_0028ast-string_0029-replacements-_0026key-_0028test-_0023_0027equalp_0029_0029"></a><dl>
+<dt><a name="index-replace_002din_002dast-1"></a>Method: <strong>replace-in-ast</strong> <em>(ast string) replacements &amp;key (test (function equalp))</em></dt>
+<dd><p>Make arbritrary replacements within AST, returning a new AST.
+</p><ul>
+<li> AST node to perform modifications to
+</li><li> <code>replacements</code> association list of key, value pairs to replace in AST
+</li><li> <code>test</code> function to test if a given replacement key can be found in AST
+</li></ul>
+</dd></dl>
+<a name="Method-replace_002din_002dast-_0028_0028ast-ast_0029-replacements-_0026key-_0028test-_0023_0027equalp_0029_0029"></a><dl>
+<dt><a name="index-replace_002din_002dast-2"></a>Method: <strong>replace-in-ast</strong> <em>(ast ast) replacements &amp;key (test (function equalp))</em></dt>
+<dd><p>Make arbritrary replacements within AST, returning a new AST.
+</p><ul>
+<li> AST node to perform modifications to
+</li><li> <code>replacements</code> association list of key, value pairs to replace in AST
+</li><li> <code>test</code> function to test if a given replacement key can be found in AST
+</li></ul>
+</dd></dl>
+<a name="Function-rinard_002dincremental"></a><dl>
+<dt><a name="index-rinard_002dincremental"></a>Function: <strong>rinard-incremental</strong> <em>trace-stream stmt-counts is-good-trace cur_test</em></dt>
+<dd><p>Process a single trace&rsquo;s output, return the aggregated results.
+</p><ul>
+<li> <code>trace-stream</code> an open file representing the trace result, generally
+        with statments of the form (<code>(f . x) </code>(C . Y)) where <code>x</code> is the
+        file id and <code>y</code> is the statement id
+</li><li> <code>stmt-counts</code> aggregated results, returned from this function
+</li><li> <code>is-good-trace</code> test outcome was positive/negative
+</li><li> CUR_TEST unique test identifier
+</li></ul>
+</dd></dl>
+<a name="Generic_002dFunction-scopes"></a><dl>
+<dt><a name="index-scopes"></a>Generic Function: <strong>scopes</strong> <em>software ast</em></dt>
+<dd><p>Return lists of variables in each enclosing scope.
+Each variable is represented by an alist containing <code>:name</code>, <code>:decl</code>, <code>:type</code>,
+and <code>:scope</code>.
+</p></dd></dl>
+<a name="Method-scopes-_0028_0028software-clang_0029-_0028ast-clang_002dast_0029_0029"></a><dl>
+<dt><a name="index-scopes-1"></a>Method: <strong>scopes</strong> <em>(software clang) (ast clang-ast)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>software</code> <code>docfixme</code>
+</li><li> AST <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<a name="Function-simple_002dreproduce"></a><dl>
+<dt><a name="index-simple_002dreproduce"></a>Function: <strong>simple-reproduce</strong> <em>population</em></dt>
+<dd><p>Reproduce using every individual in <code>population</code>.
+Return a list of the resulting children and as optional extra value a
+list of the mutations applied to produce those children.
+</p></dd></dl>
+<a name="Generic_002dFunction-source_002dtext"></a><dl>
+<dt><a name="index-source_002dtext"></a>Generic Function: <strong>source-text</strong> <em>ast</em></dt>
+<dd><p>Source code corresponding to an AST.
+</p></dd></dl>
+<a name="Method-source_002dtext-_0028_0028str-string_0029_0029"></a><dl>
+<dt><a name="index-source_002dtext-1"></a>Method: <strong>source-text</strong> <em>(str string)</em></dt>
+<dd><p>Return the source code corresponding to <code>str</code>.
+* <code>str</code> string to retrieve source code for
+</p></dd></dl>
+<a name="Method-source_002dtext-_0028_0028node-ast_002dnode_0029_0029"></a><dl>
+<dt><a name="index-source_002dtext-2"></a>Method: <strong>source-text</strong> <em>(node ast-node)</em></dt>
+<dd><p>Return a source text representation of a single, immutable,
+AST node.
+</p></dd></dl>
+<a name="Method-source_002dtext-_0028_0028ast-ast_0029_0029"></a><dl>
+<dt><a name="index-source_002dtext-3"></a>Method: <strong>source-text</strong> <em>(ast ast)</em></dt>
+<dd><p>Return the source code corresponding to AST.
+* AST ast to retrieve source code for
+</p></dd></dl>
+<a name="Generic_002dFunction-stmt_002drange"></a><dl>
+<dt><a name="index-stmt_002drange"></a>Generic Function: <strong>stmt-range</strong> <em>software function</em></dt>
+<dd><p>The indices of the first and last statements in a function.
+</p>
+<p>Return as a list of (first-index last-index). Indices are positions in
+the list returned by (asts software).
+</p></dd></dl>
+<a name="Method-stmt_002drange-_0028_0028software-clang_0029-_0023_0027clang_002dast_0029"></a><dl>
+<dt><a name="index-stmt_002drange-1"></a>Method: <strong>stmt-range</strong> <em>(software clang) (function clang-ast)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> <code>software</code> <code>docfixme</code>
+</li><li> <code>function</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<a name="Function-tag_002dloc_002dinfo"></a><dl>
+<dt><a name="index-tag_002dloc_002dinfo"></a>Function: <strong>tag-loc-info</strong> <em>sexpr</em></dt>
+<dd><p>Return <code>sexpr</code> with Coq location info replaced by &lsquo;(:loc NIL)&rsquo;.
+See also &lsquo;is-loc-info&rsquo; and &lsquo;untag-loc-info&rsquo;.
+</p></dd></dl>
 <a name="Function-tournament"></a><dl>
 <dt><a name="index-tournament"></a>Function: <strong>tournament</strong> <em>&amp;key predicate tie-breaker-predicate size</em></dt>
 <dd><p>Select an individual from <code>*population*</code> with a tournament.
