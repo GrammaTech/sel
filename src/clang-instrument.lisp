@@ -323,6 +323,23 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
 "
   (gethash ast (ast-ids instrumenter)))
 
+(defun get-ast-ids-ht (obj &optional file-id)
+  "Return a hash table mapping AST index to
+trace statement ID for each AST in OBJ.
+* OBJ CLANG software object
+* FILE-ID index of OBJ in a project
+"
+  (iter (with ht = (make-hash-table :test #'eq))
+        (for ast in (asts obj))
+        (for ast-i upfrom 0)
+        (setf (gethash ast ht)
+              (if file-id
+                  (logior (ash 1 63)                              ; flag bit
+                          (ash file-id +trace-id-statement-bits+) ; file ID
+                          ast-i)                                  ; AST ID
+                  ast-i))
+        (finally (return ht))))
+
 
 (defgeneric write-trace-id (instrumenter ast)
   (:documentation "Generate ASTs which write statement ID to trace.
@@ -474,13 +491,10 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
 * OBJ the software object to instrument
 * ARGS additional arguments are passed through to the instrumenter method.
 "
-  (apply #'instrument (make-instance 'clang-instrumenter
-                        :software obj
-                        :ast-ids (iter (for ast in (asts obj))
-                                       (for i upfrom 0)
-                                       (with ht = (make-hash-table :test #'eq))
-                                       (setf (gethash ast ht) i)
-                                       (finally (return ht))))
+  (apply #'instrument
+         (make-instance 'clang-instrumenter
+           :software obj
+           :ast-ids (get-ast-ids-ht obj))
          args))
 
 (defmethod instrument
@@ -775,7 +789,10 @@ TASK's instrumentation arguments."
 TASK's project to be modified."
   (declare (ignorable runner))
   (let ((file-id -1)
-        (objs (mapcar #'cdr (instrumentation-files (task-object task)))))
+        (objs (->> (task-object task)
+                   (evolve-files)
+                   (mapcar #'cdr)
+                   (remove-if {get-entry}))))
     (lambda ()
       (when-let ((obj (pop objs)))
         (incf file-id)
@@ -785,15 +802,7 @@ TASK's project to be modified."
                     :names (task-names task)
                     :types (task-types task)
                     :type-descriptions (task-type-descriptions task)
-                    :ast-ids (iter (with ht = (make-hash-table :test #'eq))
-                                   (for ast in (asts obj))
-                                   (for ast-i upfrom 0)
-                                   (setf (gethash ast ht)
-                                         (logior (ash 1 63)   ; flag bit
-                                                 (ash file-id ; file ID
-                                                      +trace-id-statement-bits+)
-                                                 ast-i))      ; AST ID
-                                   (finally (return ht))))
+                    :ast-ids (get-ast-ids-ht obj file-id))
           :instrument-args (task-instrument-args task))))))
 
 (defmethod instrument ((clang-project clang-project) &rest args
@@ -805,7 +814,7 @@ TASK's project to be modified."
 * CLANG-PROJECT the project to instrument
 * ARGS passed through to the instrument method on underlying software objects.
 "
-  ;; Instrument the project
+  ;; Instrument the non-entry point files in the project in parallel.
   (run-task-and-block (make-instance 'instrument-clang-project-task
                         :object clang-project
                         :names names
@@ -814,7 +823,24 @@ TASK's project to be modified."
                         :instrument-args args)
                       (or (plist-get :num-threads args) 1))
 
-  ;; Insert log setup code in other-files
+  ;; Instrument the evolve-files with entry points to the program.
+  ;; We do this after instrumenting all non-entry point files
+  ;; to ensure the names, types, and type-description hash tables
+  ;; are complete.
+  (iter (for (path . obj) in (instrumentation-files clang-project))
+        (for file-id upfrom 0)
+        (declare (ignorable path))
+        (when (get-entry obj)
+          (apply #'instrument
+                 (make-instance 'clang-instrumenter
+                   :software obj
+                   :names names
+                   :types types
+                   :type-descriptions type-descriptions
+                   :ast-ids (get-ast-ids-ht obj file-id))
+                 args)))
+
+  ;; Insert log setup code in other-files with an entry point.
   (iter (for obj in (mapcar #'cdr (other-files clang-project)))
         (when-let ((entry (get-entry obj)))
           (initialize-tracing (make-instance 'clang-instrumenter

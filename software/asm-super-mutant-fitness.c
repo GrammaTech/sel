@@ -39,7 +39,7 @@ extern vfunc variant_table[]; // 0-terminated array of variant
 #define RSP_OUTPUT_INDEX 3    // index within output register set
                               // where RSP is stored
 #define RSP_INPUT_INDEX 4     // index of RSP on input registers
-#define DEBUG 1               // set this to 1, to turn on debugging messages
+#define DEBUG 0               // set this to 1, to turn on debugging messages
 
 // Expected input registers:
 //    rax
@@ -360,14 +360,20 @@ static void sigunblock() {
 void segfault_sigaction(int signal, siginfo_t *si, void *context) {
     //fprintf(stderr, "Caught segfault at address %p\n", si->si_addr);
 
-    //unblock_signal(signal);
+    unblock_signal(signal);
 
     ucontext_t* p = (ucontext_t*)context;
     p->uc_mcontext.gregs[REG_RIP] = (greg_t)save_return_address;
+
+    asm("        pushq $1\n\t");
+    asm("        popq result_return_address\n\t");
+    asm("        movq save_return_address, %rbx\n\t");
+    asm("        jmp *%rbx\n\t");
 }
 
 void timer_sigaction(int signal, siginfo_t *si, void *arg) {
     //fprintf(stderr, "Execution timer expired\n");
+    unblock_signal(signal);
     asm("        pushq $1\n\t");
     asm("        popq result_return_address\n\t");
     asm("        movq save_return_address, %rbx\n\t");
@@ -442,7 +448,7 @@ void destroy_timer(timer_t timerid) {
 }
 
 //
-// returns the elapsed time (in instruction clock counts), or 0
+// returns the elapsed time (in instruction clock counts), or ULONG_MAX
 // if the outputs did not match expected outputs.
 //
 static vfunc execaddr = 0;
@@ -495,7 +501,7 @@ unsigned long run_variant(int v, int test) {
     }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
-
+    
     int res = check_results(v, test);   // make sure all the registers had expected
                                  // output values
 #if DEBUG
