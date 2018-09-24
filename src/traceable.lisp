@@ -11,13 +11,13 @@
   (:documentation
    "Instrumentable software with support for collecting dynamic traces."))
 
-(define-software java-traceable (java traceable) ()
-  (:documentation
-   "Specialization of the traceable interface for java software objects."))
+(define-software binary-traceable (traceable) ()
+  (:documentation "Instrumentable software with support for collecting dynamic
+traces in a proprietary binary format."))
 
-(define-software java-traceable-project (java-project traceable) ()
-  (:documentation "Specialization of the traceable interface for java
-project software objects."))
+(define-software sexp-traceable (traceable) ()
+  (:documentation "Instrumentable software with support for collecting dynamic
+traces in a s-expression format."))
 
 (define-condition trace-error (error)
   ((text :initarg :text :initform nil :reader text)
@@ -51,14 +51,15 @@ times."))
 
 
 ;;; Trace collection with proprietary binary format
-(defmethod collect-traces ((obj software) (test-suite test-suite)
+(defmethod collect-traces ((obj binary-traceable) (test-suite test-suite)
                            &key max (bin (temp-file-name)) (num-threads 1)
                            &aux (args (list :bin bin)) (delete-bin-p t))
-  "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
+  "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-SUITE suite of test case to execute for trace collection
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
+* NUM-THREADS number of threads to use in trace collection
 "
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
@@ -84,10 +85,9 @@ times."))
           (delete-file probe))))
   (traces obj))
 
-(defmethod collect-trace
-    ((obj software) (test-case test-case)
-     &key max (bin (temp-file-name))
-     &aux (delete-bin-p t))
+(defmethod collect-trace ((obj binary-traceable) (test-case test-case)
+                          &key max (bin (temp-file-name))
+                          &aux (delete-bin-p t))
     "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-CASE test case to execute for trace collection
@@ -176,31 +176,17 @@ times."))
           (delete-file probe)))))
 
 
-;;; Trace collection with legacy s-expression format for JAVA
-(defmethod collect-traces ((obj java-traceable) (test-suite test-suite)
-                           &key max (bin (temp-file-name)) (num-threads 1))
-  "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
+;;; Trace collection with legacy s-expression format
+(defmethod collect-traces ((obj sexp-traceable) (test-suite test-suite)
+                           &key max (bin (temp-file-name)) (num-threads 1)
+                           &aux (args (list :bin bin)) (delete-bin-p t))
+  "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-SUITE suite of test case to execute for trace collection
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
+* NUM-THREADS number of threads to use in trace collection
 "
-  (java-collect-traces obj test-suite
-                       :max max :bin bin :num-threads num-threads))
-
-(defmethod collect-traces ((obj java-traceable-project) (test-suite test-suite)
-                           &key max (bin (temp-file-name)) (num-threads 1))
-  "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
-* OBJ Instrumented software object suitable for trace collection
-* TEST-SUITE suite of test case to execute for trace collection
-* MAX maximum number of trace points to record
-* BIN compiled binary with instrumentation to use for trace collection
-"
-  (java-collect-traces obj test-suite :max max :bin bin :num-threads 1))
-
-(defun java-collect-traces (obj test-suite
-                            &key max (bin (temp-file-name)) (num-threads 1)
-                            &aux (args (list :bin bin)) (delete-bin-p t))
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
       (setf delete-bin-p nil)
@@ -208,11 +194,11 @@ times."))
           (phenome obj :bin bin)
         (skip-trace-collection ()
           :report "Skip trace collection and leave object unchanged."
-          (return-from java-collect-traces (traces obj)))
+          (return-from collect-traces (traces obj)))
         (nil-traces ()
           :report "Set object traces to NIL and continue."
           (setf (traces obj) nil)
-          (return-from java-collect-traces (traces obj)))))
+          (return-from collect-traces (traces obj)))))
   (setf (traces obj) (make-instance 'sexp-trace-db))
   (unwind-protect
        (task-map num-threads
@@ -225,31 +211,15 @@ times."))
           (delete-file probe))))
   (traces obj))
 
-(defmethod collect-trace
-    ((obj java-traceable) (test-case test-case)
-     &key (max infinity) (bin (temp-file-name)))
+(defmethod collect-trace ((obj sexp-traceable) (test-case test-case)
+                          &key (max infinity) (bin (temp-file-name))
+                          &aux (delete-bin-p t))
     "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
 * OBJ Instrumented java software object suitable for trace collection
 * TEST-CASE test case to execute for trace collection
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
 "
-  (java-collect-trace obj test-case :max max :bin bin))
-
-(defmethod collect-trace
-    ((obj java-traceable-project) (test-case test-case)
-     &key (max infinity) (bin (temp-file-name)))
-    "Execute instrumented OBJ on TEST-CASE collecting dynamic traces.
-* OBJ Instrumented java project software object suitable for trace collection
-* TEST-CASE test case to execute for trace collection
-* MAX maximum number of trace points to record
-* BIN compiled binary with instrumentation to use for trace collection
-"
-  (java-collect-trace obj test-case :max max :bin bin))
-
-(defun java-collect-trace (obj test-case
-                           &key (bin (temp-file-name)) (max infinity)
-                           &aux (delete-bin-p t))
   (if (probe-file bin)
       (setf delete-bin-p nil)
       (restart-case
@@ -260,7 +230,7 @@ times."))
                                    :bin bin)))
         (skip-test-case ()
           :report "Skip trace collection for test case and return NIL."
-          (return-from java-collect-trace nil))))
+          (return-from collect-trace nil))))
   (unwind-protect
       (with-temp-fifo (pipe)
         ;; Start run on the input.

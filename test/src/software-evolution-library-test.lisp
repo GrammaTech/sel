@@ -223,6 +223,10 @@
   :test #'equalp
   :documentation "Path to directory holding the Build Folder jars.")
 
+(define-constant +javascript-dir+ (append +etc-dir+ (list "javascript"))
+  :test #'equalp
+  :documentation "Path to directory holding Javascript test programs.")
+
 (define-constant +asm-test-dir+ (append +etc-dir+ (list "asm-test"))
   :test #'equalp
   :documentation "Path to asm-test examples.")
@@ -411,8 +415,51 @@
                  :type (pathname-type filename)
                  :directory +coq-test-dir+))
 
+(defun javascript-dir (path)
+  (merge-pathnames-as-file (make-pathname :directory +javascript-dir+)
+                           path))
+
 (define-software soft (software)
   ((genome :initarg :genome :accessor genome :initform nil)))
+(define-software clang-traceable (clang binary-traceable) ())
+(define-software java-traceable  (java sexp-traceable) ())
+(define-software javascript-traceable  (javascript sexp-traceable) ())
+(define-software clang-control-picks (clang) ())
+(define-software collect-traces-handles-directory-phenomes-mock
+    (sel::source sel::binary-traceable)
+  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
+                :copier :direct)))
+(define-software clang-styleable-test-class (clang styleable) ())
+(define-software mutation-failure-tester (clang) ())
+
+(defvar *soft-mutate-errors* nil
+  "Control when mutations on soft objects throw errors.")
+(defvar *good-asts* nil "Control pick-good")
+(defvar *bad-asts* nil "Control pick-bad")
+
+(defmethod crossover ((a soft) (b soft))
+  (values (copy a)(list :fake-a) (list :fake-b)))
+(defmethod mutate ((a soft))
+  (setf (fitness a) nil)
+  (if *soft-mutate-errors*
+      (error (make-condition 'mutate
+               :text "FAKE"
+               :obj a
+               :op '(:fake)))
+      (values (copy a) (list :fake))))
+
+(defmethod good-stmts ((obj clang-control-picks))
+  (or *good-asts* (stmt-asts obj)))
+(defmethod bad-stmts ((obj clang-control-picks))
+  (or *bad-asts* (stmt-asts obj)))
+
+(defvar *test-mutation-count* 0)
+(defmethod mutate ((soft mutation-failure-tester))
+  (incf *test-mutation-count*)
+  ;; Every other mutation fails
+  (when (zerop (mod *test-mutation-count* 2))
+    (error (make-condition 'mutate)))
+  soft)
 
 ;;;
 ;;; Task support
@@ -430,20 +477,6 @@
 (defmethod process-task ((task child-task) runner)
   (task-save-result runner (task-object task)) ;; save the object
   (sleep 1)) ;; sleep 1 second
-
-(defvar *soft-mutate-errors* nil
-  "Control when mutations on soft objects throw errors.")
-
-(defmethod crossover ((a soft) (b soft))
-  (values (copy a)(list :fake-a) (list :fake-b)))
-(defmethod mutate ((a soft))
-  (setf (fitness a) nil)
-  (if *soft-mutate-errors*
-      (error (make-condition 'mutate
-               :text "FAKE"
-               :obj a
-               :op '(:fake)))
-      (values (copy a) (list :fake))))
 
 (defixture soft
   (:setup (setf *soft* (make-instance 'soft
@@ -585,14 +618,6 @@
                                           :name "print-env"
                                           :type "c"))))
   (:teardown (setf *soft* nil)))
-
-(defvar *good-asts* nil "Control pick-good")
-(defvar *bad-asts* nil "Control pick-bad")
-(define-software clang-control-picks (clang) ())
-(defmethod good-stmts ((obj clang-control-picks))
-  (or *good-asts* (stmt-asts obj)))
-(defmethod bad-stmts ((obj clang-control-picks))
-  (or *bad-asts* (stmt-asts obj)))
 
 (defixture hello-world-clang-control-picks
   (:setup
@@ -1034,6 +1059,22 @@
          (from-file (make-instance 'java-traceable)
                     (java-dir (concatenate 'string
                                 *java-file-name* ".java")))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture hello-world-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript-traceable)
+                    (javascript-dir #P"hello-world/hello-world.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture fib-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript-traceable)
+                    (javascript-dir #P"fib/fib.js"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -2574,63 +2615,70 @@ int x = CHARSIZE;")))
             (clang-mutate-available-p))
 
 
-(deftest (parse-source-snippet-body-statement :long-running) ()
+(deftest (clang-parse-source-snippet-body-statement :long-running) ()
   (with-fixture gcd-clang
     (let ((asts (parse-source-snippet
+                  :clang
                   "x + y"
-                  `(("x" ,(type-from-trace-string "int"))
-                    ("y" ,(type-from-trace-string "char"))))))
+                  :unbound-vals `(("x" ,(type-from-trace-string "int"))
+                                  ("y" ,(type-from-trace-string "char"))))))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
       (is (equalp '(((:name . "y")) ((:name . "x")))
                   (get-unbound-vals *gcd* (car asts)))))))
 
-(deftest parse-source-snippet-handles-includes ()
+(deftest clang-parse-source-snippet-handles-includes ()
   (let ((asts (parse-source-snippet
+                :clang
                 "printf(\"hello\")"
-                nil
+                :unbound-vals nil
                 :includes '("<stdio.h>"))))
     (is (eq 1 (length asts)))
     (is (eq :CallExpr (ast-class (car asts))))
     (is (equalp '("<stdio.h>")
                 (ast-includes (car asts))))))
 
-(deftest parse-source-snippet-multiple-statements ()
+(deftest clang-parse-source-snippet-multiple-statements ()
   (let ((asts (parse-source-snippet
+                :clang
                 "x = 1; y = 1"
-                `(("x" ,(type-from-trace-string "int"))
-                  ("y" ,(type-from-trace-string "char")))
+                :unbound-vals `(("x" ,(type-from-trace-string "int"))
+                                ("y" ,(type-from-trace-string "char")))
                 :includes nil)))
     (is (eq 2 (length asts)))
     (is (eq :BinaryOperator (ast-class (first asts))))
     (is (eq :BinaryOperator (ast-class (second asts))))))
 
-(deftest parse-source-snippet-top-level ()
+(deftest clang-parse-source-snippet-top-level ()
   (let ((asts (parse-source-snippet
+                :clang
                 "int foo() { return 1; }"
-                nil
+                :unbound-vals nil
                 :top-level t)))
     (is (eq 1 (length asts)))
     (is (eq :Function (ast-class (car asts))))
     (is (eq :CompoundStmt (ast-class (function-body (make-instance 'clang)
                                                     (car asts)))))))
 
-(deftest parse-source-snippet-preamble ()
+(deftest clang-parse-source-snippet-preamble ()
   (let ((asts (parse-source-snippet
+                :clang
                 "int *p = A + 10;"
-                nil
+                :unbound-vals nil
                 :preamble "static int A[10];")))
     (is (eq :DeclStmt (ast-class (first asts))))))
 
-(deftest (parse-source-snippet-keep-comments :long-running) ()
+(deftest (clang-parse-source-snippet-keep-comments :long-running) ()
   (let ((asts1 (parse-source-snippet
+                 :clang
                  "/*POTENTIAL FLAW */ strlen(0);"
-                 nil
+                 :unbound-vals nil
                  :includes '("<string.h>")
                  :keep-comments t))
         (asts2 (parse-source-snippet
+                 :clang
                  (format nil "// POTENTIAL FLAW~% strlen(0);")
-                 nil
+                 :unbound-vals nil
                  :includes '("<string.h>")
                  :keep-comments t)))
     (is (not (null (search "/*POTENTIAL FLAW */"
@@ -3066,6 +3114,191 @@ int x = CHARSIZE;")))
   "Tests if applicable file names in a build-folder are found."
   (with-temp-dir-of (temp-dir) (make-pathname :directory +java-jars-dir+)
                     (is (equal 9 (length (get-files-jar temp-dir))))))
+
+;;;; Javascript representation.
+(defun acorn-available-p ()
+  (which "acorn"))
+
+(defsuite javascript-tests "Javascript representation." (acorn-available-p))
+
+(deftest simply-able-to-load-a-javascript-software-object ()
+  (with-fixture hello-world-javascript
+    (is (not (null *soft*)))))
+
+(deftest (can-parse-a-javascript-software-object :long-running) ()
+  (with-fixture hello-world-javascript
+    (is (= 6 (length (asts *soft*))))
+    (is (equal (file-to-string (javascript-dir #P"hello-world/hello-world.js"))
+               (genome *soft*))))
+  (with-fixture fib-javascript
+    (is (= 40 (length (asts *soft*))))
+    (is (equal (file-to-string (javascript-dir #P"fib/fib.js"))
+               (genome *soft*)))))
+
+(deftest cut-shortens-a-javascript-software-object ()
+  (with-fixture fib-javascript
+    (let* ((variant (copy *soft*))
+           (stmt1 (stmt-with-text variant "temp = a;")))
+      (apply-mutation variant
+                      (make-instance 'parseable-cut
+                        :targets (list (cons :stmt1 stmt1))))
+      (is (not (equal (genome variant)
+                      (genome *soft*))))
+      (is (< (size variant)
+             (size *soft*))))))
+
+(deftest insert-lengthens-a-javascript-software-object ()
+  (with-fixture fib-javascript
+    (let* ((variant (copy *soft*))
+           (stmt1 (stmt-with-text variant "temp = a;")))
+      (apply-mutation variant
+                      (make-instance 'parseable-insert
+                        :targets (list (cons :stmt1 stmt1)
+                                       (cons :value1 stmt1))))
+      (is (not (equal (genome variant)
+                      (genome *soft*))))
+      (is (> (size variant)
+             (size *soft*))))))
+
+(deftest swap-changes-a-javascript-software-object ()
+  (with-fixture fib-javascript
+    (let ((variant (copy *soft*))
+          (stmt1 (stmt-with-text *soft* "temp = a;"))
+          (stmt2 (stmt-with-text *soft* "num--;")))
+      (apply-mutation variant
+                      (make-instance 'parseable-swap
+                        :targets (list (cons :stmt1 stmt1)
+                                       (cons :stmt2 stmt2))))
+      (is (not (equal (genome variant)
+                      (genome *soft*))))
+      (is (= (size variant)
+             (size *soft*))))))
+
+(deftest javascript-copies-are-independent ()
+  (with-fixture fib-javascript
+    (let ((orig-genome (genome *soft*))
+          (variant (copy *soft*))
+          (stmt1 (stmt-with-text *soft* "temp = a;")))
+      (apply-mutation variant
+                      (make-instance 'parseable-cut
+                        :targets (list (cons :stmt1 stmt1))))
+      (is (string= (genome *soft*) orig-genome))
+      (is (not (string= (genome variant) orig-genome))))))
+
+(deftest javascript-copy-clears-genome-slot ()
+  (with-fixture fib-javascript
+    (let ((variant (copy *soft*)))
+      (is (null (slot-value (copy *soft*) 'genome)))
+      (is (string= (genome *soft*)
+                   (genome variant))))))
+
+(deftest javascript-copies-share-asts ()
+  (with-fixture fib-javascript
+    (let ((variant (copy *soft*)))
+      (is (ast-equal-p (ast-root *soft*)
+                       (ast-root variant)))
+      (is (> (size variant) 0)))))
+
+(deftest javascript-mutation-preserves-unmodified-subtrees ()
+  (with-fixture fib-javascript
+    (let ((variant (copy *soft*))
+          (stmt1 (stmt-with-text *soft* "temp = a;")))
+      (apply-mutation variant
+                      (make-instance 'parseable-cut
+                        :targets (list (cons :stmt1 stmt1))))
+      (is (ast-equal-p (stmt-with-text *soft* "num--;")
+                       (stmt-with-text variant "num--;"))))))
+
+(deftest javascript-parse-source-snippet-works ()
+  (is (equal 1 (length (parse-source-snippet :javascript "j = 0")))))
+
+(deftest (can-format-a-javascript-software-object :long-running) ()
+  (with-fixture fib-javascript
+    (is (not (string= (genome (copy *soft*))
+                      (genome (prettier (copy *soft*))))))
+    (is (not (string= (genome (copy *soft*))
+                      (genome (format-genome (copy *soft*))))))
+    (is (string= (genome (prettier (copy *soft*)))
+                 (genome (format-genome (copy *soft*)))))))
+
+(deftest javascript-can-rebind-vars ()
+  (with-fixture fib-javascript
+    (is (string= "temp = b;"
+                 (->> (sel::rebind-vars (stmt-with-text *soft* "temp = a;")
+                                        (list (list "a" "b"))
+                                        nil)
+                      (source-text)
+                      (peel-bananas))))))
+
+(deftest javascript-get-vars-in-scope ()
+  (with-fixture fib-javascript
+    (is (equal (list "temp" "b" "a" "num")
+               (->> (stmt-with-text *soft* "temp = a;")
+                    (get-vars-in-scope *soft*)
+                    (mapcar {aget :name}))))))
+
+(deftest javascript-get-unbound-vals ()
+  (with-fixture fib-javascript
+    (is (equal `((:name . "temp") (:name . "a"))
+               (->> (stmt-with-text *soft* "temp = a;")
+                    (get-unbound-vals *soft*))))))
+
+(deftest javascript-get-unbound-funs ()
+  (with-fixture fib-javascript
+    (is (equal `(("fibonacci" nil nil 1))
+               (->> (stmt-with-text *soft* "fibonacci(10);")
+                    (get-unbound-funs *soft*))))))
+
+(deftest javascript-instrument-and-collect-traces ()
+  (with-fixture fib-javascript
+    (let ((instrumented (instrument *soft*)))
+      (collect-traces instrumented
+                      (make-instance 'test-suite
+                        :test-cases (list (make-instance 'test-case
+                                            :program-name "node"
+                                            :program-args (list :bin)))))
+      (is (equal 1 (n-traces (traces instrumented))))
+      (is (equal '((:TRACE ((:C . 3))  ((:C . 12)) ((:C . 17))
+                           ((:C . 21)) ((:C . 27)) ((:C . 31))
+                           ((:C . 17)) ((:C . 21)) ((:C . 27))
+                           ((:C . 31)) ((:C . 17)) ((:C . 21))
+                           ((:C . 27)) ((:C . 31)) ((:C . 17))
+                           ((:C . 21)) ((:C . 27)) ((:C . 31))
+                           ((:C . 17)) ((:C . 21)) ((:C . 27))
+                           ((:C . 31)) ((:C . 17)) ((:C . 21))
+                           ((:C . 27)) ((:C . 31)) ((:C . 17))
+                           ((:C . 21)) ((:C . 27)) ((:C . 31))
+                           ((:C . 17)) ((:C . 21)) ((:C . 27))
+                           ((:C . 31)) ((:C . 17)) ((:C . 21))
+                           ((:C . 27)) ((:C . 31)) ((:C . 17))
+                           ((:C . 21)) ((:C . 27)) ((:C . 31))
+                           ((:C . 17)) ((:C . 21)) ((:C . 27))
+                           ((:C . 31)) ((:C . 34)))
+                   (:INPUT "node" :BIN))
+                 (get-trace (traces instrumented) 0))))))
+
+(deftest javascript-instrument-and-collect-traces-with-vars ()
+  (with-fixture fib-javascript
+    (let ((instrumented
+            (instrument *soft*
+                        :functions
+                        (list (lambda (instrumenter ast)
+                                (var-instrument
+                                  {get-vars-in-scope (software instrumenter)}
+                                  instrumenter
+                                  ast))))))
+      (collect-traces instrumented
+                      (make-instance 'test-suite
+                        :test-cases (list (make-instance 'test-case
+                                            :program-name "node"
+                                            :program-args (list :bin)))))
+      (is (equalp 1 (n-traces (traces instrumented))))
+      (is (equalp '((:C . 21)(:SCOPES #("temp" "number" 1 nil)
+                                      #("b" "number" 0 nil)
+                                      #("a" "number" 1 nil)
+                                      #("num" "number" 10 nil)))
+                  (nth 3 (aget :trace (get-trace (traces instrumented) 0))))))))
+
 
 ;;;; Range representation.
 (defsuite range-representation "Range representation.")
@@ -6063,9 +6296,6 @@ prints unique counters in the trace"
 (defsuite traceable-tests "Traceable tests."
             (clang-mutate-available-p))
 
-
-(define-software clang-traceable (clang traceable) ())
-
 (defixture traceable-gcd
   (:setup (setf *gcd* (from-file
                        (make-instance 'clang-traceable)
@@ -6110,11 +6340,6 @@ prints unique counters in the trace"
     (setf (traces *gcd*)
           (mapcar {get-trace (traces *gcd*)} (iota (n-traces (traces *gcd*)))))
     (is (every {every {aget :c}} (mapcar {aget :trace} (traces *gcd*))))))
-
-(define-software collect-traces-handles-directory-phenomes-mock
-    (sel::source sel::traceable)
-  ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
-                :copier :direct)))
 
 (defmethod phenome ((obj collect-traces-handles-directory-phenomes-mock)
                     &key (bin (temp-file-name)))
@@ -7170,8 +7395,6 @@ prints unique counters in the trace"
                                     (and (string= (car k1) (car k2))
                                          (string< (cdr k1) (cdr k2))))))))
         (is (equal '(1 1) vals))))))
-
-(define-software clang-styleable-test-class (clang styleable) ())
 
 (deftest extract-style-features-no-asts ()
   (is (-> (from-string (make-instance 'clang-styleable-test-class) "")
@@ -8618,16 +8841,6 @@ prints unique counters in the trace"
   (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((2 . b2) (1 . b1) (3 . b3))))
              '((a1 nil) (a2 b2) (nil b1) (a3 b3)))))
-
-(define-software mutation-failure-tester (clang) ())
-
-(defvar *test-mutation-count* 0)
-(defmethod mutate ((soft mutation-failure-tester))
-  (incf *test-mutation-count*)
-  ;; Every other mutation fails
-  (when (zerop (mod *test-mutation-count* 2))
-    (error (make-condition 'mutate)))
-  soft)
 
 (deftest super-evolve-handles-mutation-failure ()
   (let* ((obj (from-string (make-instance 'mutation-failure-tester)

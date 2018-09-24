@@ -101,3 +101,17 @@ may be beautified."))
             (setf errno exit)
             (if (zerop exit) stdout (genome obj)))))
   (values obj errno))
+
+(defun prettier (obj &aux errno)
+  "Apply `prettier` to OBJ.
+* OBJ object to format and return
+* ERRNO exit code of prettier
+"
+  (with-temp-file-of (src (ext obj)) (genome obj)
+    (setf (genome obj)
+          (multiple-value-bind (stdout stderr exit)
+              (shell "prettier ~a" src)
+            (declare (ignorable stderr))
+            (setf errno exit)
+            (if (zerop exit) stdout (genome obj)))))
+  (values obj errno))

@@ -4,6 +4,10 @@
 
 
 ;;;; Instrumentation
+(define-constant +instrument-log-lock-variable-name+ "__sel_trace_file_lock"
+  :test #'string=
+  :documentation "File lock variable used for instrumentation")
+
 (define-constant +write-trace-include+
   "
 #ifndef __GT_TRACEDB_INCLUDE
@@ -778,12 +782,6 @@ TASK's instrumentation arguments."
                      (evolve-files clang-project)
                      :key #'cdr)))
 
-(defmethod instrumented-p ((clang-project clang-project))
-  "Return true if CLANG-PROJECT is instrumented
-* CLANG-PROJECT a clang-project software object
-"
-  (some #'instrumented-p (mapcar #'cdr (evolve-files clang-project))))
-
 (defmethod task-job ((task instrument-clang-project-task) runner)
   "Return an instrumentation job for the next software object in
 TASK's project to be modified."
@@ -998,16 +996,8 @@ Returns a list of strings containing C source code."))
                                                           blob-args)))
                   (remove-if #'null)))))))
 
-(defgeneric var-instrument (key instrumenter ast &key print-strings)
-  (:documentation
-   "Generate ASTs for variable instrumentation.
-* KEY a function used to pull the variable list out of AST
-* INSTRUMENTER current instrumentation state
-* AST the AST to instrument
-"))
-
 (defmethod var-instrument
-  (key (instrumenter instrumenter) (ast clang-ast) &key print-strings)
+  (key (instrumenter clang-instrumenter) (ast clang-ast) &key print-strings)
   "Generate ASTs for variable instrumentation.
 * KEY a function used to pull the variable list out of AST
 * INSTRUMENTER current instrumentation state

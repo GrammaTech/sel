@@ -15,10 +15,6 @@
   :test #'string=
   :documentation "Variable used for instrumentation.")
 
-(define-constant +instrument-log-lock-variable-name+ "__sel_trace_file_lock"
-  :test #'string=
-  :documentation "File lock variable used for instrumentation")
-
 (defgeneric instrumented-p (obj)
   (:documentation "Return true if OBJ is instrumented"))
 
@@ -42,6 +38,14 @@ Keyword arguments are as follows:
   NUM-THREADS ---------- number of threads to use for instrumentation
 "))
 
+(defgeneric var-instrument (key instrumenter ast &key print-strings)
+  (:documentation
+   "Generate ASTs for variable instrumentation.
+* KEY a function used to pull the variable list out of AST
+* INSTRUMENTER current instrumentation state
+* AST the AST to instrument
+"))
+
 (defgeneric uninstrument (obj &key num-threads)
   (:documentation "Remove instrumentation from OBJ
 
@@ -57,3 +61,6 @@ Keyword arguments are as follows:
   (:documentation "Base class for objects which handle instrumentation.
 Stores instrumentation state and provides methods for instrumentation
 operations."))
+
+(defmethod instrumented-p ((project project))
+  (some #'instrumented-p (mapcar #'cdr (evolve-files project))))

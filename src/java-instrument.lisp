@@ -17,9 +17,6 @@
 (defmethod instrumented-p ((obj java))
   (search *instrument-log-env-name* (genome obj)))
 
-(defmethod instrumented-p ((obj java-project))
-  (some #'instrumented-p (mapcar #'cdr (evolve-files obj))))
-
 (defmethod instrument ((obj java) &rest args)
   (apply #'instrument (make-instance 'java-instrumenter :software obj)
          args))

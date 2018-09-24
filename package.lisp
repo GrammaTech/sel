@@ -78,7 +78,13 @@
    :mutate
    :no-mutation-targets
    :pick-mutation-type
+   :parseable-mutation
+   :parseable-insert
+   :parseable-swap
+   :parseable-move
+   :parseable-cut
    :clang-mutation
+   :javascript-mutation
    :build-op
    :apply-mutation-ops
    :apply-mutation
@@ -308,6 +314,7 @@
    :bytes
    :diff-data
    :recontextualize
+   :parse-source-snippet
    :delete-decl-stmts
    :rename-variable-near-use
    :run-cut-decl
@@ -336,8 +343,7 @@
    :get-declared-variables
    :cil
    :java
-   :java-traceable
-   :java-traceable-project
+   :javascript
    :llvm
    :linker
    :flags
@@ -359,6 +365,8 @@
    :instrument
    :instrumenter
    :clang-instrumenter
+   :java-instrumenter
+   :javascript-instrumenter
    :uninstrument
    :var-instrument
    :+instrument-log-variable-name+
@@ -518,6 +526,7 @@
    :copy-ast
    :make-ast-node
    :copy-ast-node
+   :to-ast
    :clang-ast
    :clang-ast-node
    :ast-args
@@ -573,6 +582,12 @@
    :macro-hash
    :make-clang-macro
    :copy-clang-macro
+   :javascript-ast
+   :javascript-ast-node
+   :make-javascript-ast
+   :copy-javascript-ast
+   :make-javascript-ast-node
+   :copy-javascript-ast-node
    :roots
    :source-text
    :function-body
@@ -584,7 +599,6 @@
    :index-of-ast
    :ast-at-index
    :ast-later-p
-   :to-clang-ast
    :make-statement
    :make-literal
    :make-operator
@@ -603,10 +617,11 @@
    :make-break-stmt
    :ast-root
    :replace-in-ast
-   :parse-source-snippet
    :prepare-fodder
    ;; traceable
    :traceable
+   :binary-traceable
+   :sexp-traceable
    :traces
    :collect-trace
    :collect-traces
@@ -622,6 +637,7 @@
    :astyle
    :clang-tidy
    :clang-format
+   :prettier
    ;; style features
    :style-feature
    :feature-name
