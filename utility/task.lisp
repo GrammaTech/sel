@@ -273,3 +273,34 @@ promises to find the first while `some-task' may return any element satisfying
   (when (not (task-runner-results runner))
     (when-let ((result (funcall (some-task-pred task) (task-object task))))
       (task-save-result runner result))))
+
+
+;;;
+;;; A simple way to just run a single task as a one-off
+;;; Example:
+;;;   (run-as-task (task1 runner1)
+;;;     (with-output-to-string (s)
+;;;       (dotimes (i 10)(format s "~A~%" i))
+;;;       (task-save-result runner1 (get-output-stream-string s))))
+;;; 
+
+(defclass simple-job (task) ())
+(defmethod task-job ((task simple-job) runner)
+  (declare (ignore runner))
+  (let ((index 0))
+    (lambda ()
+      (if (<= (incf index) 1)
+	  (task-object task)))))
+
+(defmacro run-as-task ((task runner) &body body)
+  "Run the body code as a one-off task, which can access task and runner by
+name. The supplied names may be any available symbols. Returns the TASK-RUNNER
+object."
+  (with-gensyms (task-type)
+    `(progn
+       (defclass ,task-type (task) ())
+       (defmethod process-task ((,task ,task-type) ,runner)
+         ,@body)
+      (run-task
+        (make-instance 'simple-job
+          :object (make-instance ',task-type :object nil))))))

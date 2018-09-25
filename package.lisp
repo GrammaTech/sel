@@ -700,10 +700,10 @@
    :mutants
    :create-all-simple-cut-variants
    :create-target
+   :target-info
    :line-heap
    :function-index
    :evaluate-asm
-   :asm-super-mutant-test-function
    :leaf-functions))
 #+allegro
 (set-dispatch-macro-character #\# #\_

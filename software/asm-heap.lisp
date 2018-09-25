@@ -97,9 +97,18 @@
 	 ((eq token eof)(nreverse result))
 	(push token result))))
 
-(defun token-labelp (token)
+(defun token-label-p (token)
   (and (symbolp token)
        (char= (char (symbol-name token) 0) #\$)))
+
+(defun branch-op-p (token)
+  "Returns true iff the token represents a jump operation. We assume it 
+is a jump operator if the first letter is #\j or #\J. For our purposes
+we are excluding CALL instructions."
+  (and (symbolp token)
+       (or
+	(char= (char (symbol-name token) 0) #\j)
+	(char= (char (symbol-name token) 0) #\J))))
 
 ;;; Given a list of tokens representing the line, returns either of:
 ;;;     :nothing
@@ -109,7 +118,7 @@
 ;;;     :operation
 (defun parse-line-type (tokens)
   (cond ((null tokens) ':empty)
-	((and (token-labelp (first tokens)) ; first token symbol beg. with '$'?
+	((and (token-label-p (first tokens)) ; first token symbol beg. with '$'?
 	      (eq (second tokens) :colon))  ; followed by a ':'?
 	 ':label-decl)
 	((or (member 'sel/asm::db tokens)
@@ -124,7 +133,7 @@
                    sel/asm::%define
                    sel/asm::global))
 	 ':decl)
-	((and (token-labelp (first tokens))
+	((and (token-label-p (first tokens))
 	      (eq (second tokens) 'sel/asm::equ))
 	 ':decl)
 	(t ':op)))     ;; use this as catch-all for anything else
@@ -159,7 +168,9 @@
 	(:label-decl (let* ((label (first tokens))
                             (label-end (position #\: line))
                             (line1 (subseq line 0 (+ label-end 1)))
-                            (line2 (subseq line (+ label-end 1)))
+                            (line2 (concatenate 'string
+				    "       "
+				    (subseq line (+ label-end 1))))
                             (next-info (parse-asm-line line2))) ;; recurse!
                        (setf (asm-line-info-text info) line1)
                        (setf (asm-line-info-tokens info) (list label ':colon))
@@ -212,8 +223,7 @@
 
 ;;; asm-heap software objects
 ;;
-;; An software object which uses less memory. even less memory, but
-;; adds some complexity to many genome manipulation methods.  The
+;; An software object which uses less memory. The
 ;; line-heap holds the original lines of the program (before any
 ;; mutations, along with any new or modified lines appended to the end
 ;; of the heap. All elements of the genome are references into this
@@ -225,18 +235,34 @@
   ((line-heap :initarg :line-heap :accessor line-heap)
    (function-index :initarg :function-index :initform nil
 		   :accessor function-index
-		   :documentation "Create this on demand."))
+		   :documentation "Create this on demand.")
+   (function-bounds-file
+    :initarg :function-bounds-file
+    :initform nil :accessor function-bounds-file
+    :documentation "If this is present, use it to create function index")
+   (super-owner :initarg :super-owner :accessor super-owner :initform nil
+		:documentation
+		"If present, contains asm-super-mutant instance."))
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
 Similar to RANGE, but allows for adding and mutating lines, and should
 be able to handle type of mutation we need. The GENOME is a vector of
 references into the asm-heap (asm-line-info) describes the code."))
 
+(defmethod create-super ((variant asm-heap) &optional rest-variants)
+  "Creates a ASM-SUPER-MUTANT and populates it with single variant."
+  (let ((inst (copy (super-owner variant))))
+    (setf (mutants inst)(cons variant rest-variants))
+    inst))
+
 (defmethod function-index ((asm asm-heap))
   "If FUNCTION-INDEX slot contains an index, return it. Otherwise create
 the index and return it."
   (or (slot-value asm 'function-index)
-      (setf (slot-value asm 'function-index) (create-asm-function-index asm))))
+      (setf (slot-value asm 'function-index)
+	    (if (function-bounds-file asm)
+		(load-function-bounds asm (function-bounds-file asm))
+		(create-asm-function-index asm)))))
 
 (defmethod size ((asm asm-heap))
   "Return the number of lines in the program."
@@ -336,8 +362,31 @@ structs, and storing them in a vector on the LINE-HEAP"
   (dolist (x line-list)
     (incf index (insert-new-line asm-heap x index))))
 
+(defmethod pick-good ((software asm-heap))
+  (pick-bad software))
+
+(defun pick-is-acceptable (asm n)
+  (if (asm-line-info-label (elt (genome asm) n))
+      nil   ;; don't mess with label lines
+      t))
+
+;;;
+;;; TO DO: this can go into an infinite loop if every line in the
+;;; genome is a label declaration. Should probably watch for this case.
+;;;
+(defmethod pick-bad  ((software asm-heap))
+  (do* ((bad (random (size software))(random (size software))))
+       ((pick-is-acceptable software bad) bad)))
+
 (defmethod apply-mutation ((asm asm-heap) (mutation simple-cut))
   "Implement simple-cut mutation on ASM-HEAP."
+  ;; if we our target cut is a label line, abort
+  (when (and
+	 (asm-line-info-label (elt (genome asm) (targets mutation)))
+	 (find-restart 'try-another-mutation))
+    (format t "skipping cut with label ~A~%"
+	    (asm-line-info-label (elt (genome asm) (targets mutation))))
+    (invoke-restart 'try-another-mutation))
   (vector-cut (genome asm) (targets mutation))
   asm)
 
@@ -405,6 +454,125 @@ is raised."
 
 (defmethod pick-mutation-type ((asm asm-heap))
   (random-pick *simple-mutation-types*))
+
+(defun find-labels (asm-heap)
+  (let ((lab-list '()))
+    (iter (for a in-vector (genome asm-heap))
+	  (if (and
+	       (eq (asm-line-info-type a) ':op)
+	       (branch-op-p (first (asm-line-info-tokens a))))
+	    (if (token-label-p (second (asm-line-info-tokens a)))
+		(push (second (asm-line-info-tokens a)) lab-list))
+	    (if (token-label-p (third (asm-line-info-tokens a)))
+		(push (third (asm-line-info-tokens a)) lab-list))))
+    lab-list))
+
+(defun find-label-decls (asm-heap)
+  "Find the labels declared in the genome, return the list."
+  (let ((lab-list '()))
+    (iter (for a in-vector (genome asm-heap))
+	  (if (eq (asm-line-info-type a) ':label-decl)
+	      (push (asm-line-info-label a) lab-list)))
+    lab-list))
+
+(defun labels-valid-p (asm-heap)
+  "Returns true if all labels which are referenced by 
+operation lines in the genome can be found as label declarations
+in the genome. There must be no more than one declaration of any
+label. If any referenced label is not found, or is declared more
+than once, returns false."
+  (dolist (lab (find-labels asm-heap))
+    (let ((count 0))
+      (iter (for a in-vector (genome asm-heap))
+	    (if (eq (asm-line-info-label a) lab)
+		(incf count)))
+      (unless (= count 1) (return-from labels-valid-p nil))))
+  ;; return false if any of the label declarations are duplicated
+  (let ((declared-labels (find-label-decls asm-heap)))
+    (= (length declared-labels) (length (remove-duplicates declared-labels)))))
+
+;;;
+;;; Issues with the searching method below. I think we we might get reasonable
+;;; results simply by using the same point in both genomes. In case the
+;;; point exceeds the size of b's genome, we truncate it to the largest
+;;; possible point in b.
+;;;
+;;; TODO: figure out the best approach to implement this method
+;;;
+(defmethod find-corresponding-point ((point-a integer) (a asm-heap) (b asm-heap))
+  "Find and return a point in asm B matching POINT-A in asm A.
+Used by `homologous-crossover'."
+  (if (>= point-a (size b))
+      (1- (size b))
+      point-a))
+
+#+ignore
+(defmethod find-corresponding-point ((point-a integer) (a asm-heap) (b asm-heap))
+  "Find and return a point in asm B matching POINT-A in asm A.
+Used by `homologous-crossover'."
+  (flet ((lookup-id (obj id)
+           (asm-line-info-id (elt (genome obj) id))))
+    (let* ((id-a (lookup-id a point-a))
+           ;; adjust if id-a is beyond length of b
+           (start (if (>= id-a (length (genome b)))
+                      (1- (length (genome b)))
+                      id-a))
+           ;; max value we can add to start and still have a valid index in b
+           (add-upper-bound (- (1- (length (genome b))) start)))
+      ;; search above/below start simultaneously, adding and subtracting i
+      ;; to get the indices to check (upper and lower, resp.)
+      (iter (for i below (max start (1+ add-upper-bound)))
+            ;; keep track of closest difference in case there's no exact match
+            (with closest = start)
+            (with closest-diff = (abs (- id-a (lookup-id b start))))
+            (let ((lower (- start (min i start)))
+                  (upper (+ start (min i add-upper-bound))))
+              (cond
+                ;; lower index contains an exact match
+                ((eql id-a (lookup-id b lower))
+                 (leave lower))
+                ;; upper index contains an exact match
+                ((eql id-a (lookup-id b upper))
+                 (leave upper))
+                ;; neither upper nor lower matches, check if either is close
+                (t (when-let ((id-b-lower (lookup-id b lower)))
+                     (when (> closest-diff (abs (- id-a id-b-lower)))
+                       ;; id at lower is closer than closest yet found
+                       (setf closest lower)
+                       (setf closest-diff (abs (- id-a id-b-lower)))))
+                   (when-let ((id-b-upper (lookup-id b upper)))
+                     (when (> closest-diff (abs (- id-a id-b-upper)))
+                       ;; id at upper is closer than closest yet found
+                       (setf closest upper)
+                       (setf closest-diff (abs (- id-a id-b-upper)))))))
+              (finally (return closest)))))))
+
+(defmethod homologous-crossover ((a asm-heap) (b asm-heap))
+  "Crossover at a similar point in asm objects, A and B.
+After picking a crossover point in A, try to find the same point in B. If A and
+B are identical, this implementation always results in a genome that matches
+those of A and B."
+  ;; ASM-HEAP genomes are automatically numbered
+
+  ;; if either genome is 0-length, just return the other asm-heap object
+  (cond ((zerop (length (genome a))) (values (copy b) 0 0))
+	((zerop (length (genome b))) (values (copy a) 0 0))
+	(t
+	 (let ((point-a (random (length (genome a))))
+	       (new (copy a)))
+	   (let* ((point-b (find-corresponding-point point-a a b))
+		  (new-seq (concatenate (class-of (genome a))
+					; copy from beginning to point-a in A
+					(subseq (genome a) 0 point-a)
+					; and from point-b to end in B
+					(subseq (genome b) point-b))))
+	     (setf (genome new)
+		   (make-array (length new-seq) :fill-pointer (length new-seq)
+			       :adjustable t :initial-contents new-seq))
+	     (if (labels-valid-p new)  ; filter out any crossover results which
+		                       ; messup the labels
+	         (values new point-a point-b)
+		 (values (copy a) 0 0)))))))
 
 (defun function-name-from-label (name)
   "Given a label like $FOO1, returns \"FOO\""

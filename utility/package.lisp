@@ -247,6 +247,7 @@
    :task-object
    :task-save-result
    :run-task
+   :run-as-task
    :run-task-and-block
    :some-task
    :some-task-pred
