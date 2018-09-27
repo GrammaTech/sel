@@ -12,14 +12,14 @@
 
 
 ;;; Data structure definitions
-(defstruct ast-node "Base type of immutable portion of ast nodes."
-  (hash nil :type (or null fixnum)))	   
+(defstruct ast-node "Base type of immutable portion of ast nodes.")
 
 (defstruct (ast (:constructor make-raw-ast))
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
   (node nil :type (or ast-node string null)) ; Pointer to immutable AST data.
-  (children nil :type list))                 ; Remainder of subtree.
+  (children nil :type list)                  ; Remainder of subtree.
+  (stored-hash nil :type (or null fixnum)))
 
 (defmethod print-object ((obj ast) stream)
   "Print a representation of the ast OBJ to STREAM, including
@@ -533,6 +533,27 @@ use carefully.
                                     (nthcdr (+ 2 head) children)))))))
     (helper tree location)))
 
+(defgeneric map-ast-strings (tree fn)
+  (:documentation "Build a new AST obtained by replacing each string with
+(funcall FN string).  If the FN returns NIL do not replace."))
+
+(defmethod map-ast-strings ((tree ast) (fn function))
+  (let* ((children (ast-children tree))
+	 (new-children (mapcar (lambda (child) (map-ast-strings child fn)) children)))
+    (if (every #'eq children new-children)
+	tree
+	(copy tree :children new-children))))
+
+(defmethod map-ast-strings ((str string) (fn function))
+  (or (funcall fn str) str))
+
+(defmethod map-ast-strings ((tree t) (fn function)) tree)
+(defmethod map-ast-strings ((tree t) (sym symbol))
+  (let ((fn (symbol-function sym)))
+    (unless fn
+      (error "No function found for ~A" sym))
+    (map-ast-strings tree fn)))
+
 
 ;;; AST diffs 
 (defmethod ast-equal-p ((ast-a ast) (ast-b ast))
@@ -558,11 +579,19 @@ use carefully.
   (peel-bananas (source-text ast)))
 
 (defmethod ast-hash ((ast ast))
-  ;; should have place to cache this?
-  (let ((node (ast-node ast)))
-    (unless node (call-next-method))
-    (or (ast-node-hash node)
-	(setf (ast-node-hash node)
-	      (ast-hash (cons (ast-class ast) (ast-children ast)))))))
+;;  (or (ast-stored-hash ast)
+;;      (setf (ast-stored-hash ast)
+  (ast-hash (cons (ast-class ast) (ast-children ast))))
+;; ))
 
+(defgeneric ast-clear-hash (ast)
+  (:documentation "Clear the stored hash fields of an ast"))
+
+(defmethod ast-clear-hash ((ast t))
+  ast)
+
+(defmethod ast-clear-hash ((ast ast))
+  (setf (ast-stored-hash ast) nil)
+  (mapc #'ast-clear-hash (ast-children ast))
+  ast)
 
