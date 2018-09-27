@@ -121,7 +121,7 @@ information on the format of compilation databases.")
            database or 'bear' installation on your PATH")
   (labels ((create-compilation-database (clang-project)
              (multiple-value-bind (stdout stderr errno)
-                 (shell "cd ~a && bear ~a"
+                 (shell "(cd ~a && bear ~a)"
                         *build-dir* (build-command clang-project))
                (declare (ignorable errno))
                (or (and (probe-file (make-pathname
