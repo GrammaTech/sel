@@ -144,4 +144,66 @@ a valid patch.  Return :FAIL (and other values) if not."
        nil
        (list s1 s2 triples)))))
 
-		  
+(defun random-test-merge3 (n &key (reps 10))
+  "Test the MERGE3 algorithm"
+  (let* ((x (make-random-diff-input n :top t))
+	 (y (mutate-diff-input (mutate-diff-input x :top t) :top t))
+	 (z (mutate-diff-input (mutate-diff-input x :top t) :top t)))
+    (loop repeat reps
+       do (multiple-value-bind (md unstable)
+	      (merge3 x y z)
+	    (when unstable
+	      (format t "-----------------------------------~%")
+	      (format t "~A~%~A~%~A~%" x y z)
+	      (format t "----------------------------------~%~A~%~A~%~%" md unstable))))))
+
+(defun random-test-converge (n &key (reps 10))
+  "Test the MERGE3 algorithm"
+  (let* ((x (make-random-diff-input n :top t))
+	 (y (mutate-diff-input (mutate-diff-input x :top t) :top t))
+	 (z (mutate-diff-input (mutate-diff-input x :top t) :top t)))
+    (loop repeat reps
+       do (multiple-value-bind (md unstable)
+	      (converge x y z)
+	    (format t "-----------------------------------~%")
+	    (format t "~A~%~A~%~A~%" x y z)
+	    (format t "----------------------------------~%~A~%~A~%~%" md unstable)))))
+
+(defun converge-files (file1 file2 file3 dest-file)
+  (let* ((obj1 (sel:from-file (make-instance 'sel:clang) file1))
+	 (obj2 (sel:from-file (make-instance 'sel:clang) file2))
+	 (obj3 (sel:from-file (make-instance 'sel:clang) file3)))
+    ;; Load from source files so the loading time does not show
+    ;; up in profile
+    (sel:ast-root obj1)
+    (sel:ast-root obj2)
+    (sel:ast-root obj3)
+    (multiple-value-bind (merged-obj problems)
+	(time
+	 (sb-sprof:with-profiling ()
+	   (converge obj1 obj2 obj3)))
+      (values
+       (sel:to-file merged-obj dest-file)
+       problems))))
+
+(defun converge-projects (file1 file2 file3 dest-file)
+  (flet ((%create (f)
+	   (bi/bi::create-software f :language "c" :compiler "clang"
+				  :build-command "make")))
+    (let* ((obj1 (%create file1))
+	   (obj2 (%create file2))
+	   (obj3 (%create file3)))
+      ;; Load from source files so the loading time does not show
+      ;; up in profile
+      (mapc #'sel:ast-root (mapcar #'cdr (sel:evolve-files obj1)))
+      (mapc #'sel:ast-root (mapcar #'cdr (sel:evolve-files obj2)))
+      (mapc #'sel:ast-root (mapcar #'cdr (sel:evolve-files obj3)))
+      (multiple-value-bind (merged-obj problems)
+	  (time
+	   (sb-sprof:with-profiling ()
+	     (converge obj1 obj2 obj3)))
+	(values
+	 (sel:to-file merged-obj dest-file)
+	 problems)))))
+
+
