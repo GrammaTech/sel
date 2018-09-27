@@ -863,6 +863,12 @@ criteria for this search."
                       (mapc ,every-pre-fn ,variants))
                     (if (cdr ,variants)
                         ;; Multiple variants. Combine into super-mutant.
+                        ;;
+                        ;; FIXME: We should split the use of
+                        ;;        super-mutants into a separate
+                        ;;        variable instead of using the number
+                        ;;        of individuals returned by
+                        ;;        new-individual.
                         (let ((super (create-and-populate-super ,variants)))
                           (genome super)
                           (evaluate ,test super))
