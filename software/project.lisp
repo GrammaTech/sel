@@ -160,6 +160,57 @@ software objects in it's `evolve-files'."))
   (values project (mapcar [function #'cdr] (all-files project))))
 
 
+;;;; Diffs on projects
+
+(defun confirm-files-are-same (alist1 alist2)
+  (let ((files1 (mapcar #'car alist1))
+	(files2 (mapcar #'car alist2)))
+    (unless (equal files1 files2)
+      (error "Two file alists do not reference the same files: ~A, ~A" files1 files2))))
+
+(defmethod ast-diff ((project1 project) (project2 project))
+  (let ((files1 (evolve-files project1))
+	(files2 (evolve-files project2)))
+    (confirm-files-are-same files1 files2)
+    (iter (for (name . file1) in files1)
+	  (for (nil . file2) in files2)
+	  (collect (cons name (ast-diff file1 file2))))))
+
+(defmethod patch-files ((project project) (file-diffs list) &rest args
+			&key &allow-other-keys)
+  (let* ((file-alist (evolve-files project)))
+    (confirm-files-are-same file-alist file-diffs)
+    (let ((new-project-files
+	   (iter (for (file-name . file) in file-alist)
+		 (for (nil . diff) in file-diffs)
+		 (collect (cons file-name (ast-patch file diff)))))
+	  (new-project (copy project)))
+      (setf (evolve-files new-project) new-project-files))
+    new-project))
+
+(defmethod converge ((p0 project) (p1 project) (p2 project) &rest args &key &allow-other-keys)
+  (let ((ef0 (evolve-files p0))
+	(ef1 (evolve-files p1))
+	(ef2 (evolve-files p2)))
+    (check-type ef0 list)
+    (check-type ef1 list)
+    (check-type ef2 list)
+    ;; For now, we do not handle addition or deletion of files
+    (confirm-files-are-same ef0 ef1)
+    (confirm-files-are-same ef0 ef2)
+    (iter (for (name . f0) in ef0)
+	  (for (nil . f1) in ef1)
+	  (for (nil . f2) in ef2)
+	  (multiple-value-bind (f-merged unstable)
+	      (apply #'converge f0 f1 f2 args)
+	    (collect (cons name f-merged) into ef-merged)
+	    (when unstable
+	      (collect (cons name unstable) into unstable-merged)))
+	  (finally
+	   (let ((new-p (copy p0)))
+	     (setf (evolve-files new-p) ef-merged)
+	     (return (values new-p unstable-merged)))))))
+
 ;;;; Build directory handling.
 
 (defvar *build-dir* nil

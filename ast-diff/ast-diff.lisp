@@ -68,6 +68,8 @@
    ;; Merge functions
    :chunk
    :diff3
+   :merge3
+   :converge
    :show-chunks))
 (in-package :software-evolution-library/ast-diff)
 (in-readtable :curry-compose-reader-macros)
@@ -772,7 +774,7 @@ root of the edit script (and implicitly also the program AST)."
 A diff is a sequence of actions as returned by `ast-diff' including:
 :same A B  : keep the current AST
 :insert B  : insert B at the current position
-:remove A  : remove the current AST
+:delete A  : remove the current AST
 :recurse S : recursively apply script S to the current AST"))
 
 (defmethod ast-patch ((original t) (script list))
@@ -792,6 +794,11 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                         (edit (cdr asts) (cdr script)))
                (:insert (cons args (edit asts (cdr script)))))))))
     (ast-un-recurse original (edit (ast-on-recurse original) script))))
+
+(defgeneric patch-files (soft file-diffs &rest args &key &allow-other-keys)
+  (:documentation "Apply the DIFFs in file-diffs to the files of SOFT.
+FILE-DIFFS is an alist mapping strings (?) to diffs, which are as
+in AST-PATCH.  Returns a new SOFT with the patched files."))
 
 (defun print-diff (diff &optional
                           (stream *standard-output*)
@@ -873,6 +880,7 @@ See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
        (ecase (car chunk)
          (:stable (cons :stable (cdaadr chunk))) ; Return the text of chunk.
          (:unstable
+	  (format t "~A~%" chunk)
           ;; TODO: Unstable Cases:
           ;; - changed only in A
           ;; - changed only in B
@@ -881,6 +889,126 @@ See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
           chunk)))               ; Already labeled :unstable.
      (chunk (ast-diff original branch-a)
             (ast-diff original branch-b)))))
+
+(defgeneric converge (original branch-a branch-b &key &allow-other-keys)
+  (:documentation "Compute a version of ORIGINAL that is the result of trying to
+apply to ORIGINAL both the changes from ORIGINAL -> BRANCH-A and the changes from
+ORIGINAL -> BRANCH-B.  Returns this object, and a second argument that describes
+problems that were encountered, or NIL if no problems were found."))
+
+(defmethod converge ((original t) (branch-a t) (branch-b t) &key &allow-other-keys)
+  "Default method, assumes the arguments are things that can be treated as ASTs
+or SEXPRs."
+  (multiple-value-bind (diff problems)
+      (merge3 original branch-a branch-b)
+    (values (ast-patch original diff)
+	    problems)))
+
+(defun merge3 (original branch-a branch-b)
+  "Find a version of that is a plausible combination of the changes from
+ORIGINAL -> BRANCH-A and ORIGINAL -> BRANCH-B.  Return the edit sequence
+from ORIGINAL to this merged version.   Also return a second value that
+is true if a clean merge could be found; otherwise, it is a list of
+unstable differences."
+  (let ((*unstable* nil))
+    (declare (special *unstable*))
+    (values
+     (merge-diffs (ast-diff original branch-a)
+		  (ast-diff original branch-b))
+     *unstable*)))
+
+(defun merge-diffs (orig-a orig-b &aux (o-a orig-a) (o-b orig-b))
+  ;; Derived from CHUNK, but a bit smarter, and
+  ;; produce an actual diff not a list of chunks
+  (declare (special *unstable*))
+  ;; Step through o-a and o-b
+  ;; When things are the same, collect them
+  ;; Otherwise, attempt to determine if there's a simple
+  (append
+   (iter (while (and o-a o-b))
+	 (let ((sym-a (caar o-a))
+	       (sym-b (caar o-b)))
+	   (case sym-a
+	     (:same
+	      (ecase sym-b
+		((nil :same)
+		 (if (equalp (car o-a) (car o-b))
+		     (collect (progn (pop o-a) (pop o-b)))
+		     (push (list :unstable (pop o-a) (pop o-b)) *unstable*)))
+		(:insert
+		 (appending (iter (while (eql (caar o-b) :insert))
+				  (collect (pop o-b)))))
+		(:delete
+		 ;; If this is not the same as :SAME
+		 ;; then it's an unstable merge
+		 (unless (equalp (cdar o-a) (cdar o-b))
+		   (push (list (car o-a) (car o-b)) *unstable*))
+		 (pop o-a)
+		 (collect (pop o-b)))
+		(:recurse
+		 (pop o-a)
+		 (collect (pop o-b)))))
+	     (:insert
+	      (ecase sym-b
+		(:insert
+		 (cond
+		   ((equalp (car o-a) (car o-b))
+		    (pop o-b)
+		    (collect (pop o-a)))
+		   (t
+		    (push (list (car o-a) (car o-b)) *unstable*)
+		    (collect (pop o-a))
+		    (collect (pop o-b)))))
+		((:delete :recurse nil)
+		 ;; (push (list (car o-a) (car o-b)) *unstable*)
+		 (collect (pop o-a)))
+		(:same
+		 (appending (iter (while (eql (caar o-a) :insert))
+				  (collect (pop o-a)))))))
+	     (:delete
+	      (ecase sym-b
+		(:delete
+		 (cond
+		   ((equalp (car o-a) (car o-b))
+		    (pop o-b)
+		    (collect (pop o-a)))
+		   (t
+		    (push (list (car o-a) (car o-b)) *unstable*)
+		    (collect (pop o-a))
+		    (collect (pop o-b)))))
+		((:insert nil)
+		 (push (list (car o-a) (car o-b)) *unstable*)
+		 (pop o-a))
+		(:recurse
+		 (push (list (car o-a) (car o-b)) *unstable*)
+		 (pop o-a)
+		 (collect (pop o-b)))
+		(:same
+		 ;; Should be the same
+		 (unless (equalp (cdar o-a) (cdar o-b))
+		   (push (list (car o-a) (car o-b)) *unstable*))
+		 (pop o-b)
+		 (collect (pop o-a)))))
+	     
+	     (:recurse
+	      (ecase sym-b
+		((:insert)
+		 (collect (pop o-b)))
+		((:delete nil)
+		 (push (list (car o-a) (car o-b)) *unstable*)
+		 (pop o-b)
+		 (collect (pop o-a)))
+		(:recurse
+		 (collect
+		     (cons :recurse (merge-diffs (cdr (pop o-a)) (cdr (pop o-b))))))
+		(:same
+		 (pop o-b)
+		 (collect (pop o-a)))))
+	     
+	     (nil
+	      (collect (pop o-b))
+	      (pop o-a)))))
+   o-a o-b))
 
 ;;; TODO: printing clang-ast-node should use a safer printer ~s.
 (defun show-chunks (chunks &optional (stream t))
