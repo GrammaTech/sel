@@ -517,6 +517,7 @@
    :ast-path
    :ast-node
    :ast-children
+   :map-ast-strings
    :make-ast
    :copy-ast
    :make-ast-node
