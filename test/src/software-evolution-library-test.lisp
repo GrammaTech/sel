@@ -8947,7 +8947,7 @@ int main() { puts(\"~d\"); return 0; }
 	      '(((:delete . a)) nil))
       "Deleting one element in second change"))
 
-(deftest sexp-merge3-delete-second ()
+(deftest sexp-merge3-delete-second-2 ()
   (is (equalp (multiple-value-list (sel/ast-diff::merge3 '(a) nil nil))
 	      '(((:delete . a)) nil))
       "Deleting one element in both changes"))
