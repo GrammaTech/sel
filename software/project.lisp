@@ -178,6 +178,7 @@ software objects in it's `evolve-files'."))
 
 (defmethod patch-files ((project project) (file-diffs list) &rest args
 			&key &allow-other-keys)
+  (declare (ignorable args))
   (let* ((file-alist (evolve-files project)))
     (confirm-files-are-same file-alist file-diffs)
     (let ((new-project-files
@@ -185,8 +186,8 @@ software objects in it's `evolve-files'."))
 		 (for (nil . diff) in file-diffs)
 		 (collect (cons file-name (ast-patch file diff)))))
 	  (new-project (copy project)))
-      (setf (evolve-files new-project) new-project-files))
-    new-project))
+      (setf (evolve-files new-project) new-project-files)
+      new-project)))
 
 (defmethod converge ((p0 project) (p1 project) (p2 project) &rest args &key &allow-other-keys)
   (let ((ef0 (evolve-files p0))

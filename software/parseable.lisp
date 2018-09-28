@@ -799,6 +799,7 @@ REPLACEMENT.
 	(root3 (ast-root obj3)))
     (multiple-value-bind (merged-root problems)
 	(apply #'converge root1 root2 root3 args)
+      (declare (ignorable problems))
       (make-instance (class-of obj1) :genome nil :ast-root merged-root))))
 
       
