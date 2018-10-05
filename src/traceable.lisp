@@ -118,7 +118,8 @@ times."))
                            (handler-case
                                (progn
                                  (with-output-to-file (out handshake-file)
-                                   (format out "~a" pipe))
+                                   (format out "~a" pipe)
+                                   (finish-output out))
                                  (finish))
                              (error (e)
                                (declare (ignorable e))

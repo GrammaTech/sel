@@ -224,7 +224,7 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
   if (handshake_file_path) {
     while (access(handshake_file_path, 0) != 0) { sleep(1); }
     handshake_file = fopen(handshake_file_path, \"r\");
-    while (fgets(buffer, 1024, handshake_file) == NULL) { sleep(1); }
+    do { sleep(1); } while (fgets(buffer, 1024, handshake_file) == NULL);
     buffer[strcspn(buffer, \"\\n\")] = 0;
     fclose(handshake_file);
     unlink(handshake_file_path);
