@@ -2574,7 +2574,7 @@ int x = CHARSIZE;")))
             (clang-mutate-available-p))
 
 
-(deftest parse-source-snippet-body-statement ()
+(deftest (parse-source-snippet-body-statement :long-running) ()
   (with-fixture gcd-clang
     (let ((asts (parse-source-snippet
                   "x + y"
@@ -2622,7 +2622,7 @@ int x = CHARSIZE;")))
                 :preamble "static int A[10];")))
     (is (eq :DeclStmt (ast-class (first asts))))))
 
-(deftest parse-source-snippet-keep-comments ()
+(deftest (parse-source-snippet-keep-comments :long-running) ()
   (let ((asts1 (parse-source-snippet
                  "/*POTENTIAL FLAW */ strlen(0);"
                  nil
@@ -2642,13 +2642,14 @@ int x = CHARSIZE;")))
   (with-fixture hello-world-clang-w-fodder
     (is (not (null *hello-world*)))))
 
-(deftest insert-fodder-decl-mutation-throws-error-if-no-targets-test ()
+(deftest (insert-fodder-decl-mutation-throws-error-if-no-targets-test
+          :long-running) ()
   (with-fixture no-insert-fodder-decl-mutation-targets-clang
     (signals no-mutation-targets
       (apply-mutation *soft* (make-instance 'insert-fodder-decl
                                :object *soft*)))))
 
-(deftest insert-decl-lengthens-a-clang-w-fodder-software-object ()
+(deftest (insert-decl-lengthens-a-clang-w-fodder-software-object :long-running) ()
   (handler-bind ((mutate ; TODO: Maybe better to fix the hello-world C file.
                   (lambda (e)
                     (if (find-restart 'keep-partial-asts)
@@ -2688,7 +2689,8 @@ int x = CHARSIZE;")))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
 
-(deftest set-value-changes-a-clang-w-fodder-software-object()
+(deftest (set-value-changes-a-clang-w-fodder-software-object
+          :long-running) ()
   (with-fixture hello-world-clang-w-fodder
     (let ((variant (copy *hello-world*)))
       (apply-mutation variant
@@ -2701,7 +2703,8 @@ int x = CHARSIZE;")))
       (is (string/= (genome variant)
                     (genome *hello-world*))))))
 
-(deftest insert-fodder-lengthens-a-clang-w-fodder-software-object ()
+(deftest (insert-fodder-lengthens-a-clang-w-fodder-software-object
+          :long-running) ()
   (with-fixture gcd-clang-w-fodder
     (let ((variant (copy *gcd*)))
       (handler-case
@@ -2715,14 +2718,14 @@ int x = CHARSIZE;")))
           ;; the snippet unparseable.
           (is (search "Failed to parse fodder" (text e))))))))
 
-(deftest pick-bad-fodder-works ()
+(deftest (pick-bad-fodder-works :long-running) ()
   (with-fixture hello-world-clang-w-fodder
     (let ((mut (make-instance 'insert-fodder :object *hello-world*)))
       (is (not (null (targets mut))))
       (is (not (null (aget :stmt1 (targets mut)))))
       (is (not (null (aget :value1 (targets mut))))))))
 
-(deftest pick-decl-fodder-works ()
+(deftest (pick-decl-fodder-works :long-running) ()
   (with-fixture hello-world-clang-w-fodder
     (let ((mut (make-instance 'insert-fodder-decl :object *hello-world*)))
       (is (not (null (targets mut))))
@@ -2891,7 +2894,7 @@ int x = CHARSIZE;")))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))
 
-(deftest force-include-test-java-1 ()
+(deftest (force-include-test-java-1 :long-running) ()
   "Check if include statement was inserted into file with no package name."
   (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
     (with-fixture general-fixture-java
@@ -2901,7 +2904,7 @@ int x = CHARSIZE;")))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))
 
-(deftest force-include-test-java-2 ()
+(deftest (force-include-test-java-2 :long-running) ()
   "Check if include statement was inserted into file with package name."
   (let ((*java-file-name* "TestSimple_package_name"))
     (with-fixture general-fixture-java
@@ -3037,14 +3040,15 @@ int x = CHARSIZE;")))
 (defixture java-project
   (:setup
    (setf *soft*
-         (from-file
-          (make-instance 'java-project
-            :build-command "./gt-harness.sh build"
-            :artifacts
-            (list (format nil "target/~
-                        simpleMultifileMaven-1.~
-                        0-SNAPSHOT-jar-with-dependencies.jar")))
-          (make-pathname :directory +maven-prj-dir+))))
+         (with-warnings-as-notes 3
+           (from-file
+            (make-instance 'java-project
+              :build-command "./gt-harness.sh build"
+              :artifacts
+              (list (format nil "target/~
+                          simpleMultifileMaven-1.~
+                          0-SNAPSHOT-jar-with-dependencies.jar")))
+            (make-pathname :directory +maven-prj-dir+)))))
   (:teardown
    (setf *soft* nil)))
 
@@ -4552,7 +4556,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text *soft* "return 0"))
                     effective-a-pts))))))
 
-(deftest crossover-2pt-outward-switch-stmt-test ()
+(deftest (crossover-2pt-outward-switch-stmt-test :long-running) ()
   (with-fixture crossover-switch-stmt-clang
     (let ((*matching-free-var-retains-name-bias* 1.0))
       (multiple-value-bind (variant a-pts b-pts ok effective-a-pts)
@@ -4777,7 +4781,7 @@ Useful for printing or returning differences in the REPL."
                           (stmt-with-text *soft* "return 0"))
                     effective-a-pts))))))
 
-(deftest basic-2pt-crossover-works ()
+(deftest (basic-2pt-crossover-works :long-running) ()
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int d"))
            (a-stmt2 (stmt-with-text *scopes* "d = 5"))
@@ -4851,7 +4855,7 @@ Useful for printing or returning differences in the REPL."
         (is ok)
         (is (phenome-p variant))))))
 
-(deftest crossover-entire-text-of-a-function ()
+(deftest (crossover-entire-text-of-a-function :long-running) ()
   ;; Entire text of a function
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "int a"))
@@ -4895,7 +4899,7 @@ Useful for printing or returning differences in the REPL."
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
-(deftest crossover-a-single-statement-the-last ()
+(deftest (crossover-a-single-statement-the-last :long-running) ()
   ;; A single statement (the last one)
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-with-text *scopes* "return a + b + c"))
@@ -4912,7 +4916,7 @@ Useful for printing or returning differences in the REPL."
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
-(deftest crossover-a-single-statement-complex ()
+(deftest (crossover-a-single-statement-complex :long-running) ()
   ;; A single complex statement
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-starting-with-text *scopes*
@@ -4930,7 +4934,7 @@ Useful for printing or returning differences in the REPL."
         (is (= (length (asts *scopes*))
                (length (asts variant))))))))
 
-(deftest crossover-a-statement-and-descendants ()
+(deftest (crossover-a-statement-and-descendants :long-running) ()
   ;; A statement and one of its descendants
   (with-fixture scopes-clang
     (let* ((a-stmt1 (stmt-starting-with-text *scopes*
@@ -4998,7 +5002,8 @@ Useful for printing or returning differences in the REPL."
         (is (stmt-with-text variant "a = 12" :no-error))
         (is (not (stmt-with-text variant "int b" :no-error)))))))
 
-(deftest crossover-a-multiple-statements-with-a-single-statement ()
+(deftest (crossover-a-multiple-statements-with-a-single-statement
+          :long-running) ()
   ;; Replace multiple statements with a single statement
   (with-fixture scopes-clang
     (let ((a-stmt1 (stmt-with-text *scopes* "int b"))
@@ -6460,7 +6465,7 @@ prints unique counters in the trace"
                (-> (flags (cdr (first (evolve-files *project*))))
                    (remove-duplicates :test #'string=))))))
 
-(deftest apply-mutations-to-project-unique-test ()
+(deftest (apply-mutations-to-project-unique-test :long-running) ()
   (with-fixture clang-project
     (let ((proj (copy *project*)))
       (multiple-value-bind (objs muts)
@@ -6481,7 +6486,7 @@ prints unique counters in the trace"
                      (remove-duplicates :test #'equalp)
                      (length))))))))
 
-(deftest apply-picked-mutations-to-project-unique-test ()
+(deftest (apply-picked-mutations-to-project-unique-test :long-running) ()
   (with-fixture clang-project
     (let ((proj (copy *project*)))
       (multiple-value-bind (objs muts)
@@ -7010,7 +7015,7 @@ prints unique counters in the trace"
                                        (asts *variety*))))
       (is (= 2 (sel::max-depth-ast *variety* return-stmts))))))
 
-(deftest merge-max-picks-larger ()
+(deftest (merge-max-picks-larger :long-running) ()
   (bind (((:values vec1 meta1) (with-fixture variety-clang
                                  (sel::max-depth-ast-extractor *variety*)))
          ((:values vec2 meta2) (with-fixture gcd-clang
@@ -8073,7 +8078,7 @@ prints unique counters in the trace"
             (clang-mutate-available-p))
 
 
-(deftest case-tokens ()
+(deftest (case-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "case 1"))
            (tokens (tokens *variety* (list root)))
@@ -8087,7 +8092,7 @@ prints unique counters in the trace"
                           "+" "identifier" ")"))))
       (is (equal tokens switch-tokens)))))
 
-(deftest do-while-tokens ()
+(deftest (do-while-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "do {"))
            (tokens (tokens *variety* (list root))))
@@ -8102,7 +8107,7 @@ prints unique counters in the trace"
                                ;; < 8)
                                "<" "int-literal" ")")))))))
 
-(deftest designatedinitexpr-tokens ()
+(deftest (designatedinitexpr-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((roots (remove-if-not {eq :DesignatedInitExpr}
                                  (asts *variety*)
@@ -8130,7 +8135,7 @@ prints unique counters in the trace"
                  (mapcar #'make-keyword
                          (list "." "identifier" "=" "float-literal")))))))
 
-(deftest function-tokens ()
+(deftest (function-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "int add3"))
            (tokens (tokens *variety* (list root))))
@@ -8145,7 +8150,7 @@ prints unique counters in the trace"
                          ;; return x + 3 }
                          "return" "identifier" "+" "int-literal" "}")))))))
 
-(deftest mixed-tokens ()
+(deftest (mixed-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (stmt-starting-with-text *variety* "tun->foo"))
            (tokens (tokens *variety* (list root))))
@@ -8161,7 +8166,7 @@ prints unique counters in the trace"
                  ;; , char: 'q')
                  "," "char" ":" "char-literal" ")")))))))
 
-(deftest memberexpr-tokens ()
+(deftest (memberexpr-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((roots (remove-if-not {eq :MemberExpr}
                                  (asts *variety*)
@@ -8178,7 +8183,7 @@ prints unique counters in the trace"
                                                "]" "." "identifier")))))
                  token-lists)))))
 
-(deftest parenexpr-tokens ()
+(deftest (parenexpr-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((roots (remove-if-not {eq :ParenExpr}
                                  (asts *variety*)
@@ -8189,7 +8194,7 @@ prints unique counters in the trace"
       (is (every [{eql (make-keyword "(")} #'first] token-lists))
       (is (every [{eql (make-keyword ")")} #'lastcar] token-lists)))))
 
-(deftest parmvar-tokens ()
+(deftest (parmvar-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((parmvars (remove-if-not {eq :ParmVar}
                                     (asts *variety*)
@@ -8204,7 +8209,7 @@ prints unique counters in the trace"
       (is (member int-tokens token-lists :test #'equal))
       (is (member argv-tokens token-lists :test #'equal)))))
 
-(deftest record-tokens ()
+(deftest (record-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((records (remove-if-not {eq :Record}
                                    (asts *variety*)
@@ -8222,7 +8227,7 @@ prints unique counters in the trace"
       (is (member union-tokens token-lists :test #'equal))
       (is (member struct-tokens token-lists :test #'equal)))))
 
-(deftest while-tokens ()
+(deftest (while-tokens :long-running) ()
   (with-fixture variety-clang
     (let* ((root (remove-if-not {eq :WhileStmt}
                                 (asts *variety*)
