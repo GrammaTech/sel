@@ -19,12 +19,16 @@ FROM ubuntu:16.04
 RUN apt-get -y update && \
     apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect
 
-RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz
-RUN tar xf astyle_3.1_linux.tar.gz
-RUN cd astyle/build/gcc && make release
-RUN cp astyle/build/gcc/bin/astyle /usr/bin
-RUN rm -rf astyle
-RUN rm -rf astyle_3.1_linux.tar.gz
+# Artistic Style Version 3.0
+# Build astyle from source as the package manager only has version 2.0.
+RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz && \
+    tar xf astyle_3.1_linux.tar.gz && \
+    cd astyle/build/gcc && \
+    make release && \
+    cp bin/astyle /usr/bin && \
+    cd ../../../ && \
+    rm -rf astyle && \
+    rm -rf astyle_3.1_linux.tar.gz
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=clang-mutate /usr/synth/ /usr/synth/
