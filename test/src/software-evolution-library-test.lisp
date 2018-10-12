@@ -47,6 +47,9 @@
 (defvar *test-suite*  nil "Holds condition synthesis test suite object.")
 (defvar *java-file-name* nil "File name to be tested in a test case.")
 (defvar *coq*         nil "Coq software object.")
+(defvar *clack*       nil "Web server instance used in tests.")
+(defvar *clack-port*  9003 "Default port for clack web server instance.")
+(defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
@@ -539,6 +542,12 @@
 	  (sel::parse-sanity-file (asm-test-dir "odd-even.nm"))))
 
   (:teardown (setf *soft* nil)))
+
+(defixture rest-api-server
+  (:setup
+   (setf *clack* (clack:clackup (snooze:make-clack-app) :port *clack-port*)))
+
+  (:teardown (clack:stop *clack*)))
 
 (defixture gcd-elf
   (:setup
@@ -1194,7 +1203,7 @@
   (with-fixture gcd-asm
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'asm-replace-operand
-                                :targets (list 13 18)))
+					     :targets (list 13 18)))
       (is (not (equal (aget :code (elt (genome variant) 13))
                       (aget :code (elt (genome *gcd*) 13))))))))
 
@@ -1242,9 +1251,9 @@
           (target 40))
       ;; apply cut to variant
       (apply-mutation variant
-        (make-instance 'simple-cut
-          :object variant
-          :targets target))
+		      (make-instance 'simple-cut
+				     :object variant
+				     :targets target))
       (multiple-value-bind (crossed cross-a cross-b)
           (homologous-crossover *gcd* variant)
         (declare (ignorable cross-a cross-b))
@@ -1270,9 +1279,9 @@
           (stmt-to-insert 60)
           (variant (copy *gcd*)))
       (apply-mutation variant
-        (make-instance 'simple-insert
-          :object variant
-          :targets (list insert-pt stmt-to-insert)))
+		      (make-instance 'simple-insert
+				     :object variant
+				     :targets (list insert-pt stmt-to-insert)))
       (multiple-value-bind (crossed cross-a cross-b)
           (homologous-crossover variant *gcd*)
         (declare (ignorable cross-b))
@@ -1294,8 +1303,8 @@
     (let ((targets (list 20 60))
           (variant (copy *gcd*)))
       (apply-mutation
-          variant
-        (make-instance 'simple-swap :object variant :targets targets))
+       variant
+       (make-instance 'simple-swap :object variant :targets targets))
       (multiple-value-bind (crossed cross-a cross-b)
           (homologous-crossover *gcd* variant)
         (declare (ignorable cross-b))
@@ -1341,7 +1350,7 @@
   (with-fixture gcd-asm-heap
     (let ((variant (copy *gcd*)))
       (apply-mutation variant (make-instance 'simple-insert
-                                :targets (list 4 8)))
+					     :targets (list 4 8)))
       (is (> (length (genome variant)) (length (genome *gcd*)))))))
 
 (deftest asm-heap-swap-maintains-length ()
@@ -1349,13 +1358,13 @@
     (let ((variant (copy *gcd*))
           (mutation
            (make-instance 'simple-swap
-             :targets (list
-                       (position-if
-                        [{eql 'sel/asm::movsd} #'asm-line-info-opcode]
-                        (genome *gcd*))
-                       (position-if
-                        [{eql 'sel/asm::call} #'asm-line-info-opcode]
-                        (genome *gcd*))))))
+			  :targets (list
+				    (position-if
+				     [{eql 'sel/asm::movsd} #'asm-line-info-opcode]
+				     (genome *gcd*))
+				    (position-if
+				     [{eql 'sel/asm::call} #'asm-line-info-opcode]
+				     (genome *gcd*))))))
       (setf variant (apply-mutation variant mutation))
       (is (not (equalp (genome variant) (genome *gcd*))))
       (is (= (length (genome variant)) (length (genome *gcd*)))))))
@@ -1363,9 +1372,9 @@
 
 ;;; ASM-SUPER-MUTANT representation.
 (defsuite asm-super-mutant-tests
-            "ASM-SUPER-MUTANT representation."
-            ;; Only run these tests if we found libpapi.so.
-            *lib-papi*)
+    "ASM-SUPER-MUTANT representation."
+  ;; Only run these tests if we found libpapi.so.
+  *lib-papi*)
 
 (deftest asm-super-mutant-finds-improved-version ()
   (with-fixture odd-even-asm-super
@@ -1382,6 +1391,87 @@
       ;; number) than the first test result of the original version?
       (is (< (elt (fitness (first best)) 0)
 	     (elt (fitness (elt (mutants *soft*) 0)) 0))))))
+
+
+;;; REST-API tests
+(defsuite rest-api-tests "REST API tests.")
+
+(defun rest-test-create-client ()
+  "Returns 2 values: new client id or nil, and status. 
+ Assumes service is running."
+  (let* ((params '(("max-population-size" . "1024")))
+	   (result nil))
+      (multiple-value-bind (stream status)
+	  (drakma:http-request
+	   (format nil "http://127.0.0.1:~D/client" *clack-port*)
+	   :method :post
+	   :content-type "application/json"
+	   :content (json:encode-json-to-string params)
+	   :want-stream t)
+	(if (= status 200)
+	    (setf result (read stream)))
+	(if (symbolp result)
+	    (setf result (symbol-name result)))
+	
+	(values result status))))
+
+(defun rest-test-create-software (type cid)
+  "Given type of Software object and client-id, returns 2 
+ values: new software oid or nil, and status. 
+ Assumes service is running."
+  (let* ((path (namestring (hello-world-dir "hello_world.c")))
+	 (params `(("path" . ,path)
+		   ("compiler" . "clang")
+		   ("flags" . ,(list "-I" (namestring
+					   (make-pathname
+					    :directory +headers-dir+))))))
+	 (result nil))
+    (multiple-value-bind (stream status)
+	(drakma:http-request
+	 (format nil "http://127.0.0.1:~D/soft?cid=~A&type=~A"
+		 *clack-port* cid type)
+	 :method :post
+	 :content-type "application/json"
+	 :content (json:encode-json-to-string params)
+	 :want-stream t)
+      (if (= status 200)
+	  (setf result (read stream)))
+      (if (symbolp result)
+	  (setf result (symbol-name result)))
+      
+      (values result status))))
+
+(defun rest-test-get-new-client ()
+  "Always creates a new REST client and returns (1) new client id, 
+ (2) http status code. The new client id is stored in *rest-client*."
+  (multiple-value-bind (cid status)
+      (rest-test-create-client)
+    (setf *rest-client* cid) ; store the new client for further tests
+    (values cid status)))
+
+(defun rest-test-get-client ()
+  "If REST client already has been created, return it.
+ Else, create one and return the client id (cid)."
+  (or *rest-client* (rest-test-get-new-client)))
+
+(deftest rest-create-client ()
+  ;; test ensures the web service is running and it can create a new client,
+  ;; tests Create Client (HTTP POST) method.
+  (with-fixture rest-api-server
+    (multiple-value-bind (cid status) (rest-test-get-new-client)
+      (is (and (eql status 200)
+	       (stringp cid)
+	       (string-equal (subseq cid 0 7) "client-"))))))
+
+(deftest rest-create-software ()
+  ;; test ensures the web service is running and it can create a new software
+  ;; object. Tests Create Software (HTTP POST) method.
+  (with-fixture rest-api-server
+    (let ((cid (rest-test-get-client)))
+      (multiple-value-bind (oid status)
+	  (rest-test-create-software "CLANG" cid)
+        (is (and (eql status 200)
+	       (integerp oid)))))))
 
 
 ;;; CSURF-ASM representation.

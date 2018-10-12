@@ -4,7 +4,7 @@
 ;;; set correctly for your environment.  Then execute:
 ;;;
 ;;;    (evolve-function-test "<func-name>" :max-evals 10000)
-;;;    ;; e.g., (evolve-function-test "zerostat" :max-evals 10000)
+;;;    ;; e.g., (evolve-function-test "zeroset" :max-evals 10000)
 ;;;
 ;;; This binds *SOFT* to the ASM-SUPER-MUTANT master software object.
 ;;; It binds SEL:*POPULATION* to the population currently being
@@ -115,7 +115,7 @@ is found."
 		  (asm-super-mutant-test-function
 		   asm-path
 		   x
-		   'mutant-generator
+		   :mutants-generator 'sel::create-all-simple-cut-variants
 		   :io-dir io-dir
 		   :var-address-file var-address-file
 		   :fitness-file fitness-file
@@ -135,7 +135,8 @@ is found."
                               (mutants-generator
                                (lambda (asm-super)
                                  ;; Creates 1024 copies of the original.
-                                 (iter (for _ below *max-population-size*)
+                                 (iter (for _ from 0
+					    to (or *max-population-size* 1024))
                                        (collect (create-target asm-super)))))
                               io-dir
 			      var-address-file
@@ -148,10 +149,10 @@ created softare object."
   (let ((asm-super
 	 (from-file
 	  (make-instance 'asm-super-mutant
-	    :io-dir io-dir
-	    :function-bounds-file function-bounds-file
-	    :fitness-harness fitness-file
-	    :var-table (parse-sanity-file var-address-file))
+			 :io-dir io-dir
+			 :function-bounds-file function-bounds-file
+			 :fitness-harness fitness-file
+			 :var-table (sel::parse-sanity-file var-address-file))
 	  asm-path)))
 
     ;; Select the function we want to work on.
@@ -198,16 +199,19 @@ instances representing the MUTANTS (variants) of the target function."
        (reduce '+ (fitness (elt (mutants asm-super) 0)))))))
 
 (defun evolve-tests (asm-path func-name
-		     &key mutant-generator io-dir var-address-file fitness-file
+		     &key (mutants-generator nil mutants-generator-p)
+		       io-dir var-address-file fitness-file
 		       function-bounds-file max-evals period period-fn)
   (let ((asm-super
-	 (sel::setup-test-function asm-path func-name
-                                   :mutant-generator mutant-generator
-				   :io-dir io-dir
-				   :var-address-file var-address-file
-				   :fitness-file fitness-file
-				   :function-bounds-file function-bounds-file)))
-    (setf *soft* asm-super)  ;; copy to special variable for development
+	 (apply #'setup-test-function
+		asm-path func-name
+		:io-dir io-dir
+		:var-address-file var-address-file
+		:fitness-file fitness-file
+		:function-bounds-file function-bounds-file
+		(when mutants-generator-p
+                            (list :mutants-generator mutants-generator)))))
+    (setf *master* asm-super)  ;; copy to special variable for development
 
     (evaluate nil *soft*)
     (setf *population* (mutants *soft*))
@@ -223,25 +227,27 @@ instances representing the MUTANTS (variants) of the target function."
     (sel/utility::print-time)
     (force-output)
 
+    (let ((*running* nil)
+	  (*fitness-evals* 0))
     ;; if the size of a variant's genome is < 2 we should filter it out
-    (evolve nil :super-mutant-count 400
+      (evolve nil :super-mutant-count 400
 	    :max-evals max-evals
 	    :filter
 	    (lambda (v)
 	      (> (size v) 5))
 	    :period period
-	    :period-fn period-fn)))
+	    :period-fn period-fn))))
 
 (defun evolve-function-test (func-name
 			     &key
 			       (max-evals 1000)
 			       (report-path
-			         (merge-pathnames *io-dir*
-				   (make-pathname :name
-						(concatenate 'string
-							     func-name
-							     "-report")
-						:type "txt"))))
+				(merge-pathnames
+				 *io-dir*
+				 (make-pathname
+				  :name
+				  (concatenate 'string func-name "-report")
+				  :type "txt"))))
   (setf *tr*
 	(sel/utility::run-as-task (task1 runner1)
 	  (task-save-result runner1 "Started fitness tests")
@@ -287,9 +293,10 @@ instances representing the MUTANTS (variants) of the target function."
   (let* ((best-variant (extremum *population* *fitness-predicate*
                                  :key [{reduce #'+} #'fitness]))
 	 (*soft*
-	  (sel::setup-test-function
+	  (setup-test-function
 	   *asm-path*
 	   func-name
+	   :mutants-generator
 	   (lambda (asm)
 	     (let ((v (copy best-variant)))
 	       (setf (sel::super-owner v) asm)
@@ -339,7 +346,7 @@ instances representing the MUTANTS (variants) of the target function."
     (when verbose
       (format stream "~%Evolve progress~%---------------------~%")
       (dolist (x (reverse (task-runner-results task-runner)))
-	  (format stream "~A~%" x)))
+	(format stream "~A~%" x)))
 
     (when verbose
       (format stream "~%Population fitness: ")

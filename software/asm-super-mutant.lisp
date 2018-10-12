@@ -217,6 +217,11 @@
     :accessor var-table
     :initform nil
     :documentation "Vector of var-rec (data/address records)")
+   (target-name
+    :initarg :target-name
+    :accessor target-name
+    :initform nil
+    :documentation "Name of target function")
    (target-start-index
     :initarg :target-start-index
     :accessor target-start-index
@@ -300,6 +305,23 @@
      (length (input-specification-regs spec))
      (length (input-specification-simd-regs spec))
      (length (input-specification-mem spec)))))
+
+(defmethod initialize-instance :after ((instance asm-super-mutant)
+				       &rest initargs)
+  (declare (ignore initargs))
+  ;; if a path was assigned to var-table
+  ;; parse it and replace the value with the table
+  (if (or (stringp (var-table instance)) (pathnamep (var-table instance)))
+      (setf (var-table instance)
+	    (sel::parse-sanity-file (var-table instance)))))
+
+(defmethod from-file :after ((asm asm-super-mutant) file)
+  "Set function target after the file loads."
+  ;; if target-name non-nil, set the target
+  (declare (ignore file))
+  (if (target-name asm)
+    (target-function-name asm (target-name asm)))
+  asm)
 
 ;;;
 ;;; Store name and address of data variables

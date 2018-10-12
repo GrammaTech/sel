@@ -7,7 +7,7 @@
 (defvar *process-kill-timeout* 10
   "Timeout (in seconds) before killing a process with SIGKILL")
 
-(defclass test-suite ()
+(defclass test-suite (oid-object)
   ((test-cases
     :initarg :test-cases :initform nil :accessor test-cases :type list
     :documentation "List of `test-case' objects that make up the test suite."))

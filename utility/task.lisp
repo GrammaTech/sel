@@ -392,11 +392,20 @@ See the `task-job' method on `task-map' objects."))
 
 (defun task-map (num-threads function objects)
   "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
-  (if (= 1 num-threads)
-      (mapcar function objects)   ; No threading when single threaded.
+  (if (= 0 num-threads)
+      (mapcar function objects)   ; No threading when num-threads = 0.
       (task-runner-results  ; Return the results from the results obj.
        ;; Create the task-map object, and run until exhausted.
        (run-task-and-block (make-instance 'task-map
                              :object objects
                              :task-function function)
                            num-threads))))
+
+(defun task-map-async (num-threads function objects)
+  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
+  ;; Create the task-map object, and run until exhausted.
+  (run-task (make-instance 'task-map
+				     :object objects
+				     :task-function function)
+		      num-threads))
+

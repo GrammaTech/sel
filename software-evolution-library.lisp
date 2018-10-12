@@ -25,7 +25,17 @@
       (git (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
-(defclass software ()
+(let ((oid-counter 0))
+  (defun generate-oid ()
+    "Create a fresh, unique oid (object id) in range [1 ...]"
+    (incf oid-counter)))
+ 
+(defclass oid-object (standard-object)
+  ((oid :initarg :oid :reader oid :initform (generate-oid)))
+  (:documentation "Any class derived from this will have a unique oid
+ (object identifier) attached to each instance."))
+
+(defclass software (oid-object)
   ((fitness :initarg :fitness :accessor fitness :initform nil))
   (:documentation "Base class for all software objects."))
 
@@ -117,6 +127,8 @@ first value from the `phenome' method."
 (defmethod evaluate ((test symbol) (obj software)
                      &rest extra-keys &key &allow-other-keys)
   (declare (ignorable extra-keys))
+  (if (null test)  ;; allow NIL to be passed for the function
+      (setf test 'identity))
   (evaluate (symbol-function test) obj))
 
 (defmethod evaluate ((test function) (obj software)
@@ -574,7 +586,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (declare (ignorable class-name mut-a mut-b options))
   (error "TODO: Implement `sequence-mutations'."))
 
-(defclass mutation ()
+(defclass mutation (oid-object)
   ((object :initarg :object :accessor object :initform nil
            :type (or software null)
            :documentation "The software object to be mutated.")

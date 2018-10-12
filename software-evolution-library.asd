@@ -128,6 +128,7 @@ techniques."
                software-evolution-library
                software-evolution-library/utility
                software-evolution-library/ast-diff
+	       software-evolution-library/rest
                split-sequence
                software-evolution-library/stefil-plus
                uuid
@@ -147,6 +148,46 @@ techniques."
   :perform (test-op (o c)
                     (symbol-call :software-evolution-library/test
                                  '#:run-batch)))
+
+
+;;;; REST API for SEL
+(defsystem "software-evolution-library/rest"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "REST interface for SOFTWARE-EVOLUTION-LIBRARY package."
+  :version "0.0.0"
+  :depends-on (alexandria
+	       cl-json     ; parse and generate JSON format
+	       st-json     ; stream support for JSON format
+               closer-mop
+               arrow-macros
+               cl-store
+               named-readtables
+               curry-compose-reader-macros
+               cxml
+               iterate
+               metabang-bind
+	       clack       ; interface to hunchentoot web server
+	       drakma      ; http client package for testing APIs
+	       hunchentoot ; web server
+	       snooze      ; REST framework
+               software-evolution-library
+               software-evolution-library/utility
+               software-evolution-library/ast-diff
+               split-sequence
+               software-evolution-library/stefil-plus
+               uuid
+               #+gt testbot
+               trace-db
+               uiop
+               optima
+               fare-quasiquote
+               fare-quasiquote-extras)
+  :components
+  ((:module test
+            :pathname ""
+            :components
+            ((:file "rest-api")))))
 
 
 ;;;; Subsystems.

@@ -45,6 +45,7 @@ software objects in it's `evolve-files'."))
              collect (genome c))))
 
 (defmethod (setf genome) (text (project project))
+  (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
 (defgeneric write-genome-to-files (obj)
