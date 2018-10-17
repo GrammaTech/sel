@@ -1,29 +1,27 @@
-;;; view.lisp --- view functions
+;;;; view.lisp --- view functions
 
-;;; Commentary:
-
-;; The SOFTWARE-EVOLUTION-VIEW (SE-VIEW) library provides a live
-;; status view which is continually updated during the course of an
-;; evolutionary run.  Currently the interface is maintained on STDOUT
-;; of the process running the SE library.  This view includes
-;; information on the progress and timing of the evolutionary run, the
-;; mutations used over the course of the run and their efficacy, and a
-;; summary of the `note' output printed during the run.
-;;
-;; To use SE-VIEW simply include it into your package, and then call
-;; `start-view' to begin maintain a status view on STDOUT.  The
-;; following global variables of the SE-VIEW package may be used to
-;; customize the appearance of the view output.
-;;
-;; *view-run-name* ----------- controls the title of the run
-;; *view-length* ------------- controls the maximum width of the printed view
-;; *view-delay* -------------- control the refresh rate of the view in seconds
-;; *view-mutation-header-p* -- show headers of mutation view columns
-;; *view-max-mutations* ------ number of top mutations to show
-;; *view-max-note-lines* ----- number of notes lines to display
-;; *view-best-genome-lines* -- show lines of the best genome
-
-;;; Code:
+;;; The SOFTWARE-EVOLUTION-VIEW (SE-VIEW) library provides a live
+;;; status view which is continually updated during the course of an
+;;; evolutionary run.  Currently the interface is maintained on STDOUT
+;;; of the process running the SE library.  This view includes
+;;; information on the progress and timing of the evolutionary run, the
+;;; mutations used over the course of the run and their efficacy, and a
+;;; summary of the `note' output printed during the run.
+;;;
+;;; To use SE-VIEW simply include it into your package, and then call
+;;; `start-view' to begin maintain a status view on STDOUT.  The
+;;; following global variables of the SE-VIEW package may be used to
+;;; customize the appearance of the view output.
+;;;
+;;; * *VIEW-RUN-NAME* controls the title of the run
+;;; * *VIEW-LENGTH* controls the maximum width of the printed view
+;;; * *VIEW-DELAY* control the refresh rate of the view in seconds
+;;; * *VIEW-MUTATION-HEADER-P* show headers of mutation view columns
+;;; * *VIEW-MAX-MUTATIONS* number of top mutations to show
+;;; * *VIEW-MAX-NOTE-LINES* number of notes lines to display
+;;; * *VIEW-BEST-GENOME-LINES* show lines of the best genome
+;;;
+;;; @texi{view}
 (in-package :software-evolution-library/view)
 (in-readtable :curry-compose-reader-macros)
 

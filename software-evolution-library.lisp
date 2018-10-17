@@ -863,6 +863,12 @@ criteria for this search."
                       (mapc ,every-pre-fn ,variants))
                     (if (cdr ,variants)
                         ;; Multiple variants. Combine into super-mutant.
+                        ;;
+                        ;; FIXME: We should split the use of
+                        ;;        super-mutants into a separate
+                        ;;        variable instead of using the number
+                        ;;        of individuals returned by
+                        ;;        new-individual.
                         (let ((super (create-and-populate-super ,variants)))
                           (genome super)
                           (evaluate ,test super))
@@ -929,11 +935,11 @@ Other keyword arguments are used as defined in the `-search' function."
                   &key
                     max-evals max-time period period-fn
                     every-pre-fn every-post-fn filter analyze-mutation-fn
-                    (super-mutant-count 0))
+                    (super-mutant-count 1))
   "Evolves `*population*' using `new-individual' and TEST.
 
 * SUPER-MUTANT-COUNT evaluate this number of mutants at once in a
-  combined genome. If count = 0, disable super-mutants.
+  combined genome.
 
 Other keyword arguments are used as defined in the `-search' function.
 "

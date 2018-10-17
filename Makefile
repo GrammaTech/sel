@@ -20,6 +20,7 @@ LISP_DEPS =				\
 	$(wildcard src/*.lisp)		\
 	$(wildcard software/*.lisp)	\
 	$(wildcard utility/*.lisp)	\
+	$(wildcard view/*.lisp)		\
 	$(wildcard ast-diff/*.lisp)	\
 	$(wildcard clang-diff/*.lisp)	\
 	$(wildcard lisp-diff/*.lisp)

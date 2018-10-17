@@ -33,11 +33,11 @@ project software objects."))
 
 
 ;;; Trace collection interface
-(defgeneric collect-traces (software test-suite &key max bin)
+(defgeneric collect-traces (software test-suite &key max bin num-threads)
   (:documentation
    "Execute instrumented SOFTWARE on TEST-SUITE collecting dynamic traces.
 See the documentation of `collect-trace' for information on the
-MAX and BIN keyword arguments."))
+MAX, BIN, and NUM-THREADS keyword arguments."))
 
 (defgeneric collect-trace (software input &key max bin)
   (:documentation
@@ -52,7 +52,7 @@ times."))
 
 ;;; Trace collection with proprietary binary format
 (defmethod collect-traces ((obj software) (test-suite test-suite)
-                           &key max (bin (temp-file-name))
+                           &key max (bin (temp-file-name)) (num-threads 1)
                            &aux (args (list :bin bin)) (delete-bin-p t))
   "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
@@ -74,9 +74,10 @@ times."))
           (return-from collect-traces (traces obj)))))
   (setf (traces obj) (make-instance 'binary-trace-db))
   (unwind-protect
-       (mapc (lambda (test-case)
-               (apply #'collect-trace obj test-case args))
-             (test-cases test-suite))
+       (task-map num-threads
+                 (lambda (test-case)
+                   (apply #'collect-trace obj test-case args))
+                 (test-cases test-suite))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
       (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)
@@ -118,7 +119,8 @@ times."))
                            (handler-case
                                (progn
                                  (with-output-to-file (out handshake-file)
-                                   (format out "~a" pipe))
+                                   (format out "~a" pipe)
+                                   (finish-output out))
                                  (finish))
                              (error (e)
                                (declare (ignorable e))
@@ -176,27 +178,28 @@ times."))
 
 ;;; Trace collection with legacy s-expression format for JAVA
 (defmethod collect-traces ((obj java-traceable) (test-suite test-suite)
-                           &key max (bin (temp-file-name)))
+                           &key max (bin (temp-file-name)) (num-threads 1))
   "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-SUITE suite of test case to execute for trace collection
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
 "
-  (java-collect-traces obj test-suite :max max :bin bin))
+  (java-collect-traces obj test-suite
+                       :max max :bin bin :num-threads num-threads))
 
 (defmethod collect-traces ((obj java-traceable-project) (test-suite test-suite)
-                           &key max (bin (temp-file-name)))
+                           &key max (bin (temp-file-name)) (num-threads 1))
   "Executed instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
 * TEST-SUITE suite of test case to execute for trace collection
 * MAX maximum number of trace points to record
 * BIN compiled binary with instrumentation to use for trace collection
 "
-  (java-collect-traces obj test-suite :max max :bin bin))
+  (java-collect-traces obj test-suite :max max :bin bin :num-threads 1))
 
 (defun java-collect-traces (obj test-suite
-                            &key max (bin (temp-file-name))
+                            &key max (bin (temp-file-name)) (num-threads 1)
                             &aux (args (list :bin bin)) (delete-bin-p t))
   (when max (setf args (append args (list :max max))))
   (if (probe-file bin)
@@ -212,9 +215,10 @@ times."))
           (return-from java-collect-traces (traces obj)))))
   (setf (traces obj) (make-instance 'sexp-trace-db))
   (unwind-protect
-       (mapc (lambda (test-case)
-               (apply #'collect-trace obj test-case args))
-             (test-cases test-suite))
+       (task-map num-threads
+                 (lambda (test-case)
+                   (apply #'collect-trace obj test-case args))
+                 (test-cases test-suite))
     (when-let ((probe (and delete-bin-p (probe-file bin))))
       (if (directory-pathname-p probe)
           (delete-directory-tree probe :validate #'probe-file)

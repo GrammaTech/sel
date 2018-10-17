@@ -21,7 +21,7 @@ A copy of the license is included in the section entitled
 
 @dircategory Libraries
 @direntry
-* Software Evolution: (software-evolution-library). library enabling extant software evolution
+* Software Evolution: (software-evolution-library). Manipulate and evaluate software
 @end direntry
 
 @titlepage
@@ -95,6 +95,7 @@ Engineering (SBSE) techniques.
 * Introduction::                What is SEL?
 * Implementation::              How SEL is implemented.
 * Components::                  Components provided by SEL.
+* Utilities::                   Utilities provided by SEL.
 * Usage::                       Using SEL, including examples.
 * Troubleshooting::             Solutions for build and test issues.
 
@@ -842,14 +843,18 @@ current and new fitness that returns acceptance.
 @end ignore
 
 
-@node Components, Multi-objective Fitness, Implementation, Top
+@node Components, Test Suites, Implementation, Top
 @chapter Components
 @cindex components
 
-The Software Evolution library is implemented in Common Lisp and is
-intended for use in Common Lisp programs.  @ref{fig:overview} provides
-an overview of the Software Evolution system, the specifics of which
-are given in remainder of this section.
+In addition to the software objects, method and evolutionary
+infrastructure described in the previous section @ref{Implementation},
+the Software Evolution Library includes many ``components.''  Each
+component is a self-contained unit used to evaluate or manipulate
+software objects.  Some components are implemented as classes which
+may be @i{mixed in} with software objects which others are functions
+on software objects, or extensions to the basic evolutionary
+infrastructure.
 
 @menu
 * Test Suites::                 Running unit tests
@@ -903,12 +908,63 @@ are given in remainder of this section.
 @cindex super-mutants
 @include include/super-mutant.texi
 
-@node AST Differencing, @code{clang-diff}, Super-Mutants, Components
+@node AST Differencing, Utilities, Super-Mutants, Components
 @section AST Differencing
 @cindex ast-differencing
 @include include/ast-diff.texi
 
-@node Usage, Installation, Implementation, Top
+@node Utilities, Basic Utilities, Components, Top
+@chapter Utilities
+@cindex utilities
+
+The Software Evolution Library provides utilities packages, including
+the @code{SEL/UTILITY} package (see @ref{SEL Utility API}) and the
+@code{SEL/VIEW} package (see @ref{SEL View API}).  This chapter
+documents these utilities.
+
+@menu
+* Basic Utilities::             Basic Utilities covering a range of uses
+* View::                        A simple GUI for SEL applications
+* Task::                        Infrastructure to use multiple threads
+@end menu
+
+@node Basic Utilities, View, Utilities, Utilities
+@section Basic Utilities
+@include include/utility.texi
+
+@subsection Files and Directories, Temporary and Git
+@include include/file-directory.texi
+
+@subsection Process wrapping
+@include include/process.texi
+
+@subsection Shell and system command helpers
+@include include/shell.texi
+
+@subsection Generic utility functions
+@include include/generic-utility.texi
+
+@subsection Source and binary locations and ranges.
+@include include/locations-and-ranges.texi
+
+@subsection Debugging helpers
+@include include/debugging.texi
+
+@subsection Oprofile functions
+@include include/oprofile.texi
+
+@subsection Profiling
+@include include/profiling.texi
+
+@node View, Task, Basic Utilities, Utilities
+@section View
+@include include/view.texi
+
+@node Task, Usage, View, Utilities
+@section Task
+@include include/task.texi
+
+@node Usage, Installation, Utilities, Top
 @chapter Usage
 @cindex usage
 
