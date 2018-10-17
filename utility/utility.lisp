@@ -1,4 +1,12 @@
-;;; utility.lisp --- utility functions
+;;;; utility.lisp --- utility functions
+;;;
+;;; Variables, functions, and macros used throughout the software
+;;; evolution library.  This package provides simple utilities for a
+;;; number of mundane and generally necessary tasks from working with
+;;; files and directories, to representing and manipulating ranges of
+;;; source code.
+;;;
+;;; @texi{utility}
 
 ;;; Code:
 (in-package :software-evolution-library/utility)
@@ -29,6 +37,15 @@
   #-(or ecl sbcl ccl allegro)
   (error "must specify a positive infinity value"))
 
+
+;;;; Files and Directories, Temporary and Git
+;;;
+;;; Functions for working with file and directories and some special
+;;; handling for git repositories.  Includes functions for efficient
+;;; serialization to/from files as well as functions for creating and
+;;; using temporary files and directories.
+;;;
+;;; @texi{file-directory}
 (define-condition git (error)
   ((description :initarg :description :initform nil :reader description))
   (:report (lambda (condition stream)
@@ -337,7 +354,6 @@ pathname (i.e., ending in a \"/\")."
 ;;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
-;;;
 (defun canonical-pathname (path)
   "Remove redundant information from PATH."
   (iter (with full-dir = (or (pathname-directory (pathname path))
@@ -392,6 +408,7 @@ containing the logical concatenation of them all."
 ;;;       between lisps implementations?  Does nothing else already
 ;;;       provide this?
 ;;;
+;;; @texi{process}
 (defclass process ()
   ((os-process
     :initarg :os-process :initform nil :reader os-process
@@ -456,6 +473,17 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 
 ;;;; Shell and system command helpers
+;;;
+;;; Wrappers for evaluating shell commands and returning the STDOUT,
+;;; STDERR, and ERRNO as values.  Includes the special `*shell-debug*'
+;;; variable which may be set to non-nil to dump all system and shell
+;;; executions and results for diagnostics.
+;;;
+;;; The `write-shell-file', `read-shell-file' and `xz-pipe' functions
+;;; provide for running shell commands and common lisp streams of
+;;; text (in some cases flowing from or into files on disk).
+;;;
+;;;@texi{shell}
 (defvar *shell-debug* nil
   "Set to true to print shell invocations.")
 
@@ -850,6 +878,15 @@ Optional argument OUT specifies an output stream."
 
 
 ;;;; Generic utility functions
+;;;
+;;; Generic utility functions on cons tree, association lists, plists,
+;;; and sequences.  Includes some random and statistical functions as
+;;; well as string manipulation functions..
+;;;
+;;; DOXFIXME: for each of the above briefly describe the important
+;;; functions with links to the index.
+;;;
+;;; @texi{generic-utility}
 (defun mapt (function tree)
   "Like `mapcar' but TREE is a cons tree instead of a proper list."
   (if (consp tree)
@@ -1198,6 +1235,14 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
 
 
 ;;;; Source and binary locations and ranges.
+;;;
+;;; Classes for representing locations and ranges in sequences
+;;; (typically text source code files or binary executable bytes).
+;;; Functions for comparing locations and ranges, as well as
+;;; determining "contains" and "intersects" relationships between
+;;; locations and ranges.
+;;;
+;;; @texi{locations-and-ranges}
 (defclass source-location ()
   ((line :initarg :line :accessor line :type 'fixnum)
    (column :initarg :column :accessor column :type 'fixnum)))
@@ -1276,7 +1321,13 @@ For example (pairs '(a b c)) => ('(a . b) '(a . c) '(b . c))
        (> (end a-range) (begin b-range))))
 
 
-;;;; debugging helpers
+;;;; Debugging helpers
+;;;
+;;; Functions useful for debugging lisp code.  Of particular note are
+;;; the `note' functions and associated `*note-level*' and
+;;; `*note-out*' variables which provide a basic logging framework.
+;;;
+;;; @texi{debugging}
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *compile-w/tracing* nil
     "Controls compilation of tracing information with the `traced' macro."))
@@ -1436,6 +1487,12 @@ the genome of an ASM object."
 
 
 ;;;; Oprofile functions
+;;;
+;;; Functions for working with oprofile, a formerly popular Linux
+;;; statistical profiler which has subsequently been superseded by
+;;; Linux Perf.  See @url{http://oprofile.sourceforge.net/news/}.
+;;;
+;;; @texi{oprofile}
 (defun samples-from-oprofile-file (path)
   (with-open-file (in path)
     (remove nil
@@ -1523,6 +1580,13 @@ that function may be declared.")
 
 
 ;;;; Profiling
+;;;
+;;; Tools for profiling lisp code.  Specifically functionality for
+;;; dumping profiling information into a format usably for the
+;;; generation of flame graphs (see
+;;; @url{http://oprofile.sourceforge.net/news/}).
+;;;
+;;; @texi{profiling}
 
 ;; Dot implementation from
 ;; https://techfak.uni-bielefeld.de/~jmoringe/call-graph.html.
@@ -1630,7 +1694,7 @@ See http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html."
   "Determine whether `str1` starts with `str2`"
   (let ((p (search str2 str1)))
     (and p (= 0 p))))
- 
+
 (defun ends-with-p (str1 str2)
   "Determine whether `str1` ends with `str2`"
   (let ((p (mismatch str2 str1 :from-end T)))
