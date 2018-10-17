@@ -175,6 +175,54 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
 
 <a name="utility_002dapi_002ddetails"></a><a name="SEL-Utility-API-Details"></a>
 <h3 class="section">B.2 SEL Utility API Details</h3>
+<a name="Structure-task_002drunner"></a><dl>
+<dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
+<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
+</p>
+<p>The state needed to run multi-threaded tasks and associated jobs.
+</p><ul>
+<li> jobs:         stack of current jobs to execute
+</li><li> workers:      list running worker threads
+</li><li> results:      result objects collected by worker threads
+</li><li> jobs-lock:    (internal) used to synchronize jobs stack
+</li><li> results-lock: (internal) used to synchronnize results list
+</li><li> workers-lock: (internal) used to synchronize worker list
+</li><li> completed-jobs: number of jobs that have been executed and finished
+</li><li> completed-tasks: number of tasks that have finished
+</li></ul>
+</dd></dl>
+<a name="Class-process"></a><dl>
+<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
+<dd><p>Class precedence list: <code>process, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
+
+<p>The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
+&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
+&lsquo;signal-process&rsquo; to interact with processes.
+</p></li></ul>
+
+<p>Object representing an external process.
+Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
+</p></dd></dl>
+<a name="Class-some_002dtask"></a><dl>
+<dt><a name="index-some_002dtask"></a>Class: <strong>some-task</strong></dt>
+<dd><p>Class precedence list: <code>some-task, task, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
+
+<p>Predicate used by &lsquo;some&rsquo;.
+</p></li></ul>
+
+<p>Task for applying &lsquo;some&rsquo; in parallel.
+The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
+</p></dd></dl>
 <a name="Class-some_002dtest_002dtask"></a><dl>
 <dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
 <dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
@@ -230,6 +278,10 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
 <dt><a name="index-_002atask_002drunner_002a"></a>Variable: <strong>*task-runner*</strong></dt>
 <dd><p>Bind <code>*task-runner*</code> for worker threads
 </p></dd></dl>
+<a name="Variable-_002atemp_002ddir_002a"></a><dl>
+<dt><a name="index-_002atemp_002ddir_002a"></a>Variable: <strong>*temp-dir*</strong></dt>
+<dd><p>Set to non-nil for a custom temporary directory.
+</p></dd></dl>
 <a name="Macro-getopts"></a><dl>
 <dt><a name="index-getopts"></a>Macro: <strong>getopts</strong> <em>args-and-opts &amp;body forms</em></dt>
 <dd><p>Collect command-line options from <code>args</code> in an executable.
@@ -244,70 +296,6 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
       #| ... |#)
 </pre></div>
 </dd></dl>
-<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
-<dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
-<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
-</p></dd></dl>
-<a name="Class-process"></a><dl>
-<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
-<dd><p>Class precedence list: <code>process, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
-
-<p>The underlying process object (compiler-specific).
-This field will not usually need to be accessed directly: use methods
-&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
-&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
-&lsquo;signal-process&rsquo; to interact with processes.
-</p></li></ul>
-
-<p>Object representing an external process.
-Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
-<dt><a name="index-process_002dinput_002dstream"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
-</p></dd></dl>
-<a name="Structure-task_002drunner"></a><dl>
-<dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
-<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
-</p>
-<p>The state needed to run multi-threaded tasks and associated jobs.
-</p><ul>
-<li> jobs:         stack of current jobs to execute
-</li><li> workers:      list running worker threads
-</li><li> results:      result objects collected by worker threads
-</li><li> jobs-lock:    (internal) used to synchronize jobs stack
-</li><li> results-lock: (internal) used to synchronnize results list
-</li><li> workers-lock: (internal) used to synchronize worker list
-</li><li> completed-jobs: number of jobs that have been executed and finished
-</li><li> completed-tasks: number of tasks that have finished
-</li></ul>
-</dd></dl>
-<a name="Class-some_002dtask"></a><dl>
-<dt><a name="index-some_002dtask"></a>Class: <strong>some-task</strong></dt>
-<dd><p>Class precedence list: <code>some-task, task, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
-
-<p>Predicate used by &lsquo;some&rsquo;.
-</p></li></ul>
-
-<p>Task for applying &lsquo;some&rsquo; in parallel.
-The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
-</p></dd></dl>
-<a name="Variable-_002atemp_002ddir_002a"></a><dl>
-<dt><a name="index-_002atemp_002ddir_002a"></a>Variable: <strong>*temp-dir*</strong></dt>
-<dd><p>Set to non-nil for a custom temporary directory.
-</p></dd></dl>
 <a name="Macro-read_002dshell"></a><dl>
 <dt><a name="index-read_002dshell"></a>Macro: <strong>read-shell</strong> <em>(stream-var shell) &amp;rest body</em></dt>
 <dd><p>Executes <code>body</code> with <code>stream-var</code> holding the output of <code>shell</code>.
@@ -316,12 +304,6 @@ The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
 <a name="Macro-read_002dshell_002dfile"></a><dl>
 <dt><a name="index-read_002dshell_002dfile"></a>Macro: <strong>read-shell-file</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
 <dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> from <code>file</code>.
-</p></dd></dl>
-<a name="Macro-run_002das_002dtask"></a><dl>
-<dt><a name="index-run_002das_002dtask"></a>Macro: <strong>run-as-task</strong> <em>(task runner) &amp;body body</em></dt>
-<dd><p>Run the body code as a one-off task, which can access task and runner by
-name. The supplied names may be any available symbols. Returns the <code>task-runner</code>
-object.
 </p></dd></dl>
 <a name="Macro-traced"></a><dl>
 <dt><a name="index-traced"></a>Macro: <strong>traced</strong> <em>(fn &amp;rest args)</em></dt>
@@ -366,14 +348,6 @@ and an optional extension.
 <a name="Function-aget"></a><dl>
 <dt><a name="index-aget"></a>Function: <strong>aget</strong> <em>item list &amp;key test</em></dt>
 <dd><p>Get <code>key</code> from association list <code>list</code>.
-</p></dd></dl>
-<a name="Function-alist_002dfilter"></a><dl>
-<dt><a name="index-alist_002dfilter"></a>Function: <strong>alist-filter</strong> <em>keep-keys alist</em></dt>
-<dd><p>Remove all keys from <code>alist</code> except those in <code>keep-keys</code>.
-</p></dd></dl>
-<a name="Function-arglist"></a><dl>
-<dt><a name="index-arglist"></a>Function: <strong>arglist</strong> <em>fname</em></dt>
-<dd><p>Return the argument list of <code>fname</code>.
 </p></dd></dl>
 <a name="Function-binary_002dsearch"></a><dl>
 <dt><a name="index-binary_002dsearch"></a>Function: <strong>binary-search</strong> <em>value array &amp;key low high test</em></dt>
@@ -461,6 +435,24 @@ region.
 Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
 pathname (i.e., ending in a &quot;/&quot;).
 </p></dd></dl>
+<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
+<dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
+<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
+</p></dd></dl>
+<a name="Macro-run_002das_002dtask"></a><dl>
+<dt><a name="index-run_002das_002dtask"></a>Macro: <strong>run-as-task</strong> <em>(task runner) &amp;body body</em></dt>
+<dd><p>Run the body code as a one-off task, which can access task and runner by
+name. The supplied names may be any available symbols. Returns the <code>task-runner</code>
+object.
+</p></dd></dl>
+<a name="Function-alist_002dfilter"></a><dl>
+<dt><a name="index-alist_002dfilter"></a>Function: <strong>alist-filter</strong> <em>keep-keys alist</em></dt>
+<dd><p>Remove all keys from <code>alist</code> except those in <code>keep-keys</code>.
+</p></dd></dl>
+<a name="Function-arglist"></a><dl>
+<dt><a name="index-arglist"></a>Function: <strong>arglist</strong> <em>fname</em></dt>
+<dd><p>Return the argument list of <code>fname</code>.
+</p></dd></dl>
 <a name="Function-make_002dterminal_002draw"></a><dl>
 <dt><a name="index-make_002dterminal_002draw"></a>Function: <strong>make-terminal-raw</strong></dt>
 <dd><p>Place the terminal into &rsquo;raw&rsquo; mode, no echo non canonical.
@@ -541,6 +533,14 @@ holds those which do not.
 <dt><a name="index-process_002did-1"></a>Method: <strong>process-id</strong> <em>(process process)</em></dt>
 <dd><p>Return the process id for <code>process</code>.
 </p></dd></dl>
+<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
+<dt><a name="index-process_002dinput_002dstream"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
 <a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
 <dt><a name="index-process_002doutput_002dstream"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
 <dd><p>Return the output stream for <code>process</code>.
@@ -571,8 +571,12 @@ holds those which do not.
 <dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
 TASK&rsquo;s instrumentation arguments.
 </p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-task_002ditem_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task task-item) runner</em></dt>
+<dd><p>Evaluate the <code>task</code> saving the result in the runner.
+</p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
+<dt><a name="index-process_002dtask-4"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
 <dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
 <code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
 <code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
@@ -581,9 +585,11 @@ timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;som
 promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
 &lsquo;some-task-pred&rsquo;.
 </p></dd></dl>
-<a name="Macro-task_002dmap"></a><dl>
-<dt><a name="index-task_002dmap"></a>Macro: <strong>task-map</strong> <em>num-threads function objects</em></dt>
-<dd><p>Run <code>function</code> over <code>objects</code> using a &lsquo;simple-job&rsquo; &lsquo;task-job&rsquo;.
+<a name="Class-task_002dmap"></a><dl>
+<dt><a name="index-task_002dmap-1"></a>Class: <strong>task-map</strong></dt>
+<dd><p>Class precedence list: <code>task-map, task, standard-object, t</code>
+</p>
+<p>Task object used to map a function over a sequence using workers.
 </p></dd></dl>
 <a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002ddir_002dof"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
@@ -713,12 +719,20 @@ TASK&rsquo;s project to be modified.
 <dd><p>Return an instrumentation job for the next software object in
 TASK&rsquo;s project to be modified.
 </p></dd></dl>
+<a name="Method-task_002djob-_0028_0028task-task_002dmap_0029-runner_0029"></a><dl>
+<dt><a name="index-task_002djob-3"></a>Method: <strong>task-job</strong> <em>(task task-map) runner</em></dt>
+<dd><p>Return a function which will spawn jobs for all of TASK&rsquo;s objects.
+</p></dd></dl>
 <a name="Method-task_002djob-_0028_0028task-some_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-task_002djob-3"></a>Method: <strong>task-job</strong> <em>(task some-task) runner</em></dt>
+<dt><a name="index-task_002djob-4"></a>Method: <strong>task-job</strong> <em>(task some-task) runner</em></dt>
 <dd><p>Return the generating function for &lsquo;some-task&rsquo;.
 Create new subtasks for each item in the list until either applying the
 predicate <code>some-task-pred</code> in <code>task</code> succeeds or there are no more items in the
 list.
+</p></dd></dl>
+<a name="Function-task_002dmap"></a><dl>
+<dt><a name="index-task_002dmap"></a>Function: <strong>task-map</strong> <em>num-threads function objects</em></dt>
+<dd><p>Run <code>function</code> over <code>objects</code> using a &lsquo;simple-job&rsquo; &lsquo;task-job&rsquo;.
 </p></dd></dl>
 <a name="Function-task_002drunner_002dcreate_002dworker"></a><dl>
 <dt><a name="index-task_002drunner_002dcreate_002dworker"></a>Function: <strong>task-runner-create-worker</strong> <em>runner</em></dt>
