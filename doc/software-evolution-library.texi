@@ -842,14 +842,18 @@ current and new fitness that returns acceptance.
 @end ignore
 
 
-@node Components, Multi-objective Fitness, Implementation, Top
+@node Components, Test Suites, Implementation, Top
 @chapter Components
 @cindex components
 
-The Software Evolution library is implemented in Common Lisp and is
-intended for use in Common Lisp programs.  @ref{fig:overview} provides
-an overview of the Software Evolution system, the specifics of which
-are given in remainder of this section.
+In addition to the software objects, method and evolutionary
+infrastructure described in the previous section @ref{Implementation},
+the Software Evolution Library includes many ``components.''  Each
+component is a self-contained unit used to evaluate or manipulate
+software objects.  Some components are implemented as classes which
+may be @i{mixed in} with software objects which others are functions
+on software objects, or extensions to the basic evolutionary
+infrastructure.
 
 @menu
 * Test Suites::                 Running unit tests
