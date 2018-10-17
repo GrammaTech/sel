@@ -105,6 +105,10 @@
 ;;; contents of that runner are extracted and returned using the
 ;;; TASK-RUNNER-RESULTS accessor.
 ;;;
+;;; See the actual implementation of TASK-MAP in the SEL/UTILITY
+;;; package for a more efficient implementation which doesn't use a
+;;; macro or require new objects and methods to be defined on the fly.
+;;;
 ;;; @texi{task}
 (in-package :software-evolution-library/utility)
 (in-readtable :curry-compose-reader-macros)
@@ -362,27 +366,37 @@ object."
         (make-instance 'simple-job
           :object (make-instance ',task-type :object nil))))))
 
-(defmacro task-map (num-threads function objects)
+(defclass task-map (task)
+  ((task-function :initarg :task-function :accessor task-function))
+  (:documentation
+   "Task object used to map a function over a sequence using workers."))
+
+(defclass task-item (task) ()
+  (:documentation
+   "Task object used to execute a function on an element of a sequence.
+See the `task-job' method on `task-map' objects."))
+
+(defmethod task-job ((task task-map) runner)
+  "Return a function which will spawn jobs for all of TASK's objects."
+  (declare (ignore runner))
+  (let ((objs (task-object task)))
+    (lambda () (when objs
+                 ;; Return a task-item whose task-object run
+                 ;; FUNCTION on the next element of OBJECTS.
+                 (make-instance 'task-item :object
+                                (curry (task-function task) (pop objs)))))))
+
+(defmethod process-task ((task task-item) runner)
+  "Evaluate the TASK saving the result in the runner."
+  (task-save-result runner (funcall (task-object task))))
+
+(defun task-map (num-threads function objects)
   "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
-  (with-gensyms (task-map task-item)
-    `(if (= 1 ,num-threads)
-         (mapcar ,function ,objects) ; No threading when single threaded.
-         (progn                      ; Multi-threaded implementation.
-           (defclass ,task-map (task) ()) ; Task to map over OBJECTS of objects.
-           (defclass ,task-item (task) ()) ; Task to process OBJECTS elements.
-           (defmethod task-job ((task ,task-map) runner)
-             (declare (ignore runner))
-             (let ((objs (task-object task))) ; Enclose OBJECTS for lambda.
-               (lambda () (when objs    ; Return nil when OBJECTS is empty.
-                            ;; Return a task-item whose task-object run
-                            ;; FUNCTION on the next element of OBJECTS.
-                            (make-instance ',task-item :object
-                                           (curry ,function (pop objs)))))))
-           (defmethod process-task ((task ,task-item) runner)
-             ;; Evaluate the task-object for this item as created in
-             ;; the task-job method above.  Save the results.
-             (task-save-result runner (funcall (task-object task))))
-           (task-runner-results ; Return the results from the results obj.
-            ;; Create the task-map object, and run until exhausted.
-            (run-task-and-block (make-instance ',task-map :object ,objects)
-                                ,num-threads))))))
+  (if (= 1 num-threads)
+      (mapcar function objects)   ; No threading when single threaded.
+      (task-runner-results  ; Return the results from the results obj.
+       ;; Create the task-map object, and run until exhausted.
+       (run-task-and-block (make-instance 'task-map
+                             :object objects
+                             :task-function function)
+                           num-threads))))
