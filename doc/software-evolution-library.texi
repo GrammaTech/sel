@@ -964,7 +964,7 @@ documents these utilities.
 @section Task
 @include include/task.texi
 
-@node Usage, Installation, Implementation, Top
+@node Usage, Installation, Utilities, Top
 @chapter Usage
 @cindex usage
 
