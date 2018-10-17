@@ -1457,6 +1457,12 @@
     (is (eql (first (task-runner-results runner2))
              (some {= 15} (iota 10))))))
 
+(deftest simple-task-map ()
+  (let ((results (task-map 2 {+ 1} '(1 2 3))))
+    ;; Ensure correct results are returned by multi-threaded task-map
+    ;; (in any order).
+    (mapc (lambda (result) (is (member result results))) '(2 3 4))))
+
 
 ;;; ELF representation.
 ;;;

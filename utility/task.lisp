@@ -22,13 +22,7 @@
 ;;;           threads will exit.  Therefore you create Jobs first,
 ;;;           then the Workers.
 ;;;
-;;; Example use:
-;;;
-;;;     (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*)
-;;;                              10))
-;;;      ;; When (task-runner-worker-count *runner*) = 0,
-;;;      ;; it means all threads are finished.
-;;;
+;;; @subsection Description
 ;;;
 ;;; A TASK is an operation to be performed by the multi-threaded
 ;;; TASK-RUNNER. A TASK can be customized by the client to generate
@@ -48,6 +42,69 @@
 ;;; higher on the stack and therefore have priority over other tasks.
 ;;;
 ;;; When the JOBS stack is empty/NIL, then all worker threads will exit.
+;;;
+;;; @subsection Example use
+;;;
+;;;     (setf *runner* (run-task (make-instance 'single-cut-all :object *orig*)
+;;;                              10))
+;;;      ;; When (task-runner-worker-count *runner*) = 0,
+;;;      ;; it means all threads are finished.
+;;;
+;;; @subsection Complex Example use
+;;;
+;;;     (defmacro task-map (num-threads function sequence)
+;;;       "Run FUNCTION over SEQUENCE using a `simple-job' `task-job'."
+;;;       (with-gensyms (task-map task-item)
+;;;         `(if (= 1 ,num-threads)
+;;;              (mapcar ,function ,sequence) ; No threading.
+;;;              (progn                     ; Multi-threaded implementation.
+;;;                (defclass ,task-map (task) ())  ; Task to map over SEQUENCE.
+;;;                (defclass ,task-item (task) ()) ; Task to process elements.
+;;;                (defmethod task-job ((task ,task-map) runner)
+;;;                  (declare (ignore runner))
+;;;                  (let ((objs (task-object task))) ; Enclose SEQUENCE for fn.
+;;;                    (lambda () (when objs ; Return nil when SEQUENCE is empty.
+;;;                                ;; Return a task-item whose task-object run
+;;;                                ;; FUNCTION on the next element of SEQUENCE.
+;;;                            (make-instance ',task-item :object
+;;;                                           (curry ,function (pop objs)))))))
+;;;                (defmethod process-task ((task ,task-item) runner)
+;;;                  ;; Evaluate the task-object for this item as created in
+;;;                  ;; the task-job method above.  Save the results.
+;;;                  (task-save-result runner (funcall (task-object task))))
+;;;                (task-runner-results ; Return results from the results obj.
+;;;                 ;; Create the task-map object, and run until exhausted.
+;;;                 (run-task-and-block
+;;;                  (make-instance ',task-map :object ,sequence)
+;;;                  ,num-threads))))))
+;;;
+;;; The above example uses the tasks API to implement a simple
+;;; parallel map spread across a configurable number of workers.  When
+;;; more than one worker thread is requested the following objects and
+;;; methods are created to implement the parallel map.
+;;;
+;;; * A TASK-MAP TASK is created to hold the sequence.
+;;;
+;;; * The TASK-JOB method is defined for this TASK-MAP.  This method
+;;;   returns a function which has access to the SEQUENCE in a
+;;;   closure.  The function will continually pop the first element
+;;;   off the top of the sequence and wrap it in a TASK-ITEM object to
+;;;   be returned until the SEQUENCE is empty at which point the
+;;;   function returns nil causing all worker threads to exit.
+;;;
+;;; * The TASK-ITEM TASK is created to hold tasks for every item in
+;;;   the sequence.
+;;;
+;;; * The PROCESS-TASK method is defined for this TASK-ITEM.  This
+;;;   method evaluates the function stored in the TASK-OBJECT of this
+;;;   TASK-ITEM and saves the result into the task runner's results.
+;;;
+;;; Finally, with the above objects and methods defined, the TASK-MAP
+;;; macro wraps the sequence into a TASK-MAP TASK object and passes
+;;; this to the RUN-TASK-AND-BLOCK function yielding a runner and the
+;;; contents of that runner are extracted and returned using the
+;;; TASK-RUNNER-RESULTS accessor.
+;;;
 ;;; @texi{task}
 (in-package :software-evolution-library/utility)
 (in-readtable :curry-compose-reader-macros)
@@ -304,3 +361,28 @@ object."
       (run-task
         (make-instance 'simple-job
           :object (make-instance ',task-type :object nil))))))
+
+(defmacro task-map (num-threads function objects)
+  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
+  (with-gensyms (task-map task-item)
+    `(if (= 1 ,num-threads)
+         (mapcar ,function ,objects) ; No threading when single threaded.
+         (progn                      ; Multi-threaded implementation.
+           (defclass ,task-map (task) ()) ; Task to map over OBJECTS of objects.
+           (defclass ,task-item (task) ()) ; Task to process OBJECTS elements.
+           (defmethod task-job ((task ,task-map) runner)
+             (declare (ignore runner))
+             (let ((objs (task-object task))) ; Enclose OBJECTS for lambda.
+               (lambda () (when objs    ; Return nil when OBJECTS is empty.
+                            ;; Return a task-item whose task-object run
+                            ;; FUNCTION on the next element of OBJECTS.
+                            (make-instance ',task-item :object
+                                           (curry ,function (pop objs)))))))
+           (defmethod process-task ((task ,task-item) runner)
+             ;; Evaluate the task-object for this item as created in
+             ;; the task-job method above.  Save the results.
+             (task-save-result runner (funcall (task-object task))))
+           (task-runner-results ; Return the results from the results obj.
+            ;; Create the task-map object, and run until exhausted.
+            (run-task-and-block (make-instance ',task-map :object ,objects)
+                                ,num-threads))))))
