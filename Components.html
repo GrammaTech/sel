@@ -61,17 +61,21 @@ ul.no-bullet {list-style: none}
 <a name="Components"></a>
 <div class="header">
 <p>
-Next: <a href="Multi_002dobjective-Fitness.html#Multi_002dobjective-Fitness" accesskey="n" rel="next">Multi-objective Fitness</a>, Previous: <a href="Implementation.html#Implementation" accesskey="p" rel="prev">Implementation</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="Test-Suites.html#Test-Suites" accesskey="n" rel="next">Test Suites</a>, Previous: <a href="Implementation.html#Implementation" accesskey="p" rel="prev">Implementation</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <a name="Components-1"></a>
 <h2 class="chapter">3 Components</h2>
 <a name="index-components"></a>
 
-<p>The Software Evolution library is implemented in Common Lisp and is
-intended for use in Common Lisp programs.  <a href="Implementation.html#fig_003aoverview">Figure 2.1</a> provides
-an overview of the Software Evolution system, the specifics of which
-are given in remainder of this section.
+<p>In addition to the software objects, method and evolutionary
+infrastructure described in the previous section <a href="Implementation.html#Implementation">Implementation</a>,
+the Software Evolution Library includes many &ldquo;components.&rdquo;  Each
+component is a self-contained unit used to evaluate or manipulate
+software objects.  Some components are implemented as classes which
+may be <i>mixed in</i> with software objects which others are functions
+on software objects, or extensions to the basic evolutionary
+infrastructure.
 </p>
 <table class="menu" border="0" cellspacing="0">
 <tr><td align="left" valign="top">&bull; <a href="Test-Suites.html#Test-Suites" accesskey="1">Test Suites</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Running unit tests

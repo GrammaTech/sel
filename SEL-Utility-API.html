@@ -175,39 +175,24 @@ Next: <a href="SEL-View-API.html#SEL-View-API" accesskey="n" rel="next">SEL View
 
 <a name="utility_002dapi_002ddetails"></a><a name="SEL-Utility-API-Details"></a>
 <h3 class="section">B.2 SEL Utility API Details</h3>
-<a name="Structure-task_002drunner"></a><dl>
-<dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
-<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
-</p>
-<p>The state needed to run multi-threaded tasks and associated jobs.
-</p><ul>
-<li> jobs:         stack of current jobs to execute
-</li><li> workers:      list running worker threads
-</li><li> results:      result objects collected by worker threads
-</li><li> jobs-lock:    (internal) used to synchronize jobs stack
-</li><li> results-lock: (internal) used to synchronnize results list
-</li><li> workers-lock: (internal) used to synchronize worker list
-</li><li> completed-jobs: number of jobs that have been executed and finished
-</li><li> completed-tasks: number of tasks that have finished
-</li></ul>
-</dd></dl>
-<a name="Class-process"></a><dl>
-<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
-<dd><p>Class precedence list: <code>process, standard-object, t</code>
+<a name="Class-some_002dtest_002dtask"></a><dl>
+<dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
+<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
-<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
 
-<p>The underlying process object (compiler-specific).
-This field will not usually need to be accessed directly: use methods
-&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
-&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
-&lsquo;signal-process&rsquo; to interact with processes.
+<p>Predicate used by &lsquo;some&rsquo;.
 </p></li></ul>
 
-<p>Object representing an external process.
-Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
+<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
+</p></dd></dl>
+<a name="Class-task"></a><dl>
+<dt><a name="index-task"></a>Class: <strong>task</strong></dt>
+<dd><p>Class precedence list: <code>task, standard-object, t</code>
+</p>
+<p>Base class for all task classes.
 </p></dd></dl>
 <a name="Variable-_002abash_002dshell_002a"></a><dl>
 <dt><a name="index-_002abash_002dshell_002a"></a>Variable: <strong>*bash-shell*</strong></dt>
@@ -245,10 +230,6 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
 <dt><a name="index-_002atask_002drunner_002a"></a>Variable: <strong>*task-runner*</strong></dt>
 <dd><p>Bind <code>*task-runner*</code> for worker threads
 </p></dd></dl>
-<a name="Variable-_002atemp_002ddir_002a"></a><dl>
-<dt><a name="index-_002atemp_002ddir_002a"></a>Variable: <strong>*temp-dir*</strong></dt>
-<dd><p>Set to non-nil for a custom temporary directory.
-</p></dd></dl>
 <a name="Macro-getopts"></a><dl>
 <dt><a name="index-getopts"></a>Macro: <strong>getopts</strong> <em>args-and-opts &amp;body forms</em></dt>
 <dd><p>Collect command-line options from <code>args</code> in an executable.
@@ -263,6 +244,85 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
       #| ... |#)
 </pre></div>
 </dd></dl>
+<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
+<dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
+<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
+</p></dd></dl>
+<a name="Class-process"></a><dl>
+<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
+<dd><p>Class precedence list: <code>process, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
+
+<p>The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
+&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
+&lsquo;signal-process&rsquo; to interact with processes.
+</p></li></ul>
+
+<p>Object representing an external process.
+Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
+<dt><a name="index-process_002dinput_002dstream"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Structure-task_002drunner"></a><dl>
+<dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
+<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
+</p>
+<p>The state needed to run multi-threaded tasks and associated jobs.
+</p><ul>
+<li> jobs:         stack of current jobs to execute
+</li><li> workers:      list running worker threads
+</li><li> results:      result objects collected by worker threads
+</li><li> jobs-lock:    (internal) used to synchronize jobs stack
+</li><li> results-lock: (internal) used to synchronnize results list
+</li><li> workers-lock: (internal) used to synchronize worker list
+</li><li> completed-jobs: number of jobs that have been executed and finished
+</li><li> completed-tasks: number of tasks that have finished
+</li></ul>
+</dd></dl>
+<a name="Class-some_002dtask"></a><dl>
+<dt><a name="index-some_002dtask"></a>Class: <strong>some-task</strong></dt>
+<dd><p>Class precedence list: <code>some-task, task, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
+
+<p>Predicate used by &lsquo;some&rsquo;.
+</p></li></ul>
+
+<p>Task for applying &lsquo;some&rsquo; in parallel.
+The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
+</p></dd></dl>
+<a name="Variable-_002atemp_002ddir_002a"></a><dl>
+<dt><a name="index-_002atemp_002ddir_002a"></a>Variable: <strong>*temp-dir*</strong></dt>
+<dd><p>Set to non-nil for a custom temporary directory.
+</p></dd></dl>
+<a name="Macro-read_002dshell"></a><dl>
+<dt><a name="index-read_002dshell"></a>Macro: <strong>read-shell</strong> <em>(stream-var shell) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>stream-var</code> holding the output of <code>shell</code>.
+The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
+</p></dd></dl>
+<a name="Macro-read_002dshell_002dfile"></a><dl>
+<dt><a name="index-read_002dshell_002dfile"></a>Macro: <strong>read-shell-file</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
+<dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> from <code>file</code>.
+</p></dd></dl>
+<a name="Macro-run_002das_002dtask"></a><dl>
+<dt><a name="index-run_002das_002dtask"></a>Macro: <strong>run-as-task</strong> <em>(task runner) &amp;body body</em></dt>
+<dd><p>Run the body code as a one-off task, which can access task and runner by
+name. The supplied names may be any available symbols. Returns the <code>task-runner</code>
+object.
+</p></dd></dl>
 <a name="Macro-traced"></a><dl>
 <dt><a name="index-traced"></a>Macro: <strong>traced</strong> <em>(fn &amp;rest args)</em></dt>
 <dd><p>Trace wrapped function call when &lsquo;*compile-w/tracing*&rsquo; is non-nil.
@@ -276,8 +336,18 @@ with &lsquo;cl-user:trace&rsquo;.
 environment may causes execution outside of the intended directory or
 may lose the original working directory.
 </p></dd></dl>
+<a name="Macro-with_002dtemp_002dfile"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile"></a>Macro: <strong>with-temp-file</strong> <em>spec &amp;rest body</em></dt>
+<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
+After <code>body</code> is executed the temporary file is removed.
+</p></dd></dl>
 <a name="Macro-with_002dtemp_002dfile_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002dfile_002dof"></a>Macro: <strong>with-temp-file-of</strong> <em>spec str &amp;rest body</em></dt>
+<dd><p><code>spec</code> should be a list of the variable used to reference the file
+and an optional extension.
+</p></dd></dl>
+<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
 <dd><p><code>spec</code> should be a list of the variable used to reference the file
 and an optional extension.
 </p></dd></dl>
@@ -288,6 +358,10 @@ and an optional extension.
 <a name="Macro-xz_002dpipe"></a><dl>
 <dt><a name="index-xz_002dpipe"></a>Macro: <strong>xz-pipe</strong> <em>(in-stream in-file) (out-stream out-file) &amp;rest body</em></dt>
 <dd><p>Executes <code>body</code> with <code>in-stream</code> and <code>out-stream</code> read/writing data from xz files.
+</p></dd></dl>
+<a name="Function-addrs"></a><dl>
+<dt><a name="index-addrs"></a>Function: <strong>addrs</strong> <em>phenome function</em></dt>
+<dd><p>Return the numerical addresses of the lines (in order) of <code>function</code>.
 </p></dd></dl>
 <a name="Function-aget"></a><dl>
 <dt><a name="index-aget"></a>Function: <strong>aget</strong> <em>item list &amp;key test</em></dt>
@@ -326,181 +400,6 @@ the genome of an ASM object.
 <dt><a name="index-chunks"></a>Function: <strong>chunks</strong> <em>list size &amp;optional include-remainder-p</em></dt>
 <dd><p>Return subsequent chunks of <code>list</code> of size <code>size</code>.
 </p></dd></dl>
-<a name="Function-directory_002dp"></a><dl>
-<dt><a name="index-directory_002dp"></a>Function: <strong>directory-p</strong> <em>pathname</em></dt>
-<dd><p>Return a directory version of <code>pathname</code> if it indicates a directory.
-</p></dd></dl>
-<a name="Function-ends_002dwith_002dp"></a><dl>
-<dt><a name="index-ends_002dwith_002dp"></a>Function: <strong>ends-with-p</strong> <em>str1 str2</em></dt>
-<dd><p>Determine whether &lsquo;str1&lsquo; ends with &lsquo;str2&lsquo;
-</p></dd></dl>
-<a name="Function-enhanced_002dcopy_002dseq"></a><dl>
-<dt><a name="index-enhanced_002dcopy_002dseq"></a>Function: <strong>enhanced-copy-seq</strong> <em>sequence</em></dt>
-<dd><p>Copies any type of array (except :displaced-to) and lists. Otherwise returns <code>nil</code>.
-</p></dd></dl>
-<a name="Function-function_002dlines"></a><dl>
-<dt><a name="index-function_002dlines"></a>Function: <strong>function-lines</strong> <em>lines</em></dt>
-<dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
-<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an ASM object.
-</p></dd></dl>
-<a name="Function-getenv"></a><dl>
-<dt><a name="index-getenv"></a>Function: <strong>getenv</strong> <em>name</em></dt>
-<dd><p>Returns the value of an environment variable
-</p></dd></dl>
-<a name="Function-getter"></a><dl>
-<dt><a name="index-getter"></a>Function: <strong>getter</strong> <em>key</em></dt>
-<dd><p>Return a function which gets <code>key</code> from an association list.
-</p></dd></dl>
-<a name="Function-in_002ddirectory"></a><dl>
-<dt><a name="index-in_002ddirectory"></a>Function: <strong>in-directory</strong> <em>directory path</em></dt>
-<dd><p>Return <code>path</code> based in <code>directory</code>.
-Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
-pathname (i.e., ending in a &quot;/&quot;).
-</p></dd></dl>
-<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
-<dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
-<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
-</p></dd></dl>
-<a name="Function-make_002dthread_002dsafe_002dhash_002dtable"></a><dl>
-<dt><a name="index-make_002dthread_002dsafe_002dhash_002dtable"></a>Function: <strong>make-thread-safe-hash-table</strong> <em>&amp;rest args</em></dt>
-<dd><p>Create a thread safe hash table with the given <code>args</code>
-</p></dd></dl>
-<a name="Function-merge_002dpathnames_002das_002ddirectory"></a><dl>
-<dt><a name="index-merge_002dpathnames_002das_002ddirectory"></a>Function: <strong>merge-pathnames-as-directory</strong> <em>&amp;rest pathnames</em></dt>
-<dd><p>Given a list of pathnames, this returns a single
-directory pathname containing the logical concatenation of them all.
-</p></dd></dl>
-<a name="Function-normalize_002dprobabilities"></a><dl>
-<dt><a name="index-normalize_002dprobabilities"></a>Function: <strong>normalize-probabilities</strong> <em>alist</em></dt>
-<dd><p>Normalize <code>alist</code> so sum of second elements is equal to 1.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002derror_002dstream"></a><dl>
-<dt><a name="index-process_002derror_002dstream"></a>Generic Function: <strong>process-error-stream</strong> <em>process</em></dt>
-<dd><p>Return the error stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-process_002derror_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002derror_002dstream-1"></a>Method: <strong>process-error-stream</strong> <em>(process process)</em></dt>
-<dd><p>Return the error stream for <code>process</code>.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002dexit_002dcode"></a><dl>
-<dt><a name="index-process_002dexit_002dcode"></a>Generic Function: <strong>process-exit-code</strong> <em>process</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
-</p></dd></dl>
-<a name="Method-process_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dexit_002dcode-1"></a>Method: <strong>process-exit-code</strong> <em>(process process)</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002did"></a><dl>
-<dt><a name="index-process_002did"></a>Generic Function: <strong>process-id</strong> <em>process</em></dt>
-<dd><p>Return the process id for <code>process</code>
-</p></dd></dl>
-<a name="Method-process_002did-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002did-1"></a>Method: <strong>process-id</strong> <em>(process process)</em></dt>
-<dd><p>Return the process id for <code>process</code>.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
-<dt><a name="index-process_002drunning_002dp"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
-<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
-</p></dd></dl>
-<a name="Method-process_002drunning_002dp-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002drunning_002dp-1"></a>Method: <strong>process-running-p</strong> <em>(process process)</em></dt>
-<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002dtask"></a><dl>
-<dt><a name="index-process_002dtask"></a>Generic Function: <strong>process-task</strong> <em>task runner</em></dt>
-<dd><p>Process the object, including evaluate fitness, push new Jobs, and
- store interesting results
-</p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-uninstrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-1"></a>Method: <strong>process-task</strong> <em>(task uninstrument-clang-object-task) runner</em></dt>
-<dd><p>Remove instrumentation from the TASK&rsquo;s software object.
-</p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-instrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task instrument-clang-object-task) runner</em></dt>
-<dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
-TASK&rsquo;s instrumentation arguments.
-</p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
-<dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
-<code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
-<code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
-should be used to retrieve one result. Additionally, due to differences in
-timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;some&rsquo;, since &lsquo;some&rsquo;
-promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
-&lsquo;some-task-pred&rsquo;.
-</p></dd></dl>
-<a name="Class-some_002dtask"></a><dl>
-<dt><a name="index-some_002dtask"></a>Class: <strong>some-task</strong></dt>
-<dd><p>Class precedence list: <code>some-task, task, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
-
-<p>Predicate used by &lsquo;some&rsquo;.
-</p></li></ul>
-
-<p>Task for applying &lsquo;some&rsquo; in parallel.
-The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
-</p></dd></dl>
-<a name="Class-some_002dtest_002dtask"></a><dl>
-<dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
-<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
-
-<p>Predicate used by &lsquo;some&rsquo;.
-</p></li></ul>
-
-<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
-</p></dd></dl>
-<a name="Class-task"></a><dl>
-<dt><a name="index-task"></a>Class: <strong>task</strong></dt>
-<dd><p>Class precedence list: <code>task, standard-object, t</code>
-</p>
-<p>Base class for all task classes.
-</p></dd></dl>
-<a name="Macro-read_002dshell"></a><dl>
-<dt><a name="index-read_002dshell"></a>Macro: <strong>read-shell</strong> <em>(stream-var shell) &amp;rest body</em></dt>
-<dd><p>Executes <code>body</code> with <code>stream-var</code> holding the output of <code>shell</code>.
-The <code>shell</code> command is executed with &lsquo;*bash-shell*&rsquo;.
-</p></dd></dl>
-<a name="Macro-read_002dshell_002dfile"></a><dl>
-<dt><a name="index-read_002dshell_002dfile"></a>Macro: <strong>read-shell-file</strong> <em>(stream-var file shell &amp;optional args) &amp;rest body</em></dt>
-<dd><p>Executes <code>body</code> with <code>stream-var</code> passing through <code>shell</code> from <code>file</code>.
-</p></dd></dl>
-<a name="Macro-run_002das_002dtask"></a><dl>
-<dt><a name="index-run_002das_002dtask"></a>Macro: <strong>run-as-task</strong> <em>(task runner) &amp;body body</em></dt>
-<dd><p>Run the body code as a one-off task, which can access task and runner by
-name. The supplied names may be any available symbols. Returns the <code>task-runner</code>
-object.
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
-<dt><a name="index-with_002dtemp_002ddir_002dof"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
-<dd><p>Populate <code>spec</code> with the path to a temporary directory with the contents
-of <code>dir</code> and execute <code>body</code>
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dfile"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile"></a>Macro: <strong>with-temp-file</strong> <em>spec &amp;rest body</em></dt>
-<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
-After <code>body</code> is executed the temporary file is removed.
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
-<dd><p><code>spec</code> should be a list of the variable used to reference the file
-and an optional extension.
-</p></dd></dl>
-<a name="Function-addrs"></a><dl>
-<dt><a name="index-addrs"></a>Function: <strong>addrs</strong> <em>phenome function</em></dt>
-<dd><p>Return the numerical addresses of the lines (in order) of <code>function</code>.
-</p></dd></dl>
-<a name="Function-count_002dcons"></a><dl>
-<dt><a name="index-count_002dcons"></a>Function: <strong>count-cons</strong> <em>cons-cell</em></dt>
-<dd><p>Count and return the number of cons cells used in <code>cons-cell</code>.
-</p></dd></dl>
 <a name="Function-counts"></a><dl>
 <dt><a name="index-counts"></a>Function: <strong>counts</strong> <em>list &amp;key test key frac</em></dt>
 <dd><p>Return an alist keyed by the unique elements of list holding their counts.
@@ -519,17 +418,48 @@ Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <
 original diff region and <code>m</code> is the length of the modified diff
 region.
 </p></dd></dl>
+<a name="Function-directory_002dp"></a><dl>
+<dt><a name="index-directory_002dp"></a>Function: <strong>directory-p</strong> <em>pathname</em></dt>
+<dd><p>Return a directory version of <code>pathname</code> if it indicates a directory.
+</p></dd></dl>
 <a name="Function-drop"></a><dl>
 <dt><a name="index-drop"></a>Function: <strong>drop</strong> <em>n seq</em></dt>
 <dd><p>Return <code>seq</code> less the first <code>n</code> items.
+</p></dd></dl>
+<a name="Function-ends_002dwith_002dp"></a><dl>
+<dt><a name="index-ends_002dwith_002dp"></a>Function: <strong>ends-with-p</strong> <em>str1 str2</em></dt>
+<dd><p>Determine whether &lsquo;str1&lsquo; ends with &lsquo;str2&lsquo;
+</p></dd></dl>
+<a name="Function-enhanced_002dcopy_002dseq"></a><dl>
+<dt><a name="index-enhanced_002dcopy_002dseq"></a>Function: <strong>enhanced-copy-seq</strong> <em>sequence</em></dt>
+<dd><p>Copies any type of array (except :displaced-to) and lists. Otherwise returns <code>nil</code>.
 </p></dd></dl>
 <a name="Function-equal_002dit"></a><dl>
 <dt><a name="index-equal_002dit"></a>Function: <strong>equal-it</strong> <em>obj1 obj2 &amp;optional trace</em></dt>
 <dd><p>Equal over objects and lists.
 </p></dd></dl>
+<a name="Function-function_002dlines"></a><dl>
+<dt><a name="index-function_002dlines"></a>Function: <strong>function-lines</strong> <em>lines</em></dt>
+<dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
+<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an ASM object.
+</p></dd></dl>
 <a name="Function-gdb_002ddisassemble"></a><dl>
 <dt><a name="index-gdb_002ddisassemble"></a>Function: <strong>gdb-disassemble</strong> <em>phenome function</em></dt>
 <dd><p>Return the raw gdb disassembled code of <code>function</code> in <code>phenome</code>.
+</p></dd></dl>
+<a name="Function-getenv"></a><dl>
+<dt><a name="index-getenv"></a>Function: <strong>getenv</strong> <em>name</em></dt>
+<dd><p>Returns the value of an environment variable
+</p></dd></dl>
+<a name="Function-getter"></a><dl>
+<dt><a name="index-getter"></a>Function: <strong>getter</strong> <em>key</em></dt>
+<dd><p>Return a function which gets <code>key</code> from an association list.
+</p></dd></dl>
+<a name="Function-in_002ddirectory"></a><dl>
+<dt><a name="index-in_002ddirectory"></a>Function: <strong>in-directory</strong> <em>directory path</em></dt>
+<dd><p>Return <code>path</code> based in <code>directory</code>.
+Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
+pathname (i.e., ending in a &quot;/&quot;).
 </p></dd></dl>
 <a name="Function-make_002dterminal_002draw"></a><dl>
 <dt><a name="index-make_002dterminal_002draw"></a>Function: <strong>make-terminal-raw</strong></dt>
@@ -541,10 +471,19 @@ See &rsquo;man 3 termios&rsquo; for more information.
 <dt><a name="index-mapt"></a>Function: <strong>mapt</strong> <em>function tree</em></dt>
 <dd><p>Like &lsquo;mapcar&rsquo; but <code>tree</code> is a cons tree instead of a proper list.
 </p></dd></dl>
+<a name="Function-merge_002dpathnames_002das_002ddirectory"></a><dl>
+<dt><a name="index-merge_002dpathnames_002das_002ddirectory"></a>Function: <strong>merge-pathnames-as-directory</strong> <em>&amp;rest pathnames</em></dt>
+<dd><p>Given a list of pathnames, this returns a single
+directory pathname containing the logical concatenation of them all.
+</p></dd></dl>
 <a name="Function-merge_002dpathnames_002das_002dfile"></a><dl>
 <dt><a name="index-merge_002dpathnames_002das_002dfile"></a>Function: <strong>merge-pathnames-as-file</strong> <em>&amp;rest pathnames</em></dt>
 <dd><p>Given a list of pathnames returns a single filename pathname
 containing the logical concatenation of them all.
+</p></dd></dl>
+<a name="Function-normalize_002dprobabilities"></a><dl>
+<dt><a name="index-normalize_002dprobabilities"></a>Function: <strong>normalize-probabilities</strong> <em>alist</em></dt>
+<dd><p>Normalize <code>alist</code> so sum of second elements is equal to 1.
 </p></dd></dl>
 <a name="Function-pad"></a><dl>
 <dt><a name="index-pad"></a>Function: <strong>pad</strong> <em>list n &amp;optional elem</em></dt>
@@ -578,13 +517,29 @@ holds those which do not.
 <dt><a name="index-position_002dextremum_002drand"></a>Function: <strong>position-extremum-rand</strong> <em>list predicate key</em></dt>
 <dd><p>Randomly returns one of position in <code>list</code> maximizing <code>key</code>.
 </p></dd></dl>
-<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
-<dt><a name="index-process_002dinput_002dstream"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
+<a name="Generic_002dFunction-process_002derror_002dstream"></a><dl>
+<dt><a name="index-process_002derror_002dstream"></a>Generic Function: <strong>process-error-stream</strong> <em>process</em></dt>
+<dd><p>Return the error stream for <code>process</code>.
 </p></dd></dl>
-<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
+<a name="Method-process_002derror_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002derror_002dstream-1"></a>Method: <strong>process-error-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the error stream for <code>process</code>.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002dexit_002dcode"></a><dl>
+<dt><a name="index-process_002dexit_002dcode"></a>Generic Function: <strong>process-exit-code</strong> <em>process</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
+</p></dd></dl>
+<a name="Method-process_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dexit_002dcode-1"></a>Method: <strong>process-exit-code</strong> <em>(process process)</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002did"></a><dl>
+<dt><a name="index-process_002did"></a>Generic Function: <strong>process-id</strong> <em>process</em></dt>
+<dd><p>Return the process id for <code>process</code>
+</p></dd></dl>
+<a name="Method-process_002did-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002did-1"></a>Method: <strong>process-id</strong> <em>(process process)</em></dt>
+<dd><p>Return the process id for <code>process</code>.
 </p></dd></dl>
 <a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
 <dt><a name="index-process_002doutput_002dstream"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
@@ -593,6 +548,55 @@ holds those which do not.
 <a name="Method-process_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002doutput_002dstream-1"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
 <dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
+<dt><a name="index-process_002drunning_002dp"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
+<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
+</p></dd></dl>
+<a name="Method-process_002drunning_002dp-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002drunning_002dp-1"></a>Method: <strong>process-running-p</strong> <em>(process process)</em></dt>
+<dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002dtask"></a><dl>
+<dt><a name="index-process_002dtask"></a>Generic Function: <strong>process-task</strong> <em>task runner</em></dt>
+<dd><p>Process the object, including evaluate fitness, push new Jobs, and
+ store interesting results
+</p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-uninstrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-1"></a>Method: <strong>process-task</strong> <em>(task uninstrument-clang-object-task) runner</em></dt>
+<dd><p>Remove instrumentation from the TASK&rsquo;s software object.
+</p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-instrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task instrument-clang-object-task) runner</em></dt>
+<dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
+TASK&rsquo;s instrumentation arguments.
+</p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
+<dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
+<code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
+<code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
+should be used to retrieve one result. Additionally, due to differences in
+timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;some&rsquo;, since &lsquo;some&rsquo;
+promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
+&lsquo;some-task-pred&rsquo;.
+</p></dd></dl>
+<a name="Macro-task_002dmap"></a><dl>
+<dt><a name="index-task_002dmap"></a>Macro: <strong>task-map</strong> <em>num-threads function objects</em></dt>
+<dd><p>Run <code>function</code> over <code>objects</code> using a &lsquo;simple-job&rsquo; &lsquo;task-job&rsquo;.
+</p></dd></dl>
+<a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
+<dt><a name="index-with_002dtemp_002ddir_002dof"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
+<dd><p>Populate <code>spec</code> with the path to a temporary directory with the contents
+of <code>dir</code> and execute <code>body</code>
+</p></dd></dl>
+<a name="Function-count_002dcons"></a><dl>
+<dt><a name="index-count_002dcons"></a>Function: <strong>count-cons</strong> <em>cons-cell</em></dt>
+<dd><p>Count and return the number of cons cells used in <code>cons-cell</code>.
+</p></dd></dl>
+<a name="Function-make_002dthread_002dsafe_002dhash_002dtable"></a><dl>
+<dt><a name="index-make_002dthread_002dsafe_002dhash_002dtable"></a>Function: <strong>make-thread-safe-hash-table</strong> <em>&amp;rest args</em></dt>
+<dd><p>Create a thread safe hash table with the given <code>args</code>
 </p></dd></dl>
 <a name="Function-profile_002dto_002ddot_002dgraph"></a><dl>
 <dt><a name="index-profile_002dto_002ddot_002dgraph"></a>Function: <strong>profile-to-dot-graph</strong> <em>stream</em></dt>

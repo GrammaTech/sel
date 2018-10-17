@@ -1329,13 +1329,13 @@ times.
 </li></ul>
 </dd></dl>
 <a name="Generic_002dFunction-collect_002dtraces"></a><dl>
-<dt><a name="index-collect_002dtraces"></a>Generic Function: <strong>collect-traces</strong> <em>software test-suite &amp;key max bin</em></dt>
+<dt><a name="index-collect_002dtraces"></a>Generic Function: <strong>collect-traces</strong> <em>software test-suite &amp;key max bin num-threads</em></dt>
 <dd><p>Execute instrumented <code>software</code> on <code>test-suite</code> collecting dynamic traces.
 See the documentation of &lsquo;collect-trace&rsquo; for information on the
-<code>max</code> and <code>bin</code> keyword arguments.
+<code>max</code>, <code>bin</code>, and <code>num-threads</code> keyword arguments.
 </p></dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-java_002dtraceable_002dproject_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-1"></a>Method: <strong>collect-traces</strong> <em>(obj java-traceable-project) (test-suite test-suite) &amp;key max (bin (temp-file-name))</em></dt>
+<a name="Method-collect_002dtraces-_0028_0028obj-java_002dtraceable_002dproject_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-collect_002dtraces-1"></a>Method: <strong>collect-traces</strong> <em>(obj java-traceable-project) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 1)</em></dt>
 <dd><p>Executed instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection
@@ -1344,8 +1344,8 @@ See the documentation of &lsquo;collect-trace&rsquo; for information on the
 </li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
 </li></ul>
 </dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-java_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-2"></a>Method: <strong>collect-traces</strong> <em>(obj java-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name))</em></dt>
+<a name="Method-collect_002dtraces-_0028_0028obj-java_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-collect_002dtraces-2"></a>Method: <strong>collect-traces</strong> <em>(obj java-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 1)</em></dt>
 <dd><p>Executed instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection
@@ -1354,8 +1354,8 @@ See the documentation of &lsquo;collect-trace&rsquo; for information on the
 </li><li> <code>bin</code> compiled binary with instrumentation to use for trace collection
 </li></ul>
 </dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-software_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-3"></a>Method: <strong>collect-traces</strong> <em>(obj software) (test-suite test-suite) &amp;key max (bin (temp-file-name)) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
+<a name="Method-collect_002dtraces-_0028_0028obj-software_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-1_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
+<dt><a name="index-collect_002dtraces-3"></a>Method: <strong>collect-traces</strong> <em>(obj software) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 1) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
 <dd><p>Executed instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection
@@ -3805,7 +3805,7 @@ an AST.
 </p>
 <ul>
 <li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
-  combined genome. If count <code>=</code> 0, disable super-mutants.
+  combined genome.
 
 </li></ul>
 <p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.

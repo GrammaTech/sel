@@ -174,22 +174,43 @@ ul.no-bullet {list-style: none}
       <li><a name="toc-lisp_002ddiff-1" href="lisp_002ddiff.html#lisp_002ddiff">3.9.2 <code>lisp-diff</code></a></li>
     </ul></li>
   </ul></li>
-  <li><a name="toc-Usage-2" href="Usage.html#Usage">4 Usage</a>
+  <li><a name="toc-Utilities-1" href="Utilities.html#Utilities">4 Utilities</a>
   <ul class="no-bullet">
-    <li><a name="toc-Installation-1" href="Installation.html#Installation">4.1 Installation</a></li>
-    <li><a name="toc-Examples-1" href="Examples.html#Examples">4.2 Examples</a>
+    <li><a name="toc-Basic-Utilities-1" href="Basic-Utilities.html#Basic-Utilities">4.1 Basic Utilities</a>
     <ul class="no-bullet">
-      <li><a name="toc-Mutation-1" href="Mutation.html#Mutation">4.2.1 Mutation</a></li>
-      <li><a name="toc-Evaluation-1" href="Evaluation.html#Evaluation">4.2.2 Evaluation</a></li>
-      <li><a name="toc-Neutral-Variants-1" href="Neutral-Variants.html#Neutral-Variants">4.2.3 Neutral Variants</a></li>
-      <li><a name="toc-Repair-1" href="Repair.html#Repair">4.2.4 Repair</a></li>
-      <li><a name="toc-Parallel-Repair" href="Repair.html#Parallel-Repair">4.2.5 Parallel Repair</a></li>
+      <li><a name="toc-Files-and-Directories_002c-Temporary-and-Git" href="Basic-Utilities.html#Files-and-Directories_002c-Temporary-and-Git">4.1.1 Files and Directories, Temporary and Git</a></li>
+      <li><a name="toc-Process-wrapping" href="Basic-Utilities.html#Process-wrapping">4.1.2 Process wrapping</a></li>
+      <li><a name="toc-Shell-and-system-command-helpers" href="Basic-Utilities.html#Shell-and-system-command-helpers">4.1.3 Shell and system command helpers</a></li>
+      <li><a name="toc-Generic-utility-functions" href="Basic-Utilities.html#Generic-utility-functions">4.1.4 Generic utility functions</a></li>
+      <li><a name="toc-Source-and-binary-locations-and-ranges_002e" href="Basic-Utilities.html#Source-and-binary-locations-and-ranges_002e">4.1.5 Source and binary locations and ranges.</a></li>
+      <li><a name="toc-Debugging-helpers" href="Basic-Utilities.html#Debugging-helpers">4.1.6 Debugging helpers</a></li>
+      <li><a name="toc-Oprofile-functions" href="Basic-Utilities.html#Oprofile-functions">4.1.7 Oprofile functions</a></li>
+      <li><a name="toc-Profiling" href="Basic-Utilities.html#Profiling">4.1.8 Profiling</a></li>
+    </ul></li>
+    <li><a name="toc-View-1" href="View.html#View">4.2 View</a></li>
+    <li><a name="toc-Task-1" href="Task.html#Task">4.3 Task</a>
+    <ul class="no-bullet">
+      <li><a name="toc-Description" href="Task.html#Description">4.3.1 Description</a></li>
+      <li><a name="toc-Example-use" href="Task.html#Example-use">4.3.2 Example use</a></li>
+      <li><a name="toc-Complex-Example-use" href="Task.html#Complex-Example-use">4.3.3 Complex Example use</a></li>
     </ul></li>
   </ul></li>
-  <li><a name="toc-Troubleshooting-1" href="Troubleshooting.html#Troubleshooting">5 Troubleshooting</a>
+  <li><a name="toc-Usage-2" href="Usage.html#Usage">5 Usage</a>
   <ul class="no-bullet">
-    <li><a name="toc-Troubleshooting-Build-Issues" href="Troubleshooting.html#Troubleshooting-Build-Issues">5.1 Troubleshooting Build Issues</a></li>
-    <li><a name="toc-Troubleshooting-Test-Issues" href="Troubleshooting.html#Troubleshooting-Test-Issues">5.2 Troubleshooting Test Issues</a></li>
+    <li><a name="toc-Installation-1" href="Installation.html#Installation">5.1 Installation</a></li>
+    <li><a name="toc-Examples-1" href="Examples.html#Examples">5.2 Examples</a>
+    <ul class="no-bullet">
+      <li><a name="toc-Mutation-1" href="Mutation.html#Mutation">5.2.1 Mutation</a></li>
+      <li><a name="toc-Evaluation-1" href="Evaluation.html#Evaluation">5.2.2 Evaluation</a></li>
+      <li><a name="toc-Neutral-Variants-1" href="Neutral-Variants.html#Neutral-Variants">5.2.3 Neutral Variants</a></li>
+      <li><a name="toc-Repair-1" href="Repair.html#Repair">5.2.4 Repair</a></li>
+      <li><a name="toc-Parallel-Repair" href="Repair.html#Parallel-Repair">5.2.5 Parallel Repair</a></li>
+    </ul></li>
+  </ul></li>
+  <li><a name="toc-Troubleshooting-1" href="Troubleshooting.html#Troubleshooting">6 Troubleshooting</a>
+  <ul class="no-bullet">
+    <li><a name="toc-Troubleshooting-Build-Issues" href="Troubleshooting.html#Troubleshooting-Build-Issues">6.1 Troubleshooting Build Issues</a></li>
+    <li><a name="toc-Troubleshooting-Test-Issues" href="Troubleshooting.html#Troubleshooting-Test-Issues">6.2 Troubleshooting Test Issues</a></li>
   </ul></li>
   <li><a name="toc-SEL-API-1" href="SEL-API.html#SEL-API">Appendix A SEL API</a>
   <ul class="no-bullet">
@@ -380,24 +401,26 @@ Engineering (SBSE) techniques.
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="Components.html#Components" accesskey="3">Components</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Components provided by SEL.
 </td></tr>
-<tr><td align="left" valign="top">&bull; <a href="Usage.html#Usage" accesskey="4">Usage</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Using SEL, including examples.
+<tr><td align="left" valign="top">&bull; <a href="Utilities.html#Utilities" accesskey="4">Utilities</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Utilities provided by SEL.
 </td></tr>
-<tr><td align="left" valign="top">&bull; <a href="Troubleshooting.html#Troubleshooting" accesskey="5">Troubleshooting</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Solutions for build and test issues.
+<tr><td align="left" valign="top">&bull; <a href="Usage.html#Usage" accesskey="5">Usage</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Using SEL, including examples.
+</td></tr>
+<tr><td align="left" valign="top">&bull; <a href="Troubleshooting.html#Troubleshooting" accesskey="6">Troubleshooting</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Solutions for build and test issues.
 </td></tr>
 <tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
 
 
 SEL API Reference
-</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="SEL-API.html#SEL-API" accesskey="6">SEL API</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Public functions, variables, and macros
+</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="SEL-API.html#SEL-API" accesskey="7">SEL API</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Public functions, variables, and macros
 </td></tr>
-<tr><td align="left" valign="top">&bull; <a href="SEL-Utility-API.html#SEL-Utility-API" accesskey="7">SEL Utility API</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Public functions, variables, and macros
+<tr><td align="left" valign="top">&bull; <a href="SEL-Utility-API.html#SEL-Utility-API" accesskey="8">SEL Utility API</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Public functions, variables, and macros
 </td></tr>
-<tr><td align="left" valign="top">&bull; <a href="SEL-View-API.html#SEL-View-API" accesskey="8">SEL View API</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Public functions, variables, and macro
+<tr><td align="left" valign="top">&bull; <a href="SEL-View-API.html#SEL-View-API" accesskey="9">SEL View API</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Public functions, variables, and macro
 </td></tr>
 <tr><th colspan="3" align="left" valign="top"><pre class="menu-comment">
 
 Appendices
-</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="General-Lisp-Advice.html#General-Lisp-Advice" accesskey="9">General Lisp Advice</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Information for those new to Common Lisp
+</pre></th></tr><tr><td align="left" valign="top">&bull; <a href="General-Lisp-Advice.html#General-Lisp-Advice">General Lisp Advice</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Information for those new to Common Lisp
 </td></tr>
 <tr><td align="left" valign="top">&bull; <a href="SEL-Coding-Standards.html#SEL-Coding-Standards">SEL Coding Standards</a>:</td><td>&nbsp;&nbsp;</td><td align="left" valign="top">Guidance for contribution to SEL
 </td></tr>
