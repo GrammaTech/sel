@@ -164,6 +164,42 @@ the ast path and source text.
                     (,(symbol-cat conc-name slot) (ast-node ,obj))))
                slot-names)))))
 
+(defun to-ast (ast-type spec)
+  "Walk a potentially recursive AST SPEC creating an AST-TYPE AST.
+A SPEC should have the form
+
+  (ast-class <optional-keyword-args-to-`make-<AST-TYPE>-node'>
+             CHILDREN)
+
+where CHILDREN may themselves be specifications suitable for passing
+to `to-ast`.  E.g.
+
+  (to-ast 'clang-ast (:callexpr (:implicitcastexpr
+                                 :includes '(\"<string.h>\")
+                                 \"\" \"(|strcpy|)\" \"\")
+                                \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"
+  (labels ((convert-to-node (spec)
+             (destructuring-bind (class &rest options-and-children) spec
+               (multiple-value-bind (keys children)
+                   (iter (for item in options-and-children)
+                         (with previous)
+                         (if (or (keywordp previous)
+                                 (keywordp item))
+                             ;; Collect keyword arguments.
+                             (collect item into keys)
+                             ;; Process lists as new AST nodes.
+                             (if (listp item)
+                                 (collect (convert-to-node item) into children)
+                                 (collect item into children)))
+                         (setf previous item)
+                         (finally (return (values keys children))))
+                 (funcall (symbol-cat 'make ast-type)
+                   :node (apply (symbol-cat 'make ast-type 'node)
+                                :class (intern (symbol-name class))
+                                keys)
+                   :children children)))))
+    (convert-to-node spec)))
+
 (defun symbol-cat (&rest symbols)
   "Return a symbol concatenation of SYMBOLS."
   (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
@@ -251,6 +287,22 @@ AST node."
 * STR string to retrieve source code for
 "
   str)
+
+(defmethod rebind-vars ((ast string) var-replacements fun-replacements)
+  "Replace variable and function references, returning a new AST.
+* AST node to rebind variables and function references for
+* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
+* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
+the rebinding
+"
+  (reduce (lambda (new-ast replacement)
+            (replace-all new-ast (first replacement) (second replacement)))
+          (append var-replacements
+                  (mapcar (lambda (fun-replacement)
+                            (list (car (first fun-replacement))
+                                  (car (second fun-replacement))))
+                          fun-replacements))
+          :initial-value ast))
 
 (defmethod replace-in-ast ((ast ast) replacements &key (test #'equalp))
   "Make arbritrary replacements within AST, returning a new AST.

@@ -48,6 +48,9 @@
 (defgeneric get-unbound-vals (software ast)
   (:documentation "Variables used (but not defined) within the AST."))
 
+(defgeneric enclosing-scope (software ast)
+  (:documentation "Returns enclosing scope of AST."))
+
 (defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
 Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
@@ -101,9 +104,30 @@ STMT-POOL for mutation, filtering using FILTER, and throwing a
 values.  Additionally perform any updates to the software object required
 for successful mutation."))
 
+(defgeneric recontextualize (parseable ast pt)
+  (:documentation "Perform any modifications to AST (e.g. variable rebinding)
+to allow for successful mutation of SOFTWARE at PT."))
+
 (defgeneric select-crossover-points (a b)
   (:documentation "Select suitable crossover points in A and B.
 If no suitable points are found the returned points may be nil."))
+
+(defgeneric parse-source-snippet (type snippet &key)
+  (:documentation "Parse a source SNIPPET of the given TYPE (e.g clang)
+into a list of free-floating ASTs."))
+
+(defgeneric traceable-stmt-p (software ast)
+  (:documentation
+   "Return TRUE if AST is a traceable statement in SOFTWARE."))
+
+(defgeneric can-be-made-traceable-p (software ast)
+  (:documentation "Check if AST can be made a traceable statement in SOFTWARE."))
+
+(defgeneric enclosing-traceable-stmt (software ast)
+  (:documentation
+   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
+If a statement is reached which is not itself traceable, but which could be
+made traceable by wrapping with curly braces, return that."))
 
 
 ;;; Core parseable methods
@@ -165,9 +189,11 @@ the NEW ast-root."
 
 (defmethod (setf ast-root) :after (new (obj parseable))
   "Ensure the AST paths in NEW are correct after modifying the
-applicative AST tree."
+applicative AST tree and clear the genome string."
   (setf (slot-value obj 'ast-root)
-        (update-paths new)))
+        (update-paths new)
+        (slot-value obj 'genome)
+        nil))
 
 (defmethod update-paths
     ((tree ast) &optional path)
@@ -314,6 +340,20 @@ otherwise.
   (iter (for child in (ast-children ast))
         (when (subtypep (type-of child) 'ast)
           (collect child))))
+
+(defmethod get-vars-in-scope ((obj parseable) (ast ast)
+                              &optional (keep-globals t))
+  "Return all variables in enclosing scopes.
+* OBJ software object containing AST and its enclosing scopes
+* AST node to find variables in scope for"
+  ;; Remove duplicate variable names from outer scopes. Only the inner variables
+  ;; are accessible.
+  (remove-duplicates (apply #'append (if keep-globals
+                                         (scopes obj ast)
+                                         (butlast (scopes obj ast))))
+                     :from-end t
+                     :key {aget :name}
+                     :test #'string=))
 
 (defmethod ast-to-source-range ((obj parseable) (ast ast))
   "Convert AST to pair of SOURCE-LOCATIONS."
@@ -727,6 +767,52 @@ SOFTWARE.
 
   (clear-caches software)
   software)
+
+(defmethod recontextualize-mutation ((software parseable) (mutation mutation))
+  "Bind free variables and functions in the mutation to concrete
+values.  Additionally perform any updates to the software object required
+for successful mutation (e.g. adding includes/types/macros), returning
+the mutation operations to be performed as an association list.
+* OBJ object to be mutated
+* MUT mutation to be applied
+"
+  (recontextualize-mutation software (build-op mutation software)))
+
+(defmethod recontextualize-mutation ((software parseable) (ops list))
+  "Bind free variables and functions in the mutation to concrete
+values.  Additionally perform any updates to the software object required
+for successful mutation (e.g. adding includes/types/macros), returning
+the mutation operations to be performed as an association list.
+* OBJ object to be mutated
+* MUT mutation to be applied
+"
+  (loop :for (op . properties) :in ops
+     :collecting
+     (let ((stmt1  (aget :stmt1  properties))
+           (stmt2  (aget :stmt2  properties))
+           (value1 (aget :value1 properties))
+           (literal1 (aget :literal1 properties)))
+       (case op
+         ((:cut :set :insert)
+          (cons op
+            (cons (cons :stmt1 stmt1)
+                  (if (or stmt2 value1 literal1)
+                      `((:value1 .
+                         ,(if literal1 literal1
+                              (recontextualize
+                                software
+                                (or stmt2 value1)
+                                stmt1))))))))
+         ;; Other ops are passed through without changes
+         (otherwise (cons op properties))))))
+
+(defmethod recontextualize ((software parseable)
+                            (ast ast)
+                            (pt ast))
+  "Perform any modifications to AST (e.g. variable rebinding)
+to allow for successful mutation of SOFTWARE at PT."
+  (declare (ignorable software pt))
+  ast)
 
 
 ;;; Generic tree interface

@@ -130,41 +130,6 @@ See http://clang.llvm.org/."))
       (print-unreadable-object (obj stream :type t)
         (format stream "~a" (ast-class obj)))))
 
-(defmacro to-clang-ast (spec)
-  "Walk a potentially recursive clang-ast SPEC creating a `clang-ast'.
-A SPEC should have the form
-
-    (clang-ast-class <optional-keyword-args-to-`make-clang-ast-node'>
-                     CHILDREN)
-
-where CHILDREN may themselves be specifications suitable for passing
-to `to-clang-ast'.  E.g.,
-
-    (to-clang-ast (:callexpr (:implicitcastexpr
-                              :includes '(\"<string.h>\")
-                              \"\" \"(|strcpy|)\" \"\")
-                             \"(\" \"arg-1\" \",\" \"arg-2\" \")\"))"
-  (labels ((convert-to-node (spec)
-             (destructuring-bind (class &rest options-and-children) spec
-               (multiple-value-bind (keys children)
-                   (iter (for item in options-and-children)
-                         (with previous)
-                         (if (or (keywordp previous)
-                                 (keywordp item))
-                             ;; Collect keyword arguments.
-                             (collect item into keys)
-                             ;; Process lists as new AST nodes.
-                             (if (listp item)
-                                 (collect (convert-to-node item) into children)
-                                 (collect item into children)))
-                         (setf previous item)
-                         (finally (return (values keys children))))
-                 `(make-clang-ast
-                   :node (make-clang-ast-node
-                          :class ',(intern (symbol-name class)) ,@keys)
-                   :children (list ,@children))))))
-    (convert-to-node spec)))
-
 (defun make-statement (class syn-ctx children
                        &key expr-type full-stmt guard-stmt opcode
                          types unbound-funs unbound-vals declares includes
@@ -1802,44 +1767,6 @@ already in scope, it will keep that name.")
       :report "Try another mutation"
       (mutate clang))))
 
-(defmethod recontextualize-mutation ((obj clang) (mut mutation))
-  "Bind free variables and functions in the mutation to concrete
-values.  Additionally perform any updates to the software object required
-for successful mutation (e.g. adding includes/types/macros), returning
-the mutation operations to be performed as an association list.
-* OBJ object to be mutated
-* MUT mutation to be applied
-"
-  (recontextualize-mutation obj (build-op mut obj)))
-
-(defmethod recontextualize-mutation ((obj clang) (ops list))
-  "Bind free variables and functions in the mutation to concrete
-values.  Additionally perform any updates to the software object required
-for successful mutation (e.g. adding includes/types/macros), returning
-the mutation operations to be performed as an association list.
-* OBJ object to be mutated
-* MUT mutation to be applied
-"
-  (loop :for (op . properties) :in ops
-     :collecting
-     (let ((stmt1  (aget :stmt1  properties))
-           (stmt2  (aget :stmt2  properties))
-           (value1 (aget :value1 properties))
-           (literal1 (aget :literal1 properties)))
-       (case op
-         ((:cut :set :insert)
-          (cons op
-            (cons (cons :stmt1 stmt1)
-                  (if (or stmt2 value1 literal1)
-                      `((:value1 .
-                            ,(if literal1 literal1
-                                 (recontextualize
-                                    obj
-                                    (or stmt2 value1)
-                                    stmt1))))))))
-         ;; Other ops are passed through without changes
-         (otherwise (cons op properties))))))
-
 (defun apply-clang-mutate-ops (software ops &aux (tu 0))
   "Run clang-mutate with a list of mutation operations, and update the genome."
   ;; If we multiplex multiple software objects onto one clang-mutate
@@ -2311,9 +2238,6 @@ it will transform this into:
              (ast-class ast) +clang-wrapable-parents+))
   obj)
 
-(defgeneric can-be-made-traceable-p (software ast)
-  (:documentation "Check if AST can be made a traceable statement in SOFTWARE."))
-
 (defmethod can-be-made-traceable-p ((obj clang) (ast clang-ast))
   "DOCFIXME
 * OBJ DOCFIXME
@@ -2328,12 +2252,6 @@ it will transform this into:
           (member (ast-class parent) +clang-wrapable-parents+
                   :test #'string=)))))
 
-(defgeneric enclosing-traceable-stmt (software ast)
-  (:documentation
-   "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
-If a statement is reached which is not itself full, but which could be
-made full by wrapping with curly braces, return that."))
-
 (defmethod enclosing-traceable-stmt ((obj clang) (ast clang-ast))
   "DOCFIXME
 * OBJ DOCFIXME
@@ -2346,10 +2264,6 @@ made full by wrapping with curly braces, return that."))
     (:otherwise
      (some->> (get-parent-ast obj ast)
               (enclosing-traceable-stmt obj)))))
-
-(defgeneric traceable-stmt-p (software ast)
-  (:documentation
-   "Return TRUE if AST is a traceable statement in SOFTWARE."))
 
 (defmethod traceable-stmt-p ((obj clang) (ast clang-ast))
   "DOCFIXME
@@ -2556,9 +2470,6 @@ included as the first successor."
   (member (ast-class ast)
           '(:CompoundStmt :Block :Captured :Function :CXXMethod)))
 
-(defgeneric enclosing-scope (software ast)
-  (:documentation "Returns enclosing scope of AST."))
-
 (defmethod enclosing-scope ((software clang) (ast clang-ast))
   "DOCFIXME
 * SOFTWARE DOCFIXME
@@ -2695,22 +2606,6 @@ included as the first successor."
   (declare (ignorable software))
   (ast-unbound-vals ast))
 
-(defmethod get-vars-in-scope ((obj clang) (ast clang-ast)
-                              &optional (keep-globals t))
-  "DOCFIXME
-* OBJ DOCFIXME
-* AST DOCFIXME
-* KEEP-GLOBALS DOCFIXME
-"
-  ;; Remove duplicate variable names from outer scopes. Only the inner variables
-  ;; are accessible.
-  (remove-duplicates (apply #'append (if keep-globals
-                                         (scopes obj ast)
-                                         (butlast (scopes obj ast))))
-                     :from-end t
-                     :key {aget :name}
-                     :test #'string=))
-
 (defun random-function-name (protos &key original-name arity)
   "DOCFIXME
 * PROTOS DOCFIXME
@@ -2843,22 +2738,6 @@ the rebinding
                   :test #'equal))
     :children (mapcar {rebind-vars _ var-replacements fun-replacements}
                       (ast-children ast))))
-
-(defmethod rebind-vars ((ast string) var-replacements fun-replacements)
-  "Replace variable and function references, returning a new AST.
-* AST node to rebind variables and function references for
-* VAR-REPLACEMENTS list of old-name, new-name pairs defining the rebinding
-* FUN-REPLACEMENTS list of old-function-info, new-function-info pairs defining
-the rebinding
-"
-  (reduce (lambda (new-ast replacement)
-            (replace-all new-ast (first replacement) (second replacement)))
-          (append var-replacements
-                  (mapcar (lambda (fun-replacement)
-                            (list (car (first fun-replacement))
-                                  (car (second fun-replacement))))
-                          fun-replacements))
-          :initial-value ast))
 
 (defgeneric delete-decl-stmts (software block replacements)
   (:documentation
@@ -3465,99 +3344,96 @@ within a function body, return null."))
   (find-if [{equalp stmt} {function-body clang}] (functions clang)))
 
 
-;;; Formatting methods
-(defgeneric clang-tidy (software &optional checks)
-  (:documentation "Apply the software fixing clang tool, optionally using
-the given list of CHECKS."))
+;;; Implement the generic format-genome method for clang objects.
+(defmethod format-genome ((obj clang) &key)
+  "Apply Artistic Style to OBJ to format the software."
+  (astyle obj))
 
-(defmethod clang-tidy
-    ((clang clang)
-     &optional (checks '("cppcore-guidelines*"
-                         "misc*"
-                         "-misc-macro-parentheses"
-                         "-misc-static-assert"
-                         "-misc-unused-parameters"
-                         "-modernize*"
-                         "performance*"
-                         "-performance-unnecessary-value-param"
-                         "readability*"
-                         "-readability-else-after-return"
-                         "-readability-function-size"
-                         "-readability-identifier-naming"
-                         "-readability-implicit-bool-conversion"
-                         "-readability-inconsistent-declaration-parameter-name"
-                         "-readability-non-const-parameter"
-                         "-readability-redundant-control-flow"
-                         "-readability-redundant-declaration"))
-     &aux errno)
-  "Apply clang-tidy to OBJ.
-* CLANG object to tidy and return
-* CHECKS list of clang-tidy checks to apply
-* ERRNO Exit code of clang-tidy
+
+;;; Support for parsing a string directly into free-floating ASTs.
+(defmethod parse-source-snippet ((type (eql :clang))
+                                 (snippet string)
+                                 &key unbound-vals includes macros preamble
+                                   top-level keep-comments)
+  "Build ASTs for SNIPPET, returning a list of root asts.
+
+* SNIPPET may include one or more full statements. It should compile in
+  a context where all UNBOUND-VALS are defined and all INCLUDES are
+  included.
+
+* UNBOUND-VALS should have the form ((name clang-type) ... )
+
+* INCLUDES is a list of files to include.
+
+* MACROS is a list of macros to define
+
+* PREAMBLE source to add prior to snippet
+
+* TOP-LEVEL indicates that the snippet is a construct which can exist
+  outside a function body, such as a type or function declaration.
+
+* KEEP-COMMENTS indicates comments should be retained
 "
-  (setf (genome clang)
-        (with-temp-file-of (src (ext clang)) (genome clang)
-          (multiple-value-bind (stdout stderr exit)
-              (shell
-               "clang-tidy -fix -fix-errors -checks=~{~a~^,~} ~a -- ~a 1>&2"
-               checks
-               src
-               (mapconcat #'identity (flags clang) " "))
-            (declare (ignorable stdout stderr))
-            (setf errno exit)
-            (if (zerop exit) (file-to-string src) (genome clang)))))
-  (values clang errno))
-
-(defmethod clang-format ((obj clang) &optional style &aux errno)
-  "Apply clang-format to OBJ.
-* OBJ object to format and return
-* STYLE clang-format style to utilize
-* ERRNO Exit code of clang-format
+  (labels ((has-comment-p (text)
+             (and (stringp text)
+                  (or (and (search "/*" text)
+                           (search "*/" text))
+                      (search "//" text))))
+           (trim-stmt-end (text)
+             (string-left-trim '(#\Space #\Backspace #\Tab #\;)
+                                text))
+           (prepend-text (ast text &aux (children (ast-children ast)))
+             (copy ast
+                   :children (if (stringp (first children))
+                                 (cons (concatenate 'string text
+                                                            (first children))
+                                       (cdr children))
+                                 (cons text children)))))
+    (handler-case
+        (let* ((dependency-source
+                (format nil "
+/* generated includes */
+~{#include ~a~&~}
+~{#define ~a~&~}
+/* generated declarations */
+~:{~a ~a;~%~}~%
+/* preamble */
+~a
 "
-  (with-temp-file-of (src (ext obj)) (genome obj)
-    (setf (genome obj)
-          (multiple-value-bind (stdout stderr exit)
-              (shell "clang-format ~a ~a"
-                     (if style
-                         (format nil "-style=~a" style)
-                         (format nil
-                                 "-style='{BasedOnStyle: Google,~
-                                AllowShortBlocksOnASingleLine: false,~
-                                AllowShortCaseLabelsOnASingleLine: false,~
-                                AllowShortFunctionsOnASingleLine: false,~
-                                AllowShortIfStatementsOnASingleLine: false,~
-                                AllowShortLoopsOnASingleLine: false,~
-                                ReflowComments: false,~
-                                SortIncludes: false}'"))
-                     src)
-            (declare (ignorable stderr))
-            (setf errno exit)
-            (if (zerop exit) stdout (genome obj)))))
-  (values obj errno))
-
-(defgeneric astyle (software &optional style options)
-  (:documentation "Apply Artistic Style to the software.
-Documentation can be found at
-http://astyle.sourceforge.net/astyle.html#_Usage"))
-
-(defmethod astyle
-    ((obj clang) &optional (style "kr") (options '("--add-brackets"))
-     &aux errno)
-  "Apply Artistic Style to OBJ.
-* OBJ object to format and return
-* STYLE style to utilize
-* OPTIONS list of additional options to astyle
-* ERRNO Exit code of astyle binary
-"
-  (with-temp-file-of (src (ext obj)) (genome obj)
-    (setf (genome obj)
-          (multiple-value-bind (stdout stderr exit)
-              (shell "astyle --suffix=none ~{~a~^ ~} --style=~a ~a"
-                     options style src)
-            (declare (ignorable stdout stderr))
-            (setf errno exit)
-            (if (zerop exit)
-                (file-to-string src)
-                (genome obj)))))
-  (values obj errno))
-
+                        includes
+                        (mapcar #'macro-body macros)
+                        (mapcar «list [#'type-decl-string #'second] #'first»
+                                unbound-vals)
+                        (or preamble "")))
+               (wrapped (format nil
+                                (if top-level
+                                    "int __snippet_marker;~%~a~%"
+                                    "void main() {int __snippet_marker; ~a;~%}")
+                                snippet))
+               (obj (make-instance 'clang
+                      :flags (list "-Wno-everything")
+                      :genome (concatenate 'string
+                                           dependency-source
+                                           wrapped)))
+               (block-children
+                 (if top-level
+                     (mapcar #'copy (get-immediate-children obj (ast-root obj)))
+                     (iter (for child in (->> (functions obj)
+                                              (lastcar)
+                                              (function-body obj)
+                                              (ast-children)))
+                           (for prev previous child)
+                           (when (subtypep (type-of child) 'ast)
+                             (if (and keep-comments (has-comment-p prev))
+                                 (collect (prepend-text child
+                                                        (trim-stmt-end prev)))
+                                 (collect (copy child))))))))
+          (subseq block-children
+                  (1+ (position-if [{string= "__snippet_marker"} #'car
+                                    #'ast-declares]
+                                   block-children))
+                  (if (equal :NullStmt (ast-class (lastcar block-children)))
+                      (1- (length block-children))
+                      (length block-children))))
+      ;; If error parsing simply return nil.
+      (mutate (e) (declare (ignorable e)) nil))))

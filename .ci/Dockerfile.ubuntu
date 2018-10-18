@@ -17,14 +17,7 @@ FROM docker.grammatech.com:14850/synthesis/clang-mutate as clang-mutate
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
-    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect
-
-RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz
-RUN tar xf astyle_3.1_linux.tar.gz
-RUN cd astyle/build/gcc && make release
-RUN cp astyle/build/gcc/bin/astyle /usr/bin
-RUN rm -rf astyle
-RUN rm -rf astyle_3.1_linux.tar.gz
+    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=clang-mutate /usr/synth/ /usr/synth/
@@ -37,6 +30,24 @@ COPY --from=cl /usr/synth/share/ccl /usr/synth/share/ccl
 COPY --from=cl /usr/synth/share/doc/ccl /usr/synth/share/doc/ccl
 COPY --from=cl /usr/synth/share/doc/sbcl /usr/synth/share/doc/sbcl
 COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
+
+# Artistic Style Version 3.0
+# Build astyle from source as the package manager only has version 2.0.
+RUN wget https://downloads.sourceforge.net/project/astyle/astyle/astyle%203.1/astyle_3.1_linux.tar.gz && \
+    tar xf astyle_3.1_linux.tar.gz && \
+    cd astyle/build/gcc && \
+    make release && \
+    cp bin/astyle /usr/bin && \
+    cd ../../../ && \
+    rm -rf astyle && \
+    rm -rf astyle_3.1_linux.tar.gz
+
+# Javascript
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install --global acorn && \
+    npm install --global prettier
+
 
 ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
     LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \

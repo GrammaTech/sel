@@ -202,11 +202,12 @@ Returns modified text, and names of bound variables.
       (let ((in-scope (get-vars-in-scope obj pt)))
         (if-let ((asts
                   (parse-source-snippet
+                   :clang
                    text
                    ;; Variable and type names
-                   (mapcar #'list
-                           vars
-                           (mapcar {var-type in-scope} vars))
+                   :unbound-vals (mapcar #'list
+                                         vars
+                                         (mapcar {var-type in-scope} vars))
                    :includes (aget :includes snippet)
                    :macros (->> (mapcar {find-macro database}
                                         (aget :macros snippet))
@@ -302,88 +303,3 @@ AST of the same class."))
   ((targeter :initform {pick-bad-fodder _ t nil}))
   (:documentation "Replace an AST in a clang software object with a full
 statement fodder AST."))
-
-(defun parse-source-snippet (snippet unbound-vals &key
-                             includes macros preamble top-level keep-comments)
-  "Build ASTs for SNIPPET, returning a list of root asts.
-
-* SNIPPET may include one or more full statements. It should compile in
-  a context where all UNBOUND-VALS are defined and all INCLUDES are
-  included.
-
-* UNBOUND-VALS should have the form ((name clang-type) ... )
-
-* INCLUDES is a list of files to include.
-
-* MACROS is a list of macros to define
-
-* PREAMBLE source to add prior to snippet
-
-* TOP-LEVEL indicates that the snippet is a construct which can exist
-  outside a function body, such as a type or function declaration.
-
-* KEEP-COMMENTS indicates comments should be retained
-"
-  (labels ((has-comment-p (text)
-             (and (stringp text)
-                  (or (and (search "/*" text)
-                           (search "*/" text))
-                      (search "//" text))))
-           (trim-stmt-end (text)
-             (string-left-trim '(#\Space #\Backspace #\Tab #\;)
-                                text))
-           (prepend-text (ast text &aux (children (ast-children ast)))
-             (copy ast
-                   :children (if (stringp (first children))
-                                 (cons (concatenate 'string text
-                                                            (first children))
-                                       (cdr children))
-                                 (cons text children)))))
-    (handler-case
-        (let* ((dependency-source
-                (format nil "
-/* generated includes */
-~{#include ~a~&~}
-~{#define ~a~&~}
-/* generated declarations */
-~:{~a ~a;~%~}~%
-/* preamble */
-~a
-"
-                        includes
-                        (mapcar #'macro-body macros)
-                        (mapcar «list [#'type-decl-string #'second] #'first»
-                                unbound-vals)
-                        (or preamble "")))
-               (wrapped (format nil
-                                (if top-level
-                                    "int __snippet_marker;~%~a~%"
-                                    "void main() {int __snippet_marker; ~a;~%}")
-                                snippet))
-               (obj (make-instance 'clang
-                      :flags (list "-Wno-everything")
-                      :genome (concatenate 'string
-                                           dependency-source
-                                           wrapped)))
-               (block-children
-                 (if top-level
-                     (mapcar #'copy (get-immediate-children obj (ast-root obj)))
-                     (iter (for child in (->> (functions obj)
-                                              (lastcar)
-                                              (function-body obj)
-                                              (ast-children)))
-                           (for prev previous child)
-                           (when (subtypep (type-of child) 'ast)
-                             (if (and keep-comments (has-comment-p prev))
-                                 (collect (prepend-text child
-                                                        (trim-stmt-end prev)))
-                                 (collect (copy child))))))))
-          (subseq block-children
-                  (1+ (position-if [{string= "__snippet_marker"} #'car
-                                    #'ast-declares]
-                                   block-children))
-                  (if (equal :NullStmt (ast-class (lastcar block-children)))
-                      (1- (length block-children))
-                      (length block-children))))
-      ;; If error parsing simply return nil.
-      (mutate (e) (declare (ignorable e)) nil))))

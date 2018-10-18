@@ -350,12 +350,12 @@ are given in remainder of this section.
   |----------|          +-------------+
   | LLVM IR  |          | Parsed ASTs |
   +----------+          +-------------+
-                              |
-                          +-------+
-                          | Clang |
-                          |-------|
-                          | C AST |
-                          +-------+
+                       /      |
+      +-----------------+ +-------+
+      |   JavaScript    | | Clang |
+      +-----------------+ |-------|
+      |  JavaScript AST | | C AST |
+      +-----------------+ +-------+
                               |
                               |
                               |
@@ -417,6 +417,10 @@ with an indicate of their relative maturity.
       @tab @refapiclass{java}
       @tab experimental
 
+@item JavaScript source
+      @tab @refapiclass{javascript}
+      @tab experimental
+
 @item LLVM IR
       @tab @refapiclass{llvm}
       @tab experimental
@@ -453,8 +457,9 @@ Software Object Classes (see also @ref{api-software-object-classes,Software Obje
 * Assembler with @code{asm}::   Assembler represented as a vector
 * Executables with @code{csurf-asm}:: Executables manipulated as an
                                       assembler vector
-* Java with @code{java}::       Java language source code ASTs
-* Coq with @code{coq}::         Coq language source code ASTs
+* Java with @code{java}::             Java language source code ASTs
+* JavaScript with @code{javascript}:: JavaScript language source code ASTs
+* Coq with @code{coq}::               Coq language source code ASTs
 
 Software Object Mixins (see also @ref{api-software-object-mixins,Software Object Class ``Mixins''} in the API)
 * Ancestor tracking with @code{ancestral}:: Collect history of applied
@@ -482,13 +487,19 @@ Software Object Mixins (see also @ref{api-software-object-mixins,Software Object
 
 @include include/csurf-asm.texi
 
-@node Java with @code{java}, Coq with @code{coq}, Executables with @code{csurf-asm}, Software Objects
+@node Java with @code{java}, JavaScript with @code{javascript}, Executables with @code{csurf-asm}, Software Objects
 
 @subsection Java with @code{java}
 
 @include include/java.texi
 
-@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, Java with @code{java}, Software Objects
+@node JavaScript with @code{javascript}, Coq with @code{coq}, Java with @code{java}, Software Objects
+
+@subsection JavaScript with @code{javascript}
+
+@include include/javascript.texi
+
+@node Coq with @code{coq}, Ancestor tracking with @code{ancestral}, JavaScript with @code{javascript}, Software Objects
 
 @subsection Coq with @code{coq} and @code{SerAPI}
 

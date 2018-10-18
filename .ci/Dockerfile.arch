@@ -22,11 +22,15 @@ ENV PATH=:$PATH \
 # standard functions requires that the system has man pages installed.
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
-RUN pacman -Syu --noconfirm astyle gcc-multilib graphviz lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages pandoc python subversion texinfo unzip maven jdk8-openjdk expect
+RUN pacman -Syu --noconfirm astyle gcc-multilib graphviz lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages pandoc python subversion texinfo unzip maven jdk8-openjdk expect nodejs npm
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=cl /usr/synth/ /usr/synth
 COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
+
+# Javascript
+RUN npm install --global acorn && \
+    npm install --global prettier
 
 ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
     LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \

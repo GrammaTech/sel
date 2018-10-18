@@ -18,6 +18,7 @@ More information about instrumentation is provided in section
 
   @itemize
   @item Subclass @ref{api-instrumentation-clang-instrumenter,@code{clang-instrumenter}}
+  @item Subclass @ref{api-instrumentation-javascript-instrumenter,@code{javascript-instrumenter}}
 
   @item Generic Functions
     @itemize
@@ -28,25 +29,30 @@ More information about instrumentation is provided in section
     @item @refapigeneric{uninstrument}
     @item @refapigeneric{var-instrument}
     @end itemize
-
-  @item Methods
-    @itemize
-    @item @refapimethod{var-instrument,var-instrument}
-    @end itemize
   @end itemize
 
 @anchor{api-instrumentation-clang-instrumenter}
 @item Class @refapiclass{clang-instrumenter}
   @itemize
 
-  @item Functions
-    @itemize
-    @item @refapifunction{clang-instrument}
-    @end itemize
-
   @item Methods
     @itemize
     @item @refapimethod{instrument,instrument}
+    @item @refapimethod{var-instrument,var-instrument}
+    @end itemize
+  @end itemize
+
+@anchor{api-instrumentation-javascript-instrumenter}
+@item Class @refapiclass{javascript-instrumenter}
+  @itemize
+
+  @item Methods
+    @itemize
+    @item @refapimethod{instrumented-p,instrumented-p}
+    @item @refapimethod{instrument,instrument}
+    @item @refapimethod{uninstrument,uninstrument}
+    @item @refapimethod{var-instrument,var-instrument}
+
     @end itemize
   @end itemize
 @end itemize

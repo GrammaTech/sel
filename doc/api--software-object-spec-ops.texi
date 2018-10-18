@@ -22,7 +22,7 @@ Specialized Operations on Software Objects
 
 @c ------------------------------
 
-@include api--clang-instrument.texi
+@include api--instrument.texi
 @include api--tracing.texi
 @include api--condition-synthesis.texi
 
