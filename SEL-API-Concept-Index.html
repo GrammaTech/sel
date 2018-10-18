@@ -432,7 +432,8 @@ Class <code>software</code>
         <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dclang_002dw_002dfodder"><code>clang-w-fodder</code></a>
         </li></ul>
-</li></ul>
+</li><li> <a href="#api_002dsoftware_002dobjects_002djavascript"><code>javascript</code></a>
+      </li></ul>
 </li></ul>
 
 </li><li> <a href="#api_002dsoftware_002dobjects_002dproject"><code>project</code></a>
@@ -544,7 +545,8 @@ Class <code>source</code>
       <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dclang_002dw_002dfodder"><code>clang-w-fodder</code></a>
       </li></ul>
-</li></ul>
+</li><li> <a href="#api_002dsoftware_002dobjects_002djavascript"><code>javascript</code></a>
+    </li></ul>
 </li><li> <a href="#api_002dsoftware_002dobjects_002dllvm"><code>llvm</code></a>
   </li></ul>
 
@@ -606,15 +608,19 @@ Class <code>parseable</code>
 </li><li> Subclass
   <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dclang"><code>clang</code></a>
+  </li><li> <a href="#api_002dsoftware_002dobjects_002djavascript"><code>javascript</code></a>
   </li></ul>
 
 </li><li> Generic Functions
   <ul>
 <li> <a href="SEL-API-Details.html#Generic_002dFunction-build_002dop"><code>build-op</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-can_002dbe_002dmade_002dtraceable_002dp"><code>can-be-made-traceable-p</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dast"><code>get-ast</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dimmediate_002dchildren"><code>get-immediate-children</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dunbound_002dfuns"><code>get-unbound-funs</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dunbound_002dvals"><code>get-unbound-vals</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dvars_002din_002dscope"><code>get-vars-in-scope</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-roots"><code>roots</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-size"><code>size</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-update_002dasts"><code>update-asts</code></a>
@@ -716,16 +722,12 @@ Class <code>clang</code>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-adjust_002dstmt_002drange"><code>adjust-stmt-range</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-bad_002dstmts"><code>bad-stmts</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-block_002dp"><code>block-p</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-can_002dbe_002dmade_002dtraceable_002dp"><code>can-be-made-traceable-p</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-clang_002dtidy"><code>clang-tidy</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-enclosing_002dfull_002dstmt"><code>enclosing-full-stmt</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-find_002dvar_002dtype"><code>find-var-type</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-force_002dinclude"><code>force-include</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-function_002dcontaining_002dast"><code>function-containing-ast</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dparent_002dfull_002dstmt"><code>get-parent-full-stmt</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dvars_002din_002dscope"><code>get-vars-in-scope</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-good_002dstmts"><code>good-stmts</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-astyle"><code>astyle</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-pick_002dguarded_002dcompound"><code>pick-guarded-compound</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-random_002dpoint_002din_002dfunction"><code>random-point-in-function</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-scopes"><code>scopes</code></a>
@@ -754,13 +756,11 @@ Class <code>clang</code>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-add_002dtype"><code>add-type</code></a> : multiple methods with different types for type argument
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-adjust_002dstmt_002drange"><code>adjust-stmt-range</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-apply_002dmutation"><code>apply-mutation</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-astyle"><code>astyle</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-bad_002dstmts"><code>bad-stmts</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-bi_002dgrams_002dhashtable_002dto_002dfeature"><code>bi-grams-hashtable-to-feature</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-block_002dp"><code>block-p</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-build_002dop"><code>build-op</code></a> : multiple methods with different mutation argument types
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-can_002dbe_002dmade_002dtraceable_002dp"><code>can-be-made-traceable-p</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-clang_002dtidy"><code>clang-tidy</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-crossover"><code>crossover</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-delete_002ddecl_002dstmts"><code>delete-decl-stmts</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-enclosing_002dfull_002dstmt"><code>enclosing-full-stmt</code></a>
@@ -769,6 +769,7 @@ Class <code>clang</code>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-find_002dtype"><code>find-type</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-find_002dvar_002dtype"><code>find-var-type</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-force_002dinclude"><code>force-include</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-format_002dgenome"><code>format-genome</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-function_002dcontaining_002dast"><code>function-containing-ast</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-full_002dstmt_002dp"><code>full-stmt-p</code></a>
@@ -792,6 +793,7 @@ Class <code>clang</code>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-wrap_002dast"><code>wrap-ast</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-wrap_002dchild"><code>wrap-child</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
   </li></ul>
 
 </li><li> Functions
@@ -835,7 +837,6 @@ Class <code>clang-w-fodder</code>
 </li><li> Functions
   <ul>
 <li> <a href="SEL-API-Details.html#Function-prepare_002dfodder"><code>prepare-fodder</code></a>
-  </li><li> <a href="SEL-API-Details.html#Function-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
   </li></ul>
 
 </li><li> Variables
@@ -868,8 +869,38 @@ Class <code>clang-w-fodder</code>
 
 
 
+<a name="api_002dsoftware_002dobjects_002djavascript"></a><a name="Class-javascript-1"></a>
+<h4 class="subsubsection">A.2.1.7 Class <code>javascript</code></h4>
+<p>[
+<a href="SEL-API.html#SEL-API">API</a> |
+<a href="#api_002dsoftware_002dobjects">Software Objects</a> |
+<a href="#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> |
+Class <code>javascript</code>
+]
+</p>
+<ul>
+<li> Class <a href="SEL-API-Details.html#Class-javascript"><code>javascript</code></a>
+
+</li><li> Methods
+  <ul>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-format_002dgenome"><code>format-genome</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dstring"><code>from-string</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dunbound_002dvals"><code>get-unbound-vals</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dunbound_002dfuns"><code>get-unbound-funs</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-get_002dvars_002din_002dscope"><code>get-vars-in-scope</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-parse_002dsource_002dsnippet"><code>parse-source-snippet</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-phenome"><code>phenome</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-traceable_002dstmt_002dp"><code>traceable-stmt-p</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-scopes"><code>scopes</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-update_002dasts"><code>update-asts</code></a>
+  </li></ul>
+
+</li></ul>
+
+
 <a name="api_002dsoftware_002dobjects_002dllvm"></a><a name="Class-llvm-1"></a>
-<h4 class="subsubsection">A.2.1.7 Class <code>llvm</code></h4>
+<h4 class="subsubsection">A.2.1.8 Class <code>llvm</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -891,7 +922,7 @@ Class <code>llvm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dproject"></a><a name="Class-project-1"></a>
-<h4 class="subsubsection">A.2.1.8 Class <code>project</code></h4>
+<h4 class="subsubsection">A.2.1.9 Class <code>project</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -935,7 +966,7 @@ Class <code>project</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dclang_002dproject"></a><a name="Class-clang_002dproject-1"></a>
-<h4 class="subsubsection">A.2.1.9 Class <code>clang-project</code></h4>
+<h4 class="subsubsection">A.2.1.10 Class <code>clang-project</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -948,9 +979,8 @@ Class <code>clang-project</code>
 <li> Class <a href="SEL-API-Details.html#Class-clang_002dproject"><code>clang-project</code></a>
 </li><li> Methods
   <ul>
-<li> <a href="SEL-API-Details.html#Generic_002dFunction-astyle"><code>astyle</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-clang_002dtidy"><code>clang-tidy</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-format_002dgenome"><code>format-genome</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-instrument"><code>instrument</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-instrumentation_002dfiles"><code>instrumentation-files</code></a>
   </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-instrumented_002dp"><code>instrumented-p</code></a>
@@ -960,9 +990,8 @@ Class <code>clang-project</code>
 </li></ul>
 
 
-
 <a name="api_002dsoftware_002dobjects_002dsimple"></a><a name="Class-simple-1"></a>
-<h4 class="subsubsection">A.2.1.10 Class <code>simple</code></h4>
+<h4 class="subsubsection">A.2.1.11 Class <code>simple</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1033,7 +1062,7 @@ Class <code>simple</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dasm"></a><a name="Class-asm-1"></a>
-<h4 class="subsubsection">A.2.1.11 Class <code>asm</code></h4>
+<h4 class="subsubsection">A.2.1.12 Class <code>asm</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1078,7 +1107,7 @@ Class <code>asm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dcsurf_002dasm"></a><a name="Class-csurf_002dasm-1"></a>
-<h4 class="subsubsection">A.2.1.12 Class <code>csurf-asm</code></h4>
+<h4 class="subsubsection">A.2.1.13 Class <code>csurf-asm</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1099,7 +1128,7 @@ Class <code>csurf-asm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf"></a><a name="Class-elf-1"></a>
-<h4 class="subsubsection">A.2.1.13 Class <code>elf</code></h4>
+<h4 class="subsubsection">A.2.1.14 Class <code>elf</code></h4>
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
 <a href="#api_002dsoftware_002dobjects">Software Objects</a> |
@@ -1147,7 +1176,7 @@ Class <code>elf</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002dcisc"></a><a name="Class-elf_002dcisc-1"></a>
-<h4 class="subsubsection">A.2.1.14 Class <code>elf-cisc</code></h4>
+<h4 class="subsubsection">A.2.1.15 Class <code>elf-cisc</code></h4>
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
 <a href="#api_002dsoftware_002dobjects">Software Objects</a> |
@@ -1186,7 +1215,7 @@ Class <code>elf-cisc</code>
 
 <a name="api_002dsoftware_002dobjects_002delf_002darm"></a>
 <a name="Class-elf_002darm-1"></a>
-<h4 class="subsubsection">A.2.1.15 Class <code>elf-arm</code></h4>
+<h4 class="subsubsection">A.2.1.16 Class <code>elf-arm</code></h4>
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
 <a href="#api_002dsoftware_002dobjects">Software Objects</a> |
@@ -1206,7 +1235,7 @@ Class <code>elf-arm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002dcsurf"></a><a name="Class-elf_002dcsurf-1"></a>
-<h4 class="subsubsection">A.2.1.16 Class <code>elf-csurf</code></h4>
+<h4 class="subsubsection">A.2.1.17 Class <code>elf-csurf</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1226,7 +1255,7 @@ Class <code>elf-csurf</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002dx86"></a><a name="Class-elf_002dx86-1"></a>
-<h4 class="subsubsection">A.2.1.17 Class <code>elf-x86</code></h4>
+<h4 class="subsubsection">A.2.1.18 Class <code>elf-x86</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1247,7 +1276,7 @@ Class <code>elf-x86</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002drisc"></a><a name="Class-elf_002drisc-1"></a>
-<h4 class="subsubsection">A.2.1.18 Class <code>elf-risc</code></h4>
+<h4 class="subsubsection">A.2.1.19 Class <code>elf-risc</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1281,7 +1310,7 @@ Class <code>elf-risc</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002delf_002dmips"></a><a name="Class-elf_002dmips-1"></a>
-<h4 class="subsubsection">A.2.1.19 Class <code>elf-mips</code></h4>
+<h4 class="subsubsection">A.2.1.20 Class <code>elf-mips</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1295,7 +1324,7 @@ Class <code>elf-mips</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dforth"></a><a name="Class-forth-1"></a>
-<h4 class="subsubsection">A.2.1.20 Class <code>forth</code></h4>
+<h4 class="subsubsection">A.2.1.21 Class <code>forth</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1317,7 +1346,7 @@ Class <code>forth</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dlight"></a><a name="Class-light-1"></a>
-<h4 class="subsubsection">A.2.1.21 Class <code>light</code></h4>
+<h4 class="subsubsection">A.2.1.22 Class <code>light</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1336,7 +1365,7 @@ Class <code>light</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dlisp"></a><a name="Class-lisp-1"></a>
-<h4 class="subsubsection">A.2.1.22 Class <code>lisp</code></h4>
+<h4 class="subsubsection">A.2.1.23 Class <code>lisp</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1380,7 +1409,7 @@ Class <code>lisp</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dexpression"></a><a name="Class-expression-1"></a>
-<h4 class="subsubsection">A.2.1.23 Class <code>expression</code></h4>
+<h4 class="subsubsection">A.2.1.24 Class <code>expression</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1422,7 +1451,7 @@ Class <code>expression</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dclang_002dexpression"></a><a name="Class-clang_002dexpression-1"></a>
-<h4 class="subsubsection">A.2.1.24 Class <code>clang-expression</code></h4>
+<h4 class="subsubsection">A.2.1.25 Class <code>clang-expression</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1780,6 +1809,7 @@ Instrumentation
 
 <ul>
 <li> Subclass <a href="#api_002dinstrumentation_002dclang_002dinstrumenter"><code>clang-instrumenter</code></a>
+  </li><li> Subclass <a href="#api_002dinstrumentation_002djavascript_002dinstrumenter"><code>javascript-instrumenter</code></a>
 
 </li><li> Generic Functions
     <ul>
@@ -1790,24 +1820,27 @@ Instrumentation
     </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
     </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-var_002dinstrument"><code>var-instrument</code></a>
     </li></ul>
-
-</li><li> Methods
-    <ul>
-<li> <a href="SEL-API-Details.html#Generic_002dFunction-var_002dinstrument"><code>var-instrument</code></a>
-    </li></ul>
 </li></ul>
 
 <a name="api_002dinstrumentation_002dclang_002dinstrumenter"></a></li><li> Class <a href="SEL-API-Details.html#Class-clang_002dinstrumenter"><code>clang-instrumenter</code></a>
   <ul>
-<li> Functions
-    <ul>
-<li> <a href="SEL-API-Details.html#Function-clang_002dinstrument"><code>clang-instrument</code></a>
-    </li></ul>
-
-</li><li> Methods
+<li> Methods
     <ul>
 <li> <a href="SEL-API-Details.html#Generic_002dFunction-instrument"><code>instrument</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-var_002dinstrument"><code>var-instrument</code></a>
     </li></ul>
+</li></ul>
+
+<a name="api_002dinstrumentation_002djavascript_002dinstrumenter"></a></li><li> Class <a href="SEL-API-Details.html#Class-javascript_002dinstrumenter"><code>javascript-instrumenter</code></a>
+  <ul>
+<li> Methods
+    <ul>
+<li> <a href="SEL-API-Details.html#Generic_002dFunction-instrumented_002dp"><code>instrumented-p</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-instrument"><code>instrument</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
+    </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-var_002dinstrument"><code>var-instrument</code></a>
+
+</li></ul>
 </li></ul>
 </li></ul>
 

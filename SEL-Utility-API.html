@@ -562,21 +562,30 @@ holds those which do not.
 <dd><p>Process the object, including evaluate fitness, push new Jobs, and
  store interesting results
 </p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-uninstrument_002djavascript_002dobject_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-1"></a>Method: <strong>process-task</strong> <em>(task uninstrument-javascript-object-task) runner</em></dt>
+<dd><p>Remove instrumentation from the TASK&rsquo;s software object.
+</p></dd></dl>
+<a name="Method-process_002dtask-_0028_0028task-instrument_002djavascript_002dobject_002dtask_0029-runner_0029"></a><dl>
+<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task instrument-javascript-object-task) runner</em></dt>
+<dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
+TASK&rsquo;s instrumentation arguments.
+</p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-uninstrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-1"></a>Method: <strong>process-task</strong> <em>(task uninstrument-clang-object-task) runner</em></dt>
+<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task uninstrument-clang-object-task) runner</em></dt>
 <dd><p>Remove instrumentation from the TASK&rsquo;s software object.
 </p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-instrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task instrument-clang-object-task) runner</em></dt>
+<dt><a name="index-process_002dtask-4"></a>Method: <strong>process-task</strong> <em>(task instrument-clang-object-task) runner</em></dt>
 <dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
 TASK&rsquo;s instrumentation arguments.
 </p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-task_002ditem_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task task-item) runner</em></dt>
+<dt><a name="index-process_002dtask-5"></a>Method: <strong>process-task</strong> <em>(task task-item) runner</em></dt>
 <dd><p>Evaluate the <code>task</code> saving the result in the runner.
 </p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-4"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
+<dt><a name="index-process_002dtask-6"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
 <dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
 <code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
 <code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
