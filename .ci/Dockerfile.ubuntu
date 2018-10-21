@@ -11,9 +11,9 @@ RUN eval `opam config env` && \
 # FROM cl-ubuntu as cl
 # FROM java-mutator-ubuntu as java-mutator
 # FROM clang-mutate-ubuntu as clang-mutate
-FROM docker.grammatech.com:14850/synthesis/cl as cl
-FROM docker.grammatech.com:14850/synthesis/java-mutator as java-mutator
-FROM docker.grammatech.com:14850/synthesis/clang-mutate as clang-mutate
+FROM docker.grammatech.com/synthesis/cl as cl
+FROM docker.grammatech.com/synthesis/java-mutator as java-mutator
+FROM docker.grammatech.com/synthesis/clang-mutate as clang-mutate
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
