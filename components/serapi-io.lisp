@@ -221,6 +221,7 @@ See `insert-reset-point'.")
   "Return a copy of STR with special characters escaped before output to SerAPI.
 Control characters for whitespace (\\n, \\t, \\b, \\r in Lisp) should be
 preceded by four backslashes, and double quotes should be preceded by 2.
+Additionally, ~ must be escaped as ~~ so that the string can be formatted.
 See also `unescape-string'."
   ;; Please be intimidated by the number of backslashes here, use *extreme*
   ;; caution if editing, and see the CL-PPCRE note on why backslashes in
@@ -234,7 +235,10 @@ See also `unescape-string'."
        ;; replace all \" with \\" unless already escaped
        ;; in regex, \\\" ==> \" in Lisp string
        ;; (replace-all "\"" "\\\"")
-       (regex-replace-all "(?<!\\\\)\\\"" <> "\\\\\"")))
+       (regex-replace-all "(?<!\\\\)\\\"" <> "\\\\\"")
+
+       ;; replace all ~ with ~~
+       (regex-replace-all "~" <> "~~")))
 
 
 (defun unescape-string (str)
