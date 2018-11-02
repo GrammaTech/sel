@@ -125,6 +125,10 @@ techniques."
                cxml
                iterate
                metabang-bind
+	       clack
+	       drakma
+	       hunchentoot
+	       snooze
                software-evolution-library
                software-evolution-library/utility
                software-evolution-library/ast-diff
