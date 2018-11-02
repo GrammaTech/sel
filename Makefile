@@ -13,7 +13,8 @@ DOC_PACKAGES =	software-evolution-library		\
 		software-evolution-library/serapi-io	\
 		software-evolution-library/ast-diff	\
 		software-evolution-library/clang-diff	\
-		software-evolution-library/lisp-diff
+		software-evolution-library/lisp-diff	\
+		software-evolution-library/rest
 
 LISP_DEPS =				\
 	$(wildcard *.lisp) 		\

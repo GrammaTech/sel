@@ -524,7 +524,7 @@ STRING is assumed to be the result of `escape-for-texinfo'."
 
 (defvar *not-symbols*
   '("ANSI" "CLHS" "UNIX" "SBCL" "POSIX" "ISO" "ASM" "C" "C++" "AST" "*" "I/O"
-    "PAPI"))
+    "PAPI" "API" "REST" "HTTP" "JSON"))
 
 (defun frob-ellipsis (line)
   ;; READ-FROM-STRING chokes on ... so replace it.

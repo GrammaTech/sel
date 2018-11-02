@@ -300,6 +300,7 @@ are given in remainder of this section.
 * Mutation Objects::            Representation of software mutation operations
 * Global Variables::            Interface to search processes
 * Search Functions::            High level functions to perform search
+* REST API::                    REST API for the Software Evolution Library
 @end menu
 
 @float Figure,fig:overview
@@ -777,7 +778,7 @@ stop a running search.
 @end multitable
 
 
-@node Search Functions, Components, Global Variables, Implementation
+@node Search Functions, REST API, Global Variables, Implementation
 @section Search Functions
 @cindex search functions
 
@@ -853,6 +854,12 @@ an optional @code{accept-fn} keyword argument which is a function of
 current and new fitness that returns acceptance.
 @end ignore
 
+
+@node REST API, Components, Search Functions, Implementation
+@section REST API
+@cindex rest api
+
+@include include/rest-api.texi
 
 @node Components, Test Suites, Implementation, Top
 @chapter Components

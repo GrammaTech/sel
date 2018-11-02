@@ -1,8 +1,5 @@
 ;;; rest-api.lisp --- RESTful interface over SEL.
 ;;;
-;;; @subsection REST API Overview
-;;;
-;;;
 ;;; Rest API for Software Evolution Library
 ;;;
 ;;; The Rest API for Software Evolution Library is implemented as a web
@@ -12,32 +9,39 @@
 ;;; @uref{https://en.wikipedia.org/wiki/Representational_state_transfer,
 ;;; Representational State Transfer}
 ;;;
-;;; @subsection Running the Rest API Web Service
-;;;
-;;; You'll need to quickload :cl-json, :snooze, :hunchentoot and :clack.
-;;;
-;;; * Starting the server:
-;;; (setf *handler* (clack:clackup (snooze:make-clack-app) :port 9003))
-;;;
-;;; * Stopping the server: (clack:stop *handler*)
-;;;
-;;; @subsubsection Dependencies
+;;; @subsection Dependencies
 ;;;
 ;;; The Rest API leverages a number of Common Lisp components, which
-;;; are open-source and generally available via the Quicklisp mechanism
-;;; (quickload). Thes packages support JSON <-> Common Lisp translations,
-;;; JSON streaming, HTTP web server functions, client HTTP support and
+;;; are open-source and generally available via Quicklisp.  These
+;;; packages support JSON <-> Common Lisp translations, JSON
+;;; streaming, HTTP web server functions, client HTTP support and
 ;;; RESTful interface utilities.
 ;;;
-;;; * cl-json      -- Parse and generate JSON format
-;;; * st-json      -- Stream support for JSON format
-;;; * clack        -- utility to easily launch web services
-;;; * drakma       -- http client utilities for Common Lisp (for calling
-;;;                   Rest APIs/testing
-;;; * hunchentoot  -- Web server, written in Common Lisp, hosts Rest APIs
-;;; * snooze       -- Rest API framework
+;;;  CL-JSON
+;;;      Parse and generate JSON format
+;;;  ST-JSON
+;;;      Stream support for JSON format
+;;;  CLACK
+;;;      utility to easily launch web services
+;;;  DRAKMA
+;;;      http client utilities for Common Lisp (for calling Rest
+;;;      APIs/testing
+;;;  HUNCHENTOOT
+;;;      Web server, written in Common Lisp, hosts Rest APIs
+;;;  SNOOZE
+;;;      Rest API framework
 ;;;
-;;; @subsubsection Resources
+;;; @subsection Running the Rest API Web Service
+;;;
+;;; Starting the server:
+;;;
+;;;     (setf *handler* (clack:clackup (snooze:make-clack-app) :port 9003))
+;;;
+;;; Stopping the server:
+;;;
+;;;     (clack:stop *handler*)
+;;;
+;;; @subsection Resources and Operations
 ;;;
 ;;; A Rest API supports logical resources. This section lists the logical
 ;;; resources supported by the SEL Rest APIs. In some cases (e.g. Software)
@@ -47,147 +51,171 @@
 ;;; isn't a specific class in SEL. The Rest API resource in this course
 ;;; provides a way to name and manage lists of Software objects.
 ;;;
-;;; @subsubsection Supported Resources
+;;; @subsubsection Resources
 ;;;
-;;; * Software Objects (C, Asm, AST's, etc.)
-;;;   Any non-abstract class that inherits from SOFTWARE
+;;; The following types of resources are supported.
 ;;;
-;;; * Mutations
+;;;  Software
+;;;      Any non-abstract class that inherits from SOFTWARE
 ;;;
-;;; * Populations
-;;;   Collections of software objects, which may change rapidly (evolution).
+;;;  Mutations
+;;;      SEL mutation objects.
 ;;;
-;;; * Jobs (evolutions, fitness tests across large populations, searches)
-;;;   Any long running operation which starts a task and returns to the client
-;;;   immediately.
+;;;  Populations
+;;;      Collections of software objects, which may change rapidly (evolution).
 ;;;
-;;; * Directories
-;;;   Lists (dictionaries) of sel-supported options
-;;;   - software types, with meta-data for each type to support create/update
-;;;   - mutation types.
+;;;  Jobs
+;;;     Any long running operation which starts a task and returns to
+;;;     the client immediately.  Examples of jobs include running
+;;;     evolutions, fitness tests across large populations, and
+;;;     searches.
 ;;;
-;;; * Client sessions -- establish ownership of a jobs, software objects,
-;;;   populations, etc.
+;;;  Directories
+;;;     Lists (dictionaries) of sel-supported options software types,
+;;;     with meta-data for each type to support create/update mutation
+;;;     types.
 ;;;
-;;; * Test Suites
-;;;   Lists of Test Cases, which each include references to an executable
-;;;   file and some command-line argumants. These are used to evaluate Software
-;;;   objects.
+;;;  Client sessions
+;;;     establish ownership of a jobs, software objects, populations, etc.
 ;;;
-;;; * Scions
-;;;   Patterns defined by Bug-Injector to describe software bugs
-;;;   (this is a work still in progress)
+;;;  Test Suites
+;;;     Lists of Test Cases, which each include references to an
+;;;     executable file and some command-line argumants. These are
+;;;     used to evaluate Software objects.
 ;;;
-;;; * Traces
-;;;   Models and manages the data collected from running test suites against
-;;;   instrumented Software objects. (work in progress)
+;;;  Scions
+;;;     Patterns defined by Bug-Injector to describe software bugs
+;;;     (this is a work still in progress)
+;;;
+;;;  Traces
+;;;     Models and manages the data collected from running test suites against
+;;;     instrumented Software objects. (work in progress)
 ;;;
 ;;;
-;;; @subsubsection Operations
+;;; @subsubsection Operations on resources
 ;;;
 ;;; Note: all operations (other than session create) require a client-ID
 ;;; parameter. Although only specified in the first ones below, all others
 ;;; require it as well.
 ;;;
-;;; * Client
-;;;     POST <service-base>/sel/client
-;;;          Create a new client.
-;;; 	     Body (JSON) contains initial values for special variable settings.
-;;;          Returns the Client-ID.
-;;;     DELETE <service-base>/sel/client&cid=<client-ID>
-;;;          Delete the client session, and cause all the software objects
-;;;          owned by the client to become garbage.
+;;; Client:
 ;;;
-;;; * Software
-;;;     POST <service-base>/sel/soft?cid=<client-ID>&type=<software-type>
-;;;          Body, JSON format, contains path (to C file, AST, Asm file, etc.),
-;;;          or a URL to a file, or the actual source code which would comprise
-;;;          the file.
-;;; 	     If the body simply contains a software ID (sid), makes a copy
-;;; 	     of the software object.
-;;;          All JSON fields which are not [path, url, code, software-id]
-;;;          are passed as keyword parameters to
-;;;              (MAKE-INSTANCE '<software-type> &key).
-;;; 	     Returns a software object ID of newly created software.
-;;;     GET  <service-base>/sel/soft?cid=<client-ID>&sid=<software ID>
-;;;          Returns JSON describing software object (differs depending on
-;;;          type of software).
-;;;     GET  <service-base>/sel/soft?type=<software type>
-;;;          Returns IDs of live software objects of the passed type, owned by
-;;;          the client.
-;;;     GET  <service-base>/sel/soft
-;;;          Return IDs of all live software objects owned by the client.
-;;;     PUT  <service-base>/sel/soft?sid=<software ID>
-;;;          Update a software object.
-;;; 	     Body (JSON) contains slots to update, new values.
-;;;     DELETE <service-base>/sel/soft?sid=<software ID>
-;;;          Delete a software object.
-;;; 	     (work in progress)
+;;;  POST
+;;;     @code{<service-base>/sel/client} Create a new client.  Body
+;;;     (JSON) contains initial values for special variable settings.
+;;;     Returns the Client-ID.
+;;;  DELETE
+;;;     @code{<service-base>/sel/client&cid=<client-ID>} Delete
+;;;     the client session, and cause all the software objects
+;;;     owned by the client to become garbage.
 ;;;
-;;; * Population
-;;;     POST <service-base>/sel/population?name=<population-name>
-;;;          Creates a Population resource, owned by the client, containing
-;;;          software objects of the specified type.
-;;; 	     Body should contain, JSON format, list of Software-ID (sid) to
-;;;          include in population, and software type.
-;;;          Returns the ID of newly created Population (pid).
-;;;     PUT  <service-base>/sel/pop?pid=<Population-ID>
-;;;          Adds the specified sid(s) to the population.
-;;; 	     Body (JSON) contains sid field, which is a list of sids to add.
-;;;     GET  <service-base>/sel/pop?pid=<Population-ID>
-;;;          Retrieves information about the population, including list of
-;;;          Software-IDs and software type.
-;;;     DELETE <service-base>/sel/pop?pid=<Population-ID>
-;;;          Delete the population.
-;;; 	     (work in progress)
+;;; Software:
 ;;;
-;;; * Async-Job
-;;;     POST <service-base>/sel/async?type=<job-type>
-;;;          Body contains (JSON) parameters for EVOLVE task, FITNESS-TEST or
-;;;          other defined type of task.
-;;; 	     Returns immediately with a Job-ID (jid).
-;;; 	     Creating a Job starts a task (on a new thread) which will execute
-;;;          until stopped or completed.
-;;;     GET  <service-base>/sel/async?jid=<Job-ID>
-;;;          Returns JSON containing job status and results.
-;;;     PUT  <service-base>/sel/async?jid=<Job-ID>&<update-vars>
-;;;          Allows some control of the task, such as stopping the task.
+;;;  POST
+;;;     @code{<service-base>/sel/soft?cid=<client-ID>&type=<software-type>}
+;;;     Body, JSON format, contains path (to C file, AST, Asm file,
+;;;     etc.), or a URL to a file, or the actual source code which
+;;;     would comprise the file.  If the body simply contains a
+;;;     software ID (sid), makes a copy of the software object.
+;;;     All JSON fields which are not [path, url, code,
+;;;     software-id] are passed as keyword parameters to
+;;;     (MAKE-INSTANCE '<software-type> &key).  Returns a software
+;;;     object ID of newly created software.
+;;;  GET
+;;;     @code{<service-base>/sel/soft?cid=<client-ID>&sid=<software
+;;;     ID>} Returns JSON describing software object (differs
+;;;     depending on type of software).
+;;;  GET
+;;;     @code{<service-base>/sel/soft?type=<software type>} Returns
+;;;     IDs of live software objects of the passed type, owned by
+;;;     the client.
+;;;  GET
+;;;     @code{<service-base>/sel/soft} Return IDs of all live
+;;;     software objects owned by the client.
+;;;  PUT
+;;;     @code{<service-base>/sel/soft?sid=<software ID>} Update a
+;;;     software object.  Body (JSON) contains slots to update, new
+;;;     values.
+;;;  DELETE
+;;;     @code{<service-base>/sel/soft?sid=<software ID>} Delete a
+;;;     software object.  (work in progress)
 ;;;
-;;; * Mutation
-;;;     POST service-base>/sel/mut?type=<mutation-type>&sid=<software-id>
-;;;          Body (JSON) contains targets field (integer, list, or ast).
-;;; 	     Returns mutation-id (mid).
-;;;     GET  service-base>/sel/mut?mid=<mutation-id>
-;;;          Returns mutation details.
-;;;     PUT  service-base>/sel/mut?mid=<mutation-id>
-;;;          Apply mutation to its target software object, returns the sid
-;;; 	     of the new (mutated) software object.
-;;;     DELETE service-base>/sel/mut?mid=<mutation-id>
-;;;          Delete the specified mutation.
-;;; 	     (work in progress)
+;;; Population:
 ;;;
-;;; * Directories
-;;;     GET  service-base>/sel/dir/software
-;;;          Returns list of types of software which may be intantiated.
-;;;          (work in progress)
+;;;  POST
+;;;     @code{<service-base>/sel/population?name=<population-name>}
+;;;     Creates a Population resource, owned by the client,
+;;;     containing software objects of the specified type.  Body
+;;;     should contain, JSON format, list of Software-ID (sid) to
+;;;     include in population, and software type.  Returns the ID
+;;;     of newly created Population (pid).
+;;;  PUT
+;;;     @code{<service-base>/sel/pop?pid=<Population-ID>} Adds the
+;;;     specified sid(s) to the population.  Body (JSON) contains
+;;;     sid field, which is a list of sids to add.
+;;;  GET
+;;;     @code{<service-base>/sel/pop?pid=<Population-ID>} Retrieves
+;;;     information about the population, including list of
+;;;     Software-IDs and software type.
+;;;  DELETE
+;;;     @code{<service-base>/sel/pop?pid=<Population-ID>} Delete
+;;;     the population.  (work in progress)
 ;;;
-;;; * Test Suites
-;;;     POST <service-base>/sel/tests
-;;;          Creates a TEST-SUITE instance, owned by the client,
-;;;          containing a collection of TEST-SUITE objects.
-;;; 	     Body should contain "test" field, JSON format, array of structures,
-;;;          each containing program-name and program-args.
-;;;          Returns oid of newly created tests suite.
-;;;     GET  <service-base>/sel/tests?oid=<test-suite-oid>
-;;;          Retrieves collection of test cases in the test-suite.
-;;;     DELETE <service-base>/tests?pid=<test-suite-oid>
-;;;          Delete the test suite.
-;;; 	 (work in progress)
+;;; Async-Job:
+;;;
+;;;  POST
+;;;     @code{<service-base>/sel/async?type=<job-type>} Body
+;;;     contains (JSON) parameters for EVOLVE task, FITNESS-TEST or
+;;;     other defined type of task.  Returns immediately with a
+;;;     Job-ID (jid).  Creating a Job starts a task (on a new
+;;;     thread) which will execute until stopped or completed.
+;;;  GET
+;;;     @code{<service-base>/sel/async?jid=<Job-ID>} Returns JSON
+;;;     containing job status and results.
+;;;  PUT
+;;;     @code{<service-base>/sel/async?jid=<Job-ID>&<update-vars>}
+;;;     Allows some control of the task, such as stopping the task.
+;;;
+;;; Mutation:
+;;;
+;;;  POST
+;;;     @{<service-base>/sel/mut?type=<mutation-type>&sid=<software-id>}
+;;;     Body (JSON) contains targets field (integer, list, or ast).
+;;;     Returns mutation-id (mid).
+;;;  GET
+;;;     @code{<service-base>/sel/mut?mid=<mutation-id>} Returns
+;;;     mutation details.
+;;;  PUT
+;;;     @code{<service-base>/sel/mut?mid=<mutation-id>} Apply
+;;;     mutation to its target software object, returns the sid of
+;;;     the new (mutated) software object.
+;;;  DELETE
+;;;     @code{service-base>/sel/mut?mid=<mutation-id>}
+;;;     Delete the specified mutation. (work in progress)
+;;;
+;;; Directories:
+;;;
+;;;  GET
+;;;     @code{<service-base>/sel/dir/software} Returns list of types
+;;;     of software which may be intantiated.  (work in progress)
+;;;
+;;; Test Suites:
+;;;
+;;;  POST
+;;;     @code{<service-base>/sel/tests} Creates a TEST-SUITE
+;;;     instance, owned by the client, containing a collection of
+;;;     TEST-SUITE objects.  Body should contain "test" field, JSON
+;;;     format, array of structures, each containing program-name
+;;;     and program-args.  Returns oid of newly created tests
+;;;     suite.
+;;;  GET
+;;;     @code{<service-base>/sel/tests?oid=<test-suite-oid>}
+;;;     Retrieves collection of test cases in the test-suite.
+;;;  DELETE
+;;;     @code{<service-base>/tests?pid=<test-suite-oid>} Delete
+;;;     the test suite.  (work in progress)
 ;;;
 ;;; @texi{rest-api}
-
-(require :snooze)
-
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
   (:use
@@ -195,9 +223,9 @@
    :snooze
    :sel
    :sel/utility
-   :iterate))
-
-(in-package :sel/rest)
+   :iterate)
+  (:export :lookup-session))
+(in-package :software-evolution-library/rest)
 
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")

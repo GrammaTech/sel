@@ -42,6 +42,7 @@ doc/sel-view-api.texi
 doc/sel-ast-diff-api.texi
 doc/sel-clang-diff-api.texi
 doc/sel-lisp-diff-api.texi
+doc/sel-rest-api.texi
 
 # Backup files
 *~

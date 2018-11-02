@@ -183,11 +183,7 @@ techniques."
                optima
                fare-quasiquote
                fare-quasiquote-extras)
-  :components
-  ((:module test
-            :pathname ""
-            :components
-            ((:file "rest-api")))))
+  :components ((:file "rest-api")))
 
 
 ;;;; Subsystems.
