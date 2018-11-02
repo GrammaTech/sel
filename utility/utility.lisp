@@ -778,7 +778,7 @@ Optional argument OUT specifies an output stream."
        (list slot val)))
    (mapcar #'slot-definition-name (class-slots (class-of hd)))))
 
-(defun equal-it (obj1 obj2 &optional trace)
+(defun equal-it (obj1 obj2 &optional trace inhibit-slots)
   "Equal over objects and lists."
   (let ((trace1 (concatenate 'list (list obj1 obj2) trace)))
     (cond
@@ -796,12 +796,15 @@ Optional argument OUT specifies an output stream."
                         (mapcar #'cons obj1 obj2))
                     :initial-value t)))
       ((class-slots (class-of obj1))
-       (reduce (lambda (acc slot)
-                 (and acc (equal-it (slot-value obj1 slot) (slot-value obj2 slot)
-                                    trace1)))
-               (mapcar #'slot-definition-name
-                       (class-slots (class-of obj1)))
-               :initial-value t))
+       (reduce
+        (lambda (acc slot)
+          (and acc (equal-it (slot-value obj1 slot) (slot-value obj2 slot)
+                             trace1)))
+        (remove-if [{member _ inhibit-slots :test #'string= :key #'symbol-name}
+                    #'symbol-name]
+                   (mapcar #'slot-definition-name
+                           (class-slots (class-of obj1))))
+        :initial-value t))
       (t (equal obj1 obj2)))))
 
 (defmacro with-quiet-compilation (&body body)

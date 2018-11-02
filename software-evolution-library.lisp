@@ -32,8 +32,8 @@
  
 (defclass oid-object (standard-object)
   ((oid :initarg :oid :reader oid :initform (generate-oid)))
-  (:documentation "Any class derived from this will have a unique oid
- (object identifier) attached to each instance."))
+  (:documentation
+   "Attaches a unique oid (object identifier) to each instance."))
 
 (defclass software (oid-object)
   ((fitness :initarg :fitness :accessor fitness :initform nil))

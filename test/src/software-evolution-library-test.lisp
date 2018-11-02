@@ -1129,7 +1129,7 @@
 
 (deftest idempotent-copy ()
   (with-fixture gcd-asm
-    (is (software-evolution-library::equal-it *gcd* (copy *gcd*)))))
+    (is (software-evolution-library::equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
 (deftest idempotent-read-copy-write ()
   (let ((a (software-evolution-library::temp-file-name)))
