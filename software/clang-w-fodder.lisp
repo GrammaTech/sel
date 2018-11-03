@@ -16,7 +16,7 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/parseable
-        :software-evolution-library/components/fodder))
+        :software-evolution-library/components/fodder-database))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

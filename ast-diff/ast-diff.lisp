@@ -29,8 +29,8 @@
 ;;; @include include/lisp-diff.texi
 ;;;
 ;;; @texi{ast-diff}
-(defpackage :software-evolution-library/ast-diff
-  (:nicknames :sel/ast-diff :software-evolution-library/ast-diff/ast-diff)
+(defpackage :software-evolution-library/ast-diff/ast-diff
+  (:nicknames :sel/ast-diff :software-evolution-library/ast-diff)
   (:use
    :common-lisp
    :software-evolution-library/utility

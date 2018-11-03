@@ -1,6 +1,6 @@
-;;; lisp-exe.lisp --- software rep of Lisp code (external eval)
-(defpackage :software-evolution-library/software/lisp-exe
-  (:nicknames :sel/software/lisp-exe :sel/sw/lisp-exe)
+;;; lisp-ext.lisp --- software rep of Lisp code (external eval)
+(defpackage :software-evolution-library/software/lisp-ext
+  (:nicknames :sel/software/lisp-ext :sel/sw/lisp-ext)
   (:use :common-lisp
         :alexandria
         :arrow-macros
