@@ -1,3 +1,14 @@
+;;; expression.lisp --- evolve single expressions
+(defpackage :software-evolution-library/software/expression
+  (:nicknames :sel/software/expression :sel/sw/expression)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

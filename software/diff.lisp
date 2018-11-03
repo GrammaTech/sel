@@ -16,6 +16,16 @@
 ;;; cheap.
 ;;;
 ;;; @texi{diff}
+(defpackage :software-evolution-library/software/diff
+  (:nicknames :sel/software/diff :sel/sw/diff)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

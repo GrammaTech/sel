@@ -3,6 +3,17 @@
 ;;; DOCFIXME Need a page or so introduction to asm software objects.
 ;;;
 ;;; @texi{asm}
+
+(defpackage :software-evolution-library/software/asm
+  (:nicknames :sel/software/asm :sel/sw/asm)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

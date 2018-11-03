@@ -1,5 +1,14 @@
 ;;; parseable.lisp --- software which may be parsed into ASTs
-
+(defpackage :software-evolution-library/software/parseable
+  (:nicknames :sel/software/parseable :sel/sw/parseable)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

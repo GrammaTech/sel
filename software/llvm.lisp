@@ -1,13 +1,22 @@
 ;;; llvm.lisp --- llvm software representation
-
+;;; 
 ;; This software object uses the llvm-mutate [1] compiler pass run by
 ;; llvm opt [2] to manipulate LLVM intermediate representation (IR)
 ;; code (see [3] for more information).
-
+;;; 
 ;; [1] https://github.com/eschulte/llvm-mutate
 ;; [2] http://llvm.org/releases/3.2/docs/CommandGuide/opt.html
 ;; [3] http://llvm.org/docs/LangRef.html#introduction
-
+(defpackage :software-evolution-library/software/llvm
+  (:nicknames :sel/software/llvm :sel/sw/llvm)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

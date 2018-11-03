@@ -3,6 +3,16 @@
 ;;; DOCFIXME Need a page or so introduction to csurf-asm software objects.
 ;;;
 ;;; @texi{csurf-asm}
+(defpackage :software-evolution-library/software/csurf-asm
+  (:nicknames :sel/software/csurf-asm :sel/sw/csurf-asm)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

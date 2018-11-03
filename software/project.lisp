@@ -1,4 +1,14 @@
 ;;; project.lisp --- evolve multiple source files
+(defpackage :software-evolution-library/software/project
+  (:nicknames :sel/software/project :sel/sw/project)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

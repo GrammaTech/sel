@@ -27,8 +27,8 @@
 ;;;     	cmd = "clang-diff -I .,src $LOCAL $REMOTE"
 ;;;
 ;;; @texi{clang-diff}
-(defpackage :software-evolution-library/clang-diff
-  (:nicknames :sel/clang-diff)
+(defpackage :software-evolution-library/ast-diff/clang
+  (:nicknames :sel/ast-diff/clang)
   (:use :common-lisp
         :alexandria
         :arrow-macros
@@ -47,7 +47,7 @@
   (:shadowing-import-from :software-evolution-library/view
                           +color-RED+ +color-GRN+ +color-RST+)
   (:export :run-clang-diff))
-(in-package :software-evolution-library/clang-diff)
+(in-package :software-evolution-library/ast-diff/clang)
 (in-readtable :curry-compose-reader-macros)
 ;;; TODO:
 ;;;  - Implement a string diff to recurse into strings.

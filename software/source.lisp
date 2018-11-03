@@ -1,5 +1,14 @@
 ;;; source.lisp --- source software representation
-
+(defpackage :software-evolution-library/software/source
+  (:nicknames :sel/software/source :sel/sw/source)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

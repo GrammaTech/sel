@@ -1,4 +1,14 @@
 ;;; elf.lisp --- software representation of ELF files
+(defpackage :software-evolution-library/software/elf
+  (:nicknames :sel/software/elf :sel/sw/elf)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
