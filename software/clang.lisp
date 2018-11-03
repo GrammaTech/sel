@@ -13,7 +13,181 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/parseable))
+        :software-evolution-library/software/parseable)
+  (:export :clang
+           :headers
+           :macros
+           :includes
+           :types
+           :globals
+           :pick-guarded-compound
+           :clang-mutation
+           :bind-free-vars
+           :crossover-2pt-inward
+           :crossover-2pt-outward
+           :intraprocedural-2pt-crossover
+           :function-containing-ast
+           :function-body
+           :function-body-p
+           :function-decl-p
+           :stmt-range
+           :adjust-stmt-range
+           :random-point-in-function
+           :select-intraprocedural-pair
+           :clang-mutate
+           :update-headers-from-snippet
+           :prototypes
+           :functions
+           :get-entry
+           :stmt-asts
+           :non-stmt-asts
+           :good-stmts
+           :bad-stmts
+           :get-parent-full-stmt
+           :wrap-ast
+           :wrap-child
+           :+c-numeric-types+
+           :+c-relational-operators+
+           :+c-arithmetic-binary-operators+
+           :+c-arithmetic-assignment-operators+
+           :+c-bitwise-binary-operators+
+           :+c-bitwise-assignment-operators+
+           :+c-arithmetic-unary-operators+
+           :+c-bitwise-unary-operators+
+           :+c-sign-unary-operators+
+           :+c-pointer-unary-operators+
+           :ast-declarations
+           :declared-type
+           :find-var-type
+           :typedef-type
+           :random-function-name
+           :*clang-max-json-size*
+           :*clang-mutation-types*
+           :*free-var-decay-rate*
+           :*matching-free-var-retains-name-bias*
+           :*matching-free-function-retains-name-bias*
+           :*clang-json-required-fields*
+           :*clang-json-required-aux*
+           :*clang-ast-aux-fields*
+           :*clang-mutate-additional-args*
+           :delete-decl-stmts
+           :common-ancestor
+           :ancestor-of
+           :scopes-between
+           :nesting-depth
+           :full-stmt-p
+           :block-p
+           :enclosing-full-stmt
+           :enclosing-block
+           :nesting-relation
+           :match-nesting
+           :block-predeccessor
+           :block-successor
+           :get-children-using
+           :get-declared-variables
+           :add-include
+           :add-type
+           :find-or-add-type
+           :type-decl-string
+           :add-macro
+           :nullify-asts
+           :keep-partial-asts
+           :retry-mutation
+           :clang-cut
+           :clang-cut-same
+           :clang-cut-full
+           :clang-cut-full-same
+           :clang-insert
+           :clang-insert-same
+           :clang-insert-full
+           :clang-insert-full-same
+           :clang-swap
+           :clang-swap-same
+           :clang-swap-full
+           :clang-swap-full-same
+           :clang-move
+           :clang-replace
+           :clang-replace-same
+           :clang-replace-full
+           :clang-replace-full-same
+           :clang-promote-guarded
+           :clang-nop
+           :explode-for-loop
+           :coalesce-while-loop
+           :cut-decl
+           :swap-decls
+           :rename-variable
+           :expand-arithmatic-op
+           :full-stmt-filter
+           :same-class-filter
+           :clang-ast
+           :clang-ast-node
+           :ast-args
+           :ast-declares
+           ;; AST structures.
+           :ast-full-stmt
+           :ast-guard-stmt
+           :ast-in-macro-expansion
+           :ast-includes
+           :ast-is-decl
+           :ast-macros
+           :ast-name
+           :ast-opcode
+           :ast-ret
+           :ast-syn-ctx
+           :ast-varargs
+           :ast-void-ret
+           :ast-array-length
+           :ast-base-type
+           :ast-bit-field-width
+           :ast-aux-data
+           :make-clang-ast
+           :copy-clang-ast
+           :make-clang-ast-node
+           :copy-clang-ast-node
+           :clang-type
+           :type-array
+           :type-col
+           :type-decl
+           :type-file
+           :type-hash
+           :type-i-col
+           :type-i-file
+           :type-i-line
+           :type-line
+           :type-pointer
+           :type-const
+           :type-volatile
+           :type-restrict
+           :type-storage-class
+           :type-reqs
+           :type-name
+           :type-size
+           :make-clang-type
+           :copy-clang-type
+           :clang-macro
+           :macro-name
+           :macro-body
+           :macro-hash
+           :make-clang-macro
+           :copy-clang-macro
+           ;; FIXME: Clang literal building.
+           :make-statement
+           :make-literal
+           :make-operator
+           :make-block
+           :make-parens
+           :make-while-stmt
+           :make-for-stmt
+           :make-if-stmt
+           :make-var-reference
+           :make-var-decl
+           :make-cast-expr
+           :make-call-expr
+           :make-array-subscript-expr
+           :make-label
+           :make-switch-stmt
+           :make-break-stmt))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -691,10 +865,6 @@ valid hash.
     (prepend-to-genome obj (format nil "#include ~a~&" include))
     (push include (includes obj)))
   obj)
-
-(defgeneric force-include (software include)
-  (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
-even if such an INCLUDE already exists in SOFTWARE."))
 
 (defmethod force-include ((obj clang) include)
   "Add an #include directive for an INCLUDE to OBJ

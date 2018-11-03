@@ -37,7 +37,15 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/parseable))
+        :software-evolution-library/software/parseable)
+  (:export :javascript
+           :javascript-mutation
+           :javascript-ast
+           :javascript-ast-node
+           :make-javascript-ast
+           :copy-javascript-ast
+           :make-javascript-ast-node
+           :copy-javascript-ast-node))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

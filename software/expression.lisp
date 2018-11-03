@@ -8,7 +8,24 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :expression
+           :constant-fold
+           :random-subtree
+           :change-operator
+           :change-constant
+           :clang-expression
+           :scope
+           :mult-divide
+           :add-subtract
+           :subtract-add
+           :add-subtract-tree
+           :subtract-add-tree
+           :add-subtract-scope
+           :evaluate-expression
+           :demote-binop-left
+           :demote-binop-right
+           :eval-error))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

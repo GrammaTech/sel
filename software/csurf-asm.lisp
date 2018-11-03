@@ -12,7 +12,18 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :apply-config
+           :csurf-asm
+           :*dynamic-linker-path*
+           :*elf-copy-redirect-path*
+           :*elf-edit-symtab-path*
+           :assembler
+           :asm-flags
+           :redirect-file
+           :linker-script
+           :weak-symbols
+           :linked-files))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

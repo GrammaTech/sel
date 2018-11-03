@@ -84,7 +84,20 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :coq
+           :coq-project
+           :ast-ids
+           :project-file
+           :file-source
+           :imports
+           :reset-and-load-imports
+           :init-coq-project
+           :type-safe-swap
+           :tag-loc-info
+           :untag-loc-info
+           :lookup-source-strings
+           :coq-type-checks))
 (in-package :software-evolution-library)
 (in-readtable :serapi-readtable)
 

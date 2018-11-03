@@ -9,7 +9,8 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/source))
+        :software-evolution-library/software/source)
+  (:export :cil))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

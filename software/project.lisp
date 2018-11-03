@@ -8,7 +8,21 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :project
+           :apply-to-project
+           :build-command
+           :artifacts
+           :evolve-files
+           :other-files
+           :instrumentation-files
+           :all-files
+           :write-genome-to-files
+           :with-build-dir
+           :with-temp-build-dir
+           :make-build-dir
+           :full-path
+           :*build-dir*))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

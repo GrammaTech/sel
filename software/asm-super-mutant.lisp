@@ -205,7 +205,21 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :asm-super-mutant
+           :*lib-papi*
+           :fitness-harness
+           :load-io-file
+           :target-function
+           :target-function-name
+           :mutants
+           :create-all-simple-cut-variants
+           :create-target
+           :target-info
+           :line-heap
+           :function-index
+           :evaluate-asm
+           :leaf-functions))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

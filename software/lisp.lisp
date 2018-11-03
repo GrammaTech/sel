@@ -9,7 +9,12 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/simple))
+        :software-evolution-library/software/simple)
+  (:export :lisp
+           :lisp-cut
+           :lisp-replace
+           :lisp-swap
+           :*lisp-mutation-types*))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

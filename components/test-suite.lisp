@@ -8,7 +8,17 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :*process-sleep-interval*
+           :*process-kill-timeout*
+           :test-suite
+           :test-cases
+           :test-case
+           :program-name
+           :program-args
+           :start-test
+           :finish-test
+           :run-test))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

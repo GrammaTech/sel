@@ -13,7 +13,10 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/components/fodder-database))
+        :software-evolution-library/components/fodder-database)
+  (:export :pliny-database
+           :host
+           :port))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -12,7 +12,10 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :searchable
+           :weighted-pick
+           :similar-snippets))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

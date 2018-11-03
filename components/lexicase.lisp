@@ -15,7 +15,10 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export    :lexicase-select
+              :lexicase-select-best
+              :*lexicase-key*))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

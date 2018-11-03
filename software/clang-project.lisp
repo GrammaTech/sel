@@ -8,7 +8,10 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :clang-project
+           :project-dir
+           :compilation-database))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

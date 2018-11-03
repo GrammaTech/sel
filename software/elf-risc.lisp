@@ -8,7 +8,10 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :elf-risc
+           :risc-nop
+           :elf-risc-max-displacement))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
