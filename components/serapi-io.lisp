@@ -1,4 +1,4 @@
-;;; serapi-io.lisp --- serialization interface for Coq
+;;; serapi-io.lisp --- Serialization interface for Coq.
 ;;;
 ;;; @subsection Coq Module Organization
 ;;;
@@ -31,6 +31,16 @@
 ;;; also be added to `*sertop-args*'.
 ;;;
 ;;; @texi{serapi-io}
+(defpackage :software-evolution-library/components/serapi-io
+  (:nicknames :sel/components/serapi-io :sel/cp/serapi-io)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (defpackage :software-evolution-library/serapi-io
   (:nicknames :sel/serapi-io)
   (:use

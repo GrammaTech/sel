@@ -2,6 +2,16 @@
 ;;;
 ;;; See the "Condition Synthesis" section in the SEL manual.
 ;;;
+(defpackage :software-evolution-library/components/condition-synthesis
+  (:nicknames :sel/components/condition-synthesis :sel/cp/condition-synthesis)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

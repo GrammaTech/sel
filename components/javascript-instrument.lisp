@@ -1,4 +1,15 @@
-;;; javascript-instrument -- Instrument javascript-language source files
+;;; javascript-instrument.lisp -- Instrument javascript-language source files
+(defpackage :software-evolution-library/components/javascript-instrument
+  (:nicknames :sel/components/javascript-instrument
+              :sel/cp/javascript-instrument)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

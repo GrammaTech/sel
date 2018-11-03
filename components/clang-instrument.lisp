@@ -1,4 +1,14 @@
-;;; clang-instrument --- Instrument C-language source files
+;;; clang-instrument.lisp --- Instrument C-language source files.
+(defpackage :software-evolution-library/components/clang-instrument
+  (:nicknames :sel/components/clang-instrument :sel/cp/clang-instrument)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

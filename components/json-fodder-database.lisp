@@ -1,6 +1,19 @@
+;;; json-fodder-database.lisp --- JSON fodder database backend
+;;;
 ;;; Concrete implementation of the database interface
 ;;; for an external JSON fodder database parsed and stored
 ;;; entirely within the current LISP image
+(defpackage :software-evolution-library/components/json-fodder-database
+  (:nicknames :sel/components/json-fodder-database :sel/cp/json-fodder-database)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/components/fodder-database))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

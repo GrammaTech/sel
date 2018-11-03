@@ -1,6 +1,18 @@
+;;; searchable.lisp --- Functions to recall "similar" snippets/fodder
+;;;
 ;;; Interface for all external assets searchable for snippets
 ;;; similar to a given target.
-
+;;;
+(defpackage :software-evolution-library/components/searchable
+  (:nicknames :sel/components/searchable :sel/cp/searchable)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

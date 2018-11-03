@@ -1,12 +1,21 @@
-;;; lexicase selection
-
-;; Fitness values should be a vector of numeric scores.
-;; (A key option may be supplied for non-numeric scores.)
-;;
-;; Where each entry represents a single test case or objective.  All
-;; fitness values in the same population must be the same length and
-;; have their scores in the same order.
-
+;;; lexicase.lisp --- Lexicase selection.
+;;;
+;;; Fitness values should be a vector of numeric scores.
+;;; (A key option may be supplied for non-numeric scores.)
+;;;
+;;; Where each entry represents a single test case or objective.  All
+;;; fitness values in the same population must be the same length and
+;;; have their scores in the same order.
+(defpackage :software-evolution-library/components/lexicase
+  (:nicknames :sel/components/lexicase :sel/cp/lexicase)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

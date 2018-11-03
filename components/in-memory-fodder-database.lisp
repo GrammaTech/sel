@@ -1,5 +1,18 @@
+;;; in-memory-fodder-database.lisp --- In-memory fodder database
 ;;; Base class for all fodder database implementations
 ;;; with data stored entirely in a LISP representation
+(defpackage :software-evolution-library/components/in-memory-fodder-database
+  (:nicknames :sel/components/in-memory-fodder-database
+              :sel/cp/in-memory-fodder-database)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/components/fodder-database))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

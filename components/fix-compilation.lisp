@@ -1,24 +1,32 @@
-;;; fix-comp --- Functions to fix software object compilation
-
-;;; Commentary:
-
-;; The `fix-compilation' function will take a software object and will
-;; try to make any changes necessary for that object to compile
-;; successfully.  This will first employ `clang-tidy' (which calls the
-;; command line utility of the same name).  If that is not sufficient
-;; it will then begin collecting compilation error messages, and
-;; calling the associated element of `*compilation-fixers*'.
-;;
-;; The `*compilation-fixers*' will be an alist of compiler warning
-;; regular expressions, and associated functions to call over the
-;; match data returned by the regular expression match.  Each fixer
-;; function may modify its argument, and should return non-nil on
-;; success or nil if additional fixers should be applied.
-;;
-;; NOTE: If this is every productized, it may be worthwhile
-;; re-implementing it inside of clang-tidy, which does have an
-;; extensible mechanism for adding additional fixers.
-
+;;; fix-compilation.lisp --- Functions to fix software object compilation
+;;;
+;;; The `fix-compilation' function will take a software object and
+;;; will try to make any changes necessary for that object to compile
+;;; successfully.  This will first employ `clang-tidy' (which calls
+;;; the command line utility of the same name).  If that is not
+;;; sufficient it will then begin collecting compilation error
+;;; messages, and calling the associated element of
+;;; `*compilation-fixers*'.
+;;;
+;;; The `*compilation-fixers*' will be an alist of compiler warning
+;;; regular expressions, and associated functions to call over the
+;;; match data returned by the regular expression match.  Each fixer
+;;; function may modify its argument, and should return non-nil on
+;;; success or nil if additional fixers should be applied.
+;;;
+;;; NOTE: If this is every productized, it may be worthwhile
+;;; re-implementing it inside of clang-tidy, which does have an
+;;; extensible mechanism for adding additional fixers.
+(defpackage :software-evolution-library/components/fix-compilation
+  (:nicknames :sel/components/fix-compilation :sel/cp/fix-compilation)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
