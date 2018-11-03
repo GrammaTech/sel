@@ -28,7 +28,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :fix-compilation))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/fix-compilation)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *compilation-fixers* nil

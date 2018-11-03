@@ -16,7 +16,7 @@
   (:export :searchable
            :weighted-pick
            :similar-snippets))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/searchable)
 (in-readtable :curry-compose-reader-macros)
 
 (defclass searchable ()

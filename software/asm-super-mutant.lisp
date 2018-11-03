@@ -204,8 +204,12 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :split-sequence
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/asm
+        :software-evolution-library/software/asm-heap
+        :software-evolution-library/software/super-mutant)
   (:export :asm-super-mutant
            :*lib-papi*
            :fitness-harness
@@ -220,7 +224,7 @@
            :function-index
            :evaluate-asm
            :leaf-functions))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software asm-super-mutant (asm-heap super-mutant)
@@ -337,7 +341,7 @@
   ;; parse it and replace the value with the table
   (if (or (stringp (var-table instance)) (pathnamep (var-table instance)))
       (setf (var-table instance)
-	    (sel::parse-sanity-file (var-table instance)))))
+	    (parse-sanity-file (var-table instance)))))
 
 (defmethod from-file :after ((asm asm-super-mutant) file)
   "Set function target after the file loads."
@@ -745,7 +749,8 @@ a symbol, the SYMBOL-NAME of the symbol is used."
      "; -------------- Externs ---------------")
     (iter (for x in-vector (genome asm-super))
 	  (if (and (eq (asm-line-info-type x) ':decl)
-		   (eq (first (asm-line-info-tokens x)) 'sel/asm::extern))
+		   (eq (first (asm-line-info-tokens x))
+                       'software-evolution-library/asm::extern))
 	      (collect (asm-line-info-text x))))
     (list ""))
    (length (genome asm))))
@@ -1116,9 +1121,9 @@ returns NIL."
 (defun leaf-functions (asm-super)
   (map 'list
        (lambda (x)
-	 (string-downcase (sel::function-index-entry-name x)))
-       (remove-if-not (lambda (x) (sel::function-index-entry-is-leaf x))
-		      (sel::function-index asm-super))))
+	 (string-downcase (function-index-entry-name x)))
+       (remove-if-not (lambda (x) (function-index-entry-is-leaf x))
+		      (function-index asm-super))))
 
 (defun parse-sanity-file (filename)
   "Parses the 'sanity' file which is output by the GTX disassembler. It

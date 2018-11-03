@@ -18,7 +18,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/coq-project)
 (in-readtable :serapi-readtable)
 
 (define-software coq-project (project)

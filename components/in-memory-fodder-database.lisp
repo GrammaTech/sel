@@ -14,7 +14,7 @@
         :software-evolution-library/utility
         :software-evolution-library/components/fodder-database)
   (:export :in-memory-database))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/in-memory-fodder-database)
 (in-readtable :curry-compose-reader-macros)
 
 (defclass in-memory-database (fodder-database)

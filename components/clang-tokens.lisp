@@ -11,7 +11,7 @@
         :software-evolution-library/utility)
   (:export
    :tokens))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/clang-tokens)
 (in-readtable :curry-compose-reader-macros)
 
 (define-condition unhandled-token-class (error)

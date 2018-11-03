@@ -13,7 +13,7 @@
   (:export :elf
            :base
            :genome-bytes))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/elf)
 (in-readtable :curry-compose-reader-macros)
 
 

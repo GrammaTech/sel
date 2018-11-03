@@ -17,7 +17,7 @@
   (:export :pliny-database
            :host
            :port))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/pliny-fodder-database)
 (in-readtable :curry-compose-reader-macros)
 
 ;; Helpers

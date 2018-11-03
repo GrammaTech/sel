@@ -9,7 +9,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/lisp-fn)
 (in-readtable :curry-compose-reader-macros)
 
 

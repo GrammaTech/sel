@@ -8,8 +8,9 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
-(in-package :software-evolution-library)
+        :software-evolution-library/utility)
+  (:export :evaluate-with-script))
+(in-package :software-evolution-library/software/with-exe)
 (in-readtable :curry-compose-reader-macros)
 
 

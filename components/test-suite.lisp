@@ -19,7 +19,7 @@
            :start-test
            :finish-test
            :run-test))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/test-suite)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *process-sleep-interval* 0.1
@@ -148,10 +148,12 @@ Some EXTRA-KEYS that may be useful are:
                            (collect :environment))
                           ((eq prev :env)
                            (collect (append
-                                     (mapcar (lambda-bind ((key . value))
-                                               (concatenate 'string
-                                                            key "=" value))
-                                             arg)
+                                     (mapcar
+                                      (lambda (pair)
+                                        (destructuring-bind (key . value) pair
+                                          (concatenate 'string
+                                            key "=" value)))
+                                      arg)
                                      (sb-ext:posix-environ))))
                           (t (collect arg))))
               #+ccl

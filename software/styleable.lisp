@@ -6,9 +6,15 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
+        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/project
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang)
   (:export :style-feature
            :feature-name
            :extractor-fn
@@ -53,9 +59,8 @@
            :all-keywords
            :extract-feature
            :update-project-features))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/styleable)
 (in-readtable :curry-compose-reader-macros)
-
 
 (defparameter *clang-c-ast-classes*
   '(:AddrLabelExpr :ArraySubscriptExpr :AsTypeExpr :AttributedStmt

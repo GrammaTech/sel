@@ -11,7 +11,7 @@
         :software-evolution-library/utility)
   (:export :clang-instrumenter
            :clang-instrument))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/clang-instrument)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -538,11 +538,12 @@ Creates a CLANG-INSTRUMENTER for OBJ and calls its instrument method.
          ;; will not appear in the output.
          (points
           (remove nil
-            (mapcar (lambda-bind ((ast . value))
-                      (let ((parent (enclosing-traceable-stmt obj ast)))
-                        (if parent (cons parent value)
-                            (warn "Point ~s doesn't match traceable AST."
-                                  ast))))
+            (mapcar (lambda (pair)
+                      (destructuring-bind (ast . value) pair
+                        (let ((parent (enclosing-traceable-stmt obj ast)))
+                          (if parent (cons parent value)
+                              (warn "Point ~s doesn't match traceable AST."
+                                    ast)))))
                     points))))
     (labels
         ((last-traceable-stmt (proto)

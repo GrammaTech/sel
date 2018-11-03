@@ -6,6 +6,7 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
@@ -16,7 +17,7 @@
            :simple-cut
            :simple-insert
            :simple-swap))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/simple)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -396,9 +397,10 @@ and use this to initialize the RANGE object."))
 
 (defmethod lines ((range sw-range))
   "DOCFIXME"
-  (mappend (lambda-bind ((start . end))
-             (mapcar {aref (reference range)}
-                     (loop :for i :from start :to end :collect i)))
+  (mappend (lambda (pair)
+             (destructuring-bind (start . end) pair
+               (mapcar {aref (reference range)}
+                       (loop :for i :from start :to end :collect i))))
            (genome range)))
 
 (defmethod (setf lines) (new (range sw-range))

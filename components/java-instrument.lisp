@@ -10,7 +10,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :java-instrumenter))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/java-instrument)
 (in-readtable :curry-compose-reader-macros)
 
 

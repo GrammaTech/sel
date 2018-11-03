@@ -84,7 +84,8 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/components/serapi-io)
   (:export :coq
            :coq-project
            :ast-ids
@@ -98,7 +99,7 @@
            :untag-loc-info
            :lookup-source-strings
            :coq-type-checks))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
 
 ;; Coq object

@@ -16,7 +16,7 @@
   (:export :ancestral
            :ancestors
            :save-ancestry))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/ancestral)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software ancestral ()
@@ -211,8 +211,9 @@ attribute/value pair
 "
   (format stream "digraph ~a {~%    rankdir=~a;~%" name rankdir)
   (flet ((to-attr-string (attrs)
-           (mapcar (lambda-bind ((key . value))
-                     (format nil "~(~a~)=\"~a\"" key value))
+           (mapcar (lambda (pair)
+                     (destructuring-bind (key . value) pair
+                       (format nil "~(~a~)=\"~a\"" key value)))
                    (plist-alist attrs))))
     (loop for x being the hash-keys in nodes using (hash-value attrs)
        do (format stream "    n~a [~{~a~^,~}];~%" x (to-attr-string attrs)))

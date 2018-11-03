@@ -14,27 +14,47 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
-  (:exports :to-alist
-            :from-alist
-            :ast-path
-            :ast-node
-            :ast-children
-            :to-ast
-            :ast-class
-            :ast-text
-            :source-text
-            :ast-later-p
-            :replace-in-ast))
-(in-package :software-evolution-library)
+  (:export :ast
+           :define-ast
+           :define-immutable-node-struct
+           :to-alist
+           :from-alist
+           :ast-path
+           :ast-node
+           :ast-class
+           :to-alist
+           :from-alist
+           :source-text
+           :rebind-vars
+           :replace-in-vars
+           :insert-ast
+           :insert-ast-after
+           :replace-ast
+           :remove-ast
+           :splice-asts
+           :fixup-mutation
+           :ast-children
+           :to-ast
+           :ast-text
+           :ast-later-p
+           :replace-in-ast))
+(in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
 
 ;;; Data structure definitions
-(defstruct ast-node "Base type of immutable portion of ast nodes."
+(defstruct ast-node
+  "Base type of immutable portion of ast nodes."
   (hash nil :type (or null fixnum)))	   
+
+;;; TODO: Fixme.  Should this be an actual slot on ast-node or ast?
+(defgeneric ast-class (software)
+  (:documentation
+   "Needed as it is used below, but typically not defined until children."))
 
 (defstruct (ast (:constructor make-raw-ast))
   "Base type of sub-tree of an applicative AST tree."
@@ -79,34 +99,34 @@ the ast path and source text.
                              (plist-merge slot '(:read-only t))
                              (list slot nil ':read-only t)))
                        (remove-if #'stringp slot-descriptions)))
-           ;; Copy method
-           (defmethod copy
-               ((,obj ,name)
-                &key
-                  ,@(mapcar (lambda (name)
-                              `(,name nil ,(symbol-cat name 'supplied-p)))
-                            slot-names))
-             (if (or ,@(mapcar {symbol-cat _ 'supplied-p} slot-names))
-                 (funcall ',(symbol-cat 'make name)
-                          ,@(mappend (lambda (name)
-                                       (list (make-keyword name)
-                                            `(if ,(symbol-cat name 'supplied-p)
-                                                 ,name
-                                                 (,(symbol-cat conc-name name)
+         ;; Copy method
+         (defmethod copy
+             ((,obj ,name)
+              &key
+                ,@(mapcar (lambda (name)
+                            `(,name nil ,(symbol-cat name 'supplied-p)))
+                          slot-names))
+           (if (or ,@(mapcar {symbol-cat _ 'supplied-p} slot-names))
+               (funcall ',(symbol-cat 'make name)
+                        ,@(mappend (lambda (name)
+                                     (list (make-keyword name)
+                                           `(if ,(symbol-cat name 'supplied-p)
+                                                ,name
+                                                (,(symbol-cat conc-name name)
                                                   ,obj))))
-                                     slot-names))
-                 ,obj))
-           ;; Define accessors for fields.
-           ,@(mapcar
-              (lambda (slot)
-                `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
-                   (,(symbol-cat name slot) ,obj)))
-              slot-names)
-           ;; Define the alist conversion functions.
-           (defmethod from-alist ((,obj (eql ',name)) alist)
-             (declare (ignorable ,obj))
-             (funcall ',(symbol-cat 'make name)
-                      ,@(mappend (lambda-bind ((name type))
+                                   slot-names))
+               ,obj))
+         ;; Define accessors for fields.
+         ,@(mapcar
+            (lambda (slot)
+              `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
+                 (,(symbol-cat name slot) ,obj)))
+            slot-names)
+         ;; Define the alist conversion functions.
+         (defmethod from-alist ((,obj (eql ',name)) alist)
+           (declare (ignorable ,obj))
+           (funcall ',(symbol-cat 'make name)
+                    ,@(mappend (lambda-bind ((name type))
                                    (let ((name (make-keyword name)))
                                      (list name
                                            (if (or (eql type 'symbol)

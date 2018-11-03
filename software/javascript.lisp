@@ -37,7 +37,9 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/ast
         :software-evolution-library/software/parseable)
+  (:shadowing-import-from :cl-json :decode-json-from-string)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
@@ -46,7 +48,7 @@
            :copy-javascript-ast
            :make-javascript-ast-node
            :copy-javascript-ast-node))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software javascript (parseable) ()
@@ -93,7 +95,7 @@
     (multiple-value-bind (stdout stderr exit)
         (shell "acorn --allow-hash-bang ~a" src-file)
         (if (zerop exit)
-            (cl-json:decode-json-from-string stdout)
+            (decode-json-from-string stdout)
             (error
               (make-instance 'mutate
                 :text (format nil "acorn exit ~d~%stderr:~s"
@@ -500,6 +502,6 @@ AST ast to return the scopes for"
                                  &key)
   "Parse the SNIPPET into a list of free-floating JavaScript ASTs."
   (handler-case
-      (remove-if [{< 1}{length}{ast-path}]
+      (remove-if [{< 1} {length} {ast-path}]
                  (asts (from-string (make-instance 'javascript) snippet)))
     (mutate (e) (declare (ignorable e)) nil)))

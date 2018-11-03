@@ -12,7 +12,7 @@
   (:export :clang-project
            :project-dir
            :compilation-database))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software clang-project (project)

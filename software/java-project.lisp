@@ -24,13 +24,14 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :java-project
            :project-dir
            :java-class))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/java-project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software java-project (project)

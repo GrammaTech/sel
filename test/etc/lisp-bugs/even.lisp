@@ -1,5 +1,5 @@
-(require :software-evolution-library)
-(in-package :software-evolution-library)
+(require :software-evolution-library/lisp)
+(in-package :software-evolution-library/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 (setq *even*
