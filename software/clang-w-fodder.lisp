@@ -16,7 +16,19 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/parseable
-        :software-evolution-library/components/fodder-database))
+        :software-evolution-library/components/fodder-database)
+  (:export :clang-w-fodder
+           :pick-snippet
+           :*clang-w-fodder-mutation-types*
+           :*clang-w-fodder-new-mutation-types*
+           :*database*
+           :replace-fodder-same
+           :replace-fodder-full
+           :insert-fodder-decl
+           :insert-fodder-decl-rep
+           :insert-fodder
+           :insert-fodder-full
+           :prepare-fodder))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -12,7 +12,8 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/components/fodder-database))
+        :software-evolution-library/components/fodder-database)
+  (:export :in-memory-database))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -8,7 +8,14 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :simple
+           :light
+           :sw-range
+           :try-another-mutation
+           :simple-cut
+           :simple-insert
+           :simple-swap))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -9,7 +9,10 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/simple))
+        :software-evolution-library/software/simple)
+  (:export :elf
+           :base
+           :genome-bytes))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

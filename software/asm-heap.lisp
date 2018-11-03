@@ -8,7 +8,18 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :asm-heap
+           :asm-line-info
+           :asm-line-info-text
+           :asm-line-info-tokens
+           :asm-line-info-type
+           :asm-line-info-label
+           :asm-line-info-opcode
+           :asm-line-info-operands
+           :asm-line-info-id
+           :asm-line-info-orig-file
+           :asm-line-info-orig-line))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

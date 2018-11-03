@@ -11,7 +11,21 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :instrumentation-exprs
+           :synthesize-condition
+           :synthesize-conditions
+           :find-best-condition
+           :add-condition
+           :tighten-condition
+           :loosen-condition
+           :refine-condition
+           :valid-targets
+           :if-to-while
+           :if-to-while-tighten-condition
+           :insert-else-if
+           :*abst-cond-attempts*
+           :*synth-condition-attempts*))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

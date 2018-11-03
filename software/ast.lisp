@@ -16,7 +16,18 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:exports :to-alist
+            :from-alist
+            :ast-path
+            :ast-node
+            :ast-children
+            :to-ast
+            :ast-class
+            :ast-text
+            :source-text
+            :ast-later-p
+            :replace-in-ast))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -8,7 +8,15 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :adaptive-mutation
+           :*bias-toward-dynamic-mutation*
+           :*better-bias*
+           :*same-bias*
+           :*worse-bias*
+           :*dead-bias*
+           :adaptive-analyze-mutation
+           :update-mutation-types))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

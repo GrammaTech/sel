@@ -8,7 +8,51 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :style-feature
+           :feature-name
+           :extractor-fn
+           :merge-fn
+           :styleable
+           :features
+           :feature-vecs
+           :feature-vec-meta
+           :style-project
+           :define-feature
+           :diff-feature-vectors
+           :extract-features
+           :extract-baseline-features
+           :merge-styleables
+           :ast-node-type-tf-extractor
+           :max-depth-ast-extractor
+           :avg-depth-ast-extractor
+           :ast-node-type-avg-depth-extractor
+           :ast-full-stmt-bi-grams-extractor
+           :ast-bi-grams-extractor
+           :ast-keyword-tf-extractor
+           :*feature-extractors*
+           :ast-node-type-tf-feature
+           :max-depth-ast-feature
+           :avg-depth-ast-feature
+           :ast-node-type-avg-depth-feature
+           :ast-full-stmt-bi-grams-feature
+           :ast-bi-grams-feature
+           :ast-keyword-tf-feature
+           :merge-normalized
+           :merge-max
+           :merge-means
+           :uni-grams
+           :to-feature-vector
+           :normalize-vector
+           :ast-node-types
+           :ast-depth
+           :max-depth-ast
+           :all-ast-node-types
+           :bi-grams
+           :bi-grams-hashtable-to-feature
+           :all-keywords
+           :extract-feature
+           :update-project-features))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

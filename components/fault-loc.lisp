@@ -10,7 +10,15 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility)
+  (:export :stmts-in-file
+           :error-funcs
+           :rinard
+           :rinard-compare
+           :rinard-incremental
+           :rinard-write-out
+           :rinard-read-in
+           :collect-fault-loc-traces))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

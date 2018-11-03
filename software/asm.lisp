@@ -13,7 +13,16 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/simple))
+        :software-evolution-library/software/simple)
+  (:export :asm
+           :*asm-linker*
+           :*asm-mutation-types*
+           :addr-map
+           :asm-replace-operand
+           :asm-nth-instruction
+           :asm-split-instruction
+           :number-genome
+           :homologous-crossover))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

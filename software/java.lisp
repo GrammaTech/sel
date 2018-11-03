@@ -22,7 +22,14 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/source))
+        :software-evolution-library/software/source)
+  (:export :java
+           :java-mutation
+           :java-insert
+           :java-make-literal
+           :java-number
+           :java-project
+           :get-files-jar))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

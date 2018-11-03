@@ -9,7 +9,41 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/source))
+        :software-evolution-library/software/source)
+  (:export :parseable
+           :parseable-mutation
+           :parseable-insert
+           :parseable-swap
+           :parseable-move
+           :parseable-cut
+           :get-vars-in-scope
+           :select-crossover-points
+           :asts
+           :update-asts
+           :asts-containing-source-location
+           :asts-contained-in-source-range
+           :asts-intersecting-source-range
+           :ast-to-source-range
+           :get-ast
+           :get-parent-ast
+           :get-parent-asts
+           :parent-ast-p
+           :can-be-made-traceable-p
+           :traceable-stmt-p
+           :get-immediate-children
+           :recontextualize
+           :parse-source-snippet
+           :force-include
+           :prepend-to-genome
+           :expand-stmt-pool
+           :roots
+           :get-ast-types
+           :get-unbound-vals
+           :get-unbound-funs
+           :scopes
+           :index-of-ast
+           :ast-at-index
+           :ast-root))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -138,6 +172,10 @@ into a list of free-floating ASTs."))
    "Return the first ancestor of AST in SOFTWARE which may be a full stmt.
 If a statement is reached which is not itself traceable, but which could be
 made traceable by wrapping with curly braces, return that."))
+
+(defgeneric force-include (software include)
+  (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
+even if such an INCLUDE already exists in SOFTWARE."))
 
 
 ;;; Core parseable methods

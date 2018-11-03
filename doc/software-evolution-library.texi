@@ -330,11 +330,12 @@ are given in remainder of this section.
      +-----------------+   +-------------+       | Basic Vector |
      |     Source      |   |    lisp     |-------|   Genome     |-----+
      +-----------------+   |-------------|       +--------------+     |
-     | Textual source  |   | lisp source |           |       | +--------------+
-     |  representation |   +-------------+   +------------+  | |    forth     |
-     +-----------------+                     |    ELF     |  | |--------------|
-               |                             |------------|  | | forth source |
-               |                             | Executable |  | +--------------+
+     | Textual source  |   | lisp source |           |       |        |        
+     |  representation |   +-------------+           |       | +--------------+
+     +-----------------+          |          +------------+  | |    forth     |
+               |               +-----+       |    ELF     |  | |--------------|
+               |               | Coq |       |------------|  | | forth source |
+               |               +-----+       | Executable |  | +--------------+
        +---------+------------+              |  Linkable  |  |
        |         |            |              |   Format   |  |    +------------+
 +-------------+  |   +----------------+      +------------+  +----|    asm     |
@@ -355,16 +356,16 @@ are given in remainder of this section.
       +-----------------+ +-------+   | Searchable | | Ancestral | | Traceable |
       |   JavaScript    | | Clang |   +------------+ +-----------+ +-----------+
       +-----------------+ |-------|          |
-      |  JavaScript AST | | C AST |     +-----------------+
-      +-----------------+ +-------+     | Fodder Database |
-                                        +-----------------+
-                                          |            |
-                                     +----------+  +--------------------+
-                                     | Pliny DB |  | In Memory Database |
-                                     +----------+  +--------------------+
-                                                             |
-                                                        +---------+
-                                                        | JSON DB |
+      |  JavaScript AST | | C AST |     +-----------------+   +-----------+
+      +-----------------+ +-------+     | Fodder Database |   | Styleable |
+                                        +-----------------+   +-----------+
+              +--------------+            |            |
+              | super-mutant |       +----------+  +--------------------+
+              +--------------+       | Pliny DB |  | In Memory Database |
+                     |               +----------+  +--------------------+
+            +------------------+                             |
+            | asm-super-mutant |                        +---------+
+            +------------------+                        | JSON DB |
                                                         +---------+
 @end example
 @caption{Software Evolution API.  Exported functions and variables are
