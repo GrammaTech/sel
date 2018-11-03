@@ -2,6 +2,7 @@
   (:use :common-lisp
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/asm
         :split-sequence))
 (in-package :example)
 

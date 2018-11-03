@@ -1,5 +1,5 @@
 ;;; repair.lisp --- repair software
-(defpackage :repair
+(defpackage :software-evolution-library/doc/examples/repair
   (:use :common-lisp
         :alexandria
         :metabang-bind
@@ -12,7 +12,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :main))
-(in-package :repair)
+(in-package :software-evolution-library/doc/examples/repair)
 (in-readtable :curry-compose-reader-macros)
 
 

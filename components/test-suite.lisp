@@ -1,3 +1,14 @@
+;;; test-suite.lisp --- Object to hold test suites.
+(defpackage :software-evolution-library/components/test-suite
+  (:nicknames :sel/components/test-suite :sel/cp/test-suite)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

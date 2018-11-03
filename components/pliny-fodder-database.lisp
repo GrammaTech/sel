@@ -1,6 +1,19 @@
+;;; pliny-fodder-database.lisp --- Pliny fodder database backend.
+;;;
 ;;; Concrete implementation of the database interface
 ;;; for an external Pliny fodder database.
-
+(defpackage :software-evolution-library/components/pliny-fodder-database
+  (:nicknames :sel/components/pliny-fodder-database
+              :sel/cp/pliny-fodder-database)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/components/fodder-database))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

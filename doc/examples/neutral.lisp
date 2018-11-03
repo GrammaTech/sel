@@ -1,5 +1,5 @@
 ;;; neutral.lisp --- Evolve neutral variants of an original program
-(defpackage :neutral
+(defpackage :software-evolution-library/doc/examples/neutral
   (:use :common-lisp
         :alexandria
         :split-sequence
@@ -10,7 +10,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :main))
-(in-package :neutral)
+(in-package :software-evolution-library/doc/examples/neutral)
 
 (defvar help "Usage: ~a SCRIPT ORIGINAL [OPTIONS...]
 

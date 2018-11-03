@@ -1,4 +1,4 @@
-;;;; stefil-plus.lisp --- enhancements to the stefil library
+;;;; stefil-plus.lisp --- Enhancements to the stefil library.
 ;;;;
 ;;;; Adds support for timing of tests, and warnings when tests exceed a
 ;;;; designated elapsed time threshold.
@@ -25,9 +25,8 @@
 ;;;; If your project uses its own cl.mk it needs to add this line to
 ;;;; the unit-check target (see sel/cl.mk).
 ;;;;
-
 (defpackage :software-evolution-library/stefil-plus
-  (:nicknames :sel/stefil+)
+  (:nicknames :sel/stefil-plus :sel/stefil+)
   (:use
    :common-lisp
    :iterate

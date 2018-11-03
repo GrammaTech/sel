@@ -3,6 +3,17 @@
 ;;; DOCFIXME Need a page or so introduction to clang software objects.
 ;;;
 ;;; @texi{clang}
+(defpackage :software-evolution-library/components/clang
+  (:nicknames :sel/components/clang :sel/cp/clang)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/parseable))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

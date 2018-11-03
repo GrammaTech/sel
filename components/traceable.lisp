@@ -1,4 +1,14 @@
-;;; traceable --- instrumentable software objects with dynamic traces
+;;; traceable.lisp --- Instrumentable software objects with dynamic traces.
+(defpackage :software-evolution-library/components/traceable
+  (:nicknames :sel/components/traceable :sel/cp/traceable)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

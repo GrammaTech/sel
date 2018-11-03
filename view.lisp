@@ -1,5 +1,5 @@
 ;;;; view.lisp --- view functions
-
+;;;
 ;;; The SOFTWARE-EVOLUTION-VIEW (SE-VIEW) library provides a live
 ;;; status view which is continually updated during the course of an
 ;;; evolutionary run.  Currently the interface is maintained on STDOUT

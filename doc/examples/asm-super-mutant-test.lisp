@@ -39,6 +39,8 @@
 ;;;       should commit the minimum required from grep.asm, the
 ;;;       zerostat I/O pairs, the address file, and the function
 ;;;       bounds file.
+;;;
+;;; TODO: Move this file to another location under test/.
 (in-package :software-evolution-library/test)
 
 

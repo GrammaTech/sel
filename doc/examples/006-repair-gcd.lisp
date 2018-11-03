@@ -1,7 +1,8 @@
 (defpackage :example
   (:use :common-lisp
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility
+        :software-evolution-library/software/clang))
 (in-package :example)
 
 (defvar *orig* (from-file (make-instance 'clang) "test/etc/gcd/gcd.c"))

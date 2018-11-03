@@ -14,7 +14,9 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility
+        :software-evolution-library/software/parseable
+        :software-evolution-library/components/fodder))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

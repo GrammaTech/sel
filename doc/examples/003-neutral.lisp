@@ -1,7 +1,8 @@
 (defpackage :example
   (:use :common-lisp
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility
+        :software-evolution-library/software/asm))
 (in-package :example)
 
 ;;;; Create a list of 10 neutral variants

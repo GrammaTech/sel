@@ -1,10 +1,20 @@
-;;; Multi-objective selection based on Pareto dominance.
-
-;; Fitness values should be a list of numeric or vector (lexicase)
-;; scores, where each element represents a single objective. All
-;; fitness values in the same population must be the same length and
-;; have their scores in the same order.
-
+;;; multi-objective.lisp --- Multi-objective selection using Pareto dominance.
+;;;
+;;; Fitness values should be a list of numeric or vector (lexicase)
+;;; scores, where each element represents a single objective. All
+;;; fitness values in the same population must be the same length and
+;;; have their scores in the same order.
+;;; 
+(defpackage :software-evolution-library/components/multi-objective
+  (:nicknames :sel/components/multi-objective :sel/cp/multi-objective)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
