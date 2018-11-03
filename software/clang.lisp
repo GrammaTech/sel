@@ -3,8 +3,8 @@
 ;;; DOCFIXME Need a page or so introduction to clang software objects.
 ;;;
 ;;; @texi{clang}
-(defpackage :software-evolution-library/components/clang
-  (:nicknames :sel/components/clang :sel/cp/clang)
+(defpackage :software-evolution-library/software/clang
+  (:nicknames :sel/software/clang :sel/sw/clang)
   (:use :common-lisp
         :alexandria
         :arrow-macros

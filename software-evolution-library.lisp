@@ -1,28 +1,22 @@
 ;;; software-evolution-library.lisp --- Extant Software Evolution
-(defpackage :software-evolution-library
-  (:nicknames :sel)
+(defpackage :software-evolution-library/software-evolution-library
+  (:nicknames :sel :software-evolution-library)
   (:use
+   :common-lisp
    :alexandria
+   :arrow-macros
+   :named-readtables
+   :curry-compose-reader-macros
+   :iterate
    :closer-mop
    :uiop
    :bordeaux-threads
-   :common-lisp
-   :arrow-macros
    :cl-ppcre
    :cl-store
-   :named-readtables
-   :curry-compose-reader-macros
-   :diff
-   :elf
-   :iterate
-   :metabang-bind
    :split-sequence
    :software-evolution-library/utility
-   :software-evolution-library/serapi-io
-   :software-evolution-library/ast-diff
    :usocket
-   :fast-io
-   :trace-db)
+   :fast-io)
   (:shadow :elf :size :type :magic-number :diff :insert :index)
   (:shadowing-import-from :software-evolution-library/utility :quit)
   (:shadowing-import-from :uiop :getenv :directory-exists-p)
@@ -36,7 +30,7 @@
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file :copy-stream
    :parse-body :simple-style-warning)
-  (:export
+  (:export    ; TODO: Pickup here... don't export everything from sel.
    :+software-evolution-library-dir+
    :+software-evolution-library-version+
    :+software-evolution-library-branch+
@@ -754,7 +748,7 @@
   (defun generate-oid ()
     "Create a fresh, unique oid (object id) in range [1 ...]"
     (incf oid-counter)))
- 
+
 (defclass oid-object (standard-object)
   ((oid :initarg :oid :reader oid :initform (generate-oid)))
   (:documentation
@@ -1167,7 +1161,7 @@ A common restart is `ignore-failed-mutation'."))
   (:documentation "Apply MUTATION to SOFTWARE, return the resulting software object.
 Mutation application may destructively modify the software object, or it may return a
 new instance with the mutation applied, and leave the original untouched. Any client
-which calls apply-mutation should ensure that the result returned by apply-mutation is 
+which calls apply-mutation should ensure that the result returned by apply-mutation is
 captured, and should not make assumptions about the state of the original.
 
 Example:  (let ((mutated-software (apply-mutation (copy software) mutation)))

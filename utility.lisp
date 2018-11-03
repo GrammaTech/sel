@@ -16,7 +16,6 @@
    :alexandria
    :closer-mop
    :uiop
-   :osicat-posix
    :metabang-bind
    :named-readtables
    :curry-compose-reader-macros
@@ -35,28 +34,19 @@
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from :uiop :quit)
-  (:shadowing-import-from :osicat :file-permissions)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
    :if-let :ensure-function :ensure-gethash :copy-file
    :parse-body :simple-style-warning)
-  (:shadowing-import-from :osicat :pathname-as-directory)
-  (:shadowing-import-from
-   :osicat-posix
-   :write
-   :truncate
-   :open
-   :sleep
-   :chdir
-   :time
-   :col
-   :exit
-   :getcwd
-   :getenv
-   :ftruncate
-   :link
-   :close)
+  (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
+  #+sbcl
+  (:shadowing-import-from :sb-sprof :call-graph :node-count :call-graph-nsamples
+                          :node-name :*samples* :node-callers :trace-start
+                          :call-graph-vertices :with-output-to-string
+                          :lookup-node :with-lookup-tables)
+  #+sbcl
+  (:shadowing-import-from :sb-introspect :function-lambda-list)
   #+sbcl
   (:shadowing-import-from
    :sb-posix
@@ -1008,7 +998,7 @@ For usage see the definition of `clang-instrument'.  E.g.,
   "Return the argument list of FNAME."
   ;; Taken from swank/backend:arglist.
   #+sbcl
-  (sb-introspect:function-lambda-list fname)
+  (function-lambda-list fname)
   ;; NOTE: The following is similar, but may return 0 for nil args.
   ;; (sb-kernel:%simple-fun-arglist fname)
   #+ecl

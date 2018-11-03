@@ -13,10 +13,66 @@
    :split-sequence
    :cl-ppcre
    :cl-store
-   :software-evolution-library
+   ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library/utility
-   :software-evolution-library/serapi-io
-   :software-evolution-library/ast-diff
+   :software-evolution-library
+   :software-evolution-library/components/clang-instrument
+   :software-evolution-library/components/clang-tokens
+   :software-evolution-library/components/condition-synthesis
+   :software-evolution-library/components/fault-loc
+   :software-evolution-library/components/fix-compilation
+   :software-evolution-library/components/fodder-database
+   :software-evolution-library/components/formatting
+   :software-evolution-library/components/in-memory-fodder-database
+   :software-evolution-library/components/java-instrument
+   :software-evolution-library/components/javascript-instrument
+   :software-evolution-library/components/json-fodder-database
+   :software-evolution-library/components/lexicase
+   :software-evolution-library/components/multi-objective
+   :software-evolution-library/components/pliny-fodder-database
+   :software-evolution-library/components/searchable
+   :software-evolution-library/components/serapi-io
+   :software-evolution-library/components/test-suite
+   :software-evolution-library/components/traceable
+   :software-evolution-library/doc/examples/change-constant
+   :software-evolution-library/doc/examples/neutral
+   :software-evolution-library/doc/examples/repair
+   :software-evolution-library/doc/examples/repair-clang
+   :software-evolution-library/software/adaptive-mutation
+   :software-evolution-library/software/ancestral
+   :software-evolution-library/software/asm
+   :software-evolution-library/software/asm-heap
+   :software-evolution-library/software/asm-super-mutant
+   :software-evolution-library/software/ast
+   :software-evolution-library/software/cil
+   :software-evolution-library/software/clang
+   :software-evolution-library/software/clang-expression
+   :software-evolution-library/software/clang-project
+   :software-evolution-library/software/clang-w-fodder
+   :software-evolution-library/software/coq
+   :software-evolution-library/software/coq-project
+   :software-evolution-library/software/csurf-asm
+   :software-evolution-library/software/diff
+   :software-evolution-library/software/elf
+   :software-evolution-library/software/elf-cisc
+   :software-evolution-library/software/elf-risc
+   :software-evolution-library/software-evolution-library
+   :software-evolution-library/software/expression
+   :software-evolution-library/software/forth
+   :software-evolution-library/software/java
+   :software-evolution-library/software/java-project
+   :software-evolution-library/software/javascript
+   :software-evolution-library/software/lisp
+   :software-evolution-library/software/lisp-ext
+   :software-evolution-library/software/lisp-fn
+   :software-evolution-library/software/llvm
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/project
+   :software-evolution-library/software/simple
+   :software-evolution-library/software/source
+   :software-evolution-library/software/styleable
+   :software-evolution-library/software/super-mutant
+   :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus
    #+gt :testbot
    :trace-db

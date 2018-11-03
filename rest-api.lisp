@@ -221,9 +221,10 @@
   (:use
    :common-lisp
    :snooze
-   :sel
-   :sel/utility
-   :iterate)
+   :software-evolution-library
+   :software-evolution-library/utility
+   :iterate
+   :cl-json)
   (:export :lookup-session))
 (in-package :software-evolution-library/rest)
 
