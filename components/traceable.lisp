@@ -22,7 +22,7 @@
            :type-from-trace-string
            :trace-error
            :bin))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/traceable)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *trace-open-timeout* 35

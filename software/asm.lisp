@@ -23,7 +23,7 @@
            :asm-split-instruction
            :number-genome
            :homologous-crossover))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/asm)
 (in-readtable :curry-compose-reader-macros)
 
 

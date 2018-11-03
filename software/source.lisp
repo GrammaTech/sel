@@ -14,9 +14,8 @@
            :compiler
            :ext
            :flags
-           :raw-size
-           ))
-(in-package :software-evolution-library)
+           :raw-size))
+(in-package :software-evolution-library/software/source)
 (in-readtable :curry-compose-reader-macros)
 
 

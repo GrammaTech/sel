@@ -162,9 +162,10 @@ For example a description of the evolution target.")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; AFL, forgive me this.
-  (mapc (lambda-bind ((name value documentation))
-          (eval `(define-constant ,name ,value :test 'equalp
-                                  :documentation ,documentation)))
+  (mapc (lambda (triple)
+          (destructuring-bind (name value documentation) triple
+            (eval `(define-constant ,name ,value :test 'equalp
+                                    :documentation ,documentation))))
         '((+set-G1+      #?"\x1b)0"   "Set G1 for box drawing")
           (+reset-G1+    #?"\x1b)B"   "Reset G1 to ASCII")
           (+b-start+     #?"\x0e"     "Enter G1 drawing mode")

@@ -16,7 +16,7 @@
            :nop-p
            :disasm
            :addresses))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/elf-cisc)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -101,10 +101,11 @@
      ;; entries back onto the corresponding instruction's bytes.
      (setf (genome elf)
            (loop :for (op . ops)
-              :on (mapcar (lambda-bind ((address bytes disasm))
-                                       `((:address . ,address)
-                                         (:code . ,bytes)
-                                         (:disasm . ,disasm)))
+              :on (mapcar (lambda (triple)
+                            (destructuring-bind (address bytes disasm) triple
+                              `((:address . ,address)
+                                (:code . ,bytes)
+                                (:disasm . ,disasm))))
                           (remove-if-not [{= 3} #'length]
                                          (mappend #'cdr disasm)))
               :when (aget :disasm op)

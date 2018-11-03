@@ -19,7 +19,7 @@
         :software-evolution-library/utility
         :software-evolution-library/software/source)
   (:export :llvm))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/llvm)
 (in-readtable :curry-compose-reader-macros)
 
 

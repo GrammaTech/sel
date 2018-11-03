@@ -14,7 +14,7 @@
            :find-snippets
            :find-type
            :find-macro))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/fodder-database)
 (in-readtable :curry-compose-reader-macros)
 
 (defclass fodder-database (searchable)

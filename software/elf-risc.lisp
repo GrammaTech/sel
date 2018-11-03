@@ -7,12 +7,14 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :elf
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/elf)
   (:export :elf-risc
            :risc-nop
            :elf-risc-max-displacement))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/elf-risc)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -109,12 +111,13 @@
   "DOCFIXME"
   (let ((genome (genome elf)))
     (map (class-of genome)
-         (lambda-bind ((index element))
-           (if (= s1 index)
-               (let ((copy (copy-tree element)))
-                 (setf (cdr (assoc :code copy)) value)
-                 copy)
-               element))
+         (lambda (pair)
+           (destructuring-bind (index element) pair
+             (if (= s1 index)
+                 (let ((copy (copy-tree element)))
+                   (setf (cdr (assoc :code copy)) value)
+                   copy)
+                 element)))
          (indexed (coerce genome 'list)))))
 
 (defmethod elf-cut ((elf elf-risc) s1)
@@ -169,15 +172,16 @@ A value of nil means never replace.")
         (if nop-location                 ; displace all bytes to the nop
             (let ((previous val))
               (map (class-of genome)
-                   (lambda-bind ((i element))
-                     (if (and (<= s1 i) (<= i nop-location))
-                         (let ((copy (copy-tree (elt genome i))))
-                           (setf
-                            (cdr (assoc :code copy)) previous
-                            previous (copy-tree
-                                      (cdr (assoc :code (elt genome i)))))
-                           copy)
-                         element))
+                   (lambda (pair)
+                     (destructuring-bind (i element) pair
+                       (if (and (<= s1 i) (<= i nop-location))
+                           (let ((copy (copy-tree (elt genome i))))
+                             (setf
+                              (cdr (assoc :code copy)) previous
+                              previous (copy-tree
+                                        (cdr (assoc :code (elt genome i)))))
+                             copy)
+                           element)))
                    (indexed (coerce genome 'list))))
             (elf-replace elf s1 val))))))
 

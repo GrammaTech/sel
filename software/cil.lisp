@@ -11,7 +11,7 @@
         :software-evolution-library/utility
         :software-evolution-library/software/source)
   (:export :cil))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/cil)
 (in-readtable :curry-compose-reader-macros)
 
 

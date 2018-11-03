@@ -6,6 +6,7 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
@@ -15,7 +16,7 @@
            :lisp-replace
            :lisp-swap
            :*lisp-mutation-types*))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 

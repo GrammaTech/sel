@@ -30,7 +30,7 @@
            :java-number
            :java-project
            :get-files-jar))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/java)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *java-execution-script-template*

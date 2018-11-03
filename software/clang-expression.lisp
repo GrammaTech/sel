@@ -7,11 +7,16 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/expression)
   (:export :expression-intern
            :expression-to-c))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/clang-expression)
 (in-readtable :curry-compose-reader-macros)
 
 (defun expression-intern (string)

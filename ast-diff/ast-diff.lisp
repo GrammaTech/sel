@@ -800,16 +800,18 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                           (insert-start "{+")
                           (insert-end "+}"))
   (let ((*print-escape* nil))
-    (mapc (lambda-bind ((type . content))
-            (ecase type
-              (:same (write (ast-text content) :stream stream))
-              (:delete (write delete-start :stream stream)
-                       (write (ast-text content) :stream stream)
-                       (write delete-end :stream stream))
-              (:insert (write insert-start :stream stream)
-                       (write (ast-text content) :stream stream)
-                       (write insert-end :stream stream))
-              (:recurse (print-diff content stream delete-start delete-end insert-start insert-end))))
+    (mapc (lambda (pair)
+            (destructuring-bind (type . content) pair
+              (ecase type
+                (:same (write (ast-text content) :stream stream))
+                (:delete (write delete-start :stream stream)
+                         (write (ast-text content) :stream stream)
+                         (write delete-end :stream stream))
+                (:insert (write insert-start :stream stream)
+                         (write (ast-text content) :stream stream)
+                         (write insert-end :stream stream))
+                (:recurse (print-diff content stream delete-start
+                                      delete-end insert-start insert-end)))))
           (if (equalp '(:same) (lastcar diff)) (butlast diff) diff))))
 
 

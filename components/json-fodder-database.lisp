@@ -15,7 +15,7 @@
         :software-evolution-library/utility
         :software-evolution-library/components/fodder-database)
   (:export :json-database))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/json-fodder-database)
 (in-readtable :curry-compose-reader-macros)
 
 (defclass json-database (in-memory-database)

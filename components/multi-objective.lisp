@@ -19,7 +19,7 @@
            :*pareto-comparison-set-size*
            :multi-objective-scalar
            :pick-least-crowded))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/multi-objective)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *pareto-comparison-set-size* nil

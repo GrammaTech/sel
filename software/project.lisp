@@ -6,9 +6,18 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
+        :uiop
         :software-evolution-library
         :software-evolution-library/utility)
+  (:shadowing-import-from :uiop/run-program :run-program)
+  (:shadowing-import-from :uiop :quit)
+  (:shadowing-import-from
+   :alexandria
+   :appendf :ensure-list :featurep :emptyp
+   :if-let :ensure-function :ensure-gethash :copy-file
+   :parse-body :simple-style-warning)
   (:export :project
            :apply-to-project
            :build-command
@@ -23,7 +32,7 @@
            :make-build-dir
            :full-path
            :*build-dir*))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software project (software)

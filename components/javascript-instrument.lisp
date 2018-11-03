@@ -11,7 +11,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :javascript-instrumenter))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/javascript-instrument)
 (in-readtable :curry-compose-reader-macros)
 
 

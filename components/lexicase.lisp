@@ -19,7 +19,7 @@
   (:export    :lexicase-select
               :lexicase-select-best
               :*lexicase-key*))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/lexicase)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *lexicase-key* nil

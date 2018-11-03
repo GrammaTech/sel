@@ -11,8 +11,11 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :split-sequence
+        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/asm)
   (:export :apply-config
            :csurf-asm
            :*dynamic-linker-path*
@@ -24,7 +27,7 @@
            :linker-script
            :weak-symbols
            :linked-files))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software csurf-asm (asm-heap)

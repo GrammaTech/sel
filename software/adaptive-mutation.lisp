@@ -6,7 +6,9 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
+        :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :adaptive-mutation
@@ -17,7 +19,7 @@
            :*dead-bias*
            :adaptive-analyze-mutation
            :update-mutation-types))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/adaptive-mutation)
 (in-readtable :curry-compose-reader-macros)
 
 (define-constant +initial-mutation-results-queue+

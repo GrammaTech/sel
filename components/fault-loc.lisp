@@ -19,7 +19,7 @@
            :rinard-write-out
            :rinard-read-in
            :collect-fault-loc-traces))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/fault-loc)
 (in-readtable :curry-compose-reader-macros)
 
 (defgeneric collect-fault-loc-traces (bin test-suite read-trace-fn

@@ -8,8 +8,9 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
-(in-package :software-evolution-library)
+        :software-evolution-library/utility
+        :software-evolution-library/software/with-exe))
+(in-package :software-evolution-library/software/lisp-ext)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -59,6 +60,7 @@
     (lisp-exe-to-file lisp-exe exe)
     exe))
 
-(defmethod evaluate ((lisp-exe lisp-exe))
-  "DOCFIXME"
+(defmethod evaluate ((function t) (lisp-exe lisp-exe) &key &allow-other-keys)
+  ;; TODO: Fix me to match now-prevalent definition of `evaluate'.
+  (declare (ignorable function))
   (evaluate-with-script lisp-exe *test-script* *pos-test-num* *neg-test-num*))

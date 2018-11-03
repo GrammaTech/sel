@@ -21,7 +21,7 @@
            :clang-tidy
            :clang-format
            :prettier))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/formatting)
 (in-readtable :curry-compose-reader-macros)
 
 

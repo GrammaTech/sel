@@ -6,6 +6,7 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
@@ -26,7 +27,7 @@
            :demote-binop-left
            :demote-binop-right
            :eval-error))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/expression)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software expression (lisp)

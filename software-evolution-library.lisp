@@ -58,8 +58,6 @@
    :pick-good
    :pick-bad
    :mutation-targets
-   :good-mutation-targets
-   :bad-mutation-targets
    :mutate
    :no-mutation-targets
    :pick-mutation-type
@@ -663,6 +661,9 @@ Also, ensures MUTATION is a member of superclasses"
                 :documentation "A function from software -> random target.")))
       ,@(remove-if {member _ '(targeter picker)} slots :key #'car))
      ,@options))
+
+(defgeneric build-op (mutation software)
+  (:documentation "Build operation on SOFTWARE from a MUTATION."))
 
 (defmacro compose-mutations (class-name mutations &rest options)
   "Define a new mutation named CLASS-NAME composing MUTATIONS.

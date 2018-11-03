@@ -6,45 +6,63 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
+        :cl-store
+        :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/ast
         :software-evolution-library/software/source)
   (:export :parseable
+           :ast-root
+           :asts
+           :asts-changed-p
+           :copy-lock
            :parseable-mutation
            :parseable-insert
            :parseable-swap
            :parseable-move
            :parseable-cut
-           :get-vars-in-scope
-           :select-crossover-points
-           :asts
-           :update-asts
-           :asts-containing-source-location
-           :asts-contained-in-source-range
-           :asts-intersecting-source-range
-           :ast-to-source-range
+           ;; Generic functions.
+           :roots
            :get-ast
            :get-parent-ast
            :get-parent-asts
-           :parent-ast-p
-           :can-be-made-traceable-p
-           :traceable-stmt-p
-           :get-immediate-children
-           :recontextualize
-           :parse-source-snippet
-           :force-include
-           :prepend-to-genome
-           :expand-stmt-pool
-           :roots
            :get-ast-types
            :get-unbound-vals
            :get-unbound-funs
+           :enclosing-scope
            :scopes
+           :get-vars-in-scope
+           :update-asts
+           :parse-asts
+           :clear-caches
+           :update-asts-if-necessary
+           :update-caches-if-necessary
+           :bad-asts
+           :good-stmts
+           :good-mutation-targets
+           :bad-mutation-targets
+           :mutation-targets
+           :recontextualize-mutation
+           :recontextualize
+           :select-crossover-points
+           :parse-source-snippet
+           :traceable-stmt-p
+           :can-be-made-traceable-p
+           :enclosing-traceable-stmt
+           :force-include
+           :asts-containing-source-location
+           :ast-to-source-range
+           :parent-ast-p
+           :get-immediate-children
+           :prepend-to-genome
            :index-of-ast
            :ast-at-index
-           :ast-root))
-(in-package :software-evolution-library)
+           ;; Restarts
+           :expand-stmt-pool))
+(in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
 ;;; parseable software objects
@@ -139,9 +157,6 @@ SOFTWARE matching FILTER."))
   (:documentation "Return a list of target ASTs in SOFTWARE from
 STMT-POOL for mutation, filtering using FILTER, and throwing a
 'no-mutation-targets exception if none are available."))
-
-(defgeneric build-op (software mutation)
-  (:documentation "Build operation on SOFTWARE from a MUTATION."))
 
 (defgeneric recontextualize-mutation (parseable mutation)
   (:documentation "Bind free variables and functions in the mutation to concrete
@@ -319,19 +334,21 @@ field indicates the object has changed since the last parse."
 "
   (remove-if-not [{= 1} #'length #'ast-path] asts))
 
-(defmethod ast-at-index ((obj parseable) index)
-  "Return the AST in OBJ at INDEX.
+(defgeneric ast-at-index (software index)
+  (:documentation "Return the AST in OBJ at INDEX.
 * OBJ object to retrieve ASTs for
 * INDEX nth AST to retrieve
-"
-  (nth index (asts obj)))
+")
+  (:method ((obj parseable) index)
+    (nth index (asts obj))))
 
-(defmethod index-of-ast ((obj parseable) (ast ast))
-  "Return the index of AST in OBJ.
+(defgeneric index-of-ast (software ast)
+  (:documentation "Return the index of AST in OBJ.
 * OBJ object to query for the index of AST
 * AST node to find the index of
-"
-  (position ast (asts obj) :test #'equalp))
+")
+  (:method  ((obj parseable) (ast ast))
+    (position ast (asts obj) :test #'equalp)))
 
 (defmethod get-ast ((obj parseable) (path list))
   "Return the AST in OBJ at the given PATH.
@@ -342,19 +359,20 @@ field indicates the object has changed since the last parse."
              (if path
                  (destructuring-bind (head . tail) path
                    (helper (nth head (ast-children tree))
-                                tail))
+                           tail))
                  tree)))
     (helper (ast-root obj) path)))
 
-(defmethod parent-ast-p ((obj parseable) (possible-parent-ast ast) (ast ast))
-  "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
+(defgeneric parent-ast-p (software possible-parent-ast ast)
+  (:documentation "Return true if POSSIBLE-PARENT-AST is a parent of AST in OBJ, nil
 otherwise.
 * OBJ software object containing AST and its parents
 * POSSIBLE-PARENT-AST node to find as a parent of AST
 * AST node to start parent search from
-"
-  (member possible-parent-ast (get-parent-asts obj ast)
-          :test #'equalp))
+")
+  (:method ((obj parseable) (possible-parent-ast ast) (ast ast))
+    (member possible-parent-ast (get-parent-asts obj ast)
+            :test #'equalp)))
 
 (defmethod get-parent-ast ((obj parseable) (ast ast))
   "Return the parent node of AST in OBJ
@@ -403,149 +421,152 @@ otherwise.
                      :key {aget :name}
                      :test #'string=))
 
-(defmethod ast-to-source-range ((obj parseable) (ast ast))
-  "Convert AST to pair of SOURCE-LOCATIONS."
-  (labels
-      ((scan-ast (ast line column)
-         "Scan entire AST, updating line and column. Return the new values."
-         (if (stringp ast)
-             ;; String literal
-             (iter (for char in-string ast)
-                   (incf column)
-                   (when (eq char #\newline)
-                     (incf line)
-                     (setf column 1)))
-
-             ;; Subtree
-             (iter (for child in (ast-children ast))
+(defgeneric ast-to-source-range (software ast)
+  (:documentation "Convert AST to pair of SOURCE-LOCATIONS.")
+  (:method ((obj parseable) (ast ast))
+    (labels
+        ((scan-ast (ast line column)
+           "Scan entire AST, updating line and column. Return the new values."
+           (if (stringp ast)
+               ;; String literal
+               (iter (for char in-string ast)
+                     (incf column)
+                     (when (eq char #\newline)
+                       (incf line)
+                       (setf column 1)))
+               ;; Subtree
+               (iter (for child in (ast-children ast))
+                     (multiple-value-setq (line column)
+                       (scan-ast child line column))))
+           (values line column))
+         (ast-start (ast path line column)
+           "Scan to the start of an AST, returning line and column."
+           (bind (((head . tail) path))
+             ;; Scan preceeding ASTs
+             (iter (for child in (subseq (ast-children ast) 0 head))
+                   (multiple-value-setq (line column)
+                     (scan-ast child line column)))
+             ;; Recurse into child
+             (when tail
                (multiple-value-setq (line column)
-                 (scan-ast child line column))))
+                 (ast-start (nth head (ast-children ast)) tail line column)))
+             (values line column))))
+      (bind (((:values start-line start-col)
+              (ast-start (ast-root obj) (ast-path ast) 1 1))
+             ((:values end-line end-col)
+              (scan-ast ast start-line start-col)))
+        (make-instance 'source-range
+          :begin (make-instance 'source-location
+                   :line start-line
+                   :column start-col)
+          :end (make-instance 'source-location
+                 :line end-line
+                 :column end-col))))))
 
-         (values line column))
-       (ast-start (ast path line column)
-         "Scan to the start of an AST, returning line and column."
-         (bind (((head . tail) path))
-           ;; Scan preceeding ASTs
-           (iter (for child in (subseq (ast-children ast) 0 head))
-                 (multiple-value-setq (line column)
-                   (scan-ast child line column)))
-           ;; Recurse into child
-           (when tail
-             (multiple-value-setq (line column)
-               (ast-start (nth head (ast-children ast)) tail line column)))
-           (values line column))))
+(defgeneric ast-source-ranges (software)
+  (:documentation "Return (AST . SOURCE-RANGE) for each AST in OBJ.")
+  (:method ((obj parseable))
+    (labels
+        ((source-location (line column)
+           (make-instance 'source-location :line line :column column))
+         (scan-ast (ast line column)
+           "Scan entire AST, updating line and column. Return the new values."
+           (let* ((begin (source-location line column))
+                  (ranges
+                   (if (stringp ast)
+                       ;; String literal
+                       (iter (for char in-string ast)
+                             (incf column)
+                             (when (eq char #\newline)
+                               (incf line)
+                               (setf column 1)))
 
-    (bind (((:values start-line start-col)
-            (ast-start (ast-root obj) (ast-path ast) 1 1))
-           ((:values end-line end-col)
-            (scan-ast ast start-line start-col)))
-      (make-instance 'source-range
-                     :begin (make-instance 'source-location
-                                           :line start-line
-                                           :column start-col)
-                     :end (make-instance 'source-location
-                                         :line end-line
-                                         :column end-col)))))
+                       ;; Subtree
+                       (iter (for child in (ast-children ast))
+                             (appending
+                              (multiple-value-bind
+                                    (ranges new-line new-column)
+                                  (scan-ast child line column)
+                                (setf line new-line
+                                      column new-column)
+                                ranges)
+                              into child-ranges)
+                             (finally
+                              (return
+                                (cons (cons ast
+                                            (make-instance 'source-range
+                                              :begin begin
+                                              :end (source-location
+                                                    line column)))
+                                      child-ranges)))))))
 
-(defmethod ast-source-ranges ((obj parseable))
-  "Return (AST . SOURCE-RANGE) for each AST in OBJ."
-  (labels
-      ((source-location (line column)
-         (make-instance 'source-location :line line :column column))
-       (scan-ast (ast line column)
-         "Scan entire AST, updating line and column. Return the new values."
-         (let* ((begin (source-location line column))
-                (ranges
-                 (if (stringp ast)
-                     ;; String literal
-                     (iter (for char in-string ast)
-                           (incf column)
-                           (when (eq char #\newline)
-                             (incf line)
-                             (setf column 1)))
+             (values ranges line column))))
+      (cdr (scan-ast (ast-root obj) 1 1)))))
 
-                     ;; Subtree
-                     (iter (for child in (ast-children ast))
-                           (appending
-                            (multiple-value-bind
-                                  (ranges new-line new-column)
-                                (scan-ast child line column)
-                              (setf line new-line
-                                    column new-column)
-                              ranges)
-                            into child-ranges)
-                           (finally
-                            (return
-                              (cons (cons ast
-                                          (make-instance 'source-range
-                                                         :begin begin
-                                                         :end (source-location
-                                                               line column)))
-                                    child-ranges)))))))
+(defgeneric asts-containing-source-location (software location)
+  (:documentation "Return a list of ASTs in SOFTWARE containing LOC.")
+  (:method ((obj parseable) (loc source-location))
+    (when loc
+      (mapcar #'car
+              (remove-if-not [{contains _ loc} #'cdr]
+                             (ast-source-ranges obj))))))
 
-           (values ranges line column))))
+(defgeneric asts-contained-in-source-range (software range)
+  (:documentation "Return a list of ASTs in SOFTWARE contained in RANGE.")
+  (:method ((obj parseable) (range source-range))
+    (when range
+      (mapcar #'car
+              (remove-if-not [{contains range} #'cdr]
+                             (ast-source-ranges obj))))))
 
-    (cdr (scan-ast (ast-root obj) 1 1))))
+(defgeneric asts-intersecting-source-range (software range)
+  (:documentation "Return a list of ASTs in OBJ intersecting RANGE.")
+  (:method ((obj parseable) (range source-range))
+    (when range
+      (mapcar #'car
+              (remove-if-not [{intersects range} #'cdr]
+                             (ast-source-ranges obj))))))
 
-(defmethod asts-containing-source-location
-    ((obj parseable) (loc source-location))
-  "Return a list of ASTs in OBJ containing LOC."
-  (when loc
-    (mapcar #'car
-            (remove-if-not [{contains _ loc} #'cdr] (ast-source-ranges obj)))))
-
-(defmethod asts-contained-in-source-range
-    ((obj parseable) (range source-range))
-  "Return a list of ASTs in contained in RANGE."
-  (when range
-    (mapcar #'car
-            (remove-if-not [{contains range} #'cdr] (ast-source-ranges obj)))))
-
-(defmethod asts-intersecting-source-range
-    ((obj parseable) (range source-range))
-  "Return a list of ASTs in OBJ intersecting RANGE."
-  (when range
-    (mapcar #'car
-            (remove-if-not [{intersects range} #'cdr]
-                           (ast-source-ranges obj)))))
 
 
 ;;; Genome manipulations
-(defmethod prepend-to-genome ((obj parseable) text)
-  "Prepend non-AST TEXT to OBJ genome.
+(defgeneric prepend-to-genome (software text)
+  (:documentation "Prepend non-AST TEXT to OBJ genome.
 
 * OBJ object to modify with text
 * TEXT text to prepend to the genome
-"
-  (labels ((ensure-newline (text)
-             (if (not (equalp #\Newline (last-elt text)))
-                 (concatenate 'string text '(#\Newline))
-                 text)))
+")
+  (:method ((obj parseable) text)
+    (labels ((ensure-newline (text)
+               (if (not (equalp #\Newline (last-elt text)))
+                   (concatenate 'string text '(#\Newline))
+                   text)))
+      (with-slots (ast-root) obj
+        (setf ast-root
+              (copy ast-root
+                    :children
+                    (append (list (concatenate 'string
+                                    (ensure-newline text)
+                                    (car (ast-children ast-root))))
+                            (cdr (ast-children ast-root)))))))))
+
+(defgeneric append-to-genome (software text)
+  (:documentation "Append non-AST TEXT to OBJ genome.  The new text will not be parsed.
+
+* OBJ object to modify with text
+* TEXT text to append to the genome
+")
+  (:method ((obj parseable) text)
     (with-slots (ast-root) obj
       (setf ast-root
             (copy ast-root
                   :children
-                  (append (list (concatenate 'string
-                                             (ensure-newline text)
-                                             (car (ast-children ast-root))))
-                          (cdr (ast-children ast-root))))))))
-
-(defmethod append-to-genome ((obj parseable) text)
-  "Append non-AST TEXT to OBJ genome.  The new text will not be parsed.
-
-* OBJ object to modify with text
-* TEXT text to append to the genome
-"
-  (with-slots (ast-root) obj
-    (setf ast-root
-          (copy ast-root
-                :children
-                (if (stringp (lastcar (ast-children ast-root)))
-                    (append (butlast (ast-children ast-root))
-                            (list (concatenate 'string
-                                               (lastcar (ast-children ast-root))
-                                               text)))
-                    (append (ast-children ast-root) (list text)))))))
+                  (if (stringp (lastcar (ast-children ast-root)))
+                      (append (butlast (ast-children ast-root))
+                              (list (concatenate 'string
+                                      (lastcar (ast-children ast-root))
+                                      text)))
+                      (append (ast-children ast-root) (list text))))))))
 
 
 ;; Targeting functions

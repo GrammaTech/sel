@@ -11,7 +11,7 @@
         :software-evolution-library/utility
         :software-evolution-library/software/simple)
   (:export :forth))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/forth)
 (in-readtable :curry-compose-reader-macros)
 
 

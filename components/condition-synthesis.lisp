@@ -26,7 +26,7 @@
            :insert-else-if
            :*abst-cond-attempts*
            :*synth-condition-attempts*))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/components/condition-synthesis)
 (in-readtable :curry-compose-reader-macros)
 
 

@@ -12,6 +12,7 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
@@ -29,7 +30,7 @@
            :insert-fodder
            :insert-fodder-full
            :prepare-fodder))
-(in-package :software-evolution-library)
+(in-package :software-evolution-library/software/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *database* nil

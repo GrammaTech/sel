@@ -33,16 +33,6 @@
 ;;; @texi{serapi-io}
 (defpackage :software-evolution-library/components/serapi-io
   (:nicknames :sel/components/serapi-io :sel/cp/serapi-io)
-  (:use :common-lisp
-        :alexandria
-        :arrow-macros
-        :named-readtables
-        :curry-compose-reader-macros
-        :iterate
-        :software-evolution-library
-        :software-evolution-library/utility))
-(defpackage :software-evolution-library/serapi-io
-  (:nicknames :sel/serapi-io)
   (:use
    :common-lisp
    :alexandria
@@ -96,14 +86,13 @@
            :retry-read
            :serapi-timeout
            :serapi-readtable))
-(in-package :software-evolution-library/serapi-io)
+(in-package :software-evolution-library/components/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defreadtable :serapi-readtable
     ;; Must fuse FQ after SEL because otherwise the SBCL quasiquoter
     ;; clobbers the FQ quasiquoter. Alt. fix is for CCRM and SEL to
     ;; define a mixin readtable as done by FQ.
     (:fuse :sel-readtable :fare-quasiquote-mixin))
-
   (in-readtable :serapi-readtable))
 
 (defvar *sertop-path* "sertop" "Path to sertop program.")
