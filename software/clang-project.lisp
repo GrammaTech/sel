@@ -1,4 +1,14 @@
-;; Specialization for building a project from a clang compilation database
+;;; clang-project.lisp --- Projects with a clang compilation database
+(defpackage :software-evolution-library/software/clang-project
+  (:nicknames :sel/software/clang-project :sel/sw/clang-project)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

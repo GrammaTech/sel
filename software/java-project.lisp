@@ -1,3 +1,5 @@
+;;; java-project.lisp --- Java
+;;;
 ;;; Specialization for building a software object from a java project
 ;;;
 ;;; Implements the core functionality of the software-evolution-library
@@ -15,6 +17,16 @@
 ;;; @uref{https://github.com/GrammaTech/java-mutator, java-mutator}.
 ;;;
 ;;; @texi{java-project}
+(defpackage :software-evolution-library/software/java-project
+  (:nicknames :sel/software/java-project :sel/sw/java-project)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

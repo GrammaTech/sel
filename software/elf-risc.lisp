@@ -1,4 +1,14 @@
 ;;; elf-risc.lisp --- software representation of risc ELF files
+(defpackage :software-evolution-library/software/elf-risc
+  (:nicknames :sel/software/elf-risc :sel/sw/elf-risc)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

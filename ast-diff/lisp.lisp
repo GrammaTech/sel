@@ -23,8 +23,8 @@
 ;;; @url{https://github.com:robert-strandh/Eclector}).
 ;;;
 ;;; @texi{lisp-diff}
-(defpackage :software-evolution-library/lisp-diff
-  (:nicknames :sel/lisp-diff)
+(defpackage :software-evolution-library/ast-diff/lisp
+  (:nicknames :sel/ast-diff/lisp)
   (:use :common-lisp
         :alexandria
         :arrow-macros
@@ -43,7 +43,7 @@
   (:shadowing-import-from :concrete-syntax-tree
                           :first :rest :source :cst :cons-cst :atom-cst :raw)
   (:export :run-lisp-diff))
-(in-package :software-evolution-library/lisp-diff)
+(in-package :software-evolution-library/ast-diff/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 

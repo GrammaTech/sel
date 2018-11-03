@@ -78,7 +78,16 @@
 ;;; @include include/asm-super-mutant.texi
 ;;;
 ;;; @texi{super-mutant}
-
+(defpackage :software-evolution-library/software/super-mutant
+  (:nicknames :sel/software/super-mutant :sel/sw/super-mutant)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

@@ -27,6 +27,16 @@
 ;;; implementation.
 ;;;
 ;;; @texi{javascript}
+(defpackage :software-evolution-library/software/javascript
+  (:nicknames :sel/software/javascript :sel/sw/javascript)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

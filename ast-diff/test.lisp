@@ -143,5 +143,3 @@ a valid patch.  Return :FAIL (and other values) if not."
 				 (subseq s2 p2 (+ p2 l))))))
        nil
        (list s1 s2 triples)))))
-
-		  

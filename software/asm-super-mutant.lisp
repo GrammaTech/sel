@@ -196,6 +196,16 @@
 ;;;
 ;;; @texi{asm-super-mutant}
 
+(defpackage :software-evolution-library/software/asm-super-mutant
+  (:nicknames :sel/software/asm-super-mutant :sel/sw/asm-super-mutant)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

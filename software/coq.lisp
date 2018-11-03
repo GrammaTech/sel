@@ -75,6 +75,16 @@
 ;;; a reset point before returning.
 ;;;
 ;;; @texi{coq}
+(defpackage :software-evolution-library/software/coq
+  (:nicknames :sel/software/coq :sel/sw/coq)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :serapi-readtable)
 

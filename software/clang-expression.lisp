@@ -1,4 +1,14 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
+(defpackage :software-evolution-library/software/clang-expression
+  (:nicknames :sel/software/clang-expression :sel/sw/clang-expression)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

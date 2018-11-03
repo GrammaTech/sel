@@ -3,6 +3,16 @@
 ;;; DOCFIXME Need a page or so introduction to ancestral software mixin.
 ;;;
 ;;; @texi{ancestral}
+(defpackage :software-evolution-library/software/ancestral
+  (:nicknames :sel/software/ancestral :sel/sw/ancestral)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

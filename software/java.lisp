@@ -12,6 +12,16 @@
 ;;; with other software objects, but are not used in this implementation.
 ;;;
 ;;; @texi{java}
+(defpackage :software-evolution-library/software/java
+  (:nicknames :sel/software/java :sel/sw/java)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
 (in-package :software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 

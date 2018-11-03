@@ -30,7 +30,7 @@
 ;;;
 ;;; @texi{ast-diff}
 (defpackage :software-evolution-library/ast-diff
-  (:nicknames :sel/ast-diff)
+  (:nicknames :sel/ast-diff :software-evolution-library/ast-diff/ast-diff)
   (:use
    :common-lisp
    :software-evolution-library/utility
@@ -69,7 +69,7 @@
    :chunk
    :diff3
    :show-chunks))
-(in-package :software-evolution-library/ast-diff)
+(in-package :software-evolution-library/ast-diff/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 ;;; Comments on further algorithm improvements
 ;;;
