@@ -20,15 +20,18 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/source)
+        :software-evolution-library/software/source
+        :software-evolution-library/components/formatting)
   (:export :java
            :java-mutation
            :java-insert
            :java-make-literal
            :java-number
            :java-project
+           :java-jar-exec
            :get-files-jar))
 (in-package :software-evolution-library/software/java)
 (in-readtable :curry-compose-reader-macros)
@@ -69,7 +72,7 @@ exit 0")
           raw-size (java-ids-aux obj)))
   obj)
 
-(defmethod java-jar-exec (format-string)
+(defun java-jar-exec (format-string)
   "Error code handler for error codes from the java-mutator.jar"
   (multiple-value-bind (stdout stderr exit-code)
       (shell *java-mutator-execution-string* format-string)

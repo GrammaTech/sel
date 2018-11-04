@@ -40,6 +40,7 @@
            :random-point-in-function
            :select-intraprocedural-pair
            :clang-mutate
+           :apply-clang-mutate-ops
            :update-headers-from-snippet
            :prototypes
            :functions
@@ -90,10 +91,12 @@
            :block-successor
            :get-children-using
            :get-declared-variables
+           :get-used-variables
            :add-include
            :add-type
            :find-or-add-type
            :type-decl-string
+           :type-trace-string
            :add-macro
            :nullify-asts
            :keep-partial-asts
@@ -129,6 +132,7 @@
            :clang-ast-node
            :ast-args
            :ast-declares
+           :ast-expr-type
            ;; AST structures.
            :ast-full-stmt
            :ast-guard-stmt

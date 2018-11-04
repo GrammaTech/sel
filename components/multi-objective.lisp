@@ -12,9 +12,11 @@
         :arrow-macros
         :named-readtables
         :curry-compose-reader-macros
+        :metabang-bind
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/components/lexicase)
   (:export :pareto-selector
            :*pareto-comparison-set-size*
            :multi-objective-scalar

@@ -16,9 +16,10 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
-  (:export    :lexicase-select
-              :lexicase-select-best
-              :*lexicase-key*))
+  (:export :lexicase-select
+           :lexicase-select-best
+           :*lexicase-key*
+           :lexicase-better-p))
 (in-package :software-evolution-library/components/lexicase)
 (in-readtable :curry-compose-reader-macros)
 

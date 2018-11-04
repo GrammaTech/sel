@@ -8,7 +8,8 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/clang)
   (:export
    :tokens))
 (in-package :software-evolution-library/components/clang-tokens)

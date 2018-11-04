@@ -25,8 +25,17 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :split-sequence
+        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/clang-w-fodder
+        :software-evolution-library/components/formatting
+        :software-evolution-library/components/fodder-database)
   (:export :fix-compilation))
 (in-package :software-evolution-library/components/fix-compilation)
 (in-readtable :curry-compose-reader-macros)

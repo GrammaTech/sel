@@ -8,7 +8,8 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/components/test-suite)
   (:export :traceable
            :binary-traceable
            :sexp-traceable
@@ -18,7 +19,6 @@
            :read-trace-file
            :read-trace-stream
            :type-decl-string
-           :type-trace-string
            :type-from-trace-string
            :trace-error
            :bin))

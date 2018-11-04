@@ -29,7 +29,8 @@
            :insert-fodder-decl-rep
            :insert-fodder
            :insert-fodder-full
-           :prepare-fodder))
+           :prepare-fodder
+           :bind-vars-in-snippet))
 (in-package :software-evolution-library/software/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
 
