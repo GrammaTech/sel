@@ -8,7 +8,13 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/components/instrument
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/source
+        :software-evolution-library/software/java
+        :software-evolution-library/software/project
+        :software-evolution-library/software/java-project)
   (:export :java-instrumenter))
 (in-package :software-evolution-library/components/java-instrument)
 (in-readtable :curry-compose-reader-macros)

@@ -58,6 +58,7 @@
            :parent-ast-p
            :get-immediate-children
            :prepend-to-genome
+           :append-to-genome
            :index-of-ast
            :ast-at-index
            ;; Restarts

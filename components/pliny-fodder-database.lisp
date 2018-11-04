@@ -11,8 +11,11 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :cl-ppcre
+        :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/ast
         :software-evolution-library/components/fodder-database)
   (:export :pliny-database
            :host

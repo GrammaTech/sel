@@ -7,10 +7,22 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :split-sequence
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/project
+        :software-evolution-library/software/clang-project
+        :software-evolution-library/components/formatting
+        :software-evolution-library/components/instrument
+        :software-evolution-library/components/fodder-database)
+  (:shadowing-import-from :uiop :*command-line-arguments* :argv0)
   (:export :clang-instrumenter
-           :clang-instrument))
+           :clang-instrument
+           :instrument-c-exprs))
 (in-package :software-evolution-library/components/clang-instrument)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1117,7 +1129,7 @@ OBJ a clang software object
   "Interface to the command line instrumentation tool.
 * ARGS command-line arguments
 "
-  (in-package :sel)
+  (in-package :software-evolution-library/components/clang-instrument)
   (let ((self (pop args))
         (original (make-instance 'clang
                     :compiler (or (getenv "CC") "clang")

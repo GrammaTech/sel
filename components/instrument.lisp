@@ -8,12 +8,15 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/project)
   (:export :instrument
            :uninstrument
            :instrumented-p
            :instrumenter
            :var-instrument
+           :*instrument-log-env-name*
+           :*instrument-handshake-env-name*
            :+instrument-log-variable-name+
            :+instrument-log-lock-variable-name+))
 (in-package :software-evolution-library/components/instrument)

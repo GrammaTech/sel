@@ -38,12 +38,15 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/ast
-        :software-evolution-library/software/parseable)
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
+        :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-json :decode-json-from-string)
   (:export :javascript
            :javascript-mutation
            :javascript-ast
            :javascript-ast-node
+           :ast-aux-data
            :make-javascript-ast
            :copy-javascript-ast
            :make-javascript-ast-node
