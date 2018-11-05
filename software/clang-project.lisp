@@ -7,8 +7,16 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :split-sequence
+        :cl-ppcre
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/project)
+  (:shadowing-import-from :uiop
+                          :ensure-directory-pathname
+                          :directory-exists-p
+                          :run-program)
   (:export :clang-project
            :project-dir
            :compilation-database))

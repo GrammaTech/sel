@@ -8,8 +8,10 @@
         :curry-compose-reader-macros
         :metabang-bind
         :iterate
+        :split-sequence
         :software-evolution-library
         :software-evolution-library/utility)
+  (:shadowing-import-from :uiop :ensure-directory-pathname)
   (:export :simple
            :light
            :sw-range

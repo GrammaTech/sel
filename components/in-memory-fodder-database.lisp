@@ -12,8 +12,14 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/ast
         :software-evolution-library/components/fodder-database)
-  (:export :in-memory-database))
+  (:export :in-memory-database
+           :ast-database-ht
+           :ast-database-list
+           :ast-database-full-stmt-list
+           :type-database-ht
+           :macro-database-ht))
 (in-package :software-evolution-library/components/in-memory-fodder-database)
 (in-readtable :curry-compose-reader-macros)
 

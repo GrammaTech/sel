@@ -26,6 +26,7 @@
            :ast-path
            :ast-node
            :ast-class
+           :ast-equal-p
            :to-alist
            :from-alist
            :source-text
@@ -33,6 +34,7 @@
            :replace-in-vars
            :insert-ast
            :insert-ast-after
+           :replace-nth-child
            :replace-ast
            :remove-ast
            :splice-asts

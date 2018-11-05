@@ -221,10 +221,13 @@
   (:use
    :common-lisp
    :snooze
+   :cl-json
+   :iterate
    :software-evolution-library
    :software-evolution-library/utility
-   :iterate
-   :cl-json)
+   :software-evolution-library/components/test-suite
+   ;; TODO: Maybe remove this dependency.
+   :software-evolution-library/software/asm-super-mutant)
   (:export :lookup-session))
 (in-package :software-evolution-library/rest)
 
@@ -563,7 +566,8 @@ in a population"))
   (let* ((sym (intern (string-upcase name) :sel))
 	 (func (symbol-function sym)))
     (if (and (eq 'sel::evaluate sym)
-	     (subtypep (population-type population) 'sel::asm-super-mutant))
+             ;; TODO: Maybe remove this special case and dependency.
+	     (subtypep (population-type population) 'asm-super-mutant))
 	    (setf func (lambda (soft) (evaluate nil soft))))
     func))
 

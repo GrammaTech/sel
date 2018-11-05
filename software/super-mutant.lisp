@@ -92,6 +92,7 @@
   (:export :super-mutant
            :mutants
            :super-soft
+           :collate-ast-variants
            :phenome-results
            :create-super-soft))
 (in-package :software-evolution-library/software/super-mutant)
@@ -107,6 +108,12 @@
    (phenome-results :accessor phenome-results :initform nil
                     :type list
                     :documentation "Cached results from PHENOME method.")))
+
+(defmethod create-super ((variant software) &optional rest-variants)
+  "Creates a SUPER-MUTANT and populates variants. Returns the super-mutant."
+  (let ((inst (make-instance 'super-mutant)))
+    (setf (mutants inst) (cons variant rest-variants))
+    inst))
 
 (defmethod phenome ((obj super-mutant) &key (bin (temp-file-name)))
   "Phenotype of the software.
@@ -167,17 +174,23 @@ the first return value.
 
              (let* ((proxy (copy obj))
                     (method
-                     (make-instance 'standard-method
-                                    :function
-                                    #+ccl #'proxy-phenome
-                                    #+sbcl (lambda (args other)
-                                             (declare (ignorable other))
-                                             (apply #'proxy-phenome args))
-                                    #-(or sbcl ccl)
-                                    (error "make-phenome-proxy not implemented")
-                                    :lambda-list '(obj &key bin)
-                                    :specializers
-                                    (list (intern-eql-specializer proxy)))))
+                     (make-instance
+                         'standard-method
+                       :function
+                       #+ccl #'proxy-phenome
+                       #+sbcl (lambda (args other)
+                                (declare (ignorable other))
+                                (apply #'proxy-phenome args))
+                       #-(or sbcl ccl)
+                       (error "make-phenome-proxy not implemented")
+                       :lambda-list '(obj &key bin)
+                       ;; TODO: What does the following do, is it
+                       ;; required, and how can we do it in other
+                       ;; lisps?
+                       #+ccl
+                       :specializers
+                       #+ccl
+                       (list (ccl::intern-eql-specializer proxy)))))
                (add-method #'phenome method)
                (values proxy method)))))
 

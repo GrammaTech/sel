@@ -26,8 +26,15 @@
         :curry-compose-reader-macros
         :metabang-bind
         :iterate
+        :split-sequence
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/java
+        :software-evolution-library/software/project)
+  (:shadowing-import-from :uiop
+                          :ensure-directory-pathname
+                          :directory-exists-p
+                          :run-program)
   (:export :java-project
            :project-dir
            :java-class))

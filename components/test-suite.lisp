@@ -9,6 +9,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility)
+  (:shadowing-import-from :uiop :wait-process)
   (:export :*process-sleep-interval*
            :*process-kill-timeout*
            :test-suite

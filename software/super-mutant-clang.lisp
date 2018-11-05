@@ -9,8 +9,11 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/super-mutant
-        :software-evolution-library/software/clang)
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/source
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/super-mutant)
   (:export :super-mutant
            :mutants
            :super-soft

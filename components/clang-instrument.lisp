@@ -8,6 +8,7 @@
         :curry-compose-reader-macros
         :iterate
         :split-sequence
+        :trace-db
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/ast

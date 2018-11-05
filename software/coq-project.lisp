@@ -17,7 +17,9 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility
+        :software-evolution-library/software/project
+        :software-evolution-library/components/serapi-io))
 (in-package :software-evolution-library/software/coq-project)
 (in-readtable :serapi-readtable)
 

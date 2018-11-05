@@ -10,7 +10,14 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/source
+        :software-evolution-library/software/parseable
+        ;; TODO: Remove clang dependency (might require another package).
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/project
+        :software-evolution-library/components/test-suite)
   (:export :stmts-in-file
            :error-funcs
            :rinard

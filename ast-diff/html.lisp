@@ -1,7 +1,10 @@
 ;;; ast-diff-html.lisp --- render ast diffs to html
 (defpackage :software-evolution-library/ast-diff/html
   (:nicknames :sel/ast-diff/html)
-  (:use :common-lisp :sel/utility :sel/ast-diff :cl-who)
+  (:use :common-lisp
+        :software-evolution-library/utility
+        :software-evolution-library/ast-diff/ast-diff
+        :cl-who)
   (:export :diff-to-html))
 (in-package :software-evolution-library/ast-diff/html)
 
