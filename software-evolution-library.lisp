@@ -35,6 +35,7 @@
    :+software-evolution-library-version+
    :+software-evolution-library-branch+
    ;; software objects
+   :oid-object
    :software
    :define-software
    :edits

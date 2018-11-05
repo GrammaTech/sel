@@ -11,6 +11,8 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/simple)
+  (:shadowing-import-from :common-lisp :type)
+  (:shadowing-import-from :software-evolution-library :size)
   (:export :elf
            :base
            :genome-bytes))

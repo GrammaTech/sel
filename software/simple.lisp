@@ -16,6 +16,7 @@
            :light
            :sw-range
            :try-another-mutation
+           :simple-mutation
            :simple-cut
            :simple-insert
            :simple-swap))

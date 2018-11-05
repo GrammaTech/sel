@@ -16,6 +16,7 @@
   (:export :elf-cisc
            :elf-x86
            :elf-arm
+           :elf-replace
            :pad-nops
            :nop-p
            :disasm
