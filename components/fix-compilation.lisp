@@ -33,7 +33,9 @@
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/components/formatting
         :software-evolution-library/components/fodder-database)
-  (:export :fix-compilation))
+  (:export :register-fixer
+           :fix-compilation
+           :*compilation-fixers*))
 (in-package :software-evolution-library/components/fix-compilation)
 (in-readtable :curry-compose-reader-macros)
 

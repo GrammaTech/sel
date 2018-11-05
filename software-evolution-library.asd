@@ -9,6 +9,7 @@ Mutation and evaluation methods are implemented on top of this
 interface supporting Search Based Software Engineering (SBSE)
 techniques."
   :version "0.0.0"
+  :depends-on (software-evolution-library/software-evolution-library)
   :class :package-inferred-system
   :defsystem-depends-on (:asdf-package-system)
   :in-order-to ((test-op (test-op "software-evolution-library/test"))))
