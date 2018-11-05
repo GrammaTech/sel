@@ -13,6 +13,12 @@
    :split-sequence
    :cl-ppcre
    :cl-store
+   :snooze
+   :clack
+   :drakma
+   #+gt :testbot
+   :trace-db
+   :uiop
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library/utility
    :software-evolution-library
@@ -34,10 +40,6 @@
    :software-evolution-library/components/serapi-io
    :software-evolution-library/components/test-suite
    :software-evolution-library/components/traceable
-   :software-evolution-library/doc/examples/change-constant
-   :software-evolution-library/doc/examples/neutral
-   :software-evolution-library/doc/examples/repair
-   :software-evolution-library/doc/examples/repair-clang
    :software-evolution-library/software/adaptive-mutation
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/asm
@@ -73,16 +75,20 @@
    :software-evolution-library/software/styleable
    :software-evolution-library/software/super-mutant
    :software-evolution-library/software/with-exe
-   :software-evolution-library/stefil-plus
-   #+gt :testbot
-   :trace-db
-   :uiop)
+   :software-evolution-library/stefil-plus)
+  ;; TODO: Try to resolve each of the following.  If two packages both
+  ;;       export the same symbol maybe it should be moved up a level
+  ;;       to a common ancestor.
+  (:shadow :type-decl-string :project-dir :ast-aux-data)
+  (:shadowing-import-from :common-lisp :type)
+  (:shadowing-import-from :software-evolution-library :size)
+  (:shadowing-import-from :clack :stop)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
-  (:shadowing-import-from :uiop :getenv :quit)
+  (:shadowing-import-from :uiop :getenv :quit :parameter-error)
   (:shadowing-import-from
    :alexandria
    :appendf :ensure-list :featurep :emptyp
@@ -105,7 +111,7 @@
     "Run tests in 'batch' mode, printing results as a string."
     (declare (ignorable project branch args))
 
-    (let* ((*test-progress-print-right-margin* (expt 2 20))
+    (let* ((stefil::*test-progress-print-right-margin* (expt 2 20))
            (failures (coerce (stefil::failure-descriptions-of
                               (without-debugging (funcall test)))
                              'list)))
@@ -184,11 +190,11 @@
 	    (sleep *clack-delay*)))))))
 
 (define-constant +etc-dir+
-    (append (butlast (pathname-directory
-                      #.(or *compile-file-truename*
-                            *load-truename*
-                            *default-pathname-defaults*)))
-            (list "etc"))
+    (append (pathname-directory
+             #.(or *compile-file-truename*
+                   *load-truename*
+                   *default-pathname-defaults*))
+            (list "test" "etc"))
   :test #'equalp
   :documentation "Path to directory holding testing artifacts.")
 
@@ -561,7 +567,7 @@
 (define-software javascript-traceable  (javascript sexp-traceable) ())
 (define-software clang-control-picks (clang) ())
 (define-software collect-traces-handles-directory-phenomes-mock
-    (sel::source sel::binary-traceable)
+    (source binary-traceable)
   ((phenome-dir :initarg phenome-dir :accessor phenome-dir :initform nil
                 :copier :direct)))
 (define-software clang-styleable-test-class (clang styleable) ())
@@ -670,8 +676,8 @@
 	 (fitness-harness *soft*) (software-dir "asm-super-mutant-fitness.c"))
     (load-io-file *soft* (asm-test-dir "odd-even.io"))
     (target-function-name *soft* "is_even")
-    (setf (sel::var-table *soft*)
-	  (sel::parse-sanity-file (asm-test-dir "odd-even.nm"))))
+    (setf (var-table *soft*)
+	  (parse-sanity-file (asm-test-dir "odd-even.nm"))))
 
   (:teardown (setf *soft* nil)))
 
@@ -852,7 +858,7 @@
 (defun inject-missing-swap-macro (obj)
   ;; Inject a macro that clang-mutate currently misses, then force the ASTs to
   ;; be recalculated by setting the genome-string.
-  (->> (sel::make-clang-macro
+  (->> (make-clang-macro
         :name "swap_"
         :body "swap_(I,J) do { int t_; t_ = a[(I)]; a[(I)] = a[(J)]; a[(J)] = t_; } while (0)"
         :hash 1179176719466053316)
@@ -1288,7 +1294,7 @@
                         (declare (ignorable c))
                         (invoke-restart 'try-another-mutation))))
                   (mutate ant))
-                (when (not (sel::equal-it (genome ant) (genome *gcd*)))
+                (when (not (equal-it (genome ant) (genome *gcd*)))
                   (return t))
                 (when (> count 100)
                   (return nil)))
@@ -1464,7 +1470,7 @@
                         (declare (ignorable c))
                         (invoke-restart 'try-another-mutation))))
                   (mutate variant))
-                (when (not (sel::equal-it (genome variant) (genome *gcd*)))
+                (when (not (equal-it (genome variant) (genome *gcd*)))
                   (return t))
                 (when (> count 100)
                   (return nil)))
@@ -1798,7 +1804,7 @@
     (let* ((variant (copy *gcd*))
            ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
            (to-copy (position-if [{= 1} #'length {aget :code}] (genome *gcd*)))
-           (new-genome (software-evolution-library::elf-replace
+           (new-genome (elf-replace
                         variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
       (is (= (length (mappend {aget :code} (genome *gcd*)))
              (length (mappend {aget :code} new-genome))))
@@ -2179,13 +2185,13 @@
 (deftest add-bad-include-doesnt-change-number-of-asts ()
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
-      (sel::add-include *hello-world* "<garbage.h>")
+      (add-include *hello-world* "<garbage.h>")
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest add-bad-type-doesnt-change-number-of-asts ()
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
-      (sel::add-type *hello-world*
+      (add-type *hello-world*
                      (make-clang-type :decl "struct printf { chocolate cake; }"
                                       :array "" :hash 0 :name "struct printf"))
       (is (equal orig-num-asts (size *hello-world*))))))
@@ -2195,7 +2201,7 @@
     (let ((orig-genome-length (length (genome *hello-world*)))
           (orig-num-types (hash-table-count (types *hello-world*)))
           (struct-str "struct printf { chocolate cake; }"))
-      (sel::add-type *hello-world*
+      (add-type *hello-world*
                      (make-clang-type :decl struct-str
                                       :array "" :hash 0 :name "struct printf"))
       ;; new type gets added to genome
@@ -2208,10 +2214,10 @@
 (deftest add-bad-macro-doesnt-change-number-of-asts ()
   (with-fixture hello-world-clang
     (let ((orig-num-asts (size *hello-world*)))
-      (sel::add-macro *hello-world*
-                      (sel::make-clang-macro :name "GARBAGE"
-                                             :body "GARBAGE TRASH"
-                                             :hash -4794347995631201955))
+      (add-macro *hello-world*
+                 (make-clang-macro :name "GARBAGE"
+                                   :body "GARBAGE TRASH"
+                                   :hash -4794347995631201955))
       (is (equal orig-num-asts (size *hello-world*))))))
 
 (deftest force-include-test ()
@@ -2266,17 +2272,17 @@
 (deftest clang-mutation-targets-filter-test ()
   "Ensure the filter parameter to mutation-targets works as anticipated"
   (with-fixture hello-world-clang
-    (is (equalp (remove-if-not #'sel::full-stmt-filter
+    (is (equalp (remove-if-not #'full-stmt-filter
                                (stmt-asts *hello-world*))
                 (mutation-targets *hello-world*
-                                  :filter #'sel::full-stmt-filter)))))
+                                  :filter #'full-stmt-filter)))))
 
 (deftest clang-mutation-targets-stmt-pool-test ()
   "Ensure the stmt-pool parameter to mutation-targets works as anticipated"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (remove-if-not #'sel::full-stmt-filter
+    (let ((*bad-asts* (remove-if-not #'full-stmt-filter
                                      (stmt-asts *hello-world*))))
-      (is (equalp (remove-if-not #'sel::full-stmt-filter
+      (is (equalp (remove-if-not #'full-stmt-filter
                                  (stmt-asts *hello-world*))
                   (mutation-targets *hello-world*
                                     :stmt-pool #'bad-stmts))))))
@@ -2284,12 +2290,12 @@
 (deftest clang-mutation-targets-expand-stmt-pool-restart-test ()
   "Ensure the expand-stmt-pool restart works as intended"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (remove-if-not #'sel::full-stmt-filter
+    (let ((*bad-asts* (remove-if-not #'full-stmt-filter
                                      (stmt-asts *hello-world*))))
       ;; Before invoking the 'expand-stmt-pool filter, the
       ;; stmt pool does not include any full statements.
       ;; After its invocation, all full statements are returned.
-      (is (equalp (remove-if-not #'sel::full-stmt-filter
+      (is (equalp (remove-if-not #'full-stmt-filter
                                  (stmt-asts *hello-world*))
                   (->> (handler-bind
                            ((no-mutation-targets
@@ -2297,31 +2303,31 @@
                                (declare (ignorable c))
                                (invoke-restart 'expand-stmt-pool))))
                          (mutation-targets *hello-world*
-                                           :filter #'sel::full-stmt-filter
+                                           :filter #'full-stmt-filter
                                            :stmt-pool #'bad-stmts))))))))
 
 (deftest clang-pick-general-does-not-throw-test ()
   "Ensure calling pick-general does not throw an exception"
   (with-fixture hello-world-clang
-    (is (not (null (sel::pick-general *hello-world* #'stmt-asts))))))
+    (is (not (null (pick-general *hello-world* #'stmt-asts))))))
 
 (deftest clang-pick-general-full-stmt-no-matching-test ()
   "Ensure calling pick-general with a full-stmt filter
 throws a no-mutation-targets error when there are no full stmts,
 e.g. after a bad crossover"
   (with-fixture hello-world-clang-control-picks
-    (let ((*bad-asts* (remove-if #'sel::full-stmt-filter
+    (let ((*bad-asts* (remove-if #'full-stmt-filter
                                  (stmt-asts *hello-world*))))
       (signals no-mutation-targets
-        (sel::pick-general *hello-world* #'bad-stmts
-                           :filter #'sel::full-stmt-filter)))))
+               (pick-general *hello-world* #'bad-stmts
+                             :filter #'full-stmt-filter)))))
 
 (deftest clang-pick-general-full-stmt-test ()
   "Ensure calling pick-general with a full-stmt filter returns a full
 statement pick"
   (with-fixture hello-world-clang-control-picks
-    (let ((pick (sel::pick-general *hello-world* #'stmt-asts
-                                   :filter #'sel::full-stmt-filter)))
+    (let ((pick (pick-general *hello-world* #'stmt-asts
+                              :filter #'full-stmt-filter)))
       (is (->> (aget :stmt1 pick)
                (ast-full-stmt))))))
 
@@ -2334,8 +2340,8 @@ is not to be found"
                              :node (from-alist 'clang-ast-node
                                                '((:class . :Nothing)))))))
       (signals no-mutation-targets
-        (sel::pick-general *hello-world* #'stmt-asts
-                           :filter #'sel::same-class-filter
+               (pick-general *hello-world* #'stmt-asts
+                             :filter #'same-class-filter
                            :second-pool #'bad-stmts)))))
 
 (deftest clang-promote-guarded-throws-error-if-no-targets-test ()
@@ -2352,15 +2358,15 @@ is not to be found"
 
 (deftest pick-cut-decl-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
-    (signals no-mutation-targets (sel::pick-cut-decl *soft*))))
+    (signals no-mutation-targets (pick-cut-decl *soft*))))
 
 (deftest pick-swap-decls-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
-    (signals no-mutation-targets (sel::pick-swap-decls *soft*))))
+    (signals no-mutation-targets (pick-swap-decls *soft*))))
 
 (deftest pick-rename-variable-throws-error-if-no-targets-test ()
   (with-fixture no-mutation-targets-clang
-    (signals no-mutation-targets (sel::pick-rename-variable *soft*))))
+    (signals no-mutation-targets (pick-rename-variable *soft*))))
 
 (deftest cpp-strings-works ()
   ;; On this example, clang-mutate generates ASTs that are out of
@@ -2472,7 +2478,7 @@ is not to be found"
     ;; harmless.
     (is (equalp '("int")
                 (mapcar [#'type-name {find-type obj}]
-                        (sel::ast-types (first (asts obj))))))))
+                        (ast-types (first (asts obj))))))))
 
 (deftest macro-expansion-has-correct-types ()
   ;; Types inside a macro expansion should be visible. This is trick
@@ -3124,7 +3130,7 @@ int x = CHARSIZE;")))
     (let* ((copy (copy *soft*))
            (stmt (stmt-with-text copy "assert(argc > 0)")))
       (is (equalp "assert((|someVal|) > 0)"
-                  (->> (sel::rebind-vars stmt
+                  (->> (rebind-vars stmt
                                          '(("(|argc|)" "(|someVal|)"))
                                          nil)
                        (source-text)))
@@ -3445,7 +3451,7 @@ int x = CHARSIZE;")))
 (deftest javascript-can-rebind-vars ()
   (with-fixture fib-javascript
     (is (string= "temp = b;"
-                 (->> (sel::rebind-vars (stmt-with-text *soft* "temp = a;")
+                 (->> (rebind-vars (stmt-with-text *soft* "temp = a;")
                                         (list (list "a" "b"))
                                         nil)
                       (source-text)
@@ -4282,11 +4288,11 @@ Useful for printing or returning differences in the REPL."
               (genome-string (fix-compilation *broken-gcc* 1))))))
 
 (deftest (fix-compilation-inserts-declaration-and-initializes :long-running) ()
-  (let ((sel::*compilation-fixers*
+  (let ((*compilation-fixers*
          (remove-if-not
           «or {starts-with-subseq ":(\\d+):\\d+: error: use of undeclared"}
-              {starts-with-subseq ":(\\d+):\\d+: error: (‘|')(\\S+)(’|')"}»
-          sel::*compilation-fixers*
+           {starts-with-subseq ":(\\d+):\\d+: error: (‘|')(\\S+)(’|')"}»
+           *compilation-fixers*
           :key #'car)))
     (with-fixture broken-compilation
       (is (scan (quote-meta-chars "missing_variable =")
@@ -4306,11 +4312,11 @@ Useful for printing or returning differences in the REPL."
                         (return (genome fixed)))))))))
 
 (deftest (fix-compilation-declare-var-as-pointer :long-running) ()
-  (let ((sel::*compilation-fixers*
+  (let ((*compilation-fixers*
          (remove-if-not
           «or {starts-with-subseq ":(\\d+):(\\d+): error: invalid type arg"}
-              {starts-with-subseq ":(\\d+):(\\d+): error: indirection requir"}»
-          sel::*compilation-fixers*
+           {starts-with-subseq ":(\\d+):(\\d+): error: indirection requir"}»
+           *compilation-fixers*
           :key #'car)))
     (with-temp-file (genome ".c")
       (string-to-file "int main(int argc, char **argv) {
@@ -4342,16 +4348,16 @@ Useful for printing or returning differences in the REPL."
                       (select-intraprocedural-pair obj)
                     (multiple-value-bind (stmt1 stmt2)
                         (adjust-stmt-range obj pt1 pt2)
-                      (is (<= (1+ (first (sel::stmt-range obj function)))
+                      (is (<= (1+ (first (stmt-range obj function)))
                               stmt1
-                              (second (sel::stmt-range obj function))))
-                      (is (<= (1+ (first (sel::stmt-range obj function)))
+                              (second (stmt-range obj function))))
+                      (is (<= (1+ (first (stmt-range obj function)))
                               stmt2
-                              (second (sel::stmt-range obj function))))
+                              (second (stmt-range obj function))))
                       (is (full-stmt-p obj
-                                       (sel::ast-at-index obj stmt1)))
+                                       (ast-at-index obj stmt1)))
                       (is (full-stmt-p obj
-                                       (sel::ast-at-index obj stmt2)))))))))
+                                       (ast-at-index obj stmt2)))))))))
 
 (deftest select-intraprocedural-pair-with-adjustments-collatz-test ()
   (with-fixture collatz-clang
@@ -4560,7 +4566,7 @@ Useful for printing or returning differences in the REPL."
 (deftest ancestor-after-fib-test ()
   (with-fixture fib-clang
     (is (equalp (stmt-with-text *fib* "int x = 0")
-                (sel::ancestor-after *fib*
+                (ancestor-after *fib*
                                      (->> "int fib"
                                           (stmt-starting-with-text *fib*)
                                           (function-body *fib*))
@@ -4568,13 +4574,13 @@ Useful for printing or returning differences in the REPL."
     (is (equalp (->> (stmt-asts *fib*)
                      (remove-if-not [{eq :WhileStmt} #'ast-class])
                      (first))
-                (sel::ancestor-after *fib*
+                (ancestor-after *fib*
                                      (->> "int fib"
                                           (stmt-starting-with-text *fib*)
                                           (function-body *fib*))
                                      (stmt-with-text *fib* "int t = x"))))
     (is (equalp (stmt-with-text *fib* "x = x + y")
-                (sel::ancestor-after *fib*
+                (ancestor-after *fib*
                                      (->> "while "
                                           (stmt-starting-with-text *fib*)
                                           (get-immediate-children *fib*)
@@ -4584,13 +4590,13 @@ Useful for printing or returning differences in the REPL."
 (deftest ancestor-after-collatz-test ()
   (with-fixture collatz-clang
     (is (equalp (stmt-with-text *collatz* "int k = 0")
-                (sel::ancestor-after *collatz*
+                (ancestor-after *collatz*
                                      (->> "int collatz"
                                           (stmt-starting-with-text *collatz*)
                                           (function-body *collatz*))
                                      (stmt-with-text *collatz* "int k = 0"))))
     (is (equalp (stmt-with-text *collatz* "return k")
-                (sel::ancestor-after *collatz*
+                (ancestor-after *collatz*
                                      (->> "int collatz"
                                           (stmt-starting-with-text *collatz*)
                                           (function-body *collatz*))
@@ -4598,7 +4604,7 @@ Useful for printing or returning differences in the REPL."
     (is (equalp (->> (stmt-asts *collatz*)
                      (remove-if-not [{eq :WhileStmt} #'ast-class])
                      (first))
-                (sel::ancestor-after *collatz*
+                (ancestor-after *collatz*
                                      (->> "int collatz"
                                           (stmt-starting-with-text *collatz*)
                                           (function-body *collatz*))
@@ -4606,7 +4612,7 @@ Useful for printing or returning differences in the REPL."
     (is (equalp (->> (stmt-asts *collatz*)
                      (remove-if-not [{eq :IfStmt} #'ast-class])
                      (first))
-                (sel::ancestor-after *collatz*
+                (ancestor-after *collatz*
                                      (->> "while"
                                           (stmt-starting-with-text *collatz*)
                                           (get-immediate-children *collatz*)
@@ -4615,14 +4621,14 @@ Useful for printing or returning differences in the REPL."
     (is (equalp (->> (stmt-asts *collatz*)
                      (remove-if-not [{eq :IfStmt} #'ast-class])
                      (first))
-                (sel::ancestor-after *collatz*
+                (ancestor-after *collatz*
                                      (->> "while"
                                           (stmt-starting-with-text *collatz*)
                                           (get-immediate-children *collatz*)
                                           (second))
                                      (stmt-with-text *collatz* "m = 3*m + 1"))))
     (is (equalp (stmt-with-text *collatz* "++k")
-                (sel::ancestor-after *collatz*
+                (ancestor-after *collatz*
                                      (->> "while"
                                           (stmt-starting-with-text *collatz*)
                                           (get-immediate-children *collatz*)
@@ -4632,25 +4638,25 @@ Useful for printing or returning differences in the REPL."
 (deftest ancestor-after-no-compound-stmt-test ()
   (with-fixture crossover-no-compound-stmt-clang
     (is (equalp (stmt-starting-with-text *soft* "for (j = 0")
-                (sel::ancestor-after *soft*
+                (ancestor-after *soft*
                                      (stmt-starting-with-text *soft* "for (i = 0")
                                      (stmt-with-text *soft*
                                                      "printf(\"%d\\n\", i+j)"))))
     (is (equalp (stmt-with-text *soft* "printf(\"%d\\n\", i+j)")
-                (sel::ancestor-after *soft*
+                (ancestor-after *soft*
                                      (stmt-starting-with-text *soft*
                                                               "for (j = 0")
                                      (stmt-with-text *soft*
                                                      "printf(\"%d\\n\", i+j)"))))
     (is (equalp (stmt-starting-with-text *soft* "for (i = 0")
-                (sel::ancestor-after *soft*
+                (ancestor-after *soft*
                                      (->> "int main"
                                           (stmt-starting-with-text *soft*)
                                           (function-body *soft*))
                                      (stmt-with-text *soft*
                                                      "printf(\"%d\\n\", i+j)"))))
     (is (equalp (stmt-with-text *soft* "return 0")
-                (sel::ancestor-after *soft*
+                (ancestor-after *soft*
                                      (->> "int main"
                                           (stmt-starting-with-text *soft*)
                                           (function-body *soft*))
@@ -4659,7 +4665,7 @@ Useful for printing or returning differences in the REPL."
 (deftest ancestor-after-switch-stmt-test ()
   (with-fixture crossover-switch-stmt-clang
     (is (equalp (stmt-starting-with-text *soft* "case 2")
-                (sel::ancestor-after *soft*
+                (ancestor-after *soft*
                                      (->> "switch"
                                           (stmt-starting-with-text *soft*)
                                           (get-immediate-children *soft*)
@@ -5508,7 +5514,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest (pick-for-loop-works :long-running) ()
   (with-fixture scopes-clang
-    (is (eq :ForStmt (->> (sel::pick-for-loop *scopes*)
+    (is (eq :ForStmt (->> (pick-for-loop *scopes*)
                           (aget :stmt1)
                           (ast-class)))
         "Simply able to pick a for loop.")
@@ -5577,7 +5583,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest (pick-while-loop-works :long-running) ()
   (with-fixture scopes-clang
-    (is (eq :WhileStmt (->> (sel::pick-while-loop *scopes*)
+    (is (eq :WhileStmt (->> (pick-while-loop *scopes*)
                             (aget :stmt1)
                             (ast-class)))
         "Simply able to pick a while loop.")
@@ -5744,7 +5750,7 @@ Useful for printing or returning differences in the REPL."
 
 
 (deftest bad-cut-changes-mutation-probability ()
-  (let* ((sel::*mutation-results-queue* #((cut . :worse) (cut . :dead)))
+  (let* ((*mutation-results-queue* #((cut . :worse) (cut . :dead)))
          (muts-0 '((cut . 1/2) (swap . 1)))
          (muts-1 (update-mutation-types muts-0))
          (muts-2 (update-mutation-types muts-1)))
@@ -5754,25 +5760,25 @@ Useful for printing or returning differences in the REPL."
         "Bad mutations continue to lose probability.")))
 
 (deftest mutation-queue-wraps-as-expected ()
-  (let ((sel::*mutation-results-queue*
+  (let ((*mutation-results-queue*
          (make-array 100
                      :element-type '(cons symbol symbol)
                      :initial-element (cons :nothing :nothing)))
-        (sel::*mutation-results-queue-next* 0))
+        (*mutation-results-queue-next* 0))
     (dotimes (n 100)
-      (sel::queue-mutation 'cut :dead))
-    (is (every [{equal 'cut} #'car] sel::*mutation-results-queue*)
+      (queue-mutation 'cut :dead))
+    (is (every [{equal 'cut} #'car] *mutation-results-queue*)
         "`queue-mutation' fills `*mutation-results-queue*' as expected.")
-    (sel::queue-mutation 'swap :better)
-    (is (equalp (cons 'swap :better) (aref sel::*mutation-results-queue* 0))
+    (queue-mutation 'swap :better)
+    (is (equalp (cons 'swap :better) (aref *mutation-results-queue* 0))
         "`queue-mutation' wraps `*mutation-results-queue*' as expected.")))
 
 (deftest update-mutation-types-returns-list-when-mutation-queue-unpopulated ()
   "Ensure update-mutation-types returns its first argument when the
 *mutation-results-queue* is unpopulated"
-  (let ((sel::*mutation-results-queue*
-         (copy-seq sel::+initial-mutation-results-queue+))
-        (sel::*mutation-results-queue-next* 0)
+         (let ((*mutation-results-queue*
+                (copy-seq +initial-mutation-results-queue+))
+               (*mutation-results-queue-next* 0)
         (mutation-types (copy-seq *clang-mutation-types*)))
     (is (equalp mutation-types
                 (update-mutation-types mutation-types)))))
@@ -5780,19 +5786,19 @@ Useful for printing or returning differences in the REPL."
 (deftest update-mutation-types-returns-list-when-mutation-queue-populated ()
   "Ensure update-mutation-types returns a list when the
 *mutation-results-queue* is populated"
-  (let ((sel::*mutation-results-queue*
-         (copy-seq sel::+initial-mutation-results-queue+))
-        (sel::*mutation-results-queue-next* 0)
-        (mutation-types (copy-seq *clang-mutation-types*)))
-    (dotimes (n (length sel::+initial-mutation-results-queue+))
-      (sel::queue-mutation 'cut :dead))
+         (let ((*mutation-results-queue*
+                (copy-seq +initial-mutation-results-queue+))
+               (*mutation-results-queue-next* 0)
+               (mutation-types (copy-seq *clang-mutation-types*)))
+           (dotimes (n (length +initial-mutation-results-queue+))
+      (queue-mutation 'cut :dead))
     (is (listp (update-mutation-types mutation-types)))))
 
 (deftest adaptive-analyze-mutation-updates-results-queue-properly ()
   (let ((*fitness-predicate* #'<)
-        (sel::*mutation-results-queue-next* 0)
-        (sel::*mutation-results-queue*
-         (copy-seq sel::+initial-mutation-results-queue+))
+        (*mutation-results-queue-next* 0)
+        (*mutation-results-queue*
+         (copy-seq +initial-mutation-results-queue+))
         (parent-a (make-instance 'clang :fitness 2))
         (parent-b (make-instance 'clang :fitness 2))
         (crossed  (make-instance 'clang :fitness 1))
@@ -5801,7 +5807,7 @@ Useful for printing or returning differences in the REPL."
                                `(clang-cut ,parent-a 0
                                            ,crossed ,parent-b 0)
                                {fitness})
-    (is (equal :better (cdr (aref sel::*mutation-results-queue* 0))))))
+    (is (equal :better (cdr (aref *mutation-results-queue* 0))))))
 
 
 ;;;; Database tests.
@@ -6572,7 +6578,7 @@ prints unique counters in the trace"
   (let ((obj (make-instance 'collect-traces-handles-directory-phenomes-mock)))
     (handler-bind ((trace-error (lambda (c)
                                   (declare (ignorable c))
-                                  (invoke-restart 'sel::ignore-empty-trace))))
+                                  (invoke-restart 'ignore-empty-trace))))
       (collect-traces obj (make-instance 'test-suite)))
     (is (not (probe-file (phenome-dir obj)))
         "collect-traces did not remove a phenome directory")))
@@ -6972,13 +6978,13 @@ prints unique counters in the trace"
 
 ;;;; Condition synthesis tests.
 (defsuite condition-synthesis "Condition synthesis tests."
-            (clang-mutate-available-p))
+  (clang-mutate-available-p))
 
 
 (deftest flip-works ()
-  (is (string= (sel::flip "") ""))
-  (is (string= (sel::flip "0000") "0001"))
-  (is (string= (sel::flip "0001") "001")))
+  (is (string= (flip "") ""))
+  (is (string= (flip "0000") "0001"))
+  (is (string= (flip "0001") "001")))
 
 (deftest synthesize-all-conditions ()
   (let* ((substs '((("x" "int" "5") ("y" "int" "6"))
@@ -7004,24 +7010,24 @@ prints unique counters in the trace"
                    (("x" "int" "10") ("y" "int" "6"))
                    (("x" "int" "15") ("y" "int" "4") ("z" "int" "2"))))
          (eq-cond '(:eq "x" "int" "10")))
-    (is (sel::entails (first substs) eq-cond "0"))
-    (is (not (sel::entails (first substs) eq-cond "1")))
-    (is (not (sel::entails (second substs) eq-cond "0")))
-    (is (sel::entails (second substs) eq-cond "1"))
-    (is (sel::entails (third substs) eq-cond "0"))
-    (is (not (sel::entails (third substs) eq-cond "1")))))
+    (is (entails (first substs) eq-cond "0"))
+    (is (not (entails (first substs) eq-cond "1")))
+    (is (not (entails (second substs) eq-cond "0")))
+    (is (entails (second substs) eq-cond "1"))
+    (is (entails (third substs) eq-cond "0"))
+    (is (not (entails (third substs) eq-cond "1")))))
 
 (deftest entails-neq-works ()
   (let* ((substs '((("x" "int" "5") ("y" "int" "6"))
                    (("x" "int" "10") ("y" "int" "6"))
                    (("x" "int" "15") ("y" "int" "4") ("z" "int" "2"))))
          (eq-cond '(:neq "x" "int" "10")))
-    (is (sel::entails (first substs) eq-cond "1"))
-    (is (not (sel::entails (first substs) eq-cond "0")))
-    (is (not (sel::entails (second substs) eq-cond "1")))
-    (is (sel::entails (second substs) eq-cond "0"))
-    (is (sel::entails (third substs) eq-cond "1"))
-    (is (not (sel::entails (third substs) eq-cond "0")))))
+    (is (entails (first substs) eq-cond "1"))
+    (is (not (entails (first substs) eq-cond "0")))
+    (is (not (entails (second substs) eq-cond "1")))
+    (is (entails (second substs) eq-cond "0"))
+    (is (entails (third substs) eq-cond "1"))
+    (is (not (entails (third substs) eq-cond "0")))))
 
 (deftest find-best-condition-finds-good-conditions ()
   (let* ((substs '((("x" "int" "5") ("y" "int" "6"))
@@ -7224,19 +7230,19 @@ prints unique counters in the trace"
 (deftest lexicase-better-p-order ()
   (let ((a #(0 1 1))
         (b #(1 1 0)))
-    (is (sel::lexicase-better-p '(1 2 0) a b))
-    (is (not (sel::lexicase-better-p '(1 2 0) b a)))
-    (is (sel::lexicase-better-p '(1 0 2) b a))
-    (is (not (sel::lexicase-better-p '(1 0 2) a b)))))
+    (is (lexicase-better-p '(1 2 0) a b))
+    (is (not (lexicase-better-p '(1 2 0) b a)))
+    (is (lexicase-better-p '(1 0 2) b a))
+    (is (not (lexicase-better-p '(1 0 2) a b)))))
 
 (deftest lexicase-better-p-tie ()
   (let ((a #(0 1 1))
         (b #(0 1 1)))
-    (is (not (sel::lexicase-better-p '(0 1 2) a b)))
-    (is (not (sel::lexicase-better-p '(0 1 2) b a)))))
+    (is (not (lexicase-better-p '(0 1 2) a b)))
+    (is (not (lexicase-better-p '(0 1 2) b a)))))
 
 (deftest dominates-all-trivial-test ()
-  (is (sel::dominates-all (list #'>)
+  (is (dominates-all (list #'>)
                           (list (make-instance 'simple :fitness '(0))
                                 (make-instance 'simple :fitness '(0)))
                           (make-instance 'simple :fitness '(1)))))
@@ -7367,11 +7373,11 @@ prints unique counters in the trace"
                             (make-instance 'simple :fitness '(0.6 1 0.1)))))
 
     (is (equal (+ 0.6 1 0.9)
-               (sel::crowding-distance (first *population*))))
+               (crowding-distance (first *population*))))
     (is (equal infinity
-               (sel::crowding-distance (second *population*))))
+               (crowding-distance (second *population*))))
     (is (equal infinity
-               (sel::crowding-distance (third *population*))))))
+               (crowding-distance (third *population*))))))
 
 (deftest crowding-distance-lexicase-works ()
   (let ((*population*
@@ -7380,11 +7386,11 @@ prints unique counters in the trace"
                (make-instance 'simple :fitness '(#(0 1) #(0 0 1 1))))))
 
     (is (equal infinity
-               (sel::crowding-distance (first *population*))))
+               (crowding-distance (first *population*))))
     (is (equal 2
-               (sel::crowding-distance (second *population*))))
+               (crowding-distance (second *population*))))
     (is (equal infinity
-               (sel::crowding-distance (third *population*))))))
+               (crowding-distance (third *population*))))))
 
 (deftest pick-least-crowded-works ()
   (let ((*population* (list (make-instance 'simple :fitness '(0.5 0.5 0.5))
@@ -7424,7 +7430,7 @@ prints unique counters in the trace"
   (let* ((sentence (list "the" "quick" "brown" "fox"
                          "the" "lazy" "brown" "dog"
                          "the" "quick" "hare"))
-         (ht (sel::uni-grams sentence)))
+         (ht (uni-grams sentence)))
     (is (= 7 (length (hash-table-keys ht))))
     (is (= 3 (gethash "the" ht 0)))
     (is (= 2 (gethash "quick" ht 0)))
@@ -7438,8 +7444,8 @@ prints unique counters in the trace"
   (let* ((sentence (list "the" "quick" "brown" "fox"
                          "the" "lazy" "brown" "dog"
                          "the" "quick" "hare"))
-         (ht (sel::uni-grams sentence))
-         (fv (sel::to-feature-vector ht (list "the" "quick" "brown" "fox"
+         (ht (uni-grams sentence))
+         (fv (to-feature-vector ht (list "the" "quick" "brown" "fox"
                                               "lazy" "dog" "hare"))))
     (is (= 7 (length fv)))
     (is (equalp fv (vector 3 2 2 1 1 1 1)))))
@@ -7449,24 +7455,24 @@ prints unique counters in the trace"
     (let ((asts (functions *variety*)))
       (is (= 4 (length asts)))
       ;; depths of all function asts are 0 (all top-level)
-      (is (every #'zerop (mapcar {sel::ast-depth *variety*} asts))))))
+      (is (every #'zerop (mapcar {ast-depth *variety*} asts))))))
 
 (deftest max-depth-ast-functions-is-0 ()
   (with-fixture variety-clang
-    (is (zerop (sel::max-depth-ast *variety* (functions *variety*))))))
+    (is (zerop (max-depth-ast *variety* (functions *variety*))))))
 
 (deftest max-depth-ret-stmts-is-2 ()
   (with-fixture variety-clang
     (let ((return-stmts (remove-if-not [{eql :ReturnStmt} #'ast-class]
                                        (asts *variety*))))
-      (is (= 2 (sel::max-depth-ast *variety* return-stmts))))))
+      (is (= 2 (max-depth-ast *variety* return-stmts))))))
 
 (deftest (merge-max-picks-larger :long-running) ()
   (bind (((:values vec1 meta1) (with-fixture variety-clang
-                                 (sel::max-depth-ast-extractor *variety*)))
+                                 (max-depth-ast-extractor *variety*)))
          ((:values vec2 meta2) (with-fixture gcd-clang
-                                 (sel::max-depth-ast-extractor *gcd*)))
-         ((:values vecr _) (sel::merge-max vec1 meta1 vec2 meta2)))
+                                 (max-depth-ast-extractor *gcd*)))
+         ((:values vecr _) (merge-max vec1 meta1 vec2 meta2)))
     (is (= 1 (length vec1)))
     (is (= 1 (length vec2)))
     (is (= 1 (length vecr)))
@@ -7476,18 +7482,18 @@ prints unique counters in the trace"
 
 (deftest avg-depth-ast-node-type-function-is-0 ()
   (with-fixture variety-clang
-    (is (zerop (sel::ast-node-type-avg-depth *variety* :Function)))))
+    (is (zerop (ast-node-type-avg-depth *variety* :Function)))))
 
 (deftest avg-depth-ast-node-type-return-stmts ()
   (with-fixture variety-clang
-    (is (= 2 (sel::ast-node-type-avg-depth *variety* :ReturnStmt)))))
+    (is (= 2 (ast-node-type-avg-depth *variety* :ReturnStmt)))))
 
 (deftest node-type-counts ()
   (with-fixture variety-clang
     ;; list of (ast-class, occurrences)
-    (bind (((:values vec denom) (sel::ast-node-type-tf-extractor *variety*))
+    (bind (((:values vec denom) (ast-node-type-tf-extractor *variety*))
            (ast-counts (mapcar #'cons
-                               sel::*clang-c-ast-classes*
+                               *clang-c-ast-classes*
                                (mapcar {* denom} (coerce vec 'list)))))
       ;; for each ast-class, verify occurrence count is correct
       (iter (for (type . count) in ast-counts)
@@ -7499,9 +7505,9 @@ prints unique counters in the trace"
 (deftest (ast-keywords-auto-counts :long-running) ()
   (with-fixture variety-clang
     (let ((auto-counts
-           (iter (for keyword in sel::*clang-c-keywords*)
+           (iter (for keyword in *clang-c-keywords*)
                  (collect
-                     (cons (reduce #'+ (mapcar {sel::auto-count-keyword keyword}
+                  (cons (reduce #'+ (mapcar {auto-count-keyword keyword}
                                                (asts *variety*)))
                            keyword)
                    into counts)
@@ -7521,9 +7527,9 @@ prints unique counters in the trace"
 (deftest ast-keywords-search-counts ()
   (with-fixture variety-clang
     (let ((search-counts
-           (iter (for keyword in sel::*clang-c-keywords*)
+           (iter (for keyword in *clang-c-keywords*)
                  (collect
-                     (cons (reduce #'+ (mapcar {sel::search-keyword *variety*
+                  (cons (reduce #'+ (mapcar {search-keyword *variety*
                                                                     keyword}
                                                (asts *variety*)))
                            keyword)
@@ -7543,13 +7549,13 @@ prints unique counters in the trace"
 
 (deftest ast-keyword-tf-extractor-correct ()
   (with-fixture variety-clang
-    (let ((ls-count (-<>> (sel::ast-keyword-tf-extractor *variety*)
+    (let ((ls-count (-<>> (ast-keyword-tf-extractor *variety*)
                           (coerce <> 'list)
                           (mapcar {* 44}))))
       (is (equal
            (mapcar #'cons
                    ls-count
-                   sel::*clang-c-keywords*)
+                   *clang-c-keywords*)
            '((0 . "alignof") (0 . "auto") (2 . "break") (2 . "case") (1 . "char")
              (1 . "const") (1 . "continue") (1 . "default") (1 . "do")
              (3 . "double") (1 . "else") (2 . "enum") (0 . "extern") (0 . "float")
@@ -7561,7 +7567,7 @@ prints unique counters in the trace"
 
 (deftest small-bi-grams-count-example ()
   (let* ((ls (list "the" "tortoise" "and" "the" "hare" "and" "the" "race"))
-         (bi-grams (sel::bi-grams ls :key #'identity))
+         (bi-grams (bi-grams ls :key #'identity))
          (keys (hash-table-keys bi-grams))
          (vals (hash-table-values bi-grams))
          (sorted-keys (list (cons "and" "the")
@@ -7589,7 +7595,7 @@ prints unique counters in the trace"
 (Function, Function)."
   (with-fixture variety-clang
     (let* ((functions (functions *variety*))
-           (bi-grams (sel::bi-grams functions :key #'ast-class))
+           (bi-grams (bi-grams functions :key #'ast-class))
            (keys (hash-table-keys bi-grams))
            (vals (hash-table-values bi-grams)))
       (is (= 1 (length keys) (length vals)))
@@ -7604,7 +7610,7 @@ prints unique counters in the trace"
       (let* ((asts (list (first (asts-by-type :Function))
                          (first (asts-by-type :IntegerLiteral))
                          (first (asts-by-type :DeclStmt))))
-             (bi-grams (sel::bi-grams asts :key #'ast-class))
+             (bi-grams (bi-grams asts :key #'ast-class))
              (keys (hash-table-keys bi-grams))
              (vals (hash-table-values bi-grams))
              (sorted-keys (list (cons :Function :IntegerLiteral)
@@ -7639,7 +7645,7 @@ prints unique counters in the trace"
 
 (deftest cut-full-stmt-removes-semicolon ()
   (with-fixture contexts
-    (sel::apply-mutation-ops *contexts*
+    (apply-mutation-ops *contexts*
                              `((:cut (:stmt1 . ,(stmt-with-text
                                                  *contexts* "int x = 0")))))
     (is (eq 0
@@ -7650,7 +7656,7 @@ prints unique counters in the trace"
 (deftest insert-full-stmt-adds-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,target)
                                           (:value1 . ,target)))))
     (is (eq 2 (count-matching-chars-in-stmt
@@ -7663,7 +7669,7 @@ prints unique counters in the trace"
           (inserted (function-body *contexts*
                                    (find-function *contexts*
                                                   "list"))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,target)
                                           (:value1 . ,inserted)))))
     (is (eq 1 (count-matching-chars-in-stmt
@@ -7674,7 +7680,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0"))
           (replacement (stmt-with-text *contexts* "int x = 1")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (is (eq 1 (count-matching-chars-in-stmt
@@ -7687,7 +7693,7 @@ prints unique counters in the trace"
           (replacement (function-body *contexts*
                                       (find-function *contexts*
                                                      "list"))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (is (eq 0 (count-matching-chars-in-stmt
@@ -7698,7 +7704,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x"))
           (location (stmt-starting-with-text *contexts* "if (1)")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,location)
                                           (:value1 . ,target))))
       (is (not (ast-full-stmt target))))
@@ -7711,7 +7717,7 @@ prints unique counters in the trace"
 (deftest cut-list-elt-removes-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a,  int c)"
@@ -7720,7 +7726,7 @@ prints unique counters in the trace"
 (deftest insert-list-elt-adds-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,target)
                                           (:value1 . ,target)))))
     (is (starts-with-subseq
@@ -7731,7 +7737,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int b"))
           (replacement (stmt-with-text *contexts* "int a")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (is (starts-with-subseq
@@ -7741,7 +7747,7 @@ prints unique counters in the trace"
 (deftest cut-final-list-elt-removes-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int c")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,target)))))
     (is (starts-with-subseq
          "void list(int a, int b)"
@@ -7750,7 +7756,7 @@ prints unique counters in the trace"
 (deftest insert-final-list-elt-adds-comma ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int c")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,target)
                                           (:value1 . ,target)))))
     (is (starts-with-subseq
@@ -7761,7 +7767,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int c"))
           (replacement (stmt-with-text *contexts* "int a")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (is (starts-with-subseq
@@ -7779,7 +7785,7 @@ prints unique counters in the trace"
                                          (find-function *contexts*
                                                         "braced_body")))))))
           (replacement (stmt-with-text *contexts* "int x = 0")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (let ((function (find-function *contexts* "braced_body")))
@@ -7795,7 +7801,7 @@ prints unique counters in the trace"
 (deftest (cut-unbraced-body-adds-nullstmt :long-running) ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,target)))))
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
@@ -7810,7 +7816,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (->> (stmt-with-text *contexts* "int x = 1")
                        (get-parent-ast *contexts*))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,target)))))
     (is (eq 1 (count-matching-chars-in-stmt
                #\;
@@ -7824,7 +7830,7 @@ prints unique counters in the trace"
 (deftest replace-unbraced-body-keeps-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "x = 2")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,target)))))
     (is (eq 1 (count-matching-chars-in-stmt
@@ -7837,7 +7843,7 @@ prints unique counters in the trace"
           (replacement (function-body *contexts*
                                       (find-function *contexts*
                                                      "full_stmt"))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (let ((function (find-function *contexts* "unbraced_body")))
@@ -7848,7 +7854,7 @@ prints unique counters in the trace"
 (deftest insert-after-full-stmt-adds-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int x = 0")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert-after (:stmt1 . ,target)
                                                 (:value1 . ,target)))))
     (let ((function (find-function *contexts* "full_stmt")))
@@ -7862,7 +7868,7 @@ prints unique counters in the trace"
     (let ((target (->> (stmt-with-text *contexts* "int x = 1")
                        (get-parent-ast *contexts*)))
           (inserted (stmt-with-text *contexts* "int x = 0")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert-after (:stmt1 . ,target)
                                                 (:value1 . ,inserted)))))
     (let ((function (find-function *contexts* "braced_body")))
@@ -7877,7 +7883,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (->> (stmt-with-text *contexts* "int x = 1")
                        (get-parent-ast *contexts*))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert-after (:stmt1 . ,target)
                                                 (:value1 . ,target)))))
     (let ((function (find-function *contexts* "braced_body")))
@@ -7901,7 +7907,7 @@ prints unique counters in the trace"
 ;;   (with-fixture contexts
 ;;     (let ((target (stmt-with-text *contexts* "x = 2"))
 ;;           (insert (stmt-with-text *contexts* "int x = 1")))
-;;       (sel::apply-mutation-ops *contexts*
+;;       (apply-mutation-ops *contexts*
 ;;                               `((:insert (:stmt1 . ,target)
 ;;                                          (:value1 . ,insert)))))
 ;;     (let ((function (find-function *contexts* "unbraced_body")))
@@ -7915,7 +7921,7 @@ prints unique counters in the trace"
 (deftest cut-field-removes-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int f1;")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,target)))))
     (let ((struct (stmt-starting-with-text *contexts* "struct")))
       (is (eq 1
@@ -7924,7 +7930,7 @@ prints unique counters in the trace"
 (deftest insert-field-adds-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int f1;")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,target)
                                           (:value1 . ,target)))))
     (let ((struct (stmt-starting-with-text *contexts* "struct")))
@@ -7935,7 +7941,7 @@ prints unique counters in the trace"
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "int f1;"))
           (replacement (stmt-with-text *contexts* "int f2;")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:set (:stmt1 . ,target)
                                        (:value1 . ,replacement)))))
     (let ((struct (stmt-starting-with-text *contexts* "struct")))
@@ -7947,7 +7953,7 @@ prints unique counters in the trace"
     (let ((location (stmt-starting-with-text *contexts* "struct"))
           (inserted (stmt-with-text *contexts* "int x = 0"))
           (semicolons (count-if {eq #\;} (genome *contexts*))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,location)
                                           (:value1 . ,inserted))))
       (is (eq (1+ semicolons)
@@ -7958,7 +7964,7 @@ prints unique counters in the trace"
     (let ((location (stmt-starting-with-text *contexts* "struct"))
           (inserted (stmt-starting-with-text *contexts* "void list"))
           (semicolons (count-if {eq #\;} (genome *contexts*))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:insert (:stmt1 . ,location)
                                           (:value1 . ,inserted))))
       (is (eq semicolons
@@ -7971,7 +7977,7 @@ prints unique counters in the trace"
                           (stmt-starting-with-text *contexts*
                                                    "int x = 1")
                           (format nil ";~%/*comment 2*/~%"))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:splice (:stmt1 . ,location)
                                           (:value1 . ,inserted))))
 
@@ -7989,7 +7995,7 @@ prints unique counters in the trace"
 (deftest cut-initialization-list-preserves-semicolon ()
   (with-fixture contexts
     (let ((target (stmt-with-text *contexts* "{ 1, 2, 3 }")))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,target)))))
     (is (eq 1 (->> (find-function *contexts* "initialization_list")
                    (count-matching-chars-in-stmt #\;))))))
@@ -8000,7 +8006,7 @@ prints unique counters in the trace"
           (replacement (->> (find-function *contexts* "unbraced_body")
                             (get-immediate-children *contexts*)
                             (first))))
-      (sel::apply-mutation-ops *contexts*
+      (apply-mutation-ops *contexts*
                                `((:cut (:stmt1 . ,location)
                                        (:value1 . ,replacement)))))
     (is (eq 0 (->> (find-function *contexts* "trailing_semi_with_whitespace")
@@ -8775,7 +8781,7 @@ prints unique counters in the trace"
       (let* ((super (make-instance 'super-mutant
                       :mutants (list mutant-a mutant-b
                                      mutant-c)))
-             (obj (sel::super-soft super)))
+             (obj (super-soft super)))
         (is (genome super))
         (is (phenome-p super))
         (mapcar (lambda (fun)
@@ -8814,7 +8820,7 @@ prints unique counters in the trace"
       (let* ((super (make-instance 'super-mutant
                       :mutants (list mutant-a mutant-b
                                      mutant-c)))
-             (obj (sel::super-soft super)))
+             (obj (super-soft super)))
         (is (genome super))
         (is (phenome-p super))
         (let ((decls (mapcar #'source-text
@@ -8851,7 +8857,7 @@ prints unique counters in the trace"
       (let* ((super (make-instance 'super-mutant
                       :mutants (list mutant-a mutant-b
                                      mutant-c)))
-             (obj (sel::super-soft super)))
+             (obj (super-soft super)))
         (is (genome super))
         (is (phenome-p super))
         (let ((functions (->> (functions obj)
@@ -8892,7 +8898,7 @@ prints unique counters in the trace"
       (let* ((super (make-instance 'super-mutant
                       :mutants (list mutant-a mutant-b
                                      mutant-c)))
-             (obj (sel::super-soft super))
+             (obj (super-soft super))
              (heap-add (find-if [{string= "_heap_add"} #'ast-name]
                                 (functions obj)))
              (stmts (apply #'subseq (asts obj) (stmt-range obj heap-add))))
@@ -9003,54 +9009,54 @@ prints unique counters in the trace"
   ;; artificial data.
 
   ;; Simple case: all top-level decls line up
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (a2 b2) (a3 b3))))
 
   ;; Deleted AST
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((1 . b1) (3 . b3))))
              '((a1 b1) (a2 nil) (a3 b3))))
 
   ;; Inserted AST
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (3 . a3))
                                           ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (nil b2) (a3 b3))))
 
   ;; Deleted at beginning
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((2 . b2) (3 . b3))))
              '((a1 nil) (a2 b2) (a3 b3))))
 
   ;; Deleted at end
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((1 . b1) (2 . b2))))
              '((a1 b1) (a2 b2) (a3 nil))))
 
   ;; Inserted at beginning
-  (is (equal (sel::collate-ast-variants '(((2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((2 . a2) (3 . a3))
                                           ((1 . b1) (2 . b2) (3 . b3))))
              '((nil b1) (a2 b2) (a3 b3))))
 
   ;; Inserted at end
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2))
                                           ((1 . b1) (2 . b2) (3 . b3))))
              '((a1 b1) (a2 b2) (nil b3))))
 
   ;; Multiple inserted ASTs
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (3 . a3))
                                           ((1 . b1) (2 . b2) (4 . b4)
                                            (5 . b5) (3 . b3))))
              '((a1 b1) (nil b2) (nil b4) (nil b5) (a3 b3))))
 
   ;; 3 variants
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((1 . b1) (2 . b2) (3 . b3))
                                           ((1 . c1) (2 . c2) (3 . c3))))
              '((a1 b1 c1) (a2 b2 c2) (a3 b3 c3))))
 
   ;; 3 variants with inserts and deletes
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((1 . b1) (3 . b3))
                                           ((1 . c1) (2 . c2) (4 . c4)
                                            (3 . c3))))
@@ -9059,7 +9065,7 @@ prints unique counters in the trace"
 
   ;; Swapped ASTs are not merged correctly. This is a known
   ;; limitation.
-  (is (equal (sel::collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
+  (is (equal (collate-ast-variants '(((1 . a1) (2 . a2) (3 . a3))
                                           ((2 . b2) (1 . b1) (3 . b3))))
              '((a1 nil) (a2 b2) (nil b1) (a3 b3)))))
 
@@ -9423,10 +9429,10 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest serapi-special-character-handling ()
   (let* ((src "[[\\\"expr\\\" ::== \\\"coords\\\" \\\\n || \\\"coords\\\" \\\\n \\\"expr\\\" <{< fun x _ y => Row x y >}>]] ;;.")
-         (sanitized (sel/serapi-io::sanitize-process-string src)))
+         (sanitized (sanitize-process-string src)))
     (is (equal sanitized
                "[[\\\\\\\"expr\\\\\\\" ::== \\\\\\\"coords\\\\\\\" \\\\\\\\n || \\\\\\\"coords\\\\\\\" \\\\\\\\n \\\\\\\"expr\\\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))
-    (is (equal (sel/serapi-io::unescape-string sanitized)
+    (is (equal (unescape-string sanitized)
                "[[\\\\\"expr\\\\\" ::== \\\\\"coords\\\\\" \\\\\\n || \\\\\"coords\\\\\" \\\\\\n \\\\\"expr\\\\\" <{< fun x _ y => Row x y >}>]] ;;."))))
 
 (deftest (can-read-write-serapi :long-running) ()
@@ -9625,29 +9631,29 @@ int main() { puts(\"~d\"); return 0; }
 (deftest find-nearest-type-works ()
   (let* ((ls (copy-tree'(a (b ((c d) e)) f (() (g) ()))))
          (coq (make-instance 'coq :genome ls))
-         (types (iter (for i below (sel::tree-size ls))
-                      (collecting (sel::find-nearest-type coq i)))))
+         (types (iter (for i below (tree-size ls))
+                      (collecting (find-nearest-type coq i)))))
     (is (equal types '(a b b c c c d e f g g g g f)))))
 
 (deftest can-pick-subtree-matching-type ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
          (coq (make-instance 'coq :genome ls)))
-    (is (not (sel::pick-subtree-matching-type coq 'a 0)))
-    (is (= 2 (sel::pick-subtree-matching-type coq 'b 1)))
-    (is (= 1 (sel::pick-subtree-matching-type coq 'b 2)))
-    (is (member (sel::pick-subtree-matching-type coq 'c 3) '(4 5)))
-    (is (= 13 (sel::pick-subtree-matching-type coq 'f 8)))
-    (is (= 8 (sel::pick-subtree-matching-type coq 'f 13)))))
+    (is (not (pick-subtree-matching-type coq 'a 0)))
+    (is (= 2 (pick-subtree-matching-type coq 'b 1)))
+    (is (= 1 (pick-subtree-matching-type coq 'b 2)))
+    (is (member (pick-subtree-matching-type coq 'c 3) '(4 5)))
+    (is (= 13 (pick-subtree-matching-type coq 'f 8)))
+    (is (= 8 (pick-subtree-matching-type coq 'f 13)))))
 
 (deftest pick-typesafe-bad-good-respects-types ()
   (let* ((ls '(a (b ((c d) e)) f (() (g) ())))
          (coq (make-instance 'coq :genome ls)))
     (iter (for i below 25)
           (handler-case
-              (let ((pair (sel::pick-typesafe-bad-good coq)))
+              (let ((pair (pick-typesafe-bad-good coq)))
                 (is (= 2 (length pair)))
-                (is (equal (sel::find-nearest-type coq (first pair))
-                           (sel::find-nearest-type coq (second pair)))))
+                (is (equal (find-nearest-type coq (first pair))
+                           (find-nearest-type coq (second pair)))))
             (no-mutation-targets () nil)))))
 
 

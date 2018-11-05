@@ -55,6 +55,8 @@
            :with-serapi
            :kill-serapi
            :write-to-serapi
+           :sanitize-process-string
+           :unescape-string
            :read-serapi-response
            :*sertop-path*
            :*sertop-args*

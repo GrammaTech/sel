@@ -15,7 +15,8 @@
         :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/asm)
+        :software-evolution-library/software/asm
+        :software-evolution-library/software/asm-heap)
   (:export :apply-config
            :csurf-asm
            :*dynamic-linker-path*
