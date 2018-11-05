@@ -14,9 +14,6 @@
 ;;; function may modify its argument, and should return non-nil on
 ;;; success or nil if additional fixers should be applied.
 ;;;
-;;; NOTE: If this is every productized, it may be worthwhile
-;;; re-implementing it inside of clang-tidy, which does have an
-;;; extensible mechanism for adding additional fixers.
 (defpackage :software-evolution-library/components/fix-compilation
   (:nicknames :sel/components/fix-compilation :sel/cp/fix-compilation)
   (:use :common-lisp
