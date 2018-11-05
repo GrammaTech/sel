@@ -14,11 +14,13 @@
         :iterate
         :split-sequence
         :cl-ppcre
+        :cl-json
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
-        :software-evolution-library/software/parseable)
+        :software-evolution-library/software/parseable
+        :software-evolution-library/components/formatting)
   (:export :clang
            :headers
            :macros
@@ -125,6 +127,7 @@
            :cut-decl
            :swap-decls
            :rename-variable
+           :pick-rename-variable
            :expand-arithmatic-op
            :full-stmt-filter
            :same-class-filter
@@ -2018,7 +2021,7 @@ already in scope, it will keep that name.")
 * OP operation to be performed
 "
   (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
-           (str (tag) (json:encode-json-to-string (aget tag (cdr op)))))
+           (str (tag) (encode-json-to-string (aget tag (cdr op)))))
     (ecase (car op)
       (:cut
        (format nil "cut ~a" (ast :stmt1)))
@@ -2157,7 +2160,7 @@ already in scope, it will keep that name.")
                  (:decls "decls")
                  (:macros "macros")
                  (:none "none"))))
-    (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key)
+    (let ((*identifier-name-to-key* 'se-json-identifier-name-to-key)
           (cmd-fmt "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"))
       (unwind-protect
            (multiple-value-bind (stdout stderr exit)

@@ -88,6 +88,7 @@
            :serapi-readtable))
 (in-package :software-evolution-library/components/serapi-io)
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :fare-quasiquote-readtable)
   (defreadtable :serapi-readtable
     ;; Must fuse FQ after SEL because otherwise the SBCL quasiquoter
     ;; clobbers the FQ quasiquoter. Alt. fix is for CCRM and SEL to

@@ -15,6 +15,9 @@
            :lisp-cut
            :lisp-replace
            :lisp-swap
+           :subtree
+           :tree-size
+           :filter-subtrees
            :*lisp-mutation-types*))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)

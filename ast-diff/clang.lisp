@@ -38,7 +38,8 @@
         :uiop
         :split-sequence
         :software-evolution-library/utility
-        :software-evolution-library/ast-diff
+        :software-evolution-library/ast-diff/ast-diff
+        :software-evolution-library/software/clang
         :software-evolution-library)
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body

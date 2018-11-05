@@ -34,7 +34,8 @@
         :iterate
         :uiop
         :software-evolution-library/utility
-        :software-evolution-library/ast-diff
+        :software-evolution-library/ast-diff/ast-diff
+        :software-evolution-library/software/lisp
         :eclector.parse-result)
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body

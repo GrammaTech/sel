@@ -61,6 +61,7 @@
    :mutate
    :no-mutation-targets
    :pick-mutation-type
+   :*mutation-stats*
    :build-op
    :apply-mutation-ops
    :apply-mutation
@@ -110,6 +111,7 @@
    :elapsed-time
    :*simple-mutation-types*
    :*target-fitness-p*
+   :*worst-fitness*
    :*worst-fitness-p*
    ;; evolution functions
    :incorporate
@@ -360,14 +362,8 @@ Used to target mutation."))
   "Variable to hold mutation statistics.")
 
 (defgeneric create-super (variant &optional rest-variants)
-  (:documentation "Create an appropriately typed super-mutant and populate
-with variant . rest-variants"))
-
-(defmethod create-super ((variant software) &optional rest-variants)
-  "Creates a SUPER-MUTANT and populates variants. Returns the super-mutant."
-  (let ((inst (make-instance 'super-mutant)))
-    (setf (mutants inst)(cons variant rest-variants))
-    inst))
+  (:documentation
+   "Create a super-mutant populated with VARIANT . REST-VARIANTS"))
 
 ;;;
 ;;; Note that we can't method dispatch on the types in a list, so

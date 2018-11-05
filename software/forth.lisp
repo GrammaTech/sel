@@ -7,6 +7,7 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/simple)

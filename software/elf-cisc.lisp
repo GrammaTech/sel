@@ -7,8 +7,12 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :elf
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/elf)
+  (:shadowing-import-from :elf :type)
+  (:shadowing-import-from :software-evolution-library :size)
   (:export :elf-cisc
            :elf-x86
            :elf-arm

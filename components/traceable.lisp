@@ -7,9 +7,13 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :trace-db
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/components/test-suite)
+        :software-evolution-library/components/test-suite
+        :software-evolution-library/components/instrument)
+  (:shadowing-import-from :uiop :directory-pathname-p
+                          :delete-directory-tree)
   (:export :traceable
            :binary-traceable
            :sexp-traceable

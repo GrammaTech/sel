@@ -12,6 +12,8 @@
         :metabang-bind
         :iterate
         :cl-ppcre
+        :trace-db              ; TODO: Is this really required here...
+                               ; Used for `read-binary-trace'.
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/ast

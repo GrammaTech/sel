@@ -11,9 +11,11 @@
         :named-readtables
         :curry-compose-reader-macros
         :iterate
+        :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/components/fodder-database)
+        :software-evolution-library/components/fodder-database
+        :software-evolution-library/components/in-memory-fodder-database)
   (:export :json-database))
 (in-package :software-evolution-library/components/json-fodder-database)
 (in-readtable :curry-compose-reader-macros)

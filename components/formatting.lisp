@@ -15,7 +15,10 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/source
+        :software-evolution-library/software/parseable)
   (:export :format-genome
            :astyle
            :clang-tidy
