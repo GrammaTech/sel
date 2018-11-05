@@ -42,7 +42,6 @@
    :iterate
    :cl-heap)
   (:export
-   :ast-equal-p
    :ast-cost
    :ast-can-recurse
    :ast-on-recurse
@@ -61,6 +60,7 @@
    ;; :cnull
    ;; :ccar
    ;; :cdar
+   :ast-equal-p
    :ast-diff
    :ast-diff-elide-same
    :ast-patch

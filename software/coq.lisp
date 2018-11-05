@@ -98,6 +98,7 @@
            :imports
            :reset-and-load-imports
            :init-coq-project
+           :find-nearest-type
            :type-safe-swap
            :tag-loc-info
            :untag-loc-info

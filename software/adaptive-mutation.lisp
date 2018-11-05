@@ -17,6 +17,9 @@
            :*same-bias*
            :*worse-bias*
            :*dead-bias*
+           :*mutation-results-queue*
+           :+initial-mutation-results-queue+
+           :queue-mutation
            :adaptive-analyze-mutation
            :update-mutation-types))
 (in-package :software-evolution-library/software/adaptive-mutation)

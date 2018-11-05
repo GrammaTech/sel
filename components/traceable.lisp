@@ -11,7 +11,8 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/components/test-suite
-        :software-evolution-library/components/instrument)
+        :software-evolution-library/components/instrument
+        :software-evolution-library/software/clang)
   (:shadowing-import-from :uiop :directory-pathname-p
                           :delete-directory-tree)
   (:export :traceable
@@ -22,8 +23,6 @@
            :collect-traces
            :read-trace-file
            :read-trace-stream
-           :type-decl-string
-           :type-from-trace-string
            :trace-error
            :bin))
 (in-package :software-evolution-library/components/traceable)

@@ -8,7 +8,8 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/components/searchable)
   (:export :fodder-database
            :database-emptyp
            :find-snippets

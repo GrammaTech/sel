@@ -20,7 +20,9 @@
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
-        :software-evolution-library/components/formatting)
+        :software-evolution-library/components/formatting
+        :software-evolution-library/components/searchable
+        :software-evolution-library/components/fodder-database)
   (:export :clang
            :headers
            :macros
@@ -79,6 +81,7 @@
            :*clang-ast-aux-fields*
            :*clang-mutate-additional-args*
            :delete-decl-stmts
+           :ancestor-after
            :common-ancestor
            :ancestor-of
            :scopes-between
@@ -99,6 +102,7 @@
            :find-or-add-type
            :type-decl-string
            :type-trace-string
+           :type-from-trace-string
            :add-macro
            :nullify-asts
            :keep-partial-asts
@@ -125,7 +129,9 @@
            :explode-for-loop
            :coalesce-while-loop
            :cut-decl
+           :pick-cut-decl
            :swap-decls
+           :pick-swap-decls
            :rename-variable
            :pick-rename-variable
            :expand-arithmatic-op
@@ -147,6 +153,9 @@
            :ast-opcode
            :ast-ret
            :ast-syn-ctx
+           :ast-types
+           :ast-unbound-funs
+           :ast-unbound-vals
            :ast-varargs
            :ast-void-ret
            :ast-array-length
@@ -771,28 +780,28 @@ VARIABLE-NAME should be declared in AST."
 (defgeneric type-decl-string (type &key qualified)
   (:documentation "The source text used to declare variables of TYPE.
 
-This will have stars on the right, e.g. char**. "))
-(defmethod type-decl-string ((type clang-type) &key (qualified t))
-  "Return the source text used to declare variables of TYPE.
+This will have stars on the right, e.g. char**. ")
+  (:method ((type clang-type) &key (qualified t))
+    "Return the source text used to declare variables of TYPE.
 * TYPE type to convert to a declaration string
 * QUALIFIED add type qualifiers such as const or volatile if non-nil.
 "
-  (format nil "~a~a~a~a~a~a~a"
-          (if (and qualified (type-const type)) "const " "")
-          (if (and qualified (type-volatile type)) "volatile " "")
-          (if (and qualified (type-restrict type)) "restrict " "")
-          (if (and qualified (not (eq :None (type-storage-class type))))
-              (format nil "~a " (->> (type-storage-class type)
-                                     (symbol-name)
-                                     (string-downcase)))
-              "")
-          (cond ((equal 0 (search "struct" (type-decl type)))
-                 "struct ")
-                ((equal 0 (search "union" (type-decl type)))
-                 "union ")
-                (t ""))
-          (type-name type)
-          (if (type-pointer type) " *" "")))
+    (format nil "~a~a~a~a~a~a~a"
+            (if (and qualified (type-const type)) "const " "")
+            (if (and qualified (type-volatile type)) "volatile " "")
+            (if (and qualified (type-restrict type)) "restrict " "")
+            (if (and qualified (not (eq :None (type-storage-class type))))
+                (format nil "~a " (->> (type-storage-class type)
+                                    (symbol-name)
+                                    (string-downcase)))
+                "")
+            (cond ((equal 0 (search "struct" (type-decl type)))
+                   "struct ")
+                  ((equal 0 (search "union" (type-decl type)))
+                   "union ")
+                  (t ""))
+            (type-name type)
+            (if (type-pointer type) " *" ""))))
 
 (defgeneric type-trace-string (type &key qualified)
   (:documentation "The text used to describe TYPE in an execution trace.
@@ -1859,8 +1868,7 @@ second should be included as a possible pick
                     :bad-pool bad-pool
                     :good-pool good-pool))
 
-(defmethod pick-bad-bad ((clang clang) &key filter
-                         (bad-pool #'bad-stmts))
+(defmethod pick-bad-bad ((clang clang) &key filter (bad-pool #'bad-stmts))
   "Pick two ASTs from CLANG, both from the `bad-asts' pool,
 excluding those ASTs removed by FILTER.
 * CLANG object to perform picks for

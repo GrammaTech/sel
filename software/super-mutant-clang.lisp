@@ -1,3 +1,4 @@
+;;; super-mutant-clang.lisp --- Super mutant specialization for Clang software.
 (defpackage :software-evolution-library/software/super-mutant-clang
   (:nicknames :sel/software/super-mutant-clang :sel/sw/super-mutant-clang)
   (:use :common-lisp
@@ -9,6 +10,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable
