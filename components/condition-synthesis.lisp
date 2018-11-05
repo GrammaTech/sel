@@ -26,8 +26,10 @@
   (:export :instrumentation-exprs
            :synthesize-condition
            :synthesize-conditions
+           :entails
            :find-best-condition
            :add-condition
+           :flip
            :tighten-condition
            :loosen-condition
            :refine-condition

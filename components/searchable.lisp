@@ -12,8 +12,7 @@
         :curry-compose-reader-macros
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/components/fodder-database)
+        :software-evolution-library/utility)
   (:export :searchable
            :weighted-pick
            :similar-snippets))

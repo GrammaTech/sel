@@ -16,6 +16,8 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang)
   (:export :style-feature
+           :*clang-c-ast-classes*
+           :*clang-c-keywords*
            :feature-name
            :extractor-fn
            :merge-fn
@@ -26,10 +28,9 @@
            :style-project
            :define-feature
            :diff-feature-vectors
-           :extract-features
-           :extract-baseline-features
            :merge-styleables
            :ast-node-type-tf-extractor
+           :ast-node-type-avg-depth
            :max-depth-ast-extractor
            :avg-depth-ast-extractor
            :ast-node-type-avg-depth-extractor
@@ -55,9 +56,17 @@
            :max-depth-ast
            :all-ast-node-types
            :bi-grams
+           :ast-full-stmt-bi-grams
+           :ast-bi-grams
            :bi-grams-hashtable-to-feature
+           :auto-count-keyword
+           :search-keyword
+           :ast-keyword-tf
            :all-keywords
+           :merge-styleables
            :extract-feature
+           :extract-features
+           :extract-baseline-features
            :update-project-features))
 (in-package :software-evolution-library/software/styleable)
 (in-readtable :curry-compose-reader-macros)

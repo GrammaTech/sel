@@ -16,6 +16,7 @@
    :alexandria
    :closer-mop
    :uiop
+   :asdf-encodings
    :metabang-bind
    :named-readtables
    :curry-compose-reader-macros
@@ -31,6 +32,7 @@
    :closer-mop
    :standard-method :standard-class :standard-generic-function
    :defmethod :defgeneric)
+  (:shadowing-import-from :asdf-encodings :encoding-external-format)
   (:shadowing-import-from :iterate :iter :for :until :collecting :in)
   (:shadowing-import-from :uiop/run-program :run-program)
   (:shadowing-import-from :uiop :quit)
@@ -474,7 +476,8 @@ After BODY is executed the temporary file is removed."
 (defmacro with-temp-fifo (spec &rest body)
   `(with-temp-file ,spec
      (ensure-temp-file-free ,(car spec))
-     (mkfifo ,(car spec) (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
+     (osicat-posix:mkfifo ,(car spec)
+                          (logior osicat-posix:s-iwusr osicat-posix:s-irusr))
      ,@body))
 
 (defmacro with-temp-dir (spec &rest body)

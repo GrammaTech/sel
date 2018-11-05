@@ -20,8 +20,10 @@
    :trace-db
    :uiop
    ;; TODO: Remove those which aren't actually needed for testing.
-   :software-evolution-library/utility
    :software-evolution-library
+   :software-evolution-library/utility
+   :software-evolution-library/ast-diff/ast-diff
+   :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument
    :software-evolution-library/components/clang-tokens
    :software-evolution-library/components/condition-synthesis
@@ -44,7 +46,10 @@
    :software-evolution-library/software/ancestral
    :software-evolution-library/software/asm
    :software-evolution-library/software/asm-heap
+   :software-evolution-library/software/super-mutant
    :software-evolution-library/software/asm-super-mutant
+   :software-evolution-library/software/super-mutant-clang
+   :software-evolution-library/software/super-mutant-project
    :software-evolution-library/software/ast
    :software-evolution-library/software/cil
    :software-evolution-library/software/clang
@@ -73,13 +78,12 @@
    :software-evolution-library/software/simple
    :software-evolution-library/software/source
    :software-evolution-library/software/styleable
-   :software-evolution-library/software/super-mutant
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
   ;; TODO: Try to resolve each of the following.  If two packages both
   ;;       export the same symbol maybe it should be moved up a level
   ;;       to a common ancestor.
-  (:shadow :type-decl-string :project-dir :ast-aux-data)
+  (:shadow :project-dir :ast-aux-data)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -1253,12 +1257,12 @@
     (is (equal 'asm (type-of *gcd*)))))
 
 (deftest idempotent-read-write ()
-  (let ((a (software-evolution-library::temp-file-name)))
+  (let ((a (temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
            (to-file *gcd* a)
            (multiple-value-bind (out err ret)
-               (software-evolution-library::shell "diff ~s ~a"
+               (shell "diff ~s ~a"
                                                   (namestring (gcd-dir "gcd.s")) a)
              (declare (ignorable out err))
              (is (= 0 ret))))
@@ -1266,15 +1270,15 @@
 
 (deftest idempotent-copy ()
   (with-fixture gcd-asm
-    (is (software-evolution-library::equal-it *gcd* (copy *gcd*) nil '(oid)))))
+    (is (equal-it *gcd* (copy *gcd*) nil '(oid)))))
 
 (deftest idempotent-read-copy-write ()
-  (let ((a (software-evolution-library::temp-file-name)))
+  (let ((a (temp-file-name)))
     (unwind-protect
          (with-fixture gcd-asm
            (to-file (copy *gcd*) a)
            (multiple-value-bind (out err ret)
-               (software-evolution-library::shell "diff ~s ~a"
+               (shell "diff ~s ~a"
                                                   (namestring (gcd-dir "gcd.s")) a)
              (declare (ignorable out err))
              (is (= 0 ret))))
@@ -1596,9 +1600,9 @@
   ;; tests Create Client (HTTP POST) method.
   (with-fixture rest-api-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
-      (is (and (eql status 200)
-	       (stringp cid)
-	       (string-equal (subseq cid 0 7) "client-"))))))
+      (is (eql status 200))
+      (is (stringp cid))
+      (is (string-equal (subseq cid 0 7) "client-")))))
 
 (deftest rest-create-software ()
   ;; test ensures the web service is running and it can create a new software
@@ -1751,14 +1755,14 @@
     (with-fixture gcd-elf
       (phenome *gcd* :bin a)
       (multiple-value-bind (out err ret)
-          (software-evolution-library::shell "diff ~s ~a"
+          (shell "diff ~s ~a"
                                              (namestring (gcd-dir "gcd")) a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
 
 (deftest elf-copy-same-genome ()
   (with-fixture gcd-elf
-    (is (software-evolution-library::equal-it (genome *gcd*)
+    (is (equal-it (genome *gcd*)
                                               (genome (copy *gcd*))))))
 
 (deftest elf-idempotent-read-copy-write ()
@@ -1766,7 +1770,7 @@
     (with-fixture gcd-elf
       (phenome (copy *gcd*) :bin a)
       (multiple-value-bind (out err ret)
-          (software-evolution-library::shell "diff ~s ~a"
+          (shell "diff ~s ~a"
                                              (namestring (gcd-dir "gcd")) a)
         (declare (ignorable out err))
         (is (= 0 ret))))))
@@ -1777,7 +1781,7 @@
           (ant (copy *gcd*)))
       (handler-case (mutate ant)
         (mutate (obj) (declare (ignorable obj)) nil))
-      (is (not (software-evolution-library::equal-it (genome ant) (genome *gcd*))))
+      (is (not (equal-it (genome ant) (genome *gcd*))))
       (is (equal orig-hash (sxhash (genome *gcd*)))))))
 
 (deftest elf-cut-changes-but-maintains-byte-length ()
@@ -3542,40 +3546,40 @@ int x = CHARSIZE;")))
 
 (deftest range-nth-test ()
   (with-fixture range
-    (is (equal (mapcar {software-evolution-library::range-nth _ (genome *soft*)}
+    (is (equal (mapcar {range-nth _ (genome *soft*)}
                        (loop :for i :below (size *soft*) :collect i))
                '(0 1 2 1 1 2)))))
 
 (deftest range-subseq-test ()
   (with-fixture range
     ;; to
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 0 1)
+    (is (tree-equal (range-subseq (genome *soft*) 0 1)
                     '((0 . 0))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 0 2)
+    (is (tree-equal (range-subseq (genome *soft*) 0 2)
                     '((0 . 1))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 0 3)
+    (is (tree-equal (range-subseq (genome *soft*) 0 3)
                     '((0 . 2))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 0 4)
+    (is (tree-equal (range-subseq (genome *soft*) 0 4)
                     '((0 . 2) (1 . 1))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 0 5)
+    (is (tree-equal (range-subseq (genome *soft*) 0 5)
                     '((0 . 2) (1 . 1) (1 . 1))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 0 6)
+    (is (tree-equal (range-subseq (genome *soft*) 0 6)
                     '((0 . 2) (1 . 1) (1 . 2))))
     ;; from
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 1 7)
+    (is (tree-equal (range-subseq (genome *soft*) 1 7)
                     '((1 . 2) (1 . 1) (1 . 2))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 2 7)
+    (is (tree-equal (range-subseq (genome *soft*) 2 7)
                     '((2 . 2) (1 . 1) (1 . 2))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 3 7)
+    (is (tree-equal (range-subseq (genome *soft*) 3 7)
                     '((1 . 1) (1 . 2))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 4 7)
+    (is (tree-equal (range-subseq (genome *soft*) 4 7)
                     '((1 . 2))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 5 7)
+    (is (tree-equal (range-subseq (genome *soft*) 5 7)
                     '((2 . 2))))
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 6 7)
+    (is (tree-equal (range-subseq (genome *soft*) 6 7)
                     'NIL))
     ;; both
-    (is (tree-equal (software-evolution-library::range-subseq (genome *soft*) 2 5)
+    (is (tree-equal (range-subseq (genome *soft*) 2 5)
                     '((2 . 2) (1 . 1) (1 . 1))))))
 
 (deftest some-range-cut-mutations ()
@@ -3765,7 +3769,7 @@ int x = CHARSIZE;")))
 
 (defixture hello-world-clang-w-ancestry
   (:setup
-   (setf software-evolution-library::*next-ancestry-id* 0
+   (setf software-evolution-library/software/ancestral::*next-ancestry-id* 0
          *hello-world*
          (from-file (make-instance 'clang-w-ancestry :compiler "clang"
                                    :flags '("-g -m32 -O0"))
@@ -3775,7 +3779,7 @@ int x = CHARSIZE;")))
   (:teardown
    (setf *hello-world* nil
          *test* nil
-         software-evolution-library::*next-ancestry-id* 0)))
+         *next-ancestry-id* 0)))
 
 (deftest apply-mutation-logs-ancestry ()
   (with-fixture hello-world-clang-w-ancestry
@@ -3803,9 +3807,10 @@ int x = CHARSIZE;")))
       (is (< 1 (length (ancestors crossed))))
 
       (is (not (null (plist-get :crossover (first (ancestors crossed))))))
-      (is (= 0 (plist-get :id
-                          (first (plist-get :cross-with
-                                            (first (ancestors crossed)))))))
+      (is (= 0
+             (plist-get :id
+                        (first (plist-get :cross-with
+                                          (first (ancestors crossed)))))))
       (is (equal
            'from-file
            (plist-get :how
@@ -5796,7 +5801,7 @@ Useful for printing or returning differences in the REPL."
 
 (deftest adaptive-analyze-mutation-updates-results-queue-properly ()
   (let ((*fitness-predicate* #'<)
-        (*mutation-results-queue-next* 0)
+        (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
         (*mutation-results-queue*
          (copy-seq +initial-mutation-results-queue+))
         (parent-a (make-instance 'clang :fitness 2))
@@ -6835,8 +6840,7 @@ prints unique counters in the trace"
 
 
 ;;;; Utility tests.
-(defsuite utility "Utility tests.")
-
+(defsuite utility-tests "Utility tests.")
 
 (deftest intersects-does-not-include-endpoints ()
   (is (not (intersects (make-instance 'range :begin 0 :end 1)
@@ -6979,7 +6983,6 @@ prints unique counters in the trace"
 ;;;; Condition synthesis tests.
 (defsuite condition-synthesis "Condition synthesis tests."
   (clang-mutate-available-p))
-
 
 (deftest flip-works ()
   (is (string= (flip "") ""))
@@ -9223,7 +9226,7 @@ int main() { puts(\"~d\"); return 0; }
                           :name "software-evolution-library"
                           :type "asd"
                           :directory
-                          (butlast (pathname-directory *this-file*) 2)))))
+                          (pathname-directory *this-file*)))))
   (:teardown (setf *forms* nil)))
 
 (deftest sexp-diff-on-ast-file ()

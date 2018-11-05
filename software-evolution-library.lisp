@@ -62,6 +62,7 @@
    :mutate
    :no-mutation-targets
    :pick-mutation-type
+   :create-super
    :*mutation-stats*
    :build-op
    :apply-mutation-ops
@@ -137,7 +138,8 @@
    :worst-numeric-fitness
    :worst-numeric-fitness-p
    :*fitness-scalar-fn*
-   :fitness-scalar))
+   :fitness-scalar
+   :ignore-failed-mutation))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -340,9 +342,9 @@ Used to target mutation."))
 
 (defgeneric pick-bad-bad (software &key &allow-other-keys)
   (:documentation "Pick two 'bad' indexes into a software object.
-Used to target mutation."))
-(defmethod pick-bad-bad ((software software) &key)
-  (list (pick-bad software) (pick-bad software)))
+Used to target mutation.")
+  (:method ((software software) &key)
+    (list (pick-bad software) (pick-bad software))))
 
 (defgeneric pick-bad-only (software &key &allow-other-keys)
   (:documentation "Pick a single 'bad' index into a software object.

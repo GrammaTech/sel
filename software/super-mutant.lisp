@@ -111,9 +111,7 @@
 
 (defmethod create-super ((variant software) &optional rest-variants)
   "Creates a SUPER-MUTANT and populates variants. Returns the super-mutant."
-  (let ((inst (make-instance 'super-mutant)))
-    (setf (mutants inst) (cons variant rest-variants))
-    inst))
+  (make-instance 'super-mutant :mutants (cons variant rest-variants)))
 
 (defmethod phenome ((obj super-mutant) &key (bin (temp-file-name)))
   "Phenotype of the software.
@@ -171,7 +169,7 @@ the first return value.
                     (declare (ignorable obj))
                     (values-list (phenome-wrapper super bin which-mutant
                                                   :bin super-bin))))
-
+             ;; TODO: Roger, does this work for SBCL?
              (let* ((proxy (copy obj))
                     (method
                      (make-instance

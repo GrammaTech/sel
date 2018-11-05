@@ -20,6 +20,9 @@
   (:export :pareto-selector
            :*pareto-comparison-set-size*
            :multi-objective-scalar
+           :dominates-all
+           :pick-least-crowded
+           :crowding-distance
            :pick-least-crowded))
 (in-package :software-evolution-library/components/multi-objective)
 (in-readtable :curry-compose-reader-macros)

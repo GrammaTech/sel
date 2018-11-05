@@ -17,7 +17,8 @@
         :metabang-bind
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/ast-diff/ast-diff)
   (:export :ast
            :define-ast
            :define-immutable-node-struct
@@ -26,7 +27,6 @@
            :ast-path
            :ast-node
            :ast-class
-           :ast-equal-p
            :to-alist
            :from-alist
            :source-text
@@ -41,7 +41,6 @@
            :fixup-mutation
            :ast-children
            :to-ast
-           :ast-text
            :ast-later-p
            :replace-in-ast))
 (in-package :software-evolution-library/software/ast)

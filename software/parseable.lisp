@@ -23,7 +23,9 @@
            :parseable-insert
            :parseable-swap
            :parseable-move
+           :parseable-replace
            :parseable-cut
+           :parseable-nop
            ;; Generic functions.
            :roots
            :get-ast
@@ -36,6 +38,7 @@
            :scopes
            :get-vars-in-scope
            :update-asts
+           :update-caches
            :parse-asts
            :clear-caches
            :update-asts-if-necessary
@@ -45,6 +48,7 @@
            :good-mutation-targets
            :bad-mutation-targets
            :mutation-targets
+           :pick-general
            :recontextualize-mutation
            :recontextualize
            :select-crossover-points
@@ -296,16 +300,18 @@ field indicates the object has changed since the last parse."
 "
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
-(defmethod update-caches ((obj parseable))
-  (labels ((collect-asts (tree)
-             ;; Collect all subtrees
-             (unless (null (ast-children tree))
-               (cons tree
-                     (iter (for c in (ast-children tree))
-                           (unless (stringp c)
-                             (appending (collect-asts c))))))))
-    (setf (slot-value obj 'asts)
-          (cdr (collect-asts (ast-root obj))))))
+(defgeneric update-caches (software)
+  (:documentation "Update cached fields in SOFTWARE.")
+  (:method ((obj parseable))
+    (labels ((collect-asts (tree)
+               ;; Collect all subtrees
+               (unless (null (ast-children tree))
+                 (cons tree
+                       (iter (for c in (ast-children tree))
+                             (unless (stringp c)
+                               (appending (collect-asts c))))))))
+      (setf (slot-value obj 'asts)
+            (cdr (collect-asts (ast-root obj)))))))
 
 (defmethod update-caches-if-necessary ((obj parseable))
   "Update cached fields if these fields have not been set.
@@ -635,11 +641,11 @@ a 'no-mutation-targets exception if none are available.
             (mutation-targets obj :filter filter))))))
 
 (defun pick-general (software first-pool &key second-pool filter)
-  "Pick ASTs from FIRST-POOL and optionally SECOND-POOL, where FIRST-POOL and
-SECOND-POOL are methods on SOFTWARE which return a list of ASTs.  An
-optional filter function having the signature 'f ast &optional first-pick',
-may be passed, returning true if the given AST should be included as a possible
-pick or false (nil) otherwise."
+  "Pick ASTs from FIRST-POOL and optionally SECOND-POOL.
+FIRST-POOL and SECOND-POOL are methods on SOFTWARE which return a list
+of ASTs.  An optional filter function having the signature 'f ast
+&optional first-pick', may be passed, returning true if the given AST
+should be included as a possible pick or false (nil) otherwise."
   (let ((first-pick (some-> (mutation-targets software :filter filter
                                                    :stmt-pool first-pool)
                             (random-elt))))
