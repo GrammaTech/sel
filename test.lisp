@@ -5768,7 +5768,7 @@ Useful for printing or returning differences in the REPL."
          (make-array 100
                      :element-type '(cons symbol symbol)
                      :initial-element (cons :nothing :nothing)))
-        (*mutation-results-queue-next* 0))
+        (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0))
     (dotimes (n 100)
       (queue-mutation 'cut :dead))
     (is (every [{equal 'cut} #'car] *mutation-results-queue*)
@@ -5782,7 +5782,7 @@ Useful for printing or returning differences in the REPL."
 *mutation-results-queue* is unpopulated"
          (let ((*mutation-results-queue*
                 (copy-seq +initial-mutation-results-queue+))
-               (*mutation-results-queue-next* 0)
+               (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
         (mutation-types (copy-seq *clang-mutation-types*)))
     (is (equalp mutation-types
                 (update-mutation-types mutation-types)))))
@@ -5792,7 +5792,7 @@ Useful for printing or returning differences in the REPL."
 *mutation-results-queue* is populated"
          (let ((*mutation-results-queue*
                 (copy-seq +initial-mutation-results-queue+))
-               (*mutation-results-queue-next* 0)
+               (software-evolution-library/software/adaptive-mutation::*mutation-results-queue-next* 0)
                (mutation-types (copy-seq *clang-mutation-types*)))
            (dotimes (n (length +initial-mutation-results-queue+))
       (queue-mutation 'cut :dead))
