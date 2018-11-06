@@ -19,6 +19,15 @@ techniques."
  '(:software-evolution-library))
 (register-system-packages "ast-diff/ast-diff" '(:ast-diff))
 
+;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
+(defsystem "software-evolution-library/components/serapi-io"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
+  :version "0.0.0"
+  ;; This is the reason for this whole defsystem.
+  :depends-on (fare-qusiquote-extras))
+
 
 ;;;; Tests and binaries.
 (defsystem "software-evolution-library/test"
