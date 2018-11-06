@@ -169,26 +169,26 @@ the first return value.
                     (declare (ignorable obj))
                     (values-list (phenome-wrapper super bin which-mutant
                                                   :bin super-bin))))
-             ;; TODO: Roger, does this work for SBCL?
              (let* ((proxy (copy obj))
                     (method
                      (make-instance
                          'standard-method
                        :function
-                       #+ccl #'proxy-phenome
-                       #+sbcl (lambda (args other)
-                                (declare (ignorable other))
-                                (apply #'proxy-phenome args))
+                       #+ccl
+                       #'proxy-phenome
+                       #+sbcl
+                       (lambda (args other)
+                         (format t "Calling proxy with ~S ~S~%" args other)
+                         (apply #'proxy-phenome args))
                        #-(or sbcl ccl)
                        (error "make-phenome-proxy not implemented")
                        :lambda-list '(obj &key bin)
-                       ;; TODO: What does the following do, is it
-                       ;; required, and how can we do it in other
-                       ;; lisps?
-                       #+ccl
+                       #+(or sbcl ccl)
                        :specializers
                        #+ccl
-                       (list (ccl::intern-eql-specializer proxy)))))
+                       (list (ccl::intern-eql-specializer proxy))
+                       #+sbcl
+                       (list (sb-pcl::intern-eql-specializer proxy)))))
                (add-method #'phenome method)
                (values proxy method)))))
 
