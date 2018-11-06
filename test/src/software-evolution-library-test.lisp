@@ -48,6 +48,9 @@
 (defvar *java-file-name* nil "File name to be tested in a test case.")
 (defvar *coq*         nil "Coq software object.")
 (defvar *clack-port*  9003 "Default port for clack web server instance.")
+(defvar *clack* nil "Web server instance used in tests.")
+(defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
+(defvar *clack-delay* 1.0 "Seconds to delay after starting server")
 
 (defun initialize-clack ()
   (let ((tries 0))
@@ -55,20 +58,20 @@
         ((usocket:socket-error
           (lambda (e)
             (warn "Starting web server on ~a failed with ~a" *clack-port* e)
-            (if (> tries 20)
+            (if (< tries 20)
                 (progn (incf tries)
                        (invoke-restart 'try-a-new-port))
                 (error e)))))
       (restart-case
-          (clack:clackup (snooze:make-clack-app) :port *clack-port*)
+          (prog1
+	      (clack:clackup (snooze:make-clack-app) :port *clack-port*)
+	    (sleep *clack-delay*)) ; wait for a second before continuing, ensure server is up
         (try-a-new-port ()
           :report "Try using a new port"
           (incf *clack-port*)
-          (clack:clackup (snooze:make-clack-app)
-                         :port *clack-port*))))))
-
-(defvar *clack* nil "Web server instance used in tests.")
-(defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
+          (prog1 (clack:clackup (snooze:make-clack-app)
+				:port *clack-port*)
+	    (sleep *clack-delay*)))))))
 
 (define-constant +etc-dir+
     (append (butlast (pathname-directory
