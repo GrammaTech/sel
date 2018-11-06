@@ -99,6 +99,8 @@
            :reset-and-load-imports
            :init-coq-project
            :find-nearest-type
+           :pick-subtree-matching-type
+           :pick-typesafe-bad-good
            :type-safe-swap
            :tag-loc-info
            :untag-loc-info
