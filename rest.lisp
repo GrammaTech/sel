@@ -1,4 +1,4 @@
-;;; rest-api.lisp --- RESTful interface over SEL.
+;;; rest.lisp --- RESTful interface over SEL.
 ;;;
 ;;; Rest API for Software Evolution Library
 ;;;
@@ -226,9 +226,8 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/components/test-suite
-   ;; TODO: Maybe remove this dependency.
-   :software-evolution-library/software/asm-super-mutant)
-  (:export :lookup-session))
+   ;; TODO: It would be good to remove this dependency.
+   :software-evolution-library/software/asm-super-mutant))
 (in-package :software-evolution-library/rest)
 
 (defvar *session-id-generator* 1000
@@ -316,21 +315,21 @@
 	   (url (cdr (assoc :url json)))
 	   (code (cdr (assoc :code json))))
       (declare (ignore url code)) ; not implemented yet
-      (if path
-	  (let ((software
-		 (from-file
-		  (apply 'make-instance
-			 type
-			 (iter (for x in json)
-			       (unless
-				   (member (car x)
-					   '(:path :url :code :software-id))
-				 (collect (car x))
-				 (collect (cdr x)))))
-		  path)))
-	    ;; store the software obj with the session
-	    (push software (session-software client))
-	    (format nil "~D" (sel::oid software))))))
+      (when path
+        (let ((software
+	       (from-file
+	        (apply 'make-instance
+		       type
+		       (iter (for x in json)
+			     (unless
+			         (member (car x)
+				         '(:path :url :code :software-id))
+			       (collect (car x))
+			       (collect (cdr x)))))
+	        path)))
+	  ;; store the software obj with the session
+	  (push software (session-software client))
+	  (format nil "~D" (sel::oid software))))))
 
 (defun find-software (client sid)
   "Return the population from the client record (if found)."

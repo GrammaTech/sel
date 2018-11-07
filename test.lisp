@@ -22,6 +22,7 @@
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library
    :software-evolution-library/utility
+   :software-evolution-library/rest
    :software-evolution-library/ast-diff/ast-diff
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument
@@ -169,7 +170,7 @@
 (defvar *clack-port*  9003 "Default port for clack web server instance.")
 (defvar *clack* nil "Web server instance used in tests.")
 (defvar *rest-client*  nil "Client-id (cid) for REST API test client.")
-(defvar *clack-delay* 1.0 "Seconds to delay after starting server")
+(defvar *clack-delay* 0.5 "Seconds to delay after starting server")
 
 (defun initialize-clack ()
   (let ((tries 0))
@@ -183,7 +184,9 @@
                 (error e)))))
       (restart-case
           (prog1
-	      (clack:clackup (snooze:make-clack-app) :port *clack-port*)
+              ;; Inhibit the clack "Hunchentoot server is started." messages.
+              (let ((*standard-output* (make-broadcast-stream)))
+                (clack:clackup (snooze:make-clack-app) :port *clack-port*))
 	    (sleep *clack-delay*)) ; wait for a second before continuing, ensure server is up
         (try-a-new-port ()
           :report "Try using a new port"
@@ -684,10 +687,11 @@
 
   (:teardown (setf *soft* nil)))
 
-(defixture rest-api-server
+(defixture rest-server
     (:setup (incf *clack-port*)
             (setf *clack* (initialize-clack)))
-  (:teardown (clack:stop *clack*)))
+  (:teardown (clack:stop *clack*)
+             (setf *rest-client* nil)))
 
 (defixture gcd-elf
   (:setup
@@ -1533,8 +1537,8 @@
 	     (elt (fitness (elt (mutants *soft*) 0)) 0))))))
 
 
-;;; REST-API tests
-(defsuite rest-api-tests "REST API tests.")
+;;; REST tests
+(defsuite rest-tests "REST API tests.")
 
 (defun rest-test-create-client ()
   "Returns 2 values: new client id or nil, and status. 
@@ -1597,7 +1601,7 @@
 (deftest rest-create-client ()
   ;; test ensures the web service is running and it can create a new client,
   ;; tests Create Client (HTTP POST) method.
-  (with-fixture rest-api-server
+  (with-fixture rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
       (is (eql status 200))
       (is (stringp cid))
@@ -1606,12 +1610,13 @@
 (deftest rest-create-software ()
   ;; test ensures the web service is running and it can create a new software
   ;; object. Tests Create Software (HTTP POST) method.
-  (with-fixture rest-api-server
+  (with-fixture rest-server
     (let ((cid (rest-test-get-client)))
       (multiple-value-bind (oid status)
-	  (rest-test-create-software "CLANG" cid)
-        (is (and (eql status 200)
-	       (integerp oid)))))))
+	  (rest-test-create-software
+           "SOFTWARE-EVOLUTION-LIBRARY/SOFTWARE/CLANG:CLANG" cid)
+        (is (eql status 200))
+        (is (integerp oid))))))
 
 
 ;;; CSURF-ASM representation.
