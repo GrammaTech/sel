@@ -215,7 +215,7 @@
 ;;;     @code{<service-base>/tests?pid=<test-suite-oid>} Delete
 ;;;     the test suite.  (work in progress)
 ;;;
-;;; @texi{rest-api}
+;;; @texi{rest}
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
   (:use
@@ -227,7 +227,8 @@
    :software-evolution-library/utility
    :software-evolution-library/components/test-suite
    ;; TODO: It would be good to remove this dependency.
-   :software-evolution-library/software/asm-super-mutant))
+   :software-evolution-library/software/asm-super-mutant)
+  (:export :session))
 (in-package :software-evolution-library/rest)
 
 (defvar *session-id-generator* 1000

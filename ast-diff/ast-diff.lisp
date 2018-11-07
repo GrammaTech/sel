@@ -26,7 +26,8 @@
 ;;; @node @code{lisp-diff}, Usage, @code{clang-diff}, AST Differencing
 ;;; @subsection @code{lisp-diff}
 ;;; @cindex lisp-diff
-;;; @include include/lisp-diff.texi
+;;;
+;;; FIXME: Temporarily include/lisp-diff.texi is unavailable.
 ;;;
 ;;; @texi{ast-diff}
 (defpackage :software-evolution-library/ast-diff/ast-diff

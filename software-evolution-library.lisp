@@ -43,6 +43,7 @@
    :fitness-extra-data
    :mutation-stats
    :*mutation-improvements*
+   :*crossover-stats*
    :genome
    :phenome
    :phenome-p

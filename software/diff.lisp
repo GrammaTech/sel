@@ -1,4 +1,4 @@
-;;; diff.lisp --- Store genomes as differences against a reference genome
+;;;; diff.lisp --- Store genomes as differences against a reference genome
 ;;;
 ;;; Classes which inherit from diff will replace their genome structure
 ;;; with a diff which instead of holding a copy of the entire genome
