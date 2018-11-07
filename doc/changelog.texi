@@ -34,6 +34,57 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
+@appendixsec 2018-11-06 v0.0.3 -- Unreleased
+@cindex changelog-2018-10-17
+@cindex v0.0.3
+
+SEL now uses the package-inferred-system feature of ASDF (see
+@url{https://common-lisp.net/project/asdf/asdf/The-package_002dinferred_002dsystem-extension.html#The-package_002dinferred_002dsystem-extension}).
+This implicitly defines a system for every source file in the
+repository.  We then explicitly define a package for every source file
+at the top of the source file.  These packages explicitly list the
+dependencies of the source file (with :use) and the symbols exported
+by the source file (with :export).
+
+The result is:
+
+@itemize
+
+@item
+An explicit flow of dependencies within the SEL project as opposed to
+a single giant namespace in/from which all symbols are created and
+used.  This refactoring exposed some instances of circular
+dependencies and cases where the intended symbols was actually not
+being used.
+
+@item
+The ability to load specific subsets of SEL.  E.g., projects without
+instrumentation/tracing no longer need to build/load trace-db,
+projects without the rest api don't need to load a web-server,
+projects without test-suite don't need to load run-program which can
+cause problems on some lisps.
+
+@item
+Much faster load/compile times in many cases (due to better physical
+design and finer granularity of dependencies).
+
+@end itemize
+
+Instead of simply using the SOFTWARE-EVOLUTION-LIBRARY package clients
+should now use the specific packages they intend to use.  Packages are
+divided into ``@code{software}'' and ``@code{components}'' packages.
+So, e.g., a project using Clang software objects and using lexicase
+selection would most likely use the following packages.
+
+@lisp
+(defpackage :example
+  (:use :common-lisp
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/clang
+        :software-evolution-library/components/lexicase))
+@end lisp
+
 @appendixsec 2018-10-17 v0.0.2 -- Unreleased
 @cindex changelog-2018-10-17
 @cindex v0.0.2
