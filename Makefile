@@ -33,11 +33,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/serapi-io			\
 	software-evolution-library/components/test-suite		\
 	software-evolution-library/components/traceable			\
-	software-evolution-library/doc/examples/change-constant		\
-	software-evolution-library/doc/examples/neutral			\
-	software-evolution-library/doc/examples/repair			\
-	software-evolution-library/doc/examples/repair-clang		\
-	software-evolution-library/lisp					\
 	software-evolution-library/rest					\
 	software-evolution-library/software/adaptive-mutation		\
 	software-evolution-library/software/ancestral			\
