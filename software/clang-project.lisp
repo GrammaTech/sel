@@ -18,17 +18,12 @@
                           :directory-exists-p
                           :run-program)
   (:export :clang-project
-           :project-dir
            :compilation-database))
 (in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software clang-project (project)
-  ((project-dir :initarg :project-dir
-                :accessor project-dir
-                :initform nil
-                :documentation "Source directory containing the project.")
-   (compilation-database :initarg :compilation-database
+  ((compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil
                          :documentation "Compilation database for the project.

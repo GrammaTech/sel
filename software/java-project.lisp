@@ -36,17 +36,12 @@
                           :directory-exists-p
                           :run-program)
   (:export :java-project
-           :project-dir
            :java-class))
 (in-package :software-evolution-library/software/java-project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software java-project (project)
-  ((project-dir :initarg :project-dir
-                :accessor project-dir
-                :initform nil
-                :documentation "Source directory containing the project")
-   (java-class  :initarg :java-class
+  ((java-class  :initarg :java-class
                 :accessor java-class
                 :initform 'java
                 :documentation "Java subclass to utilize in the project")))

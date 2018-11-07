@@ -24,6 +24,7 @@
            :artifacts
            :evolve-files
            :other-files
+           :project-dir
            :instrumentation-files
            :all-files
            :write-genome-to-files
@@ -53,7 +54,11 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       :documentation
       "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
-      :copier copy-files))
+      :copier copy-files)
+     (project-dir :initarg :project-dir
+                  :accessor project-dir
+                  :initform nil
+                  :documentation "Source directory containing the project."))
   (:documentation
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
