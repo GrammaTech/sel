@@ -27,6 +27,7 @@
            :ast-path
            :ast-node
            :ast-class
+           :ast-aux-data
            :to-alist
            :from-alist
            :source-text
@@ -50,12 +51,7 @@
 ;;; Data structure definitions
 (defstruct ast-node
   "Base type of immutable portion of ast nodes."
-  (hash nil :type (or null fixnum)))	   
-
-;;; TODO: Fixme.  Should this be an actual slot on ast-node or ast?
-(defgeneric ast-class (software)
-  (:documentation
-   "Needed as it is used below, but typically not defined until children."))
+  (hash nil :type (or null fixnum)))
 
 (defstruct (ast (:constructor make-raw-ast))
   "Base type of sub-tree of an applicative AST tree."
@@ -150,18 +146,23 @@ the ast path and source text.
                                      `(,(symbol-cat conc-name name) ,obj))))
                        names-w-types)))))))
 
-(defmacro define-ast (name-and-options &rest slot-descriptions)
+(defmacro define-ast (name-and-options &rest slot-descriptions
+                      &aux (default-ast-slot-descriptions
+                             '((class nil :type symbol)
+                               (aux-data nil :type list))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
-    (let* ((name (get-struct-name name-and-options))
+    (let* ((all-slot-descriptions (append default-ast-slot-descriptions
+                                          slot-descriptions))
+           (name (get-struct-name name-and-options))
            (conc-name (get-struct-conc-name name-and-options))
-           (slot-names (get-struct-slot-names slot-descriptions)))
+           (slot-names (get-struct-slot-names all-slot-descriptions)))
       `(prog2
            ;; Define the immutable node.
            (define-immutable-node-struct (,(symbol-cat name 'node)
                                           (:include ast-node)
                                           (:conc-name ,conc-name))
-             ,@slot-descriptions)
+             ,@all-slot-descriptions)
            ;; Define and return the wrapper.
            (defstruct (,name (:include ast)
                              (:copier nil)
@@ -171,9 +172,9 @@ the ast path and source text.
                                     (member (car pair)
                                             '(:conc-name :copier :include)))
                                   (cdr name-and-options))))
-             ,@(when (and (car slot-descriptions)
-                          (stringp (car slot-descriptions)))
-                 (list (car slot-descriptions))))
+             ,@(when (and (car all-slot-descriptions)
+                          (stringp (car all-slot-descriptions)))
+                 (list (car all-slot-descriptions))))
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)

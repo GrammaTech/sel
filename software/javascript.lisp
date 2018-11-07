@@ -46,7 +46,6 @@
            :javascript-mutation
            :javascript-ast
            :javascript-ast-node
-           :ast-aux-data
            :make-javascript-ast
            :copy-javascript-ast
            :make-javascript-ast-node
@@ -76,9 +75,7 @@
 
 
 ;;; Javascript ast data structures
-(define-ast (javascript-ast (:conc-name ast))
-  (class nil :type symbol)
-  (aux-data nil :type list))
+(define-ast (javascript-ast (:conc-name ast)))
 
 (defmethod print-object ((obj javascript-ast-node) stream)
   "Print a representation of the javascript-ast-node OBJ to STREAM.
