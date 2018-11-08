@@ -11,6 +11,7 @@
         :cl-ppcre
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/project)
   (:shadowing-import-from :uiop
