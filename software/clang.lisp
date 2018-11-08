@@ -99,6 +99,7 @@
            :get-used-variables
            :add-include
            :add-type
+           :find-type
            :find-or-add-type
            :type-decl-string
            :type-trace-string
