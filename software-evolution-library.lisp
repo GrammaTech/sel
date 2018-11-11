@@ -72,6 +72,8 @@
    :apply-all-mutations
    :apply-picked-mutations
    :text
+   :*mutation-stats*
+   :*crossover-stats*
    :analyze-mutation
    :mutation-key
    :summarize-mutation-stats

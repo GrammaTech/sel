@@ -28,8 +28,6 @@
            :ast-node
            :ast-class
            :ast-aux-data
-           :to-alist
-           :from-alist
            :source-text
            :rebind-vars
            :replace-in-vars

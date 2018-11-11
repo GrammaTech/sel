@@ -32,6 +32,8 @@
            :pick-guarded-compound
            :clang-mutation
            :bind-free-vars
+           :binding-for-var
+           :binding-for-function
            :crossover-2pt-inward
            :crossover-2pt-outward
            :intraprocedural-2pt-crossover
@@ -127,7 +129,9 @@
            :clang-replace-full-same
            :clang-promote-guarded
            :clang-nop
+           :pick-for-loop
            :explode-for-loop
+           :pick-while-loop
            :coalesce-while-loop
            :cut-decl
            :pick-cut-decl

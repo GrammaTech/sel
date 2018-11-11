@@ -12,6 +12,7 @@
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/ast
         :software-evolution-library/software/source)
   (:export :parseable

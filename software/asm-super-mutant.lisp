@@ -211,6 +211,7 @@
         :software-evolution-library/software/asm-heap
         :software-evolution-library/software/super-mutant)
   (:export :asm-super-mutant
+           :var-table
            :*lib-papi*
            :fitness-harness
            :load-io-file
@@ -223,7 +224,8 @@
            :line-heap
            :function-index
            :evaluate-asm
-           :leaf-functions))
+           :leaf-functions
+           :parse-sanity-file))
 (in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
 

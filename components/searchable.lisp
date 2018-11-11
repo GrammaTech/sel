@@ -23,6 +23,15 @@
   ()
   (:documentation "DOCFIXME"))
 
+(defgeneric find-snippets (database &key ast-class full-stmt decls limit)
+  (:documentation "Find snippets in the fodder database DATABASE.
+
+* AST-CLASS   AST class all snippets should match
+* FULL-STMT   Limit results to full statements if non-nil.
+* DECLS       Include decls in result if non-nil.
+              Limit results to decls if the keyword :ONLY.
+* LIMIT       Limit to N randomly drawn snippets"))
+
 (defgeneric weighted-pick
     (searchable target weight
      &key predicate metric key limit ast-class filter limit-considered)

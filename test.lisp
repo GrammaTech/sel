@@ -22,7 +22,7 @@
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/rest
+   :software-evolution-library/rest-api
    :software-evolution-library/ast-diff/ast-diff
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument
@@ -80,10 +80,6 @@
    :software-evolution-library/software/styleable
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
-  ;; TODO: Try to resolve each of the following.  If two packages both
-  ;;       export the same symbol maybe it should be moved up a level
-  ;;       to a common ancestor.
-  (:shadow :project-dir :ast-aux-data)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -3177,22 +3173,22 @@ int x = CHARSIZE;")))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))
 
-(deftest (force-include-test-java-1 :long-running) ()
-  "Check if include statement was inserted into file with no package name."
+(deftest (add-import-test-java-1 :long-running) ()
+  "Check if import was inserted into file with no package name."
   (let ((*java-file-name* "TestSimple_WhileForIfPrint_2"))
     (with-fixture general-fixture-java
       (let ((before-genome (genome *soft*))
-            (after-genome (genome (force-include *soft* "java.util.LinkedList")))
+            (after-genome (genome (add-import *soft* "java.util.LinkedList")))
             (target "java[.]util[.]LinkedList"))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))
 
-(deftest (force-include-test-java-2 :long-running) ()
-  "Check if include statement was inserted into file with package name."
+(deftest (add-import-test-java-2 :long-running) ()
+  "Check if import was inserted into file with package name."
   (let ((*java-file-name* "TestSimple_package_name"))
     (with-fixture general-fixture-java
       (let ((before-genome (genome *soft*))
-            (after-genome (genome (force-include *soft* "java.util.LinkedList")))
+            (after-genome (genome (add-import *soft* "java.util.LinkedList")))
             (target "java[.]util[.]LinkedList"))
         (is (not (scan-to-strings target before-genome)))
         (is (scan-to-strings target after-genome))))))

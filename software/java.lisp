@@ -32,7 +32,8 @@
            :java-number
            :java-project
            :java-jar-exec
-           :get-files-jar))
+           :get-files-jar
+           :add-import))
 (in-package :software-evolution-library/software/java)
 (in-readtable :curry-compose-reader-macros)
 
@@ -195,8 +196,8 @@ insert)."
   (or (raw-size obj)
       (setf (raw-size obj) (java-ids-aux obj))))
 
-(defmethod force-include ((obj java) include)
-  "Add an import directive for an INCLUDE to OBJ after the package declaration."
+(defmethod add-import ((obj java) import)
+  "Add an import directive for IMPORT to OBJ after the package declaration."
   (setf (genome obj)
         (let* ((lst (split "(package [^;]+;)"
                             (genome obj)
@@ -211,11 +212,11 @@ insert)."
           ;; If package exists, add import after it, else, add to front.
           (if index
               (progn
-                (push (format nil "~%import ~a;~&" include)
+                (push (format nil "~%import ~a;~&" import)
                       (cdr (nthcdr index lst)))
                 (format nil "~{~A~^~}" lst))
               (concatenate 'string
-                           (format nil "import ~a;~&" include)
+                           (format nil "import ~a;~&" import)
                            (genome obj)))))
   obj)
 

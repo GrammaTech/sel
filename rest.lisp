@@ -215,21 +215,22 @@
 ;;;     @code{<service-base>/tests?pid=<test-suite-oid>} Delete
 ;;;     the test suite.  (work in progress)
 ;;;
-;;; @texi{rest}
-(defpackage :software-evolution-library/rest
-  (:nicknames :sel/rest)
+;;; @texi{rest-api}
+(defpackage :software-evolution-library/rest-api
+  (:nicknames :sel/rest-api)
   (:use
    :common-lisp
    :snooze
    :cl-json
    :iterate
-   :software-evolution-library
+   :software-evolution-library/software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/components/test-suite
-   ;; TODO: It would be good to remove this dependency.
-   :software-evolution-library/software/asm-super-mutant)
-  (:export :session))
-(in-package :software-evolution-library/rest)
+   ;; TODO: Maybe remove this dependency.
+   :software-evolution-library/software/asm-super-mutant
+   :software-evolution-library/software/clang)
+  (:export :lookup-session))
+(in-package :software-evolution-library/rest-api)
 
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")
