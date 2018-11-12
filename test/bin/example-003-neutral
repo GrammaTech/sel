@@ -6,6 +6,8 @@ if [[ $LISP == "sbcl" ]] || [[ $LISP == "SBCL" ]]; then
          --load ${USER_QUICK_LISP:-quicklisp}/setup.lisp \
          --eval '(pushnew (truename ".") ql:*local-project-directories*)' \
          --eval '(ql:quickload :software-evolution-library)' \
+         --eval '(ql:quickload :software-evolution-library/utility)' \
+         --eval '(ql:quickload :software-evolution-library/software/asm)' \
          --load doc/examples/003-neutral \
          --eval '(quit)'
 else
@@ -13,6 +15,8 @@ else
         --load ${USER_QUICK_LISP:-quicklisp}/setup.lisp \
         --eval '(pushnew (truename ".") ql:*local-project-directories*)' \
         --eval '(ql:quickload :software-evolution-library)' \
+        --eval '(ql:quickload :software-evolution-library/utility)' \
+        --eval '(ql:quickload :software-evolution-library/software/asm)' \
         --load doc/examples/003-neutral \
         --eval '(quit)'
 fi
