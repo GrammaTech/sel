@@ -566,6 +566,11 @@ use carefully.
   ;; (apply #'+ (mapcar #'ast-cost (ast-children ast)))
   (reduce #'+ (ast-children ast) :initial-value 0 :key #'ast-cost))
 
+(defmethod ast-patch ((ast ast) script &rest keys &key (delete? t) &allow-other-keys)
+  (let* ((children (ast-children ast))
+	 (patched-children (apply #'ast-patch children script keys)))
+    (copy ast :children patched-children)))
+
 (defmethod ast-can-recurse ((ast-a ast) (ast-b ast))
   (eq (ast-class ast-a) (ast-class ast-b)))
 
@@ -595,3 +600,7 @@ use carefully.
   (mapc #'ast-clear-hash (ast-children ast))
   ast)
 
+(defmethod ast-diff ((ast-a ast) (ast-b ast))
+  (if (ast-can-recurse ast-a ast-b)
+      (ast-diff (ast-children ast-a) (ast-children ast-b))
+      (call-next-method)))

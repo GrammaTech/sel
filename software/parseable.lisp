@@ -788,9 +788,9 @@ REPLACEMENT.
 (defmethod ast-diff ((parseable-a parseable) (parseable-b parseable))
   (ast-diff (ast-root parseable-a) (ast-root parseable-b)))
 
-(defmethod ast-patch ((obj parseable) (diff list))
+(defmethod ast-patch ((obj parseable) (diff list) &rest keys &key &allow-other-keys)
   (setf obj (copy obj))
-  (setf (ast-root obj) (ast-patch (ast-root obj) diff))
+  (setf (ast-root obj) (apply #'ast-patch (ast-root obj) diff keys))
   obj)
 
 (defmethod converge ((obj1 parseable) (obj2 parseable) (obj3 parseable) &rest args &key &allow-other-keys)

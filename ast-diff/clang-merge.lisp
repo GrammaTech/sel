@@ -31,9 +31,9 @@
 			 &aux
 			   original version1 version2
 			   original-soft version1-soft version2-soft
-			   project-name software-store ;; flags
+			   project-name ;; software-store ;; flags
 			   comp-db (build-command "make")
-			   (no-store-software t) ;; includes
+			   ;; (no-store-software t) ;; includes
 			   out-dir
 			   ;; (language "c") artifacts (compiler "clang")
 			   )
@@ -57,7 +57,8 @@ a merged version"
      ;; ("-I" "-I" (setf includes (split-sequence #\, (pop args) :remove-empty-subseqs t)))
      ("--build-command" "-b" (setf build-command (pop args)))
      ;; ("-l" "--language" (setf language (pop args)))
-     ("--no-store-software" "--no-store-software" (setf no-store-software t)))
+     ;; ("--no-store-software" "--no-store-software" (setf no-store-software t))
+     )
 
     (when (/= (length args) 4) (usage 2))
     (flet ((check-file (file)
@@ -92,22 +93,18 @@ a merged version"
 	    (if-let ((as-dir (directory-p source)))
 	      (lastcar (pathname-directory as-dir))
 	      (pathname-name source)))
-	  (resolve-store-path-from-out-dir-and-name
-	      (out-dir name &optional description)
-	    (namestring
-	     (make-pathname :directory out-dir
-			    :name (if description
-				      (concatenate 'string name "-" description)
-				      name)
-			    :type "store"))))
+	  (resolve-store-path-from-out-dir-and-name (out-dir name)
+	    (namestring (make-pathname :directory out-dir
+				       :name name
+				       :type "store"))))
      (setf original (truename original)
 	   version1 (truename version1)
 	   version2 (truename version2)
 	   out-dir (or out-dir (resolve-out-dir-from-source original))
 	   project-name (resolve-name-from-source original)
-	   software-store
-	   (unless no-store-software
-	     (resolve-store-path-from-out-dir-and-name out-dir project-name))))
+	   ;; software-store nil
+	   ;; (unless no-store-software (resolve-store-path-from-out-dir-and-name out-dir project-name))
+	   ))
 
   (note 1  "Parameters:~%~S~%"
         `((original . ,original)
@@ -118,16 +115,6 @@ a merged version"
 
   (note 1 "Creating software objects after processing options.")
   (flet ((%create (s)
-	   #|
-	   (create-software s
-			    :store-path software-store
-			    :language language
-			    :compiler compiler
-	                    :flags flags
-			    :build-command build-command
-			    :artifacts artifacts
-			    :compilation-database comp-db)
-	   |#
 	   (let ((project
 		  (make-instance 'clang-project :project-dir s
 				 :compilation-database comp-db

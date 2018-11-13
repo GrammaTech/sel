@@ -60,9 +60,7 @@
 			      (t
 			       (collect (cons :delete c1))
 			       (decf i)))))))
-	  ;; (merge-sequence-diff-operations diff)
-	  ;; todo: add logic for merging consecutive :insert, :delete, :same
-	  ;; into :*-sequence operations
+	  (setf diff (nreverse diff))
 	  (merge-sequence-diff-operations diff)
 	  (append
 	   (cond
@@ -71,10 +69,10 @@
 	     ((> i 0)
 	      `((:delete-sequence . ,(subseq s1 0 i))))
 	     ((= j 1)
-	      `((:insert . ,(subseq s2 0))))
+	      `((:insert . ,(schar s2 0))))
 	     ((> j 0)
 	      `((:insert-sequence . ,(subseq s2 0 j)))))
-	   (nreverse diff)))))))
+	   diff))))))
 		 
 		  
 ;;; Longest common substring algorithm was added to

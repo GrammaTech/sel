@@ -29,11 +29,13 @@
 	 (ast2 (sel:ast-root (sel:from-file (make-instance 'sel:clang) f2))))
     (time (ast-diff ast1 ast2))))
 
+(defun ast-from-clang-string (s)
+  (sel:ast-root (sel:from-string (make-instance 'sel:clang) s)))
+
 (defun diff-strings (s1 s2 &key (fn #'ast-diff))
-  (flet ((%fs (s) (sel:ast-root (sel:from-string (make-instance 'sel:clang) s))))
-    (let ((ast1 (%fs s1))
-	  (ast2 (%fs s2)))
-      (time (funcall fn ast1 ast2)))))
+  (let ((ast1 (ast-from-clang-string s1))
+	(ast2 (ast-from-clang-string s2)))
+    (time (funcall fn ast1 ast2))))
 
 ;;; Utility function to find nice primes for hashing
 ;;; Used this when putting together ast-hash
@@ -188,8 +190,13 @@ a valid patch.  Return :FAIL (and other values) if not."
 
 (defun converge-projects (file1 file2 file3 dest-file)
   (flet ((%create (f)
-	   (bi/bi::create-software f :language "c" :compiler "clang"
-				  :build-command "make")))
+	   (let ((obj
+		  (make-instance 'sel:clang-project
+				 :project-dir f
+				 :compilation-database nil
+				 :build-command "make")))
+	     (sel:from-file obj f)
+	     obj)))
     (let* ((obj1 (%create file1))
 	   (obj2 (%create file2))
 	   (obj3 (%create file3)))
@@ -206,4 +213,27 @@ a valid patch.  Return :FAIL (and other values) if not."
 	 (sel:to-file merged-obj dest-file)
 	 problems)))))
 
+(defun merge2-files (file1 file2 dest-file)
+  (let* ((obj1 (sel:from-file (make-instance 'sel:clang) file1))
+	 (obj2 (sel:from-file (make-instance 'sel:clang) file2)))
+    ;; Load from source files so the loading time does not show
+    ;; up in profile
+    (sel:ast-root obj1)
+    (sel:ast-root obj2)
+    (multiple-value-bind (merged-obj)
+	(time
+	 (sb-sprof:with-profiling ()
+	   (merge2 obj1 obj2)))
+      (sel:to-file merged-obj dest-file))))
 
+(defun merge2-strings (str1 str2)
+  (let ((obj1 (sel:from-string (make-instance 'sel:clang) str1))
+	(obj2 (sel:from-string (make-instance 'sel:clang) str2)))
+    (sel:ast-root obj1)
+    (sel:ast-root obj2)
+    (time
+     (sb-sprof:with-profiling ()
+       (merge2 obj1 obj2)))))
+
+    
+	

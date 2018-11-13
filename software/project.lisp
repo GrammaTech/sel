@@ -168,18 +168,52 @@ software objects in it's `evolve-files'."))
     (unless (equal files1 files2)
       (error "Two file alists do not reference the same files: ~A, ~A" files1 files2))))
 
+(defun sort-file-alist (alist)
+  (sort (copy-list alist) #'string< :key (lambda (x) (string (car x)))))
+
+#|
 (defmethod ast-diff ((project1 project) (project2 project))
-  (let ((files1 (evolve-files project1))
-	(files2 (evolve-files project2)))
+  (let ((files1 (all-files project1))
+	(files2 (all-files project2))
+	(ntab (make-hash-table :test #'equal)))
+    (setf files1 (sort-file-alist files1))
+    (setf files2 (sort-file-alist files2))
+    (setf files1 (remove-files-not-in files1 files2))
+    (setf files2 (remove-files-not-in files2 files1))
     (confirm-files-are-same files1 files2)
     (iter (for (name . file1) in files1)
 	  (for (nil . file2) in files2)
 	  (collect (cons name (ast-diff file1 file2))))))
+|#
 
+(defmethod ast-diff ((project1 project) (project2 project))
+  (flet ((%obj (proj) (make-instance 'sel/ast-diff:alist-for-diff :alist (all-files proj))))
+    (list (ast-diff (%obj project1) (%obj project2)))))
+
+(defun remove-files-not-in (files1 files2)
+  (let ((ntab (make-hash-table :test #'equal)))
+    (iter (for (n) in files2)
+	  (setf (gethash n ntab) t))
+    (remove-if-not (lambda (p) (gethash (car p) ntab)) files1)))
+
+(defmethod ast-patch ((project project) (diff t) &rest args &key &allow-other-keys)
+  (let* ((files-obj (make-instance 'sel/ast-diff:alist-for-diff
+				  :alist (all-files project)))
+	 (new-files-obj (apply #'ast-patch files-obj diff args))
+	 (new-project (copy project)))
+    (setf (evolve-files new-project) (sel/ast-diff:alist new-files-obj))
+    new-project))
+
+#|
 (defmethod patch-files ((project project) (file-diffs list) &rest args
 			&key &allow-other-keys)
   (declare (ignorable args))
   (let* ((file-alist (evolve-files project)))
+    ;; This fails on file insertions/deletions
+    ;; Be ok with that now
+    (setf file-alist (sort-file-alist file-alist))
+    (setf file-diffs (sort-file-alist file-diffs))
+    (setf file-alist (remove-files-not-in file-alist file-diffs))
     (confirm-files-are-same file-alist file-diffs)
     (let ((new-project-files
 	   (iter (for (file-name . file) in file-alist)
@@ -188,15 +222,28 @@ software objects in it's `evolve-files'."))
 	  (new-project (copy project)))
       (setf (evolve-files new-project) new-project-files)
       new-project)))
+|#
 
+#|
 (defmethod converge ((p0 project) (p1 project) (p2 project) &rest args &key &allow-other-keys)
+  (format t "(other-files p0): ~a~%" (other-files p0))
+  (format t "(other-files p1): ~a~%" (other-files p1))
+  (format t "(other-files p2): ~a~%" (other-files p2))
   (let ((ef0 (evolve-files p0))
 	(ef1 (evolve-files p1))
 	(ef2 (evolve-files p2)))
     (check-type ef0 list)
     (check-type ef1 list)
     (check-type ef2 list)
+    (setf ef0 (sort-file-alist ef0))
+    (setf ef1 (sort-file-alist ef1))
+    (setf ef2 (sort-file-alist ef2))
     ;; For now, we do not handle addition or deletion of files
+    (setf ef0 (remove-files-not-in ef0 ef1))
+    (setf ef0 (remove-files-not-in ef0 ef2))
+    (setf ef1 (remove-files-not-in ef1 ef0))
+    (setf ef2 (remove-files-not-in ef2 ef0))
+    
     (confirm-files-are-same ef0 ef1)
     (confirm-files-are-same ef0 ef2)
     (iter (for (name . f0) in ef0)
@@ -211,6 +258,7 @@ software objects in it's `evolve-files'."))
 	   (let ((new-p (copy p0)))
 	     (setf (evolve-files new-p) ef-merged)
 	     (return (values new-p unstable-merged)))))))
+|#
 
 ;;;; Build directory handling.
 

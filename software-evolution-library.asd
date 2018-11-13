@@ -298,9 +298,13 @@ techniques."
                curry-compose-reader-macros
                iterate
                cl-heap
+	       ;; cl-string-match
                software-evolution-library/utility)
   :in-order-to ((test-op (test-op "software-evolution-library/test")))
-  :components ((:file "ast-diff/ast-diff")))
+  :components ((:file "ast-diff/ast-diff")
+	       (:file "ast-diff/string-diff")
+	       (:file "ast-diff/alist-diff")
+	       ))
 
 (defsystem "software-evolution-library/ast-diff-html"
   :author "Eric Schulte and GrammaTech"
@@ -332,6 +336,30 @@ techniques."
   :build-pathname "bin/clang-diff"
   :entry-point "software-evolution-library/clang-diff::run-clang-diff"
   :components ((:file "ast-diff/clang-diff")))
+
+(defsystem "software-evolution-library/clang-merge"
+  :author "Paul Dietz and GrammaTech"
+  :licence "GPL V3"
+  :description "Compute the merge of two C/C++ programs that diverge from a common ancestral version"
+  :version "0.0.0"
+  :depends-on (alexandria
+               closer-mop
+               arrow-macros
+               named-readtables
+               curry-compose-reader-macros
+               metabang-bind
+	       command-line-arguments
+               iterate
+               uiop
+               split-sequence
+               software-evolution-library/view
+               software-evolution-library/utility
+               software-evolution-library/ast-diff
+               software-evolution-library)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/clang-merge"
+  :entry-point "software-evolution-library/clang-merge:run-clang-merge"
+  :components ((:file "ast-diff/clang-merge")))
 
 (defsystem "software-evolution-library/lisp-diff"
   :author "Eric Schulte and GrammaTech"

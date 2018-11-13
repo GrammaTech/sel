@@ -29,7 +29,8 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd.s
 
 BINS = clang-instrument \
-	clang-diff
+	clang-diff \
+	clang-merge
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
