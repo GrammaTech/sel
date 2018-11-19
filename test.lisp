@@ -22,7 +22,7 @@
    ;; TODO: Remove those which aren't actually needed for testing.
    :software-evolution-library
    :software-evolution-library/utility
-   :software-evolution-library/rest-api
+   :software-evolution-library/rest
    :software-evolution-library/ast-diff/ast-diff
    :software-evolution-library/components/instrument
    :software-evolution-library/components/clang-instrument

@@ -215,7 +215,7 @@
 ;;;     @code{<service-base>/tests?pid=<test-suite-oid>} Delete
 ;;;     the test suite.  (work in progress)
 ;;;
-;;; @texi{rest-api}
+;;; @texi{rest}
 (defpackage :software-evolution-library/rest
   (:nicknames :sel/rest)
   (:use
