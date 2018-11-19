@@ -216,8 +216,8 @@
 ;;;     the test suite.  (work in progress)
 ;;;
 ;;; @texi{rest-api}
-(defpackage :software-evolution-library/rest-api
-  (:nicknames :sel/rest-api)
+(defpackage :software-evolution-library/rest
+  (:nicknames :sel/rest)
   (:use
    :common-lisp
    :snooze
@@ -230,7 +230,7 @@
    :software-evolution-library/software/asm-super-mutant
    :software-evolution-library/software/clang)
   (:export :lookup-session))
-(in-package :software-evolution-library/rest-api)
+(in-package :software-evolution-library/rest)
 
 (defvar *session-id-generator* 1000
   "Start session ids at 1001 and increment")
