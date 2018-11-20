@@ -128,6 +128,7 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	--load $(USER_QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :software-evolution-library/utility)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
 	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
