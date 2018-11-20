@@ -11,11 +11,12 @@
         :software-evolution-library/utility
         :software-evolution-library/software/super-mutant
         :software-evolution-library/software/project)
-  (:export :super-mutant
-           :mutants
-           :super-soft
-           :phenome-results
-           :create-super-soft))
+  (:export ;; :super-mutant
+           ;; :mutants
+           ;; :super-soft
+           ;; :phenome-results
+           ;; :create-super-soft
+	   ))
 (in-package :software-evolution-library/software/super-mutant-project)
 (in-readtable :curry-compose-reader-macros)
 

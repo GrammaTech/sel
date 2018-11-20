@@ -12,7 +12,6 @@
         :software-evolution-library/components/searchable)
   (:export :fodder-database
            :database-emptyp
-           :find-snippets
            :find-type
            :find-macro))
 (in-package :software-evolution-library/components/fodder-database)

@@ -150,7 +150,9 @@ the ast path and source text.
                                (aux-data nil :type list))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
-    (let* ((all-slot-descriptions (append default-ast-slot-descriptions
+    (let* ((doc-strings (remove-if-not #'stringp slot-descriptions))
+	   (slot-descriptions (remove-if #'stringp slot-descriptions))
+	   (all-slot-descriptions (append default-ast-slot-descriptions
                                           slot-descriptions))
            (name (get-struct-name name-and-options))
            (conc-name (get-struct-conc-name name-and-options))
@@ -159,7 +161,8 @@ the ast path and source text.
            ;; Define the immutable node.
            (define-immutable-node-struct (,(symbol-cat name 'node)
                                           (:include ast-node)
-                                          (:conc-name ,conc-name))
+					   (:conc-name ,conc-name))
+	     ,@doc-strings
              ,@all-slot-descriptions)
            ;; Define and return the wrapper.
            (defstruct (,name (:include ast)
@@ -170,9 +173,7 @@ the ast path and source text.
                                     (member (car pair)
                                             '(:conc-name :copier :include)))
                                   (cdr name-and-options))))
-             ,@(when (and (car all-slot-descriptions)
-                          (stringp (car all-slot-descriptions)))
-                 (list (car all-slot-descriptions))))
+	     ,@doc-strings)
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)

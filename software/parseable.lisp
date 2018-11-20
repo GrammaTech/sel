@@ -45,10 +45,10 @@
            :update-asts-if-necessary
            :update-caches-if-necessary
            :bad-asts
-           :good-stmts
+           ;; :good-stmts
            :good-mutation-targets
            :bad-mutation-targets
-           :mutation-targets
+           ;; :mutation-targets
            :pick-general
            :recontextualize-mutation
            :recontextualize

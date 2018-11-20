@@ -14,6 +14,7 @@
         :software-evolution-library/utility
         :software-evolution-library/software/ast
         :software-evolution-library/software/clang
+        :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
   (:export :in-memory-database
            :ast-database-ht

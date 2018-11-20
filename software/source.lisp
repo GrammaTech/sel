@@ -11,7 +11,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :source
-           :genome
+           ;; :genome
            :compiler
            :ext
            :flags

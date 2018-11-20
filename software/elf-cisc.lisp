@@ -14,6 +14,7 @@
   (:shadowing-import-from :elf :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:export :elf-cisc
+	   :elf-csurf
            :elf-x86
            :elf-arm
            :elf-replace

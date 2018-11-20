@@ -401,7 +401,7 @@ with an indicate of their relative maturity.
       @tab mature
 
 @item linked ELF binaries
-      @tab @refapiclass{elf-mips} @*  @refapiclass{elf-cisc}
+      @tab @*  @refapiclass{elf-cisc}
       @tab mature (not recommended)
 
 @item Java source

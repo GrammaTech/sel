@@ -17,6 +17,7 @@
            :ancestors
            :save-ancestry
            :reset-ancestry-id
+	   :get-fresh-ancestry-id
            :*next-ancestry-id*))
 (in-package :software-evolution-library/software/ancestral)
 (in-readtable :curry-compose-reader-macros)

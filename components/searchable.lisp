@@ -14,6 +14,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:export :searchable
+	   :find-snippets
            :weighted-pick
            :similar-snippets))
 (in-package :software-evolution-library/components/searchable)

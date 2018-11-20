@@ -16,11 +16,12 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
         :software-evolution-library/software/super-mutant)
-  (:export :super-mutant
-           :mutants
-           :super-soft
-           :phenome-results
-           :create-super-soft))
+  (:export ;; :super-mutant
+           ;; :mutants
+           ;; :super-soft
+           ;; :phenome-results
+           ;; :create-super-soft
+	   ))
 (in-package :software-evolution-library/software/super-mutant-clang)
 (in-readtable :curry-compose-reader-macros)
 

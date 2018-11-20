@@ -159,7 +159,7 @@ Class @code{software}
   @item @refapigeneric{apply-path}
   @item @refapigeneric{copy}
   @item @refapigeneric{delete-decl-stmts}
-  @item @refapigeneric{expression}
+@c  @item @refapigeneric{expression}
   @item @refapigeneric{one-point-crossover}
   @item @refapigeneric{two-point-crossover}
   @item @refapigeneric{from-file}
@@ -457,7 +457,7 @@ Class @code{clang}
   @item @refapimethod{crossover,crossover}
   @item @refapimethod{delete-decl-stmts,delete-decl-stmts}
   @item @refapimethod{enclosing-full-stmt,enclosing-full-stmt}
-  @item @refapimethod{expression,expression}
+@c  @item @refapimethod{expression,expression}
   @item @refapimethod{find-macro,find-macro}
   @item @refapimethod{find-type,find-type}
   @item @refapimethod{find-var-type,find-var-type}
@@ -1081,7 +1081,7 @@ Class @code{elf-mips}
 ]
 
 @itemize
-@item Class @refapiclass{elf-mips}
+@c @item Class @refapiclass{elf-mips}
 @end itemize
 
 @c ----------------------------------------
@@ -1234,6 +1234,6 @@ Class @code{clang-expression}
   @end itemize
 @item Methods
   @itemize
-  @item @refapimethod{expression, expression ((obj clang) (ast clang-ast))}
+@c  @item @refapimethod{expression, expression ((obj clang) (ast clang-ast))}
   @end itemize
 @end itemize
