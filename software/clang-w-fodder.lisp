@@ -19,6 +19,7 @@
         :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
+        :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
   (:export :clang-w-fodder
            :pick-snippet

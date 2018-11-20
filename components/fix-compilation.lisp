@@ -32,6 +32,7 @@
         :software-evolution-library/software/clang
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/components/formatting
+        :software-evolution-library/components/searchable
         :software-evolution-library/components/fodder-database)
   (:export :register-fixer
            :fix-compilation
