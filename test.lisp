@@ -3145,7 +3145,9 @@ int x = CHARSIZE;")))
 (defun java-mutate-available-p ()
   (zerop (nth-value 2 (shell "which java-mutator"))))
 
-(defsuite java-tests "JAVA representation." (java-mutate-available-p))
+(defsuite java-tests "JAVA representation."
+  ;; (java-mutate-available-p)
+  :silent)
 
 ;; Copy software object.
 (deftest (java-test-copy :long-running) ()
@@ -3345,6 +3347,7 @@ int x = CHARSIZE;")))
   "Tests if applicable file names in a build-folder are found."
   (with-temp-dir-of (temp-dir) (make-pathname :directory +java-jars-dir+)
                     (is (equal 9 (length (get-files-jar temp-dir))))))
+
 
 ;;;; Javascript representation.
 (defun acorn-available-p ()
@@ -6503,7 +6506,8 @@ prints unique counters in the trace"
     (do-multi-threaded-instrument-clang-test *project*)))
 
 (defsuite java-instrumentation-tests "Tests for Java instrumentation."
-  (zerop (nth-value 2 (shell "which java-mutator"))))
+  ;; (zerop (nth-value 2 (shell "which java-mutator")))
+  :silent)
 
 (deftest (multi-threaded-java-instrument-test :long-running) ()
   (with-fixture java-project
