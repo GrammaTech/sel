@@ -34,7 +34,7 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
-@appendixsec 2018-11-06 v0.0.3 -- Unreleased
+@appendixsec 2018-11-06 v0.1.0 -- Use package-inferred-system
 @cindex changelog-2018-10-17
 @cindex v0.0.3
 
@@ -71,9 +71,9 @@ design and finer granularity of dependencies).
 @end itemize
 
 Instead of simply using the SOFTWARE-EVOLUTION-LIBRARY package clients
-should now use the specific packages they intend to use.  Packages are
-divided into ``@code{software}'' and ``@code{components}'' packages.
-So, e.g., a project using Clang software objects and using lexicase
+should now use the specific packages they need.  Packages are divided
+into ``@code{software}'' and ``@code{components}'' packages.  So,
+e.g., a project using Clang software objects and using lexicase
 selection would most likely use the following packages.
 
 @lisp
@@ -81,9 +81,18 @@ selection would most likely use the following packages.
   (:use :common-lisp
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
         :software-evolution-library/software/clang
         :software-evolution-library/components/lexicase))
 @end lisp
+
+Note that the above example uses
+@code{sel/sw/@{ast,parseable,source@}} as well as @code{sel/sw/clang}.
+The ast, parseable, and source software objects are all ancestors of
+clang software objects so the related packages export symbols that are
+likely useful for anyone using the clang software object.
 
 @appendixsec 2018-10-17 v0.0.2 -- Unreleased
 @cindex changelog-2018-10-17
