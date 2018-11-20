@@ -190,6 +190,7 @@ information about creating new software objects.
 @item LISP                     @tab experimental
 @item Forth                    @tab experimental
 @item Java                     @tab experimental
+@item JavaScript               @tab experimental
 @item Coq                      @tab experimental
 @end multitable
 
