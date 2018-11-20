@@ -65,15 +65,15 @@ build-arch-sbcl:
     # up a new "latest" image, otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
       then
-          docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /gt/sel && unbuffer make check";
+          docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /root/quicklisp/local-projects/sel && unbuffer make check";
           if [ "$LISP" = "ccl" ];
           then
-          docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
+              docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
               docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY;
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
           fi
       else
-          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /gt/sel && unbuffer make check";
+          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /root/quicklisp/local-projects/sel && unbuffer make check";
       fi
 
 run-ubuntu-ccl:
@@ -138,7 +138,7 @@ pages:
   script:
     - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch-sbcl.container
     - mkdir -p $(dirname ${CONTAINER_FILE})
-    - docker run -e LOCAL_USER=root -e GT=yes --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-arch-sbcl /bin/bash -c "mkdir -p /public && cd /gt/sel && make doc && cp -R doc/software-evolution-library/* /public/"
+    - docker run -e LOCAL_USER=root -e GT=yes --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-arch-sbcl /bin/bash -c "mkdir -p /public && cd /root/quicklisp/local-projects/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(cat ${CONTAINER_FILE}):/public ./
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl

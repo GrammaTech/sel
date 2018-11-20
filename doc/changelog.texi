@@ -94,6 +94,10 @@ The ast, parseable, and source software objects are all ancestors of
 clang software objects so the related packages export symbols that are
 likely useful for anyone using the clang software object.
 
+This release also removes any use of qlot from SEL's CI infrastructure
+and deprecates the USER_QUICK_LISP environment variable which was
+redundant with the QUICK_LISP environment variable.
+
 @appendixsec 2018-10-17 v0.0.2 -- Unreleased
 @cindex changelog-2018-10-17
 @cindex v0.0.2

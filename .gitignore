@@ -115,14 +115,4 @@ tests.html
 
 local.mk
 
-Dockerfile
-
-# qlot
-qlfile
-qlfile.lock
-quicklisp
 system-index.txt
-
-# loaded libraries
-software-evolution-library.loaded
-software-evolution-library-test.loaded
