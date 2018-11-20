@@ -30,7 +30,6 @@
            :java-insert
            :java-make-literal
            :java-number
-           :java-project
            :java-jar-exec
            :get-files-jar
            :add-import))

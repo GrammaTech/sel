@@ -217,12 +217,9 @@
            :load-io-file
            :target-function
            :target-function-name
-           :mutants
            :create-all-simple-cut-variants
            :create-target
            :target-info
-           :line-heap
-           :function-index
            :evaluate-asm
            :leaf-functions
            :parse-sanity-file))

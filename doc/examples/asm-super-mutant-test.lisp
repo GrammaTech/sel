@@ -85,11 +85,11 @@
 ;;; Utility functions for evaluating/evolving asm-super software objects.
 (defun exclude-func (asm-super name)
   "Sets named function to non-leaf false (which excludes it)"
-  (let ((fstat-func (find name (function-index asm-super)
+  (let ((fstat-func (find name (sel/sw/asm-heap:function-index asm-super)
 			  :test 'equal
-			  :key 'sel::function-index-entry-name)))
+			  :key 'sel/sw/asm-heap:function-index-entry-name)))
     (if fstat-func
-	(setf (sel::function-index-entry-is-leaf fstat-func) nil))))
+	(setf (sel/sw/asm-heap:function-index-entry-is-leaf fstat-func) nil))))
 
 (defun test-all-leaf-functions (asm-path
 				io-dir
