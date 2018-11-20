@@ -18,7 +18,6 @@
            :reference
            :range-nth
            :range-subseq
-           :try-another-mutation
            :simple-mutation
            :simple-cut
            :simple-insert

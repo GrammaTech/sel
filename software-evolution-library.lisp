@@ -142,7 +142,8 @@
    :worst-numeric-fitness-p
    :*fitness-scalar-fn*
    :fitness-scalar
-   :ignore-failed-mutation))
+   :ignore-failed-mutation
+   :try-another-mutation))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -941,19 +942,24 @@ Default selection function for `tournament'."
 
 (defun new-individuals (count)
   "Generate COUNT new individuals from *POPULATION*."
-  (iter (with new-count = 0)
-        (restart-case
-            (multiple-value-bind (variant mutation-info)
-                (new-individual)
+  (labels ((safe-mutate ()
+             (restart-case
+                 (new-individual)
+               (ignore-failed-mutation ()
+                 :report "Ignore failed mutation and continue evolution"
+                 (values nil nil))
+               (try-another-mutation ()
+                 :report "Try another mutation"
+                 (safe-mutate)))))
+    (iter (with new-count = 0)
+          (multiple-value-bind (variant mutation-info)
+              (safe-mutate)
+            (unless (and (null variant) (null mutation-info))
               (collect variant into variants)
               (collect mutation-info into infos)
-              (incf new-count))
-
-          (ignore-failed-mutation ()
-            :report
-            "Ignore failed mutation and continue evolution"))
-        (while (< new-count count))
-        (finally (return (values variants infos)))))
+              (incf new-count)))
+          (while (< new-count count))
+          (finally (return (values variants infos))))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination.
@@ -1167,15 +1173,18 @@ Keyword arguments are as follows:
   "Reproduce using every individual in POPULATION.
 Return a list of the resulting children and as optional extra value a
 list of the mutations applied to produce those children."
-  (mapcar (lambda (parent)
-            (restart-case
-                (multiple-value-bind (child info)
-                    (new-individual parent (random-elt population))
-                  (push child children)
-                  (push info mutations))
-              (ignore-failed-mutation ()
-                :report "Ignore failed mutation and continue evolution")))
-          population)
+  (labels ((mutate (parent)
+             (restart-case
+                 (multiple-value-bind (child info)
+                     (new-individual parent (random-elt population))
+                   (push child children)
+                   (push info mutations))
+               (ignore-failed-mutation ()
+                 :report "Ignore failed mutation and continue evolution")
+               (try-another-mutation ()
+                 :report "Try another mutation"
+                 (mutate parent)))))
+    (mapcar #'mutate population))
   (values children mutations))
 
 (defun simple-evaluate (test new-children)

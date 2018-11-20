@@ -16,7 +16,7 @@
         ((no-mutation-targets
           (lambda (e)
             (declare (ignorable e))
-            (invoke-restart 'sel/sw/asm::try-another-mutation))))
+            (invoke-restart 'try-another-mutation))))
       (mutate (copy *orig*)))
   (let ((temp (temp-file-name "s")))
     ;; save MUTANT to temp file TEMP

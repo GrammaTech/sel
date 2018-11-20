@@ -37,7 +37,7 @@
                   ((no-mutation-targets
                     (lambda (e)
                       (declare (ignorable e))
-                      (invoke-restart 'sel/sw/asm::try-another-mutation))))
+                      (invoke-restart 'try-another-mutation))))
                 (mutate (copy *orig*)))))
     ((>= (length variants) 10) variants)
   ;; Test the fitness of the variant
