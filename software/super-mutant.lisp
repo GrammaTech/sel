@@ -178,7 +178,6 @@ the first return value.
                        #'proxy-phenome
                        #+sbcl
                        (lambda (args other)
-                         (format t "Calling proxy with ~S ~S~%" args other)
                          (apply #'proxy-phenome args))
                        #-(or sbcl ccl)
                        (error "make-phenome-proxy not implemented")
