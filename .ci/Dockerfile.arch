@@ -43,5 +43,5 @@ ARG REPORT
 COPY . /gt/sel
 
 WORKDIR /gt/sel
-RUN make
+RUN make real-clean all
 CMD /bin/bash
