@@ -68,31 +68,8 @@ Next: <a href="Usage.html#Usage" accesskey="n" rel="next">Usage</a>, Previous: <
 <h4 class="subsection">3.9.2 <code>lisp-diff</code></h4>
 <a name="index-lisp_002ddiff"></a>
 
-<p>The following git configuration will register lisp-diff as a tool
-to be used with <code>git difftool</code> (see
-<a href="https://git-scm.com/docs/git-difftool">https://git-scm.com/docs/git-difftool</a>).
+<p><code>fixme:</code> Temporarily include/lisp-diff.texi is unavailable.
 </p>
-<div class="example">
-<pre class="example">    # Set lisp-diff as the default difftool.
-    [diff]
-    	tool = lisp-diff
-
-    # Command-line to use with lisp-diff.  Piping through
-    # colordiff is optional but nice to highlight diffs.
-    [difftool &quot;lisp-diff&quot;]
-    	cmd = &quot;lisp-diff $LOCAL $REMOTE|colordiff&quot;
-
-    # Optionally don't prompt.
-    [difftool]
-    	prompt = false
-</pre></div>
-
-<p>See <code>Eclector/code/parse-result/second-climacs-test.lisp</code>.
-Note that this requires the <code>wip-parse-result-protocol-2</code>
-branch of Eclector (see
-<a href="https://github.com:robert-strandh/Eclector">https://github.com:robert-strandh/Eclector</a>).
-</p>
-
 
 
 

@@ -84,15 +84,15 @@ features of the surrounding source code.
 <h4 class="subsection">3.3.1 API Support for Style Features</h4>
 
 <p>API support for style features is documented in the entries for classes
-<a href="SEL-API-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyle_002dfeature"><code>style-feature</code></a>,
-<a href="SEL-API-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyleable"><code>styleable</code></a>, and
-<a href="SEL-API-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyle_002dproject"><code>style-project</code></a>. We provide a brief
+<a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyle_002dfeature"><code>style-feature</code></a>,
+<a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyleable"><code>styleable</code></a>, and
+<a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dclass_002dstyle_002dproject"><code>style-project</code></a>. We provide a brief
 overview here.
 </p>
 
-<p>To extract the set of <a href="SEL-API-Concept-Index.html#api_002dstyle_002dfeatures_002dvectors">feature vectors</a>
-from a <a href="SEL-API-Details.html#Class-software"><code>software</code></a> object use
-<a href="SEL-API-Details.html#Generic_002dFunction-extract_002dfeatures"><code>extract-features</code></a>,
+<p>To extract the set of <a href="SEL-Concept-Index.html#api_002dstyle_002dfeatures_002dvectors">feature vectors</a>
+from a <a href="software_002devolution_002dlibrary.html#Class-software"><code>software</code></a> object use
+<a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-extract_002dfeatures"><code>extract-features</code></a>,
 providing a software object and a list of feature extractor functions.
 </p>
 <p>Each feature extractor function is expected to operate on a clang
@@ -104,21 +104,21 @@ is the result of concatenating all of these vectors in order.
 software objects, i.e., features derived from properties of a clang
 AST. The available feature extractors are:
 </p><ul>
-<li> <a href="SEL-API-Concept-Index.html#api_002dclang_002dfeature_002dextractors">Included in the API documentation</a>.
-</li><li> Listed in parameter <a href="SEL-API-Details.html#Variable-_002afeature_002dextractors_002a"><code>*feature-extractors*</code></a>.
+<li> <a href="SEL-Concept-Index.html#api_002dclang_002dfeature_002dextractors">Included in the API documentation</a>.
+</li><li> Listed in parameter <a href="sel_002dsw_002dstyleable.html#Variable-_002afeature_002dextractors_002a"><code>*feature-extractors*</code></a>.
 </li><li> Summarized in the following table.
 
 
 <table>
-<tr><td><a href="SEL-API-Details.html#Generic_002dFunction-ast_002dnode_002dtype_002dtf_002dextractor">      <code>ast-node-type-tf-extractor</code></a></td><td>number of nodes of each different ast-class (e.g., IfStmt
+<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dnode_002dtype_002dtf_002dextractor">      <code>ast-node-type-tf-extractor</code></a></td><td>number of nodes of each different ast-class (e.g., IfStmt
 or DeclStmt) in the AST.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Generic_002dFunction-max_002ddepth_002dast_002dextractor">      <code>max-depth-ast-extractor</code></a></td><td>maximum depth of any node in the AST.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Generic_002dFunction-avg_002ddepth_002dast_002dextractor">           <code>avg-depth-ast-extractor</code></a></td><td>the average depth of nodes in the AST.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Generic_002dFunction-ast_002dfull_002dstmt_002dbi_002dgrams_002dextractor">              <code>ast-full-stmt-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram for
+<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-max_002ddepth_002dast_002dextractor">      <code>max-depth-ast-extractor</code></a></td><td>maximum depth of any node in the AST.</td></tr>
+<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-avg_002ddepth_002dast_002dextractor">           <code>avg-depth-ast-extractor</code></a></td><td>the average depth of nodes in the AST.</td></tr>
+<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dfull_002dstmt_002dbi_002dgrams_002dextractor">              <code>ast-full-stmt-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram for
            full statements in the AST.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Generic_002dFunction-ast_002dbi_002dgrams_002dextractor">           <code>ast-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram in the
+<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dbi_002dgrams_002dextractor">           <code>ast-bi-grams-extractor</code></a></td><td>the number of occurrences of each ast-class bi-gram in the
            AST.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Generic_002dFunction-ast_002dkeyword_002dtf_002dextractor">              <code>ast-keyword-tf-extractor</code></a></td><td>for each C keyword, the number of occurrences of that
+<tr><td><a href="sel_002dsw_002dstyleable.html#Generic_002dFunction-ast_002dkeyword_002dtf_002dextractor">              <code>ast-keyword-tf-extractor</code></a></td><td>for each C keyword, the number of occurrences of that
            keyword in the AST.</td></tr>
 </table>
 

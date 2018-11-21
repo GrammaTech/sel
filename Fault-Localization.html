@@ -84,9 +84,9 @@ during executions with negative test cases.&rdquo;  They use this
 comparison methodology to sort all statements executed during a given
 test suite.
 </p>
-<p>We have implemented this comparator as <a href="SEL-API-Details.html#Function-rinard_002dcompare"><code>rinard-compare</code></a>
-(used in <a href="SEL-API-Details.html#Function-rinard"><code>rinard</code></a>), along with an overall trace
-processing function, <a href="SEL-API-Details.html#Function-rinard_002dincremental"><code>rinard-incremental</code></a>.
+<p>We have implemented this comparator as <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dcompare"><code>rinard-compare</code></a>
+(used in <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard"><code>rinard</code></a>), along with an overall trace
+processing function, <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dincremental"><code>rinard-incremental</code></a>.
 </p>
 <a name="Usage-1"></a>
 <h4 class="subsection">3.6.1 Usage</h4>
@@ -94,8 +94,8 @@ processing function, <a href="SEL-API-Details.html#Function-rinard_002dincrement
 <p>Given a collection of test traces, call <code>rinard-incremental</code> and <code>rinard</code> (in that order) for processing and prioritization.
 </p>
 <table>
-<tr><td><a href="SEL-API-Details.html#Function-rinard_002dincremental"><code>rinard-incremental</code></a></td><td>Processes a trace for a single test, adding to historic data.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Function-rinard"><code>rinard</code></a></td><td>Once the traces are processed, this uses <a href="SEL-API-Details.html#Function-rinard_002dcompare"><code>rinard-compare</code></a> to perform the prioritization.</td></tr>
+<tr><td><a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dincremental"><code>rinard-incremental</code></a></td><td>Processes a trace for a single test, adding to historic data.</td></tr>
+<tr><td><a href="sel_002dcp_002dfault_002dloc.html#Function-rinard"><code>rinard</code></a></td><td>Once the traces are processed, this uses <a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dcompare"><code>rinard-compare</code></a> to perform the prioritization.</td></tr>
 </table>
 
 
@@ -108,8 +108,8 @@ processing function, <a href="SEL-API-Details.html#Function-rinard_002dincrement
 complex systems.  Thus, we&rsquo;ve included the ability to write-out/read-in fault localization results to facilitate subsequent runs, if fault localization is unlikely to change.  The two associated functions are:
 </p>
 <table>
-<tr><td><a href="SEL-API-Details.html#Function-rinard_002dwrite_002dout"><code>rinard-write-out</code></a></td><td>Write out fault localization to speed up subsequent trials.</td></tr>
-<tr><td><a href="SEL-API-Details.html#Function-rinard_002dread_002din"><code>rinard-read-in</code></a></td><td>Read in previously-written fault localization info.</td></tr>
+<tr><td><a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dwrite_002dout"><code>rinard-write-out</code></a></td><td>Write out fault localization to speed up subsequent trials.</td></tr>
+<tr><td><a href="sel_002dcp_002dfault_002dloc.html#Function-rinard_002dread_002din"><code>rinard-read-in</code></a></td><td>Read in previously-written fault localization info.</td></tr>
 </table>
 
 

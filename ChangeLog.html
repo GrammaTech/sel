@@ -77,9 +77,70 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 &ldquo;Unreleased&rdquo; section at the top of the ChangeLog.
 </p>
-<a name="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.1 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
+<a name="g_t2018_002d11_002d06-v0_002e1_002e0-_002d_002d-Use-package_002dinferred_002dsystem"></a>
+<h3 class="appendixsec">F.1 2018-11-06 v0.1.0 &ndash; Use package-inferred-system</h3>
 <a name="index-changelog_002d2018_002d10_002d17"></a>
+<a name="index-v0_002e0_002e3"></a>
+
+<p>SEL now uses the package-inferred-system feature of ASDF (see
+<a href="https://common-lisp.net/project/asdf/asdf/The-package_002dinferred_002dsystem-extension.html#The-package_002dinferred_002dsystem-extension">https://common-lisp.net/project/asdf/asdf/The-package_002dinferred_002dsystem-extension.html#The-package_002dinferred_002dsystem-extension</a>).
+This implicitly defines a system for every source file in the
+repository.  We then explicitly define a package for every source file
+at the top of the source file.  These packages explicitly list the
+dependencies of the source file (with :use) and the symbols exported
+by the source file (with :export).
+</p>
+<p>The result is:
+</p>
+<ul>
+<li> An explicit flow of dependencies within the SEL project as opposed to
+a single giant namespace in/from which all symbols are created and
+used.  This refactoring exposed some instances of circular
+dependencies and cases where the intended symbols was actually not
+being used.
+
+</li><li> The ability to load specific subsets of SEL.  E.g., projects without
+instrumentation/tracing no longer need to build/load trace-db,
+projects without the rest api don&rsquo;t need to load a web-server,
+projects without test-suite don&rsquo;t need to load run-program which can
+cause problems on some lisps.
+
+</li><li> Much faster load/compile times in many cases (due to better physical
+design and finer granularity of dependencies).
+
+</li></ul>
+
+<p>Instead of simply using the SOFTWARE-EVOLUTION-LIBRARY package clients
+should now use the specific packages they need.  Packages are divided
+into &ldquo;<code>software</code>&rdquo; and &ldquo;<code>components</code>&rdquo; packages.  So,
+e.g., a project using Clang software objects and using lexicase
+selection would most likely use the following packages.
+</p>
+<div class="lisp">
+<pre class="lisp">(defpackage :example
+  (:use :common-lisp
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
+        :software-evolution-library/software/clang
+        :software-evolution-library/components/lexicase))
+</pre></div>
+
+<p>Note that the above example uses
+<code>sel/sw/{ast,parseable,source}</code> as well as <code>sel/sw/clang</code>.
+The ast, parseable, and source software objects are all ancestors of
+clang software objects so the related packages export symbols that are
+likely useful for anyone using the clang software object.
+</p>
+<p>This release also removes any use of qlot from SEL&rsquo;s CI infrastructure
+and deprecates the USER_QUICK_LISP environment variable which was
+redundant with the QUICK_LISP environment variable.
+</p>
+<a name="g_t2018_002d10_002d17-v0_002e0_002e2-_002d_002d-Unreleased"></a>
+<h3 class="appendixsec">F.2 2018-10-17 v0.0.2 &ndash; Unreleased</h3>
+<a name="index-changelog_002d2018_002d10_002d17-1"></a>
 <a name="index-v0_002e0_002e2"></a>
 
 <ul>
@@ -92,7 +153,7 @@ and version number.  Working notes may be accumulated in a special
 </li></ul>
 
 <a name="g_t2018_002d08_002d21-v0_002e0_002e1-_002d_002d-Unreleased"></a>
-<h3 class="appendixsec">F.2 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
+<h3 class="appendixsec">F.3 2018-08-21 v0.0.1 &ndash; Unreleased</h3>
 <a name="index-changelog_002d2018_002d08_002d21"></a>
 <a name="index-v0_002e0_002e1"></a>
 
@@ -121,7 +182,7 @@ project.
 </li></ul>
 
 <a name="g_t2018_002d07_002d25-v0_002e0_002e0-_002d_002d-Initial-Release-to-Quicklisp"></a>
-<h3 class="appendixsec">F.3 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
+<h3 class="appendixsec">F.4 2018-07-25 v0.0.0 &ndash; Initial Release to Quicklisp</h3>
 <a name="index-changelog_002d2018_002d07_002d25"></a>
 <a name="index-v0_002e0_002e0"></a>
 

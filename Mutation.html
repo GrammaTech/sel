@@ -69,28 +69,29 @@ Next: <a href="Evaluation.html#Evaluation" accesskey="n" rel="next">Evaluation</
 <a name="index-example-mutation"></a>
 
 
-<p>The <a href="SEL-API-Details.html#Generic_002dFunction-mutate"><code>mutate</code></a> method applies a random mutation to a
-<a href="SEL-API-Details.html#Class-software"><code>software</code></a> object and returns two values: the mutated
-object and a <a href="SEL-API-Details.html#Class-mutation"><code>mutation</code></a> object describing the mutation
+<p>The <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a> method applies a random mutation to a
+<a href="software_002devolution_002dlibrary.html#Class-software"><code>software</code></a> object and returns two values: the mutated
+object and a <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a> object describing the mutation
 that was applied.
 </p>
 <p>The following example applies a random mutation to <code>gcd.s</code>.
 </p>
 
 <ol>
-<li> Uses <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a> to load <code>gcd.s</code> into a new <a href="SEL-API-Details.html#Class-asm"><code>asm</code></a> software object, <code>orig</code>.
+<li> Uses <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a> to load <code>gcd.s</code> into a new <a href="sel_002dsw_002dasm.html#Class-asm"><code>asm</code></a> software object, <code>orig</code>.
 
-</li><li> Applies <a href="SEL-API-Details.html#Generic_002dFunction-mutate"><code>mutate</code></a> to mutate a deep <a href="SEL-API-Details.html#Generic_002dFunction-copy"><code>copy</code></a> of <code>orig</code>.
+</li><li> Applies <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a> to mutate a deep <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-copy"><code>copy</code></a> of <code>orig</code>.
 
-</li><li> Writes the mutated object to disk with <a href="SEL-API-Details.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>.
+</li><li> Writes the mutated object to disk with <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>.
 
-</li><li> Prints the <a href="SEL-API-Details.html#Class-mutation"><code>mutation</code></a> that was applied.
+</li><li> Prints the <a href="software_002devolution_002dlibrary.html#Class-mutation"><code>mutation</code></a> that was applied.
 </li></ol>
 
 <pre class="verbatim">(defpackage :example
   (:use :common-lisp
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/asm
         :split-sequence))
 (in-package :example)
 
@@ -126,13 +127,13 @@ tmp/fileLfs6Mf.s&quot;.
 
 
 <ul>
-<li> Class <a href="SEL-API-Details.html#Class-asm"><code>asm</code></a>
+<li> Class <a href="sel_002dsw_002dasm.html#Class-asm"><code>asm</code></a>
 </li><li> Methods
   <ul>
-<li> <a href="SEL-API-Details.html#Generic_002dFunction-copy"><code>copy</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-mutate"><code>mutate</code></a>
-  </li><li> <a href="SEL-API-Details.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>
+<li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-copy"><code>copy</code></a>
+  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a>
+  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>
   </li></ul>
 </li></ul>
 

@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>REST API (Software Evolution Library)</title>
+
+<meta name="description" content="REST API (Software Evolution Library)">
+<meta name="keywords" content="REST API (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="Implementation.html#Implementation" rel="up" title="Implementation">
+<link href="Components.html#Components" rel="next" title="Components">
+<link href="Search-Functions.html#Search-Functions" rel="prev" title="Search Functions">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="REST-API"></a>
+<div class="header">
+<p>
+Next: <a href="Components.html#Components" accesskey="n" rel="next">Components</a>, Previous: <a href="Search-Functions.html#Search-Functions" accesskey="p" rel="prev">Search Functions</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<a name="REST-API-1"></a>
+<h3 class="section">2.6 REST API</h3>
+<a name="index-rest-api"></a>
+
+
+<p>Rest API for Software Evolution Library
+</p>
+<p>The Rest API for Software Evolution Library is implemented as a web
+service which may be accessed via HTTP operations.
+</p>
+<p>It attempts to conform to principals described here:
+<a href="https://en.wikipedia.org/wiki/Representational_state_transfer">Representational State Transfer</a>
+</p>
+<a name="Dependencies"></a>
+<h4 class="subsection">2.6.1 Dependencies</h4>
+
+<p>The Rest API leverages a number of Common Lisp components, which
+are open-source and generally available via Quicklisp.  These
+packages support JSON <code>&lt;-&gt;</code> Common Lisp translations, JSON
+streaming, HTTP web server functions, client HTTP support and
+RESTful interface utilities.
+</p>
+
+<dl compact="compact">
+<dt><em><code>cl-json</code></em></dt>
+<dd><p>Parse and generate JSON format
+</p>
+</dd>
+<dt><em><code>st-json</code></em></dt>
+<dd><p>Stream support for JSON format
+</p>
+</dd>
+<dt><em><code>clack</code></em></dt>
+<dd><p>utility to easily launch web services
+</p>
+</dd>
+<dt><em><code>drakma</code></em></dt>
+<dd><p>http client utilities for Common Lisp (for calling Rest
+     APIs/testing
+</p>
+</dd>
+<dt><em><code>hunchentoot</code></em></dt>
+<dd><p>Web server, written in Common Lisp, hosts Rest APIs
+</p>
+</dd>
+<dt><em><code>snooze</code></em></dt>
+<dd><p>Rest API framework
+</p>
+</dd>
+</dl>
+
+<a name="Running-the-Rest-API-Web-Service"></a>
+<h4 class="subsection">2.6.2 Running the Rest API Web Service</h4>
+
+<p>Starting the server:
+</p>
+<div class="example">
+<pre class="example">    (setf *handler* (clack:clackup (snooze:make-clack-app) :port 9003))
+</pre></div>
+
+<p>Stopping the server:
+</p>
+<div class="example">
+<pre class="example">    (clack:stop *handler*)
+</pre></div>
+
+<a name="Resources-and-Operations"></a>
+<h4 class="subsection">2.6.3 Resources and Operations</h4>
+
+<p>A Rest API supports logical resources. This section lists the logical
+resources supported by the <code>sel</code> Rest APIs. In some cases (e.g. Software)
+there is a class hierarchy in the <code>sel</code> package which directly models the
+resource. Or rather, the resource can be thought to be a distillation
+of the methods of that class. In other cases (e.g. Populations) there
+isn&rsquo;t a specific class in <code>sel</code>. The Rest API resource in this course
+provides a way to name and manage lists of Software objects.
+</p>
+<a name="Resources"></a>
+<h4 class="subsubsection">2.6.3.1 Resources</h4>
+
+<p>The following types of resources are supported.
+</p>
+
+<dl compact="compact">
+<dt><em>Software</em></dt>
+<dd><p>Any non-abstract class that inherits from <code>software</code>
+</p>
+
+</dd>
+<dt><em>Mutations</em></dt>
+<dd><p><code>sel</code> mutation objects.
+</p>
+
+</dd>
+<dt><em>Populations</em></dt>
+<dd><p>Collections of software objects, which may change rapidly (evolution).
+</p>
+
+</dd>
+<dt><em>Jobs</em></dt>
+<dd><p>Any long running operation which starts a task and returns to
+    the client immediately.  Examples of jobs include running
+    evolutions, fitness tests across large populations, and
+    searches.
+</p>
+
+</dd>
+<dt><em>Directories</em></dt>
+<dd><p>Lists (dictionaries) of sel-supported options software types,
+    with meta-data for each type to support create/update mutation
+    types.
+</p>
+
+</dd>
+<dt><em>Client sessions</em></dt>
+<dd><p>establish ownership of a jobs, software objects, populations, etc.
+</p>
+
+</dd>
+<dt><em>Test Suites</em></dt>
+<dd><p>Lists of Test Cases, which each include references to an
+    executable file and some command-line argumants. These are
+    used to evaluate Software objects.
+</p>
+
+</dd>
+<dt><em>Scions</em></dt>
+<dd><p>Patterns defined by Bug-Injector to describe software bugs
+    (this is a work still in progress)
+</p>
+
+</dd>
+<dt><em>Traces</em></dt>
+<dd><p>Models and manages the data collected from running test suites against
+    instrumented Software objects. (work in progress)
+</p>
+
+</dd>
+</dl>
+
+<a name="Operations-on-resources"></a>
+<h4 class="subsubsection">2.6.3.2 Operations on resources</h4>
+
+<p>Note: all operations (other than session create) require a client-ID
+parameter. Although only specified in the first ones below, all others
+require it as well.
+</p>
+<p>Client:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/client</code> Create a new client.  Body
+    <code>(json) </code>contains initial values for special variable settings.
+    Returns the Client-ID.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/client&amp;cid=&lt;client-ID&gt;</code> Delete
+    the client session, and cause all the software objects
+    owned by the client to become garbage.
+</p>
+</dd>
+</dl>
+
+<p>Software:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/soft?cid=&lt;client-ID&gt;&amp;type=&lt;software-type&gt;</code>
+    Body, JSON format, contains path (to C file, AST, Asm file,
+    etc.), or a <code>url</code> to a file, or the actual source code which
+    would comprise the file.  If the body simply contains a
+    software <code>id</code> (sid), makes a copy of the software object.
+    All JSON fields which are not [path, url, code,
+    software-id] are passed as keyword parameters to
+    <code>(make-instance '&lt;software-type&gt; &amp;key)</code>.  Returns a software
+    object <code>id</code> of newly created software.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/soft?cid=&lt;client-ID&gt;&amp;sid=&lt;software
+    ID&gt;</code> Returns JSON describing software object (differs
+    depending on type of software).
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/soft?type=&lt;software type&gt;</code> Returns
+    IDs of live software objects of the passed type, owned by
+    the client.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/soft</code> Return IDs of all live
+    software objects owned by the client.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/soft?sid=&lt;software ID&gt;</code> Update a
+    software object.  Body <code>(json) </code>contains slots to update, new
+    values.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/soft?sid=&lt;software ID&gt;</code> Delete a
+    software object.  (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Population:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/population?name=&lt;population-name&gt;</code>
+    Creates a Population resource, owned by the client,
+    containing software objects of the specified type.  Body
+    should contain, JSON format, list of Software-ID (sid) to
+    include in population, and software type.  Returns the <code>id</code>
+    of newly created Population (pid).
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/pop?pid=&lt;Population-ID&gt;</code> Adds the
+    specified sid(s) to the population.  Body <code>(json) </code>contains
+    sid field, which is a list of sids to add.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/pop?pid=&lt;Population-ID&gt;</code> Retrieves
+    information about the population, including list of
+    Software-IDs and software type.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/pop?pid=&lt;Population-ID&gt;</code> Delete
+    the population.  (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Async-Job:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/async?type=&lt;job-type&gt;</code> Body
+    contains <code>(json) </code>parameters for <code>evolve</code> task, <code>fitness-test</code> or
+    other defined type of task.  Returns immediately with a
+    Job-ID (jid).  Creating a Job starts a task (on a new
+    thread) which will execute until stopped or completed.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/async?jid=&lt;Job-ID&gt;</code> Returns JSON
+    containing job status and results.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/async?jid=&lt;Job-ID&gt;&amp;&lt;update-vars&gt;</code>
+    Allows some control of the task, such as stopping the task.
+</p>
+</dd>
+</dl>
+
+<p>Mutation:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p>@{&lt;service-base&gt;/sel/mut?type=&lt;mutation-type&gt;&amp;sid=&lt;software-id&gt;}
+    Body <code>(json) </code>contains targets field (integer, list, or ast).
+    Returns mutation-id (mid).
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/mut?mid=&lt;mutation-id&gt;</code> Returns
+    mutation details.
+</p>
+</dd>
+<dt><em><code>put</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/mut?mid=&lt;mutation-id&gt;</code> Apply
+    mutation to its target software object, returns the sid of
+    the new (mutated) software object.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>service-base&gt;/sel/mut?mid=&lt;mutation-id&gt;</code>
+    Delete the specified mutation. (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Directories:
+</p>
+
+<dl compact="compact">
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/dir/software</code> Returns list of types
+    of software which may be intantiated.  (work in progress)
+</p>
+</dd>
+</dl>
+
+<p>Test Suites:
+</p>
+
+<dl compact="compact">
+<dt><em><code>post</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/tests</code> Creates a <code>test-suite</code>
+    instance, owned by the client, containing a collection of
+    <code>test-suite</code> objects.  Body should contain &quot;test&quot; field, JSON
+    format, array of structures, each containing program-name
+    and program-args.  Returns oid of newly created tests
+    suite.
+</p>
+</dd>
+<dt><em><code>get</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/sel/tests?oid=&lt;test-suite-oid&gt;</code>
+    Retrieves collection of test cases in the test-suite.
+</p>
+</dd>
+<dt><em><code>delete</code></em></dt>
+<dd><p><code>&lt;service-base&gt;/tests?pid=&lt;test-suite-oid&gt;</code> Delete
+    the test suite.  (work in progress)
+</p>
+</dd>
+</dl>
+
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="Components.html#Components" accesskey="n" rel="next">Components</a>, Previous: <a href="Search-Functions.html#Search-Functions" accesskey="p" rel="prev">Search Functions</a>, Up: <a href="Implementation.html#Implementation" accesskey="u" rel="up">Implementation</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>

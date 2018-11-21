@@ -81,7 +81,7 @@ allows for querying of Coq documents and serializes ASTs to S-expressions.
 <p>The &lsquo;coq&rsquo; and &lsquo;coq-project&rsquo; software objects, implemented in &lsquo;coq.lisp&rsquo; and
 &lsquo;coq-project.lisp&rsquo;, respectively, are higher-level abstractions built on
 &lsquo;serapi-io&rsquo;. Ideally, clients should only have to construct software objects
-anduse <code>api</code> functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
+anduse API functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
 having to worry about the lower-level functions.
 </p>
 <a name="Setting-up-SerAPI"></a>
@@ -113,7 +113,7 @@ syntax trees (ASTs) and is described in-depth in its own section.
 <p>The &lsquo;coq&rsquo; and &lsquo;coq-project&rsquo; software objects, implemented in &lsquo;coq.lisp&rsquo; and
 &lsquo;coq-project.lisp&rsquo;, respectively, are higher-level abstractions built on
 &lsquo;serapi-io&rsquo;. Ideally, clients should only have to construct software objects
- and use <code>api</code> functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
+ and use API functions provided by &lsquo;coq.lisp&rsquo; or &lsquo;coq-project.lisp&rsquo; without
  having to worry about the lower-level functions.
 </p>
 <a name="Creating-Coq-Objects"></a>
@@ -141,7 +141,7 @@ syntax trees (ASTs) and is described in-depth in its own section.
 <p>If you don&rsquo;t have a _CoqProject file, you may omit the &lsquo;:project-file&rsquo;
 keyword.
 </p>
-<p>Since many <code>api</code> functions require interactions with SerAPI, a &lsquo;with-serapi&rsquo;
+<p>Since many API functions require interactions with SerAPI, a &lsquo;with-serapi&rsquo;
 macro is provided to automatically create a sertop process. This works by
 binding the dynamic variable &lsquo;*serapi-process*&rsquo; to an interactive sertop
 process. This is important to be aware of if you intend to use multiple

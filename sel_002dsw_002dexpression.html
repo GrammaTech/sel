@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- This file documents the Software Evolution library
+
+Copyright (C) 2014-2018 Eric Schulte and GrammaTech
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3
+or any later version published by the Free Software Foundation;
+with the Invariant Section being "GNU GENERAL PUBLIC LICENSE,"
+A copy of the license is included in the section entitled
+"GNU Free Documentation License." -->
+<!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>sel-sw-expression (Software Evolution Library)</title>
+
+<meta name="description" content="sel-sw-expression (Software Evolution Library)">
+<meta name="keywords" content="sel-sw-expression (Software Evolution Library)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html#Top" rel="start" title="Top">
+<link href="Index.html#Index" rel="index" title="Index">
+<link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
+<link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
+<link href="sel_002dsw_002dforth.html#sel_002dsw_002dforth" rel="next" title="sel-sw-forth">
+<link href="sel_002dsw_002delf_002drisc.html#sel_002dsw_002delf_002drisc" rel="prev" title="sel-sw-elf-risc">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+blockquote.smallindentedblock {margin-right: 0em; font-size: smaller}
+blockquote.smallquotation {font-size: smaller}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+div.smalldisplay {margin-left: 3.2em}
+div.smallexample {margin-left: 3.2em}
+div.smalllisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+pre.smalldisplay {font-family: inherit; font-size: smaller}
+pre.smallexample {font-size: smaller}
+pre.smallformat {font-family: inherit; font-size: smaller}
+pre.smalllisp {font-size: smaller}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<a name="sel_002dsw_002dexpression"></a>
+<div class="header">
+<p>
+Next: <a href="sel_002dsw_002dforth.html#sel_002dsw_002dforth" accesskey="n" rel="next">sel-sw-forth</a>, Previous: <a href="sel_002dsw_002delf_002drisc.html#sel_002dsw_002delf_002drisc" accesskey="p" rel="prev">sel-sw-elf-risc</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+<hr>
+<a name="sel_002dsw_002dexpression-1"></a>
+<h3 class="section">C.25 sel-sw-expression</h3>
+<a name="Condition-eval_002derror"></a><dl>
+<dt><a name="index-eval_002derror"></a>Condition: <strong>eval-error</strong></dt>
+<dd><p>Class precedence list: <code>eval-error, error, serious-condition, condition, t</code>
+</p>
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-add_002dsubtract"></a><dl>
+<dt><a name="index-add_002dsubtract"></a>Class: <strong>add-subtract</strong></dt>
+<dd><p>Class precedence list: <code>add-subtract, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-add_002dsubtract_002dscope"></a><dl>
+<dt><a name="index-add_002dsubtract_002dscope"></a>Class: <strong>add-subtract-scope</strong></dt>
+<dd><p>Class precedence list: <code>add-subtract-scope, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-add_002dsubtract_002dtree"></a><dl>
+<dt><a name="index-add_002dsubtract_002dtree"></a>Class: <strong>add-subtract-tree</strong></dt>
+<dd><p>Class precedence list: <code>add-subtract-tree, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-change_002dconstant"></a><dl>
+<dt><a name="index-change_002dconstant"></a>Class: <strong>change-constant</strong></dt>
+<dd><p>Class precedence list: <code>change-constant, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-change_002doperator"></a><dl>
+<dt><a name="index-change_002doperator"></a>Class: <strong>change-operator</strong></dt>
+<dd><p>Class precedence list: <code>change-operator, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-clang_002dexpression"></a><dl>
+<dt><a name="index-clang_002dexpression"></a>Class: <strong>clang-expression</strong></dt>
+<dd><p>Class precedence list: <code>clang-expression, expression, lisp, simple, software, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>scope</code> &mdash; initarg: <code>:scope<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/expression:scope</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/expression:scope)</span><!-- /@w --></code>
+
+<p>List of in-scope variable names.
+</p></li></ul>
+
+<p>C arithmetic expressions represented as trees to allow direct evaluation.
+</p></dd></dl>
+<a name="Class-demote_002dbinop_002dleft"></a><dl>
+<dt><a name="index-demote_002dbinop_002dleft"></a>Class: <strong>demote-binop-left</strong></dt>
+<dd><p>Class precedence list: <code>demote-binop-left, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-demote_002dbinop_002dright"></a><dl>
+<dt><a name="index-demote_002dbinop_002dright"></a>Class: <strong>demote-binop-right</strong></dt>
+<dd><p>Class precedence list: <code>demote-binop-right, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-expression"></a><dl>
+<dt><a name="index-expression"></a>Class: <strong>expression</strong></dt>
+<dd><p>Class precedence list: <code>expression, lisp, simple, software, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>scope</code> &mdash; initarg: <code>:scope<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/expression:scope</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/expression:scope)</span><!-- /@w --></code>
+
+<p>List of in-scope variable names.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-mult_002ddivide"></a><dl>
+<dt><a name="index-mult_002ddivide"></a>Class: <strong>mult-divide</strong></dt>
+<dd><p>Class precedence list: <code>mult-divide, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-random_002dsubtree"></a><dl>
+<dt><a name="index-random_002dsubtree"></a>Class: <strong>random-subtree</strong></dt>
+<dd><p>Class precedence list: <code>random-subtree, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-subtract_002dadd"></a><dl>
+<dt><a name="index-subtract_002dadd"></a>Class: <strong>subtract-add</strong></dt>
+<dd><p>Class precedence list: <code>subtract-add, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+<a name="Class-subtract_002dadd_002dtree"></a><dl>
+<dt><a name="index-subtract_002dadd_002dtree"></a>Class: <strong>subtract-add-tree</strong></dt>
+<dd><p>Class precedence list: <code>subtract-add-tree, mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> targets.
+</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
+
+<p>A function from software <code>-&gt;</code> random target.
+</p></li></ul>
+
+<p><code>docfixme</code>
+</p></dd></dl>
+
+<hr>
+<div class="header">
+<p>
+Next: <a href="sel_002dsw_002dforth.html#sel_002dsw_002dforth" accesskey="n" rel="next">sel-sw-forth</a>, Previous: <a href="sel_002dsw_002delf_002drisc.html#sel_002dsw_002delf_002drisc" accesskey="p" rel="prev">sel-sw-elf-risc</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+</div>
+
+
+
+</body>
+</html>
