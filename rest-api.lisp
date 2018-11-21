@@ -300,6 +300,15 @@
       (setf (gethash (session-id session-obj) *session-pool*) session-obj)
       (session-id session-obj)))
 
+(defun convert-symbol (string)
+  "If a string contains '::' then convert it to a symbol if possible."
+  (if (and (stringp string)(search "::" string))
+    (let ((sym (read-from-string string)))
+      (if (symbolp sym)
+  	sym
+	string))
+    string))
+
 (defroute
     soft (:post "application/json" &key cid (sid nil) (type nil))
     (declare (ignore sid))
@@ -310,22 +319,24 @@
 	   (client (lookup-session cid))
 	   (path (cdr (assoc :path json)))
 	   (url (cdr (assoc :url json)))
-	   (code (cdr (assoc :code json))))
+	   (code (cdr (assoc :code json)))
+	   (software-type (convert-symbol type))) ; convert string to symbol
       (declare (ignore url code)) ; not implemented yet
       (if path
 	  (let ((software
 		 (from-file
 		  (apply 'make-instance
-			 type
+			 software-type
 			 (iter (for x in json)
 			       (unless
 				   (member (car x)
-					   '(:path :url :code :software-id))
+					   '(:path :project-dir
+					     :url :code :software-id))
 				 (collect (car x))
-				 (collect (cdr x)))))
+				 (collect (convert-symbol (cdr x))))))
 		  path)))
 	    ;; store the software obj with the session
-	    (push software (session-software client))
+	    (push (format-genome software) (session-software client))
 	    (format nil "~D" (sel::oid software))))))
 
 (defun find-software (client sid)
@@ -346,7 +357,8 @@
 		      :class (format nil "~A"
 				     (class-name (class-of software)))
 		      :size (format nil "~D" (size software))
-		      :fitness (fitness software))))
+		      :fitness (fitness software)
+		      :instrumented (instrumented-p software))))
 	      (let ((ids (iter (for x in (session-software client))
 			       (if (or (null type)
 				       (eq (class-name (class-of x)) type))
