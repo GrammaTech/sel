@@ -75,11 +75,42 @@
 ;;; a reset point before returning.
 ;;;
 ;;; @texi{coq}
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/coq
+  (:nicknames :sel/software/coq :sel/sw/coq)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :split-sequence
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/lisp
+        :software-evolution-library/components/serapi-io)
+  (:shadowing-import-from :uiop :pathname-directory-pathname)
+  (:export :coq
+           :coq-project
+           :ast-ids
+           :project-file
+           :file-source
+           :imports
+           :reset-and-load-imports
+           :init-coq-project
+           :find-nearest-type
+           :pick-subtree-matching-type
+           :pick-typesafe-bad-good
+           :type-safe-swap
+           :tag-loc-info
+           :untag-loc-info
+           :lookup-source-strings
+           :coq-type-checks))
+(in-package :software-evolution-library/software/coq)
 (in-readtable :serapi-readtable)
 
 ;; Coq object
-(define-software coq (lisp)
+(define-software coq (lisp)             ; NOTE: Why inherit from lisp?
   ((ast-ids
     :initarg :ast-ids :accessor ast-ids :initform nil :copier copy-tree
     :documentation "List of IDs for the ASTs when they were loaded.")
@@ -224,7 +255,7 @@ Return NIL if source strings cannot be looked up."
   "Look up source strings for Coq OBJ ASTs and write to PATH."
   (with-open-file (out path :direction :output :if-exists :supersede)
     (format out "~{~a~%~^~}"
-            (mapcar #'sel/serapi-io::unescape-string
+            (mapcar #'sel/cp/serapi-io::unescape-string
                     (lookup-source-strings obj :include-imports t)))))
 
 
@@ -249,7 +280,7 @@ See also `tag-loc-info'."
              (cond
                ((and (listp tree) (eql :loc (car tree)))
                 (values nil
-                        (1- (+ index (sel::tree-size tree)))))
+                        (1- (+ index (tree-size tree)))))
                ((consp tree)
                 (bind (((:values car-stmts car-index)
                         (descend (car tree) (1+ index)))
@@ -298,8 +329,8 @@ If none exist, raise a `no-mutation-targets' error."
   "For object COQ, find the nearest tag for the subtree at INDEX in the genome.
 Search by checking the first element of subtrees, moving forward from INDEX if
 needed. If the end of the genome is reached, search backward instead."
-  (let ((max-index (sel::tree-size (genome coq)))
-        (start-ast (sel::subtree (genome coq) index)))
+  (let ((max-index (tree-size (genome coq)))
+        (start-ast (subtree (genome coq) index)))
     (labels ((forward-type-and-index (tree idx)
                (cond
                  ((and (consp tree) (car tree) (symbolp (car tree)))
@@ -308,7 +339,7 @@ needed. If the end of the genome is reached, search backward instead."
                  ((>= idx max-index)
                   (values nil idx))
                  (t (forward-type-and-index
-                     (sel::subtree (genome coq) (1+ idx))
+                     (subtree (genome coq) (1+ idx))
                      (1+ idx)))))
              (backward-type-and-index (tree idx)
                (cond
@@ -317,7 +348,7 @@ needed. If the end of the genome is reached, search backward instead."
                  ((zerop idx)
                   (values nil idx))
                  (t (backward-type-and-index
-                     (sel::subtree (genome coq) (1- idx))
+                     (subtree (genome coq) (1- idx))
                      (1- idx))))))
       (bind (((:values type idx) (forward-type-and-index start-ast index)))
         (if type
@@ -369,15 +400,15 @@ condition."
     (let ((s1 (max s1 s2))
           (s2 (min s1 s2)))
       (with-slots (genome) obj
-        (let ((left  (copy-tree (sel::subtree genome s1)))
-              (right (copy-tree (sel::subtree genome s2))))
+        (let ((left  (copy-tree (subtree genome s1)))
+              (right (copy-tree (subtree genome s2))))
           ;; Need the 1- so that we change the whole subtree and not just
           ;; the car (because `setf' for subtrees uses rplaca)
-          (setf (sel::subtree genome (if (or (listp (car left)) (zerop s1))
+          (setf (subtree genome (if (or (listp (car left)) (zerop s1))
                                          s1
                                          (1- s1)))
                 right)
-          (setf (sel::subtree genome (if (or (listp (car right)) (zerop s2))
+          (setf (subtree genome (if (or (listp (car right)) (zerop s2))
                                          s2
                                          (1- s2)))
                 left)))))

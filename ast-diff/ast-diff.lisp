@@ -26,11 +26,12 @@
 ;;; @node @code{lisp-diff}, Usage, @code{clang-diff}, AST Differencing
 ;;; @subsection @code{lisp-diff}
 ;;; @cindex lisp-diff
-;;; @include include/lisp-diff.texi
+;;;
+;;; FIXME: Temporarily include/lisp-diff.texi is unavailable.
 ;;;
 ;;; @texi{ast-diff}
-(defpackage :software-evolution-library/ast-diff
-  (:nicknames :sel/ast-diff)
+(defpackage :software-evolution-library/ast-diff/ast-diff
+  (:nicknames :sel/ast-diff :software-evolution-library/ast-diff)
   (:use
    :common-lisp
    :software-evolution-library/utility
@@ -42,7 +43,6 @@
    :iterate
    :cl-heap)
   (:export
-   :ast-equal-p
    :ast-cost
    :ast-can-recurse
    :ast-on-recurse
@@ -61,6 +61,7 @@
    ;; :cnull
    ;; :ccar
    ;; :cdar
+   :ast-equal-p
    :ast-diff
    :ast-diff-elide-same
    :ast-patch
@@ -69,7 +70,7 @@
    :chunk
    :diff3
    :show-chunks))
-(in-package :software-evolution-library/ast-diff)
+(in-package :software-evolution-library/ast-diff/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 ;;; Comments on further algorithm improvements
 ;;;
@@ -800,16 +801,18 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                           (insert-start "{+")
                           (insert-end "+}"))
   (let ((*print-escape* nil))
-    (mapc (lambda-bind ((type . content))
-            (ecase type
-              (:same (write (ast-text content) :stream stream))
-              (:delete (write delete-start :stream stream)
-                       (write (ast-text content) :stream stream)
-                       (write delete-end :stream stream))
-              (:insert (write insert-start :stream stream)
-                       (write (ast-text content) :stream stream)
-                       (write insert-end :stream stream))
-              (:recurse (print-diff content stream delete-start delete-end insert-start insert-end))))
+    (mapc (lambda (pair)
+            (destructuring-bind (type . content) pair
+              (ecase type
+                (:same (write (ast-text content) :stream stream))
+                (:delete (write delete-start :stream stream)
+                         (write (ast-text content) :stream stream)
+                         (write delete-end :stream stream))
+                (:insert (write insert-start :stream stream)
+                         (write (ast-text content) :stream stream)
+                         (write insert-end :stream stream))
+                (:recurse (print-diff content stream delete-start
+                                      delete-end insert-start insert-end)))))
           (if (equalp '(:same) (lastcar diff)) (butlast diff) diff))))
 
 

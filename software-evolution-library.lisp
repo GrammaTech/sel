@@ -1,5 +1,150 @@
 ;;; software-evolution-library.lisp --- Extant Software Evolution
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software-evolution-library
+  (:nicknames :sel :software-evolution-library)
+  (:use
+   :common-lisp
+   :alexandria
+   :arrow-macros
+   :named-readtables
+   :curry-compose-reader-macros
+   :iterate
+   :closer-mop
+   :uiop
+   :bordeaux-threads
+   :cl-ppcre
+   :cl-store
+   :split-sequence
+   :software-evolution-library/utility
+   :usocket
+   :fast-io)
+  (:shadow :elf :size :type :magic-number :diff :insert :index)
+  (:shadowing-import-from :software-evolution-library/utility :quit)
+  (:shadowing-import-from :uiop :getenv :directory-exists-p)
+  (:shadowing-import-from :iterate :iter :for :until :collecting :in)
+  (:shadowing-import-from
+   :closer-mop
+   :standard-method :standard-class :standard-generic-function
+   :defmethod :defgeneric)
+  (:shadowing-import-from
+   :alexandria
+   :appendf :ensure-list :featurep :emptyp
+   :if-let :ensure-function :ensure-gethash :copy-file :copy-stream
+   :parse-body :simple-style-warning)
+  (:export
+   :+software-evolution-library-dir+
+   :+software-evolution-library-version+
+   :+software-evolution-library-branch+
+   ;; software objects
+   :oid-object
+   :software
+   :define-software
+   :edits
+   :fitness
+   :fitness-extra-data
+   :mutation-stats
+   :*mutation-improvements*
+   :*crossover-stats*
+   :genome
+   :phenome
+   :phenome-p
+   :ignore-phenome-errors
+   :return-nil-for-bin
+   :retry-project-build
+   :evaluate
+   :copy
+   :size
+   :lines
+   :line-breaks
+   :genome-string
+   :pick
+   :pick-good
+   :pick-bad
+   :mutation-targets
+   :mutate
+   :no-mutation-targets
+   :pick-mutation-type
+   :create-super
+   :*mutation-stats*
+   :build-op
+   :apply-mutation-ops
+   :apply-mutation
+   :apply-mutations
+   :apply-all-mutations
+   :apply-picked-mutations
+   :text
+   :*mutation-stats*
+   :*crossover-stats*
+   :analyze-mutation
+   :mutation-key
+   :summarize-mutation-stats
+   :classify
+   :crossover
+   :one-point-crossover
+   :two-point-crossover
+   :from-file
+   :from-file-exactly
+   :from-string
+   :to-file
+   :apply-path
+   :define-mutation
+   :compose-mutations
+   :sequence-mutations
+   :mutation
+   :object
+   :targeter
+   :picker
+   :targets
+   :get-targets
+   :at-targets
+   :pick-bad-good
+   :pick-bad-bad
+   :pick-bad-only
+   ;; global variables
+   :*population*
+   :*generations*
+   :*max-population-size*
+   :*tournament-size*
+   :*tournament-eviction-size*
+   :*fitness-predicate*
+   :fitness-better-p
+   :fitness-equal-p
+   :*cross-chance*
+   :*mut-rate*
+   :*fitness-evals*
+   :*running*
+   :*start-time*
+   :elapsed-time
+   :*simple-mutation-types*
+   :*target-fitness-p*
+   :*worst-fitness*
+   :*worst-fitness-p*
+   ;; evolution functions
+   :incorporate
+   :evict
+   :default-select-best
+   :default-random-winner
+   :*tournament-selector*
+   :*tournament-tie-breaker*
+   :*tie-breaker-predicate*
+   :tournament
+   :mutant
+   :crossed
+   :new-individual
+   :mcmc
+   :mcmc-step
+   :*mcmc-fodder*
+   :evolve
+   :generational-evolve
+   :simple-reproduce
+   :simple-evaluate
+   :simple-select
+   :worst-numeric-fitness
+   :worst-numeric-fitness-p
+   :*fitness-scalar-fn*
+   :fitness-scalar
+   :ignore-failed-mutation
+   :try-another-mutation))
+(in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -25,7 +170,17 @@
       (git (e) (declare (ignorable e)) "UNKNOWN")))
   "Current branch of the SOFTWARE-EVOLUTION-LIBRARY.")
 
-(defclass software ()
+(let ((oid-counter 0))
+  (defun generate-oid ()
+    "Create a fresh, unique oid (object id) in range [1 ...]"
+    (incf oid-counter)))
+
+(defclass oid-object (standard-object)
+  ((oid :initarg :oid :reader oid :initform (generate-oid)))
+  (:documentation
+   "Attaches a unique oid (object identifier) to each instance."))
+
+(defclass software (oid-object)
   ((fitness :initarg :fitness :accessor fitness :initform nil))
   (:documentation "Base class for all software objects."))
 
@@ -117,6 +272,8 @@ first value from the `phenome' method."
 (defmethod evaluate ((test symbol) (obj software)
                      &rest extra-keys &key &allow-other-keys)
   (declare (ignorable extra-keys))
+  (if (null test)  ;; allow NIL to be passed for the function
+      (setf test 'identity))
   (evaluate (symbol-function test) obj))
 
 (defmethod evaluate ((test function) (obj software)
@@ -189,9 +346,9 @@ Used to target mutation."))
 
 (defgeneric pick-bad-bad (software &key &allow-other-keys)
   (:documentation "Pick two 'bad' indexes into a software object.
-Used to target mutation."))
-(defmethod pick-bad-bad ((software software) &key)
-  (list (pick-bad software) (pick-bad software)))
+Used to target mutation.")
+  (:method ((software software) &key)
+    (list (pick-bad software) (pick-bad software))))
 
 (defgeneric pick-bad-only (software &key &allow-other-keys)
   (:documentation "Pick a single 'bad' index into a software object.
@@ -212,14 +369,8 @@ Used to target mutation."))
   "Variable to hold mutation statistics.")
 
 (defgeneric create-super (variant &optional rest-variants)
-  (:documentation "Create an appropriately typed super-mutant and populate
-with variant . rest-variants"))
-
-(defmethod create-super ((variant software) &optional rest-variants)
-  "Creates a SUPER-MUTANT and populates variants. Returns the super-mutant."
-  (let ((inst (make-instance 'super-mutant)))
-    (setf (mutants inst)(cons variant rest-variants))
-    inst))
+  (:documentation
+   "Create a super-mutant populated with VARIANT . REST-VARIANTS"))
 
 ;;;
 ;;; Note that we can't method dispatch on the types in a list, so
@@ -430,7 +581,7 @@ A common restart is `ignore-failed-mutation'."))
   (:documentation "Apply MUTATION to SOFTWARE, return the resulting software object.
 Mutation application may destructively modify the software object, or it may return a
 new instance with the mutation applied, and leave the original untouched. Any client
-which calls apply-mutation should ensure that the result returned by apply-mutation is 
+which calls apply-mutation should ensure that the result returned by apply-mutation is
 captured, and should not make assumptions about the state of the original.
 
 Example:  (let ((mutated-software (apply-mutation (copy software) mutation)))
@@ -514,6 +665,9 @@ Also, ensures MUTATION is a member of superclasses"
       ,@(remove-if {member _ '(targeter picker)} slots :key #'car))
      ,@options))
 
+(defgeneric build-op (mutation software)
+  (:documentation "Build operation on SOFTWARE from a MUTATION."))
+
 (defmacro compose-mutations (class-name mutations &rest options)
   "Define a new mutation named CLASS-NAME composing MUTATIONS.
 MUTATIONS is a list of the names of mutation classes."
@@ -574,7 +728,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (declare (ignorable class-name mut-a mut-b options))
   (error "TODO: Implement `sequence-mutations'."))
 
-(defclass mutation ()
+(defclass mutation (oid-object)
   ((object :initarg :object :accessor object :initform nil
            :type (or software null)
            :documentation "The software object to be mutated.")
@@ -788,19 +942,24 @@ Default selection function for `tournament'."
 
 (defun new-individuals (count)
   "Generate COUNT new individuals from *POPULATION*."
-  (iter (with new-count = 0)
-        (restart-case
-            (multiple-value-bind (variant mutation-info)
-                (new-individual)
+  (labels ((safe-mutate ()
+             (restart-case
+                 (new-individual)
+               (ignore-failed-mutation ()
+                 :report "Ignore failed mutation and continue evolution"
+                 (values nil nil))
+               (try-another-mutation ()
+                 :report "Try another mutation"
+                 (safe-mutate)))))
+    (iter (with new-count = 0)
+          (multiple-value-bind (variant mutation-info)
+              (safe-mutate)
+            (unless (and (null variant) (null mutation-info))
               (collect variant into variants)
               (collect mutation-info into infos)
-              (incf new-count))
-
-          (ignore-failed-mutation ()
-            :report
-            "Ignore failed mutation and continue evolution"))
-        (while (< new-count count))
-        (finally (return (values variants infos)))))
+              (incf new-count)))
+          (while (< new-count count))
+          (finally (return (values variants infos))))))
 
 (defmacro -search (specs step &rest body)
   "Perform a search loop with early termination.
@@ -1014,15 +1173,18 @@ Keyword arguments are as follows:
   "Reproduce using every individual in POPULATION.
 Return a list of the resulting children and as optional extra value a
 list of the mutations applied to produce those children."
-  (mapcar (lambda (parent)
-            (restart-case
-                (multiple-value-bind (child info)
-                    (new-individual parent (random-elt population))
-                  (push child children)
-                  (push info mutations))
-              (ignore-failed-mutation ()
-                :report "Ignore failed mutation and continue evolution")))
-          population)
+  (labels ((mutate (parent)
+             (restart-case
+                 (multiple-value-bind (child info)
+                     (new-individual parent (random-elt population))
+                   (push child children)
+                   (push info mutations))
+               (ignore-failed-mutation ()
+                 :report "Ignore failed mutation and continue evolution")
+               (try-another-mutation ()
+                 :report "Try another mutation"
+                 (mutate parent)))))
+    (mapcar #'mutate population))
   (values children mutations))
 
 (defun simple-evaluate (test new-children)

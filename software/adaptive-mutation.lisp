@@ -1,5 +1,28 @@
-;;;; software object with dynamically adapting mutation probabilities
-(in-package :software-evolution-library)
+;;;; adaptive-mutation.lisp --- software w/dynamically adapting mutation probs
+(defpackage :software-evolution-library/software/adaptive-mutation
+  (:nicknames :sel/software/adaptive-mutation :sel/sw/adaptive-mutation)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :bordeaux-threads
+        :software-evolution-library
+        :software-evolution-library/utility)
+  (:export :adaptive-mutation
+           :*bias-toward-dynamic-mutation*
+           :*better-bias*
+           :*same-bias*
+           :*worse-bias*
+           :*dead-bias*
+           :*mutation-results-queue*
+           :+initial-mutation-results-queue+
+           :queue-mutation
+           :adaptive-analyze-mutation
+           :update-mutation-types))
+(in-package :software-evolution-library/software/adaptive-mutation)
 (in-readtable :curry-compose-reader-macros)
 
 (define-constant +initial-mutation-results-queue+

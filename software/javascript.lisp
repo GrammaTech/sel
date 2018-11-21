@@ -27,7 +27,30 @@
 ;;; implementation.
 ;;;
 ;;; @texi{javascript}
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/javascript
+  (:nicknames :sel/software/javascript :sel/sw/javascript)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/source
+        :software-evolution-library/components/formatting)
+  (:shadowing-import-from :cl-json :decode-json-from-string)
+  (:export :javascript
+           :javascript-mutation
+           :javascript-ast
+           :javascript-ast-node
+           :make-javascript-ast
+           :copy-javascript-ast
+           :make-javascript-ast-node
+           :copy-javascript-ast-node))
+(in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software javascript (parseable) ()
@@ -52,9 +75,7 @@
 
 
 ;;; Javascript ast data structures
-(define-ast (javascript-ast (:conc-name ast))
-  (class nil :type symbol)
-  (aux-data nil :type list))
+(define-ast (javascript-ast (:conc-name ast)))
 
 (defmethod print-object ((obj javascript-ast-node) stream)
   "Print a representation of the javascript-ast-node OBJ to STREAM.
@@ -74,7 +95,7 @@
     (multiple-value-bind (stdout stderr exit)
         (shell "acorn --allow-hash-bang ~a" src-file)
         (if (zerop exit)
-            (cl-json:decode-json-from-string stdout)
+            (decode-json-from-string stdout)
             (error
               (make-instance 'mutate
                 :text (format nil "acorn exit ~d~%stderr:~s"
@@ -481,6 +502,6 @@ AST ast to return the scopes for"
                                  &key)
   "Parse the SNIPPET into a list of free-floating JavaScript ASTs."
   (handler-case
-      (remove-if [{< 1}{length}{ast-path}]
+      (remove-if [{< 1} {length} {ast-path}]
                  (asts (from-string (make-instance 'javascript) snippet)))
     (mutate (e) (declare (ignorable e)) nil)))

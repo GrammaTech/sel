@@ -1,5 +1,28 @@
 ;;; simple.lisp --- simple software rep. to manipulate lines of code
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/simple
+  (:nicknames :sel/software/simple :sel/sw/simple)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :split-sequence
+        :software-evolution-library
+        :software-evolution-library/utility)
+  (:shadowing-import-from :uiop :ensure-directory-pathname)
+  (:export :simple
+           :light
+           :sw-range
+           :reference
+           :range-nth
+           :range-subseq
+           :simple-mutation
+           :simple-cut
+           :simple-insert
+           :simple-swap))
+(in-package :software-evolution-library/software/simple)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -347,19 +370,16 @@ value is passed to TEST."
 Instead of directly holding code in the GENOME, each GENOME is a list
 of range references to an external REFERENCE code array."))
 
-(defgeneric reference (software) (:documentation "DOCFIXME"))
+(defgeneric reference (software)
+  (:documentation "The original \"reference\" genome.
+The sw-range SOFTWARE genome is a list of references to this genome.")
+  (:method ((range sw-range)) (slot-value range 'reference)))
 (defgeneric (setf reference) (software new)
-  (:documentation "Set the value of REFERENCE to NEW, and update the GENOME."))
-
-(defmethod reference ((range sw-range))
-  "DOCFIXME"
-  (slot-value range 'reference))
-
-(defmethod (setf reference) (new (range sw-range))
-  "DOCFIXME"
-  (assert (typep new 'vector) (new) "Reference must be a vector.")
-  (setf (slot-value range 'reference) new)
-  (setf (genome range) (list (cons 0 (1- (length new))))))
+  (:documentation "Set the value of REFERENCE to NEW, and update the GENOME.")
+  (:method (new (range sw-range))
+    (assert (typep new 'vector) (new) "Reference must be a vector.")
+    (setf (slot-value range 'reference) new)
+    (setf (genome range) (list (cons 0 (1- (length new)))))))
 
 (defmethod from-file ((range sw-range) path)
   "DOCFIXME"
@@ -379,9 +399,10 @@ and use this to initialize the RANGE object."))
 
 (defmethod lines ((range sw-range))
   "DOCFIXME"
-  (mappend (lambda-bind ((start . end))
-             (mapcar {aref (reference range)}
-                     (loop :for i :from start :to end :collect i)))
+  (mappend (lambda (pair)
+             (destructuring-bind (start . end) pair
+               (mapcar {aref (reference range)}
+                       (loop :for i :from start :to end :collect i))))
            (genome range)))
 
 (defmethod (setf lines) (new (range sw-range))

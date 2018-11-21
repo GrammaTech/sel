@@ -11,9 +11,9 @@ RUN eval `opam config env` && \
 # FROM cl-ubuntu as cl
 # FROM java-mutator-ubuntu as java-mutator
 # FROM clang-mutate-ubuntu as clang-mutate
-FROM docker.grammatech.com:14850/synthesis/cl as cl
-FROM docker.grammatech.com:14850/synthesis/java-mutator as java-mutator
-FROM docker.grammatech.com:14850/synthesis/clang-mutate as clang-mutate
+FROM docker.grammatech.com/synthesis/cl as cl
+FROM docker.grammatech.com/synthesis/java-mutator as java-mutator
+FROM docker.grammatech.com/synthesis/clang-mutate as clang-mutate
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
@@ -48,17 +48,18 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
     npm install --global acorn && \
     npm install --global prettier
 
-
-ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
-    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
-    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 \
-    SERAPI=/root/.opam/4.06.0/bin/sertop \
-    COQLIB=/root/.opam/4.06.0/lib/coq/
-
 ARG GT
 ARG REPORT
-COPY . /gt/sel
-
-WORKDIR /gt/sel
-RUN make
+# Use /root/quicklisp/local-projects.
+RUN cp -R /usr/synth/quicklisp /root/quicklisp
+RUN rm /root/quicklisp/local-projects/system-index.txt
+COPY . /root/quicklisp/local-projects/sel
+WORKDIR /root/quicklisp/local-projects/sel
+ENV PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
+    LD_LIBRARY_PATH=/root/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
+    JAVA_HOME=/usr/lib/jvm/default \
+    SERAPI=/root/.opam/4.06.0/bin/sertop \
+    COQLIB=/root/.opam/4.06.0/lib/coq/ \
+    QUICK_LISP=/root/quicklisp/
+RUN make real-clean all
 CMD /bin/bash

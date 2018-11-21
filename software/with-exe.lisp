@@ -1,4 +1,16 @@
-(in-package :software-evolution-library)
+;;; with-exe.lisp --- Software with an executable
+(defpackage :software-evolution-library/software/with-exe
+  (:nicknames :sel/software/with-exe :sel/sw/with-exe)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility)
+  (:export :evaluate-with-script))
+(in-package :software-evolution-library/software/with-exe)
 (in-readtable :curry-compose-reader-macros)
 
 

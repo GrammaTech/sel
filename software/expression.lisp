@@ -1,4 +1,34 @@
-(in-package :software-evolution-library)
+;;; expression.lisp --- evolve single expressions
+(defpackage :software-evolution-library/software/expression
+  (:nicknames :sel/software/expression :sel/sw/expression)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/lisp)
+  (:export :expression
+           :constant-fold
+           :random-subtree
+           :change-operator
+           :change-constant
+           :clang-expression
+           :scope
+           :mult-divide
+           :add-subtract
+           :subtract-add
+           :add-subtract-tree
+           :subtract-add-tree
+           :add-subtract-scope
+           :evaluate-expression
+           :demote-binop-left
+           :demote-binop-right
+           :eval-error))
+(in-package :software-evolution-library/software/expression)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software expression (lisp)

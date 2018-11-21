@@ -1,5 +1,28 @@
 ;;; elf-cisc.lisp --- software representation of cisc ELF files
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/elf-cisc
+  (:nicknames :sel/software/elf-cisc :sel/sw/elf-cisc)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :elf
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/elf)
+  (:shadowing-import-from :elf :type)
+  (:shadowing-import-from :software-evolution-library :size)
+  (:export :elf-cisc
+	   :elf-csurf
+           :elf-x86
+           :elf-arm
+           :elf-replace
+           :pad-nops
+           :nop-p
+           :disasm
+           :addresses))
+(in-package :software-evolution-library/software/elf-cisc)
 (in-readtable :curry-compose-reader-macros)
 
 
@@ -84,10 +107,11 @@
      ;; entries back onto the corresponding instruction's bytes.
      (setf (genome elf)
            (loop :for (op . ops)
-              :on (mapcar (lambda-bind ((address bytes disasm))
-                                       `((:address . ,address)
-                                         (:code . ,bytes)
-                                         (:disasm . ,disasm)))
+              :on (mapcar (lambda (triple)
+                            (destructuring-bind (address bytes disasm) triple
+                              `((:address . ,address)
+                                (:code . ,bytes)
+                                (:disasm . ,disasm))))
                           (remove-if-not [{= 3} #'length]
                                          (mappend #'cdr disasm)))
               :when (aget :disasm op)

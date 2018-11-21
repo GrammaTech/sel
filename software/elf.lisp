@@ -1,5 +1,22 @@
 ;;; elf.lisp --- software representation of ELF files
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/elf
+  (:nicknames :sel/software/elf :sel/sw/elf)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :elf
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/simple)
+  (:shadowing-import-from :common-lisp :type)
+  (:shadowing-import-from :software-evolution-library :size)
+  (:export :elf
+           :base
+           :genome-bytes))
+(in-package :software-evolution-library/software/elf)
 (in-readtable :curry-compose-reader-macros)
 
 

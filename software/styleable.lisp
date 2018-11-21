@@ -1,6 +1,75 @@
-(in-package :software-evolution-library)
+;;; styleable.lisp --- Add stylability to software
+(defpackage :software-evolution-library/software/styleable
+  (:nicknames :sel/software/styleable :sel/sw/styleable)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :cl-ppcre
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/project
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang)
+  (:export :style-feature
+           :*clang-c-ast-classes*
+           :*clang-c-keywords*
+           :feature-name
+           :extractor-fn
+           :merge-fn
+           :styleable
+           :features
+           :feature-vecs
+           :feature-vec-meta
+           :style-project
+           :define-feature
+           :diff-feature-vectors
+           :merge-styleables
+           :ast-node-type-tf-extractor
+           :ast-node-type-avg-depth
+           :max-depth-ast-extractor
+           :avg-depth-ast-extractor
+           :ast-node-type-avg-depth-extractor
+           :ast-full-stmt-bi-grams-extractor
+           :ast-bi-grams-extractor
+           :ast-keyword-tf-extractor
+           :*feature-extractors*
+           :ast-node-type-tf-feature
+           :max-depth-ast-feature
+           :avg-depth-ast-feature
+           :ast-node-type-avg-depth-feature
+           :ast-full-stmt-bi-grams-feature
+           :ast-bi-grams-feature
+           :ast-keyword-tf-feature
+           :merge-normalized
+           :merge-max
+           :merge-means
+           :uni-grams
+           :to-feature-vector
+           :normalize-vector
+           :ast-node-types
+           :ast-depth
+           :max-depth-ast
+           :all-ast-node-types
+           :bi-grams
+           :ast-full-stmt-bi-grams
+           :ast-bi-grams
+           :bi-grams-hashtable-to-feature
+           :auto-count-keyword
+           :search-keyword
+           :ast-keyword-tf
+           :all-keywords
+           :merge-styleables
+           :extract-feature
+           :extract-features
+           :extract-baseline-features
+           :update-project-features))
+(in-package :software-evolution-library/software/styleable)
 (in-readtable :curry-compose-reader-macros)
-
 
 (defparameter *clang-c-ast-classes*
   '(:AddrLabelExpr :ArraySubscriptExpr :AsTypeExpr :AttributedStmt

@@ -1,5 +1,22 @@
 ;;; clang-expression.lisp --- calculate lisp expressions from clang ASTs
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/clang-expression
+  (:nicknames :sel/software/clang-expression :sel/sw/clang-expression)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :cl-ppcre
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/expression)
+  (:export :expression-intern
+           :expression-to-c))
+(in-package :software-evolution-library/software/clang-expression)
 (in-readtable :curry-compose-reader-macros)
 
 (defun expression-intern (string)

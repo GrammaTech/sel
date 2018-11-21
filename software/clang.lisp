@@ -3,7 +3,217 @@
 ;;; DOCFIXME Need a page or so introduction to clang software objects.
 ;;;
 ;;; @texi{clang}
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/clang
+  (:nicknames :sel/software/clang :sel/sw/clang)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :split-sequence
+        :cl-ppcre
+        :cl-json
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/source
+        :software-evolution-library/software/parseable
+        :software-evolution-library/components/formatting
+        :software-evolution-library/components/searchable
+        :software-evolution-library/components/fodder-database)
+  (:export :clang
+           :headers
+           :macros
+           :includes
+           :types
+           :globals
+           :pick-guarded-compound
+           :clang-mutation
+           :bind-free-vars
+           :binding-for-var
+           :binding-for-function
+           :crossover-2pt-inward
+           :crossover-2pt-outward
+           :intraprocedural-2pt-crossover
+           :function-containing-ast
+           :function-body
+           :function-body-p
+           :function-decl-p
+           :stmt-range
+           :adjust-stmt-range
+           :random-point-in-function
+           :select-intraprocedural-pair
+           :clang-mutate
+           :apply-clang-mutate-ops
+           :update-headers-from-snippet
+           :prototypes
+           :functions
+           :get-entry
+           :stmt-asts
+           :non-stmt-asts
+           :good-stmts
+           :bad-stmts
+           :get-parent-full-stmt
+           :wrap-ast
+           :wrap-child
+           :+c-numeric-types+
+           :+c-relational-operators+
+           :+c-arithmetic-binary-operators+
+           :+c-arithmetic-assignment-operators+
+           :+c-bitwise-binary-operators+
+           :+c-bitwise-assignment-operators+
+           :+c-arithmetic-unary-operators+
+           :+c-bitwise-unary-operators+
+           :+c-sign-unary-operators+
+           :+c-pointer-unary-operators+
+           :ast-declarations
+           :declared-type
+           :find-var-type
+           :typedef-type
+           :random-function-name
+           :*clang-max-json-size*
+           :*clang-mutation-types*
+           :*free-var-decay-rate*
+           :*matching-free-var-retains-name-bias*
+           :*matching-free-function-retains-name-bias*
+           :*clang-json-required-fields*
+           :*clang-json-required-aux*
+           :*clang-ast-aux-fields*
+           :*clang-mutate-additional-args*
+           :delete-decl-stmts
+           :ancestor-after
+           :common-ancestor
+           :ancestor-of
+           :scopes-between
+           :nesting-depth
+           :full-stmt-p
+           :block-p
+           :enclosing-full-stmt
+           :enclosing-block
+           :nesting-relation
+           :match-nesting
+           :block-predeccessor
+           :block-successor
+           :get-children-using
+           :get-declared-variables
+           :get-used-variables
+           :add-include
+           :add-type
+           ;; :find-type
+           :find-or-add-type
+           :type-decl-string
+           :type-trace-string
+           :type-from-trace-string
+           :add-macro
+           :nullify-asts
+           :keep-partial-asts
+           :retry-mutation
+           :clang-cut
+           :clang-cut-same
+           :clang-cut-full
+           :clang-cut-full-same
+           :clang-insert
+           :clang-insert-same
+           :clang-insert-full
+           :clang-insert-full-same
+           :clang-swap
+           :clang-swap-same
+           :clang-swap-full
+           :clang-swap-full-same
+           :clang-move
+           :clang-replace
+           :clang-replace-same
+           :clang-replace-full
+           :clang-replace-full-same
+           :clang-promote-guarded
+           :clang-nop
+           :pick-for-loop
+           :explode-for-loop
+           :pick-while-loop
+           :coalesce-while-loop
+           :cut-decl
+           :pick-cut-decl
+           :swap-decls
+           :pick-swap-decls
+           :rename-variable
+           :pick-rename-variable
+           :expand-arithmatic-op
+           :full-stmt-filter
+           :same-class-filter
+           :clang-ast
+           :clang-ast-node
+           :ast-args
+           :ast-declares
+           :ast-expr-type
+           ;; AST structures.
+           :ast-full-stmt
+           :ast-guard-stmt
+           :ast-in-macro-expansion
+           :ast-includes
+           :ast-is-decl
+           :ast-macros
+           :ast-name
+           :ast-opcode
+           :ast-ret
+           :ast-syn-ctx
+           :ast-types
+           :ast-unbound-funs
+           :ast-unbound-vals
+           :ast-varargs
+           :ast-void-ret
+           :ast-array-length
+           :ast-base-type
+           :ast-bit-field-width
+           :make-clang-ast
+           :copy-clang-ast
+           :make-clang-ast-node
+           :copy-clang-ast-node
+           :clang-type
+           :type-array
+           :type-col
+           :type-decl
+           :type-file
+           :type-hash
+           :type-i-col
+           :type-i-file
+           :type-i-line
+           :type-line
+           :type-pointer
+           :type-const
+           :type-volatile
+           :type-restrict
+           :type-storage-class
+           :type-reqs
+           :type-name
+           :type-size
+           :make-clang-type
+           :copy-clang-type
+           :clang-macro
+           :macro-name
+           :macro-body
+           :macro-hash
+           :make-clang-macro
+           :copy-clang-macro
+           ;; FIXME: Clang literal building.
+           :make-statement
+           :make-literal
+           :make-operator
+           :make-block
+           :make-parens
+           :make-while-stmt
+           :make-for-stmt
+           :make-if-stmt
+           :make-var-reference
+           :make-var-decl
+           :make-cast-expr
+           :make-call-expr
+           :make-array-subscript-expr
+           :make-label
+           :make-switch-stmt
+           :make-break-stmt))
+(in-package :software-evolution-library/software/clang)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software clang (parseable)
@@ -70,7 +280,6 @@ See http://clang.llvm.org/."))
 (define-ast (clang-ast (:conc-name ast))
   "AST generated by clang-mutate."
   (args nil :type list)
-  (class nil :type (or symbol null))
   (counter nil :type (or number null))
   (declares nil :type list)
   (expr-type nil :type (or number null))
@@ -92,9 +301,7 @@ See http://clang.llvm.org/."))
   ;; Struct field slots
   (array-length nil :type (or number null))
   (base-type nil :type (or string null))
-  (bit-field-width nil :type (or number null))
-  ;; An alist which can store any additional data needed by clients.
-  (aux-data nil :type list))
+  (bit-field-width nil :type (or number null)))
 
 (define-immutable-node-struct (clang-type (:conc-name type))
   "TypeDB entry generated by clang-mutate."
@@ -433,8 +640,7 @@ will not be generated automatically.
              ,")"
              ,(apply #'make-block (mappend (lambda-bind ((values stmts))
                                              (make-case values stmts))
-                                           cases)
-                     rest))
+                                           cases) rest))
            :full-stmt t
            rest)))
 
@@ -574,28 +780,28 @@ VARIABLE-NAME should be declared in AST."
 (defgeneric type-decl-string (type &key qualified)
   (:documentation "The source text used to declare variables of TYPE.
 
-This will have stars on the right, e.g. char**. "))
-(defmethod type-decl-string ((type clang-type) &key (qualified t))
-  "Return the source text used to declare variables of TYPE.
+This will have stars on the right, e.g. char**. ")
+  (:method ((type clang-type) &key (qualified t))
+    "Return the source text used to declare variables of TYPE.
 * TYPE type to convert to a declaration string
 * QUALIFIED add type qualifiers such as const or volatile if non-nil.
 "
-  (format nil "~a~a~a~a~a~a~a"
-          (if (and qualified (type-const type)) "const " "")
-          (if (and qualified (type-volatile type)) "volatile " "")
-          (if (and qualified (type-restrict type)) "restrict " "")
-          (if (and qualified (not (eq :None (type-storage-class type))))
-              (format nil "~a " (->> (type-storage-class type)
-                                     (symbol-name)
-                                     (string-downcase)))
-              "")
-          (cond ((equal 0 (search "struct" (type-decl type)))
-                 "struct ")
-                ((equal 0 (search "union" (type-decl type)))
-                 "union ")
-                (t ""))
-          (type-name type)
-          (if (type-pointer type) " *" "")))
+    (format nil "~a~a~a~a~a~a~a"
+            (if (and qualified (type-const type)) "const " "")
+            (if (and qualified (type-volatile type)) "volatile " "")
+            (if (and qualified (type-restrict type)) "restrict " "")
+            (if (and qualified (not (eq :None (type-storage-class type))))
+                (format nil "~a " (->> (type-storage-class type)
+                                    (symbol-name)
+                                    (string-downcase)))
+                "")
+            (cond ((equal 0 (search "struct" (type-decl type)))
+                   "struct ")
+                  ((equal 0 (search "union" (type-decl type)))
+                   "union ")
+                  (t ""))
+            (type-name type)
+            (if (type-pointer type) " *" ""))))
 
 (defgeneric type-trace-string (type &key qualified)
   (:documentation "The text used to describe TYPE in an execution trace.
@@ -680,10 +886,6 @@ valid hash.
     (prepend-to-genome obj (format nil "#include ~a~&" include))
     (push include (includes obj)))
   obj)
-
-(defgeneric force-include (software include)
-  (:documentation "Add an #include directive for an INCLUDE to SOFTWARE
-even if such an INCLUDE already exists in SOFTWARE."))
 
 (defmethod force-include ((obj clang) include)
   "Add an #include directive for an INCLUDE to OBJ
@@ -1666,8 +1868,7 @@ second should be included as a possible pick
                     :bad-pool bad-pool
                     :good-pool good-pool))
 
-(defmethod pick-bad-bad ((clang clang) &key filter
-                         (bad-pool #'bad-stmts))
+(defmethod pick-bad-bad ((clang clang) &key filter (bad-pool #'bad-stmts))
   "Pick two ASTs from CLANG, both from the `bad-asts' pool,
 excluding those ASTs removed by FILTER.
 * CLANG object to perform picks for
@@ -1828,7 +2029,7 @@ already in scope, it will keep that name.")
 * OP operation to be performed
 "
   (labels ((ast (tag) (format nil "~a.~a" tu (aget tag (cdr op))))
-           (str (tag) (json:encode-json-to-string (aget tag (cdr op)))))
+           (str (tag) (encode-json-to-string (aget tag (cdr op)))))
     (ecase (car op)
       (:cut
        (format nil "cut ~a" (ast :stmt1)))
@@ -1967,7 +2168,7 @@ already in scope, it will keep that name.")
                  (:decls "decls")
                  (:macros "macros")
                  (:none "none"))))
-    (let ((json:*identifier-name-to-key* 'se-json-identifier-name-to-key)
+    (let ((*identifier-name-to-key* 'se-json-identifier-name-to-key)
           (cmd-fmt "clang-mutate ~a ~{~a~^ ~} ~a -- ~{~a~^ ~}"))
       (unwind-protect
            (multiple-value-bind (stdout stderr exit)
@@ -2754,10 +2955,11 @@ variables to replace use of the variables declared in stmt ID."))
   (append
    ;; Rewrite those stmts in the BLOCK which use an old variable.
    (let* ((old->new      ; First collect a map of old-name -> new-name.
-           (mappend (lambda-bind ((id . replacements))
-                      (mapcar #'list
-                              (mapcar #'unpeel-bananas (ast-declares id))
-                              (mapcar #'unpeel-bananas replacements)))
+           (mappend (lambda (pair)
+                      (destructuring-bind (id . replacements) pair
+                        (mapcar #'list
+                                (mapcar #'unpeel-bananas (ast-declares id))
+                                (mapcar #'unpeel-bananas replacements))))
                     replacements))
           (old (mapcar [#'peel-bananas #'car] old->new)))
      ;; Collect statements using old

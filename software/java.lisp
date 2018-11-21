@@ -12,7 +12,28 @@
 ;;; with other software objects, but are not used in this implementation.
 ;;;
 ;;; @texi{java}
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/java
+  (:nicknames :sel/software/java :sel/sw/java)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :cl-ppcre
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/source
+        :software-evolution-library/components/formatting)
+  (:export :java
+           :java-mutation
+           :java-insert
+           :java-make-literal
+           :java-number
+           :java-jar-exec
+           :get-files-jar
+           :add-import))
+(in-package :software-evolution-library/software/java)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *java-execution-script-template*
@@ -51,7 +72,7 @@ exit 0")
           raw-size (java-ids-aux obj)))
   obj)
 
-(defmethod java-jar-exec (format-string)
+(defun java-jar-exec (format-string)
   "Error code handler for error codes from the java-mutator.jar"
   (multiple-value-bind (stdout stderr exit-code)
       (shell *java-mutator-execution-string* format-string)
@@ -174,8 +195,8 @@ insert)."
   (or (raw-size obj)
       (setf (raw-size obj) (java-ids-aux obj))))
 
-(defmethod force-include ((obj java) include)
-  "Add an import directive for an INCLUDE to OBJ after the package declaration."
+(defmethod add-import ((obj java) import)
+  "Add an import directive for IMPORT to OBJ after the package declaration."
   (setf (genome obj)
         (let* ((lst (split "(package [^;]+;)"
                             (genome obj)
@@ -190,11 +211,11 @@ insert)."
           ;; If package exists, add import after it, else, add to front.
           (if index
               (progn
-                (push (format nil "~%import ~a;~&" include)
+                (push (format nil "~%import ~a;~&" import)
                       (cdr (nthcdr index lst)))
                 (format nil "~{~A~^~}" lst))
               (concatenate 'string
-                           (format nil "import ~a;~&" include)
+                           (format nil "import ~a;~&" import)
                            (genome obj)))))
   obj)
 

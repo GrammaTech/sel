@@ -1,5 +1,15 @@
 ;;; lisp-fn.lisp --- software representation of individual Lisp functions
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/lisp-fn
+  (:nicknames :sel/software/lisp-fn :sel/sw/lisp-fn)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility))
+(in-package :software-evolution-library/software/lisp-fn)
 (in-readtable :curry-compose-reader-macros)
 
 

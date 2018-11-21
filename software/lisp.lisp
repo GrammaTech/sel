@@ -1,5 +1,25 @@
 ;;; lisp.lisp --- software representation of lisp code
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/lisp
+  (:nicknames :sel/software/lisp :sel/sw/lisp)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/simple)
+  (:export :lisp
+           :lisp-cut
+           :lisp-replace
+           :lisp-swap
+           :subtree
+           :tree-size
+           :filter-subtrees
+           :*lisp-mutation-types*))
+(in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 

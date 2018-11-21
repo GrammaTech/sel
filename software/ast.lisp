@@ -7,13 +7,49 @@
 ;;; * Copy them with COPY.
 ;;;
 
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/ast
+  (:nicknames :sel/software/ast :sel/sw/ast)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/ast-diff/ast-diff)
+  (:export :ast
+           :define-ast
+           :define-immutable-node-struct
+           :to-alist
+           :from-alist
+           :ast-path
+           :ast-node
+           :ast-class
+           :ast-aux-data
+           :source-text
+           :rebind-vars
+           :replace-in-vars
+           :insert-ast
+           :insert-ast-after
+           :replace-nth-child
+           :replace-ast
+           :remove-ast
+           :splice-asts
+           :fixup-mutation
+           :ast-children
+           :to-ast
+           :ast-later-p
+           :replace-in-ast))
+(in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
 
 
 ;;; Data structure definitions
-(defstruct ast-node "Base type of immutable portion of ast nodes."
-  (hash nil :type (or null fixnum)))	   
+(defstruct ast-node
+  "Base type of immutable portion of ast nodes."
+  (hash nil :type (or null fixnum)))
 
 (defstruct (ast (:constructor make-raw-ast))
   "Base type of sub-tree of an applicative AST tree."
@@ -58,34 +94,34 @@ the ast path and source text.
                              (plist-merge slot '(:read-only t))
                              (list slot nil ':read-only t)))
                        (remove-if #'stringp slot-descriptions)))
-           ;; Copy method
-           (defmethod copy
-               ((,obj ,name)
-                &key
-                  ,@(mapcar (lambda (name)
-                              `(,name nil ,(symbol-cat name 'supplied-p)))
-                            slot-names))
-             (if (or ,@(mapcar {symbol-cat _ 'supplied-p} slot-names))
-                 (funcall ',(symbol-cat 'make name)
-                          ,@(mappend (lambda (name)
-                                       (list (make-keyword name)
-                                            `(if ,(symbol-cat name 'supplied-p)
-                                                 ,name
-                                                 (,(symbol-cat conc-name name)
+         ;; Copy method
+         (defmethod copy
+             ((,obj ,name)
+              &key
+                ,@(mapcar (lambda (name)
+                            `(,name nil ,(symbol-cat name 'supplied-p)))
+                          slot-names))
+           (if (or ,@(mapcar {symbol-cat _ 'supplied-p} slot-names))
+               (funcall ',(symbol-cat 'make name)
+                        ,@(mappend (lambda (name)
+                                     (list (make-keyword name)
+                                           `(if ,(symbol-cat name 'supplied-p)
+                                                ,name
+                                                (,(symbol-cat conc-name name)
                                                   ,obj))))
-                                     slot-names))
-                 ,obj))
-           ;; Define accessors for fields.
-           ,@(mapcar
-              (lambda (slot)
-                `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
-                   (,(symbol-cat name slot) ,obj)))
-              slot-names)
-           ;; Define the alist conversion functions.
-           (defmethod from-alist ((,obj (eql ',name)) alist)
-             (declare (ignorable ,obj))
-             (funcall ',(symbol-cat 'make name)
-                      ,@(mappend (lambda-bind ((name type))
+                                   slot-names))
+               ,obj))
+         ;; Define accessors for fields.
+         ,@(mapcar
+            (lambda (slot)
+              `(defmethod ,(symbol-cat conc-name slot) ((,obj ,name))
+                 (,(symbol-cat name slot) ,obj)))
+            slot-names)
+         ;; Define the alist conversion functions.
+         (defmethod from-alist ((,obj (eql ',name)) alist)
+           (declare (ignorable ,obj))
+           (funcall ',(symbol-cat 'make name)
+                    ,@(mappend (lambda-bind ((name type))
                                    (let ((name (make-keyword name)))
                                      (list name
                                            (if (or (eql type 'symbol)
@@ -108,18 +144,26 @@ the ast path and source text.
                                      `(,(symbol-cat conc-name name) ,obj))))
                        names-w-types)))))))
 
-(defmacro define-ast (name-and-options &rest slot-descriptions)
+(defmacro define-ast (name-and-options &rest slot-descriptions
+                      &aux (default-ast-slot-descriptions
+                             '((class nil :type symbol)
+                               (aux-data nil :type list))))
   "Implicitly defines an AST wrapper for the defined AST-node."
   (with-gensyms ((obj obj-))
-    (let* ((name (get-struct-name name-and-options))
+    (let* ((doc-strings (remove-if-not #'stringp slot-descriptions))
+	   (slot-descriptions (remove-if #'stringp slot-descriptions))
+	   (all-slot-descriptions (append default-ast-slot-descriptions
+                                          slot-descriptions))
+           (name (get-struct-name name-and-options))
            (conc-name (get-struct-conc-name name-and-options))
-           (slot-names (get-struct-slot-names slot-descriptions)))
+           (slot-names (get-struct-slot-names all-slot-descriptions)))
       `(prog2
            ;; Define the immutable node.
            (define-immutable-node-struct (,(symbol-cat name 'node)
                                           (:include ast-node)
-                                          (:conc-name ,conc-name))
-             ,@slot-descriptions)
+					   (:conc-name ,conc-name))
+	     ,@doc-strings
+             ,@all-slot-descriptions)
            ;; Define and return the wrapper.
            (defstruct (,name (:include ast)
                              (:copier nil)
@@ -129,9 +173,7 @@ the ast path and source text.
                                     (member (car pair)
                                             '(:conc-name :copier :include)))
                                   (cdr name-and-options))))
-             ,@(when (and (car slot-descriptions)
-                          (stringp (car slot-descriptions)))
-                 (list (car slot-descriptions))))
+	     ,@doc-strings)
            ;; Copy method for light weight copies of wrapper only.
            (defmethod copy
                ((,obj ,name)

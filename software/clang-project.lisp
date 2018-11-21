@@ -1,13 +1,30 @@
-;; Specialization for building a project from a clang compilation database
-(in-package :software-evolution-library)
+;;; clang-project.lisp --- Projects with a clang compilation database
+(defpackage :software-evolution-library/software/clang-project
+  (:nicknames :sel/software/clang-project :sel/sw/clang-project)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :split-sequence
+        :cl-ppcre
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang
+        :software-evolution-library/software/project)
+  (:shadowing-import-from :uiop
+                          :ensure-directory-pathname
+                          :directory-exists-p
+                          :run-program)
+  (:export :clang-project
+           :compilation-database))
+(in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software clang-project (project)
-  ((project-dir :initarg :project-dir
-                :accessor project-dir
-                :initform nil
-                :documentation "Source directory containing the project.")
-   (compilation-database :initarg :compilation-database
+  ((compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil
                          :documentation "Compilation database for the project.

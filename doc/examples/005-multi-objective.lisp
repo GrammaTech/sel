@@ -1,7 +1,9 @@
 (defpackage :example
   (:use :common-lisp
         :software-evolution-library
-        :software-evolution-library/utility))
+        :software-evolution-library/utility
+        :software-evolution-library/software/asm
+        :software-evolution-library/components/multi-objective))
 (in-package :example)
 
 (setf *tournament-selector* #'pareto-selector)

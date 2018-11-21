@@ -5,6 +5,7 @@
    :software-evolution-library
    :software-evolution-library/ast-diff
    :software-evolution-library/utility
+   :software-evolution-library/software/clang
    :alexandria
    :arrow-macros
    :named-readtables

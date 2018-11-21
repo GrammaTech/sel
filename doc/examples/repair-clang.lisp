@@ -1,7 +1,6 @@
 ;;; repair-clang.lisp --- repair C program
 ;;; Repair C program, displaying progress using the viewer
-
-(defpackage :repair-clang
+(defpackage :software-evolution-library/doc/examples/repair-clang
   (:use :common-lisp
         :alexandria
         :named-readtables
@@ -12,7 +11,7 @@
         :software-evolution-library/view)
   (:import-from :uiop/image :*command-line-arguments*)
   (:export :repair-clang))
-(in-package :repair-clang)
+(in-package :software-evolution-library/doc/examples/repair-clang)
 (in-readtable :curry-compose-reader-macros)
 
 

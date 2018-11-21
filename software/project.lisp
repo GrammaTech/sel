@@ -1,5 +1,40 @@
 ;;; project.lisp --- evolve multiple source files
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/project
+  (:nicknames :sel/software/project :sel/sw/project)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :uiop
+        :software-evolution-library
+        :software-evolution-library/components/formatting
+        :software-evolution-library/utility)
+  (:shadowing-import-from :uiop/run-program :run-program)
+  (:shadowing-import-from :uiop :quit)
+  (:shadowing-import-from
+   :alexandria
+   :appendf :ensure-list :featurep :emptyp
+   :if-let :ensure-function :ensure-gethash :copy-file
+   :parse-body :simple-style-warning)
+  (:export :project
+           :apply-to-project
+           :build-command
+           :artifacts
+           :evolve-files
+           :other-files
+           :project-dir
+           :instrumentation-files
+           :all-files
+           :write-genome-to-files
+           :with-build-dir
+           :with-temp-build-dir
+           :make-build-dir
+           :full-path
+           :*build-dir*))
+(in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software project (software)
@@ -20,7 +55,11 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       :documentation
       "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
-      :copier copy-files))
+      :copier copy-files)
+     (project-dir :initarg :project-dir
+                  :accessor project-dir
+                  :initform nil
+                  :documentation "Source directory containing the project."))
   (:documentation
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
@@ -45,6 +84,7 @@ software objects in it's `evolve-files'."))
              collect (genome c))))
 
 (defmethod (setf genome) (text (project project))
+  (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
 (defgeneric write-genome-to-files (obj)

@@ -10,12 +10,9 @@ RUN eval `opam config env` && \
 # FROM cl-arch as cl
 # FROM java-mutator-arch as java-mutator
 # FROM clang-mutate-arch
-FROM docker.grammatech.com:14850/synthesis/cl:arch as cl
-FROM docker.grammatech.com:14850/synthesis/java-mutator:arch as java-mutator
-FROM docker.grammatech.com:14850/synthesis/clang-mutate:arch
-
-ENV PATH=:$PATH \
-    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:$LD_LIBRARY_PATH
+FROM docker.grammatech.com/synthesis/cl:arch as cl
+FROM docker.grammatech.com/synthesis/java-mutator:arch as java-mutator
+FROM docker.grammatech.com/synthesis/clang-mutate:arch
 
 # Some of the SEL tests require multilib support for m32 tests.
 # Also, our functionality for looking up the library providing
@@ -32,16 +29,18 @@ COPY --from=java-mutator /usr/synth/bin/java-mutator /usr/synth/bin/java-mutator
 RUN npm install --global acorn && \
     npm install --global prettier
 
-ENV PATH=/gt/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
-    LD_LIBRARY_PATH=/gt/sel/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
-    JAVA_HOME=/usr/lib/jvm/default \
-    SERAPI=/root/.opam/4.06.0/bin/sertop \
-    COQLIB=/root/.opam/4.06.0/lib/coq/
-
 ARG GT
 ARG REPORT
-COPY . /gt/sel
-
-WORKDIR /gt/sel
-RUN make
+# Use /root/quicklisp/local-projects.
+RUN cp -R /usr/synth/quicklisp /root/quicklisp
+RUN rm /root/quicklisp/local-projects/system-index.txt
+COPY . /root/quicklisp/local-projects/sel
+WORKDIR /root/quicklisp/local-projects/sel
+ENV PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synth/bin:$PATH \
+    LD_LIBRARY_PATH=/root/quicklisp/dists/trace-db/software/trace-db/:/usr/synth/lib/:$LD_LIBRARY_PATH \
+    JAVA_HOME=/usr/lib/jvm/default \
+    SERAPI=/root/.opam/4.06.0/bin/sertop \
+    COQLIB=/root/.opam/4.06.0/lib/coq/ \
+    QUICK_LISP=/root/quicklisp/
+RUN make real-clean all
 CMD /bin/bash

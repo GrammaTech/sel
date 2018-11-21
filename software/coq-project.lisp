@@ -8,7 +8,19 @@
 ;;; to function well outside of projects.)
 ;;;
 ;;; @texi{coq-project}
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/coq-project
+  (:nicknames :sel/software/coq-project :sel/sw/coq-project)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/project
+        :software-evolution-library/components/serapi-io))
+(in-package :software-evolution-library/software/coq-project)
 (in-readtable :serapi-readtable)
 
 (define-software coq-project (project)

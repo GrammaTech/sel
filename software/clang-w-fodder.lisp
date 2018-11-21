@@ -1,11 +1,40 @@
 ;;; clang-w-fodder.lisp --- clang software with a source fodder database
-
+;;; 
 ;;; clang software representation with a database containing AST
 ;;; entries as fodder for the evolution process.
-
+;;; 
 ;;; Each AST entry in the database contains source text and, where
 ;;; applicable, the corresponding binary bytes.
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/clang-w-fodder
+  (:nicknames :sel/software/clang-w-fodder :sel/sw/clang-w-fodder)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/clang
+        :software-evolution-library/components/searchable
+        :software-evolution-library/components/fodder-database)
+  (:export :clang-w-fodder
+           :pick-snippet
+           :*clang-w-fodder-mutation-types*
+           :*clang-w-fodder-new-mutation-types*
+           :*database*
+           :replace-fodder-same
+           :replace-fodder-full
+           :insert-fodder-decl
+           :insert-fodder-decl-rep
+           :insert-fodder
+           :insert-fodder-full
+           :prepare-fodder
+           :bind-vars-in-snippet))
+(in-package :software-evolution-library/software/clang-w-fodder)
 (in-readtable :curry-compose-reader-macros)
 
 (defvar *database* nil

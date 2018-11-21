@@ -196,7 +196,34 @@
 ;;;
 ;;; @texi{asm-super-mutant}
 
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/asm-super-mutant
+  (:nicknames :sel/software/asm-super-mutant :sel/sw/asm-super-mutant)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :split-sequence
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/asm
+        :software-evolution-library/software/asm-heap
+        :software-evolution-library/software/super-mutant)
+  (:export :asm-super-mutant
+           :var-table
+           :*lib-papi*
+           :fitness-harness
+           :load-io-file
+           :target-function
+           :target-function-name
+           :create-all-simple-cut-variants
+           :create-target
+           :target-info
+           :evaluate-asm
+           :leaf-functions
+           :parse-sanity-file))
+(in-package :software-evolution-library/software/asm-super-mutant)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software asm-super-mutant (asm-heap super-mutant)
@@ -217,6 +244,11 @@
     :accessor var-table
     :initform nil
     :documentation "Vector of var-rec (data/address records)")
+   (target-name
+    :initarg :target-name
+    :accessor target-name
+    :initform nil
+    :documentation "Name of target function")
    (target-start-index
     :initarg :target-start-index
     :accessor target-start-index
@@ -300,6 +332,23 @@
      (length (input-specification-regs spec))
      (length (input-specification-simd-regs spec))
      (length (input-specification-mem spec)))))
+
+(defmethod initialize-instance :after ((instance asm-super-mutant)
+				       &rest initargs)
+  (declare (ignore initargs))
+  ;; if a path was assigned to var-table
+  ;; parse it and replace the value with the table
+  (if (or (stringp (var-table instance)) (pathnamep (var-table instance)))
+      (setf (var-table instance)
+	    (parse-sanity-file (var-table instance)))))
+
+(defmethod from-file :after ((asm asm-super-mutant) file)
+  "Set function target after the file loads."
+  ;; if target-name non-nil, set the target
+  (declare (ignore file))
+  (if (target-name asm)
+    (target-function-name asm (target-name asm)))
+  asm)
 
 ;;;
 ;;; Store name and address of data variables
@@ -699,7 +748,8 @@ a symbol, the SYMBOL-NAME of the symbol is used."
      "; -------------- Externs ---------------")
     (iter (for x in-vector (genome asm-super))
 	  (if (and (eq (asm-line-info-type x) ':decl)
-		   (eq (first (asm-line-info-tokens x)) 'sel/asm::extern))
+		   (eq (first (asm-line-info-tokens x))
+                       'software-evolution-library/asm::extern))
 	      (collect (asm-line-info-text x))))
     (list ""))
    (length (genome asm))))
@@ -1070,9 +1120,9 @@ returns NIL."
 (defun leaf-functions (asm-super)
   (map 'list
        (lambda (x)
-	 (string-downcase (sel::function-index-entry-name x)))
-       (remove-if-not (lambda (x) (sel::function-index-entry-is-leaf x))
-		      (sel::function-index asm-super))))
+	 (string-downcase (function-index-entry-name x)))
+       (remove-if-not (lambda (x) (function-index-entry-is-leaf x))
+		      (function-index asm-super))))
 
 (defun parse-sanity-file (filename)
   "Parses the 'sanity' file which is output by the GTX disassembler. It

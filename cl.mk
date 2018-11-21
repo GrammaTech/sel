@@ -14,6 +14,7 @@
 # BIN_TESTS ---------- List of command line tests
 # LONG_BIN_TESTS ----- List of longer running command line tests
 #                      Used by the `real-check' target.
+SHELL=bash
 
 .PHONY: test-artifacts check unit-check real-check clean more-clean real-clean Dockerfile
 
@@ -29,14 +30,7 @@ DOC_PACKAGES ?= $(PACKAGE_NAME)
 INSTDIR ?= /usr/synth
 QUICK_LISP ?= $(INSTDIR)/quicklisp/
 
-# This variable allows users to do everything using their own
-# quicklisp directory instead of using qlot.
-ifeq ($(USER_QUICK_LISP),)
-USER_QUICK_LISP=quicklisp
-MANIFEST=system-index.txt
-else
-MANIFEST=$(USER_QUICK_LISP)/local-projects/system-index.txt
-endif
+MANIFEST=$(QUICK_LISP)/local-projects/system-index.txt
 
 ifeq "$(wildcard $(QUICK_LISP)/setup.lisp)" ""
 $(warning $(QUICK_LISP) does not appear to be a valid quicklisp install)
@@ -97,39 +91,27 @@ qlfile: .ci/qlfile.external
 	cp $< $@
 endif
 
-ifeq ($(USER_QUICK_LISP),quicklisp)
-# If we're using qlot to grab all dependencies and *not* using the
-# user's quicklisp, then we've USER_QUICK_LISP equal to
-# "$(pwd)/quicklisp" and we'll use qlot:with-local-quicklisp to
-# install everything into that new quicklisp location.  We then use
-# $(USER_QUICK_LISP) for all quicklisp operations moving forward.
 $(MANIFEST): qlfile
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
-		--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-		--eval '(ql:quickload :qlot)' \
-		--eval '(let ((asdf::*default-source-registry-exclusions* (list "doc" ".ci"))) (qlot:install :$(PACKAGE_NAME)))' \
-		--eval '(qlot:quickload :$(PACKAGE_NAME))' \
-		--eval '(qlot:with-local-quicklisp ("$(USER_QUICK_LISP)") (ql:register-local-projects))' \
-		--eval '#+sbcl (exit) #+ccl (quit)'
-else
-$(MANIFEST): qlfile
-	for dependency in $$(awk '{print $$3}' qlfile);do \
-	base=$(USER_QUICK_LISP)/local-projects/$$(basename $$dependency .git); \
-	[ -d $$base ] || git clone $$dependency $$base; \
+	IFS=$$(echo -en "\b\n"); \
+	for pair in $$(awk '{if($$4){br=$$4}else{br="master"}print $$3, br}' qlfile);do \
+	dependency=$$(echo "$${pair}"|cut -f1 -d' '); \
+	base=$(QUICK_LISP)/local-projects/$$(basename $$dependency .git); \
+	branch=$$(echo "$${pair}"|cut -f2 -d' '); \
+	[ -d $$base ] || git clone $$dependency $$base --branch $$branch; \
 	done
-	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(USER_QUICK_LISP)/setup.lisp \
+	$(LISP_HOME) $(LISP) $(LISP_FLAGS) --load $(QUICK_LISP)/setup.lisp \
 		--eval '(ql:register-local-projects)' \
 		--eval '#+sbcl (exit) #+ccl (quit)'
-endif
 
 bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
-	--load $(USER_QUICK_LISP)/setup.lisp \
+	--load $(QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
-	--eval '(ql:quickload :$(PACKAGE_NAME)/$*)' \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
-	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/$* :type :program :monolithic t))' \
+	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
 	--eval '(quit)'
 
 bin:
@@ -145,7 +127,7 @@ test-artifacts: $(TEST_ARTIFACTS)
 
 unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
-	--load $(USER_QUICK_LISP)/setup.lisp \
+	--load $(QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
@@ -159,7 +141,7 @@ real-check: check long-bin-check
 
 ## Interactive testing
 SWANK_PORT ?= 4005
-swank: $(USER_QUICK_LISP)/setup.lisp
+swank: $(QUICK_LISP)/setup.lisp
 	$(LISP_HOME) $(LISP)					\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
@@ -168,7 +150,7 @@ swank: $(USER_QUICK_LISP)/setup.lisp
 	--eval '(in-package :$(PACKAGE_NAME))'			\
 	--eval '(ql::call-with-quiet-compilation (lambda () (swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t)))'
 
-swank-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
+swank-test: $(QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
@@ -178,7 +160,7 @@ swank-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
 	--eval '(in-package :$(PACKAGE_NAME)-test)'		\
 	--eval '(sel/utility::with-quiet-compilation (swank:create-server :port $(SWANK_PORT) :style :spawn :dont-close t))'
 
-repl: $(USER_QUICK_LISP)/setup.lisp
+repl: $(QUICK_LISP)/setup.lisp
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
@@ -186,7 +168,7 @@ repl: $(USER_QUICK_LISP)/setup.lisp
 	--eval '(in-package :$(PACKAGE_NAME))'			\
 	--eval '(ql::call-with-quiet-compilation $(REPL_STARTUP))'
 
-repl-test: $(USER_QUICK_LISP)/setup.lisp test-artifacts
+repl-test: $(QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
@@ -276,7 +258,7 @@ cparen=)
 LOADS=$(addprefix $(cparen)$(oparen)ql:quickload :, $(DOC_PACKAGES))
 
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
-	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(USER_QUICK_LISP)/setup.lisp \
+	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(QUICK_LISP)/setup.lisp \
 	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(progn (list $(LOADS) $(cparen))' \

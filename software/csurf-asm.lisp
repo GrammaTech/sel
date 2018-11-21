@@ -3,7 +3,32 @@
 ;;; DOCFIXME Need a page or so introduction to csurf-asm software objects.
 ;;;
 ;;; @texi{csurf-asm}
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/csurf-asm
+  (:nicknames :sel/software/csurf-asm :sel/sw/csurf-asm)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :split-sequence
+        :cl-ppcre
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/asm
+        :software-evolution-library/software/asm-heap)
+  (:export :apply-config
+           :csurf-asm
+           :*dynamic-linker-path*
+           :*elf-copy-redirect-path*
+           :*elf-edit-symtab-path*
+           :assembler
+           :asm-flags
+           :redirect-file
+           :linker-script
+           :weak-symbols
+           :linked-files))
+(in-package :software-evolution-library/software/csurf-asm)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software csurf-asm (asm-heap)

@@ -1,5 +1,47 @@
 ;;; asm-heap.lisp --- parse assembly code into asm-line-info structs
-(in-package :software-evolution-library)
+(defpackage :software-evolution-library/software/asm-heap
+  (:nicknames :sel/software/asm-heap :sel/sw/asm-heap)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :iterate
+        :split-sequence
+        :cl-ppcre
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/simple
+        :software-evolution-library/software/asm
+        :software-evolution-library/software/super-mutant)
+  (:export :asm-heap
+           :line-heap
+           :function-index
+           :function-bounds-file
+           :super-owner
+           :asm-line-info
+           :asm-line-info-text
+           :asm-line-info-tokens
+           :asm-line-info-type
+           :asm-line-info-label
+           :asm-line-info-opcode
+           :asm-line-info-operands
+           :asm-line-info-id
+           :asm-line-info-orig-file
+           :asm-line-info-orig-line
+           :asm-line-info-address
+           :function-index-entry
+           :function-index-entry-name
+           :function-index-entry-start-line
+           :function-index-entry-start-address
+           :function-index-entry-end-line
+           :function-index-entry-end-address
+           :function-index-entry-is-leaf
+           :function-index-entry-declarations
+           :insert-new-line
+           :insert-new-lines
+           :parse-asm-line))
+(in-package :software-evolution-library/software/asm-heap)
 (in-readtable :curry-compose-reader-macros)
 
 (defstruct (asm-line-info (:copier copy-asm-line-info))
