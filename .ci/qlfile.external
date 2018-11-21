@@ -1,1 +1,2 @@
 git trace-db https://github.com/grammatech/trace-db.git
+git Eclector https://github.com/robert-strandh/Eclector.git wip-parse-result-protocol-2
