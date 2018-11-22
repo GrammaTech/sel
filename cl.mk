@@ -84,16 +84,15 @@ endif
 all: $(addprefix bin/, $(BINS))
 
 ifneq ($(GT),)
-qlfile: .ci/qlfile.grammatech
+.qlfile: .ci/qlfile.grammatech
 	cp $< $@
 else
-qlfile: .ci/qlfile.external
+.qlfile: .ci/qlfile.external
 	cp $< $@
 endif
 
-$(MANIFEST): qlfile
-	IFS=$$(echo -en "\b\n"); \
-	for pair in $$(awk '{if($$4){br=$$4}else{br="master"}print $$3, br}' qlfile);do \
+$(MANIFEST): .qlfile
+	awk '{if($$4){br=$$4}else{br="master"}print $$3, br}' .qlfile|while read pair;do \
 	dependency=$$(echo "$${pair}"|cut -f1 -d' '); \
 	base=$(QUICK_LISP)/local-projects/$$(basename $$dependency .git); \
 	branch=$$(echo "$${pair}"|cut -f2 -d' '); \
@@ -243,7 +242,7 @@ more-clean: clean
 	make -C doc clean
 
 real-clean: more-clean
-	rm -f qlfile qlfile.lock Dockerfile
+	rm -f .qlfile Dockerfile
 	rm -rf quicklisp system-index.txt
 
 

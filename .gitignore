@@ -115,4 +115,5 @@ tests.html
 
 local.mk
 
+.qlfile
 system-index.txt
