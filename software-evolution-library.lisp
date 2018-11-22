@@ -32,6 +32,7 @@
    :parse-body :simple-style-warning)
   (:export
    :+software-evolution-library-dir+
+   :+software-evolution-library-major-version+
    :+software-evolution-library-version+
    :+software-evolution-library-branch+
    ;; software objects
@@ -156,11 +157,17 @@
          *default-pathname-defaults*))
   "Path to directory holding SOFTWARE-EVOLUTION-LIBRARY.")
 
+(define-constant +software-evolution-library-major-version+ "v0.1.0"
+  :test #'equal
+  :documentation
+  "Current major version of the SOFTWARE-EVOLUTION-LIBRARY (without git hash).")
+
 (defvar +software-evolution-library-version+
   (eval-when (:compile-toplevel :load-toplevel :execute)
-    (handler-case
-        (current-git-commit +software-evolution-library-dir+)
-      (git (e) (declare (ignorable e)) "UNKNOWN")))
+    (concatenate 'string +software-evolution-library-major-version+ "-"
+                 (handler-case
+                     (current-git-commit +software-evolution-library-dir+)
+                   (git (e) (declare (ignorable e)) "UNKNOWN"))))
   "Current version of the SOFTWARE-EVOLUTION-LIBRARY.")
 
 (defvar +software-evolution-library-branch+
