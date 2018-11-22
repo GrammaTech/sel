@@ -168,6 +168,7 @@
    :aget
    :alist
    :alist-merge
+   :adrop
    :alist-filter
    :getter
    :transpose
@@ -1370,6 +1371,10 @@ is replaced with replacement."
                      (prog1 ,store
                        (setf ,access-form (acons ,item ,store ,access-form)))))
               `(aget ,item ,access-form :test ,test)))))
+
+(defun adrop (drop-keys alist)
+  "Remove all keys in DROP-KEYS from alist."
+  (remove-if [{member _ drop-keys} #'car] alist))
 
 (defun alist-filter (keep-keys alist)
   "Remove all keys from ALIST except those in KEEP-KEYS."
