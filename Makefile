@@ -11,7 +11,9 @@ PACKAGE_NICKNAME = sel
 #     grep -r "in-package :software-evolution-library"|grep -v ".git"|sed 's/^.*package ://;s/)$//'|sort|uniq
 DOC_PACKAGES =								\
 	software-evolution-library					\
+	software-evolution-library/ast-diff/string			\
 	software-evolution-library/ast-diff/ast-diff			\
+	software-evolution-library/ast-diff/alist			\
 	software-evolution-library/ast-diff/clang			\
 	software-evolution-library/ast-diff/html			\
 	software-evolution-library/components/clang-instrument		\
@@ -70,6 +72,7 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/super-mutant-clang		\
 	software-evolution-library/software/super-mutant-project	\
 	software-evolution-library/software/with-exe			\
+	software-evolution-library/ast-diff/clang-merge			\
 	software-evolution-library/test					\
 	software-evolution-library/utility				\
 	software-evolution-library/view
@@ -84,7 +87,7 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = clang-diff
+BINS = clang-diff clang-merge
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\

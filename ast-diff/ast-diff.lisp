@@ -31,10 +31,12 @@
 ;;;
 ;;; @texi{ast-diff}
 (defpackage :software-evolution-library/ast-diff/ast-diff
-  (:nicknames :sel/ast-diff :software-evolution-library/ast-diff)
+  (:nicknames :sel/ast-diff :sel/ast-diff/ast-diff
+	      :software-evolution-library/ast-diff)
   (:use
    :common-lisp
    :software-evolution-library/utility
+   :software-evolution-library/ast-diff/string
    :alexandria
    :arrow-macros
    :named-readtables
@@ -43,6 +45,7 @@
    :iterate
    :cl-heap)
   (:export
+   :ast-equal-p
    :ast-cost
    :ast-can-recurse
    :ast-on-recurse
@@ -50,18 +53,6 @@
    :ast-text
    :ast-hash
    :ast-combine-hash-values
-   ;; :costed
-   ;; :cobj
-   ;; :clength
-   ;; :ccost
-   ;; :to-costed
-   ;; :from-costed
-   ;; :ccons
-   ;; :cconsp
-   ;; :cnull
-   ;; :ccar
-   ;; :cdar
-   :ast-equal-p
    :ast-diff
    :ast-diff-elide-same
    :ast-patch
@@ -69,7 +60,11 @@
    ;; Merge functions
    :chunk
    :diff3
-   :show-chunks))
+   :merge3
+   :converge
+   :show-chunks
+   :merge-diffs-on-syms
+   ))
 (in-package :software-evolution-library/ast-diff/ast-diff)
 (in-readtable :curry-compose-reader-macros)
 ;;; Comments on further algorithm improvements
@@ -108,80 +103,28 @@
 ;;; of ASTs.
 
 
-;;; Supporting structures.
-(defstruct (costed (:conc-name c))
-  "Objects with a cost and length."
-  (obj nil)
-  (orig nil)
-  (length 0 :type fixnum)
-  (cost 0 :type fixnum)
-  (hash nil :type (or null fixnum)))
+(declaim (special *cost-table*))
+
+(defun clength (x) (iter (while (consp x)) (pop x) (summing 1)))
+
+;; (defun make-costed (&key obj &allow-other-keys) obj)
+
+(defmethod ccost ((x cons))
+  (let ((conses nil))
+    (let ((y x))
+      (iter (while (consp y))
+	    (push y conses)
+	    (pop y)))
+    (let ((cost 1))
+      (iter (while conses)
+	    (incf cost (ccost (car (pop conses)))))
+      cost)))
+
+(defmethod ccost (x) 1)
 
 ;; #+sbcl (declaim (optimize sb-cover:store-coverage-data))
 
-;; (declaim (inline reduce-on))
-(defun reduce-on (combining-fn tail-fn x &key (recur-p #'consp) (next #'cdr))
-  "Use COMBINING-FN to combine, last to first, the values obtained by
-calling NEXT zero or more times on X, until RECUR-P is false, at which
-point TAIL-FN is applied instead to that last value."
-  (let ((stack nil))
-    (iter (while (funcall recur-p x))
-          (push x stack)
-          (setf x (funcall next x)))
-    (let ((result (funcall tail-fn x)))
-      (iter (while stack)
-            (setf result (funcall combining-fn (pop stack) result)))
-      result)))
-
-(defun to-costed (obj)
-  (labels ((recurse (obj)
-             (reduce-on
-              (lambda (obj cdr) (ccons (recurse (car obj)) cdr :orig obj))
-              (lambda (obj) (make-costed :obj obj :orig obj :cost (ast-cost obj)))
-              obj)))
-    (recurse obj)))
-
-(defmethod from-costed ((costed costed))
-  (labels ((recurse (costed)
-             (reduce-on
-              (lambda (costed rest) (cons (recurse (ccar costed)) rest))
-              (lambda (x) (if (costed-p x) (or (corig x) (recurse (cobj x))) x))
-              costed
-              :recur-p (lambda (x) (and (costed-p x) (not (corig x)) (cconsp x)))
-              :next #'ccdr)))
-    (values (recurse costed) (ccost costed))))
-
-(defmethod ccons ((car costed) (cdr costed) &key orig cost)
-  (make-costed :obj (cons car cdr)
-               :orig orig
-               :length (1+ (clength cdr))
-               :cost (or cost (+ (ccost car) (ccost cdr)))))
-
-(defmethod cconsp ((costed costed))
-  (consp (cobj costed)))
-
-(defmethod cnull ((clist costed))
-  (null (cobj clist)))
-
-(defmethod ccar ((costed costed))
-  (car (cobj costed)))
-
-(defmethod ccdr ((costed costed))
-  (cdr (cobj costed)))
-
-(defmethod creverse ((costed costed))
-  (labels ((helper (it acc)
-             (if (cconsp it)
-                 (helper (ccdr it) (ccons (ccar it) acc))
-                 (if (cnull it)
-                     acc
-                     (ccons it acc)))))
-    (helper costed (make-costed))))
-
-(defmethod clast ((costed costed))
-  (iter (while (cconsp costed))
-        (setf costed (ccdr costed)))
-  costed)
+(defmethod clast (obj) (iter (while (consp obj)) (pop obj)))
 
 
 ;;; Interface functions.
@@ -197,40 +140,39 @@ point TAIL-FN is applied instead to that last value."
              (always (ast-equal-p (pop ast-a) (pop ast-b))))
        (ast-equal-p ast-a ast-b)))
 
-(defmethod ast-equal-p ((ast-a costed) (ast-b costed))
-  (ast-equal-p (cobj ast-a) (cobj ast-b)))
-
 (defgeneric ast-cost (ast)
   (:documentation "Return cost of AST."))
 
 (defmethod ast-cost ((ast t))
   1)
 
+(defmethod ast-cost ((ast string))
+  (length ast))
+
+(defmethod ast-cost ((ast vector))
+  (length ast))
+
+(defmethod ast-cost ((ast null))
+  1)
+
 (defmethod ast-cost ((ast cons))
   (+ (iter (sum (ast-cost (pop ast)))
            (while (consp ast)))
-     (ast-cost ast)))
-
-(defmethod ast-cost ((ast costed))
-  (ast-cost (cobj ast)))
+     ;; cost of terminal NIL is 0
+     (if ast (ast-cost ast) 0)))
 
 (defgeneric ast-can-recurse (ast-a ast-b)
   (:documentation "Check if recursion is possible on AST-A and AST-B."))
 
-(defmethod ast-can-recurse ((ast-a costed) (ast-b costed))
-  (ast-can-recurse (cobj ast-a) (cobj ast-b)))
-
-(defmethod ast-can-recurse ((ast-a t) (ast-b t))
-  (and (consp ast-a) (consp ast-b)))
+(defmethod ast-can-recurse ((ast-a cons) (ast-b cons)) t)
+(defmethod ast-can-recurse ((ast-a string) (ast-b string)) t)
+(defmethod ast-can-recurse (ast-a ast-b) nil)
 
 (defgeneric ast-on-recurse (ast)
   (:documentation "Possibly AST on recursion."))
 
 (defmethod ast-on-recurse ((ast t))
   ast)
-
-(defmethod ast-on-recurse ((ast costed))
-  (ast-on-recurse (cobj ast)))
 
 (defgeneric ast-un-recurse (ast sub-ast)
   (:documentation
@@ -245,14 +187,26 @@ point TAIL-FN is applied instead to that last value."
 (defmethod ast-text ((ast t))
   (format nil "~A" ast))
 
-(defmethod ast-text ((ast costed))
-  (ast-text (cobj ast)))
-
 (defmethod ast-text ((ast string))
   ast)
 
 (defmethod ast-text ((ast cons))
-  (concatenate 'string (ast-text (car ast)) (ast-text (cdr ast))))
+  (let ((strings (iter (while (consp ast))
+		       (collecting (ast-text (pop ast))))))
+    (if ast
+	(concatenate-strings (list strings "." (ast-text ast)))
+	(concatenate-strings strings))))
+
+(defun concatenate-strings (strings)
+  (let* ((total-length (iter (for s in strings) (summing (length s))))
+	 (result (make-string total-length :initial-element #\Space))
+	 (i 0))
+    (iter (for s in strings)
+	  (let ((l (length s)))
+	    (setf (subseq result i (+ i l)) s)
+	    (incf i l)))
+    result))
+	       
 
 
 (defgeneric ast-hash (ast)
@@ -328,6 +282,23 @@ modile +AST-HASH-BASE+"
               (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
       result))
 
+  (defun ast-combine-simple-vector-hash-values (sv)
+    (declare (type simple-vector sv))
+    (let ((result 0)
+	  (hb +ast-hash-base+)
+	  (len (length sv)))
+      (declare (type hash-type result))
+      (iter (for i from 0 below len)
+	    (for hv in-vector sv)
+	    (let* ((im (logand i 31))
+                   (a (aref a-coeffs im))
+                   (b (aref b-coeffs im)))
+              ;; RESULT is squared to avoid linearity
+              ;; Without this, trees that have certain permutations of leaf
+              ;; values can be likely to hash to the same integer.
+              (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+      result))    
+
   (defmethod ast-hash ((i integer))
     (let ((c1 34188292748050745)
           (c2 38665981814718286))
@@ -336,10 +307,10 @@ modile +AST-HASH-BASE+"
   ;; could have specialized methods on strings
   ;; to speed up that common case
   (defmethod ast-hash ((s vector))
-    (apply #'ast-combine-hash-values
-           38468922606716016
-           (length s)
-           (map 'list #'ast-hash s)))
+    (ast-combine-hash-values
+     38468922606716016
+     (length s)
+     (ast-combine-simple-vector-hash-values (map 'simple-vector #'ast-hash s))))
 
   (defmethod ast-hash ((l cons))
     ;; Assumes not a circular list
@@ -374,18 +345,7 @@ modile +AST-HASH-BASE+"
   (defmethod ast-hash ((p package))
     (ast-hash (package-name p)))
 
-  (defmethod ast-hash ((c costed))
-    (or (chash c)
-        (setf (chash c)
-              (if (consp (cobj c))
-                  (ast-hash
-                   (nconc
-                    (iter (while (and (typep c 'costed)
-                                      (typep (cobj c) 'cons)))
-                          (collect (car (cobj c)))
-                          (setf c (cdr (cobj c))))
-                    c))
-                  (ast-hash (cobj c)))))))
+  )
 
 (defun ast-hash-with-check (ast table)
   "Calls AST-HASH, but checks that if two ASTs have the same hash value,
@@ -465,26 +425,26 @@ Prefix and postfix returned as additional values."
   (push val (cdr sq)))
 
 (defun recursive-diff (total-a total-b &key (upper-bound most-positive-fixnum)
-                       &aux
-                         (from (make-cache total-a total-b))
-                         ;; FRINGE is a queue used to order
-                         ;; visits of 'open' nodes.  An open node should only
-                         ;; be put on the queue when all its
-                         ;; predecessors are closed.
-                         ;; (fringe (make-instance 'priority-queue))
-                         (fringe (make-simple-queue))
-                         ;; When T, the node is stored in the priority queue already
-                         (open (make-cache total-a total-b))
-                         (total-open 0)
-                         ;; When CLOSED is T, the node has been processed
-                         (closed (make-cache total-a total-b))
-                         ;; For closed nodes, G is the actual minimum cost
-                         ;; of reaching the node.
-                         (g (make-cache total-a total-b))
-                         (r-cache (make-cache total-a total-b))
-                         (lta (clength total-a))
-                         (ltb (clength total-b))
-                         )
+			&aux
+			  (from (make-cache total-a total-b))
+			  ;; FRINGE is a queue used to order
+			  ;; visits of 'open' nodes.  An open node should only
+			  ;; be put on the queue when all its
+			  ;; predecessors are closed.
+			  ;; (fringe (make-instance 'priority-queue))
+			  (fringe (make-simple-queue))
+			  ;; When T, the node is stored in the priority queue already
+			  (open (make-cache total-a total-b))
+			  (total-open 0)
+			  ;; When CLOSED is T, the node has been processed
+			  (closed (make-cache total-a total-b))
+			  ;; For closed nodes, G is the actual minimum cost
+			  ;; of reaching the node.
+			  (g (make-cache total-a total-b))
+			  (r-cache (make-cache total-a total-b))
+			  (lta (clength total-a))
+			  (ltb (clength total-b))
+			  )
   ;; UPPER-BOUND is a limit beyond which we give up on
   ;; pursuing edges.  This is not currently exploited.
   (labels
@@ -496,22 +456,27 @@ Prefix and postfix returned as additional values."
          ;; (dequeue fringe)
          (simple-queue-dequeue fringe))
        (reconstruct-path- (a b)
-         (if (and (zerop a) (zerop b))
-             (make-costed)
-             (destructuring-bind ((new-a . new-b) . edge) (aref from a b)
-               (ccons edge (reconstruct-path- new-a new-b)))))
+	 #+ast-diff-debug (format t "reconstruct-path-: ~a ~a~%" a b)
+	 (let ((result
+		(if (and (zerop a) (zerop b))
+		    nil
+		    (destructuring-bind ((new-a . new-b) . edge) (aref from a b)
+		      (cons edge (reconstruct-path- new-a new-b))))))
+	   #+ast-diff-debug (format t "reconstruct-path- returns: ~a~%" result)
+	   result))
        (reconstruct-path (last-a last-b a b)
-         (creverse
+	 #+ast-diff-debug (format t "reconstruct-path: ~a ~a ~a ~a~%" last-a last-b a b)
+         (reverse
           ;; Handle cdr of final cons.  This must be special-cased
           ;; because when nil (a list) this is ignored by functions
           ;; expecting lists (not cons trees).
+	  ;;
+	  ;; Get rid of all of this!
           (if (ast-equal-p last-a last-b)
-              (ccons
-               (ccons (make-costed :obj :same) last-a :cost 0)
-               (reconstruct-path- a b))
-              (ccons (ccons (make-costed :obj :insert) last-b)
-                     (ccons (ccons (make-costed :obj :delete) last-a)
-                            (reconstruct-path- a b))))))
+	      (if last-a
+		  `((:same-tail . ,last-a) . ,(reconstruct-path- a b))
+		  (reconstruct-path- a b))
+	      `((:insert . ,last-b) (:delete . ,last-a) . ,(reconstruct-path- a b)))))
        (%pos-a (a) (- lta (clength a)))
        (%pos-b (b) (- ltb (clength b))))
 
@@ -528,7 +493,7 @@ Prefix and postfix returned as additional values."
       (let* ((a (car current)) (b (cdr current))
              (pos-a (%pos-a a))
              (pos-b (%pos-b b)))
-
+	#+ast-diff-debug (format t "pos-a = ~a, pos-b = ~a~%" pos-a pos-b)
         (when (and (zerop (clength a))
                    (zerop (clength b)))
           (reconstruct-path a b (clength a) (clength b)))
@@ -539,6 +504,7 @@ Prefix and postfix returned as additional values."
 
         (labels                         ; Handle all neighbors.
             ((add (neighbor edge)
+	       #+ast-diff-debug (format t "   add: ~a ~a~%" neighbor edge)
                (let ((next-a (%pos-a (car neighbor)))
                      (next-b (%pos-b (cdr neighbor))))
                  (unless (aref closed next-a next-b) ; should never happen?
@@ -547,11 +513,14 @@ Prefix and postfix returned as additional values."
                      (setf (aref open next-a next-b) t))
                    (let ((tentative
                           (+ (aref g pos-a pos-b)
-                             (ccost edge)))
+                             (diff-cost edge)))
                          (value (aref g next-a next-b)))
                      ;; Neighbor is an improvement.
                      (when (and (or (null value) (< tentative value))
                                 (< tentative upper-bound))
+		       #+ast-diff-debug
+		       (format t "Improvement: tentative = ~a, value = ~a, next-a = ~a, next-b = ~a~%"
+			       tentative value next-a next-b)
                        (setf (aref from next-a next-b)
                              (cons (cons pos-a pos-b) edge)
                              value tentative
@@ -566,36 +535,65 @@ Prefix and postfix returned as additional values."
                                                   (aref closed next-a (1- next-b)))))))
                        (%enqueue neighbor))))))
              (%recursive (a b)
+	       #+ast-diff-debug (format t "%recursive: ~a ~a~%" a b)
                (let ((i (%pos-a a))
                      (j (%pos-b b)))
                  (or (aref r-cache i j)
-                     (setf (aref r-cache i j)
-                           (recursive-diff
-                            (to-costed (ast-on-recurse (corig (ccar a))))
-                            (to-costed (ast-on-recurse (corig (ccar b))))))))))
+		     (setf (aref r-cache i j)
+			   (ast-diff (car a) (car b))
+			   )))))
 
           ;; Check neighbors: diagonal, recurse, insert, delete.
-          (when (and (cconsp a) (cconsp b))
+          (when (and (consp a) (consp b))
+	    #+ast-diff-debug (format t "check neighbors case 1: ~a ~a~%" a b)
             (cond
-              ((ast-equal-p (ccar a) (ccar b)) ; Diagonal.
-               (add (cons (ccdr a) (ccdr b))
-                    (ccons (make-costed :obj :same) (ccar a) :cost 0)))
-              ((ast-can-recurse (ccar a) (ccar b)) ; Recurse.
-               (add (cons (ccdr a) (ccdr b))
-                    (ccons (make-costed :obj :recurse)
+              ((ast-equal-p (car a) (car b)) ; Diagonal.
+	       #+ast-diff-debug (format t "  diagonal~%")
+               (add (cons (cdr a) (cdr b))
+                    (cons :same (car a))))
+              ((ast-can-recurse (car a) (car b)) ; Recurse.
+	       #+ast-diff-debug (format t "  recurse~%")
+               (add (cons (cdr a) (cdr b))
+                    (cons  :recurse
                            (%recursive a b))))))
-          (if (cconsp b)                ; Insert.
-              (add (cons a (ccdr b))
-                   (ccons (make-costed :obj :insert) (ccar b)))
-              (add (cons a (make-costed))
-                   (ccons (make-costed :obj :insert) b)))
-          (if (cconsp a)                ; Delete.
-              (add (cons (ccdr a) b)
-                   (ccons (make-costed :obj :delete) (ccar a)))
-              (add (cons (make-costed) b)
-                   (ccons (make-costed :obj :delete) a))))))))
+          (if (consp b)                ; Insert.
+              (add (cons a (cdr b))
+                   (cons :insert (car b)))
+              (add (cons a nil)
+                   (cons :insert b)))
+          (if (consp a)                ; Delete.
+              (add (cons (cdr a) b)
+                   (cons :delete (car a)))
+              (add (cons nil b)
+                   (cons :delete a))))))))
+
+(defun diff-cost (diff)
+  "Computes the cost of a diff"
+  (cond
+    ((not (consp diff)) 0)
+    ((symbolp (car diff))
+     (case (car diff)
+       (:insert (ast-cost (cdr diff)))
+       (:delete (if (cdr diff) (ast-cost (cdr diff)) 1))
+       (:recurse (diff-cost (cdr diff)))
+       (:recurse-tail (diff-cost (cdr diff)))
+       ((:insert-sequence :delete-sequence :recurse-tail)
+	(if (consp (cdr diff))
+	    (reduce #'+ (cdr diff) :key #'diff-cost :initial-value 0)
+	    1))
+       ((:same :same-tail :same-sequence) 0)
+       (t (diff-cost-car diff (car diff)))))
+    (t
+     (reduce #'+ diff :key #'diff-cost :initial-value 0))))
+
+(defgeneric diff-cost-car (diff diff-car)
+  (:documentation "Cost of DIFF, where DIFF is a cons cells with car DIFF-CAR, which is a symbol"))
+
+(defmethod diff-cost-car ((diff cons) (diff-car symbol)) 0)
 
 (defun ast-diff-on-lists (ast-a ast-b)
+  (assert (proper-list-p ast-a))
+  (assert (proper-list-p ast-b))
   ;; Drop common prefix and postfix, just run the diff on different middle.
   (multiple-value-bind (unique-a unique-b prefix postfix)
       (remove-common-prefix-and-suffix (ast-on-recurse ast-a)
@@ -607,10 +605,13 @@ Prefix and postfix returned as additional values."
                ;; Some special handling is required to interface
                ;; between the list model of the common pre-/post-fixes
                ;; and the cons-tree model of the calculated diff.
+	       ;;
+	       ;; This leads to unnecessary hair.  Fix!
+	       #+ast-diff-debug (format t "add-common: ~a ~a~%" diff cost)
                (values
-                (let ((diff (if (equal '(:same) (lastcar diff))
-                                (butlast diff)
-                                diff)))
+                (let ((diff (if (equal '(:same-tail) (lastcar diff))
+				(butlast diff)
+				diff)))
                   (let ((diff (if prefix
                                   (append (mapcar (lambda (it) (cons :same it)) prefix)
                                           diff)
@@ -628,22 +629,40 @@ Prefix and postfix returned as additional values."
         (return-from ast-diff-on-lists
           (multiple-value-call #'add-common
             (values (mapcar (lambda (el) (cons :insert el)) unique-b)
-                    (1- (ccost (to-costed unique-b))))))) ; 1- for trailing nil.
+                    (1- (ccost unique-b)))))) ; 1- for trailing nil.
       (when (null unique-b)
         (return-from ast-diff-on-lists
           (multiple-value-call #'add-common
             (values (mapcar (lambda (el) (cons :delete el)) unique-a)
-                    (1- (ccost (to-costed unique-a))))))) ; 1- for trailing nil.
+                    (1- (ccost unique-a)))))) ; 1- for trailing nil.
 
-      (multiple-value-call #'add-common
-        (from-costed (recursive-diff (to-costed unique-a) (to-costed unique-b)))))))
+      (let ((rdiff (recursive-diff unique-a unique-b)))
+	(add-common rdiff (diff-cost rdiff))))))
 
-(defmethod ast-diff ((ast-a t) (ast-b t))
-  (let ((new-ast-a (ast-on-recurse ast-a))
-        (new-ast-b (ast-on-recurse ast-b)))
-    (unless (and (proper-list-p new-ast-a) (proper-list-p new-ast-b))
-      (return-from ast-diff (ast-diff-on-lists ast-a ast-b)))
-    (setf ast-a new-ast-a ast-b new-ast-b))
+(defun properize (list)
+  "Returns the proper part of list and the CDR of the last element"
+  (if (proper-list-p list)
+      (values list nil)
+      (let (tail (e list))
+	(values
+	 (iter (setf tail e)
+	       (while (consp e))
+	       (when (consp e) (collect (pop e))))
+	 tail))))
+
+(defmethod ast-diff (ast-a ast-b)
+  (if (equalp ast-a ast-b)
+      (values `((:same . ,ast-a)) 0)
+      (values `((:delete . ,ast-a) (:insert . ,ast-b))
+	      (+ (ast-cost ast-a) (ast-cost ast-b)))))
+
+(defmethod ast-diff ((ast-a list) (ast-b list) &aux tail-a tail-b)
+  (let* ((new-ast-a (ast-on-recurse ast-a))
+	 (new-ast-b (ast-on-recurse ast-b)))
+    (setf (values ast-a tail-a) (properize new-ast-a))
+    (setf (values ast-b tail-b) (properize new-ast-b))
+    )
+  #+ast-diff-debug (format t "ast-a = ~a, tail-a = ~a~%ast-b = ~a, tail-b = ~a~%" ast-a tail-a ast-b tail-b)
   (let* ((table (make-hash-table))
          (hashes-a (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-a))
          (hashes-b (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-b))
@@ -668,14 +687,30 @@ Prefix and postfix returned as additional values."
             ;; (assert (ast-equal-p ca cb))
             (multiple-value-bind (diff cost)
                 (ast-diff-on-lists da db)
-              (when (and overall-diff (equalp (lastcar diff) '(:same)))
-                (assert (>= cost 1))
-                (decf cost)
-                (setf diff (butlast diff)))
+	      ;; get rid of this?
+	      #+nil
+	      (when (and overall-diff (equalp (lastcar diff) '(:same)))
+		 (assert (>= cost 1))
+		 (decf cost)
+		 (setf diff (butlast diff)))
               (setf overall-diff (append diff overall-diff))
               (incf overall-cost cost))
             (setf overall-diff (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
+      ;; Now splice in the tails, if needed
+      (if (equalp tail-a tail-b)
+	  (setf overall-diff (if tail-a (append overall-diff `((:same-tail . ,tail-a)))
+				 overall-diff))
+	  (progn
+	    #+ast-diff-debug (format t "Diff on non-nil tail~%")
+	    (multiple-value-bind (diff tail-cost)
+		(ast-diff tail-a tail-b)
+	      (setf overall-diff (append overall-diff `((:recurse-tail . ,diff))))
+	      (incf overall-cost tail-cost))))
       (values overall-diff overall-cost))))
+
+(defmethod ast-diff ((s1 string) (s2 string))
+  "special diff method for strings"
+  (string-diff s1 s2))
 
 (defun split-into-subsequences (seq subseq-indices &aux (n (length seq)))
   "Given list SEQ and a list of pairs SUBSEQ-INDICES, which are start/length indices
@@ -694,24 +729,6 @@ subsequences (some possibly empty), as well as the N subsequences themselves."
           (setf pos (+ start len)))
     (values (nreconc diff (list (subseq seq pos))) (nreverse common))))
 
-
-;;; Profiling Information for `ast-diff':
-;;
-;; Run the below form to test performance at increasing sizes (results
-;; table below as well).  The result is n^2 performance until memory
-;; pressure kicks in (between 500 and 1000 on SBCL).
-;;
-;;   (CCL is ~2× as slow as SBCL, but uses much less memory.)
-;;
-;; Top functions by percent runtime:
-;;  ~20% make-costed
-;;  ~10% ccons
-;; ~0.2% to-costed
-;; --------------------
-;; ~95% memoized-compute-diff
-;; ~85% recursive-diff
-;; ~40% recurse
-;;
 #+(or )
 (iter (for base in '(2 10 20 50 100 200 500 1000 2000 5000))
                 (let ((orig (iota base))
@@ -761,22 +778,45 @@ root of the edit script (and implicitly also the program AST)."
          (when edit-script
            (append
             (case (caar edit-script)
-              (:same nil)
+              ((:same :same-sequence :same-tail) nil)
               (:recurse (follow (cdar edit-script) (cons :a path)))
               (t (list (cons (reverse path) (car edit-script)))))
             (follow (cdr edit-script) (cons :d path))))))
     (follow edit-script nil)))
 
-(defgeneric ast-patch (original diff)
+(defgeneric ast-patch (original diff &rest keys &key &allow-other-keys)
   (:documentation "Create an edited AST by applying DIFF to ORIGINAL.
 
 A diff is a sequence of actions as returned by `ast-diff' including:
 :same A B  : keep the current AST
 :insert B  : insert B at the current position
-:remove A  : remove the current AST
+:delete A  : remove the current AST
 :recurse S : recursively apply script S to the current AST"))
 
-(defmethod ast-patch ((original t) (script list))
+(defmethod ast-patch ((original t) (script cons) &rest keys &key (delete? t) &allow-other-keys)
+  (declare (ignorable delete?))
+  (case (car script)
+    (:recurse-tail
+     (ast-patch original (cdr script)))
+    (:same
+     (assert (ast-equal-p original (cdr script)))
+     (cdr script))
+    (t
+     (assert (proper-list-p script))
+     (let ((keys (mapcar #'car script)))
+       (cond
+	 ((equal keys '(:same))
+	  (assert (ast-equal-p original (cdar script)))
+	  (cdar script))
+	 ((equal keys '(:insert :delete))
+	  (assert (ast-equal-p original (cdadr script)))
+	  (cdar script))
+	 ((equal keys '(:delete :insert))
+	  (assert (ast-equal-p original (cdar script)))
+	  (cdadr script))
+	 (t (error "Invalid diff on atom: ~a" script)))))))
+
+(defmethod ast-patch ((original cons) (script list) &rest keys &key (delete? t) &allow-other-keys)
   (labels
       ((edit (asts script)
          (when (and script
@@ -785,14 +825,90 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                     (not (and (null asts) (equal '(:same) (car script)))))
            (destructuring-bind (action . args) (car script)
              (ecase action
-               (:recurse (cons (ast-patch (car asts) args)
+               (:recurse (cons (apply #'ast-patch (car asts) args keys)
                                (edit (cdr asts) (cdr script))))
                (:same (cons (car asts)
                             (edit (cdr asts) (cdr script))))
+	       (:same-tail
+		(assert (null (cdr script))) ;; :same-tail always occurs last
+		(assert (ast-equal-p asts args))
+		asts)
+	       (:recurse-tail
+		(assert (null (cdr script)))
+		(ast-patch asts args))
                (:delete (assert (ast-equal-p (car asts) args))
-                        (edit (cdr asts) (cdr script)))
+			;; The key DELETE?, if NIL (default T) will
+			;; cause :DELETE edits to be ignored.  The
+			;; use case for this is to do a kind of binary
+			;; merge of two objects, sharing as much structure
+			;; as possible
+			(if delete?
+			    (edit (cdr asts) (cdr script))
+			    (cons (car asts) (edit (cdr asts) (cdr script)))))
                (:insert (cons args (edit asts (cdr script)))))))))
     (ast-un-recurse original (edit (ast-on-recurse original) script))))
+
+(defmethod ast-patch ((original vector) (script list) &rest keys &key (delete? t) &allow-other-keys)
+  ;; Specialized method for patching vectors
+  ;; we require that the elements inserted must be compatible
+  ;; with the element type of the original vector
+  (declare (ignorable delete?))
+  (let* ((len (length original))
+	 (etype (array-element-type original))
+	 (result (make-array (list len) :element-type etype :adjustable t :fill-pointer 0))
+	 (i 0))
+    (loop while script
+       do (destructuring-bind (action . args) (pop script)
+	    (ecase action
+	      (:same
+	       (assert (< i len))
+	       (assert (equalp args (elt original i)))
+	       (incf i)
+	       (vector-push-extend args result))
+	      (:insert
+	       (assert (typep args etype))
+	       (vector-push-extend args result))
+	      (:delete
+	       (assert (< i len))
+	       (assert (equalp args (elt original i)))
+	       (incf i))
+	      (:recurse
+	       (assert (< i len))
+	       (vector-push-extend (apply #'ast-patch (elt original i) args keys) result)
+	       (incf i))
+	      (:insert-sequence
+	       (assert (typep args 'sequence))
+	       (map nil (lambda (e)
+			  (assert (typep e etype))
+			  (vector-push-extend e result))
+		    args))
+	      (:delete-sequence
+	       (assert (typep args 'sequence))
+	       (let ((arg-len (length args)))
+		 (assert (<= (+ i arg-len) len))
+		 (assert (equalp args (subseq original i (+ i arg-len))))
+		 (incf i arg-len)))
+	      (:same-sequence
+	       (assert (typep args 'sequence))
+	       (let ((arg-len (length args)))
+		 (assert (<= (+ i arg-len) len))
+		 (map nil (lambda (e)
+			    (assert (typep e etype))
+			    (assert (equalp e (elt original i)))
+			    (incf i)
+			    (vector-push-extend e result))
+		      args)))
+	      )))
+    (loop while (< i len)
+       do (vector-push-extend (elt original i) result)
+       do (incf i))
+    ;; Make the result simple again
+    (copy-seq result)))
+
+(defgeneric patch-files (soft file-diffs &rest args &key &allow-other-keys)
+  (:documentation "Apply the DIFFs in file-diffs to the files of SOFT.
+FILE-DIFFS is an alist mapping strings (?) to diffs, which are as
+in AST-PATCH.  Returns a new SOFT with the patched files."))
 
 (defun print-diff (diff &optional
                           (stream *standard-output*)
@@ -800,90 +916,324 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                           (delete-end "-]")
                           (insert-start "{+")
                           (insert-end "+}"))
-  (let ((*print-escape* nil))
-    (mapc (lambda (pair)
-            (destructuring-bind (type . content) pair
-              (ecase type
-                (:same (write (ast-text content) :stream stream))
-                (:delete (write delete-start :stream stream)
-                         (write (ast-text content) :stream stream)
-                         (write delete-end :stream stream))
-                (:insert (write insert-start :stream stream)
-                         (write (ast-text content) :stream stream)
-                         (write insert-end :stream stream))
-                (:recurse (print-diff content stream delete-start
-                                      delete-end insert-start insert-end)))))
-          (if (equalp '(:same) (lastcar diff)) (butlast diff) diff))))
+  (let ((*print-escape* nil)
+	(insert-buffer nil)
+	(delete-buffer nil))
+    (labels ((%p (c) (if (null c)
+			 (princ "()" stream)
+			 (write (ast-text c) :stream stream)))
+	     (purge-insert ()
+	       (when insert-buffer
+		 (mapc #'%p (reverse insert-buffer))
+		 (write insert-end :stream stream)
+		 (setf insert-buffer nil)))
+	     (purge-delete ()
+	       (when delete-buffer
+		 (mapc #'%p (reverse delete-buffer))
+		 (write delete-end :stream stream)
+		 (setf delete-buffer nil)))
+	     (push-insert (c)
+	       (purge-delete)
+	       (unless insert-buffer (write insert-start :stream stream))
+	       (push c insert-buffer))
+	     (push-delete (c)
+	       (purge-insert)
+	       (unless delete-buffer (write delete-start :stream stream))
+	       (push c delete-buffer))
+	     (purge ()
+	       (purge-insert)
+	       (purge-delete))
+	     (pr (c) (purge) (%p c))
+	     (%print-diff (diff)
+	       (mapc (lambda-bind ((type . content))
+				  (ecase type
+				    (:same (pr content))
+				    (:delete (push-delete content))
+				    (:insert (push-insert content))
+				    (:recurse (%print-diff content))
+				    (:same-sequence (map nil #'pr content))
+				    (:insert-sequence (map nil #'push-insert content))
+				    (:delete-sequence (map nil #'push-delete content))
+				    (:same-tail (map nil #'pr content))
+				    (:recurse-tail
+				     (%print-diff (remove-if (lambda (e) (or (equal e '(:delete))
+									     (equal e '(:insert))))
+							    content)))
+				    ))
+		     diff)))
+      (%print-diff diff)
+      (purge)
+      (values))))
 
 
 ;;; Merge algorithms
-(defun chunk (o-a o-b &aux chunks stable unstable leftp)
-  "Group two diffs against the same original into stable and unstable chunks.
-See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
-  (labels
-      ((two (sym-a sym-b)
-         (or (setf leftp (and (eql sym-a (caar o-a)) (eql sym-b (caar o-b))))
-             (and (eql sym-a (caar o-b)) (eql sym-b (caar o-a)))))
-       (flush-unstable ()
-         (when unstable
-           (appendf chunks (list (cons :unstable unstable)))
-           (setf unstable nil)))
-       (flush-stable ()
-         (when stable
-           (appendf chunks (list (cons :stable stable)))
-           (setf stable nil))))
-    (iter (while (and o-a o-b))
-          (cond
-            ;; Stable
-            ((two :same :same)
-             (flush-unstable)
-             (appendf stable (list (list (pop o-a) (pop o-b)))))
-            ((two :recurse :recurse)
-             (flush-stable) (flush-unstable)
-             (appendf chunks
-                      (list (cons :recurse
-                                  (chunk (cdr (pop o-a))
-                                         (cdr (pop o-b)))))))
-            ;; Unstable
-            ((or (two :same :delete)
-                 (two :recurse :delete)
-                 (two :same :recurse)
-                 (two :delete :delete)
-                 (two :insert :insert))
-             (flush-stable)
-             (appendf unstable (list (list (pop o-a) (pop o-b)))))
-            ((or (two :same :insert)
-                 (two :recurse :insert))
-             (flush-stable)
-             (appendf unstable (list (if leftp
-                                         (list nil (pop o-b))
-                                         (list (pop o-a) nil)))))
-            (t (error "Unanticipated state when chunking: ~a ~a."
-                      (caar o-a) (caar o-b)))))
-    (flush-stable) (flush-unstable)
-    chunks))
 
-(defun diff3 (original branch-a branch-b)
-  (labels ((map-chunks (function chunks)
-             (when chunks
-               (cons (if (eql :recurse (caar chunks))
-                         (map-chunks function (cdar chunks))
-                         (funcall function (car chunks)))
-                     (map-chunks function (cdr chunks))))))
-    (map-chunks
-     (lambda (chunk)
-       (format t "~a:~a~%" (car chunk) (mapcar {mapcar #'car} (cdr chunk)))
-       (ecase (car chunk)
-         (:stable (cons :stable (cdaadr chunk))) ; Return the text of chunk.
-         (:unstable
-          ;; TODO: Unstable Cases:
-          ;; - changed only in A
-          ;; - changed only in B
-          ;; - falsely conflicting
-          ;; - truly conflicting
-          chunk)))               ; Already labeled :unstable.
-     (chunk (ast-diff original branch-a)
-            (ast-diff original branch-b)))))
+
+(defgeneric converge (original branch-a branch-b &key &allow-other-keys)
+  (:documentation "Compute a version of ORIGINAL that is the result of trying to
+apply to ORIGINAL both the changes from ORIGINAL -> BRANCH-A and the changes from
+ORIGINAL -> BRANCH-B.  Returns this object, and a second argument that describes
+problems that were encountered, or NIL if no problems were found."))
+
+(defmethod converge ((original t) (branch-a t) (branch-b t) &key &allow-other-keys)
+  "Default method, assumes the arguments are things that can be treated as ASTs
+or SEXPRs."
+  (multiple-value-bind (diff problems)
+      (merge3 original branch-a branch-b)
+    (values (ast-patch original diff)
+	    problems)))
+
+(declaim (special *unstable*))
+
+(defun merge2 (branch-a branch-b)
+  "Find an object that contains branch-a and branch-b as substructures.
+Do this by computing the diff from branch-a to branch-b, then not performing
+the deletions in that diff."
+  (let ((diff (ast-diff branch-a branch-b)))
+    (ast-patch branch-a diff :delete? nil)))
+
+(defun merge3 (original branch-a branch-b)
+  "Find a version of that is a plausible combination of the changes from
+ORIGINAL -> BRANCH-A and ORIGINAL -> BRANCH-B.  Return the edit sequence
+from ORIGINAL to this merged version.   Also return a second value that
+is true if a clean merge could be found; otherwise, it is a list of
+unstable differences."
+  (let ((*unstable* nil))
+    (values
+     (merge-diffs2 (ast-diff original branch-a)
+		   (ast-diff original branch-b))
+     *unstable*)))
+
+(defun record-unstable (o-a o-b)
+  (push (list (car o-a) (car o-b)) *unstable*))
+
+;; New implementation of merge-diffs that uses methods for dispatching
+;; on different combinations of diff symbols
+(defgeneric merge-diffs-on-syms (sym-a sym-b diff-a diff-b)
+  (:documentation "Merge two diffs DIFF-A and DIFF-b, where
+sym-a is (caar diff-a) and sym-b is (caar diff-b).  Return
+three things: a list to be appended to the final merged diff,
+a tail of diff-a, and a tail of diff-b.")
+  ;; sym-a is :same
+  (:method ((sym-a (eql :same)) (sym-b (eql :same)) o-a o-b)
+    (unless (equalp (car o-a) (car o-b))
+      ;; should not happen
+      (record-unstable o-a o-b))
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :same)) (sym-b null) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :same)) (sym-b (eql :insert)) o-a o-b)
+    (values (list (car o-b)) o-a (cdr o-b)))
+  (:method ((sym-a (eql :same)) (sym-b (eql :delete)) o-a o-b)
+    (unless (equalp (cdar o-a) (cdar o-b))
+      ;; should not happen
+      (record-unstable o-a o-b))
+    (values (list (car o-b)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :same)) (sym-b (eql :recurse)) o-a o-b)
+    (values (list (car o-b)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :same)) (sym-b (eql :same-tail)) o-a o-b)
+    ;; The tail should never be a cons
+    ;; cdr o-b should be nil
+    (record-unstable o-a o-b)
+    (values (list (car o-b)) nil (cdr o-b)))
+  (:method ((sym-a (eql :same)) (sym-b (eql :recurse-tail)) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) nil (cdr o-b)))
+
+  ;; sym-a is :insert
+  (:method ((sym-a (eql :insert)) (sym-b (eql :insert)) o-a o-b)
+    (cond ((equalp (car o-a) (car o-b))
+	   (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+	  (t
+	   ;; At this point, we want to keep groups of inserts together
+	   ;; Scan down the lists, copying inserts and sames of strings
+	   (record-unstable o-a o-b)
+	   (flet ((%p (x) (and (consp x) (or (eql (car x) :insert)
+					     (and (eql (car x) :same)
+						  (stringp (cdr x)))))))
+	     (let ((prefix-a (iter (while (consp o-a))
+				   (while (%p (car o-a)))
+				   (collecting (if (eql (caar o-a) :same)
+						   (cons :insert (cdr (pop o-a)))
+						   (pop o-a)))))
+		   (prefix-b (iter (while (consp o-b))
+				   (while (%p (car o-b)))
+				   (collecting (pop o-b)))))
+	   (values (append prefix-a prefix-b) o-a o-b))))))
+  ;; default cases for :insert
+  (:method ((sym-a (eql :insert)) (sym-b t) o-a o-b)
+    (values (list (car o-a)) (cdr o-a) o-b))
+  (:method (sym-a (sym-b (eql :insert)) o-a o-b)
+    (values (list (car o-b)) o-a (cdr o-b)))
+  ;; sym-a is :delete
+  (:method ((sym-a (eql :delete)) (sym-b (eql :delete)) o-a o-b)
+    (unless (equalp (cdar o-a) (cdar o-b))
+      ;; should not happen
+      (record-unstable o-a o-b))
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :delete)) (sym-b (eql :recurse)) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-b)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :delete)) (sym-b (eql :insert)) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) o-b))
+  (:method ((sym-a (eql :delete)) (sym-b null) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) o-b))
+  (:method ((sym-a (eql :delete)) (sym-b (eql :same)) o-a o-b)
+    (unless (eql (cdar o-a) (cdar o-b))
+      (record-unstable o-a o-b))
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :delete)) (sym-b (eql :same-tail)) o-a o-b)
+    ;; should not happen?
+    (record-unstable o-a o-b)
+    (values () (cdr o-a) nil))
+  (:method ((sym-a (eql :delete)) (sym-b (eql :recurse-tail)) o-a o-b)
+    ;; should not happen?
+    (record-unstable o-a o-b)
+    (values () (cdr o-a) nil))
+
+  ;; sym-a is :recurse
+  (:method ((sym-a (eql :recurse)) (sym-b (eql :delete)) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :recurse)) (sym-b null) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) o-b))
+  (:method ((sym-a (eql :recurse)) (sym-b (eql :recurse)) o-a o-b)
+    (values (list (cons :recurse (merge-diffs2 (cdar o-a) (cdar o-b)))) (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :recurse)) (sym-b (eql :same)) o-a o-b)
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+
+  (:method ((sym-a (eql :recurse)) (sym-b (eql :same-tail)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values () (cdr o-a) o-b))
+  (:method ((sym-a (eql :recurse)) (sym-b (eql :recurse-tail)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values () (cdr o-a) o-b))
+  
+  (:method ((sym-a null) (sym-b null) o-a o-b)
+    (error "Bad diff merge: ~A, ~A" o-a o-b))
+  (:method ((sym-a null) sym-b o-a o-b)
+    (values (list (car o-b)) (cdr o-a) (cdr o-b)))
+
+  (:method ((sym-a (eql :same-tail)) (sym-b (eql :same)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) nil))
+  (:method ((sym-a (eql :same-tail)) (sym-b (eql :delete)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) nil))
+  (:method ((sym-a (eql :same-tail)) (sym-b (eql :recurse)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values (list (car o-a)) (cdr o-a) nil))
+  (:method ((sym-a (eql :same-tail)) (sym-b (eql :same-tail)) o-a o-b)
+    (unless (equalp (car o-a) (car o-b))
+      (record-unstable o-a o-b))
+    (values (list (car o-a)) nil nil))
+  (:method ((sym-a (eql :same-tail)) (sym-b (eql :recurse-tail)) o-a o-b)
+    (record-unstable o-a o-b)
+    (values (list (car o-b)) nil nil))
+
+  (:method ((sym-a (eql :recurse-tail)) (sym-b (eql :same)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values (list (car o-b)) nil nil))
+  (:method ((sym-a (eql :recurse-tail)) (sym-b (eql :delete)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values (list (car o-b)) nil (cdr o-b)))
+  (:method ((sym-a (eql :recurse-tail)) (sym-b (eql :recurse)) o-a o-b)
+    ;; should not happen
+    (record-unstable o-a o-b)
+    (values (list (car o-b)) nil (cdr o-b)))
+  (:method ((sym-a (eql :recurse-tail)) (sym-b (eql :recurse-tail)) o-a o-b)
+    (values (list (cons :recurse-tail (merge-diffs2 (cdar o-a) (cdar o-b))))
+	    (cdr o-a) (cdr o-b)))
+  (:method ((sym-a (eql :recurse-tail)) (sym-b (eql :same-tail)) o-a o-b)
+    (values (list (car o-a)) (cdr o-a) (cdr o-b)))
+
+  ;; Unwind :*-sequence operations
+
+  (:method ((sym-a (eql :insert-sequence)) sym-b o-a o-b)
+    (let ((new-o-a (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-a)) (cdr o-a))))
+      (merge-diffs2 new-o-a o-b)))
+  (:method (sym-a (sym-b (eql :insert-sequence)) o-a o-b)
+    (let ((new-o-b (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-b)) (cdr o-b))))
+      (merge-diffs2 o-a new-o-b)))
+
+  (:method ((sym-a (eql :delete-sequence)) sym-b o-a o-b)
+    (let ((new-o-a (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-a)) (cdr o-a))))
+      (merge-diffs2 new-o-a o-b)))
+  (:method (sym-a (sym-b (eql :delete-sequence)) o-a o-b)
+    (let ((new-o-b (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-b)) (cdr o-b))))
+      (merge-diffs2 o-a new-o-b)))
+
+  (:method ((sym-a (eql :same-sequence)) sym-b o-a o-b)
+    (setf o-a (same-seq-to-list o-a))
+    (merge-diffs2 (same-seq-to-sames o-a) o-b))
+  (:method (sym-a (sym-b (eql :same-sequence)) o-a o-b)
+    (setf o-b (same-seq-to-list o-b))
+    (merge-diffs2 o-a (same-seq-to-sames o-b)))
+  (:method ((sym-a (eql :same-sequence)) (sym-b (eql :same-sequence)) o-a o-b)
+    (setf o-a (same-seq-to-list o-a))
+    (setf o-b (same-seq-to-list o-b))
+    (merge-diffs2 (same-seq-to-sames o-a) (same-seq-to-sames o-b)))
+
+  )
+
+(defun same-seq-to-sames (o)
+  (nconc (map 'list (lambda (x) (cons :same x)) (cdar o)) (cdr o)))
+
+(defun same-seq-to-list (o)
+  (assert (consp o))
+  (assert (consp (car o)))
+  (assert (eql (caar o) :same-sequence))
+  (if (listp (cdar o))
+      o
+      (cons (cons :same-sequence (map 'list #'identity (cdar o))) (cdr o))))
+
+(defun merge-diffs2  (orig-a orig-b &aux (o-a orig-a) (o-b orig-b))
+  ;; Derived from CHUNK, but a bit smarter, and
+  ;; produce an actual diff not a list of chunks
+  ;; The last call to merge-diffs2-syms may return
+  ;; an improper list.  Handle it specially (appending
+  ;; cannot be used even if it is the last thing
+  (cond
+    ((and (listp (car orig-a)) (listp (car orig-b)))
+     ;; to be appended.)
+     (let* ((result (list nil))
+	    (last result)
+	    (collected))
+       (iter (while o-a)
+	     (while o-b)
+	     (setf (values collected o-a o-b)
+		   (merge-diffs2-syms o-a o-b))
+	     (setf (cdr last) collected)
+	     (while (proper-list-p collected))
+	     (setf last (last last)))
+       (if (or o-a o-b)
+	   ;; collected must be a proper list
+	   (append (cdr result) o-a o-b)
+	   (cdr result))))
+    (t
+     (assert (eql (car orig-a) (car orig-b)))
+     (assert (symbolp (car orig-a)))
+     (ecase (car orig-a)
+       (:alist
+	(let ((diff (merge-diffs2 (list orig-a) (list orig-b))))
+	  (format t "~A~%" diff)
+	  (car diff)
+       ))))))
+
+
+(defun merge-diffs2-syms (o-a o-b)
+  (merge-diffs-on-syms (caar o-a) (caar o-b) o-a o-b))
 
 ;;; TODO: printing clang-ast-node should use a safer printer ~s.
 (defun show-chunks (chunks &optional (stream t))
@@ -894,115 +1244,6 @@ See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf."
                 (:unstable (format stream "+{UNSTABLE}+")))
               (show-chunks chunk)))
         chunks))
-
-;;; Find "good" common subsequences of two sequences.
-;;; This is intended to run in linear time.
-
-(defun good-common-subsequences (s1 s2 &key (test #'eql))
-  "Find good common subsequences of two lists s1 and s2, under
-equality operation TEST.  Return a list of triples (start1
-start2 len), where 0 <= start1 < (length s1), 0 <= start2
-< (length s2), and (every test (subseq s1 start1 len) (subseq s2
-start2 len)) is true. The list is sorted into increasing order
-by the CADDR of the elements.  TEST must be suitable for use
-as the test of a hash table."
-  (assert (listp s1))
-  (assert (listp s2))
-  (let ((table1 (make-hash-table :test test))
-        (table2 (make-hash-table :test test)))
-    ;; POS1 and POS2 are hash tables mapping the
-    ;; elements of s1 and s2 to the positions they
-    ;; have in each list.  Arrange so the indices
-    ;; in each list are in increasing order.
-    (flet ((%collect (s h)
-             (iter (for x in s) (for i from 0)
-                   (push i (gethash x h))))
-           (%order (h)
-             (iter (for (x l) in-hashtable h)
-                   (setf (gethash x h) (nreverse l)))))
-      (%collect s1 table1)
-      (%collect s2 table2)
-      (%order table1)
-      (%order table2))
-    ;; Greedy algorithm that advances through s1 and s2
-    ;; When a common subsequence can be constructed, do so
-    ;; until it runs out.  When elements unique to one list
-    ;; are found, skip them.  When two non-unique elements
-    ;; are found that are not the same, discard the one that
-    ;; requires the largest rejection of elements in the other
-    ;; list.
-    ;;
-    ;; This algorithm will fail if there are many elements
-    ;; that are equal to two or more elements in the other sequence,
-    ;; or a great deal of reordering.  In general, however, for
-    ;; diffs of programs this doesn't much matter, as the chance
-    ;; of hash collisions for unequal trees should be very small.
-    (let ((result nil)
-          (pos1 0)
-          (pos2 0)
-          (start1 0)
-          (start2 0)
-          (len 0)
-          (p1 s1)
-          (p2 s2))
-      (labels ((cut ()
-                 "Terminate the current common segment"
-                 (when (> len 0)
-                   (push (list start1 start2 len) result)
-                   (setf len 0)))
-               (chop1 ()
-                 "Advance the cursor in s1"
-                 (let ((i (pop (gethash (car p1) table1))))
-                   (assert (eql i pos1)))
-                 (incf pos1)
-                 (pop p1))
-               (chop2 ()
-                 "Advance the cursor in s2"
-                 (let ((i (pop (gethash (car p2) table2))))
-                   (assert (eql i pos2)))
-                 (incf pos2)
-                 (pop p2)))
-        (loop
-           (cond ((null p1) (return))
-                 ((null p2) (return))
-                 ((null (gethash (car p1) table2))
-                  (cut)
-                  (chop1))
-                 ((null (gethash (car p2) table1))
-                  (cut)
-                  (chop2))
-                 ;; Both (car p1) and (car p2) occur in the other
-                 ;; list
-                 ((funcall test (car p1) (car p2))
-                  ;; Extended the common subsequence, or start
-                  ;; one if none is in progress
-                  (if (= len 0)
-                      (setf start1 pos1 start2 pos2 len 1)
-                      (incf len))
-                  (chop1)
-                  (chop2))
-                 ;; Cannot continue the sequence, but both
-                 ;; elements occur in the other sequence after
-                 ;; this point.  Skip the element whose next match
-                 ;; in the other list is farthest away.  It might
-                 ;; be best to skip both, but that's not greedy.
-                 (t
-                  (cut)
-                  (let* ((h1 (gethash (car p1) table2))
-                         (h2 (gethash (car p2) table1))
-                         (l1 (length h1))
-                         (l2 (length h2))
-                         (m1 (car h1))
-                         (m2 (car h2)))
-                    (cond
-                      ((< l1 l2) (chop1))
-                      ((< l2 l1) (chop2))
-                      ((<= (- m2 pos1) (- m1 pos2))
-                       (chop1))
-                      (t (chop2)))))))
-        (if (> len 0)
-            (nreconc result (list (list start1 start2 len)))
-            (nreverse result))))))
 
 ;;; Another algorithm for good common subsequences, more robust in the
 ;;; face of elements that occur with high frequency.  Instead, focus

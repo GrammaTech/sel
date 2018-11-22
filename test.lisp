@@ -9143,6 +9143,18 @@ int main() { puts(\"~d\"); return 0; }
 	      '(((:delete . 1)) 1))
       "List of one atom vs. empty list"))
 
+(deftest sexp-diff-numbers ()
+    (is (equalp (multiple-value-list (ast-diff 1 2))
+		'(((:delete . 1) (:insert . 2))
+		  2))
+	"Diff of two numbers"))
+
+(deftest sexp-diff-numbers-same ()
+    (is (equalp (multiple-value-list (ast-diff 1 1))
+		'(((:same . 1))
+		  0))
+	"Diff of two equal numbers"))
+
 (deftest sexp-diff-equal-zero-cost ()
   (is (zerop (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4))))
       "Equal should have 0 cost."))
@@ -9168,6 +9180,10 @@ int main() { puts(\"~d\"); return 0; }
 			 (ast-diff '(1 2 3 5 4) '(1 4 3 2)))
 	      '(1 4 3 2))
       "Shuffled elements create a correct diff"))
+
+(deftest sexp-insert-then-delete ()
+  (is (equalp (ast-patch '1 '((:insert . 2) (:delete . 1))) 2)
+      "Insert followed by delete in patch"))
 
 (deftest sexp-two-differences ()
   (is (equalp (ast-patch '(1 2 3 4 5) (ast-diff '(1 2 3 4 5) '(1 6 3 7 5)))
@@ -9211,6 +9227,15 @@ int main() { puts(\"~d\"); return 0; }
 (deftest ast-diff-and-patch-is-equal-recurse ()
   (is (ast-diff-and-patch-equal-p '(1 2 (1 2 3 4) 4) '(1 2 (1 2 z 4) 4))))
 
+(deftest ast-diff-and-patch-is-equal-tail ()
+  (is (ast-diff-and-patch-equal-p '(1 2 3 . 4) '(1 5 3 . 4))))
+
+(deftest ast-diff-and-patch-unequal-tail ()
+  (is (ast-diff-and-patch-equal-p '(1 2 3 . 4) '(1 2 3 . 5))))
+
+(deftest ast-diff-with-string ()
+    (is (ast-diff-and-patch-equal-p '((1 "foo" 2)) '((3 "foo" 2)))))
+
 (deftest ast-diff-simple-dotted-list ()
   (is (= 2 (nth-value 1 (ast-diff '(1 . 1) '(1 . 2))))))
 
@@ -9222,6 +9247,56 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest ast-diff-double-insert ()
   (is (= 2 (nth-value 1 (ast-diff '(1 2 3 4) '(1 2 3 4 5 6))))))
+
+(defun ast-diff-alist-test (al1 al2)
+  (flet ((%f (alist) (make-instance 'sel/ast-diff/alist:alist-for-diff
+				    :alist alist)))
+    (let* ((al-obj1 (%f al1))
+	   (al-obj2 (%f al2))
+	   (diff (ast-diff al-obj1 al-obj2))
+	   (al-obj3 (ast-patch al-obj1 diff)))
+      (sort (copy-list (sel/ast-diff/alist:alist-of-alist-for-diff al-obj3)) #'string< :key #'car))))
+
+(deftest ast-diff-alist-diff-1 ()
+  (is (equal (ast-diff-alist-test nil nil) nil)))
+
+(deftest ast-diff-alist-diff-2 ()
+  (is (equal (ast-diff-alist-test nil '((a . 1))) '((a . 1)))))
+
+(deftest ast-diff-alist-diff-3 ()
+  (is (equal (ast-diff-alist-test '((a . 1)) nil) nil)))
+
+(deftest ast-diff-alist-diff-4 ()
+  (is (equal (ast-diff-alist-test '((a . 1)) '((a . 2))) '((a . 2)))))
+
+(deftest ast-diff-alist-diff-5 ()
+  (is (equal (ast-diff-alist-test '((a . 1) (b . 3)) '((a . 2) (b . 3))) '((a . 2) (b . 3)))))
+
+(deftest ast-diff-alist-diff-6 ()
+  (is (equal (ast-diff-alist-test '((a . 1) (b . 2)) '((b . 2) (a . 1))) '((a . 1) (b . 2)))))
+
+(deftest ast-diff-alist-diff-7 ()
+  (is (equal (ast-diff-alist-test '((a . 1)) '((b . 2) (a . 3))) '((a . 3) (b . 2)))))
+
+(deftest print-lisp-diff.1 ()
+  (is (equalp (with-output-to-string (s)
+		(print-diff (ast-diff '() '()) s)) "")
+      "Print diff of empty lists"))
+
+(deftest print-lisp-diff.2 ()
+  (is (equalp (with-output-to-string (s)
+		(print-diff (ast-diff '(()) '(())) s)) "()")
+      "Print diff of list of empty list"))
+
+(deftest print-lisp-diff.3 ()
+  (is (equalp (with-output-to-string (s)
+		(print-diff (ast-diff '() '(())) s)) "{+()+}")
+      "Print diff of insertion of empty list"))
+
+(deftest print-lisp-diff.4 ()
+  (is (equalp (with-output-to-string (s)
+		(print-diff (ast-diff '(()) '()) s)) "[-()-]")
+      "Print diff of deletion of empty list"))
 
 (defvar *forms* nil "Forms used in tests.")
 (defixture sel-asd-file-forms
@@ -9367,8 +9442,258 @@ int main() { puts(\"~d\"); return 0; }
   (with-fixture binary-search-clang
     (let ((var (copy *binary-search*)))
       (setf var (mutate var))
-      (is (every [{member _ '(:delete :insert)} #'second]
+      (is (every [{member _ '(:delete :insert :delete-sequence :insert-sequence)} #'second]
                  (ast-diff-elide-same (ast-diff *binary-search* var)))))))
+
+(deftest print-diff.1 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "int a; int c;")
+					(%f "int a; int b; int c;"))
+			      s)))
+	      "int a; {+int b; +}int c;")
+      "Print diff of an insertion"))
+
+(deftest print-diff.2 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "int a; int b; int c;")
+					(%f "int a; int c;"))
+			      s)))
+	      "int a; [-int b; -]int c;")
+      "Print diff of a deletion"))
+
+(deftest print-diff.3 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "int a; int b; int c;")
+					(%f "int a; int d; int c;"))
+			      s)))
+	      "int a; int {+d+}[-b-]; int c;")
+      "Print diff of a replacement"))
+
+(deftest print-diff.4 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
+					(%f "char *s = \"acd\";"))
+			      s)))
+	      "char *s = \"a[-b-]cd\";")
+      "Print diff of deletion of a character in a string"))
+
+(deftest print-diff.5 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
+					(%f "char *s = \"ad\";"))
+			      s)))
+	      "char *s = \"a[-bc-]d\";")
+      "Print diff of deletion of substring in a string"))
+
+
+
+(deftest print-diff.6 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "char *s = \"ad\";")
+					(%f "char *s = \"abcd\";"))
+			      s)))
+	      "char *s = \"a{+bc+}d\";")
+      "Print diff of insertion of a substring in a string"))
+
+(deftest print-diff.7 ()
+  (is (equalp (with-output-to-string (s)
+		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
+		  (print-diff (ast-diff (%f "char *s = \"ad\";")
+					(%f "char *s = \"abd\";"))
+			      s)))
+	      "char *s = \"a{+b+}d\";")
+      "Print diff of insertion of a character in a string"))
+
+
+
+
+;;;; AST merge3 tests
+(defsuite ast-merge3 "Tests of SEL/AST-DIFF:MERGE3"
+  (clang-mutate-available-p))
+
+(deftest sexp-merge3-empty ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil nil nil))
+	      '(nil nil))
+      "Simplest case"))
+
+(deftest sexp-merge3-insert-first ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil '(a) nil))
+	      '(((:insert . a)) nil))
+      "Adding one element in first change"))
+
+(deftest sexp-merge3-insert-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil nil '(a)))
+	      '(((:insert . a)) nil))
+      "Adding one element in second change"))
+
+(deftest sexp-merge3-insert-both ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 nil '(a) '(a)))
+	      '(((:insert . a)) nil))
+      "Adding one element in both changes"))
+
+(deftest sexp-merge3-delete-first ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) nil '(a)))
+	      '(((:delete . a)) nil))
+      "Deleting one element in first change"))
+
+(deftest sexp-merge3-delete-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '(a) nil))
+	      '(((:delete . a)) nil))
+      "Deleting one element in second change"))
+
+(deftest sexp-merge3-delete-second-2 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) nil nil))
+	      '(((:delete . a)) nil))
+      "Deleting one element in both changes"))
+
+(deftest sexp-merge3-recursive-first ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a b)) '((a))))
+	      '(((:recurse (:same . a) (:insert . b))) nil))
+      "Recurse in first change"))
+
+(deftest sexp-merge3-recursive-second ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a)) '((a b))))
+	      '(((:recurse (:same . a) (:insert . b))) nil))
+      "Recurse in first change"))
+
+(deftest sexp-merge3-recursive-both ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a)) '((a b)) '((a b))))
+	      '(((:recurse (:same . a) (:insert . b))) nil))
+      "Recurse in both changes"))
+
+(deftest sexp-merge3-insert-delete ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '(a b) ()))
+	      '(((:delete . a) (:insert . b)) nil))
+      "Insert and delete in the same place."))
+
+(deftest sexp-merge3-delete-insert ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a) '() '(a b)))
+	      '(((:delete . a) (:insert . b)) nil))
+      "Delete and insert in the same place."))
+
+(deftest sexp-merge3-delete-insert-tail ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b . c) '(a) '(a e . c)))
+	      '(((:same . a) (:delete . b) (:insert . e) (:delete . b) (:same-tail . c))
+		(((:recurse-tail (:delete . c) (:insert)) (:delete . b))
+		 ((:delete . b) (:insert . e)))))
+      "Delete and insert in the same place, with improper list."))
+
+(deftest sexp-merge3-delete-insert-tail.2 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a)) '((a b . c))))
+	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert))))
+		nil))
+      "Delete including tail of improper list."))
+
+(deftest sexp-merge3-delete-insert-tail.3 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a b . c)) '((a))))
+	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert))))
+		nil))
+      "Delete including tail of improper list."))
+
+(deftest sexp-merge3-delete-insert-tail.4 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b . c)) '((a . c)) '((a b . e))))
+	      '(((:recurse (:same . a) (:delete . b) (:recurse-tail (:delete . c) (:insert . e))))
+		(((:same-tail . c) (:recurse-tail (:delete . c) (:insert . e))))))
+      "Delete, but change tail of improper list."))
+
+
+(deftest sexp-merge3-insert2 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a d) '(a b c d) '(a d)))
+	      '(((:same . a) (:insert . b) (:insert . c) (:same . d)) nil))
+      "Two insertions"))
+
+(deftest sexp-merge3-insert3 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(d) '(d) '(a b c d)))
+	      '(((:insert . a) (:insert . b) (:insert . c) (:same . d)) nil))
+      "Three insertions"))
+
+(deftest sexp-merge3-delete2 ()
+   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b c d) '(a d) '(a b c d)))
+	      '(((:same . a) (:delete . b) (:delete . c) (:same . d)) nil))
+       "Two deletions"))
+
+(deftest sexp-merge3-delete3 ()
+   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b c d e) '(a b c d e) '(a e)))
+	      '(((:same . a) (:delete . b) (:delete . c) (:delete . d) (:same . e)) nil))
+       "Three deletions"))
+
+(deftest sexp-merge3-unstable-inserts ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x 0) '(x 1) '(x 2)))
+	      '(((:same . x) (:insert . 1) (:insert . 2) (:delete . 0))
+		(((:insert . 1) (:insert . 2)))))
+      "Two insertions at the same point"))
+
+(deftest sexp-merge3-unstable-recurse-insert/delete ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x (a) y) '(x (b) y) '(x c y)))
+	      '(((:same . x)
+		 (:insert . c)
+		 (:recurse (:insert . b) (:delete . a))
+		 (:same . y))
+		(((:recurse (:insert . b) (:delete . a)) (:delete a)))))
+      "recurse and deletion at same point (unstable)"))
+
+(deftest sexp-merge3-unstable-insert/delete-recurse ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(x (a) y) '(x c y) '(x (b) y)))
+	      '(((:same . x)
+		 (:insert . c)
+		 (:recurse (:insert . b) (:delete . a))
+		 (:same . y))
+		(((:delete a) (:recurse (:insert . b) (:delete . a))))))
+      "deletion and recurse at same point (unstable)"))
+
+(deftest sexp-merge3-insert/insert-tail1 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a c)) '((a b . d))))
+	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
+		  (:recurse-tail (:delete) (:insert . d))))
+		nil))
+      "insert and insertion of a tail element"))
+
+(deftest sexp-merge3-insert/insert-tail2 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a b . d)) '((a c))))
+	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
+		  (:recurse-tail (:delete) (:insert . d))))
+		nil))
+      "insert and insertion of a tail element"))
+
+(deftest sexp-merge3-insert/insert-tail3 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a b)) '((a b . d)) '((a c . d))))
+	      '(((:recurse (:same . a) (:insert . c) (:delete . b)
+		  (:recurse-tail (:delete) (:insert . d))))
+		nil))
+      "insert and insertion of a tail element"))
+
+(deftest sexp-merge3-insert/insert-tail4 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '((a . d)) '((a b . d)) '((a c . d))))
+	      '(((:recurse (:same . a) (:insert . b) (:insert . c)
+		  (:same-tail . d)))
+		(((:insert . b) (:insert . c)))))
+      "insert and insertion with a common tail element"))
+
+(deftest sexp-merge3-insert-string ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '("abc") '("adbc") '("abec")))
+	      '(((:RECURSE (:SAME . #\a) (:INSERT . #\d) (:SAME . #\b) (:INSERT . #\e) (:SAME . #\c))) NIL))
+      "Merge of separate insertions into a string"))
+
+(deftest sexp-merge3-insert-string.2 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '("axbycz") '("axdbycz") '("axbyecz")))
+	      '(((:recurse (:same . #\a) (:same . #\x) (:insert . #\d)
+		  (:same . #\b) (:same . #\y)
+		  (:insert . #\e)
+		  (:same . #\c) (:same . #\z))) nil))
+      "Merge of separate insertions into a string"))
+
+(deftest sexp-merge3-string-same.1 ()
+  (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(("foo" 2)) '((3 "foo" 2)) '((4 "foo" 2))))
+	      '(((:RECURSE (:INSERT . 3) (:INSERT . "foo") (:INSERT . 4) (:SAME . "foo") (:SAME . 2)))
+		(((:INSERT . 3) (:INSERT . 4)))))
+      "Special handling of strings following insertions"))
+
 
 
 ;;; Test SerAPI (low-level Coq interaction)

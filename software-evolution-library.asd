@@ -48,6 +48,16 @@ techniques."
   :build-pathname "bin/clang-diff"
   :entry-point "software-evolution-library/ast-diff/clang::run-clang-diff")
 
+(defsystem "software-evolution-library/run-clang-merge"
+  :author "Paul Dietz and GrammaTech"
+  :licence "GPL V3"
+  :description "Compute the merge of two C/C++ programs that diverge from a common ancestral version"
+  :version "0.0.0"
+  :depends-on (software-evolution-library/ast-diff/clang-merge)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/clang-merge"
+  :entry-point "software-evolution-library/ast-diff/clang-merge:run-clang-merge")
+
 (defsystem "software-evolution-library/run-lisp-diff"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
