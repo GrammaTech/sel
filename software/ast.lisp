@@ -17,8 +17,7 @@
         :metabang-bind
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/ast-diff/ast-diff)
+        :software-evolution-library/utility)
   (:export :ast
            :define-ast
            :define-immutable-node-struct
@@ -39,6 +38,7 @@
            :splice-asts
            :fixup-mutation
            :ast-children
+           :ast-text
            :to-ast
            :ast-later-p
            :replace-in-ast))
@@ -673,8 +673,9 @@ use carefully.
 (defmethod ast-un-recurse ((ast ast) sub-asts)
   (copy ast :children sub-asts))
 
-(defmethod ast-text ((ast ast))
-  (peel-bananas (source-text ast)))
+(defgeneric ast-text (ast)
+  (:documentation "Return textual representation of AST.")
+  (:method ((ast ast)) (peel-bananas (source-text ast))))
 
 (defmethod ast-hash ((ast ast))
 ;;  (or (ast-stored-hash ast)

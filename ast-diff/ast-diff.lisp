@@ -36,6 +36,7 @@
   (:use
    :common-lisp
    :software-evolution-library/utility
+   :software-evolution-library/software/ast
    :software-evolution-library/ast-diff/string
    :alexandria
    :arrow-macros
@@ -50,7 +51,6 @@
    :ast-can-recurse
    :ast-on-recurse
    :ast-un-recurse
-   :ast-text
    :ast-hash
    :ast-combine-hash-values
    :ast-diff
@@ -180,9 +180,6 @@
 
 (defmethod ast-un-recurse ((ast t) (sub-ast t))
   sub-ast)
-
-(defgeneric ast-text (ast)
-  (:documentation "Return textual representation of AST."))
 
 (defmethod ast-text ((ast t))
   (format nil "~A" ast))
