@@ -125,6 +125,7 @@
    :parse-numbers
    :trim-whitespace
    :make-terminal-raw
+   :make-terminal-unraw
    :getopts
    :which
    ;; forensic
@@ -945,7 +946,7 @@ The SHELL command is executed with `*bash-shell*'."
                str))
 
 (defun make-terminal-raw ()
-  "Place the terminal into 'raw' mode, no echo non canonical.
+  "Place the terminal into 'raw' mode, no echo or delete.
 This allows characters to be read directly without waiting for a newline.
 See 'man 3 termios' for more information."
   #+win32 (error "`make-terminal-raw' not implemented for windows.")
@@ -958,8 +959,24 @@ See 'man 3 termios' for more information."
                                   sb-posix:echo
                                   sb-posix:echoe
                                   sb-posix:echok
-                                  sb-posix:echonl
-                                  sb-posix:echo))))
+                                  sb-posix:echonl))))
+    (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
+
+(defun make-terminal-unraw ()
+  "Place the terminal out of 'raw' mode, with echo and delete.
+This allows characters to be read directly without waiting for a newline.
+See 'man 3 termios' for more information."
+  #+win32 (error "`make-terminal-raw' not implemented for windows.")
+  #-sbcl (error "`make-terminal-raw' not implemented for non-SBCL.")
+  #+sbcl
+  (let ((options (sb-posix:tcgetattr 0)))
+    (setf (sb-posix:termios-lflag options)
+          (logior (sb-posix:termios-lflag options)
+                  sb-posix:icanon
+                  sb-posix:echo
+                  sb-posix:echoe
+                  sb-posix:echok
+                  sb-posix:echonl))
     (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
 
 (defun which (file &key (path (getenv "PATH")))
