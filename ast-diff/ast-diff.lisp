@@ -292,26 +292,26 @@ Prefix and postfix returned as additional values."
   (push val (cdr sq)))
 
 (defun recursive-diff (total-a total-b &key (upper-bound most-positive-fixnum)
-			&aux
-			  (from (make-cache total-a total-b))
-			  ;; FRINGE is a queue used to order
-			  ;; visits of 'open' nodes.  An open node should only
-			  ;; be put on the queue when all its
-			  ;; predecessors are closed.
-			  ;; (fringe (make-instance 'priority-queue))
-			  (fringe (make-simple-queue))
-			  ;; When T, the node is stored in the priority queue already
-			  (open (make-cache total-a total-b))
-			  (total-open 0)
-			  ;; When CLOSED is T, the node has been processed
-			  (closed (make-cache total-a total-b))
-			  ;; For closed nodes, G is the actual minimum cost
-			  ;; of reaching the node.
-			  (g (make-cache total-a total-b))
-			  (r-cache (make-cache total-a total-b))
-			  (lta (clength total-a))
-			  (ltb (clength total-b))
-			  )
+		       &aux
+			 (from (make-cache total-a total-b))
+			 ;; FRINGE is a queue used to order
+			 ;; visits of 'open' nodes.  An open node should only
+			 ;; be put on the queue when all its
+			 ;; predecessors are closed.
+			 ;; (fringe (make-instance 'priority-queue))
+			 (fringe (make-simple-queue))
+			 ;; When T, the node is stored in the priority
+			 ;; queue already
+			 (open (make-cache total-a total-b))
+			 (total-open 0)
+			 ;; When CLOSED is T, the node has been processed
+			 (closed (make-cache total-a total-b))
+			 ;; For closed nodes, G is the actual minimum cost
+			 ;; of reaching the node.
+			 (g (make-cache total-a total-b))
+			 (r-cache (make-cache total-a total-b))
+			 (lta (clength total-a))
+			 (ltb (clength total-b)))
   ;; UPPER-BOUND is a limit beyond which we give up on
   ;; pursuing edges.  This is not currently exploited.
   (labels
@@ -332,7 +332,8 @@ Prefix and postfix returned as additional values."
 	   #+ast-diff-debug (format t "reconstruct-path- returns: ~a~%" result)
 	   result))
        (reconstruct-path (last-a last-b a b)
-	 #+ast-diff-debug (format t "reconstruct-path: ~a ~a ~a ~a~%" last-a last-b a b)
+	 #+ast-diff-debug
+         (format t "reconstruct-path: ~a ~a ~a ~a~%" last-a last-b a b)
          (reverse
           ;; Handle cdr of final cons.  This must be special-cased
           ;; because when nil (a list) this is ignored by functions
@@ -343,11 +344,12 @@ Prefix and postfix returned as additional values."
 	      (if last-a
 		  `((:same-tail . ,last-a) . ,(reconstruct-path- a b))
 		  (reconstruct-path- a b))
-	      `((:insert . ,last-b) (:delete . ,last-a) . ,(reconstruct-path- a b)))))
+	      `((:insert . ,last-b)
+                (:delete . ,last-a) . ,(reconstruct-path- a b)))))
        (%pos-a (a) (- lta (clength a)))
        (%pos-b (b) (- ltb (clength b))))
 
-    (setf (aref g 0 0) 0  ;; initial node reachable at zero cost
+    (setf (aref g 0 0) 0 ;; initial node reachable at zero cost
           (aref open 0 0) t
           total-open (1+ total-open))
 
@@ -386,7 +388,8 @@ Prefix and postfix returned as additional values."
                      (when (and (or (null value) (< tentative value))
                                 (< tentative upper-bound))
 		       #+ast-diff-debug
-		       (format t "Improvement: tentative = ~a, value = ~a, next-a = ~a, next-b = ~a~%"
+		       (format t "Improvement: tentative = ~a, value = ~a, ~
+                                               next-a = ~a, next-b = ~a~%"
 			       tentative value next-a next-b)
                        (setf (aref from next-a next-b)
                              (cons (cons pos-a pos-b) edge)
@@ -398,8 +401,10 @@ Prefix and postfix returned as additional values."
                                     (aref closed next-a (1- next-b))
                                     (and (aref closed (1- next-a) next-b)
                                          (or (= next-b 0)
-                                             (and (aref closed (1- next-a) (1- next-b))
-                                                  (aref closed next-a (1- next-b)))))))
+                                             (and (aref closed (1- next-a)
+                                                        (1- next-b))
+                                                  (aref closed next-a
+                                                        (1- next-b)))))))
                        (%enqueue neighbor))))))
              (%recursive (a b)
 	       #+ast-diff-debug (format t "%recursive: ~a ~a~%" a b)
@@ -423,12 +428,12 @@ Prefix and postfix returned as additional values."
                (add (cons (cdr a) (cdr b))
                     (cons  :recurse
                            (%recursive a b))))))
-          (if (consp b)                ; Insert.
+          (if (consp b)                 ; Insert.
               (add (cons a (cdr b))
                    (cons :insert (car b)))
               (add (cons a nil)
                    (cons :insert b)))
-          (if (consp a)                ; Delete.
+          (if (consp a)                 ; Delete.
               (add (cons (cdr a) b)
                    (cons :delete (car a)))
               (add (cons nil b)
@@ -444,7 +449,7 @@ Prefix and postfix returned as additional values."
        (:delete (if (cdr diff) (ast-cost (cdr diff)) 1))
        (:recurse (diff-cost (cdr diff)))
        (:recurse-tail (diff-cost (cdr diff)))
-       ((:insert-sequence :delete-sequence :recurse-tail)
+       ((:insert-sequence :delete-sequence)
 	(if (consp (cdr diff))
 	    (reduce #'+ (cdr diff) :key #'diff-cost :initial-value 0)
 	    1))
@@ -454,7 +459,8 @@ Prefix and postfix returned as additional values."
      (reduce #'+ diff :key #'diff-cost :initial-value 0))))
 
 (defgeneric diff-cost-car (diff diff-car)
-  (:documentation "Cost of DIFF, where DIFF is a cons cells with car DIFF-CAR, which is a symbol"))
+  (:documentation
+   "Cost of DIFF, where DIFF is a cons cells with car DIFF-CAR, a symbol."))
 
 (defmethod diff-cost-car ((diff cons) (diff-car symbol)) 0)
 
@@ -479,10 +485,11 @@ Prefix and postfix returned as additional values."
                 (let ((diff (if (equal '(:same-tail) (lastcar diff))
 				(butlast diff)
 				diff)))
-                  (let ((diff (if prefix
-                                  (append (mapcar (lambda (it) (cons :same it)) prefix)
-                                          diff)
-                                  diff)))
+                  (let ((diff
+                         (if prefix
+                             (append (mapcar (lambda (it) (cons :same it)) prefix)
+                                     diff)
+                             diff)))
                     (if postfix
                         (append diff
                                 (mapcar (lambda (it) (cons :same it)) postfix))
@@ -527,9 +534,10 @@ Prefix and postfix returned as additional values."
   (let* ((new-ast-a (ast-on-recurse ast-a))
 	 (new-ast-b (ast-on-recurse ast-b)))
     (setf (values ast-a tail-a) (properize new-ast-a))
-    (setf (values ast-b tail-b) (properize new-ast-b))
-    )
-  #+ast-diff-debug (format t "ast-a = ~a, tail-a = ~a~%ast-b = ~a, tail-b = ~a~%" ast-a tail-a ast-b tail-b)
+    (setf (values ast-b tail-b) (properize new-ast-b)))
+  #+ast-diff-debug
+  (format t "ast-a = ~a, tail-a = ~a~%ast-b = ~a, tail-b = ~a~%"
+          ast-a tail-a ast-b tail-b)
   (let* ((table (make-hash-table))
          (hashes-a (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-a))
          (hashes-b (mapcar (lambda (ast) (ast-hash-with-check ast table)) ast-b))
@@ -539,9 +547,13 @@ Prefix and postfix returned as additional values."
     ;; Get lists of subsequences on which they differ, and subsequences on
     ;; which they are equal.  Some of the former may be empty.
     (setf (values diff-a common-a)
-          (split-into-subsequences ast-a (mapcar (lambda (x) (list (car x) (caddr x))) subseq-triples)))
+          (split-into-subsequences ast-a
+                                   (mapcar (lambda (x) (list (car x) (caddr x)))
+                                           subseq-triples)))
     (setf (values diff-b common-b)
-          (split-into-subsequences ast-b (mapcar (lambda (x) (list (cadr x) (caddr x))) subseq-triples)))
+          (split-into-subsequences ast-b
+                                   (mapcar (lambda (x) (list (cadr x) (caddr x)))
+                                           subseq-triples)))
     (assert (= (length diff-a) (length diff-b)))
     (assert (= (length common-a) (length common-b)))
     ;; (assert (= (length diff-a) (1+ (length common-a))))
@@ -562,16 +574,19 @@ Prefix and postfix returned as additional values."
 		 (setf diff (butlast diff)))
               (setf overall-diff (append diff overall-diff))
               (incf overall-cost cost))
-            (setf overall-diff (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
+            (setf overall-diff
+                  (append (mapcar (lambda (it) (cons :same it)) ca) overall-diff)))
       ;; Now splice in the tails, if needed
       (if (equalp tail-a tail-b)
-	  (setf overall-diff (if tail-a (append overall-diff `((:same-tail . ,tail-a)))
-				 overall-diff))
+	  (setf overall-diff
+                (if tail-a (append overall-diff `((:same-tail . ,tail-a)))
+		    overall-diff))
 	  (progn
 	    #+ast-diff-debug (format t "Diff on non-nil tail~%")
 	    (multiple-value-bind (diff tail-cost)
 		(ast-diff tail-a tail-b)
-	      (setf overall-diff (append overall-diff `((:recurse-tail . ,diff))))
+	      (setf overall-diff
+                    (append overall-diff `((:recurse-tail . ,diff))))
 	      (incf overall-cost tail-cost))))
       (values overall-diff overall-cost))))
 
@@ -580,9 +595,11 @@ Prefix and postfix returned as additional values."
   (string-diff s1 s2))
 
 (defun split-into-subsequences (seq subseq-indices &aux (n (length seq)))
-  "Given list SEQ and a list of pairs SUBSEQ-INDICES, which are start/length indices
-for disjoint nonempty subsequences of SEQ, return a list of the N+1 subsequences between these
-subsequences (some possibly empty), as well as the N subsequences themselves."
+  "Return subsequences of SEQ delimited by SUBSEQ-INDICES.
+Given list SEQ and a list of pairs SUBSEQ-INDICES, which are
+start/length indices for disjoint nonempty subsequences of SEQ, return
+a list of the N+1 subsequences between these subsequences (some
+possibly empty), as well as the N subsequences themselves."
   (assert (every (lambda (x) (and (<= 0 (car x)) (< (car x) n) (<= 1 (cadr x))))
                  subseq-indices))
   (assert (every (lambda (x y) (<= (+ (car x) (cadr x)) (car y)))
@@ -660,8 +677,9 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 :delete A  : remove the current AST
 :recurse S : recursively apply script S to the current AST"))
 
-(defmethod ast-patch ((original t) (script cons) &rest keys &key (delete? t) &allow-other-keys)
-  (declare (ignorable delete?))
+(defmethod ast-patch ((original t) (script cons)
+                      &rest keys &key (delete? t) &allow-other-keys)
+  (declare (ignorable delete? keys))
   (case (car script)
     (:recurse-tail
      (ast-patch original (cdr script)))
@@ -683,7 +701,8 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 	  (cdadr script))
 	 (t (error "Invalid diff on atom: ~a" script)))))))
 
-(defmethod ast-patch ((original cons) (script list) &rest keys &key (delete? t) &allow-other-keys)
+(defmethod ast-patch ((original cons) (script list)
+                      &rest keys &key (delete? t) &allow-other-keys)
   (labels
       ((edit (asts script)
          (when (and script
@@ -715,14 +734,16 @@ A diff is a sequence of actions as returned by `ast-diff' including:
                (:insert (cons args (edit asts (cdr script)))))))))
     (ast-un-recurse original (edit (ast-on-recurse original) script))))
 
-(defmethod ast-patch ((original vector) (script list) &rest keys &key (delete? t) &allow-other-keys)
+(defmethod ast-patch ((original vector) (script list)
+                      &rest keys &key (delete? t) &allow-other-keys)
   ;; Specialized method for patching vectors
   ;; we require that the elements inserted must be compatible
   ;; with the element type of the original vector
   (declare (ignorable delete?))
   (let* ((len (length original))
 	 (etype (array-element-type original))
-	 (result (make-array (list len) :element-type etype :adjustable t :fill-pointer 0))
+	 (result (make-array (list len)
+                             :element-type etype :adjustable t :fill-pointer 0))
 	 (i 0))
     (loop while script
        do (destructuring-bind (action . args) (pop script)
@@ -741,7 +762,8 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 	       (incf i))
 	      (:recurse
 	       (assert (< i len))
-	       (vector-push-extend (apply #'ast-patch (elt original i) args keys) result)
+	       (vector-push-extend
+                (apply #'ast-patch (elt original i) args keys) result)
 	       (incf i))
 	      (:insert-sequence
 	       (assert (typep args 'sequence))
@@ -772,7 +794,9 @@ A diff is a sequence of actions as returned by `ast-diff' including:
     ;; Make the result simple again
     (copy-seq result)))
 
-(defmethod ast-patch ((ast ast) script &rest keys &key (delete? t) &allow-other-keys)
+(defmethod ast-patch ((ast ast) script
+                      &rest keys &key (delete? t) &allow-other-keys)
+  (declare (ignorable delete?))
   (let* ((children (ast-children ast))
 	 (patched-children (apply #'ast-patch children script keys)))
     (copy ast :children patched-children)))
@@ -824,13 +848,18 @@ in AST-PATCH.  Returns a new SOFT with the patched files."))
 				    (:insert (push-insert content))
 				    (:recurse (%print-diff content))
 				    (:same-sequence (map nil #'pr content))
-				    (:insert-sequence (map nil #'push-insert content))
-				    (:delete-sequence (map nil #'push-delete content))
+				    (:insert-sequence
+                                     (map nil #'push-insert content))
+				    (:delete-sequence
+                                     (map nil #'push-delete content))
 				    (:same-tail (map nil #'pr content))
 				    (:recurse-tail
-				     (%print-diff (remove-if (lambda (e) (or (equal e '(:delete))
-									     (equal e '(:insert))))
-							    content)))
+				     (%print-diff
+                                      (remove-if
+                                       (lambda (e)
+                                         (or (equal e '(:delete))
+					     (equal e '(:insert))))
+				       content)))
 				    ))
 		     diff)))
       (%print-diff diff)
@@ -842,12 +871,14 @@ in AST-PATCH.  Returns a new SOFT with the patched files."))
 
 
 (defgeneric converge (original branch-a branch-b &key &allow-other-keys)
-  (:documentation "Compute a version of ORIGINAL that is the result of trying to
-apply to ORIGINAL both the changes from ORIGINAL -> BRANCH-A and the changes from
-ORIGINAL -> BRANCH-B.  Returns this object, and a second argument that describes
-problems that were encountered, or NIL if no problems were found."))
+  (:documentation "Compute a version of ORIGINAL that is the result of
+trying to apply to ORIGINAL both the changes from ORIGINAL -> BRANCH-A
+and the changes from ORIGINAL -> BRANCH-B.  Returns this object, and a
+second argument that describes problems that were encountered, or NIL
+if no problems were found."))
 
-(defmethod converge ((original t) (branch-a t) (branch-b t) &key &allow-other-keys)
+(defmethod converge ((original t) (branch-a t) (branch-b t)
+                     &key &allow-other-keys)
   "Default method, assumes the arguments are things that can be treated as ASTs
 or SEXPRs."
   (multiple-value-bind (diff problems)
@@ -926,9 +957,10 @@ a tail of diff-a, and a tail of diff-b.")
 						  (stringp (cdr x)))))))
 	     (let ((prefix-a (iter (while (consp o-a))
 				   (while (%p (car o-a)))
-				   (collecting (if (eql (caar o-a) :same)
-						   (cons :insert (cdr (pop o-a)))
-						   (pop o-a)))))
+				   (collecting
+                                     (if (eql (caar o-a) :same)
+					 (cons :insert (cdr (pop o-a)))
+					 (pop o-a)))))
 		   (prefix-b (iter (while (consp o-b))
 				   (while (%p (car o-b)))
 				   (collecting (pop o-b)))))
@@ -974,7 +1006,8 @@ a tail of diff-a, and a tail of diff-b.")
     (record-unstable o-a o-b)
     (values (list (car o-a)) (cdr o-a) o-b))
   (:method ((sym-a (eql :recurse)) (sym-b (eql :recurse)) o-a o-b)
-    (values (list (cons :recurse (merge-diffs2 (cdar o-a) (cdar o-b)))) (cdr o-a) (cdr o-b)))
+    (values (list (cons :recurse (merge-diffs2 (cdar o-a) (cdar o-b))))
+            (cdr o-a) (cdr o-b)))
   (:method ((sym-a (eql :recurse)) (sym-b (eql :same)) o-a o-b)
     (values (list (car o-a)) (cdr o-a) (cdr o-b)))
 
@@ -1033,17 +1066,21 @@ a tail of diff-a, and a tail of diff-b.")
   ;; Unwind :*-sequence operations
 
   (:method ((sym-a (eql :insert-sequence)) sym-b o-a o-b)
-    (let ((new-o-a (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-a)) (cdr o-a))))
+    (let ((new-o-a (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-a))
+                          (cdr o-a))))
       (merge-diffs2 new-o-a o-b)))
   (:method (sym-a (sym-b (eql :insert-sequence)) o-a o-b)
-    (let ((new-o-b (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-b)) (cdr o-b))))
+    (let ((new-o-b (nconc (map 'list (lambda (x) (cons :insert x)) (cdar o-b))
+                          (cdr o-b))))
       (merge-diffs2 o-a new-o-b)))
 
   (:method ((sym-a (eql :delete-sequence)) sym-b o-a o-b)
-    (let ((new-o-a (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-a)) (cdr o-a))))
+    (let ((new-o-a (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-a))
+                          (cdr o-a))))
       (merge-diffs2 new-o-a o-b)))
   (:method (sym-a (sym-b (eql :delete-sequence)) o-a o-b)
-    (let ((new-o-b (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-b)) (cdr o-b))))
+    (let ((new-o-b (nconc (map 'list (lambda (x) (cons :delete x)) (cdar o-b))
+                          (cdr o-b))))
       (merge-diffs2 o-a new-o-b)))
 
   (:method ((sym-a (eql :same-sequence)) sym-b o-a o-b)
@@ -1055,9 +1092,7 @@ a tail of diff-a, and a tail of diff-b.")
   (:method ((sym-a (eql :same-sequence)) (sym-b (eql :same-sequence)) o-a o-b)
     (setf o-a (same-seq-to-list o-a))
     (setf o-b (same-seq-to-list o-b))
-    (merge-diffs2 (same-seq-to-sames o-a) (same-seq-to-sames o-b)))
-
-  )
+    (merge-diffs2 (same-seq-to-sames o-a) (same-seq-to-sames o-b))))
 
 (defun same-seq-to-sames (o)
   (nconc (map 'list (lambda (x) (cons :same x)) (cdar o)) (cdr o)))
@@ -1137,7 +1172,8 @@ a tail of diff-a, and a tail of diff-b.")
                  `(iter (for x in-vector ,v)
                         (for i from 0)
                         (let ((g (gethash x table)))
-                          (unless g (setf (gethash x table) (setf g (make-gcs))))
+                          (unless g
+                            (setf (gethash x table) (setf g (make-gcs))))
                           (incf (gcs-count g))
                           (push i (,fn g))))))
       (init-table v1 gcs-positions-1)
