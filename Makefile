@@ -73,7 +73,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/super-mutant-project	\
 	software-evolution-library/software/with-exe			\
 	software-evolution-library/ast-diff/clang-merge			\
-	software-evolution-library/test					\
 	software-evolution-library/utility				\
 	software-evolution-library/view
 

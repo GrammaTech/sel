@@ -1435,7 +1435,6 @@ appendix holds each individual package's API in turn.
 @menu
 * software-evolution-library::  Software-Evolution-Library.
 * sel-utility::                 Software-Evolution-Library Utilities.
-* sel-test::                    Software-Evolution-Library Tests.
 * sel-rest::                    Software-Evolution-Library Rest interface.
 * sel-view::                    Software-Evolution-Library Text GUI.
 * software-evolution-library-ast-diff:: Software Evolution Library AST differencing.
@@ -1501,15 +1500,11 @@ appendix holds each individual package's API in turn.
 @section software-evolution-library
 @include software-evolution-library-api.texi
 
-@node sel-utility, sel-test, software-evolution-library, SEL Packages
+@node sel-utility, sel-rest, software-evolution-library, SEL Packages
 @section sel-utility
 @include sel-utility-api.texi
 
-@node sel-test, sel-rest, sel-utility, SEL Packages
-@section sel-test
-@include sel-test-api.texi
-
-@node sel-rest, sel-view, sel-test, SEL Packages
+@node sel-rest, sel-view, sel-utility, SEL Packages
 @section sel-rest
 @include sel-rest-api.texi
 
