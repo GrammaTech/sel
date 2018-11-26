@@ -79,8 +79,8 @@
 	     ((> j 0)
 	      `((:insert-sequence . ,(subseq s2 0 j)))))
 	   diff))))))
-		 
-		  
+
+
 ;;; Longest common substring algorithm was added to
 ;;; hacked version of cl-string-match.  TODO: fast
 ;;; heuristic algorithm that uses this.
@@ -134,6 +134,3 @@
 		      (pop p))))
 		  (t (pop p))))))
       diff)))
-		
-		      
-		    

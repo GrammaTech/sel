@@ -164,13 +164,3 @@ elements of the alist."
 				   (merge-diffs2 (cddr e1) (cddr e2)))))))))))
        (cdr o-a)
        (cdr o-b)))))
-
-	     
-
-    
-
-
-
-
-    
-  

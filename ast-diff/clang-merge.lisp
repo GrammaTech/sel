@@ -41,10 +41,13 @@
 			   )
   "Merge two branches original => version1, original => version2 into
 a merged version"
-  (flet ((report (fmt &rest args) (apply #'format *error-output* (concatenate 'string "~a: " fmt)
-					 self args))
+  (flet ((report (fmt &rest args)
+           (apply #'format *error-output* (concatenate 'string "~a: " fmt)
+		  self args))
 	 (usage (n)
-	   (format t "Usage: ~a [OPTION] original-version version1 version2 output-directory~%" self)
+	   (format t
+                   "Usage: ~a [OPTION] ~
+                    original-version version1 version2 output-directory~%" self)
 	   (quit n)))
     (when (or (< (length args) 4)
 	      (if-let ((d (string/= "-h" (car args)))) (>= d 2))
@@ -56,7 +59,8 @@ a merged version"
      ("-o" "--out-dir" (setf out-dir (pop args)))
      ("-c" "--comp-db" (setf comp-db (pop args)))
      ;; ("--compiler" "--compiler" (setf compiler (pop args)))
-     ;; ("-I" "-I" (setf includes (split-sequence #\, (pop args) :remove-empty-subseqs t)))
+     ;; ("-I" "-I" (setf includes (split-sequence #\, (pop args)
+     ;;                                           :remove-empty-subseqs t)))
      ("--build-command" "-b" (setf build-command (pop args)))
      ;; ("-l" "--language" (setf language (pop args)))
      ;; ("--no-store-software" "--no-store-software" (setf no-store-software t))
@@ -76,10 +80,10 @@ a merged version"
       (setf out-dir (pop args))
       (setf out-dir (pathname (concatenate 'string out-dir "/")))
       (ensure-directories-exist out-dir)
-      (setf out-dir (pathname-directory out-dir))
-      ))
+      (setf out-dir (pathname-directory out-dir))))
 
-  ;; (setf flags (mappend [{list "-I"} {concatenate 'string (pwd) "/"}] includes))
+  ;; (setf flags (mappend [{list "-I"} {concatenate 'string (pwd) "/"}]
+  ;;                      includes))
    (when comp-db
       (push (cons :build-path comp-db)
             *clang-mutate-additional-args*))
@@ -105,7 +109,8 @@ a merged version"
 	   out-dir (or out-dir (resolve-out-dir-from-source original))
 	   project-name (resolve-name-from-source original)
 	   ;; software-store nil
-	   ;; (unless no-store-software (resolve-store-path-from-out-dir-and-name out-dir project-name))
+	   ;; (unless no-store-software
+           ;;   (resolve-store-path-from-out-dir-and-name out-dir project-name))
 	   ))
 
   (note 1  "Parameters:~%~S~%"
@@ -124,8 +129,7 @@ a merged version"
 				 ;; :flags flags
 				 ;; :store-path software-store
 				 )))
-	     (from-file project s))
-	   ))
+	     (from-file project s))))
     (setf original-soft (%create original))
     (setf version1-soft (%create version1))
     (setf version2-soft (%create version2))
