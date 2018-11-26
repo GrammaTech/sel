@@ -35,6 +35,7 @@
 	      :software-evolution-library/ast-diff)
   (:use
    :common-lisp
+   :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/ast
    :software-evolution-library/ast-diff/string
