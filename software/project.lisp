@@ -11,6 +11,7 @@
         :uiop
         :software-evolution-library
         :software-evolution-library/components/formatting
+	:software-evolution-library/ast-diff/ast-diff
 	:software-evolution-library/ast-diff/alist
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop/run-program :run-program)
