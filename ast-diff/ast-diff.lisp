@@ -52,8 +52,6 @@
    :ast-can-recurse
    :ast-on-recurse
    :ast-un-recurse
-   :ast-hash
-   :ast-combine-hash-values
    :ast-diff
    :ast-diff-elide-same
    :ast-patch
