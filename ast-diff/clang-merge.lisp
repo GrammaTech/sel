@@ -149,7 +149,9 @@ a merged version"
       (save-to new-merged out-dir "merged")
       (if (not unstable)
 	  (format t "No merge conflicts~%")
-	  (format t "Merge conflicts:~%~a~%" unstable)))))
+	  (format t "Merge conflicts:~%~a~%" unstable))
+      ;; exit with 0 if no merge conflicts, 1 otherwise
+      (quit (if unstable 1 0)))))
 
 (defgeneric save-to (soft out-dir sub))
 
