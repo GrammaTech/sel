@@ -9416,21 +9416,21 @@ int main() { puts(\"~d\"); return 0; }
            (ast-root (ast-patch (copy orig) diff-a))
            (ast-root a)))
       (is (equalp (mapcar #'car diff-a)
-                  '(:insert :delete :same :same :same :same :same :same))))
+                  '(:recurse :same :same :same :same :same :same))))
     (let ((diff-b (ast-diff orig b)))
       (is diff-b)
       (is (ast-equal-p
            (ast-root (ast-patch (copy orig) diff-b))
            (ast-root b)))
       (is (equalp (mapcar #'car diff-b)
-                  '(:same :same :insert :delete :same :same :same :same))))
+                  '(:same :same :recurse :same :same :same :same))))
     (let ((diff-c (ast-diff orig c)))
       (is diff-c)
       (is (ast-equal-p
            (ast-root (ast-patch (copy orig) diff-c))
            (ast-root c)))
       (is (equalp (mapcar #'car diff-c)
-                  '(:same :same :same :same :same :same :insert :delete))))))
+                  '(:same :same :same :same :same :same :recurse))))))
 
 (deftest diff-real-text ()
   (with-fixture binary-search-clang
