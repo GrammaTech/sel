@@ -1,4 +1,4 @@
-#!/usr/bin/sbcl --script
+#!/usr/bin/sbcl --dynamic-space-size 16384 --script
 ;; -*- lisp -*-
 ;;
 ;; Build the texinfo API documentation for the software evolution library.
