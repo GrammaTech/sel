@@ -35,8 +35,11 @@
 # Generated documentation
 doc/software-evolution-library/
 doc/include/
+doc/sel-ast-diff-alist-api.texi
 doc/sel-ast-diff-clang-api.texi
+doc/sel-ast-diff-clang-merge-api.texi
 doc/sel-ast-diff-html-api.texi
+doc/sel-ast-diff-string-api.texi
 doc/sel-cp-clang-instrument-api.texi
 doc/sel-cp-clang-tokens-api.texi
 doc/sel-cp-condition-synthesis-api.texi
