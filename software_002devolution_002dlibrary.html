@@ -77,6 +77,10 @@ A common restart is &lsquo;ignore-failed-mutation&rsquo;.
 <dt><a name="index-_002across_002dchance_002a"></a>Variable: <strong>*cross-chance*</strong></dt>
 <dd><p>Fraction of new individuals generated using crossover rather than mutation.
 </p></dd></dl>
+<a name="Variable-_002acrossover_002dstats_002a"></a><dl>
+<dt><a name="index-_002acrossover_002dstats_002a"></a>Variable: <strong>*crossover-stats*</strong></dt>
+<dd><p>Variable to hold crossover statistics.
+</p></dd></dl>
 <a name="Variable-_002afitness_002devals_002a"></a><dl>
 <dt><a name="index-_002afitness_002devals_002a"></a>Variable: <strong>*fitness-evals*</strong></dt>
 <dd><p>Track the total number of fitness evaluations.
@@ -179,6 +183,10 @@ written to as part of a running search process.
 <a name="Variable-_002bsoftware_002devolution_002dlibrary_002ddir_002b"></a><dl>
 <dt><a name="index-_002bsoftware_002devolution_002dlibrary_002ddir_002b"></a>Variable: <strong>+software-evolution-library-dir+</strong></dt>
 <dd><p>Path to directory holding <code>software-evolution-library</code>.
+</p></dd></dl>
+<a name="Constant-_002bsoftware_002devolution_002dlibrary_002dmajor_002dversion_002b"></a><dl>
+<dt><a name="index-_002bsoftware_002devolution_002dlibrary_002dmajor_002dversion_002b"></a>Constant: <strong>+software-evolution-library-major-version+</strong></dt>
+<dd><p>Current major version of the <code>software-evolution-library</code> (without git hash).
 </p></dd></dl>
 <a name="Variable-_002bsoftware_002devolution_002dlibrary_002dversion_002b"></a><dl>
 <dt><a name="index-_002bsoftware_002devolution_002dlibrary_002dversion_002b"></a>Variable: <strong>+software-evolution-library-version+</strong></dt>
@@ -534,6 +542,154 @@ mutations as an optional second value.
 </li><li> <code>n</code> <code>docfixme</code>
 </li></ul>
 </dd></dl>
+<a name="Macro-compose_002dmutations"></a><dl>
+<dt><a name="index-compose_002dmutations"></a>Macro: <strong>compose-mutations</strong> <em>class-name mutations &amp;rest options</em></dt>
+<dd><p>Define a new mutation named <code>class-name</code> composing <code>mutations</code>.
+<code>mutations</code> is a list of the names of mutation classes.
+</p></dd></dl>
+<a name="Generic_002dFunction-copy"></a><dl>
+<dt><a name="index-copy"></a>Generic Function: <strong>copy</strong> <em>software &amp;key path children class aux-data hash name body array col decl file line i-file pointer const volatile restrict storage-class reqs size args counter declares expr-type full-stmt guard-stmt in-macro-expansion includes is-decl macros opcode ret syn-ctx types unbound-funs unbound-vals varargs void-ret array-length base-type bit-field-width &amp;allow-other-keys</em></dt>
+<dd><p>Copy the software.
+Return a deep copy of a software object.
+</p></dd></dl>
+<a name="Method-copy-_0028_0028diff-diff_0029-_0026key_0029"></a><dl>
+<dt><a name="index-copy-1"></a>Method: <strong>copy</strong> <em>(diff diff) &amp;key</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-copy-_0028_0028asm-asm_002drange_0029-_0026key_0029"></a><dl>
+<dt><a name="index-copy-2"></a>Method: <strong>copy</strong> <em>(asm asm-range) &amp;key</em></dt>
+<dd><p>Customized copy for &lsquo;asm-range&rsquo; software objects.
+Ensures deep copies are made of the genome (ranges) but shallow copies
+are made of the reference base genome.
+</p></dd></dl>
+<a name="Method-copy-before-_0028_0028obj-parseable_0029-_0026key_0029"></a><dl>
+<dt><a name="index-before-copy"></a>Method: <strong>before copy</strong> <em>(obj parseable) &amp;key</em></dt>
+<dd><p>Update ASTs in <code>obj</code> prior to performing a copy.
+* <code>obj</code> software object to copy
+</p></dd></dl>
+<a name="Generic_002dFunction-create_002dsuper"></a><dl>
+<dt><a name="index-create_002dsuper"></a>Generic Function: <strong>create-super</strong> <em>variant &amp;optional rest-variants</em></dt>
+<dd><p>Create a super-mutant populated with <code>variant</code> . <code>rest-variants</code>
+</p></dd></dl>
+<a name="Method-create_002dsuper-_0028_0028variant-asm_002dheap_0029-_0026optional-rest_002dvariants_0029"></a><dl>
+<dt><a name="index-create_002dsuper-1"></a>Method: <strong>create-super</strong> <em>(variant asm-heap) &amp;optional rest-variants</em></dt>
+<dd><p>Creates a <code>asm-super-mutant</code> and populates it with single variant.
+</p></dd></dl>
+<a name="Method-create_002dsuper-_0028_0028variant-software_0029-_0026optional-rest_002dvariants_0029"></a><dl>
+<dt><a name="index-create_002dsuper-2"></a>Method: <strong>create-super</strong> <em>(variant software) &amp;optional rest-variants</em></dt>
+<dd><p>Creates a <code>super-mutant</code> and populates variants. Returns the super-mutant.
+</p></dd></dl>
+<a name="Generic_002dFunction-crossover"></a><dl>
+<dt><a name="index-crossover"></a>Generic Function: <strong>crossover</strong> <em>software-a software-b</em></dt>
+<dd><p>Crossover two software objects.
+Define an :around method on this function to record crossovers.
+</p></dd></dl>
+<a name="Method-crossover-_0028_0028a-elf_002drisc_0029-_0028b-elf_002drisc_0029_0029"></a><dl>
+<dt><a name="index-crossover-1"></a>Method: <strong>crossover</strong> <em>(a elf-risc) (b elf-risc)</em></dt>
+<dd><p>One point crossover.
+</p></dd></dl>
+<a name="Method-crossover-_0028_0028a-elf_002dcisc_0029-_0028b-elf_002dcisc_0029_0029"></a><dl>
+<dt><a name="index-crossover-2"></a>Method: <strong>crossover</strong> <em>(a elf-cisc) (b elf-cisc)</em></dt>
+<dd><p>One point crossover.
+</p></dd></dl>
+<a name="Method-crossover-_0028_0028a-lisp_0029-_0028b-lisp_0029_0029"></a><dl>
+<dt><a name="index-crossover-3"></a>Method: <strong>crossover</strong> <em>(a lisp) (b lisp)</em></dt>
+<dd><p><code>docfixme</code>
+</p>
+<ul>
+<li> A <code>docfixme</code>
+</li><li> <code>b</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<a name="Method-crossover-around-_0028_0028a-ancestral_0029-_0028b-ancestral_0029_0029"></a><dl>
+<dt><a name="index-around-crossover"></a>Method: <strong>around crossover</strong> <em>(a ancestral) (b ancestral)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> A <code>docfixme</code>
+</li><li> <code>b</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<a name="Method-crossover-_0028_0028a-asm_0029-_0028b-asm_0029_0029"></a><dl>
+<dt><a name="index-crossover-4"></a>Method: <strong>crossover</strong> <em>(a asm) (b asm)</em></dt>
+<dd><p>By default, crossover for ASM objects uses &lsquo;homologous-crossover&rsquo;.
+</p></dd></dl>
+<a name="Method-crossover-_0028_0028a-simple_0029-_0028b-simple_0029_0029"></a><dl>
+<dt><a name="index-crossover-5"></a>Method: <strong>crossover</strong> <em>(a simple) (b simple)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-crossover-_0028_0028a-project_0029-_0028b-project_0029_0029"></a><dl>
+<dt><a name="index-crossover-6"></a>Method: <strong>crossover</strong> <em>(a project) (b project)</em></dt>
+<dd><p>Randomly pick one file in a and perform crossover with the corresponding file in b.
+</p></dd></dl>
+<a name="Method-crossover-_0028_0028a-clang_0029-_0028b-clang_0029_0029"></a><dl>
+<dt><a name="index-crossover-7"></a>Method: <strong>crossover</strong> <em>(a clang) (b clang)</em></dt>
+<dd><p><code>docfixme</code>
+</p><ul>
+<li> A <code>docfixme</code>
+</li><li> <code>b</code> <code>docfixme</code>
+</li></ul>
+</dd></dl>
+<a name="Method-crossover-_0028_0028a-source_0029-_0028b-source_0029_0029"></a><dl>
+<dt><a name="index-crossover-8"></a>Method: <strong>crossover</strong> <em>(a source) (b source)</em></dt>
+<dd><p>Crossover two software objects, A and <code>b</code>.
+</p></dd></dl>
+<a name="Macro-define_002dmutation"></a><dl>
+<dt><a name="index-define_002dmutation"></a>Macro: <strong>define-mutation</strong> <em>class-name superclasses slots &amp;rest options</em></dt>
+<dd><p>Like &lsquo;defclass&rsquo; but inherits <code>targeter</code> slot-options from <code>mutation</code>.
+Also, ensures <code>mutation</code> is a member of superclasses
+</p></dd></dl>
+<a name="Macro-define_002dsoftware"></a><dl>
+<dt><a name="index-define_002dsoftware"></a>Macro: <strong>define-software</strong> <em>name direct-superclasses direct-slots &amp;rest options</em></dt>
+<dd><p>Define a new &lsquo;software&rsquo; class <code>name</code> including a deep &lsquo;copy&rsquo; method.
+Arguments <code>name</code> <code>direct-superclasses</code> and <code>options</code> are passed through to
+&lsquo;defclass&rsquo; unmodified.  Additional optional <code>:copier</code> property on each
+slot in <code>direct-slots</code> may be one of the following:
+</p>
+<ul>
+<li> <code>:none</code> this slot is not copied and will be nil in the new object
+</li><li> <code>:direct</code> this slot is copied by direct reference to the slot value
+          skipping the accessor
+</li><li> otherwise if the value of <code>:copier</code> is nil (default) then the slot is
+            copied through its accessor, otherwise the value is
+            assumed to be a function (e.g., &lsquo;copy-tree&rsquo;) which is used
+            to copy the slot.
+</li></ul>
+</dd></dl>
+<a name="Macro-evolve"></a><dl>
+<dt><a name="index-evolve"></a>Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn super-mutant-count</em></dt>
+<dd><p>Evolves &lsquo;*population*&rsquo; using &lsquo;new-individual&rsquo; and <code>test</code>.
+</p>
+<ul>
+<li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
+  combined genome.
+
+</li></ul>
+<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
+</p></dd></dl>
+<a name="Macro-ignore_002dphenome_002derrors"></a><dl>
+<dt><a name="index-ignore_002dphenome_002derrors"></a>Macro: <strong>ignore-phenome-errors</strong> <em>&amp;rest body</em></dt>
+<dd><p>Handle errors in &lsquo;phenome&rsquo; execution by returning nil as the
+first value from the &lsquo;phenome&rsquo; method.
+</p></dd></dl>
+<a name="Macro-mcmc"></a><dl>
+<dt><a name="index-mcmc"></a>Macro: <strong>mcmc</strong> <em>original test &amp;key accept-fn max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn</em></dt>
+<dd><p><code>mcmc</code> search from <code>original</code> using &lsquo;mcmc-step&rsquo; and <code>test</code>.
+If keyword argument <code>accept-fn</code> is given it is used to determine when a
+newly found candidate replaces the current candidate.  If <code>accept-fn</code> is
+not supplied <code>mcmc</code> defaults to using Metropolis Hastings.
+</p>
+<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
+</p></dd></dl>
+<a name="Function-analyze_002dmutation"></a><dl>
+<dt><a name="index-analyze_002dmutation"></a>Function: <strong>analyze-mutation</strong> <em>obj mutation-info test</em></dt>
+<dd><p>Default function to collect statistics from an applied mutation.
+</p>
+<p>This function will calculate the improvements to the fitness of <code>software</code>
+as the result of crossover and mutation using &lsquo;evaluate&rsquo; and <code>test</code>.
+Each crossover and mutation will be paired with one of the following tags;
+:dead, :same, :worse, or :better.  Calculated stats will be added to the
+*crossover-stats* and *mutation-stats* variables for analysis.
+</p></dd></dl>
 <a name="Generic_002dFunction-at_002dtargets"></a><dl>
 <dt><a name="index-at_002dtargets"></a>Generic Function: <strong>at-targets</strong> <em>mutation targets &amp;key object &amp;allow-other-keys</em></dt>
 <dd><p>Return a copy of <code>mutation</code> with &lsquo;targets&rsquo; set to <code>targets</code>.
@@ -693,138 +849,14 @@ a refine-condition <code>mutation</code> to <code>software</code>.
 </li><li> <code>software</code> object to be modified by the mutation
 </li></ul>
 </dd></dl>
-<a name="Generic_002dFunction-copy"></a><dl>
-<dt><a name="index-copy"></a>Generic Function: <strong>copy</strong> <em>software &amp;key path children class aux-data hash name body array col decl file line i-file pointer const volatile restrict storage-class reqs size args counter declares expr-type full-stmt guard-stmt in-macro-expansion includes is-decl macros opcode ret syn-ctx types unbound-funs unbound-vals varargs void-ret array-length base-type bit-field-width &amp;allow-other-keys</em></dt>
-<dd><p>Copy the software.
-Return a deep copy of a software object.
+<a name="Function-crossed"></a><dl>
+<dt><a name="index-crossed"></a>Function: <strong>crossed</strong> <em>&amp;optional a b</em></dt>
+<dd><p>Generate a new individual from <code>*population*</code> using crossover.
 </p></dd></dl>
-<a name="Method-copy-_0028_0028diff-diff_0029-_0026key_0029"></a><dl>
-<dt><a name="index-copy-1"></a>Method: <strong>copy</strong> <em>(diff diff) &amp;key</em></dt>
-<dd><p><code>docfixme</code>
+<a name="Function-default_002drandom_002dwinner"></a><dl>
+<dt><a name="index-default_002drandom_002dwinner"></a>Function: <strong>default-random-winner</strong> <em>group &amp;key predicate</em></dt>
+<dd><p>Choose a random winner from <code>group</code>.
 </p></dd></dl>
-<a name="Method-copy-_0028_0028asm-asm_002drange_0029-_0026key_0029"></a><dl>
-<dt><a name="index-copy-2"></a>Method: <strong>copy</strong> <em>(asm asm-range) &amp;key</em></dt>
-<dd><p>Customized copy for &lsquo;asm-range&rsquo; software objects.
-Ensures deep copies are made of the genome (ranges) but shallow copies
-are made of the reference base genome.
-</p></dd></dl>
-<a name="Method-copy-before-_0028_0028obj-parseable_0029-_0026key_0029"></a><dl>
-<dt><a name="index-before-copy"></a>Method: <strong>before copy</strong> <em>(obj parseable) &amp;key</em></dt>
-<dd><p>Update ASTs in <code>obj</code> prior to performing a copy.
-* <code>obj</code> software object to copy
-</p></dd></dl>
-<a name="Generic_002dFunction-create_002dsuper"></a><dl>
-<dt><a name="index-create_002dsuper"></a>Generic Function: <strong>create-super</strong> <em>variant &amp;optional rest-variants</em></dt>
-<dd><p>Create a super-mutant populated with <code>variant</code> . <code>rest-variants</code>
-</p></dd></dl>
-<a name="Method-create_002dsuper-_0028_0028variant-asm_002dheap_0029-_0026optional-rest_002dvariants_0029"></a><dl>
-<dt><a name="index-create_002dsuper-1"></a>Method: <strong>create-super</strong> <em>(variant asm-heap) &amp;optional rest-variants</em></dt>
-<dd><p>Creates a <code>asm-super-mutant</code> and populates it with single variant.
-</p></dd></dl>
-<a name="Method-create_002dsuper-_0028_0028variant-software_0029-_0026optional-rest_002dvariants_0029"></a><dl>
-<dt><a name="index-create_002dsuper-2"></a>Method: <strong>create-super</strong> <em>(variant software) &amp;optional rest-variants</em></dt>
-<dd><p>Creates a <code>super-mutant</code> and populates variants. Returns the super-mutant.
-</p></dd></dl>
-<a name="Generic_002dFunction-crossover"></a><dl>
-<dt><a name="index-crossover"></a>Generic Function: <strong>crossover</strong> <em>software-a software-b</em></dt>
-<dd><p>Crossover two software objects.
-Define an :around method on this function to record crossovers.
-</p></dd></dl>
-<a name="Method-crossover-_0028_0028a-elf_002drisc_0029-_0028b-elf_002drisc_0029_0029"></a><dl>
-<dt><a name="index-crossover-1"></a>Method: <strong>crossover</strong> <em>(a elf-risc) (b elf-risc)</em></dt>
-<dd><p>One point crossover.
-</p></dd></dl>
-<a name="Method-crossover-_0028_0028a-elf_002dcisc_0029-_0028b-elf_002dcisc_0029_0029"></a><dl>
-<dt><a name="index-crossover-2"></a>Method: <strong>crossover</strong> <em>(a elf-cisc) (b elf-cisc)</em></dt>
-<dd><p>One point crossover.
-</p></dd></dl>
-<a name="Method-crossover-_0028_0028a-lisp_0029-_0028b-lisp_0029_0029"></a><dl>
-<dt><a name="index-crossover-3"></a>Method: <strong>crossover</strong> <em>(a lisp) (b lisp)</em></dt>
-<dd><p><code>docfixme</code>
-</p>
-<ul>
-<li> A <code>docfixme</code>
-</li><li> <code>b</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Method-crossover-around-_0028_0028a-ancestral_0029-_0028b-ancestral_0029_0029"></a><dl>
-<dt><a name="index-around-crossover"></a>Method: <strong>around crossover</strong> <em>(a ancestral) (b ancestral)</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> A <code>docfixme</code>
-</li><li> <code>b</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Method-crossover-_0028_0028a-asm_0029-_0028b-asm_0029_0029"></a><dl>
-<dt><a name="index-crossover-4"></a>Method: <strong>crossover</strong> <em>(a asm) (b asm)</em></dt>
-<dd><p>By default, crossover for ASM objects uses &lsquo;homologous-crossover&rsquo;.
-</p></dd></dl>
-<a name="Method-crossover-_0028_0028a-simple_0029-_0028b-simple_0029_0029"></a><dl>
-<dt><a name="index-crossover-5"></a>Method: <strong>crossover</strong> <em>(a simple) (b simple)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-crossover-_0028_0028a-project_0029-_0028b-project_0029_0029"></a><dl>
-<dt><a name="index-crossover-6"></a>Method: <strong>crossover</strong> <em>(a project) (b project)</em></dt>
-<dd><p>Randomly pick one file in a and perform crossover with the corresponding file in b.
-</p></dd></dl>
-<a name="Method-crossover-_0028_0028a-clang_0029-_0028b-clang_0029_0029"></a><dl>
-<dt><a name="index-crossover-7"></a>Method: <strong>crossover</strong> <em>(a clang) (b clang)</em></dt>
-<dd><p><code>docfixme</code>
-</p><ul>
-<li> A <code>docfixme</code>
-</li><li> <code>b</code> <code>docfixme</code>
-</li></ul>
-</dd></dl>
-<a name="Method-crossover-_0028_0028a-source_0029-_0028b-source_0029_0029"></a><dl>
-<dt><a name="index-crossover-8"></a>Method: <strong>crossover</strong> <em>(a source) (b source)</em></dt>
-<dd><p>Crossover two software objects, A and <code>b</code>.
-</p></dd></dl>
-<a name="Condition-mutate"></a><dl>
-<dt><a name="index-mutate-8"></a>Condition: <strong>mutate</strong></dt>
-<dd><p>Class precedence list: <code>mutate, error, serious-condition, condition, t</code>
-</p>
-<p>Mutation errors are thrown when a mutation fails.
-These may often be safely ignored.  A common restart is
-&lsquo;ignore-failed-mutation&rsquo;.
-</p></dd></dl>
-<a name="Class-mutation"></a><dl>
-<dt><a name="index-mutation"></a>Class: <strong>mutation</strong></dt>
-<dd><p>Class precedence list: <code>mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>object</code> &mdash; initarg: <code>:object<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:object</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:object)</span><!-- /@w --></code>
-
-<p>The software object to be mutated.
-</p></li><li> <code>targets</code> &mdash; initarg: <code>:targets<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:get-targets</span><!-- /@w --></code>
-
-<p>A calculated target set.
-</p></li></ul>
-
-<p>The base class of all software mutations.
-</p></dd></dl>
-<a name="Macro-define_002dmutation"></a><dl>
-<dt><a name="index-define_002dmutation"></a>Macro: <strong>define-mutation</strong> <em>class-name superclasses slots &amp;rest options</em></dt>
-<dd><p>Like &lsquo;defclass&rsquo; but inherits <code>targeter</code> slot-options from <code>mutation</code>.
-Also, ensures <code>mutation</code> is a member of superclasses
-</p></dd></dl>
-<a name="Macro-define_002dsoftware"></a><dl>
-<dt><a name="index-define_002dsoftware"></a>Macro: <strong>define-software</strong> <em>name direct-superclasses direct-slots &amp;rest options</em></dt>
-<dd><p>Define a new &lsquo;software&rsquo; class <code>name</code> including a deep &lsquo;copy&rsquo; method.
-Arguments <code>name</code> <code>direct-superclasses</code> and <code>options</code> are passed through to
-&lsquo;defclass&rsquo; unmodified.  Additional optional <code>:copier</code> property on each
-slot in <code>direct-slots</code> may be one of the following:
-</p>
-<ul>
-<li> <code>:none</code> this slot is not copied and will be nil in the new object
-</li><li> <code>:direct</code> this slot is copied by direct reference to the slot value
-          skipping the accessor
-</li><li> otherwise if the value of <code>:copier</code> is nil (default) then the slot is
-            copied through its accessor, otherwise the value is
-            assumed to be a function (e.g., &lsquo;copy-tree&rsquo;) which is used
-            to copy the slot.
-</li></ul>
-</dd></dl>
 <a name="Generic_002dFunction-evaluate"></a><dl>
 <dt><a name="index-evaluate"></a>Generic Function: <strong>evaluate</strong> <em>function software &amp;rest extra-keys &amp;key &amp;allow-other-keys</em></dt>
 <dd><p>Evaluate the software returning a numerical fitness.
@@ -864,20 +896,13 @@ test output, to determine the fitness score.
 </li></ul>
 <p>&lsquo;start-test&rsquo; documentation for more information.
 </p></dd></dl>
-<a name="Macro-evolve"></a><dl>
-<dt><a name="index-evolve"></a>Macro: <strong>evolve</strong> <em>test &amp;key max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn super-mutant-count</em></dt>
-<dd><p>Evolves &lsquo;*population*&rsquo; using &lsquo;new-individual&rsquo; and <code>test</code>.
-</p>
-<ul>
-<li> <code>super-mutant-count</code> evaluate this number of mutants at once in a
-  combined genome.
-
-</li></ul>
-<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
-</p></dd></dl>
 <a name="Function-fitness_002dbetter_002dp"></a><dl>
 <dt><a name="index-fitness_002dbetter_002dp"></a>Function: <strong>fitness-better-p</strong> <em>fitness-a fitness-b</em></dt>
 <dd><p>Check if <code>fitness-a</code> is strictly better than <code>fitness-b</code>.
+</p></dd></dl>
+<a name="Function-fitness_002dequal_002dp"></a><dl>
+<dt><a name="index-fitness_002dequal_002dp"></a>Function: <strong>fitness-equal-p</strong> <em>fitness-a fitness-b</em></dt>
+<dd><p>Return true if <code>fitness-a</code> and <code>fitness-b</code> are equal
 </p></dd></dl>
 <a name="Generic_002dFunction-fitness_002dextra_002ddata"></a><dl>
 <dt><a name="index-fitness_002dextra_002ddata"></a>Generic Function: <strong>fitness-extra-data</strong> <em>software</em></dt>
@@ -1070,36 +1095,32 @@ For example an AST genome, e.g., of a &lsquo;cil&rsquo; or &lsquo;lisp&rsquo; so
 my have a tree structure while the genome of an &lsquo;asm&rsquo; or &lsquo;llvm&rsquo;
 software object will be a vector.
 </p></dd></dl>
-<a name="Method-genome-_0028_0028soft-soft_0029_0029"></a><dl>
-<dt><a name="index-genome-1"></a>Method: <strong>genome</strong> <em>(soft soft)</em></dt>
-<dd><p>automatically generated reader method
-</p></dd></dl>
 <a name="Method-genome-_0028_0028diff-diff_0029_0029"></a><dl>
-<dt><a name="index-genome-2"></a>Method: <strong>genome</strong> <em>(diff diff)</em></dt>
+<dt><a name="index-genome-1"></a>Method: <strong>genome</strong> <em>(diff diff)</em></dt>
 <dd><p>Build the genome on the fly from DIFF&rsquo;s &lsquo;reference&rsquo; and &lsquo;diffs&rsquo;.
 </p></dd></dl>
 <a name="Method-genome-_0028_0028lisp-lisp_0029_0029"></a><dl>
-<dt><a name="index-genome-3"></a>Method: <strong>genome</strong> <em>(lisp lisp)</em></dt>
+<dt><a name="index-genome-2"></a>Method: <strong>genome</strong> <em>(lisp lisp)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
 <a name="Method-genome-_0028_0028obj-super_002dmutant_0029_0029"></a><dl>
-<dt><a name="index-genome-4"></a>Method: <strong>genome</strong> <em>(obj super-mutant)</em></dt>
+<dt><a name="index-genome-3"></a>Method: <strong>genome</strong> <em>(obj super-mutant)</em></dt>
 <dd><p>Return a genome which combines all variants in <code>super-mutant</code>.
 </p></dd></dl>
 <a name="Method-genome-_0028_0028simple-simple_0029_0029"></a><dl>
-<dt><a name="index-genome-5"></a>Method: <strong>genome</strong> <em>(simple simple)</em></dt>
+<dt><a name="index-genome-4"></a>Method: <strong>genome</strong> <em>(simple simple)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
 <a name="Method-genome-_0028_0028obj-project_0029_0029"></a><dl>
-<dt><a name="index-genome-6"></a>Method: <strong>genome</strong> <em>(obj project)</em></dt>
+<dt><a name="index-genome-5"></a>Method: <strong>genome</strong> <em>(obj project)</em></dt>
 <dd><p>Returns all genomes joined with separators.
 </p></dd></dl>
 <a name="Method-genome-_0028_0028obj-parseable_0029_0029"></a><dl>
-<dt><a name="index-genome-7"></a>Method: <strong>genome</strong> <em>(obj parseable)</em></dt>
+<dt><a name="index-genome-6"></a>Method: <strong>genome</strong> <em>(obj parseable)</em></dt>
 <dd><p>Return the source code in <code>obj</code>.
 </p></dd></dl>
 <a name="Method-genome-_0028_0028source-source_0029_0029"></a><dl>
-<dt><a name="index-genome-8"></a>Method: <strong>genome</strong> <em>(source source)</em></dt>
+<dt><a name="index-genome-7"></a>Method: <strong>genome</strong> <em>(source source)</em></dt>
 <dd><p>automatically generated reader method
 </p></dd></dl>
 <a name="Generic_002dFunction-genome_002dstring"></a><dl>
@@ -1141,31 +1162,41 @@ instead of Newlines.
 <dt><a name="index-_0028setf-genome_002dstring_0029-1"></a>Method: <strong>(setf genome-string)</strong> <em>text (obj source)</em></dt>
 <dd><p>Update the source code of <code>obj</code> to <code>text</code>.
 </p></dd></dl>
-<a name="Macro-ignore_002dphenome_002derrors"></a><dl>
-<dt><a name="index-ignore_002dphenome_002derrors"></a>Macro: <strong>ignore-phenome-errors</strong> <em>&amp;rest body</em></dt>
-<dd><p>Handle errors in &lsquo;phenome&rsquo; execution by returning nil as the
-first value from the &lsquo;phenome&rsquo; method.
-</p></dd></dl>
-<a name="Macro-mcmc"></a><dl>
-<dt><a name="index-mcmc"></a>Macro: <strong>mcmc</strong> <em>original test &amp;key accept-fn max-evals max-time period period-fn every-pre-fn every-post-fn filter analyze-mutation-fn</em></dt>
-<dd><p><code>mcmc</code> search from <code>original</code> using &lsquo;mcmc-step&rsquo; and <code>test</code>.
-If keyword argument <code>accept-fn</code> is given it is used to determine when a
-newly found candidate replaces the current candidate.  If <code>accept-fn</code> is
-not supplied <code>mcmc</code> defaults to using Metropolis Hastings.
-</p>
-<p>Other keyword arguments are used as defined in the &lsquo;-search&rsquo; function.
-</p></dd></dl>
-<a name="Function-crossed"></a><dl>
-<dt><a name="index-crossed"></a>Function: <strong>crossed</strong> <em>&amp;optional a b</em></dt>
-<dd><p>Generate a new individual from <code>*population*</code> using crossover.
-</p></dd></dl>
-<a name="Function-default_002drandom_002dwinner"></a><dl>
-<dt><a name="index-default_002drandom_002dwinner"></a>Function: <strong>default-random-winner</strong> <em>group &amp;key predicate</em></dt>
-<dd><p>Choose a random winner from <code>group</code>.
-</p></dd></dl>
 <a name="Function-incorporate"></a><dl>
 <dt><a name="index-incorporate"></a>Function: <strong>incorporate</strong> <em>software</em></dt>
 <dd><p>Incorporate <code>software</code> into <code>population</code>, keeping <code>population</code> size constant.
+</p></dd></dl>
+<a name="Generic_002dFunction-lines"></a><dl>
+<dt><a name="index-lines"></a>Generic Function: <strong>lines</strong> <em>software</em></dt>
+<dd><p>Return the lines of code of the &lsquo;genome&rsquo; of <code>software</code>.
+</p></dd></dl>
+<a name="Method-lines-_0028_0028elf-elf_002drisc_0029_0029"></a><dl>
+<dt><a name="index-lines-1"></a>Method: <strong>lines</strong> <em>(elf elf-risc)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-lines-_0028_0028elf-elf_002dcisc_0029_0029"></a><dl>
+<dt><a name="index-lines-2"></a>Method: <strong>lines</strong> <em>(elf elf-cisc)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-lines-_0028_0028asm-asm_002dheap_0029_0029"></a><dl>
+<dt><a name="index-lines-3"></a>Method: <strong>lines</strong> <em>(asm asm-heap)</em></dt>
+<dd><p>Return the list of text lines of the genome.
+</p></dd></dl>
+<a name="Method-lines-_0028_0028range-sw_002drange_0029_0029"></a><dl>
+<dt><a name="index-lines-4"></a>Method: <strong>lines</strong> <em>(range sw-range)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-lines-_0028_0028light-light_0029_0029"></a><dl>
+<dt><a name="index-lines-5"></a>Method: <strong>lines</strong> <em>(light light)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-lines-_0028_0028simple-simple_0029_0029"></a><dl>
+<dt><a name="index-lines-6"></a>Method: <strong>lines</strong> <em>(simple simple)</em></dt>
+<dd><p><code>docfixme</code>
+</p></dd></dl>
+<a name="Method-lines-_0028_0028obj-source_0029_0029"></a><dl>
+<dt><a name="index-lines-7"></a>Method: <strong>lines</strong> <em>(obj source)</em></dt>
+<dd><p>Return a list of lines of source in <code>obj</code>
 </p></dd></dl>
 <a name="Generic_002dFunction-mcmc_002dstep"></a><dl>
 <dt><a name="index-mcmc_002dstep"></a>Generic Function: <strong>mcmc-step</strong> <em>software</em></dt>
@@ -1208,6 +1239,30 @@ should be ergodic.
 <a name="Method-mutate-_0028_0028obj-source_0029_0029"></a><dl>
 <dt><a name="index-mutate-7"></a>Method: <strong>mutate</strong> <em>(obj source)</em></dt>
 <dd><p>Apply a mutation to <code>obj</code>
+</p></dd></dl>
+<a name="Condition-mutate"></a><dl>
+<dt><a name="index-mutate-8"></a>Condition: <strong>mutate</strong></dt>
+<dd><p>Class precedence list: <code>mutate, error, serious-condition, condition, t</code>
+</p>
+<p>Mutation errors are thrown when a mutation fails.
+These may often be safely ignored.  A common restart is
+&lsquo;ignore-failed-mutation&rsquo;.
+</p></dd></dl>
+<a name="Class-mutation"></a><dl>
+<dt><a name="index-mutation"></a>Class: <strong>mutation</strong></dt>
+<dd><p>Class precedence list: <code>mutation, oid-object, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>object</code> &mdash; initarg: <code>:object<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:object</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:object)</span><!-- /@w --></code>
+
+<p>The software object to be mutated.
+</p></li><li> <code>targets</code> &mdash; initarg: <code>:targets<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:get-targets</span><!-- /@w --></code>
+
+<p>A calculated target set.
+</p></li></ul>
+
+<p>The base class of all software mutations.
 </p></dd></dl>
 <a name="Generic_002dFunction-mutation_002dkey"></a><dl>
 <dt><a name="index-mutation_002dkey"></a>Generic Function: <strong>mutation-key</strong> <em>software mutation</em></dt>
@@ -1270,10 +1325,6 @@ a &rsquo;no-mutation-targets exception if none are available.
 <dd><p>Class precedence list: <code>oid-object, standard-object, t</code>
 </p>
 <p>Attaches a unique oid (object identifier) to each instance.
-</p></dd></dl>
-<a name="Function-fitness_002dequal_002dp"></a><dl>
-<dt><a name="index-fitness_002dequal_002dp"></a>Function: <strong>fitness-equal-p</strong> <em>fitness-a fitness-b</em></dt>
-<dd><p>Return true if <code>fitness-a</code> and <code>fitness-b</code> are equal
 </p></dd></dl>
 <a name="Generic_002dFunction-one_002dpoint_002dcrossover"></a><dl>
 <dt><a name="index-one_002dpoint_002dcrossover"></a>Generic Function: <strong>one-point-crossover</strong> <em>software-a software-b</em></dt>
@@ -1377,16 +1428,6 @@ on the filesystem at <code>bin</code>.
 <dd><p>Class precedence list: <code>phenome, error, serious-condition, condition, t</code>
 </p>
 <p><code>docfixme</code>
-</p></dd></dl>
-<a name="Function-analyze_002dmutation"></a><dl>
-<dt><a name="index-analyze_002dmutation"></a>Function: <strong>analyze-mutation</strong> <em>obj mutation-info test</em></dt>
-<dd><p>Default function to collect statistics from an applied mutation.
-</p>
-<p>This function will calculate the improvements to the fitness of <code>software</code>
-as the result of crossover and mutation using &lsquo;evaluate&rsquo; and <code>test</code>.
-Each crossover and mutation will be paired with one of the following tags;
-:dead, :same, :worse, or :better.  Calculated stats will be added to the
-*crossover-stats* and *mutation-stats* variables for analysis.
 </p></dd></dl>
 <a name="Generic_002dFunction-phenome_002dp"></a><dl>
 <dt><a name="index-phenome_002dp"></a>Generic Function: <strong>phenome-p</strong> <em>software</em></dt>
@@ -1540,47 +1581,6 @@ Used to target mutation.
 <dd><p>Class precedence list: <code>software, oid-object, standard-object, t</code>
 </p>
 <p>Base class for all software objects.
-</p></dd></dl>
-<a name="Variable-_002acrossover_002dstats_002a"></a><dl>
-<dt><a name="index-_002acrossover_002dstats_002a"></a>Variable: <strong>*crossover-stats*</strong></dt>
-<dd><p>Variable to hold crossover statistics.
-</p></dd></dl>
-<a name="Macro-compose_002dmutations"></a><dl>
-<dt><a name="index-compose_002dmutations"></a>Macro: <strong>compose-mutations</strong> <em>class-name mutations &amp;rest options</em></dt>
-<dd><p>Define a new mutation named <code>class-name</code> composing <code>mutations</code>.
-<code>mutations</code> is a list of the names of mutation classes.
-</p></dd></dl>
-<a name="Generic_002dFunction-lines"></a><dl>
-<dt><a name="index-lines"></a>Generic Function: <strong>lines</strong> <em>software</em></dt>
-<dd><p>Return the lines of code of the &lsquo;genome&rsquo; of <code>software</code>.
-</p></dd></dl>
-<a name="Method-lines-_0028_0028elf-elf_002drisc_0029_0029"></a><dl>
-<dt><a name="index-lines-1"></a>Method: <strong>lines</strong> <em>(elf elf-risc)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-lines-_0028_0028elf-elf_002dcisc_0029_0029"></a><dl>
-<dt><a name="index-lines-2"></a>Method: <strong>lines</strong> <em>(elf elf-cisc)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-lines-_0028_0028asm-asm_002dheap_0029_0029"></a><dl>
-<dt><a name="index-lines-3"></a>Method: <strong>lines</strong> <em>(asm asm-heap)</em></dt>
-<dd><p>Return the list of text lines of the genome.
-</p></dd></dl>
-<a name="Method-lines-_0028_0028range-sw_002drange_0029_0029"></a><dl>
-<dt><a name="index-lines-4"></a>Method: <strong>lines</strong> <em>(range sw-range)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-lines-_0028_0028light-light_0029_0029"></a><dl>
-<dt><a name="index-lines-5"></a>Method: <strong>lines</strong> <em>(light light)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-lines-_0028_0028simple-simple_0029_0029"></a><dl>
-<dt><a name="index-lines-6"></a>Method: <strong>lines</strong> <em>(simple simple)</em></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Method-lines-_0028_0028obj-source_0029_0029"></a><dl>
-<dt><a name="index-lines-7"></a>Method: <strong>lines</strong> <em>(obj source)</em></dt>
-<dd><p>Return a list of lines of source in <code>obj</code>
 </p></dd></dl>
 <a name="Macro-sequence_002dmutations"></a><dl>
 <dt><a name="index-sequence_002dmutations"></a>Macro: <strong>sequence-mutations</strong> <em>class-name mut-a mut-b &amp;rest options</em></dt>

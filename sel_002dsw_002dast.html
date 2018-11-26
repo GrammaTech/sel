@@ -72,6 +72,13 @@ Next: <a href="sel_002dsw_002dcil.html#sel_002dsw_002dcil" accesskey="n" rel="ne
 </p>
 <p>Base type of sub-tree of an applicative AST tree.
 </p></dd></dl>
+<a name="Generic_002dFunction-ast_002dhash"></a><dl>
+<dt><a name="index-ast_002dhash"></a>Generic Function: <strong>ast-hash</strong> <em>ast</em></dt>
+<dd><p>A hash value for the AST, which is a nonnegative
+integer.  It should be the case that (ast-equal-p x y) implies
+(eql (ast-hash x) (ast-hash y)), and that if (not (ast-equal-p x y))
+then the equality of the hashes is unlikely.
+</p></dd></dl>
 <a name="Structure-ast_002dnode"></a><dl>
 <dt><a name="index-ast_002dnode"></a>Structure: <strong>ast-node</strong></dt>
 <dd><p>Class precedence list: <code>ast-node, structure-object, t</code>
@@ -82,12 +89,22 @@ Next: <a href="sel_002dsw_002dcil.html#sel_002dsw_002dcil" accesskey="n" rel="ne
 <dt><a name="index-define_002dast"></a>Macro: <strong>define-ast</strong> <em>name-and-options &amp;rest slot-descriptions</em></dt>
 <dd><p>Implicitly defines an AST wrapper for the defined AST-node.
 </p></dd></dl>
+<a name="Function-ast_002dhash_002dwith_002dcheck"></a><dl>
+<dt><a name="index-ast_002dhash_002dwith_002dcheck"></a>Function: <strong>ast-hash-with-check</strong> <em>ast table</em></dt>
+<dd><p>Calls <code>ast-hash</code>, but checks that if two ASTs have the same hash value,
+they are actually equal.  If not, the second one gets a new, fresh hash
+value that is used instead.
+</p></dd></dl>
 <a name="Function-ast_002dlater_002dp"></a><dl>
 <dt><a name="index-ast_002dlater_002dp"></a>Function: <strong>ast-later-p</strong> <em>ast-a ast-b</em></dt>
 <dd><p>Is <code>ast-a</code> later in the genome than <code>ast-b</code>?
 </p>
 <p>Use this to sort AST asts for mutations that perform multiple
 operations.
+</p></dd></dl>
+<a name="Generic_002dFunction-ast_002dtext"></a><dl>
+<dt><a name="index-ast_002dtext"></a>Generic Function: <strong>ast-text</strong> <em>ast</em></dt>
+<dd><p>Return textual representation of AST.
 </p></dd></dl>
 <a name="Generic_002dFunction-fixup_002dmutation"></a><dl>
 <dt><a name="index-fixup_002dmutation"></a>Generic Function: <strong>fixup-mutation</strong> <em>operation current before ast after</em></dt>

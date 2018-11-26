@@ -70,11 +70,6 @@ Next: <a href="sel_002dsw_002dadaptive_002dmutation.html#sel_002dsw_002dadaptive
 <dt><a name="index-ast_002dcan_002drecurse"></a>Generic Function: <strong>ast-can-recurse</strong> <em>ast-a ast-b</em></dt>
 <dd><p>Check if recursion is possible on <code>ast-a</code> and <code>ast-b</code>.
 </p></dd></dl>
-<a name="Function-ast_002dcombine_002dhash_002dvalues"></a><dl>
-<dt><a name="index-ast_002dcombine_002dhash_002dvalues"></a>Function: <strong>ast-combine-hash-values</strong> <em>&amp;rest args</em></dt>
-<dd><p>Given a list of hash values, combine them using a polynomial in <code>p</code>,
-modile <code>+ast-hash-base+</code>
-</p></dd></dl>
 <a name="Generic_002dFunction-ast_002dcost"></a><dl>
 <dt><a name="index-ast_002dcost"></a>Generic Function: <strong>ast-cost</strong> <em>ast</em></dt>
 <dd><p>Return cost of AST.
@@ -90,6 +85,10 @@ Also return a second value indicating the cost of the edit.
 differencing of specialized AST structures.; &lsquo;ast-equal-p&rsquo;,
 &lsquo;ast-cost&rsquo;, &lsquo;ast-can-recurse&rsquo;, and &lsquo;ast-on-recurse&rsquo;.
 </p></dd></dl>
+<a name="Method-ast_002ddiff-_0028_0028s1-string_0029-_0028s2-string_0029_0029"></a><dl>
+<dt><a name="index-ast_002ddiff-1"></a>Method: <strong>ast-diff</strong> <em>(s1 string) (s2 string)</em></dt>
+<dd><p>special diff method for strings
+</p></dd></dl>
 <a name="Function-ast_002ddiff_002delide_002dsame"></a><dl>
 <dt><a name="index-ast_002ddiff_002delide_002dsame"></a>Function: <strong>ast-diff-elide-same</strong> <em>edit-script</em></dt>
 <dd><p>Return the non-same subset of <code>edit-script</code> with path information.
@@ -100,39 +99,51 @@ root of the edit script (and implicitly also the program AST).
 <dt><a name="index-ast_002dequal_002dp"></a>Generic Function: <strong>ast-equal-p</strong> <em>ast-a ast-b</em></dt>
 <dd><p>Return <code>t</code> <code>ast-a</code> and <code>ast-b</code> are equal for diffing.
 </p></dd></dl>
-<a name="Generic_002dFunction-ast_002dhash"></a><dl>
-<dt><a name="index-ast_002dhash"></a>Generic Function: <strong>ast-hash</strong> <em>ast</em></dt>
-<dd><p>A hash value for the AST, which is a nonnegative
-integer.  It should be the case that (ast-equal-p x y) implies
-(eql (ast-hash x) (ast-hash y)), and that if (not (ast-equal-p x y))
-then the equality of the hashes is unlikely.
-</p></dd></dl>
 <a name="Generic_002dFunction-ast_002don_002drecurse"></a><dl>
 <dt><a name="index-ast_002don_002drecurse"></a>Generic Function: <strong>ast-on-recurse</strong> <em>ast</em></dt>
 <dd><p>Possibly AST on recursion.
 </p></dd></dl>
 <a name="Generic_002dFunction-ast_002dpatch"></a><dl>
-<dt><a name="index-ast_002dpatch"></a>Generic Function: <strong>ast-patch</strong> <em>original diff</em></dt>
+<dt><a name="index-ast_002dpatch"></a>Generic Function: <strong>ast-patch</strong> <em>original diff &amp;rest keys &amp;key delete? &amp;allow-other-keys</em></dt>
 <dd><p>Create an edited AST by applying <code>diff</code> to <code>original</code>.
 </p>
 <p>A diff is a sequence of actions as returned by &lsquo;ast-diff&rsquo; including:
 :same A <code>b</code>  <code>:</code> keep the current AST
 :insert <code>b</code>  <code>:</code> insert <code>b</code> at the current position
-:remove A  <code>:</code> remove the current AST
+:delete A  <code>:</code> remove the current AST
 :recurse <code>s</code> <code>:</code> recursively apply script <code>s</code> to the current AST
-</p></dd></dl>
-<a name="Generic_002dFunction-ast_002dtext"></a><dl>
-<dt><a name="index-ast_002dtext"></a>Generic Function: <strong>ast-text</strong> <em>ast</em></dt>
-<dd><p>Return textual representation of AST.
 </p></dd></dl>
 <a name="Generic_002dFunction-ast_002dun_002drecurse"></a><dl>
 <dt><a name="index-ast_002dun_002drecurse"></a>Generic Function: <strong>ast-un-recurse</strong> <em>ast sub-ast</em></dt>
 <dd><p>Reverse the effect of &lsquo;ast-on-recurse&rsquo; recombining <code>sub-ast</code> into AST.
 </p></dd></dl>
-<a name="Function-chunk"></a><dl>
-<dt><a name="index-chunk"></a>Function: <strong>chunk</strong> <em>o-a o-b</em></dt>
-<dd><p>Group two diffs against the same original into stable and unstable chunks.
-See http://www.cis.upenn.edu/%7Ebcpierce/papers/diff3-short.pdf.
+<a name="Generic_002dFunction-converge"></a><dl>
+<dt><a name="index-converge"></a>Generic Function: <strong>converge</strong> <em>original branch-a branch-b &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Compute a version of <code>original</code> that is the result of
+trying to apply to <code>original</code> both the changes from <code>original</code> <code>-&gt;</code> <code>branch-a</code>
+and the changes from <code>original</code> <code>-&gt;</code> <code>branch-b</code>.  Returns this object, and a
+second argument that describes problems that were encountered, or <code>nil</code>
+if no problems were found.
+</p></dd></dl>
+<a name="Method-converge-_0028original-branch_002da-branch_002db-_0026key-_0026allow_002dother_002dkeys_0029"></a><dl>
+<dt><a name="index-converge-1"></a>Method: <strong>converge</strong> <em>original branch-a branch-b &amp;key &amp;allow-other-keys</em></dt>
+<dd><p>Default method, assumes the arguments are things that can be treated as ASTs
+or SEXPRs.
+</p></dd></dl>
+<a name="Generic_002dFunction-merge_002ddiffs_002don_002dsyms"></a><dl>
+<dt><a name="index-merge_002ddiffs_002don_002dsyms"></a>Generic Function: <strong>merge-diffs-on-syms</strong> <em>sym-a sym-b diff-a diff-b</em></dt>
+<dd><p>Merge two diffs <code>diff-a</code> and DIFF-b, where
+sym-a is (caar diff-a) and sym-b is (caar diff-b).  Return
+three things: a list to be appended to the final merged diff,
+a tail of diff-a, and a tail of diff-b.
+</p></dd></dl>
+<a name="Function-merge3"></a><dl>
+<dt><a name="index-merge3"></a>Function: <strong>merge3</strong> <em>original branch-a branch-b</em></dt>
+<dd><p>Find a version of that is a plausible combination of the changes from
+<code>original</code> <code>-&gt;</code> <code>branch-a</code> and <code>original</code> <code>-&gt;</code> <code>branch-b</code>.  Return the edit sequence
+from <code>original</code> to this merged version.   Also return a second value that
+is true if a clean merge could be found; otherwise, it is a list of
+unstable differences.
 </p></dd></dl>
 
 <hr>
