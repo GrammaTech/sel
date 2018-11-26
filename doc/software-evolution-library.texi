@@ -1758,6 +1758,9 @@ appendix holds each individual package's API in turn.
 @node Getting Started with Lisp, Additional Lisp Resources, General Lisp Advice, General Lisp Advice
 @appendixsec Getting Started with Lisp
 
+TLDR; If you're new to common lisp an easy to use IDE is
+@url{https://portacle.github.io/, Portacle}.
+
 We recommend the following Common Lisp resources.
 
 @itemize

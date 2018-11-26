@@ -17,8 +17,7 @@
         :metabang-bind
         :iterate
         :software-evolution-library
-        :software-evolution-library/utility
-        :software-evolution-library/ast-diff/ast-diff)
+        :software-evolution-library/utility)
   (:export :ast
            :define-ast
            :define-immutable-node-struct
@@ -39,6 +38,9 @@
            :splice-asts
            :fixup-mutation
            :ast-children
+           :ast-text
+	   :ast-hash
+	   :ast-hash-with-check
            :to-ast
            :ast-later-p
            :replace-in-ast))
@@ -47,15 +49,14 @@
 
 
 ;;; Data structure definitions
-(defstruct ast-node
-  "Base type of immutable portion of ast nodes."
-  (hash nil :type (or null fixnum)))
+(defstruct ast-node "Base type of immutable portion of ast nodes.")
 
 (defstruct (ast (:constructor make-raw-ast))
   "Base type of sub-tree of an applicative AST tree."
   (path nil :type list)                      ; Path to subtree from root of tree.
   (node nil :type (or ast-node string null)) ; Pointer to immutable AST data.
-  (children nil :type list))                 ; Remainder of subtree.
+  (children nil :type list)                  ; Remainder of subtree.
+  (stored-hash nil :type (or null fixnum)))
 
 (defmethod print-object ((obj ast) stream)
   "Print a representation of the ast OBJ to STREAM, including
@@ -627,36 +628,198 @@ use carefully.
                                     (nthcdr (+ 2 head) children)))))))
     (helper tree location)))
 
+(defgeneric map-ast-strings (tree fn)
+  (:documentation "Build a new AST obtained by replacing each string with
+(funcall FN string).  If the FN returns NIL do not replace."))
+
+(defmethod map-ast-strings ((tree ast) (fn function))
+  (let* ((children (ast-children tree))
+	 (new-children (mapcar (lambda (child) (map-ast-strings child fn)) children)))
+    (if (every #'eq children new-children)
+	tree
+	(copy tree :children new-children))))
+
+(defmethod map-ast-strings ((str string) (fn function))
+  (or (funcall fn str) str))
+
+(defmethod map-ast-strings ((tree t) (fn function)) tree)
+(defmethod map-ast-strings ((tree t) (sym symbol))
+  (let ((fn (symbol-function sym)))
+    (unless fn
+      (error "No function found for ~A" sym))
+    (map-ast-strings tree fn)))
+
 
-;;; AST diffs 
-(defmethod ast-equal-p ((ast-a ast) (ast-b ast))
-  (and (eq (ast-class ast-a) (ast-class ast-b))
-       (eq (length (ast-children ast-a))
-           (length (ast-children ast-b)))
-       (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+;;; AST diffs
 
-(defmethod ast-cost ((ast ast))
-  ;; (apply #'+ (mapcar #'ast-cost (ast-children ast)))
-  (reduce #'+ (ast-children ast) :initial-value 0 :key #'ast-cost))
 
-(defmethod ast-can-recurse ((ast-a ast) (ast-b ast))
-  (eq (ast-class ast-a) (ast-class ast-b)))
+(defgeneric ast-text (ast)
+  (:documentation "Return textual representation of AST.")
+  (:method ((ast ast)) (peel-bananas (source-text ast))))
+
+(defgeneric ast-hash (ast)
+  (:documentation "A hash value for the AST, which is a nonnegative
+integer.  It should be the case that (ast-equal-p x y) implies
+(eql (ast-hash x) (ast-hash y)), and that if (not (ast-equal-p x y))
+then the equality of the hashes is unlikely."))
 
-(defmethod ast-on-recurse ((ast ast))
-  (ast-children ast))
+(defconstant +ast-hash-base+ (- (ash 1 56) 5)
+  "A prime that is close to a power of 2")
 
-(defmethod ast-un-recurse ((ast ast) sub-asts)
-  (copy ast :children sub-asts))
+;; All hash values are of typer HASH-TYPE.
+;; This was chosen to be large enough that collisions
+;; are unlikely.  However, a collision can be expected
+;; if hashing more than about (ash 1 28) (~ 256 million)
+;; ASTs.  The value was chosen so the base is a fixnum
+;; in both SBCL and CCL (64 bit).
+(deftype hash-type () '(integer 0 (#.(- (ash 1 56) 5))))
 
-(defmethod ast-text ((ast ast))
-  (peel-bananas (source-text ast)))
+;;; FIXME: Add a comment describing how a-coeffs and b-coeffs were generated.
+(let ((a-coeffs
+       (make-array '(32)
+                   :element-type 'hash-type
+                   :initial-contents
+                   '(44772186367934537 40884819141045381 18268751919527175
+                     12224412045766723 44747874473306482 6291300198851882
+                     38208267184329 70824722016654862 68884710530037769
+                     29266014118849078 16305173046113233 25526167110167858
+                     69548398139113011 11845686404586539 13141703249234454
+                     58585138257101406 63771603587465066 51818145761636769
+                     11215313718595996 967321057564179 35579009383009840
+                     21233262920564958 27885154493097833 45638112046788574
+                     71667767543649984 11593336377822139 39832262451031385
+                     64366124578464487 48093511540653115 11187607290745617
+                     1718667612180730 55488393644215208)))
+
+      (b-coeffs
+       (make-array '(32)
+                   :element-type 'hash-type
+                   :initial-contents
+                   '(15306130497698622 6962715537831413 23627614633074126
+                     35426347469777435 6253504779322026 2685667771697079
+                     12213574155663012 62015044820424341 63393789689534801
+                     69752150146675013 21434622207040062 43200883849464758
+                     23422157842437395 36720647208217461 67805387065755295
+                     66857677050011714 71090740635621717 70425600738754230
+                     56933545028670640 59684532028279319 54864461040550518
+                     69504815912533426 35116612914715710 41513442981972055
+                     4229361750527463 40744199140651635 33853319307875640
+                     16951454121230159 31253281007319553 32992004582179554
+                     13913708511125320 47256219783059968)))
+      (p 13211719))
+
+  (declare (type (or simple-array (vector hash-type 32)) a-coeffs b-coeffs))
+
+  ;; functions, methods defined here can use a-coeffs, b-coeffs
+  ;; at lower cost than special variables
+
+  (defun ast-combine-hash-values (&rest args)
+    "Given a list of hash values, combine them using a polynomial in P,
+modile +AST-HASH-BASE+"
+    (let ((result 0)
+          (hb +ast-hash-base+))
+      (declare (type hash-type result))
+      (iter (for i from 0 below (ash 1 30))
+            (for hv in args)
+            (let* ((im (logand i 31))
+                   (a (aref a-coeffs im))
+                   (b (aref b-coeffs im)))
+              ;; RESULT is squared to avoid linearity
+              ;; Without this, trees that have certain permutations of leaf
+              ;; values can be likely to hash to the same integer.
+              (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+      result))
+
+  (defun ast-combine-simple-vector-hash-values (sv)
+    (declare (type simple-vector sv))
+    (let ((result 0)
+	  (hb +ast-hash-base+)
+	  (len (length sv)))
+      (declare (type hash-type result))
+      (iter (for i from 0 below len)
+	    (for hv in-vector sv)
+	    (let* ((im (logand i 31))
+                   (a (aref a-coeffs im))
+                   (b (aref b-coeffs im)))
+              ;; RESULT is squared to avoid linearity
+              ;; Without this, trees that have certain permutations of leaf
+              ;; values can be likely to hash to the same integer.
+              (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
+      result))    
+
+  (defmethod ast-hash ((i integer))
+    (let ((c1 34188292748050745)
+          (c2 38665981814718286))
+      (mod (+ (* c1 i) c2) +ast-hash-base+)))
+
+  ;; could have specialized methods on strings
+  ;; to speed up that common case
+  (defmethod ast-hash ((s vector))
+    (ast-combine-hash-values
+     38468922606716016
+     (length s)
+     (ast-combine-simple-vector-hash-values (map 'simple-vector #'ast-hash s))))
+
+  (defmethod ast-hash ((l cons))
+    ;; Assumes not a circular list
+    (apply #'ast-combine-hash-values
+           16335929882652762
+           (iter
+            (collect (if (consp l)
+                         (ast-hash (car l))
+                         ;; add a constant to distinguish (X Y)
+                         ;; from (X . Y)
+                         (+ 41019876016299766
+                            (ast-hash l))))
+            (while (consp l))
+            (pop l))))
+
+  (defmethod ast-hash ((n null))
+    46757794301535766)
+
+  (defmethod ast-hash ((c character))
+    (let ((c1 3310905730158464)
+          (c2 4019805890044232))
+      (mod (+ (* c1 (char-int c)) c2) +ast-hash-base+)))
+
+  (defmethod ast-hash ((s symbol))
+    (or (get s 'hash)
+        (setf (get s 'hash)
+              (ast-combine-hash-values
+               30932222477428348
+               (ast-hash (symbol-package s))
+               (ast-hash (symbol-name s))))))
+
+  (defmethod ast-hash ((p package))
+    (ast-hash (package-name p)))
+
+  )
+
+(defun ast-hash-with-check (ast table)
+  "Calls AST-HASH, but checks that if two ASTs have the same hash value,
+they are actually equal.  If not, the second one gets a new, fresh hash
+value that is used instead."
+  (let* ((hash (ast-hash ast))
+         (old-ast (gethash hash table)))
+    (when (and old-ast (not (ast-equal-p ast old-ast)))
+      (iter (incf hash) ; this may be >= +ast-hash-base+, but that's ok
+            (while (gethash hash table)))
+      (setf (gethash hash table) ast))
+    hash))
 
 (defmethod ast-hash ((ast ast))
-  ;; should have place to cache this?
-  (let ((node (ast-node ast)))
-    (unless node (call-next-method))
-    (or (ast-node-hash node)
-	(setf (ast-node-hash node)
-	      (ast-hash (cons (ast-class ast) (ast-children ast)))))))
+;;  (or (ast-stored-hash ast)
+;;      (setf (ast-stored-hash ast)
+  (ast-hash (cons (ast-class ast) (ast-children ast))))
+;; ))
 
+(defgeneric ast-clear-hash (ast)
+  (:documentation "Clear the stored hash fields of an ast"))
 
+(defmethod ast-clear-hash ((ast t))
+  ast)
+
+(defmethod ast-clear-hash ((ast ast))
+  (setf (ast-stored-hash ast) nil)
+  (mapc #'ast-clear-hash (ast-children ast))
+  ast)
