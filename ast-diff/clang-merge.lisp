@@ -15,9 +15,12 @@
         :bordeaux-threads
         :uiop/filesystem
         :software-evolution-library/utility
+        :software-evolution-library/components/formatting
 	:software-evolution-library/ast-diff/ast-diff
         :software-evolution-library
-        :software-evolution-library/software/project)
+        :software-evolution-library/software/project
+        :software-evolution-library/software/clang-project
+	)
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
@@ -44,15 +47,15 @@ a merged version"
   (flet ((report (fmt &rest args)
            (apply #'format *error-output* (concatenate 'string "~a: " fmt)
 		  self args))
-	 (usage (n)
+	 (usage ()
 	   (format t
                    "Usage: ~a [OPTION] ~
                     original-version version1 version2 output-directory~%" self)
-	   (quit n)))
+	   (quit)))
     (when (or (< (length args) 4)
 	      (if-let ((d (string/= "-h" (car args)))) (>= d 2))
 	      (if-let ((d (string/= "--h" (car args)))) (>= d 3)))
-      (usage 0))
+      (usage))
 
     (getopts
      (args :unknown :return)
@@ -66,7 +69,7 @@ a merged version"
      ;; ("--no-store-software" "--no-store-software" (setf no-store-software t))
      )
 
-    (when (/= (length args) 4) (usage 2))
+    (when (/= (length args) 4) (usage))
     (flet ((check-file (file)
 	     (unless (probe-file file)
 	       (format *error-output*
@@ -135,22 +138,22 @@ a merged version"
     (setf version2-soft (%create version2))
 
     ;; Create styled versions of the input files
-    (save-styled-to original-soft out-dir "original")
-    (save-styled-to version1-soft out-dir "v1")
-    (save-styled-to version2-soft out-dir "v2")
+    (save-to original-soft out-dir "original")
+    (save-to version1-soft out-dir "v1")
+    (save-to version2-soft out-dir "v2")
 
     ;; Perform merge
 
     (multiple-value-bind (new-merged unstable)
 	(converge original-soft version1-soft version2-soft)
-      (save-styled-to new-merged out-dir "merged")
+      (save-to new-merged out-dir "merged")
       (if (not unstable)
 	  (format t "No merge conflicts~%")
 	  (format t "Merge conflicts:~%~a~%" unstable)))))
 
-(defgeneric save-styled-to (soft out-dir sub))
+(defgeneric save-to (soft out-dir sub))
 
-(defmethod save-styled-to ((soft project) out-dir sub)
+(defmethod save-to ((soft project) out-dir sub)
   (let ((dest (make-pathname :directory (append out-dir (list sub)))))
     (unless (probe-file dest)
-      (to-file (astyle (copy soft)) dest))))
+      (to-file (copy soft) dest))))
