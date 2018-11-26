@@ -65,6 +65,9 @@
    :converge
    :show-chunks
    :merge-diffs-on-syms
+   ;; Functions needed by alist.lisp
+   :record-unstable
+   :merge-diffs2
    ))
 (in-package :software-evolution-library/ast-diff/ast-diff)
 (in-readtable :curry-compose-reader-macros)
