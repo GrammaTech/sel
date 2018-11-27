@@ -19,7 +19,7 @@ FROM docker.grammatech.com/synthesis/clang-mutate:arch
 # standard functions requires that the system has man pages installed.
 # Also, python is required for testbot to submit results to the datamanager.
 RUN sed -i 's/#\[multilib\]/\[multilib\]/; /^\[multilib\]/,/^$/ s/^#//' /etc/pacman.conf
-RUN pacman -Syu --noconfirm astyle gcc-multilib graphviz lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages pandoc python subversion texinfo unzip maven jdk8-openjdk expect nodejs npm
+RUN pacman -Syu --noconfirm astyle gcc-multilib graphviz lib32-fakeroot lib32-gcc-libs lib32-glibc lib32-libltdl libffi man-db man-pages pandoc python subversion texinfo unzip maven jdk8-openjdk expect nodejs npm boost boost-libs
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=cl /usr/synth/ /usr/synth
