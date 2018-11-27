@@ -40,7 +40,6 @@
            :ast-children
            :ast-text
 	   :ast-hash
-	   :ast-hash-with-check
            :to-ast
            :ast-later-p
            :replace-in-ast))
@@ -794,18 +793,6 @@ modile +AST-HASH-BASE+"
     (ast-hash (package-name p)))
 
   )
-
-(defun ast-hash-with-check (ast table)
-  "Calls AST-HASH, but checks that if two ASTs have the same hash value,
-they are actually equal.  If not, the second one gets a new, fresh hash
-value that is used instead."
-  (let* ((hash (ast-hash ast))
-         (old-ast (gethash hash table)))
-    (when (and old-ast (not (ast-equal-p ast old-ast)))
-      (iter (incf hash) ; this may be >= +ast-hash-base+, but that's ok
-            (while (gethash hash table)))
-      (setf (gethash hash table) ast))
-    hash))
 
 (defmethod ast-hash ((ast ast))
 ;;  (or (ast-stored-hash ast)
