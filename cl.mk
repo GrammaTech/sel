@@ -128,7 +128,7 @@ unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	--load $(QUICK_LISP)/setup.lisp \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
-	--eval '(sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME)))' \
+	--eval '(let ((*sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))) (sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME))))' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
 check: unit-check bin-check
