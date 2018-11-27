@@ -106,6 +106,7 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
 	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
@@ -251,6 +252,7 @@ LOADS=$(addprefix $(cparen)$(oparen)ql:quickload :, $(DOC_PACKAGES))
 
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(progn (list $(LOADS) $(cparen))' \
 	--script .ci/.generate-api-docs packages $(DOC_PACKAGES)
 
