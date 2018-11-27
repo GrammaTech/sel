@@ -30,7 +30,6 @@
            :project-dir
            :instrumentation-files
            :all-files
-           :write-genome-to-files
            :with-build-dir
            :with-temp-build-dir
            :make-build-dir
@@ -89,17 +88,22 @@ software objects in it's `evolve-files'."))
   (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
-(defgeneric write-genome-to-files (obj)
-  (:documentation "Overwrite evolved files with current genome."))
-
-(defmethod write-genome-to-files ((obj project))
+(defmethod write-genome-to-files ((project project) dir)
   (handler-bind ((file-access
                   (lambda (c)
-                    (warn "Changing permission to ~a to ~a"
+                    (warn "Changing permission from ~a to ~a"
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
-    (loop for (path . c) in (all-files obj)
-       do (string-to-file (genome c) (full-path path)))))
+    (loop for (file . obj) in (all-files project)
+       do (string-to-file (genome obj) (in-directory dir file)))))
+
+(defmethod to-file ((project project) path)
+  "Write PROJECT to the PATH directory.
+* PROJECT project to output
+* PATH directory to write the project to
+"
+  (make-build-dir-aux (project-dir project) path)
+  (write-genome-to-files project path))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."
@@ -306,7 +310,10 @@ path within BODY."
 
 (defmethod phenome ((obj project) &key (bin (temp-file-name)))
   "Build the software project OBJ and copy build artifact(s) to BIN."
-  (write-genome-to-files obj)
+  (assert *build-dir* (*build-dir*)
+          "*build-dir* must be set prior to building a project.")
+  (write-genome-to-files obj *build-dir*)
+
   ;; Build the object and copy it to desired location.
   (multiple-value-bind (stdout stderr exit)
       (shell "cd ~a && ~a" *build-dir* (build-command obj))

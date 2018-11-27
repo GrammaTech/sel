@@ -13,7 +13,8 @@
         :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
-        :software-evolution-library/software/project)
+        :software-evolution-library/software/project
+        :software-evolution-library/software/parseable-project)
   (:shadowing-import-from :uiop
                           :ensure-directory-pathname
                           :directory-exists-p
@@ -23,7 +24,7 @@
 (in-package :software-evolution-library/software/clang-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software clang-project (project)
+(define-software clang-project (parseable-project)
   ((compilation-database :initarg :compilation-database
                          :accessor compilation-database
                          :initform nil
@@ -175,23 +176,3 @@ information on the format of compilation databases.")
           (setf (evolve-files clang-project)
                 (create-evolve-files clang-project))))
     clang-project))
-
-(defmethod to-file ((clang-project clang-project) path)
-  "Write CLANG-PROJECT to the path directory.
-* CLANG-PROJECT project to output
-* PATH directory to write the project to
-"
-  (let ((*build-dir* (make-build-dir (project-dir clang-project) :path path)))
-    (write-genome-to-files clang-project)))
-
-(defmethod asts ((obj clang-project))
-  "Return a list of all ASTs in the project OBJ."
-  (apply #'append (mapcar [#'asts #'cdr] (evolve-files obj))))
-
-(defmethod update-asts ((obj clang-project))
-  "Call `update-asts' on all `evolve-files' of OBJ."
-  (mapc [#'update-asts #'cdr] (evolve-files obj)))
-
-(defmethod update-caches ((obj clang-project))
-  "Call `update-caches' on all `evolve-files' of OBJ."
-  (mapc [#'update-caches #'cdr] (evolve-files obj)))

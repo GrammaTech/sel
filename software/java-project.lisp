@@ -94,10 +94,6 @@
                                 entry))))))))
   obj)
 
-(defmethod to-file ((java-project java-project) path)
-  (let ((*build-dir* (make-build-dir (project-dir java-project) :path path)))
-    (write-genome-to-files java-project)))
-
 (defun get-filename (path)
   "Return filename of a path"
   (pathname-name (pathname path)))
