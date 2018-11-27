@@ -113,11 +113,15 @@ return non-nil when the test suite should be run and nil otherwise."
               "Default suite *root-suite* must be set to use `DEFSUITE'.")
 
 	 (when (or (boundp ',name) (fboundp ',name))
-	   (warn "Defining ~a with `DEFSUITE' overwrites existing definition."
-		 ',name))
+	   (warn 'stefil::test-style-warning
+                 :format-control
+                 "Defining ~a with `DEFSUITE' overwrites existing definition."
+		 :format-arguments (list ',name)))
 	 (when (or (boundp ',long-name) (fboundp ',long-name))
-	   (warn "Defining ~a with `DEFSUITE' overwrites existing definition."
-		 ',long-name))
+	   (warn 'stefil::test-style-warning
+                 :format-control
+                 "Defining ~a with `DEFSUITE' overwrites existing definition."
+		 :format-arguments (list ',long-name)))
 	 (defsuite* (,name :in ,(intern (symbol-name *root-suite*) *package*)
 			   :documentation ,documentation) ()
 	   (let ((,test (find-test ',name)))

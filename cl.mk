@@ -106,6 +106,7 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
 	--eval '(sel/utility::with-quiet-compilation (asdf:make :$(PACKAGE_NAME)/run-$* :type :program :monolithic t))' \
@@ -125,9 +126,10 @@ test-artifacts: $(TEST_ARTIFACTS)
 unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
-	--eval '(sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME)))' \
+	--eval '(let ((sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))) (sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME))))' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
 check: unit-check bin-check
@@ -251,6 +253,7 @@ LOADS=$(addprefix $(cparen)$(oparen)ql:quickload :, $(DOC_PACKAGES))
 
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(QUICK_LISP)/setup.lisp \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(progn (list $(LOADS) $(cparen))' \
 	--script .ci/.generate-api-docs packages $(DOC_PACKAGES)
 
