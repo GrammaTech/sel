@@ -675,3 +675,48 @@ in a population"))
 (defroute
     tests (:get "application/json" &key cid oid)
     (get-test-suite cid oid))
+
+(defroute
+    instrumented (:post "application/json" &key cid sid)
+    (let* ((client (lookup-session cid))
+	   (soft (find-software client sid)))
+
+      (let ((inst-soft (instrument (copy soft))))
+	;; store the software obj with the session
+	(push inst-soft (session-software client))
+	(format nil "~D" (sel::oid inst-soft)))))
+
+(defun get-instrumented (cid sid type)
+  (let* ((result "{ \"error\": \"Nothing\"}")
+	 (client (lookup-session cid)))
+    (if client
+	(let ((software (find-software client sid)))
+	  (if software
+	      (setf result
+		    (json:encode-json-plist-to-string
+		     (list
+		      :oid (sel::oid software)
+		      :class (format nil "~A"
+				     (class-name (class-of software)))
+		      :size (format nil "~D" (size software))
+		      :fitness (fitness software)
+		      :instrumented (instrumented-p software))))
+	      (let ((ids (iter (for x in (session-software client))
+			       (if (and
+				    (or (null type)
+					(eq (class-name (class-of x)) type))
+				    (ignore-errors (instrumented-p x)))
+				   (collect (sel::oid x))))))
+		(setf result
+		      (json:encode-json-to-string ids))))))
+
+    result))
+
+(defroute
+    instrumented (:get :text/* &key cid sid (type nil))
+    (get-instrumented cid sid type))
+
+(defroute
+    instrumented (:get "application/json" &key cid sid (type nil))
+    (get-instrumented cid sid type))
+
