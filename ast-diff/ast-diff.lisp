@@ -525,6 +525,18 @@ Prefix and postfix returned as additional values."
 	       (when (consp e) (collect (pop e))))
 	 tail))))
 
+(defun ast-hash-with-check (ast table)
+  "Calls AST-HASH, but checks that if two ASTs have the same hash value,
+they are actually equal.  If not, the second one gets a new, fresh hash
+value that is used instead."
+  (let* ((hash (ast-hash ast))
+         (old-ast (gethash hash table)))
+    (when (and old-ast (not (ast-equal-p ast old-ast)))
+      (iter (incf hash) ; this may be >= sel/sw/ast::+ast-hash-base+, but that's ok
+            (while (gethash hash table)))
+      (setf (gethash hash table) ast))
+    hash))
+
 (defmethod ast-diff (ast-a ast-b)
   (if (equalp ast-a ast-b)
       (values `((:same . ,ast-a)) 0)
