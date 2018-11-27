@@ -236,7 +236,7 @@ more-clean: clean
 
 real-clean: more-clean
 	rm -f .qlfile Dockerfile
-	rm -rf quicklisp system-index.txt
+	rm -rf $(MANIFEST)
 
 
 ## Documentation
