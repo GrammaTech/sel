@@ -136,6 +136,7 @@
    :tree-right-length
    :tree-right-walk
    ;; simple utility
+   :*uninteresting-conditions*
    :with-quiet-compilation
    :repeatedly
    :indexed
@@ -1075,13 +1076,17 @@ Optional argument OUT specifies an output stream."
         :initial-value t))
       (t (equal obj1 obj2)))))
 
+(defvar *uninteresting-conditions* nil
+  "Additional uninteresting conditions for `with-quiet-compilation' to stifle.")
+
 (defmacro with-quiet-compilation (&body body)
   `(let ((*load-verbose* nil)
          (*compile-verbose* nil)
          (*load-print* nil)
          (*compile-print* nil)
          (uiop/lisp-build:*uninteresting-conditions*
-          uiop/lisp-build:*usual-uninteresting-conditions*))
+          (append *uninteresting-conditions*
+                  uiop/lisp-build:*usual-uninteresting-conditions*)))
      ,@body))
 
 (defmacro repeatedly (times &rest body)
