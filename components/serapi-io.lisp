@@ -1065,7 +1065,8 @@ Optionally use QTAG to tag the query."))
 (defmethod check-coq-type (coq-expr &key (qtag (gensym "q")))
   "Look up and return the type of a COQ-EXPR using Coq's `Check'.
 COQ-EXPR will be coerced to a string via the `format' ~a directive."
-  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr))))
+  (let ((response (run-coq-vernacular (format nil "Check ~a." coq-expr)
+                                      :qtag qtag)))
     (if (member #!'Error (coq-message-levels response))
         (error (make-condition 'serapi-error
                                :text (coq-message-contents response)
@@ -1090,15 +1091,15 @@ E.g., if COQ-TYPE is bool, functions of type nat->bool will be included."
     ;; Translates to vernacular:
     ;; SearchPattern (coq-type) inside module. or
     ;; SearchPattern (coq-type).
-    (->> (format nil "SearchPattern ~a ~a"
-                 (parenthesize coq-type)
-                 (if module
-                     (format nil "inside ~a" module)
-                     (format nil "")))
-         (run-coq-vernacular)
-         (coq-message-contents)
-         (mapcar [#'tokenize-coq-type
-                  {lookup-coq-string _ :input-format '|CoqPp|}]))))
+    (-<>> (format nil "SearchPattern ~a ~a"
+                  (parenthesize coq-type)
+                  (if module
+                      (format nil "inside ~a" module)
+                      (format nil "")))
+      (run-coq-vernacular <> :qtag qtag)
+      (coq-message-contents)
+      (mapcar [#'tokenize-coq-type
+               {lookup-coq-string _ :input-format '|CoqPp|}]))))
 
 
 ;;; Building Coq expressions
@@ -1289,8 +1290,7 @@ COQ-TYPE may be either a string or a symbol."
       ;; TODO: not certain this is correct for all types, but assumes that
       ;; results are things like "Constant qualid" or "Notation qualid", so the
       ;; qualids are the "even" elements of the list of strings in the result.
-      (iter (for odd in strings by #'cddr)
-            (for even in (cdr strings) by #'cddr)
+      (iter (for even in (cdr strings) by #'cddr)
             (collecting (if (starts-with-subseq "SerTop." even)
                             (subseq even 7)
                             even))))))

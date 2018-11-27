@@ -294,7 +294,7 @@ imports should be loaded first."
                 (finally (return ast-ids)))))
     (cancel-asts-and-retry-load (ast)
       :report "Cancel ASTs and retry loading object."
-      (cancel-coq-asts ast-ids)
+      (cancel-coq-asts ast)
       (load-coq-object coq :include-imports include-imports :num-asts num-asts))
     (recreate-serapi-process-and-retry ()
       :report "Create a new SerAPI process and retry loading object."
@@ -629,6 +629,7 @@ E.g., for type \"bool\", the list includes \"(implb true) : bool -> bool\" and
             (when (< 1 (length split-type))
               ;; Iterate over SCOPES, finding items with the correct type.
               (iter (for (scope-name scope-ast colon . scope-ty) in scopes)
+                    (declare (ignorable colon))
                     (when (type-matches (car split-type) scope-ty)
                       (collecting
                        ;; Format as a tokenized type whose name is the curried
