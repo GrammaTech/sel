@@ -74,6 +74,7 @@
    :file-access-path
    :set-file-writable
    :string-to-file
+   :set-utf8-encoding
    :bytes-to-file
    :stream-to-string
    :getenv
@@ -406,18 +407,33 @@
                      (file-access-operation condition)
                      (file-access-path condition)))))
 
-(defun string-to-file (string path &key (if-exists :supersede))
-  (when (and (file-exists-p path)
-             (not (member :user-write (file-permissions path))))
+(defun string-to-file (string path &key
+                                     (if-exists :supersede)
+                                     (external-format :default))
+  "Write STRING to PATH.
+Restarts available to handle cases where PATH is not writable,
+SET-FILE-WRITABLE, and where the appropriate encoding is not used,
+SET-UTF8-ENCODING. "
+  (flet ((run-write ()
+           (with-open-file (out path :direction :output
+                                :if-exists if-exists
+                                :external-format external-format)
+             (format out "~a" string))))
+    (when (and (file-exists-p path)
+               (not (member :user-write (file-permissions path))))
+      (restart-case
+          (error (make-condition 'file-access
+                                 :path path
+                                 :operation :write))
+        (set-file-writable ()
+          (format nil "Forcefully set ~a to be writable" path)
+          (push :user-write (file-permissions path)))))
     (restart-case
-        (error (make-condition 'file-access
-                 :path path
-                 :operation :write))
-      (set-file-writable ()
-        (format nil "Forcefully set ~a to be writable" path)
-        (push :user-write (file-permissions path)))))
-  (with-open-file (out path :direction :output :if-exists if-exists)
-    (format out "~a" string))
+        (run-write)
+      (set-utf8-encoding ()
+        (format nil "Set ~a encoding to UTF8." path)
+        (setf external-format :UTF8)
+        (run-write))))
   path)
 
 (defun bytes-to-file (bytes path &key (if-exists :supersede))
