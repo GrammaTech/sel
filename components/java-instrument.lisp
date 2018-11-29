@@ -26,11 +26,6 @@
   ((file-id :accessor file-id :initarg :file-id :initform nil))
   (:documentation "Handles instrumentation for JAVA software objects."))
 
-(defclass instrument-java-object-task    (task) ())
-(defclass instrument-java-project-task   (task) ())
-(defclass uninstrument-java-object-task  (task) ())
-(defclass uninstrument-java-project-task (task) ())
-
 (defmethod instrumented-p ((obj java))
   (search *instrument-log-env-name* (genome obj)))
 
@@ -60,10 +55,6 @@
 
   obj)
 
-(defmethod process-task ((task instrument-java-object-task) runner)
-  (declare (ignorable runner))
-  (instrument (task-object task)))
-
 (defmethod uninstrument ((obj java) &key (num-threads 1))
   (declare (ignorable num-threads))
   (with-temp-file-of (src-file (ext obj)) (genome obj)
@@ -73,46 +64,15 @@
     (setf (genome obj) (file-to-string src-file)))
   obj)
 
-(defmethod process-task ((task uninstrument-java-object-task) runner)
-  (declare (ignorable runner))
-  (uninstrument (task-object task)))
-
-(defmethod task-job ((task instrument-java-project-task) runner)
-  (declare (ignorable runner))
-  (let ((file-id -1)
-        (files (instrumentation-files (task-object task))))
-    (lambda ()
-      (when-let ((file (pop files)))
-        (incf file-id)
-        (make-instance 'instrument-java-object-task
-          :object (make-instance 'java-instrumenter
-                    :software (cdr file)
-                    :file-id file-id))))))
-
 (defmethod instrument ((java-project java-project) &rest args)
   (declare (ignorable args))
-  (run-task-and-block (make-instance 'instrument-java-project-task
-                        :object java-project)
-                      (or (plist-get :num-threads args) 1))
-
+  (task-map (or (plist-get :num-threads args) 1)
+            (lambda (instrumenter)
+              (apply #'instrument instrumenter args))
+            (iter (for (file . obj) in (instrumentation-files java-project))
+                  (for file-id upfrom 0)
+                  (declare (ignorable file))
+                  (collect (make-instance 'java-instrumenter
+                             :software obj
+                             :file-id file-id))))
   java-project)
-
-(defmethod task-job ((task uninstrument-java-project-task) runner)
-  (declare (ignorable runner))
-  (let ((file-id -1)
-        (files (instrumentation-files (task-object task))))
-    (lambda ()
-      (when-let ((file (pop files)))
-        (incf file-id)
-        (make-instance 'uninstrument-java-object-task
-          :object (cdr file))))))
-
-(defmethod uninstrument ((java-project java-project) &key (num-threads 1))
-  "Remove instrumentation from JAVA-PROJECT."
-  (run-task-and-block (make-instance 'uninstrument-java-project-task
-                        :object java-project)
-                      num-threads)
-  java-project)
-
-(defmethod instrumentation-files ((java-project java-project))
-  (evolve-files java-project))

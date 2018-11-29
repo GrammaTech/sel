@@ -13,7 +13,9 @@
         :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
+        :software-evolution-library/software/project
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/javascript-project
         :software-evolution-library/components/instrument)
   (:export :javascript-instrumenter))
 (in-package :software-evolution-library/components/javascript-instrument)
@@ -26,7 +28,7 @@
 var __sel_trace_file = __fs.createWriteStream(process.env.__SEL_TRACE_FILE ||
                                               \"/dev/null\")
 
-function __sel_trace_point(file_counter, child_counter, ...variables) {
+global.__sel_trace_point = function(file_counter, child_counter, ...variables) {
     __sel_trace_file.cork();
     __sel_trace_file.write(\"(\");
 
@@ -73,7 +75,13 @@ function __sel_trace_point(file_counter, child_counter, ...variables) {
   ((ast-ids :accessor ast-ids
             :initarg :ast-ids
             :initform (make-hash-table :test #'eq)
-            :documentation "Mapping of ASTs to trace ids."))
+            :documentation "Mapping of ASTs to trace ids.")
+   (file-id :reader file-id
+            :initarg :file-id
+            :initform nil)
+   (initialize-tracing-p :reader initialize-tracing-p
+                         :initarg :initialize-tracing-p
+                         :initform t))
   (:documentation "Handles instrumentation for JAVA software objects."))
 
 (defmethod initialize-instance :after
@@ -82,19 +90,8 @@ function __sel_trace_point(file_counter, child_counter, ...variables) {
         (for ast-i upfrom 0)
         (setf (gethash ast (ast-ids instrumenter)) ast-i)))
 
-(defclass instrument-javascript-object-task   (task)
-  ((instrument-args :initarg :instrument-args
-                    :accessor task-instrument-args
-                    :documentation "List of keyword arguments to instrument."))
-  (:documentation "Task for instrumenting a single javascript
-software object."))
-
-(defclass uninstrument-javascript-object-task (task) ()
-  (:documentation "Task for uninstrumenting a single javascript
-software object."))
-
 (defmethod instrumented-p ((obj javascript))
-  "Return true if OBJ is instrumented
+  "Return true if OBJ is instrumented.
 * OBJ a javascript software object
 "
   (search *instrument-log-env-name* (genome obj)))
@@ -136,9 +133,11 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                      `(:ExpressionStatement
                         :aux-data ((:instrumentation . t))
                         (:CallExpression
-                          "__sel_trace_point("
+                          "global.__sel_trace_point("
                           (:Literal
-                            "null")
+                            ,(if (file-id instrumenter)
+                                 (format nil "~d" (file-id instrumenter))
+                                 "null"))
                           ", "
                           (:Literal
                             ,(format nil "~d" (get-ast-id ast)))
@@ -154,9 +153,11 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                        `(:ExpressionStatement
                           :aux-data ((:instrumentation . t))
                           (:CallExpression
-                            "__sel_trace_point("
+                            "global.__sel_trace_point("
                             (:Literal
-                              "null")
+                              ,(if (file-id instrumenter)
+                                   (format nil "~d" (file-id instrumenter))
+                                   "null"))
                             ", "
                             (:Literal
                               ,(format nil "~d" (get-ast-id ast)))
@@ -191,7 +192,9 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                                                          ast
                                                          after}))))))
 
-  (prepend-to-genome obj +javascript-trace-code+)
+  (when (initialize-tracing-p instrumenter)
+    (prepend-to-genome obj +javascript-trace-code+))
+
   obj)
 
 (defmethod var-instrument
@@ -217,15 +220,42 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                               (:Identifer ,(aget :name var)))
                             "}")))))
 
-(defmethod process-task ((task instrument-javascript-object-task) runner)
-  "Perform instrumentation on the TASK's software object using the
-TASK's instrumentation arguments."
-  (declare (ignorable runner))
-  (instrument (task-object task)))
+(defmethod instrument ((javascript-project javascript-project) &rest args)
+  "Add instrumentation to JAVASCRIPT-PROJECT.
+* JAVASCRIPT-PROJECT the project to instrument
+* ARGS passed through to the instrument method on underlying software objects.
+"
+  (task-map (or (plist-get :num-threads args) 1)
+            (lambda (instrumenter)
+              (apply #'instrument instrumenter args))
+            (iter (with entry =
+                        (cdr (find (or (aget :main
+                                             (package-spec javascript-project))
+                                       "index.js")
+                                   (instrumentation-files javascript-project)
+                                   :test #'string=
+                                   :key #'car)))
+                  (for (file . obj) in
+                       (instrumentation-files javascript-project))
+                  (for file-id upfrom 0)
+                  (declare (ignorable file))
+                  (collect
+                   (if (eq obj entry)
+                       ;; add trace collection initialization to entrypoint
+                       (make-instance 'javascript-instrumenter
+                         :software obj
+                         :file-id file-id
+                         :initialize-tracing-p t)
+                       ;; no initialization for other files
+                       (make-instance 'javascript-instrumenter
+                         :software obj
+                         :file-id file-id
+                         :initialize-tracing-p nil)))))
+  javascript-project)
 
 (defmethod uninstrument ((obj javascript) &key (num-threads 1))
   "Remove instrumentation from OBJ.
-OBJ javascript software object to uninstrument
+* OBJ javascript software object to uninstrument
 "
   (declare (ignorable num-threads))
   (with-slots (ast-root) obj
@@ -244,8 +274,3 @@ OBJ javascript software object to uninstrument
                            (reverse)))
           (collect `(:cut (:stmt1 . ,ast)))))
   obj)
-
-(defmethod process-task ((task uninstrument-javascript-object-task) runner)
-  "Remove instrumentation from the TASK's software object."
-  (declare (ignorable runner))
-  (uninstrument (task-object task)))

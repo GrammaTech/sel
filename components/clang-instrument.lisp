@@ -310,33 +310,6 @@ void __attribute__((constructor(101))) __bi_setup_log_file() {
             :documentation "Mapping of ASTs to trace ids."))
   (:documentation "Handles instrumentation for clang software objects."))
 
-(defclass instrument-clang-object-task (task)
-  ((instrument-args :initarg :instrument-args
-                    :accessor task-instrument-args
-                    :documentation "List of keyword arguments to instrument."))
-  (:documentation "Task for instrumenting a single clang software object."))
-
-(defclass instrument-clang-project-task (task)
-  ((names :initarg :names
-          :accessor task-names
-          :documentation "Mapping of names to indices.")
-   (types :initarg :types
-          :accessor task-types
-          :documentation "Mapping of trace type strings to indices.")
-   (type-descriptions :initarg :type-descriptions
-                      :accessor task-type-descriptions
-                      :documentation "Mapping of type descriptions to indices.")
-   (instrument-args :initarg :instrument-args
-                    :accessor task-instrument-args
-                    :documentation "List of keyword arguments to instrument."))
-  (:documentation "Task for instrumenting a clang project."))
-
-(defclass uninstrument-clang-object-task  (task) ()
-  (:documentation "Task for uninstrumenting a single clang software object."))
-
-(defclass uninstrument-clang-project-task (task) ()
-  (:documentation "Task for uninstrumenting a clang project."))
-
 
 (defun array-or-pointer-type (type)
   "Is TYPE an array or pointer (but not an array of pointers)?
@@ -703,12 +676,6 @@ Returns a list of (AST RETURN-TYPE INSTRUMENTATION-BEFORE INSTRUMENTATION-AFTER)
 
     obj))
 
-(defmethod process-task ((task instrument-clang-object-task) runner)
-  "Perform instrumentation on the TASK's software object using the
-TASK's instrumentation arguments."
-  (declare (ignorable runner))
-  (apply #'instrument (task-object task) (task-instrument-args task)))
-
 (defmethod uninstrument ((clang clang) &key (num-threads 1))
   "Remove instrumentation from CLANG"
   (declare (ignorable num-threads))
@@ -793,11 +760,6 @@ TASK's instrumentation arguments."
   ;; Return the software object
   clang)
 
-(defmethod process-task ((task uninstrument-clang-object-task) runner)
-  "Remove instrumentation from the TASK's software object."
-  (declare (ignorable runner))
-  (uninstrument (task-object task)))
-
 (defmethod instrumentation-files ((clang-project clang-project))
   "Return files in CLANG-PROJECT in the order which they would be instrumented
 * CLANG-PROJECT an instrumented project
@@ -809,27 +771,6 @@ TASK's instrumentation arguments."
                      (evolve-files clang-project)
                      :key #'cdr)))
 
-(defmethod task-job ((task instrument-clang-project-task) runner)
-  "Return an instrumentation job for the next software object in
-TASK's project to be modified."
-  (declare (ignorable runner))
-  (let ((file-id -1)
-        (objs (->> (task-object task)
-                   (evolve-files)
-                   (mapcar #'cdr)
-                   (remove-if {get-entry}))))
-    (lambda ()
-      (when-let ((obj (pop objs)))
-        (incf file-id)
-        (make-instance 'instrument-clang-object-task
-          :object (make-instance 'clang-instrumenter
-                    :software obj
-                    :names (task-names task)
-                    :types (task-types task)
-                    :type-descriptions (task-type-descriptions task)
-                    :ast-ids (get-ast-ids-ht obj file-id))
-          :instrument-args (task-instrument-args task))))))
-
 (defmethod instrument ((clang-project clang-project) &rest args
     &aux (names (make-thread-safe-hash-table :test #'equalp))
          (types (make-thread-safe-hash-table :test #'equalp))
@@ -840,13 +781,19 @@ TASK's project to be modified."
 * ARGS passed through to the instrument method on underlying software objects.
 "
   ;; Instrument the non-entry point files in the project in parallel.
-  (run-task-and-block (make-instance 'instrument-clang-project-task
-                        :object clang-project
-                        :names names
-                        :types types
-                        :type-descriptions type-descriptions
-                        :instrument-args args)
-                      (or (plist-get :num-threads args) 1))
+  (task-map (or (plist-get :num-threads args) 1)
+            (lambda (instrumenter)
+              (apply #'instrument instrumenter args))
+            (iter (for obj in (->> (instrumentation-files clang-project)
+                                   (mapcar #'cdr)
+                                   (remove-if #'get-entry)))
+                  (for file-id upfrom 0)
+                  (collect (make-instance 'clang-instrumenter
+                             :software obj
+                             :names names
+                             :types types
+                             :type-descriptions type-descriptions
+                             :ast-ids (get-ast-ids-ht obj file-id)))))
 
   ;; Instrument the evolve-files with entry points to the program.
   ;; We do this after instrumenting all non-entry point files
@@ -879,28 +826,6 @@ TASK's project to be modified."
           (prepend-to-genome obj +write-trace-impl+)
           (prepend-to-genome obj +write-trace-include+)))
 
-  clang-project)
-
-(defmethod task-job ((task uninstrument-clang-project-task) runner)
-  "Return an uninstrument job for the next software object in
-TASK's project to be modified."
-  (declare (ignorable runner))
-  (let ((objs (append (->> (task-object task)
-                           (instrumentation-files)
-                           (mapcar #'cdr))
-                      (->> (task-object task)
-                           (other-files)
-                           (mapcar #'cdr)
-                           (remove-if-not #'get-entry)))))
-    (lambda ()
-      (when-let ((obj (pop objs)))
-        (make-instance 'uninstrument-clang-object-task :object obj)))))
-
-(defmethod uninstrument ((clang-project clang-project) &key (num-threads 1))
-  "Remove instrumentation from CLANG-PROJECT"
-  (run-task-and-block (make-instance 'uninstrument-clang-project-task
-                        :object clang-project)
-                      num-threads)
   clang-project)
 
 (defgeneric instrument-c-exprs (instrumenter exprs-and-types print-strings)

@@ -84,4 +84,17 @@ Stores instrumentation state and provides methods for instrumentation
 operations."))
 
 (defmethod instrumented-p ((project project))
+  "Return true if PROJECT is instrumented."
   (some #'instrumented-p (mapcar #'cdr (evolve-files project))))
+
+(defmethod instrumentation-files ((project project))
+  "Return files in PROJECT in the order which they would be instrumented."
+  (evolve-files project))
+
+(defmethod uninstrument ((project project)
+                         &key (num-threads 1))
+  "Remove instrumentation from PROJECT."
+  (task-map num-threads
+            #'uninstrument
+            (mapcar #'cdr (instrumentation-files project)))
+  project)

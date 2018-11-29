@@ -235,8 +235,10 @@ to `to-ast`.  E.g.
                                  (collect item into children)))
                          (setf previous item)
                          (finally (return (values keys children))))
-                 (funcall (symbol-cat 'make ast-type)
-                   :node (apply (symbol-cat 'make ast-type 'node)
+                 (funcall (symbol-cat-in-package (symbol-package ast-type)
+                                                 'make ast-type)
+                   :node (apply (symbol-cat-in-package (symbol-package ast-type)
+                                                       'make ast-type 'node)
                                 :class (intern (symbol-name class))
                                 keys)
                    :children children)))))
@@ -245,6 +247,11 @@ to `to-ast`.  E.g.
 (defun symbol-cat (&rest symbols)
   "Return a symbol concatenation of SYMBOLS."
   (intern (string-upcase (mapconcat #'symbol-name symbols "-"))))
+
+(defun symbol-cat-in-package (package &rest symbols)
+  "Return a symbol concatenation of SYMBOLS in PACKAGE."
+  (intern (string-upcase (mapconcat #'symbol-name symbols "-"))
+          package))
 
 (defun get-struct-name (name-and-options)
   "Given NAME-AND-OPTIONS, return the struct name."
