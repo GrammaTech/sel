@@ -44,7 +44,8 @@
   ((java-class  :initarg :java-class
                 :accessor java-class
                 :initform 'java
-                :documentation "Java subclass to utilize in the project")))
+                :documentation "Java subclass to utilize in the project"))
+  (:documentation "Project specialization for java software objects."))
 
 (defmethod from-file ((obj java-project) project-dir)
   "Build project and extract relevant java source files."

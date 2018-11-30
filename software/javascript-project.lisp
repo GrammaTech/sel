@@ -1,4 +1,17 @@
 ;;; javascript-project.lisp --- Projects composed of JavaScript objects
+;;;
+;;; Implements the core functionality of the software-evolution-library
+;;; for nodejs projects.  The JavaScript project software object
+;;; utilizes the nodejs project's @code{package.json} file to identify
+;;; the files to parse and utilize.  This class is supported by the
+;;; @code{javascript} software object class.
+;;;
+;;; For proper operation, installation of nodejs and the npm package
+;;; manager is required.  Additionally, as this class is dependent
+;;; on the @code{javascript} class, dependencies for this class
+;;; are also required.
+;;;
+;;; @texi{javascript-project}
 (defpackage :software-evolution-library/software/javascript-project
   (:nicknames :sel/software/javascript-project
               :sel/sw/javascript-project)

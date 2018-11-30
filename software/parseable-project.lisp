@@ -1,4 +1,8 @@
 ;;; parseable-project.lisp --- project with ASTs
+;;;
+;;; This abstract class represents a project which may be parsed into ASTs.
+;;;
+;;; @texi{parseable-project}
 (defpackage :software-evolution-library/software/parseable-project
   (:nicknames :sel/software/parseable-project :sel/sw/parseable-project)
   (:use :common-lisp

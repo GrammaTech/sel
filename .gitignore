@@ -83,10 +83,12 @@ doc/sel-sw-forth-api.texi
 doc/sel-sw-java-api.texi
 doc/sel-sw-java-project-api.texi
 doc/sel-sw-javascript-api.texi
+doc/sel-sw-javascript-project-api.texi
 doc/sel-sw-lisp-api.texi
 doc/sel-sw-lisp-fn-api.texi
 doc/sel-sw-llvm-api.texi
 doc/sel-sw-parseable-api.texi
+doc/sel-sw-parseable-project-api.texi
 doc/sel-sw-project-api.texi
 doc/sel-sw-simple-api.texi
 doc/sel-sw-source-api.texi

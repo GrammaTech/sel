@@ -60,10 +60,12 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/java			\
 	software-evolution-library/software/java-project		\
 	software-evolution-library/software/javascript			\
+	software-evolution-library/software/javascript-project		\
 	software-evolution-library/software/lisp			\
 	software-evolution-library/software/lisp-fn			\
 	software-evolution-library/software/llvm			\
 	software-evolution-library/software/parseable			\
+	software-evolution-library/software/parseable-project		\
 	software-evolution-library/software/project			\
 	software-evolution-library/software/simple			\
 	software-evolution-library/software/source			\

@@ -61,7 +61,7 @@ exit 0")
               :accessor compiler :initform "java")
    (file-name :initarg :file-name
               :accessor file-name :initform nil))
-  (:documentation "The java software object represents a single java file."))
+  (:documentation "The Java software object represents a single java file."))
 
 (defmethod from-file ((obj java) path)
   "Populate software object upon initialization"
