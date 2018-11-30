@@ -35,17 +35,16 @@
                           :ensure-directory-pathname
                           :directory-exists-p
                           :run-program)
-  (:export :java-project
-           :java-class))
+  (:export :java-project))
 (in-package :software-evolution-library/software/java-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software java-project (project)
-  ((java-class  :initarg :java-class
-                :accessor java-class
-                :initform 'java
-                :documentation "Java subclass to utilize in the project"))
+(define-software java-project (project) ()
   (:documentation "Project specialization for java software objects."))
+
+(defmethod initialize-instance :after ((java-project java-project) &key)
+  (setf (component-class java-project)
+        (or (component-class java-project) 'java)))
 
 (defmethod from-file ((obj java-project) project-dir)
   "Build project and extract relevant java source files."
@@ -81,7 +80,7 @@
                       (for i upfrom 1)
                       (handler-case
                           (let ((java-obj (from-file
-                                           (make-instance (java-class obj))
+                                           (make-instance (component-class obj))
                                            (merge-pathnames-as-file
                                             *build-dir*
                                             entry))))

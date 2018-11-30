@@ -23,8 +23,7 @@
         :software-evolution-library/software/project
         :software-evolution-library/utility)
   (:export :javascript-project
-           :package-spec
-           :javascript-class))
+           :package-spec))
 (in-package :software-evolution-library/software/javascript-project)
 
 (define-software javascript-project (parseable-project)
@@ -32,13 +31,13 @@
      :initarg :package-spec
      :accessor package-spec
      :initform nil
-     :documentation "Javascript project specification from package.json file.")
-   (javascript-class
-     :initarg :javascript-class
-     :accessor javascript-class
-     :initform 'javascript
-     :documentation "JavaScript subclass to utilize in the project."))
+     :documentation "Javascript project specification from package.json file."))
   (:documentation "Project specialization for javascript software objects."))
+
+(defmethod initialize-instance :after ((javascript-project javascript-project)
+                                       &key)
+  (setf (component-class javascript-project)
+        (or (component-class javascript-project) 'javascript)))
 
 (defmethod from-file ((javascript-project javascript-project) project-dir)
   "Populate JAVASCRIPT-PROJECT from the source code in PROJECT-DIR.
@@ -80,7 +79,7 @@
             (lambda (file)
               (cons file
                     (from-file (make-instance
-                                 (javascript-class javascript-project))
+                                 (component-class javascript-project))
                                file)))
             (cons (if (probe-file (aget :main (package-spec javascript-project)))
                       (aget :main (package-spec javascript-project))

@@ -30,12 +30,12 @@
                          :initform nil
                          :documentation "Compilation database for the project.
 See https://clang.llvm.org/docs/JSONCompilationDatabase.html for
-information on the format of compilation databases.")
-   (clang-class :initarg :clang-class
-                :accessor clang-class
-                :initform 'clang
-                :documentation "Clang subclass to utilize in the project."))
+information on the format of compilation databases."))
   (:documentation "Project specialization for clang software objects."))
+
+(defmethod initialize-instance :after ((clang-project clang-project) &key)
+  (setf (component-class clang-project)
+        (or (component-class clang-project) 'clang)))
 
 (defgeneric project-path (project path)
   (:documentation "Expand PATH relative to PROJECT.")
@@ -81,7 +81,7 @@ information on the format of compilation databases.")
                                                   (aget :file entry))
                          (project-path clang-project))))
                   (cons (relativize clang-project file-path)
-                        (-> (make-instance (clang-class clang-project)
+                        (-> (make-instance (component-class clang-project)
                               :compiler (get-compiler entry)
                               :flags (compilation-db-flags clang-project entry))
                           (from-file file-path)))))))))

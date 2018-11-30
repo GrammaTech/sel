@@ -1233,7 +1233,7 @@
   (:setup
    (setf *soft*
          (from-file (make-instance 'javascript-traceable-project
-                      :javascript-class 'javascript-traceable)
+                      :component-class 'javascript-traceable)
                     (javascript-dir #P"fib-project/"))))
   (:teardown
    (setf *soft* nil)))

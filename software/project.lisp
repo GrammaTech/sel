@@ -27,6 +27,7 @@
            :artifacts
            :evolve-files
            :other-files
+           :component-class
            :project-dir
            :instrumentation-files
            :all-files
@@ -57,6 +58,9 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
       :copier copy-files)
+     (component-class
+      :initarg :component-class :accessor component-class :initform nil
+      :documentation "Software object class to utilize in component objects.")
      (project-dir :initarg :project-dir
                   :accessor project-dir
                   :initform nil
