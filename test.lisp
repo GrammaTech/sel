@@ -2495,12 +2495,16 @@ int x = CHARSIZE;")))
                         (get-ast-types obj (first (asts obj))))))))
 
 (deftest able-to-handle-multibyte-characters ()
-  (with-fixture unicode-clang
-    (is (stmt-with-text *soft* "int x = 0" :no-error))
-    (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
-    (is (stmt-with-text *soft* "int y = 1" :no-error))
-    (is (string= (genome *soft*)
-                 (file-to-string (unicode-dir "unicode.c"))))))
+  (handler-bind (#+sbcl (sb-int:stream-encoding-error
+                         (lambda (c)
+                           (declare (ignorable c))
+                           (invoke-restart 'set-utf8-encoding))))
+    (with-fixture unicode-clang
+      (is (stmt-with-text *soft* "int x = 0" :no-error))
+      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
+      (is (stmt-with-text *soft* "int y = 1" :no-error))
+      (is (string= (genome *soft*)
+                   (file-to-string (unicode-dir "unicode.c")))))))
 
 
 ;;; Detailed clang mutation tests
