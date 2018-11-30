@@ -24,6 +24,9 @@
            :read-trace-file
            :read-trace-stream
            :trace-error
+           :skip-trace-collection
+           :nil-traces
+           :ignore-empty-trace
            :bin))
 (in-package :software-evolution-library/components/traceable)
 (in-readtable :curry-compose-reader-macros)
