@@ -394,39 +394,47 @@ AST ast to return the enclosing scope for"
 Each variable is represented by an alist containing :NAME, :DECL, and :SCOPE.
 OBJ javascript software object
 AST ast to return the scopes for"
-  (labels ((filter-identifiers (obj scope children)
-             (cond ((and (member (ast-class scope)
-                                 (list :ForInStatement
-                                       :ForOfStatement))
-                         (eq (ast-class (first children)) :Identifier))
-                    ;; for (obj in objs) => '(obj)
-                    (list (first children)))
-                   ((and (eq (ast-class scope) :ForStatement)
-                         (eq (ast-class (first children)) :VariableDeclaration))
-                    ;; for (i = 0; i < 10; i++) {...} => '(i)
-                    (->> (get-immediate-children obj (first children))
-                         (mapcar [#'first {get-immediate-children obj}])
-                         (remove-if-not [{eq :Identifier} #'ast-class])))
-                   ((member (ast-class scope)
-                            (list :FunctionDeclaration
-                                  :FunctionExpression
-                                  :ArrowFunctionExpression))
-                    ;; function foo(bar, ...baz) {...} => '(bar baz)
-                    (mappend
-                      (lambda (ast)
-                        (cond ((eq (ast-class ast) :Identifier)
-                               (list ast))
-                              ((eq (ast-class ast) :RestElement)
-                               (list (first (get-immediate-children obj ast))))
-                              (t nil)))
-                      children))
-                   (t
-                    ;; The scope is a block, return the variable declarations
-                    (->> (remove-if-not [{eq :VariableDeclaration} #'ast-class]
-                                        children)
-                         (mappend {get-immediate-children obj})
-                         (mapcar [#'first {get-immediate-children obj}])
-                         (remove-if-not [{eq :Identifier} #'ast-class]))))))
+  (labels ((get-parent-decl (obj identifier)
+             "For the given IDENTIFIER AST, return the parent declaration."
+             (car (remove-if-not [{eq :VariableDeclaration} #'ast-class]
+                                 (get-parent-asts obj identifier))))
+           (get-first-child-ast (obj ast)
+             "Return the first child of the AST."
+             (first (get-immediate-children obj ast)))
+           (filter-identifiers (obj scope children)
+             "Return all variable identifiers found in the CHILDREN of SCOPE."
+             (if (member (ast-class scope)
+                         (list :FunctionDeclaration
+                               :FunctionExpression
+                               :ArrowFunctionExpression))
+                 ;; Special case for functions.
+                 ;; function foo(bar, ...baz) {...} => '(bar baz)
+                 (mappend
+                   (lambda (ast)
+                     (cond ((eq (ast-class ast) :Identifier)
+                            (list ast))
+                           ((eq (ast-class ast) :RestElement)
+                            (list (first (get-immediate-children obj ast))))
+                           (t nil)))
+                   children)
+                 ;; Return the variable declarations in the scope.
+                 ;; Note: An variable declaration or assignment in
+                 ;; JavaScript may be destructuring
+                 ;; (e.g. [a, b, c] = [1, 2, 3]).  In this case, we need
+                 ;; all of the variables on the left-hand side of the
+                 ;; expression.
+                 (->> (remove-if-not [{eq :VariableDeclaration} #'ast-class]
+                                     children)
+                      (mappend {get-immediate-children obj})
+                      (remove-if-not [{eq :VariableDeclarator} #'ast-class])
+                      (mappend (lambda (ast)
+                                 (let ((child (get-first-child-ast obj ast)))
+                                   (if (eq :Identifier (ast-class child))
+                                       (list child) ;; single var
+                                       (get-children
+                                         obj
+                                         child))))) ;; destructuring
+                      (remove-if-not [{eq :Identifier} #'ast-class])))))
     (when (not (eq :Program (ast-class ast)))
       (let ((scope (enclosing-scope obj ast)))
         (cons (->> (iter (for c in
@@ -439,7 +447,7 @@ AST ast to return the scopes for"
                    (mappend
                      (lambda (ast)
                        `(((:name . ,(peel-bananas (source-text ast)))
-                          (:decl . ,ast)
+                          (:decl . ,(get-parent-decl obj ast))
                           (:scope . ,scope)))))
                    (reverse))
               (scopes obj scope))))))

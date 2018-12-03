@@ -61,6 +61,7 @@
            :asts-containing-source-location
            :ast-to-source-range
            :parent-ast-p
+           :get-children
            :get-immediate-children
            :prepend-to-genome
            :append-to-genome
@@ -103,6 +104,9 @@
 
 (defgeneric get-parent-asts (obj ast)
   (:documentation "Return the parent nodes of AST in OBJ"))
+
+(defgeneric get-children (obj ast)
+  (:documentation "Return all the children of AST in OBJ."))
 
 (defgeneric get-immediate-children (obj ast)
   (:documentation "Return the immediate children of AST in OBJ."))
@@ -405,12 +409,24 @@ otherwise.
     (-> (get-parent-asts-helper (ast-root obj) (ast-path ast))
         (reverse))))
 
-(defmethod get-immediate-children ((obj parseable) (ast ast))
-  "Return the immediate children of AST in OBJ.
+(defmethod get-children ((obj parseable) (ast ast))
+  "Return all the children of AST in OBJ.
 * OBJ software object containing AST and its children
 * AST node to find the children of
 "
-  (declare (ignorable obj))
+  (labels ((get-children-helper (obj ast)
+             (when ast
+               (mappend (lambda (child)
+                          (cons child (get-children-helper obj child)))
+                        (get-immediate-children obj ast)))))
+    (get-children-helper obj ast)))
+
+(defmethod get-immediate-children ((obj parseable) (ast ast))
+  "Return the immediate children of AST in OBJ.
+* OBJ software object containing AST and its children
+* AST node to find the immediate children of
+"
+  (declare (ignorable obj)) ;; TODO: Remove obj as a parameter
   (iter (for child in (ast-children ast))
         (when (subtypep (type-of child) 'ast)
           (collect child))))

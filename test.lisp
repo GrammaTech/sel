@@ -3606,6 +3606,42 @@ int x = CHARSIZE;")))
     (parse-test (javascript-dir #P"parsing/yield-expression.js")
                 :YieldExpression)))
 
+(deftest array-destructuring-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/array-destructuring.js"))))
+    (is (equal (list "d" "c" "b" "a" "arr")
+               (->> (asts soft)
+                    (remove-if-not {traceable-stmt-p soft})
+                    (lastcar)
+                    (get-vars-in-scope soft)
+                    (mapcar {aget :name}))))))
+
+(deftest object-destructuring-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/object-destructuring.js"))))
+    (is (equal (list "q" "p" "o")
+               (->> (asts soft)
+                    (remove-if-not {traceable-stmt-p soft})
+                    (lastcar)
+                    (get-vars-in-scope soft)
+                    (mapcar {aget :name}))))))
+
+(deftest for-in-loop-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/loops.js"))))
+    (is (find "i" (->> (stmt-with-text soft "console.log(arr[i]);")
+                       (get-vars-in-scope soft)
+                       (mapcar {aget :name}))
+              :test #'equal))))
+
+(deftest for-of-loop-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/loops.js"))))
+    (is (find "val" (->> (stmt-with-text soft "console.log(val);")
+                         (get-vars-in-scope soft)
+                         (mapcar {aget :name}))
+              :test #'equal))))
+
 
 ;;;; Javascript project.
 (defun npm-available-p ()
