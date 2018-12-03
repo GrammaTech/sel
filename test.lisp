@@ -3557,6 +3557,14 @@ int x = CHARSIZE;")))
     (is (string= (genome *soft*)
                  (genome (uninstrument (instrument (copy *soft*))))))))
 
+
+;;;; Javascript project.
+(defun npm-available-p ()
+  (which "npm"))
+
+(defsuite javascript-project "Javascript project."
+  (npm-available-p))
+
 (deftest (javascript-project-instrument-and-collect-traces :long-running) ()
   (with-fixture fib-project-javascript
     (let ((instrumented (instrument *soft*)))
