@@ -24,7 +24,7 @@
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
-   :if-let :emptyp :featurep)
+   :if-let :emptyp :featurep :truenamize)
   (:export :clang-merge :run-clang-merge))
 (in-package :sel/ast-diff/clang-merge)
 (in-readtable :curry-compose-reader-macros)
@@ -32,7 +32,7 @@
 (defun run-clang-merge (&aux (self (argv0)) (args *command-line-arguments*))
   (run-clang-merge* self args))
 
-(defun run-clang-merge* (self args
+(defun run-clang-merge* (self args &key no-quit
 			 &aux
 			   original version1 version2
 			   original-soft version1-soft version2-soft
@@ -106,9 +106,9 @@ a merged version"
 	    (namestring (make-pathname :directory out-dir
 				       :name name
 				       :type "store"))))
-     (setf original (truename original)
-	   version1 (truename version1)
-	   version2 (truename version2)
+     (setf original (truenamize original)
+	   version1 (truenamize version1)
+	   version2 (truenamize version2)
 	   out-dir (or out-dir (resolve-out-dir-from-source original))
 	   project-name (resolve-name-from-source original)
 	   ;; software-store nil
@@ -151,7 +151,8 @@ a merged version"
 	  (format t "No merge conflicts~%")
 	  (format t "Merge conflicts:~%~a~%" unstable))
       ;; exit with 0 if no merge conflicts, 1 otherwise
-      (quit (if unstable 1 0)))))
+      (unless no-quit (quit (if unstable 1 0)))
+      )))
 
 (defgeneric save-to (soft out-dir sub))
 

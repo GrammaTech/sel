@@ -13,11 +13,14 @@
         :software-evolution-library/utility
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang
-        :software-evolution-library/software/project)
+        :software-evolution-library/software/project
+	:software-evolution-library/software/simple)
   (:shadowing-import-from :uiop
                           :ensure-directory-pathname
                           :directory-exists-p
-                          :run-program)
+                          :run-program
+			  :resolve-symlinks
+			  :directory*)
   (:export :clang-project
            :compilation-database))
 (in-package :software-evolution-library/software/clang-project)
@@ -55,6 +58,21 @@ information on the format of compilation databases.")
                    (ensure-directory-pathname)
                    (namestring)))))
 
+(defun clang-project-relativize (clang-project path)
+  "Clip off the leading directories of PATH, so it is relative
+to the base directory of CLANG-PROJECT.  Returns the clipped
+namestring."
+  (pathname-relativize (project-dir clang-project) path))
+
+(defun pathname-relativize (root-path path)
+   (replace-all (-> (canonical-pathname path)
+		 (namestring))
+	       (-> root-path
+		 (ensure-directory-pathname)
+		 (canonical-pathname)
+		 (namestring))
+	       ""))
+
 (defgeneric create-evolve-files (clang-project)
   (:documentation
    "Create the evolve files for CLANG-PROJECT from the `compilation-database'.")
@@ -62,15 +80,7 @@ information on the format of compilation databases.")
     (flet ((get-compiler (entry)
              (->> (aget :command entry)
                (split-sequence #\Space)
-               (first)))
-           (relativize (clang-project path)
-             (replace-all (-> (canonical-pathname path)
-                            (namestring))
-                          (-> (project-dir clang-project)
-                            (ensure-directory-pathname)
-                            (canonical-pathname)
-                            (namestring))
-                          "")))
+               (first))))
       (iter (for entry in (compilation-database clang-project))
             (collect
                 (let ((file-path
@@ -79,11 +89,63 @@ information on the format of compilation databases.")
                          (merge-pathnames-as-file <>
                                                   (aget :file entry))
                          (project-path clang-project))))
-                  (cons (relativize clang-project file-path)
+                  (cons (clang-project-relativize clang-project file-path)
                         (-> (make-instance (clang-class clang-project)
                               :compiler (get-compiler entry)
                               :flags (compilation-db-flags clang-project entry))
                           (from-file file-path)))))))))
+
+(defgeneric create-other-files (project &key excluded-dirs &allow-other-keys)
+  (:documentation
+   "Finds those files in PROJECT that were not included in evolve-files.
+Assumes evolve-files has been initialized.")
+  (:method (obj &key &allow-other-keys) nil)
+  )
+
+(defun pathname-has-symlink (p)
+  (not (equal p (uiop:resolve-symlinks p))))
+
+(defmethod create-other-files ((project clang-project) &key (excluded-dirs '(".git"))
+							 &allow-other-keys)
+  (let* ((all-file-paths
+	  (-<>> (project-dir project)
+	    (merge-pathnames-as-file <> #p"**/*.*")
+	    (uiop:directory*)
+	    (remove-if
+	     (lambda (p) (or (null (pathname-name p))
+			     (ends-in-tilde (pathname-name p))
+			     (ends-in-tilde (pathname-type p))
+			     ;; For now do not include symlinks
+			     ;; In the future, make links be special
+			     ;; objects
+			     (pathname-has-symlink p)
+			     (intersection (pathname-directory p)
+					   excluded-dirs
+					   :test #'equal))))
+	    ))
+	 (all-relativized-file-paths
+	  (iter (for p in all-file-paths)
+		(collect (clang-project-relativize project p))))
+	 (evolve-file-paths (mapcar #'car (evolve-files project)))
+	 (other-relativized-file-paths
+	  ;; evolve files may have come from the build dir, but that
+	  ;; doesn't matter here as we are comparing the relativized paths
+	  (remove-if (lambda (p) (member p evolve-file-paths :test #'equal))
+		     all-relativized-file-paths))
+	 )
+    ;; Create software objects for these other files
+    (iter (for p in other-relativized-file-paths)
+	  (collect (cons p
+			 ;; These are represented as simple text files,
+			 ;; for line-oriented diffs
+			 (-> (make-instance 'simple)
+			   (from-file (merge-pathnames-as-file
+				       (project-dir project)
+				       p))))))))
+
+(defun ends-in-tilde (s)
+  (let ((len (length s)))
+    (and (> len 0) (eql (elt s (1- len)) #\~))))
 
 (defun compilation-db-flags (clang-project entry)
   "Return the flags for ENTRY in a compilation database."
@@ -169,11 +231,14 @@ information on the format of compilation databases.")
         ;; Load from compilation database.
         (setf (evolve-files clang-project)
               (create-evolve-files clang-project))
+	      
         (with-temp-build-dir (project-dir)
           (setf (compilation-database clang-project)
                 (create-compilation-database clang-project))
           (setf (evolve-files clang-project)
                 (create-evolve-files clang-project))))
+    (setf (other-files clang-project)
+	  (create-other-files clang-project))
     clang-project))
 
 (defmethod to-file ((clang-project clang-project) path)

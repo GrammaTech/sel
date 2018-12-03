@@ -9583,9 +9583,8 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest sexp-merge3-delete-insert-tail ()
   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b . c) '(a) '(a e . c)))
-	      '(((:same . a) (:delete . b) (:insert . e) (:delete . b) (:same-tail . c))
-		(((:recurse-tail (:delete . c) (:insert)) (:delete . b))
-		 ((:delete . b) (:insert . e)))))
+	      '(((:same . a) (:insert . e) (:delete . b) (:recurse-tail (:delete . c) (:insert)))
+		(((:delete . b) (:insert . e)))))
       "Delete and insert in the same place, with improper list."))
 
 (deftest sexp-merge3-delete-insert-tail.2 ()
