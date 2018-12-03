@@ -969,7 +969,9 @@ Returns a list of strings containing C source code."))
 
 (defgeneric get-entry (software)
   (:documentation
-   "Return the AST of the entry point (main function) in SOFTWARE."))
+   "Return the AST of the entry point (main function) in SOFTWARE,
+or NIL if there is no entry point.")
+  (:method ((soft software)) nil))
 
 (defmethod get-entry ((obj clang))
   "Return the AST of the entry point (main function) in SOFTWARE.

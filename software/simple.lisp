@@ -12,6 +12,7 @@
         :software-evolution-library
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop :ensure-directory-pathname)
+  (:import-from :asdf-encodings :detect-file-encoding)
   (:export :simple
            :light
            :sw-range
@@ -28,7 +29,8 @@
 
 ;;; simple software objects
 (define-software simple (software)
-  ((genome :initarg :genome :accessor genome :initform nil :copier sel/utility:enhanced-copy-seq))
+  ((genome :initarg :genome :accessor genome :initform nil :copier sel/utility:enhanced-copy-seq)
+   (encoding :initarg :encoding :accessor encoding :initform :default))
   (:documentation "DOCFIXME"))
 
 (declaim (inline lines))
@@ -50,15 +52,17 @@
   "DOCFIXME"
   (format stream "~{~a~%~}" (lines simple)))
 
-(defun file-to-simple-genome-list (filespec)
+(defun file-to-simple-genome-list (filespec &optional (external-format :default))
   "DOCFIXME"
-  (with-open-file (in filespec)
+  (with-open-file (in filespec :external-format external-format)
     (loop :for line := (read-line in nil) :while line
        :collect (list (cons :code line)))))
 
 (defmethod from-file ((simple simple) path)
   "DOCFIXME"
-  (setf (genome simple) (file-to-simple-genome-list path))
+  (let ((encoding (detect-file-encoding path)))
+    (setf (encoding simple) encoding
+	  (genome simple) (file-to-simple-genome-list path encoding)))
   simple)
 
 (defun common-subseq (paths)
@@ -90,7 +94,8 @@
                                (format nil "~{~a~%~}" (nreverse lines))
                                (make-pathname
                                 :directory (pathname-directory base)
-                                :name path))
+                                :name path)
+			       :external-format (encoding simple))
                               paths)
                    (setf lines nil path nil))))
           (loop :for el :in (genome simple) :do

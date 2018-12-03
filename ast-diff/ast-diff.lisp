@@ -17,7 +17,7 @@
 ;;; * @code{clang-diff}::           Command-line AST-differences for C/C++ files
 ;;; * @code{lisp-diff}::            Command-line AST-differences for Lisp files
 ;;; @end menu
-;;; 
+;;;
 ;;; @node @code{clang-diff}, @code{lisp-diff}, AST Differencing, AST Differencing
 ;;; @subsection @code{clang-diff}
 ;;; @cindex clang-diff
@@ -38,6 +38,7 @@
    :software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/software/ast
+   :software-evolution-library/software/simple
    :software-evolution-library/ast-diff/string
    :alexandria
    :arrow-macros
@@ -139,6 +140,9 @@
        (eq (length (ast-children ast-a))
            (length (ast-children ast-b)))
        (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b))))
+
+(defmethod ast-equal-op ((s1 simple) (s2 simple))
+  (ast-equal-p (genome s1) (genome s2)))
 
 (defmethod ast-equal-p ((ast-a t) (ast-b t))
   (equalp ast-a ast-b))
@@ -346,7 +350,8 @@ Prefix and postfix returned as additional values."
 		  `((:same-tail . ,last-a) . ,(reconstruct-path- a b))
 		  (reconstruct-path- a b))
 	      `((:insert . ,last-b)
-                (:delete . ,last-a) . ,(reconstruct-path- a b)))))
+                (:delete . ,last-a)
+		. ,(reconstruct-path- a b)))))
        (%pos-a (a) (- lta (clength a)))
        (%pos-b (b) (- ltb (clength b))))
 
@@ -607,6 +612,26 @@ value that is used instead."
   "special diff method for strings"
   (string-diff s1 s2))
 
+(defun simple-genome-pack (unpacked-g)
+  "Converts list of pairs into a SIMPLE genome"
+  (mapcar (lambda (p)
+	    (assert (stringp p))
+	    `((:code . ,p)))
+	  unpacked-g))
+
+(defun simple-genome-unpack (g)
+  "Converts pairs in a SIMPLE genome to lists"
+  (mapcar (lambda (p)
+	    (assert (and (eql (caar p) :code)
+			 (stringp (cdar p))
+			 (null (cdr p))))
+	    (cdar p))
+	  g))
+
+(defmethod ast-diff ((soft1 simple) (soft2 simple))
+  (ast-diff (simple-genome-unpack (genome soft1))
+	    (simple-genome-unpack (genome soft2))))
+
 (defun split-into-subsequences (seq subseq-indices &aux (n (length seq)))
   "Return subsequences of SEQ delimited by SUBSEQ-INDICES.
 Given list SEQ and a list of pairs SUBSEQ-INDICES, which are
@@ -625,45 +650,6 @@ possibly empty), as well as the N subsequences themselves."
           (push (subseq seq start (+ start len)) common)
           (setf pos (+ start len)))
     (values (nreconc diff (list (subseq seq pos))) (nreverse common))))
-
-#+(or )
-(iter (for base in '(2 10 20 50 100 200 500 1000 2000 5000))
-                (let ((orig (iota base))
-                      (other (iota base)))
-                  (setf (nth 1 other) 'x
-                        (nth (1- base) other) 'z)
-                  (format t "Base:~A~%" base)
-                  (time (dotimes (n 10) (ast-diff orig other)))))
-
-;;; NOTE: These numbers are obsolete; re-run them.
-;;
-;; SBCL 1.4.6
-;; ============================================================
-;; size        runtime        bytes-consed
-;; 2        0.000        32752
-;; 10        0.001        687904
-;; 20        0.005        813248
-;; 50        0.029        973968
-;; 100        0.127        326336
-;; 200        0.561        251744
-;; 500        2.296        680432
-;; -------------------------[memory bottleneck]
-;; 1000        36.370        382080
-;; 2000        188.012        716048
-;; ============================================================
-;;
-;; CCL Version 1.12-dev  LinuxX8664
-;; ============================================================
-;; size        runtime                bytes-consed
-;; 2        0.000095        18560
-;; 10        0.002498        677760
-;; 20        0.015647        2815360
-;; 50        0.096857        17964160
-;; 100        0.531638        72332160
-;; 200        2.022867        290268160
-;; 500        13.442549        1817676147
-;; 1000        73.954506        7275356147
-;; ============================================================
 
 (defun ast-diff-elide-same (edit-script)
   "Return the non-same subset of EDIT-SCRIPT with path information.
@@ -689,6 +675,9 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 :insert B  : insert B at the current position
 :delete A  : remove the current AST
 :recurse S : recursively apply script S to the current AST"))
+
+(defmethod ast-patch ((original null) (script null) &key &allow-other-keys)
+  nil)
 
 (defmethod ast-patch ((original t) (script cons)
                       &rest keys &key (delete? t) &allow-other-keys)
@@ -813,6 +802,14 @@ A diff is a sequence of actions as returned by `ast-diff' including:
   (let* ((children (ast-children ast))
 	 (patched-children (apply #'ast-patch children script keys)))
     (copy ast :children patched-children)))
+
+(defmethod ast-patch ((original simple) script &rest keys &key &allow-other-keys)
+  (let ((new-unpacked-genome
+	 (apply #'ast-patch (simple-genome-unpack (genome original))
+		script keys)))
+    (let ((patched (copy original)))
+      (setf (genome patched) (simple-genome-pack new-unpacked-genome))
+      patched)))
 
 (defgeneric patch-files (soft file-diffs &rest args &key &allow-other-keys)
   (:documentation "Apply the DIFFs in file-diffs to the files of SOFT.
@@ -994,7 +991,7 @@ a tail of diff-a, and a tail of diff-b.")
     (values (list (car o-b)) (cdr o-a) (cdr o-b)))
   (:method ((sym-a (eql :delete)) (sym-b (eql :insert)) o-a o-b)
     (record-unstable o-a o-b)
-    (values (list (car o-a)) (cdr o-a) o-b))
+    (values (list (car o-b)) o-a (cdr o-b)))
   (:method ((sym-a (eql :delete)) (sym-b null) o-a o-b)
     (record-unstable o-a o-b)
     (values (list (car o-a)) (cdr o-a) o-b))
@@ -1032,7 +1029,7 @@ a tail of diff-a, and a tail of diff-b.")
     ;; should not happen
     (record-unstable o-a o-b)
     (values () (cdr o-a) o-b))
-  
+
   (:method ((sym-a null) (sym-b null) o-a o-b)
     (error "Bad diff merge: ~A, ~A" o-a o-b))
   (:method ((sym-a null) sym-b o-a o-b)
@@ -1147,10 +1144,8 @@ a tail of diff-a, and a tail of diff-b.")
      (ecase (car orig-a)
        (:alist
 	(let ((diff (merge-diffs2 (list orig-a) (list orig-b))))
-	  (format t "~A~%" diff)
-	  (car diff)
-       ))))))
-
+	  ;; (format t "~A~%" diff)
+	  diff)))))) ; (car diff)
 
 (defun merge-diffs2-syms (o-a o-b)
   (merge-diffs-on-syms (caar o-a) (caar o-b) o-a o-b))

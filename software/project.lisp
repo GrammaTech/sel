@@ -99,7 +99,7 @@ software objects in it's `evolve-files'."))
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
     (loop for (file . obj) in (all-files project)
-       do (string-to-file (genome obj) (in-directory dir file)))))
+       do (string-to-file (genome-string obj) (in-directory dir file)))))
 
 (defmethod to-file ((project project) path)
   "Write PROJECT to the PATH directory.
@@ -225,37 +225,33 @@ software objects in it's `evolve-files'."))
 (defun sort-file-alist (alist)
   (sort (copy-list alist) #'string< :key (lambda (x) (string (car x)))))
 
-#|
-(defmethod ast-diff ((project1 project) (project2 project))
-  (let ((files1 (all-files project1))
-	(files2 (all-files project2))
-	(ntab (make-hash-table :test #'equal)))
-    (setf files1 (sort-file-alist files1))
-    (setf files2 (sort-file-alist files2))
-    (setf files1 (remove-files-not-in files1 files2))
-    (setf files2 (remove-files-not-in files2 files1))
-    (confirm-files-are-same files1 files2)
-    (iter (for (name . file1) in files1)
-	  (for (nil . file2) in files2)
-	  (collect (cons name (ast-diff file1 file2))))))
-|#
-
 (defmethod ast-diff ((project1 project) (project2 project))
   (flet ((%obj (proj) (make-instance 'alist-for-diff :alist (all-files proj))))
-    (list (ast-diff (%obj project1) (%obj project2)))))
+    (ast-diff (%obj project1) (%obj project2))))
+
+(defun make-table-for-alist (alist &key (test #'eql))
+  (let ((tab (make-hash-table :test test)))
+    (iter (for p in alist)
+	  (when p
+	    (setf (gethash (car p) tab) p)))
+    tab))
 
 (defun remove-files-not-in (files1 files2)
-  (let ((ntab (make-hash-table :test #'equal)))
-    (iter (for (n) in files2)
-	  (setf (gethash n ntab) t))
+  (let ((ntab (make-table-for-alist files2 :test #'equal)))
     (remove-if-not (lambda (p) (gethash (car p) ntab)) files1)))
 
 (defmethod ast-patch ((project project) (diff t) &rest args &key &allow-other-keys)
   (let* ((files-obj (make-instance 'alist-for-diff
 				  :alist (all-files project)))
 	 (new-files-obj (apply #'ast-patch files-obj diff args))
-	 (new-project (copy project)))
-    (setf (evolve-files new-project) (alist-of-alist-for-diff new-files-obj))
+	 (new-project (copy project))
+	 (evolve-files-table (make-table-for-alist (evolve-files new-project) :test #'equal))
+	 (result-alist (alist-of-alist-for-diff new-files-obj)))
+    (flet ((evolve? (p) (gethash (car p) evolve-files-table)))
+      (let ((new-evolve-files (remove-if-not #'evolve? result-alist))
+	    (new-other-files (remove-if #'evolve? result-alist)))
+	(setf (evolve-files new-project) new-evolve-files
+	      (other-files new-project) new-other-files)))
     new-project))
 
 
@@ -282,7 +278,9 @@ threads by creating separate build directory per thread.")
       (make-build-dir src-dir :path new-path))))
 
 (defun make-build-dir-aux (src-dir path)
-  "DOCFIXME"
+  "Auxiliary function invoked from MAKE-BUILD-DIR, which wraps
+this call in error handling code. See that function for argument
+meanings."
   (let ((dir (ensure-directory-pathname path)))
     ;; Verify parent directory exists, otherwise the copy will fail.
     (ensure-directories-exist (pathname-parent-directory-pathname dir))

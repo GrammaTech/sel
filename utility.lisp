@@ -415,6 +415,7 @@ Restarts available to handle cases where PATH is not writable,
 SET-FILE-WRITABLE, and where the appropriate encoding is not used,
 SET-UTF8-ENCODING. "
   (flet ((run-write ()
+	   (ensure-directories-exist path)
            (with-open-file (out path :direction :output
                                 :if-exists if-exists
                                 :external-format external-format)
