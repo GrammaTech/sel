@@ -33,6 +33,8 @@
         :metabang-bind
         :iterate
         :uiop
+        :software-evolution-library
+        :software-evolution-library/command-line
         :software-evolution-library/utility
         :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/lisp
@@ -154,7 +156,7 @@
 (defun write-file-forms+ (forms)
   "Re-prints the exact output as the original file."
   (with-open-file (out "/tmp/out.lisp" :direction :output :if-exists :supersede)
-    (walk-forms+ [{format out "~a"} #'ast-text] lisp)))
+    (walk-forms+ [{format out "~a"} #'ast-text] forms)))
 
 
 ;;; Interface to ast-diff for lisp source trees.
@@ -203,71 +205,47 @@
 
 ;;; Command-line interface to lisp differencing.
 (setf *note-out* *error-output*)
-(defun handle-set-verbose-argument (level)
-  (when (>= level 4) (setf *shell-debug* t))
-  (setf *note-level* level))
 
-(defun run-lisp-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                        raw flags (colorp t))
-  "Run a lisp difference on *COMMAND-LINE-ARGUMENTS*."
-  (flet ((report (fmt &rest args)
-           (apply #'format *error-output* (concatenate 'string "~a: " fmt)
-                  self args)))
-    (when (or (not args)
-              (< (length args) 1)
-              (string= (subseq (car args) 0 (min 2 (length (car args))))
-                       "-h")
-              (string= (subseq (car args) 0 (min 3 (length (car args))))
-                       "--h"))
-      (format t "Usage: ~a [OPTION]... FILES
-Compare Lisp source FILES AST by AST.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter +command-line-options+
+    (append +common-command-line-options+
+            `((("raw" #\r) :type boolean :optional t
+               :documentation "output diff in raw Sexp (default is as text)")
+              (("no-color" #\C) :type boolean :optional t
+               :documentation "inhibit color printing")))))
 
-Options:
- -r, --raw                 output diff in raw Sexp (default is as text)
- -C, --no-color            inhibit color printing
- -v, --verbose [NUM]       verbosity level 0-4
-
-Built with ~a version ~a.~%"
-              self (lisp-implementation-type) (lisp-implementation-version))
-      (quit))
-    ;; Argument handling and checking.
-    (getopts (args :unknown :return)
-      ("-r" "--raw" (setf raw t))
-      ("-C" "--no-color" (setf colorp nil))
-      ("-v" "--verbose" (handle-set-verbose-argument
-                         (parse-integer (pop args)))))
-    (when (= (length args) 1)
-      (report "missing operand after '~a'~%" (car args))
-      (report "Try '~a --help' for more information." self)
-      (quit 2))
-    (when (> (length args) 2)
-      (report "extra operand '~a'~%" (third args))
-      (report "Try '~a --help' for more information." self)
-      (quit 2))
-    (when (some #'identity
-                (mapcar (lambda (file)
-                          (unless (probe-file file)
-                            (format *error-output*
-                                    "~a: ~a: No such file or directory~%"
-                                    self (third args))
-                            t))
-                        args))
-      (quit 2))
-    ;; Setup clang-mutate options.
-    (setf flags (list "-I" (pwd)))
-    ;; Create the diff.
-    (let ((diff
-           (ast-diff (read-file-forms+ (car args))
-                     (read-file-forms+ (second args)))))
-      ;; Print according to the RAW option.
-      (if raw
-          (writeln (ast-diff-elide-same diff) :readably t)
-          (if colorp
-              (print-diff diff *standard-output*
-                          (format nil "~a[-" +color-RED+)
-                          (format nil "-]~a" +color-RST+)
-                          (format nil "~a{+" +color-GRN+)
-                          (format nil "+}~a" +color-RST+))
-              (print-diff diff)))
-      ;; Only exit with 0 if the two inputs match.
-      (quit (if (every [{eql :same} #'car] diff) 0 1)))))
+(define-command lisp-diff (file1 file2 &spec +command-line-options+)
+  "Compare Lisp source in FILE1 and FILE2 by AST."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose))
+  (when help (show-help-for-lisp-diff))
+  (when (some #'identity
+              (mapcar (lambda (file)
+                        (unless (probe-file file)
+                          (format *error-output*
+                                  "~a: No such file or directory~%"
+                                  file)
+                          t))
+                      (list file1 file2)))
+    (quit 2))
+  ;; Create the diff.
+  (let ((diff
+         (ast-diff (read-file-forms+ file1)
+                   (read-file-forms+ file2))))
+    ;; Print according to the RAW option.
+    (if raw
+        (writeln (ast-diff-elide-same diff) :readably t)
+        (if no-color
+            (print-diff diff)
+            (print-diff diff *standard-output*
+                        (format nil "~a[-" +color-RED+)
+                        (format nil "-]~a" +color-RST+)
+                        (format nil "~a{+" +color-GRN+)
+                        (format nil "+}~a" +color-RST+))))
+    ;; Only exit with 0 if the two inputs match.
+    (if uiop/image:*lisp-interaction*
+        (quit (if (every [{eql :same} #'car] diff) 0 1))
+        diff)))
