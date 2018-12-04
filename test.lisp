@@ -81,6 +81,7 @@
    :software-evolution-library/software/styleable
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
+  (:import-from :hunchentoot)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
