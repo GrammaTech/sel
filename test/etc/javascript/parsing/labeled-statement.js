@@ -1,0 +1,2 @@
+foo:
+    log.console("HI");

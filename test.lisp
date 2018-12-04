@@ -3548,6 +3548,72 @@ int x = CHARSIZE;")))
                                       #("num" "number" 10 nil)))
                   (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
 
+(deftest (javascript-parsing-test :long-running) ()
+  (labels ((parse-test (file &rest ast-classes)
+              (let ((soft (from-file (make-instance 'javascript) file)))
+                (is (not (null (asts soft))))
+                (is (equal (genome soft) (file-to-string file)))
+                (mapc (lambda (ast-class)
+                        (is (find ast-class (asts soft) :key #'ast-class)))
+                      ast-classes))))
+    (parse-test (javascript-dir #P"parsing/array-destructuring.js")
+                :ArrayPattern)
+    (parse-test (javascript-dir #P"parsing/arrow-function-expression.js")
+                :ArrowFunctionExpression)
+    (parse-test (javascript-dir #P"parsing/await-expression.js")
+                :AwaitExpression)
+    (parse-test (javascript-dir #P"parsing/class-declaration.js")
+                :ClassDeclaration)
+    (parse-test (javascript-dir #P"parsing/class-expression.js")
+                :ClassExpression)
+    (parse-test (javascript-dir #P"parsing/conditional-expression.js")
+                :ConditionalExpression)
+    (parse-test (javascript-dir #P"parsing/debugger-statement.js")
+                :DebuggerStatement)
+    (parse-test (javascript-dir #P"parsing/empty-statement.js")
+                :EmptyStatement)
+    (parse-test (javascript-dir #P"parsing/expression-statement.js")
+                :ExpressionStatement)
+    (parse-test (javascript-dir #P"parsing/function-declaration.js")
+                :FunctionDeclaration)
+    (parse-test (javascript-dir #P"parsing/function-expression.js")
+                :FunctionExpression)
+    (parse-test (javascript-dir #P"parsing/if.js")
+                :IfStatement)
+    (parse-test (javascript-dir #P"parsing/labeled-statement.js")
+                :LabeledStatement)
+    (parse-test (javascript-dir #P"parsing/loops.js")
+                :ForStatement :ForInStatement :ForOfStatement
+                :WhileStatement :DoWhileStatement)
+    (parse-test (javascript-dir #P"parsing/new-expression.js")
+                :NewExpression)
+    (parse-test (javascript-dir #P"parsing/object-destructuring.js")
+                :ObjectPattern)
+    (parse-test (javascript-dir #P"parsing/object-expression.js")
+                :ObjectExpression)
+    (parse-test (javascript-dir #P"parsing/sequence-expression.js")
+                :SequenceExpression)
+    (parse-test (javascript-dir #P"parsing/spread-element.js")
+                :SpreadElement)
+    (parse-test (javascript-dir #P"parsing/switch.js")
+                :SwitchStatement)
+    (parse-test (javascript-dir #P"parsing/tagged-template-expression.js")
+                :TaggedTemplateExpression)
+    (parse-test (javascript-dir #P"parsing/try-catch-throw.js")
+                :TryStatement :CatchClause :ThrowStatement)
+    (parse-test (javascript-dir #P"parsing/with-statement.js")
+                :WithStatement)
+    (parse-test (javascript-dir #P"parsing/yield-expression.js")
+                :YieldExpression)))
+
+
+;;;; Javascript project.
+(defun npm-available-p ()
+  (which "npm"))
+
+(defsuite javascript-project-tests "Javascript project."
+  (npm-available-p))
+
 (deftest can-parse-a-javascript-project ()
   (with-fixture fib-project-javascript
     (is (equal 2 (length (evolve-files *soft*))))
@@ -3557,14 +3623,6 @@ int x = CHARSIZE;")))
   (with-fixture fib-project-javascript
     (is (string= (genome *soft*)
                  (genome (uninstrument (instrument (copy *soft*))))))))
-
-
-;;;; Javascript project.
-(defun npm-available-p ()
-  (which "npm"))
-
-(defsuite javascript-project-tests "Javascript project."
-  (npm-available-p))
 
 (deftest (javascript-project-instrument-and-collect-traces :long-running) ()
   (with-fixture fib-project-javascript
