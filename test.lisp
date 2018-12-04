@@ -3562,7 +3562,7 @@ int x = CHARSIZE;")))
 (defun npm-available-p ()
   (which "npm"))
 
-(defsuite javascript-project "Javascript project."
+(defsuite javascript-project-tests "Javascript project."
   (npm-available-p))
 
 (deftest (javascript-project-instrument-and-collect-traces :long-running) ()
