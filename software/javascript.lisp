@@ -378,6 +378,7 @@ AST ast to return the enclosing scope for"
                          (list :BlockStatement
                                :FunctionDeclaration
                                :FunctionExpression
+                               :Program
                                :ArrowFunctionExpression
                                :ForStatement
                                :ForInStatement
@@ -487,8 +488,8 @@ AST ast to return the scopes for"
 
 (defmethod traceable-stmt-p ((obj javascript) (ast javascript-ast))
   "Return TRUE if AST is a traceable statement in the javascript software OBJ."
-  (and (get-parent-ast obj ast)
-       (eq :BlockStatement (ast-class (get-parent-ast obj ast)))))
+  (or (null (get-parent-ast obj ast))
+      (eq :BlockStatement (ast-class (get-parent-ast obj ast)))))
 
 
 ;;; Implement the generic format-genome method for Javascript objects.
