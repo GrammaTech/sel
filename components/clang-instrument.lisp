@@ -11,6 +11,7 @@
         :trace-db
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/command-line
         :software-evolution-library/software/ast
         :software-evolution-library/software/parseable
         :software-evolution-library/software/source
@@ -21,7 +22,7 @@
         :software-evolution-library/components/instrument
         :software-evolution-library/components/fodder-database
         :software-evolution-library/components/traceable)
-  (:shadowing-import-from :uiop :*command-line-arguments* :argv0)
+  (:shadowing-import-from :uiop :truenamize)
   (:export :clang-instrumenter
            :clang-instrument
            :instrument-c-exprs))
@@ -1050,127 +1051,101 @@ OBJ a clang software object
 
 
 ;;;; Command line
-(defun run-clang-instrument ()
-  "Run `clang-instrument' on *COMMAND-LINE-ARGUMENTS*."
-  (clang-instrument (cons (argv0) *command-line-arguments*)))
+(defun handle-trace-file-argument (trace-file)
+  (cond ((string= "stdout" trace-file) :stdout)
+        ((string= "stderr" trace-file) :stderr)
+        (t trace-file)))
 
-(defun clang-instrument (args)
-  "Interface to the command line instrumentation tool.
-* ARGS command-line arguments
-"
-  (in-package :software-evolution-library/components/clang-instrument)
-  (let ((self (pop args))
-        (original (make-instance 'clang
-                    :compiler (or (getenv "CC") "clang")
-                    :flags (getenv "CFLAGS")))
-        (trace-file :stderr)
-        path out-dir name type out-file save-original
-        points functions print-strings instrument-exit)
-    (when (or (not args)
-              (< (length args) 1)
-              (string= (subseq (car args) 0 (min 2 (length (car args))))
-                       "-h")
-              (string= (subseq (car args) 0 (min 3 (length (car args))))
-                       "--h"))
-      (format t "Usage: ~a SOURCE [OPTIONS]
- Instrument SOURCE along OPTIONS.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter +command-line-options+
+    (append +common-command-line-options+
+            +clang-command-line-options+
+            `((("save-original" #\O) :type boolean :optional t
+               :documentation "also save a copy of the original")
+              (("trace-file" #\t) :type string :optional t
+               :initial-value "stderr"
+               :action #'handle-trace-file-argument
+               :documentation "instrumented to write trace to FILE")
+              (("variables" #\v) :type boolean :optional t
+               :documentation "write unbound variables to trace")
+              (("scope" #\S) :type boolean :optional t
+               :documentation "write in-scope variables to trace")
+              (("strings") :type boolean :optional t
+               :documentation "trace string variable values, DANGEROUS")
+              (("point" #\p) :type string :optional t
+               :action #'handle-comma-delimited-argument
+               :documentation "instrument to print STRING at ast NUM")
+              (("exit" #\e) :type boolean :optional t
+               :documentation "instrument function exit")))))
 
-Options:
- -c,--compiler CC ------- use CC as the C compiler
-                          (default to CC env. variable or clang)
- -e,--exit -------------- instrument function exit
- -F,--flags FLAGS ------- comma-separated list of compiler flags
-                          (default to CFLAGS env. variable)
- -o,--out-file FILE ----- write mutated source to FILE
-                          (default STDOUT)
- -O,--orig -------------- also save a copy of the original
- -p,--point NUM,STRING -- instrument to print STRING at ast NUM
- -q,--quiet ------------- set verbosity level to 0
- -s,--strings ----------- trace string variable values, DANGEROUS
- -S,--scope ------------- write in-scope variables to trace
- -t,--trace-file FILE --- instrumented to write trace to fILE
-                          (default to STDERR)
- -v,--variables --------- write unbound variables to trace
- -V,--verbose NUM ------- verbosity level 0-4
+(define-command clang-instrument
+    (source &spec +command-line-options+
+            &aux functions points project-name project-type original)
+  "Instrument SOURCE."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose))
+  (when help (show-help-for-clang-instrument))
+  ;; Mandatory arguments.
+  (setf original (make-instance 'clang
+                   :compiler compiler
+                   :flags flags)
+        source (truenamize source)
+        out-dir (or out-dir (resolve-out-dir-from-source source))
+        project-name (resolve-name-from-source source)
+        project-type (pathname-type source)
+        original (from-file original source))
 
-Built with SEL version ~a, and ~a version ~a.~%"
-              self +software-evolution-library-version+
-              (lisp-implementation-type) (lisp-implementation-version))
-      (quit))
+  (when variables (push 'trace-unbound-vars functions))
+  (when scope (push 'trace-scope-vars functions))
+  (when point
+    (destructuring-bind (counter string) point
+      (pushnew string (aget (parse-integer counter) points)
+               :test #'string=)))
 
-    ;; Mandatory arguments.
-    (setf path (pop args)
-          out-dir (pathname-directory path)
-          name (pathname-name path)
-          type (pathname-type path)
-          original (from-file original path))
+  ;; Set the functions.
+  (when-let ((position (position 'trace-unbound-vars functions)))
+            (setf (nth position functions)
+                  (lambda (instrumenter ast)
+                    (var-instrument {get-unbound-vals (software instrumenter)}
+                                    instrumenter ast
+                                    :print-strings strings))))
+  (when-let ((position (position 'trace-scope-vars functions)))
+            (setf (nth position functions)
+                  (lambda (instrumenter ast)
+                    (var-instrument {get-vars-in-scope (software instrumenter)}
+                                    instrumenter ast
+                                    :print-strings strings))))
 
-    ;; Options.
-    (getopts (args)
-      ("-c" "--compiler" (setf (compiler original) (pop args)))
-      ("-e" "--exit" (setf instrument-exit t))
-      ("-F" "--flags" (setf (flags original) (split-sequence #\, (pop args))))
-      ("-o" "--out-file" (setf out-file (pop args)))
-      ("-O" "--orig" (setf save-original t))
-      ("-p" "--point" (destructuring-bind (counter string)
-                          (split-sequence #\, (pop args))
-                        (pushnew string (aget (parse-integer counter) points)
-                                 :test #'string=)))
-      ("-q" "--quiet" (setf *note-level* 0))
-      ("-s" "--strings" (setf print-strings t))
-      ("-S" "--scope" (push 'trace-scope-vars functions))
-      ("-t" "--trace-file" (let ((arg (pop args)))
-                             (setf trace-file
-                                   (cond ((string= "stdout" arg) :stdout)
-                                         ((string= "stderr" arg) :stderr)
-                                         (t arg)))))
-      ("-v" "--variables" (push 'trace-unbound-vars functions))
-      ("-V" "--verbose"   (let ((lvl (parse-integer (pop args))))
-                            (when (>= lvl 4) (setf *shell-debug* t))
-                            (setf *note-level* lvl))))
+  ;; Save original.
+  (when save-original
+    (let ((dest (make-pathname
+                 :directory out-dir
+                 :name (format nil "~a-original" project-name)
+                 :type project-type)))
+      (note 1 "Saving original to ~a." dest)
+      (with-open-file (out dest :direction :output :if-exists :supersede)
+        (genome-string (clang-format original) out))))
 
-    ;; Set the functions.
-    (when-let ((position (position 'trace-unbound-vars functions)))
-      (setf (nth position functions)
-            (lambda (instrumenter ast)
-              (var-instrument {get-unbound-vals (software instrumenter)}
-                              instrumenter ast
-                              :print-strings print-strings))))
-    (when-let ((position (position 'trace-scope-vars functions)))
-      (setf (nth position functions)
-            (lambda (instrumenter ast)
-              (var-instrument {get-vars-in-scope (software instrumenter)}
-                              instrumenter ast
-                              :print-strings print-strings))))
-
-    ;; Save original.
-    (when save-original
-      (let ((dest (make-pathname
-                   :directory out-dir
-                   :name (format nil "~a-original" name)
-                   :type type)))
-        (note 1 "Saving original to ~a." dest)
-        (with-open-file (out dest :direction :output :if-exists :supersede)
-          (genome-string (clang-format original) out))))
-
-    ;; Instrument and save.
-    (note 1 "Instrumenting ~a." path)
-    (let ((dest (or out-file
-                    (make-pathname
-                     :directory out-dir
-                     :name (format nil "~a-instrumented" name)
-                     :type type)))
-          (instrumented
-           (handler-bind ((warning  ; Muffle warnings at low verbosity.
-                           (if (> *note-level* 2)
-                               #'identity
-                               #'muffle-warning)))
-             (clang-format
-              (instrument original :trace-file trace-file
-                          :points points
-                          :functions functions
-                          :instrument-exit instrument-exit)))))
-      (note 1 "Writing instrumented to ~a." dest)
-      (with-open-file
-          (out dest :direction :output :if-exists :supersede)
-        (genome-string instrumented out)))))
+  ;; Instrument and save.
+  (note 1 "Instrumenting ~a." source)
+  (let ((dest (make-pathname
+               :directory out-dir
+               :name (format nil "~a-instrumented" project-name)
+               :type project-type))
+        (instrumented
+         (handler-bind ((warning  ; Muffle warnings at low verbosity.
+                         (if (> *note-level* 2)
+                             #'identity
+                             #'muffle-warning)))
+           (clang-format
+            (instrument original :trace-file trace-file
+                        :points points
+                        :functions functions
+                        :instrument-exit exit)))))
+    (note 1 "Writing instrumented to ~a." dest)
+    (with-open-file
+        (out dest :direction :output :if-exists :supersede)
+      (genome-string instrumented out))))
