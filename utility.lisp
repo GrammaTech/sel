@@ -28,6 +28,12 @@
    :cl-dot
    :diff)
   (:shadow :read)
+  (:import-from :cffi
+                :defcstruct
+                :define-foreign-type
+                :defcfun
+                :with-foreign-object
+                :with-foreign-slots)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -127,6 +133,8 @@
    :trim-whitespace
    :make-terminal-raw
    :make-terminal-unraw
+   :ioctl
+   :term-size
    :getopts
    :which
    ;; forensic
@@ -997,6 +1005,58 @@ See 'man 3 termios' for more information."
                   sb-posix:echonl))
     (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
 
+
+;;; Terminal size with CFFI and ioctl.
+;;; Adapted from:
+;;; https://github.com/cffi/cffi/blob/master/examples/gettimeofday.lisp
+(defcstruct winsize (row :short) (col :short) (xpixel :short) (ypixel :short))
+
+(define-foreign-type null-pointer-type ()
+  ()
+  (:actual-type :pointer)
+  (:simple-parser null-pointer))
+
+(defmethod translate-to-foreign (value (type null-pointer-type))
+  (cond
+    ((null value) (null-pointer))
+    ((null-pointer-p value) value)
+    (t (error "~A is not a null pointer." value))))
+
+(define-foreign-type ioctl-result-type ()
+  ()
+  (:actual-type :int)
+  (:simple-parser ioctl-result))
+
+(define-condition ioctl (error)
+  ((ret :initarg :ret :initform nil :reader ret))
+  (:report (lambda (condition stream)
+             (format stream "IOCTL call failed with return value ~d"
+                     (ret condition)))))
+
+(defmethod translate-from-foreign (value (type ioctl-result-type))
+  (if (minusp value)
+      (make-condition 'ioctl :ret value)
+      value))
+
+(defcfun ("ioctl" %ioctl) ioctl-result
+  (fd :int)
+  (request :int)
+  (winsz :pointer))
+
+(defun term-size ()
+  "Return terminal size information.
+The following are returned as separate values; rows, columns,
+x-pixels, y-pixels.  Note, this may throw an error when called from
+SLIME."
+  (with-foreign-object (wnsz '(:struct winsize))
+    ;; 0 == STDIN_FILENO
+    ;; 21523 == TIOCGWINSZ
+    (%ioctl 0 21523 wnsz)
+    (with-foreign-slots ((row col xpixel ypixel) wnsz (:struct winsize))
+      (values row col xpixel ypixel))))
+
+
+;;;; Shell and command line functions.
 (defun which (file &key (path (getenv "PATH")))
   (iterate (for dir in (split-sequence #\: path))
            (let ((fullpath (merge-pathnames file
