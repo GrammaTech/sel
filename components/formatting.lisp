@@ -31,8 +31,8 @@
 ;;; Generic method for applying a code formatting tool to a software
 ;;; object's genome.
 (defgeneric format-genome (software &key)
-  (:documentation "Generic method to code format SOFTWARE which
-may be beautified."))
+  (:documentation
+   "Generic method to code format SOFTWARE which may be beautified."))
 
 
 ;;; Specific formatting functions for individual software objects.

@@ -10,7 +10,8 @@
         :iterate
         :split-sequence
         :software-evolution-library
-        :software-evolution-library/utility)
+        :software-evolution-library/utility
+        :software-evolution-library/components/formatting)
   (:shadowing-import-from :uiop :ensure-directory-pathname)
   (:import-from :asdf-encodings :detect-file-encoding)
   (:export :simple
@@ -212,6 +213,10 @@
                   (subseq genome 0 point)
                   (list (random-elt *mcmc-fodder*))
                   (subseq genome point)))))))
+
+(defmethod format-genome ((obj simple) &key)
+  "Trivial format method for simple genomes."
+  (values obj 0))
 
 
 ;;; Crossover
