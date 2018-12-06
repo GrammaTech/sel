@@ -16,6 +16,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/software/simple
         :software-evolution-library/software/ast
         :software-evolution-library/software/source
         :software-evolution-library/software/parseable)
@@ -31,8 +32,12 @@
 ;;; Generic method for applying a code formatting tool to a software
 ;;; object's genome.
 (defgeneric format-genome (software &key)
-  (:documentation "Generic method to code format SOFTWARE which
-may be beautified."))
+  (:documentation
+   "Generic method to code format SOFTWARE which may be beautified."))
+
+(defmethod format-genome ((obj simple) &key)
+  "Trivial format method for simple genomes."
+  (values obj 0))
 
 
 ;;; Specific formatting functions for individual software objects.
