@@ -328,7 +328,13 @@ Fault Localization
 
 </li></ul>
 
-
+<a name="Class-parseable_002dproject"></a><dl>
+<dt><a name="index-parseable_002dproject"></a>Class: <strong>parseable-project</strong></dt>
+<dd><p>Class precedence list: <code>parseable-project, project, software, oid-object, standard-object, t</code>
+</p>
+<p>Abstract project specialization for parseable software
+objects.
+</p></dd></dl>
 
 <a name="api_002dsoftware_002dobject_002dclasses"></a><a name="Software-Object-Classes"></a>
 <h4 class="subsection">B.3.1 Software Object Classes</h4>
@@ -393,7 +399,12 @@ Software Object Classes
      <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dproject"><code>project</code></a>
        <ul>
+<li> <a href="#api_002dsoftware_002dobjects_002dparseable_002dproject"><code>parseable-project</code></a>
+         <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dclang_002dproject"><code>clang-project</code></a>
+         </li><li> <a href="#api_002dsoftware_002dobjects_002djavascript_002dproject"><code>javascript-project</code></a>
+         </li></ul>
+</li><li> <a href="#api_002dsoftware_002dobjects_002djava_002dproject"><code>java-project</code></a>
        </li></ul>
 </li></ul>
 </li></ul>
@@ -438,7 +449,12 @@ Class <code>software</code>
 
 </li><li> <a href="#api_002dsoftware_002dobjects_002dproject"><code>project</code></a>
     <ul>
+<li> <a href="#api_002dsoftware_002dobjects_002dparseable_002dproject"><code>parseable-project</code></a>
+      <ul>
 <li> <a href="#api_002dsoftware_002dobjects_002dclang_002dproject"><code>clang-project</code></a>
+      </li><li> <a href="#api_002dsoftware_002dobjects_002djavascript_002dproject"><code>javascript-project</code></a>
+      </li></ul>
+</li><li> <a href="#api_002dsoftware_002dobjects_002djava_002dproject"><code>java-project</code></a>
     </li></ul>
 
 </li><li> <a href="#api_002dsoftware_002dobjects_002dsimple"><code>simple</code></a>
@@ -937,8 +953,6 @@ Class <code>project</code>
   </li><li> <a href="sel_002dsw_002dproject.html#Macro-with_002dtemp_002dbuild_002ddir"><code>with-temp-build-dir</code></a>
   </li></ul>
 
-</li><li> Generic Function <a href="sel_002dsw_002dproject.html#Generic_002dFunction-write_002dgenome_002dto_002dfiles"><code>write-genome-to-files</code></a>
-
 </li><li> Functions
   <ul>
 <li> <a href="sel_002dsw_002dproject.html#Function-full_002dpath"><code>full-path</code></a>
@@ -953,18 +967,37 @@ Class <code>project</code>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-apply_002dmutations"><code>apply-mutations</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-apply_002dpicked_002dmutations"><code>apply-picked-mutations</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-crossover"><code>crossover</code></a>
+  </li><li> <a href="sel_002dcp_002dformatting.html#Generic_002dFunction-format_002dgenome"><code>format-genome</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-genome"><code>genome</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-mutate"><code>mutate</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-phenome"><code>phenome</code></a>
   </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-size"><code>size</code></a>
-  </li><li> <a href="sel_002dsw_002dproject.html#Generic_002dFunction-write_002dgenome_002dto_002dfiles"><code>write-genome-to-files</code></a>
   </li></ul>
 </li></ul>
 
 
 
+<a name="api_002dsoftware_002dobjects_002dparseable_002dproject"></a><a name="Class-parseable_002dproject-1"></a>
+<h4 class="subsubsection">B.3.1.10 Class <code>parseable-project</code></h4>
+
+<p>[
+<a href="SEL-API.html#SEL-API">API</a> |
+<a href="#api_002dsoftware_002dobjects">Software Objects</a> |
+<a href="#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> |
+Class <code>parseable-project</code>
+]
+</p>
+<ul>
+<li> Class <a href="#Class-parseable_002dproject"><code>parseable-project</code></a>
+</li><li> Methods
+  <ul>
+<li> <a href="sel_002dsw_002dparseable.html#Generic_002dFunction-asts"><code>asts</code></a>
+  </li></ul>
+</li></ul>
+
+
 <a name="api_002dsoftware_002dobjects_002dclang_002dproject"></a><a name="Class-clang_002dproject-1"></a>
-<h4 class="subsubsection">B.3.1.10 Class <code>clang-project</code></h4>
+<h4 class="subsubsection">B.3.1.11 Class <code>clang-project</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -978,18 +1011,64 @@ Class <code>clang-project</code>
 </li><li> Methods
   <ul>
 <li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
-  </li><li> <a href="sel_002dcp_002dformatting.html#Generic_002dFunction-format_002dgenome"><code>format-genome</code></a>
   </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-instrument"><code>instrument</code></a>
   </li><li> <a href="sel_002dsw_002dproject.html#Generic_002dFunction-instrumentation_002dfiles"><code>instrumentation-files</code></a>
   </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-instrumented_002dp"><code>instrumented-p</code></a>
-  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-to_002dfile"><code>to-file</code></a>
+  </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
+  </li></ul>
+</li></ul>
+
+
+<a name="api_002dsoftware_002dobjects_002djavascript_002dproject"></a><a name="Class-javascript_002dproject-1"></a>
+<h4 class="subsubsection">B.3.1.12 Class <code>javascript-project</code></h4>
+
+<p>[
+<a href="SEL-API.html#SEL-API">API</a> |
+<a href="#api_002dsoftware_002dobjects">Software Objects</a> |
+<a href="#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> |
+Class <code>clang-project</code>
+]
+</p>
+<ul>
+<li> Class <a href="sel_002dsw_002djavascript_002dproject.html#Class-javascript_002dproject"><code>javascript-project</code></a>
+</li><li> Methods
+  <ul>
+<li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-phenome"><code>phenome</code></a>
+  </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-instrument"><code>instrument</code></a>
+  </li><li> <a href="sel_002dsw_002dproject.html#Generic_002dFunction-instrumentation_002dfiles"><code>instrumentation-files</code></a>
+  </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-instrumented_002dp"><code>instrumented-p</code></a>
+  </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
+  </li></ul>
+</li></ul>
+
+
+<a name="api_002dsoftware_002dobjects_002djava_002dproject"></a><a name="Class-java_002dproject-1"></a>
+<h4 class="subsubsection">B.3.1.13 Class <code>java-project</code></h4>
+
+<p>[
+<a href="SEL-API.html#SEL-API">API</a> |
+<a href="#api_002dsoftware_002dobjects">Software Objects</a> |
+<a href="#api_002dsoftware_002dobject_002dclasses">Software Object Classes</a> |
+Class <code>java-project</code>
+]
+</p>
+<ul>
+<li> Class <a href="sel_002dsw_002djava_002dproject.html#Class-java_002dproject"><code>java-project</code></a>
+</li><li> Methods
+  <ul>
+<li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-from_002dfile"><code>from-file</code></a>
+  </li><li> <a href="software_002devolution_002dlibrary.html#Generic_002dFunction-phenome"><code>phenome</code></a>
+  </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-instrument"><code>instrument</code></a>
+  </li><li> <a href="sel_002dsw_002dproject.html#Generic_002dFunction-instrumentation_002dfiles"><code>instrumentation-files</code></a>
+  </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-instrumented_002dp"><code>instrumented-p</code></a>
   </li><li> <a href="sel_002dcp_002dinstrument.html#Generic_002dFunction-uninstrument"><code>uninstrument</code></a>
   </li></ul>
 </li></ul>
 
 
 <a name="api_002dsoftware_002dobjects_002dsimple"></a><a name="Class-simple-1"></a>
-<h4 class="subsubsection">B.3.1.11 Class <code>simple</code></h4>
+<h4 class="subsubsection">B.3.1.14 Class <code>simple</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1060,7 +1139,7 @@ Class <code>simple</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dasm"></a><a name="Class-asm-1"></a>
-<h4 class="subsubsection">B.3.1.12 Class <code>asm</code></h4>
+<h4 class="subsubsection">B.3.1.15 Class <code>asm</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1105,7 +1184,7 @@ Class <code>asm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dcsurf_002dasm"></a><a name="Class-csurf_002dasm-1"></a>
-<h4 class="subsubsection">B.3.1.13 Class <code>csurf-asm</code></h4>
+<h4 class="subsubsection">B.3.1.16 Class <code>csurf-asm</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1126,7 +1205,7 @@ Class <code>csurf-asm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf"></a><a name="Class-elf-1"></a>
-<h4 class="subsubsection">B.3.1.14 Class <code>elf</code></h4>
+<h4 class="subsubsection">B.3.1.17 Class <code>elf</code></h4>
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
 <a href="#api_002dsoftware_002dobjects">Software Objects</a> |
@@ -1174,7 +1253,7 @@ Class <code>elf</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002dcisc"></a><a name="Class-elf_002dcisc-1"></a>
-<h4 class="subsubsection">B.3.1.15 Class <code>elf-cisc</code></h4>
+<h4 class="subsubsection">B.3.1.18 Class <code>elf-cisc</code></h4>
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
 <a href="#api_002dsoftware_002dobjects">Software Objects</a> |
@@ -1213,7 +1292,7 @@ Class <code>elf-cisc</code>
 
 <a name="api_002dsoftware_002dobjects_002delf_002darm"></a>
 <a name="Class-elf_002darm-1"></a>
-<h4 class="subsubsection">B.3.1.16 Class <code>elf-arm</code></h4>
+<h4 class="subsubsection">B.3.1.19 Class <code>elf-arm</code></h4>
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
 <a href="#api_002dsoftware_002dobjects">Software Objects</a> |
@@ -1233,7 +1312,7 @@ Class <code>elf-arm</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002dcsurf"></a><a name="Class-elf_002dcsurf-1"></a>
-<h4 class="subsubsection">B.3.1.17 Class <code>elf-csurf</code></h4>
+<h4 class="subsubsection">B.3.1.20 Class <code>elf-csurf</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1253,7 +1332,7 @@ Class <code>elf-csurf</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002dx86"></a><a name="Class-elf_002dx86-1"></a>
-<h4 class="subsubsection">B.3.1.18 Class <code>elf-x86</code></h4>
+<h4 class="subsubsection">B.3.1.21 Class <code>elf-x86</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1274,7 +1353,7 @@ Class <code>elf-x86</code>
 
 
 <a name="api_002dsoftware_002dobjects_002delf_002drisc"></a><a name="Class-elf_002drisc-1"></a>
-<h4 class="subsubsection">B.3.1.19 Class <code>elf-risc</code></h4>
+<h4 class="subsubsection">B.3.1.22 Class <code>elf-risc</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1308,7 +1387,7 @@ Class <code>elf-risc</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002delf_002dmips"></a><a name="Class-elf_002dmips"></a>
-<h4 class="subsubsection">B.3.1.20 Class <code>elf-mips</code></h4>
+<h4 class="subsubsection">B.3.1.23 Class <code>elf-mips</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1321,7 +1400,7 @@ Class <code>elf-mips</code>
 </ul>
 
 <a name="api_002dsoftware_002dobjects_002dforth"></a><a name="Class-forth-1"></a>
-<h4 class="subsubsection">B.3.1.21 Class <code>forth</code></h4>
+<h4 class="subsubsection">B.3.1.24 Class <code>forth</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1343,7 +1422,7 @@ Class <code>forth</code>
 
 
 <a name="api_002dsoftware_002dobjects_002dlight"></a><a name="Class-light-1"></a>
-<h4 class="subsubsection">B.3.1.22 Class <code>light</code></h4>
+<h4 class="subsubsection">B.3.1.25 Class <code>light</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1362,7 +1441,7 @@ Class <code>light</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dlisp"></a><a name="Class-lisp-1"></a>
-<h4 class="subsubsection">B.3.1.23 Class <code>lisp</code></h4>
+<h4 class="subsubsection">B.3.1.26 Class <code>lisp</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1406,7 +1485,7 @@ Class <code>lisp</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dexpression"></a><a name="Class-expression-1"></a>
-<h4 class="subsubsection">B.3.1.24 Class <code>expression</code></h4>
+<h4 class="subsubsection">B.3.1.27 Class <code>expression</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |
@@ -1448,7 +1527,7 @@ Class <code>expression</code>
 </li></ul>
 
 <a name="api_002dsoftware_002dobjects_002dclang_002dexpression"></a><a name="Class-clang_002dexpression-1"></a>
-<h4 class="subsubsection">B.3.1.25 Class <code>clang-expression</code></h4>
+<h4 class="subsubsection">B.3.1.28 Class <code>clang-expression</code></h4>
 
 <p>[
 <a href="SEL-API.html#SEL-API">API</a> |

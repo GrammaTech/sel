@@ -65,7 +65,7 @@ Next: <a href="sel_002dsw_002dproject.html#sel_002dsw_002dproject" accesskey="n"
 </div>
 <hr>
 <a name="sel_002dsw_002dparseable-1"></a>
-<h3 class="section">C.32 sel-sw-parseable</h3>
+<h3 class="section">C.33 sel-sw-parseable</h3>
 <a name="Generic_002dFunction-append_002dto_002dgenome"></a><dl>
 <dt><a name="index-append_002dto_002dgenome"></a>Generic Function: <strong>append-to-genome</strong> <em>software text</em></dt>
 <dd><p>Append non-AST <code>text</code> to <code>obj</code> genome.  The new text will not be parsed.
@@ -91,8 +91,8 @@ Next: <a href="sel_002dsw_002dproject.html#sel_002dsw_002dproject" accesskey="n"
 <dt><a name="index-asts"></a>Generic Function: <strong>asts</strong> <em>obj</em></dt>
 <dd><p>Return a list of all asts in <code>obj</code>.
 </p></dd></dl>
-<a name="Method-asts-_0028_0028obj-clang_002dproject_0029_0029"></a><dl>
-<dt><a name="index-asts-1"></a>Method: <strong>asts</strong> <em>(obj clang-project)</em></dt>
+<a name="Method-asts-_0028_0028obj-parseable_002dproject_0029_0029"></a><dl>
+<dt><a name="index-asts-1"></a>Method: <strong>asts</strong> <em>(obj parseable-project)</em></dt>
 <dd><p>Return a list of all ASTs in the project <code>obj</code>.
 </p></dd></dl>
 <a name="Method-asts-before-_0028_0028obj-parseable_0029_0029"></a><dl>
@@ -233,6 +233,18 @@ even if such an <code>include</code> already exists in <code>obj</code>.
 </li><li> AST <code>docfixme</code>
 </li></ul>
 </dd></dl>
+<a name="Generic_002dFunction-get_002dchildren"></a><dl>
+<dt><a name="index-get_002dchildren"></a>Generic Function: <strong>get-children</strong> <em>obj ast</em></dt>
+<dd><p>Return all the children of AST in <code>obj</code>.
+</p></dd></dl>
+<a name="Method-get_002dchildren-_0028_0028obj-parseable_0029-_0028ast-ast_0029_0029"></a><dl>
+<dt><a name="index-get_002dchildren-1"></a>Method: <strong>get-children</strong> <em>(obj parseable) (ast ast)</em></dt>
+<dd><p>Return all the children of AST in <code>obj</code>.
+</p><ul>
+<li> <code>obj</code> software object containing AST and its children
+</li><li> AST node to find the children of
+</li></ul>
+</dd></dl>
 <a name="Generic_002dFunction-get_002dimmediate_002dchildren"></a><dl>
 <dt><a name="index-get_002dimmediate_002dchildren"></a>Generic Function: <strong>get-immediate-children</strong> <em>obj ast</em></dt>
 <dd><p>Return the immediate children of AST in <code>obj</code>.
@@ -242,7 +254,7 @@ even if such an <code>include</code> already exists in <code>obj</code>.
 <dd><p>Return the immediate children of AST in <code>obj</code>.
 </p><ul>
 <li> <code>obj</code> software object containing AST and its children
-</li><li> AST node to find the children of
+</li><li> AST node to find the immediate children of
 </li></ul>
 </dd></dl>
 <a name="Generic_002dFunction-get_002dparent_002dast"></a><dl>
@@ -696,12 +708,8 @@ If no suitable points are found the returned points may be nil.
 <dd><p>Update the ast-root associated with <code>obj</code>.
 * <code>obj</code> obj to update
 </p></dd></dl>
-<a name="Method-update_002dasts-_0028_0028obj-clang_002dproject_0029_0029"></a><dl>
-<dt><a name="index-update_002dasts-2"></a>Method: <strong>update-asts</strong> <em>(obj clang-project)</em></dt>
-<dd><p>Call &lsquo;update-asts&rsquo; on all &lsquo;evolve-files&rsquo; of <code>obj</code>.
-</p></dd></dl>
 <a name="Method-update_002dasts-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-update_002dasts-3"></a>Method: <strong>update-asts</strong> <em>(obj clang)</em></dt>
+<dt><a name="index-update_002dasts-2"></a>Method: <strong>update-asts</strong> <em>(obj clang)</em></dt>
 <dd><p>Parse and return the ASTs in <code>obj</code> using &lsquo;clang-mutate&rsquo;.
 </p><ul>
 <li> <code>obj</code> object to parse
@@ -727,12 +735,8 @@ has not been set.
 <dt><a name="index-update_002dcaches"></a>Generic Function: <strong>update-caches</strong> <em>software</em></dt>
 <dd><p>Update cached fields in <code>software</code>.
 </p></dd></dl>
-<a name="Method-update_002dcaches-_0028_0028obj-clang_002dproject_0029_0029"></a><dl>
-<dt><a name="index-update_002dcaches-1"></a>Method: <strong>update-caches</strong> <em>(obj clang-project)</em></dt>
-<dd><p>Call &lsquo;update-caches&rsquo; on all &lsquo;evolve-files&rsquo; of <code>obj</code>.
-</p></dd></dl>
 <a name="Method-update_002dcaches-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-update_002dcaches-2"></a>Method: <strong>update-caches</strong> <em>(obj clang)</em></dt>
+<dt><a name="index-update_002dcaches-1"></a>Method: <strong>update-caches</strong> <em>(obj clang)</em></dt>
 <dd><p>Update cached fields of <code>obj</code>, including &lsquo;asts&rsquo;, &lsquo;stmt-asts&rsquo;, &lsquo;non-stmt-asts&rsquo;,
 &lsquo;functions&rsquo;, &lsquo;prototypes&rsquo;, and &lsquo;includes&rsquo;, return <code>obj</code>
 * <code>obj</code> object to update caches for

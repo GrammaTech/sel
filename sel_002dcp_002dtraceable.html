@@ -65,7 +65,7 @@ Next: <a href="General-Lisp-Advice.html#General-Lisp-Advice" accesskey="n" rel="
 </div>
 <hr>
 <a name="sel_002dcp_002dtraceable-1"></a>
-<h3 class="section">C.61 sel-cp-traceable</h3>
+<h3 class="section">C.62 sel-cp-traceable</h3>
 <a name="Class-binary_002dtraceable"></a><dl>
 <dt><a name="index-binary_002dtraceable"></a>Class: <strong>binary-traceable</strong></dt>
 <dd><p>Class precedence list: <code>binary-traceable, traceable, software, oid-object, standard-object, t</code>
@@ -109,8 +109,8 @@ times.
 See the documentation of &lsquo;collect-trace&rsquo; for information on the
 <code>max</code>, <code>bin</code>, and <code>num-threads</code> keyword arguments.
 </p></dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-sexp_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-1_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-1"></a>Method: <strong>collect-traces</strong> <em>(obj sexp-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 1) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
+<a name="Method-collect_002dtraces-_0028_0028obj-sexp_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-0_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
+<dt><a name="index-collect_002dtraces-1"></a>Method: <strong>collect-traces</strong> <em>(obj sexp-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 0) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
 <dd><p>Execute instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection
@@ -120,8 +120,8 @@ See the documentation of &lsquo;collect-trace&rsquo; for information on the
 </li><li> <code>num-threads</code> number of threads to use in trace collection
 </li></ul>
 </dd></dl>
-<a name="Method-collect_002dtraces-_0028_0028obj-binary_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-1_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
-<dt><a name="index-collect_002dtraces-2"></a>Method: <strong>collect-traces</strong> <em>(obj binary-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 1) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
+<a name="Method-collect_002dtraces-_0028_0028obj-binary_002dtraceable_0029-_0028test_002dsuite-test_002dsuite_0029-_0026key-max-_0028bin-_0028temp_002dfile_002dname_0029_0029-_0028num_002dthreads-0_0029-_0026aux-_0028args-_0028list-bin-bin_0029_0029-_0028delete_002dbin_002dp-t_0029_0029"></a><dl>
+<dt><a name="index-collect_002dtraces-2"></a>Method: <strong>collect-traces</strong> <em>(obj binary-traceable) (test-suite test-suite) &amp;key max (bin (temp-file-name)) (num-threads 0) &amp;aux (args (list bin bin)) (delete-bin-p t)</em></dt>
 <dd><p>Execute instrumented <code>obj</code> on <code>test-suite</code> collecting dynamic traces.
 </p><ul>
 <li> <code>obj</code> Instrumented software object suitable for trace collection

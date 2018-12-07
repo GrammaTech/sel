@@ -137,6 +137,10 @@ Next: <a href="sel_002drest.html#sel_002drest" accesskey="n" rel="next">sel-rest
 <dt><a name="index-_002atask_002drunner_002a"></a>Variable: <strong>*task-runner*</strong></dt>
 <dd><p>Bind <code>*task-runner*</code> for worker threads
 </p></dd></dl>
+<a name="Variable-_002auninteresting_002dconditions_002a"></a><dl>
+<dt><a name="index-_002auninteresting_002dconditions_002a"></a>Variable: <strong>*uninteresting-conditions*</strong></dt>
+<dd><p>Additional uninteresting conditions for &lsquo;with-quiet-compilation&rsquo; to stifle.
+</p></dd></dl>
 <a name="Macro-getopts"></a><dl>
 <dt><a name="index-getopts"></a>Macro: <strong>getopts</strong> <em>args-and-opts &amp;body forms</em></dt>
 <dd><p>Collect command-line options from <code>args</code> in an executable.
@@ -435,14 +439,6 @@ holds those which do not.
 <dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
 <dd><p>Return the input stream for <code>process</code>.
 </p></dd></dl>
-<a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
-<dt><a name="index-process_002doutput_002dstream"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
-<dd><p>Return the output stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-process_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002doutput_002dstream-1"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
-<dd><p>Return the output stream for <code>process</code>.
-</p></dd></dl>
 <a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
 <dt><a name="index-process_002drunning_002dp"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
 <dd><p>Return <code>t</code> if <code>process</code> is running, <code>nil</code> otherwise.
@@ -456,30 +452,12 @@ holds those which do not.
 <dd><p>Process the object, including evaluate fitness, push new Jobs, and
  store interesting results
 </p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-uninstrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-1"></a>Method: <strong>process-task</strong> <em>(task uninstrument-clang-object-task) runner</em></dt>
-<dd><p>Remove instrumentation from the TASK&rsquo;s software object.
-</p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-instrument_002dclang_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task instrument-clang-object-task) runner</em></dt>
-<dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
-TASK&rsquo;s instrumentation arguments.
-</p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-uninstrument_002djavascript_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-3"></a>Method: <strong>process-task</strong> <em>(task uninstrument-javascript-object-task) runner</em></dt>
-<dd><p>Remove instrumentation from the TASK&rsquo;s software object.
-</p></dd></dl>
-<a name="Method-process_002dtask-_0028_0028task-instrument_002djavascript_002dobject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-4"></a>Method: <strong>process-task</strong> <em>(task instrument-javascript-object-task) runner</em></dt>
-<dd><p>Perform instrumentation on the TASK&rsquo;s software object using the
-TASK&rsquo;s instrumentation arguments.
-</p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-task_002ditem_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-5"></a>Method: <strong>process-task</strong> <em>(task task-item) runner</em></dt>
+<dt><a name="index-process_002dtask-1"></a>Method: <strong>process-task</strong> <em>(task task-item) runner</em></dt>
 <dd><p>Evaluate the <code>task</code> saving the result in the runner.
 </p></dd></dl>
 <a name="Method-process_002dtask-_0028_0028task-some_002dtest_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-process_002dtask-6"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
+<dt><a name="index-process_002dtask-2"></a>Method: <strong>process-task</strong> <em>(task some-test-task) runner</em></dt>
 <dd><p>Process a single <code>task</code> by applying <code>some-task-pred</code> to the <code>object</code> in <code>task</code>.
 <code>note:</code> Since &lsquo;task-save-result&rsquo; pushes results to a list, it&rsquo;s possible for up to
 <code>n</code> results to be saved (where <code>n</code> is the number of running threads), so &lsquo;first&rsquo;
@@ -519,6 +497,14 @@ region.
 <a name="Function-getter"></a><dl>
 <dt><a name="index-getter"></a>Function: <strong>getter</strong> <em>key</em></dt>
 <dd><p>Return a function which gets <code>key</code> from an association list.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
+<dt><a name="index-process_002doutput_002dstream"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002doutput_002dstream-1"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
 </p></dd></dl>
 <a name="Function-profile_002dto_002ddot_002dgraph"></a><dl>
 <dt><a name="index-profile_002dto_002ddot_002dgraph"></a>Function: <strong>profile-to-dot-graph</strong> <em>stream</em></dt>
@@ -610,6 +596,13 @@ Optional argument <code>out</code> specifies an output stream.
 <dt><a name="index-starts_002dwith_002dp"></a>Function: <strong>starts-with-p</strong> <em>str1 str2</em></dt>
 <dd><p>Determine whether &lsquo;str1&lsquo; starts with &lsquo;str2&lsquo;
 </p></dd></dl>
+<a name="Function-string_002dto_002dfile"></a><dl>
+<dt><a name="index-string_002dto_002dfile"></a>Function: <strong>string-to-file</strong> <em>string path &amp;key if-exists external-format</em></dt>
+<dd><p>Write <code>string</code> to <code>path</code>.
+Restarts available to handle cases where <code>path</code> is not writable,
+<code>set-file-writable</code>, and where the appropriate encoding is not used,
+SET-UTF8-ENCODING. 
+</p></dd></dl>
 <a name="Function-tails"></a><dl>
 <dt><a name="index-tails"></a>Function: <strong>tails</strong> <em>lst</em></dt>
 <dd><p>Return all final segments of the <code>lst</code>, longest first.
@@ -625,22 +618,12 @@ Optional argument <code>out</code> specifies an output stream.
 <dd><p>Return a job for the *jobs* stack. This is a function which,
  when called, returns the next task in the series.
 </p></dd></dl>
-<a name="Method-task_002djob-_0028_0028task-uninstrument_002dclang_002dproject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-task_002djob-1"></a>Method: <strong>task-job</strong> <em>(task uninstrument-clang-project-task) runner</em></dt>
-<dd><p>Return an uninstrument job for the next software object in
-TASK&rsquo;s project to be modified.
-</p></dd></dl>
-<a name="Method-task_002djob-_0028_0028task-instrument_002dclang_002dproject_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-task_002djob-2"></a>Method: <strong>task-job</strong> <em>(task instrument-clang-project-task) runner</em></dt>
-<dd><p>Return an instrumentation job for the next software object in
-TASK&rsquo;s project to be modified.
-</p></dd></dl>
 <a name="Method-task_002djob-_0028_0028task-task_002dmap_0029-runner_0029"></a><dl>
-<dt><a name="index-task_002djob-3"></a>Method: <strong>task-job</strong> <em>(task task-map) runner</em></dt>
+<dt><a name="index-task_002djob-1"></a>Method: <strong>task-job</strong> <em>(task task-map) runner</em></dt>
 <dd><p>Return a function which will spawn jobs for all of TASK&rsquo;s objects.
 </p></dd></dl>
 <a name="Method-task_002djob-_0028_0028task-some_002dtask_0029-runner_0029"></a><dl>
-<dt><a name="index-task_002djob-4"></a>Method: <strong>task-job</strong> <em>(task some-task) runner</em></dt>
+<dt><a name="index-task_002djob-2"></a>Method: <strong>task-job</strong> <em>(task some-task) runner</em></dt>
 <dd><p>Return the generating function for &lsquo;some-task&rsquo;.
 Create new subtasks for each item in the list until either applying the
 predicate <code>some-task-pred</code> in <code>task</code> succeeds or there are no more items in the
@@ -665,6 +648,13 @@ list.
 <a name="Function-task_002dsave_002dresult"></a><dl>
 <dt><a name="index-task_002dsave_002dresult"></a>Function: <strong>task-save-result</strong> <em>runner obj</em></dt>
 <dd><p>Save a result object.
+</p></dd></dl>
+<a name="Function-term_002dsize"></a><dl>
+<dt><a name="index-term_002dsize"></a>Function: <strong>term-size</strong></dt>
+<dd><p>Return terminal size information.
+The following are returned as separate values; rows, columns,
+x-pixels, y-pixels.  Note, this may throw an error when called from
+<code>slime</code>.
 </p></dd></dl>
 <a name="Function-transpose"></a><dl>
 <dt><a name="index-transpose"></a>Function: <strong>transpose</strong> <em>matrix</em></dt>

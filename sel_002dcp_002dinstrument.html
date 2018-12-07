@@ -65,7 +65,7 @@ Next: <a href="sel_002dcp_002djava_002dinstrument.html#sel_002dcp_002djava_002di
 </div>
 <hr>
 <a name="sel_002dcp_002dinstrument-1"></a>
-<h3 class="section">C.51 sel-cp-instrument</h3>
+<h3 class="section">C.52 sel-cp-instrument</h3>
 <a name="Variable-_002ainstrument_002dhandshake_002denv_002dname_002a"></a><dl>
 <dt><a name="index-_002ainstrument_002dhandshake_002denv_002dname_002a"></a>Variable: <strong>*instrument-handshake-env-name*</strong></dt>
 <dd><p>Default environment variable in which to store log file.
@@ -132,8 +132,16 @@ Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its ins
 </li><li> <code>args</code> additional arguments are passed through to the instrumenter method.
 </li></ul>
 </dd></dl>
+<a name="Method-instrument-_0028_0028javascript_002dproject-javascript_002dproject_0029-_0026rest-args_0029"></a><dl>
+<dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(javascript-project javascript-project) &amp;rest args</em></dt>
+<dd><p>Add instrumentation to <code>javascript-project</code>.
+</p><ul>
+<li> <code>javascript-project</code> the project to instrument
+</li><li> <code>args</code> passed through to the instrument method on underlying software objects.
+</li></ul>
+</dd></dl>
 <a name="Method-instrument-_0028_0028instrumenter-javascript_002dinstrumenter_0029-_0026key-points-functions-functions_002dafter-trace_002dfile-trace_002denv-instrument_002dexit-_0028filter-_0028constantly-t_0029_0029--_0028num_002dthreads-1_0029-_0026aux-_0028obj-_0028software-instrumenter_0029_0029_0029"></a><dl>
-<dt><a name="index-instrument-4"></a>Method: <strong>instrument</strong> <em>(instrumenter javascript-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (constantly t)) (num-threads 1) &amp;aux (obj (software instrumenter))</em></dt>
+<dt><a name="index-instrument-5"></a>Method: <strong>instrument</strong> <em>(instrumenter javascript-instrumenter) &amp;key points functions functions-after trace-file trace-env instrument-exit (filter (constantly t)) (num-threads 1) &amp;aux (obj (software instrumenter))</em></dt>
 <dd><p>Use <code>instrumenter</code> to instrument a javascript software object.
 </p>
 <ul>
@@ -151,7 +159,7 @@ Creates a <code>clang-instrumenter</code> for <code>obj</code> and calls its ins
 </li></ul>
 </dd></dl>
 <a name="Method-instrument-_0028_0028obj-javascript_0029-_0026rest-args_0029"></a><dl>
-<dt><a name="index-instrument-5"></a>Method: <strong>instrument</strong> <em>(obj javascript) &amp;rest args</em></dt>
+<dt><a name="index-instrument-6"></a>Method: <strong>instrument</strong> <em>(obj javascript) &amp;rest args</em></dt>
 <dd><p>Instrumentation for javascript software objects.
 Creates a <code>javascript-instrumenter</code> for <code>obj</code> and calls its instrument method.
 </p>
@@ -171,8 +179,12 @@ Creates a <code>javascript-instrumenter</code> for <code>obj</code> and calls it
 </p></dd></dl>
 <a name="Method-instrumented_002dp-_0028_0028obj-javascript_0029_0029"></a><dl>
 <dt><a name="index-instrumented_002dp-2"></a>Method: <strong>instrumented-p</strong> <em>(obj javascript)</em></dt>
-<dd><p>Return true if <code>obj</code> is instrumented
+<dd><p>Return true if <code>obj</code> is instrumented.
 * <code>obj</code> a javascript software object
+</p></dd></dl>
+<a name="Method-instrumented_002dp-_0028_0028project-project_0029_0029"></a><dl>
+<dt><a name="index-instrumented_002dp-3"></a>Method: <strong>instrumented-p</strong> <em>(project project)</em></dt>
+<dd><p>Return true if <code>project</code> is instrumented.
 </p></dd></dl>
 <a name="Class-instrumenter"></a><dl>
 <dt><a name="index-instrumenter"></a>Class: <strong>instrumenter</strong></dt>
@@ -193,22 +205,18 @@ operations.
 <p>Keyword arguments are as follows:
   <code>num-threads</code> <code>----------</code> number of threads to use for uninstrumenting
 </p></dd></dl>
-<a name="Method-uninstrument-_0028_0028clang_002dproject-clang_002dproject_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
-<dt><a name="index-uninstrument-1"></a>Method: <strong>uninstrument</strong> <em>(clang-project clang-project) &amp;key (num-threads 1)</em></dt>
-<dd><p>Remove instrumentation from <code>clang-project</code>
-</p></dd></dl>
 <a name="Method-uninstrument-_0028_0028clang-clang_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
-<dt><a name="index-uninstrument-2"></a>Method: <strong>uninstrument</strong> <em>(clang clang) &amp;key (num-threads 1)</em></dt>
+<dt><a name="index-uninstrument-1"></a>Method: <strong>uninstrument</strong> <em>(clang clang) &amp;key (num-threads 1)</em></dt>
 <dd><p>Remove instrumentation from <code>clang</code>
 </p></dd></dl>
 <a name="Method-uninstrument-_0028_0028obj-javascript_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
-<dt><a name="index-uninstrument-3"></a>Method: <strong>uninstrument</strong> <em>(obj javascript) &amp;key (num-threads 1)</em></dt>
+<dt><a name="index-uninstrument-2"></a>Method: <strong>uninstrument</strong> <em>(obj javascript) &amp;key (num-threads 1)</em></dt>
 <dd><p>Remove instrumentation from <code>obj</code>.
-<code>obj</code> javascript software object to uninstrument
+* <code>obj</code> javascript software object to uninstrument
 </p></dd></dl>
-<a name="Method-uninstrument-_0028_0028java_002dproject-java_002dproject_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
-<dt><a name="index-uninstrument-4"></a>Method: <strong>uninstrument</strong> <em>(java-project java-project) &amp;key (num-threads 1)</em></dt>
-<dd><p>Remove instrumentation from <code>java-project</code>.
+<a name="Method-uninstrument-_0028_0028project-project_0029-_0026key-_0028num_002dthreads-1_0029_0029"></a><dl>
+<dt><a name="index-uninstrument-3"></a>Method: <strong>uninstrument</strong> <em>(project project) &amp;key (num-threads 1)</em></dt>
+<dd><p>Remove instrumentation from <code>project</code>.
 </p></dd></dl>
 <a name="Generic_002dFunction-var_002dinstrument"></a><dl>
 <dt><a name="index-var_002dinstrument"></a>Generic Function: <strong>var-instrument</strong> <em>key instrumenter ast &amp;key print-strings</em></dt>
