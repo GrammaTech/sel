@@ -62,8 +62,8 @@
           (decode-json-from-string (file-to-string "package.json")))
 
     ;; Sanity check the package.json file contents
-    (assert (or (probe-file (aget :main (package-spec javascript-project)))
-                (probe-file "index.js"))
+    (assert (probe-file (or (aget :main (package-spec javascript-project))
+                            "index.js"))
             (javascript-project)
             "JavaScript project entry point is not present.")
     (mapcar (lambda (file)
@@ -81,8 +81,7 @@
                     (from-file (make-instance
                                  (component-class javascript-project))
                                file)))
-            (cons (if (probe-file (aget :main (package-spec javascript-project)))
-                      (aget :main (package-spec javascript-project))
+            (cons (or (aget :main (package-spec javascript-project))
                       "index.js")
                   (aget :files (package-spec javascript-project))))))
 
