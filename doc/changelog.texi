@@ -34,6 +34,21 @@ most recent at the top.  Every entry will be named and indexed by date
 and version number.  Working notes may be accumulated in a special
 ``Unreleased'' section at the top of the ChangeLog.
 
+@appendixsec 2018-10-17 v0.1.1 -- Unreleased
+@cindex changelog-2018-11-30
+@cindex v0.1.1
+
+@itemize
+
+@item Removed backend-specific initargs from project software objects
+
+Backend-specific initargs such as :clang-class, :java-class, or
+:javascript-class on projects have been replaced with :component-class.
+Any calls to @code{make-instance} with projects must now utilize
+:component-class instead of these backend-specific alternatives.
+
+@end itemize
+
 @appendixsec 2018-11-06 v0.1.0 -- Use package-inferred-system
 @cindex changelog-2018-10-17
 @cindex v0.0.3

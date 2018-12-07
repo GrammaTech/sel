@@ -24,6 +24,9 @@
            :read-trace-file
            :read-trace-stream
            :trace-error
+           :skip-trace-collection
+           :nil-traces
+           :ignore-empty-trace
            :bin))
 (in-package :software-evolution-library/components/traceable)
 (in-readtable :curry-compose-reader-macros)
@@ -78,7 +81,7 @@ times."))
 
 ;;; Trace collection with proprietary binary format
 (defmethod collect-traces ((obj binary-traceable) (test-suite test-suite)
-                           &key max (bin (temp-file-name)) (num-threads 1)
+                           &key max (bin (temp-file-name)) (num-threads 0)
                            &aux (args (list :bin bin)) (delete-bin-p t))
   "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection
@@ -204,7 +207,7 @@ times."))
 
 ;;; Trace collection with legacy s-expression format
 (defmethod collect-traces ((obj sexp-traceable) (test-suite test-suite)
-                           &key max (bin (temp-file-name)) (num-threads 1)
+                           &key max (bin (temp-file-name)) (num-threads 0)
                            &aux (args (list :bin bin)) (delete-bin-p t))
   "Execute instrumented OBJ on TEST-SUITE collecting dynamic traces.
 * OBJ Instrumented software object suitable for trace collection

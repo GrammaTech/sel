@@ -37,10 +37,11 @@
         :iterate
         :uiop
         :split-sequence
+        :software-evolution-library
         :software-evolution-library/utility
+        :software-evolution-library/command-line
         :software-evolution-library/ast-diff/ast-diff
-        :software-evolution-library/software/clang
-        :software-evolution-library)
+        :software-evolution-library/software/clang)
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
@@ -58,97 +59,77 @@
 ;;;    extension.
 
 (setf *note-out* *error-output*)
-(defun handle-set-verbose-argument (level)
-  (when (>= level 4) (setf *shell-debug* t))
-  (setf *note-level* level))
 
-(defun run-clang-diff (&aux (self (argv0)) (args *command-line-arguments*)
-                         raw flags (includes '(".")) (colorp t)
-                         (on-parse-error 'error)
-                         (comp-db (probe-file "compile_commands.json")))
-  "Run a clang diff on *COMMAND-LINE-ARGUMENTS*."
-  (flet ((report (fmt &rest args)
-           (apply #'format *error-output* (concatenate 'string "~a: " fmt)
-                  self args)))
-    (when (or (not args)
-              (< (length args) 1)
-              (string= (subseq (car args) 0 (min 2 (length (car args))))
-                       "-h")
-              (string= (subseq (car args) 0 (min 3 (length (car args))))
-                       "--h"))
-      (format t "Usage: ~a [OPTION]... FILES
-Compare C/C++ source files AST by AST.
+(defun handle-errors-option (error-option)
+  (intern error-option :software-evolution-library/ast-diff/clang))
 
-Options:
- -r, --raw                 output diff in raw Sexp (default is as text)
- -c, --comp-db [PATH]      path to clang compilation database
- -C, --no-color            inhibit color printing
- -I [DIRS]                 include ,-delimited DIRS in flags to clang
-                           default \".\" includes current working directory
- -v, --verbose [NUM]       verbosity level 0-4
- -e, --errors [OPT]        how to handle parse errors 0-2
-                            ignore---silently ignore
-                            warn-----warn and ignore
-                            error----error and quit (default)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter +command-line-options+
+    (append +common-command-line-options+
+            (remove-if {equalp "compiler"}
+                       +clang-command-line-options+
+                       :key #'caar)
+            `((("errors" #\e) :type string :initial-value "error"
+               :action #'handle-errors-option
+               :documentation
+               "how to handle parse errors (ignore, warn, error)")
+              (("includes" #\I) :type string :initial-value "."
+               :action #'handle-comma-delimited-argument
+               :documentation "include ,-delimited DIRS in flags to clang")
+              (("compilation-database" #\C) :type string :initial-value "."
+               :documentation "path to a clang compilation database")
+              (("raw" #\r) :type boolean :optional t
+               :documentation "output diff in raw Sexp (default is as text)")
+              (("no-color" #\C) :type boolean :optional t
+               :documentation "inhibit color printing")))))
 
-Built with SEL version ~a, and ~a version ~a.~%"
-              self +software-evolution-library-version+
-              (lisp-implementation-type) (lisp-implementation-version))
-      (quit))
-    ;; Argument handling and checking.
-    (getopts (args :unknown :return)
-      ("-r" "--raw" (setf raw t))
-      ("-c" "--comp-db" (setf comp-db (pop args)))
-      ("-C" "--no-color" (setf colorp nil))
-      ("-I" "-I" (setf includes (split-sequence #\, (pop args)
-                                                :remove-empty-subseqs t)))
-      ("-v" "--verbose" (handle-set-verbose-argument
-                         (parse-integer (pop args))))
-      ("-e" "--errors" (setf on-parse-error (intern (pop args) :clang-diff))))
-    (when (= (length args) 1)
-      (report "missing operand after '~a'~%" (car args))
-      (report "Try '~a --help' for more information." self)
-      (quit 2))
-    (when (> (length args) 2)
-      (report "extra operand '~a'~%" (third args))
-      (report "Try '~a --help' for more information." self)
-      (quit 2))
-    (when (some #'identity
-                (mapcar (lambda (file)
-                          (unless (probe-file file)
-                            (format *error-output*
-                                    "~a: ~a: No such file or directory~%"
-                                    self (third args))
-                            t))
-                        args))
-      (quit 2))
-    ;; Setup clang-mutate options.
-    (setf flags
-          (mappend [{list "-I"} {concatenate 'string (pwd) "/"}] includes))
-    (when comp-db
-      (push (cons :build-path comp-db)
-            *clang-mutate-additional-args*))
-    ;; Create the diff.
-    (let ((diff
-           (handler-bind ((mutate ; Ignore clang-mutate errors.
-                           (lambda (e)
-                             (ecase on-parse-error
-                               (ignore (invoke-restart 'keep-partial-asts))
-                               (warn (warn "Parse error: ~a" e)
-                                     (invoke-restart 'keep-partial-asts))
-                               (error (error e))))))
-             (ast-diff
-              (from-file (make-instance 'clang :flags flags) (first args))
-              (from-file (make-instance 'clang :flags flags) (second args))))))
-      ;; Print according to the RAW option.
-      (if raw
-          (writeln (ast-diff-elide-same diff) :readably t)
-          (if colorp
-              (print-diff diff *standard-output*
-                          (format nil "~a[-" +color-RED+)
-                          (format nil "-]~a" +color-RST+)
-                          (format nil "~a{+" +color-GRN+)
-                          (format nil "+}~a" +color-RST+))
-              (print-diff diff)))
-      ;; Only exit with 0 if the two inputs match.
-      (quit (if (every [{eql :same} #'car] diff) 0 1)))))
+(define-command clang-diff (file1 file2 &spec +command-line-options+)
+  "Compare C/C++ source in FILE1 and FILE2 by AST."
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose))
+  (when help (show-help-for-clang-diff))
+  (when (some #'identity
+              (mapcar (lambda (file)
+                        (unless (probe-file file)
+                          (format *error-output*
+                                  "~a: No such file or directory~%"
+                                  file)
+                          t))
+                      (list file1 file2)))
+    (quit 2))
+  ;; Setup clang-mutate options.
+  (setf flags
+        (mappend [{list "-I"} {concatenate 'string (namestring (pwd)) "/"}]
+                 includes))
+  (when compilation-database
+    (push (cons :build-path compilation-database)
+          *clang-mutate-additional-args*))
+  ;; Create the diff.
+  (let ((diff
+         (handler-bind ((mutate ; Ignore clang-mutate errors.
+                         (lambda (e)
+                           (ecase errors
+                             (ignore (invoke-restart 'keep-partial-asts))
+                             (warn (warn "Parse error: ~a" e)
+                                   (invoke-restart 'keep-partial-asts))
+                             (error (error e))))))
+           (ast-diff
+            (from-file (make-instance 'clang :flags flags) file1)
+            (from-file (make-instance 'clang :flags flags) file2)))))
+    ;; Print according to the RAW option.
+    (if raw
+        (writeln (ast-diff-elide-same diff) :readably t)
+        (if no-color
+            (print-diff diff)
+            (print-diff diff *standard-output*
+                        (format nil "~a[-" +color-RED+)
+                        (format nil "-]~a" +color-RST+)
+                        (format nil "~a{+" +color-GRN+)
+                        (format nil "+}~a" +color-RST+))))
+    ;; Only exit with 0 if the two inputs match.
+    (if uiop/image:*lisp-interaction*
+        (quit (if (every [{eql :same} #'car] diff) 0 1))
+        diff)))

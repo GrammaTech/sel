@@ -106,7 +106,6 @@ bin/%: $(LISP_DEPS) $(MANIFEST)
 	@rm -f $@
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/run-$*)' \
 	--eval '(setf uiop/image::*lisp-interaction* nil)' \
@@ -127,10 +126,10 @@ test-artifacts: $(TEST_ARTIFACTS)
 unit-check: test-artifacts $(TEST_LISP_DEPS) $(LISP_DEPS) $(MANIFEST)
 	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
 	--load $(QUICK_LISP)/setup.lisp \
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
+	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME)/test)' \
 	--eval '(setq sel/stefil+:*long-tests* t)' \
-	--eval '(sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME)))' \
+	--eval '(let ((sel/utility:*uninteresting-conditions* (list (quote stefil::test-style-warning)))) (sel/utility::with-quiet-compilation (asdf:test-system :$(PACKAGE_NAME))))' \
 	--eval '(uiop:quit (if $(PACKAGE_NAME)/test::*success* 0 1))'
 
 check: unit-check bin-check
@@ -143,7 +142,6 @@ SWANK_PORT ?= 4005
 swank: $(QUICK_LISP)/setup.lisp
 	$(LISP_HOME) $(LISP)					\
 	--load $<						\
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :swank)'				\
 	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
 	--eval '(in-package :$(PACKAGE_NAME))'			\
@@ -152,7 +150,6 @@ swank: $(QUICK_LISP)/setup.lisp
 swank-test: $(QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :swank)'				\
 	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
@@ -162,7 +159,6 @@ swank-test: $(QUICK_LISP)/setup.lisp test-artifacts
 repl: $(QUICK_LISP)/setup.lisp
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
 	--eval '(in-package :$(PACKAGE_NAME))'			\
 	--eval '(ql::call-with-quiet-compilation $(REPL_STARTUP))'
@@ -170,7 +166,6 @@ repl: $(QUICK_LISP)/setup.lisp
 repl-test: $(QUICK_LISP)/setup.lisp test-artifacts
 	$(LISP_HOME) $(LISP) $(LISP_FLAGS)			\
 	--load $<						\
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :repl)'				\
 	--eval '(ql:quickload :$(PACKAGE_NAME))'		\
 	--eval '(ql:quickload :$(PACKAGE_NAME)-test)'		\
@@ -243,7 +238,7 @@ more-clean: clean
 
 real-clean: more-clean
 	rm -f .qlfile Dockerfile
-	rm -rf quicklisp system-index.txt
+	rm -rf $(MANIFEST)
 
 
 ## Documentation
@@ -258,7 +253,6 @@ LOADS=$(addprefix $(cparen)$(oparen)ql:quickload :, $(DOC_PACKAGES))
 
 doc/include/sb-texinfo.texinfo: $(LISP_DEPS) $(wildcard software/*.lisp)
 	SBCL_HOME=$(dir $(shell which sbcl))../lib/sbcl sbcl --load $(QUICK_LISP)/setup.lisp \
-	--eval '(pushnew (truename ".") ql:*local-project-directories*)' \
 	--eval '(ql:quickload :software-evolution-library/utility)' \
 	--eval '(progn (list $(LOADS) $(cparen))' \
 	--script .ci/.generate-api-docs packages $(DOC_PACKAGES)

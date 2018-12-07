@@ -17,7 +17,7 @@ FROM docker.grammatech.com/synthesis/clang-mutate as clang-mutate
 FROM ubuntu:16.04
 
 RUN apt-get -y update && \
-    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl
+    apt-get -y install g++ gcc gcc-multilib graphviz libffi-dev man-db maven opam openjdk-8-jdk pandoc pkg-config texinfo unzip expect wget curl libboost-all-dev
 
 COPY --from=coq-serapi /root/.opam /root/.opam
 COPY --from=clang-mutate /usr/synth/ /usr/synth/
@@ -49,7 +49,7 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
     npm install --global prettier
 
 ARG GT
-ARG REPORT
+ARG LISP
 # Use /root/quicklisp/local-projects.
 RUN cp -R /usr/synth/quicklisp /root/quicklisp
 RUN rm /root/quicklisp/local-projects/system-index.txt
@@ -60,6 +60,7 @@ ENV PATH=/root/quicklisp/local-projects/sel/bin:/root/.opam/4.06.0/bin:/usr/synt
     JAVA_HOME=/usr/lib/jvm/default \
     SERAPI=/root/.opam/4.06.0/bin/sertop \
     COQLIB=/root/.opam/4.06.0/lib/coq/ \
-    QUICK_LISP=/root/quicklisp/
+    QUICK_LISP=/root/quicklisp/ \
+    LISP_STACK=32678
 RUN make real-clean all
 CMD /bin/bash

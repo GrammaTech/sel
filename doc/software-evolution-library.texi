@@ -1463,6 +1463,7 @@ appendix holds each individual package's API in turn.
 * sel-sw-java::                 Software-Evolution-Library/Software java.
 * sel-sw-java-project::         Software-Evolution-Library/Software java-project.
 * sel-sw-javascript::           Software-Evolution-Library/Software javascript.
+* sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
 * sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
 * sel-sw-lisp-fn::              Software-Evolution-Library/Software lisp-fn.
 * sel-sw-llvm::                 Software-Evolution-Library/Software llvm.
@@ -1604,11 +1605,15 @@ appendix holds each individual package's API in turn.
 @section sel-sw-java-project
 @include sel-sw-java-project-api.texi
 
-@node sel-sw-javascript, sel-sw-lisp, sel-sw-java-project, SEL Packages
+@node sel-sw-javascript, sel-sw-javascript-project, sel-sw-java-project, SEL Packages
 @section sel-sw-javascript
 @include sel-sw-javascript-api.texi
 
-@node sel-sw-lisp, sel-sw-lisp-fn, sel-sw-javascript, SEL Packages
+@node sel-sw-javascript-project, sel-sw-lisp, sel-sw-javascript, SEL Packages
+@section sel-sw-javascript-project
+@include sel-sw-javascript-project-api.texi
+
+@node sel-sw-lisp, sel-sw-lisp-fn, sel-sw-javascript-project, SEL Packages
 @section sel-sw-lisp
 @include sel-sw-lisp-api.texi
 

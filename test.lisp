@@ -70,6 +70,7 @@
    :software-evolution-library/software/java
    :software-evolution-library/software/java-project
    :software-evolution-library/software/javascript
+   :software-evolution-library/software/javascript-project
    :software-evolution-library/software/lisp
    :software-evolution-library/software/lisp-fn
    :software-evolution-library/software/llvm
@@ -80,6 +81,7 @@
    :software-evolution-library/software/styleable
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
+  (:import-from :hunchentoot)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -567,6 +569,7 @@
 (define-software clang-traceable (clang binary-traceable) ())
 (define-software java-traceable  (java sexp-traceable) ())
 (define-software javascript-traceable  (javascript sexp-traceable) ())
+(define-software javascript-traceable-project  (javascript-project sexp-traceable) ())
 (define-software clang-control-picks (clang) ())
 (define-software collect-traces-handles-directory-phenomes-mock
     (source binary-traceable)
@@ -1224,6 +1227,15 @@
    (setf *soft*
          (from-file (make-instance 'javascript-traceable)
                     (javascript-dir #P"fib/fib.js"))))
+  (:teardown
+   (setf *soft* nil)))
+
+(defixture fib-project-javascript
+  (:setup
+   (setf *soft*
+         (from-file (make-instance 'javascript-traceable-project
+                      :component-class 'javascript-traceable)
+                    (javascript-dir #P"fib-project/"))))
   (:teardown
    (setf *soft* nil)))
 
@@ -2495,12 +2507,16 @@ int x = CHARSIZE;")))
                         (get-ast-types obj (first (asts obj))))))))
 
 (deftest able-to-handle-multibyte-characters ()
-  (with-fixture unicode-clang
-    (is (stmt-with-text *soft* "int x = 0" :no-error))
-    (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
-    (is (stmt-with-text *soft* "int y = 1" :no-error))
-    (is (string= (genome *soft*)
-                 (file-to-string (unicode-dir "unicode.c"))))))
+  (handler-bind (#+sbcl (sb-int:stream-encoding-error
+                         (lambda (c)
+                           (declare (ignorable c))
+                           (invoke-restart 'set-utf8-encoding))))
+    (with-fixture unicode-clang
+      (is (stmt-with-text *soft* "int x = 0" :no-error))
+      (is (stmt-with-text *soft* "\"2 bytes: Δ\"" :no-error))
+      (is (stmt-with-text *soft* "int y = 1" :no-error))
+      (is (string= (genome *soft*)
+                   (file-to-string (unicode-dir "unicode.c")))))))
 
 
 ;;; Detailed clang mutation tests
@@ -3492,10 +3508,8 @@ int x = CHARSIZE;")))
                                             :program-name "node"
                                             :program-args (list :bin)))))
       (is (equal 1 (n-traces (traces instrumented))))
-      (is (equal '((:TRACE ((:C . 3))  ((:C . 12)) ((:C . 17))
-                           ((:C . 21)) ((:C . 27)) ((:C . 31))
-                           ((:C . 17)) ((:C . 21)) ((:C . 27))
-                           ((:C . 31)) ((:C . 17)) ((:C . 21))
+      (is (equal '((:TRACE ((:C . 0))  ((:C . 36)) ((:C . 3))
+                           ((:C . 12)) ((:C . 17)) ((:C . 21))
                            ((:C . 27)) ((:C . 31)) ((:C . 17))
                            ((:C . 21)) ((:C . 27)) ((:C . 31))
                            ((:C . 17)) ((:C . 21)) ((:C . 27))
@@ -3507,7 +3521,8 @@ int x = CHARSIZE;")))
                            ((:C . 27)) ((:C . 31)) ((:C . 17))
                            ((:C . 21)) ((:C . 27)) ((:C . 31))
                            ((:C . 17)) ((:C . 21)) ((:C . 27))
-                           ((:C . 31)) ((:C . 34)))
+                           ((:C . 31)) ((:C . 17)) ((:C . 21))
+                           ((:C . 27)) ((:C . 31)) ((:C . 34)))
                    (:INPUT "node" :BIN))
                  (get-trace (traces instrumented) 0))))))
 
@@ -3531,7 +3546,172 @@ int x = CHARSIZE;")))
                                       #("b" "number" 0 nil)
                                       #("a" "number" 1 nil)
                                       #("num" "number" 10 nil)))
-                  (nth 3 (aget :trace (get-trace (traces instrumented) 0))))))))
+                  (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
+
+(deftest (javascript-parsing-test :long-running) ()
+  (labels ((parse-test (file &rest ast-classes)
+              (let ((soft (from-file (make-instance 'javascript) file)))
+                (is (not (null (asts soft))))
+                (is (equal (genome soft) (file-to-string file)))
+                (mapc (lambda (ast-class)
+                        (is (find ast-class (asts soft) :key #'ast-class)))
+                      ast-classes))))
+    (parse-test (javascript-dir #P"parsing/array-destructuring.js")
+                :ArrayPattern)
+    (parse-test (javascript-dir #P"parsing/arrow-function-expression.js")
+                :ArrowFunctionExpression)
+    (parse-test (javascript-dir #P"parsing/await-expression.js")
+                :AwaitExpression)
+    (parse-test (javascript-dir #P"parsing/class-declaration.js")
+                :ClassDeclaration)
+    (parse-test (javascript-dir #P"parsing/class-expression.js")
+                :ClassExpression)
+    (parse-test (javascript-dir #P"parsing/conditional-expression.js")
+                :ConditionalExpression)
+    (parse-test (javascript-dir #P"parsing/debugger-statement.js")
+                :DebuggerStatement)
+    (parse-test (javascript-dir #P"parsing/empty-statement.js")
+                :EmptyStatement)
+    (parse-test (javascript-dir #P"parsing/expression-statement.js")
+                :ExpressionStatement)
+    (parse-test (javascript-dir #P"parsing/function-declaration.js")
+                :FunctionDeclaration)
+    (parse-test (javascript-dir #P"parsing/function-expression.js")
+                :FunctionExpression)
+    (parse-test (javascript-dir #P"parsing/if.js")
+                :IfStatement)
+    (parse-test (javascript-dir #P"parsing/labeled-statement.js")
+                :LabeledStatement)
+    (parse-test (javascript-dir #P"parsing/loops.js")
+                :ForStatement :ForInStatement :ForOfStatement
+                :WhileStatement :DoWhileStatement)
+    (parse-test (javascript-dir #P"parsing/new-expression.js")
+                :NewExpression)
+    (parse-test (javascript-dir #P"parsing/object-destructuring.js")
+                :ObjectPattern)
+    (parse-test (javascript-dir #P"parsing/object-expression.js")
+                :ObjectExpression)
+    (parse-test (javascript-dir #P"parsing/sequence-expression.js")
+                :SequenceExpression)
+    (parse-test (javascript-dir #P"parsing/spread-element.js")
+                :SpreadElement)
+    (parse-test (javascript-dir #P"parsing/switch.js")
+                :SwitchStatement)
+    (parse-test (javascript-dir #P"parsing/tagged-template-expression.js")
+                :TaggedTemplateExpression)
+    (parse-test (javascript-dir #P"parsing/try-catch-throw.js")
+                :TryStatement :CatchClause :ThrowStatement)
+    (parse-test (javascript-dir #P"parsing/with-statement.js")
+                :WithStatement)
+    (parse-test (javascript-dir #P"parsing/yield-expression.js")
+                :YieldExpression)))
+
+(deftest array-destructuring-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/array-destructuring.js"))))
+    (is (equal (list "d" "c" "b" "a" "arr")
+               (->> (asts soft)
+                    (remove-if-not {traceable-stmt-p soft})
+                    (lastcar)
+                    (get-vars-in-scope soft)
+                    (mapcar {aget :name}))))))
+
+(deftest object-destructuring-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/object-destructuring.js"))))
+    (is (equal (list "q" "p" "o")
+               (->> (asts soft)
+                    (remove-if-not {traceable-stmt-p soft})
+                    (lastcar)
+                    (get-vars-in-scope soft)
+                    (mapcar {aget :name}))))))
+
+(deftest for-in-loop-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/loops.js"))))
+    (is (find "i" (->> (stmt-with-text soft "console.log(arr[i]);")
+                       (get-vars-in-scope soft)
+                       (mapcar {aget :name}))
+              :test #'equal))))
+
+(deftest for-of-loop-get-vars-in-scope-test ()
+  (let ((soft (from-file (make-instance 'javascript)
+                         (javascript-dir #P"parsing/loops.js"))))
+    (is (find "val" (->> (stmt-with-text soft "console.log(val);")
+                         (get-vars-in-scope soft)
+                         (mapcar {aget :name}))
+              :test #'equal))))
+
+
+;;;; Javascript project.
+(defun npm-available-p ()
+  (which "npm"))
+
+(defsuite javascript-project-tests "Javascript project."
+  (npm-available-p))
+
+(deftest can-parse-a-javascript-project ()
+  (with-fixture fib-project-javascript
+    (is (equal 2 (length (evolve-files *soft*))))
+    (is (not (null (asts *soft*))))))
+
+(deftest javascript-project-instrument-uninstrument-is-identity ()
+  (with-fixture fib-project-javascript
+    (is (string= (genome *soft*)
+                 (genome (uninstrument (instrument (copy *soft*))))))))
+
+(deftest (javascript-project-instrument-and-collect-traces :long-running) ()
+  (with-fixture fib-project-javascript
+    (let ((instrumented (instrument *soft*)))
+      (collect-traces instrumented
+                      (make-instance 'test-suite :test-cases
+                        (list (make-instance 'test-case
+                                :program-name (namestring
+                                                (javascript-dir
+                                                 #P"fib-project/test.sh"))
+                                :program-args (list :bin "1")))))
+      (is (equal 1 (n-traces (traces instrumented))))
+      (is (equalp '(((:C . 0)  (:F . 0))
+                    ((:C . 0)  (:F . 1))
+                    ((:C . 6)  (:F . 0))
+                    ((:C . 12) (:F . 0))
+                    ((:C . 29) (:F . 0))
+                    ((:C . 48) (:F . 0))
+                    ((:C . 55) (:F . 0))
+                    ((:C . 70) (:F . 0))
+                    ((:C . 11) (:F . 1))
+                    ((:C . 20) (:F . 1))
+                    ((:C . 25) (:F . 1))
+                    ((:C . 29) (:F . 1))
+                    ((:C . 35) (:F . 1))
+                    ((:C . 39) (:F . 1))
+                    ((:C . 42) (:F . 1)))
+                  (aget :trace (get-trace (traces instrumented) 0)))))))
+
+(deftest (javascript-project-instrument-and-collect-traces-with-vars
+          :long-running) ()
+  (with-fixture fib-project-javascript
+    (let ((instrumented
+            (instrument *soft*
+                        :functions
+                        (list (lambda (instrumenter ast)
+                                (var-instrument
+                                  {get-vars-in-scope (software instrumenter)}
+                                  instrumenter
+                                  ast))))))
+      (collect-traces instrumented
+                      (make-instance 'test-suite :test-cases
+                        (list (make-instance 'test-case
+                                :program-name (namestring
+                                                (javascript-dir
+                                                 #P"fib-project/test.sh"))
+                                :program-args (list :bin "1")))))
+      (is (equal 1 (n-traces (traces instrumented))))
+      (is (equalp '((:C . 29)(:F . 1)(:SCOPES #("temp" "number" 1 nil)
+                                              #("b" "number" 0 nil)
+                                              #("a" "number" 1 nil)
+                                              #("num" "number" 1 nil)))
+                  (nth 11 (aget :trace (get-trace (traces instrumented) 0))))))))
 
 
 ;;;; Range representation.
@@ -9579,9 +9759,8 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest sexp-merge3-delete-insert-tail ()
   (is (equalp (multiple-value-list (sel/ast-diff/ast-diff:merge3 '(a b . c) '(a) '(a e . c)))
-	      '(((:same . a) (:delete . b) (:insert . e) (:delete . b) (:same-tail . c))
-		(((:recurse-tail (:delete . c) (:insert)) (:delete . b))
-		 ((:delete . b) (:insert . e)))))
+	      '(((:same . a) (:insert . e) (:delete . b) (:recurse-tail (:delete . c) (:insert)))
+		(((:delete . b) (:insert . e)))))
       "Delete and insert in the same place, with improper list."))
 
 (deftest sexp-merge3-delete-insert-tail.2 ()

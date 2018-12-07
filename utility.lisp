@@ -28,6 +28,12 @@
    :cl-dot
    :diff)
   (:shadow :read)
+  (:import-from :cffi
+                :defcstruct
+                :define-foreign-type
+                :defcfun
+                :with-foreign-object
+                :with-foreign-slots)
   (:shadowing-import-from
    :closer-mop
    :standard-method :standard-class :standard-generic-function
@@ -74,6 +80,7 @@
    :file-access-path
    :set-file-writable
    :string-to-file
+   :set-utf8-encoding
    :bytes-to-file
    :stream-to-string
    :getenv
@@ -126,6 +133,8 @@
    :trim-whitespace
    :make-terminal-raw
    :make-terminal-unraw
+   :ioctl
+   :term-size
    :getopts
    :which
    ;; forensic
@@ -136,6 +145,7 @@
    :tree-right-length
    :tree-right-walk
    ;; simple utility
+   :*uninteresting-conditions*
    :with-quiet-compilation
    :repeatedly
    :indexed
@@ -405,18 +415,34 @@
                      (file-access-operation condition)
                      (file-access-path condition)))))
 
-(defun string-to-file (string path &key (if-exists :supersede))
-  (when (and (file-exists-p path)
-             (not (member :user-write (file-permissions path))))
+(defun string-to-file (string path &key
+                                     (if-exists :supersede)
+                                     (external-format :default))
+  "Write STRING to PATH.
+Restarts available to handle cases where PATH is not writable,
+SET-FILE-WRITABLE, and where the appropriate encoding is not used,
+SET-UTF8-ENCODING. "
+  (flet ((run-write ()
+	   (ensure-directories-exist path)
+           (with-open-file (out path :direction :output
+                                :if-exists if-exists
+                                :external-format external-format)
+             (format out "~a" string))))
+    (when (and (file-exists-p path)
+               (not (member :user-write (file-permissions path))))
+      (restart-case
+          (error (make-condition 'file-access
+                                 :path path
+                                 :operation :write))
+        (set-file-writable ()
+          (format nil "Forcefully set ~a to be writable" path)
+          (push :user-write (file-permissions path)))))
     (restart-case
-        (error (make-condition 'file-access
-                 :path path
-                 :operation :write))
-      (set-file-writable ()
-        (format nil "Forcefully set ~a to be writable" path)
-        (push :user-write (file-permissions path)))))
-  (with-open-file (out path :direction :output :if-exists if-exists)
-    (format out "~a" string))
+        (run-write)
+      (set-utf8-encoding ()
+        (format nil "Set ~a encoding to UTF8." path)
+        (setf external-format :UTF8)
+        (run-write))))
   path)
 
 (defun bytes-to-file (bytes path &key (if-exists :supersede))
@@ -979,6 +1005,58 @@ See 'man 3 termios' for more information."
                   sb-posix:echonl))
     (sb-posix:tcsetattr 0 sb-posix:TCSANOW options)))
 
+
+;;; Terminal size with CFFI and ioctl.
+;;; Adapted from:
+;;; https://github.com/cffi/cffi/blob/master/examples/gettimeofday.lisp
+(defcstruct winsize (row :short) (col :short) (xpixel :short) (ypixel :short))
+
+(define-foreign-type null-pointer-type ()
+  ()
+  (:actual-type :pointer)
+  (:simple-parser null-pointer))
+
+(defmethod translate-to-foreign (value (type null-pointer-type))
+  (cond
+    ((null value) (null-pointer))
+    ((null-pointer-p value) value)
+    (t (error "~A is not a null pointer." value))))
+
+(define-foreign-type ioctl-result-type ()
+  ()
+  (:actual-type :int)
+  (:simple-parser ioctl-result))
+
+(define-condition ioctl (error)
+  ((ret :initarg :ret :initform nil :reader ret))
+  (:report (lambda (condition stream)
+             (format stream "IOCTL call failed with return value ~d"
+                     (ret condition)))))
+
+(defmethod translate-from-foreign (value (type ioctl-result-type))
+  (if (minusp value)
+      (make-condition 'ioctl :ret value)
+      value))
+
+(defcfun ("ioctl" %ioctl) ioctl-result
+  (fd :int)
+  (request :int)
+  (winsz :pointer))
+
+(defun term-size ()
+  "Return terminal size information.
+The following are returned as separate values; rows, columns,
+x-pixels, y-pixels.  Note, this may throw an error when called from
+SLIME."
+  (with-foreign-object (wnsz '(:struct winsize))
+    ;; 0 == STDIN_FILENO
+    ;; 21523 == TIOCGWINSZ
+    (%ioctl 0 21523 wnsz)
+    (with-foreign-slots ((row col xpixel ypixel) wnsz (:struct winsize))
+      (values row col xpixel ypixel))))
+
+
+;;;; Shell and command line functions.
 (defun which (file &key (path (getenv "PATH")))
   (iterate (for dir in (split-sequence #\: path))
            (let ((fullpath (merge-pathnames file
@@ -1075,13 +1153,17 @@ Optional argument OUT specifies an output stream."
         :initial-value t))
       (t (equal obj1 obj2)))))
 
+(defvar *uninteresting-conditions* nil
+  "Additional uninteresting conditions for `with-quiet-compilation' to stifle.")
+
 (defmacro with-quiet-compilation (&body body)
   `(let ((*load-verbose* nil)
          (*compile-verbose* nil)
          (*load-print* nil)
          (*compile-print* nil)
          (uiop/lisp-build:*uninteresting-conditions*
-          uiop/lisp-build:*usual-uninteresting-conditions*))
+          (append *uninteresting-conditions*
+                  uiop/lisp-build:*usual-uninteresting-conditions*)))
      ,@body))
 
 (defmacro repeatedly (times &rest body)

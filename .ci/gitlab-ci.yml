@@ -23,7 +23,7 @@ stages:
     - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${TAG}
     - docker pull $DOCKER_REGISTRY/synthesis/cl:${TAG}
-    - docker build --build-arg=GT=yes -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
+    - docker build --build-arg=GT=yes  --build-arg=LISP=sbcl -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
     - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];
       then
           docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS}-${LISP}:${CI_BUILD_REF_NAME};
@@ -65,7 +65,7 @@ build-arch-sbcl:
     # up a new "latest" image, otherwise, run locally.
     - if [ "$CI_BUILD_REF_NAME" = "master" ];
       then
-          docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /root/quicklisp/local-projects/sel && unbuffer make check";
+          docker run -e LOCAL_USER=root -e GT=yes -e REPORT=yes -e LISP=${LISP} ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /root/quicklisp/local-projects/sel && unbuffer make check";
           if [ "$LISP" = "ccl" ];
           then
               docker tag ${LOCAL_IMAGE_NAME}-${OS}-${LISP} $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
@@ -73,7 +73,7 @@ build-arch-sbcl:
               docker push $DOCKER_REGISTRY/$CI_PROJECT_PATH/${OS};
           fi
       else
-          docker run -e LOCAL_USER=root -e GT=yes ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /root/quicklisp/local-projects/sel && unbuffer make check";
+          docker run -e LOCAL_USER=root -e GT=yes -e LISP=${LISP} ${LOCAL_IMAGE_NAME}-${OS}-${LISP} /bin/bash -c "cd /root/quicklisp/local-projects/sel && unbuffer make check";
       fi
 
 run-ubuntu-ccl:
