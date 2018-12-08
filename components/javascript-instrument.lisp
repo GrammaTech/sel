@@ -228,19 +228,12 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
   (task-map (or (plist-get :num-threads args) 1)
             (lambda (instrumenter)
               (apply #'instrument instrumenter args))
-            (iter (with entry =
-                        (cdr (find (or (aget :main
-                                             (package-spec javascript-project))
-                                       "index.js")
-                                   (instrumentation-files javascript-project)
-                                   :test #'string=
-                                   :key #'car)))
-                  (for (file . obj) in
+            (iter (for (file . obj) in
                        (instrumentation-files javascript-project))
                   (for file-id upfrom 0)
                   (declare (ignorable file))
                   (collect
-                   (if (eq obj entry)
+                   (if (eq (parsing-mode obj) :script)
                        ;; add trace collection initialization to entrypoint
                        (make-instance 'javascript-instrumenter
                          :software obj
