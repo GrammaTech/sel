@@ -52,11 +52,22 @@ global.__sel_trace_point = function(file_counter, child_counter, ...variables) {
                 variable_type  === \"symbol\" ||
                 variable_value === null) {
                 __sel_trace_file.write(\"#(\");
-                __sel_trace_file.write(\"\\\"\" + variable_name + \"\\\" \");
-                __sel_trace_file.write(\"\\\"\" + variable_type + \"\\\" \");
-                __sel_trace_file.write((variable_value === null) ?
-                                       \"nil \" :
-                                       variable_value + \" \");
+                __sel_trace_file.write(\"\\\"\" + variable_name + \"\\\"\");
+                __sel_trace_file.write(\" \");
+                __sel_trace_file.write(\"\\\"\" + variable_type + \"\\\"\");
+                __sel_trace_file.write(\" \");
+                if (variable_value === null) {
+                    __sel_trace_file.write(\"nil\");
+                }
+                else if (variable_type === \"string\") {
+                    __sel_trace_file.write(\"\\\"\" +
+                                           encodeURI(variable_value) +
+                                           \"\\\"\");
+                }
+                else {
+                    __sel_trace_file.write(encodeURI(String(variable_value)));
+                }
+                __sel_trace_file.write(\" \");
                 __sel_trace_file.write(\"nil\");
                 __sel_trace_file.write(\")\");
             }

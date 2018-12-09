@@ -62,15 +62,14 @@
     ;; Sanity check that the project directory exists
     (assert (probe-file project-dir)
             (javascript-project)
-            "~a does not exist" project-dir)
+            "~a does not exist." project-dir)
     (setf (project-dir javascript-project) project-dir)
 
     (with-cwd (project-dir)
       ;; Sanity check that a package.json file exists
       (assert (probe-file "package.json")
               (javascript-project)
-              "Calling `from-file` on a javascript-project requires a project ~
-               with a package.json file")
+              "JavaScript projects require a package.json file.")
 
       ;; Load the package.json file
       (setf (package-spec javascript-project)
