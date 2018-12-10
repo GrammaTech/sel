@@ -24,59 +24,63 @@
 
 ;;;; Instrumentation
 (define-constant +javascript-trace-code+
-  "const __fs = require('fs');
-var __sel_trace_file = __fs.createWriteStream(process.env.__SEL_TRACE_FILE ||
+  "if (typeof __sel_trace_file === 'undefined') {
+    const __fs = require('fs');
+    __sel_trace_file = __fs.createWriteStream(process.env.__SEL_TRACE_FILE ||
                                               \"/dev/null\")
 
-global.__sel_trace_point = function(file_counter, child_counter, ...variables) {
-    __sel_trace_file.cork();
-    __sel_trace_file.write(\"(\");
+    __sel_trace_point = function(file_counter, child_counter, ...variables) {
+        __sel_trace_file.cork();
+        __sel_trace_file.write(\"(\");
 
-    __sel_trace_file.write(\"(:C . \" + child_counter + \")\");
-    if (file_counter !== null) {
-        __sel_trace_file.write(\"(:F . \" + file_counter + \")\");
-    }
-
-    if (variables.length > 0) {
-        __sel_trace_file.write(\"(:SCOPES \");
-        for (let i = 0; i < variables.length; i++) {
-            let variable = variables[i];
-            let variable_name = variable.name;
-            let variable_type = (typeof variable.value);
-            let variable_value = variable.value;
-
-            if (variable_type  === \"boolean\" ||
-                variable_type  === \"undefined\" ||
-                variable_type  === \"number\" ||
-                variable_type  === \"string\" ||
-                variable_type  === \"symbol\" ||
-                variable_value === null) {
-                __sel_trace_file.write(\"#(\");
-                __sel_trace_file.write(\"\\\"\" + variable_name + \"\\\"\");
-                __sel_trace_file.write(\" \");
-                __sel_trace_file.write(\"\\\"\" + variable_type + \"\\\"\");
-                __sel_trace_file.write(\" \");
-                if (variable_value === null) {
-                    __sel_trace_file.write(\"nil\");
-                }
-                else if (variable_type === \"string\") {
-                    __sel_trace_file.write(\"\\\"\" +
-                                           encodeURI(variable_value) +
-                                           \"\\\"\");
-                }
-                else {
-                    __sel_trace_file.write(encodeURI(String(variable_value)));
-                }
-                __sel_trace_file.write(\" \");
-                __sel_trace_file.write(\"nil\");
-                __sel_trace_file.write(\")\");
-            }
+        __sel_trace_file.write(\"(:C . \" + child_counter + \")\");
+        if (file_counter !== null) {
+            __sel_trace_file.write(\"(:F . \" + file_counter + \")\");
         }
-        __sel_trace_file.write(\")\");
-    }
 
-    __sel_trace_file.write(\")\\\n\");
-    __sel_trace_file.uncork();
+        if (variables.length > 0) {
+            __sel_trace_file.write(\"(:SCOPES \");
+            for (let i = 0; i < variables.length; i++) {
+                let variable = variables[i];
+                let variable_name = variable.name;
+                let variable_type = (typeof variable.value);
+                let variable_value = variable.value;
+
+                if (variable_type  === \"boolean\" ||
+                    variable_type  === \"undefined\" ||
+                    variable_type  === \"number\" ||
+                    variable_type  === \"string\" ||
+                    variable_type  === \"symbol\" ||
+                    variable_value === null) {
+                    __sel_trace_file.write(\"#(\");
+                    __sel_trace_file.write(\"\\\"\" + variable_name + \"\\\"\");
+                    __sel_trace_file.write(\" \");
+                    __sel_trace_file.write(\"\\\"\" + variable_type + \"\\\"\");
+                    __sel_trace_file.write(\" \");
+                    if (variable_value === null) {
+                        __sel_trace_file.write(\"nil\");
+                    }
+                    else if (variable_type === \"string\") {
+                        __sel_trace_file.write(
+                            \"\\\"\" +
+                            encodeURI(variable_value) +
+                            \"\\\"\");
+                    }
+                    else {
+                        __sel_trace_file.write(
+                            encodeURI(String(variable_value)));
+                    }
+                    __sel_trace_file.write(\" \");
+                    __sel_trace_file.write(\"nil\");
+                    __sel_trace_file.write(\")\");
+                }
+            }
+            __sel_trace_file.write(\")\");
+        }
+
+        __sel_trace_file.write(\")\\\n\");
+        __sel_trace_file.uncork();
+    }
 }
 "
   :test #'string=
@@ -89,10 +93,7 @@ global.__sel_trace_point = function(file_counter, child_counter, ...variables) {
             :documentation "Mapping of ASTs to trace ids.")
    (file-id :reader file-id
             :initarg :file-id
-            :initform nil)
-   (initialize-tracing-p :reader initialize-tracing-p
-                         :initarg :initialize-tracing-p
-                         :initform t))
+            :initform nil))
   (:documentation "Handles instrumentation for JAVA software objects."))
 
 (defmethod initialize-instance :after
@@ -144,7 +145,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                      `(:ExpressionStatement
                         :aux-data ((:instrumentation . t))
                         (:CallExpression
-                          "global.__sel_trace_point("
+                          "__sel_trace_point("
                           (:Literal
                             ,(if (file-id instrumenter)
                                  (format nil "~d" (file-id instrumenter))
@@ -164,7 +165,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                        `(:ExpressionStatement
                           :aux-data ((:instrumentation . t))
                           (:CallExpression
-                            "global.__sel_trace_point("
+                            "__sel_trace_point("
                             (:Literal
                               ,(if (file-id instrumenter)
                                    (format nil "~d" (file-id instrumenter))
@@ -203,8 +204,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                                                          ast
                                                          after}))))))
 
-  (when (initialize-tracing-p instrumenter)
-    (prepend-to-genome obj +javascript-trace-code+))
+  (prepend-to-genome obj +javascript-trace-code+)
 
   obj)
 
@@ -243,18 +243,9 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                        (instrumentation-files javascript-project))
                   (for file-id upfrom 0)
                   (declare (ignorable file))
-                  (collect
-                   (if (eq (parsing-mode obj) :script)
-                       ;; add trace collection initialization to entrypoint
-                       (make-instance 'javascript-instrumenter
-                         :software obj
-                         :file-id file-id
-                         :initialize-tracing-p t)
-                       ;; no initialization for other files
-                       (make-instance 'javascript-instrumenter
-                         :software obj
-                         :file-id file-id
-                         :initialize-tracing-p nil)))))
+                  (collect (make-instance 'javascript-instrumenter
+                             :software obj
+                             :file-id file-id))))
   javascript-project)
 
 (defmethod uninstrument ((obj javascript) &key (num-threads 1))

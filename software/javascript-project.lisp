@@ -116,13 +116,7 @@
                     (find rel-path (aget :bin pkg)
                           :key [#'canonical-pathname #'cdr]
                           :test #'equal) ;; 4
-                    (equal rel-path (aget :main pkg))))) ;; 5
-
-      ;; Sanity check the JavaScript project to ensure an entry point exists
-      (assert (find :script (evolve-files javascript-project)
-                    :key [#'parsing-mode #'cdr])
-              (javascript-project)
-              "JavaScript project entry point could not be found.")))
+                    (equal rel-path (aget :main pkg))))))) ;; 5
 
   javascript-project)
 
