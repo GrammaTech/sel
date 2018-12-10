@@ -78,3 +78,14 @@ techniques."
   :build-operation "asdf:program-op"
   :build-pathname "bin/lisp-diff"
   :entry-point "software-evolution-library/ast-diff/lisp::run-lisp-diff")
+
+(defsystem "software-evolution-library/run-lisp-merge"
+  :author "Paul Dietz and GrammaTech"
+  :licence "GPL V3"
+  :description "Compute the merge of two Lisp programs that diverge from a common ancestral version."
+  :version "0.0.0"
+  :depends-on (software-evolution-library/ast-diff/lisp)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/lisp-merge"
+  :entry-point "software-evolution-library/ast-diff/lisp::run-lisp-merge")
+

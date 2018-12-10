@@ -88,7 +88,7 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = clang-diff clang-merge
+BINS = clang-diff clang-merge lisp-diff lisp-merge
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
