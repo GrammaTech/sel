@@ -48,13 +48,8 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose compiler))
   (when help (show-help-for-clang-merge))
-  (mapc (lambda (file)
-	  (unless (probe-file file)
-	    (format *error-output*
-		    "~a: No such file or directory~%"
-		    file)
-	    (return-from clang-merge 3))
-	  file) (list original version1 version2))
+  (unless (every #'resolve-file (list original version1 version2))
+    (exit-command clang-merge 2 (error "Missing file.")))
   (setf out-dir (or out-dir (resolve-out-dir-from-source original))
         original (truenamize original)
 	version1 (truenamize version1)

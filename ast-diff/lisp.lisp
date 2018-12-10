@@ -279,16 +279,6 @@
 
 (declaim (special *lisp-forms1* *lisp-forms2* *diff*))
 
-(defun check-for-files (files)
-  (some #'identity
-	(mapcar (lambda (file)
-		  (unless (probe-file file)
-		    (format *error-output*
-			    "~a: No such file or directory~%"
-			    file)
-		    t))
-		files)))
-
 (define-command lisp-diff (file1 file2 &spec +command-line-options+)
   "Compare Lisp source in FILE1 and FILE2 by AST."
   #.(format nil
@@ -297,8 +287,8 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose))
   (when help (show-help-for-lisp-diff))
-  (when (check-for-files (list file1 file2))
-    (quit 2))
+  (unless (every #'resolve-file (list file1 file2))
+    (exit-command lisp-diff 2 (error "Missing file.")))
   ;; Create the diff.
   (let* ((forms1 (read-file-forms+ file1))
 	 (forms2 (read-file-forms+ file2))
@@ -335,10 +325,8 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose))
   (when help (show-help-for-lisp-merge))
-  (when (check-for-files (list file1 file2 file3))
-    (when uiop/image:*lisp-interaction*
-      (return-from lisp-merge nil))
-    (quit 2))
+  (unless (every #'resolve-file (list file1 file2 file3))
+    (exit-command lisp-merge 2 (error "Missing file.")))
   (let ((forms1 (read-file-forms+ file1))
 	(forms2 (read-file-forms+ file2))
 	(forms3 (read-file-forms+ file3)))

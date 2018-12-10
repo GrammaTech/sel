@@ -91,15 +91,8 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose))
   (when help (show-help-for-clang-diff))
-  (when (some #'identity
-              (mapcar (lambda (file)
-                        (unless (probe-file file)
-                          (format *error-output*
-                                  "~a: No such file or directory~%"
-                                  file)
-                          t))
-                      (list file1 file2)))
-    (quit 2))
+  (unless (every #'resolve-file (list file1 file2))
+    (exit-command clang-diff 2 (error "Missing file.")))
   ;; Setup clang-mutate options.
   (setf flags
         (mappend [{list "-I"} {concatenate 'string (namestring (pwd)) "/"}]

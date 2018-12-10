@@ -38,6 +38,7 @@
            :handle-set-verbose-argument
            :handle-store-traces-argument
            :handle-load-traces-argument
+           :resolve-file
            :resolve-out-dir-from-source
            :resolve-name-from-source
            :resolve-test-dir-from-source
@@ -45,6 +46,7 @@
            :resolve-test-script-from-test-script
            :resolve-num-tests-from-num-tests
            :wait-on-manual
+           :exit-command
            ;; Common sets of command-line-arguments options.
            :+common-command-line-options+
            :+interactive-command-line-options+
@@ -124,6 +126,14 @@
           (path)
           "~a does not exist" path)
   path)
+
+(defun resolve-file (file)
+  "Ensure file is an actual file that exists on the filesystem."
+  (if (probe-file file)
+      file
+      (format *error-output*
+	      "~a: No such file or directory~%"
+	      file)))
 
 (defun resolve-out-dir-from-source (source)
   "Select a reasonable output directory based on SOURCE."
@@ -207,6 +217,15 @@ Optional DESCRIPTION is added to the path."
     (join-thread
      (car (remove-if-not [{string= "Swank Sentinel"} #'thread-name]
                          (all-threads))))))
+
+(defmacro exit-command (command-name errno &optional interactive-return-val)
+  "Exit COMMAND-NAME with ERRNO (command line) or INTERACTIVE-RETURN-VAL (REPL).
+COMMAND-NAME should be the name of the enclosing function defined with
+`define-command'.  Command-line or interactive state is determined by
+inspecting the value of `*lisp-interaction*'."
+  `(if uiop/image:*lisp-interaction*
+       (return-from ,command-name ,interactive-return-val)
+       (quit ,errno)))
 
 
 ;;;; Common sets of command-line-arguments options.
