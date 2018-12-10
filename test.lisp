@@ -9460,22 +9460,26 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-lisp-diff.1 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '() '()) s)) "")
+		(print-diff (ast-diff '() '()) :no-color t :stream s))
+              "")
       "Print diff of empty lists"))
 
 (deftest print-lisp-diff.2 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '(()) '(())) s)) "()")
+		(print-diff (ast-diff '(()) '(())) :no-color t :stream s))
+              "()")
       "Print diff of list of empty list"))
 
 (deftest print-lisp-diff.3 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '() '(())) s)) "{+()+}")
+		(print-diff (ast-diff '() '(())) :no-color t :stream s))
+              "{+()+}")
       "Print diff of insertion of empty list"))
 
 (deftest print-lisp-diff.4 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '(()) '()) s)) "[-()-]")
+		(print-diff (ast-diff '(()) '()) :no-color t :stream s))
+              "[-()-]")
       "Print diff of deletion of empty list"))
 
 (defvar *forms* nil "Forms used in tests.")
@@ -9630,7 +9634,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "int a; int c;")
 					(%f "int a; int b; int c;"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "int a; {+int b; +}int c;")
       "Print diff of an insertion"))
 
@@ -9639,7 +9644,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "int a; int b; int c;")
 					(%f "int a; int c;"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "int a; [-int b; -]int c;")
       "Print diff of a deletion"))
 
@@ -9648,7 +9654,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "int a; int b; int c;")
 					(%f "int a; int d; int c;"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "int a; int {+d+}[-b-]; int c;")
       "Print diff of a replacement"))
 
@@ -9657,7 +9664,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
 					(%f "char *s = \"acd\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a[-b-]cd\";")
       "Print diff of deletion of a character in a string"))
 
@@ -9666,7 +9674,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
 					(%f "char *s = \"ad\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a[-bc-]d\";")
       "Print diff of deletion of substring in a string"))
 
@@ -9677,7 +9686,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"ad\";")
 					(%f "char *s = \"abcd\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a{+bc+}d\";")
       "Print diff of insertion of a substring in a string"))
 
@@ -9686,7 +9696,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"ad\";")
 					(%f "char *s = \"abd\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a{+b+}d\";")
       "Print diff of insertion of a character in a string"))
 

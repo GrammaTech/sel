@@ -47,6 +47,8 @@
    :metabang-bind
    :iterate
    :cl-heap)
+  (:shadowing-import-from :software-evolution-library/view
+                          +color-RED+ +color-GRN+ +color-RST+)
   (:export
    :ast-equal-p
    :ast-cost
@@ -816,12 +818,14 @@ A diff is a sequence of actions as returned by `ast-diff' including:
 FILE-DIFFS is an alist mapping strings (?) to diffs, which are as
 in AST-PATCH.  Returns a new SOFT with the patched files."))
 
-(defun print-diff (diff &optional
-                          (stream *standard-output*)
-                          (delete-start "[-")
-                          (delete-end "-]")
-                          (insert-start "{+")
-                          (insert-end "+}"))
+(defun print-diff
+    (diff &key
+            (stream *standard-output*)
+            (no-color nil)
+            (delete-start (if no-color "[-" (format nil "~a[-" +color-RED+)))
+            (delete-end (if no-color "-]" (format nil "-]~a" +color-RST+)))
+            (insert-start (if no-color "{+" (format nil "~a{+" +color-GRN+)))
+            (insert-end (if no-color "+}" (format nil "~a+}" +color-RST+))))
   (let ((*print-escape* nil)
 	(insert-buffer nil)
 	(delete-buffer nil))

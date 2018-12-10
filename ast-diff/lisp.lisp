@@ -300,12 +300,8 @@
     (if raw
         (writeln (ast-diff-elide-same diff) :readably t)
         (if no-color
-            (print-diff diff)
-            (print-diff diff *standard-output*
-                        (format nil "~a[-" +color-RED+)
-                        (format nil "-]~a" +color-RST+)
-                        (format nil "~a{+" +color-GRN+)
-                        (format nil "+}~a" +color-RST+))))
+            (print-diff diff :no-color t)
+            (print-diff diff)))
     ;; Only exit with 0 if the two inputs match.
     (unless uiop/image:*lisp-interaction*
       (quit (if (every [{eql :same} #'car] diff) 0 1)))
