@@ -93,9 +93,10 @@ BINS = clang-diff clang-merge lisp-diff lisp-merge
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate	\
-	example-002-evaluation
+	lisp-diff-on-gcd
 
 LONG_BIN_TESTS =		\
+	example-002-evaluation	\
 	example-003-neutral	\
 	example-004-evolve
 
