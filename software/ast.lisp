@@ -69,6 +69,8 @@ the ast path and source text.
         (format stream ":PATH ~s ~:_ :AST ~s ~:_ :TEXT ~a"
                 (ast-path obj) (ast-node obj) (source-text obj)))))
 
+(defgeneric ast-class (ast) (:documentation "Class of AST."))
+
 (defmacro define-immutable-node-struct (name-and-options &rest slot-descriptions)
   (with-gensyms ((obj obj-))
     (let* ((name (get-struct-name name-and-options))
