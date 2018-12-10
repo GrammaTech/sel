@@ -70,9 +70,38 @@
    (children   :initarg :children
                :accessor children)))
 
+(defmethod print-object ((obj expression-result) stream)
+  (nest (with-slots (start end string-pointer expression children) obj)
+        (if *print-readably*
+            (format stream "~S" `(make-instance 'expression-result
+                                   :start ,start
+                                   :end ,end
+                                   :string-pointer *string*
+                                   :expression ,expression
+                                   :children (list ,@children))))
+        (print-unreadable-object (obj stream :type t))
+        (format stream ":EXPRESSION ~a :CHILDREN ~S" expression children)))
+
 (defclass skipped-input-result (result)
   ((reason :initarg :reason
            :reader  reason)))
+
+(defmethod print-object ((obj skipped-input-result) stream &aux (max-length 8))
+  (nest (with-slots (start end string-pointer reason) obj)
+        (if *print-readably*
+            (format stream "~S" `(make-instance 'skipped-input-result
+                                   :start ,start
+                                   :end ,end
+                                   :string-pointer *string*
+                                   :reason ,reason)))
+        (print-unreadable-object (obj stream :type t))
+        (format stream ":REASON ~a :TEXT ~S" reason)
+        (if (> (- end start) (- max-length 3))
+            (concatenate
+             'string
+             (subseq string-pointer start (+ start (- max-length 3)))
+             "...")
+            (subseq string-pointer start end))))
 
 (defclass second-climacs (parse-result-mixin)
   ((cache :reader   cache

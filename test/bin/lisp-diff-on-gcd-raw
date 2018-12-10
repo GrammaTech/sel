@@ -1,0 +1,10 @@
+#!/bin/bash
+
+NUM_DIFFS="$(lisp-diff -r test/etc/gcd/gcd.lisp test/etc/gcd/gcd-fix.lisp|grep -ic :INSERT)"
+if [ "$NUM_DIFFS" == "2" ];then
+    echo PASS
+    exit 0
+else
+    echo FAIL
+    exit 1
+fi

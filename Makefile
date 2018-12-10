@@ -94,6 +94,7 @@ BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate	\
 	lisp-diff-on-gcd	\
+	lisp-diff-on-gcd-raw	\
 	clang-diff-on-gcd
 
 LONG_BIN_TESTS =		\
