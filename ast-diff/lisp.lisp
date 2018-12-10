@@ -38,7 +38,9 @@
         :software-evolution-library/utility
         :software-evolution-library/ast-diff/ast-diff
         :software-evolution-library/software/lisp
-        :eclector.parse-result)
+	:eclector.parse-result
+	)
+  (:import-from :software-evolution-library/software/ast :ast-hash :ast-text)
   (:shadowing-import-from
    :uiop :getenv :directory-exists-p :copy-file :appendf :parse-body
    :ensure-list :simple-style-warning :ensure-gethash :ensure-function
@@ -98,7 +100,7 @@
 
 (defmethod eclector.reader:read-common :around
     ((client second-climacs) input-stream eof-error-p eof-value)
-  (let ((position (source-position client input-stream)))
+  (let ((position (eclector.parse-result:source-position client input-stream)))
     (if-let ((cached (getcache position client)))
       (progn
         (assert (eql (start cached) position))
@@ -109,10 +111,13 @@
           (setf (getcache position client) parse-result)
           (values expression parse-result))))))
 
-(defun read-file-forms+ (file &key count)
+(defun read-file-forms+ (file &rest args)
   "Read forms and comments from FILE returned interleaved in a tree."
+  (apply #'read-forms+ (file-to-string file) args))
+
+(defun read-forms+ (string &key count)
   (check-type count (or null integer))
-  (let ((*string* (file-to-string file))
+  (let ((*string* string)
         (eclector.reader:*client* (make-instance 'second-climacs)))
     (labels
         ((make-space (start end)
@@ -137,14 +142,14 @@
                (make-space from (start tree))
                (list tree)
                (make-space (end tree) to))))))
-      (w/space (with-open-file (input file)
+      (w/space (with-input-from-string (input string)
                  (loop :with eof = '#:eof
                     :for n :from 0
                     :for form = (if (and count (>= n count))
                                     eof
-                                    (read input nil eof))
+                                    (eclector.parse-result:read input nil eof))
                     :until (eq form eof) :collect form))
-               0 (length *string*)))))
+               0 (length string)))))
 
 (defun walk-forms+ (function forms)
   (mapcar (lambda (form)
@@ -156,7 +161,16 @@
 (defun write-file-forms+ (forms)
   "Re-prints the exact output as the original file."
   (with-open-file (out "/tmp/out.lisp" :direction :output :if-exists :supersede)
-    (walk-forms+ [{format out "~a"} #'ast-text] forms)))
+    (write-stream-forms+ forms out)))
+
+(defun write-stream-forms+ (forms stream)
+  "Re-prints the exact output as the original file, to STREAM"
+  (walk-forms+  [{format stream "~a"} #'ast-text] forms))
+
+(defun write-string-forms+ (forms)
+  "Re-prints the exact output as the original file, to a string, which is returned"
+  (with-output-to-string (s) (write-stream-forms+ forms s)))
+
 
 
 ;;; Interface to ast-diff for lisp source trees.
@@ -173,6 +187,12 @@
 
 (defmethod ast-cost ((result skipped-input-result)) 1)
 
+(defmethod ast-hash ((result skipped-input-result))
+  (ast-hash (source result)))
+
+(defmethod ast-hash ((result expression-result))
+  (ast-hash (cons :lisp-expression (mapcar #'ast-hash (children result)))))
+
 (defmethod ast-can-recurse ((ast-a expression-result) (ast-b expression-result))
   (and (children ast-a) (children ast-b)))
 
@@ -186,7 +206,7 @@
 
 (defmethod ast-can-recurse
     ((ast-a skipped-input-result) (ast-b skipped-input-result))
-  nil)
+  t)
 
 (defmethod ast-on-recurse ((ast expression-result))
   (children ast))
@@ -202,6 +222,50 @@
 (defmethod ast-text ((result result))
   (source result))
 
+(defmethod ast-diff ((a skipped-input-result) (b skipped-input-result))
+  (ast-diff (source a) (source b)))
+
+(defmethod ast-diff ((a expression-result) (b expression-result))
+  (ast-diff (children a) (children b)))
+
+(defmethod ast-patch ((a skipped-input-result) script &key &allow-other-keys)
+  (let* ((str (source a))
+	 (new-str (ast-patch str script)))
+    (if (equal str new-str)
+	a
+	(make-instance 'skipped-input-result
+		       :start 0
+		       :end (length new-str)
+		       :string-pointer new-str
+		       :reason (reason a)))))
+
+(defmethod ast-patch ((a expression-result) script &key &allow-other-keys)
+  (let* ((c (children a))
+	 (new-c (ast-patch c script)))
+    (if (equal c new-c)
+	a
+	(let ((src (mapconcat #'source new-c ""))
+	      (form (iter (for child in new-c)
+			  (when (typep child 'expression-result)
+			    (collect (expression child))))))
+	  ;; Special handling for dotted lists
+	  ;; These are indicated by having the next
+	  ;; to last element of the list be a "CONSING DOT"
+	  (let ((len (length form))
+		(consing-dot eclector.reader::*consing-dot*))
+	    (when (>= len 3)
+	      (let ((last3 (last form 3)))
+		(when (eql (cadr last3) consing-dot)
+		  ;; FORM was newly allocated, so we can
+		  ;; destructively modify it
+		  (setf (cdr last3) (caddr last3))))))
+	  (make-instance 'expression-result
+			 :start 0
+			 :end (length src)
+			 :string-pointer src
+			 :children new-c
+			 :expression form)))))
+
 
 ;;; Command-line interface to lisp differencing.
 (setf *note-out* *error-output*)
@@ -214,6 +278,18 @@
               (("no-color" #\C) :type boolean :optional t
                :documentation "inhibit color printing")))))
 
+(declaim (special *lisp-forms1* *lisp-forms2* *diff*))
+
+(defun check-for-files (files)
+  (some #'identity
+	(mapcar (lambda (file)
+		  (unless (probe-file file)
+		    (format *error-output*
+			    "~a: No such file or directory~%"
+			    file)
+		    t))
+		files)))
+
 (define-command lisp-diff (file1 file2 &spec +command-line-options+)
   "Compare Lisp source in FILE1 and FILE2 by AST."
   #.(format nil
@@ -222,19 +298,15 @@
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose))
   (when help (show-help-for-lisp-diff))
-  (when (some #'identity
-              (mapcar (lambda (file)
-                        (unless (probe-file file)
-                          (format *error-output*
-                                  "~a: No such file or directory~%"
-                                  file)
-                          t))
-                      (list file1 file2)))
+  (when (check-for-files (list file1 file2))
     (quit 2))
   ;; Create the diff.
-  (let ((diff
-         (ast-diff (read-file-forms+ file1)
-                   (read-file-forms+ file2))))
+  (let* ((forms1 (read-file-forms+ file1))
+	 (forms2 (read-file-forms+ file2))
+	 (diff (ast-diff forms1 forms2)))
+    (setf *lisp-forms1* forms1
+	  *lisp-forms2* forms2
+	  *diff* diff)
     ;; Print according to the RAW option.
     (if raw
         (writeln (ast-diff-elide-same diff) :readably t)
@@ -246,6 +318,43 @@
                         (format nil "~a{+" +color-GRN+)
                         (format nil "+}~a" +color-RST+))))
     ;; Only exit with 0 if the two inputs match.
-    (if uiop/image:*lisp-interaction*
-        (quit (if (every [{eql :same} #'car] diff) 0 1))
-        diff)))
+    (unless uiop/image:*lisp-interaction*
+      (quit (if (every [{eql :same} #'car] diff) 0 1)))
+    diff))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter +merge-command-line-options+
+    (append +common-command-line-options+
+	    `())))
+
+(define-command lisp-merge (file1 file2 file3 output-file
+				  &spec +merge-command-line-options+)
+  "Merge changes from file1->file2 and file1->file3 to produce output-file"
+  #.(format nil
+            "~%Built from SEL ~a, and ~a ~a.~%"
+            +software-evolution-library-version+
+            (lisp-implementation-type) (lisp-implementation-version))
+  (declare (ignorable quiet verbose))
+  (when help (show-help-for-lisp-merge))
+  (when (check-for-files (list file1 file2 file3))
+    (when uiop/image:*lisp-interaction*
+      (return-from lisp-merge nil))
+    (quit 2))
+  (let ((forms1 (read-file-forms+ file1))
+	(forms2 (read-file-forms+ file2))
+	(forms3 (read-file-forms+ file3)))
+    (let ((result (converge forms1 forms2 forms3)))
+      (prog1 (output-lisp-forms result output-file)
+	(unless uiop/image:*lisp-interaction* (quit 0))))))
+
+(defun output-lisp-forms (forms file)
+  "Dump a list of Lisp eclector objects to FILE.  Returns
+   list of strings from each object"
+  (with-open-file (s file :direction :output
+		     :if-exists :supersede
+		     :if-does-not-exist :create)
+    (mapcar (lambda (form)
+	      (let ((str (source form)))
+		(princ str s)
+		str))
+	    forms)))
