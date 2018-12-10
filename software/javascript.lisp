@@ -158,10 +158,11 @@
                            (list (aget :meta ast-alist)
                                  (aget :property ast-alist)))
                           ((equal ast-class "Property")
-                           (remove-duplicates
+                           (if (< (aget :start (aget :value ast-alist))
+                                  (aget :end (aget :key ast-alist)))
+                             (list (aget :value ast-alist))
                              (list (aget :key ast-alist)
-                                   (aget :value ast-alist))
-                             :test #'equal))
+                                   (aget :value ast-alist))))
                           ((equal ast-class "MethodDefinition")
                            (list (aget :key ast-alist)
                                  (aget :value ast-alist)))
@@ -218,8 +219,10 @@
                                    (aget :specifiers ast-alist)
                                    (list (aget :source ast-alist))))
                           ((equal ast-class "ExportSpecifier")
-                           (list (aget :exported ast-alist)
-                                 (aget :local ast-alist)))
+                           (remove-duplicates
+                             (list (aget :local ast-alist)
+                                   (aget :exported ast-alist))
+                             :test #'equal))
                           ((member ast-class
                                    (list "ClassExpression"
                                          "ClassDeclaration")
@@ -298,8 +301,10 @@
                                          "ImportDefaultSpecifier"
                                          "ImportNamespaceSpecifier")
                                    :test #'equal)
-                           (list (aget :local ast-alist)
-                                 (aget :imported ast-alist)))
+                           (remove-duplicates
+                             (list (aget :imported ast-alist)
+                                   (aget :local ast-alist))
+                             :test #'equal))
                           (t nil))))
        (make-children (genome parent-alist alist child-alists child-asts)
          (if child-alists

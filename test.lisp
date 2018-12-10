@@ -3549,61 +3549,119 @@ int x = CHARSIZE;")))
                   (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
 
 (deftest (javascript-parsing-test :long-running) ()
-  (labels ((parse-test (file &rest ast-classes)
-              (let ((soft (from-file (make-instance 'javascript) file)))
-                (is (not (null (asts soft))))
-                (is (equal (genome soft) (file-to-string file)))
-                (mapc (lambda (ast-class)
-                        (is (find ast-class (asts soft) :key #'ast-class)))
-                      ast-classes))))
-    (parse-test (javascript-dir #P"parsing/array-destructuring.js")
+  (labels ((parse-test (soft &rest ast-classes)
+             (is (not (null (asts soft))))
+             (mapc (lambda (ast-class)
+                     (is (find ast-class (asts soft) :key #'ast-class)))
+                   ast-classes)))
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/array-destructuring.js"))
                 :ArrayPattern)
-    (parse-test (javascript-dir #P"parsing/arrow-function-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/arrow-function-expression.js"))
                 :ArrowFunctionExpression)
-    (parse-test (javascript-dir #P"parsing/await-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/await-expression.js"))
                 :AwaitExpression)
-    (parse-test (javascript-dir #P"parsing/class-declaration.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/class-declaration.js"))
                 :ClassDeclaration)
-    (parse-test (javascript-dir #P"parsing/class-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/class-expression.js"))
                 :ClassExpression)
-    (parse-test (javascript-dir #P"parsing/conditional-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/conditional-expression.js"))
                 :ConditionalExpression)
-    (parse-test (javascript-dir #P"parsing/debugger-statement.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/debugger-statement.js"))
                 :DebuggerStatement)
-    (parse-test (javascript-dir #P"parsing/empty-statement.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/empty-statement.js"))
                 :EmptyStatement)
-    (parse-test (javascript-dir #P"parsing/expression-statement.js")
+    (parse-test (from-file
+                  (make-instance 'javascript :parsing-mode :module)
+                  (javascript-dir #P"parsing/export-specifier.js"))
+                :ExportSpecifier)
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/expression-statement.js"))
                 :ExpressionStatement)
-    (parse-test (javascript-dir #P"parsing/function-declaration.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/function-declaration.js"))
                 :FunctionDeclaration)
-    (parse-test (javascript-dir #P"parsing/function-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/function-expression.js"))
                 :FunctionExpression)
-    (parse-test (javascript-dir #P"parsing/if.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/if.js"))
                 :IfStatement)
-    (parse-test (javascript-dir #P"parsing/labeled-statement.js")
+    (parse-test (from-file
+                  (make-instance 'javascript :parsing-mode :module)
+                  (javascript-dir #P"parsing/import-specifier.js"))
+                :ImportSpecifier)
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/labeled-statement.js"))
                 :LabeledStatement)
-    (parse-test (javascript-dir #P"parsing/loops.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/loops.js"))
                 :ForStatement :ForInStatement :ForOfStatement
                 :WhileStatement :DoWhileStatement)
-    (parse-test (javascript-dir #P"parsing/new-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/new-expression.js"))
                 :NewExpression)
-    (parse-test (javascript-dir #P"parsing/object-destructuring.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/object-destructuring.js"))
                 :ObjectPattern)
-    (parse-test (javascript-dir #P"parsing/object-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/object-expression.js"))
                 :ObjectExpression)
-    (parse-test (javascript-dir #P"parsing/sequence-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/property.js"))
+                :Property)
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/sequence-expression.js"))
                 :SequenceExpression)
-    (parse-test (javascript-dir #P"parsing/spread-element.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/spread-element.js"))
                 :SpreadElement)
-    (parse-test (javascript-dir #P"parsing/switch.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/switch.js"))
                 :SwitchStatement)
-    (parse-test (javascript-dir #P"parsing/tagged-template-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/tagged-template-expression.js"))
                 :TaggedTemplateExpression)
-    (parse-test (javascript-dir #P"parsing/try-catch-throw.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/try-catch-throw.js"))
                 :TryStatement :CatchClause :ThrowStatement)
-    (parse-test (javascript-dir #P"parsing/with-statement.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/with-statement.js"))
                 :WithStatement)
-    (parse-test (javascript-dir #P"parsing/yield-expression.js")
+    (parse-test (from-file
+                  (make-instance 'javascript)
+                  (javascript-dir #P"parsing/yield-expression.js"))
                 :YieldExpression)))
 
 (deftest array-destructuring-get-vars-in-scope-test ()
