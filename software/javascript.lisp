@@ -49,11 +49,17 @@
            :make-javascript-ast
            :copy-javascript-ast
            :make-javascript-ast-node
-           :copy-javascript-ast-node))
+           :copy-javascript-ast-node
+           :parsing-mode))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript (parseable) ()
+(define-software javascript (parseable)
+  ((parsing-mode
+     :initarg :parsing-mode
+     :reader parsing-mode
+     :initform :script
+     :documentation "Acorn parsing mode, either :script or :module."))
   (:documentation "Javascript software representation."))
 
 
@@ -93,7 +99,11 @@
 * OBJ object to parse"
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (multiple-value-bind (stdout stderr exit)
-        (shell "acorn --allow-hash-bang ~a" src-file)
+        (shell "acorn --allow-hash-bang ~a ~a"
+               (if (eq (parsing-mode obj) :module)
+                   "--module"
+                   "")
+               src-file)
         (if (zerop exit)
             (decode-json-from-string stdout)
             (error
