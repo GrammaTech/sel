@@ -204,7 +204,7 @@ Creates a JAVASCRIPT-INSTRUMENTER for OBJ and calls its instrument method.
                                                          ast
                                                          after}))))))
 
-  (prepend-to-genome obj +javascript-trace-code+)
+  (append-to-genome-preamble obj +javascript-trace-code+)
 
   obj)
 
