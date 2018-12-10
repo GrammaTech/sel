@@ -19,6 +19,7 @@
         :cl-json
         :named-readtables
         :curry-compose-reader-macros
+        :uiop/pathname
         :software-evolution-library
         :software-evolution-library/software/javascript
         :software-evolution-library/software/parseable-project
@@ -34,7 +35,12 @@
      :initarg :package-spec
      :accessor package-spec
      :initform nil
-     :documentation "Javascript project specification from package.json file."))
+     :documentation "Javascript project specification from package.json file.")
+   (ignore-directories
+     :initarg :ignore-directories
+     :reader ignore-directories
+     :initform (list "test" "tests" "node_modules")
+     :documentation "List of directories to ignore when building the project."))
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
@@ -100,23 +106,20 @@
         :test (lambda (file &aux (rel-path (relativize-path file))
                                  (pkg (package-spec javascript-project)))
                 ;; Heuristics for identifying files in the project:
-                ;; 1) The file cannot be in the node_modules
-                ;;    dependencies directory.
-                ;; 2) The file cannot be in a test or tests directory.
-                ;; 3) The file must have a "js" extension.
-                ;; 4) The file is listed as a "bin" in package.json.
-                ;; 5) The file is listed as "main" in package.json.
-                (or (and (not (find "node_modules" (pathname-directory rel-path)
-                                    :test #'equalp)) ;; 1
-                         (not (find "test" (pathname-directory rel-path)
-                                    :test #'equalp)) ;; 2
-                         (not (find "tests" (pathname-directory rel-path)
-                                    :test #'equalp)) ;; 2
-                         (equal "js" (pathname-type rel-path))) ;; 3
+                ;; 1) The file is not in an ignored directory.
+                ;; 2) The file has a "js" extension.
+                ;; 3) The file is listed as a "bin" in package.json.
+                ;; 4) The file is listed as "main" in package.json.
+                (or (and (not (find-if {search _ (pathname-directory rel-path)
+                                               :test #'equalp}
+                                       (ignore-directories javascript-project)
+                                       :key [#'pathname-directory
+                                             #'ensure-directory-pathname]))
+                         (equal "js" (pathname-type rel-path)))
                     (find rel-path (aget :bin pkg)
                           :key [#'canonical-pathname #'cdr]
-                          :test #'equal) ;; 4
-                    (equal rel-path (aget :main pkg))))))) ;; 5
+                          :test #'equal)
+                    (equal rel-path (aget :main pkg)))))))
 
   javascript-project)
 

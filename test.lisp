@@ -3549,120 +3549,71 @@ int x = CHARSIZE;")))
                   (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
 
 (deftest (javascript-parsing-test :long-running) ()
-  (labels ((parse-test (soft &rest ast-classes)
-             (is (not (null (asts soft))))
-             (mapc (lambda (ast-class)
-                     (is (find ast-class (asts soft) :key #'ast-class)))
-                   ast-classes)))
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/array-destructuring.js"))
-                :ArrayPattern)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/arrow-function-expression.js"))
-                :ArrowFunctionExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/await-expression.js"))
-                :AwaitExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/class-declaration.js"))
-                :ClassDeclaration)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/class-expression.js"))
-                :ClassExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/conditional-expression.js"))
-                :ConditionalExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/debugger-statement.js"))
-                :DebuggerStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/empty-statement.js"))
-                :EmptyStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript :parsing-mode :module)
-                  (javascript-dir #P"parsing/export-specifier.js"))
-                :ExportSpecifier)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/expression-statement.js"))
-                :ExpressionStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/function-declaration.js"))
-                :FunctionDeclaration)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/function-expression.js"))
-                :FunctionExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/if.js"))
-                :IfStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript :parsing-mode :module)
-                  (javascript-dir #P"parsing/import-specifier.js"))
-                :ImportSpecifier)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/labeled-statement.js"))
-                :LabeledStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/loops.js"))
-                :ForStatement :ForInStatement :ForOfStatement
-                :WhileStatement :DoWhileStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/new-expression.js"))
-                :NewExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/object-destructuring.js"))
-                :ObjectPattern)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/object-expression.js"))
-                :ObjectExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/property.js"))
-                :Property)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/sequence-expression.js"))
-                :SequenceExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/spread-element.js"))
-                :SpreadElement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/switch.js"))
-                :SwitchStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/tagged-template-expression.js"))
-                :TaggedTemplateExpression)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/try-catch-throw.js"))
-                :TryStatement :CatchClause :ThrowStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/with-statement.js"))
-                :WithStatement)
-    (parse-test (from-file
-                  (make-instance 'javascript)
-                  (javascript-dir #P"parsing/yield-expression.js"))
-                :YieldExpression)))
+  (labels ((parse-test (path parsing-mode &rest ast-classes)
+             (let ((soft (from-file (make-instance 'javascript
+                                      :parsing-mode parsing-mode)
+                                    (javascript-dir path))))
+               (is (not (null (asts soft))))
+               (is (equal (genome soft) (file-to-string (javascript-dir path))))
+               (mapc (lambda (ast-class)
+                       (is (find ast-class (asts soft) :key #'ast-class)))
+                     ast-classes))))
+    (mapc {apply #'parse-test}
+          '((#P"parsing/array-destructuring.js"
+             :script :ArrayPattern)
+            (#P"parsing/arrow-function-expression.js"
+             :script :ArrowFunctionExpression)
+            (#P"parsing/await-expression.js"
+             :script :AwaitExpression)
+            (#P"parsing/class-declaration.js"
+             :script :ClassDeclaration)
+            (#P"parsing/class-expression.js"
+             :script :ClassExpression)
+            (#P"parsing/conditional-expression.js"
+             :script :ConditionalExpression)
+            (#P"parsing/debugger-statement.js"
+             :script :DebuggerStatement)
+            (#P"parsing/empty-statement.js"
+             :script :EmptyStatement)
+            (#P"parsing/export-specifier.js"
+             :module :ExportSpecifier)
+            (#P"parsing/expression-statement.js"
+             :script :ExpressionStatement)
+            (#P"parsing/function-declaration.js"
+             :script :FunctionDeclaration)
+            (#P"parsing/function-expression.js"
+             :script :FunctionExpression)
+            (#P"parsing/if.js"
+             :script :IfStatement)
+            (#P"parsing/import-specifier.js"
+             :module :ImportSpecifier)
+            (#P"parsing/labeled-statement.js"
+             :script :LabeledStatement)
+            (#P"parsing/loops.js"
+             :script :ForStatement :ForInStatement :ForOfStatement
+             :WhileStatement :DoWhileStatement)
+            (#P"parsing/new-expression.js"
+             :script :NewExpression)
+            (#P"parsing/object-destructuring.js"
+             :script :ObjectPattern)
+            (#P"parsing/object-expression.js"
+             :script :ObjectExpression)
+            (#P"parsing/property.js"
+             :script :Property)
+            (#P"parsing/sequence-expression.js"
+             :script :SequenceExpression)
+            (#P"parsing/spread-element.js"
+             :script :SpreadElement)
+            (#P"parsing/switch.js"
+             :script :SwitchStatement)
+            (#P"parsing/tagged-template-expression.js"
+             :script :TaggedTemplateExpression)
+            (#P"parsing/try-catch-throw.js"
+             :script :TryStatement :CatchClause :ThrowStatement)
+            (#P"parsing/with-statement.js"
+             :script :WithStatement)
+            (#P"parsing/yield-expression.js"
+             :script :YieldExpression)))))
 
 (deftest array-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)

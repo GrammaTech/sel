@@ -602,10 +602,10 @@ pathname (i.e., ending in a \"/\")."
 
 ;;;; Utilities from cl-fad.
 ;;;
-;;; The following three functions (`merge-pathnames-as-file',
-;;; `merge-pathnames-as-directory', and `canonical-pathname') were
-;;; adapted from cl-fad.  The CL-FAD license applies to the source for
-;;; these functions and is included below:
+;;; The functions `merge-pathnames-as-file', `merge-pathnames-as-directory',
+;;; `canonical-pathname', `directory-wildcard', `list-directory', and
+;;; `walk-directory' were adapted from cl-fad.  The CL-FAD license applies
+;;; to the source for these functions and is included below:
 ;;;
 ;;; Copyright (c) 2004, Peter Seibel.  All rights reserved.
 ;;; Copyright (c) 2004-2010, Dr. Edmund Weitz.  All rights reserved.

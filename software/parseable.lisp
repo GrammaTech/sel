@@ -579,8 +579,7 @@ otherwise.
   (:documentation "Append non-AST TEXT to OBJ's genome preamble.
 
 * OBJ object to modify with text
-* TEXT text to append to the genome preamble
-")
+* TEXT text to append to the genome preamble")
   (:method ((obj parseable) text)
     (labels ((ensure-newline (text)
                (if (not (equalp #\Newline (last-elt text)))
