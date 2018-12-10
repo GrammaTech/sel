@@ -20,17 +20,17 @@
   (time (ast-diff a1 a2)))
 
 (defun diff-files-old (f1 f2)
-  (let* ((ast1 (sel:ast-root (sel:from-file (make-instance 'sel:clang) f1)))
-	 (ast2 (sel:ast-root (sel:from-file (make-instance 'sel:clang) f2))))
+  (let* ((ast1 (sel/sw/parseable:ast-root (sel:from-file (make-instance 'sel/sw/clang:clang) f1)))
+	 (ast2 (sel/sw/parseable:ast-root (sel:from-file (make-instance 'sel/sw/clang:clang) f2))))
     (time (ast-diff-on-lists ast1 ast2))))
 
 (defun diff-files (f1 f2)
-  (let* ((ast1 (sel:ast-root (sel:from-file (make-instance 'sel:clang) f1)))
-	 (ast2 (sel:ast-root (sel:from-file (make-instance 'sel:clang) f2))))
+  (let* ((ast1 (sel/sw/parseable:ast-root (sel:from-file (make-instance 'sel/sw/clang:clang) f1)))
+	 (ast2 (sel/sw/parseable:ast-root (sel:from-file (make-instance 'sel/sw/clang:clang) f2))))
     (time (ast-diff ast1 ast2))))
 
 (defun diff-strings (s1 s2 &key (fn #'ast-diff))
-  (flet ((%fs (s) (sel:ast-root (sel:from-string (make-instance 'sel:clang) s))))
+  (flet ((%fs (s) (sel/sw/parseable:ast-root (sel:from-string (make-instance 'sel/sw/clang:clang) s))))
     (let ((ast1 (%fs s1))
 	  (ast2 (%fs s2)))
       (time (funcall fn ast1 ast2)))))
@@ -143,3 +143,26 @@ a valid patch.  Return :FAIL (and other values) if not."
 				 (subseq s2 p2 (+ p2 l))))))
        nil
        (list s1 s2 triples)))))
+
+;;; Testing of ast-diff/lisp
+
+(defun lisp-patch-test (f1 f2 out)
+  ;; After this, the contents of OUT should be the same as the contents of F2
+  (let ((sel/ast-diff/lisp::*lisp-forms1*)
+	(sel/ast-diff/lisp::*lisp-forms2*))
+    (let* ((diff (sel/ast-diff/lisp::lisp-diff f1 f2))
+	   (new-forms (ast-patch sel/ast-diff/lisp::*lisp-forms1* diff)))
+      (with-open-file (s out :direction :output :if-exists :supersede
+			 :if-does-not-exist :create)
+	(mapcar (lambda (x) (let ((str (sel/ast-diff/lisp::source x))) (princ str s) str)) new-forms)))))
+
+(defun lisp-merge3-test (f1 f2 f3 out)
+  ;; Testing merge algorithm on Lisp
+  (let ((forms1 (sel/ast-diff/lisp::read-file-forms+ f1))
+	(forms2 (sel/ast-diff/lisp::read-file-forms+ f2))
+	(forms3 (sel/ast-diff/lisp::read-file-forms+ f3)))
+    (let ((result (merge3 forms1 forms2 forms3)))
+      (with-open-file (s out :direction :output :if-exists :supersede
+			 :if-does-not-exist :create)
+	(mapcar (lambda (x) (let ((str (sel/ast-diff/lisp::source x))) (princ str s) str))
+		result)))))
