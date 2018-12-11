@@ -97,7 +97,7 @@
 				fitness-file
 				function-bounds-file)
   "Run TEST-FUNCTION on all leaf functions in the asm file (functions which
-don't make any calls) and skip those functions for which no i/o data file 
+don't make any calls) and skip those functions for which no i/o data file
 is found."
   (let* ((asm-super
 	  (from-file

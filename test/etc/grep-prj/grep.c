@@ -95,7 +95,7 @@ memchr(vp, c, n)
   return 0;
 }
 #endif
-    
+
 /* Define flags declared in grep.h. */
 char *matcher;
 int match_icase;
@@ -596,7 +596,7 @@ setmatcher(name)
 	return 1;
       }
   return 0;
-}  
+}
 
 int
 main(argc, argv)

@@ -1549,7 +1549,7 @@
 (defsuite rest-tests "REST API tests.")
 
 (defun rest-test-create-client ()
-  "Returns 2 values: new client id or nil, and status. 
+  "Returns 2 values: new client id or nil, and status.
  Assumes service is running."
   (let* ((params '(("max-population-size" . "1024")))
 	   (result nil))
@@ -1564,12 +1564,12 @@
 	    (setf result (read stream)))
 	(if (symbolp result)
 	    (setf result (symbol-name result)))
-	
+
 	(values result status))))
 
 (defun rest-test-create-software (type cid)
-  "Given type of Software object and client-id, returns 2 
- values: new software oid or nil, and status. 
+  "Given type of Software object and client-id, returns 2
+ values: new software oid or nil, and status.
  Assumes service is running."
   (let* ((path (namestring (hello-world-dir "hello_world.c")))
 	 (params `(("path" . ,path)
@@ -1590,11 +1590,11 @@
 	  (setf result (read stream)))
       (if (symbolp result)
 	  (setf result (symbol-name result)))
-      
+
       (values result status))))
 
 (defun rest-test-get-new-client ()
-  "Always creates a new REST client and returns (1) new client id, 
+  "Always creates a new REST client and returns (1) new client id,
  (2) http status code. The new client id is stored in *rest-client*."
   (multiple-value-bind (cid status)
       (rest-test-create-client)

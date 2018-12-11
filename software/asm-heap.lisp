@@ -144,7 +144,7 @@
        (char= (char (symbol-name token) 0) #\$)))
 
 (defun branch-op-p (token)
-  "Returns true iff the token represents a jump operation. We assume it 
+  "Returns true iff the token represents a jump operation. We assume it
 is a jump operator if the first letter is #\j or #\J. For our purposes
 we are excluding CALL instructions."
   (and (symbolp token)
@@ -518,7 +518,7 @@ is raised."
     lab-list))
 
 (defun labels-valid-p (asm-heap)
-  "Returns true if all labels which are referenced by 
+  "Returns true if all labels which are referenced by
 operation lines in the genome can be found as label declarations
 in the genome. There must be no more than one declaration of any
 label. If any referenced label is not found, or is declared more
@@ -812,8 +812,8 @@ for each function. The result is a vector of function-index-entry."
              (not (starts-with-p (symbol-name (asm-line-info-label info)) "$LOC_"))
 	     (not (starts-with-p (symbol-name (asm-line-info-label info)) "$BB_FALLTHROUGH_"))
              (not (starts-with-p (symbol-name (asm-line-info-label info)) "$UNK_")))
-      (format t "~A ~A ~A~%" 
-        (first (asm-line-info-tokens info)) 
+      (format t "~A ~A ~A~%"
+        (first (asm-line-info-tokens info))
         (asm-line-info-orig-line info)
         (asm-line-info-text info)))))
 |#

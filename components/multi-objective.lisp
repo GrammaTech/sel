@@ -4,7 +4,7 @@
 ;;; scores, where each element represents a single objective. All
 ;;; fitness values in the same population must be the same length and
 ;;; have their scores in the same order.
-;;; 
+;;;
 (defpackage :software-evolution-library/components/multi-objective
   (:nicknames :sel/components/multi-objective :sel/cp/multi-objective)
   (:use :common-lisp

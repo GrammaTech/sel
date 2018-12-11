@@ -132,7 +132,7 @@ which maps (test-casel: position)"
 
 (defun add-to-pos (k v sc)
   "DOCFIXME
-* K DOCFIXME 
+* K DOCFIXME
 * V DOCFIXME
 * SC DOCFIXME
 "

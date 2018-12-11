@@ -753,7 +753,7 @@ modile +AST-HASH-BASE+"
               ;; Without this, trees that have certain permutations of leaf
               ;; values can be likely to hash to the same integer.
               (setf result (mod (+ i b (* a hv) (* result result p)) hb))))
-      result))    
+      result))
 
   (defmethod ast-hash ((i integer))
     (let ((c1 34188292748050745)

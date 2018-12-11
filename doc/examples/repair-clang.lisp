@@ -127,7 +127,7 @@ Options:
             (or (= *num-tests* (fitness obj))
                 (funcall *fitness-predicate*
                          (fitness obj) *num-tests*)))
-          
+
           ;; set up a test suite to run each unit test
           *test-suite*
           (make-instance
@@ -154,7 +154,7 @@ Options:
     (when (= (fitness *orig*) 0)
       (format *error-output* "Original program has bad fitness!")
       (quit))
-    
+
     ;; initialize the population
     (unless *population* ;; don't re-populate an existing population
       (note 1 "Building the population.")

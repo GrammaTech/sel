@@ -1,5 +1,5 @@
 #!/bin/bash
-# $1 = EXE 
+# $1 = EXE
 # $2 = test case number
 # exit 0 = success
 
@@ -26,4 +26,4 @@ case $2 in
   10) test_equal "$($1 55 0)" "55"  ;;
   # negative test
   11) test_equal "$($1 0 55)" "55" ;;
-esac 
+esac

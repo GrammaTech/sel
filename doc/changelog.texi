@@ -6,7 +6,7 @@
 @c must be mentioned in this changelog.
 @c
 @c Format for each entry is as follows.
-@c 
+@c
 @c     @subsection YYYY-MM-DD v.X.X.X -- Textual Description
 @c     @cindex changelog-YYYY-MM-DD
 @c     @cindex v.X.X.X
