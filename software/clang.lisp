@@ -264,6 +264,7 @@ See http://clang.llvm.org/."))
 "
   (setf (ext obj) (pathname-type (pathname path)))
   (from-string obj (file-to-string path))
+  (fix-semicolons (ast-root obj))
   obj)
 
 (defmethod from-string ((obj clang) string)
@@ -3639,3 +3640,66 @@ within a function body, return null."))
                       (length block-children))))
       ;; If error parsing simply return nil.
       (mutate (e) (declare (ignorable e)) nil))))
+
+;;; Function to find the position of a semicolon, if any
+;;; Skip over C and C++ style comments
+
+(defun position-of-leading-semicolon (str)
+  (let ((len (length str))
+	(i -1))
+    (loop
+       (flet ((%step () (when (>= (incf i) len) (return))))
+	 (declare (inline %step))
+	 (%step)
+	 (let ((c (char str i)))
+	   (unless (or (eql c #\Space) (not (graphic-char-p c)))
+	     (case c
+	       (#\/
+		(%step)
+		(setf c (char str i))
+		(%step)
+		(case c
+		  (#\/
+		   ;; C++ style comment; skip to end of line
+		   (let ((next (position #\Newline str :start i)))
+		     (unless next (return))
+		     (setf i next)))
+		  ;; C style comment; search for closing characters
+		  (#\*
+		   (let ((next (search "*/" str :start2 i)))
+		     (unless next (return))
+		     (setf i (1+ next))))
+		  (t (return nil))))
+	       (#\;
+		(return (values i (subseq str 0 (1+ i)) (subseq str (1+ i)))))
+	       (t (return nil)))))))))
+
+;;; Process a clang ast to move semicolons down to appropriate places
+
+(defun is-full-stmt-ast (ast)
+  (and (typep ast 'clang-ast)
+       (ast-full-stmt (ast-node ast))))
+
+(defun move-semicolons-into-full-stmts (children)
+  "Given a list of children of an AST node, move semicolons from strings in the list
+   they are in into preceding full stmt nodes.  Applied in preorder, this can migrate
+   semicolons multiple levels down the tree."
+  (loop for p on children
+     do (let ((e (car p)))
+	  (when (and (is-full-stmt-ast e)
+		     (stringp (cadr p)))
+	    (let ((e-children (ast-children e)))
+	      (when (equal (car (last e-children)) "")
+		(multiple-value-bind (found? prefix suffix)
+		    (position-of-leading-semicolon (cadr p))
+		  (when found?
+		    (setf (car (last e-children)) prefix)
+		    (setf (cadr p) suffix)))))))))
+
+(defun fix-semicolons-ast (ast)
+  "Move semicolons into the appropriate stmt nodes in the children of node AST"
+  (move-semicolons-into-full-stmts (ast-children ast)))
+
+(defun fix-semicolons (ast)
+  "Move semicolons into appropriate stmt nodes in the tree rooted at AST"
+  (map-ast ast #'fix-semicolons-ast))

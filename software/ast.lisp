@@ -43,6 +43,7 @@
 	   :ast-hash
            :to-ast
            :ast-later-p
+	   :map-ast
            :replace-in-ast))
 (in-package :software-evolution-library/software/ast)
 (in-readtable :curry-compose-reader-macros)
@@ -651,6 +652,19 @@ use carefully.
     (unless fn
       (error "No function found for ~A" sym))
     (map-ast-strings tree fn)))
+
+;;; Map over the nodes of an AST
+
+(defgeneric map-ast (tree fn)
+  (:documentation "Apply fn to each node of an AST, in preorder"))
+
+(defmethod map-ast ((tree ast) fn)
+  (funcall fn tree)
+  (dolist (c (ast-children tree))
+    (when (typep c 'ast) (map-ast c fn)))
+  tree)
+
+(defmethod map-ast (tree fn) nil)
 
 
 ;;; AST diffs
