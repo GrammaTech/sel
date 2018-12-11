@@ -64,6 +64,7 @@
            :get-children
            :get-immediate-children
            :prepend-to-genome
+           :append-to-genome-preamble
            :append-to-genome
            :index-of-ast
            :ast-at-index
@@ -574,6 +575,25 @@ otherwise.
                                     (car (ast-children ast-root))))
                             (cdr (ast-children ast-root)))))))))
 
+(defgeneric append-to-genome-preamble (software text)
+  (:documentation "Append non-AST TEXT to OBJ's genome preamble.
+
+* OBJ object to modify with text
+* TEXT text to append to the genome preamble")
+  (:method ((obj parseable) text)
+    (labels ((ensure-newline (text)
+               (if (not (equalp #\Newline (last-elt text)))
+                   (concatenate 'string text '(#\Newline))
+                   text)))
+      (with-slots (ast-root) obj
+        (setf ast-root
+              (copy ast-root
+                    :children
+                    (append (list (concatenate 'string
+                                    (car (ast-children ast-root))
+                                    (ensure-newline text)))
+                            (cdr (ast-children ast-root)))))))))
+
 (defgeneric append-to-genome (software text)
   (:documentation "Append non-AST TEXT to OBJ genome.  The new text will not be parsed.
 
@@ -981,4 +1001,4 @@ REPLACEMENT.
       (declare (ignorable problems))
       (make-instance (class-of obj1) :genome nil :ast-root merged-root))))
 
-      
+

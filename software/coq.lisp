@@ -87,7 +87,7 @@
         :split-sequence
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/lisp
+        :software-evolution-library/software/sexp
         :software-evolution-library/components/serapi-io)
   (:shadowing-import-from :uiop :pathname-directory-pathname)
   (:export :coq
@@ -110,7 +110,7 @@
 (in-readtable :serapi-readtable)
 
 ;; Coq object
-(define-software coq (lisp)             ; NOTE: Why inherit from lisp?
+(define-software coq (sexp)
   ((ast-ids
     :initarg :ast-ids :accessor ast-ids :initform nil :copier copy-tree
     :documentation "List of IDs for the ASTs when they were loaded.")
@@ -265,12 +265,12 @@ Return NIL if source strings cannot be looked up."
 Unlike `filter-subtrees', PREDICATE accepts two parameters: the index of the
 subtree in genome and the subtree itself."))
 
-(defmethod filter-subtrees-indexed (predicate (lisp lisp))
+(defmethod filter-subtrees-indexed (predicate (obj sexp))
   "Return a list of subtrees in SOFTWARE that satisfy PREDICATE.
 Unlike `filter-subtrees', PREDICATE accepts two parameters: the index of the
 subtree in genome and the subtree itself."
-  (iter (for i below (size lisp))
-        (when (funcall predicate i (subtree (genome lisp) i))
+  (iter (for i below (size obj))
+        (when (funcall predicate i (subtree (genome obj) i))
           (collect i))))
 
 (defun non-located-stmts (tree)
@@ -389,7 +389,7 @@ condition."
                                :op 'pick-typesafe-bad-good
                                :text "Typesafe mutation targets not found.")))))
 
-(define-mutation type-safe-swap (lisp-swap)
+(define-mutation type-safe-swap (sexp-swap)
   ((targeter :initform #'pick-typesafe-bad-good))
   (:documentation "Swap two Coq ASTs tagged with the same type."))
 
@@ -417,4 +417,4 @@ condition."
 (defmethod pick-mutation-type ((obj coq))
   "Randomly select a mutation that may be performed on OBJ."
   (declare (ignorable obj))
-  (random-pick (list (cons 'type-safe-swap 0.8) (cons 'lisp-swap 1.0))))
+  (random-pick (list (cons 'type-safe-swap 0.8) (cons 'sexp-swap 1.0))))

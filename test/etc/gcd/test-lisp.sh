@@ -1,6 +1,6 @@
 #!/bin/bash
-# $1 = EXE 
-# $2 = test name  
+# $1 = EXE
+# $2 = test name
 # exit 0 = success
 ulimit -t 1
 basedir=$(dirname $0)
@@ -21,4 +21,4 @@ case $2 in
   p9)  test_equal 112 135 1 ;;
   p10) test_equal 310 55 5 ;;
   n1)  test_equal 0 55 55 ;;
-esac 
+esac

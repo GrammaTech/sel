@@ -501,7 +501,7 @@ unsigned long run_variant(int v, int test) {
     }
 
     long_long elapsed_instructions = end_value[0] - start_value[0];
-    
+
     int res = check_results(v, test);   // make sure all the registers had expected
                                  // output values
 #if DEBUG

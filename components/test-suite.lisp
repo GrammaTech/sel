@@ -39,7 +39,7 @@
   ((program-name
     :initarg :program-name :initform nil :accessor program-name
     :type (or string symbol)
-    :documentation "The executable that runs the test case.  
+    :documentation "The executable that runs the test case.
 Contains either a string containing the name of an executable file or
 special symbol :bin, which will be dynamically replaced by the name of
 the compiled phenome for the software object under test.")
@@ -47,12 +47,12 @@ the compiled phenome for the software object under test.")
     :initarg :program-args :initform nil :accessor program-args
     :type list
     :documentation "A list of arguments which will be passed to the executable
-PROGRAM-NAME. 
+PROGRAM-NAME.
 Each argument must be either a string or symbol :bin, which will be
 replaced by the name of the compiled phenome.")
    (fitness
     :initarg :fitness :initform nil :accessor fitness
-    :documentation "May be used to store the fitness result from a prior run of the test case. 
+    :documentation "May be used to store the fitness result from a prior run of the test case.
 This field is not updated automatically since some components may need
 to perform comparisons between new and old values (e.g., condition
 synthesis)."))
@@ -104,7 +104,7 @@ EXTRA-KEYS will be passed through to that method.
 
 Some EXTRA-KEYS that may be useful are:
 * :output and :error-output - to specify how output and error streams are
-  handled. In some cases, these are sent to /dev/null by default, making 
+  handled. In some cases, these are sent to /dev/null by default, making
   inaccessible after the process completes, so it's often useful to set one or
   both of these to `:stream' to capture the output.
 
@@ -237,7 +237,7 @@ test output, to determine the fitness score.
 
 - EXTRA-KEYS additional keyword arguments to pass to `run-test'. See the
 `start-test' documentation for more information.
-"  
+"
   (multiple-value-bind (stdout stderr exit-code)
       (apply #'run-test phenome obj extra-keys)
     (declare (ignorable stdout stderr))

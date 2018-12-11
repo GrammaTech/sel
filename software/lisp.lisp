@@ -1,4 +1,11 @@
 ;;; lisp.lisp --- software representation of lisp code
+;;;
+;;; See @code{Eclector/code/parse-result/second-climacs-test.lisp}.
+;;; Note that this requires the @code{wip-parse-result-protocol-2}
+;;; branch of Eclector (see
+;;; @url{https://github.com:robert-strandh/Eclector}).
+;;;
+;;; @texi{lisp}
 (defpackage :software-evolution-library/software/lisp
   (:nicknames :sel/software/lisp :sel/sw/lisp)
   (:use :common-lisp
@@ -10,60 +17,155 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/simple)
-  (:export :lisp
-           :lisp-cut
-           :lisp-replace
-           :lisp-swap
-           :subtree
-           :tree-size
-           :filter-subtrees
-           :*lisp-mutation-types*))
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/simple
+        :software-evolution-library/ast-diff/ast-diff
+	:eclector.parse-result)
+  (:shadowing-import-from :eclector.parse-result :read)
+  (:import-from :uiop :nest)
+  (:export :lisp))
 (in-package :software-evolution-library/software/lisp)
 (in-readtable :curry-compose-reader-macros)
 
 
-;;; Tree actions
-(defun tree-size (tree)
-  "Return the number of cons cells in TREE."
-  (if (and tree (consp tree))
-      (+ 1 (tree-size (car tree)) (tree-size (cdr tree)))
-      0))
+;;; Differencing adapted from second-climacs-test.lisp in
+;;; wip-parse-result-protocol-2 branch of eclector.
+(defvar *string*)
 
-(defun subtree (tree index)
-  "Return the INDEX cons cell in TREE in depth first order."
-  (if (zerop index)
-      (values tree index)
-      (flet ((descend (branch)
-               (when (consp branch)
-                 (multiple-value-bind (new-tree new-index)
-                     (subtree branch (1- index))
-                   (if (= new-index 0)
-                       (return-from subtree (values new-tree new-index))
-                       (setf index new-index))))))
-        (descend (car tree))
-        (descend (cdr tree))
-        (values nil index))))
+(defclass result ()
+  ((start :initarg :start
+          :reader  start)
+   (end   :initarg :end
+          :reader  end)
+   (string-pointer :initarg :string-pointer
+                   :initform *string*
+                   :reader  string-pointer)))
 
-(defun find-subtree-if (predicate tree)
-  "DOCFIXME
+(defclass expression-result (result)
+  ((expression :initarg :expression
+               :reader  expression)
+   (children   :initarg :children
+               :accessor children)))
 
-* PREDICATE DOCFIXME
-* TREE DOCFIXME
-"
-  (when (and tree (listp tree))
-    (if (funcall predicate tree)
-        tree
-        (or (find-subtree-if predicate (car tree))
-            (find-subtree-if predicate (cdr tree))))))
+(defmethod print-object ((obj expression-result) stream)
+  (nest (with-slots (start end string-pointer expression children) obj)
+        (if *print-readably*
+            (format stream "~S" `(make-instance 'expression-result
+                                   :start ,start
+                                   :end ,end
+                                   :string-pointer *string*
+                                   :expression ,expression
+                                   :children (list ,@children))))
+        (print-unreadable-object (obj stream :type t))
+        (format stream ":EXPRESSION ~a :CHILDREN ~S" expression children)))
 
-(defmacro set-subtree (tree index new)
-  "Feels like some heuristics here (why `rplaca' instead of `rplacd')."
-  `(if (zerop ,index)
-       (setf ,tree ,new)
-       (rplaca (subtree ,tree ,index) ,new)))
+(defclass skipped-input-result (result)
+  ((reason :initarg :reason
+           :reader  reason)))
 
-(defsetf subtree set-subtree)
+(defmethod print-object ((obj skipped-input-result) stream &aux (max-length 8))
+  (nest (with-slots (start end string-pointer reason) obj)
+        (if *print-readably*
+            (format stream "~S" `(make-instance 'skipped-input-result
+                                   :start ,start
+                                   :end ,end
+                                   :string-pointer *string*
+                                   :reason ,reason)))
+        (print-unreadable-object (obj stream :type t))
+        (format stream ":REASON ~a :TEXT ~S" reason)
+        (if (> (- end start) (- max-length 3))
+            (concatenate
+             'string
+             (subseq string-pointer start (+ start (- max-length 3)))
+             "...")
+            (subseq string-pointer start end))))
+
+(defclass second-climacs (parse-result-mixin)
+  ((cache :reader   cache
+          :initform (make-hash-table :test #'eql))))
+
+(defmethod getcache ((position t) (client second-climacs))
+  (gethash position (cache client)))
+
+(defmethod (setf getcache) ((new-value t) (position t) (client second-climacs))
+  (setf (gethash position (cache client)) new-value))
+
+(defmethod make-expression-result
+    ((client second-climacs) (result t) (children t) (source cons))
+  (make-instance 'expression-result
+    :expression result
+    :children children
+    :start (car source)
+    :end (cdr source)))
+
+(defmethod make-skipped-input-result
+    ((client second-climacs) stream reason source)
+  (make-instance 'skipped-input-result
+    :reason reason :start (car source) :end (cdr source)))
+
+(defmethod eclector.reader:read-common :around
+    ((client second-climacs) input-stream eof-error-p eof-value)
+  (let ((position (eclector.parse-result:source-position client input-stream)))
+    (if-let ((cached (getcache position client)))
+      (progn
+        (assert (eql (start cached) position))
+        (loop :repeat (- (end cached) position) :do (read-char input-stream))
+        (values (expression cached) cached))
+      (progn
+        (multiple-value-bind (expression parse-result) (call-next-method)
+          (setf (getcache position client) parse-result)
+          (values expression parse-result))))))
+
+(defun read-forms+ (string &key count)
+  (check-type count (or null integer))
+  (let ((*string* string)
+        (eclector.reader:*client* (make-instance 'second-climacs)))
+    (labels
+        ((make-space (start end)
+           (when (< start end)
+             (list (make-instance 'skipped-input-result
+                     :start start :end end :reason 'whitespace))))
+         (w/space (tree from to)
+           (etypecase tree
+             (list
+              (append
+               (iter (for subtree in tree)
+                     (appending (make-space from (start subtree)))
+                     (appending (w/space subtree (start subtree) (end subtree)))
+                     (setf from (end subtree)))
+               (make-space from to)))
+             (result
+              (when (subtypep (type-of tree) 'expression-result)
+                (setf (children tree)
+                      (w/space
+                       (children tree) (start tree) (end tree))))
+              (append
+               (make-space from (start tree))
+               (list tree)
+               (make-space (end tree) to))))))
+      (w/space (with-input-from-string (input string)
+                 (loop :with eof = '#:eof
+                    :for n :from 0
+                    :for form = (if (and count (>= n count))
+                                    eof
+                                    (eclector.parse-result:read input nil eof))
+                    :until (eq form eof) :collect form))
+               0 (length string)))))
+
+(defun walk-forms+ (function forms)
+  (mapcar (lambda (form)
+            (etypecase form
+              (skipped-input-result (funcall function form))
+              (expression-result (walk-forms+ function (children form)))))
+          forms))
+
+(defun write-stream-forms+ (forms stream)
+  "Write the original source text of FORMS to STREAM."
+  (walk-forms+  [{format stream "~a"} #'ast-text] forms))
+
+(defun write-string-forms+ (forms)
+  "Write the original source text of FORMS to a string."
+  (with-output-to-string (s) (write-stream-forms+ forms s)))
 
 
 ;;; Lisp software object
@@ -72,139 +174,117 @@
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
 (defmethod from-file ((lisp lisp) file)
-  "DOCFIXME
-
-* LISP DOCFIXME
-* FILE DOCFIXME
-"
   (with-open-file (in file)
-    (setf (genome lisp)
-          (loop :for form := (read in nil :eof)
-             :until (eq form :eof)
-             :collect form)))
+    (setf (genome lisp) (read-forms+ (file-to-string file))))
   lisp)
 
 (declaim (inline genome-string))
 (defmethod genome-string ((lisp lisp) &optional stream)
-  "DOCFIXME
-
-* LISP DOCFIXME
-* STREAM DOCFIXME
-"
-  (format stream "~&~{~S~^~%~}~%" (genome lisp)))
+  (if stream
+      (write-stream-forms+ (genome lisp) stream)
+      (write-string-forms+ (genome lisp))))
 
 (defmethod to-file ((lisp lisp) path)
-  "DOCFIXME
-
-* LISP DOCFIXME
-* PATH DOCFIXME
-"
   (with-open-file (out path :direction :output :if-exists :supersede)
-    (genome-string lisp out)))
+    (write-stream-forms+ (genome lisp) out)))
 
-(defmethod size ((lisp lisp))
-  "DOCFIXME"
-  (tree-size (genome lisp)))
-
-(defmethod filter-subtrees (predicate (lisp lisp))
-  "DOCFIXME
-
-* PREDICATE DOCFIXME
-* LISP DOCFIXME
-"
-  (remove-if-not [predicate {subtree (genome lisp)}]
-                 (iter (for i below (size lisp)) (collect i))))
+(defmethod size ((lisp lisp) &aux (size 0))
+  (walk-forms+ (lambda (_) (declare (ignorable _)) (incf size)) (genome lisp))
+  size)
 
 
-;;; Mutations
-(define-mutation lisp-cut (mutation)
-  ((targeter :initform #'pick-bad))
-  (:documentation "DOCFIXME"))
+;;; Interface to ast-diff for lisp source trees.
+(defmethod source ((result result))
+  (subseq (string-pointer result) (start result) (end result)))
 
-(define-mutation lisp-replace (mutation)
-  ((targeter :initform #'pick-bad-good))
-  (:documentation "DOCFIXME"))
+(defmethod ast-equal-p ((ast-a result) (ast-b result))
+  (ast-equal-p (source ast-a) (source ast-b)))
 
-(define-mutation lisp-swap (mutation)
-  ((targeter :initform #'pick-bad-good))
-  (:documentation "DOCFIXME"))
+(defmethod ast-cost ((result expression-result))
+  ;; NOTE: Interesting question here about if we want comments to add
+  ;;       to the weight of a source expression.
+  (ast-cost (expression result)))
 
-(defvar *lisp-mutation-types*
-  ;; TODO: Fix `lisp-cut' before adding back to this list.
-  '(lisp-replace lisp-swap)
-  "DOCFIXME")
+(defmethod ast-cost ((result skipped-input-result)) 1)
 
-(defmethod pick-mutation-type ((obj lisp))
-  "DOCFIXME"
-  (random-elt *lisp-mutation-types*))
+(defmethod ast-hash ((result skipped-input-result))
+  (ast-hash (source result)))
 
-(defmethod mutate ((lisp lisp))
-  "DOCFIXME"
-  (unless (> (size lisp) 0)
-    (error (make-condition 'mutate :text "No valid IDs" :obj lisp)))
-  (let ((mutation (make-instance (pick-mutation-type lisp)
-                                 :object lisp)))
-    (apply-mutation lisp mutation)
-    (values lisp mutation)))
+(defmethod ast-hash ((result expression-result))
+  (ast-hash (cons :lisp-expression (mapcar #'ast-hash (children result)))))
 
-(defmethod apply-mutation ((lisp lisp) (mutation lisp-cut))
-  "DOCFIXME
+(defmethod ast-can-recurse ((ast-a expression-result) (ast-b expression-result))
+  (and (children ast-a) (children ast-b)))
 
-* LISP DOCFIXME
-* MUTATION DOCFIXME
-"
-  ;; TODO: Fix.
-  (with-slots (genome) lisp
-    (let* ((s1 (targets mutation))
-           (st (subtree genome s1)))
-      (let ((prev (find-subtree-if [{eq st} #'cdr] genome)))
-        (if prev
-            ;; Middle of a subtree: snap cdr to remove
-            (setf (cdr prev) (cdr st))
-            ;; Beginning of a subtree.
-            (setf (subtree genome s1)
-                  (copy-tree (cdr (subtree genome s1))))))))
-  lisp)
+(defmethod ast-can-recurse
+    ((ast-a skipped-input-result) (ast-b expression-result))
+  nil)
 
-(defmethod apply-mutation ((lisp lisp) (mutation lisp-replace))
-  "DOCFIXME
+(defmethod ast-can-recurse
+    ((ast-a expression-result) (ast-b skipped-input-result))
+  nil)
 
-* LISP DOCFIXME
-* MUTATION DOCFIXME
-"
-  (bind (((s1 s2) (targets mutation)))
-    (with-slots (genome) lisp
-      (setf (subtree genome s1)
-            (copy-tree (car (subtree genome s2))))))
-  lisp)
+(defmethod ast-can-recurse
+    ((ast-a skipped-input-result) (ast-b skipped-input-result))
+  t)
 
-(defmethod apply-mutation ((lisp lisp) (mutation lisp-swap))
-  "DOCFIXME
+(defmethod ast-on-recurse ((ast expression-result))
+  (children ast))
 
-* LISP DOCFIXME
-* MUTATION DOCFIXME
-"
-  (bind (((s1 s2) (targets mutation)))
-    (let ((s1 (max s1 s2))
-          (s2 (min s1 s2)))
-      (with-slots (genome) lisp
-        (let ((left  (car (subtree genome s1)))
-              (right (car (subtree genome s2))))
-          (setf (subtree genome s1) (copy-tree right))
-          (setf (subtree genome s2) (copy-tree left))))))
-  lisp)
+(defmethod ast-un-recurse ((ast expression-result) children)
+  (make-instance 'expression-result
+    :start (start (car children))
+    :end (end (lastcar children))
+    :expression (mapcar #'expression children)
+    :children children
+    :string-pointer (string-pointer (car children))))
 
-(defmethod crossover ((a lisp) (b lisp))
-  "DOCFIXME
+(defmethod ast-text ((result result))
+  (source result))
 
-* A DOCFIXME
-* B DOCFIXME
-"
-  (let ((range (min (size a) (size b))))
-    (if (> range 0)
-        (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))
-              (new (copy a)))
-          (setf (subtree (genome new) (first points))
-                (copy-tree (subtree (genome b) (second points))))
-          (values new points))
-        (values (copy a) nil))))
+(defmethod ast-diff ((a skipped-input-result) (b skipped-input-result))
+  (ast-diff (source a) (source b)))
+
+(defmethod ast-diff ((a expression-result) (b expression-result))
+  (ast-diff (children a) (children b)))
+
+(defmethod ast-diff ((a lisp) (b lisp))
+  (ast-diff (genome a) (genome b)))
+
+(defmethod ast-patch ((a skipped-input-result) script &key &allow-other-keys)
+  (let* ((str (source a))
+	 (new-str (ast-patch str script)))
+    (if (equal str new-str)
+	a
+	(make-instance 'skipped-input-result
+		       :start 0
+		       :end (length new-str)
+		       :string-pointer new-str
+		       :reason (reason a)))))
+
+(defmethod ast-patch ((a expression-result) script &key &allow-other-keys)
+  (let* ((c (children a))
+	 (new-c (ast-patch c script)))
+    (if (equal c new-c)
+	a
+	(let ((src (mapconcat #'source new-c ""))
+	      (form (iter (for child in new-c)
+			  (when (typep child 'expression-result)
+			    (collect (expression child))))))
+	  ;; Special handling for dotted lists
+	  ;; These are indicated by having the next
+	  ;; to last element of the list be a "CONSING DOT"
+	  (let ((len (length form))
+		(consing-dot eclector.reader::*consing-dot*))
+	    (when (>= len 3)
+	      (let ((last3 (last form 3)))
+		(when (eql (cadr last3) consing-dot)
+		  ;; FORM was newly allocated, so we can
+		  ;; destructively modify it
+		  (setf (cdr last3) (caddr last3))))))
+	  (make-instance 'expression-result
+			 :start 0
+			 :end (length src)
+			 :string-pointer src
+			 :children new-c
+			 :expression form)))))

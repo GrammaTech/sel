@@ -49,11 +49,17 @@
            :make-javascript-ast
            :copy-javascript-ast
            :make-javascript-ast-node
-           :copy-javascript-ast-node))
+           :copy-javascript-ast-node
+           :parsing-mode))
 (in-package :software-evolution-library/software/javascript)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript (parseable) ()
+(define-software javascript (parseable)
+  ((parsing-mode
+     :initarg :parsing-mode
+     :reader parsing-mode
+     :initform :script
+     :documentation "Acorn parsing mode, either :script or :module."))
   (:documentation "Javascript software representation."))
 
 
@@ -93,7 +99,11 @@
 * OBJ object to parse"
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (multiple-value-bind (stdout stderr exit)
-        (shell "acorn --allow-hash-bang ~a" src-file)
+        (shell "acorn --allow-hash-bang ~a ~a"
+               (if (eq (parsing-mode obj) :module)
+                   "--module"
+                   "")
+               src-file)
         (if (zerop exit)
             (decode-json-from-string stdout)
             (error
@@ -148,10 +158,11 @@
                            (list (aget :meta ast-alist)
                                  (aget :property ast-alist)))
                           ((equal ast-class "Property")
-                           (remove-duplicates
+                           (if (< (aget :start (aget :value ast-alist))
+                                  (aget :end (aget :key ast-alist)))
+                             (list (aget :value ast-alist))
                              (list (aget :key ast-alist)
-                                   (aget :value ast-alist))
-                             :test #'equal))
+                                   (aget :value ast-alist))))
                           ((equal ast-class "MethodDefinition")
                            (list (aget :key ast-alist)
                                  (aget :value ast-alist)))
@@ -208,8 +219,10 @@
                                    (aget :specifiers ast-alist)
                                    (list (aget :source ast-alist))))
                           ((equal ast-class "ExportSpecifier")
-                           (list (aget :exported ast-alist)
-                                 (aget :local ast-alist)))
+                           (remove-duplicates
+                             (list (aget :local ast-alist)
+                                   (aget :exported ast-alist))
+                             :test #'equal))
                           ((member ast-class
                                    (list "ClassExpression"
                                          "ClassDeclaration")
@@ -288,8 +301,10 @@
                                          "ImportDefaultSpecifier"
                                          "ImportNamespaceSpecifier")
                                    :test #'equal)
-                           (list (aget :local ast-alist)
-                                 (aget :imported ast-alist)))
+                           (remove-duplicates
+                             (list (aget :imported ast-alist)
+                                   (aget :local ast-alist))
+                             :test #'equal))
                           (t nil))))
        (make-children (genome parent-alist alist child-alists child-asts)
          (if child-alists

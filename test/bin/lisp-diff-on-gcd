@@ -1,0 +1,10 @@
+#!/bin/bash
+
+NUM_DIFFS="$(ast-diff test/etc/gcd/gcd.lisp test/etc/gcd/gcd-fix.lisp|grep -c "{+")"
+if [ "$NUM_DIFFS" == "1" ];then
+    echo PASS
+    exit 0
+else
+    echo FAIL
+    exit 1
+fi

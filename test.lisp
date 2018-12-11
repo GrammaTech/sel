@@ -71,8 +71,8 @@
    :software-evolution-library/software/java-project
    :software-evolution-library/software/javascript
    :software-evolution-library/software/javascript-project
+   :software-evolution-library/software/sexp
    :software-evolution-library/software/lisp
-   :software-evolution-library/software/lisp-fn
    :software-evolution-library/software/llvm
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
@@ -1549,7 +1549,7 @@
 (defsuite rest-tests "REST API tests.")
 
 (defun rest-test-create-client ()
-  "Returns 2 values: new client id or nil, and status. 
+  "Returns 2 values: new client id or nil, and status.
  Assumes service is running."
   (let* ((params '(("max-population-size" . "1024")))
 	   (result nil))
@@ -1564,12 +1564,12 @@
 	    (setf result (read stream)))
 	(if (symbolp result)
 	    (setf result (symbol-name result)))
-	
+
 	(values result status))))
 
 (defun rest-test-create-software (type cid)
-  "Given type of Software object and client-id, returns 2 
- values: new software oid or nil, and status. 
+  "Given type of Software object and client-id, returns 2
+ values: new software oid or nil, and status.
  Assumes service is running."
   (let* ((path (namestring (hello-world-dir "hello_world.c")))
 	 (params `(("path" . ,path)
@@ -1590,11 +1590,11 @@
 	  (setf result (read stream)))
       (if (symbolp result)
 	  (setf result (symbol-name result)))
-      
+
       (values result status))))
 
 (defun rest-test-get-new-client ()
-  "Always creates a new REST client and returns (1) new client id, 
+  "Always creates a new REST client and returns (1) new client id,
  (2) http status code. The new client id is stored in *rest-client*."
   (multiple-value-bind (cid status)
       (rest-test-create-client)
@@ -3549,62 +3549,71 @@ int x = CHARSIZE;")))
                   (nth 5 (aget :trace (get-trace (traces instrumented) 0))))))))
 
 (deftest (javascript-parsing-test :long-running) ()
-  (labels ((parse-test (file &rest ast-classes)
-              (let ((soft (from-file (make-instance 'javascript) file)))
-                (is (not (null (asts soft))))
-                (is (equal (genome soft) (file-to-string file)))
-                (mapc (lambda (ast-class)
-                        (is (find ast-class (asts soft) :key #'ast-class)))
-                      ast-classes))))
-    (parse-test (javascript-dir #P"parsing/array-destructuring.js")
-                :ArrayPattern)
-    (parse-test (javascript-dir #P"parsing/arrow-function-expression.js")
-                :ArrowFunctionExpression)
-    (parse-test (javascript-dir #P"parsing/await-expression.js")
-                :AwaitExpression)
-    (parse-test (javascript-dir #P"parsing/class-declaration.js")
-                :ClassDeclaration)
-    (parse-test (javascript-dir #P"parsing/class-expression.js")
-                :ClassExpression)
-    (parse-test (javascript-dir #P"parsing/conditional-expression.js")
-                :ConditionalExpression)
-    (parse-test (javascript-dir #P"parsing/debugger-statement.js")
-                :DebuggerStatement)
-    (parse-test (javascript-dir #P"parsing/empty-statement.js")
-                :EmptyStatement)
-    (parse-test (javascript-dir #P"parsing/expression-statement.js")
-                :ExpressionStatement)
-    (parse-test (javascript-dir #P"parsing/function-declaration.js")
-                :FunctionDeclaration)
-    (parse-test (javascript-dir #P"parsing/function-expression.js")
-                :FunctionExpression)
-    (parse-test (javascript-dir #P"parsing/if.js")
-                :IfStatement)
-    (parse-test (javascript-dir #P"parsing/labeled-statement.js")
-                :LabeledStatement)
-    (parse-test (javascript-dir #P"parsing/loops.js")
-                :ForStatement :ForInStatement :ForOfStatement
-                :WhileStatement :DoWhileStatement)
-    (parse-test (javascript-dir #P"parsing/new-expression.js")
-                :NewExpression)
-    (parse-test (javascript-dir #P"parsing/object-destructuring.js")
-                :ObjectPattern)
-    (parse-test (javascript-dir #P"parsing/object-expression.js")
-                :ObjectExpression)
-    (parse-test (javascript-dir #P"parsing/sequence-expression.js")
-                :SequenceExpression)
-    (parse-test (javascript-dir #P"parsing/spread-element.js")
-                :SpreadElement)
-    (parse-test (javascript-dir #P"parsing/switch.js")
-                :SwitchStatement)
-    (parse-test (javascript-dir #P"parsing/tagged-template-expression.js")
-                :TaggedTemplateExpression)
-    (parse-test (javascript-dir #P"parsing/try-catch-throw.js")
-                :TryStatement :CatchClause :ThrowStatement)
-    (parse-test (javascript-dir #P"parsing/with-statement.js")
-                :WithStatement)
-    (parse-test (javascript-dir #P"parsing/yield-expression.js")
-                :YieldExpression)))
+  (labels ((parse-test (path parsing-mode &rest ast-classes)
+             (let ((soft (from-file (make-instance 'javascript
+                                      :parsing-mode parsing-mode)
+                                    (javascript-dir path))))
+               (is (not (null (asts soft))))
+               (is (equal (genome soft) (file-to-string (javascript-dir path))))
+               (mapc (lambda (ast-class)
+                       (is (find ast-class (asts soft) :key #'ast-class)))
+                     ast-classes))))
+    (mapc {apply #'parse-test}
+          '((#P"parsing/array-destructuring.js"
+             :script :ArrayPattern)
+            (#P"parsing/arrow-function-expression.js"
+             :script :ArrowFunctionExpression)
+            (#P"parsing/await-expression.js"
+             :script :AwaitExpression)
+            (#P"parsing/class-declaration.js"
+             :script :ClassDeclaration)
+            (#P"parsing/class-expression.js"
+             :script :ClassExpression)
+            (#P"parsing/conditional-expression.js"
+             :script :ConditionalExpression)
+            (#P"parsing/debugger-statement.js"
+             :script :DebuggerStatement)
+            (#P"parsing/empty-statement.js"
+             :script :EmptyStatement)
+            (#P"parsing/export-specifier.js"
+             :module :ExportSpecifier)
+            (#P"parsing/expression-statement.js"
+             :script :ExpressionStatement)
+            (#P"parsing/function-declaration.js"
+             :script :FunctionDeclaration)
+            (#P"parsing/function-expression.js"
+             :script :FunctionExpression)
+            (#P"parsing/if.js"
+             :script :IfStatement)
+            (#P"parsing/import-specifier.js"
+             :module :ImportSpecifier)
+            (#P"parsing/labeled-statement.js"
+             :script :LabeledStatement)
+            (#P"parsing/loops.js"
+             :script :ForStatement :ForInStatement :ForOfStatement
+             :WhileStatement :DoWhileStatement)
+            (#P"parsing/new-expression.js"
+             :script :NewExpression)
+            (#P"parsing/object-destructuring.js"
+             :script :ObjectPattern)
+            (#P"parsing/object-expression.js"
+             :script :ObjectExpression)
+            (#P"parsing/property.js"
+             :script :Property)
+            (#P"parsing/sequence-expression.js"
+             :script :SequenceExpression)
+            (#P"parsing/spread-element.js"
+             :script :SpreadElement)
+            (#P"parsing/switch.js"
+             :script :SwitchStatement)
+            (#P"parsing/tagged-template-expression.js"
+             :script :TaggedTemplateExpression)
+            (#P"parsing/try-catch-throw.js"
+             :script :TryStatement :CatchClause :ThrowStatement)
+            (#P"parsing/with-statement.js"
+             :script :WithStatement)
+            (#P"parsing/yield-expression.js"
+             :script :YieldExpression)))))
 
 (deftest array-destructuring-get-vars-in-scope-test ()
   (let ((soft (from-file (make-instance 'javascript)
@@ -3671,21 +3680,21 @@ int x = CHARSIZE;")))
                                                  #P"fib-project/test.sh"))
                                 :program-args (list :bin "1")))))
       (is (equal 1 (n-traces (traces instrumented))))
-      (is (equalp '(((:C . 0)  (:F . 0))
-                    ((:C . 0)  (:F . 1))
-                    ((:C . 6)  (:F . 0))
-                    ((:C . 12) (:F . 0))
-                    ((:C . 29) (:F . 0))
-                    ((:C . 48) (:F . 0))
-                    ((:C . 55) (:F . 0))
-                    ((:C . 70) (:F . 0))
-                    ((:C . 11) (:F . 1))
-                    ((:C . 20) (:F . 1))
-                    ((:C . 25) (:F . 1))
+      (is (equalp '(((:C . 0)  (:F . 1))
+                    ((:C . 0)  (:F . 0))
+                    ((:C . 6)  (:F . 1))
+                    ((:C . 12) (:F . 1))
                     ((:C . 29) (:F . 1))
-                    ((:C . 35) (:F . 1))
-                    ((:C . 39) (:F . 1))
-                    ((:C . 42) (:F . 1)))
+                    ((:C . 48) (:F . 1))
+                    ((:C . 55) (:F . 1))
+                    ((:C . 70) (:F . 1))
+                    ((:C . 11) (:F . 0))
+                    ((:C . 20) (:F . 0))
+                    ((:C . 25) (:F . 0))
+                    ((:C . 29) (:F . 0))
+                    ((:C . 35) (:F . 0))
+                    ((:C . 39) (:F . 0))
+                    ((:C . 42) (:F . 0)))
                   (aget :trace (get-trace (traces instrumented) 0)))))))
 
 (deftest (javascript-project-instrument-and-collect-traces-with-vars
@@ -3707,7 +3716,7 @@ int x = CHARSIZE;")))
                                                  #P"fib-project/test.sh"))
                                 :program-args (list :bin "1")))))
       (is (equal 1 (n-traces (traces instrumented))))
-      (is (equalp '((:C . 29)(:F . 1)(:SCOPES #("temp" "number" 1 nil)
+      (is (equalp '((:C . 29)(:F . 0)(:SCOPES #("temp" "number" 1 nil)
                                               #("b" "number" 0 nil)
                                               #("a" "number" 1 nil)
                                               #("num" "number" 1 nil)))
@@ -6837,10 +6846,10 @@ prints unique counters in the trace"
 
 
 ;;;; Lisp representation.
-(defsuite lisp-tests "Lisp representation.")
+(defsuite sexp-tests "Sexp representation.")
 
 
-(defvar *clang-expr*  nil "The clang expression (lisp) software object.")
+(defvar *clang-expr*  nil "The clang expression (sexp) software object.")
 (defixture clang-expr
   (:setup
    (setf *clang-expr*
@@ -6849,66 +6858,66 @@ prints unique counters in the trace"
   (:teardown
    (setf *clang-expr* nil)))
 
-(deftest lisp-cut-first ()
+(deftest sexp-cut-first ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 0))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 0))
     (is (equal (genome *clang-expr*) '(1 (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-cut-leaf ()
+(deftest sexp-cut-leaf ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 1))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 1))
     (is (equal (genome *clang-expr*) '(:+ (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-cut-subtree ()
+(deftest sexp-cut-subtree ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 2))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 2))
     (is (equal (genome *clang-expr*) '(:+ 1)))))
 
 #+(or ) ; TODO: Fix this (unused) function before turning on this test.
-(deftest lisp-cut-function ()
+(deftest sexp-cut-function ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 3))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 3))
     (is (equal (genome *clang-expr*) '(:+ 1 (2 (:- 3 :y)))))))
 
-(deftest lisp-swap-leaves ()
+(deftest sexp-swap-leaves ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(1 4)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(1 4)))
     (is (equal (genome *clang-expr*) '(:+ 2 (:* 1 (:- 3 :y)))))))
 
-(deftest lisp-swap-leaf-subtree ()
+(deftest sexp-swap-leaf-subtree ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(1 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(1 5)))
     (is (equal (genome *clang-expr*) '(:+ (:- 3 :y) (:* 2 1))))))
 
-(deftest lisp-swap-functions ()
+(deftest sexp-swap-functions ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(3 6)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(3 6)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:* 3 :y)))))))
 
 ;; FIXME: what is the correct behavior here?
-(deftest lisp-swap-parent-child ()
+(deftest sexp-swap-parent-child ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(2 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(2 5)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 3 :y))))))
 
-(deftest lisp-replace-leaves ()
+(deftest sexp-replace-leaves ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(1 4)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(1 4)))
     (is (equal (genome *clang-expr*) '(:+ 2 (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-replace-leaf-subtree ()
+(deftest sexp-replace-leaf-subtree ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(1 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(1 5)))
     (is (equal (genome *clang-expr*) '(:+ (:- 3 :y) (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-replace-parent-child ()
+(deftest sexp-replace-parent-child ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(2 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(2 5)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 3 :y))))))
 
-(deftest lisp-replace-function ()
+(deftest sexp-replace-function ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(3 6)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(3 6)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:- 3 :y)))))))
 
 
@@ -9460,22 +9469,26 @@ int main() { puts(\"~d\"); return 0; }
 
 (deftest print-lisp-diff.1 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '() '()) s)) "")
+		(print-diff (ast-diff '() '()) :no-color t :stream s))
+              "")
       "Print diff of empty lists"))
 
 (deftest print-lisp-diff.2 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '(()) '(())) s)) "()")
+		(print-diff (ast-diff '(()) '(())) :no-color t :stream s))
+              "()")
       "Print diff of list of empty list"))
 
 (deftest print-lisp-diff.3 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '() '(())) s)) "{+()+}")
+		(print-diff (ast-diff '() '(())) :no-color t :stream s))
+              "{+()+}")
       "Print diff of insertion of empty list"))
 
 (deftest print-lisp-diff.4 ()
   (is (equalp (with-output-to-string (s)
-		(print-diff (ast-diff '(()) '()) s)) "[-()-]")
+		(print-diff (ast-diff '(()) '()) :no-color t :stream s))
+              "[-()-]")
       "Print diff of deletion of empty list"))
 
 (defvar *forms* nil "Forms used in tests.")
@@ -9630,7 +9643,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "int a; int c;")
 					(%f "int a; int b; int c;"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "int a; {+int b; +}int c;")
       "Print diff of an insertion"))
 
@@ -9639,7 +9653,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "int a; int b; int c;")
 					(%f "int a; int c;"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "int a; [-int b; -]int c;")
       "Print diff of a deletion"))
 
@@ -9648,7 +9663,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "int a; int b; int c;")
 					(%f "int a; int d; int c;"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "int a; int {+d+}[-b-]; int c;")
       "Print diff of a replacement"))
 
@@ -9657,7 +9673,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
 					(%f "char *s = \"acd\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a[-b-]cd\";")
       "Print diff of deletion of a character in a string"))
 
@@ -9666,7 +9683,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"abcd\";")
 					(%f "char *s = \"ad\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a[-bc-]d\";")
       "Print diff of deletion of substring in a string"))
 
@@ -9677,7 +9695,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"ad\";")
 					(%f "char *s = \"abcd\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a{+bc+}d\";")
       "Print diff of insertion of a substring in a string"))
 
@@ -9686,7 +9705,8 @@ int main() { puts(\"~d\"); return 0; }
 		(flet ((%f (s) (sel:from-string (make-instance 'sel/sw/clang:clang) s)))
 		  (print-diff (ast-diff (%f "char *s = \"ad\";")
 					(%f "char *s = \"abd\";"))
-			      s)))
+                              :no-color t
+			      :stream s)))
 	      "char *s = \"a{+b+}d\";")
       "Print diff of insertion of a character in a string"))
 

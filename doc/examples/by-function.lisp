@@ -7,7 +7,7 @@
 ;; the specification of functions with associated meta-data for use by
 ;; evolution.  The two main pieces of meta-data (at least initially)
 ;; are `tests' and `alternatives'.
-;; 
+;;
 ;;        tests -- CL forms used to evaluate the fitness of variants
 ;; alternatives -- used to hold a list of alternative
 ;;                 implementations

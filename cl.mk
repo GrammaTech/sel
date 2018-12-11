@@ -188,11 +188,11 @@ check/%: $(BIN_TEST_DIR)/% $(addprefix bin/, $(BINS))
 desc/%: check/%
 	@$(BIN_TEST_DIR)/$* -d
 
-bin-check: $(addprefix check/, $(BIN_TESTS))
-bin-check-desc: $(addprefix desc/, $(BIN_TESTS))
+bin-check: test-artifacts $(addprefix check/, $(BIN_TESTS))
+bin-check-desc: test-artifacts $(addprefix desc/, $(BIN_TESTS))
 
-long-bin-check: $(addprefix check/, $(LONG_BIN_TESTS))
-long-bin-check-desc: $(addprefix desc/, $(LONG_BIN_TESTS))
+long-bin-check: test-artifacts $(addprefix check/, $(LONG_BIN_TESTS))
+long-bin-check-desc: test-artifacts $(addprefix desc/, $(LONG_BIN_TESTS))
 
 
 ## Docker file creation convenience target.

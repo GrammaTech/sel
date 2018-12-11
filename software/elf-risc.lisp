@@ -57,7 +57,7 @@
         new))))
 
 (defun risc-genome-from-elf (elf)
-  "DOCFIXME"  
+  "DOCFIXME"
   (map 'vector
        [#'list {cons :code} #'list]
        (or
@@ -75,7 +75,7 @@
                   (remove-if-not #'elf:ph (sections elf))))))))
 
 (defmethod from-file ((elf elf-risc) path)
-  "DOCFIXME"  
+  "DOCFIXME"
   (setf (base elf) (read-elf path))
   (setf (genome elf) (risc-genome-from-elf (base elf)))
   elf)

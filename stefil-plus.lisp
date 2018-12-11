@@ -239,7 +239,7 @@ values."
 	      (and (listp (car b)) (eq (caar b) 'declare)))
 	  (push (car b) decls-or-doc)
 	  (progn (setf body-remaining b) (return))))
-    
+
     (if long-running
         `(let ((stefil::*suite*
 	        (find-test
@@ -252,7 +252,7 @@ values."
 			  (check-time ',name (progn ,@body-remaining))))))
 
 (defun long-running-p (test)
-  "Given the name of a test, returns true iff test has been flagged 
+  "Given the name of a test, returns true iff test has been flagged
 long-running."
   (let ((test-obj (find-test test)))
     (and test-obj

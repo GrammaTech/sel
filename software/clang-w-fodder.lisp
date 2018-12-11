@@ -1,8 +1,8 @@
 ;;; clang-w-fodder.lisp --- clang software with a source fodder database
-;;; 
+;;;
 ;;; clang software representation with a database containing AST
 ;;; entries as fodder for the evolution process.
-;;; 
+;;;
 ;;; Each AST entry in the database contains source text and, where
 ;;; applicable, the corresponding binary bytes.
 (defpackage :software-evolution-library/software/clang-w-fodder

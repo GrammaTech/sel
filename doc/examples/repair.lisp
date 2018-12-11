@@ -31,9 +31,9 @@
 
 (defun run (src)
   (with-temp-file-of (src "s") (genome-string src)
-    (multiple-value-bind (stdout stderr errno) 
+    (multiple-value-bind (stdout stderr errno)
 	(shell *script* src)
-      (declare (ignorable stderr) (ignorable stdout)) 
+      (declare (ignorable stderr) (ignorable stdout))
       errno)))
 
 
@@ -99,7 +99,7 @@ Options:
                              (c 'cil)
                              (t 'elf)))
                        *path*)))
- 
+
     (when (string= (pathname-type (pathname *path*)) "store")
       (setf *orig* (restore *path*)))
 

@@ -118,7 +118,7 @@ This is used to intern string names by `expression'."
   "Return a function which evaluates OPERATOR on two expressions.
 * OBJ a CLANG-EXPRESSION object
 * OPERATOR a keyword symbol representing the operator (e.g. :+)
-"    
+"
   (labels
       ((pointerp (val)
          (eq (char (second val) 0) #\*))

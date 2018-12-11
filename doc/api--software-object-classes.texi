@@ -1229,12 +1229,12 @@ Class @code{lisp}
 @anchor{api-lisp-mutations}
 @item Mutations (subclasses of @refapiclass{mutation}
   @itemize
-  @item @refapiclass{lisp-cut}
-  @item @refapiclass{lisp-replace}
-  @item @refapiclass{lisp-swap}
+  @item @refapiclass{sexp-cut}
+  @item @refapiclass{sexp-replace}
+  @item @refapiclass{sexp-swap}
   @end itemize
 
-@item Variable @refapivariable{*lisp-mutation-types*}
+@item Variable @refapivariable{*sexp-mutation-types*}
 
 @item Methods
   @itemize

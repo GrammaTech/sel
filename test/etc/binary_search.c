@@ -17,7 +17,7 @@ int binary_search(const char *needle, char **haystack, int start, int end) {
     } else if (rc > 0) {
         return binary_search(needle, haystack, mid + 1, end);
     }
-    
+
     return mid;
 }
 
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
       index = binary_search(needle, haystack, start, end);
       fprintf(stdout, "%d", index);
       fclose(fp);
-      
+
       for(i=0; i<haystack_size; ++i) {
         free(haystack[i]);
       }

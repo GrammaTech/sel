@@ -18,6 +18,7 @@ techniques."
  "software-evolution-library/software-evolution-library"
  '(:software-evolution-library))
 (register-system-packages "ast-diff/ast-diff" '(:ast-diff))
+(register-system-packages "eclector" '(:eclector.parse-result))
 
 ;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
 (defsystem "software-evolution-library/components/serapi-io"
@@ -38,32 +39,22 @@ techniques."
   :perform
   (test-op (o c) (symbol-call :software-evolution-library/test '#:run-batch)))
 
-(defsystem "software-evolution-library/run-clang-diff"
+(defsystem "software-evolution-library/run-ast-diff"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
-  :description "Calculate difference between two C/C++ programs."
+  :description "Calculate difference between two programs."
   :version "0.0.0"
-  :depends-on (software-evolution-library/ast-diff/clang)
+  :depends-on (software-evolution-library/ast-diff/commands)
   :build-operation "asdf:program-op"
-  :build-pathname "bin/clang-diff"
-  :entry-point "software-evolution-library/ast-diff/clang::run-clang-diff")
+  :build-pathname "bin/ast-diff"
+  :entry-point "software-evolution-library/ast-diff/commands::run-ast-diff")
 
-(defsystem "software-evolution-library/run-clang-merge"
+(defsystem "software-evolution-library/run-ast-merge"
   :author "Paul Dietz and GrammaTech"
   :licence "GPL V3"
-  :description "Compute the merge of two C/C++ programs that diverge from a common ancestral version"
+  :description "Compute the merge of two programs that diverge from a common ancestral version."
   :version "0.0.0"
-  :depends-on (software-evolution-library/ast-diff/clang-merge)
+  :depends-on (software-evolution-library/ast-diff/commands)
   :build-operation "asdf:program-op"
-  :build-pathname "bin/clang-merge"
-  :entry-point "software-evolution-library/ast-diff/clang-merge:run-clang-merge")
-
-(defsystem "software-evolution-library/run-lisp-diff"
-  :author "Eric Schulte and GrammaTech"
-  :licence "GPL V3"
-  :description "Calculate difference between two Lisp programs."
-  :version "0.0.0"
-  :depends-on (software-evolution-library/ast-diff/lisp)
-  :build-operation "asdf:program-op"
-  :build-pathname "bin/lisp-diff"
-  :entry-point "software-evolution-library/ast-diff/lisp::run-lisp-diff")
+  :build-pathname "bin/ast-merge"
+  :entry-point "software-evolution-library/ast-diff/commands::run-ast-merge")

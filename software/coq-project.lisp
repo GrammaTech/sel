@@ -1,5 +1,5 @@
 ;;; coq-project.lisp --- Coq project software representation
-;;; 
+;;;
 ;;; A `coq-project' object extends the main SEL `project' object. In addition to
 ;;; the SEL `project' fields, it includes an additional `project-file' field for
 ;;; storing the path to a _CoqProject file. (This is intentionally duplicated on

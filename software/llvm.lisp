@@ -1,9 +1,9 @@
 ;;; llvm.lisp --- llvm software representation
-;;; 
+;;;
 ;; This software object uses the llvm-mutate [1] compiler pass run by
 ;; llvm opt [2] to manipulate LLVM intermediate representation (IR)
 ;; code (see [3] for more information).
-;;; 
+;;;
 ;; [1] https://github.com/eschulte/llvm-mutate
 ;; [2] http://llvm.org/releases/3.2/docs/CommandGuide/opt.html
 ;; [3] http://llvm.org/docs/LangRef.html#introduction
