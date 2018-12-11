@@ -111,6 +111,7 @@ Next: <a href="sel_002dsw_002dproject.html#sel_002dsw_002dproject" accesskey="n"
 <a name="Method-asts-_0028_0028parseable-parseable_0029_0029"></a><dl>
 <dt><a name="index-asts-2"></a>Method: <strong>asts</strong> <em>(parseable parseable)</em></dt>
 <dd><p>List of all ASTs.
+See the documentation of &lsquo;update-asts&rsquo; for required invariants.
 </p></dd></dl>
 <a name="Generic_002dFunction-asts_002dcontaining_002dsource_002dlocation"></a><dl>
 <dt><a name="index-asts_002dcontaining_002dsource_002dlocation"></a>Generic Function: <strong>asts-containing-source-location</strong> <em>software location</em></dt>
@@ -401,13 +402,8 @@ otherwise.
 <dt><a name="index-parse_002dasts"></a>Generic Function: <strong>parse-asts</strong> <em>software</em></dt>
 <dd><p>Parse genome of <code>software</code>, returning a list of ASTs.
 </p></dd></dl>
-<a name="Method-parse_002dasts-_0028_0028obj-javascript_0029_0029"></a><dl>
-<dt><a name="index-parse_002dasts-1"></a>Method: <strong>parse-asts</strong> <em>(obj javascript)</em></dt>
-<dd><p>Parse the genome of <code>obj</code>, return a list of ASTs.
-* <code>obj</code> object to parse
-</p></dd></dl>
 <a name="Method-parse_002dasts-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-parse_002dasts-2"></a>Method: <strong>parse-asts</strong> <em>(obj clang)</em></dt>
+<dt><a name="index-parse_002dasts-1"></a>Method: <strong>parse-asts</strong> <em>(obj clang)</em></dt>
 <dd><p>Parse the genome of <code>obj</code> and update its ASTs.
 * <code>obj</code> object to update
 </p></dd></dl>
@@ -455,6 +451,7 @@ into a list of free-floating ASTs.
 </p></li><li> <code>asts</code> &mdash; initarg: <code>:asts<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:asts</span><!-- /@w --></code>
 
 <p>List of all ASTs.
+See the documentation of &lsquo;update-asts&rsquo; for required invariants.
 </p></li><li> <code>asts-changed-p</code> &mdash; reader: <code><span class="nolinebreak">software-evolution-library/software/parseable:asts-changed-p</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software/parseable:asts-changed-p)</span><!-- /@w --></code>
 
 <p>Have ASTs changed since the last parse?
@@ -711,14 +708,20 @@ If no suitable points are found the returned points may be nil.
 <a name="Generic_002dFunction-update_002dasts"></a><dl>
 <dt><a name="index-update_002dasts"></a>Generic Function: <strong>update-asts</strong> <em>software</em></dt>
 <dd><p>Update the store of asts associated with <code>software</code>.
-</p></dd></dl>
-<a name="Method-update_002dasts-_0028_0028obj-javascript_0029_0029"></a><dl>
-<dt><a name="index-update_002dasts-1"></a>Method: <strong>update-asts</strong> <em>(obj javascript)</em></dt>
-<dd><p>Update the ast-root associated with <code>obj</code>.
-* <code>obj</code> obj to update
+There are some requirements for the ASTs constructed by this method:
+</p><ul>
+<li> We require that *all* source text be stored as a raw string
+  somewhere in the AST tree.  Source text tucked inside of a
+  non-string <code>ast-node</code> will be ignored.
+</li><li> We also require that if two ASTs have the same class and the same
+  source text then they are equal.
+
+</li></ul>
+<p>Other methods in on parseable objects, specifically &lsquo;ast-can-recurse&rsquo;
+and &lsquo;ast-equal-p&rsquo; depend on these invariants.
 </p></dd></dl>
 <a name="Method-update_002dasts-_0028_0028obj-clang_0029_0029"></a><dl>
-<dt><a name="index-update_002dasts-2"></a>Method: <strong>update-asts</strong> <em>(obj clang)</em></dt>
+<dt><a name="index-update_002dasts-1"></a>Method: <strong>update-asts</strong> <em>(obj clang)</em></dt>
 <dd><p>Parse and return the ASTs in <code>obj</code> using &lsquo;clang-mutate&rsquo;.
 </p><ul>
 <li> <code>obj</code> object to parse
@@ -757,8 +760,7 @@ not been set.
 </p></dd></dl>
 <a name="Method-update_002dcaches_002dif_002dnecessary-_0028_0028obj-parseable_0029_0029"></a><dl>
 <dt><a name="index-update_002dcaches_002dif_002dnecessary-1"></a>Method: <strong>update-caches-if-necessary</strong> <em>(obj parseable)</em></dt>
-<dd><p>Update cached fields if these fields have not been set.
-* <code>obj</code> object to potentially populate with cached fields
+<dd><p>Update cached fields of <code>obj</code> if these fields have not been set.
 </p></dd></dl>
 
 <hr>
