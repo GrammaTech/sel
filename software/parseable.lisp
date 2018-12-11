@@ -81,7 +81,8 @@
              :initform nil :copier :direct
              :type #+sbcl (list (cons keyword *) *) #-sbcl list
              :documentation
-             "List of all ASTs.")
+             "List of all ASTs.
+See the documentation of `update-asts' for required invariants.")
    (asts-changed-p :accessor asts-changed-p
                    :initform t :type boolean
                    :documentation
@@ -134,7 +135,16 @@ and :SCOPE.
   (:documentation "Return all variables in enclosing scopes."))
 
 (defgeneric update-asts (software)
-  (:documentation "Update the store of asts associated with SOFTWARE."))
+  (:documentation "Update the store of asts associated with SOFTWARE.
+There are some requirements for the ASTs constructed by this method:
+* We require that *all* source text be stored as a raw string
+  somewhere in the AST tree.  Source text tucked inside of a
+  non-string AST-NODE will be ignored.
+* We also require that if two ASTs have the same class and the same
+  source text then they are equal.
+
+Other methods in on parseable objects, specifically `ast-can-recurse'
+and `ast-equal-p' depend on these invariants."))
 
 (defgeneric parse-asts (software)
   (:documentation "Parse genome of SOFTWARE, returning a list of ASTs."))
@@ -306,6 +316,11 @@ field indicates the object has changed since the last parse."
 "
   (with-slots (ast-root) obj (unless ast-root (update-asts obj))))
 
+;;; NOTE: The `update-caches' method makes some assumptions about the
+;;;       structure of the ASTs.  Namely that the initial top-level
+;;;       AST can be thrown away.  Also, that any AST without any
+;;;       children need not be collected at all.  (Maybe this last one
+;;;       is a proxy for not collecting string asts?)
 (defgeneric update-caches (software)
   (:documentation "Update cached fields in SOFTWARE.")
   (:method ((obj parseable))
