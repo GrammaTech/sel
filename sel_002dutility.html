@@ -66,40 +66,23 @@ Next: <a href="sel_002drest.html#sel_002drest" accesskey="n" rel="next">sel-rest
 <hr>
 <a name="sel_002dutility-1"></a>
 <h3 class="section">C.2 sel-utility</h3>
-<a name="Structure-task_002drunner"></a><dl>
-<dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
-<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
-</p>
-<p>The state needed to run multi-threaded tasks and associated jobs.
-</p><ul>
-<li> jobs:         stack of current jobs to execute
-</li><li> workers:      list running worker threads
-</li><li> results:      result objects collected by worker threads
-</li><li> jobs-lock:    (internal) used to synchronize jobs stack
-</li><li> results-lock: (internal) used to synchronnize results list
-</li><li> workers-lock: (internal) used to synchronize worker list
-</li><li> completed-jobs: number of jobs that have been executed and finished
-</li><li> completed-tasks: number of tasks that have finished
-</li></ul>
-</dd></dl>
-<a name="Class-some_002dtest_002dtask"></a><dl>
-<dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
-<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
+<a name="Class-process"></a><dl>
+<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
+<dd><p>Class precedence list: <code>process, standard-object, t</code>
 </p>
 <p>Slots:
 </p><ul>
-<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
+<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
 
-<p>Predicate used by &lsquo;some&rsquo;.
+<p>The underlying process object (compiler-specific).
+This field will not usually need to be accessed directly: use methods
+&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
+&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
+&lsquo;signal-process&rsquo; to interact with processes.
 </p></li></ul>
 
-<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
-</p></dd></dl>
-<a name="Class-task"></a><dl>
-<dt><a name="index-task"></a>Class: <strong>task</strong></dt>
-<dd><p>Class precedence list: <code>task, standard-object, t</code>
-</p>
-<p>Base class for all task classes.
+<p>Object representing an external process.
+Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
 </p></dd></dl>
 <a name="Variable-_002abash_002dshell_002a"></a><dl>
 <dt><a name="index-_002abash_002dshell_002a"></a>Variable: <strong>*bash-shell*</strong></dt>
@@ -109,17 +92,9 @@ Next: <a href="sel_002drest.html#sel_002drest" accesskey="n" rel="next">sel-rest
 <dt><a name="index-_002acompile_002dw_002ftracing_002a"></a>Variable: <strong>*compile-w/tracing*</strong></dt>
 <dd><p>Controls compilation of tracing information with the &lsquo;traced&rsquo; macro.
 </p></dd></dl>
-<a name="Variable-_002anote_002dlevel_002a"></a><dl>
-<dt><a name="index-_002anote_002dlevel_002a"></a>Variable: <strong>*note-level*</strong></dt>
-<dd><p>Enables execution notes.
-</p></dd></dl>
 <a name="Variable-_002anote_002dout_002a"></a><dl>
 <dt><a name="index-_002anote_002dout_002a"></a>Variable: <strong>*note-out*</strong></dt>
 <dd><p>Targets of notation.
-</p></dd></dl>
-<a name="Variable-_002aprofile_002ddot_002dmin_002dratio_002a"></a><dl>
-<dt><a name="index-_002aprofile_002ddot_002dmin_002dratio_002a"></a>Variable: <strong>*profile-dot-min-ratio*</strong></dt>
-<dd><p>Minimum percentage ratio to include a node in the profile dot graph.
 </p></dd></dl>
 <a name="Variable-_002ashell_002ddebug_002a"></a><dl>
 <dt><a name="index-_002ashell_002ddebug_002a"></a>Variable: <strong>*shell-debug*</strong></dt>
@@ -136,6 +111,10 @@ Next: <a href="sel_002drest.html#sel_002drest" accesskey="n" rel="next">sel-rest
 <a name="Variable-_002atask_002drunner_002a"></a><dl>
 <dt><a name="index-_002atask_002drunner_002a"></a>Variable: <strong>*task-runner*</strong></dt>
 <dd><p>Bind <code>*task-runner*</code> for worker threads
+</p></dd></dl>
+<a name="Variable-_002atemp_002ddir_002a"></a><dl>
+<dt><a name="index-_002atemp_002ddir_002a"></a>Variable: <strong>*temp-dir*</strong></dt>
+<dd><p>Set to non-nil for a custom temporary directory.
 </p></dd></dl>
 <a name="Variable-_002auninteresting_002dconditions_002a"></a><dl>
 <dt><a name="index-_002auninteresting_002dconditions_002a"></a>Variable: <strong>*uninteresting-conditions*</strong></dt>
@@ -155,28 +134,46 @@ Next: <a href="sel_002drest.html#sel_002drest" accesskey="n" rel="next">sel-rest
       #| ... |#)
 </pre></div>
 </dd></dl>
-<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
-<dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
-<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
+<a name="Generic_002dFunction-process_002dexit_002dcode"></a><dl>
+<dt><a name="index-process_002dexit_002dcode"></a>Generic Function: <strong>process-exit-code</strong> <em>process</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
 </p></dd></dl>
-<a name="Class-process"></a><dl>
-<dt><a name="index-process"></a>Class: <strong>process</strong></dt>
-<dd><p>Class precedence list: <code>process, standard-object, t</code>
+<a name="Method-process_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dexit_002dcode-1"></a>Method: <strong>process-exit-code</strong> <em>(process process)</em></dt>
+<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
+<dt><a name="index-process_002dinput_002dstream"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the input stream for <code>process</code>.
+</p></dd></dl>
+<a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
+<dt><a name="index-process_002doutput_002dstream"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="Method-process_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
+<dt><a name="index-process_002doutput_002dstream-1"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
+<dd><p>Return the output stream for <code>process</code>.
+</p></dd></dl>
+<a name="Structure-task_002drunner"></a><dl>
+<dt><a name="index-task_002drunner"></a>Structure: <strong>task-runner</strong></dt>
+<dd><p>Class precedence list: <code>task-runner, structure-object, t</code>
 </p>
-<p>Slots:
+<p>The state needed to run multi-threaded tasks and associated jobs.
 </p><ul>
-<li> <code>os-process</code> &mdash; initarg: <code><span class="nolinebreak">:os-process</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:os-process</span><!-- /@w --></code>
-
-<p>The underlying process object (compiler-specific).
-This field will not usually need to be accessed directly: use methods
-&lsquo;process-input-stream&rsquo;, &lsquo;process-output-stream&rsquo;,
-&lsquo;process-error-stream&rsquo;, &lsquo;process-error-code&rsquo;, &lsquo;process-status&rsquo;,
-&lsquo;signal-process&rsquo; to interact with processes.
-</p></li></ul>
-
-<p>Object representing an external process.
-Wraps around <code>sbcl-</code> or CCL-specific representations of external processes.
-</p></dd></dl>
+<li> jobs:         stack of current jobs to execute
+</li><li> workers:      list running worker threads
+</li><li> results:      result objects collected by worker threads
+</li><li> jobs-lock:    (internal) used to synchronize jobs stack
+</li><li> results-lock: (internal) used to synchronnize results list
+</li><li> workers-lock: (internal) used to synchronize worker list
+</li><li> completed-jobs: number of jobs that have been executed and finished
+</li><li> completed-tasks: number of tasks that have finished
+</li></ul>
+</dd></dl>
 <a name="Class-some_002dtask"></a><dl>
 <dt><a name="index-some_002dtask"></a>Class: <strong>some-task</strong></dt>
 <dd><p>Class precedence list: <code>some-task, task, standard-object, t</code>
@@ -191,9 +188,32 @@ Wraps around <code>sbcl-</code> or CCL-specific representations of external proc
 <p>Task for applying &lsquo;some&rsquo; in parallel.
 The <code>object</code> field is a list on whose elements <code>some-task-pred</code> is applied.
 </p></dd></dl>
-<a name="Variable-_002atemp_002ddir_002a"></a><dl>
-<dt><a name="index-_002atemp_002ddir_002a"></a>Variable: <strong>*temp-dir*</strong></dt>
-<dd><p>Set to non-nil for a custom temporary directory.
+<a name="Class-some_002dtest_002dtask"></a><dl>
+<dt><a name="index-some_002dtest_002dtask"></a>Class: <strong>some-test-task</strong></dt>
+<dd><p>Class precedence list: <code>some-test-task, task, standard-object, t</code>
+</p>
+<p>Slots:
+</p><ul>
+<li> <code>pred</code> &mdash; initarg: <code>:pred<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/utility:some-task-pred</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/utility:some-task-pred)</span><!-- /@w --></code>
+
+<p>Predicate used by &lsquo;some&rsquo;.
+</p></li></ul>
+
+<p>Task to apply predicate <code>some-task-pred</code> to <code>object</code>.
+</p></dd></dl>
+<a name="Class-task_002dmap"></a><dl>
+<dt><a name="index-task_002dmap-1"></a>Class: <strong>task-map</strong></dt>
+<dd><p>Class precedence list: <code>task-map, task, standard-object, t</code>
+</p>
+<p>Task object used to map a function over a sequence using workers.
+</p></dd></dl>
+<a name="Variable-_002anote_002dlevel_002a"></a><dl>
+<dt><a name="index-_002anote_002dlevel_002a"></a>Variable: <strong>*note-level*</strong></dt>
+<dd><p>Enables execution notes.
+</p></dd></dl>
+<a name="Variable-_002aprofile_002ddot_002dmin_002dratio_002a"></a><dl>
+<dt><a name="index-_002aprofile_002ddot_002dmin_002dratio_002a"></a>Variable: <strong>*profile-dot-min-ratio*</strong></dt>
+<dd><p>Minimum percentage ratio to include a node in the profile dot graph.
 </p></dd></dl>
 <a name="Macro-read_002dshell"></a><dl>
 <dt><a name="index-read_002dshell"></a>Macro: <strong>read-shell</strong> <em>(stream-var shell) &amp;rest body</em></dt>
@@ -216,20 +236,23 @@ object.
 This is useful for &lsquo;flet&rsquo; and &lsquo;labels&rsquo; functions which can&rsquo;t be traced
 with &lsquo;cl-user:trace&rsquo;.
 </p></dd></dl>
-<a name="Macro-with_002dcwd"></a><dl>
-<dt><a name="index-with_002dcwd"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
-<dd><p>Change the current working directory to dir and execute body.
-<code>warning:</code> This function is not thread safe.  Execution in a threaded
-environment may causes execution outside of the intended directory or
-may lose the original working directory.
-</p></dd></dl>
 <a name="Macro-with_002dtemp_002ddir_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002ddir_002dof"></a>Macro: <strong>with-temp-dir-of</strong> <em>spec dir &amp;rest body</em></dt>
 <dd><p>Populate <code>spec</code> with the path to a temporary directory with the contents
 of <code>dir</code> and execute <code>body</code>
 </p></dd></dl>
+<a name="Macro-with_002dtemp_002dfile"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile"></a>Macro: <strong>with-temp-file</strong> <em>spec &amp;rest body</em></dt>
+<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
+After <code>body</code> is executed the temporary file is removed.
+</p></dd></dl>
 <a name="Macro-with_002dtemp_002dfile_002dof"></a><dl>
 <dt><a name="index-with_002dtemp_002dfile_002dof"></a>Macro: <strong>with-temp-file-of</strong> <em>spec str &amp;rest body</em></dt>
+<dd><p><code>spec</code> should be a list of the variable used to reference the file
+and an optional extension.
+</p></dd></dl>
+<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
+<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
 <dd><p><code>spec</code> should be a list of the variable used to reference the file
 and an optional extension.
 </p></dd></dl>
@@ -301,6 +324,13 @@ Keyword argument <code>frac</code> will return fractions instead of raw counts.
 Return an updated version of <code>alist</code> in which the cdr of each element is
 transformed from an instant to a cumulative probability.
 </p></dd></dl>
+<a name="Function-diff_002dscalar"></a><dl>
+<dt><a name="index-diff_002dscalar"></a>Function: <strong>diff-scalar</strong> <em>original-seq modified-seq</em></dt>
+<dd><p>Return an integer representing the diff size of two sequences
+Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <code>o</code> is the length of the
+original diff region and <code>m</code> is the length of the modified diff
+region.
+</p></dd></dl>
 <a name="Function-directory_002dp"></a><dl>
 <dt><a name="index-directory_002dp"></a>Function: <strong>directory-p</strong> <em>pathname</em></dt>
 <dd><p>Return a directory version of <code>pathname</code> if it indicates a directory.
@@ -321,6 +351,11 @@ transformed from an instant to a cumulative probability.
 <dt><a name="index-equal_002dit"></a>Function: <strong>equal-it</strong> <em>obj1 obj2 &amp;optional trace inhibit-slots</em></dt>
 <dd><p>Equal over objects and lists.
 </p></dd></dl>
+<a name="Function-function_002dlines"></a><dl>
+<dt><a name="index-function_002dlines"></a>Function: <strong>function-lines</strong> <em>lines</em></dt>
+<dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
+<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an ASM object.
+</p></dd></dl>
 <a name="Function-gdb_002ddisassemble"></a><dl>
 <dt><a name="index-gdb_002ddisassemble"></a>Function: <strong>gdb-disassemble</strong> <em>phenome function</em></dt>
 <dd><p>Return the raw gdb disassembled code of <code>function</code> in <code>phenome</code>.
@@ -335,11 +370,41 @@ use getenvp to return <code>nil</code> in such a case.
 <dt><a name="index-getenv-1"></a>Setf Expander: <strong>getenv</strong> <em>x</em></dt>
 <dd><p>Set an environment variable.
 </p></dd></dl>
+<a name="Function-getter"></a><dl>
+<dt><a name="index-getter"></a>Function: <strong>getter</strong> <em>key</em></dt>
+<dd><p>Return a function which gets <code>key</code> from an association list.
+</p></dd></dl>
 <a name="Function-in_002ddirectory"></a><dl>
 <dt><a name="index-in_002ddirectory"></a>Function: <strong>in-directory</strong> <em>directory path</em></dt>
 <dd><p>Return <code>path</code> based in <code>directory</code>.
 Uses &lsquo;ensure-directory-pathname&rsquo; to force <code>directory</code> to be a directory
 pathname (i.e., ending in a &quot;/&quot;).
+</p></dd></dl>
+<a name="Generic_002dFunction-kill_002dprocess"></a><dl>
+<dt><a name="index-kill_002dprocess"></a>Generic Function: <strong>kill-process</strong> <em>process &amp;key urgent</em></dt>
+<dd><p>Send a kill signal to <code>process</code>. If <code>urgent</code> is <code>t</code>, send <code>sigkill</code>.
+</p></dd></dl>
+<a name="Class-task"></a><dl>
+<dt><a name="index-task"></a>Class: <strong>task</strong></dt>
+<dd><p>Class precedence list: <code>task, standard-object, t</code>
+</p>
+<p>Base class for all task classes.
+</p></dd></dl>
+<a name="Function-list_002ddirectory"></a><dl>
+<dt><a name="index-list_002ddirectory"></a>Function: <strong>list-directory</strong> <em>dirname &amp;key follow-symlinks</em></dt>
+<dd><p>Returns a fresh list of pathnames corresponding to all files within
+the directory named by the non-wild pathname designator <code>dirname</code>.
+The pathnames of sub-directories are returned in directory form <code>-</code>
+see <code>pathname-as-directory</code>.
+</p>
+<p>If <code>follow-symlinks</code> is true, then the returned list contains
+truenames (symlinks will be resolved) which essentially means that it
+might also return files from *outside* the directory.  This works on
+all platforms.
+</p>
+<p>When <code>follow-symlinks</code> is <code>nil</code>, it should return the actual directory
+contents, which might include symlinks.  Currently this works on SBCL
+and <code>ccl</code>.
 </p></dd></dl>
 <a name="Function-make_002dterminal_002draw"></a><dl>
 <dt><a name="index-make_002dterminal_002draw"></a>Function: <strong>make-terminal-raw</strong></dt>
@@ -415,14 +480,6 @@ holds those which do not.
 <dt><a name="index-process_002derror_002dstream-1"></a>Method: <strong>process-error-stream</strong> <em>(process process)</em></dt>
 <dd><p>Return the error stream for <code>process</code>.
 </p></dd></dl>
-<a name="Generic_002dFunction-process_002dexit_002dcode"></a><dl>
-<dt><a name="index-process_002dexit_002dcode"></a>Generic Function: <strong>process-exit-code</strong> <em>process</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
-</p></dd></dl>
-<a name="Method-process_002dexit_002dcode-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dexit_002dcode-1"></a>Method: <strong>process-exit-code</strong> <em>(process process)</em></dt>
-<dd><p>Return the exit code for <code>process</code>, or nil if <code>process</code> has not exited.
-</p></dd></dl>
 <a name="Generic_002dFunction-process_002did"></a><dl>
 <dt><a name="index-process_002did"></a>Generic Function: <strong>process-id</strong> <em>process</em></dt>
 <dd><p>Return the process id for <code>process</code>
@@ -430,14 +487,6 @@ holds those which do not.
 <a name="Method-process_002did-_0028_0028process-process_0029_0029"></a><dl>
 <dt><a name="index-process_002did-1"></a>Method: <strong>process-id</strong> <em>(process process)</em></dt>
 <dd><p>Return the process id for <code>process</code>.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002dinput_002dstream"></a><dl>
-<dt><a name="index-process_002dinput_002dstream"></a>Generic Function: <strong>process-input-stream</strong> <em>process</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-process_002dinput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002dinput_002dstream-1"></a>Method: <strong>process-input-stream</strong> <em>(process process)</em></dt>
-<dd><p>Return the input stream for <code>process</code>.
 </p></dd></dl>
 <a name="Generic_002dFunction-process_002drunning_002dp"></a><dl>
 <dt><a name="index-process_002drunning_002dp"></a>Generic Function: <strong>process-running-p</strong> <em>process</em></dt>
@@ -466,45 +515,12 @@ timing, it&rsquo;s possible that the result won&rsquo;t match that of &lsquo;som
 promises to find the first while &lsquo;some-task&rsquo; may return any element satisfying
 &lsquo;some-task-pred&rsquo;.
 </p></dd></dl>
-<a name="Class-task_002dmap"></a><dl>
-<dt><a name="index-task_002dmap-1"></a>Class: <strong>task-map</strong></dt>
-<dd><p>Class precedence list: <code>task-map, task, standard-object, t</code>
-</p>
-<p>Task object used to map a function over a sequence using workers.
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dfile"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile"></a>Macro: <strong>with-temp-file</strong> <em>spec &amp;rest body</em></dt>
-<dd><p><code>spec</code> holds the variable used to reference the file w/optional extension.
-After <code>body</code> is executed the temporary file is removed.
-</p></dd></dl>
-<a name="Macro-with_002dtemp_002dfile_002dof_002dbytes"></a><dl>
-<dt><a name="index-with_002dtemp_002dfile_002dof_002dbytes"></a>Macro: <strong>with-temp-file-of-bytes</strong> <em>spec bytes &amp;rest body</em></dt>
-<dd><p><code>spec</code> should be a list of the variable used to reference the file
-and an optional extension.
-</p></dd></dl>
-<a name="Function-diff_002dscalar"></a><dl>
-<dt><a name="index-diff_002dscalar"></a>Function: <strong>diff-scalar</strong> <em>original-seq modified-seq</em></dt>
-<dd><p>Return an integer representing the diff size of two sequences
-Sum <code>o</code> <code>+</code> |O <code>-</code> M| over each diff region.  <code>o</code> is the length of the
-original diff region and <code>m</code> is the length of the modified diff
-region.
-</p></dd></dl>
-<a name="Function-function_002dlines"></a><dl>
-<dt><a name="index-function_002dlines"></a>Function: <strong>function-lines</strong> <em>lines</em></dt>
-<dd><p>Return the line numbers of the lines (in order) of <code>function</code>.
-<code>lines</code> should be the output of the &lsquo;lines&rsquo; function on an ASM object.
-</p></dd></dl>
-<a name="Function-getter"></a><dl>
-<dt><a name="index-getter"></a>Function: <strong>getter</strong> <em>key</em></dt>
-<dd><p>Return a function which gets <code>key</code> from an association list.
-</p></dd></dl>
-<a name="Generic_002dFunction-process_002doutput_002dstream"></a><dl>
-<dt><a name="index-process_002doutput_002dstream"></a>Generic Function: <strong>process-output-stream</strong> <em>process</em></dt>
-<dd><p>Return the output stream for <code>process</code>.
-</p></dd></dl>
-<a name="Method-process_002doutput_002dstream-_0028_0028process-process_0029_0029"></a><dl>
-<dt><a name="index-process_002doutput_002dstream-1"></a>Method: <strong>process-output-stream</strong> <em>(process process)</em></dt>
-<dd><p>Return the output stream for <code>process</code>.
+<a name="Macro-with_002dcwd"></a><dl>
+<dt><a name="index-with_002dcwd"></a>Macro: <strong>with-cwd</strong> <em>dir &amp;rest body</em></dt>
+<dd><p>Change the current working directory to dir and execute body.
+<code>warning:</code> This function is not thread safe.  Execution in a threaded
+environment may causes execution outside of the intended directory or
+may lose the original working directory.
 </p></dd></dl>
 <a name="Function-profile_002dto_002ddot_002dgraph"></a><dl>
 <dt><a name="index-profile_002dto_002ddot_002dgraph"></a>Function: <strong>profile-to-dot-graph</strong> <em>stream</em></dt>
@@ -671,6 +687,22 @@ x-pixels, y-pixels.  Note, this may throw an error when called from
 <a name="Function-un_002dcumulative_002ddistribution"></a><dl>
 <dt><a name="index-un_002dcumulative_002ddistribution"></a>Function: <strong>un-cumulative-distribution</strong> <em>alist</em></dt>
 <dd><p>Undo the &lsquo;cumulative-distribution&rsquo; function.
+</p></dd></dl>
+<a name="Function-walk_002ddirectory"></a><dl>
+<dt><a name="index-walk_002ddirectory"></a>Function: <strong>walk-directory</strong> <em>dirname fn &amp;key directories if-does-not-exist test follow-symlinks</em></dt>
+<dd><p>Recursively applies the function <code>fn</code> to all files within the
+directory named by the non-wild pathname designator <code>dirname</code> and all of
+its sub-directories.  <code>fn</code> will only be applied to files for which the
+function <code>test</code> returns a true value.  If <code>directories</code> is not <code>nil</code>, <code>fn</code> and
+<code>test</code> are applied to directories as well.  If <code>directories</code>
+is <code>:depth-first</code>, <code>fn</code> will be applied to the directory&rsquo;s contents first.
+If <code>directories</code> is <code>:breadth-first</code> and <code>test</code> returns <code>nil</code>, the directory&rsquo;s
+content will be skipped. <code>if-does-not-exist</code> must be one of <code>:error</code>
+or <code>:ignore</code> where <code>:error</code> means that an error will be signaled if the
+directory <code>dirname</code> does not exist.  If <code>follow-symlinks</code> is <code>t</code>, then your
+callback will receive truenames.  Otherwise you should get the actual
+directory contents, which might include symlinks.  This might not be
+supported on all platforms.  See <code>list-directory</code>.
 </p></dd></dl>
 
 <hr>

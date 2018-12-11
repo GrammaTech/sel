@@ -129,7 +129,7 @@ Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-pr
 <p>Some <code>extra-keys</code> that may be useful are:
 </p><ul>
 <li> :output and :error-output <code>-</code> to specify how output and error streams are
-  handled. In some cases, these are sent to /dev/null by default, making 
+  handled. In some cases, these are sent to /dev/null by default, making
   inaccessible after the process completes, so it&rsquo;s often useful to set one or
   both of these to &lsquo;:stream&rsquo; to capture the output.
 
@@ -148,19 +148,19 @@ Return the &lsquo;process&rsquo;. This is a wrapper around &lsquo;uiop:launch-pr
 </p><ul>
 <li> <code>program-name</code> &mdash; initarg: <code><span class="nolinebreak">:program-name</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/components/test-suite:program-name</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/components/test-suite:program-name)</span><!-- /@w --></code>
 
-<p>The executable that runs the test case.  
+<p>The executable that runs the test case.
 Contains either a string containing the name of an executable file or
 special symbol :bin, which will be dynamically replaced by the name of
 the compiled phenome for the software object under test.
 </p></li><li> <code>program-args</code> &mdash; initarg: <code><span class="nolinebreak">:program-args</span><!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/components/test-suite:program-args</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/components/test-suite:program-args)</span><!-- /@w --></code>
 
 <p>A list of arguments which will be passed to the executable
-<code>program-name</code>. 
+<code>program-name</code>.
 Each argument must be either a string or symbol :bin, which will be
 replaced by the name of the compiled phenome.
 </p></li><li> <code>fitness</code> &mdash; initarg: <code>:fitness<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:fitness</span><!-- /@w --></code>; writer: <code>(setf&nbsp;<span class="nolinebreak">software-evolution-library/software-evolution-library:fitness)</span><!-- /@w --></code>
 
-<p>May be used to store the fitness result from a prior run of the test case. 
+<p>May be used to store the fitness result from a prior run of the test case.
 This field is not updated automatically since some components may need
 to perform comparisons between new and old values (e.g., condition
 synthesis).

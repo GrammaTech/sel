@@ -24,7 +24,7 @@ A copy of the license is included in the section entitled
 <link href="Index.html#Index" rel="index" title="Index">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
 <link href="SEL-Packages.html#SEL-Packages" rel="up" title="SEL Packages">
-<link href="sel_002dsw_002dlisp_002dfn.html#sel_002dsw_002dlisp_002dfn" rel="next" title="sel-sw-lisp-fn">
+<link href="sel_002dsw_002dllvm.html#sel_002dsw_002dllvm" rel="next" title="sel-sw-llvm">
 <link href="sel_002dsw_002djavascript_002dproject.html#sel_002dsw_002djavascript_002dproject" rel="prev" title="sel-sw-javascript-project">
 <style type="text/css">
 <!--
@@ -61,7 +61,7 @@ ul.no-bullet {list-style: none}
 <a name="sel_002dsw_002dlisp"></a>
 <div class="header">
 <p>
-Next: <a href="sel_002dsw_002dlisp_002dfn.html#sel_002dsw_002dlisp_002dfn" accesskey="n" rel="next">sel-sw-lisp-fn</a>, Previous: <a href="sel_002dsw_002djavascript_002dproject.html#sel_002dsw_002djavascript_002dproject" accesskey="p" rel="prev">sel-sw-javascript-project</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
+Next: <a href="sel_002dsw_002dllvm.html#sel_002dsw_002dllvm" accesskey="n" rel="next">sel-sw-llvm</a>, Previous: <a href="sel_002dsw_002djavascript_002dproject.html#sel_002dsw_002djavascript_002dproject" accesskey="p" rel="prev">sel-sw-javascript-project</a>, Up: <a href="SEL-Packages.html#SEL-Packages" accesskey="u" rel="up">SEL Packages</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="Index.html#Index" title="Index" rel="index">Index</a>]</p>
 </div>
 <hr>
 <a name="sel_002dsw_002dlisp-1"></a>
@@ -71,66 +71,6 @@ Next: <a href="sel_002dsw_002dlisp_002dfn.html#sel_002dsw_002dlisp_002dfn" acces
 <dd><p>Class precedence list: <code>lisp, simple, software, oid-object, standard-object, t</code>
 </p>
 <p>Common Lisp source represented naturally as lists of code.
-</p></dd></dl>
-<a name="Class-lisp_002dcut"></a><dl>
-<dt><a name="index-lisp_002dcut"></a>Class: <strong>lisp-cut</strong></dt>
-<dd><p>Class precedence list: <code>lisp-cut, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p><code>docfixme</code>
-</p></dd></dl>
-<a name="Class-lisp_002dreplace"></a><dl>
-<dt><a name="index-lisp_002dreplace"></a>Class: <strong>lisp-replace</strong></dt>
-<dd><p>Class precedence list: <code>lisp-replace, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p><code>docfixme</code>
-</p></dd></dl>
-<a name="Class-lisp_002dswap"></a><dl>
-<dt><a name="index-lisp_002dswap"></a>Class: <strong>lisp-swap</strong></dt>
-<dd><p>Class precedence list: <code>lisp-swap, mutation, oid-object, standard-object, t</code>
-</p>
-<p>Slots:
-</p><ul>
-<li> <code>targeter</code> &mdash; initarg: <code>:targeter<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:targeter</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> targets.
-</p></li><li> <code>picker</code> &mdash; initarg: <code>:picker<!-- /@w --></code>; reader: <code><span class="nolinebreak">software-evolution-library/software-evolution-library:picker</span><!-- /@w --></code>
-
-<p>A function from software <code>-&gt;</code> random target.
-</p></li></ul>
-
-<p><code>docfixme</code>
-</p></dd></dl>
-<a name="Variable-_002alisp_002dmutation_002dtypes_002a"></a><dl>
-<dt><a name="index-_002alisp_002dmutation_002dtypes_002a"></a>Variable: <strong>*lisp-mutation-types*</strong></dt>
-<dd><p><code>docfixme</code>
-</p></dd></dl>
-<a name="Function-subtree"></a><dl>
-<dt><a name="index-subtree"></a>Function: <strong>subtree</strong> <em>tree index</em></dt>
-<dd><p>Return the <code>index</code> cons cell in <code>tree</code> in depth first order.
-</p></dd></dl>
-<a name="Function-tree_002dsize"></a><dl>
-<dt><a name="index-tree_002dsize"></a>Function: <strong>tree-size</strong> <em>tree</em></dt>
-<dd><p>Return the number of cons cells in <code>tree</code>.
 </p></dd></dl>
 
 

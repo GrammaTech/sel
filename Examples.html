@@ -85,24 +85,24 @@ int main(int argc, char *argv[]) {
   double r1;
   double r2;
 
-  a = atoi(argv[1]); 
-  b = atoi(argv[2]); 
+  a = atoi(argv[1]);
+  b = atoi(argv[2]);
 
   if (a == 0) { printf(&quot;%g\n&quot;, b); }
   else        { }
   {
     while (b != 0) {
       if (a &gt; b) {
-        a = a - b; 
+        a = a - b;
       } else {
-        b = b - a; 
-      } 
+        b = b - a;
+      }
     }
-    printf(&quot;%g\n&quot;, a); 
-  } 
+    printf(&quot;%g\n&quot;, a);
+  }
 
-  return 0; 
-} 
+  return 0;
+}
 </pre>
 <p>(You may notice at this point that the C code is buggy and does not
 compute correct gcd for all inputs. The <a href="Repair.html#Repair">Repair</a> example will
