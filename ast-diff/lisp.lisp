@@ -186,9 +186,9 @@
               (expression-result (walk-forms+ function (children form)))))
           forms))
 
-(defun write-file-forms+ (forms)
+(defun write-file-forms+ (forms &optional (out-file (temp-file-name "lisp")))
   "Re-prints the exact output as the original file."
-  (with-open-file (out "/tmp/out.lisp" :direction :output :if-exists :supersede)
+  (with-open-file (out out-file :direction :output :if-exists :supersede)
     (write-stream-forms+ forms out)))
 
 (defun write-stream-forms+ (forms stream)
