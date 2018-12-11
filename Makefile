@@ -14,8 +14,8 @@ DOC_PACKAGES =								\
 	software-evolution-library/ast-diff/string			\
 	software-evolution-library/ast-diff/ast-diff			\
 	software-evolution-library/ast-diff/alist			\
-	software-evolution-library/ast-diff/clang			\
 	software-evolution-library/ast-diff/html			\
+	software-evolution-library/ast-diff/commands			\
 	software-evolution-library/components/clang-instrument		\
 	software-evolution-library/components/clang-tokens		\
 	software-evolution-library/components/condition-synthesis	\
@@ -74,7 +74,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/super-mutant-clang		\
 	software-evolution-library/software/super-mutant-project	\
 	software-evolution-library/software/with-exe			\
-	software-evolution-library/ast-diff/clang-merge			\
 	software-evolution-library/utility				\
 	software-evolution-library/view
 
@@ -88,12 +87,13 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = clang-diff clang-merge lisp-diff lisp-merge javascript-diff javascript-merge
+BINS = ast-diff ast-merge
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate	\
 	javascript-diff-on-gcd	\
+	java-diff-on-gcd	\
 	lisp-diff-on-gcd	\
 	lisp-diff-on-gcd-raw	\
 	clang-diff-on-gcd

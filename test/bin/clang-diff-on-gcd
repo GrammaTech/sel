@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NUM_DIFFS="$(clang-diff test/etc/gcd/gcd-wo-curlies.c test/etc/gcd/gcd-wo-curlies-fix.c|grep -c "{+")"
+NUM_DIFFS="$(ast-diff test/etc/gcd/gcd-wo-curlies.c test/etc/gcd/gcd-wo-curlies-fix.c|grep -c "{+")"
 if [ "$NUM_DIFFS" == "1" ];then
     echo PASS
     exit 0

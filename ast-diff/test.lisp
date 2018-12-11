@@ -1,5 +1,7 @@
 ;;; Snippets used to test ast-diff
 
+;;; TODO: Move as much of this as reasonable into sel/test.lisp.
+
 (in-package :sel/ast-diff)
 
 (defun make-test-input (n f l)

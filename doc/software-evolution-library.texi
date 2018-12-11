@@ -1438,7 +1438,7 @@ appendix holds each individual package's API in turn.
 * sel-rest::                    Software-Evolution-Library Rest interface.
 * sel-view::                    Software-Evolution-Library Text GUI.
 * software-evolution-library-ast-diff:: Software Evolution Library AST differencing.
-* sel-ast-diff-clang::          Software Evolution Library AST differencing for Clang.
+* sel-ast-diff-commands::       Software Evolution Library AST differencing Commands.
 * sel-ast-diff-html::           Software Evolution Library AST differencing HTML output.
 * sel-sw-adaptive-mutation::    Software-Evolution-Library/Software adaptive mutation.
 * sel-sw-ancestral::            Software-Evolution-Library/Software ancestral.
@@ -1657,15 +1657,15 @@ appendix holds each individual package's API in turn.
 @section sel-sw-super-mutant-project
 @include sel-sw-super-mutant-project-api.texi
 
-@node sel-sw-with-exe, sel-ast-diff-clang, sel-sw-super-mutant-project, SEL Packages
+@node sel-sw-with-exe, sel-ast-diff-commands, sel-sw-super-mutant-project, SEL Packages
 @section sel-sw-with-exe
 @include sel-sw-with-exe-api.texi
 
-@node sel-ast-diff-clang, sel-ast-diff-html, sel-sw-with-exe, SEL Packages
-@section sel-ast-diff-clang
-@include sel-ast-diff-clang-api.texi
+@node sel-ast-diff-commands, sel-ast-diff-html, sel-sw-with-exe, SEL Packages
+@section sel-ast-diff-commands
+@include sel-ast-diff-commands-api.texi
 
-@node sel-ast-diff-html, sel-cp-clang-instrument, sel-ast-diff-clang, SEL Packages
+@node sel-ast-diff-html, sel-cp-clang-instrument, sel-ast-diff-commands, SEL Packages
 @section sel-ast-diff-html
 @include sel-ast-diff-html-api.texi
 
