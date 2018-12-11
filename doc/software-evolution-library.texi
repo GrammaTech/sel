@@ -1465,10 +1465,10 @@ appendix holds each individual package's API in turn.
 * sel-sw-javascript::           Software-Evolution-Library/Software javascript.
 * sel-sw-javascript-project::   Software-Evolution-Library/Software javascript-project.
 * sel-sw-lisp::                 Software-Evolution-Library/Software lisp.
-* sel-sw-lisp-fn::              Software-Evolution-Library/Software lisp-fn.
 * sel-sw-llvm::                 Software-Evolution-Library/Software llvm.
 * sel-sw-parseable::            Software-Evolution-Library/Software parseable.
 * sel-sw-project::              Software-Evolution-Library/Software project.
+* sel-sw-sexp::                 Software-Evolution-Library/Software sexp.
 * sel-sw-simple::               Software-Evolution-Library/Software simple.
 * sel-sw-source::               Software-Evolution-Library/Software source.
 * sel-sw-styleable::            Software-Evolution-Library/Software styleable.
@@ -1613,15 +1613,11 @@ appendix holds each individual package's API in turn.
 @section sel-sw-javascript-project
 @include sel-sw-javascript-project-api.texi
 
-@node sel-sw-lisp, sel-sw-lisp-fn, sel-sw-javascript-project, SEL Packages
+@node sel-sw-lisp, sel-sw-llvm, sel-sw-javascript-project, SEL Packages
 @section sel-sw-lisp
 @include sel-sw-lisp-api.texi
 
-@node sel-sw-lisp-fn, sel-sw-llvm, sel-sw-lisp, SEL Packages
-@section sel-sw-lisp-fn
-@include sel-sw-lisp-fn-api.texi
-
-@node sel-sw-llvm, sel-sw-parseable, sel-sw-lisp-fn, SEL Packages
+@node sel-sw-llvm, sel-sw-parseable, sel-sw-lisp, SEL Packages
 @section sel-sw-llvm
 @include sel-sw-llvm-api.texi
 
@@ -1629,11 +1625,15 @@ appendix holds each individual package's API in turn.
 @section sel-sw-parseable
 @include sel-sw-parseable-api.texi
 
-@node sel-sw-project, sel-sw-simple, sel-sw-parseable, SEL Packages
+@node sel-sw-project, sel-sw-sexp, sel-sw-parseable, SEL Packages
 @section sel-sw-project
 @include sel-sw-project-api.texi
 
-@node sel-sw-simple, sel-sw-source, sel-sw-project, SEL Packages
+@node sel-sw-sexp, sel-sw-simple, sel-sw-project, SEL Packages
+@section sel-sw-sexp
+@include sel-sw-sexp-api.texi
+
+@node sel-sw-simple, sel-sw-source, sel-sw-sexp, SEL Packages
 @section sel-sw-simple
 @include sel-sw-simple-api.texi
 

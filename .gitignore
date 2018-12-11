@@ -38,6 +38,7 @@ doc/include/
 doc/sel-ast-diff-alist-api.texi
 doc/sel-ast-diff-clang-api.texi
 doc/sel-ast-diff-clang-merge-api.texi
+doc/sel-ast-diff-commands-api.texi
 doc/sel-ast-diff-html-api.texi
 doc/sel-ast-diff-string-api.texi
 doc/sel-cp-clang-instrument-api.texi
@@ -85,11 +86,11 @@ doc/sel-sw-java-project-api.texi
 doc/sel-sw-javascript-api.texi
 doc/sel-sw-javascript-project-api.texi
 doc/sel-sw-lisp-api.texi
-doc/sel-sw-lisp-fn-api.texi
 doc/sel-sw-llvm-api.texi
 doc/sel-sw-parseable-api.texi
 doc/sel-sw-parseable-project-api.texi
 doc/sel-sw-project-api.texi
+doc/sel-sw-sexp-api.texi
 doc/sel-sw-simple-api.texi
 doc/sel-sw-source-api.texi
 doc/sel-sw-styleable-api.texi

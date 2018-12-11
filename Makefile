@@ -62,7 +62,7 @@ DOC_PACKAGES =								\
 	software-evolution-library/software/javascript			\
 	software-evolution-library/software/javascript-project		\
 	software-evolution-library/software/lisp			\
-	software-evolution-library/software/lisp-fn			\
+	software-evolution-library/software/sexp			\
 	software-evolution-library/software/llvm			\
 	software-evolution-library/software/parseable			\
 	software-evolution-library/software/parseable-project		\
