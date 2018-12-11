@@ -71,8 +71,8 @@
    :software-evolution-library/software/java-project
    :software-evolution-library/software/javascript
    :software-evolution-library/software/javascript-project
+   :software-evolution-library/software/sexp
    :software-evolution-library/software/lisp
-   :software-evolution-library/software/lisp-fn
    :software-evolution-library/software/llvm
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
@@ -6846,10 +6846,10 @@ prints unique counters in the trace"
 
 
 ;;;; Lisp representation.
-(defsuite lisp-tests "Lisp representation.")
+(defsuite sexp-tests "Sexp representation.")
 
 
-(defvar *clang-expr*  nil "The clang expression (lisp) software object.")
+(defvar *clang-expr*  nil "The clang expression (sexp) software object.")
 (defixture clang-expr
   (:setup
    (setf *clang-expr*
@@ -6858,66 +6858,66 @@ prints unique counters in the trace"
   (:teardown
    (setf *clang-expr* nil)))
 
-(deftest lisp-cut-first ()
+(deftest sexp-cut-first ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 0))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 0))
     (is (equal (genome *clang-expr*) '(1 (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-cut-leaf ()
+(deftest sexp-cut-leaf ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 1))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 1))
     (is (equal (genome *clang-expr*) '(:+ (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-cut-subtree ()
+(deftest sexp-cut-subtree ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 2))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 2))
     (is (equal (genome *clang-expr*) '(:+ 1)))))
 
 #+(or ) ; TODO: Fix this (unused) function before turning on this test.
-(deftest lisp-cut-function ()
+(deftest sexp-cut-function ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-cut :targets 3))
+    (apply-mutation *clang-expr* (make-instance 'sexp-cut :targets 3))
     (is (equal (genome *clang-expr*) '(:+ 1 (2 (:- 3 :y)))))))
 
-(deftest lisp-swap-leaves ()
+(deftest sexp-swap-leaves ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(1 4)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(1 4)))
     (is (equal (genome *clang-expr*) '(:+ 2 (:* 1 (:- 3 :y)))))))
 
-(deftest lisp-swap-leaf-subtree ()
+(deftest sexp-swap-leaf-subtree ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(1 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(1 5)))
     (is (equal (genome *clang-expr*) '(:+ (:- 3 :y) (:* 2 1))))))
 
-(deftest lisp-swap-functions ()
+(deftest sexp-swap-functions ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(3 6)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(3 6)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:* 3 :y)))))))
 
 ;; FIXME: what is the correct behavior here?
-(deftest lisp-swap-parent-child ()
+(deftest sexp-swap-parent-child ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-swap :targets '(2 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-swap :targets '(2 5)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 3 :y))))))
 
-(deftest lisp-replace-leaves ()
+(deftest sexp-replace-leaves ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(1 4)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(1 4)))
     (is (equal (genome *clang-expr*) '(:+ 2 (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-replace-leaf-subtree ()
+(deftest sexp-replace-leaf-subtree ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(1 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(1 5)))
     (is (equal (genome *clang-expr*) '(:+ (:- 3 :y) (:* 2 (:- 3 :y)))))))
 
-(deftest lisp-replace-parent-child ()
+(deftest sexp-replace-parent-child ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(2 5)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(2 5)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 3 :y))))))
 
-(deftest lisp-replace-function ()
+(deftest sexp-replace-function ()
   (with-fixture clang-expr
-    (apply-mutation *clang-expr* (make-instance 'lisp-replace :targets '(3 6)))
+    (apply-mutation *clang-expr* (make-instance 'sexp-replace :targets '(3 6)))
     (is (equal (genome *clang-expr*) '(:+ 1 (:- 2 (:- 3 :y)))))))
 
 

@@ -1,4 +1,32 @@
-;;; sexp.lisp --- Software objects of S-expressions.
+;;; sexp.lisp --- software representation of S-expressions
+;;;
+;;; A simple software object for the manipulation of S-expressions.
+;;; This functionality is not used independently but is used by
+;;; sel/sw/clang-expression and sel/sw/coq.
+;;;
+;;; @texi{sexp}
+(defpackage :software-evolution-library/software/sexp
+  (:nicknames :sel/software/sexp :sel/sw/sexp)
+  (:use :common-lisp
+        :alexandria
+        :arrow-macros
+        :named-readtables
+        :curry-compose-reader-macros
+        :metabang-bind
+        :iterate
+        :software-evolution-library
+        :software-evolution-library/utility
+        :software-evolution-library/software/simple)
+  (:export :sexp
+           :sexp-cut
+           :sexp-replace
+           :sexp-swap
+           :subtree
+           :tree-size
+           :filter-subtrees
+           :*sexp-mutation-types*))
+(in-package :software-evolution-library/software/sexp)
+(in-readtable :curry-compose-reader-macros)
 
 
 ;;; Tree actions
@@ -40,39 +68,69 @@
 (defsetf subtree set-subtree)
 
 
-;;; Mutations
-(define-mutation lisp-cut (mutation)
-  ((targeter :initform #'pick-bad))
-  (:documentation "Cut an element from a lisp object."))
+;;; Sexp software object
+(define-software sexp (simple)
+  ((genome :initarg :genome :accessor genome :initform nil :copier copy-tree))
+  (:documentation "Common Sexp source represented naturally as lists of code."))
 
-(define-mutation lisp-replace (mutation)
+(defmethod from-file ((sexp sexp) file)
+  (with-open-file (in file)
+    (setf (genome sexp)
+          (loop :for form := (read in nil :eof)
+             :until (eq form :eof)
+             :collect form)))
+  sexp)
+
+(declaim (inline genome-string))
+(defmethod genome-string ((sexp sexp) &optional stream)
+  (format stream "~&~{~S~^~%~}~%" (genome sexp)))
+
+(defmethod to-file ((sexp sexp) path)
+  (with-open-file (out path :direction :output :if-exists :supersede)
+    (genome-string sexp out)))
+
+(defmethod size ((sexp sexp))
+  (tree-size (genome sexp)))
+
+(defmethod filter-subtrees (predicate (sexp sexp))
+  "Remove subtrees of SEXP patching PREDICATE."
+  (remove-if-not [predicate {subtree (genome sexp)}]
+                 (iter (for i below (size sexp)) (collect i))))
+
+
+;;; Mutations
+(define-mutation sexp-cut (mutation)
+  ((targeter :initform #'pick-bad))
+  (:documentation "Cut an element from a sexp object."))
+
+(define-mutation sexp-replace (mutation)
   ((targeter :initform #'pick-bad-good))
   (:documentation
-   "Replace an element from a lisp object with another element."))
+   "Replace an element from a sexp object with another element."))
 
-(define-mutation lisp-swap (mutation)
+(define-mutation sexp-swap (mutation)
   ((targeter :initform #'pick-bad-good))
-  (:documentation "Swap an element from a lisp object with another element."))
+  (:documentation "Swap an element from a sexp object with another element."))
 
-(defvar *lisp-mutation-types*
-  ;; TODO: Fix `lisp-cut' before adding back to this list.
-  '(lisp-replace lisp-swap)
-  "List of mutations available for use against lisp software objects.")
+(defvar *sexp-mutation-types*
+  ;; TODO: Fix `sexp-cut' before adding back to this list.
+  '(sexp-replace sexp-swap)
+  "List of mutations available for use against sexp software objects.")
 
-(defmethod pick-mutation-type ((obj lisp))
-  (random-elt *lisp-mutation-types*))
+(defmethod pick-mutation-type ((obj sexp))
+  (random-elt *sexp-mutation-types*))
 
-(defmethod mutate ((lisp lisp))
-  (unless (> (size lisp) 0)
-    (error (make-condition 'mutate :text "No valid IDs" :obj lisp)))
-  (let ((mutation (make-instance (pick-mutation-type lisp)
-                                 :object lisp)))
-    (apply-mutation lisp mutation)
-    (values lisp mutation)))
+(defmethod mutate ((sexp sexp))
+  (unless (> (size sexp) 0)
+    (error (make-condition 'mutate :text "No valid IDs" :obj sexp)))
+  (let ((mutation (make-instance (pick-mutation-type sexp)
+                                 :object sexp)))
+    (apply-mutation sexp mutation)
+    (values sexp mutation)))
 
-(defmethod apply-mutation ((lisp lisp) (mutation lisp-cut))
+(defmethod apply-mutation ((sexp sexp) (mutation sexp-cut))
   ;; TODO: Fix.
-  (with-slots (genome) lisp
+  (with-slots (genome) sexp
     (let* ((s1 (targets mutation))
            (st (subtree genome s1)))
       (let ((prev (find-subtree-if [{eq st} #'cdr] genome)))
@@ -82,27 +140,27 @@
             ;; Beginning of a subtree.
             (setf (subtree genome s1)
                   (copy-tree (cdr (subtree genome s1))))))))
-  lisp)
+  sexp)
 
-(defmethod apply-mutation ((lisp lisp) (mutation lisp-replace))
+(defmethod apply-mutation ((sexp sexp) (mutation sexp-replace))
   (bind (((s1 s2) (targets mutation)))
-    (with-slots (genome) lisp
+    (with-slots (genome) sexp
       (setf (subtree genome s1)
             (copy-tree (car (subtree genome s2))))))
-  lisp)
+  sexp)
 
-(defmethod apply-mutation ((lisp lisp) (mutation lisp-swap))
+(defmethod apply-mutation ((sexp sexp) (mutation sexp-swap))
   (bind (((s1 s2) (targets mutation)))
     (let ((s1 (max s1 s2))
           (s2 (min s1 s2)))
-      (with-slots (genome) lisp
+      (with-slots (genome) sexp
         (let ((left  (car (subtree genome s1)))
               (right (car (subtree genome s2))))
           (setf (subtree genome s1) (copy-tree right))
           (setf (subtree genome s2) (copy-tree left))))))
-  lisp)
+  sexp)
 
-(defmethod crossover ((a lisp) (b lisp))
+(defmethod crossover ((a sexp) (b sexp))
   (let ((range (min (size a) (size b))))
     (if (> range 0)
         (let ((points (sort (loop :for i :below 2 :collect (random range)) #'<))

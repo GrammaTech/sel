@@ -10,7 +10,7 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/lisp)
+        :software-evolution-library/software/sexp)
   (:export :expression
            :constant-fold
            :random-subtree
@@ -31,7 +31,7 @@
 (in-package :software-evolution-library/software/expression)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software expression (lisp)
+(define-software expression (sexp)
   ((scope :initarg :scope :accessor scope :initform nil :copier :direct
           :documentation "List of in-scope variable names."))
   (:documentation "DOCFIXME"))
