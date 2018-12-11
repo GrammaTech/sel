@@ -17,9 +17,10 @@
         :iterate
         :software-evolution-library
         :software-evolution-library/utility
-        :software-evolution-library/software/ast
-        :software-evolution-library/software/simple
         :software-evolution-library/ast-diff/ast-diff
+        :software-evolution-library/software/ast
+        :software-evolution-library/software/source
+        :software-evolution-library/software/parseable
 	:eclector.parse-result)
   (:shadowing-import-from :eclector.parse-result :read)
   (:import-from :uiop :nest)
@@ -136,9 +137,10 @@
                (make-space from to)))
              (result
               (when (subtypep (type-of tree) 'expression-result)
-                (setf (children tree)
-                      (w/space
-                       (children tree) (start tree) (end tree))))
+                (when (children tree)
+                  (setf (children tree)
+                        (w/space
+                         (children tree) (start tree) (end tree)))))
               (append
                (make-space from (start tree))
                (list tree)
@@ -152,16 +154,25 @@
                     :until (eq form eof) :collect form))
                0 (length string)))))
 
-(defun walk-forms+ (function forms)
+(defun walk-skipped-forms (function forms)
+  (mapcar
+   (lambda (form)
+     (etypecase form
+       (skipped-input-result (funcall function form))
+       (expression-result (walk-skipped-forms function (children form)))))
+   forms))
+
+(defun walk-forms (function forms)
   (mapcar (lambda (form)
             (etypecase form
               (skipped-input-result (funcall function form))
-              (expression-result (walk-forms+ function (children form)))))
+              (expression-result (funcall function form)
+                                 (walk-forms function (children form)))))
           forms))
 
 (defun write-stream-forms+ (forms stream)
   "Write the original source text of FORMS to STREAM."
-  (walk-forms+  [{format stream "~a"} #'ast-text] forms))
+  (walk-skipped-forms  [{format stream "~a"} #'ast-text] forms))
 
 (defun write-string-forms+ (forms)
   "Write the original source text of FORMS to a string."
@@ -169,122 +180,73 @@
 
 
 ;;; Lisp software object
-(define-software lisp (simple)
-  ((genome :initarg :genome :accessor genome :initform nil :copier copy-tree))
+(define-software lisp (parseable)
+  ()
   (:documentation "Common Lisp source represented naturally as lists of code."))
 
-(defmethod from-file ((lisp lisp) file)
-  (with-open-file (in file)
-    (setf (genome lisp) (read-forms+ (file-to-string file))))
+(defmethod from-string ((lisp lisp) string)
+  (setf (genome lisp) string)
   lisp)
 
-(declaim (inline genome-string))
-(defmethod genome-string ((lisp lisp) &optional stream)
-  (if stream
-      (write-stream-forms+ (genome lisp) stream)
-      (write-string-forms+ (genome lisp))))
+(defmethod from-file ((lisp lisp) file)
+  (from-string lisp (file-to-string file)))
 
-(defmethod to-file ((lisp lisp) path)
-  (with-open-file (out path :direction :output :if-exists :supersede)
-    (write-stream-forms+ (genome lisp) out)))
+(define-ast (lisp-ast (:conc-name ast)))
 
-(defmethod size ((lisp lisp) &aux (size 0))
-  (walk-forms+ (lambda (_) (declare (ignorable _)) (incf size)) (genome lisp))
-  size)
+(defmethod print-object ((obj lisp-ast-node) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream "~a" (ast-class obj)))))
 
-
-;;; Interface to ast-diff for lisp source trees.
-(defmethod source ((result result))
-  (subseq (string-pointer result) (start result) (end result)))
+(defmethod parse-asts ((obj lisp))
+  (read-forms+ (genome obj)))
 
-(defmethod ast-equal-p ((ast-a result) (ast-b result))
-  (ast-equal-p (source ast-a) (source ast-b)))
+(defmethod update-asts ((obj lisp))
+  ;; NOTE: It is required that.
+  ;; - All text be stored as a string in a child of an AST.
+  ;; - The class of an AST, along with it's children, determines
+  ;;   equality of that AST.
+  (labels
+      ((text (form)
+         (subseq (string-pointer form) (start form) (end form)))
+       (make-tree (form)
+         (make-lisp-ast
+          :node
+          (etypecase form
+            (skipped-input-result
+             (make-lisp-ast-node
+              :class :skipped
+              :aux-data (list (cons :reason (reason form)))))
+            (expression-result
+             (make-lisp-ast-node
+              :class :expression
+              :aux-data (cons
+                         (cons :expression (expression form))
+                         (unless (children form)
+                           (list (cons :text (text form))))))))
+          :children
+          (etypecase form
+            (skipped-input-result
+             (list (text form)))
+            (expression-result
+             (if (children form)
+                 (mapcar #'make-tree (children form))
+                 (list (text form))))))))
+    (setf (ast-root obj)
+          (make-lisp-ast :node (make-lisp-ast-node :class :top)
+                         :children (mapcar #'make-tree (parse-asts obj)))
+          (slot-value obj 'genome) nil)
+    obj))
 
-(defmethod ast-cost ((result expression-result))
-  ;; NOTE: Interesting question here about if we want comments to add
-  ;;       to the weight of a source expression.
-  (ast-cost (expression result)))
-
-(defmethod ast-cost ((result skipped-input-result)) 1)
-
-(defmethod ast-hash ((result skipped-input-result))
-  (ast-hash (source result)))
-
-(defmethod ast-hash ((result expression-result))
-  (ast-hash (cons :lisp-expression (mapcar #'ast-hash (children result)))))
-
-(defmethod ast-can-recurse ((ast-a expression-result) (ast-b expression-result))
-  (and (children ast-a) (children ast-b)))
-
-(defmethod ast-can-recurse
-    ((ast-a skipped-input-result) (ast-b expression-result))
-  nil)
-
-(defmethod ast-can-recurse
-    ((ast-a expression-result) (ast-b skipped-input-result))
-  nil)
-
-(defmethod ast-can-recurse
-    ((ast-a skipped-input-result) (ast-b skipped-input-result))
-  t)
-
-(defmethod ast-on-recurse ((ast expression-result))
-  (children ast))
-
-(defmethod ast-un-recurse ((ast expression-result) children)
-  (make-instance 'expression-result
-    :start (start (car children))
-    :end (end (lastcar children))
-    :expression (mapcar #'expression children)
-    :children children
-    :string-pointer (string-pointer (car children))))
-
-(defmethod ast-text ((result result))
-  (source result))
-
-(defmethod ast-diff ((a skipped-input-result) (b skipped-input-result))
-  (ast-diff (source a) (source b)))
-
-(defmethod ast-diff ((a expression-result) (b expression-result))
-  (ast-diff (children a) (children b)))
-
-(defmethod ast-diff ((a lisp) (b lisp))
-  (ast-diff (genome a) (genome b)))
-
-(defmethod ast-patch ((a skipped-input-result) script &key &allow-other-keys)
-  (let* ((str (source a))
-	 (new-str (ast-patch str script)))
-    (if (equal str new-str)
-	a
-	(make-instance 'skipped-input-result
-		       :start 0
-		       :end (length new-str)
-		       :string-pointer new-str
-		       :reason (reason a)))))
-
-(defmethod ast-patch ((a expression-result) script &key &allow-other-keys)
-  (let* ((c (children a))
-	 (new-c (ast-patch c script)))
-    (if (equal c new-c)
-	a
-	(let ((src (mapconcat #'source new-c ""))
-	      (form (iter (for child in new-c)
-			  (when (typep child 'expression-result)
-			    (collect (expression child))))))
-	  ;; Special handling for dotted lists
-	  ;; These are indicated by having the next
-	  ;; to last element of the list be a "CONSING DOT"
-	  (let ((len (length form))
-		(consing-dot eclector.reader::*consing-dot*))
-	    (when (>= len 3)
-	      (let ((last3 (last form 3)))
-		(when (eql (cadr last3) consing-dot)
-		  ;; FORM was newly allocated, so we can
-		  ;; destructively modify it
-		  (setf (cdr last3) (caddr last3))))))
-	  (make-instance 'expression-result
-			 :start 0
-			 :end (length src)
-			 :string-pointer src
-			 :children new-c
-			 :expression form)))))
+;;; NOTE: Lisp requires special handling so that differences don't try
+;;;       to descend into the text of atomic expressions.  The surfiet
+;;;       of classes in other AST-based langauges prevent this from
+;;;       happening.
+(defmethod ast-can-recurse ((ast-a lisp-ast) (ast-b lisp-ast))
+  (and (eq (ast-class ast-a) (ast-class ast-b))
+       (or (not (eql :expression (ast-class ast-a)))
+           ;; Special handling for lisp expression ASTs.
+           ;; Don't descend into atomic expressions.
+           (not (or (atom (aget :expression (ast-aux-data ast-a)))
+                    (atom (aget :expression (ast-aux-data ast-b))))))))

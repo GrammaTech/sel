@@ -1,7 +1,7 @@
 #!/bin/bash
 
-NUM_DIFFS="$(ast-diff -r test/etc/gcd/gcd.lisp test/etc/gcd/gcd-fix.lisp|grep -ic :INSERT)"
-if [ "$NUM_DIFFS" == "2" ];then
+OUT="$(ast-diff -r test/etc/gcd/gcd.lisp test/etc/gcd/gcd-fix.lisp)"
+if [ "$(echo "${OUT}"|grep -ic set)" == "$(echo "${OUT}"|grep -ic setf)" ];then
     echo PASS
     exit 0
 else

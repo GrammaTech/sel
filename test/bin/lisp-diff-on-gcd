@@ -1,7 +1,7 @@
 #!/bin/bash
 
-NUM_DIFFS="$(ast-diff test/etc/gcd/gcd.lisp test/etc/gcd/gcd-fix.lisp|grep -c "{+")"
-if [ "$NUM_DIFFS" == "1" ];then
+COUNT="$(ast-diff test/etc/gcd/gcd.lisp test/etc/gcd/gcd-fix.lisp|grep -c "DEFUN EUCLIDS-GCD")"
+if [ "$COUNT" == "1" ];then
     echo PASS
     exit 0
 else

@@ -38,8 +38,8 @@
         :software-evolution-library
         :software-evolution-library/utility
         :software-evolution-library/software/ast
-        :software-evolution-library/software/parseable
         :software-evolution-library/software/source
+        :software-evolution-library/software/parseable
         :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-json :decode-json-from-string)
   (:export :javascript
@@ -95,8 +95,6 @@
 
 ;;; Javascript parsing
 (defmethod parse-asts ((obj javascript))
-  "Parse the genome of OBJ, return a list of ASTs.
-* OBJ object to parse"
   (with-temp-file-of (src-file (ext obj)) (genome obj)
     (multiple-value-bind (stdout stderr exit)
         (shell "acorn --allow-hash-bang ~a ~a"
@@ -132,8 +130,6 @@
   "Parent AST classes of identifiers which should be interpreted as bound.")
 
 (defmethod update-asts ((obj javascript))
-  "Update the ast-root associated with OBJ.
-* OBJ obj to update"
   (labels
       ((add-aux-data (ast alist)
          (copy ast :aux-data
@@ -329,8 +325,7 @@
                    (list (unpeel-bananas text))
                    (list text)))))
        (make-tree (genome parent-ast-alist ast-alist
-                   &aux (children (remove-if #'null
-                                             (collect-children ast-alist)))
+                          &aux (children (collect-children ast-alist))
                         (new-ast-node (-> (make-javascript-ast-node
                                             :class (make-keyword
                                                      (string-upcase
