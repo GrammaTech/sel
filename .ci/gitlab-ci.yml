@@ -6,8 +6,8 @@ before_script:
   - docker info
 
 stages:
-  - build
-  - test-and-tag
+  - build-and-tag
+  - test
   - dependents
   - deploy-and-cleanup
 
@@ -15,14 +15,14 @@ stages:
   script:
     - if [ "$OS" = "ubuntu" ];
       then
-          export TAG=latest;
+          export PULL_TAG=latest;
       else
-          export TAG=${OS};
+          export PULL_TAG=${OS};
       fi
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${TAG}
-    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${TAG}
-    - docker pull $DOCKER_REGISTRY/synthesis/cl:${TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/clang-mutate:${PULL_TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/java-mutator:${PULL_TAG}
+    - docker pull $DOCKER_REGISTRY/synthesis/cl:${PULL_TAG}
     - docker build --build-arg=GT=yes  --build-arg=LISP=sbcl -f .ci/Dockerfile.${OS} -t ${LOCAL_IMAGE_NAME}-${OS}-${LISP} .
     - if [ ! "$CI_BUILD_REF_NAME" = "latest" ];
       then
