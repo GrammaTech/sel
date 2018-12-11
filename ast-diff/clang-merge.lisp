@@ -17,6 +17,7 @@
         :software-evolution-library/command-line
         :software-evolution-library/components/formatting
 	:software-evolution-library/ast-diff/ast-diff
+	:software-evolution-library/ast-diff/merge
         :software-evolution-library
         :software-evolution-library/software/project
         :software-evolution-library/software/clang
@@ -96,10 +97,3 @@
     (wait-on-manual manual)
     ;; exit with 0 if no merge conflicts, 1 otherwise
     (return-from clang-merge (if unstable 1 0))))
-
-(defgeneric save-to (soft out-dir sub))
-
-(defmethod save-to ((soft project) out-dir sub)
-  (let ((dest (make-pathname :directory (append out-dir (list sub)))))
-    (unless (probe-file dest)
-      (to-file (copy soft) dest))))
