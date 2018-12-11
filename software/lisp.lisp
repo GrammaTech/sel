@@ -137,9 +137,10 @@
                (make-space from to)))
              (result
               (when (subtypep (type-of tree) 'expression-result)
-                (setf (children tree)
-                      (w/space
-                       (children tree) (start tree) (end tree))))
+                (when (children tree)
+                  (setf (children tree)
+                        (w/space
+                         (children tree) (start tree) (end tree)))))
               (append
                (make-space from (start tree))
                (list tree)
@@ -203,7 +204,9 @@
 
 (defmethod update-asts ((obj lisp))
   (labels
-      ((make-tree (form)
+      ((text (form)
+         (subseq (string-pointer form) (start form) (end form)))
+       (make-tree (form)
          (make-lisp-ast
           :node
           (etypecase form
@@ -214,26 +217,73 @@
             (expression-result
              (make-lisp-ast-node
               :class :expression
-              :aux-data (list (cons :expression (expression form))))))
+              :aux-data (cons
+                         (cons :expression (expression form))
+                         (unless (children form)
+                           (list (cons :text (text form))))))))
           :children
           (etypecase form
             (skipped-input-result
-             (list (subseq (string-pointer form) (start form) (end form))))
+             (list (text form)))
             (expression-result
              (mapcar #'make-tree (children form)))))))
     (setf (ast-root obj)
-          (make-lisp-ast :node (make-lisp-ast-node :class :expression)
+          (make-lisp-ast :node (make-lisp-ast-node :class :top)
                          :children (mapcar #'make-tree (parse-asts obj)))
           (slot-value obj 'genome) nil)
     obj))
 
+;;; NOTE: From here down we're swimming upstream.
+;;;
+;;; The AST class assumes that *all* source text is stored as a raw
+;;; string somewhere in the AST.  It also assumes that if two ASTs
+;;; have the same class and the same source text then they are equal.
+;;; These assumptions are not true for the current lisp AST class.
+;;; Violating these assumptions has meant customizing the following
+;;; methods from ast.lisp.
+
+(defmethod source-text ((ast lisp-ast))
+  (if (ast-children ast)
+      (nest (apply #'concatenate 'string)
+            (mapcar #'source-text (ast-children ast)))
+      (source-text (ast-node ast))))
+
+(defmethod source-text ((node lisp-ast-node))
+  (ecase (ast-class node)
+    (:top (call-next-method))
+    (:expression (aget :text (ast-aux-data node)))
+    (:skipped ; We should never call `source-text' on skipped
+              ; LISP-AST-NODES because skipped LISP-ASTs should always
+              ; have children (specifically string children).
+     (error "source-text should never be called on skipped"))))
+
 (defmethod ast-equal-p ((ast-a lisp-ast) (ast-b lisp-ast))
-  ;; TODO: This seems potentially insufficient/buggy for software
-  ;;       objects which have limited AST classes.
   (and (eq (ast-class ast-a) (ast-class ast-b))
        (ecase (ast-class ast-a)
-         (:skipped (and (aget :reason (ast-aux-data ast-a))
-                        (aget :reason (ast-aux-data ast-b))
+         (:top (and (eq (length (ast-children ast-a))
+                        (length (ast-children ast-b)))
+                    (every #'ast-equal-p (ast-children ast-a)
+                           (ast-children ast-b))))
+         (:skipped (and (eql (aget :reason (ast-aux-data ast-a))
+                             (aget :reason (ast-aux-data ast-b)))
                         (ast-equal-p (ast-text ast-a) (ast-text ast-b))))
-         (:expression (tree-equal (aget :expression (ast-aux-data ast-a))
-                                  (aget :expression (ast-aux-data ast-b)))))))
+         (:expression
+          (if (or (ast-children ast-a) (ast-children ast-b))
+              (and (eq (length (ast-children ast-a))
+                       (length (ast-children ast-b)))
+                   (every #'ast-equal-p (ast-children ast-a) (ast-children ast-b)))
+              (progn
+                (assert (and (atom (aget :expression (ast-aux-data ast-a)))
+                             (atom (aget :expression (ast-aux-data ast-b)))))
+                (eql (aget :expression (ast-aux-data ast-a))
+                     (aget :expression (ast-aux-data ast-b)))))))))
+
+(defmethod update-caches ((obj lisp))
+  (labels ((collect-asts (tree)
+             ;; Collect all subtrees
+             (cons tree
+                   (iter (for c in (ast-children tree))
+                         (unless (stringp c)
+                           (appending (collect-asts c)))))))
+    (setf (slot-value obj 'asts)
+          (cdr (collect-asts (ast-root obj))))))

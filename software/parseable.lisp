@@ -320,9 +320,7 @@ field indicates the object has changed since the last parse."
             (cdr (collect-asts (ast-root obj)))))))
 
 (defmethod update-caches-if-necessary ((obj parseable))
-  "Update cached fields if these fields have not been set.
-* OBJ object to potentially populate with cached fields
-"
+  "Update cached fields of OBJ if these fields have not been set."
   (with-slots (asts) obj (unless asts (update-caches obj))))
 
 (defmethod clear-caches ((obj parseable))
