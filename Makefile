@@ -88,11 +88,12 @@ TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \
 	test/etc/gcd/gcd.s
 
-BINS = clang-diff clang-merge lisp-diff lisp-merge
+BINS = clang-diff clang-merge lisp-diff lisp-merge javascript-diff javascript-merge
 
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate	\
+	javascript-diff-on-gcd	\
 	lisp-diff-on-gcd	\
 	lisp-diff-on-gcd-raw	\
 	clang-diff-on-gcd

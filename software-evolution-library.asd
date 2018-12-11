@@ -89,3 +89,22 @@ techniques."
   :build-pathname "bin/lisp-merge"
   :entry-point "software-evolution-library/ast-diff/lisp::run-lisp-merge")
 
+(defsystem "software-evolution-library/run-javascript-diff"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "Calculate difference between two JavaScript programs."
+  :version "0.0.0"
+  :depends-on (software-evolution-library/ast-diff/javascript)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/javascript-diff"
+  :entry-point "software-evolution-library/ast-diff/javascript::run-javascript-diff")
+
+(defsystem "software-evolution-library/run-javascript-merge"
+  :author "Paul Dietz and GrammaTech"
+  :licence "GPL V3"
+  :description "Compute the merge of two JavaScript programs that diverge from a common ancestral version."
+  :version "0.0.0"
+  :depends-on (software-evolution-library/ast-diff/javascript)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/javascript-merge"
+  :entry-point "software-evolution-library/ast-diff/javascript::run-javascript-merge")
