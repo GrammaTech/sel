@@ -6,8 +6,8 @@ before_script:
   - docker info
 
 stages:
-  - build-and-tag
-  - test
+  - build
+  - test-and-tag
   - dependents
   - deploy-and-cleanup
 
