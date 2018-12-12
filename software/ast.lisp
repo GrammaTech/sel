@@ -323,8 +323,16 @@ replacing the original AST."))
 ;;; Base implementation of generic functions
 (defmethod source-text ((ast ast))
   "Return the source code corresponding to AST."
-  (nest (apply #'concatenate 'string)
-        (mapcar #'source-text (cons (ast-node ast) (ast-children ast)))))
+  ;; In performance comparison the combination of
+  ;; `with-output-to-string' and `write-string' was faster than
+  ;; alternatives using `format' (which was still pretty fast) and
+  ;; using `concatenate' (which was slow).
+  ;;
+  ;; More importantly using (apply #'concatenate ...) runs into
+  ;; problems as the number of ASTs is very large.
+  (with-output-to-string (out)
+    (mapc [{write-string _ out} #'source-text]
+          (cons (ast-node ast) (ast-children ast)))))
 
 (defmethod source-text ((node ast-node))
   "Return a source text representation of a single, immutable, AST node."

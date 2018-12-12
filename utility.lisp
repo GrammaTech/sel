@@ -2448,6 +2448,14 @@ that function may be declared.")
 
 ;;;; Iteration helpers
 (defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))
+  ;; Use of this helper is *NOT* recommended for potentially large
+  ;; lists of strings as the repeated concatenation continually copies
+  ;; the string leading to very bad performance.  A better option
+  ;; would be the following:
+  ;;
+  ;;     (with-output-to-string (out)
+  ;;       (iter #|...foo...|#
+  ;;         (write-string #|...bar|# out)))
   `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
 
 
