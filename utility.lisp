@@ -455,7 +455,7 @@ SET-UTF8-ENCODING. "
 (defvar *temp-dir* nil
   "Set to non-nil for a custom temporary directory.")
 
-(defun temp-file-name (&optional ext)
+(defun temp-file-name (&optional type)
   (let ((base #+clisp
           (let ((stream (gensym)))
             (eval `(with-open-stream
@@ -472,12 +472,12 @@ SET-UTF8-ENCODING. "
           (system:make-temp-file-name nil *temp-dir*)
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
-    (if ext
+    (if type
         (if (pathnamep base)
             (namestring (make-pathname :directory (pathname-directory base)
                                        :name (pathname-name base)
-                                       :type ext))
-            (concatenate 'string base "." ext))
+                                       :type type))
+            (concatenate 'string base "." type))
         (if (pathname base)
             (namestring base)
             base))))
@@ -538,12 +538,11 @@ may lose the original working directory."
     (setf *default-pathname-defaults* pathname)
     (chdir pathname)))
 
-(defmacro with-temp-file-of (spec str &rest body)
-  "SPEC should be a list of the variable used to reference the file
-and an optional extension."
-  `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect (progn (string-to-file ,str ,(car spec)) ,@body)
-       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+(defmacro with-temp-file-of ((variable &optional type) string &rest body)
+  "Execute BODY with STRING in a temporary file whose path is in VARIABLE."
+  `(let ((,variable (temp-file-name ,type)))
+     (unwind-protect (progn (string-to-file ,string ,variable) ,@body)
+       (when (probe-file ,variable) (delete-file ,variable)))))
 
 (defmacro with-temp-file-of-bytes (spec bytes &rest body)
   "SPEC should be a list of the variable used to reference the file
@@ -878,10 +877,13 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 (define-condition shell-command-failed (error)
   ((commmand :initarg :command :initform nil :reader command)
-   (exit-code :initarg :exit-code :initform nil :reader exit-code))
+   (exit-code :initarg :exit-code :initform nil :reader exit-code)
+   (stderr :initarg :stderr :initform nil :reader stderr))
   (:report (lambda (condition stream)
-             (format stream "Shell command failed with status ~a: \"~a\""
-                     (exit-code condition) (command condition)))))
+             (format stream "Shell command ~S failed with [~A]:~%~S~&"
+                     (command condition)
+                     (exit-code condition)
+                     (stderr condition)))))
 
 (defun shell (control-string &rest format-arguments &aux input)
   "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
@@ -959,8 +961,9 @@ Optionally print debug information if `*shell-debug*' is non-nil."
                      (not (find errno *shell-non-error-codes*)))
                 (find errno *shell-error-codes*))
         (restart-case (error (make-condition 'shell-command-failed
+                               :command cmd
                                :exit-code errno
-                               :command cmd))
+                               :stderr stderr-str))
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
@@ -2445,6 +2448,14 @@ that function may be declared.")
 
 ;;;; Iteration helpers
 (defmacro-clause (CONCATENATING expr &optional INTO var INITIAL-VALUE (val ""))
+  ;; Use of this helper is *NOT* recommended for potentially large
+  ;; lists of strings as the repeated concatenation continually copies
+  ;; the string leading to very bad performance.  A better option
+  ;; would be the following:
+  ;;
+  ;;     (with-output-to-string (out)
+  ;;       (iter #|...foo...|#
+  ;;         (write-string #|...bar|# out)))
   `(reducing ,expr by {concatenate 'string} into ,var initial-value ,val))
 
 
