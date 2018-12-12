@@ -455,7 +455,7 @@ SET-UTF8-ENCODING. "
 (defvar *temp-dir* nil
   "Set to non-nil for a custom temporary directory.")
 
-(defun temp-file-name (&optional ext)
+(defun temp-file-name (&optional type)
   (let ((base #+clisp
           (let ((stream (gensym)))
             (eval `(with-open-stream
@@ -472,12 +472,12 @@ SET-UTF8-ENCODING. "
           (system:make-temp-file-name nil *temp-dir*)
           #-(or sbcl clisp ccl allegro ecl)
           (error "no temporary file backend for this lisp.")))
-    (if ext
+    (if type
         (if (pathnamep base)
             (namestring (make-pathname :directory (pathname-directory base)
                                        :name (pathname-name base)
-                                       :type ext))
-            (concatenate 'string base "." ext))
+                                       :type type))
+            (concatenate 'string base "." type))
         (if (pathname base)
             (namestring base)
             base))))
@@ -538,12 +538,11 @@ may lose the original working directory."
     (setf *default-pathname-defaults* pathname)
     (chdir pathname)))
 
-(defmacro with-temp-file-of (spec str &rest body)
-  "SPEC should be a list of the variable used to reference the file
-and an optional extension."
-  `(let ((,(car spec) (temp-file-name ,(second spec))))
-     (unwind-protect (progn (string-to-file ,str ,(car spec)) ,@body)
-       (when (probe-file ,(car spec)) (delete-file ,(car spec))))))
+(defmacro with-temp-file-of ((variable &optional type) string &rest body)
+  "Execute BODY with STRING in a temporary file whose path is in VARIABLE."
+  `(let ((,variable (temp-file-name ,type)))
+     (unwind-protect (progn (string-to-file ,string ,variable) ,@body)
+       (when (probe-file ,variable) (delete-file ,variable)))))
 
 (defmacro with-temp-file-of-bytes (spec bytes &rest body)
   "SPEC should be a list of the variable used to reference the file
