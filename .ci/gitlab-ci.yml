@@ -9,7 +9,8 @@ stages:
   - build
   - test-and-tag
   - dependents
-  - deploy-and-cleanup
+  - deploy
+  - cleanup
 
 .build-template: &build
   script:
@@ -134,16 +135,12 @@ trigger_shaker:
     - master
 
 pages:
-  stage: deploy-and-cleanup
+  stage: deploy
   script:
     - export CONTAINER_FILE=${LOCAL_IMAGE_NAME}-arch-sbcl.container
     - mkdir -p $(dirname ${CONTAINER_FILE})
     - docker run -e LOCAL_USER=root -e GT=yes --cidfile=${CONTAINER_FILE} ${LOCAL_IMAGE_NAME}-arch-sbcl /bin/bash -c "mkdir -p /public && cd /root/quicklisp/local-projects/sel && make doc && cp -R doc/software-evolution-library/* /public/"
     - docker cp $(cat ${CONTAINER_FILE}):/public ./
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl
-    - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl
   artifacts:
     paths:
       - public
@@ -151,11 +148,10 @@ pages:
     - master
 
 cleanup:
-  stage: deploy-and-cleanup
-  script:
+  stage: cleanup
+  after_script:
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-sbcl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-ubuntu-ccl
-  except:
-    - master
+  when: always
