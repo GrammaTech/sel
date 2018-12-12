@@ -149,6 +149,8 @@ pages:
 
 cleanup:
   stage: cleanup
+  script:
+    - date
   after_script:
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-ccl
     - docker rmi -f ${LOCAL_IMAGE_NAME}-arch-sbcl
