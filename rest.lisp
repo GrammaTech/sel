@@ -255,6 +255,10 @@
    :software-evolution-library/software-evolution-library
    :software-evolution-library/utility
    :software-evolution-library/components/test-suite
+   :software-evolution-library/components/formatting
+   :software-evolution-library/components/instrument
+   :software-evolution-library/components/traceable
+   :software-evolution-library/software/parseable
    ;; TODO: Maybe remove this dependency.
    :software-evolution-library/software/asm-super-mutant
    :software-evolution-library/software/clang)

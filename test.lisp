@@ -687,10 +687,7 @@
   (:teardown (setf *soft* nil)))
 
 (defixture rest-server
-    (:setup (incf *clack-port*)
-            (setf *clack* (initialize-clack)))
-  (:teardown (clack:stop *clack*)
-             (setf *rest-client* nil)))
+    (:setup (unless *clack* (setf *clack* (initialize-clack)))))
 
 (defixture gcd-elf
   (:setup
