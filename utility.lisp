@@ -877,10 +877,13 @@ Wraps around SBCL- or CCL-specific representations of external processes."))
 
 (define-condition shell-command-failed (error)
   ((commmand :initarg :command :initform nil :reader command)
-   (exit-code :initarg :exit-code :initform nil :reader exit-code))
+   (exit-code :initarg :exit-code :initform nil :reader exit-code)
+   (stderr :initarg :stderr :initform nil :reader stderr))
   (:report (lambda (condition stream)
-             (format stream "Shell command failed with status ~a: \"~a\""
-                     (exit-code condition) (command condition)))))
+             (format stream "Shell command ~S failed with [~A]:~%~S~&"
+                     (command condition)
+                     (exit-code condition)
+                     (stderr condition)))))
 
 (defun shell (control-string &rest format-arguments &aux input)
   "Apply CONTROL-STRING to FORMAT-ARGUMENTS and execute the result with a shell.
@@ -958,8 +961,9 @@ Optionally print debug information if `*shell-debug*' is non-nil."
                      (not (find errno *shell-non-error-codes*)))
                 (find errno *shell-error-codes*))
         (restart-case (error (make-condition 'shell-command-failed
+                               :command cmd
                                :exit-code errno
-                               :command cmd))
+                               :stderr stderr-str))
           (ignore-shell-error () "Ignore error and continue")))
       (values stdout-str stderr-str errno))))
 
