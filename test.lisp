@@ -6497,11 +6497,9 @@ prints unique counters in the trace"
                                         ast)))
                 :trace-file :stderr)
     (with-temp-file (bin)
-      (with-temp-build-dir ((directory-namestring
-                             (make-pathname :directory +multi-file-dir+)))
-        (is (zerop (nth-value 1 (ignore-phenome-errors
-                                 (phenome *project* :bin bin))))
-            "Successfully compiled instrumented project."))
+      (is (zerop (nth-value 1 (ignore-phenome-errors
+                               (phenome *project* :bin bin))))
+          "Successfully compiled instrumented project.")
       (with-temp-file (trace-file)
         (let ((errno (nth-value 2 (run-program (format nil "~a 2>~a"
                                                        bin trace-file)))))

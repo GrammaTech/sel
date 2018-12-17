@@ -31,9 +31,6 @@
            :project-dir
            :instrumentation-files
            :all-files
-           :with-build-dir
-           :with-temp-build-dir
-           :full-path
            :make-build-dir
            :*build-dir*))
 (in-package :software-evolution-library/software/project)
@@ -92,8 +89,12 @@ software objects in it's `evolve-files'."))
   (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
+(defmethod to-file :before ((project project) path)
+  ;; Don't copy supporting files if they're already in `*build-dir*'.
+  (unless (and *build-dir* (equalp (namestring path) (namestring *build-dir*)))
+    (make-build-dir (project-dir project) :path path)))
+
 (defmethod to-file ((project project) path)
-  (make-build-dir (project-dir project) :path path)
   ;; Write genomes into the relevant files.
   (handler-bind ((file-access
                   (lambda (c)
@@ -284,42 +285,41 @@ threads by creating separate build directory per thread.")
       (make-build-dir src-dir :path new-path))))
 
 (defun full-path (rel-path)
-  "Prepend current build directory to a relative path."
+  "Prepend `*build-dir*' to REL-PATH."
   (assert *build-dir*)
   (in-directory *build-dir* rel-path))
 
-(defmacro with-build-dir ((build-dir) &body body)
-  "Rebind *build-dir* within BODY"
-  `(let ((*build-dir* ,build-dir))
-     ,@body))
+(defmethod phenome :around
+    ((obj project) &key
+                     (bin (temp-file-name))
+                     (build-dir (or *build-dir* (temp-file-name))))
+  (let ((keep-file-p (probe-file build-dir)))
+    ;; Ensure source and required artifacts are present in build-dir.
+    (to-file obj build-dir)
+    ;; Using `call-next-method' with arguments to ensure build-dir has
+    ;; the same value in the main `phenome' method.
+    (unwind-protect (call-next-method obj :bin bin :build-dir build-dir)
+      (unless keep-file-p (sel/utility::ensure-temp-file-free build-dir)))))
 
-(defmacro with-temp-build-dir ((src-dir) &body body)
-  "Create a temporary copy of src-dir, and rebind *build-dir* to that
-path within BODY."
-  (let ((build-dir (gensym)))
-    `(let ((,build-dir (when ,src-dir (make-build-dir ,src-dir))))
-       (unwind-protect (with-build-dir (,build-dir) ,@body)
-         (delete-directory-tree ,build-dir :validate t)))))
-
-(defmethod phenome ((obj project) &key (bin (temp-file-name)))
+(defmethod phenome
+    ((obj project) &key
+                     (bin (temp-file-name))
+                     (build-dir (or *build-dir* (temp-file-name))))
   "Build the software project OBJ and copy build artifact(s) to BIN."
-  (assert *build-dir* (*build-dir*)
-          "*build-dir* must be set prior to building a project.")
-  (to-file obj *build-dir*)
-
-  ;; Build the object and copy it to desired location.
+  ;; Build.
   (multiple-value-bind (stdout stderr exit)
-      (shell "cd ~a && ~a" *build-dir* (build-command obj))
+      (shell "cd ~a && ~a" build-dir (build-command obj))
     (restart-case
         (if (zerop exit)
             (progn
               (when (> (length (artifacts obj)) 1)
                 (shell "mkdir ~a" bin))
+              ;; Copy artifacts to BIN.
               (iter (for artifact in (artifacts obj))
                     (shell "cp -r ~a ~a"
-                           (namestring (full-path artifact)) bin)))
+                           (namestring (in-directory build-dir artifact)) bin)))
             (error (make-condition 'phenome
-                     :text stderr :obj obj :loc *build-dir*)))
+                     :text stderr :obj obj :loc build-dir)))
       (retry-project-build ()
         :report "Retry `phenome' on OBJ."
         (phenome obj :bin bin))
@@ -327,4 +327,4 @@ path within BODY."
         :report "Allow failure returning NIL for bin."
         (setf bin nil)))
     (values bin exit stderr stdout
-            (mapcar [#'full-path #'first] (evolve-files obj)))))
+            (mapcar [{in-directory build-dir} #'first] (evolve-files obj)))))
