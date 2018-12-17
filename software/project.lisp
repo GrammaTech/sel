@@ -33,8 +33,8 @@
            :all-files
            :with-build-dir
            :with-temp-build-dir
-           :make-build-dir
            :full-path
+           :make-build-dir
            :*build-dir*))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
@@ -92,22 +92,16 @@ software objects in it's `evolve-files'."))
   (declare (ignore text project))
   (error "Can only set the genome of component files of a project."))
 
-(defmethod write-genome-to-files ((project project) dir)
+(defmethod to-file ((project project) path)
+  (make-build-dir (project-dir project) :path path)
+  ;; Write genomes into the relevant files.
   (handler-bind ((file-access
                   (lambda (c)
                     (warn "Changing permission from ~a to ~a"
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
     (loop for (file . obj) in (all-files project)
-       do (string-to-file (genome-string obj) (in-directory dir file)))))
-
-(defmethod to-file ((project project) path)
-  "Write PROJECT to the PATH directory.
-* PROJECT project to output
-* PATH directory to write the project to
-"
-  (make-build-dir-aux (project-dir project) path)
-  (write-genome-to-files project path))
+       do (string-to-file (genome-string obj) (in-directory path file)))))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."
@@ -266,7 +260,19 @@ threads by creating separate build directory per thread.")
 
 (defun make-build-dir (src-dir &key (path (temp-file-name)))
   "Create a temporary copy of a build directory for use during evolution."
-  (restart-case (make-build-dir-aux src-dir path)
+  (restart-case
+      (let ((dir (ensure-directory-pathname path)))
+        ;; Verify parent directory exists, otherwise the copy will fail.
+        (ensure-directories-exist (pathname-parent-directory-pathname dir))
+        ;; Copy from src-dir into path.
+        (multiple-value-bind (stdout stderr errno)
+            (if (probe-file path) ; Different copy if directory already exists.
+                (shell "cp -pr ~a/* ~a/" (namestring src-dir) (namestring dir))
+                (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir)))
+          (declare (ignorable stdout))
+          (assert (zerop errno) (src-dir path)
+                  "Creation of build directory failed with: ~a" stderr))
+        dir)
     (retry-make-build-dir ()
       :report "Retry `make-build-dir' with new temp dir."
       (make-build-dir src-dir))
@@ -276,21 +282,6 @@ threads by creating separate build directory per thread.")
                      (princ "Path: " *query-io*)
                      (list (read-line  *query-io*)))
       (make-build-dir src-dir :path new-path))))
-
-(defun make-build-dir-aux (src-dir path)
-  "Auxiliary function invoked from MAKE-BUILD-DIR, which wraps
-this call in error handling code. See that function for argument
-meanings."
-  (let ((dir (ensure-directory-pathname path)))
-    ;; Verify parent directory exists, otherwise the copy will fail.
-    (ensure-directories-exist (pathname-parent-directory-pathname dir))
-    ;; Copy from src-dir into path.
-    (multiple-value-bind (stdout stderr errno)
-        (shell "cp -pr ~a ~a" (namestring src-dir) (namestring dir))
-      (declare (ignorable stdout))
-      (assert (zerop errno) (src-dir path)
-              "Creation of build directory failed with: ~a" stderr))
-    dir))
 
 (defun full-path (rel-path)
   "Prepend current build directory to a relative path."
@@ -314,7 +305,7 @@ path within BODY."
   "Build the software project OBJ and copy build artifact(s) to BIN."
   (assert *build-dir* (*build-dir*)
           "*build-dir* must be set prior to building a project.")
-  (write-genome-to-files obj *build-dir*)
+  (to-file obj *build-dir*)
 
   ;; Build the object and copy it to desired location.
   (multiple-value-bind (stdout stderr exit)

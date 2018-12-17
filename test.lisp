@@ -82,6 +82,7 @@
    :software-evolution-library/software/with-exe
    :software-evolution-library/stefil-plus)
   (:import-from :hunchentoot)
+  (:import-from :osicat :file-permissions :pathname-as-directory)
   (:shadowing-import-from :common-lisp :type)
   (:shadowing-import-from :software-evolution-library :size)
   (:shadowing-import-from :clack :stop)
@@ -7099,6 +7100,19 @@ prints unique counters in the trace"
 
 (defmethod test-method ((obj simple) value)
   value)
+
+(deftest project-copy-preserves-permissions ()
+  ;; Ensure `to-file' preserves permissions on executable files.
+  (nest
+   (with-fixture grep-project)
+   (with-temp-file (dir-path))
+   (let ((dir (pathname-directory (pathname-as-directory dir-path))))
+     (to-file *project* dir-path)
+     (is (member :user-exec
+                 (file-permissions
+                  (make-pathname :name "test"
+                                 :type "sh"
+                                 :directory (append dir (list "support")))))))))
 
 (deftest clang-project-test ()
   (with-fixture grep-project
