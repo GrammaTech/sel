@@ -150,7 +150,7 @@ Assumes evolve-files has been initialized.")
                           (file-access-operation c) (file-access-path c))
                     (invoke-restart 'set-file-writable))))
     (loop for (file . obj) in (all-files project)
-       do (string-to-file (genome-string obj) (in-directory path file)))))
+       do (to-file obj (in-directory path file)))))
 
 (defmethod size ((obj project))
   "Return summed size across all `evolve-files'."

@@ -13,6 +13,7 @@
         :software-evolution-library/utility)
   (:shadowing-import-from :uiop :ensure-directory-pathname)
   (:import-from :asdf-encodings :detect-file-encoding)
+  (:import-from :osicat :file-permissions)
   (:export :simple
            :light
            :sw-range
@@ -30,7 +31,8 @@
 ;;; simple software objects
 (define-software simple (software)
   ((genome :initarg :genome :accessor genome :initform nil
-           :copier sel/utility:enhanced-copy-seq))
+           :copier sel/utility:enhanced-copy-seq)
+   (permissions :initarg :permissions :accessor permissions :initform nil))
   (:documentation "The simplest base software object."))
 
 (declaim (inline lines))
@@ -48,7 +50,8 @@
   (format stream "~{~a~%~}" (lines simple)))
 
 (defmethod from-file ((simple simple) path)
-  (setf (genome simple)
+  (setf (permissions simple) (file-permissions path)
+        (genome simple)
         (with-open-file (in path :external-format (detect-file-encoding path))
           (loop :for line := (read-line in nil) :while line
              :collect (list (cons :code line)))))
@@ -56,7 +59,8 @@
 
 (defmethod to-file ((simple simple) file)
   (with-open-file (out file :direction :output :if-exists :supersede)
-    (genome-string simple out)))
+    (genome-string simple out))
+  (setf (file-permissions file) (permissions simple)))
 
 (defvar *simple-mutation-types*
   (cumulative-distribution
