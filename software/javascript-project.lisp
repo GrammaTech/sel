@@ -35,12 +35,7 @@
      :initarg :package-spec
      :accessor package-spec
      :initform nil
-     :documentation "Javascript project specification from package.json file.")
-   (ignore-directories
-     :initarg :ignore-directories
-     :reader ignore-directories
-     :initform (list "test" "tests" "node_modules")
-     :documentation "List of directories to ignore when building the project."))
+     :documentation "Javascript project specification from package.json file."))
   (:documentation "Project specialization for javascript software objects."))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
@@ -88,11 +83,7 @@
               ;; 2) The file has a "js" extension.
               ;; 3) The file is listed as a "bin" in package.json.
               ;; 4) The file is listed as "main" in package.json.
-              (or (and (not (find-if {search _ (pathname-directory rel-path)
-                                             :test #'equalp}
-                                     (ignore-directories obj)
-                                     :key [#'pathname-directory
-                                           #'ensure-directory-pathname]))
+              (or (and (not (ignored-path-p obj rel-path))
                        (equal "js" (pathname-type rel-path)))
                   (find rel-path (aget :bin pkg)
                         :key [#'canonical-pathname #'cdr]

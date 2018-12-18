@@ -7099,6 +7099,19 @@ prints unique counters in the trace"
 (defmethod test-method ((obj simple) value)
   value)
 
+(deftest ignored-files-are-ignored ()
+  (let ((prj (make-instance 'project :ignore-files '("README"))))
+    (is (ignored-path-p prj "README"))
+    (is (not (ignored-path-p prj "Makefile")))))
+
+(deftest ignored-directories-are-ignored ()
+  (let ((prj (make-instance 'project :ignore-directories '("etc"))))
+    (is (ignored-path-p prj "etc/foo"))
+    (is (ignored-path-p prj "./etc/foo"))
+    (is (not (ignored-path-p prj "Makefile")))
+    (is (not (ignored-path-p prj "src/foo")))
+    (is (not (ignored-path-p prj "./src/foo")))))
+
 (deftest project-copy-preserves-permissions ()
   ;; Ensure `to-file' preserves permissions on executable files.
   (nest

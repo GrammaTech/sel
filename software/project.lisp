@@ -27,8 +27,11 @@
            :artifacts
            :evolve-files
            :other-files
+           :ignore-files
+           :ignore-directories
            :component-class
            :project-dir
+           :ignored-path-p
            :apply-to-project
            :project-path
            :collect-evolve-files
@@ -59,6 +62,18 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       "Source files which may be used (e.g., instrumented) but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
       :copier copy-files)
+     (ignore-files
+      :initarg :ignore-files
+      :reader ignore-files
+      :initform nil
+      :documentation
+      "List of files to ignore when collecting evolve-files.")
+     (ignore-directories
+      :initarg :ignore-directories
+      :reader ignore-directories
+      :initform nil
+      :documentation
+      "List of directories to ignore when collecting evolve-files")
      (component-class
       :initarg :component-class :accessor component-class :initform nil
       :documentation "Software object class to utilize in component objects.")
@@ -70,6 +85,16 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
 software objects in it's `evolve-files'."))
+
+(defgeneric ignored-path-p (software path)
+  (:documentation "Check if PATH is ignored in SOFTWARE.")
+  (:method ((obj project) path)
+    (or (find-if {search _ (pathname-directory (canonical-pathname path))
+                         :test #'equalp}
+                 (ignore-directories obj)
+                 :key [#'pathname-directory #'ensure-directory-pathname])
+        (find-if [{equal (canonical-pathname path)} #'canonical-pathname]
+                 (ignore-files obj)))))
 
 (defun copy-files (files)
   "Copier for `evolve-files' and `other-files' on `project' software objects."
