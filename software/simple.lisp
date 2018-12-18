@@ -29,12 +29,11 @@
 
 ;;; simple software objects
 (define-software simple (software)
-  ((genome :initarg :genome :accessor genome :initform nil :copier sel/utility:enhanced-copy-seq)
-   (encoding :initarg :encoding :accessor encoding :initform :default))
-  (:documentation "DOCFIXME"))
+  ((genome :initarg :genome :accessor genome :initform nil
+           :copier sel/utility:enhanced-copy-seq))
+  (:documentation "The simplest base software object."))
 
 (declaim (inline lines))
-
 (defmethod lines ((simple simple))
   (remove nil (map 'list {aget :code} (genome simple))))
 
@@ -48,15 +47,11 @@
 (defmethod genome-string ((simple simple) &optional stream)
   (format stream "~{~a~%~}" (lines simple)))
 
-(defun file-to-simple-genome-list (filespec &optional (external-format :default))
-  (with-open-file (in filespec :external-format external-format)
-    (loop :for line := (read-line in nil) :while line
-       :collect (list (cons :code line)))))
-
 (defmethod from-file ((simple simple) path)
-  (let ((encoding (detect-file-encoding path)))
-    (setf (encoding simple) encoding
-	  (genome simple) (file-to-simple-genome-list path encoding)))
+  (setf (genome simple)
+        (with-open-file (in path :external-format (detect-file-encoding path))
+          (loop :for line := (read-line in nil) :while line
+             :collect (list (cons :code line)))))
   simple)
 
 (defmethod to-file ((simple simple) file)
